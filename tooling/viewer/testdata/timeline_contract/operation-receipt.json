@@ -7,7 +7,7 @@
     "operation_id": "validation:1",
     "kind": "append_event",
     "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
-    "session_version": 4,
+    "session_version": 4,"current_stage_event_id":null,
     "event_id": "event_validation",
     "event_version": 1,
     "sequence": 3,

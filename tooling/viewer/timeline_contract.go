@@ -2,6 +2,8 @@ package viewer
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -17,19 +19,26 @@ import (
 // TimelineSchemaVersion versions the API contract independently of legacy manifests.
 const TimelineSchemaVersion = 1
 const (
-	TimelineMaxBody               = 2 << 20
-	TimelineContentBudget         = 7 << 18
-	TimelineMaxEvents             = 500
-	TimelineMaxViews              = 50
-	TimelineMaxImageRefs          = 100
-	TimelineMaxReceipts           = 1000
-	TimelineContentReceipts       = 992
-	TimelineMaxNumber       int64 = 2147483647
+	TimelineMaxBody                         = 2 << 20
+	TimelineContentBudget                   = 7 << 18
+	TimelineMaxEvents                       = 500
+	TimelineMaxViews                        = 50
+	TimelineMaxImageRefs                    = 100
+	TimelineMaxReceipts                     = 1000
+	TimelineContentReceipts                 = 992
+	TimelineMaxDocumentBytes                = 256 << 10
+	TimelineMaxDocumentTabs                 = 8
+	TimelineMaxDocuments                    = 64
+	TimelineMaxDocumentSnapshots            = 50
+	TimelineMaxAggregateDocumentBytes       = 16 << 20
+	TimelineMaxNumber                 int64 = 2147483647
 )
 
 type TimelineHost string
 type TimelineState string
 type TimelineEventKind string
+type TimelineStage string
+type TimelineStageState string
 
 const (
 	TimelineActive             TimelineState = "active"
@@ -40,7 +49,7 @@ const (
 
 var timelineHosts = []string{"codex", "claude-code", "grok", "pi", "opencode", "cursor"}
 var timelineStates = []string{"active", "awaiting_validation", "paused", "closed"}
-var timelineEventKinds = []string{"request", "work_started", "validation", "changes_reported", "iteration", "approval_reported", "delivery", "closure"}
+var timelineEventKinds = []string{"request", "work_started", "stage", "validation", "changes_reported", "iteration", "approval_reported", "delivery", "closure"}
 var timelineOpaqueID = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$`)
 var timelineOperationID = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$`)
 var timelineSHA256 = regexp.MustCompile(`^[0-9a-f]{64}$`)
@@ -74,10 +83,52 @@ type TimelineCandidate struct {
 	Commit string `json:"commit"`
 	Base   string `json:"base"`
 }
-type TimelineEvidenceTarget struct {
-	EventID    string   `json:"event_id"`
-	EvidenceID string   `json:"evidence_id"`
-	ViewIDs    []string `json:"view_ids,omitempty"`
+
+var timelineStages = []string{"research", "plan", "build", "verify"}
+var timelineStageStates = []string{"in_progress", "completed", "paused", "failed"}
+
+type TimelineDecisionTarget struct {
+	Kind               string   `json:"kind"`
+	EventID            string   `json:"event_id"`
+	EvidenceID         string   `json:"evidence_id,omitempty"`
+	ViewIDs            []string `json:"view_ids,omitempty"`
+	DocumentRevisionID string   `json:"document_revision_id,omitempty"`
+}
+type TimelineEvidenceTarget = TimelineDecisionTarget
+type TimelineDocument struct {
+	DocumentID string `json:"document_id"`
+	SessionID  string `json:"session_id"`
+	SHA256     string `json:"sha256"`
+	Size       int64  `json:"size"`
+	MediaType  string `json:"media_type"`
+	ReceivedAt string `json:"received_at"`
+}
+type TimelineDocumentTab struct {
+	Label      string `json:"label"`
+	DocumentID string `json:"document_id"`
+}
+type TimelineDocumentSnapshot struct {
+	DocumentRevisionID string                `json:"document_revision_id"`
+	Status             string                `json:"status"`
+	CreatedAt          string                `json:"created_at"`
+	Tabs               []TimelineDocumentTab `json:"tabs"`
+}
+type TimelineDocumentResponse struct {
+	SchemaVersion int              `json:"schema_version"`
+	Document      TimelineDocument `json:"document"`
+	Content       string           `json:"content"`
+}
+type TimelineDocumentMetadata struct {
+	SchemaVersion int    `json:"schema_version"`
+	OperationID   string `json:"operation_id"`
+	MediaType     string `json:"media_type"`
+}
+type TimelineDocumentSnapshotRequest struct {
+	SchemaVersion   int                   `json:"schema_version"`
+	OperationID     string                `json:"operation_id"`
+	ExpectedVersion int64                 `json:"expected_version"`
+	Status          string                `json:"status"`
+	Tabs            []TimelineDocumentTab `json:"tabs"`
 }
 type TimelineSupersedes struct {
 	EventID    string `json:"event_id"`
@@ -120,25 +171,31 @@ type TimelineClosure struct {
 	Result string `json:"result"`
 }
 type TimelineEvent struct {
-	EventID         string                  `json:"event_id"`
-	Sequence        int64                   `json:"sequence"`
-	Version         int64                   `json:"version"`
-	Kind            TimelineEventKind       `json:"kind"`
-	Title           string                  `json:"title"`
-	Summary         string                  `json:"summary"`
-	CreatedAt       string                  `json:"created_at"`
-	UpdatedAt       string                  `json:"updated_at"`
-	Origin          string                  `json:"origin"`
-	TicketRefs      []TimelineTicketRef     `json:"ticket_refs"`
-	Withdrawn       bool                    `json:"withdrawn,omitempty"`
-	Candidate       *TimelineCandidate      `json:"candidate,omitempty"`
-	EvidenceID      string                  `json:"evidence_id,omitempty"`
-	Views           []TimelineView          `json:"views,omitempty"`
-	RelatedEventID  string                  `json:"related_event_id,omitempty"`
-	Target          *TimelineEvidenceTarget `json:"target,omitempty"`
-	SourceReference string                  `json:"source_reference,omitempty"`
-	Deliveries      []TimelineDelivery      `json:"deliveries,omitempty"`
-	Closure         *TimelineClosure        `json:"closure,omitempty"`
+	EventID           string                     `json:"event_id"`
+	Sequence          int64                      `json:"sequence"`
+	Version           int64                      `json:"version"`
+	Kind              TimelineEventKind          `json:"kind"`
+	Title             string                     `json:"title"`
+	Summary           string                     `json:"summary"`
+	CreatedAt         string                     `json:"created_at"`
+	UpdatedAt         string                     `json:"updated_at"`
+	Origin            string                     `json:"origin"`
+	TicketRefs        []TimelineTicketRef        `json:"ticket_refs"`
+	Withdrawn         bool                       `json:"withdrawn,omitempty"`
+	Candidate         *TimelineCandidate         `json:"candidate,omitempty"`
+	EvidenceID        string                     `json:"evidence_id,omitempty"`
+	Views             []TimelineView             `json:"views,omitempty"`
+	RelatedEventID    string                     `json:"related_event_id,omitempty"`
+	Target            *TimelineEvidenceTarget    `json:"target,omitempty"`
+	SourceReference   string                     `json:"source_reference,omitempty"`
+	Deliveries        []TimelineDelivery         `json:"deliveries,omitempty"`
+	Closure           *TimelineClosure           `json:"closure,omitempty"`
+	Stage             TimelineStage              `json:"stage,omitempty"`
+	StageState        TimelineStageState         `json:"stage_state,omitempty"`
+	StartedAt         string                     `json:"started_at,omitempty"`
+	FinishedAt        string                     `json:"finished_at,omitempty"`
+	OccurredAt        string                     `json:"occurred_at,omitempty"`
+	DocumentSnapshots []TimelineDocumentSnapshot `json:"document_snapshots,omitempty"`
 }
 type TimelineArtifact struct {
 	ArtifactID string            `json:"artifact_id"`
@@ -153,42 +210,45 @@ type TimelineArtifact struct {
 	Theme      string            `json:"theme"`
 }
 type TimelineSession struct {
-	SchemaVersion   int                `json:"schema_version"`
-	ViewerSessionID string             `json:"viewer_session_id"`
-	ProjectKey      string             `json:"project_key"`
-	ProjectName     string             `json:"project_name"`
-	Source          TimelineSource     `json:"source"`
-	Version         int64              `json:"version"`
-	Title           string             `json:"title"`
-	Summary         string             `json:"summary"`
-	State           TimelineState      `json:"state"`
-	Archived        bool               `json:"archived"`
-	Pinned          bool               `json:"pinned"`
-	CreatedAt       string             `json:"created_at"`
-	UpdatedAt       string             `json:"updated_at"`
-	ValidationCount int                `json:"validation_count"`
-	Tickets         []TimelineTicket   `json:"tickets"`
-	Events          []TimelineEvent    `json:"events"`
-	Artifacts       []TimelineArtifact `json:"artifacts"`
+	SchemaVersion       int                `json:"schema_version"`
+	ViewerSessionID     string             `json:"viewer_session_id"`
+	ProjectKey          string             `json:"project_key"`
+	ProjectName         string             `json:"project_name"`
+	Source              TimelineSource     `json:"source"`
+	Version             int64              `json:"version"`
+	Title               string             `json:"title"`
+	Summary             string             `json:"summary"`
+	State               TimelineState      `json:"state"`
+	Archived            bool               `json:"archived"`
+	Pinned              bool               `json:"pinned"`
+	CreatedAt           string             `json:"created_at"`
+	UpdatedAt           string             `json:"updated_at"`
+	ValidationCount     int                `json:"validation_count"`
+	Tickets             []TimelineTicket   `json:"tickets"`
+	Events              []TimelineEvent    `json:"events"`
+	Artifacts           []TimelineArtifact `json:"artifacts"`
+	Documents           []TimelineDocument `json:"documents"`
+	CurrentStageEventID *string            `json:"current_stage_event_id" timeline:"nullable"`
 }
 
 // TimelineIndexEntry is the API-session summary alongside unchanged legacy entries.
 type TimelineAPIIndexEntry struct {
-	Mode            string           `json:"mode"`
-	ViewerSessionID string           `json:"viewer_session_id"`
-	ProjectKey      string           `json:"project_key"`
-	ProjectName     string           `json:"project_name"`
-	Source          TimelineSource   `json:"source"`
-	Version         int64            `json:"version"`
-	Title           string           `json:"title"`
-	Summary         string           `json:"summary"`
-	State           TimelineState    `json:"state"`
-	Archived        bool             `json:"archived"`
-	Pinned          bool             `json:"pinned"`
-	CreatedAt       string           `json:"created_at"`
-	UpdatedAt       string           `json:"updated_at"`
-	ValidationCount int              `json:"validation_count"`
-	Tickets         []TimelineTicket `json:"tickets"`
+	CurrentStageEventID *string          `json:"current_stage_event_id" timeline:"nullable"`
+	Mode                string           `json:"mode"`
+	ViewerSessionID     string           `json:"viewer_session_id"`
+	ProjectKey          string           `json:"project_key"`
+	ProjectName         string           `json:"project_name"`
+	Source              TimelineSource   `json:"source"`
+	Version             int64            `json:"version"`
+	Title               string           `json:"title"`
+	Summary             string           `json:"summary"`
+	State               TimelineState    `json:"state"`
+	Archived            bool             `json:"archived"`
+	Pinned              bool             `json:"pinned"`
+	CreatedAt           string           `json:"created_at"`
+	UpdatedAt           string           `json:"updated_at"`
+	ValidationCount     int              `json:"validation_count"`
+	Tickets             []TimelineTicket `json:"tickets"`
 }
 
 // TimelineIndexEntry is a closed discriminated union. Legacy entries wrap the
@@ -210,20 +270,25 @@ type TimelineOperationKind string
 // TimelineOperationResult contains public IDs/versions only. Request digests and
 // completed operation receipts remain private persistence records.
 type TimelineOperationResult struct {
-	SchemaVersion   int                   `json:"schema_version"`
-	OperationID     string                `json:"operation_id"`
-	Kind            TimelineOperationKind `json:"kind"`
-	ViewerSessionID string                `json:"viewer_session_id"`
-	SessionVersion  int64                 `json:"session_version"`
-	EventID         string                `json:"event_id,omitempty"`
-	EventVersion    int64                 `json:"event_version,omitempty"`
-	Sequence        int64                 `json:"sequence,omitempty"`
-	EvidenceID      string                `json:"evidence_id,omitempty"`
-	ViewIDs         []string              `json:"view_ids,omitempty"`
-	ArtifactID      string                `json:"artifact_id,omitempty"`
-	Created         *bool                 `json:"created,omitempty"`
-	Withdrawn       *bool                 `json:"withdrawn,omitempty"`
-	Deleted         *bool                 `json:"deleted,omitempty"`
+	CurrentStageEventID *string               `json:"current_stage_event_id" timeline:"nullable"`
+	DocumentID          string                `json:"document_id,omitempty"`
+	DocumentRevisionID  string                `json:"document_revision_id,omitempty"`
+	SHA256              string                `json:"sha256,omitempty"`
+	Size                *int64                `json:"size,omitempty"`
+	SchemaVersion       int                   `json:"schema_version"`
+	OperationID         string                `json:"operation_id"`
+	Kind                TimelineOperationKind `json:"kind"`
+	ViewerSessionID     string                `json:"viewer_session_id"`
+	SessionVersion      int64                 `json:"session_version"`
+	EventID             string                `json:"event_id,omitempty"`
+	EventVersion        int64                 `json:"event_version,omitempty"`
+	Sequence            int64                 `json:"sequence,omitempty"`
+	EvidenceID          string                `json:"evidence_id,omitempty"`
+	ViewIDs             []string              `json:"view_ids,omitempty"`
+	ArtifactID          string                `json:"artifact_id,omitempty"`
+	Created             *bool                 `json:"created,omitempty"`
+	Withdrawn           *bool                 `json:"withdrawn,omitempty"`
+	Deleted             *bool                 `json:"deleted,omitempty"`
 }
 type TimelineOperationReceipt struct {
 	OperationID   string                  `json:"operation_id"`
@@ -237,6 +302,7 @@ type TimelineSessionResponse struct {
 	Mode          string            `json:"mode"`
 	Session       TimelineSession   `json:"session"`
 	ArtifactURLs  map[string]string `json:"artifact_urls,omitempty"`
+	DocumentURLs  map[string]string `json:"document_urls,omitempty"`
 	Created       *bool             `json:"created,omitempty"`
 }
 type TimelineCreateSessionRequest struct {
@@ -264,26 +330,32 @@ type TimelineMutationRequest struct {
 	ExpectedVersion int64  `json:"expected_version"`
 }
 type TimelineEventPatchRequest struct {
-	SchemaVersion   int     `json:"schema_version"`
-	OperationID     string  `json:"operation_id"`
-	ExpectedVersion int64   `json:"expected_version"`
-	Title           *string `json:"title,omitempty"`
-	Summary         *string `json:"summary,omitempty"`
+	StageState             *TimelineStageState `json:"stage_state,omitempty"`
+	ExpectedSessionVersion *int64              `json:"expected_session_version,omitempty"`
+	SchemaVersion          int                 `json:"schema_version"`
+	OperationID            string              `json:"operation_id"`
+	ExpectedVersion        int64               `json:"expected_version"`
+	Title                  *string             `json:"title,omitempty"`
+	Summary                *string             `json:"summary,omitempty"`
 }
 type TimelineAppendEventRequest struct {
-	SchemaVersion   int                     `json:"schema_version"`
-	OperationID     string                  `json:"operation_id"`
-	Kind            TimelineEventKind       `json:"kind"`
-	Title           string                  `json:"title"`
-	Summary         string                  `json:"summary"`
-	TicketRefs      []TimelineTicketRef     `json:"ticket_refs"`
-	Candidate       *TimelineCandidate      `json:"candidate,omitempty"`
-	Views           []TimelineViewInput     `json:"views,omitempty"`
-	RelatedEventID  string                  `json:"related_event_id,omitempty"`
-	Target          *TimelineEvidenceTarget `json:"target,omitempty"`
-	SourceReference string                  `json:"source_reference,omitempty"`
-	Deliveries      []TimelineDelivery      `json:"deliveries,omitempty"`
-	Closure         *TimelineClosure        `json:"closure,omitempty"`
+	Stage                  TimelineStage           `json:"stage,omitempty"`
+	StageState             TimelineStageState      `json:"stage_state,omitempty"`
+	ExpectedSessionVersion *int64                  `json:"expected_session_version,omitempty"`
+	OccurredAt             string                  `json:"occurred_at,omitempty"`
+	SchemaVersion          int                     `json:"schema_version"`
+	OperationID            string                  `json:"operation_id"`
+	Kind                   TimelineEventKind       `json:"kind"`
+	Title                  string                  `json:"title"`
+	Summary                string                  `json:"summary"`
+	TicketRefs             []TimelineTicketRef     `json:"ticket_refs"`
+	Candidate              *TimelineCandidate      `json:"candidate,omitempty"`
+	Views                  []TimelineViewInput     `json:"views,omitempty"`
+	RelatedEventID         string                  `json:"related_event_id,omitempty"`
+	Target                 *TimelineEvidenceTarget `json:"target,omitempty"`
+	SourceReference        string                  `json:"source_reference,omitempty"`
+	Deliveries             []TimelineDelivery      `json:"deliveries,omitempty"`
+	Closure                *TimelineClosure        `json:"closure,omitempty"`
 }
 type TimelineArtifactMetadata struct {
 	SchemaVersion int               `json:"schema_version"`
@@ -377,6 +449,12 @@ func timelineRequiredFields(raw []byte, t reflect.Type) error {
 				}
 				continue
 			}
+			if bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
+				if field.Tag.Get("timeline") == "nullable" {
+					continue
+				}
+				return timelineError(name, "null_not_allowed")
+			}
 			if !legacy && field.Type.Kind() == reflect.String && strings.Contains(options, "omitempty") && bytes.Equal(value, []byte(`""`)) {
 				return timelineError(name, "empty_optional_field")
 			}
@@ -400,7 +478,7 @@ func timelineRequiredFields(raw []byte, t reflect.Type) error {
 	}
 	return nil
 }
-func timelineJSONValue(dec *json.Decoder, depth int) error {
+func timelineJSONValue(dec *json.Decoder, depth int, nullable ...bool) error {
 	if depth > 32 {
 		return timelineError("body", "too_deep")
 	}
@@ -409,6 +487,9 @@ func timelineJSONValue(dec *json.Decoder, depth int) error {
 		return timelineError("body", "invalid_json")
 	}
 	if token == nil {
+		if len(nullable) > 0 && nullable[0] {
+			return nil
+		}
 		return timelineError("body", "null_not_allowed")
 	}
 	delim, ok := token.(json.Delim)
@@ -428,7 +509,7 @@ func timelineJSONValue(dec *json.Decoder, depth int) error {
 				return timelineError("body", "duplicate_key")
 			}
 			seen[name] = true
-			if err := timelineJSONValue(dec, depth+1); err != nil {
+			if err := timelineJSONValue(dec, depth+1, name == "current_stage_event_id"); err != nil {
 				return err
 			}
 		}
@@ -580,23 +661,36 @@ func timelineTarget(t TimelineEvidenceTarget) error {
 	if err := timelineID(t.EventID, "target.event_id"); err != nil {
 		return err
 	}
-	if err := timelineID(t.EvidenceID, "target.evidence_id"); err != nil {
-		return err
-	}
-	seen := map[string]bool{}
-	for _, id := range t.ViewIDs {
-		if err := timelineID(id, "target.view_ids"); err != nil {
+	switch t.Kind {
+	case "document":
+		if t.EvidenceID != "" || t.ViewIDs != nil {
+			return timelineError("target", "mixed_target")
+		}
+		return timelineID(t.DocumentRevisionID, "target.document_revision_id")
+	case "evidence":
+		if t.DocumentRevisionID != "" {
+			return timelineError("target", "mixed_target")
+		}
+		if err := timelineID(t.EvidenceID, "target.evidence_id"); err != nil {
 			return err
 		}
-		if seen[id] {
-			return timelineError("target.view_ids", "duplicate_id")
+		seen := map[string]bool{}
+		for _, id := range t.ViewIDs {
+			if err := timelineID(id, "target.view_ids"); err != nil {
+				return err
+			}
+			if seen[id] {
+				return timelineError("target.view_ids", "duplicate_id")
+			}
+			seen[id] = true
 		}
-		seen[id] = true
+		if len(t.ViewIDs) > TimelineMaxViews {
+			return timelineError("target.view_ids", "limit")
+		}
+		return nil
+	default:
+		return timelineError("target.kind", "unsupported_target")
 	}
-	if len(t.ViewIDs) > TimelineMaxViews {
-		return timelineError("target.view_ids", "limit")
-	}
-	return nil
 }
 func timelineView(v TimelineViewInput) error {
 	if v.ViewID != "" {
@@ -641,7 +735,7 @@ func timelineView(v TimelineViewInput) error {
 		seen[image.ArtifactID] = true
 	}
 	if v.Supersedes != nil {
-		if err := timelineTarget(TimelineEvidenceTarget{EventID: v.Supersedes.EventID, EvidenceID: v.Supersedes.EvidenceID, ViewIDs: []string{v.Supersedes.ViewID}}); err != nil {
+		if err := timelineTarget(TimelineEvidenceTarget{Kind: "evidence", EventID: v.Supersedes.EventID, EvidenceID: v.Supersedes.EvidenceID, ViewIDs: []string{v.Supersedes.ViewID}}); err != nil {
 			return err
 		}
 		if v.ViewID != "" && v.ViewID != v.Supersedes.ViewID {
@@ -725,7 +819,7 @@ func (r TimelineEventPatchRequest) Validate() error {
 	if err := timelineNumber(r.ExpectedVersion, "expected_version"); err != nil {
 		return err
 	}
-	if r.Title == nil && r.Summary == nil {
+	if r.Title == nil && r.Summary == nil && r.StageState == nil {
 		return timelineError("body", "empty_patch")
 	}
 	if r.Title != nil {
@@ -734,7 +828,21 @@ func (r TimelineEventPatchRequest) Validate() error {
 		}
 	}
 	if r.Summary != nil {
-		return timelineText(*r.Summary, "summary", 4000, true)
+		if err := timelineText(*r.Summary, "summary", 4000, true); err != nil {
+			return err
+		}
+	}
+	if r.StageState != nil {
+		if !contains(timelineStageStates, string(*r.StageState)) {
+			return timelineError("stage_state", "unsupported_stage_state")
+		}
+		if r.ExpectedSessionVersion == nil {
+			return timelineError("expected_session_version", "required_for_stage")
+		}
+		return timelineNumber(*r.ExpectedSessionVersion, "expected_session_version")
+	}
+	if r.ExpectedSessionVersion != nil {
+		return timelineError("expected_session_version", "forbidden_without_stage_transition")
 	}
 	return nil
 }
@@ -815,6 +923,27 @@ func (r TimelineAppendEventRequest) Validate() error {
 			return err
 		}
 	}
+	if r.OccurredAt != "" {
+		if err := timelineTime(r.OccurredAt, "occurred_at"); err != nil {
+			return err
+		}
+	}
+	if r.Kind == "stage" {
+		if !contains(timelineStages, string(r.Stage)) {
+			return timelineError("stage", "unsupported_stage")
+		}
+		if r.StageState != "in_progress" {
+			return timelineError("stage_state", "stage_start_required")
+		}
+		if r.ExpectedSessionVersion == nil {
+			return timelineError("expected_session_version", "required_for_stage")
+		}
+		if err := timelineNumber(*r.ExpectedSessionVersion, "expected_session_version"); err != nil {
+			return err
+		}
+	} else if r.Stage != "" || r.StageState != "" || r.ExpectedSessionVersion != nil {
+		return timelineError("stage", "forbidden_for_kind")
+	}
 	evidence := r.Kind == "validation" || r.Kind == "iteration"
 	decision := r.Kind == "changes_reported" || r.Kind == "approval_reported"
 	if evidence {
@@ -891,6 +1020,12 @@ func ValidateTimelineEventReferences(session TimelineSession, r TimelineAppendEv
 	if err := r.Validate(); err != nil {
 		return err
 	}
+	if err := timelineAppendLifecycle(session, r); err != nil {
+		return err
+	}
+	return timelineEventReferences(session, r)
+}
+func timelineEventReferences(session TimelineSession, r TimelineAppendEventRequest) error {
 	tickets := map[string]bool{}
 	for _, t := range session.Tickets {
 		tickets[TimelineTicketIdentity(TimelineTicketRef{Key: t.Key, URL: t.URL})] = true
@@ -922,6 +1057,17 @@ func ValidateTimelineEventReferences(session TimelineSession, r TimelineAppendEv
 	}
 	target := func(t TimelineEvidenceTarget) error {
 		e, ok := events[t.EventID]
+		if t.Kind == "document" {
+			if !ok || e.Kind != "stage" || e.Withdrawn {
+				return timelineError("target", "unknown_document_revision")
+			}
+			for _, snapshot := range e.DocumentSnapshots {
+				if snapshot.DocumentRevisionID == t.DocumentRevisionID {
+					return nil
+				}
+			}
+			return timelineError("target", "unknown_document_revision")
+		}
 		if !ok || e.EvidenceID == "" || e.EvidenceID != t.EvidenceID || e.Withdrawn {
 			return timelineError("target", "unknown_evidence")
 		}
@@ -959,7 +1105,7 @@ func ValidateTimelineEventReferences(session TimelineSession, r TimelineAppendEv
 			}
 		}
 		if v.Supersedes != nil {
-			if err := target(TimelineEvidenceTarget{EventID: v.Supersedes.EventID, EvidenceID: v.Supersedes.EvidenceID, ViewIDs: []string{v.Supersedes.ViewID}}); err != nil {
+			if err := target(TimelineEvidenceTarget{Kind: "evidence", EventID: v.Supersedes.EventID, EvidenceID: v.Supersedes.EvidenceID, ViewIDs: []string{v.Supersedes.ViewID}}); err != nil {
 				return err
 			}
 		}
@@ -1119,10 +1265,22 @@ func ValidateTimelineSession(s TimelineSession) error {
 			context.Events[i].Withdrawn = false
 		}
 		context.Events = append(context.Events, TimelineEvent{Views: e.Views})
-		if err := ValidateTimelineEventReferences(context, r); err != nil {
+		if e.Kind == "stage" {
+			if err := validateTimelineStageEvent(e); err != nil {
+				return err
+			}
+			r.Kind = "request"
+		}
+		if err := r.Validate(); err != nil {
+			return err
+		}
+		if err := timelineEventReferences(context, r); err != nil {
 			return err
 		}
 		prefix.Events = append(prefix.Events, e)
+	}
+	if err := validateTimelineR3Session(s); err != nil {
+		return err
 	}
 	if s.ValidationCount != count {
 		return timelineError("validation_count", "count_mismatch")
@@ -1176,6 +1334,15 @@ func DecodeTimelineSessionResponse(raw []byte) (TimelineSessionResponse, error) 
 			return r, timelineError("artifact_urls", "invalid_artifact_url")
 		}
 	}
+	documents := map[string]bool{}
+	for _, document := range r.Session.Documents {
+		documents[document.DocumentID] = true
+	}
+	for id, url := range r.DocumentURLs {
+		if !documents[id] || !IsSafeTimelineDocumentURL(url, r.Session.ViewerSessionID, id) {
+			return r, timelineError("document_urls", "invalid_document_url")
+		}
+	}
 	return r, nil
 }
 
@@ -1215,6 +1382,8 @@ func DecodeTimelineIndexEntry(raw []byte) (TimelineIndexEntry, error) {
 		obj["schema_version"] = json.RawMessage(`1`)
 		obj["events"] = json.RawMessage(`[]`)
 		obj["artifacts"] = json.RawMessage(`[]`)
+		obj["documents"] = json.RawMessage(`[]`)
+		obj["current_stage_event_id"] = json.RawMessage(`null`)
 		obj["validation_count"] = json.RawMessage(`0`)
 		rawSummary, err = json.Marshal(obj)
 		if err != nil {
@@ -1225,6 +1394,11 @@ func DecodeTimelineIndexEntry(raw []byte) (TimelineIndexEntry, error) {
 		}
 		if entry.ValidationCount < 0 || entry.ValidationCount > TimelineMaxEvents {
 			return nil, timelineError("validation_count", "invalid_count")
+		}
+		if entry.CurrentStageEventID != nil {
+			if err := timelineID(*entry.CurrentStageEventID, "current_stage_event_id"); err != nil {
+				return nil, err
+			}
 		}
 		return entry, nil
 	default:
@@ -1242,7 +1416,7 @@ func (r TimelineOperationResult) Validate() error {
 	if err := timelineNumber(r.SessionVersion, "session_version"); err != nil {
 		return err
 	}
-	event := r.Kind == "append_event" || r.Kind == "event_patch" || r.Kind == "event_withdraw"
+	event := r.Kind == "append_event" || r.Kind == "event_patch" || r.Kind == "event_withdraw" || r.Kind == "document_snapshot"
 	switch r.Kind {
 	case "create_session":
 		if r.Created == nil {
@@ -1253,7 +1427,7 @@ func (r TimelineOperationResult) Validate() error {
 		if r.Deleted == nil || !*r.Deleted {
 			return timelineError("deleted", "completed_delete_required")
 		}
-	case "append_event", "event_patch", "event_withdraw":
+	case "append_event", "event_patch", "event_withdraw", "document_snapshot":
 		if err := timelineID(r.EventID, "event_id"); err != nil {
 			return err
 		}
@@ -1265,6 +1439,13 @@ func (r TimelineOperationResult) Validate() error {
 		}
 		if r.Kind == "event_withdraw" && (r.Withdrawn == nil || !*r.Withdrawn) {
 			return timelineError("withdrawn", "completed_withdrawal_required")
+		}
+	case "document_add":
+		if err := timelineID(r.DocumentID, "document_id"); err != nil {
+			return err
+		}
+		if !timelineSHA256.MatchString(r.SHA256) || r.Size == nil || *r.Size < 0 || *r.Size > TimelineMaxDocumentBytes || r.Created == nil {
+			return timelineError("document", "invalid_result")
 		}
 	case "artifact_add":
 		if err := timelineID(r.ArtifactID, "artifact_id"); err != nil {
@@ -1285,7 +1466,7 @@ func (r TimelineOperationResult) Validate() error {
 	if r.Kind != "session_delete" && r.Deleted != nil {
 		return timelineError("deleted", "forbidden_for_kind")
 	}
-	if r.Kind != "create_session" && r.Kind != "artifact_add" && r.Created != nil {
+	if r.Kind != "create_session" && r.Kind != "artifact_add" && r.Kind != "document_add" && r.Created != nil {
 		return timelineError("created", "forbidden_for_kind")
 	}
 	if r.Kind != "event_withdraw" && r.Withdrawn != nil {
@@ -1310,6 +1491,25 @@ func (r TimelineOperationResult) Validate() error {
 			}
 			seen[id] = true
 		}
+	}
+	if r.CurrentStageEventID != nil {
+		if err := timelineID(*r.CurrentStageEventID, "current_stage_event_id"); err != nil {
+			return err
+		}
+	}
+	if r.Kind == "document_snapshot" && (r.EvidenceID != "" || r.ViewIDs != nil) {
+		return timelineError("evidence_id", "forbidden_for_kind")
+	}
+	if r.Kind == "document_snapshot" {
+		if err := timelineID(r.DocumentRevisionID, "document_revision_id"); err != nil {
+			return err
+		}
+	}
+	if r.Kind != "document_add" && (r.DocumentID != "" || r.SHA256 != "" || r.Size != nil) {
+		return timelineError("document_id", "forbidden_for_kind")
+	}
+	if r.Kind != "document_snapshot" && r.DocumentRevisionID != "" {
+		return timelineError("document_revision_id", "forbidden_for_kind")
 	}
 	return nil
 }
@@ -1371,32 +1571,443 @@ func ValidateTimelineOperationRetry(receipt TimelineOperationReceipt, operationI
 	return nil
 }
 
-func timelineResultFields(raw []byte, kind TimelineOperationKind) error {
-	var fields map[string]json.RawMessage
-	if err := json.Unmarshal(raw, &fields); err != nil {
-		return timelineError("body", "invalid_result")
-	}
-	allowed := map[string]bool{"schema_version": true, "operation_id": true, "kind": true, "viewer_session_id": true, "session_version": true}
+// Shared by strict result decoding and offline schema generation.
+func timelineResultAllowed(kind TimelineOperationKind) map[string]bool {
+	allowed := map[string]bool{"schema_version": true, "operation_id": true, "kind": true, "viewer_session_id": true, "session_version": true, "current_stage_event_id": true}
 	switch kind {
 	case "create_session":
 		allowed["created"] = true
 	case "session_patch":
 	case "session_delete":
 		allowed["deleted"] = true
-	case "append_event", "event_patch", "event_withdraw":
+	case "append_event", "event_patch", "event_withdraw", "document_snapshot":
 		for _, name := range []string{"event_id", "event_version", "sequence", "evidence_id", "view_ids"} {
 			allowed[name] = true
 		}
 		if kind == "event_withdraw" {
 			allowed["withdrawn"] = true
 		}
+	case "document_add":
+		for _, name := range []string{"document_id", "sha256", "size", "created"} {
+			allowed[name] = true
+		}
 	case "artifact_add":
 		allowed["artifact_id"] = true
 		allowed["created"] = true
 	}
+	if kind == "document_snapshot" {
+		allowed["document_revision_id"] = true
+	}
+	if kind == "document_snapshot" {
+		delete(allowed, "evidence_id")
+		delete(allowed, "view_ids")
+	}
+	return allowed
+}
+func timelineResultFields(raw []byte, kind TimelineOperationKind) error {
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(raw, &fields); err != nil {
+		return timelineError("body", "invalid_result")
+	}
+	allowed := timelineResultAllowed(kind)
 	for name := range fields {
 		if !allowed[name] {
 			return timelineError("body", "forbidden_result_field")
+		}
+	}
+	return nil
+}
+
+// Document and stage validators are pure contract checks. Store transactions
+// must apply their side effects and compare the same versions under its lock.
+func ValidateTimelineDocumentBytes(content []byte) error {
+	if len(content) > TimelineMaxDocumentBytes || !utf8.Valid(content) {
+		return timelineError("document", "invalid_utf8_or_size")
+	}
+	return nil
+}
+func (r TimelineDocumentMetadata) Validate() error {
+	if err := timelineOperation(r.SchemaVersion, r.OperationID); err != nil {
+		return err
+	}
+	if r.MediaType != "text/markdown" {
+		return timelineError("media_type", "unsupported_media_type")
+	}
+	return nil
+}
+func DecodeTimelineDocumentMetadata(raw []byte) (TimelineDocumentMetadata, error) {
+	var r TimelineDocumentMetadata
+	err := DecodeTimelineJSON(raw, &r)
+	if err == nil {
+		err = r.Validate()
+	}
+	return r, err
+}
+func timelineDocument(d TimelineDocument) error {
+	if err := timelineID(d.DocumentID, "documents.document_id"); err != nil {
+		return err
+	}
+	if !timelineSHA256.MatchString(d.SessionID) || !timelineSHA256.MatchString(d.SHA256) || d.Size < 0 || d.Size > TimelineMaxDocumentBytes {
+		return timelineError("documents", "invalid_metadata")
+	}
+	if d.MediaType != "text/markdown" {
+		return timelineError("documents.media_type", "unsupported_media_type")
+	}
+	return timelineTime(d.ReceivedAt, "documents.received_at")
+}
+func timelineDocumentTabs(tabs []TimelineDocumentTab) error {
+	if len(tabs) < 1 || len(tabs) > TimelineMaxDocumentTabs {
+		return timelineError("tabs", "invalid_count")
+	}
+	labels := map[string]bool{}
+	for _, tab := range tabs {
+		if err := timelineText(tab.Label, "tabs.label", 100, true); err != nil {
+			return err
+		}
+		if labels[tab.Label] {
+			return timelineError("tabs.label", "duplicate_label")
+		}
+		labels[tab.Label] = true
+		if err := timelineID(tab.DocumentID, "tabs.document_id"); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func (r TimelineDocumentSnapshotRequest) Validate() error {
+	if err := timelineOperation(r.SchemaVersion, r.OperationID); err != nil {
+		return err
+	}
+	if err := timelineNumber(r.ExpectedVersion, "expected_version"); err != nil {
+		return err
+	}
+	if !contains([]string{"draft", "complete"}, r.Status) {
+		return timelineError("status", "invalid_snapshot_status")
+	}
+	return timelineDocumentTabs(r.Tabs)
+}
+func DecodeTimelineDocumentSnapshot(raw []byte) (TimelineDocumentSnapshotRequest, error) {
+	var r TimelineDocumentSnapshotRequest
+	err := DecodeTimelineJSON(raw, &r)
+	if err == nil {
+		err = r.Validate()
+	}
+	return r, err
+}
+func DecodeTimelineDocumentResponse(raw []byte) (TimelineDocumentResponse, error) {
+	var r TimelineDocumentResponse
+	err := DecodeTimelineJSON(raw, &r)
+	if err != nil {
+		return r, err
+	}
+	if r.SchemaVersion != 1 {
+		return r, timelineError("schema_version", "unsupported_version")
+	}
+	if err = timelineDocument(r.Document); err != nil {
+		return r, err
+	}
+	if err = ValidateTimelineDocumentBytes([]byte(r.Content)); err != nil {
+		return r, err
+	}
+	digest := sha256.Sum256([]byte(r.Content))
+	if r.Document.Size != int64(len([]byte(r.Content))) || r.Document.SHA256 != hex.EncodeToString(digest[:]) {
+		return r, timelineError("document", "content_mismatch")
+	}
+	return r, nil
+}
+func IsSafeTimelineDocumentURL(raw, sessionID, documentID string) bool {
+	return timelineSHA256.MatchString(sessionID) && timelineOpaqueID.MatchString(documentID) && raw == "/api/timeline/sessions/"+sessionID+"/documents/"+documentID
+}
+func validateTimelineStageEvent(e TimelineEvent) error {
+	if !contains(timelineStages, string(e.Stage)) || !contains(timelineStageStates, string(e.StageState)) {
+		return timelineError("stage", "invalid_stage_state")
+	}
+	if err := timelineTime(e.StartedAt, "started_at"); err != nil {
+		return err
+	}
+	started, _ := time.Parse(time.RFC3339Nano, e.StartedAt)
+	created, _ := time.Parse(time.RFC3339Nano, e.CreatedAt)
+	updated, _ := time.Parse(time.RFC3339Nano, e.UpdatedAt)
+	if !started.Equal(created) || updated.Before(started) {
+		return timelineError("started_at", "server_time_mismatch")
+	}
+	terminal := e.StageState == "completed" || e.StageState == "failed"
+	if terminal {
+		if err := timelineTime(e.FinishedAt, "finished_at"); err != nil {
+			return err
+		}
+		finished, _ := time.Parse(time.RFC3339Nano, e.FinishedAt)
+		if finished.Before(started) || finished.After(updated) {
+			return timelineError("finished_at", "server_time_mismatch")
+		}
+	} else if e.FinishedAt != "" {
+		return timelineError("finished_at", "forbidden_for_stage_state")
+	}
+	for _, snapshot := range e.DocumentSnapshots {
+		if err := timelineID(snapshot.DocumentRevisionID, "document_revision_id"); err != nil {
+			return err
+		}
+		if !contains([]string{"draft", "complete"}, snapshot.Status) {
+			return timelineError("status", "invalid_snapshot_status")
+		}
+		if err := timelineTime(snapshot.CreatedAt, "document_snapshots.created_at"); err != nil {
+			return err
+		}
+		at, _ := time.Parse(time.RFC3339Nano, snapshot.CreatedAt)
+		if at.Before(started) || at.After(updated) {
+			return timelineError("document_snapshots.created_at", "server_time_mismatch")
+		}
+		if err := timelineDocumentTabs(snapshot.Tabs); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func validateTimelineR3Session(s TimelineSession) error {
+	if s.Documents == nil || len(s.Documents) > TimelineMaxDocuments {
+		return timelineError("documents", "array_required_or_limit")
+	}
+	docs := map[string]bool{}
+	hashes := map[string]bool{}
+	total := int64(0)
+	for _, d := range s.Documents {
+		if err := timelineDocument(d); err != nil {
+			return err
+		}
+		if d.SessionID != s.ViewerSessionID || docs[d.DocumentID] {
+			return timelineError("documents", "wrong_owner_or_duplicate")
+		}
+		if hashes[d.SHA256] {
+			return timelineError("documents.sha256", "duplicate_content")
+		}
+		hashes[d.SHA256] = true
+		docs[d.DocumentID] = true
+		total += d.Size
+	}
+	if total > TimelineMaxAggregateDocumentBytes {
+		return timelineError("documents", "aggregate_limit")
+	}
+	snapshots := map[string]bool{}
+	latestStages := map[TimelineStage]TimelineEvent{}
+	active := ""
+	for _, e := range s.Events {
+		if e.OccurredAt != "" {
+			if err := timelineTime(e.OccurredAt, "occurred_at"); err != nil {
+				return err
+			}
+		}
+		if e.Kind != "stage" {
+			if e.Stage != "" || e.StageState != "" || e.StartedAt != "" || e.FinishedAt != "" || e.DocumentSnapshots != nil {
+				return timelineError("stage", "forbidden_for_kind")
+			}
+			continue
+		}
+		if err := validateTimelineStageEvent(e); err != nil {
+			return err
+		}
+		if !e.Withdrawn {
+			if previous, ok := latestStages[e.Stage]; ok {
+				if (previous.StageState != "completed" && previous.StageState != "failed") || e.RelatedEventID != previous.EventID {
+					return timelineError("related_event_id", "stage_reentry_reference_required")
+				}
+			}
+			latestStages[e.Stage] = e
+		}
+		if e.StageState == "in_progress" {
+			if active != "" || e.Withdrawn {
+				return timelineError("current_stage_event_id", "multiple_or_withdrawn_foreground")
+			}
+			active = e.EventID
+		}
+		for _, snapshot := range e.DocumentSnapshots {
+			if snapshots[snapshot.DocumentRevisionID] {
+				return timelineError("document_revision_id", "duplicate_id")
+			}
+			snapshots[snapshot.DocumentRevisionID] = true
+			for _, tab := range snapshot.Tabs {
+				if !docs[tab.DocumentID] {
+					return timelineError("tabs.document_id", "unknown_document")
+				}
+			}
+		}
+	}
+	if len(snapshots) > TimelineMaxDocumentSnapshots {
+		return timelineError("document_snapshots", "session_limit")
+	}
+	if s.CurrentStageEventID == nil {
+		if active != "" {
+			return timelineError("current_stage_event_id", "foreground_mismatch")
+		}
+	} else {
+		if err := timelineID(*s.CurrentStageEventID, "current_stage_event_id"); err != nil {
+			return err
+		}
+		if active != *s.CurrentStageEventID {
+			return timelineError("current_stage_event_id", "foreground_mismatch")
+		}
+	}
+	if active != "" && s.State != TimelineActive {
+		return timelineError("state", "foreground_requires_active_session")
+	}
+	return nil
+}
+func timelineAppendLifecycle(s TimelineSession, r TimelineAppendEventRequest) error {
+	if s.State == TimelineClosed {
+		return timelineError("state", "session_closed")
+	}
+	if r.Kind == "closure" && s.CurrentStageEventID != nil {
+		return timelineError("current_stage_event_id", "stage_active")
+	}
+	if r.Kind != "stage" {
+		return nil
+	}
+	if r.ExpectedSessionVersion == nil || *r.ExpectedSessionVersion != s.Version {
+		return timelineError("expected_session_version", "version_conflict")
+	}
+	var latest *TimelineEvent
+	for i := range s.Events {
+		e := &s.Events[i]
+		if e.Kind == "stage" && e.Stage == r.Stage && !e.Withdrawn {
+			latest = e
+		}
+	}
+	if latest != nil {
+		if latest.StageState == "in_progress" || latest.StageState == "paused" {
+			return timelineError("stage", "stage_resume_required")
+		}
+		if r.RelatedEventID != latest.EventID {
+			return timelineError("related_event_id", "stage_reentry_reference_required")
+		}
+	}
+	return nil
+}
+func ValidateTimelineEventPatch(s TimelineSession, eventID string, r TimelineEventPatchRequest) error {
+	if err := r.Validate(); err != nil {
+		return err
+	}
+	var event *TimelineEvent
+	for i := range s.Events {
+		if s.Events[i].EventID == eventID {
+			event = &s.Events[i]
+			break
+		}
+	}
+	if event == nil {
+		return timelineError("event_id", "unknown_event")
+	}
+	if event.Version != r.ExpectedVersion {
+		return timelineError("expected_version", "version_conflict")
+	}
+	if r.StageState == nil {
+		return nil
+	}
+	if event.Kind != "stage" {
+		return timelineError("stage_state", "forbidden_for_kind")
+	}
+	if r.ExpectedSessionVersion == nil || *r.ExpectedSessionVersion != s.Version {
+		return timelineError("expected_session_version", "version_conflict")
+	}
+	if s.State == TimelineClosed || event.Withdrawn {
+		return timelineError("stage_state", "stage_unavailable")
+	}
+	if event.StageState == "completed" || event.StageState == "failed" {
+		return timelineError("stage_state", "stage_terminal")
+	}
+	if event.StageState == "paused" && *r.StageState == "paused" {
+		return timelineError("stage_state", "already_in_state")
+	}
+	if event.StageState == "in_progress" && *r.StageState == "in_progress" {
+		return timelineError("stage_state", "already_in_state")
+	}
+	return nil
+}
+func ValidateTimelineSessionPatch(s TimelineSession, r TimelineSessionPatchRequest) error {
+	if err := r.Validate(); err != nil {
+		return err
+	}
+	if r.ExpectedVersion != s.Version {
+		return timelineError("expected_version", "version_conflict")
+	}
+	if r.State != nil && (*r.State == TimelineClosed || *r.State == TimelinePaused) && s.CurrentStageEventID != nil {
+		return timelineError("current_stage_event_id", "stage_active")
+	}
+	return nil
+}
+func ValidateTimelineEventWithdrawal(s TimelineSession, eventID string, r TimelineMutationRequest) error {
+	if err := r.Validate(); err != nil {
+		return err
+	}
+	for _, e := range s.Events {
+		if e.EventID != eventID {
+			continue
+		}
+		if e.Version != r.ExpectedVersion {
+			return timelineError("expected_version", "version_conflict")
+		}
+		if e.Kind == "stage" && e.StageState == "in_progress" {
+			return timelineError("current_stage_event_id", "stage_active")
+		}
+		return nil
+	}
+	return timelineError("event_id", "unknown_event")
+}
+func ValidateTimelineDocumentUpload(s TimelineSession, r TimelineDocumentMetadata, content []byte) error {
+	if err := r.Validate(); err != nil {
+		return err
+	}
+	if err := ValidateTimelineDocumentBytes(content); err != nil {
+		return err
+	}
+	if s.State == TimelineClosed {
+		return timelineError("state", "session_closed")
+	}
+	digest := sha256.Sum256(content)
+	hash := hex.EncodeToString(digest[:])
+	total := int64(len(content))
+	for _, d := range s.Documents {
+		if d.SHA256 == hash {
+			return nil
+		}
+		total += d.Size
+	}
+	if len(s.Documents) >= TimelineMaxDocuments || total > TimelineMaxAggregateDocumentBytes {
+		return timelineError("documents", "capacity")
+	}
+	return nil
+}
+func ValidateTimelineDocumentSnapshot(s TimelineSession, eventID string, r TimelineDocumentSnapshotRequest) error {
+	if err := r.Validate(); err != nil {
+		return err
+	}
+	if s.State == TimelineClosed {
+		return timelineError("state", "session_closed")
+	}
+	var event *TimelineEvent
+	count := 0
+	for i := range s.Events {
+		count += len(s.Events[i].DocumentSnapshots)
+		if s.Events[i].EventID == eventID {
+			event = &s.Events[i]
+		}
+	}
+	if event == nil || event.Kind != "stage" || event.Withdrawn {
+		return timelineError("event_id", "stage_required")
+	}
+	if event.Version != r.ExpectedVersion {
+		return timelineError("expected_version", "version_conflict")
+	}
+	if count >= TimelineMaxDocumentSnapshots {
+		return timelineError("document_snapshots", "session_limit")
+	}
+	docs := map[string]bool{}
+	for _, d := range s.Documents {
+		if d.SessionID == s.ViewerSessionID {
+			docs[d.DocumentID] = true
+		}
+	}
+	for _, tab := range r.Tabs {
+		if !docs[tab.DocumentID] {
+			return timelineError("tabs.document_id", "unknown_document")
 		}
 	}
 	return nil

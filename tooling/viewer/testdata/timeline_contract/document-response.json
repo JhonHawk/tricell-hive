@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "document": {
+    "document_id": "doc-plan",
+    "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+    "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+    "size": 29,
+    "media_type": "text/markdown",
+    "received_at": "2026-10-31T20:00:00Z"
+  },
+  "content": "# Plan\n\n- Immutable snapshot\n"
+}

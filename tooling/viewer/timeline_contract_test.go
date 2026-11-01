@@ -48,6 +48,12 @@ func timelineFixtureDecode(kind string, raw []byte) error {
 	case "append_event":
 		_, err := DecodeTimelineAppendEvent(raw)
 		return err
+	case "document_metadata":
+		_, err := DecodeTimelineDocumentMetadata(raw)
+		return err
+	case "document_snapshot":
+		_, err := DecodeTimelineDocumentSnapshot(raw)
+		return err
 	case "artifact_metadata":
 		_, err := DecodeTimelineArtifactMetadata(raw)
 		return err
@@ -307,5 +313,138 @@ func TestTimelineContractIndexUnionPreservesLegacyFields(t *testing.T) {
 	current, ok := api.(TimelineAPIIndexEntry)
 	if !ok || current.ValidationCount != 2 || current.Source.NativeSessionID != "native-session-alpha" {
 		t.Fatal("API index variant did not preserve new identity")
+	}
+}
+
+func TestTimelineContractStageTransitionsShared(t *testing.T) {
+	var cases []struct {
+		Name    string          `json:"name"`
+		Action  string          `json:"action"`
+		Session json.RawMessage `json:"session"`
+		EventID string          `json:"event_id"`
+		Request json.RawMessage `json:"request"`
+		Valid   bool            `json:"valid"`
+	}
+	if err := json.Unmarshal(timelineFixture(t, "transition-cases.json"), &cases); err != nil {
+		t.Fatal(err)
+	}
+	for _, c := range cases {
+		t.Run(c.Name, func(t *testing.T) {
+			s, err := DecodeTimelineSession(c.Session)
+			if err != nil {
+				t.Fatal("bad scenario session", err)
+			}
+			switch c.Action {
+			case "event_patch":
+				r, e := DecodeTimelineEventPatch(c.Request)
+				err = e
+				if err == nil {
+					err = ValidateTimelineEventPatch(s, c.EventID, r)
+				}
+			case "session_patch":
+				r, e := DecodeTimelineSessionPatch(c.Request)
+				err = e
+				if err == nil {
+					err = ValidateTimelineSessionPatch(s, r)
+				}
+			case "withdraw":
+				r, e := DecodeTimelineMutation(c.Request)
+				err = e
+				if err == nil {
+					err = ValidateTimelineEventWithdrawal(s, c.EventID, r)
+				}
+			case "append":
+				r, e := DecodeTimelineAppendEvent(c.Request)
+				err = e
+				if err == nil {
+					err = ValidateTimelineEventReferences(s, r)
+				}
+			case "snapshot":
+				r, e := DecodeTimelineDocumentSnapshot(c.Request)
+				err = e
+				if err == nil {
+					err = ValidateTimelineDocumentSnapshot(s, c.EventID, r)
+				}
+			default:
+				t.Fatal("unknown scenario")
+			}
+			if (err == nil) != c.Valid {
+				t.Fatalf("valid=%v: %v", c.Valid, err)
+			}
+		})
+	}
+}
+func TestTimelineContractDocumentBytesAndReadback(t *testing.T) {
+	response, err := DecodeTimelineDocumentResponse(timelineFixture(t, "document-response.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := ValidateTimelineDocumentBytes(bytes.Repeat([]byte("x"), TimelineMaxDocumentBytes)); err != nil {
+		t.Fatal(err)
+	}
+	for _, content := range [][]byte{bytes.Repeat([]byte("x"), TimelineMaxDocumentBytes+1), {0xff}} {
+		if ValidateTimelineDocumentBytes(content) == nil {
+			t.Fatal("invalid document accepted")
+		}
+	}
+	if err := ValidateTimelineDocumentBytes(nil); err != nil {
+		t.Fatal("empty UTF8 document must deduplicate", err)
+	}
+	response.Content += "modified"
+	raw, _ := json.Marshal(response)
+	if _, err := DecodeTimelineDocumentResponse(raw); err == nil {
+		t.Fatal("modified bytes accepted")
+	}
+	s, err := DecodeTimelineSession(timelineFixture(t, "stage-session.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	meta := TimelineDocumentMetadata{SchemaVersion: 1, OperationID: "doc", MediaType: "text/markdown"}
+	if err := ValidateTimelineDocumentUpload(s, meta, []byte("new")); err != nil {
+		t.Fatal(err)
+	}
+	s.State = TimelineClosed
+	if ValidateTimelineDocumentUpload(s, meta, []byte("new")) == nil {
+		t.Fatal("closed upload accepted")
+	}
+}
+func TestTimelineContractDocumentURLsScopedToKnownMetadata(t *testing.T) {
+	s, err := DecodeTimelineSession(timelineFixture(t, "stage-session.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	path := "/api/timeline/sessions/" + s.ViewerSessionID + "/documents/doc-plan"
+	response := TimelineSessionResponse{SchemaVersion: 1, Mode: "timeline_api", Session: s, DocumentURLs: map[string]string{"doc-plan": path}}
+	raw, _ := json.Marshal(response)
+	if _, err := DecodeTimelineSessionResponse(raw); err != nil {
+		t.Fatal(err)
+	}
+	for _, url := range []string{path + "?token=private", "https://example.com" + path, "/api/timeline/sessions/" + strings.Repeat("a", 64) + "/documents/doc-plan", path + "/../other"} {
+		response.DocumentURLs["doc-plan"] = url
+		raw, _ := json.Marshal(response)
+		if _, err := DecodeTimelineSessionResponse(raw); err == nil {
+			t.Fatal("unsafe document URL accepted")
+		}
+	}
+	response.DocumentURLs = map[string]string{"unknown": path}
+	raw, _ = json.Marshal(response)
+	if _, err := DecodeTimelineSessionResponse(raw); err == nil {
+		t.Fatal("unknown document URL accepted")
+	}
+}
+
+func TestTimelineContractDocumentResponsePreservesUTF8BOM(t *testing.T) {
+	response, err := DecodeTimelineDocumentResponse(timelineFixture(t, "document-response-bom.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(response.Content, "\ufeff") {
+		t.Fatal("BOM stripped from content")
+	}
+	if response.Document.Size != int64(len([]byte(response.Content))) || response.Document.Size != 32 {
+		t.Fatal("BOM bytes omitted from size")
+	}
+	if response.Document.SHA256 != "d58e2f6d5d846c4960387b9afdac5ec7aba37d6785782cd7d6f9d057990eeb43" {
+		t.Fatal("BOM bytes omitted from digest")
 	}
 }

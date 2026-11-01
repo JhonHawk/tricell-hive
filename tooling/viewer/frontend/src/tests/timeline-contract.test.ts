@@ -4,7 +4,9 @@ import test from "node:test";
 import {
   decodeTimelineContract,
   isSafeTimelineArtifactURL,
+  isSafeTimelineDocumentURL,
   isSafeTimelineURL,
+  parseTimelineDocumentResponse,
   parseTimelineIndexEntry,
   parseTimelineJSON,
   parseTimelineOperationReceipt,
@@ -19,8 +21,13 @@ import {
   type TimelineSession,
   type TimelineView,
   timelineTicketIdentity,
+  validateTimelineDocumentBytes,
+  validateTimelineDocumentSnapshot,
+  validateTimelineEventPatch,
   validateTimelineEventReferences,
+  validateTimelineEventWithdrawal,
   validateTimelineOperationRetry,
+  validateTimelineSessionPatch,
 } from "../timeline-contract";
 
 const fixture = (name: string) =>
@@ -308,4 +315,125 @@ test("index entry union preserves the existing legacy source record without crea
   if (api.mode !== "timeline_api") assert.fail("Expected API index variant");
   assert.equal(api.validation_count, 2);
   assert.equal(api.source.native_session_id, "native-session-alpha");
+});
+
+const transitionCases = JSON.parse(fixture("transition-cases.json")) as {
+  name: string;
+  action: string;
+  session: unknown;
+  event_id: string;
+  request: unknown;
+  valid: boolean;
+}[];
+for (const c of transitionCases)
+  test(`timeline shared transition: ${c.name}`, () => {
+    const s = parseTimelineSession(c.session);
+    const check = () => {
+      switch (c.action) {
+        case "event_patch":
+          return validateTimelineEventPatch(
+            s,
+            c.event_id,
+            parseTimelineRequest("event_patch", c.request),
+          );
+        case "session_patch":
+          return validateTimelineSessionPatch(
+            s,
+            parseTimelineRequest("session_patch", c.request),
+          );
+        case "withdraw":
+          return validateTimelineEventWithdrawal(
+            s,
+            c.event_id,
+            parseTimelineRequest("mutation", c.request),
+          );
+        case "append":
+          return validateTimelineEventReferences(
+            s,
+            parseTimelineRequest("append_event", c.request),
+          );
+        case "snapshot":
+          return validateTimelineDocumentSnapshot(
+            s,
+            c.event_id,
+            parseTimelineRequest("document_snapshot", c.request),
+          );
+        default:
+          throw Error("unknown scenario");
+      }
+    };
+    if (c.valid) assert.doesNotThrow(check);
+    else assert.throws(check, TimelineContractError);
+  });
+test("document byte bounds and immutable readback", async () => {
+  validateTimelineDocumentBytes(new Uint8Array(262144));
+  validateTimelineDocumentBytes(new Uint8Array());
+  assert.throws(
+    () => validateTimelineDocumentBytes(new Uint8Array(262145)),
+    TimelineContractError,
+  );
+  assert.throws(
+    () => validateTimelineDocumentBytes(new Uint8Array([255])),
+    TimelineContractError,
+  );
+  const response = JSON.parse(fixture("document-response.json"));
+  await assert.doesNotReject(() => parseTimelineDocumentResponse(response));
+  response.content += "modified";
+  await assert.rejects(
+    () => parseTimelineDocumentResponse(response),
+    TimelineContractError,
+  );
+});
+test("document route map accepts only scoped known immutable IDs", () => {
+  const s = parseTimelineSession(JSON.parse(fixture("stage-session.json")));
+  const path = `/api/timeline/sessions/${s.viewer_session_id}/documents/doc-plan`;
+  assert.ok(isSafeTimelineDocumentURL(path, s.viewer_session_id, "doc-plan"));
+  const response = {
+    schema_version: 1,
+    mode: "timeline_api",
+    session: s,
+    document_urls: { "doc-plan": path },
+  };
+  assert.doesNotThrow(() => parseTimelineSessionResponse(response));
+  for (const url of [
+    `${path}?token=private`,
+    `https://example.com${path}`,
+    `${path}/../other`,
+  ]) {
+    response.document_urls["doc-plan"] = url;
+    assert.throws(
+      () => parseTimelineSessionResponse(response),
+      TimelineContractError,
+    );
+  }
+  assert.throws(
+    () =>
+      parseTimelineSessionResponse({
+        ...response,
+        document_urls: { unknown: path },
+      }),
+    TimelineContractError,
+  );
+});
+
+test("shared document response preserves UTF8 BOM bytes, size and digest", async () => {
+  const fixtureResponse = JSON.parse(fixture("document-response-bom.json"));
+  const response = await parseTimelineDocumentResponse(fixtureResponse);
+  assert.equal(response.content.charCodeAt(0), 0xfeff);
+  assert.equal(response.document.size, 32);
+  assert.equal(
+    new TextEncoder().encode(response.content).length,
+    response.document.size,
+  );
+  assert.equal(
+    response.document.sha256,
+    "d58e2f6d5d846c4960387b9afdac5ec7aba37d6785782cd7d6f9d057990eeb43",
+  );
+  assert.equal(response.content, fixtureResponse.content);
+  for (const content of ["\ud800", "\udfff"]) {
+    await assert.rejects(
+      () => parseTimelineDocumentResponse({ ...fixtureResponse, content }),
+      TimelineContractError,
+    );
+  }
 });

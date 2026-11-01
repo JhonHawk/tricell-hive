@@ -1,0 +1,3459 @@
+[
+  {
+    "name": "complete foreground",
+    "action": "event_patch",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": "plan-2",
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "in_progress",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "transition",
+      "expected_version": 2,
+      "expected_session_version": 7,
+      "stage_state": "completed"
+    },
+    "valid": true
+  },
+  {
+    "name": "stale expected_version",
+    "action": "event_patch",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": "plan-2",
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "in_progress",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "transition",
+      "expected_version": 999,
+      "expected_session_version": 7,
+      "stage_state": "completed"
+    },
+    "valid": false
+  },
+  {
+    "name": "stale expected_session_version",
+    "action": "event_patch",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": "plan-2",
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "in_progress",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "transition",
+      "expected_version": 2,
+      "expected_session_version": 999,
+      "stage_state": "completed"
+    },
+    "valid": false
+  },
+  {
+    "name": "terminal occurrence cannot resume",
+    "action": "event_patch",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": "plan-2",
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "in_progress",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-1",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "transition",
+      "expected_version": 2,
+      "expected_session_version": 7,
+      "stage_state": "in_progress"
+    },
+    "valid": false
+  },
+  {
+    "name": "resume human wait occurrence",
+    "action": "event_patch",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": null,
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "awaiting_validation",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "paused",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "transition",
+      "expected_version": 2,
+      "expected_session_version": 7,
+      "stage_state": "in_progress"
+    },
+    "valid": true
+  },
+  {
+    "name": "complete paused occurrence",
+    "action": "event_patch",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": null,
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "awaiting_validation",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "paused",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "transition",
+      "expected_version": 2,
+      "expected_session_version": 7,
+      "stage_state": "completed"
+    },
+    "valid": true
+  },
+  {
+    "name": "repeat paused rejected",
+    "action": "event_patch",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": null,
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "awaiting_validation",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "paused",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "transition",
+      "expected_version": 2,
+      "expected_session_version": 7,
+      "stage_state": "paused"
+    },
+    "valid": false
+  },
+  {
+    "name": "foreground withdrawal rejected",
+    "action": "withdraw",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": "plan-2",
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "in_progress",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "withdraw",
+      "expected_version": 2
+    },
+    "valid": false
+  },
+  {
+    "name": "paused withdrawal allowed",
+    "action": "withdraw",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": null,
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "awaiting_validation",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "paused",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "withdraw",
+      "expected_version": 2
+    },
+    "valid": true
+  },
+  {
+    "name": "human wait may atomically pause",
+    "action": "session_patch",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": "plan-2",
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "in_progress",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "state",
+      "expected_version": 7,
+      "state": "awaiting_validation"
+    },
+    "valid": true
+  },
+  {
+    "name": "direct closed foreground rejected",
+    "action": "session_patch",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": "plan-2",
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "in_progress",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "state",
+      "expected_version": 7,
+      "state": "closed"
+    },
+    "valid": false
+  },
+  {
+    "name": "closed after pause",
+    "action": "session_patch",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": null,
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "awaiting_validation",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "paused",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "state",
+      "expected_version": 7,
+      "state": "closed"
+    },
+    "valid": true
+  },
+  {
+    "name": "new stage permits atomic pause old foreground",
+    "action": "append",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": "plan-2",
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "in_progress",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "stage",
+      "kind": "stage",
+      "title": "Verify",
+      "summary": "Declared review",
+      "ticket_refs": [],
+      "stage": "verify",
+      "stage_state": "in_progress",
+      "expected_session_version": 7
+    },
+    "valid": true
+  },
+  {
+    "name": "start stale foreground precondition",
+    "action": "append",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": "plan-2",
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "in_progress",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "stage",
+      "kind": "stage",
+      "title": "Verify",
+      "summary": "Declared review",
+      "ticket_refs": [],
+      "stage": "verify",
+      "stage_state": "in_progress",
+      "expected_session_version": 999
+    },
+    "valid": false
+  },
+  {
+    "name": "same stage must resume",
+    "action": "append",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": "plan-2",
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "in_progress",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "stage",
+      "kind": "stage",
+      "title": "Verify",
+      "summary": "Declared review",
+      "ticket_refs": [],
+      "stage": "plan",
+      "stage_state": "in_progress",
+      "expected_session_version": 7
+    },
+    "valid": false
+  },
+  {
+    "name": "reentry links finished occurrence",
+    "action": "append",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": null,
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ],
+          "finished_at": "2026-10-31T20:03:30Z"
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "stage",
+      "kind": "stage",
+      "title": "Verify",
+      "summary": "Declared review",
+      "ticket_refs": [],
+      "stage": "plan",
+      "stage_state": "in_progress",
+      "expected_session_version": 7,
+      "related_event_id": "plan-2"
+    },
+    "valid": true
+  },
+  {
+    "name": "reentry missing latest link rejected",
+    "action": "append",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": null,
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ],
+          "finished_at": "2026-10-31T20:03:30Z"
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "stage",
+      "kind": "stage",
+      "title": "Verify",
+      "summary": "Declared review",
+      "ticket_refs": [],
+      "stage": "plan",
+      "stage_state": "in_progress",
+      "expected_session_version": 7
+    },
+    "valid": false
+  },
+  {
+    "name": "closure foreground rejected",
+    "action": "append",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": "plan-2",
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "in_progress",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "close",
+      "kind": "closure",
+      "title": "Closed",
+      "summary": "Done",
+      "ticket_refs": [],
+      "closure": {
+        "reason": "completed",
+        "result": "Verified"
+      }
+    },
+    "valid": false
+  },
+  {
+    "name": "closure after pause",
+    "action": "append",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": null,
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "awaiting_validation",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "paused",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "close",
+      "kind": "closure",
+      "title": "Closed",
+      "summary": "Done",
+      "ticket_refs": [],
+      "closure": {
+        "reason": "completed",
+        "result": "Verified"
+      }
+    },
+    "valid": true
+  },
+  {
+    "name": "snapshot append immutable references",
+    "action": "snapshot",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": "plan-2",
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "in_progress",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "snapshot",
+      "expected_version": 2,
+      "status": "complete",
+      "tabs": [
+        {
+          "label": "Proposal",
+          "document_id": "doc-plan"
+        }
+      ]
+    },
+    "valid": true
+  },
+  {
+    "name": "snapshot no replacement even terminal state",
+    "action": "snapshot",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": "plan-2",
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "in_progress",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-1",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "snapshot",
+      "expected_version": 2,
+      "status": "complete",
+      "tabs": [
+        {
+          "label": "Proposal",
+          "document_id": "doc-plan"
+        }
+      ]
+    },
+    "valid": true
+  },
+  {
+    "name": "snapshot stale event",
+    "action": "snapshot",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": "plan-2",
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "in_progress",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "snapshot",
+      "expected_version": 999,
+      "status": "complete",
+      "tabs": [
+        {
+          "label": "Proposal",
+          "document_id": "doc-plan"
+        }
+      ]
+    },
+    "valid": false
+  },
+  {
+    "name": "snapshot foreign reference",
+    "action": "snapshot",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": "plan-2",
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "in_progress",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "snapshot",
+      "expected_version": 2,
+      "status": "complete",
+      "tabs": [
+        {
+          "label": "Other",
+          "document_id": "foreign"
+        }
+      ]
+    },
+    "valid": false
+  },
+  {
+    "name": "closed session cannot append",
+    "action": "append",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": null,
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "closed",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ],
+          "finished_at": "2026-10-31T20:03:30Z"
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "stage",
+      "kind": "stage",
+      "title": "Verify",
+      "summary": "Declared review",
+      "ticket_refs": [],
+      "stage": "verify",
+      "stage_state": "in_progress",
+      "expected_session_version": 7
+    },
+    "valid": false
+  },
+  {
+    "name": "closed session cannot snapshot",
+    "action": "snapshot",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z"
+        }
+      ],
+      "current_stage_event_id": null,
+      "schema_version": 1,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "closed",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ]
+            }
+          ],
+          "finished_at": "2026-10-31T20:03:30Z"
+        }
+      ],
+      "artifacts": []
+    },
+    "event_id": "plan-2",
+    "request": {
+      "schema_version": 1,
+      "operation_id": "snapshot",
+      "expected_version": 2,
+      "status": "complete",
+      "tabs": [
+        {
+          "label": "Proposal",
+          "document_id": "doc-plan"
+        }
+      ]
+    },
+    "valid": false
+  }
+]

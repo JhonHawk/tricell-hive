@@ -11,6 +11,11 @@ export const TIMELINE_LIMITS = {
   images: 100,
   receipts: 1000,
   contentReceipts: 992,
+  documentBytes: 256 << 10,
+  documentTabs: 8,
+  documents: 64,
+  documentSnapshots: 50,
+  aggregateDocumentBytes: 16 << 20,
   number: 2147483647,
 } as const;
 export type TimelineHost =
@@ -28,6 +33,7 @@ export type TimelineState =
 export type TimelineEventKind =
   | "request"
   | "work_started"
+  | "stage"
   | "validation"
   | "changes_reported"
   | "iteration"
@@ -46,10 +52,52 @@ export type TimelineCandidate = {
   commit: string;
   base: string;
 };
-export type TimelineEvidenceTarget = {
-  event_id: string;
-  evidence_id: string;
-  view_ids?: string[];
+export type TimelineStage = "research" | "plan" | "build" | "verify";
+export type TimelineStageState =
+  | "in_progress"
+  | "completed"
+  | "paused"
+  | "failed";
+export type TimelineDecisionTarget =
+  | {
+      kind: "evidence";
+      event_id: string;
+      evidence_id: string;
+      view_ids?: string[];
+    }
+  | { kind: "document"; event_id: string; document_revision_id: string };
+export type TimelineEvidenceTarget = TimelineDecisionTarget;
+export type TimelineDocument = {
+  document_id: string;
+  session_id: string;
+  sha256: string;
+  size: number;
+  media_type: "text/markdown";
+  received_at: string;
+};
+export type TimelineDocumentTab = { label: string; document_id: string };
+export type TimelineDocumentSnapshot = {
+  document_revision_id: string;
+  status: "draft" | "complete";
+  created_at: string;
+  tabs: TimelineDocumentTab[];
+};
+export type TimelineDocumentResponse = {
+  schema_version: 1;
+  document: TimelineDocument;
+  content: string;
+};
+export type TimelineDocumentMetadata = {
+  schema_version: 1;
+  operation_id: string;
+  media_type: "text/markdown";
+};
+export type TimelineDocumentSnapshotRequest = {
+  schema_version: 1;
+  operation_id: string;
+  expected_version: number;
+  status: "draft" | "complete";
+  tabs: TimelineDocumentTab[];
 };
 export type TimelineSupersedes = {
   event_id: string;
@@ -103,6 +151,12 @@ export type TimelineEvent = {
   source_reference?: string;
   deliveries?: TimelineDelivery[];
   closure?: TimelineClosure;
+  stage?: TimelineStage;
+  stage_state?: TimelineStageState;
+  started_at?: string;
+  finished_at?: string;
+  occurred_at?: string;
+  document_snapshots?: TimelineDocumentSnapshot[];
 };
 export type TimelineArtifact = {
   artifact_id: string;
@@ -134,11 +188,13 @@ export type TimelineSession = {
   tickets: TimelineTicket[];
   events: TimelineEvent[];
   artifacts: TimelineArtifact[];
+  documents: TimelineDocument[];
+  current_stage_event_id: string | null;
 };
 export type TimelineContentMode = "timeline_api" | "legacy";
 export type TimelineAPIIndexEntry = Omit<
   TimelineSession,
-  "schema_version" | "events" | "artifacts"
+  "schema_version" | "events" | "artifacts" | "documents"
 > & { mode: "timeline_api" };
 export type TimelineLegacyIndexEntry = { mode: "legacy"; session: RawSession };
 export type TimelineIndexEntry =
@@ -151,12 +207,15 @@ export type TimelineOperationKind =
   | "append_event"
   | "event_patch"
   | "event_withdraw"
-  | "artifact_add";
+  | "artifact_add"
+  | "document_add"
+  | "document_snapshot";
 type TimelineOperationBase = {
   schema_version: 1;
   operation_id: string;
   viewer_session_id: string;
   session_version: number;
+  current_stage_event_id: string | null;
 };
 type TimelineEventOperationFields = {
   event_id: string;
@@ -176,6 +235,17 @@ export type TimelineOperationResult = TimelineOperationBase &
         withdrawn: true;
       } & TimelineEventOperationFields)
     | { kind: "artifact_add"; artifact_id: string; created: boolean }
+    | {
+        kind: "document_add";
+        document_id: string;
+        sha256: string;
+        size: number;
+        created: boolean;
+      }
+    | ({
+        kind: "document_snapshot";
+        document_revision_id: string;
+      } & TimelineEventOperationFields)
   );
 // Internal receipt contracts are exported for persistence/tests, never members
 // of the public TimelineSession or TimelineSessionResponse data.
@@ -190,6 +260,7 @@ export type TimelineSessionResponse = {
   mode: "timeline_api";
   session: TimelineSession;
   artifact_urls?: Record<string, string>;
+  document_urls?: Record<string, string>;
   created?: boolean;
 };
 export type TimelineCreateSessionRequest = {
@@ -213,7 +284,9 @@ export type TimelineSessionPatchRequest = TimelineMutationRequest &
     >
   >;
 export type TimelineEventPatchRequest = TimelineMutationRequest &
-  Partial<Pick<TimelineEvent, "title" | "summary">>;
+  Partial<Pick<TimelineEvent, "title" | "summary" | "stage_state">> & {
+    expected_session_version?: number;
+  };
 export type TimelineAppendEventRequest = {
   schema_version: 1;
   operation_id: string;
@@ -228,6 +301,10 @@ export type TimelineAppendEventRequest = {
   source_reference?: string;
   deliveries?: TimelineDelivery[];
   closure?: TimelineClosure;
+  stage?: TimelineStage;
+  stage_state?: "in_progress";
+  expected_session_version?: number;
+  occurred_at?: string;
 };
 export type TimelineArtifactMetadata = {
   schema_version: 1;
@@ -248,7 +325,9 @@ export type TimelineContractKind =
   | "session"
   | "index_entry"
   | "operation_result"
-  | "operation_receipt";
+  | "operation_receipt"
+  | "document_metadata"
+  | "document_snapshot";
 export class TimelineContractError extends Error {
   constructor(
     public field: string,
@@ -263,6 +342,7 @@ const states = ["active", "awaiting_validation", "paused", "closed"];
 const kinds = [
   "request",
   "work_started",
+  "stage",
   "validation",
   "changes_reported",
   "iteration",
@@ -289,8 +369,9 @@ function object(
     if (!Object.hasOwn(obj, key)) fail(key, "required_field");
   for (const key of Object.keys(obj))
     if (![...required, ...optional].includes(key)) fail(field, "unknown_field");
-  for (const item of Object.values(obj))
-    if (item === null) fail(field, "null_not_allowed");
+  for (const [key, item] of Object.entries(obj))
+    if (item === null && key !== "current_stage_event_id")
+      fail(field, "null_not_allowed");
   return obj;
 }
 function text(
@@ -437,7 +518,17 @@ function candidate(value: unknown) {
     text(obj[field], `candidate.${field}`, 256);
 }
 function target(value: unknown) {
-  const obj = object(value, ["event_id", "evidence_id"], ["view_ids"]);
+  if (!value || typeof value !== "object" || Array.isArray(value))
+    fail("target", "object_required");
+  const kind = (value as ObjectValue).kind;
+  if (kind === "document") {
+    const obj = object(value, ["kind", "event_id", "document_revision_id"]);
+    id(obj.event_id, "target.event_id");
+    id(obj.document_revision_id, "target.document_revision_id");
+    return;
+  }
+  const obj = object(value, ["kind", "event_id", "evidence_id"], ["view_ids"]);
+  if (kind !== "evidence") fail("target.kind", "unsupported_target");
   id(obj.event_id, "target.event_id");
   id(obj.evidence_id, "target.evidence_id");
   if (obj.view_ids !== undefined) {
@@ -504,6 +595,20 @@ function eventPayload(obj: ObjectValue, output = false) {
   if (obj.candidate !== undefined) candidate(obj.candidate);
   if (obj.related_event_id !== undefined)
     id(obj.related_event_id, "related_event_id");
+  if (obj.occurred_at !== undefined) timestamp(obj.occurred_at, "occurred_at");
+  if (obj.kind === "stage") {
+    if (!stages.includes(obj.stage as string)) fail("stage");
+    if (!stageStates.includes(obj.stage_state as string)) fail("stage_state");
+    if (!output) {
+      if (obj.stage_state !== "in_progress") fail("stage_state");
+      integer(obj.expected_session_version, "expected_session_version");
+    }
+  } else if (
+    obj.stage !== undefined ||
+    obj.stage_state !== undefined ||
+    obj.expected_session_version !== undefined
+  )
+    fail("stage", "forbidden_for_kind");
   const evidence = obj.kind === "validation" || obj.kind === "iteration";
   const decision =
     obj.kind === "changes_reported" || obj.kind === "approval_reported";
@@ -559,6 +664,10 @@ const eventOptional = [
   "source_reference",
   "deliveries",
   "closure",
+  "stage",
+  "stage_state",
+  "expected_session_version",
+  "occurred_at",
 ];
 export type TimelineRequestMap = {
   create_session: TimelineCreateSessionRequest;
@@ -567,6 +676,8 @@ export type TimelineRequestMap = {
   mutation: TimelineMutationRequest;
   append_event: TimelineAppendEventRequest;
   artifact_metadata: TimelineArtifactMetadata;
+  document_metadata: TimelineDocumentMetadata;
+  document_snapshot: TimelineDocumentSnapshotRequest;
 };
 export function parseTimelineRequest<K extends keyof TimelineRequestMap>(
   kind: K,
@@ -620,13 +731,39 @@ export function parseTimelineRequest<K extends keyof TimelineRequestMap>(
       obj = object(
         value,
         ["schema_version", "operation_id", "expected_version"],
-        ["title", "summary"],
+        ["title", "summary", "stage_state", "expected_session_version"],
       );
       operation(obj, true);
-      if (obj.title === undefined && obj.summary === undefined)
+      if (
+        obj.title === undefined &&
+        obj.summary === undefined &&
+        obj.stage_state === undefined
+      )
         fail("body", "empty_patch");
       if (obj.title !== undefined) text(obj.title, "title", 200);
       if (obj.summary !== undefined) text(obj.summary, "summary", 4000);
+      if (obj.stage_state !== undefined) {
+        if (!stageStates.includes(obj.stage_state as string))
+          fail("stage_state");
+        integer(obj.expected_session_version, "expected_session_version");
+      } else if (obj.expected_session_version !== undefined)
+        fail("expected_session_version", "forbidden_for_kind");
+      break;
+    case "document_metadata":
+      obj = object(value, ["schema_version", "operation_id", "media_type"]);
+      operation(obj);
+      if (obj.media_type !== "text/markdown") fail("media_type");
+      break;
+    case "document_snapshot":
+      obj = object(value, [
+        "schema_version",
+        "operation_id",
+        "expected_version",
+        "status",
+        "tabs",
+      ]);
+      operation(obj, true);
+      snapshotFields(obj);
       break;
     case "mutation":
       obj = object(value, [
@@ -679,6 +816,27 @@ export function validateTimelineEventReferences(
   request: TimelineAppendEventRequest,
 ): void {
   parseTimelineRequest("append_event", request);
+  if (session.state === "closed") fail("state", "session_closed");
+  if (request.kind === "closure" && session.current_stage_event_id !== null)
+    fail("current_stage_event_id", "stage_active");
+  if (request.kind === "stage") {
+    if (request.expected_session_version !== session.version)
+      fail("expected_session_version", "version_conflict");
+    const latest = session.events
+      .filter(
+        (e) => e.kind === "stage" && e.stage === request.stage && !e.withdrawn,
+      )
+      .at(-1);
+    if (latest) {
+      if (
+        latest.stage_state === "in_progress" ||
+        latest.stage_state === "paused"
+      )
+        fail("stage", "stage_resume_required");
+      if (request.related_event_id !== latest.event_id)
+        fail("related_event_id", "stage_reentry_reference_required");
+    }
+  }
   checkReferences(session, request, false);
 }
 function checkReferences(
@@ -711,6 +869,18 @@ function checkReferences(
       if (v.view_id) knownViews.add(v.view_id);
   const checkTarget = (t: TimelineEvidenceTarget) => {
     const previous = events.get(t.event_id);
+    if (t.kind === "document") {
+      if (
+        previous?.kind !== "stage" ||
+        (!restored && previous.withdrawn) ||
+        !previous.document_snapshots?.some(
+          (snapshot) =>
+            snapshot.document_revision_id === t.document_revision_id,
+        )
+      )
+        fail("target", "unknown_document_revision");
+      return;
+    }
     if (
       !previous?.evidence_id ||
       previous.evidence_id !== t.evidence_id ||
@@ -733,6 +903,7 @@ function checkReferences(
         fail("views.image_refs", "unknown_artifact");
     if (v.supersedes)
       checkTarget({
+        kind: "evidence",
         event_id: v.supersedes.event_id,
         evidence_id: v.supersedes.evidence_id,
         view_ids: [v.supersedes.view_id],
@@ -758,6 +929,8 @@ export function parseTimelineSession(value: unknown): TimelineSession {
     "tickets",
     "events",
     "artifacts",
+    "documents",
+    "current_stage_event_id",
   ]);
   if (obj.schema_version !== 1) fail("schema_version", "unsupported_version");
   if (
@@ -833,7 +1006,14 @@ export function parseTimelineSession(value: unknown): TimelineSession {
         "origin",
         ...eventRequired,
       ],
-      ["withdrawn", "evidence_id", ...eventOptional],
+      [
+        "withdrawn",
+        "evidence_id",
+        "started_at",
+        "finished_at",
+        "document_snapshots",
+        ...eventOptional.filter((f) => f !== "expected_session_version"),
+      ],
     );
     id(e.event_id, "events.event_id");
     if (ids.has(e.event_id)) fail("events.event_id", "duplicate_id");
@@ -848,6 +1028,7 @@ export function parseTimelineSession(value: unknown): TimelineSession {
     if (e.withdrawn !== undefined && typeof e.withdrawn !== "boolean")
       fail("events.withdrawn");
     eventPayload(e, true);
+    validateStageOutput(e);
     if (e.kind === "validation" || e.kind === "iteration") {
       id(e.evidence_id, "events.evidence_id");
       if (evidenceIDs.has(e.evidence_id))
@@ -868,6 +1049,7 @@ export function parseTimelineSession(value: unknown): TimelineSession {
   }
   if (obj.validation_count !== count)
     fail("validation_count", "count_mismatch");
+  validateR3Session(session);
   return session;
 }
 export function parseTimelineSessionResponse(
@@ -876,7 +1058,7 @@ export function parseTimelineSessionResponse(
   const obj = object(
     value,
     ["schema_version", "mode", "session"],
-    ["artifact_urls", "created"],
+    ["artifact_urls", "document_urls", "created"],
   );
   if (obj.schema_version !== 1 || obj.mode !== "timeline_api")
     fail("mode", "unsupported_version_or_mode");
@@ -897,6 +1079,16 @@ export function parseTimelineSessionResponse(
         !isSafeTimelineArtifactURL(value, session.viewer_session_id)
       )
         fail("artifact_urls", "invalid_artifact_url");
+  }
+  if (obj.document_urls !== undefined) {
+    const urls = object(
+      obj.document_urls,
+      [],
+      session.documents.map((d) => d.document_id),
+    );
+    for (const [key, url] of Object.entries(urls))
+      if (!isSafeTimelineDocumentURL(url, session.viewer_session_id, key))
+        fail("document_urls", "invalid_document_url");
   }
   return obj as unknown as TimelineSessionResponse;
 }
@@ -920,7 +1112,7 @@ export function parseTimelineJSON(raw: string): unknown {
     }
     return fail("body", "invalid_json");
   };
-  const visit = (depth: number): void => {
+  const visit = (depth: number, nullable = false): void => {
     if (depth > 32) fail("body", "too_deep");
     space();
     if (raw[index] === "{") {
@@ -939,7 +1131,7 @@ export function parseTimelineJSON(raw: string): unknown {
         seen.add(key);
         space();
         if (raw[index++] !== ":") fail("body", "invalid_json");
-        visit(depth + 1);
+        visit(depth + 1, key === "current_stage_event_id");
         space();
         const end = raw[index++];
         if (end === "}") return;
@@ -971,7 +1163,8 @@ export function parseTimelineJSON(raw: string): unknown {
         !/^-?(0|[1-9][0-9]*)$/.test(raw.slice(start, index))
       )
         fail("body", "invalid_integer_literal");
-      if (raw.slice(start, index) === "null") fail("body", "null_not_allowed");
+      if (raw.slice(start, index) === "null" && !nullable)
+        fail("body", "null_not_allowed");
     }
   };
   try {
@@ -1095,13 +1288,18 @@ export function parseTimelineIndexEntry(value: unknown): TimelineIndexEntry {
     "updated_at",
     "validation_count",
     "tickets",
+    "current_stage_event_id",
   ]);
+  if (entry.current_stage_event_id !== null)
+    id(entry.current_stage_event_id, "current_stage_event_id");
   const { mode: _mode, ...summary } = entry;
   parseTimelineSession({
     ...summary,
     schema_version: 1,
     events: [],
     artifacts: [],
+    documents: [],
+    current_stage_event_id: null,
     validation_count: 0,
   });
   integer(
@@ -1121,6 +1319,7 @@ export function parseTimelineOperationResult(
     "kind",
     "viewer_session_id",
     "session_version",
+    "current_stage_event_id",
   ];
   if (!value || typeof value !== "object" || Array.isArray(value))
     fail("body", "object_required");
@@ -1146,6 +1345,12 @@ export function parseTimelineOperationResult(
       required = [...required, ...eventFields, "withdrawn"];
       optional = ["evidence_id", "view_ids"];
       break;
+    case "document_add":
+      required.push("document_id", "sha256", "size", "created");
+      break;
+    case "document_snapshot":
+      required.push(...eventFields, "document_revision_id");
+      break;
     case "artifact_add":
       required.push("artifact_id", "created");
       break;
@@ -1155,6 +1360,8 @@ export function parseTimelineOperationResult(
   const result = object(value, required, optional);
   operation(result);
   integer(result.session_version, "session_version");
+  if (result.current_stage_event_id !== null)
+    id(result.current_stage_event_id, "current_stage_event_id");
   if (
     typeof result.viewer_session_id !== "string" ||
     !sha256.test(result.viewer_session_id)
@@ -1183,6 +1390,14 @@ export function parseTimelineOperationResult(
     }
   }
   if (kind === "artifact_add") id(result.artifact_id, "artifact_id");
+  if (kind === "document_add") {
+    id(result.document_id, "document_id");
+    if (typeof result.sha256 !== "string" || !sha256.test(result.sha256))
+      fail("sha256");
+    integer(result.size, "size", 0, TIMELINE_LIMITS.documentBytes);
+  }
+  if (kind === "document_snapshot")
+    id(result.document_revision_id, "document_revision_id");
   return result as TimelineOperationResult;
 }
 export function parseTimelineOperationReceipt(
@@ -1219,4 +1434,274 @@ export function validateTimelineOperationRetry(
   if (receipt.operation_id !== operation || receipt.request_sha256 !== digest)
     fail("operation_id", "operation_conflict");
   return receipt.result;
+}
+
+const stages = ["research", "plan", "build", "verify"];
+const stageStates = ["in_progress", "completed", "paused", "failed"];
+function snapshotFields(s: ObjectValue) {
+  if (!["draft", "complete"].includes(s.status as string)) fail("status");
+  const labels = new Set<string>();
+  for (const value of array(s.tabs, "tabs", TIMELINE_LIMITS.documentTabs, 1)) {
+    const t = object(value, ["label", "document_id"]);
+    text(t.label, "tabs.label", 100);
+    id(t.document_id, "tabs.document_id");
+    if (labels.has(t.label as string)) fail("tabs.label", "duplicate_label");
+    labels.add(t.label as string);
+  }
+}
+function validateStageOutput(e: ObjectValue) {
+  if (e.kind !== "stage") {
+    if (
+      e.started_at !== undefined ||
+      e.finished_at !== undefined ||
+      e.document_snapshots !== undefined
+    )
+      fail("stage", "forbidden_for_kind");
+    return;
+  }
+  timestamp(e.started_at, "started_at");
+  const start = Date.parse(e.started_at as string),
+    updated = Date.parse(e.updated_at as string);
+  if (start !== Date.parse(e.created_at as string) || updated < start)
+    fail("started_at", "server_time_mismatch");
+  if (e.stage_state === "completed" || e.stage_state === "failed") {
+    timestamp(e.finished_at, "finished_at");
+    if (
+      Date.parse(e.finished_at as string) < start ||
+      Date.parse(e.finished_at as string) > updated
+    )
+      fail("finished_at", "server_time_mismatch");
+  } else if (e.finished_at !== undefined)
+    fail("finished_at", "forbidden_for_stage_state");
+  if (e.document_snapshots !== undefined)
+    for (const value of array(
+      e.document_snapshots,
+      "document_snapshots",
+      TIMELINE_LIMITS.documentSnapshots,
+    )) {
+      const s = object(value, [
+        "document_revision_id",
+        "status",
+        "created_at",
+        "tabs",
+      ]);
+      id(s.document_revision_id, "document_revision_id");
+      timestamp(s.created_at, "document_snapshots.created_at");
+      snapshotFields(s);
+      if (
+        Date.parse(s.created_at as string) < start ||
+        Date.parse(s.created_at as string) > updated
+      )
+        fail("document_snapshots.created_at", "server_time_mismatch");
+    }
+}
+function validateR3Session(s: TimelineSession) {
+  const docs = new Set<string>(),
+    hashes = new Set<string>();
+  let total = 0;
+  for (const value of array(
+    s.documents,
+    "documents",
+    TIMELINE_LIMITS.documents,
+  )) {
+    const d = object(value, [
+      "document_id",
+      "session_id",
+      "sha256",
+      "size",
+      "media_type",
+      "received_at",
+    ]);
+    id(d.document_id, "document_id");
+    if (
+      d.session_id !== s.viewer_session_id ||
+      docs.has(d.document_id as string)
+    )
+      fail("documents", "wrong_owner_or_duplicate");
+    if (
+      typeof d.sha256 !== "string" ||
+      !sha256.test(d.sha256) ||
+      hashes.has(d.sha256)
+    )
+      fail("documents.sha256");
+    integer(d.size, "documents.size", 0, TIMELINE_LIMITS.documentBytes);
+    if (d.media_type !== "text/markdown") fail("documents.media_type");
+    timestamp(d.received_at, "documents.received_at");
+    docs.add(d.document_id as string);
+    hashes.add(d.sha256);
+    total += d.size as number;
+  }
+  if (total > TIMELINE_LIMITS.aggregateDocumentBytes)
+    fail("documents", "aggregate_limit");
+  let active: string | null = null;
+  const latestStages = new Map<TimelineStage, TimelineEvent>();
+  const revisions = new Set<string>();
+  for (const e of s.events) {
+    if (e.kind !== "stage") continue;
+    if (!e.withdrawn && e.stage) {
+      const previous = latestStages.get(e.stage);
+      if (
+        previous &&
+        ((previous.stage_state !== "completed" &&
+          previous.stage_state !== "failed") ||
+          e.related_event_id !== previous.event_id)
+      )
+        fail("related_event_id", "stage_reentry_reference_required");
+      latestStages.set(e.stage, e);
+    }
+    if (e.stage_state === "in_progress") {
+      if (active || e.withdrawn)
+        fail("current_stage_event_id", "multiple_or_withdrawn_foreground");
+      active = e.event_id;
+    }
+    for (const r of e.document_snapshots ?? []) {
+      if (revisions.has(r.document_revision_id))
+        fail("document_revision_id", "duplicate_id");
+      revisions.add(r.document_revision_id);
+      for (const t of r.tabs)
+        if (!docs.has(t.document_id))
+          fail("tabs.document_id", "unknown_document");
+    }
+  }
+  if (revisions.size > TIMELINE_LIMITS.documentSnapshots)
+    fail("document_snapshots", "session_limit");
+  if (s.current_stage_event_id !== null)
+    id(s.current_stage_event_id, "current_stage_event_id");
+  if (active !== s.current_stage_event_id)
+    fail("current_stage_event_id", "foreground_mismatch");
+  if (active && s.state !== "active")
+    fail("state", "foreground_requires_active_session");
+}
+export function isSafeTimelineDocumentURL(
+  value: unknown,
+  sessionID: string,
+  documentID: string,
+): value is string {
+  return (
+    typeof value === "string" &&
+    sha256.test(sessionID) &&
+    /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(documentID) &&
+    value === `/api/timeline/sessions/${sessionID}/documents/${documentID}`
+  );
+}
+export function validateTimelineDocumentBytes(value: Uint8Array): void {
+  if (value.length > TIMELINE_LIMITS.documentBytes)
+    fail("document", "invalid_utf8_or_size");
+  try {
+    new TextDecoder("utf-8", { fatal: true }).decode(value);
+  } catch {
+    fail("document", "invalid_utf8_or_size");
+  }
+}
+export function validateTimelineEventPatch(
+  s: TimelineSession,
+  eventID: string,
+  r: TimelineEventPatchRequest,
+): void {
+  parseTimelineRequest("event_patch", r);
+  const e = s.events.find((e) => e.event_id === eventID);
+  if (!e) fail("event_id", "unknown_event");
+  if (e.version !== r.expected_version)
+    fail("expected_version", "version_conflict");
+  if (r.stage_state === undefined) return;
+  if (e.kind !== "stage") fail("stage_state", "forbidden_for_kind");
+  if (r.expected_session_version !== s.version)
+    fail("expected_session_version", "version_conflict");
+  if (s.state === "closed" || e.withdrawn)
+    fail("stage_state", "stage_unavailable");
+  if (e.stage_state === "completed" || e.stage_state === "failed")
+    fail("stage_state", "stage_terminal");
+  if (e.stage_state === r.stage_state) fail("stage_state", "already_in_state");
+}
+export function validateTimelineSessionPatch(
+  s: TimelineSession,
+  r: TimelineSessionPatchRequest,
+): void {
+  parseTimelineRequest("session_patch", r);
+  if (s.version !== r.expected_version)
+    fail("expected_version", "version_conflict");
+  if (
+    (r.state === "closed" || r.state === "paused") &&
+    s.current_stage_event_id !== null
+  )
+    fail("current_stage_event_id", "stage_active");
+}
+export function validateTimelineEventWithdrawal(
+  s: TimelineSession,
+  eventID: string,
+  r: TimelineMutationRequest,
+): void {
+  parseTimelineRequest("mutation", r);
+  const e = s.events.find((e) => e.event_id === eventID);
+  if (!e) fail("event_id", "unknown_event");
+  if (e.version !== r.expected_version)
+    fail("expected_version", "version_conflict");
+  if (e.kind === "stage" && e.stage_state === "in_progress")
+    fail("current_stage_event_id", "stage_active");
+}
+export function validateTimelineDocumentSnapshot(
+  s: TimelineSession,
+  eventID: string,
+  r: TimelineDocumentSnapshotRequest,
+): void {
+  parseTimelineRequest("document_snapshot", r);
+  if (s.state === "closed") fail("state", "session_closed");
+  const e = s.events.find((e) => e.event_id === eventID);
+  if (e?.kind !== "stage" || e.withdrawn) fail("event_id", "stage_required");
+  if (e.version !== r.expected_version)
+    fail("expected_version", "version_conflict");
+  if (
+    s.events.reduce((n, e) => n + (e.document_snapshots?.length ?? 0), 0) >=
+    TIMELINE_LIMITS.documentSnapshots
+  )
+    fail("document_snapshots", "session_limit");
+  for (const t of r.tabs)
+    if (
+      !s.documents.some(
+        (d) =>
+          d.document_id === t.document_id &&
+          d.session_id === s.viewer_session_id,
+      )
+    )
+      fail("tabs.document_id", "unknown_document");
+}
+
+/** Reads bytes as data only; renderers must still disable raw HTML and remote images. */
+export async function parseTimelineDocumentResponse(
+  value: unknown,
+): Promise<TimelineDocumentResponse> {
+  const r = object(value, ["schema_version", "document", "content"]);
+  if (r.schema_version !== 1) fail("schema_version", "unsupported_version");
+  const d = object(r.document, [
+    "document_id",
+    "session_id",
+    "sha256",
+    "size",
+    "media_type",
+    "received_at",
+  ]);
+  id(d.document_id, "document.document_id");
+  if (
+    typeof d.session_id !== "string" ||
+    !sha256.test(d.session_id) ||
+    typeof d.sha256 !== "string" ||
+    !sha256.test(d.sha256)
+  )
+    fail("document", "invalid_metadata");
+  integer(d.size, "document.size", 0, TIMELINE_LIMITS.documentBytes);
+  if (d.media_type !== "text/markdown") fail("document.media_type");
+  timestamp(d.received_at, "document.received_at");
+  if (typeof r.content !== "string") fail("content");
+  const bytes = new TextEncoder().encode(r.content);
+  validateTimelineDocumentBytes(bytes);
+  // Reject unpaired UTF-16 surrogates instead of hashing replacement characters.
+  if (new TextDecoder("utf-8", { ignoreBOM: true }).decode(bytes) !== r.content)
+    fail("content", "invalid_utf8_or_size");
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const hash = Array.from(new Uint8Array(digest), (b) =>
+    b.toString(16).padStart(2, "0"),
+  ).join("");
+  if (bytes.length !== d.size || hash !== d.sha256)
+    fail("document", "content_mismatch");
+  return r as unknown as TimelineDocumentResponse;
 }
