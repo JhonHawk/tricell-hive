@@ -301,7 +301,7 @@ export function TimelineContent({
         : current,
     );
   return (
-    <div className="mx-auto flex w-full min-w-0 max-w-lg flex-col gap-6">
+    <div className="mx-auto flex w-full min-w-0 max-w-2xl flex-col gap-6">
       {session.summary && (
         <p className="text-sm text-muted-foreground">{session.summary}</p>
       )}

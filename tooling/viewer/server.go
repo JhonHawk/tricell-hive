@@ -62,7 +62,9 @@ type ServerOptions struct {
 	// the port that was assigned).
 	Port int
 	// Version is reported by /api/health.
-	Version string
+	Version  string
+	Revision string
+	Modified bool
 }
 
 // Server is the HTTP face of a Store: the viewer page, its assets and the
@@ -75,6 +77,8 @@ type Server struct {
 	token       []byte
 	port        string
 	version     string
+	revision    string
+	modified    bool
 	pid         int
 	accessMu    sync.Mutex
 	accessCodes map[string]time.Time
@@ -105,6 +109,8 @@ func NewServer(o ServerOptions) (*Server, error) {
 		token:       []byte(o.Token),
 		port:        strconv.Itoa(o.Port),
 		version:     o.Version,
+		revision:    o.Revision,
+		modified:    o.Modified,
 		pid:         os.Getpid(),
 		accessCodes: make(map[string]time.Time),
 		accessNow:   time.Now,
@@ -297,7 +303,9 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		TTL             string `json:"ttl"`
 		Retention       string `json:"retention"`
 		ProtocolVersion int    `json:"timeline_protocol_version"`
-	}{s.pid, filepath.Dir(s.store.Dir()), s.version, s.store.TTL().String(), "manual", 1})
+		Revision        string `json:"revision"`
+		Modified        bool   `json:"modified"`
+	}{s.pid, filepath.Dir(s.store.Dir()), s.version, s.store.TTL().String(), "manual", 1, s.revision, s.modified})
 }
 
 // indexSession adds the base of the session's file URLs to a Session. It is

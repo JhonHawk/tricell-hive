@@ -751,3 +751,71 @@ func TestTimelineRuntimePrivateRecordLimitAndStrictDecoder(t *testing.T) {
 		t.Fatal("public decoder no longer enforces2MiB")
 	}
 }
+
+func TestTimelineRuntimeExplicitConditionalReopenPreservesConversation(t *testing.T) {
+	s, request := newTimelineFixture(t)
+	initial := createTimeline(t, s, request)
+	id := initial.ViewerSessionID
+	closure, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 1, OperationID: "finish-first-work", Kind: "closure", Title: "First work completed", Summary: "Delivered", TicketRefs: []TimelineTicketRef{}, Closure: &TimelineClosure{Reason: "completed", Result: "First delivery complete"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	closed, err := s.TimelineGet(id)
+	if err != nil || closed.State != TimelineClosed {
+		t.Fatal("closure did not close session", err)
+	}
+	history := closed.Events[0]
+	request.OperationID = "discover-next-work"
+	request.Title = "New request must not overwrite old metadata"
+	resumed, err := s.TimelineCreate(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resumed.Session.ViewerSessionID != id || resumed.Session.State != TimelineClosed || *resumed.Created || resumed.Session.Title != initial.Title {
+		t.Fatal("get/create silently reopened or replaced conversation")
+	}
+	next := TimelineAppendEventRequest{SchemaVersion: 1, OperationID: "new-work-before-reopen", Kind: "request", Title: "Next work", Summary: "Explicit new user request", TicketRefs: []TimelineTicketRef{}}
+	if _, err = s.TimelineAppend(id, next); err == nil {
+		t.Fatal("append silently reopened closed session")
+	} else {
+		requireTimelineCode(t, err, "session_closed")
+	}
+	active := TimelineActive
+	if _, err = s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 1, OperationID: "stale-reopen", ExpectedVersion: initial.Version, State: &active}); err == nil {
+		t.Fatal("stale reopen accepted")
+	} else {
+		requireTimelineCode(t, err, "version_conflict")
+	}
+	reopened, err := s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 1, OperationID: "explicit-reopen", ExpectedVersion: closure.SessionVersion, State: &active})
+	if err != nil {
+		t.Fatal("explicit versioned reopen rejected", err)
+	}
+	if reopened.ViewerSessionID != id || reopened.SessionVersion != closure.SessionVersion+1 {
+		t.Fatal("reopen split or reset conversation identity")
+	}
+	s, err = Open(Options{StateDir: filepath.Dir(s.Dir())})
+	if err != nil {
+		t.Fatal("reopen did not survive restart", err)
+	}
+	current, err := s.TimelineGet(id)
+	if err != nil || current.State != TimelineActive || len(current.Events) != 1 {
+		t.Fatal("reopened conversation lost history", err)
+	}
+	if current.Events[0].EventID != history.EventID || current.Events[0].Sequence != history.Sequence || current.Events[0].CreatedAt != history.CreatedAt || current.Events[0].Closure.Result != history.Closure.Result {
+		t.Fatal("reopen rewrote previous closure")
+	}
+	next.OperationID = "new-work-after-reopen"
+	appended, err := s.TimelineAppend(id, next)
+	if err != nil || appended.Sequence != history.Sequence+1 {
+		t.Fatal("new work did not extend existing timeline", err)
+	}
+	_, err = s.TimelineDelete(id, TimelineMutationRequest{SchemaVersion: 1, OperationID: "delete-conversation", ExpectedVersion: appended.SessionVersion})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 1, OperationID: "reopen-deleted", ExpectedVersion: appended.SessionVersion, State: &active})
+	requireTimelineCode(t, err, "session_deleted")
+	request.OperationID = "recreate-deleted"
+	_, err = s.TimelineCreate(request)
+	requireTimelineCode(t, err, "session_deleted")
+}

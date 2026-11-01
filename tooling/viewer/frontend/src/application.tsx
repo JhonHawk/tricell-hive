@@ -37,7 +37,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { mapIndex } from "./api";
+import { mapIndex, mapTimelineIndex } from "./api";
 import type { DocumentData, ViewerController } from "./controller";
 import { SessionDeliveries } from "./deliveries";
 import {
@@ -48,6 +48,8 @@ import {
 import { messages as t } from "./messages";
 import { sessionIdentity } from "./sessions";
 import { ViewerShell } from "./shell";
+import { TimelineContent } from "./timeline-content";
+import { TimelineHeader } from "./timeline-header";
 
 function SegmentDocument({
   data,
@@ -224,6 +226,47 @@ export function ViewerApplication({
       setDeleting(false);
   }, [deleting, deleteTarget, state.writing, deleteError, allSessions]);
   const selected = state.sessions.find((s) => s.id === state.selectedId);
+  const apiSelected = state.timelineSessions.find(
+    (s) => s.viewer_session_id === state.selectedId,
+  );
+  const timelineRead =
+    state.timeline?.id === state.selectedId ? state.timeline : null;
+  const apiData = timelineRead?.data;
+  const timelineLanguage = navigator.language.startsWith("es") ? "es" : "en";
+  const loadTimelineDocument = useCallback(
+    (documentID: string) =>
+      controller.loadTimelineDocument(
+        apiSelected?.viewer_session_id ?? "",
+        documentID,
+      ),
+    [controller, apiSelected?.viewer_session_id],
+  );
+  const focusedEvent = useRef<object | undefined>(undefined);
+  useEffect(() => {
+    const target = state.openTarget;
+    if (
+      !apiData ||
+      state.targetError ||
+      !target ||
+      !("sessionID" in target) ||
+      !target.eventID ||
+      target.sessionID !== apiData.session.viewer_session_id
+    )
+      return;
+    if (focusedEvent.current === target) return;
+    const frame = requestAnimationFrame(() => {
+      const node = document.getElementById(`timeline-event-${target.eventID}`);
+      if (!node) return;
+      const canvas = node.closest<HTMLElement>('[data-slot="viewer-canvas"]');
+      if (canvas)
+        canvas.scrollTop +=
+          node.getBoundingClientRect().top - canvas.getBoundingClientRect().top;
+      node.tabIndex = -1;
+      node.focus({ preventScroll: true });
+      focusedEvent.current = target;
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [apiData, state.openTarget, state.targetError]);
   const group = state.groups.find((group) =>
     group.segments.some((segment) => segment.id === state.selectedId),
   );
@@ -247,7 +290,8 @@ export function ViewerApplication({
     if (target) pendingJump.current = { groupId: target.id, key };
     controller.select(key);
   };
-  const activeGroup = group?.id ?? selected?.id;
+  const activeGroup =
+    group?.id ?? selected?.id ?? apiSelected?.viewer_session_id;
   useLayoutEffect(() => {
     if (previousGroup.current === activeGroup) return;
     previousGroup.current = activeGroup;
@@ -308,6 +352,7 @@ export function ViewerApplication({
     return () => cancelAnimationFrame(frame);
   }, [group, state.documents, state.selectedId, renderedDocuments]);
   const navigation = [
+    ...state.timelineSessions.map((entry) => mapTimelineIndex(entry)),
     ...state.groups.map((group) => ({
       ...group.segments[0],
       title: group.title,
@@ -333,10 +378,12 @@ export function ViewerApplication({
   ];
   useEffect(() => controller.start(), [controller]);
   useEffect(() => {
-    document.title = selected
-      ? `${group?.title ?? selected.raw.session_title ?? selected.title} · Hive`
-      : "Hive · Walkthroughs";
-  }, [selected, group?.title]);
+    document.title = apiSelected
+      ? `${apiSelected.title} · Hive`
+      : selected
+        ? `${group?.title ?? selected.raw.session_title ?? selected.title} · Hive`
+        : "Hive · Walkthroughs";
+  }, [selected, apiSelected, group?.title]);
   useEffect(() => {
     if (
       state.notice === "deleted" ||
@@ -377,6 +424,7 @@ export function ViewerApplication({
     );
   else if (
     !state.sessions.length &&
+    !state.timelineSessions.length &&
     state.index &&
     !state.showArchived &&
     (state.index.projects.some((project) =>
@@ -384,7 +432,8 @@ export function ViewerApplication({
         ticket.sessions.some((session) => session.archived),
       ),
     ) ||
-      state.index.excluded_sessions?.some((session) => session.archived))
+      state.index.excluded_sessions?.some((session) => session.archived) ||
+      state.index.timeline_sessions?.some((session) => session.archived))
   )
     panel = (
       <div role="status" className="flex flex-col items-start gap-3">
@@ -400,7 +449,11 @@ export function ViewerApplication({
         </Button>
       </div>
     );
-  else if (!state.sessions.length && state.index)
+  else if (
+    !state.sessions.length &&
+    !state.timelineSessions.length &&
+    state.index
+  )
     panel = (
       <div role="status" className="flex flex-col items-start gap-3">
         <h2 className="font-medium">
@@ -457,13 +510,15 @@ export function ViewerApplication({
     );
   const libraryFooter = state.index && (
     <div className="flex flex-col gap-3">
-      <p className="text-xs text-muted-foreground">
-        {t.ttl}{" "}
-        {state.index.ttl_seconds % 86400 === 0
-          ? `${state.index.ttl_seconds / 86400} d`
-          : `${Math.max(1, Math.round(state.index.ttl_seconds / 3600))} h`}{" "}
-        {t.unlessKept}
-      </p>
+      {state.index.ttl_seconds > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {t.ttl}{" "}
+          {state.index.ttl_seconds % 86400 === 0
+            ? `${state.index.ttl_seconds / 86400} d`
+            : `${Math.max(1, Math.round(state.index.ttl_seconds / 3600))} h`}{" "}
+          {t.unlessKept}
+        </p>
+      )}
       {state.index.errors.length > 0 && (
         <details>
           <summary className="cursor-pointer text-xs">
@@ -486,6 +541,20 @@ export function ViewerApplication({
   );
   const notices = (
     <>
+      {state.targetError && (
+        <Alert variant="destructive">
+          <AlertTitle>
+            {timelineLanguage === "es"
+              ? "El destino solicitado no está disponible"
+              : "The requested destination is unavailable"}
+          </AlertTitle>
+          <AlertAction>
+            <Button type="button" variant="outline" size="sm" onClick={retry}>
+              {t.retry}
+            </Button>
+          </AlertAction>
+        </Alert>
+      )}
       {(state.down || state.indexError) && (
         <Alert variant="destructive">
           <AlertTitle>{t.loadFailed}</AlertTitle>
@@ -555,6 +624,33 @@ export function ViewerApplication({
     <>
       <ViewerShell
         sessions={navigation}
+        sessionHeader={
+          apiSelected ? (
+            apiData ? (
+              <TimelineHeader
+                key={apiSelected.viewer_session_id}
+                data={apiData}
+                lang={timelineLanguage}
+                onRetry={controller.retryTimeline}
+                onUpdate={(patch, version) =>
+                  controller.updateTimelineSession(
+                    apiSelected.viewer_session_id,
+                    patch,
+                    version,
+                  )
+                }
+                onDelete={(version) =>
+                  controller.deleteTimelineSession(
+                    apiSelected.viewer_session_id,
+                    version,
+                  )
+                }
+              />
+            ) : (
+              <p className="text-sm">{apiSelected.title}</p>
+            )
+          ) : undefined
+        }
         coldLoading={
           state.access === "pending" ||
           (state.access === "ready" && !state.index && !state.indexError)
@@ -703,7 +799,7 @@ export function ViewerApplication({
             ? "loading"
             : state.indexError && !state.index
               ? "error"
-              : state.sessions.length
+              : navigation.length
                 ? "ready"
                 : "empty"
         }
@@ -746,6 +842,40 @@ export function ViewerApplication({
         onPin={selected ? () => void controller.pin() : undefined}
         onDelete={selected ? openDelete : undefined}
       >
+        {apiSelected &&
+          (apiData ? (
+            <TimelineContent
+              key={apiSelected.viewer_session_id}
+              data={apiData}
+              lang={timelineLanguage}
+              onRetry={controller.retryTimeline}
+              error={timelineRead?.state === "error"}
+              loadDocument={loadTimelineDocument}
+            />
+          ) : timelineRead?.state === "error" ? (
+            <Alert variant="destructive">
+              <AlertTitle>{t.loadFailed}</AlertTitle>
+              <AlertAction>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={controller.retryTimeline}
+                >
+                  {t.retry}
+                </Button>
+              </AlertAction>
+            </Alert>
+          ) : (
+            <div
+              role="status"
+              aria-label={t.loading}
+              className="flex flex-col gap-4"
+            >
+              <Skeleton className="h-8 w-2/3" />
+              <Skeleton className="h-48 w-full" />
+            </div>
+          ))}
         {group && (
           <div className="flex flex-col gap-8">
             {group.segments.map((segment, index) => {

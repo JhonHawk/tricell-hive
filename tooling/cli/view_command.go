@@ -84,6 +84,8 @@ type serverInfo struct {
 	TTL      string `json:"ttl"`
 	StateDir string `json:"state_dir"`
 	Started  string `json:"started"`
+	Revision string `json:"revision,omitempty"`
+	Modified bool   `json:"modified,omitempty"`
 }
 
 func (i serverInfo) url() string { return fmt.Sprintf("http://127.0.0.1:%d", i.Port) }
@@ -105,13 +107,18 @@ func newViewPaths(state string) viewPaths {
 // viewFlags are the flags beyond --home and --state-dir; each subcommand
 // registers the ones it accepts.
 type viewFlags struct {
-	port    int
-	portSet bool // --port was given, so a busy port is an error
-	ttl     string
-	dir     string
+	port      int
+	portSet   bool // --port was given, so a busy port is an error
+	ttl       string
+	dir       string
+	sessionID string
+	eventID   string
 }
 
 func runView(args []string, w io.Writer, deps viewDeps) error {
+	if len(args) > 0 && isTimelineViewCommand(args[0]) {
+		return runViewTimeline(args, w, os.Stdin)
+	}
 	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h" || args[0] == "help") {
 		printViewHelp(w)
 		return nil
@@ -125,12 +132,15 @@ func runView(args []string, w io.Writer, deps viewDeps) error {
 	switch sub {
 	case "start", "serve":
 		fs.IntVar(&f.port, "port", viewDefaultPort, "TCP port on 127.0.0.1; 0 picks a free port")
-		fs.StringVar(&f.ttl, "ttl", "", "how long an unpinned copy lives, e.g. 72h (default 14 days)")
+		fs.StringVar(&f.ttl, "ttl", "", "deprecated compatibility option; ignored (retention is manual)")
 	case "register":
 		fs.StringVar(&f.dir, "dir", "", "directory inside the repository to register (default: the current directory)")
 	case "status":
 		fs.StringVar(&f.dir, "dir", "", "walkthrough source folder to confirm against the running viewer")
-	case "stop", "open":
+	case "open":
+		fs.StringVar(&f.sessionID, "session-id", "", "target an API viewer session")
+		fs.StringVar(&f.eventID, "event-id", "", "target an event within --session-id")
+	case "stop":
 	default:
 		return fmt.Errorf("unknown view subcommand %q", sub)
 	}
@@ -151,6 +161,9 @@ func runView(args []string, w io.Writer, deps viewDeps) error {
 		return err
 	}
 	p := newViewPaths(state)
+	if f.ttl != "" {
+		fmt.Fprintln(w, "Warning: --ttl is deprecated and ignored; viewer retention is manual.")
+	}
 	switch sub {
 	case "start":
 		return viewStart(p, f, w, deps)
@@ -161,6 +174,9 @@ func runView(args []string, w io.Writer, deps viewDeps) error {
 	case "status":
 		return viewStatus(p, w, f.dir)
 	case "open":
+		if f.sessionID != "" || f.eventID != "" {
+			return viewOpenTimelineTarget(p, w, deps, f.sessionID, f.eventID)
+		}
 		return viewOpen(p, w, deps)
 	default:
 		return viewRegister(p, f, w)
@@ -175,7 +191,7 @@ func parseViewTTL(raw string) (time.Duration, error) {
 	if err != nil || d <= 0 {
 		return 0, fmt.Errorf("invalid --ttl %q: use a positive duration such as 72h", raw)
 	}
-	return d, nil
+	return 0, nil
 }
 
 // viewDefaultPort spells HIVE on a phone keypad.
@@ -409,13 +425,15 @@ func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	srv, err := viewer.NewServer(viewer.ServerOptions{Store: store, Token: token, Port: port, Version: version.Current})
+	revision, modified := viewBuildIdentity()
+	srv, err := viewer.NewServer(viewer.ServerOptions{Store: store, Token: token, Port: port, Version: version.Current, Revision: revision, Modified: modified})
 	if err != nil {
 		return err
 	}
 	info := serverInfo{
 		PID: os.Getpid(), Port: port, Version: version.Current, Token: token,
 		TTL: store.TTL().String(), StateDir: p.state, Started: time.Now().UTC().Format(time.RFC3339),
+		Revision: revision, Modified: modified,
 	}
 	if err := writeServerInfo(p, info); err != nil {
 		return err
@@ -548,6 +566,9 @@ func viewStatus(p viewPaths, w io.Writer, dir string) error {
 		out["url"] = info.url()
 		out["pid"] = info.PID
 		out["version"] = info.Version
+		if info.Revision != "" {
+			out["revision"], out["modified"] = info.Revision, info.Modified
+		}
 		out["ttl"] = info.TTL
 		if idx, err := viewIndex(info); err == nil {
 			count := 0
@@ -557,9 +578,13 @@ func viewStatus(p viewPaths, w io.Writer, dir string) error {
 				}
 			}
 			out["repositories"], out["walkthroughs"], out["ingest_errors"] = len(idx.Repositories), count, len(idx.Errors)
+			if idx.TimelineSessions != nil {
+				out["timeline_sessions"] = len(idx.TimelineSessions)
+				out["retention"] = idx.Retention
+			}
 			if dir != "" && sourceErr == nil {
 				after, err := viewer.FingerprintSource(dir)
-				if err == nil && after == source && viewHasSource(idx, source) {
+				if err == nil && after == source && viewHasSource(idx.View, source) {
 					out["found"], out["session_status"] = true, source.SessionStatus
 				}
 			}
@@ -603,8 +628,14 @@ func viewHasSource(v viewer.View, source viewer.SourceFingerprint) bool {
 
 // viewIndex reads the existing authenticated index without opening a Store.
 // Redirects must not forward the token to another listener.
-func viewIndex(info serverInfo) (viewer.View, error) {
-	var v viewer.View
+type viewIndexSnapshot struct {
+	viewer.View
+	TimelineSessions []viewer.TimelineAPIIndexEntry `json:"timeline_sessions"`
+	Retention        string                         `json:"retention"`
+}
+
+func viewIndex(info serverInfo) (viewIndexSnapshot, error) {
+	var v viewIndexSnapshot
 	req, err := http.NewRequest(http.MethodGet, info.url()+"/api/index", nil)
 	if err != nil {
 		return v, err
@@ -724,10 +755,14 @@ func viewGitRemote(git gitRunner) viewer.GitRemoteReader {
 		}
 		out, err := git(root, "config", "--get", "remote.origin.url")
 		if err != nil {
+			var exit *exec.ExitError
+			if errors.As(err, &exit) && exit.ExitCode() == 1 && strings.TrimSpace(out) == "" {
+				return "", nil // Verified missing key, not an unreadable Git configuration.
+			}
 			return "", err
 		}
 		if out = strings.TrimSpace(out); out == "" {
-			return "", errors.New("no origin remote")
+			return "", nil
 		}
 		return out, nil
 	}

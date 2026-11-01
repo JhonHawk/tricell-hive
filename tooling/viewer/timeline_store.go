@@ -599,9 +599,6 @@ func (s *Store) TimelinePatch(id string, request TimelineSessionPatchRequest) (T
 		v.Tickets = *request.Tickets
 	}
 	if request.State != nil {
-		if v.State == TimelineClosed && *request.State != TimelineClosed {
-			return TimelineOperationResult{}, timelineFailure("session_closed", 409)
-		}
 		v.State = *request.State
 		if v.State == TimelineAwaitingValidation {
 			timelinePauseForeground(v, "", now)

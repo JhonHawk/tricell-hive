@@ -8,9 +8,18 @@ import {
   type RawIndex,
   save,
   stored,
+  takeTarget,
+  type ViewerOpenTarget,
   validateIndex,
 } from "./api";
 import { groupSessions, type SessionGroup, sessionIdentity } from "./sessions";
+import {
+  parseTimelineDocumentResponse,
+  parseTimelineOperationResult,
+  parseTimelineSessionResponse,
+  type TimelineAPIIndexEntry,
+  type TimelineSessionResponse,
+} from "./timeline-contract";
 export type Delivery = {
   kind: "pull_request" | "commit";
   label: string;
@@ -32,7 +41,16 @@ export type SegmentDocument = {
   state: "loading" | "ready" | "error" | "excluded";
   document: DocumentData | null;
 };
+export type TimelineRead = {
+  id: string;
+  state: "loading" | "ready" | "error";
+  data: TimelineSessionResponse | null;
+};
 export type ViewerState = {
+  timelineSessions: TimelineAPIIndexEntry[];
+  timeline: TimelineRead | null;
+  openTarget?: ViewerOpenTarget;
+  targetError: boolean;
   access: "pending" | "ready" | "missing" | "rejected";
   index: RawIndex | null;
   sessions: LibrarySession[];
@@ -67,6 +85,9 @@ export type ViewerState = {
   showArchived: boolean;
 };
 const initial: ViewerState = {
+  timelineSessions: [],
+  timeline: null,
+  targetError: false,
   access: "pending",
   index: null,
   sessions: [],
@@ -87,6 +108,13 @@ export class ViewerController {
   private reading = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private active = false;
+  private timelineRequest: object | undefined;
+  private timelineRequestedVersion = 0;
+  private timelineTask: Promise<void> | undefined;
+  private temporaryTargetID: string | undefined;
+  private timelineMutation:
+    | { key: string; body: Record<string, unknown> }
+    | undefined;
   constructor(
     public client: AccessClient,
     private isHidden = () => document.hidden,
@@ -100,14 +128,20 @@ export class ViewerController {
     this.state = { ...this.state, ...patch };
     for (const listener of this.listeners) listener();
   }
-  async open(code: string | null) {
+  async open(code: string | null, target?: ViewerOpenTarget) {
     const epoch = ++this.epoch;
     this.readSeq++;
     this.requests.clear();
     this.cache.clear();
+    this.timelineRequest = undefined;
+    this.timelineTask = undefined;
+    this.timelineMutation = undefined;
+    this.temporaryTargetID =
+      target && "sessionID" in target ? target.sessionID : undefined;
     this.reading = false;
     this.update({
       ...initial,
+      openTarget: target,
       showArchived: stored(this.client.storage, ARCHIVED_KEY) === "true",
     });
     try {
@@ -131,6 +165,9 @@ export class ViewerController {
     this.requests.clear();
     this.cache.clear();
     this.reading = false;
+    this.timelineRequest = undefined;
+    this.timelineTask = undefined;
+    this.timelineMutation = undefined;
     this.client.reject();
     this.update({ ...initial, access: "rejected" });
     clearTimeout(this.timer);
@@ -209,6 +246,16 @@ export class ViewerController {
   }
   private apply(index: RawIndex, notifyMissing = true) {
     const mapped = mapIndex(index);
+    const timelineSessions = (index.timeline_sessions ?? []).filter(
+      (s) =>
+        this.state.showArchived ||
+        !s.archived ||
+        s.viewer_session_id === this.temporaryTargetID,
+    );
+    const previousID = this.state.selectedId;
+    const previousTimeline = this.state.timelineSessions.find(
+      (s) => s.viewer_session_id === previousID,
+    );
     const sessions = mapped.filter(
       (s) => this.state.showArchived || !s.archived,
     );
@@ -226,13 +273,46 @@ export class ViewerController {
       }
     }
     const groups = groupSessions(sessions);
-    this.update({ index, sessions, groups });
-    if (!sessions.length) {
+    this.update({ index, sessions, groups, timelineSessions });
+    const target = this.state.openTarget;
+    if (target) {
+      const found =
+        "sessionID" in target &&
+        (timelineSessions.some(
+          (s) => s.viewer_session_id === target.sessionID,
+        ) ||
+          (!target.eventID && sessions.some((s) => s.id === target.sessionID)));
+      if (!found) {
+        this.timelineRequest = undefined;
+        this.update({
+          selectedId: undefined,
+          documents: {},
+          timeline: null,
+          targetError: true,
+        });
+        return;
+      }
+      this.selectEntry(target.sessionID, true);
+      return;
+    }
+    if (
+      timelineSessions.some(
+        (s) => s.viewer_session_id === this.state.selectedId,
+      )
+    ) {
+      this.selectEntry(this.state.selectedId as string, true);
+      return;
+    }
+    if (!sessions.length && !timelineSessions.length) {
       this.requests.clear();
       this.update({
         selectedId: undefined,
         documents: {},
-        notice: previous && notifyMissing ? "gone" : this.state.notice,
+        timeline: null,
+        notice:
+          (previous || previousTimeline) && notifyMissing
+            ? "gone"
+            : this.state.notice,
       });
       return;
     }
@@ -249,12 +329,23 @@ export class ViewerController {
     }
     if (!selected) {
       const remembered = stored(this.client.storage, OPEN_KEY);
+      const rememberedTimeline = timelineSessions.find(
+        (s) => s.viewer_session_id === remembered,
+      );
+      if (rememberedTimeline) {
+        this.selectEntry(rememberedTimeline.viewer_session_id, true);
+        return;
+      }
       selected =
         sessions.find((s) => s.id === remembered) ??
         groups[0]?.segments[0] ??
         sessions[0];
     }
-    this.select(selected.id);
+    if (!selected) {
+      this.selectEntry(timelineSessions[0].viewer_session_id, true);
+      return;
+    }
+    this.selectEntry(selected.id, true);
     if (previous && previous.id !== selected.id && notifyMissing)
       this.update({ notice: "gone" });
   }
@@ -264,10 +355,43 @@ export class ViewerController {
     this.select(group.segments[0].id);
   };
   select = (id: string) => {
+    this.selectEntry(id);
+  };
+  private selectEntry(id: string, preserveTarget = false) {
+    const api = this.state.timelineSessions.find(
+      (s) => s.viewer_session_id === id,
+    );
+    if (api) {
+      if (!preserveTarget) {
+        this.temporaryTargetID = undefined;
+        this.update({ openTarget: undefined, targetError: false });
+      }
+      save(this.client.storage, OPEN_KEY, id);
+      const cached =
+        this.state.timeline?.id === id ? this.state.timeline : null;
+      // Invalidated legacy reads must not leave loading entries that block a revisit.
+      for (const key of this.requests.keys()) this.cache.delete(key);
+      this.requests.clear();
+      this.update({ selectedId: id, documents: {}, timeline: cached });
+      if (
+        !cached ||
+        cached.state === "error" ||
+        (api.version > (cached.data?.session.version ?? 0) &&
+          (cached.state !== "loading" ||
+            api.version > this.timelineRequestedVersion))
+      )
+        this.timelineTask = this.loadTimeline(api);
+      return;
+    }
     const selected = this.state.sessions.find((s) => s.id === id);
     if (!selected) return;
+    if (!preserveTarget) {
+      this.temporaryTargetID = undefined;
+      this.update({ openTarget: undefined, targetError: false });
+    }
+    this.timelineRequest = undefined;
     save(this.client.storage, OPEN_KEY, id);
-    this.update({ selectedId: id });
+    this.update({ selectedId: id, timeline: null });
     const group = this.state.groups.find((g) =>
       g.segments.some((s) => s.id === id),
     );
@@ -282,7 +406,7 @@ export class ViewerController {
       if (!this.cache.has(segment.id)) void this.load(segment);
     }
     this.publishDocuments();
-  };
+  }
   private async load(selected: LibrarySession) {
     const request = {};
     const epoch = this.epoch;
@@ -523,6 +647,204 @@ export class ViewerController {
     if (member) void this.write(member.id, error.operation, error.value);
   };
   dismiss = () => this.update({ notice: undefined });
+  private async loadTimeline(entry: TimelineAPIIndexEntry) {
+    const request = {};
+    const epoch = this.epoch;
+    const id = entry.viewer_session_id;
+    this.timelineRequest = request;
+    this.timelineRequestedVersion = entry.version;
+    const previous =
+      this.state.timeline?.id === id ? this.state.timeline.data : null;
+    this.update({ timeline: { id, state: "loading", data: previous } });
+    try {
+      const data = parseTimelineSessionResponse(
+        await this.client.request(`/api/timeline/sessions/${id}`),
+      );
+      if (
+        epoch !== this.epoch ||
+        this.timelineRequest !== request ||
+        this.state.selectedId !== id
+      )
+        return;
+      if (
+        data.session.viewer_session_id !== id ||
+        data.session.version < entry.version
+      )
+        throw new Error("Invalid timeline session read");
+      const target = this.state.openTarget;
+      const targetError = !!(
+        target &&
+        "sessionID" in target &&
+        target.sessionID === id &&
+        target.eventID &&
+        !data.session.events.some((e) => e.event_id === target.eventID)
+      );
+      this.update({ timeline: { id, state: "ready", data }, targetError });
+    } catch (error) {
+      if (
+        epoch !== this.epoch ||
+        this.timelineRequest !== request ||
+        this.state.selectedId !== id
+      )
+        return;
+      if (!this.failure(error))
+        this.update({ timeline: { id, state: "error", data: previous } });
+    }
+  }
+  retryTimeline = () => {
+    const read = () => {
+      const selected = this.state.timelineSessions.find(
+        (s) => s.viewer_session_id === this.state.selectedId,
+      );
+      if (selected) this.timelineTask = this.loadTimeline(selected);
+    };
+    if (
+      this.state.indexError ||
+      this.state.targetError ||
+      !this.state.selectedId
+    )
+      void this.refresh().then((ready) => {
+        if (ready) read();
+      });
+    else read();
+  };
+  async loadTimelineDocument(sessionID: string, documentID: string) {
+    const epoch = this.epoch;
+    const session = this.state.timeline?.data?.session;
+    if (
+      this.state.access !== "ready" ||
+      session?.viewer_session_id !== sessionID ||
+      !session.documents.some((d) => d.document_id === documentID)
+    )
+      throw new Error("Document unavailable");
+    try {
+      const data = await parseTimelineDocumentResponse(
+        await this.client.request(
+          `/api/timeline/sessions/${sessionID}/documents/${encodeURIComponent(documentID)}`,
+        ),
+      );
+      const expected = session.documents.find(
+        (d) => d.document_id === documentID,
+      );
+      if (
+        epoch !== this.epoch ||
+        data.document.session_id !== sessionID ||
+        data.document.document_id !== documentID ||
+        data.document.sha256 !== expected?.sha256 ||
+        data.document.size !== expected?.size
+      )
+        throw new Error("Document unavailable");
+      return data;
+    } catch (error) {
+      if (epoch === this.epoch) this.failure(error);
+      throw error;
+    }
+  }
+  updateTimelineSession = (
+    id: string,
+    patch: { title?: string; archived?: boolean; pinned?: boolean },
+    expectedVersion: number,
+  ) => this.writeTimeline(id, "PATCH", expectedVersion, patch);
+  deleteTimelineSession = (id: string, expectedVersion: number) =>
+    this.writeTimeline(id, "DELETE", expectedVersion);
+  private async writeTimeline(
+    id: string,
+    method: "PATCH" | "DELETE",
+    expectedVersion: number,
+    patch?: { title?: string; archived?: boolean; pinned?: boolean },
+  ) {
+    if (
+      this.state.access !== "ready" ||
+      this.state.writing ||
+      this.state.indexError ||
+      !this.state.index?.timeline_sessions?.some(
+        (s) => s.viewer_session_id === id,
+      )
+    )
+      throw new Error("Session unavailable");
+    const epoch = this.epoch;
+    const key = JSON.stringify([
+      id,
+      method,
+      expectedVersion,
+      patch?.title,
+      patch?.archived,
+      patch?.pinned,
+    ]);
+    const mutation =
+      this.timelineMutation?.key === key
+        ? this.timelineMutation
+        : {
+            key,
+            body: {
+              schema_version: 1,
+              operation_id: crypto.randomUUID(),
+              expected_version: expectedVersion,
+              ...patch,
+            },
+          };
+    this.timelineMutation = mutation;
+    this.readSeq++;
+    this.update({ writing: true, writingId: id });
+    const abort = new AbortController();
+    const deadline = setTimeout(() => abort.abort(), 15000);
+    try {
+      const result = parseTimelineOperationResult(
+        await this.client.request(
+          `/api/timeline/sessions/${id}`,
+          method,
+          mutation.body,
+          abort.signal,
+          true,
+        ),
+      );
+      if (epoch !== this.epoch) throw new Error("Access changed");
+      if (
+        result.viewer_session_id !== id ||
+        result.operation_id !== mutation.body.operation_id ||
+        result.kind !==
+          (method === "PATCH" ? "session_patch" : "session_delete")
+      )
+        throw new Error("Invalid mutation receipt");
+      if (method === "DELETE" || patch?.archived !== undefined) {
+        this.temporaryTargetID = undefined;
+        this.update({ openTarget: undefined, targetError: false });
+      }
+      this.readSeq++;
+      if (!(await this.refresh())) throw new Error("Refresh required");
+      if (epoch !== this.epoch) throw new Error("Access changed");
+      if (method === "DELETE") {
+        if (
+          this.state.index?.timeline_sessions?.some(
+            (s) => s.viewer_session_id === id,
+          )
+        )
+          throw new Error("Refresh required");
+        this.update({ notice: "deleted" });
+      } else if (this.state.selectedId === id) {
+        await this.timelineTask;
+        if (
+          this.state.timeline?.id !== id ||
+          !this.state.timeline.data ||
+          this.state.timeline.data.session.version < result.session_version
+        )
+          throw new Error("Refresh required");
+      }
+      this.timelineMutation = undefined;
+    } catch (error) {
+      if (epoch === this.epoch) {
+        if (error instanceof HttpError && error.status === 409) {
+          this.timelineMutation = undefined;
+          await this.refresh();
+        } else if (!this.failure(error)) void this.refresh();
+      }
+      throw error;
+    } finally {
+      clearTimeout(deadline);
+      if (epoch === this.epoch)
+        this.update({ writing: false, writingId: undefined });
+    }
+  }
   private schedule() {
     clearTimeout(this.timer);
     if (!this.active || this.state.access !== "ready") return;
@@ -539,7 +861,7 @@ export class ViewerController {
   };
   private hashChange = () => {
     if (new URLSearchParams(location.hash.slice(1)).has("code"))
-      void this.open(takeOpeningCode());
+      void this.open(takeOpeningCode(), takeTarget());
   };
   start() {
     this.active = true;
