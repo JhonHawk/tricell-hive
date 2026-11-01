@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "operation_id": "validation:1",
+  "kind": "validation",
+  "title": "First validation",
+  "summary": "Profile and chat are ready to review.",
+  "ticket_refs": [],
+  "candidate": {
+    "branch": "fix/profile-chat",
+    "commit": "working tree",
+    "base": "development"
+  },
+  "views": [
+    {
+      "title": "Chat mobile",
+      "ticket_refs": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2"
+        }
+      ],
+      "steps": [
+        "Open Conversations at 390px.",
+        "Activate a filter and close the panel."
+      ],
+      "expected_result": "The filter icon remains beside search.",
+      "image_refs": [
+        {
+          "artifact_id": "artifact_chat",
+          "caption": "390px · dark",
+          "alt": "Chat search with compact filter"
+        }
+      ]
+    }
+  ]
+}

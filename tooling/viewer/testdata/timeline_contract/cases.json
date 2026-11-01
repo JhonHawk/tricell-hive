@@ -1,0 +1,380 @@
+[
+  {
+    "name": "required native identity",
+    "kind": "create_session",
+    "valid": true,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:create\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\"native-session-alpha\"},\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\",\"title\":\"Profile spacing\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\",\"title\":\"Chat filters\"}]}"
+  },
+  {
+    "name": "non UUID opaque identity",
+    "kind": "create_session",
+    "valid": true,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:create\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\"ses_abc:opaque.id\"},\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\",\"title\":\"Profile spacing\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\",\"title\":\"Chat filters\"}]}"
+  },
+  {
+    "name": "missing native identity",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:create\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\"},\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\",\"title\":\"Profile spacing\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\",\"title\":\"Chat filters\"}]}"
+  },
+  {
+    "name": "empty native identity",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:create\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\"\"},\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\",\"title\":\"Profile spacing\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\",\"title\":\"Chat filters\"}]}"
+  },
+  {
+    "name": "native ID is not trimmed",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:create\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\" native-session-alpha\"},\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\",\"title\":\"Profile spacing\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\",\"title\":\"Chat filters\"}]}"
+  },
+  {
+    "name": "host aliases do not split identity",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:create\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"Codex CLI\",\"native_session_id\":\"native-session-alpha\"},\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\",\"title\":\"Profile spacing\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\",\"title\":\"Chat filters\"}]}"
+  },
+  {
+    "name": "project key belongs to server",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:create\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\"native-session-alpha\",\"project_key\":\"invented\"},\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\",\"title\":\"Profile spacing\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\",\"title\":\"Chat filters\"}]}"
+  },
+  {
+    "name": "relative root rejected",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:create\",\"source\":{\"project_root\":\"fixture/project\",\"host\":\"codex\",\"native_session_id\":\"native-session-alpha\"},\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\",\"title\":\"Profile spacing\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\",\"title\":\"Chat filters\"}]}"
+  },
+  {
+    "name": "unknown top level field",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:create\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\"native-session-alpha\"},\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\",\"title\":\"Profile spacing\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\",\"title\":\"Chat filters\"}],\"actor\":\"human\"}"
+  },
+  {
+    "name": "tickets array is required",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:create\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\"native-session-alpha\"},\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\"}"
+  },
+  {
+    "name": "null optional field rejected",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:create\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\"native-session-alpha\"},\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\",\"title\":null}]}"
+  },
+  {
+    "name": "duplicate escaped key rejected",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\": 1, \"operation_id\": \"session:create\", \"source\": {\"project_root\": \"/fixture/project\", \"host\": \"codex\", \"native_session_id\": \"native-session-alpha\"}, \"title\": \"Profile and chat\", \"summary\": \"Improve profile spacing and chat filters.\", \"tickets\": [{\"key\": \"COM-1\", \"url\": \"https://example.com/issues/COM-1\", \"title\": \"Profile spacing\"}, {\"key\": \"COM-2\", \"url\": \"https://example.com/issues/COM-2\", \"title\": \"Chat filters\"}],\"ti\\u0074le\":\"Changed\"}"
+  },
+  {
+    "name": "trailing JSON rejected",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\": 1, \"operation_id\": \"session:create\", \"source\": {\"project_root\": \"/fixture/project\", \"host\": \"codex\", \"native_session_id\": \"native-session-alpha\"}, \"title\": \"Profile and chat\", \"summary\": \"Improve profile spacing and chat filters.\", \"tickets\": [{\"key\": \"COM-1\", \"url\": \"https://example.com/issues/COM-1\", \"title\": \"Profile spacing\"}, {\"key\": \"COM-2\", \"url\": \"https://example.com/issues/COM-2\", \"title\": \"Chat filters\"}]} {}"
+  },
+  {
+    "name": "shared ticket view",
+    "kind": "append_event",
+    "valid": true,
+    "json": "{\"schema_version\":1,\"operation_id\":\"validation:1\",\"kind\":\"validation\",\"title\":\"First validation\",\"summary\":\"Profile and chat are ready to review.\",\"ticket_refs\":[],\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"views\":[{\"title\":\"Chat mobile\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"steps\":[\"Open Conversations at 390px.\",\"Activate a filter and close the panel.\"],\"expected_result\":\"The filter icon remains beside search.\",\"image_refs\":[{\"artifact_id\":\"artifact_chat\",\"caption\":\"390px · dark\",\"alt\":\"Chat search with compact filter\"}]}]}"
+  },
+  {
+    "name": "separate ticket views",
+    "kind": "append_event",
+    "valid": true,
+    "json": "{\"schema_version\":1,\"operation_id\":\"validation:separate\",\"kind\":\"validation\",\"title\":\"First validation\",\"summary\":\"Profile and chat are ready to review.\",\"ticket_refs\":[],\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"views\":[{\"title\":\"Profile\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"}],\"steps\":[\"Open Conversations at 390px.\",\"Activate a filter and close the panel.\"],\"expected_result\":\"The filter icon remains beside search.\",\"image_refs\":[{\"artifact_id\":\"artifact_profile\",\"caption\":\"1280px · light\"}]},{\"title\":\"Chat mobile\",\"ticket_refs\":[{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"steps\":[\"Open Conversations at 390px.\",\"Activate a filter and close the panel.\"],\"expected_result\":\"The filter icon remains beside search.\",\"image_refs\":[{\"artifact_id\":\"artifact_chat\",\"caption\":\"390px · dark\",\"alt\":\"Chat search with compact filter\"}]}]}"
+  },
+  {
+    "name": "focused iteration",
+    "kind": "append_event",
+    "valid": true,
+    "json": "{\"schema_version\":1,\"operation_id\":\"iteration:2\",\"kind\":\"iteration\",\"title\":\"Compact filter\",\"summary\":\"Only Chat changed.\",\"ticket_refs\":[],\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"views\":[{\"title\":\"Chat mobile\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"steps\":[\"Open Conversations at 390px.\",\"Activate a filter and close the panel.\"],\"expected_result\":\"The filter icon remains beside search.\",\"image_refs\":[{\"artifact_id\":\"artifact_chat_refined\",\"caption\":\"390px · dark · refined\"}],\"view_id\":\"view_chat\",\"supersedes\":{\"event_id\":\"event_validation\",\"evidence_id\":\"evidence_initial\",\"view_id\":\"view_chat\"}}]}"
+  },
+  {
+    "name": "iteration needs predecessor",
+    "kind": "append_event",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"validation:1\",\"kind\":\"iteration\",\"title\":\"First validation\",\"summary\":\"Profile and chat are ready to review.\",\"ticket_refs\":[],\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"views\":[{\"title\":\"Chat mobile\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"steps\":[\"Open Conversations at 390px.\",\"Activate a filter and close the panel.\"],\"expected_result\":\"The filter icon remains beside search.\",\"image_refs\":[{\"artifact_id\":\"artifact_chat\",\"caption\":\"390px · dark\",\"alt\":\"Chat search with compact filter\"}]}]}"
+  },
+  {
+    "name": "no invented human origin",
+    "kind": "append_event",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"validation:1\",\"kind\":\"validation\",\"title\":\"First validation\",\"summary\":\"Profile and chat are ready to review.\",\"ticket_refs\":[],\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"views\":[{\"title\":\"Chat mobile\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"steps\":[\"Open Conversations at 390px.\",\"Activate a filter and close the panel.\"],\"expected_result\":\"The filter icon remains beside search.\",\"image_refs\":[{\"artifact_id\":\"artifact_chat\",\"caption\":\"390px · dark\",\"alt\":\"Chat search with compact filter\"}]}],\"origin\":\"human\"}"
+  },
+  {
+    "name": "kind dependent fields",
+    "kind": "append_event",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"validation:1\",\"kind\":\"request\",\"title\":\"First validation\",\"summary\":\"Profile and chat are ready to review.\",\"ticket_refs\":[],\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"views\":[{\"title\":\"Chat mobile\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"steps\":[\"Open Conversations at 390px.\",\"Activate a filter and close the panel.\"],\"expected_result\":\"The filter icon remains beside search.\",\"image_refs\":[{\"artifact_id\":\"artifact_chat\",\"caption\":\"390px · dark\",\"alt\":\"Chat search with compact filter\"}]}]}"
+  },
+  {
+    "name": "unknown kind",
+    "kind": "append_event",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"validation:1\",\"kind\":\"approved\",\"title\":\"First validation\",\"summary\":\"Profile and chat are ready to review.\",\"ticket_refs\":[],\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"views\":[{\"title\":\"Chat mobile\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"steps\":[\"Open Conversations at 390px.\",\"Activate a filter and close the panel.\"],\"expected_result\":\"The filter icon remains beside search.\",\"image_refs\":[{\"artifact_id\":\"artifact_chat\",\"caption\":\"390px · dark\",\"alt\":\"Chat search with compact filter\"}]}]}"
+  },
+  {
+    "name": "instructions required",
+    "kind": "append_event",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"validation:1\",\"kind\":\"validation\",\"title\":\"First validation\",\"summary\":\"Profile and chat are ready to review.\",\"ticket_refs\":[],\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"views\":[{\"title\":\"Chat mobile\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"expected_result\":\"The filter icon remains beside search.\",\"image_refs\":[{\"artifact_id\":\"artifact_chat\",\"caption\":\"390px · dark\",\"alt\":\"Chat search with compact filter\"}]}]}"
+  },
+  {
+    "name": "empty image collection rejected",
+    "kind": "append_event",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"validation:1\",\"kind\":\"validation\",\"title\":\"First validation\",\"summary\":\"Profile and chat are ready to review.\",\"ticket_refs\":[],\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"views\":[{\"title\":\"Chat mobile\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"steps\":[\"Open Conversations at 390px.\",\"Activate a filter and close the panel.\"],\"expected_result\":\"The filter icon remains beside search.\",\"image_refs\":[]}]}"
+  },
+  {
+    "name": "declared decision needs evidence",
+    "kind": "append_event",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"approval:1\",\"kind\":\"approval_reported\",\"title\":\"Approved\",\"summary\":\"User accepted Chat.\",\"ticket_refs\":[{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}]}"
+  },
+  {
+    "name": "reported decision source",
+    "kind": "append_event",
+    "valid": true,
+    "json": "{\"schema_version\":1,\"operation_id\":\"approval:1\",\"kind\":\"approval_reported\",\"title\":\"Approved\",\"summary\":\"User accepted Chat.\",\"ticket_refs\":[{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"target\":{\"event_id\":\"event_validation\",\"evidence_id\":\"evidence_initial\",\"view_ids\":[\"view_chat\"]},\"source_reference\":\"User response to D1 A\"}"
+  },
+  {
+    "name": "metadata upload",
+    "kind": "artifact_metadata",
+    "valid": true,
+    "json": "{\"schema_version\":1,\"operation_id\":\"image:chat\",\"captured_at\":\"2026-10-31T18:29:00-06:00\",\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"viewport\":\"mobile\",\"theme\":\"dark\",\"media_type\":\"image/png\"}"
+  },
+  {
+    "name": "unsupported image type",
+    "kind": "artifact_metadata",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"image:chat\",\"captured_at\":\"2026-10-31T18:29:00-06:00\",\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"viewport\":\"mobile\",\"theme\":\"dark\",\"media_type\":\"image/svg+xml\"}"
+  },
+  {
+    "name": "invalid calendar date",
+    "kind": "artifact_metadata",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"image:chat\",\"captured_at\":\"2026-02-31T12:00:00Z\",\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"viewport\":\"mobile\",\"theme\":\"dark\",\"media_type\":\"image/png\"}"
+  },
+  {
+    "name": "metadata unknown source path",
+    "kind": "artifact_metadata",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"image:chat\",\"captured_at\":\"2026-10-31T18:29:00-06:00\",\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"viewport\":\"mobile\",\"theme\":\"dark\",\"media_type\":\"image/png\",\"path\":\"/some/private/file\"}"
+  },
+  {
+    "name": "conditional session patch",
+    "kind": "session_patch",
+    "valid": true,
+    "json": "{\"schema_version\":1,\"operation_id\":\"title:1\",\"expected_version\":2,\"title\":\"New title\"}"
+  },
+  {
+    "name": "patch cannot change source",
+    "kind": "session_patch",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"source:1\",\"expected_version\":2,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\"native-session-alpha\"}}"
+  },
+  {
+    "name": "positive expected version",
+    "kind": "mutation",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"withdraw:1\",\"expected_version\":0}"
+  },
+  {
+    "name": "integer expected version",
+    "kind": "mutation",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"withdraw:1\",\"expected_version\":1.5}"
+  },
+  {
+    "name": "copy patch cannot mutate evidence",
+    "kind": "event_patch",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"copy:1\",\"expected_version\":1,\"views\":[{\"title\":\"Chat mobile\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"steps\":[\"Open Conversations at 390px.\",\"Activate a filter and close the panel.\"],\"expected_result\":\"The filter icon remains beside search.\",\"image_refs\":[{\"artifact_id\":\"artifact_chat\",\"caption\":\"390px · dark\",\"alt\":\"Chat search with compact filter\"}]}]}"
+  },
+  {
+    "name": "empty patch rejected",
+    "kind": "event_patch",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"copy:1\",\"expected_version\":1}"
+  },
+  {
+    "name": "optional null cannot bypass fields",
+    "kind": "event_patch",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"copy:1\",\"expected_version\":1,\"title\":\"Updated\",\"summary\":null}"
+  },
+  {
+    "name": "unsafe ticket URL",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:create\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\"native-session-alpha\"},\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://user:secret@example.com/issue\"}]}"
+  },
+  {
+    "name": "unsafe delivery URL",
+    "kind": "append_event",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"delivery:1\",\"kind\":\"delivery\",\"title\":\"PR opened\",\"summary\":\"Awaiting integration.\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"deliveries\":[{\"kind\":\"pull_request\",\"label\":\"PR 1\",\"url\":\"javascript:alert(1)\",\"status\":\"open\"}]}"
+  },
+  {
+    "name": "withdraw request",
+    "kind": "mutation",
+    "valid": true,
+    "json": "{\"schema_version\":1,\"operation_id\":\"withdraw:1\",\"expected_version\":1}"
+  },
+  {
+    "name": "exponent counter literal rejected",
+    "kind": "mutation",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"withdraw:1\",\"expected_version\":1e0}"
+  },
+  {
+    "name": "fraction counter literal rejected",
+    "kind": "mutation",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"withdraw:1\",\"expected_version\":1.0}"
+  },
+  {
+    "name": "empty optional URL rejected",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"create\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\"native\"},\"title\":\"Title\",\"summary\":\"Scope\",\"tickets\":[{\"key\":\"COM-1\",\"url\":\"\"}]}"
+  },
+  {
+    "name": "case alias cannot overwrite title",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:create\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\"native-session-alpha\"},\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\",\"title\":\"Profile spacing\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\",\"title\":\"Chat filters\"}],\"Title\":\"Overwritten\"}"
+  },
+  {
+    "name": "uppercase required key is not exact tag",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:create\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\"native-session-alpha\"},\"summary\":\"Improve profile spacing and chat filters.\",\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\",\"title\":\"Profile spacing\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\",\"title\":\"Chat filters\"}],\"Title\":\"Title\"}"
+  },
+  {
+    "name": "nested host case alias rejected",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:create\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\"native-session-alpha\",\"Host\":\"pi\"},\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\",\"title\":\"Profile spacing\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\",\"title\":\"Chat filters\"}]}"
+  },
+  {
+    "name": "nested view case alias rejected",
+    "kind": "append_event",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"validation:1\",\"kind\":\"validation\",\"title\":\"First validation\",\"summary\":\"Profile and chat are ready to review.\",\"ticket_refs\":[],\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"views\":[{\"title\":\"Chat mobile\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"steps\":[\"Open Conversations at 390px.\",\"Activate a filter and close the panel.\"],\"expected_result\":\"The filter icon remains beside search.\",\"image_refs\":[{\"artifact_id\":\"artifact_chat\",\"caption\":\"390px · dark\",\"alt\":\"Chat search with compact filter\"}],\"Title\":\"Wrong\"}]}"
+  },
+  {
+    "name": "blank optional ticket title ''",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:create\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\"native-session-alpha\"},\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\",\"title\":\"\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\",\"title\":\"Chat filters\"}]}"
+  },
+  {
+    "name": "blank optional ticket title ' '",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:create\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\"native-session-alpha\"},\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\",\"title\":\" \"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\",\"title\":\"Chat filters\"}]}"
+  },
+  {
+    "name": "blank optional ticket title '\\t\\n'",
+    "kind": "create_session",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:create\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\"native-session-alpha\"},\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\",\"title\":\"\\t\\n\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\",\"title\":\"Chat filters\"}]}"
+  },
+  {
+    "name": "blank optional image alt ''",
+    "kind": "append_event",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"validation:1\",\"kind\":\"validation\",\"title\":\"First validation\",\"summary\":\"Profile and chat are ready to review.\",\"ticket_refs\":[],\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"views\":[{\"title\":\"Chat mobile\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"steps\":[\"Open Conversations at 390px.\",\"Activate a filter and close the panel.\"],\"expected_result\":\"The filter icon remains beside search.\",\"image_refs\":[{\"artifact_id\":\"artifact_chat\",\"caption\":\"390px · dark\",\"alt\":\"\"}]}]}"
+  },
+  {
+    "name": "blank optional image alt ' '",
+    "kind": "append_event",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"validation:1\",\"kind\":\"validation\",\"title\":\"First validation\",\"summary\":\"Profile and chat are ready to review.\",\"ticket_refs\":[],\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"views\":[{\"title\":\"Chat mobile\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"steps\":[\"Open Conversations at 390px.\",\"Activate a filter and close the panel.\"],\"expected_result\":\"The filter icon remains beside search.\",\"image_refs\":[{\"artifact_id\":\"artifact_chat\",\"caption\":\"390px · dark\",\"alt\":\" \"}]}]}"
+  },
+  {
+    "name": "blank optional image alt '\\t\\n'",
+    "kind": "append_event",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"validation:1\",\"kind\":\"validation\",\"title\":\"First validation\",\"summary\":\"Profile and chat are ready to review.\",\"ticket_refs\":[],\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"views\":[{\"title\":\"Chat mobile\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"steps\":[\"Open Conversations at 390px.\",\"Activate a filter and close the panel.\"],\"expected_result\":\"The filter icon remains beside search.\",\"image_refs\":[{\"artifact_id\":\"artifact_chat\",\"caption\":\"390px · dark\",\"alt\":\"\\t\\n\"}]}]}"
+  },
+  {
+    "name": "existing legacy index source fields",
+    "kind": "index_entry",
+    "valid": true,
+    "json": "{\"mode\":\"legacy\",\"session\":{\"key\":\"9999999999999999999999999999999999999999999999999999999999999999\",\"source\":\"/fixture/project/_support/workspace/old-review\",\"source_status\":\"local\",\"repository\":\"/fixture/project\",\"content_hash\":\"8888888888888888888888888888888888888888888888888888888888888888\",\"ingested_at\":\"2026-10-19T15:01:00Z\",\"pinned\":false,\"archived\":false,\"session_id\":\"codex-20261019T150000Z\",\"session_status\":\"closed\",\"host\":\"codex\",\"ticket\":\"COM-1\",\"title\":\"Historical review\",\"kind\":\"final\",\"created_at\":\"2026-10-19T15:00:00Z\",\"project_key\":\"example.com/fixture/project\",\"project_name\":\"CAM fixture\",\"fileBase\":\"/files/9999999999999999999999999999999999999999999999999999999999999999/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/\"}}"
+  },
+  {
+    "name": "API index discriminant",
+    "kind": "index_entry",
+    "valid": true,
+    "json": "{\"viewer_session_id\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"project_key\":\"example.com/fixture/project\",\"project_name\":\"CAM fixture\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\"native-session-alpha\"},\"version\":7,\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"state\":\"active\",\"archived\":false,\"pinned\":false,\"created_at\":\"2026-10-31T18:20:00-06:00\",\"updated_at\":\"2026-10-31T18:26:00-06:00\",\"validation_count\":2,\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\",\"title\":\"Profile spacing\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\",\"title\":\"Chat filters\"}],\"mode\":\"timeline_api\"}"
+  },
+  {
+    "name": "legacy cannot claim new API identity",
+    "kind": "index_entry",
+    "valid": false,
+    "json": "{\"mode\":\"legacy\",\"session\":{\"key\":\"9999999999999999999999999999999999999999999999999999999999999999\",\"source\":\"/fixture/project/_support/workspace/old-review\",\"source_status\":\"local\",\"repository\":\"/fixture/project\",\"content_hash\":\"8888888888888888888888888888888888888888888888888888888888888888\",\"ingested_at\":\"2026-10-19T15:01:00Z\",\"pinned\":false,\"archived\":false,\"session_id\":\"codex-20261019T150000Z\",\"session_status\":\"closed\",\"host\":\"codex\",\"ticket\":\"COM-1\",\"title\":\"Historical review\",\"kind\":\"final\",\"created_at\":\"2026-10-19T15:00:00Z\",\"project_key\":\"example.com/fixture/project\",\"project_name\":\"CAM fixture\",\"fileBase\":\"/files/9999999999999999999999999999999999999999999999999999999999999999/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/\",\"viewer_session_id\":\"1111111111111111111111111111111111111111111111111111111111111111\"}}"
+  },
+  {
+    "name": "legacy case alias rejected",
+    "kind": "index_entry",
+    "valid": false,
+    "json": "{\"mode\":\"legacy\",\"session\":{\"key\":\"9999999999999999999999999999999999999999999999999999999999999999\",\"source\":\"/fixture/project/_support/workspace/old-review\",\"source_status\":\"local\",\"repository\":\"/fixture/project\",\"content_hash\":\"8888888888888888888888888888888888888888888888888888888888888888\",\"ingested_at\":\"2026-10-19T15:01:00Z\",\"pinned\":false,\"archived\":false,\"session_id\":\"codex-20261019T150000Z\",\"session_status\":\"closed\",\"host\":\"codex\",\"ticket\":\"COM-1\",\"title\":\"Historical review\",\"kind\":\"final\",\"created_at\":\"2026-10-19T15:00:00Z\",\"project_key\":\"example.com/fixture/project\",\"project_name\":\"CAM fixture\",\"fileBase\":\"/files/9999999999999999999999999999999999999999999999999999999999999999/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/\",\"Key\":\"2222222222222222222222222222222222222222222222222222222222222222\"}}"
+  },
+  {
+    "name": "public operation IDs and versions",
+    "kind": "operation_result",
+    "valid": true,
+    "json": "{\"schema_version\":1,\"operation_id\":\"validation:1\",\"kind\":\"append_event\",\"viewer_session_id\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"session_version\":4,\"event_id\":\"event_validation\",\"event_version\":1,\"sequence\":3,\"evidence_id\":\"evidence_initial\",\"view_ids\":[\"view_chat\"]}"
+  },
+  {
+    "name": "private completed operation receipt",
+    "kind": "operation_receipt",
+    "valid": true,
+    "json": "{\"operation_id\":\"validation:1\",\"request_sha256\":\"5e7cd6bfd5f48b38be3675c735e2f57baeb435c557a4e334eed91528e1c49f18\",\"completed_at\":\"2026-10-31T18:30:00-06:00\",\"result\":{\"schema_version\":1,\"operation_id\":\"validation:1\",\"kind\":\"append_event\",\"viewer_session_id\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"session_version\":4,\"event_id\":\"event_validation\",\"event_version\":1,\"sequence\":3,\"evidence_id\":\"evidence_initial\",\"view_ids\":[\"view_chat\"]}}"
+  },
+  {
+    "name": "receipt operation mismatch rejected",
+    "kind": "operation_receipt",
+    "valid": false,
+    "json": "{\"operation_id\":\"validation:1\",\"request_sha256\":\"5e7cd6bfd5f48b38be3675c735e2f57baeb435c557a4e334eed91528e1c49f18\",\"completed_at\":\"2026-10-31T18:30:00-06:00\",\"result\":{\"schema_version\":1,\"operation_id\":\"other:1\",\"kind\":\"append_event\",\"viewer_session_id\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"session_version\":4,\"event_id\":\"event_validation\",\"event_version\":1,\"sequence\":3,\"evidence_id\":\"evidence_initial\",\"view_ids\":[\"view_chat\"]}}"
+  },
+  {
+    "name": "receipt digest format rejected",
+    "kind": "operation_receipt",
+    "valid": false,
+    "json": "{\"operation_id\":\"validation:1\",\"request_sha256\":\"not-a-digest\",\"completed_at\":\"2026-10-31T18:30:00-06:00\",\"result\":{\"schema_version\":1,\"operation_id\":\"validation:1\",\"kind\":\"append_event\",\"viewer_session_id\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"session_version\":4,\"event_id\":\"event_validation\",\"event_version\":1,\"sequence\":3,\"evidence_id\":\"evidence_initial\",\"view_ids\":[\"view_chat\"]}}"
+  },
+  {
+    "name": "public result cannot expose digest",
+    "kind": "operation_result",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"validation:1\",\"kind\":\"append_event\",\"viewer_session_id\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"session_version\":4,\"event_id\":\"event_validation\",\"event_version\":1,\"sequence\":3,\"evidence_id\":\"evidence_initial\",\"view_ids\":[\"view_chat\"],\"request_sha256\":\"5e7cd6bfd5f48b38be3675c735e2f57baeb435c557a4e334eed91528e1c49f18\"}"
+  },
+  {
+    "name": "public session cannot expose receipts",
+    "kind": "session",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"viewer_session_id\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"project_key\":\"example.com/fixture/project\",\"project_name\":\"CAM fixture\",\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"codex\",\"native_session_id\":\"native-session-alpha\"},\"version\":7,\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"state\":\"active\",\"archived\":false,\"pinned\":false,\"created_at\":\"2026-10-31T18:20:00-06:00\",\"updated_at\":\"2026-10-31T18:26:00-06:00\",\"validation_count\":2,\"tickets\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\",\"title\":\"Profile spacing\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\",\"title\":\"Chat filters\"}],\"events\":[{\"event_id\":\"event_request\",\"sequence\":1,\"version\":1,\"kind\":\"request\",\"title\":\"Profile and chat\",\"summary\":\"Improve profile spacing and chat filters.\",\"created_at\":\"2026-10-31T18:21:00-06:00\",\"updated_at\":\"2026-10-31T18:21:00-06:00\",\"origin\":\"agent_reported\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}]},{\"event_id\":\"event_started\",\"sequence\":2,\"version\":1,\"kind\":\"work_started\",\"title\":\"Work started\",\"summary\":\"Implement the approved scope.\",\"created_at\":\"2026-10-31T18:22:00-06:00\",\"updated_at\":\"2026-10-31T18:22:00-06:00\",\"origin\":\"agent_reported\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"}},{\"event_id\":\"event_validation\",\"sequence\":3,\"version\":1,\"kind\":\"validation\",\"title\":\"First validation\",\"summary\":\"Profile and Chat can be reviewed.\",\"created_at\":\"2026-10-31T18:23:00-06:00\",\"updated_at\":\"2026-10-31T18:23:00-06:00\",\"origin\":\"agent_reported\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"evidence_id\":\"evidence_initial\",\"views\":[{\"title\":\"Profile\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"}],\"steps\":[\"Open Conversations at 390px.\",\"Activate a filter and close the panel.\"],\"expected_result\":\"The filter icon remains beside search.\",\"image_refs\":[{\"artifact_id\":\"artifact_profile\",\"caption\":\"1280px · light\"}],\"view_id\":\"view_profile\"},{\"title\":\"Chat mobile\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"steps\":[\"Open Conversations at 390px.\",\"Activate a filter and close the panel.\"],\"expected_result\":\"The filter icon remains beside search.\",\"image_refs\":[{\"artifact_id\":\"artifact_chat\",\"caption\":\"390px · dark\",\"alt\":\"Chat search with compact filter\"}],\"view_id\":\"view_chat\"}]},{\"event_id\":\"event_iteration\",\"sequence\":4,\"version\":1,\"kind\":\"iteration\",\"title\":\"Compact mobile filter\",\"summary\":\"Only Chat changed.\",\"created_at\":\"2026-10-31T18:24:00-06:00\",\"updated_at\":\"2026-10-31T18:24:00-06:00\",\"origin\":\"agent_reported\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"evidence_id\":\"evidence_refined\",\"views\":[{\"title\":\"Chat mobile\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"steps\":[\"Open Conversations at 390px.\",\"Activate a filter and close the panel.\"],\"expected_result\":\"The filter icon remains beside search.\",\"image_refs\":[{\"artifact_id\":\"artifact_chat_refined\",\"caption\":\"390px · dark · refined\"}],\"view_id\":\"view_chat\",\"supersedes\":{\"event_id\":\"event_validation\",\"evidence_id\":\"evidence_initial\",\"view_id\":\"view_chat\"}}]},{\"event_id\":\"event_approval\",\"sequence\":5,\"version\":1,\"kind\":\"approval_reported\",\"title\":\"Approval reported from chat\",\"summary\":\"The user accepted the current Chat evidence.\",\"created_at\":\"2026-10-31T18:25:00-06:00\",\"updated_at\":\"2026-10-31T18:25:00-06:00\",\"origin\":\"agent_reported\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"target\":{\"event_id\":\"event_iteration\",\"evidence_id\":\"evidence_refined\",\"view_ids\":[\"view_chat\"]},\"source_reference\":\"User accepted D2 A\"},{\"event_id\":\"event_delivery\",\"sequence\":6,\"version\":1,\"kind\":\"delivery\",\"title\":\"PR opened\",\"summary\":\"Integration is pending.\",\"created_at\":\"2026-10-31T18:26:00-06:00\",\"updated_at\":\"2026-10-31T18:26:00-06:00\",\"origin\":\"agent_reported\",\"ticket_refs\":[{\"key\":\"COM-1\",\"url\":\"https://example.com/issues/COM-1\"},{\"key\":\"COM-2\",\"url\":\"https://example.com/issues/COM-2\"}],\"deliveries\":[{\"kind\":\"pull_request\",\"label\":\"PR 321\",\"url\":\"https://example.com/pull/321\",\"status\":\"open\"}]}],\"artifacts\":[{\"artifact_id\":\"artifact_profile\",\"session_id\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"sha256\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"size\":1024,\"media_type\":\"image/png\",\"received_at\":\"2026-10-31T18:29:30-06:00\",\"captured_at\":\"2026-10-31T18:29:00-06:00\",\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"viewport\":\"desktop\",\"theme\":\"light\"},{\"artifact_id\":\"artifact_chat\",\"session_id\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"sha256\":\"2222222222222222222222222222222222222222222222222222222222222222\",\"size\":1024,\"media_type\":\"image/png\",\"received_at\":\"2026-10-31T18:29:30-06:00\",\"captured_at\":\"2026-10-31T18:29:00-06:00\",\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"viewport\":\"mobile\",\"theme\":\"dark\"},{\"artifact_id\":\"artifact_chat_refined\",\"session_id\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"sha256\":\"3333333333333333333333333333333333333333333333333333333333333333\",\"size\":1024,\"media_type\":\"image/png\",\"received_at\":\"2026-10-31T18:29:30-06:00\",\"captured_at\":\"2026-10-31T18:29:00-06:00\",\"candidate\":{\"branch\":\"fix/profile-chat\",\"commit\":\"working tree\",\"base\":\"development\"},\"viewport\":\"mobile\",\"theme\":\"dark\"}],\"operation_receipts\":[{\"operation_id\":\"validation:1\",\"request_sha256\":\"5e7cd6bfd5f48b38be3675c735e2f57baeb435c557a4e334eed91528e1c49f18\",\"completed_at\":\"2026-10-31T18:30:00-06:00\",\"result\":{\"schema_version\":1,\"operation_id\":\"validation:1\",\"kind\":\"append_event\",\"viewer_session_id\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"session_version\":4,\"event_id\":\"event_validation\",\"event_version\":1,\"sequence\":3,\"evidence_id\":\"evidence_initial\",\"view_ids\":[\"view_chat\"]}}]}"
+  },
+  {
+    "name": "terminal deletion result",
+    "kind": "operation_result",
+    "valid": true,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:delete\",\"kind\":\"session_delete\",\"viewer_session_id\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"session_version\":5,\"deleted\":true}"
+  },
+  {
+    "name": "result kind-specific fields rejected",
+    "kind": "operation_result",
+    "valid": false,
+    "json": "{\"schema_version\":1,\"operation_id\":\"session:delete\",\"kind\":\"session_delete\",\"viewer_session_id\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"session_version\":5,\"deleted\":true,\"event_version\":0}"
+  }
+]
