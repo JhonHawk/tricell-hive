@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "operation_id": "validation:1",
+  "kind": "append_event",
+  "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+  "session_version": 4,
+  "event_id": "event_validation",
+  "event_version": 1,
+  "sequence": 3,
+  "evidence_id": "evidence_initial",
+  "view_ids": [
+    "view_chat"
+  ]
+}
