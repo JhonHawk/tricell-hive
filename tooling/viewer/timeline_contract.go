@@ -49,6 +49,9 @@ const (
 
 var timelineHosts = []string{"codex", "claude-code", "grok", "pi", "opencode", "cursor"}
 var timelineStates = []string{"active", "awaiting_validation", "paused", "closed"}
+var timelineViewports = []string{"desktop", "mobile"}
+var timelineThemes = []string{"light", "dark", "unspecified"}
+var timelineImageMediaTypes = []string{"image/png", "image/jpeg", "image/webp"}
 var timelineEventKinds = []string{"request", "work_started", "stage", "validation", "changes_reported", "iteration", "approval_reported", "delivery", "closure"}
 var timelineOpaqueID = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$`)
 var timelineOperationID = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$`)
@@ -884,13 +887,13 @@ func (r TimelineArtifactMetadata) Validate() error {
 	if err := timelineCandidate(r.Candidate); err != nil {
 		return err
 	}
-	if !contains([]string{"desktop", "mobile"}, r.Viewport) {
+	if !contains(timelineViewports, r.Viewport) {
 		return timelineError("viewport", "unsupported_viewport")
 	}
-	if !contains([]string{"light", "dark", "unspecified"}, r.Theme) {
+	if !contains(timelineThemes, r.Theme) {
 		return timelineError("theme", "unsupported_theme")
 	}
-	if !contains([]string{"image/png", "image/jpeg", "image/webp"}, r.MediaType) {
+	if !contains(timelineImageMediaTypes, r.MediaType) {
 		return timelineError("media_type", "unsupported_media_type")
 	}
 	return nil

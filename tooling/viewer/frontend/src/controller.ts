@@ -58,6 +58,11 @@ export type ViewerState = {
   groups: SessionGroup[];
   documents: Record<string, SegmentDocument>;
   writingId?: string;
+  pendingTimelineDelete?: {
+    id: string;
+    title: string;
+    expectedVersion: number;
+  };
   down: boolean;
   indexError: boolean;
   notice?:
@@ -85,6 +90,7 @@ export type ViewerState = {
   showArchived: boolean;
 };
 const initial: ViewerState = {
+  pendingTimelineDelete: undefined,
   timelineSessions: [],
   timeline: null,
   targetError: false,
@@ -115,6 +121,9 @@ export class ViewerController {
   private timelineMutation:
     | { key: string; body: Record<string, unknown> }
     | undefined;
+  private pendingTimelineDeleteMutation:
+    | { key: string; body: Record<string, unknown> }
+    | undefined;
   constructor(
     public client: AccessClient,
     private isHidden = () => document.hidden,
@@ -136,6 +145,7 @@ export class ViewerController {
     this.timelineRequest = undefined;
     this.timelineTask = undefined;
     this.timelineMutation = undefined;
+    this.pendingTimelineDeleteMutation = undefined;
     this.temporaryTargetID =
       target && "sessionID" in target ? target.sessionID : undefined;
     this.reading = false;
@@ -168,6 +178,7 @@ export class ViewerController {
     this.timelineRequest = undefined;
     this.timelineTask = undefined;
     this.timelineMutation = undefined;
+    this.pendingTimelineDeleteMutation = undefined;
     this.client.reject();
     this.update({ ...initial, access: "rejected" });
     clearTimeout(this.timer);
@@ -747,19 +758,32 @@ export class ViewerController {
   ) => this.writeTimeline(id, "PATCH", expectedVersion, patch);
   deleteTimelineSession = (id: string, expectedVersion: number) =>
     this.writeTimeline(id, "DELETE", expectedVersion);
+  retryTimelineDelete = () => {
+    const pending = this.state.pendingTimelineDelete;
+    if (!pending) return Promise.resolve();
+    return this.deleteTimelineSession(pending.id, pending.expectedVersion);
+  };
   private async writeTimeline(
     id: string,
     method: "PATCH" | "DELETE",
     expectedVersion: number,
     patch?: { title?: string; archived?: boolean; pinned?: boolean },
   ) {
+    const pending = this.state.pendingTimelineDelete;
+    const retryDelete =
+      method === "DELETE" &&
+      pending?.id === id &&
+      pending.expectedVersion === expectedVersion &&
+      this.pendingTimelineDeleteMutation !== undefined;
     if (
       this.state.access !== "ready" ||
       this.state.writing ||
-      this.state.indexError ||
-      !this.state.index?.timeline_sessions?.some(
-        (s) => s.viewer_session_id === id,
-      )
+      (method === "DELETE" && pending && !retryDelete) ||
+      (!retryDelete &&
+        (this.state.indexError ||
+          !this.state.index?.timeline_sessions?.some(
+            (s) => s.viewer_session_id === id,
+          )))
     )
       throw new Error("Session unavailable");
     const epoch = this.epoch;
@@ -772,17 +796,26 @@ export class ViewerController {
       patch?.pinned,
     ]);
     const mutation =
-      this.timelineMutation?.key === key
-        ? this.timelineMutation
-        : {
-            key,
-            body: {
-              schema_version: 1,
-              operation_id: crypto.randomUUID(),
-              expected_version: expectedVersion,
-              ...patch,
-            },
-          };
+      retryDelete && this.pendingTimelineDeleteMutation
+        ? this.pendingTimelineDeleteMutation
+        : this.timelineMutation?.key === key
+          ? this.timelineMutation
+          : {
+              key,
+              body: {
+                schema_version: 1,
+                operation_id: crypto.randomUUID(),
+                expected_version: expectedVersion,
+                ...patch,
+              },
+            };
+    const deleteTitle =
+      pending?.title ??
+      this.state.index?.timeline_sessions?.find(
+        (s) => s.viewer_session_id === id,
+      )?.title ??
+      id;
+    let committed = false;
     this.timelineMutation = mutation;
     this.readSeq++;
     this.update({ writing: true, writingId: id });
@@ -806,6 +839,11 @@ export class ViewerController {
           (method === "PATCH" ? "session_patch" : "session_delete")
       )
         throw new Error("Invalid mutation receipt");
+      committed = true;
+      if (method === "DELETE") {
+        this.pendingTimelineDeleteMutation = undefined;
+        this.update({ pendingTimelineDelete: undefined });
+      }
       if (method === "DELETE" || patch?.archived !== undefined) {
         this.temporaryTargetID = undefined;
         this.update({ openTarget: undefined, targetError: false });
@@ -833,10 +871,32 @@ export class ViewerController {
       this.timelineMutation = undefined;
     } catch (error) {
       if (epoch === this.epoch) {
-        if (error instanceof HttpError && error.status === 409) {
+        if (this.failure(error)) {
+          // Access reset clears any recovery operation owned by this epoch.
+        } else if (
+          error instanceof HttpError &&
+          error.status === 409 &&
+          error.details.code !== "delete_pending"
+        ) {
           this.timelineMutation = undefined;
+          if (method === "DELETE") {
+            this.pendingTimelineDeleteMutation = undefined;
+            this.update({ pendingTimelineDelete: undefined });
+          }
           await this.refresh();
-        } else if (!this.failure(error)) void this.refresh();
+        } else {
+          if (method === "DELETE" && !committed) {
+            this.pendingTimelineDeleteMutation = mutation;
+            this.update({
+              pendingTimelineDelete: {
+                id,
+                title: deleteTitle,
+                expectedVersion,
+              },
+            });
+          }
+          await this.refresh();
+        }
       }
       throw error;
     } finally {

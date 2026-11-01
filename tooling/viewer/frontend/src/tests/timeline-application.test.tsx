@@ -199,3 +199,97 @@ test("real application wires API timeline, documents, conditional title and mixe
     false,
   );
 });
+
+test("pending API deletion exposes recovery outside the removed session header", async (t) => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  t.after(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+  });
+  const data = structuredClone(timelineFixture),
+    sid = data.session.viewer_session_id;
+  let tombstoned = false,
+    attempts = 0;
+  const bodies: unknown[] = [];
+  const client = new AccessClient(
+    async (path, options) => {
+      if (path === "/api/index") {
+        const {
+          schema_version: _s,
+          events: _e,
+          artifacts: _a,
+          documents: _d,
+          ...entry
+        } = data.session;
+        return new Response(
+          JSON.stringify({
+            projects: [],
+            repositories: [],
+            errors: [],
+            ttl_seconds: 0,
+            timeline_sessions: tombstoned
+              ? []
+              : [{ mode: "timeline_api", ...entry }],
+          }),
+        );
+      }
+      if (options?.method === "DELETE") {
+        const body = JSON.parse(String(options.body));
+        bodies.push(body);
+        tombstoned = true;
+        attempts++;
+        return new Response(
+          JSON.stringify(
+            attempts === 1
+              ? { code: "delete_pending", cleanup_pending: true }
+              : {
+                  schema_version: 1,
+                  kind: "session_delete",
+                  viewer_session_id: sid,
+                  operation_id: body.operation_id,
+                  session_version: data.session.version + 1,
+                  current_stage_event_id: null,
+                  deleted: true,
+                },
+          ),
+          { status: attempts === 1 ? 503 : 200 },
+        );
+      }
+      return new Response(JSON.stringify(data));
+    },
+    { getItem: () => "test-token", setItem: () => {}, removeItem: () => {} },
+  );
+  const controller = new ViewerController(client, () => false);
+  await controller.open(null, { sessionID: sid });
+  await settle();
+  await act(async () => {
+    root.render(<ViewerApplication controller={controller} />);
+    await settle();
+  });
+  await act(async () => {
+    await assert.rejects(
+      controller.deleteTimelineSession(sid, data.session.version),
+    );
+    await settle();
+  });
+  assert.equal(controller.getSnapshot().selectedId, undefined);
+  const notice = [...container.querySelectorAll('[role="status"]')].find(
+    (node) => node.textContent?.includes("Deletion incomplete"),
+  );
+  assert.ok(
+    notice,
+    "Recovery remains visible after the session header unmounts",
+  );
+  const retry = notice.querySelector<HTMLButtonElement>("button");
+  assert.ok(retry);
+  await act(async () => {
+    retry.click();
+    await settle();
+  });
+  assert.equal(attempts, 2);
+  assert.deepEqual(bodies[0], bodies[1]);
+  assert.equal(controller.getSnapshot().pendingTimelineDelete, undefined);
+  assert.ok(!container.textContent?.includes("Deletion incomplete"));
+});

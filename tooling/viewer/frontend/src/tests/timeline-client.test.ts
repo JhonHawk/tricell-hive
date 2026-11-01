@@ -498,3 +498,77 @@ test("switching to API invalidates pending legacy reads without leaving a stuck 
     "Current legacy",
   );
 });
+
+test("pending deletion remains retryable with its original operation after tombstoning removes the index entry", async () => {
+  const a = fixture(),
+    b = fixture(other);
+  let tombstoned = false;
+  let attempts = 0;
+  const bodies: unknown[] = [];
+  const { controller } = setup(async (path, options) => {
+    if (path === "/api/index")
+      return response(index(...(tombstoned ? [b] : [a, b])));
+    if (options?.method === "DELETE") {
+      const body = JSON.parse(String(options.body));
+      bodies.push(body);
+      tombstoned = true;
+      attempts++;
+      if (attempts < 3)
+        return response(
+          { code: "delete_pending", cleanup_pending: true },
+          attempts === 1 ? 503 : 409,
+        );
+      return response({
+        schema_version: 1,
+        kind: "session_delete",
+        operation_id: body.operation_id,
+        viewer_session_id: sid,
+        session_version: 2,
+        current_stage_event_id: null,
+        deleted: true,
+      });
+    }
+    return response(String(path).endsWith(sid) ? a : b);
+  });
+  await controller.open(null, { sessionID: sid });
+  await settle();
+  await assert.rejects(controller.deleteTimelineSession(sid, 1));
+  assert.equal(controller.getSnapshot().selectedId, undefined);
+  assert.deepEqual(controller.getSnapshot().pendingTimelineDelete, {
+    id: sid,
+    title: a.session.title,
+    expectedVersion: 1,
+  });
+  await assert.rejects(controller.retryTimelineDelete());
+  assert.equal(controller.getSnapshot().pendingTimelineDelete?.id, sid);
+  await controller.retryTimelineDelete();
+  assert.deepEqual(bodies[0], bodies[1]);
+  assert.deepEqual(bodies[0], bodies[2]);
+  assert.equal(controller.getSnapshot().pendingTimelineDelete, undefined);
+  assert.equal(controller.getSnapshot().notice, "deleted");
+});
+
+test("pending deletion recovery is cleared when access changes", async () => {
+  const a = fixture();
+  let tombstoned = false;
+  let deletes = 0;
+  const { controller } = setup(async (path, options) => {
+    if (path === "/api/index")
+      return response(index(...(tombstoned ? [] : [a])));
+    if (options?.method === "DELETE") {
+      deletes++;
+      tombstoned = true;
+      return response({ code: "delete_pending" }, 503);
+    }
+    return response(a);
+  });
+  await controller.open(null, { sessionID: sid });
+  await settle();
+  await assert.rejects(controller.deleteTimelineSession(sid, 1));
+  assert.ok(controller.getSnapshot().pendingTimelineDelete);
+  await controller.open(null);
+  await settle();
+  assert.equal(controller.getSnapshot().pendingTimelineDelete, undefined);
+  await controller.retryTimelineDelete();
+  assert.equal(deletes, 1);
+});

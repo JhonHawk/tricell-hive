@@ -168,6 +168,16 @@ func timelineProtocolSchema(t reflect.Type) map[string]any {
 					schema["const"] = "text/markdown"
 				}
 			}
+			if t == reflect.TypeOf(TimelineArtifactMetadata{}) || t == reflect.TypeOf(TimelineArtifact{}) {
+				switch name {
+				case "viewport":
+					schema["enum"] = timelineViewports
+				case "theme":
+					schema["enum"] = timelineThemes
+				case "media_type":
+					schema["enum"] = timelineImageMediaTypes
+				}
+			}
 			if t == reflect.TypeOf(TimelineDocumentSnapshotRequest{}) || t == reflect.TypeOf(TimelineDocumentSnapshot{}) {
 				if name == "tabs" {
 					schema["minItems"] = 1

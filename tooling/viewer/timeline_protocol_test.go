@@ -77,6 +77,35 @@ func TestTimelineProtocolSchemaDerivedFieldsAndNullablePointer(t *testing.T) {
 	}
 }
 
+func TestTimelineProtocolArtifactEnumsMatchUploadValidation(t *testing.T) {
+	for _, typ := range []reflect.Type{reflect.TypeOf(TimelineArtifactMetadata{}), reflect.TypeOf(TimelineArtifact{})} {
+		properties := timelineProtocolSchema(typ)["properties"].(map[string]any)
+		for field, want := range map[string][]string{"viewport": timelineViewports, "theme": timelineThemes, "media_type": timelineImageMediaTypes} {
+			if got := properties[field].(map[string]any)["enum"]; !reflect.DeepEqual(got, want) {
+				t.Fatalf("%s.%s enum mismatch: %v", typ.Name(), field, got)
+			}
+		}
+	}
+	contract, err := TimelineProtocolContract("artifact_add")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var example TimelineArtifactMetadata
+	if err := json.Unmarshal(contract.Commands[0].Example, &example); err != nil {
+		t.Fatal(err)
+	}
+	for _, viewport := range timelineViewports {
+		for _, theme := range timelineThemes {
+			for _, mediaType := range timelineImageMediaTypes {
+				example.Viewport, example.Theme, example.MediaType = viewport, theme, mediaType
+				if err := example.Validate(); err != nil {
+					t.Fatal(err)
+				}
+			}
+		}
+	}
+}
+
 func TestTimelineProtocolResultSchemasUseProductionAllowedFields(t *testing.T) {
 	contract, err := TimelineProtocolContract("")
 	if err != nil {

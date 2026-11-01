@@ -541,6 +541,31 @@ export function ViewerApplication({
   );
   const notices = (
     <>
+      {state.pendingTimelineDelete && (
+        <Alert variant="destructive" role="status">
+          <AlertTitle>
+            {timelineLanguage === "es"
+              ? "Eliminación incompleta"
+              : "Deletion incomplete"}
+          </AlertTitle>
+          <AlertDescription>
+            {state.pendingTimelineDelete.title}
+          </AlertDescription>
+          <AlertAction>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={state.writing}
+              onClick={() =>
+                void controller.retryTimelineDelete().catch(() => {})
+              }
+            >
+              {t.retry}
+            </Button>
+          </AlertAction>
+        </Alert>
+      )}
       {state.targetError && (
         <Alert variant="destructive">
           <AlertTitle>

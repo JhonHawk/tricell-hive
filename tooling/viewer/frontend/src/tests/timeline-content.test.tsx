@@ -214,12 +214,27 @@ test("capture carousel remains scoped to its view and ignores unsafe capability 
       ?.getAttribute("src")
       ?.endsWith("/one.png"),
   );
+  await act(async () => {
+    document
+      .querySelector('[role="dialog"] img')
+      ?.dispatchEvent(new Event("error"));
+    await settle();
+  });
+  assert.equal(document.querySelector('[role="dialog"] img'), null);
   await click("Next capture");
   assert.ok(
     document
       .querySelector('[role="dialog"] img')
       ?.getAttribute("src")
       ?.endsWith("/two.png"),
+  );
+  await click("Close");
+  await click("Captures: Chat · 390 px · light");
+  assert.ok(
+    document
+      .querySelector('[role="dialog"] img')
+      ?.getAttribute("src")
+      ?.endsWith("/one.png"),
   );
   await click("Close");
   const unsafe = fixture();

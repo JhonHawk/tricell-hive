@@ -662,6 +662,7 @@ export function TimelineContent({
           ) : selected ? (
             <div className="flex min-h-0 flex-col gap-3 overflow-auto">
               <CaptureImage
+                key={selected.url}
                 src={selected.url}
                 alt={selected.ref.alt ?? selected.ref.caption}
                 label={t.imageFailed}
