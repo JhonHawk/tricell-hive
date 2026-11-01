@@ -360,6 +360,9 @@ func viewStart(p viewPaths, f viewFlags, w io.Writer, deps viewDeps) error {
 	deadline := time.Now().Add(viewStartTimeout)
 	for {
 		if info, err := readServerInfo(p.info); err == nil && (pid <= 0 || info.PID == pid) && viewHealth(info, p) == nil {
+			if index, readErr := viewIndex(info); readErr == nil && len(index.TimelineSessions) == 0 {
+				fmt.Fprintln(w, "Viewer v2 starts empty; previous viewer data is not imported.")
+			}
 			if !f.portSet && info.Port != viewDefaultPort {
 				fmt.Fprintf(w, "The default port %d is busy, so the viewer took a free port.\n", viewDefaultPort)
 			}
@@ -565,13 +568,10 @@ func viewStop(p viewPaths, w io.Writer) error {
 }
 
 func viewStatus(p viewPaths, w io.Writer, dir string) error {
-	out := map[string]any{"running": false}
-	var source viewer.SourceFingerprint
-	var sourceErr error
 	if dir != "" {
-		out["found"], out["session_status"] = false, "unknown"
-		source, sourceErr = viewer.FingerprintSource(dir)
+		return errors.New("unsupported_protocol: v2 status does not inspect source directories; use hive view session get with the work ID")
 	}
+	out := map[string]any{"running": false}
 	info, running, err := viewRunning(p)
 	if err != nil {
 		return err
@@ -587,23 +587,10 @@ func viewStatus(p viewPaths, w io.Writer, dir string) error {
 		}
 		out["ttl"] = info.TTL
 		if idx, err := viewIndex(info); err == nil {
-			count := 0
-			for _, project := range idx.Projects {
-				for _, ticket := range project.Tickets {
-					count += len(ticket.Sessions)
-				}
-			}
-			out["repositories"], out["walkthroughs"], out["ingest_errors"] = len(idx.Repositories), count, len(idx.Errors)
-			if idx.TimelineSessions != nil {
-				out["timeline_sessions"] = len(idx.TimelineSessions)
-				out["retention"] = idx.Retention
-			}
-			if dir != "" && sourceErr == nil {
-				after, err := viewer.FingerprintSource(dir)
-				if err == nil && after == source && viewHasSource(idx.View, source) {
-					out["found"], out["session_status"] = true, source.SessionStatus
-				}
-			}
+			out["protocol_version"] = idx.ProtocolVersion
+			out["repositories"], out["timeline_sessions"], out["errors"], out["retention"] = len(idx.Repositories), len(idx.TimelineSessions), len(idx.Errors), idx.Retention
+		} else {
+			out["problem"] = "viewer index is incompatible or unavailable; update client and viewer together for protocol v2"
 		}
 	default:
 		if held, _ := viewLockHeld(p); held {
@@ -618,36 +605,19 @@ func viewStatus(p viewPaths, w io.Writer, dir string) error {
 	return enc.Encode(out)
 }
 
-// viewHasSource matches every identity and revision field, including explicit
-// status. A legacy index without session_status cannot confirm a revision.
-func viewHasSource(v viewer.View, source viewer.SourceFingerprint) bool {
-	matches := func(s viewer.Session) bool {
-		return s.Source == source.Source && s.SessionID == source.SessionID && s.Key == source.Key &&
-			s.ContentHash == source.ContentHash && s.SessionStatus == source.SessionStatus
-	}
-	for _, s := range v.ExcludedSessions {
-		if matches(s) {
-			return true
-		}
-	}
-	for _, project := range v.Projects {
-		for _, ticket := range project.Tickets {
-			for _, s := range ticket.Sessions {
-				if matches(s) {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
 // viewIndex reads the existing authenticated index without opening a Store.
 // Redirects must not forward the token to another listener.
 type viewIndexSnapshot struct {
-	viewer.View
-	TimelineSessions []viewer.TimelineAPIIndexEntry `json:"timeline_sessions"`
+	ProtocolVersion  int                            `json:"protocol_version"`
 	Retention        string                         `json:"retention"`
+	TTLSeconds       *int64                         `json:"ttl_seconds"`
+	TimelineSessions []viewer.TimelineAPIIndexEntry `json:"timeline_sessions"`
+	Repositories     []viewer.RepositoryStatus      `json:"repositories"`
+	Errors           []struct {
+		Path   string `json:"path"`
+		Reason string `json:"reason"`
+		Code   string `json:"code,omitempty"`
+	} `json:"errors"`
 }
 
 func viewIndex(info serverInfo) (viewIndexSnapshot, error) {
@@ -667,8 +637,20 @@ func viewIndex(info serverInfo) (viewIndexSnapshot, error) {
 	if resp.StatusCode != http.StatusOK {
 		return v, fmt.Errorf("index answered %d", resp.StatusCode)
 	}
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 64<<20)).Decode(&v); err != nil {
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, (64<<20)+1))
+	if err != nil || len(raw) > 64<<20 {
 		return v, errors.New("invalid viewer index")
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if decoder.Decode(&v) != nil || decoder.Decode(new(any)) != io.EOF || v.ProtocolVersion != viewer.TimelineSchemaVersion || v.Retention != "manual" || v.TTLSeconds == nil || *v.TTLSeconds != 0 || v.TimelineSessions == nil || v.Repositories == nil || v.Errors == nil {
+		return v, errors.New("unsupported viewer index; update client and viewer together for protocol v2")
+	}
+	for _, entry := range v.TimelineSessions {
+		raw, _ := json.Marshal(entry)
+		if _, err := viewer.DecodeTimelineIndexEntry(raw); err != nil {
+			return v, errors.New("invalid v2 viewer work summary")
+		}
 	}
 	return v, nil
 }

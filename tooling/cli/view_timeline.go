@@ -57,6 +57,9 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 	if err != nil {
 		return err
 	}
+	if command.operation == "session_delete" {
+		return errors.New("session deletion is a local-viewer action; use the authenticated browser confirmation instead of the native CLI")
+	}
 	fs := flag.NewFlagSet("view timeline", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	fs.StringVar(&command.jsonFile, "json", "", "request JSON file, or - for stdin")
@@ -86,7 +89,11 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 			return err
 		}
 		if err = validateViewTimelineInput(command.operation, input); err != nil {
-			return fmt.Errorf("invalid timeline input: %s", viewer.TimelineContractCode(err))
+			code := viewer.TimelineContractCode(err)
+			if code == "unsupported_protocol" {
+				return errors.New("unsupported_protocol: protocol v2 is required; update client and viewer together, preserve inputs and use a fresh v2 state directory")
+			}
+			return fmt.Errorf("invalid timeline input: %s", code)
 		}
 	}
 	var body io.Reader = bytes.NewReader(input)
@@ -386,7 +393,7 @@ func viewTimelineProtocolReady(info serverInfo, state string) error {
 		return errors.New("cannot confirm viewer health and identity; preserve local inputs and check the running viewer")
 	}
 	if health.TimelineProtocolVersion != viewer.TimelineSchemaVersion {
-		return errors.New("the running viewer lacks the supported timeline protocol; update its binary and restart it explicitly, then retry the unchanged operation")
+		return errors.New("the running viewer lacks protocol v2; update client and viewer together, use a fresh v2 state directory and restart explicitly; preserve inputs and retry the unchanged operation")
 	}
 	return nil
 }
