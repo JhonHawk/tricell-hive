@@ -8,7 +8,7 @@ The saved change folder holds the detail and the user may not open it, so summar
 
 1. The objective in one or two sentences.
 2. The text of each acceptance criterion `AC<n>`, and the name of each requirement the delta adds, modifies or removes: they are the contract the user approves.
-3. The decisions in force, and the minor calls taken without asking with their reasons.
+3. The decisions in force, and the minor calls (as «Questions and routes» in the global guidance defines them) taken without asking with their reasons.
 4. For a change to a screen, the sketch of each changed region before and after from the `UI` section of `design.md`, with its components and states. Check that each sketch matches the text that describes it, such as two actions drawn side by side when the text says so.
 5. Each task on one line, with what it delivers and who executes it.
 6. The prerequisites still unmet, with who provides each.

@@ -592,3 +592,67 @@ func TestCheckProjectReportsAFileAsNotADirectoryWithoutCallingGit(t *testing.T) 
 	}
 	mustNotContain(t, strings.Join(sec.Lines, "\n"), outsideGitLine)
 }
+
+// writeChangeFile writes content under <root>/_support/openspec/changes/<rel>.
+func writeChangeFile(t *testing.T, root, rel, content string) {
+	t.Helper()
+	p := filepath.Join(root, "_support", "openspec", "changes", filepath.FromSlash(rel))
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestDoctorProjectChangeRecordChecksWarnWithoutBlocking(t *testing.T) {
+	proposal := "# P\n\n- AC1 — one\n- AC2 — two\n- AC3 — three\n"
+	cases := []struct {
+		name    string
+		files   map[string]string
+		want    []string
+		notWant []string
+	}{
+		{"covered set", map[string]string{"good-change/proposal.md": proposal, "good-change/tasks.md": "**Closes:** AC1, AC2\n**Closes:** AC3\n"}, nil, []string{"Closes", "kebab"}},
+		{"missing AC", map[string]string{"good-change/proposal.md": proposal, "good-change/tasks.md": "**Closes:** AC1, AC3\n"},
+			[]string{`Specs: change "good-change": AC2 in proposal.md not named by any **Closes:** line in tasks.md`}, nil},
+		{"closes with extra words and ranges", map[string]string{"good-change/proposal.md": proposal, "good-change/tasks.md": "**Closes:** AC1 (forma), AC2–AC3 (UI)\n"}, nil, []string{"Closes"}},
+		{"slash and short range", map[string]string{"good-change/proposal.md": proposal, "good-change/tasks.md": "**Closes:** AC1/AC2-3\n"}, nil, []string{"Closes"}},
+		{"folder without tasks", map[string]string{"good-change/proposal.md": proposal}, nil, []string{"Closes"}},
+		{"non-kebab folder", map[string]string{"Bad_Change/notes.md": "x"},
+			[]string{`Specs: change folder "Bad_Change" is not English kebab-case`}, nil},
+		{"bad archive name", map[string]string{"archive/2026-09-25-ok-name/x.md": "x", "archive/old-thing/x.md": "x", "archive/2026-9-1-late/x.md": "x"},
+			[]string{`Specs: archived change "old-thing" does not match YYYY-MM-DD-<kebab-case>`, `Specs: archived change "2026-9-1-late" does not match`},
+			[]string{`"2026-09-25-ok-name"`, "kebab-case (lowercase"}},
+		{"archive itself is not a change", map[string]string{"archive/2026-09-25-ok/x.md": "x"}, nil, []string{"kebab", "archived"}},
+		{"no changes folder", nil, nil, []string{"kebab", "Closes", "archived"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			root := projectRepoWithSpecs(t, validHiveSection)
+			for rel, content := range c.files {
+				writeChangeFile(t, root, rel, content)
+			}
+			sec := collectProject(root, doctorDeps{})
+			text := projectText(t, root)
+			if sec.Blocking {
+				t.Fatalf("change record warnings must not block:\n%s", text)
+			}
+			mustContain(t, text, c.want...)
+			mustNotContain(t, text, c.notWant...)
+			if len(c.want) == 0 {
+				mustContain(t, text, "Valid")
+			} else {
+				mustNotContain(t, text, "Valid")
+			}
+		})
+	}
+}
+
+func TestDoctorProjectChangeChecksIgnoreAMissingSpecsDirectory(t *testing.T) {
+	root := newProjectRepo(t)
+	writeAgents(t, root, validHiveSection) // Specs points at a directory that does not exist
+	text := projectText(t, root)
+	mustContain(t, text, "Specs: _support/openspec is not an existing directory")
+	mustNotContain(t, text, "kebab", "Closes", "archived")
+}

@@ -1,6 +1,6 @@
 # Viewer publication
 
-Read when a substantive research, plan, build or verify flow starts, when publishing a meaningful stage, document or UI revision, and at close. The primary producer owns the session; children return findings and evidence to it. This procedure changes only local viewer state and does not authorize project, tracker or external writes.
+Read when a research, plan, build or verify flow that [flow-walkthrough](../SKILL.md) gives a viewer session starts, at each stage change, new capture or document snapshot, and at close. The primary producer owns the session; children return findings and evidence to it. This procedure changes only local viewer state and does not authorize project, tracker or external writes.
 
 ## Connect and resume
 

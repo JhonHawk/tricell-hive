@@ -5,13 +5,13 @@ description: Prepare an implementation plan by resolving consequential decisions
 
 # Prepare an executable plan
 
-At substantive plan entry, the primary producer follows [flow-walkthrough](../flow-walkthrough/SKILL.md) for the viewer stage and the plan's document snapshots: the first at the approval stop, then one after each round of changes the user asks for.
+At plan entry, the primary producer follows [flow-walkthrough](../flow-walkthrough/SKILL.md), which sets when a viewer session applies, for the viewer stage and the plan's document snapshots: the first at the approval stop, then one after each round of changes the user asks for.
 
 1. Read the code, the `## Hive` settings and the existing specs the change touches.
 2. Resolve with the user the decisions that are theirs, asked as the global guidance sets. A change to what a consumer of a public interface sends or receives is a contract change: decide in the plan whether it stays compatible. For a change to a screen, settle the UI decisions below.
 3. Write the change folder from the templates in [assets/change-folder/](assets/change-folder/) as [Change folder](#change-folder) sets, with acceptance criteria as [Acceptance criteria](#acceptance-criteria) sets.
-4. Ask the delivery mode and the code review mechanism as the global guidance's «Delivery» section sets. A UI change is always verified as `flow-verify` sets: your own browser walk and one `hive-review-ux` child.
-5. When the plan changes a contract, stored data, security or a dependency, have one `hive-review-plan` child review it, and apply what holds.
+4. Once the change folder is saved, launch step 5's review when it applies, then ask the delivery mode and the code review mechanism while it runs, as the global guidance's «Delivery» section sets. A UI change is always verified as `flow-verify` sets: your own browser walk and one `hive-review-ux` child.
+5. When the plan changes a contract, stored data, security or a dependency, have one `hive-review-plan` child review it, launched before step 4's question, and apply what holds before step 6.
 6. Read and follow [plan handoff](references/plan-handoff.md): write the plan summary in the message and end it with the build route. A plan does not authorize implementation: only the user's reply starts `flow-build`.
 
 ## UI decisions

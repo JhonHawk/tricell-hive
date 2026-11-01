@@ -27,7 +27,7 @@ Establish before reading deeply:
 3. Before running any native tool, relying on its output, or asserting version-sensitive loading behavior, read [native tools](references/native-tools.md).
 4. For a project's repositories, or when the caller asks to prepare a layout migration, read [project layout](references/project-layout.md) and include its migration manifest.
 5. Before proposing `delete`, `demote`, or `soften`, or reporting `already lean`, for any artifact type, read [instruction files](references/instruction-files.md) for HA-IF-10, HA-IF-13, and HA-IF-14, and recover the rule's rationale (HA-IF-10).
-6. Report in the format below. Prefer fewer, consequential findings over exhaustive restatement.
+6. Report in the format below. Prefer fewer findings: report each `high` and `medium` finding in full, and group `low` and `info` findings by rule ID with a count.
 7. Ask the decisions as [Ask](#ask) sets; after the user's answer, read [apply](references/apply.md).
 
 When the caller asks only to set up or update a repository's `## Hive` section, such as onboarding a project to Hive, limit the audit to HA-IF-17 and HA-PL-01 for each repository it names and for the workspace section when sessions start there, and to the prose those rules relocate; then continue at step 6.

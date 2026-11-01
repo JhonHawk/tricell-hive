@@ -465,6 +465,12 @@ func validateHiveSection(root, content string, git gitRunner) hiveVerdict {
 		blocking = blocking || f.Blocking
 	}
 	for _, it := range items {
+		if it.Key == "Specs" {
+			findings = append(findings, changeFindings(root, it.Value)...)
+			break
+		}
+	}
+	for _, it := range items {
 		unknown = unknown || (!knownHiveKey(it.Key) && !retiredHiveKey(it.Key))
 	}
 	if unknown {

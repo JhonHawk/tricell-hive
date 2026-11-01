@@ -11,7 +11,7 @@ This is a stage of its own, after integration, and one run can cover several tic
 
 ## Prepare
 
-Before delegating, read [flow-build «Delegation»](../flow-build/SKILL.md#delegation). Before a branch, merge or push that carries a promotion, read [git-workflow](../git-workflow/SKILL.md), which keeps the promotion invariant. Before stored-data changes, read [stored data](../flow-build/SKILL.md#stored-data). For the checks of this stage, read [deployment checks](references/deployment-checks.md). For a production defect that cannot wait, read [urgent fixes](references/urgent-fixes.md).
+Before delegating, read [flow-build «Delegation»](../flow-build/SKILL.md#delegation). Before a branch, merge or push that carries a promotion, read [git-workflow](../git-workflow/SKILL.md), which keeps the promotion invariant. Before stored-data changes, read [stored data](../flow-build/SKILL.md#stored-data). For the checks of this stage, read [deployment checks](references/deployment-checks.md). For a production defect that cannot wait (urgent fixes defines when), read [urgent fixes](references/urgent-fixes.md).
 
 ## Procedure
 
