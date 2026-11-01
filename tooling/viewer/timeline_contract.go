@@ -370,7 +370,13 @@ type TimelineArtifactMetadata struct {
 // DecodeTimelineJSON rejects duplicate keys (including escaped aliases), unknown
 // fields, nulls and trailing values before any runtime-boundary validation.
 func DecodeTimelineJSON(raw []byte, target any) error {
-	if len(raw) == 0 || len(raw) > TimelineMaxBody || !utf8.Valid(raw) {
+	return decodeTimelineJSONBounded(raw, target, TimelineMaxBody)
+}
+
+// decodeTimelineJSONBounded shares exact-field, duplicate-key and encoding
+// validation between HTTP payloads and the larger private receipt envelope.
+func decodeTimelineJSONBounded(raw []byte, target any, maxBytes int) error {
+	if len(raw) == 0 || len(raw) > maxBytes || !utf8.Valid(raw) {
 		return timelineError("body", "invalid_size_or_encoding")
 	}
 	scan := json.NewDecoder(bytes.NewReader(raw))

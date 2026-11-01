@@ -225,7 +225,7 @@ func TestServerHealthNeedsTheTokenAndReportsPidStateDirVersionAndTTL(t *testing.
 	if err := json.Unmarshal(w.Body.Bytes(), &h); err != nil {
 		t.Fatal(err)
 	}
-	if h.PID != os.Getpid() || h.StateDir != s.state || h.Version != "test" || h.TTL != (14*24*time.Hour).String() {
+	if h.PID != os.Getpid() || h.StateDir != s.state || h.Version != "test" || h.TTL != "0s" {
 		t.Fatalf("health = %+v", h)
 	}
 	if strings.Contains(w.Body.String(), testToken) {

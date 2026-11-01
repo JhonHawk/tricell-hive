@@ -32,23 +32,19 @@ type SyncResult struct {
 
 // RunOptions configures Run.
 type RunOptions struct {
-	// PollInterval is the time between scans (default 5 s); PurgeInterval
-	// the time between purges (default 1 h).
+	// PollInterval is the time between scans (default 5 s). PurgeInterval is
+	// a deprecated compatibility field and has no effect.
 	PollInterval, PurgeInterval time.Duration
 	// OnError, when set, receives failures of a scan or purge. They never
 	// stop Run.
 	OnError func(error)
 }
 
-// Run is the server's background loop. It calls Startup, purges, scans, then
-// repeats both on their intervals until ctx is cancelled (it then returns
-// nil). A failure in a pass goes to OnError and the loop continues.
+// Run starts and scans the store, then repeats scans until cancellation.
+// Content is never removed because of age. Scan errors go to OnError.
 func (s *Store) Run(ctx context.Context, o RunOptions) error {
 	if o.PollInterval <= 0 {
 		o.PollInterval = 5 * time.Second
-	}
-	if o.PurgeInterval <= 0 {
-		o.PurgeInterval = time.Hour
 	}
 	report := func(err error) {
 		if err != nil && ctx.Err() == nil && o.OnError != nil {
@@ -58,22 +54,16 @@ func (s *Store) Run(ctx context.Context, o RunOptions) error {
 	if err := s.Startup(); err != nil {
 		return err
 	}
-	_, err := s.Purge()
+	_, err := s.Sync(ctx)
 	report(err)
-	_, err = s.Sync(ctx)
-	report(err)
-	poll, purge := time.NewTicker(o.PollInterval), time.NewTicker(o.PurgeInterval)
+	poll := time.NewTicker(o.PollInterval)
 	defer poll.Stop()
-	defer purge.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			return nil
 		case <-poll.C:
 			_, err := s.Sync(ctx)
-			report(err)
-		case <-purge.C:
-			_, err := s.Purge()
 			report(err)
 		}
 	}
@@ -359,8 +349,8 @@ func (p *problemLog) add(repo int, path string, err error) {
 // sessions/<key>/ when the content is new or changed. Invalid sources are
 // listed as ingest errors and do not stop the pass; a source the user
 // deleted or that was purged stays out until its content changes; a source
-// whose manifest is older than the TTL is skipped; a registered repository
-// missing from disk is flagged absent and its copies are kept. Links are
+// of any age remains eligible; a registered repository missing from disk is
+// flagged absent and its copies are kept. Links are
 // never followed. A cancelled ctx commits what was done and returns its
 // error.
 //
@@ -383,7 +373,7 @@ func (s *Store) Sync(ctx context.Context) (SyncResult, error) {
 	now := s.now()
 	s.noteRepositories(reg)
 	snap := s.current()
-	// Discover paths without reading manifests, then classify before cache or TTL.
+	// Discover paths without reading manifests, then classify before consulting the fingerprint cache.
 	paths := sessionSourcePaths(snap)
 	namesByRoot := make(map[string][]string)
 	for _, r := range reg.Repositories {
@@ -612,10 +602,6 @@ func (s *Store) inspect(ws *os.Root, name, wsDir string, now time.Time, snap *in
 	if !info.Mode().IsRegular() {
 		return fail(manifestPath, errors.New("walkthrough.json must be a regular file, not a link"))
 	}
-	if now.Sub(info.ModTime()) > s.ttl {
-		root.Close()
-		return nil
-	}
 	manifest := statOf(info)
 	if s.unchanged(folder, root, manifest, snap) {
 		root.Close()
@@ -671,6 +657,10 @@ func (s *Store) apply(c *candidate, now time.Time, d *indexData, res *SyncResult
 	identities := newIndexData()
 	identities.Sessions = []Session{probe}
 	s.enrich(identities)
+	resolved := identities.Sessions[0]
+	if s.timelineOwns(resolved.ProjectKey, resolved.Host, resolved.SessionID) {
+		return nil
+	}
 	group, groupErr := s.readGroup(identityOf(identities.Sessions[0]))
 	if groupErr != nil && !errors.Is(groupErr, fs.ErrNotExist) {
 		return fmt.Errorf("session preferences: %w", groupErr)
