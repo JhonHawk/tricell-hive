@@ -22,6 +22,7 @@ import { TimelineStateIcon, timelineStateColor } from "./timeline-tasks";
 export function workTaskRegistry(session: TimelineSession) {
   return session.tasks
     .filter((task) => !task.withdrawn)
+    .sort((a, b) => a.plan_order - b.plan_order)
     .map((task) => {
       const segments = task.segments.filter((segment) => !segment.withdrawn);
       return {

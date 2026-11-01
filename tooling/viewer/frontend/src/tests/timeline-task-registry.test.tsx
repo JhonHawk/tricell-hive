@@ -135,3 +135,56 @@ test("empty task registry exposes refresh instead of a fabricated zero progress"
   await click("Reload", popover);
   assert.equal(retries, 1);
 });
+
+test("plan order sorts the current registry without changing stage segment order or source array", () => {
+  const data = completeFixture();
+  const sourceIDs = data.session.tasks.map((t) => t.task_id);
+  const last = data.session.tasks.at(-1);
+  assert.ok(last);
+  last.plan_order = 1;
+  data.session.tasks[0].plan_order = 80;
+  const rows = workTaskRegistry(data.session);
+  assert.equal(rows[0].task, last);
+  assert.deepEqual(
+    data.session.tasks.map((t) => t.task_id),
+    sourceIDs,
+  );
+  data.session.tasks[0].title = "Updated in the only task registry";
+  assert.equal(
+    workTaskRegistry(data.session)[6].task.title,
+    "Updated in the only task registry",
+  );
+  assert.equal(data.session.tasks[0].segments[0].order, 1);
+});
+
+test("registry loading and error states retain an actionable retry without phantom tasks", async (t) => {
+  const data = completeFixture();
+  let retries = 0;
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  t.after(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+  });
+  await act(async () =>
+    root.render(
+      <TimelineTaskRegistry
+        session={data.session}
+        lang="en"
+        onRetry={() => {
+          retries++;
+        }}
+        loading
+        error
+      />,
+    ),
+  );
+  await click("Tasks", container);
+  const popover = document.querySelector('[data-slot="popover-content"]');
+  assert.ok(popover);
+  assert.ok(popover.querySelector('[role="status"]'));
+  assert.equal(popover.querySelectorAll("[data-registry-task-id]").length, 0);
+  await click("Retry", popover);
+  assert.equal(retries, 1);
+});

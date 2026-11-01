@@ -102,3 +102,29 @@ test("comprehensive review is one valid v3 work with five stages and existing as
     assert.equal(parsed.document.sha256, doc.sha256);
   }
 });
+
+test("the initial editorial task snapshot comes from all seven canonical definitions and remains immutable", async () => {
+  const { completeTaskPlan, completeTaskMarkdown } = await import(
+    "../dev/timeline-plan-fixture"
+  );
+  const data = completeFixture();
+  const before = (await loadPreviewDocument("document_tasks")).content;
+  assert.equal(before, completeTaskMarkdown);
+  assert.deepEqual(
+    data.session.tasks.map((t) => ({
+      task_key: t.task_key,
+      plan_order: t.plan_order,
+      title: t.title,
+      summary: t.summary,
+      state: t.state,
+    })),
+    completeTaskPlan,
+  );
+  for (const task of data.session.tasks) {
+    assert.ok(before.includes(`${task.task_key} — ${task.title}`));
+    task.title = "Later correction";
+    task.state = "completed";
+  }
+  assert.equal((await loadPreviewDocument("document_tasks")).content, before);
+  assert.equal(/T[89] —/.test(before), false);
+});

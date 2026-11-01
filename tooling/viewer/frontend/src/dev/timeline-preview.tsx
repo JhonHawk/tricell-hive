@@ -15,14 +15,23 @@ export function TimelineDevelopmentPreview() {
   const scenario = query.get("state");
   const dark = query.get("theme") !== "light";
   const [data, setData] = useState<TimelineSessionResponse>(() => {
-    const fixture =
-      scenario === "complete"
-        ? completeFixture()
-        : ["cam", "volume", "future", "recovery-conflict"].includes(
-              scenario ?? "",
-            )
-          ? workFixture(scenario ?? "cam")
-          : structuredClone(timelineFixture);
+    const fixture = ["complete", "canonical-changed"].includes(scenario ?? "")
+      ? completeFixture()
+      : ["cam", "volume", "future", "recovery-conflict"].includes(
+            scenario ?? "",
+          )
+        ? workFixture(scenario ?? "cam")
+        : structuredClone(timelineFixture);
+    if (scenario === "canonical-changed") {
+      fixture.session.tickets[0].key = "PERFIL-7";
+      fixture.session.tickets[0].title =
+        "Perfil y conversaciones: referencia corregida";
+      fixture.session.tickets[0].url = "https://example.test/issues/profile-7";
+      fixture.session.deliveries[0].label = "PR #42 · integración observada";
+      fixture.session.deliveries[0].url =
+        "https://example.test/repository/pull/42";
+      fixture.session.deliveries[0].status = "merged";
+    }
     if (scenario === "chains") {
       const stage = fixture.session.events.find(
         (e) => e.event_id === "event_plan_r3",
@@ -82,7 +91,7 @@ export function TimelineDevelopmentPreview() {
     id: session.viewer_session_id,
     project: session.project_name,
     projectKey: session.project_key,
-    ticket: "COM-1 · COM-2",
+    ticket: session.tickets.map((ticket) => ticket.key).join(" · "),
     title: session.title,
     createdAt: "31 oct 2026",
     classification: "local" as const,
@@ -159,7 +168,7 @@ export function TimelineDevelopmentPreview() {
       <TimelineContent
         data={data}
         defaultExpandedTaskIDs={
-          scenario === "complete"
+          ["complete", "canonical-changed"].includes(scenario ?? "")
             ? ["task-2", "task-3", "task-4", "task-7"]
             : undefined
         }

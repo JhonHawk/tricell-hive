@@ -400,3 +400,28 @@ test("state audit and validation icons follow their declared state without an ex
     /circle-pause/,
   );
 });
+
+test("an open gallery retains its captured candidate when another work reuses the opaque candidate ID", async (t) => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  t.after(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+  });
+  const data = fixture();
+  await act(async () =>
+    root.render(<TimelineContent data={data} onRetry={() => {}} />),
+  );
+  await click("Captures: Chat · 390 px · light");
+  const next = structuredClone(data);
+  next.session.viewer_session_id = "c".repeat(64);
+  next.session.candidates[0].commit = "other-work-commit";
+  await act(async () =>
+    root.render(<TimelineContent data={next} onRetry={() => {}} />),
+  );
+  const dialog = document.querySelector('[role="dialog"]');
+  assert.ok(dialog?.textContent?.includes("abc1234"));
+  assert.equal(dialog?.textContent?.includes("other-work-commit"), false);
+  await click("Close");
+});

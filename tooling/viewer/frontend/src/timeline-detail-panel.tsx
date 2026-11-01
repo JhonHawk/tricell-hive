@@ -65,6 +65,10 @@ import {
 import { CaptureImage, CaptureThumbnail } from "./timeline-images";
 import { TimelineMarkdown } from "./timeline-markdown";
 import {
+  TimelineDeliveryLinks,
+  TimelineTicketLinks,
+} from "./timeline-references";
+import {
   type TimelineDetailOpener,
   timelineStateColor,
 } from "./timeline-tasks";
@@ -557,6 +561,16 @@ export function useTimelinePanel({
         {events.map((event) => (
           <section key={event.event_id} className="flex min-w-0 flex-col gap-3">
             <h3 className="font-medium">{event.title}</h3>
+            <TimelineTicketLinks
+              session={panel.data.session}
+              refs={event.ticket_refs}
+              lang={lang}
+            />
+            <TimelineDeliveryLinks
+              session={panel.data.session}
+              refs={event.delivery_refs ?? []}
+              lang={lang}
+            />
             <p className="text-xs text-muted-foreground">
               {(() => {
                 const segment = task.segments.find(
@@ -574,6 +588,11 @@ export function useTimelinePanel({
                 className="flex min-w-0 flex-col gap-3"
               >
                 <h4 className="font-medium">{view.title}</h4>
+                <TimelineTicketLinks
+                  session={panel.data.session}
+                  refs={view.ticket_refs}
+                  lang={lang}
+                />
                 {renderImages(event, view)}
               </section>
             ))}
@@ -1169,9 +1188,11 @@ export function useTimelinePanel({
                     }
                   </code>
                 </p>
-                <SafeLink url={wait.pull_request_ref.snapshot.url}>
-                  {wait.pull_request_ref.snapshot.url}
-                </SafeLink>
+                <TimelineDeliveryLinks
+                  session={panel.data.session}
+                  refs={[wait.pull_request_ref]}
+                  lang={lang}
+                />
               </div>
             )}
             {panel.kind === "document" ? (

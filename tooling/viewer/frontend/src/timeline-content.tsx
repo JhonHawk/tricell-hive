@@ -56,15 +56,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import {
   isSafeTimelineArtifactURL,
-  isSafeTimelineURL,
   type TimelineArtifact,
   type TimelineEvent,
   type TimelineEventKind,
   type TimelineImageRef,
   type TimelineSessionResponse,
-  type TimelineTicketRef,
   type TimelineView,
-  timelineTicketIdentity,
 } from "./timeline-contract";
 import {
   type TimelineLanguage,
@@ -82,6 +79,10 @@ import {
   groupTimeline,
 } from "./timeline-grouping";
 import { CaptureImage, CaptureThumbnail } from "./timeline-images";
+import {
+  TimelineDeliveryLinks,
+  TimelineTicketLinks,
+} from "./timeline-references";
 import { TimelineSummary } from "./timeline-summary";
 import { TimelineTaskRegistry } from "./timeline-task-registry";
 import {
@@ -114,6 +115,7 @@ const icons: Record<
 type Snapshot = {
   sessionID: string;
   sessionVersion: number;
+  candidates: TimelineSessionResponse["session"]["candidates"];
   event: TimelineEvent;
   view: TimelineView;
   images: { ref: TimelineImageRef; artifact: TimelineArtifact; url: string }[];
@@ -131,30 +133,6 @@ export type TimelineContentProps = {
   targetEventID?: string;
   defaultExpandedTaskIDs?: string[];
 };
-
-function TicketLinks({ refs }: { refs: TimelineTicketRef[] }) {
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      {refs.map((ref) =>
-        isSafeTimelineURL(ref.snapshot.url) ? (
-          <a
-            key={timelineTicketIdentity(ref)}
-            href={ref.snapshot.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs underline underline-offset-4 transition-colors hover:text-foreground"
-          >
-            {ref.snapshot.key}
-          </a>
-        ) : (
-          <span key={timelineTicketIdentity(ref)} className="text-xs">
-            {ref.snapshot.key}
-          </span>
-        ),
-      )}
-    </div>
-  );
-}
 
 function keyedSteps(steps: string[]) {
   const occurrences = new Map<string, number>();
@@ -220,6 +198,7 @@ export function TimelineContent({
     setSnapshot({
       sessionID: session.viewer_session_id,
       sessionVersion: session.version,
+      candidates: structuredClone(session.candidates),
       event: { ...event },
       view: { ...view, steps: [...view.steps] },
       images,
@@ -350,7 +329,13 @@ export function TimelineContent({
                 />
               </CollapsibleTrigger>
             )}
-            {!event.views?.length && <TicketLinks refs={event.ticket_refs} />}
+            {!event.views?.length && (
+              <TimelineTicketLinks
+                session={session}
+                refs={event.ticket_refs}
+                lang={lang}
+              />
+            )}
           </div>
         </TimelineHeader>
         <EventContent
@@ -400,7 +385,11 @@ export function TimelineContent({
                     >
                       {view.title}
                     </h4>
-                    <TicketLinks refs={view.ticket_refs} />
+                    <TimelineTicketLinks
+                      session={session}
+                      refs={view.ticket_refs}
+                      lang={lang}
+                    />
                     {newer && (
                       <a
                         href={`#timeline-event-${newer.event_id}`}
@@ -564,37 +553,13 @@ export function TimelineContent({
             )}
             {(event.kind === "changes_reported" ||
               event.kind === "approval_reported") && <span>{t.reported}</span>}
-            {!event.withdrawn &&
-              event.delivery_refs
-                ?.map((ref) => ref.snapshot)
-                .map((delivery) => (
-                  <div
-                    key={delivery.url}
-                    className="flex min-w-0 flex-wrap items-center gap-2"
-                  >
-                    {isSafeTimelineURL(delivery.url) ? (
-                      <a
-                        href={delivery.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm underline underline-offset-4"
-                      >
-                        {delivery.label}
-                      </a>
-                    ) : (
-                      <span>{delivery.label}</span>
-                    )}
-                    <Badge
-                      variant={
-                        delivery.status === "merged"
-                          ? "success-light"
-                          : "outline"
-                      }
-                    >
-                      {t[delivery.status]}
-                    </Badge>
-                  </div>
-                ))}
+            {!event.withdrawn && event.delivery_refs && (
+              <TimelineDeliveryLinks
+                session={session}
+                refs={event.delivery_refs}
+                lang={lang}
+              />
+            )}
           </div>
         </EventContent>
       </TimelineItem>
@@ -881,13 +846,13 @@ export function TimelineContent({
                 <code
                   className="inline-block max-w-full truncate align-bottom"
                   title={
-                    session.candidates.find(
+                    snapshot?.candidates.find(
                       (c) => c.candidate_id === selected.artifact.candidate_id,
                     )?.commit
                   }
                 >
                   {
-                    session.candidates.find(
+                    snapshot?.candidates.find(
                       (c) => c.candidate_id === selected.artifact.candidate_id,
                     )?.commit
                   }

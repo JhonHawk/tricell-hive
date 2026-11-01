@@ -1,4 +1,5 @@
 // Synthetic development-only data. No tracker or project account is contacted.
+import { captureTimelineTicketReferences } from "../timeline-catalog";
 import type { TimelineSessionResponse } from "../timeline-contract";
 import { previewDocumentMetadata } from "./timeline-documents-fixture";
 
@@ -594,3 +595,17 @@ timelineFixture.session.events.push(
     ],
   },
 );
+
+// Emulate server publication capture once, before previews can patch the catalog.
+for (const event of timelineFixture.session.events) {
+  event.ticket_refs = captureTimelineTicketReferences(
+    timelineFixture.session,
+    event.ticket_refs.map((ref) => ref.ticket_id),
+  );
+  for (const view of event.views ?? []) {
+    view.ticket_refs = captureTimelineTicketReferences(
+      timelineFixture.session,
+      view.ticket_refs.map((ref) => ref.ticket_id),
+    );
+  }
+}

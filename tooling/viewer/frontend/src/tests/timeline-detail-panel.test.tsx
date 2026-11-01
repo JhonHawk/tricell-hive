@@ -395,3 +395,65 @@ test("task header indicator names the opened segment and summary keeps global st
   );
   assert.ok(sheet.textContent?.includes("Overall state: In progress"));
 });
+
+test("canonical ticket and PR changes offer manual refresh scoped to the open task and wait", async (t) => {
+  const { root } = mount(t);
+  let data = taskFixture();
+  const render = async () =>
+    act(async () => {
+      root.render(<Harness data={data} />);
+      await settle();
+    });
+  await render();
+  await click("Open blocked task");
+  await click("Evidence");
+  const ticketID = data.session.events.find(
+    (e) => e.event_id === "task-evidence",
+  )?.views?.[0].ticket_refs[0].ticket_id;
+  assert.ok(ticketID);
+  data = structuredClone(data);
+  const ticket = data.session.tickets.find((t) => t.ticket_id === ticketID);
+  assert.ok(ticket);
+  ticket.key = "UPDATED-7";
+  ticket.url = "https://example.test/tickets/updated";
+  data.session.version++;
+  data.session.tasks[1].task_version++;
+  await render();
+  let sheet = region('[data-slot="sheet-content"]');
+  assert.ok(sheet.textContent?.includes("An update is available"));
+  assert.equal(sheet.textContent?.includes("UPDATED-7"), false);
+  await click("Show latest", sheet);
+  assert.ok(sheet.textContent?.includes("UPDATED-7"));
+  assert.ok(sheet.textContent?.includes("Published"));
+  assert.ok(
+    sheet.querySelector('a[href="https://example.test/tickets/updated"]'),
+  );
+  await click("Close");
+  data = workFixture("cam");
+  await render();
+  await click("Open CI");
+  sheet = region('[data-slot="sheet-content"]');
+  const originalCandidate = data.session.waits[0].candidate_id;
+  data = structuredClone(data);
+  const delivery = data.session.deliveries.find(
+    (d) => d.delivery_id === data.session.waits[0].pull_request_ref.delivery_id,
+  );
+  assert.ok(delivery);
+  delivery.url = "https://example.test/pull/corrected";
+  delivery.label = "Corrected PR";
+  data.session.waits[0].wait_version++;
+  data.session.version++;
+  await render();
+  assert.equal(sheet.textContent?.includes("Corrected PR"), false);
+  assert.ok(sheet.textContent?.includes("An update is available"));
+  await click("Show latest", sheet);
+  assert.ok(sheet.textContent?.includes("Corrected PR"));
+  assert.ok(
+    sheet.querySelector('a[href="https://example.test/pull/corrected"]'),
+  );
+  assert.equal(data.session.waits[0].candidate_id, originalCandidate);
+  assert.equal(
+    data.session.waits[0].pull_request_ref.snapshot.url,
+    "https://example.test/pull/42",
+  );
+});

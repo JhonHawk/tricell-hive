@@ -46,7 +46,6 @@ import {
 import {
   isSafeTimelineURL,
   type TimelineSessionResponse,
-  timelineTicketIdentity,
 } from "./timeline-contract";
 import {
   type TimelineLanguage,
@@ -293,7 +292,7 @@ export function TimelineHeader({
                   <ul className="flex flex-col gap-2">
                     {session.tickets.map((ticket) => (
                       <li
-                        key={timelineTicketIdentity(ticket)}
+                        key={ticket.ticket_id}
                         className="flex min-w-0 flex-col gap-0.5"
                       >
                         {isSafeTimelineURL(ticket.url) ? (
@@ -344,7 +343,7 @@ export function TimelineHeader({
                   <ul className="flex flex-col gap-2">
                     {deliveries.map((delivery) => (
                       <li
-                        key={delivery.url}
+                        key={delivery.delivery_id}
                         className="flex min-w-0 items-center justify-between gap-2"
                       >
                         {isSafeTimelineURL(delivery.url) ? (
