@@ -17,7 +17,9 @@ function button(label: string) {
     ...document.querySelectorAll<HTMLButtonElement>("button"),
   ].find(
     (b) =>
-      b.getAttribute("aria-label") === label || b.textContent?.trim() === label,
+      !b.closest("[hidden]") &&
+      (b.getAttribute("aria-label") === label ||
+        b.textContent?.trim() === label),
   );
   assert.ok(value, `Missing button ${label}`);
   return value;
@@ -46,7 +48,7 @@ test("stage documents default to latest snapshot; native tabs, revision selectio
       />,
     ),
   );
-  const trigger = button("View plan"); // First plan button belongs to the newest occurrence.
+  const trigger = button("View plan"); // Only the current open occurrence exposes its plan button.
   await act(async () => {
     trigger.focus();
     trigger.click();
@@ -199,7 +201,7 @@ test("Markdown preserves document semantics while HTML, images and unsafe destin
   container.remove();
 });
 
-test("stage indicators use declared paused/failed/completed states without marking the feed steps completed", async () => {
+test("stage completion markers follow explicit states instead of feed indices", async () => {
   const { root, container } = mount();
   const data = structuredClone(timelineFixture);
   const stage = data.session.events.find((e) => e.event_id === "event_plan_r3");
@@ -226,7 +228,7 @@ test("stage indicators use declared paused/failed/completed states without marki
     assert.equal(
       container.querySelectorAll('[data-slot="timeline-item"][data-completed]')
         .length,
-      0,
+      data.session.events.filter((e) => e.stage_state === "completed").length,
     );
   }
   await act(async () => root.unmount());

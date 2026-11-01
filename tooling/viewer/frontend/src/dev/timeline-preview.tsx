@@ -1,18 +1,24 @@
 // Development-only adapter: the production components receive typed stub data.
 import { useEffect, useState } from "react";
+import { HttpError } from "../api";
 import { ViewerShell } from "../shell";
 import { TimelineContent } from "../timeline-content";
 import type { TimelineSessionResponse } from "../timeline-contract";
 import { TimelineHeader } from "../timeline-header";
 import { loadPreviewDocument } from "./timeline-documents-fixture";
 import { timelineFixture } from "./timeline-fixture";
+import { workFixture } from "./timeline-work-fixture";
 
 export function TimelineDevelopmentPreview() {
   const query = new URLSearchParams(location.search);
   const scenario = query.get("state");
   const dark = query.get("theme") !== "light";
   const [data, setData] = useState<TimelineSessionResponse>(() => {
-    const fixture = structuredClone(timelineFixture);
+    const fixture = ["cam", "volume", "future", "recovery-conflict"].includes(
+      scenario ?? "",
+    )
+      ? workFixture(scenario ?? "cam")
+      : structuredClone(timelineFixture);
     if (scenario === "empty") {
       fixture.session.events = [];
       fixture.session.current_stage_event_id = null;
@@ -85,6 +91,38 @@ export function TimelineDevelopmentPreview() {
                 ...previous.session,
                 ...patch,
                 version: previous.session.version + 1,
+              },
+            }));
+          }}
+          onRecover={async (requestID, reason, expectedVersion) => {
+            if (
+              scenario === "recovery-conflict" ||
+              expectedVersion !== session.version
+            )
+              throw new HttpError(409, { code: "version_conflict" });
+            const request = session.pending_join_requests.find(
+              (r) => r.request_id === requestID,
+            );
+            if (!request) throw new Error("fixture_request_unavailable");
+            setData((previous) => ({
+              ...previous,
+              session: {
+                ...previous.session,
+                version: previous.session.version + 1,
+                pending_join_requests:
+                  previous.session.pending_join_requests.filter(
+                    (r) => r.request_id !== requestID,
+                  ),
+                producers: [
+                  ...previous.session.producers,
+                  {
+                    producer_id: "producer-recovered",
+                    source: request.source,
+                    joined_at: previous.session.updated_at,
+                  },
+                ],
+                foreground_producer_id: "producer-recovered",
+                reason,
               },
             }));
           }}

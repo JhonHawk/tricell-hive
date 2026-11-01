@@ -128,7 +128,7 @@ async function click(label: string) {
   });
 }
 
-test("timeline is newest-first, shared tickets do not duplicate a view, and steps stay behind Instructions", async () => {
+test("timeline is ascending, shared tickets do not duplicate a view, and steps stay behind Instructions", async () => {
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
@@ -150,7 +150,7 @@ test("timeline is newest-first, shared tickets do not duplicate a view, and step
     [...container.querySelectorAll('[data-slot="timeline-item"]')].map(
       (e) => e.id,
     ),
-    ["timeline-event-event-later", "timeline-event-event-first"],
+    ["timeline-event-event-first", "timeline-event-event-later"],
   );
   assert.equal(
     container.querySelectorAll('section[aria-label="Chat"]').length,

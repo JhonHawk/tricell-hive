@@ -2,17 +2,15 @@ import {
   type AccessClient,
   ARCHIVED_KEY,
   HttpError,
-  type LibrarySession,
-  mapIndex,
   OPEN_KEY,
   type RawIndex,
   save,
   stored,
+  takeCode as takeOpeningCode,
   takeTarget,
   type ViewerOpenTarget,
   validateIndex,
 } from "./api";
-import { groupSessions, type SessionGroup, sessionIdentity } from "./sessions";
 import {
   parseTimelineDocumentResponse,
   parseTimelineOperationResult,
@@ -53,10 +51,7 @@ export type ViewerState = {
   targetError: boolean;
   access: "pending" | "ready" | "missing" | "rejected";
   index: RawIndex | null;
-  sessions: LibrarySession[];
   selectedId?: string;
-  groups: SessionGroup[];
-  documents: Record<string, SegmentDocument>;
   writingId?: string;
   pendingTimelineDelete?: {
     id: string;
@@ -65,40 +60,17 @@ export type ViewerState = {
   };
   down: boolean;
   indexError: boolean;
-  notice?:
-    | "reconnected"
-    | "gone"
-    | "pinned"
-    | "unpinned"
-    | "deleted"
-    | "archived"
-    | "unarchived"
-    | "writeError";
-  actionError?: {
-    id: string;
-    groupId: string;
-    operation: "archive" | "pin" | "title" | "delete";
-    value?: string | boolean;
-    code?: string;
-    deleted?: number;
-    remaining?: number;
-    cleanup_pending?: boolean;
-    cleanupGroups?: string[];
-  };
-  undoArchive?: { id: string; groupId: string; archived: boolean };
+  notice?: "reconnected" | "gone" | "deleted" | "archived";
+  undoArchive?: { id: string; expectedVersion: number };
   writing: boolean;
   showArchived: boolean;
 };
 const initial: ViewerState = {
-  pendingTimelineDelete: undefined,
   timelineSessions: [],
   timeline: null,
   targetError: false,
   access: "pending",
   index: null,
-  sessions: [],
-  groups: [],
-  documents: {},
   down: false,
   indexError: false,
   writing: false,
@@ -109,8 +81,6 @@ export class ViewerController {
   private listeners = new Set<() => void>();
   private epoch = 0;
   private readSeq = 0;
-  private requests = new Map<string, object>();
-  private cache = new Map<string, SegmentDocument>();
   private reading = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private active = false;
@@ -135,13 +105,11 @@ export class ViewerController {
   };
   private update(patch: Partial<ViewerState>) {
     this.state = { ...this.state, ...patch };
-    for (const listener of this.listeners) listener();
+    for (const l of this.listeners) l();
   }
   async open(code: string | null, target?: ViewerOpenTarget) {
     const epoch = ++this.epoch;
     this.readSeq++;
-    this.requests.clear();
-    this.cache.clear();
     this.timelineRequest = undefined;
     this.timelineTask = undefined;
     this.timelineMutation = undefined;
@@ -151,6 +119,10 @@ export class ViewerController {
     this.reading = false;
     this.update({
       ...initial,
+      pendingTimelineDelete: undefined,
+      undoArchive: undefined,
+      notice: undefined,
+      selectedId: undefined,
       openTarget: target,
       showArchived: stored(this.client.storage, ARCHIVED_KEY) === "true",
     });
@@ -172,15 +144,21 @@ export class ViewerController {
   private reject() {
     this.epoch++;
     this.readSeq++;
-    this.requests.clear();
-    this.cache.clear();
     this.reading = false;
     this.timelineRequest = undefined;
     this.timelineTask = undefined;
     this.timelineMutation = undefined;
     this.pendingTimelineDeleteMutation = undefined;
     this.client.reject();
-    this.update({ ...initial, access: "rejected" });
+    this.update({
+      ...initial,
+      pendingTimelineDelete: undefined,
+      undoArchive: undefined,
+      notice: undefined,
+      selectedId: undefined,
+      openTarget: undefined,
+      access: "rejected",
+    });
     clearTimeout(this.timer);
   }
   private failure(error: unknown) {
@@ -192,33 +170,18 @@ export class ViewerController {
   }
   async refresh() {
     if (this.state.access !== "ready") return;
-    const epoch = this.epoch;
-    const seq = ++this.readSeq;
+    const epoch = this.epoch,
+      seq = ++this.readSeq;
     this.reading = true;
     try {
-      const received = validateIndex(await this.client.request("/api/index"));
+      const index = validateIndex(await this.client.request("/api/index"));
       if (epoch !== this.epoch || seq !== this.readSeq) return;
-      const wasDown = this.state.down;
       this.update({
         down: false,
         indexError: false,
-        notice: wasDown ? "reconnected" : this.state.notice,
+        notice: this.state.down ? "reconnected" : this.state.notice,
       });
-      this.apply(received);
-      const actionError = this.state.actionError;
-      if (
-        actionError?.code === "refresh_required" ||
-        (actionError?.remaining === 0 &&
-          !received.errors.some(
-            (error) =>
-              error.code === "delete_cleanup_pending" &&
-              (!actionError.cleanupGroups?.length ||
-                actionError.cleanupGroups.includes(
-                  error.session_group ?? error.path,
-                )),
-          ))
-      )
-        this.update({ actionError: undefined, notice: undefined });
+      this.apply(index);
       return true;
     } catch (error) {
       if (epoch !== this.epoch || seq !== this.readSeq) return;
@@ -229,75 +192,24 @@ export class ViewerController {
       this.schedule();
     }
   }
-  private revision(segment: LibrarySession) {
-    return JSON.stringify([
-      segment.raw.content_hash,
-      segment.fileBase,
-      segment.classification,
-      segment.excluded,
-    ]);
-  }
-  private publishDocuments() {
-    const selected = this.state.sessions.find(
-      (s) => s.id === this.state.selectedId,
-    );
-    const group = this.state.groups.find((g) =>
-      g.segments.some((s) => s.id === selected?.id),
-    );
-    const segments = group?.segments ?? (selected ? [selected] : []);
-    const documents = Object.fromEntries(
-      segments.flatMap((s) => {
-        const entry = this.cache.get(s.id);
-        return entry ? [[s.id, entry]] : [];
-      }),
-    );
-    this.update({
-      documents,
-    });
-  }
-  private apply(index: RawIndex, notifyMissing = true) {
-    const mapped = mapIndex(index);
-    const timelineSessions = (index.timeline_sessions ?? []).filter(
+  private apply(index: RawIndex) {
+    const previous = this.state.selectedId;
+    const timelineSessions = index.timeline_sessions.filter(
       (s) =>
         this.state.showArchived ||
         !s.archived ||
         s.viewer_session_id === this.temporaryTargetID,
     );
-    const previousID = this.state.selectedId;
-    const previousTimeline = this.state.timelineSessions.find(
-      (s) => s.viewer_session_id === previousID,
-    );
-    const sessions = mapped.filter(
-      (s) => this.state.showArchived || !s.archived,
-    );
-    const previous = this.state.sessions.find(
-      (s) => s.id === this.state.selectedId,
-    );
-    const oldGroup = this.state.groups.find((g) =>
-      g.segments.some((s) => s.id === previous?.id),
-    );
-    for (const [key, entry] of this.cache) {
-      const segment = sessions.find((s) => s.id === key);
-      if (!segment || entry.revision !== this.revision(segment)) {
-        this.cache.delete(key);
-        this.requests.delete(key);
-      }
-    }
-    const groups = groupSessions(sessions);
-    this.update({ index, sessions, groups, timelineSessions });
+    this.update({ index, timelineSessions });
     const target = this.state.openTarget;
     if (target) {
-      const found =
-        "sessionID" in target &&
-        (timelineSessions.some(
-          (s) => s.viewer_session_id === target.sessionID,
-        ) ||
-          (!target.eventID && sessions.some((s) => s.id === target.sessionID)));
-      if (!found) {
+      if (
+        !("sessionID" in target) ||
+        !timelineSessions.some((s) => s.viewer_session_id === target.sessionID)
+      ) {
         this.timelineRequest = undefined;
         this.update({
           selectedId: undefined,
-          documents: {},
           timeline: null,
           targetError: true,
         });
@@ -306,358 +218,122 @@ export class ViewerController {
       this.selectEntry(target.sessionID, true);
       return;
     }
-    if (
-      timelineSessions.some(
-        (s) => s.viewer_session_id === this.state.selectedId,
-      )
-    ) {
-      this.selectEntry(this.state.selectedId as string, true);
-      return;
-    }
-    if (!sessions.length && !timelineSessions.length) {
-      this.requests.clear();
+    const id =
+      timelineSessions.find((s) => s.viewer_session_id === previous)
+        ?.viewer_session_id ??
+      timelineSessions.find(
+        (s) => s.viewer_session_id === stored(this.client.storage, OPEN_KEY),
+      )?.viewer_session_id ??
+      timelineSessions[0]?.viewer_session_id;
+    if (id) this.selectEntry(id, true);
+    else {
+      this.timelineRequest = undefined;
       this.update({
         selectedId: undefined,
-        documents: {},
         timeline: null,
-        notice:
-          (previous || previousTimeline) && notifyMissing
-            ? "gone"
-            : this.state.notice,
+        notice: previous ? "gone" : this.state.notice,
       });
-      return;
     }
-    let selected = sessions.find((s) => s.id === this.state.selectedId);
-    if (!selected && oldGroup && previous) {
-      const at = oldGroup.segments.findIndex((s) => s.id === previous.id);
-      const adjacent = [
-        ...oldGroup.segments.slice(at + 1),
-        ...oldGroup.segments.slice(0, at).reverse(),
-      ];
-      selected = adjacent
-        .map((s) => sessions.find((current) => current.id === s.id))
-        .find(Boolean);
-    }
-    if (!selected) {
-      const remembered = stored(this.client.storage, OPEN_KEY);
-      const rememberedTimeline = timelineSessions.find(
-        (s) => s.viewer_session_id === remembered,
-      );
-      if (rememberedTimeline) {
-        this.selectEntry(rememberedTimeline.viewer_session_id, true);
-        return;
-      }
-      selected =
-        sessions.find((s) => s.id === remembered) ??
-        groups[0]?.segments[0] ??
-        sessions[0];
-    }
-    if (!selected) {
-      this.selectEntry(timelineSessions[0].viewer_session_id, true);
-      return;
-    }
-    this.selectEntry(selected.id, true);
-    if (previous && previous.id !== selected.id && notifyMissing)
-      this.update({ notice: "gone" });
   }
-  selectSession = (groupId: string) => {
-    const group = this.state.groups.find((g) => g.id === groupId);
-    if (!group) return;
-    this.select(group.segments[0].id);
-  };
-  select = (id: string) => {
-    this.selectEntry(id);
-  };
+  select = (id: string) => this.selectEntry(id);
   private selectEntry(id: string, preserveTarget = false) {
-    const api = this.state.timelineSessions.find(
+    const entry = this.state.timelineSessions.find(
       (s) => s.viewer_session_id === id,
     );
-    if (api) {
-      if (!preserveTarget) {
-        this.temporaryTargetID = undefined;
-        this.update({ openTarget: undefined, targetError: false });
-      }
-      save(this.client.storage, OPEN_KEY, id);
-      const cached =
-        this.state.timeline?.id === id ? this.state.timeline : null;
-      // Invalidated legacy reads must not leave loading entries that block a revisit.
-      for (const key of this.requests.keys()) this.cache.delete(key);
-      this.requests.clear();
-      this.update({ selectedId: id, documents: {}, timeline: cached });
-      if (
-        !cached ||
-        cached.state === "error" ||
-        (api.version > (cached.data?.session.version ?? 0) &&
-          (cached.state !== "loading" ||
-            api.version > this.timelineRequestedVersion))
-      )
-        this.timelineTask = this.loadTimeline(api);
-      return;
-    }
-    const selected = this.state.sessions.find((s) => s.id === id);
-    if (!selected) return;
+    if (!entry) return;
     if (!preserveTarget) {
       this.temporaryTargetID = undefined;
       this.update({ openTarget: undefined, targetError: false });
     }
-    this.timelineRequest = undefined;
     save(this.client.storage, OPEN_KEY, id);
-    this.update({ selectedId: id, timeline: null });
-    const group = this.state.groups.find((g) =>
-      g.segments.some((s) => s.id === id),
-    );
-    const segments = group?.segments ?? [selected];
-    for (const key of this.requests.keys()) {
-      if (!segments.some((s) => s.id === key)) {
-        this.requests.delete(key);
-        this.cache.delete(key);
-      }
-    }
-    for (const segment of segments) {
-      if (!this.cache.has(segment.id)) void this.load(segment);
-    }
-    this.publishDocuments();
+    const cached = this.state.timeline?.id === id ? this.state.timeline : null;
+    this.update({ selectedId: id, timeline: cached });
+    if (
+      !cached ||
+      cached.state === "error" ||
+      (entry.version > (cached.data?.session.version ?? 0) &&
+        (cached.state !== "loading" ||
+          entry.version > this.timelineRequestedVersion))
+    )
+      this.timelineTask = this.loadTimeline(entry);
   }
-  private async load(selected: LibrarySession) {
-    const request = {};
-    const epoch = this.epoch;
-    const revision = this.revision(selected);
-    if (selected.excluded || selected.classification === "tracked") {
-      this.cache.set(selected.id, {
-        revision,
-        document: null,
-        state: "excluded",
-      });
-      this.publishDocuments();
-      return;
-    }
-    this.requests.set(selected.id, request);
-    this.cache.set(selected.id, { revision, document: null, state: "loading" });
-    this.publishDocuments();
-    try {
-      const manifest = await this.client.request(
-        `/api/sessions/${encodeURIComponent(selected.id)}`,
-      );
-      if (epoch !== this.epoch || this.requests.get(selected.id) !== request)
-        return;
-      this.requests.delete(selected.id);
-      this.cache.set(selected.id, {
-        revision,
-        state: "ready",
-        document: {
-          key: selected.id,
-          hash: selected.raw.content_hash,
-          fileBase: selected.fileBase,
-          manifest,
-        },
-      });
-      this.publishDocuments();
-    } catch (error) {
-      if (epoch !== this.epoch || this.requests.get(selected.id) !== request)
-        return;
-      this.requests.delete(selected.id);
-      if (this.failure(error)) return;
-      this.cache.set(selected.id, {
-        revision,
-        document: null,
-        state:
-          error instanceof HttpError && error.status === 409
-            ? "excluded"
-            : "error",
-      });
-      this.publishDocuments();
-      if (
-        error instanceof HttpError &&
-        (error.status === 409 || error.status === 404)
-      )
-        void this.refresh();
-    }
-  }
-  retryDocument = (id = this.state.selectedId) => {
-    const selected = this.state.sessions.find((s) => s.id === id);
-    if (selected) void this.load(selected);
-  };
-  rendererFailed = (id = this.state.selectedId) => {
-    const entry = id ? this.cache.get(id) : undefined;
-    if (id && entry) {
-      this.cache.set(id, { ...entry, document: null, state: "error" });
-      this.publishDocuments();
-    }
-  };
   setShowArchived = (showArchived: boolean) => {
     save(this.client.storage, ARCHIVED_KEY, String(showArchived));
     this.update({ showArchived });
-    if (this.state.index) this.apply(this.state.index, false);
+    if (this.state.index) this.apply(this.state.index);
   };
-  private allSessions() {
-    return this.state.index ? mapIndex(this.state.index) : [];
-  }
-  private async write(
+  dismiss = () => this.update({ notice: undefined });
+  clearUndo = () => this.update({ undoArchive: undefined });
+  undoArchive = async () => {
+    const undo = this.state.undoArchive;
+    if (!undo) return;
+    if (!(await this.refresh())) throw new Error("Refresh required");
+    const current = this.state.index?.timeline_sessions.find(
+      (s) => s.viewer_session_id === undo.id,
+    );
+    if (!current) throw new Error("Session unavailable");
+    await this.updateTimelineSession(
+      undo.id,
+      { archived: false },
+      current.version,
+    );
+    this.update({ undoArchive: undefined });
+  };
+  async recoverTimelineLead(
     id: string,
-    operation: "archive" | "pin" | "title" | "delete",
-    value?: string | boolean,
+    requestID: string,
+    reason: string,
+    expectedVersion: number,
   ) {
-    const selected = this.allSessions().find((s) => s.id === id);
-    if (!selected || this.state.writing || this.state.indexError) return false;
+    if (
+      this.state.access !== "ready" ||
+      this.state.writing ||
+      this.state.indexError ||
+      this.state.selectedId !== id
+    )
+      throw new Error("Session unavailable");
     const epoch = this.epoch;
-    const groupId = sessionIdentity(selected);
     this.readSeq++;
-    this.update({
-      writing: true,
-      writingId: id,
-      actionError: undefined,
-      notice: undefined,
-    });
-    const abort = operation === "title" ? new AbortController() : undefined;
-    let timedOut = false;
-    const deadline = abort
-      ? setTimeout(() => {
-          timedOut = true;
-          abort.abort();
-        }, 15000)
-      : undefined;
+    this.update({ writing: true, writingId: id });
+    const operationID = crypto.randomUUID();
+    const abort = new AbortController();
+    const deadline = setTimeout(() => abort.abort(), 15000);
     try {
-      await this.client.request(
-        `/api/sessions/${id}${operation === "delete" ? "" : `/${operation}`}`,
-        operation === "title"
-          ? "PUT"
-          : operation === "delete" || value === false
-            ? "DELETE"
-            : "POST",
-        operation === "title" ? { title: value } : undefined,
-        abort?.signal,
+      const result = parseTimelineOperationResult(
+        await this.client.request(
+          `/api/timeline/sessions/${id}/recover-lead`,
+          "POST",
+          {
+            schema_version: 2,
+            operation_id: operationID,
+            actor: { kind: "local_viewer" },
+            expected_session_version: expectedVersion,
+            request_id: requestID,
+            reason,
+          },
+          abort.signal,
+          true,
+        ),
       );
-      clearTimeout(deadline);
-      if (epoch !== this.epoch) return false;
-      this.readSeq++;
-      if (!(await this.refresh())) {
-        if (epoch === this.epoch)
-          this.update({
-            actionError: {
-              id,
-              groupId,
-              operation,
-              value,
-              code: "refresh_required",
-            },
-          });
-        return false;
-      }
-      if (epoch !== this.epoch) return false;
-      this.update({
-        notice:
-          operation === "delete"
-            ? "deleted"
-            : operation === "archive"
-              ? value
-                ? "archived"
-                : "unarchived"
-              : operation === "pin"
-                ? value
-                  ? "pinned"
-                  : "unpinned"
-                : undefined,
-      });
-      return true;
+      if (epoch !== this.epoch) throw new Error("Access changed");
+      if (
+        result.kind !== "recover_lead" ||
+        result.operation_id !== operationID ||
+        result.viewer_session_id !== id ||
+        result.request_id !== requestID
+      )
+        throw new Error("Invalid recovery receipt");
+      if (!(await this.refresh())) throw new Error("Refresh required");
+      await this.timelineTask;
     } catch (error) {
-      if (epoch !== this.epoch || this.failure(error)) return false;
-      if (timedOut) {
-        this.update({
-          notice: "writeError",
-          actionError: {
-            id,
-            groupId,
-            operation,
-            value,
-            code: "rename_timeout",
-          },
-        });
-        void this.refresh();
-        return false;
-      }
-      const details = error instanceof HttpError ? error.details : {};
-      if (operation === "delete") await this.refresh();
-      if (epoch === this.epoch)
-        this.update({
-          notice: "writeError",
-          actionError: {
-            id,
-            groupId,
-            operation,
-            value,
-            ...details,
-            cleanupGroups: this.state.index?.errors
-              .filter((error) => error.code === "delete_cleanup_pending")
-              .map((error) => error.session_group ?? error.path),
-          },
-        });
-      return false;
+      if (epoch === this.epoch && !this.failure(error)) await this.refresh();
+      throw error;
     } finally {
       clearTimeout(deadline);
       if (epoch === this.epoch)
         this.update({ writing: false, writingId: undefined });
     }
   }
-  async archive(id = this.state.selectedId) {
-    const selected = this.allSessions().find((s) => s.id === id);
-    if (!selected) return false;
-    const archived = !selected.archived;
-    const ok = await this.write(selected.id, "archive", archived);
-    if (ok)
-      this.update({
-        undoArchive: {
-          id: selected.id,
-          groupId: sessionIdentity(selected),
-          archived: !archived,
-        },
-      });
-    return ok;
-  }
-  async undoArchive() {
-    const undo = this.state.undoArchive;
-    if (!undo) return;
-    const member = this.allSessions().find(
-      (s) => sessionIdentity(s) === undo.groupId,
-    );
-    if (!member) return;
-    if (await this.write(member.id, "archive", undo.archived)) {
-      this.update({ undoArchive: undefined });
-      if (!undo.archived) this.select(member.id);
-    }
-  }
-  clearUndo = () =>
-    this.update({
-      undoArchive: undefined,
-      notice: this.state.actionError ? this.state.notice : undefined,
-    });
-  async pin(id = this.state.selectedId) {
-    const selected = this.allSessions().find((s) => s.id === id);
-    return selected ? this.write(selected.id, "pin", !selected.pinned) : false;
-  }
-  rename(title: string, id = this.state.selectedId) {
-    return id ? this.write(id, "title", title) : Promise.resolve(false);
-  }
-  remove(id = this.state.selectedId) {
-    return id ? this.write(id, "delete") : Promise.resolve(false);
-  }
-  retryAction = () => {
-    const error = this.state.actionError;
-    if (!error) return;
-    if (error.code === "reload_required") return;
-    if (
-      error.code === "refresh_required" ||
-      error.code === "rename_timeout" ||
-      error.remaining === 0
-    ) {
-      void this.refresh();
-      return;
-    }
-    const member = this.allSessions().find(
-      (s) => sessionIdentity(s) === error.groupId,
-    );
-    if (member) void this.write(member.id, error.operation, error.value);
-  };
-  dismiss = () => this.update({ notice: undefined });
   private async loadTimeline(entry: TimelineAPIIndexEntry) {
     const request = {};
     const epoch = this.epoch;
@@ -702,22 +378,23 @@ export class ViewerController {
         this.update({ timeline: { id, state: "error", data: previous } });
     }
   }
-  retryTimeline = () => {
-    const read = () => {
-      const selected = this.state.timelineSessions.find(
-        (s) => s.viewer_session_id === this.state.selectedId,
-      );
-      if (selected) this.timelineTask = this.loadTimeline(selected);
-    };
+  retryTimeline = async () => {
     if (
       this.state.indexError ||
       this.state.targetError ||
       !this.state.selectedId
-    )
-      void this.refresh().then((ready) => {
-        if (ready) read();
-      });
-    else read();
+    ) {
+      if (!(await this.refresh())) throw new Error("Refresh required");
+    }
+    const selected = this.state.timelineSessions.find(
+      (s) => s.viewer_session_id === this.state.selectedId,
+    );
+    if (selected) {
+      this.timelineTask = this.loadTimeline(selected);
+      await this.timelineTask;
+      if (this.state.timeline?.state !== "ready")
+        throw new Error("Refresh required");
+    }
   };
   async loadTimelineDocument(sessionID: string, documentID: string) {
     const epoch = this.epoch;
@@ -869,6 +546,11 @@ export class ViewerController {
         )
           throw new Error("Refresh required");
       }
+      if (patch?.archived === true)
+        this.update({
+          notice: "archived",
+          undoArchive: { id, expectedVersion: result.session_version },
+        });
       this.timelineMutation = undefined;
     } catch (error) {
       if (epoch === this.epoch) {
@@ -940,5 +622,3 @@ export class ViewerController {
     };
   }
 }
-
-import { takeCode as takeOpeningCode } from "./api";

@@ -11,7 +11,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useId, useRef, useState } from "react";
 import { Alert, AlertAction, AlertDescription } from "@/components/reui/alert";
 import { Badge } from "@/components/reui/badge";
 import {
@@ -53,6 +53,7 @@ import {
   timelineCopy,
   timelineDate,
 } from "./timeline-copy";
+import { TimelineParticipants } from "./timeline-participants";
 
 export type TimelineHeaderPatch = {
   title?: string;
@@ -66,7 +67,12 @@ export type TimelineHeaderProps = {
     expectedVersion: number,
   ) => Promise<void>;
   onDelete: (expectedVersion: number) => Promise<void>;
-  onRetry: () => void;
+  onRetry: () => void | Promise<void>;
+  onRecover?: (
+    requestID: string,
+    reason: string,
+    expectedVersion: number,
+  ) => Promise<void>;
   lang?: TimelineLanguage;
 };
 
@@ -103,9 +109,11 @@ export function TimelineHeader({
   onUpdate,
   onDelete,
   onRetry,
+  onRecover,
   lang = "en",
 }: TimelineHeaderProps) {
   const { session } = data;
+  const titleHintID = useId();
   const t = timelineCopy(lang);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(session.title);
@@ -141,7 +149,11 @@ export function TimelineHeader({
     }
   };
   const saveTitle = () => {
-    if (!draft.trim() || [...draft.trim()].length > 200) {
+    if (
+      !draft.trim() ||
+      [...draft.trim()].length > 200 ||
+      /\p{Cc}/u.test(draft)
+    ) {
       setError("required");
       return;
     }
@@ -211,11 +223,22 @@ export function TimelineHeader({
           ) : (
             <div className="flex min-w-0 items-center gap-2">
               <h1
-                className="min-w-0 truncate text-lg font-semibold tracking-tight"
+                className="min-w-0 overflow-x-auto whitespace-normal break-normal text-lg font-semibold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                style={{
+                  whiteSpace: /\s/u.test(session.title) ? "normal" : "nowrap",
+                }}
+                aria-describedby={titleHintID}
+                // biome-ignore lint/a11y/noNoninteractiveTabindex: The title is a deliberate keyboard-accessible horizontal reading region.
+                tabIndex={0}
                 title={session.title}
               >
                 {session.title}
               </h1>
+              <span id={titleHintID} className="sr-only">
+                {lang === "es"
+                  ? "Si el nombre no cabe, usa las flechas izquierda y derecha para leerlo completo."
+                  : "If the name does not fit, use the left and right arrow keys to read it in full."}
+              </span>
               <IconAction
                 label={t.edit}
                 disabled={pending}
@@ -234,8 +257,13 @@ export function TimelineHeader({
           <p className="text-xs text-muted-foreground">
             <time dateTime={session.created_at}>
               {timelineDate(session.created_at, lang, false)}
-            </time>{" "}
-            · {session.validation_count} {t.walkthroughs}
+            </time>
+            {session.validation_count > 0 && (
+              <>
+                {" "}
+                · {session.validation_count} {t.validations}
+              </>
+            )}
           </p>
         </div>
         <div
@@ -261,7 +289,7 @@ export function TimelineHeader({
                 }
               >
                 <Tickets aria-hidden />
-                {session.tickets.length}
+                {session.tickets.length} {t.tickets}
               </PopoverTrigger>
               <PopoverContent align="end">
                 <PopoverTitle>{t.tickets}</PopoverTitle>
@@ -311,7 +339,7 @@ export function TimelineHeader({
                 }
               >
                 <GitPullRequest aria-hidden />
-                {deliveries.length}
+                {deliveries.length} {t.git}
               </PopoverTrigger>
               <PopoverContent align="end">
                 <PopoverTitle>{t.git}</PopoverTitle>
@@ -347,6 +375,12 @@ export function TimelineHeader({
               </PopoverContent>
             </Popover>
           </ButtonGroup>
+          <TimelineParticipants
+            data={data}
+            lang={lang}
+            onRetry={onRetry}
+            onRecover={onRecover}
+          />
           <ButtonGroup aria-label={t.more}>
             <IconAction
               label={session.archived ? t.unarchive : t.archive}
@@ -403,6 +437,7 @@ export function TimelineHeader({
           )}
         </div>
       </div>
+      {session.reason && <p className="text-sm">{session.reason}</p>}
       {error && !deleting && (
         <Alert variant="destructive">
           <AlertDescription>

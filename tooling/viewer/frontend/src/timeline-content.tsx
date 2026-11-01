@@ -1,5 +1,6 @@
 import {
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleAlert,
@@ -16,7 +17,7 @@ import {
   Smartphone,
   X,
 } from "lucide-react";
-import { type ComponentType, useRef, useState } from "react";
+import { type ComponentType, type ReactNode, useRef, useState } from "react";
 import {
   Alert,
   AlertAction,
@@ -35,6 +36,11 @@ import {
   TimelineTitle,
 } from "@/components/reui/timeline";
 import { Button } from "@/components/ui/button";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import {
   Dialog,
   DialogCancel,
@@ -68,6 +74,18 @@ import {
   type TimelineDocumentLoader,
   TimelineDocuments,
 } from "./timeline-documents";
+import {
+  distinctCaptions,
+  groupMustStayOpen,
+  groupTimeline,
+  taskProgress,
+} from "./timeline-grouping";
+import { TimelineSummary } from "./timeline-summary";
+import {
+  type TimelineDetailTarget,
+  TimelineTaskRow,
+  TimelineWaitRow,
+} from "./timeline-tasks";
 
 const icons: Record<
   TimelineEventKind,
@@ -105,6 +123,8 @@ export type TimelineContentProps = {
   error?: boolean;
   lang?: TimelineLanguage;
   loadDocument?: TimelineDocumentLoader;
+  onOpenDetail?: (target: TimelineDetailTarget, trigger: HTMLElement) => void;
+  targetEventID?: string;
 };
 
 function TicketLinks({ refs }: { refs: TimelineTicketRef[] }) {
@@ -250,12 +270,19 @@ export function TimelineContent({
   error = false,
   lang = "en",
   loadDocument,
+  onOpenDetail,
+  targetEventID,
 }: TimelineContentProps) {
   const { session } = data;
   const t = timelineCopy(lang);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const returnFocus = useRef<HTMLElement | null>(null);
-  const events = [...session.events].sort((a, b) => b.sequence - a.sequence);
+  const events = [...session.events].sort((a, b) => a.sequence - b.sequence);
+  const groups = groupTimeline(session);
+  const [expandedStages, setExpandedStages] = useState<Record<string, boolean>>(
+    {},
+  );
+  const progress = taskProgress(session.tasks);
   const open = (
     event: TimelineEvent,
     view: TimelineView,
@@ -306,11 +333,367 @@ export function TimelineContent({
           }
         : current,
     );
+  const renderEvent = (
+    event: TimelineEvent,
+    index: number,
+    children?: ReactNode,
+    stageOpen = true,
+    toggleStage?: () => void,
+  ) => {
+    const producer =
+      event.actor.kind === "native_producer"
+        ? session.producers.find(
+            (p) =>
+              p.producer_id ===
+              (event.actor.kind === "native_producer"
+                ? event.actor.producer_id
+                : ""),
+          )
+        : undefined;
+    const labels: Record<string, string> = {
+      ...t.stageStates,
+      ...t.states,
+      ...t.taskStates,
+    };
+    const stageTasks =
+      event.kind === "stage"
+        ? (groups.find((g) => g.stage?.event_id === event.event_id)?.tasks ??
+          [])
+        : [];
+    const Icon =
+      event.kind === "stage"
+        ? event.stage_state === "in_progress"
+          ? Spinner
+          : event.stage_state === "completed"
+            ? CheckCircle2
+            : event.stage_state === "paused"
+              ? PauseCircle
+              : event.stage_state === "failed"
+                ? CircleAlert
+                : FileText
+        : icons[event.kind];
+    return (
+      <TimelineItem
+        key={event.event_id}
+        step={index + 1}
+        id={`timeline-event-${event.event_id}`}
+        data-event-id={event.event_id}
+        data-completed={event.stage_state === "completed" || undefined}
+        className="scroll-mt-4 group-data-[orientation=vertical]/timeline:ms-9"
+      >
+        <TimelineSeparator className="bg-border group-data-[orientation=vertical]/timeline:top-1 group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:h-[calc(100%-2.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6" />
+        <TimelineIndicator className="flex size-6 items-center justify-center border bg-background group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:-top-0.5">
+          <Icon className="size-4 motion-reduce:animate-none" aria-hidden />
+        </TimelineIndicator>
+        <TimelineHeader className="flex min-w-0 items-start justify-between gap-2.5">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
+            <TimelineTitle className="min-w-0 truncate" title={event.title}>
+              {event.withdrawn ? t.withdrawn : event.title}
+            </TimelineTitle>
+            {stageTasks.length > 0 && (
+              <span className="text-xs tabular-nums">
+                {
+                  stageTasks.filter((p) => p.segment.state === "completed")
+                    .length
+                }
+                /{stageTasks.length} {t.completedTasks}
+              </span>
+            )}
+            {toggleStage && (
+              <CollapsibleTrigger
+                render={
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label={`${stageOpen ? t.collapse : t.expand} ${event.title}`}
+                  />
+                }
+                onClick={toggleStage}
+              >
+                <ChevronDown
+                  aria-hidden
+                  className={stageOpen ? "size-4" : "size-4 -rotate-90"}
+                />
+              </CollapsibleTrigger>
+            )}
+            {!event.views?.length && <TicketLinks refs={event.ticket_refs} />}
+          </div>
+        </TimelineHeader>
+        <EventContent
+          hidden={!stageOpen}
+          className="flex min-w-0 flex-col items-start gap-2 pb-1"
+        >
+          {!event.withdrawn && event.summary && (
+            <TimelineSummary content={event.summary} lines={3} lang={lang} />
+          )}
+          {!event.withdrawn &&
+            event.candidate?.branch &&
+            event.kind === "work_started" && (
+              <p className="break-words text-xs">
+                <code>{event.candidate.branch}</code>
+              </p>
+            )}
+          {!event.withdrawn &&
+            event.views?.map((view) => {
+              const newer = events.find(
+                (e) =>
+                  !e.withdrawn &&
+                  e.views?.some(
+                    (v) =>
+                      v.supersedes?.event_id === event.event_id &&
+                      v.supersedes.evidence_id === event.evidence_id &&
+                      v.supersedes.view_id === view.view_id,
+                  ),
+              );
+              return (
+                <section
+                  key={view.view_id}
+                  aria-label={view.title}
+                  className="flex w-full min-w-0 flex-col gap-3"
+                >
+                  <div className="flex min-w-0 flex-wrap items-center gap-2">
+                    <h4
+                      className="min-w-0 truncate text-sm font-medium text-foreground"
+                      title={view.title}
+                    >
+                      {view.title}
+                    </h4>
+                    <TicketLinks refs={view.ticket_refs} />
+                    {newer && (
+                      <a
+                        href={`#timeline-event-${newer.event_id}`}
+                        className="text-xs underline underline-offset-4"
+                      >
+                        {t.superseded} {newer.title}
+                      </a>
+                    )}
+                  </div>
+                  <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                    {view.image_refs.map((ref) => {
+                      const artifact = session.artifacts.find(
+                        (a) => a.artifact_id === ref.artifact_id,
+                      );
+                      const url = data.artifact_urls?.[ref.artifact_id];
+                      if (
+                        !artifact ||
+                        !isSafeTimelineArtifactURL(
+                          url,
+                          session.viewer_session_id,
+                        )
+                      )
+                        return (
+                          <p
+                            key={ref.artifact_id}
+                            className="text-xs text-muted-foreground"
+                          >
+                            {ref.caption} · {t.unavailable}
+                          </p>
+                        );
+                      const validIndex = view.image_refs
+                        .slice(0, view.image_refs.indexOf(ref))
+                        .filter(
+                          (r) =>
+                            session.artifacts.some(
+                              (a) => a.artifact_id === r.artifact_id,
+                            ) &&
+                            isSafeTimelineArtifactURL(
+                              data.artifact_urls?.[r.artifact_id],
+                              session.viewer_session_id,
+                            ),
+                        ).length;
+                      return (
+                        <figure
+                          key={ref.artifact_id}
+                          className="flex min-w-0 flex-col gap-1"
+                        >
+                          <CaptureThumbnail
+                            url={url}
+                            alt={
+                              ref.alt ||
+                              ref.caption ||
+                              `${t.captures} ${view.image_refs.indexOf(ref) + 1}`
+                            }
+                            label={`${t.captures}: ${view.title} · ${ref.caption}`}
+                            onOpen={(trigger) =>
+                              open(event, view, "images", validIndex, trigger)
+                            }
+                            onRetry={onRetry}
+                            retryLabel={t.retry}
+                            failureLabel={t.imageFailed}
+                          />
+                          <figcaption className="flex min-w-0 items-center gap-1 text-xs">
+                            <span aria-hidden>
+                              {artifact.viewport === "mobile" ? (
+                                <Smartphone className="size-3" />
+                              ) : (
+                                <Monitor className="size-3" />
+                              )}
+                            </span>
+                            <span
+                              className="truncate"
+                              title={
+                                ref.caption ||
+                                `${t.captures} ${view.image_refs.indexOf(ref) + 1}`
+                              }
+                            >
+                              {
+                                distinctCaptions(
+                                  view.image_refs.map((r) => r.caption),
+                                  t.captures,
+                                )[view.image_refs.indexOf(ref)]
+                              }
+                            </span>
+                          </figcaption>
+                        </figure>
+                      );
+                    })}
+                  </div>
+                  <div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) =>
+                        open(event, view, "instructions", 0, e.currentTarget)
+                      }
+                    >
+                      <FileText aria-hidden />
+                      {t.instructions}
+                    </Button>
+                  </div>
+                </section>
+              );
+            })}
+          {event.kind === "stage" && (
+            <TimelineDocuments
+              data={data}
+              event={event}
+              lang={lang}
+              loadDocument={loadDocument}
+            />
+          )}
+          {event.reason && <p className="text-sm">{event.reason}</p>}
+          {event.audit && <p className="text-sm">{event.audit.reason}</p>}
+          {children}
+          {!event.withdrawn && event.closure && (
+            <p className="text-sm">{event.closure.result}</p>
+          )}
+          <div
+            data-slot="timeline-event-footer"
+            className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+          >
+            <TimelineDate className="mb-0" dateTime={event.created_at}>
+              {timelineDate(event.created_at, lang)}
+            </TimelineDate>
+            {!event.withdrawn &&
+              event.kind === "stage" &&
+              event.stage_state && (
+                <Badge
+                  variant={
+                    (
+                      {
+                        in_review: "info-light",
+                        awaiting_validation: "warning-light",
+                        in_progress: "warning-light",
+                        completed: "success-light",
+                        paused: "outline",
+                        failed: "destructive-light",
+                      } as const
+                    )[event.stage_state]
+                  }
+                >
+                  {t.stageStates[event.stage_state]}
+                </Badge>
+              )}
+            <span title={producer?.source.native_session_id}>
+              {event.actor.kind === "local_viewer"
+                ? t.localViewer
+                : producer
+                  ? `${producer.source.host} · ${producer.source.native_session_id.slice(0, 8)}`
+                  : t.producerUnavailable}
+            </span>
+            {event.audit?.previous_state && event.audit.next_state && (
+              <span>
+                {labels[event.audit.previous_state] ??
+                  event.audit.previous_state}{" "}
+                → {labels[event.audit.next_state] ?? event.audit.next_state}
+              </span>
+            )}
+            {(event.kind === "changes_reported" ||
+              event.kind === "approval_reported") && <span>{t.reported}</span>}
+            {!event.withdrawn &&
+              event.deliveries?.map((delivery) => (
+                <div
+                  key={delivery.url}
+                  className="flex min-w-0 flex-wrap items-center gap-2"
+                >
+                  {isSafeTimelineURL(delivery.url) ? (
+                    <a
+                      href={delivery.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-sm underline underline-offset-4"
+                    >
+                      {delivery.label}
+                    </a>
+                  ) : (
+                    <span>{delivery.label}</span>
+                  )}
+                  <Badge
+                    variant={
+                      delivery.status === "merged" ? "success-light" : "outline"
+                    }
+                  >
+                    {t[delivery.status]}
+                  </Badge>
+                </div>
+              ))}
+          </div>
+        </EventContent>
+      </TimelineItem>
+    );
+  };
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-2xl flex-col gap-6">
       {session.summary && (
-        <p className="text-sm text-muted-foreground">{session.summary}</p>
+        <TimelineSummary content={session.summary} lines={2} lang={lang} />
       )}
+      {progress.total > 0 && (
+        <p className="text-xs tabular-nums">
+          {progress.completed}/{progress.total} {t.completedTasks}
+        </p>
+      )}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="self-start"
+        disabled={!events.length}
+        onClick={() => {
+          const visible = [
+            ...document.querySelectorAll<HTMLElement>("[data-event-id]"),
+          ].filter((node) => !node.closest("[hidden]"));
+          const node = session.current_stage_event_id
+            ? document.getElementById(
+                `timeline-event-${session.current_stage_event_id}`,
+              )
+            : visible.at(-1);
+          const canvas = node?.closest<HTMLElement>(
+            '[data-slot="viewer-canvas"]',
+          );
+          if (node && canvas)
+            canvas.scrollTop +=
+              node.getBoundingClientRect().top -
+              canvas.getBoundingClientRect().top;
+          if (node) {
+            node.tabIndex = -1;
+            node.focus({ preventScroll: true });
+          }
+        }}
+      >
+        {t.goCurrent}
+      </Button>
       {error && (
         <Alert variant="destructive">
           <AlertTitle>{t.loadFailed}</AlertTitle>
@@ -343,267 +726,94 @@ export function TimelineContent({
         <>
           <h2 className="sr-only">{t.timeline}</h2>
           <Timeline value={0} role="region" aria-label={t.timeline}>
-            {events.map((event, index) => {
-              const Icon =
-                event.kind === "stage"
-                  ? event.stage_state === "in_progress"
-                    ? Spinner
-                    : event.stage_state === "completed"
-                      ? CheckCircle2
-                      : event.stage_state === "paused"
-                        ? PauseCircle
-                        : event.stage_state === "failed"
-                          ? CircleAlert
-                          : FileText
-                  : icons[event.kind];
+            {groups.map((group, index) => {
+              if (!group.stage)
+                return group.events.map((e) => renderEvent(e, index));
+              const stage = group.stage;
+              const targeted =
+                stage.event_id === targetEventID ||
+                group.events.some((e) => e.event_id === targetEventID) ||
+                group.tasks.some((p) =>
+                  p.events.some((e) => e.event_id === targetEventID),
+                );
+              const forced =
+                groupMustStayOpen(group, session.current_stage_event_id) ||
+                targeted;
+              const stageOpen =
+                forced || (expandedStages[stage.event_id] ?? false);
               return (
-                <TimelineItem
-                  key={event.event_id}
-                  step={index + 1}
-                  id={`timeline-event-${event.event_id}`}
-                  className="group-data-[orientation=vertical]/timeline:ms-9"
-                >
-                  <TimelineSeparator className="bg-border group-data-[orientation=vertical]/timeline:top-1 group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:h-[calc(100%-2.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6" />
-                  <TimelineIndicator className="flex size-6 items-center justify-center border bg-background group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:-top-0.5">
-                    <Icon
-                      className="size-4 motion-reduce:animate-none"
-                      aria-hidden
-                    />
-                  </TimelineIndicator>
-                  <TimelineHeader className="flex min-w-0 items-start justify-between gap-2.5">
-                    <div className="flex min-w-0 flex-wrap items-center gap-2">
-                      <TimelineTitle
-                        className="min-w-0 truncate"
-                        title={event.title}
-                      >
-                        {event.withdrawn ? t.withdrawn : event.title}
-                      </TimelineTitle>
-                      {!event.views?.length && (
-                        <TicketLinks refs={event.ticket_refs} />
-                      )}
-                    </div>
-                  </TimelineHeader>
-                  <EventContent className="flex min-w-0 flex-col items-start gap-2 pb-1">
-                    {!event.withdrawn && event.summary && (
-                      <p className="text-sm">{event.summary}</p>
-                    )}
-                    {!event.withdrawn &&
-                      event.candidate?.branch &&
-                      event.kind === "work_started" && (
-                        <p className="break-words text-xs">
-                          <code>{event.candidate.branch}</code>
-                        </p>
-                      )}
-                    {!event.withdrawn &&
-                      event.views?.map((view) => {
-                        const newer = events.find(
-                          (e) =>
-                            !e.withdrawn &&
-                            e.views?.some(
-                              (v) =>
-                                v.supersedes?.event_id === event.event_id &&
-                                v.supersedes.evidence_id ===
-                                  event.evidence_id &&
-                                v.supersedes.view_id === view.view_id,
-                            ),
-                        );
-                        return (
-                          <section
-                            key={view.view_id}
-                            aria-label={view.title}
-                            className="flex w-full min-w-0 flex-col gap-3"
-                          >
-                            <div className="flex min-w-0 flex-wrap items-center gap-2">
-                              <h4
-                                className="min-w-0 truncate text-sm font-medium text-foreground"
-                                title={view.title}
-                              >
-                                {view.title}
-                              </h4>
-                              <TicketLinks refs={view.ticket_refs} />
-                              {newer && (
-                                <a
-                                  href={`#timeline-event-${newer.event_id}`}
-                                  className="text-xs underline underline-offset-4"
-                                >
-                                  {t.superseded} {newer.title}
-                                </a>
-                              )}
-                            </div>
-                            <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-                              {view.image_refs.map((ref) => {
-                                const artifact = session.artifacts.find(
-                                  (a) => a.artifact_id === ref.artifact_id,
-                                );
-                                const url =
-                                  data.artifact_urls?.[ref.artifact_id];
-                                if (
-                                  !artifact ||
-                                  !isSafeTimelineArtifactURL(
-                                    url,
-                                    session.viewer_session_id,
-                                  )
-                                )
-                                  return (
-                                    <p
-                                      key={ref.artifact_id}
-                                      className="text-xs text-muted-foreground"
-                                    >
-                                      {ref.caption} · {t.unavailable}
-                                    </p>
-                                  );
-                                const validIndex = view.image_refs
-                                  .slice(0, view.image_refs.indexOf(ref))
-                                  .filter(
-                                    (r) =>
-                                      session.artifacts.some(
-                                        (a) => a.artifact_id === r.artifact_id,
-                                      ) &&
-                                      isSafeTimelineArtifactURL(
-                                        data.artifact_urls?.[r.artifact_id],
-                                        session.viewer_session_id,
-                                      ),
-                                  ).length;
-                                return (
-                                  <figure
-                                    key={ref.artifact_id}
-                                    className="flex min-w-0 flex-col gap-1"
-                                  >
-                                    <CaptureThumbnail
-                                      url={url}
-                                      alt={ref.alt ?? ref.caption}
-                                      label={`${t.captures}: ${view.title} · ${ref.caption}`}
-                                      onOpen={(trigger) =>
-                                        open(
-                                          event,
-                                          view,
-                                          "images",
-                                          validIndex,
-                                          trigger,
-                                        )
-                                      }
-                                      onRetry={onRetry}
-                                      retryLabel={t.retry}
-                                      failureLabel={t.imageFailed}
-                                    />
-                                    <figcaption className="flex min-w-0 items-center gap-1 text-xs">
-                                      <span aria-hidden>
-                                        {artifact.viewport === "mobile" ? (
-                                          <Smartphone className="size-3" />
-                                        ) : (
-                                          <Monitor className="size-3" />
-                                        )}
-                                      </span>
-                                      <span
-                                        className="truncate"
-                                        title={ref.caption}
-                                      >
-                                        {ref.caption}
-                                      </span>
-                                    </figcaption>
-                                  </figure>
-                                );
-                              })}
-                            </div>
-                            <div>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) =>
-                                  open(
-                                    event,
-                                    view,
-                                    "instructions",
-                                    0,
-                                    e.currentTarget,
-                                  )
-                                }
-                              >
-                                <FileText aria-hidden />
-                                {t.instructions}
-                              </Button>
-                            </div>
-                          </section>
-                        );
-                      })}
-                    {event.kind === "stage" && (
-                      <TimelineDocuments
-                        data={data}
-                        event={event}
-                        lang={lang}
-                        loadDocument={loadDocument}
-                      />
-                    )}
-                    {!event.withdrawn && event.closure && (
-                      <p className="text-sm">{event.closure.result}</p>
-                    )}
-                    <div
-                      data-slot="timeline-event-footer"
-                      className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
-                    >
-                      <TimelineDate
-                        className="mb-0"
-                        dateTime={event.created_at}
-                      >
-                        {timelineDate(event.created_at, lang)}
-                      </TimelineDate>
-                      {!event.withdrawn &&
-                        event.kind === "stage" &&
-                        event.stage_state && (
-                          <Badge
-                            variant={
-                              (
-                                {
-                                  in_review: "info-light",
-                                  awaiting_validation: "warning-light",
-                                  in_progress: "warning-light",
-                                  completed: "success-light",
-                                  paused: "outline",
-                                  failed: "destructive-light",
-                                } as const
-                              )[event.stage_state]
-                            }
-                          >
-                            {t.stageStates[event.stage_state]}
-                          </Badge>
-                        )}
-                      {(event.kind === "changes_reported" ||
-                        event.kind === "approval_reported") && (
-                        <span>{t.reported}</span>
-                      )}
-                      {!event.withdrawn &&
-                        event.deliveries?.map((delivery) => (
+                <Collapsible key={stage.event_id} open={stageOpen}>
+                  {renderEvent(
+                    stage,
+                    index,
+                    <CollapsibleContent keepMounted className="w-full min-w-0">
+                      {!group.tasks.length &&
+                        ["build", "verify", "delivery"].includes(
+                          stage.stage ?? "",
+                        ) && (
                           <div
-                            key={delivery.url}
-                            className="flex min-w-0 flex-wrap items-center gap-2"
+                            role="status"
+                            className="flex flex-col items-start gap-2"
                           >
-                            {isSafeTimelineURL(delivery.url) ? (
-                              <a
-                                href={delivery.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-sm underline underline-offset-4"
-                              >
-                                {delivery.label}
-                              </a>
-                            ) : (
-                              <span>{delivery.label}</span>
-                            )}
-                            <Badge
-                              variant={
-                                delivery.status === "merged"
-                                  ? "success-light"
-                                  : "outline"
-                              }
+                            <p className="text-sm">{t.noTasks}</p>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={onRetry}
                             >
-                              {t[delivery.status]}
-                            </Badge>
+                              {t.reload}
+                            </Button>
                           </div>
-                        ))}
-                    </div>
-                  </EventContent>
-                </TimelineItem>
+                        )}
+                      {group.tasks.length > 0 && (
+                        <Timeline
+                          value={0}
+                          className="mt-4 w-full"
+                          aria-label={t.tasks}
+                        >
+                          {group.tasks.map((projection, i) => (
+                            <TimelineTaskRow
+                              key={projection.segment.segment_id}
+                              projection={projection}
+                              targetEventID={targetEventID}
+                              index={i}
+                              lang={lang}
+                              onOpen={onOpenDetail}
+                              renderActivity={(e) => renderEvent(e, i)}
+                            />
+                          ))}
+                        </Timeline>
+                      )}
+                      {group.waits.length > 0 && (
+                        <Timeline value={0} aria-label={t.checks}>
+                          {group.waits.map((wait, i) => (
+                            <TimelineWaitRow
+                              key={wait.wait_id}
+                              wait={wait}
+                              index={i}
+                              lang={lang}
+                              onOpen={onOpenDetail}
+                            />
+                          ))}
+                        </Timeline>
+                      )}
+                      {group.events.length > 0 && (
+                        <Timeline value={0} aria-label={t.activity}>
+                          {group.events.map((e, i) => renderEvent(e, i))}
+                        </Timeline>
+                      )}
+                    </CollapsibleContent>,
+                    stageOpen,
+                    forced
+                      ? undefined
+                      : () =>
+                          setExpandedStages((old) => ({
+                            ...old,
+                            [stage.event_id]: !stageOpen,
+                          })),
+                  )}
+                </Collapsible>
               );
             })}
           </Timeline>
