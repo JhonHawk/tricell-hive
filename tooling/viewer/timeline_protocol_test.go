@@ -12,7 +12,7 @@ func TestTimelineProtocolOfflineExamplesUseProductionDecoders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if contract.ProtocolVersion != 2 || contract.Retention != "manual" || contract.TTLSeconds != 0 || len(contract.Commands) != 23 {
+	if contract.ProtocolVersion != 3 || contract.Retention != "manual" || contract.TTLSeconds != 0 || len(contract.Commands) != 28 {
 		t.Fatal("invalid contract metadata")
 	}
 	for _, command := range contract.Commands {
@@ -40,7 +40,7 @@ func TestTimelineProtocolOfflineExamplesUseProductionDecoders(t *testing.T) {
 					t.Fatal("read must have no body")
 				}
 			default:
-				_, err = DecodeTimelineV2Operation(command.Operation, command.Example)
+				_, err = DecodeTimelineV3Operation(command.Operation, command.Example)
 			}
 			if err != nil {
 				t.Fatal(err)
@@ -134,7 +134,7 @@ func TestTimelineProtocolResultSchemasUseProductionAllowedFields(t *testing.T) {
 	}
 }
 
-func TestTimelineProtocolV2ApprovedLimitsAndAuditUnion(t *testing.T) {
+func TestTimelineProtocolV3ApprovedLimitsAndAuditUnion(t *testing.T) {
 	contract, err := TimelineProtocolContract("")
 	if err != nil {
 		t.Fatal(err)
@@ -169,5 +169,29 @@ func TestTimelineProtocolV2ApprovedLimitsAndAuditUnion(t *testing.T) {
 		if !strings.Contains(contract.Authority[op], "assigned delivery-segment") {
 			t.Fatal("wait authority drift", op)
 		}
+	}
+}
+
+func TestTimelineCandidateSchemaPreservesInheritedBounds(t *testing.T) {
+	c, err := TimelineProtocolContract("candidate_create")
+	if err != nil {
+		t.Fatal(err)
+	}
+	props := c.Commands[0].InputSchema["properties"].(map[string]any)
+	if props["reason"].(map[string]any)["maxLength"] != 500 {
+		t.Fatal("candidate schema overrides reason bound", props["reason"])
+	}
+	for _, field := range []string{"branch", "commit", "base"} {
+		if props[field].(map[string]any)["maxLength"] != 256 {
+			t.Fatal("candidate descriptor bound missing", field)
+		}
+	}
+	var request TimelineCandidateCreateRequest
+	if err = DecodeTimelineJSON(c.Commands[0].Example, &request); err != nil {
+		t.Fatal(err)
+	}
+	request.Reason = strings.Repeat("r", 500)
+	if err = ValidateTimelineV3Operation(&request); err != nil {
+		t.Fatal("500-character reason rejected", err)
 	}
 }

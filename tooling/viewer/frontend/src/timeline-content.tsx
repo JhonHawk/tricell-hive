@@ -136,19 +136,19 @@ function TicketLinks({ refs }: { refs: TimelineTicketRef[] }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
       {refs.map((ref) =>
-        isSafeTimelineURL(ref.url) ? (
+        isSafeTimelineURL(ref.snapshot.url) ? (
           <a
             key={timelineTicketIdentity(ref)}
-            href={ref.url}
+            href={ref.snapshot.url}
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs underline underline-offset-4 transition-colors hover:text-foreground"
           >
-            {ref.key}
+            {ref.snapshot.key}
           </a>
         ) : (
           <span key={timelineTicketIdentity(ref)} className="text-xs">
-            {ref.key}
+            {ref.snapshot.key}
           </span>
         ),
       )}
@@ -210,7 +210,7 @@ export function TimelineContent({
         ? [
             {
               ref: { ...ref },
-              artifact: { ...artifact, candidate: { ...artifact.candidate } },
+              artifact: { ...artifact },
               url,
             },
           ]
@@ -361,10 +361,18 @@ export function TimelineContent({
             <TimelineSummary content={event.summary} lines={3} lang={lang} />
           )}
           {!event.withdrawn &&
-            event.candidate?.branch &&
+            session.candidates.find(
+              (c) => c.candidate_id === event.candidate_id,
+            )?.branch &&
             event.kind === "work_started" && (
               <p className="break-words text-xs">
-                <code>{event.candidate.branch}</code>
+                <code>
+                  {
+                    session.candidates.find(
+                      (c) => c.candidate_id === event.candidate_id,
+                    )?.branch
+                  }
+                </code>
               </p>
             )}
           {!event.withdrawn &&
@@ -557,32 +565,36 @@ export function TimelineContent({
             {(event.kind === "changes_reported" ||
               event.kind === "approval_reported") && <span>{t.reported}</span>}
             {!event.withdrawn &&
-              event.deliveries?.map((delivery) => (
-                <div
-                  key={delivery.url}
-                  className="flex min-w-0 flex-wrap items-center gap-2"
-                >
-                  {isSafeTimelineURL(delivery.url) ? (
-                    <a
-                      href={delivery.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm underline underline-offset-4"
-                    >
-                      {delivery.label}
-                    </a>
-                  ) : (
-                    <span>{delivery.label}</span>
-                  )}
-                  <Badge
-                    variant={
-                      delivery.status === "merged" ? "success-light" : "outline"
-                    }
+              event.delivery_refs
+                ?.map((ref) => ref.snapshot)
+                .map((delivery) => (
+                  <div
+                    key={delivery.url}
+                    className="flex min-w-0 flex-wrap items-center gap-2"
                   >
-                    {t[delivery.status]}
-                  </Badge>
-                </div>
-              ))}
+                    {isSafeTimelineURL(delivery.url) ? (
+                      <a
+                        href={delivery.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm underline underline-offset-4"
+                      >
+                        {delivery.label}
+                      </a>
+                    ) : (
+                      <span>{delivery.label}</span>
+                    )}
+                    <Badge
+                      variant={
+                        delivery.status === "merged"
+                          ? "success-light"
+                          : "outline"
+                      }
+                    >
+                      {t[delivery.status]}
+                    </Badge>
+                  </div>
+                ))}
           </div>
         </EventContent>
       </TimelineItem>
@@ -868,9 +880,17 @@ export function TimelineContent({
                 {timelineDate(selected.artifact.captured_at, lang)} ·{" "}
                 <code
                   className="inline-block max-w-full truncate align-bottom"
-                  title={selected.artifact.candidate.commit}
+                  title={
+                    session.candidates.find(
+                      (c) => c.candidate_id === selected.artifact.candidate_id,
+                    )?.commit
+                  }
                 >
-                  {selected.artifact.candidate.commit}
+                  {
+                    session.candidates.find(
+                      (c) => c.candidate_id === selected.artifact.candidate_id,
+                    )?.commit
+                  }
                 </code>
               </p>
             </div>

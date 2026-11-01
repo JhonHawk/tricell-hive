@@ -13,9 +13,9 @@ import (
 )
 
 func TestTimelineDomainJoinRequestDoesNotGrantAuthority(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
-	request := TimelineJoinRequestInput{SchemaVersion: 2, OperationID: "join", ExpectedSessionVersion: v.Version, Source: TimelineSource{ProjectRoot: v.Source.ProjectRoot, Host: "claude-code", NativeSessionID: "collaborator"}, Reason: "Explicit shared work"}
-	result, err := s.TimelineV2Operation(v.ViewerSessionID, "join_request", "", &request)
+	s, v, _ := newV3Fixture(t)
+	request := TimelineJoinRequestInput{SchemaVersion: 3, OperationID: "join", ExpectedSessionVersion: v.Version, Source: TimelineSource{ProjectRoot: v.Source.ProjectRoot, Host: "claude-code", NativeSessionID: "collaborator"}, Reason: "Explicit shared work"}
+	result, err := s.TimelineV3Operation(v.ViewerSessionID, "join_request", "", &request)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -23,8 +23,8 @@ func TestTimelineDomainJoinRequestDoesNotGrantAuthority(t *testing.T) {
 	if len(current.Producers) != 1 || len(current.PendingJoinRequests) != 1 || result.RequestID == "" {
 		t.Fatal("join granted membership")
 	}
-	accept := TimelineProducerAcceptRequest{TimelineNativeOperation: TimelineNativeOperation{SchemaVersion: 2, OperationID: "accept", ExpectedSessionVersion: current.Version, Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, Reason: "Accept contributor"}, RequestID: result.RequestID}
-	joined, err := s.TimelineV2Operation(v.ViewerSessionID, "producer_accept", "", &accept)
+	accept := TimelineProducerAcceptRequest{TimelineNativeOperation: TimelineNativeOperation{SchemaVersion: 3, OperationID: "accept", ExpectedSessionVersion: current.Version, Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, Reason: "Accept contributor"}, RequestID: result.RequestID}
+	joined, err := s.TimelineV3Operation(v.ViewerSessionID, "producer_accept", "", &accept)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,12 +44,12 @@ func domainCurrent(t *testing.T, s *Store, id string) TimelineSession {
 }
 func domainBase(t *testing.T, s *Store, id, op, producer string) TimelineNativeOperation {
 	v := domainCurrent(t, s, id)
-	return TimelineNativeOperation{SchemaVersion: 2, OperationID: op, ExpectedSessionVersion: v.Version, Actor: TimelineActor{Kind: "native_producer", ProducerID: producer}, Reason: "Explicit " + op}
+	return TimelineNativeOperation{SchemaVersion: 3, OperationID: op, ExpectedSessionVersion: v.Version, Actor: TimelineActor{Kind: "native_producer", ProducerID: producer}, Reason: "Explicit " + op}
 }
 func domainStage(t *testing.T, s *Store, id string, stage TimelineStage) string {
 	t.Helper()
 	v := domainCurrent(t, s, id)
-	result, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "start-" + string(stage), Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, Reason: "Start " + string(stage), Kind: "stage", Stage: stage, StageState: "in_progress", ExpectedSessionVersion: &v.Version, Title: string(stage), Summary: "Work stage", TicketRefs: []TimelineTicketRef{}})
+	result, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 3, OperationID: "start-" + string(stage), Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, Reason: "Start " + string(stage), Kind: "stage", Stage: stage, StageState: "in_progress", ExpectedSessionVersion: &v.Version, Title: string(stage), Summary: "Work stage", TicketIDs: []string{}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -58,8 +58,8 @@ func domainStage(t *testing.T, s *Store, id string, stage TimelineStage) string 
 func domainJoin(t *testing.T, s *Store, id, native string) string {
 	t.Helper()
 	v := domainCurrent(t, s, id)
-	r := TimelineJoinRequestInput{SchemaVersion: 2, OperationID: "join-" + native, ExpectedSessionVersion: v.Version, Source: TimelineSource{ProjectRoot: v.Source.ProjectRoot, Host: "codex", NativeSessionID: native}, Reason: "Join explicitly"}
-	res, err := s.TimelineV2Operation(id, "join_request", "", &r)
+	r := TimelineJoinRequestInput{SchemaVersion: 3, OperationID: "join-" + native, ExpectedSessionVersion: v.Version, Source: TimelineSource{ProjectRoot: v.Source.ProjectRoot, Host: "codex", NativeSessionID: native}, Reason: "Join explicitly"}
+	res, err := s.TimelineV3Operation(id, "join_request", "", &r)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +69,7 @@ func domainAccept(t *testing.T, s *Store, id, request string) string {
 	t.Helper()
 	v := domainCurrent(t, s, id)
 	r := TimelineProducerAcceptRequest{TimelineNativeOperation: domainBase(t, s, id, "accept-"+request, v.ForegroundProducerID), RequestID: request}
-	res, err := s.TimelineV2Operation(id, "producer_accept", "", &r)
+	res, err := s.TimelineV3Operation(id, "producer_accept", "", &r)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,7 +79,7 @@ func domainTask(t *testing.T, s *Store, id string) TimelineTask {
 	t.Helper()
 	v := domainCurrent(t, s, id)
 	r := TimelineTaskCreateRequest{TimelineNativeOperation: domainBase(t, s, id, "task", v.ForegroundProducerID), TaskKey: "T7", Title: "Verify and deliver", Summary: "One task across stages", Segments: []TimelineTaskSegmentInput{{PlannedStage: "verify", Order: 1}, {PlannedStage: "delivery", Order: 1}}}
-	res, err := s.TimelineV2Operation(id, "task_create", "", &r)
+	res, err := s.TimelineV3Operation(id, "task_create", "", &r)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -97,7 +97,7 @@ func domainBind(t *testing.T, s *Store, id, task, segment, stage, op string) {
 	v := domainCurrent(t, s, id)
 	current, _ := timelineFindTask(v, task)
 	r := TimelineTaskPatchRequest{TimelineNativeOperation: domainBase(t, s, id, op, v.ForegroundProducerID), ExpectedTaskVersion: current.TaskVersion, SegmentID: segment, DisplayStageEventID: stage, DecisionTarget: nil}
-	_, err := s.TimelineV2Operation(id, "task_patch", task, &r)
+	_, err := s.TimelineV3Operation(id, "task_patch", task, &r)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -107,7 +107,7 @@ func domainTransition(t *testing.T, s *Store, id, task, segment, state, op strin
 	v := domainCurrent(t, s, id)
 	current, _ := timelineFindTask(v, task)
 	r := TimelineTaskTransitionRequest{TimelineNativeOperation: domainBase(t, s, id, op, v.ForegroundProducerID), ExpectedTaskVersion: current.TaskVersion, SegmentID: segment, State: state}
-	res, err := s.TimelineV2Operation(id, "task_transition", task, &r)
+	res, err := s.TimelineV3Operation(id, "task_transition", task, &r)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,7 +115,7 @@ func domainTransition(t *testing.T, s *Store, id, task, segment, state, op strin
 }
 
 func TestTimelineDomainTaskSegmentsAndLinkedInvalidation(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
 	stage := domainStage(t, s, id, "verify")
 	task := domainTask(t, s, id)
@@ -128,7 +128,7 @@ func TestTimelineDomainTaskSegmentsAndLinkedInvalidation(t *testing.T) {
 		t.Fatal("segment transition changed unrelated state")
 	}
 	before := got.TaskVersion
-	event := TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "linked", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, Kind: "review", ReviewStatus: "completed", Title: "Verification evidence", Summary: "A precise result", TicketRefs: []TimelineTicketRef{}, TargetStageEventID: stage, TaskID: task.TaskID, SegmentID: task.Segments[0].SegmentID}
+	event := TimelineAppendEventRequest{SchemaVersion: 3, OperationID: "linked", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, Kind: "review", ReviewStatus: "completed", Title: "Verification evidence", Summary: "A precise result", TicketIDs: []string{}, TargetStageEventID: stage, TaskID: task.TaskID, SegmentID: task.Segments[0].SegmentID}
 	result, err := s.TimelineAppend(id, event)
 	if err != nil {
 		t.Fatal(err)
@@ -148,18 +148,18 @@ func TestTimelineDomainTaskSegmentsAndLinkedInvalidation(t *testing.T) {
 		t.Fatal("replay changed task")
 	}
 	r := TimelineTaskTransitionRequest{TimelineNativeOperation: domainBase(t, s, id, "incomplete-block", v.ForegroundProducerID), ExpectedTaskVersion: got.TaskVersion, SegmentID: task.Segments[1].SegmentID, State: "blocked"}
-	_, err = s.TimelineV2Operation(id, "task_transition", task.TaskID, &r)
+	_, err = s.TimelineV3Operation(id, "task_transition", task.TaskID, &r)
 	if err == nil {
 		t.Fatal("incomplete block accepted")
 	}
 }
 
 func TestTimelineDomainRecoveryConcurrencyAndProvenance(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
 	pending := domainJoin(t, s, id, "next-lead")
 	before := domainCurrent(t, s, id)
-	request := TimelineRecoverLeadRequest{TimelineNativeOperation: TimelineNativeOperation{SchemaVersion: 2, OperationID: "recover", Actor: TimelineActor{Kind: "local_viewer"}, ExpectedSessionVersion: before.Version, Reason: "Explicit local recovery"}, RequestID: pending}
+	request := TimelineRecoverLeadRequest{TimelineNativeOperation: TimelineNativeOperation{SchemaVersion: 3, OperationID: "recover", Actor: TimelineActor{Kind: "local_viewer"}, ExpectedSessionVersion: before.Version, Reason: "Explicit local recovery"}, RequestID: pending}
 	var wg sync.WaitGroup
 	results := make(chan TimelineOperationResult, 2)
 	failures := make(chan error, 2)
@@ -169,7 +169,7 @@ func TestTimelineDomainRecoveryConcurrencyAndProvenance(t *testing.T) {
 			defer wg.Done()
 			r := request
 			r.OperationID = fmt.Sprintf("recover-%d", n)
-			result, err := s.TimelineV2Operation(id, "recover_lead", "", &r)
+			result, err := s.TimelineV3Operation(id, "recover_lead", "", &r)
 			if err != nil {
 				failures <- err
 			} else {
@@ -193,25 +193,25 @@ func TestTimelineDomainRecoveryConcurrencyAndProvenance(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	replay, err := reopened.TimelineV2Operation(id, "recover_lead", "", &request)
+	replay, err := reopened.TimelineV3Operation(id, "recover_lead", "", &request)
 	if err != nil || !reflect.DeepEqual(replay, winner) {
 		t.Fatal("recovery receipt lost", err)
 	}
 	oldLead := TimelineForegroundTransferRequest{TimelineNativeOperation: domainBase(t, reopened, id, "former-lead", v.ForegroundProducerID), TargetProducerID: v.ForegroundProducerID}
-	_, err = reopened.TimelineV2Operation(id, "foreground_transfer", "", &oldLead)
+	_, err = reopened.TimelineV3Operation(id, "foreground_transfer", "", &oldLead)
 	requireTimelineCode(t, err, "lead_required")
 }
 
 func TestTimelineDomainCIApplicableAttemptAndTaskSnapshots(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
 	stage := domainStage(t, s, id, "delivery")
 	task := domainTask(t, s, id)
 	segment := task.Segments[1].SegmentID
 	domainBind(t, s, id, task.TaskID, segment, stage, "bind-delivery")
 	policy := TimelineCheckPolicy{PolicyID: "required-v1", Confirmed: true, Authority: "Branch protection", SourceURL: "https://example.com/policy", ObservedAt: "2026-01-01T00:00:00Z", RequiredChecks: []TimelineRequiredCheck{{CheckKey: "unit", Label: "Unit tests"}}}
-	create := TimelineWaitCreateRequest{TimelineNativeOperation: domainBase(t, s, id, "wait", v.ForegroundProducerID), TargetStageEventID: stage, TaskID: task.TaskID, SegmentID: segment, Candidate: TimelineCandidate{Branch: "feature", Commit: "abc", Base: "development"}, PullRequestURL: "https://example.com/pr/1", Policy: policy}
-	result, err := s.TimelineV2Operation(id, "wait_create", "", &create)
+	create := TimelineWaitCreateRequest{TimelineNativeOperation: domainBase(t, s, id, "wait", v.ForegroundProducerID), TargetStageEventID: stage, TaskID: task.TaskID, SegmentID: segment, CandidateID: "candidate-test", PullRequestDeliveryID: "delivery-test", Policy: policy}
+	result, err := s.TimelineV3Operation(id, "wait_create", "", &create)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -220,7 +220,7 @@ func TestTimelineDomainCIApplicableAttemptAndTaskSnapshots(t *testing.T) {
 		current := domainCurrent(t, s, id)
 		w, _ := timelineFindWait(current, waitID)
 		request := TimelineWaitAttemptStartRequest{TimelineNativeOperation: domainBase(t, s, id, op, v.ForegroundProducerID), ExpectedWaitVersion: w.WaitVersion, CheckKeys: []string{"unit"}, ExternalRun: TimelineCIExternalRun{Commit: "abc", RunID: run, URL: "https://example.com/runs/" + run}, SourceURL: "https://example.com/runs/" + run, ObservedAt: "2026-01-01T00:00:00Z"}
-		r, err := s.TimelineV2Operation(id, "wait_attempt_start", waitID, &request)
+		r, err := s.TimelineV3Operation(id, "wait_attempt_start", waitID, &request)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -234,7 +234,7 @@ func TestTimelineDomainCIApplicableAttemptAndTaskSnapshots(t *testing.T) {
 		current := domainCurrent(t, s, id)
 		w, _ := timelineFindWait(current, waitID)
 		request := TimelineWaitObserveRequest{TimelineNativeOperation: domainBase(t, s, id, op, v.ForegroundProducerID), ExpectedWaitVersion: w.WaitVersion, AttemptID: attempt, CheckKey: "unit", ExternalRun: TimelineCIExternalRun{Commit: "abc", RunID: run, URL: "https://example.com/runs/" + run}, State: state, Summary: "Observed provider result", ObservedAt: observedAt}
-		r, err := s.TimelineV2Operation(id, "wait_observe", waitID, &request)
+		r, err := s.TimelineV3Operation(id, "wait_observe", waitID, &request)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -268,19 +268,19 @@ func TestTimelineDomainCIApplicableAttemptAndTaskSnapshots(t *testing.T) {
 	}
 	// Unknown attempts cannot promote themselves, even with the current versions.
 	request := TimelineWaitObserveRequest{TimelineNativeOperation: domainBase(t, reopened, id, "unknown-attempt", v.ForegroundProducerID), ExpectedWaitVersion: w.WaitVersion, AttemptID: "unknown", CheckKey: "unit", ExternalRun: TimelineCIExternalRun{Commit: "abc", RunID: "unknown", URL: "https://example.com/runs/unknown"}, State: "succeeded", Summary: "Untrusted attempt mapping", ObservedAt: "2026-01-03T00:00:00Z"}
-	_, err = reopened.TimelineV2Operation(id, "wait_observe", waitID, &request)
+	_, err = reopened.TimelineV3Operation(id, "wait_observe", waitID, &request)
 	if err == nil {
 		t.Fatal("unknown attempt promoted")
 	}
 }
 
 func TestTimelineDomainLifecycleKeepsValidationForegroundAndAuditImmutable(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
 	stage := domainStage(t, s, id, "build")
 	current := domainCurrent(t, s, id)
 	wait := TimelineAwaitingValidation
-	result, err := s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: "ask", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, ExpectedVersion: current.Version, State: &wait, Reason: "Waiting for concrete user validation"})
+	result, err := s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 3, OperationID: "ask", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, ExpectedVersion: current.Version, State: &wait, Reason: "Waiting for concrete user validation"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -288,16 +288,16 @@ func TestTimelineDomainLifecycleKeepsValidationForegroundAndAuditImmutable(t *te
 	if current.State != wait || current.CurrentStageEventID == nil || *current.CurrentStageEventID != stage || current.Events[0].StageState != "awaiting_validation" {
 		t.Fatal("validation lost stage")
 	}
-	_, err = s.TimelinePatchEvent(id, current.Events[len(current.Events)-1].EventID, TimelineEventPatchRequest{SchemaVersion: 2, OperationID: "edit-audit", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, ExpectedVersion: 1, Title: timelineString("Changed audit")})
+	_, err = s.TimelinePatchEvent(id, current.Events[len(current.Events)-1].EventID, TimelineEventPatchRequest{SchemaVersion: 3, OperationID: "edit-audit", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, ExpectedVersion: 1, Title: timelineString("Changed audit")})
 	requireTimelineCode(t, err, "immutable_audit")
 	active := TimelineActive
-	_, err = s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: "resume", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, ExpectedVersion: result.SessionVersion, State: &active, Reason: "User responded; resume explicitly"})
+	_, err = s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 3, OperationID: "resume", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, ExpectedVersion: result.SessionVersion, State: &active, Reason: "User responded; resume explicitly"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	current = domainCurrent(t, s, id)
 	state := TimelineStageState("completed")
-	_, err = s.TimelinePatchEvent(id, stage, TimelineEventPatchRequest{SchemaVersion: 2, OperationID: "finish-build", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, ExpectedVersion: current.Events[0].Version, ExpectedSessionVersion: &current.Version, StageState: &state, Reason: "Build completed"})
+	_, err = s.TimelinePatchEvent(id, stage, TimelineEventPatchRequest{SchemaVersion: 3, OperationID: "finish-build", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, ExpectedVersion: current.Events[0].Version, ExpectedSessionVersion: &current.Version, StageState: &state, Reason: "Build completed"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -305,7 +305,7 @@ func TestTimelineDomainLifecycleKeepsValidationForegroundAndAuditImmutable(t *te
 	if current.CurrentStageEventID != nil || current.State != TimelineActive {
 		t.Fatal("completed stage left foreground")
 	}
-	_, err = s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "close", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, Kind: "closure", Reason: "Explicit completion", Title: "Finished", Summary: "Integrated outcome", TicketRefs: []TimelineTicketRef{}, Closure: &TimelineClosure{Reason: "completed", Result: "Completed"}})
+	_, err = s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 3, OperationID: "close", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, Kind: "closure", Reason: "Explicit completion", Title: "Finished", Summary: "Integrated outcome", TicketIDs: []string{}, Closure: &TimelineClosure{Reason: "completed", Result: "Completed"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -319,12 +319,12 @@ func TestTimelineDomainLifecycleKeepsValidationForegroundAndAuditImmutable(t *te
 }
 
 func TestTimelineDomainHTTPGuardsAndClosedOperationDispatch(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+	s, v, _ := newV3Fixture(t)
 	server, err := NewServer(ServerOptions{Store: s, Port: 45678, Token: testToken})
 	if err != nil {
 		t.Fatal(err)
 	}
-	input := TimelineJoinRequestInput{SchemaVersion: 2, OperationID: "http-join", ExpectedSessionVersion: v.Version, Source: TimelineSource{ProjectRoot: v.Source.ProjectRoot, Host: "codex", NativeSessionID: "http-collaborator"}, Reason: "Explicit HTTP join"}
+	input := TimelineJoinRequestInput{SchemaVersion: 3, OperationID: "http-join", ExpectedSessionVersion: v.Version, Source: TimelineSource{ProjectRoot: v.Source.ProjectRoot, Host: "codex", NativeSessionID: "http-collaborator"}, Reason: "Explicit HTTP join"}
 	raw, _ := json.Marshal(input)
 	path := "/api/timeline/sessions/" + v.ViewerSessionID + "/join-requests"
 	call := func(token, origin, scope string) *httptest.ResponseRecorder {
@@ -351,19 +351,19 @@ func TestTimelineDomainHTTPGuardsAndClosedOperationDispatch(t *testing.T) {
 	}
 	// A Go caller cannot disguise a transfer as a less privileged kind.
 	transfer := TimelineForegroundTransferRequest{TimelineNativeOperation: domainBase(t, s, v.ViewerSessionID, "wrong-kind", v.ForegroundProducerID), TargetProducerID: v.ForegroundProducerID}
-	_, err = s.TimelineV2Operation(v.ViewerSessionID, "task_transition", "", &transfer)
+	_, err = s.TimelineV3Operation(v.ViewerSessionID, "task_transition", "", &transfer)
 	if err == nil {
 		t.Fatal("mixed dispatch accepted")
 	}
 }
 
 func TestTimelineDomainCollaboratorTargetsOwnershipAndForeignProjects(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
 	stage := domainStage(t, s, id, "build")
 	member := domainAccept(t, s, id, domainJoin(t, s, id, "reviewer"))
 	before := domainCurrent(t, s, id)
-	publication := TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "review", Actor: TimelineActor{Kind: "native_producer", ProducerID: member}, Kind: "review", ReviewStatus: "in_progress", TargetStageEventID: stage, Title: "Parallel review", Summary: "Independent review", TicketRefs: []TimelineTicketRef{}}
+	publication := TimelineAppendEventRequest{SchemaVersion: 3, OperationID: "review", Actor: TimelineActor{Kind: "native_producer", ProducerID: member}, Kind: "review", ReviewStatus: "in_progress", TargetStageEventID: stage, Title: "Parallel review", Summary: "Independent review", TicketIDs: []string{}}
 	result, err := s.TimelineAppend(id, publication)
 	if err != nil {
 		t.Fatal(err)
@@ -378,16 +378,16 @@ func TestTimelineDomainCollaboratorTargetsOwnershipAndForeignProjects(t *testing
 	if err == nil {
 		t.Fatal("collaborator used implicit stage")
 	}
-	_, err = s.TimelinePatchEvent(id, result.EventID, TimelineEventPatchRequest{SchemaVersion: 2, OperationID: "foreign-edit", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, ExpectedVersion: result.EventVersion, Title: timelineString("Edit another producer")})
+	_, err = s.TimelinePatchEvent(id, result.EventID, TimelineEventPatchRequest{SchemaVersion: 3, OperationID: "foreign-edit", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, ExpectedVersion: result.EventVersion, Title: timelineString("Edit another producer")})
 	requireTimelineCode(t, err, "content_owner_required")
 	foreign := newRepo(t)
 	if _, err = RegisterRepository(filepath.Dir(s.Dir()), foreign); err != nil {
 		t.Fatal(err)
 	}
 	current = domainCurrent(t, s, id)
-	join := TimelineJoinRequestInput{SchemaVersion: 2, OperationID: "foreign-join", ExpectedSessionVersion: current.Version, Source: TimelineSource{ProjectRoot: foreign, Host: "codex", NativeSessionID: "foreign"}, Reason: "Foreign project must fail"}
+	join := TimelineJoinRequestInput{SchemaVersion: 3, OperationID: "foreign-join", ExpectedSessionVersion: current.Version, Source: TimelineSource{ProjectRoot: foreign, Host: "codex", NativeSessionID: "foreign"}, Reason: "Foreign project must fail"}
 	before = current
-	_, err = s.TimelineV2Operation(id, "join_request", "", &join)
+	_, err = s.TimelineV3Operation(id, "join_request", "", &join)
 	requireTimelineCode(t, err, "foreign_project")
 	if !reflect.DeepEqual(before, domainCurrent(t, s, id)) {
 		t.Fatal("denied join mutated work")
@@ -405,7 +405,7 @@ func domainEvent(t *testing.T, v TimelineSession, id string) TimelineEvent {
 	return TimelineEvent{}
 }
 func TestTimelineDomainTaskReentryPreservesHistoricalEvidenceAndDocuments(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
 	stage := domainStage(t, s, id, "verify")
 	task := domainTask(t, s, id)
@@ -414,7 +414,7 @@ func TestTimelineDomainTaskReentryPreservesHistoricalEvidenceAndDocuments(t *tes
 	domainTransition(t, s, id, task.TaskID, segment, "in_progress", "work-proof")
 	current := domainCurrent(t, s, id)
 	before, _ := timelineFindTask(current, task.TaskID)
-	metadata := TimelineDocumentMetadata{SchemaVersion: 2, OperationID: "proof-document", Actor: timelineTestActor(s, id), MediaType: "text/markdown"}
+	metadata := TimelineDocumentMetadata{SchemaVersion: 3, OperationID: "proof-document", Actor: timelineTestActor(s, id), MediaType: "text/markdown"}
 	document, err := s.TimelineAddDocument(id, metadata, []byte("# Proof"))
 	if err != nil {
 		t.Fatal(err)
@@ -424,7 +424,7 @@ func TestTimelineDomainTaskReentryPreservesHistoricalEvidenceAndDocuments(t *tes
 	if after.TaskVersion != before.TaskVersion {
 		t.Fatal("unlinked upload invalidated task")
 	}
-	snapshot := TimelineDocumentSnapshotRequest{SchemaVersion: 2, OperationID: "proof-snapshot", Actor: timelineTestActor(s, id), ExpectedVersion: domainEvent(t, current, stage).Version, ExpectedSessionVersion: current.Version, DocumentKey: "proof", TaskID: task.TaskID, SegmentID: segment, Status: "complete", Tabs: []TimelineDocumentTab{{Label: "Proof", DocumentID: document.DocumentID}}}
+	snapshot := TimelineDocumentSnapshotRequest{SchemaVersion: 3, OperationID: "proof-snapshot", Actor: timelineTestActor(s, id), ExpectedVersion: domainEvent(t, current, stage).Version, ExpectedSessionVersion: current.Version, DocumentKey: "proof", TaskID: task.TaskID, SegmentID: segment, Status: "complete", Tabs: []TimelineDocumentTab{{Label: "Proof", DocumentID: document.DocumentID}}}
 	revision, err := s.TimelineSnapshot(id, stage, snapshot)
 	if err != nil {
 		t.Fatal(err)
@@ -432,12 +432,12 @@ func TestTimelineDomainTaskReentryPreservesHistoricalEvidenceAndDocuments(t *tes
 	domainTransition(t, s, id, task.TaskID, segment, "completed", "proof-completed")
 	current = domainCurrent(t, s, id)
 	completed := TimelineStageState("completed")
-	_, err = s.TimelinePatchEvent(id, stage, TimelineEventPatchRequest{SchemaVersion: 2, OperationID: "verify-done", Actor: timelineTestActor(s, id), ExpectedVersion: domainEvent(t, current, stage).Version, ExpectedSessionVersion: &current.Version, StageState: &completed, Reason: "Verification complete"})
+	_, err = s.TimelinePatchEvent(id, stage, TimelineEventPatchRequest{SchemaVersion: 3, OperationID: "verify-done", Actor: timelineTestActor(s, id), ExpectedVersion: domainEvent(t, current, stage).Version, ExpectedSessionVersion: &current.Version, StageState: &completed, Reason: "Verification complete"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	current = domainCurrent(t, s, id)
-	restartStage, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "verify-again", Actor: timelineTestActor(s, id), Kind: "stage", Stage: "verify", StageState: "in_progress", ExpectedSessionVersion: &current.Version, RelatedEventID: stage, Reason: "Explicit correction", Title: "Verify correction", Summary: "Recheck changed result", TicketRefs: []TimelineTicketRef{}})
+	restartStage, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 3, OperationID: "verify-again", Actor: timelineTestActor(s, id), Kind: "stage", Stage: "verify", StageState: "in_progress", ExpectedSessionVersion: &current.Version, RelatedEventID: stage, Reason: "Explicit correction", Title: "Verify correction", Summary: "Recheck changed result", TicketIDs: []string{}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -475,7 +475,7 @@ func TestTimelineDomainTaskReentryPreservesHistoricalEvidenceAndDocuments(t *tes
 	retained, _ := timelineFindTask(current, task.TaskID)
 	withdrawn := true
 	retire := TimelineTaskPatchRequest{TimelineNativeOperation: domainBase(t, s, id, "retire-task", v.ForegroundProducerID), ExpectedTaskVersion: retained.TaskVersion, Withdrawn: &withdrawn, DecisionTarget: &TimelineDecisionTarget{Kind: "document", EventID: restartStage.EventID, DocumentRevisionID: latest.DocumentRevisionID}}
-	if _, err = s.TimelineV2Operation(id, "task_patch", task.TaskID, &retire); err != nil {
+	if _, err = s.TimelineV3Operation(id, "task_patch", task.TaskID, &retire); err != nil {
 		t.Fatal("retirement broke historical references", err)
 	}
 	reopened, err := Open(Options{StateDir: filepath.Dir(s.Dir())})
@@ -489,7 +489,7 @@ func TestTimelineDomainTaskReentryPreservesHistoricalEvidenceAndDocuments(t *tes
 }
 
 func TestTimelineDomainTaskBlockResolutionAndNoop(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
 	stage := domainStage(t, s, id, "verify")
 	task := domainTask(t, s, id)
@@ -499,14 +499,14 @@ func TestTimelineDomainTaskBlockResolutionAndNoop(t *testing.T) {
 	task, _ = timelineFindTask(current, task.TaskID)
 	block := &TimelineBlock{Reason: "Required fixture unavailable", Steps: []string{"Restore the fixture in the isolated test directory"}, Owner: "Current lead", ResumeWhen: "Fixture validation succeeds"}
 	request := TimelineTaskTransitionRequest{TimelineNativeOperation: domainBase(t, s, id, "block", v.ForegroundProducerID), ExpectedTaskVersion: task.TaskVersion, SegmentID: segment, State: "blocked", Block: block}
-	blocked, err := s.TimelineV2Operation(id, "task_transition", task.TaskID, &request)
+	blocked, err := s.TimelineV3Operation(id, "task_transition", task.TaskID, &request)
 	if err != nil {
 		t.Fatal(err)
 	}
 	current = domainCurrent(t, s, id)
 	foreground := *current.CurrentStageEventID
 	request = TimelineTaskTransitionRequest{TimelineNativeOperation: domainBase(t, s, id, "resolve", v.ForegroundProducerID), ExpectedTaskVersion: blocked.TaskVersion, SegmentID: segment, State: "in_progress", Resolution: "Fixture restored and validated"}
-	resolved, err := s.TimelineV2Operation(id, "task_transition", task.TaskID, &request)
+	resolved, err := s.TimelineV3Operation(id, "task_transition", task.TaskID, &request)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -522,7 +522,7 @@ func TestTimelineDomainTaskBlockResolutionAndNoop(t *testing.T) {
 	request.TimelineNativeOperation = domainBase(t, s, id, "noop-state", v.ForegroundProducerID)
 	request.ExpectedTaskVersion = resolved.TaskVersion
 	request.Resolution = ""
-	result, err := s.TimelineV2Operation(id, "task_transition", task.TaskID, &request)
+	result, err := s.TimelineV3Operation(id, "task_transition", task.TaskID, &request)
 	if err != nil || result.TaskVersion != resolved.TaskVersion {
 		t.Fatal("no-op advanced task", err)
 	}
@@ -533,7 +533,7 @@ func TestTimelineDomainTaskBlockResolutionAndNoop(t *testing.T) {
 	currentTask, _ := timelineFindTask(current, task.TaskID)
 	sameOrder := currentTask.Segments[0].Order
 	same := TimelineTaskPatchRequest{TimelineNativeOperation: domainBase(t, s, id, "same-assignment", v.ForegroundProducerID), ExpectedTaskVersion: currentTask.TaskVersion, SegmentID: segment, AssignedProducerID: currentTask.Segments[0].AssignedProducerID, Order: &sameOrder}
-	sameResult, err := s.TimelineV2Operation(id, "task_patch", task.TaskID, &same)
+	sameResult, err := s.TimelineV3Operation(id, "task_patch", task.TaskID, &same)
 	if err != nil || sameResult.TaskVersion != currentTask.TaskVersion {
 		t.Fatal("no-op assignment required a new scope decision", err)
 	}
@@ -541,7 +541,7 @@ func TestTimelineDomainTaskBlockResolutionAndNoop(t *testing.T) {
 }
 
 func TestTimelineDomainTransferConcurrentWinnersAndChangedRetry(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
 	member := domainAccept(t, s, id, domainJoin(t, s, id, "transfer-target"))
 	current := domainCurrent(t, s, id)
@@ -554,7 +554,7 @@ func TestTimelineDomainTransferConcurrentWinnersAndChangedRetry(t *testing.T) {
 			defer wg.Done()
 			r := base
 			r.OperationID = fmt.Sprintf("transfer-%d", n)
-			if result, err := s.TimelineV2Operation(id, "foreground_transfer", "", &r); err == nil {
+			if result, err := s.TimelineV3Operation(id, "foreground_transfer", "", &r); err == nil {
 				success <- result
 			}
 		}(i)
@@ -571,12 +571,12 @@ func TestTimelineDomainTransferConcurrentWinnersAndChangedRetry(t *testing.T) {
 	}
 	base.OperationID = winner.OperationID
 	base.Reason = "Changed retry payload"
-	_, err := s.TimelineV2Operation(id, "foreground_transfer", "", &base)
+	_, err := s.TimelineV3Operation(id, "foreground_transfer", "", &base)
 	requireTimelineCode(t, err, "operation_conflict")
 }
 
 func TestTimelineDomainContentEventCapacityReservesClosure(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
 	record := timelineClone(s.timeline[id])
 	actor := timelineTestActor(s, id)
@@ -587,11 +587,11 @@ func TestTimelineDomainContentEventCapacityReservesClosure(t *testing.T) {
 	if err := s.timelineSave(record); err != nil {
 		t.Fatal(err)
 	}
-	_, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "content-overflow", Actor: actor, Kind: "request", Title: "Extra", Summary: "Must fail", TicketRefs: []TimelineTicketRef{}})
+	_, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 3, OperationID: "content-overflow", Actor: actor, Kind: "request", Title: "Extra", Summary: "Must fail", TicketIDs: []string{}})
 	if err == nil {
 		t.Fatal("content used lifecycle reserve")
 	}
-	result, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "capacity-closure", Actor: actor, Kind: "closure", Reason: "Explicit terminal closure", Title: "Finished", Summary: "Retain all history", TicketRefs: []TimelineTicketRef{}, Closure: &TimelineClosure{Reason: "completed", Result: "Finished"}})
+	result, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 3, OperationID: "capacity-closure", Actor: actor, Kind: "closure", Reason: "Explicit terminal closure", Title: "Finished", Summary: "Retain all history", TicketIDs: []string{}, Closure: &TimelineClosure{Reason: "completed", Result: "Finished"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -599,17 +599,17 @@ func TestTimelineDomainContentEventCapacityReservesClosure(t *testing.T) {
 	if len(current.Events) != TimelineContentEvents+2 || current.State != TimelineClosed {
 		t.Fatal("closure dropped history")
 	}
-	if _, err = s.TimelineDelete(id, TimelineMutationRequest{SchemaVersion: 2, OperationID: "capacity-delete", Actor: TimelineActor{Kind: "local_viewer"}, ExpectedVersion: result.SessionVersion}); err != nil {
+	if _, err = s.TimelineDelete(id, TimelineMutationRequest{SchemaVersion: 3, OperationID: "capacity-delete", Actor: TimelineActor{Kind: "local_viewer"}, ExpectedVersion: result.SessionVersion}); err != nil {
 		t.Fatal(err)
 	}
 }
 
 func TestTimelineDomainLocalManagementAndLongReasons(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
 	title := "  Renamed work  "
 	archived, pinned := true, true
-	request := TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: "local-management", Actor: TimelineActor{Kind: "local_viewer"}, ExpectedVersion: v.Version, Title: &title, Archived: &archived, Pinned: &pinned, Reason: strings.Repeat("x", 500)}
+	request := TimelineSessionPatchRequest{SchemaVersion: 3, OperationID: "local-management", Actor: TimelineActor{Kind: "local_viewer"}, ExpectedVersion: v.Version, Title: &title, Archived: &archived, Pinned: &pinned, Reason: strings.Repeat("x", 500)}
 	result, err := s.TimelinePatch(id, request)
 	if err != nil {
 		t.Fatal(err)
@@ -642,16 +642,16 @@ func TestTimelineDomainLocalManagementAndLongReasons(t *testing.T) {
 }
 
 func TestTimelineDomainWaitUnknownPolicyAndNewCandidateLink(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
 	build := domainStage(t, s, id, "build")
-	create := TimelineWaitCreateRequest{TimelineNativeOperation: domainBase(t, s, id, "wrong-stage", v.ForegroundProducerID), TargetStageEventID: build, Candidate: TimelineCandidate{Branch: "feature", Commit: "abc", Base: "development"}, PullRequestURL: "https://example.com/pr/1", Policy: TimelineCheckPolicy{PolicyID: "unconfirmed", Confirmed: false, Authority: "Unknown requirements", SourceURL: "https://example.com/policy", ObservedAt: "2026-01-01T00:00:00Z", RequiredChecks: []TimelineRequiredCheck{}}}
-	_, err := s.TimelineV2Operation(id, "wait_create", "", &create)
+	create := TimelineWaitCreateRequest{TimelineNativeOperation: domainBase(t, s, id, "wrong-stage", v.ForegroundProducerID), TargetStageEventID: build, CandidateID: "candidate-test", PullRequestDeliveryID: "delivery-test", Policy: TimelineCheckPolicy{PolicyID: "unconfirmed", Confirmed: false, Authority: "Unknown requirements", SourceURL: "https://example.com/policy", ObservedAt: "2026-01-01T00:00:00Z", RequiredChecks: []TimelineRequiredCheck{}}}
+	_, err := s.TimelineV3Operation(id, "wait_create", "", &create)
 	requireTimelineCode(t, err, "delivery_required")
 	delivery := domainStage(t, s, id, "delivery")
 	create.TimelineNativeOperation = domainBase(t, s, id, "unknown-policy", v.ForegroundProducerID)
 	create.TargetStageEventID = delivery
-	result, err := s.TimelineV2Operation(id, "wait_create", "", &create)
+	result, err := s.TimelineV3Operation(id, "wait_create", "", &create)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -661,11 +661,11 @@ func TestTimelineDomainWaitUnknownPolicyAndNewCandidateLink(t *testing.T) {
 		t.Fatal("unconfirmed requirements became success")
 	}
 	create.TimelineNativeOperation = domainBase(t, s, id, "new-candidate", v.ForegroundProducerID)
-	create.Candidate.Commit = "def"
-	_, err = s.TimelineV2Operation(id, "wait_create", "", &create)
+	create.CandidateID = "candidate-def"
+	_, err = s.TimelineV3Operation(id, "wait_create", "", &create)
 	requireTimelineCode(t, err, "previous_wait_required")
 	create.PreviousWaitID = result.WaitID
-	next, err := s.TimelineV2Operation(id, "wait_create", "", &create)
+	next, err := s.TimelineV3Operation(id, "wait_create", "", &create)
 	if err != nil || next.WaitID == result.WaitID {
 		t.Fatal("new candidate reused old wait", err)
 	}
@@ -677,12 +677,12 @@ func TestTimelineDomainWaitUnknownPolicyAndNewCandidateLink(t *testing.T) {
 }
 
 func TestTimelineDomainFailedWorkRequiresExplicitReopen(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
 	stage := domainStage(t, s, id, "build")
 	current := domainCurrent(t, s, id)
 	pausedWork := TimelinePaused
-	_, err := s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: "pause-before-failure", Actor: timelineTestActor(s, id), ExpectedVersion: current.Version, State: &pausedWork, Reason: "Pause before declaring failed work"})
+	_, err := s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 3, OperationID: "pause-before-failure", Actor: timelineTestActor(s, id), ExpectedVersion: current.Version, State: &pausedWork, Reason: "Pause before declaring failed work"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -691,17 +691,17 @@ func TestTimelineDomainFailedWorkRequiresExplicitReopen(t *testing.T) {
 	}
 	current = domainCurrent(t, s, id)
 	failed := TimelineFailed
-	_, err = s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: "work-failed", Actor: timelineTestActor(s, id), ExpectedVersion: current.Version, State: &failed, Reason: "Explicit terminal failure"})
+	_, err = s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 3, OperationID: "work-failed", Actor: timelineTestActor(s, id), ExpectedVersion: current.Version, State: &failed, Reason: "Explicit terminal failure"})
 	if err != nil {
 		t.Fatal(err)
 	}
 	current = domainCurrent(t, s, id)
 	resumed := TimelineStageState("in_progress")
-	request := TimelineEventPatchRequest{SchemaVersion: 2, OperationID: "implicit-reopen", Actor: timelineTestActor(s, id), ExpectedVersion: domainEvent(t, current, stage).Version, ExpectedSessionVersion: &current.Version, StageState: &resumed, Reason: "Cannot resume without reopening work"}
+	request := TimelineEventPatchRequest{SchemaVersion: 3, OperationID: "implicit-reopen", Actor: timelineTestActor(s, id), ExpectedVersion: domainEvent(t, current, stage).Version, ExpectedSessionVersion: &current.Version, StageState: &resumed, Reason: "Cannot resume without reopening work"}
 	_, err = s.TimelinePatchEvent(id, stage, request)
 	requireTimelineCode(t, err, "session_terminal")
 	active := TimelineActive
-	_, err = s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: "explicit-work-reopen", Actor: timelineTestActor(s, id), ExpectedVersion: current.Version, State: &active, Reason: "Explicit authorized continuation"})
+	_, err = s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 3, OperationID: "explicit-work-reopen", Actor: timelineTestActor(s, id), ExpectedVersion: current.Version, State: &active, Reason: "Explicit authorized continuation"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -714,11 +714,11 @@ func TestTimelineDomainFailedWorkRequiresExplicitReopen(t *testing.T) {
 }
 
 func TestTimelineDomainKnownRunCannotPromoteViaURLChange(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
 	stage := domainStage(t, s, id, "delivery")
-	create := TimelineWaitCreateRequest{TimelineNativeOperation: domainBase(t, s, id, "identity-wait", v.ForegroundProducerID), TargetStageEventID: stage, Candidate: TimelineCandidate{Branch: "feature", Commit: "abc", Base: "development"}, PullRequestURL: "https://example.com/pr/1", Policy: TimelineCheckPolicy{PolicyID: "required", Confirmed: true, Authority: "Provider policy", SourceURL: "https://example.com/policy", ObservedAt: "2026-01-01T00:00:00Z", RequiredChecks: []TimelineRequiredCheck{{CheckKey: "unit", Label: "Unit"}}}}
-	made, err := s.TimelineV2Operation(id, "wait_create", "", &create)
+	create := TimelineWaitCreateRequest{TimelineNativeOperation: domainBase(t, s, id, "identity-wait", v.ForegroundProducerID), TargetStageEventID: stage, CandidateID: "candidate-test", PullRequestDeliveryID: "delivery-test", Policy: TimelineCheckPolicy{PolicyID: "required", Confirmed: true, Authority: "Provider policy", SourceURL: "https://example.com/policy", ObservedAt: "2026-01-01T00:00:00Z", RequiredChecks: []TimelineRequiredCheck{{CheckKey: "unit", Label: "Unit"}}}}
+	made, err := s.TimelineV3Operation(id, "wait_create", "", &create)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -729,12 +729,12 @@ func TestTimelineDomainKnownRunCannotPromoteViaURLChange(t *testing.T) {
 		run := fmt.Sprintf("run-%d", i+1)
 		external := TimelineCIExternalRun{Commit: "abc", RunID: run, URL: "https://example.com/runs/" + run}
 		start := TimelineWaitAttemptStartRequest{TimelineNativeOperation: domainBase(t, s, id, "start-"+run, v.ForegroundProducerID), ExpectedWaitVersion: wait.WaitVersion, CheckKeys: []string{"unit"}, ExternalRun: external, SourceURL: external.URL, ObservedAt: "2026-01-01T00:00:00Z"}
-		attempt, err := s.TimelineV2Operation(id, "wait_attempt_start", waitID, &start)
+		attempt, err := s.TimelineV3Operation(id, "wait_attempt_start", waitID, &start)
 		if err != nil {
 			t.Fatal(err)
 		}
 		observation := TimelineWaitObserveRequest{TimelineNativeOperation: domainBase(t, s, id, "observe-"+run, v.ForegroundProducerID), ExpectedWaitVersion: attempt.WaitVersion, AttemptID: attempt.AttemptID, CheckKey: "unit", ExternalRun: external, State: state, Summary: "Observed current provider run", ObservedAt: "2026-01-02T00:00:00Z"}
-		if _, err = s.TimelineV2Operation(id, "wait_observe", waitID, &observation); err != nil {
+		if _, err = s.TimelineV3Operation(id, "wait_observe", waitID, &observation); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -746,7 +746,7 @@ func TestTimelineDomainKnownRunCannotPromoteViaURLChange(t *testing.T) {
 	old := wait.Attempts[0].ExternalRun
 	old.URL += "?view=checks"
 	promotion := TimelineWaitAttemptStartRequest{TimelineNativeOperation: domainBase(t, s, id, "url-repromotion", v.ForegroundProducerID), ExpectedWaitVersion: wait.WaitVersion, CheckKeys: []string{"unit"}, ExternalRun: old, SourceURL: old.URL, ObservedAt: "2026-01-03T00:00:00Z"}
-	_, err = s.TimelineV2Operation(id, "wait_attempt_start", waitID, &promotion)
+	_, err = s.TimelineV3Operation(id, "wait_attempt_start", waitID, &promotion)
 	requireTimelineCode(t, err, "attempt_already_known")
 	if !reflect.DeepEqual(before, domainCurrent(t, s, id)) {
 		t.Fatal("URL-only replay changed applicable attempt")
@@ -754,7 +754,7 @@ func TestTimelineDomainKnownRunCannotPromoteViaURLChange(t *testing.T) {
 }
 
 func TestTimelineDomainLifecycleCannotConsumeClosureReserve(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
 	record := timelineClone(s.timeline[id])
 	actor := timelineTestActor(s, id)
@@ -770,7 +770,7 @@ func TestTimelineDomainLifecycleCannotConsumeClosureReserve(t *testing.T) {
 	for cycle := 0; cycle < 3; cycle++ {
 		before := domainCurrent(t, s, id)
 		wait := TimelineAwaitingValidation
-		_, err := s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: fmt.Sprintf("reserve-validation-%d", cycle), Actor: actor, ExpectedVersion: before.Version, State: &wait, Reason: "Explicit validation pause"})
+		_, err := s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 3, OperationID: fmt.Sprintf("reserve-validation-%d", cycle), Actor: actor, ExpectedVersion: before.Version, State: &wait, Reason: "Explicit validation pause"})
 		if err != nil {
 			if !reflect.DeepEqual(before, domainCurrent(t, s, id)) {
 				t.Fatal("rejected validation changed state")
@@ -780,7 +780,7 @@ func TestTimelineDomainLifecycleCannotConsumeClosureReserve(t *testing.T) {
 		}
 		before = domainCurrent(t, s, id)
 		active := TimelineStageState("in_progress")
-		_, err = s.TimelinePatchEvent(id, stage, TimelineEventPatchRequest{SchemaVersion: 2, OperationID: fmt.Sprintf("reserve-resume-%d", cycle), Actor: actor, ExpectedVersion: domainEvent(t, before, stage).Version, ExpectedSessionVersion: &before.Version, StageState: &active, Reason: "Explicit resume"})
+		_, err = s.TimelinePatchEvent(id, stage, TimelineEventPatchRequest{SchemaVersion: 3, OperationID: fmt.Sprintf("reserve-resume-%d", cycle), Actor: actor, ExpectedVersion: domainEvent(t, before, stage).Version, ExpectedSessionVersion: &before.Version, StageState: &active, Reason: "Explicit resume"})
 		if err != nil {
 			if !reflect.DeepEqual(before, domainCurrent(t, s, id)) {
 				t.Fatal("rejected resume changed state")
@@ -794,11 +794,11 @@ func TestTimelineDomainLifecycleCannotConsumeClosureReserve(t *testing.T) {
 	}
 	current := domainCurrent(t, s, id)
 	completed := TimelineStageState("completed")
-	_, err := s.TimelinePatchEvent(id, stage, TimelineEventPatchRequest{SchemaVersion: 2, OperationID: "reserve-finish-build", Actor: actor, ExpectedVersion: domainEvent(t, current, stage).Version, ExpectedSessionVersion: &current.Version, StageState: &completed, Reason: "Build finished"})
+	_, err := s.TimelinePatchEvent(id, stage, TimelineEventPatchRequest{SchemaVersion: 3, OperationID: "reserve-finish-build", Actor: actor, ExpectedVersion: domainEvent(t, current, stage).Version, ExpectedSessionVersion: &current.Version, StageState: &completed, Reason: "Build finished"})
 	if err != nil {
 		t.Fatal("cannot release foreground within reserve", err)
 	}
-	_, err = s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "guaranteed-closure", Actor: actor, Kind: "closure", Title: "Finished", Summary: "Keep the complete trace", Reason: "Explicit final closure", TicketRefs: []TimelineTicketRef{}, Closure: &TimelineClosure{Reason: "completed", Result: "Finished"}})
+	_, err = s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 3, OperationID: "guaranteed-closure", Actor: actor, Kind: "closure", Title: "Finished", Summary: "Keep the complete trace", Reason: "Explicit final closure", TicketIDs: []string{}, Closure: &TimelineClosure{Reason: "completed", Result: "Finished"}})
 	if err != nil {
 		t.Fatal("guaranteed closure failed", err)
 	}
@@ -809,7 +809,7 @@ func TestTimelineDomainLifecycleCannotConsumeClosureReserve(t *testing.T) {
 }
 
 func TestTimelineDomainLifecycleCannotConsumeClosureReceipts(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
 	record := timelineClone(s.timeline[id])
 	sample := record.Receipts[0]
@@ -824,16 +824,16 @@ func TestTimelineDomainLifecycleCannotConsumeClosureReceipts(t *testing.T) {
 	}
 	before := domainCurrent(t, s, id)
 	same := before.Title
-	_, err := s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: "receipt-overflow", Actor: TimelineActor{Kind: "local_viewer"}, ExpectedVersion: before.Version, Title: &same})
+	_, err := s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 3, OperationID: "receipt-overflow", Actor: TimelineActor{Kind: "local_viewer"}, ExpectedVersion: before.Version, Title: &same})
 	requireTimelineCode(t, err, "capacity")
 	if !reflect.DeepEqual(before, domainCurrent(t, s, id)) {
 		t.Fatal("receipt exhaustion partially mutated work")
 	}
-	result, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "receipt-closure", Actor: timelineTestActor(s, id), Kind: "closure", Title: "Finished", Summary: "Keep durable history", Reason: "Explicit terminal closure", TicketRefs: []TimelineTicketRef{}, Closure: &TimelineClosure{Reason: "completed", Result: "Finished"}})
+	result, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 3, OperationID: "receipt-closure", Actor: timelineTestActor(s, id), Kind: "closure", Title: "Finished", Summary: "Keep durable history", Reason: "Explicit terminal closure", TicketIDs: []string{}, Closure: &TimelineClosure{Reason: "completed", Result: "Finished"}})
 	if err != nil {
 		t.Fatal("closure receipt unavailable", err)
 	}
-	if _, err = s.TimelineDelete(id, TimelineMutationRequest{SchemaVersion: 2, OperationID: "receipt-delete", Actor: TimelineActor{Kind: "local_viewer"}, ExpectedVersion: result.SessionVersion}); err != nil {
+	if _, err = s.TimelineDelete(id, TimelineMutationRequest{SchemaVersion: 3, OperationID: "receipt-delete", Actor: TimelineActor{Kind: "local_viewer"}, ExpectedVersion: result.SessionVersion}); err != nil {
 		t.Fatal("terminal deletion receipt unavailable", err)
 	}
 }
@@ -854,14 +854,14 @@ func capacityRecord(t *testing.T, s *Store, id string, summaryLength int) *timel
 }
 func capacityClose(t *testing.T, s *Store, id, op string) {
 	t.Helper()
-	_, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 2, OperationID: op, Actor: timelineTestActor(s, id), Kind: "closure", Title: "Done", Summary: "Done", Reason: "Done", TicketRefs: []TimelineTicketRef{}, Closure: &TimelineClosure{Reason: "completed", Result: "Done"}})
+	_, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 3, OperationID: op, Actor: timelineTestActor(s, id), Kind: "closure", Title: "Done", Summary: "Done", Reason: "Done", TicketIDs: []string{}, Closure: &TimelineClosure{Reason: "completed", Result: "Done"}})
 	if err != nil {
 		t.Fatal("small closure lost reserved serialized capacity", err)
 	}
 }
 
 func TestTimelineDomainSerializedPublicClosureHeadroom(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
 	record := capacityRecord(t, s, id, 1)
 	raw, _ := json.Marshal(record.Session)
@@ -881,7 +881,7 @@ func TestTimelineDomainSerializedPublicClosureHeadroom(t *testing.T) {
 		t.Fatal(err)
 	}
 	before := stateManifest(t, filepath.Dir(s.Dir()))
-	_, err := s.TimelinePatchEvent(id, record.Session.Events[0].EventID, TimelineEventPatchRequest{SchemaVersion: 2, OperationID: "consume-public-headroom", Actor: timelineTestActor(s, id), ExpectedVersion: 1, Summary: timelineString(strings.Repeat("p", 2041))})
+	_, err := s.TimelinePatchEvent(id, record.Session.Events[0].EventID, TimelineEventPatchRequest{SchemaVersion: 3, OperationID: "consume-public-headroom", Actor: timelineTestActor(s, id), ExpectedVersion: 1, Summary: timelineString(strings.Repeat("p", 2041))})
 	requireTimelineCode(t, err, "capacity")
 	if !reflect.DeepEqual(before, stateManifest(t, filepath.Dir(s.Dir()))) {
 		t.Fatal("rejected byte growth mutated state")
@@ -890,7 +890,7 @@ func TestTimelineDomainSerializedPublicClosureHeadroom(t *testing.T) {
 }
 
 func TestTimelineDomainSerializedPrivateLedgerClosureHeadroom(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
 	record := capacityRecord(t, s, id, 2000)
 	sample := record.Receipts[0]
@@ -927,7 +927,7 @@ func TestTimelineDomainSerializedPrivateLedgerClosureHeadroom(t *testing.T) {
 	}
 	before := stateManifest(t, filepath.Dir(s.Dir()))
 	summary := "Small metadata update"
-	_, err := s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: "consume-ledger-headroom", Actor: actor, ExpectedVersion: record.Session.Version, Summary: &summary})
+	_, err := s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 3, OperationID: "consume-ledger-headroom", Actor: actor, ExpectedVersion: record.Session.Version, Summary: &summary})
 	requireTimelineCode(t, err, "capacity")
 	if !reflect.DeepEqual(before, stateManifest(t, filepath.Dir(s.Dir()))) {
 		t.Fatal("rejected ledger growth mutated state")

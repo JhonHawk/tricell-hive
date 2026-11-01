@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-const timelineStorageVersion = 2
+const timelineStorageVersion = 3
 const timelineMaxRecordBytes = 4 << 20
 
 // TimelineError contains public, value-free failure semantics.
@@ -47,7 +47,7 @@ type timelineRecord struct {
 	DeleteResult    *TimelineOperationResult   `json:"delete_result,omitempty"`
 }
 
-func (s *Store) timelineDir() string { return filepath.Join(s.vdir, "timeline-api-v2") }
+func (s *Store) timelineDir() string { return filepath.Join(s.vdir, "timeline-api-v3") }
 func (s *Store) timelineRecordPath(id string) string {
 	return filepath.Join(s.timelineDir(), id+".json")
 }
@@ -56,7 +56,7 @@ func timelineSessionKey(project string, source TimelineSource) string {
 	var b bytes.Buffer
 	enc := json.NewEncoder(&b)
 	enc.SetEscapeHTML(false)
-	_ = enc.Encode([]any{"timeline-api-v2", project, source.Host, source.NativeSessionID})
+	_ = enc.Encode([]any{"timeline-api-v3", project, source.Host, source.NativeSessionID})
 	raw := strings.TrimSuffix(b.String(), "\n")
 	raw = strings.ReplaceAll(strings.ReplaceAll(raw, `\u2028`, "\u2028"), `\u2029`, "\u2029")
 	sum := sha256.Sum256([]byte(raw))
@@ -538,7 +538,7 @@ func (s *Store) timelineCommit(r *timelineRecord, kind TimelineOperationKind, op
 }
 func timelineResult(r *timelineRecord, kind TimelineOperationKind, op string) TimelineOperationResult {
 	v := r.Session
-	return TimelineOperationResult{SchemaVersion: 2, OperationID: op, Kind: kind, ViewerSessionID: r.ID, SessionVersion: v.Version, CurrentStageEventID: v.CurrentStageEventID}
+	return TimelineOperationResult{SchemaVersion: 3, OperationID: op, Kind: kind, ViewerSessionID: r.ID, SessionVersion: v.Version, CurrentStageEventID: v.CurrentStageEventID}
 }
 func (s *Store) timelineProject(source TimelineSource) (string, string, string, error) {
 	root, err := canonicalDir(source.ProjectRoot)
@@ -660,7 +660,16 @@ func (s *Store) TimelineCreate(request TimelineCreateSessionRequest) (TimelineSe
 	if err != nil {
 		return TimelineSessionResponse{}, err
 	}
-	v := TimelineSession{SchemaVersion: 2, ViewerSessionID: id, ProjectKey: key, ProjectName: name, Source: request.Source, Version: 1, Title: request.Title, Summary: request.Summary, State: TimelineActive, CreatedAt: now, UpdatedAt: now, Tickets: request.Tickets, Events: []TimelineEvent{}, Artifacts: []TimelineArtifact{}, Documents: []TimelineDocument{}}
+	tickets := make([]TimelineTicket, 0, len(request.Tickets))
+	for _, input := range request.Tickets {
+		tid, e := timelineRandomID("ticket-")
+		if e != nil {
+			return TimelineSessionResponse{}, e
+		}
+		input.ExternalScope, _ = CanonicalTimelineIdentityURL(input.ExternalScope)
+		tickets = append(tickets, TimelineTicket{TicketID: tid, TimelineTicketInput: input})
+	}
+	v := TimelineSession{SchemaVersion: 3, ViewerSessionID: id, ProjectKey: key, ProjectName: name, Source: request.Source, Version: 1, Title: request.Title, Summary: request.Summary, State: TimelineActive, CreatedAt: now, UpdatedAt: now, Tickets: tickets, Deliveries: []TimelineDelivery{}, Candidates: []TimelineCandidateRecord{}, Events: []TimelineEvent{}, Artifacts: []TimelineArtifact{}, Documents: []TimelineDocument{}}
 	v.Producers = []TimelineProducer{{ProducerID: producer, Source: request.Source, JoinedAt: now}}
 	v.ForegroundProducerID = producer
 	v.PendingJoinRequests = []TimelineJoinRequest{}
@@ -669,7 +678,7 @@ func (s *Store) TimelineCreate(request TimelineCreateSessionRequest) (TimelineSe
 	if err = ValidateTimelineResolvedProject(v, request.Source, key); err != nil {
 		return TimelineSessionResponse{}, err
 	}
-	r := &timelineRecord{StorageVersion: 2, ID: id, Source: request.Source, ProjectKey: key, ProjectName: name, Roots: timelineSourceRoots(root, request.Source.ProjectRoot), Session: &v, Receipts: []TimelineOperationReceipt{}}
+	r := &timelineRecord{StorageVersion: 3, ID: id, Source: request.Source, ProjectKey: key, ProjectName: name, Roots: timelineSourceRoots(root, request.Source.ProjectRoot), Session: &v, Receipts: []TimelineOperationReceipt{}}
 	if err = s.timelineAudit(r, "create_session", request.OperationID, id, &TimelineActor{Kind: "native_producer", ProducerID: producer}, nil, "Created work from actual source"); err != nil {
 		return TimelineSessionResponse{}, err
 	}
@@ -682,7 +691,7 @@ func (s *Store) TimelineCreate(request TimelineCreateSessionRequest) (TimelineSe
 	return timelineResponse(v, true), nil
 }
 func timelineResponse(v TimelineSession, created bool) TimelineSessionResponse {
-	return TimelineSessionResponse{SchemaVersion: 2, Mode: "timeline_api", Session: v, Created: &created}
+	return TimelineSessionResponse{SchemaVersion: 3, Mode: "timeline_api", Session: v, Created: &created}
 }
 func (s *Store) TimelineGet(id string) (TimelineSession, error) {
 	s.mu.Lock()
@@ -759,20 +768,6 @@ func (s *Store) TimelinePatch(id string, request TimelineSessionPatchRequest) (T
 	if request.Pinned != nil {
 		v.Pinned = *request.Pinned
 	}
-	if request.Tickets != nil {
-		refs := map[string]bool{}
-		for _, t := range *request.Tickets {
-			refs[TimelineTicketIdentity(TimelineTicketRef{Key: t.Key, URL: t.URL})] = true
-		}
-		for _, e := range v.Events {
-			for _, t := range e.TicketRefs {
-				if !refs[TimelineTicketIdentity(t)] {
-					return TimelineOperationResult{}, timelineFailure("ticket_referenced", 409)
-				}
-			}
-		}
-		v.Tickets = *request.Tickets
-	}
 	if err = s.timelinePatchState(v, request); err != nil {
 		return TimelineOperationResult{}, err
 	}
@@ -828,7 +823,18 @@ func (s *Store) TimelineAppend(id string, request TimelineAppendEventRequest) (T
 		return TimelineOperationResult{}, err
 	}
 	now := s.timelineTime()
-	event := TimelineEvent{Actor: request.Actor, StageEventID: associated, TaskID: request.TaskID, SegmentID: request.SegmentID, Reason: request.Reason, ReviewStatus: request.ReviewStatus, EventID: eid, Sequence: int64(len(v.Events) + 1), Version: 1, Kind: request.Kind, Title: request.Title, Summary: request.Summary, CreatedAt: now, UpdatedAt: now, Origin: "agent_reported", TicketRefs: request.TicketRefs, Candidate: request.Candidate, RelatedEventID: request.RelatedEventID, Target: request.Target, SourceReference: request.SourceReference, Deliveries: request.Deliveries, Closure: request.Closure, Stage: request.Stage, StageState: request.StageState, OccurredAt: request.OccurredAt}
+	ticketRefs, e := CaptureTimelineTicketReferences(*v, request.TicketIDs)
+	if e != nil {
+		return TimelineOperationResult{}, e
+	}
+	var deliveryRefs []TimelineDeliveryReference
+	if request.DeliveryIDs != nil {
+		deliveryRefs, e = CaptureTimelineDeliveryReferences(*v, request.DeliveryIDs)
+		if e != nil {
+			return TimelineOperationResult{}, e
+		}
+	}
+	event := TimelineEvent{Actor: request.Actor, StageEventID: associated, TaskID: request.TaskID, SegmentID: request.SegmentID, Reason: request.Reason, ReviewStatus: request.ReviewStatus, EventID: eid, Sequence: int64(len(v.Events) + 1), Version: 1, Kind: request.Kind, Title: request.Title, Summary: request.Summary, CreatedAt: now, UpdatedAt: now, Origin: "agent_reported", TicketRefs: ticketRefs, CandidateID: request.CandidateID, RelatedEventID: request.RelatedEventID, Target: request.Target, SourceReference: request.SourceReference, DeliveryRefs: deliveryRefs, Closure: request.Closure, Stage: request.Stage, StageState: request.StageState, OccurredAt: request.OccurredAt}
 	if event.Kind == "stage" {
 		v.State = TimelineActive
 		v.Reason = request.Reason
@@ -852,8 +858,12 @@ func (s *Store) TimelineAppend(id string, request TimelineAppendEventRequest) (T
 					return TimelineOperationResult{}, err
 				}
 			}
-			event.Views = append(event.Views, TimelineView{ViewID: viewID, Title: input.Title, TicketRefs: input.TicketRefs, Steps: input.Steps, ExpectedResult: input.ExpectedResult, ImageRefs: input.ImageRefs, Supersedes: input.Supersedes})
-			for _, ref := range input.TicketRefs {
+			refs, e := CaptureTimelineTicketReferences(*v, input.TicketIDs)
+			if e != nil {
+				return TimelineOperationResult{}, e
+			}
+			event.Views = append(event.Views, TimelineView{ViewID: viewID, Title: input.Title, TicketRefs: refs, Steps: input.Steps, ExpectedResult: input.ExpectedResult, ImageRefs: input.ImageRefs, Supersedes: input.Supersedes})
+			for _, ref := range refs {
 				if !union[TimelineTicketIdentity(ref)] {
 					event.TicketRefs = append(event.TicketRefs, ref)
 					union[TimelineTicketIdentity(ref)] = true

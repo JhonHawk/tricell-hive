@@ -28,7 +28,7 @@ type viewTimelineCommand struct {
 
 func isTimelineViewCommand(name string) bool {
 	switch name {
-	case "contract", "session", "event", "stage", "artifact", "document", "producer", "task", "wait":
+	case "contract", "session", "event", "stage", "artifact", "document", "producer", "task", "wait", "ticket", "delivery", "candidate":
 		return true
 	}
 	return false
@@ -91,7 +91,7 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 		if err = validateViewTimelineInput(command.operation, input); err != nil {
 			code := viewer.TimelineContractCode(err)
 			if code == "unsupported_protocol" {
-				return errors.New("unsupported_protocol: protocol v2 is required; update client and viewer together, preserve inputs and use a fresh v2 state directory")
+				return errors.New("unsupported_protocol: protocol v3 is required; update client and viewer together, preserve inputs and use a fresh v3 state directory")
 			}
 			return fmt.Errorf("invalid timeline input: %s", code)
 		}
@@ -199,6 +199,16 @@ func parseViewTimelineCommand(args []string) (viewTimelineCommand, []string, err
 		c.operation, c.method = "producer_accept", http.MethodPost
 	case "producer/transfer":
 		c.operation, c.method = "foreground_transfer", http.MethodPost
+	case "ticket/create":
+		c.operation, c.method = "ticket_create", http.MethodPost
+	case "ticket/update":
+		c.operation, c.method, positionals = "ticket_patch", http.MethodPatch, 2
+	case "delivery/create":
+		c.operation, c.method = "delivery_create", http.MethodPost
+	case "delivery/update":
+		c.operation, c.method, positionals = "delivery_patch", http.MethodPatch, 2
+	case "candidate/create":
+		c.operation, c.method = "candidate_create", http.MethodPost
 	case "task/create":
 		c.operation, c.method = "task_create", http.MethodPost
 	case "task/update":
@@ -232,6 +242,16 @@ func parseViewTimelineCommand(args []string) (viewTimelineCommand, []string, err
 		}
 	}
 	switch c.operation {
+	case "ticket_create":
+		c.path += "/tickets"
+	case "ticket_patch":
+		c.path += "/tickets/" + c.objectID
+	case "delivery_create":
+		c.path += "/deliveries"
+	case "delivery_patch":
+		c.path += "/deliveries/" + c.objectID
+	case "candidate_create":
+		c.path += "/candidates"
 	case "join_request":
 		c.path += "/join-requests"
 	case "producer_accept":
@@ -275,8 +295,8 @@ func validateViewTimelineInput(operation string, raw []byte) error {
 		return errors.New("local_viewer_actor_forbidden_in_native_cli")
 	}
 	switch operation {
-	case "join_request", "producer_accept", "foreground_transfer", "task_create", "task_patch", "task_transition", "wait_create", "wait_attempt_start", "wait_observe":
-		_, err := viewer.DecodeTimelineV2Operation(operation, raw)
+	case "ticket_create", "ticket_patch", "delivery_create", "delivery_patch", "candidate_create", "join_request", "producer_accept", "foreground_transfer", "task_create", "task_patch", "task_transition", "wait_create", "wait_attempt_start", "wait_observe":
+		_, err := viewer.DecodeTimelineV3Operation(operation, raw)
 		return err
 	}
 
@@ -393,7 +413,7 @@ func viewTimelineProtocolReady(info serverInfo, state string) error {
 		return errors.New("cannot confirm viewer health and identity; preserve local inputs and check the running viewer")
 	}
 	if health.TimelineProtocolVersion != viewer.TimelineSchemaVersion {
-		return errors.New("the running viewer lacks protocol v2; update client and viewer together, use a fresh v2 state directory and restart explicitly; preserve inputs and retry the unchanged operation")
+		return errors.New("the running viewer lacks protocol v3; update client and viewer together, use a fresh v3 state directory and restart explicitly; preserve inputs and retry the unchanged operation")
 	}
 	return nil
 }

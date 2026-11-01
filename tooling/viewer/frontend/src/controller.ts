@@ -304,7 +304,7 @@ export class ViewerController {
           `/api/timeline/sessions/${id}/recover-lead`,
           "POST",
           {
-            schema_version: 2,
+            schema_version: 3,
             operation_id: operationID,
             actor: { kind: "local_viewer" },
             expected_session_version: expectedVersion,
@@ -480,7 +480,7 @@ export class ViewerController {
           : {
               key,
               body: {
-                schema_version: 2,
+                schema_version: 3,
                 actor: { kind: "local_viewer" },
                 operation_id: crypto.randomUUID(),
                 expected_version: expectedVersion,

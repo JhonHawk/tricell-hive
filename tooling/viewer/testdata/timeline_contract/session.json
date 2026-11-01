@@ -1,7 +1,7 @@
 {
   "documents": [],
   "current_stage_event_id": null,
-  "schema_version": 2,
+  "schema_version": 3,
   "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
   "project_key": "example.com/fixture/project",
   "project_name": "CAM fixture",
@@ -23,12 +23,18 @@
     {
       "key": "COM-1",
       "url": "https://example.com/issues/COM-1",
-      "title": "Profile spacing"
+      "title": "Profile spacing",
+      "ticket_id": "ticket-1",
+      "external_scope": "https://example.test/tracker",
+      "external_id": "COM-1"
     },
     {
       "key": "COM-2",
       "url": "https://example.com/issues/COM-2",
-      "title": "Chat filters"
+      "title": "Chat filters",
+      "ticket_id": "ticket-2",
+      "external_scope": "https://example.test/tracker",
+      "external_id": "COM-2"
     }
   ],
   "events": [
@@ -44,12 +50,18 @@
       "origin": "agent_reported",
       "ticket_refs": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1"
+          "ticket_id": "ticket-1",
+          "snapshot": {
+            "key": "COM-1",
+            "url": "https://example.com/issues/COM-1"
+          }
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2"
+          "ticket_id": "ticket-2",
+          "snapshot": {
+            "key": "COM-2",
+            "url": "https://example.com/issues/COM-2"
+          }
         }
       ],
       "actor": {
@@ -69,23 +81,25 @@
       "origin": "agent_reported",
       "ticket_refs": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1"
+          "ticket_id": "ticket-1",
+          "snapshot": {
+            "key": "COM-1",
+            "url": "https://example.com/issues/COM-1"
+          }
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2"
+          "ticket_id": "ticket-2",
+          "snapshot": {
+            "key": "COM-2",
+            "url": "https://example.com/issues/COM-2"
+          }
         }
       ],
-      "candidate": {
-        "branch": "fix/profile-chat",
-        "commit": "working tree",
-        "base": "development"
-      },
       "actor": {
         "kind": "native_producer",
         "producer_id": "producer-original"
-      }
+      },
+      "candidate_id": "candidate-1"
     },
     {
       "event_id": "event_validation",
@@ -99,27 +113,31 @@
       "origin": "agent_reported",
       "ticket_refs": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1"
+          "ticket_id": "ticket-1",
+          "snapshot": {
+            "key": "COM-1",
+            "url": "https://example.com/issues/COM-1"
+          }
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2"
+          "ticket_id": "ticket-2",
+          "snapshot": {
+            "key": "COM-2",
+            "url": "https://example.com/issues/COM-2"
+          }
         }
       ],
-      "candidate": {
-        "branch": "fix/profile-chat",
-        "commit": "working tree",
-        "base": "development"
-      },
       "evidence_id": "evidence_initial",
       "views": [
         {
           "title": "Profile",
           "ticket_refs": [
             {
-              "key": "COM-1",
-              "url": "https://example.com/issues/COM-1"
+              "ticket_id": "ticket-1",
+              "snapshot": {
+                "key": "COM-1",
+                "url": "https://example.com/issues/COM-1"
+              }
             }
           ],
           "steps": [
@@ -130,7 +148,7 @@
           "image_refs": [
             {
               "artifact_id": "artifact_profile",
-              "caption": "1280px · light"
+              "caption": "1280px \u00b7 light"
             }
           ],
           "view_id": "view_profile"
@@ -139,12 +157,18 @@
           "title": "Chat mobile",
           "ticket_refs": [
             {
-              "key": "COM-1",
-              "url": "https://example.com/issues/COM-1"
+              "ticket_id": "ticket-1",
+              "snapshot": {
+                "key": "COM-1",
+                "url": "https://example.com/issues/COM-1"
+              }
             },
             {
-              "key": "COM-2",
-              "url": "https://example.com/issues/COM-2"
+              "ticket_id": "ticket-2",
+              "snapshot": {
+                "key": "COM-2",
+                "url": "https://example.com/issues/COM-2"
+              }
             }
           ],
           "steps": [
@@ -155,7 +179,7 @@
           "image_refs": [
             {
               "artifact_id": "artifact_chat",
-              "caption": "390px · dark",
+              "caption": "390px \u00b7 dark",
               "alt": "Chat search with compact filter"
             }
           ],
@@ -165,7 +189,8 @@
       "actor": {
         "kind": "native_producer",
         "producer_id": "producer-original"
-      }
+      },
+      "candidate_id": "candidate-1"
     },
     {
       "event_id": "event_iteration",
@@ -179,31 +204,38 @@
       "origin": "agent_reported",
       "ticket_refs": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1"
+          "ticket_id": "ticket-1",
+          "snapshot": {
+            "key": "COM-1",
+            "url": "https://example.com/issues/COM-1"
+          }
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2"
+          "ticket_id": "ticket-2",
+          "snapshot": {
+            "key": "COM-2",
+            "url": "https://example.com/issues/COM-2"
+          }
         }
       ],
-      "candidate": {
-        "branch": "fix/profile-chat",
-        "commit": "working tree",
-        "base": "development"
-      },
       "evidence_id": "evidence_refined",
       "views": [
         {
           "title": "Chat mobile",
           "ticket_refs": [
             {
-              "key": "COM-1",
-              "url": "https://example.com/issues/COM-1"
+              "ticket_id": "ticket-1",
+              "snapshot": {
+                "key": "COM-1",
+                "url": "https://example.com/issues/COM-1"
+              }
             },
             {
-              "key": "COM-2",
-              "url": "https://example.com/issues/COM-2"
+              "ticket_id": "ticket-2",
+              "snapshot": {
+                "key": "COM-2",
+                "url": "https://example.com/issues/COM-2"
+              }
             }
           ],
           "steps": [
@@ -214,7 +246,7 @@
           "image_refs": [
             {
               "artifact_id": "artifact_chat_refined",
-              "caption": "390px · dark · refined"
+              "caption": "390px \u00b7 dark \u00b7 refined"
             }
           ],
           "view_id": "view_chat",
@@ -228,7 +260,8 @@
       "actor": {
         "kind": "native_producer",
         "producer_id": "producer-original"
-      }
+      },
+      "candidate_id": "candidate-1"
     },
     {
       "event_id": "event_approval",
@@ -242,12 +275,18 @@
       "origin": "agent_reported",
       "ticket_refs": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1"
+          "ticket_id": "ticket-1",
+          "snapshot": {
+            "key": "COM-1",
+            "url": "https://example.com/issues/COM-1"
+          }
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2"
+          "ticket_id": "ticket-2",
+          "snapshot": {
+            "key": "COM-2",
+            "url": "https://example.com/issues/COM-2"
+          }
         }
       ],
       "target": {
@@ -276,26 +315,35 @@
       "origin": "agent_reported",
       "ticket_refs": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1"
+          "ticket_id": "ticket-1",
+          "snapshot": {
+            "key": "COM-1",
+            "url": "https://example.com/issues/COM-1"
+          }
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2"
-        }
-      ],
-      "deliveries": [
-        {
-          "kind": "pull_request",
-          "label": "PR 321",
-          "url": "https://example.com/pull/321",
-          "status": "open"
+          "ticket_id": "ticket-2",
+          "snapshot": {
+            "key": "COM-2",
+            "url": "https://example.com/issues/COM-2"
+          }
         }
       ],
       "actor": {
         "kind": "native_producer",
         "producer_id": "producer-original"
-      }
+      },
+      "delivery_refs": [
+        {
+          "delivery_id": "delivery-1",
+          "snapshot": {
+            "kind": "pull_request",
+            "label": "PR 321",
+            "url": "https://example.com/pull/321",
+            "status": "open"
+          }
+        }
+      ]
     }
   ],
   "artifacts": [
@@ -307,17 +355,13 @@
       "media_type": "image/png",
       "received_at": "2026-10-31T18:29:30-06:00",
       "captured_at": "2026-10-31T18:29:00-06:00",
-      "candidate": {
-        "branch": "fix/profile-chat",
-        "commit": "working tree",
-        "base": "development"
-      },
       "viewport": "desktop",
       "theme": "light",
       "actor": {
         "kind": "native_producer",
         "producer_id": "producer-original"
-      }
+      },
+      "candidate_id": "candidate-1"
     },
     {
       "artifact_id": "artifact_chat",
@@ -327,17 +371,13 @@
       "media_type": "image/png",
       "received_at": "2026-10-31T18:29:30-06:00",
       "captured_at": "2026-10-31T18:29:00-06:00",
-      "candidate": {
-        "branch": "fix/profile-chat",
-        "commit": "working tree",
-        "base": "development"
-      },
       "viewport": "mobile",
       "theme": "dark",
       "actor": {
         "kind": "native_producer",
         "producer_id": "producer-original"
-      }
+      },
+      "candidate_id": "candidate-1"
     },
     {
       "artifact_id": "artifact_chat_refined",
@@ -347,17 +387,13 @@
       "media_type": "image/png",
       "received_at": "2026-10-31T18:29:30-06:00",
       "captured_at": "2026-10-31T18:29:00-06:00",
-      "candidate": {
-        "branch": "fix/profile-chat",
-        "commit": "working tree",
-        "base": "development"
-      },
       "viewport": "mobile",
       "theme": "dark",
       "actor": {
         "kind": "native_producer",
         "producer_id": "producer-original"
-      }
+      },
+      "candidate_id": "candidate-1"
     }
   ],
   "producers": [
@@ -374,5 +410,24 @@
   "foreground_producer_id": "producer-original",
   "pending_join_requests": [],
   "tasks": [],
-  "waits": []
+  "waits": [],
+  "deliveries": [
+    {
+      "delivery_id": "delivery-1",
+      "repository_url": "https://example.test/repository",
+      "external_id": "delivery-1",
+      "kind": "pull_request",
+      "label": "PR 321",
+      "url": "https://example.com/pull/321",
+      "status": "open"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "candidate-1",
+      "branch": "fix/profile-chat",
+      "commit": "working tree",
+      "base": "development"
+    }
+  ]
 }

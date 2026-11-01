@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "operation_id": "validation:1",
   "kind": "append_event",
   "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",

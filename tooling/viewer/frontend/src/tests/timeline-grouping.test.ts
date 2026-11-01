@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { timelineFixture } from "../dev/timeline-fixture";
-import type { TimelineTask } from "../timeline-contract-v2";
+import type { TimelineTask } from "../timeline-contract-v3";
 import {
   distinctCaptions,
   groupTimeline,
@@ -64,6 +64,7 @@ test("task projections use explicit stage bindings and count unique work tasks",
   const task = (i: number): TimelineTask => ({
     task_id: `task-${i}`,
     task_key: `T${i}`,
+    plan_order: i,
     title: `Task ${i}`,
     summary: "",
     task_version: 1,

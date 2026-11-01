@@ -44,7 +44,7 @@ func ValidateStateOptions(o Options) error {
 	marked := false
 	for _, e := range entries {
 		switch e.Name() {
-		case "index.json", "sessions", "session-groups", "timeline-api-v1":
+		case "index.json", "sessions", "session-groups", "timeline-api-v1", "timeline-api-v2":
 			return timelineFailure("cutoff_required", 409)
 		case stateMarker:
 			marked = true
@@ -64,7 +64,13 @@ func ValidateStateOptions(o Options) error {
 		return err
 	}
 	var marker viewerStorage
-	if decodeTimelineJSONBounded(raw, &marker, 1024) != nil || marker.StorageVersion != 2 {
+	if decodeTimelineJSONBounded(raw, &marker, 1024) != nil {
+		return timelineFailure("invalid_storage", 500)
+	}
+	if marker.StorageVersion == 1 || marker.StorageVersion == 2 {
+		return timelineFailure("cutoff_required", 409)
+	}
+	if marker.StorageVersion != 3 {
 		return timelineFailure("invalid_storage", 500)
 	}
 	for _, e := range entries {
@@ -77,7 +83,7 @@ func ValidateStateOptions(o Options) error {
 			if _, err = readStateFile(filepath.Join(vdir, e.Name()), maxMetaBytes); err != nil {
 				return err
 			}
-		case "timeline-api-v2":
+		case "timeline-api-v3":
 			if err = validateTimelineInventory(filepath.Join(vdir, e.Name())); err != nil {
 				return err
 			}
@@ -210,7 +216,7 @@ func initializeState(stateDir string) error {
 		return err
 	}
 	defer os.RemoveAll(staged)
-	if err = writeJSONAtomic(filepath.Join(staged, stateMarker), viewerStorage{StorageVersion: 2}); err != nil {
+	if err = writeJSONAtomic(filepath.Join(staged, stateMarker), viewerStorage{StorageVersion: 3}); err != nil {
 		return err
 	}
 	stagedDir, err := os.Open(staged)
@@ -249,5 +255,5 @@ func readBoundedDescriptor(f *os.File, limit int64) ([]byte, error) {
 	return raw, nil
 }
 
-// PrepareState initializes only a fresh, validated v2 namespace.
+// PrepareState initializes only a fresh, validated v3 namespace.
 func PrepareState(stateDir string) error { return initializeState(stateDir) }

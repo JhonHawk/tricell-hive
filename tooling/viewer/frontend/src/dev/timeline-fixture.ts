@@ -3,10 +3,10 @@ import type { TimelineSessionResponse } from "../timeline-contract";
 import { previewDocumentMetadata } from "./timeline-documents-fixture";
 
 export const timelineFixture: TimelineSessionResponse = {
-  schema_version: 2,
+  schema_version: 3,
   mode: "timeline_api",
   session: {
-    schema_version: 2,
+    schema_version: 3,
     producers: [
       {
         producer_id: "producer-original",
@@ -20,6 +20,31 @@ export const timelineFixture: TimelineSessionResponse = {
     ],
     foreground_producer_id: "producer-original",
     pending_join_requests: [],
+    deliveries: [
+      {
+        delivery_id: "delivery-pr",
+        repository_url: "https://example.test/repository",
+        external_id: "42",
+        kind: "pull_request",
+        label: "PR #42",
+        url: "https://example.test/pull/42",
+        status: "open",
+      },
+    ],
+    candidates: [
+      {
+        candidate_id: "candidate-r1",
+        branch: "fix/profile-chat",
+        commit: "preview-r1",
+        base: "development",
+      },
+      {
+        candidate_id: "candidate-r2",
+        branch: "fix/profile-chat",
+        commit: "preview-r2",
+        base: "development",
+      },
+    ],
     tasks: [],
     waits: [],
     documents: previewDocumentMetadata,
@@ -45,11 +70,17 @@ export const timelineFixture: TimelineSessionResponse = {
     validation_count: 2,
     tickets: [
       {
+        ticket_id: "ticket-1",
+        external_scope: "https://example.test/tracker",
+        external_id: "COM-1",
         key: "COM-1",
         title: "Espaciado del perfil",
         url: "https://example.test/tickets/COM-1",
       },
       {
+        ticket_id: "ticket-2",
+        external_scope: "https://example.test/tracker",
+        external_id: "COM-2",
         key: "COM-2",
         title: "Filtros de conversaciones",
         url: "https://example.test/tickets/COM-2",
@@ -69,12 +100,18 @@ export const timelineFixture: TimelineSessionResponse = {
         origin: "agent_reported",
         ticket_refs: [
           {
-            key: "COM-1",
-            url: "https://example.test/tickets/COM-1",
+            ticket_id: "ticket-1",
+            snapshot: {
+              key: "COM-1",
+              url: "https://example.test/tickets/COM-1",
+            },
           },
           {
-            key: "COM-2",
-            url: "https://example.test/tickets/COM-2",
+            ticket_id: "ticket-2",
+            snapshot: {
+              key: "COM-2",
+              url: "https://example.test/tickets/COM-2",
+            },
           },
         ],
       },
@@ -91,19 +128,21 @@ export const timelineFixture: TimelineSessionResponse = {
         origin: "agent_reported",
         ticket_refs: [
           {
-            key: "COM-1",
-            url: "https://example.test/tickets/COM-1",
+            ticket_id: "ticket-1",
+            snapshot: {
+              key: "COM-1",
+              url: "https://example.test/tickets/COM-1",
+            },
           },
           {
-            key: "COM-2",
-            url: "https://example.test/tickets/COM-2",
+            ticket_id: "ticket-2",
+            snapshot: {
+              key: "COM-2",
+              url: "https://example.test/tickets/COM-2",
+            },
           },
         ],
-        candidate: {
-          branch: "fix/profile-chat",
-          commit: "preview-r1",
-          base: "development",
-        },
+        candidate_id: "candidate-r1",
       },
       {
         actor: { kind: "native_producer", producer_id: "producer-original" },
@@ -119,20 +158,29 @@ export const timelineFixture: TimelineSessionResponse = {
         origin: "agent_reported",
         ticket_refs: [
           {
-            key: "COM-1",
-            url: "https://example.test/tickets/COM-1",
+            ticket_id: "ticket-1",
+            snapshot: {
+              key: "COM-1",
+              url: "https://example.test/tickets/COM-1",
+            },
           },
           {
-            key: "COM-2",
-            url: "https://example.test/tickets/COM-2",
+            ticket_id: "ticket-2",
+            snapshot: {
+              key: "COM-2",
+              url: "https://example.test/tickets/COM-2",
+            },
           },
         ],
-        deliveries: [
+        delivery_refs: [
           {
-            kind: "pull_request",
-            label: "PR #42",
-            url: "https://example.test/pull/42",
-            status: "open",
+            delivery_id: "delivery-pr",
+            snapshot: {
+              kind: "pull_request",
+              label: "PR #42",
+              url: "https://example.test/pull/42",
+              status: "open",
+            },
           },
         ],
       },
@@ -149,19 +197,21 @@ export const timelineFixture: TimelineSessionResponse = {
         origin: "agent_reported",
         ticket_refs: [
           {
-            key: "COM-1",
-            url: "https://example.test/tickets/COM-1",
+            ticket_id: "ticket-1",
+            snapshot: {
+              key: "COM-1",
+              url: "https://example.test/tickets/COM-1",
+            },
           },
           {
-            key: "COM-2",
-            url: "https://example.test/tickets/COM-2",
+            ticket_id: "ticket-2",
+            snapshot: {
+              key: "COM-2",
+              url: "https://example.test/tickets/COM-2",
+            },
           },
         ],
-        candidate: {
-          branch: "fix/profile-chat",
-          commit: "preview-r1",
-          base: "development",
-        },
+        candidate_id: "candidate-r1",
         evidence_id: "evidence_initial",
         views: [
           {
@@ -169,8 +219,11 @@ export const timelineFixture: TimelineSessionResponse = {
             title: "Perfil personal",
             ticket_refs: [
               {
-                key: "COM-1",
-                url: "https://example.test/tickets/COM-1",
+                ticket_id: "ticket-1",
+                snapshot: {
+                  key: "COM-1",
+                  url: "https://example.test/tickets/COM-1",
+                },
               },
             ],
             steps: [
@@ -195,8 +248,11 @@ export const timelineFixture: TimelineSessionResponse = {
             title: "Conversaciones",
             ticket_refs: [
               {
-                key: "COM-2",
-                url: "https://example.test/tickets/COM-2",
+                ticket_id: "ticket-2",
+                snapshot: {
+                  key: "COM-2",
+                  url: "https://example.test/tickets/COM-2",
+                },
               },
             ],
             steps: [
@@ -232,8 +288,11 @@ export const timelineFixture: TimelineSessionResponse = {
         origin: "agent_reported",
         ticket_refs: [
           {
-            key: "COM-2",
-            url: "https://example.test/tickets/COM-2",
+            ticket_id: "ticket-2",
+            snapshot: {
+              key: "COM-2",
+              url: "https://example.test/tickets/COM-2",
+            },
           },
         ],
         target: {
@@ -258,15 +317,14 @@ export const timelineFixture: TimelineSessionResponse = {
         origin: "agent_reported",
         ticket_refs: [
           {
-            key: "COM-2",
-            url: "https://example.test/tickets/COM-2",
+            ticket_id: "ticket-2",
+            snapshot: {
+              key: "COM-2",
+              url: "https://example.test/tickets/COM-2",
+            },
           },
         ],
-        candidate: {
-          branch: "fix/profile-chat",
-          commit: "preview-r2",
-          base: "development",
-        },
+        candidate_id: "candidate-r2",
         evidence_id: "evidence_iteration",
         views: [
           {
@@ -274,8 +332,11 @@ export const timelineFixture: TimelineSessionResponse = {
             title: "Chat móvil",
             ticket_refs: [
               {
-                key: "COM-2",
-                url: "https://example.test/tickets/COM-2",
+                ticket_id: "ticket-2",
+                snapshot: {
+                  key: "COM-2",
+                  url: "https://example.test/tickets/COM-2",
+                },
               },
             ],
             steps: [
@@ -317,11 +378,7 @@ export const timelineFixture: TimelineSessionResponse = {
         media_type: "image/png",
         received_at: "2026-10-31T18:20:00-06:00",
         captured_at: "2026-10-31T18:19:00-06:00",
-        candidate: {
-          branch: "fix/profile-chat",
-          commit: "preview-r1",
-          base: "development",
-        },
+        candidate_id: "candidate-r1",
         viewport: "desktop",
         theme: "light",
       },
@@ -336,11 +393,7 @@ export const timelineFixture: TimelineSessionResponse = {
         media_type: "image/png",
         received_at: "2026-10-31T18:20:00-06:00",
         captured_at: "2026-10-31T18:19:00-06:00",
-        candidate: {
-          branch: "fix/profile-chat",
-          commit: "preview-r1",
-          base: "development",
-        },
+        candidate_id: "candidate-r1",
         viewport: "mobile",
         theme: "light",
       },
@@ -355,11 +408,7 @@ export const timelineFixture: TimelineSessionResponse = {
         media_type: "image/png",
         received_at: "2026-10-31T18:20:00-06:00",
         captured_at: "2026-10-31T18:19:00-06:00",
-        candidate: {
-          branch: "fix/profile-chat",
-          commit: "preview-r1",
-          base: "development",
-        },
+        candidate_id: "candidate-r1",
         viewport: "desktop",
         theme: "light",
       },
@@ -374,11 +423,7 @@ export const timelineFixture: TimelineSessionResponse = {
         media_type: "image/png",
         received_at: "2026-10-31T18:20:00-06:00",
         captured_at: "2026-10-31T18:19:00-06:00",
-        candidate: {
-          branch: "fix/profile-chat",
-          commit: "preview-r1",
-          base: "development",
-        },
+        candidate_id: "candidate-r1",
         viewport: "mobile",
         theme: "dark",
       },
@@ -393,11 +438,7 @@ export const timelineFixture: TimelineSessionResponse = {
         media_type: "image/png",
         received_at: "2026-10-31T19:08:00-06:00",
         captured_at: "2026-10-31T19:07:00-06:00",
-        candidate: {
-          branch: "fix/profile-chat",
-          commit: "preview-r2",
-          base: "development",
-        },
+        candidate_id: "candidate-r2",
         viewport: "mobile",
         theme: "light",
       },
@@ -412,11 +453,7 @@ export const timelineFixture: TimelineSessionResponse = {
         media_type: "image/png",
         received_at: "2026-10-31T19:08:00-06:00",
         captured_at: "2026-10-31T19:07:00-06:00",
-        candidate: {
-          branch: "fix/profile-chat",
-          commit: "preview-r2",
-          base: "development",
-        },
+        candidate_id: "candidate-r2",
         viewport: "mobile",
         theme: "dark",
       },

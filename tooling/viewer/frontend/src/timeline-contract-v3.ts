@@ -1,7 +1,12 @@
+import {
+  timelineCandidateByID,
+  validateTimelineDeliveryReference,
+} from "./timeline-catalog";
 import type {
   TimelineAppendEventRequest,
-  TimelineCandidate,
+  TimelineCandidateRecord,
   TimelineDecisionTarget,
+  TimelineDeliveryReference,
   TimelineDocumentSnapshotRequest,
   TimelineSession,
   TimelineSessionPatchRequest,
@@ -107,6 +112,7 @@ export type TimelineTaskSegment = {
   withdrawn?: boolean;
 };
 export type TimelineTask = {
+  plan_order: number;
   task_id: string;
   task_key: string;
   title: string;
@@ -123,21 +129,21 @@ export type TimelineTaskSegmentInput = {
   assigned_producer_id?: string;
 };
 export type TimelineNativeOperation = {
-  schema_version: number;
+  schema_version: 3;
   operation_id: string;
   actor: TimelineActor;
   expected_session_version: number;
   reason: string;
 };
 export type TimelineJoinRequestInput = {
-  schema_version: number;
+  schema_version: 3;
   operation_id: string;
   source: TimelineSource;
   expected_session_version: number;
   reason: string;
 };
 export type TimelineProducerAcceptRequest = {
-  schema_version: number;
+  schema_version: 3;
   operation_id: string;
   actor: TimelineActor;
   expected_session_version: number;
@@ -145,7 +151,7 @@ export type TimelineProducerAcceptRequest = {
   request_id: string;
 };
 export type TimelineForegroundTransferRequest = {
-  schema_version: number;
+  schema_version: 3;
   operation_id: string;
   actor: TimelineActor;
   expected_session_version: number;
@@ -153,7 +159,7 @@ export type TimelineForegroundTransferRequest = {
   target_producer_id: string;
 };
 export type TimelineRecoverLeadRequest = {
-  schema_version: number;
+  schema_version: 3;
   operation_id: string;
   actor: TimelineActor;
   expected_session_version: number;
@@ -161,7 +167,8 @@ export type TimelineRecoverLeadRequest = {
   request_id: string;
 };
 export type TimelineTaskCreateRequest = {
-  schema_version: number;
+  plan_order: number;
+  schema_version: 3;
   operation_id: string;
   actor: TimelineActor;
   expected_session_version: number;
@@ -173,7 +180,8 @@ export type TimelineTaskCreateRequest = {
   segments: Array<TimelineTaskSegmentInput>;
 };
 export type TimelineTaskPatchRequest = {
-  schema_version: number;
+  plan_order?: number;
+  schema_version: 3;
   operation_id: string;
   actor: TimelineActor;
   expected_session_version: number;
@@ -190,7 +198,7 @@ export type TimelineTaskPatchRequest = {
   withdrawn?: boolean;
 };
 export type TimelineTaskTransitionRequest = {
-  schema_version: number;
+  schema_version: 3;
   operation_id: string;
   actor: TimelineActor;
   expected_session_version: number;
@@ -245,8 +253,8 @@ export type TimelineCIWait = {
   stage_event_id: string;
   task_id?: string;
   segment_id?: string;
-  candidate: TimelineCandidate;
-  pull_request_url: string;
+  candidate_id: string;
+  pull_request_ref: TimelineDeliveryReference;
   policy: TimelineCheckPolicy;
   state: TimelineWaitState;
   next_action?: string;
@@ -256,7 +264,7 @@ export type TimelineCIWait = {
   observations: Array<TimelineCIObservation>;
 };
 export type TimelineWaitCreateRequest = {
-  schema_version: number;
+  schema_version: 3;
   operation_id: string;
   actor: TimelineActor;
   expected_session_version: number;
@@ -264,14 +272,14 @@ export type TimelineWaitCreateRequest = {
   target_stage_event_id: string;
   task_id?: string;
   segment_id?: string;
-  candidate: TimelineCandidate;
-  pull_request_url: string;
+  candidate_id: string;
+  pull_request_delivery_id: string;
   policy: TimelineCheckPolicy;
   previous_wait_id?: string;
   next_action?: string;
 };
 export type TimelineWaitAttemptStartRequest = {
-  schema_version: number;
+  schema_version: 3;
   operation_id: string;
   actor: TimelineActor;
   expected_session_version: number;
@@ -283,7 +291,7 @@ export type TimelineWaitAttemptStartRequest = {
   observed_at: string;
 };
 export type TimelineWaitObserveRequest = {
-  schema_version: number;
+  schema_version: 3;
   operation_id: string;
   actor: TimelineActor;
   expected_session_version: number;
@@ -347,6 +355,7 @@ const shapes: Record<string, Array<[string, string, boolean]>> = {
   TimelineTask: [
     ["task_id", "string", false],
     ["task_key", "string", false],
+    ["plan_order", "int64", false],
     ["title", "string", false],
     ["summary", "string", false],
     ["task_version", "int64", false],
@@ -405,6 +414,7 @@ const shapes: Record<string, Array<[string, string, boolean]>> = {
     ["expected_session_version", "int64", false],
     ["reason", "string", false],
     ["task_key", "string", false],
+    ["plan_order", "int64", false],
     ["title", "string", false],
     ["summary", "string", false],
     ["plan_revision_id", "string", true],
@@ -426,6 +436,7 @@ const shapes: Record<string, Array<[string, string, boolean]>> = {
     ["assigned_producer_id", "string", true],
     ["display_stage_event_id", "string", true],
     ["withdrawn", "*bool", true],
+    ["plan_order", "int64", true],
   ],
   TimelineTaskTransitionRequest: [
     ["schema_version", "int", false],
@@ -483,8 +494,8 @@ const shapes: Record<string, Array<[string, string, boolean]>> = {
     ["stage_event_id", "string", false],
     ["task_id", "string", true],
     ["segment_id", "string", true],
-    ["candidate", "TimelineCandidate", false],
-    ["pull_request_url", "string", false],
+    ["candidate_id", "string", false],
+    ["pull_request_ref", "TimelineDeliveryReference", false],
     ["policy", "TimelineCheckPolicy", false],
     ["state", "string", false],
     ["next_action", "string", true],
@@ -502,8 +513,8 @@ const shapes: Record<string, Array<[string, string, boolean]>> = {
     ["target_stage_event_id", "string", false],
     ["task_id", "string", true],
     ["segment_id", "string", true],
-    ["candidate", "TimelineCandidate", false],
-    ["pull_request_url", "string", false],
+    ["candidate_id", "string", false],
+    ["pull_request_delivery_id", "string", false],
     ["policy", "TimelineCheckPolicy", false],
     ["previous_wait_id", "string", true],
     ["next_action", "string", true],
@@ -536,7 +547,7 @@ const shapes: Record<string, Array<[string, string, boolean]>> = {
   ],
 };
 
-export const TIMELINE_V2_LIMITS = {
+export const TIMELINE_V3_LIMITS = {
   producers: 16,
   joinRequests: 16,
   tasks: 100,
@@ -705,6 +716,10 @@ function typed(type: string, value: unknown, field: string): void {
     source(value);
     return;
   }
+  if (type === "TimelineDeliveryReference") {
+    validateTimelineDeliveryReference(value);
+    return;
+  }
   if (type === "TimelineCandidate") {
     const v = record(value);
     if (Object.keys(v).some((k) => !["branch", "commit", "base"].includes(k)))
@@ -761,7 +776,7 @@ function policy(v: TimelineCheckPolicy): void {
   for (const c of array(
     v.required_checks,
     "required_checks",
-    TIMELINE_V2_LIMITS.requiredChecks,
+    TIMELINE_V3_LIMITS.requiredChecks,
   ) as TimelineRequiredCheck[]) {
     id(c.check_key, "check_key");
     text(c.label, "label", 200);
@@ -769,7 +784,7 @@ function policy(v: TimelineCheckPolicy): void {
     seen.add(c.check_key);
   }
 }
-export type TimelineV2RequestMap = {
+export type TimelineV3RequestMap = {
   join_request: TimelineJoinRequestInput;
   producer_accept: TimelineProducerAcceptRequest;
   foreground_transfer: TimelineForegroundTransferRequest;
@@ -781,7 +796,7 @@ export type TimelineV2RequestMap = {
   wait_attempt_start: TimelineWaitAttemptStartRequest;
   wait_observe: TimelineWaitObserveRequest;
 };
-const operationShapes: Record<keyof TimelineV2RequestMap, string> = {
+const operationShapes: Record<keyof TimelineV3RequestMap, string> = {
   join_request: "TimelineJoinRequestInput",
   producer_accept: "TimelineProducerAcceptRequest",
   foreground_transfer: "TimelineForegroundTransferRequest",
@@ -793,17 +808,17 @@ const operationShapes: Record<keyof TimelineV2RequestMap, string> = {
   wait_attempt_start: "TimelineWaitAttemptStartRequest",
   wait_observe: "TimelineWaitObserveRequest",
 };
-export function isTimelineV2Operation(
+export function isTimelineV3Operation(
   kind: string,
-): kind is keyof TimelineV2RequestMap {
+): kind is keyof TimelineV3RequestMap {
   return Object.hasOwn(operationShapes, kind);
 }
-export function parseTimelineV2Request<K extends keyof TimelineV2RequestMap>(
+export function parseTimelineV3Request<K extends keyof TimelineV3RequestMap>(
   kind: K,
   value: unknown,
-): TimelineV2RequestMap[K] {
+): TimelineV3RequestMap[K] {
   const v = record(value);
-  if (v.schema_version !== 2) fail("schema_version", "unsupported_protocol");
+  if (v.schema_version !== 3) fail("schema_version", "unsupported_protocol");
   shape(operationShapes[kind], v);
   if (
     typeof v.operation_id !== "string" ||
@@ -814,7 +829,7 @@ export function parseTimelineV2Request<K extends keyof TimelineV2RequestMap>(
   reason(v.reason);
   if (kind === "join_request") {
     source(v.source);
-    return v as TimelineV2RequestMap[K];
+    return v as TimelineV3RequestMap[K];
   }
   validateTimelineActor(v.actor, kind !== "recover_lead");
   if (
@@ -855,6 +870,7 @@ export function parseTimelineV2Request<K extends keyof TimelineV2RequestMap>(
       break;
     }
     case "task_patch": {
+      if (v.plan_order !== undefined) number(v.plan_order, "plan_order");
       if (v.summary !== undefined) text(v.summary, "summary", 4000, false);
       number(v.expected_task_version, "expected_task_version");
       if (
@@ -864,6 +880,7 @@ export function parseTimelineV2Request<K extends keyof TimelineV2RequestMap>(
           "plan_revision_id",
           "segment_id",
           "withdrawn",
+          "plan_order",
         ].some((k) => Object.hasOwn(v, k))
       )
         fail("body", "empty_patch");
@@ -895,9 +912,10 @@ export function parseTimelineV2Request<K extends keyof TimelineV2RequestMap>(
       break;
     case "wait_create":
       if (v.next_action !== undefined)
-        text(v.next_action, "next_action", TIMELINE_V2_LIMITS.waitText);
+        text(v.next_action, "next_action", TIMELINE_V3_LIMITS.waitText);
       id(v.target_stage_event_id, "target_stage_event_id");
-      url(v.pull_request_url, "pull_request_url");
+      id(v.candidate_id, "candidate_id");
+      id(v.pull_request_delivery_id, "pull_request_delivery_id");
       policy(v.policy as TimelineCheckPolicy);
       if ((v.task_id === undefined) !== (v.segment_id === undefined))
         fail("task_id", "task_segment_pair_required");
@@ -908,7 +926,7 @@ export function parseTimelineV2Request<K extends keyof TimelineV2RequestMap>(
       for (const k of array(
         v.check_keys,
         "check_keys",
-        TIMELINE_V2_LIMITS.requiredChecks,
+        TIMELINE_V3_LIMITS.requiredChecks,
         1,
       )) {
         id(k, "check_keys");
@@ -927,21 +945,17 @@ export function parseTimelineV2Request<K extends keyof TimelineV2RequestMap>(
       if (!waitStates.includes(v.state as string)) fail("state");
       run(v.external_run as TimelineCIExternalRun);
       time(v.observed_at, "observed_at");
-      text(v.summary, "summary", TIMELINE_V2_LIMITS.waitText);
+      text(v.summary, "summary", TIMELINE_V3_LIMITS.waitText);
       break;
   }
-  return v as TimelineV2RequestMap[K];
+  return v as TimelineV3RequestMap[K];
 }
 export function validateTimelineSessionPatchActor(
   r: TimelineSessionPatchRequest,
 ): void {
   validateTimelineActor(r.actor);
   if (r.actor.kind === "local_viewer") {
-    if (
-      r.summary !== undefined ||
-      r.state !== undefined ||
-      r.tickets !== undefined
-    )
+    if (r.summary !== undefined || r.state !== undefined)
       fail("actor", "forbidden_actor");
   } else if (
     r.title !== undefined ||
@@ -951,7 +965,7 @@ export function validateTimelineSessionPatchActor(
     fail("actor", "local_viewer_required");
   if (r.state !== undefined || r.reason !== undefined) reason(r.reason);
 }
-export function validateTimelineAppendV2(r: TimelineAppendEventRequest): void {
+export function validateTimelineAppendV3(r: TimelineAppendEventRequest): void {
   validateTimelineActor(r.actor, true);
   if (
     [
@@ -988,7 +1002,7 @@ export function validateTimelineAppendV2(r: TimelineAppendEventRequest): void {
   } else if (r.review_status !== undefined)
     fail("review_status", "forbidden_for_kind");
 }
-export function validateTimelineSnapshotV2(
+export function validateTimelineSnapshotV3(
   r: TimelineDocumentSnapshotRequest,
 ): void {
   validateTimelineActor(r.actor, true);
@@ -1014,7 +1028,7 @@ export function validateTimelineTaskTransition(
   previous: string,
   r: TimelineTaskTransitionRequest,
 ): void {
-  parseTimelineV2Request("task_transition", r);
+  parseTimelineV3Request("task_transition", r);
   if (previous === r.state) return;
   const allowed: Record<string, string[]> = {
     not_started: ["in_progress", "blocked"],
@@ -1059,6 +1073,10 @@ export function validateTimelineAuthority(
       "closure",
       "task_create",
       "task_patch",
+      "ticket_create",
+      "ticket_patch",
+      "delivery_create",
+      "delivery_patch",
     ].includes(operation)
   ) {
     if (!lead) fail("actor", "lead_required");
@@ -1076,6 +1094,7 @@ export function validateTimelineAuthority(
   } else if (
     ![
       "append_event",
+      "candidate_create",
       "artifact_add",
       "document_add",
       "document_snapshot",
@@ -1173,20 +1192,29 @@ export function sameTimelineExternalRunIdentity(
   return a.commit === b.commit && a.run_id === b.run_id;
 }
 
-export function validateTimelineCIWait(w: TimelineCIWait): void {
+export function validateTimelineCIWait(
+  w: TimelineCIWait,
+  candidate: TimelineCandidateRecord,
+): void {
+  if (!candidate) fail("candidate_id", "candidate_context_required");
   if (w.next_action !== undefined)
-    text(w.next_action, "next_action", TIMELINE_V2_LIMITS.waitText);
+    text(w.next_action, "next_action", TIMELINE_V3_LIMITS.waitText);
   shape("TimelineCIWait", w);
   policy(w.policy);
-  url(w.pull_request_url, "pull_request_url");
+  id(w.candidate_id, "candidate_id");
+  for (const field of ["branch", "commit", "base"] as const)
+    text(candidate[field], field, 256);
+  if (candidate.candidate_id !== w.candidate_id)
+    fail("candidate_id", "candidate_mismatch");
+  validateTimelineDeliveryReference(w.pull_request_ref);
   if (!waitStates.includes(w.state)) fail("state");
-  array(w.attempts, "attempts", TIMELINE_V2_LIMITS.attempts);
+  array(w.attempts, "attempts", TIMELINE_V3_LIMITS.attempts);
   array(w.observations, "observations", 500);
   const required = new Set(w.policy.required_checks.map((c) => c.check_key)),
     attempts = new Map<string, TimelineCIAttempt>();
   let generation = 0;
   for (const a of w.attempts) {
-    if (a.external_run.commit !== w.candidate.commit)
+    if (a.external_run.commit !== candidate.commit)
       fail("commit", "candidate_mismatch");
     id(a.attempt_id, "attempt_id");
     if (attempts.has(a.attempt_id) || a.generation <= generation)
@@ -1196,7 +1224,7 @@ export function validateTimelineCIWait(w: TimelineCIWait): void {
     for (const k of array(
       a.check_keys,
       "check_keys",
-      TIMELINE_V2_LIMITS.requiredChecks,
+      TIMELINE_V3_LIMITS.requiredChecks,
       1,
     ) as string[]) {
       if (!required.has(k) || seen.has(k))
@@ -1230,7 +1258,7 @@ export function validateTimelineCIWait(w: TimelineCIWait): void {
   const observed: Record<string, TimelineCIObservation> = {},
     ids = new Set<string>();
   for (const o of w.observations) {
-    text(o.summary, "summary", TIMELINE_V2_LIMITS.waitText);
+    text(o.summary, "summary", TIMELINE_V3_LIMITS.waitText);
     const a = attempts.get(o.attempt_id);
     if (
       !a?.check_keys.includes(o.check_key) ||
@@ -1260,12 +1288,12 @@ export function validateTimelineCIWait(w: TimelineCIWait): void {
   )
     fail("state", "wait_aggregate_mismatch");
 }
-export function validateTimelineV2Graph(s: TimelineSession): void {
-  if (s.schema_version !== 2) fail("schema_version", "unsupported_protocol");
+export function validateTimelineV3Graph(s: TimelineSession): void {
+  if (s.schema_version !== 3) fail("schema_version", "unsupported_protocol");
   array(s.producers, "producers", 16, 1);
   array(s.pending_join_requests, "pending_join_requests", 16);
   array(s.tasks, "tasks", 100);
-  array(s.waits, "waits", TIMELINE_V2_LIMITS.waits);
+  array(s.waits, "waits", TIMELINE_V3_LIMITS.waits);
   if (
     (s.state === "in_review" || s.state === "awaiting_validation") &&
     s.current_stage_event_id === null
@@ -1321,7 +1349,10 @@ export function validateTimelineV2Graph(s: TimelineSession): void {
       fail("actor", "producer_not_accepted");
   };
   for (const d of s.documents) acceptedActor(d.actor);
-  for (const a of s.artifacts) acceptedActor(a.actor);
+  for (const a of s.artifacts) {
+    acceptedActor(a.actor);
+    timelineCandidateByID(s, a.candidate_id);
+  }
   const stagesMap = new Map(
       s.events.filter((e) => e.kind === "stage").map((e) => [e.event_id, e]),
     ),
@@ -1353,7 +1384,14 @@ export function validateTimelineV2Graph(s: TimelineSession): void {
     keys = new Set<string>(),
     segments = new Set<string>(),
     orders = new Set<string>();
+  const planOrders = new Set<number>();
   for (const t of s.tasks) {
+    number(t.plan_order, "plan_order");
+    if (!t.withdrawn) {
+      if (planOrders.has(t.plan_order))
+        fail("plan_order", "duplicate_plan_order");
+      planOrders.add(t.plan_order);
+    }
     shape("TimelineTask", t);
     id(t.task_id, "task_id");
     if (
@@ -1444,6 +1482,12 @@ export function validateTimelineV2Graph(s: TimelineSession): void {
       );
   const waits = new Set<string>();
   for (const w of s.waits) {
+    const d = s.deliveries.find(
+      (d) => d.delivery_id === w.pull_request_ref.delivery_id,
+    );
+    if (!d) fail("delivery_id", "unknown_delivery");
+    if (d.kind !== "pull_request")
+      fail("pull_request_ref", "pull_request_required");
     id(w.wait_id, "wait_id");
     if (waits.has(w.wait_id)) fail("wait_id", "duplicate_id");
     if (w.previous_wait_id && !waits.has(w.previous_wait_id))
@@ -1460,19 +1504,19 @@ export function validateTimelineV2Graph(s: TimelineSession): void {
     );
     for (const a of w.attempts) acceptedActor(a.actor);
     for (const o of w.observations) acceptedActor(o.actor);
-    validateTimelineCIWait(w);
+    validateTimelineCIWait(w, timelineCandidateByID(s, w.candidate_id));
   }
 }
-export function validateTimelineV2OperationReferences(
+export function validateTimelineV3OperationReferences(
   s: TimelineSession,
-  kind: keyof TimelineV2RequestMap,
+  kind: keyof TimelineV3RequestMap,
   objectID: string,
   value: unknown,
 ): void {
-  const r = parseTimelineV2Request(
+  const r = parseTimelineV3Request(
     kind,
     value,
-  ) as TimelineV2RequestMap[keyof TimelineV2RequestMap];
+  ) as TimelineV3RequestMap[keyof TimelineV3RequestMap];
   if (r.expected_session_version !== s.version)
     fail("expected_session_version", "version_conflict");
   if ("source" in r) {
@@ -1520,6 +1564,8 @@ export function validateTimelineV2OperationReferences(
   }
   if (kind === "task_create") {
     const req = r as TimelineTaskCreateRequest;
+    if (s.tasks.some((t) => !t.withdrawn && t.plan_order === req.plan_order))
+      fail("plan_order", "duplicate_plan_order");
     if (s.tasks.length >= 100) fail("tasks", "limit");
     if (s.tasks.some((t) => t.task_key === req.task_key))
       fail("task_key", "duplicate_key");
@@ -1552,6 +1598,23 @@ export function validateTimelineV2OperationReferences(
       fail("expected_task_version", "version_conflict");
     if (kind === "task_patch") {
       const req = r as TimelineTaskPatchRequest;
+      if (
+        req.plan_order !== undefined &&
+        req.plan_order !== t.plan_order &&
+        !req.plan_revision_id &&
+        !req.decision_target
+      )
+        fail("plan_order", "scope_reference_required");
+      if (
+        req.plan_order !== undefined &&
+        s.tasks.some(
+          (t) =>
+            !t.withdrawn &&
+            t.task_id !== objectID &&
+            t.plan_order === req.plan_order,
+        )
+      )
+        fail("plan_order", "duplicate_plan_order");
       if (req.decision_target)
         validateTimelineDecisionReference(s, req.decision_target);
       if (req.plan_revision_id && !revision(req.plan_revision_id))
@@ -1605,8 +1668,15 @@ export function validateTimelineV2OperationReferences(
     return;
   }
   if (kind === "wait_create") {
-    if (s.waits.length >= TIMELINE_V2_LIMITS.waits) fail("waits", "limit");
     const req = r as TimelineWaitCreateRequest;
+    timelineCandidateByID(s, req.candidate_id);
+    const d = s.deliveries.find(
+      (d) => d.delivery_id === req.pull_request_delivery_id,
+    );
+    if (!d) fail("delivery_id", "unknown_delivery");
+    if (d.kind !== "pull_request")
+      fail("pull_request_delivery_id", "pull_request_required");
+    if (s.waits.length >= TIMELINE_V3_LIMITS.waits) fail("waits", "limit");
     if (
       !s.events.some(
         (e) =>
@@ -1627,9 +1697,7 @@ export function validateTimelineV2OperationReferences(
       const old = s.waits.find((w) => w.wait_id === req.previous_wait_id);
       if (!old) fail("previous_wait_id", "unknown_wait");
       if (
-        old.candidate.branch === req.candidate.branch &&
-        old.candidate.commit === req.candidate.commit &&
-        old.candidate.base === req.candidate.base &&
+        old.candidate_id === req.candidate_id &&
         old.policy.policy_id === req.policy.policy_id
       )
         fail("previous_wait_id", "same_candidate_policy");
@@ -1643,9 +1711,12 @@ export function validateTimelineV2OperationReferences(
     fail("expected_wait_version", "version_conflict");
   if (kind === "wait_attempt_start") {
     const req = r as TimelineWaitAttemptStartRequest;
-    if (req.external_run.commit !== w.candidate.commit)
+    if (
+      req.external_run.commit !==
+      timelineCandidateByID(s, w.candidate_id).commit
+    )
       fail("commit", "candidate_mismatch");
-    if (w.attempts.length >= TIMELINE_V2_LIMITS.attempts)
+    if (w.attempts.length >= TIMELINE_V3_LIMITS.attempts)
       fail("attempts", "limit");
     for (const k of req.check_keys)
       if (!w.policy.required_checks.some((c) => c.check_key === k))
@@ -1729,7 +1800,7 @@ export function resolveTimelineStageEventID(
   validateTimelineTaskReference(s, r.task_id, r.segment_id, target);
   return target;
 }
-export function validateTimelineSnapshotReferencesV2(
+export function validateTimelineSnapshotReferencesV3(
   s: TimelineSession,
   eventID: string,
   r: TimelineDocumentSnapshotRequest,

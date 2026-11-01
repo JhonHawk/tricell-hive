@@ -23,6 +23,8 @@ function indexEntry(data: TimelineSessionResponse) {
     pending_join_requests: _joins,
     tasks: _tasks,
     waits: _waits,
+    deliveries: _deliveries,
+    candidates: _candidates,
     ...rest
   } = data.session;
   return { mode: "timeline_api", ...rest };
@@ -54,7 +56,7 @@ test("work A/B scroll restores independently and polling append never jumps or s
         JSON.stringify(
           path === "/api/index"
             ? {
-                protocol_version: 2,
+                protocol_version: 3,
                 retention: "manual",
                 ttl_seconds: 0,
                 repositories: [],

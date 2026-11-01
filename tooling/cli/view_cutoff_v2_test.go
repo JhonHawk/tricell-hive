@@ -46,7 +46,7 @@ func viewCutoffManifest(t *testing.T, state string) map[string]viewCutoffEvidenc
 	}
 	return out
 }
-func TestViewV2CutoffBeforeStartupEffects(t *testing.T) {
+func TestViewV3CutoffBeforeStartupEffects(t *testing.T) {
 	for _, command := range []string{"start", "serve", "stop"} {
 		for _, kind := range []string{"legacy", "unknown", "corrupt"} {
 			t.Run(command+"/"+kind, func(t *testing.T) {

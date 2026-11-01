@@ -468,10 +468,10 @@ func TestViewServesRegisteredRepositoryEndToEnd(t *testing.T) {
 		TimelineSessions []viewer.TimelineAPIIndexEntry `json:"timeline_sessions"`
 		Errors           []any                          `json:"errors"`
 	}
-	if code != 200 || json.Unmarshal(body, &index) != nil || index.ProtocolVersion != 2 || len(index.TimelineSessions) != 0 || len(index.Errors) != 0 {
+	if code != 200 || json.Unmarshal(body, &index) != nil || index.ProtocolVersion != 3 || len(index.TimelineSessions) != 0 || len(index.Errors) != 0 {
 		t.Fatal("legacy manifest was ingested")
 	}
-	raw, _ := json.Marshal(viewer.TimelineCreateSessionRequest{SchemaVersion: 2, OperationID: "cli-create", Source: viewer.TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "cli-v2"}, Title: "Published v2 work", Summary: "Real API path", Tickets: []viewer.TimelineTicket{}})
+	raw, _ := json.Marshal(viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "cli-create", Source: viewer.TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "cli-v2"}, Title: "Published v2 work", Summary: "Real API path", Tickets: []viewer.TimelineTicketInput{}})
 	var out bytes.Buffer
 	if err := runViewTimeline([]string{"session", "create", "--state-dir", f.stateDir, "--json", "-"}, &out, bytes.NewReader(raw)); err != nil {
 		t.Fatal(err)
@@ -825,8 +825,8 @@ func TestViewAccessCodeNeverFollowsRedirect(t *testing.T) {
 	}
 }
 
-func TestViewIndexRequiresLeanV2Envelope(t *testing.T) {
-	for _, body := range []string{`{"projects":[]}`, `{"protocol_version":1,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[]}`, `{"protocol_version":2,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[],"projects":[]}`, `{"protocol_version":2,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[]} {}`} {
+func TestViewIndexRequiresLeanV3Envelope(t *testing.T) {
+	for _, body := range []string{`{"projects":[]}`, `{"protocol_version":1,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[]}`, `{"protocol_version":3,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[],"projects":[]}`, `{"protocol_version":3,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[]} {}`} {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(body)) }))
 		_, err := viewIndex(serverInfo{Port: server.Listener.Addr().(*net.TCPAddr).Port, Token: "fixture-token"})
 		server.Close()
@@ -835,11 +835,11 @@ func TestViewIndexRequiresLeanV2Envelope(t *testing.T) {
 		}
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"protocol_version":2,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[]}`))
+		w.Write([]byte(`{"protocol_version":3,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[]}`))
 	}))
 	defer server.Close()
 	index, err := viewIndex(serverInfo{Port: server.Listener.Addr().(*net.TCPAddr).Port, Token: "fixture-token"})
-	if err != nil || index.ProtocolVersion != 2 || index.TimelineSessions == nil {
+	if err != nil || index.ProtocolVersion != 3 || index.TimelineSessions == nil {
 		t.Fatal("valid v2 index rejected", err)
 	}
 }

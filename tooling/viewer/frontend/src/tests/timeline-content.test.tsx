@@ -17,7 +17,11 @@ const candidate = {
   base: "development",
 };
 const stamp = "2026-10-31T18:00:00-06:00";
-const ticket = { key: "COM-1", url: "https://example.com/tickets/COM-1" };
+const ticket = {
+  ticket_id: "ticket-one",
+  snapshot: { key: "COM-1", url: "https://example.com/tickets/COM-1" },
+};
+const secondTicket = { ticket_id: "ticket-two", snapshot: { key: "COM-2" } };
 function fixture(): TimelineSessionResponse {
   const event: TimelineEvent = {
     actor: { kind: "native_producer", producer_id: "producer-original" },
@@ -30,14 +34,14 @@ function fixture(): TimelineSessionResponse {
     created_at: stamp,
     updated_at: stamp,
     origin: "agent_reported",
-    ticket_refs: [ticket, { key: "COM-2" }],
+    ticket_refs: [ticket, secondTicket],
     evidence_id: "evidence-first",
-    candidate,
+    candidate_id: "candidate-test",
     views: [
       {
         view_id: "view-chat",
         title: "Chat",
-        ticket_refs: [ticket, { key: "COM-2" }],
+        ticket_refs: [ticket, secondTicket],
         steps: ["Open Chat.", "Choose a filter."],
         expected_result: "The icon stays beside search.",
         image_refs: [
@@ -48,10 +52,10 @@ function fixture(): TimelineSessionResponse {
     ],
   };
   return {
-    schema_version: 2,
+    schema_version: 3,
     mode: "timeline_api",
     session: {
-      schema_version: 2,
+      schema_version: 3,
       producers: [
         {
           producer_id: "producer-original",
@@ -66,6 +70,8 @@ function fixture(): TimelineSessionResponse {
       foreground_producer_id: "producer-original",
       pending_join_requests: [],
       tasks: [],
+      deliveries: [],
+      candidates: [{ candidate_id: "candidate-test", ...candidate }],
       waits: [],
       documents: [],
       current_stage_event_id: null,
@@ -86,7 +92,12 @@ function fixture(): TimelineSessionResponse {
       created_at: stamp,
       updated_at: stamp,
       validation_count: 1,
-      tickets: [ticket, { key: "COM-2" }],
+      tickets: [ticket, secondTicket].map((t) => ({
+        ticket_id: t.ticket_id,
+        external_scope: "https://example.com/tracker",
+        external_id: t.snapshot.key,
+        ...t.snapshot,
+      })),
       events: [event],
       artifacts: ["image-one", "image-two"].map((artifact_id) => ({
         artifact_id,
@@ -97,7 +108,7 @@ function fixture(): TimelineSessionResponse {
         media_type: "image/png",
         received_at: stamp,
         captured_at: stamp,
-        candidate,
+        candidate_id: "candidate-test",
         viewport: "mobile",
         theme: "light",
       })),

@@ -176,7 +176,7 @@ export type RawSession = {
   fileBase?: string;
 };
 export type RawIndex = {
-  protocol_version: 2;
+  protocol_version: 3;
   retention: "manual";
   ttl_seconds: 0;
   timeline_sessions: TimelineAPIIndexEntry[];
@@ -185,7 +185,7 @@ export type RawIndex = {
 };
 export function validateIndex(value: RawIndex): RawIndex {
   if (
-    value?.protocol_version !== 2 ||
+    value?.protocol_version !== 3 ||
     value.retention !== "manual" ||
     value.ttl_seconds !== 0 ||
     !Array.isArray(value.timeline_sessions) ||

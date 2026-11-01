@@ -1,6 +1,6 @@
 package viewer
 
-// This file defines v2 wire shapes and pure validation. It performs no storage,
+// This file defines v3 wire shapes and pure validation. It performs no storage,
 // networking or authority mutation. Call graph validators under the store lock.
 import (
 	"regexp"
@@ -90,6 +90,7 @@ type TimelineTaskSegment struct {
 	Withdrawn           bool           `json:"withdrawn,omitempty"`
 }
 type TimelineTask struct {
+	PlanOrder      int64                 `json:"plan_order"`
 	TaskID         string                `json:"task_id"`
 	TaskKey        string                `json:"task_key"`
 	Title          string                `json:"title"`
@@ -134,6 +135,7 @@ type TimelineRecoverLeadRequest struct {
 	RequestID string `json:"request_id"`
 }
 type TimelineTaskCreateRequest struct {
+	PlanOrder int64 `json:"plan_order"`
 	TimelineNativeOperation
 	TaskKey        string                     `json:"task_key"`
 	Title          string                     `json:"title"`
@@ -142,6 +144,7 @@ type TimelineTaskCreateRequest struct {
 	Segments       []TimelineTaskSegmentInput `json:"segments"`
 }
 type TimelineTaskPatchRequest struct {
+	PlanOrder *int64 `json:"plan_order,omitempty"`
 	TimelineNativeOperation
 	ExpectedTaskVersion int64                   `json:"expected_task_version"`
 	Title               *string                 `json:"title,omitempty"`
@@ -202,31 +205,31 @@ type TimelineCIObservation struct {
 	Actor         TimelineActor         `json:"actor"`
 }
 type TimelineCIWait struct {
-	WaitID              string                  `json:"wait_id"`
-	WaitVersion         int64                   `json:"wait_version"`
-	StageEventID        string                  `json:"stage_event_id"`
-	TaskID              string                  `json:"task_id,omitempty"`
-	SegmentID           string                  `json:"segment_id,omitempty"`
-	Candidate           TimelineCandidate       `json:"candidate"`
-	PullRequestURL      string                  `json:"pull_request_url"`
-	Policy              TimelineCheckPolicy     `json:"policy"`
-	State               string                  `json:"state"`
-	NextAction          string                  `json:"next_action,omitempty"`
-	PreviousWaitID      string                  `json:"previous_wait_id,omitempty"`
-	ApplicableAttemptID map[string]string       `json:"applicable_attempt_id"`
-	Attempts            []TimelineCIAttempt     `json:"attempts"`
-	Observations        []TimelineCIObservation `json:"observations"`
+	WaitID              string                    `json:"wait_id"`
+	WaitVersion         int64                     `json:"wait_version"`
+	StageEventID        string                    `json:"stage_event_id"`
+	TaskID              string                    `json:"task_id,omitempty"`
+	SegmentID           string                    `json:"segment_id,omitempty"`
+	CandidateID         string                    `json:"candidate_id"`
+	PullRequestRef      TimelineDeliveryReference `json:"pull_request_ref"`
+	Policy              TimelineCheckPolicy       `json:"policy"`
+	State               string                    `json:"state"`
+	NextAction          string                    `json:"next_action,omitempty"`
+	PreviousWaitID      string                    `json:"previous_wait_id,omitempty"`
+	ApplicableAttemptID map[string]string         `json:"applicable_attempt_id"`
+	Attempts            []TimelineCIAttempt       `json:"attempts"`
+	Observations        []TimelineCIObservation   `json:"observations"`
 }
 type TimelineWaitCreateRequest struct {
 	TimelineNativeOperation
-	TargetStageEventID string              `json:"target_stage_event_id"`
-	TaskID             string              `json:"task_id,omitempty"`
-	SegmentID          string              `json:"segment_id,omitempty"`
-	Candidate          TimelineCandidate   `json:"candidate"`
-	PullRequestURL     string              `json:"pull_request_url"`
-	Policy             TimelineCheckPolicy `json:"policy"`
-	PreviousWaitID     string              `json:"previous_wait_id,omitempty"`
-	NextAction         string              `json:"next_action,omitempty"`
+	TargetStageEventID    string              `json:"target_stage_event_id"`
+	TaskID                string              `json:"task_id,omitempty"`
+	SegmentID             string              `json:"segment_id,omitempty"`
+	CandidateID           string              `json:"candidate_id"`
+	PullRequestDeliveryID string              `json:"pull_request_delivery_id"`
+	Policy                TimelineCheckPolicy `json:"policy"`
+	PreviousWaitID        string              `json:"previous_wait_id,omitempty"`
+	NextAction            string              `json:"next_action,omitempty"`
 }
 type TimelineWaitAttemptStartRequest struct {
 	TimelineNativeOperation
@@ -290,7 +293,7 @@ func validateTimelineSessionPatchActor(r TimelineSessionPatchRequest) error {
 		return err
 	}
 	if r.Actor.Kind == "local_viewer" {
-		if r.Summary != nil || r.State != nil || r.Tickets != nil {
+		if r.Summary != nil || r.State != nil {
 			return timelineError("actor", "forbidden_actor")
 		}
 	} else if r.Title != nil || r.Archived != nil || r.Pinned != nil {
@@ -304,7 +307,7 @@ func validateTimelineSessionPatchActor(r TimelineSessionPatchRequest) error {
 	}
 	return nil
 }
-func validateTimelineAppendV2(r TimelineAppendEventRequest) error {
+func validateTimelineAppendV3(r TimelineAppendEventRequest) error {
 	if err := validateTimelineNativeActor(r.Actor); err != nil {
 		return err
 	}
@@ -350,7 +353,7 @@ func validateTimelineAppendV2(r TimelineAppendEventRequest) error {
 	}
 	return nil
 }
-func validateTimelineSnapshotV2(r TimelineDocumentSnapshotRequest) error {
+func validateTimelineSnapshotV3(r TimelineDocumentSnapshotRequest) error {
 	if err := validateTimelineNativeActor(r.Actor); err != nil {
 		return err
 	}
@@ -371,10 +374,20 @@ func validateTimelineSnapshotV2(r TimelineDocumentSnapshotRequest) error {
 	return nil
 }
 
-// DecodeTimelineV2Operation uses closed DTOs, never an open map of payload fields.
-func DecodeTimelineV2Operation(kind string, raw []byte) (any, error) {
+// DecodeTimelineV3Operation uses closed DTOs, never an open map of payload fields.
+func DecodeTimelineV3Operation(kind string, raw []byte) (any, error) {
 	var target any
 	switch kind {
+	case "ticket_create":
+		target = &TimelineTicketCreateRequest{}
+	case "ticket_patch":
+		target = &TimelineTicketPatchRequest{}
+	case "delivery_create":
+		target = &TimelineDeliveryCreateRequest{}
+	case "delivery_patch":
+		target = &TimelineDeliveryPatchRequest{}
+	case "candidate_create":
+		target = &TimelineCandidateCreateRequest{}
 	case "join_request":
 		target = &TimelineJoinRequestInput{}
 	case "producer_accept":
@@ -401,9 +414,12 @@ func DecodeTimelineV2Operation(kind string, raw []byte) (any, error) {
 	if err := DecodeTimelineJSON(raw, target); err != nil {
 		return nil, err
 	}
-	return target, ValidateTimelineV2Operation(target)
+	return target, ValidateTimelineV3Operation(target)
 }
-func ValidateTimelineV2Operation(value any) error {
+func ValidateTimelineV3Operation(value any) error {
+	if _, ok, err := validateTimelineCatalogOperation(value); ok {
+		return err
+	}
 	var base TimelineNativeOperation
 	switch r := value.(type) {
 	case *TimelineJoinRequestInput:
@@ -433,6 +449,9 @@ func ValidateTimelineV2Operation(value any) error {
 		}
 		return r.TimelineNativeOperation.validate(true)
 	case *TimelineTaskCreateRequest:
+		if err := timelineNumber(r.PlanOrder, "plan_order"); err != nil {
+			return err
+		}
 		base = r.TimelineNativeOperation
 		if !timelineTaskKey.MatchString(r.TaskKey) {
 			return timelineError("task_key", "invalid_key")
@@ -462,6 +481,11 @@ func ValidateTimelineV2Operation(value any) error {
 			}
 		}
 	case *TimelineTaskPatchRequest:
+		if r.PlanOrder != nil {
+			if err := timelineNumber(*r.PlanOrder, "plan_order"); err != nil {
+				return err
+			}
+		}
 		base = r.TimelineNativeOperation
 		if r.Summary != nil {
 			if err := timelineText(*r.Summary, "summary", 4000, false); err != nil {
@@ -471,7 +495,7 @@ func ValidateTimelineV2Operation(value any) error {
 		if err := timelineNumber(r.ExpectedTaskVersion, "expected_task_version"); err != nil {
 			return err
 		}
-		if r.Title == nil && r.Summary == nil && r.PlanRevisionID == "" && r.SegmentID == "" && r.Withdrawn == nil {
+		if r.PlanOrder == nil && r.Title == nil && r.Summary == nil && r.PlanRevisionID == "" && r.SegmentID == "" && r.Withdrawn == nil {
 			return timelineError("body", "empty_patch")
 		}
 		if r.Title != nil {
@@ -524,10 +548,10 @@ func ValidateTimelineV2Operation(value any) error {
 		if err := timelineID(r.TargetStageEventID, "target_stage_event_id"); err != nil {
 			return err
 		}
-		if err := timelineCandidate(r.Candidate); err != nil {
+		if err := timelineID(r.CandidateID, "candidate_id"); err != nil {
 			return err
 		}
-		if err := timelineHTTPS(r.PullRequestURL, "pull_request_url"); err != nil {
+		if err := timelineID(r.PullRequestDeliveryID, "pull_request_delivery_id"); err != nil {
 			return err
 		}
 		if err := r.Policy.Validate(); err != nil {
@@ -665,7 +689,7 @@ func AggregateTimelineTaskState(segments []TimelineTaskSegment) string {
 	return "in_progress"
 }
 func ValidateTimelineTaskTransition(previous string, r TimelineTaskTransitionRequest) error {
-	if err := ValidateTimelineV2Operation(&r); err != nil {
+	if err := ValidateTimelineV3Operation(&r); err != nil {
 		return err
 	}
 	if previous == r.State {
@@ -711,7 +735,7 @@ func ValidateTimelineAuthority(s TimelineSession, operation string, actor Timeli
 	}
 	lead := actor.ProducerID == s.ForegroundProducerID
 	switch operation {
-	case "producer_accept", "foreground_transfer", "session_patch", "stage_start", "stage_update", "closure", "task_create", "task_patch":
+	case "producer_accept", "foreground_transfer", "session_patch", "stage_start", "stage_update", "closure", "task_create", "task_patch", "ticket_create", "ticket_patch", "delivery_create", "delivery_patch":
 		if !lead {
 			return timelineError("actor", "lead_required")
 		}
@@ -727,7 +751,7 @@ func ValidateTimelineAuthority(s TimelineSession, operation string, actor Timeli
 		if !lead && (ownerProducerID == "" || actor.ProducerID != ownerProducerID) {
 			return timelineError("actor", "segment_assignee_required")
 		}
-	case "append_event", "artifact_add", "document_add", "document_snapshot", "task_transition":
+	case "append_event", "candidate_create", "artifact_add", "document_add", "document_snapshot", "task_transition":
 	default:
 		return timelineError("operation", "unsupported_operation")
 	}
@@ -782,14 +806,14 @@ func validateTimelineHistoricalTaskReference(s TimelineSession, taskID, segmentI
 	return timelineError("task_id", "unknown_task_segment")
 }
 
-// ValidateTimelineV2Graph checks structure and server-owned membership. Before
+// ValidateTimelineV3Graph checks structure and server-owned membership. Before
 // trusting restored authority, follow ValidateTimelineResolvedProject load rules.
-func ValidateTimelineV2Graph(s TimelineSession) error {
-	if s.SchemaVersion != 2 {
+func ValidateTimelineV3Graph(s TimelineSession) error {
+	if s.SchemaVersion != 3 {
 		return timelineError("schema_version", "unsupported_protocol")
 	}
 	if s.PendingJoinRequests == nil || s.Tasks == nil || s.Waits == nil || len(s.Producers) < 1 || len(s.Producers) > 16 || len(s.PendingJoinRequests) > 16 || len(s.Tasks) > 100 || len(s.Waits) > TimelineMaxWaits {
-		return timelineError("session", "v2_collection_limit")
+		return timelineError("session", "v3_collection_limit")
 	}
 	if (s.State == "in_review" || s.State == "awaiting_validation") && s.CurrentStageEventID == nil {
 		return timelineError("current_stage_event_id", "foreground_required")
@@ -867,6 +891,9 @@ func ValidateTimelineV2Graph(s TimelineSession) error {
 		}
 	}
 	for _, a := range s.Artifacts {
+		if _, err := TimelineCandidateByID(s, a.CandidateID); err != nil {
+			return err
+		}
 		if err := acceptedActor(a.Actor); err != nil {
 			return err
 		}
@@ -900,6 +927,7 @@ func ValidateTimelineV2Graph(s TimelineSession) error {
 	}
 	ids, keys, segments := map[string]bool{}, map[string]bool{}, map[string]bool{}
 	orders := map[TimelineStage]map[int64]bool{}
+	planOrders := map[int64]bool{}
 	for _, t := range s.Tasks {
 		if err := timelineID(t.TaskID, "task_id"); err != nil {
 			return err
@@ -911,6 +939,15 @@ func ValidateTimelineV2Graph(s TimelineSession) error {
 		keys[t.TaskKey] = true
 		if err := timelineText(t.Title, "title", 120, true); err != nil {
 			return err
+		}
+		if err := timelineNumber(t.PlanOrder, "plan_order"); err != nil {
+			return err
+		}
+		if !t.Withdrawn {
+			if planOrders[t.PlanOrder] {
+				return timelineError("plan_order", "duplicate_plan_order")
+			}
+			planOrders[t.PlanOrder] = true
 		}
 		if err := timelineNumber(t.TaskVersion, "task_version"); err != nil {
 			return err
@@ -1017,23 +1054,44 @@ func ValidateTimelineV2Graph(s TimelineSession) error {
 				return err
 			}
 		}
-		if err := ValidateTimelineCIWait(w); err != nil {
+		candidate, err := TimelineCandidateByID(s, w.CandidateID)
+		if err != nil {
+			return err
+		}
+		if d, err := TimelineDeliveryByID(s, w.PullRequestRef.DeliveryID); err != nil {
+			return err
+		} else if d.Kind != "pull_request" {
+			return timelineError("pull_request_ref", "pull_request_required")
+		}
+		if err := ValidateTimelineCIWait(w, candidate); err != nil {
 			return err
 		}
 	}
 	return nil
 }
-func ValidateTimelineCIWait(w TimelineCIWait) error {
+func ValidateTimelineCIWait(w TimelineCIWait, candidate TimelineCandidateRecord) error {
+	if err := timelineID(w.CandidateID, "candidate_id"); err != nil {
+		return err
+	}
+	if candidate.CandidateID != w.CandidateID {
+		return timelineError("candidate_id", "candidate_mismatch")
+	}
 	if err := timelineText(w.NextAction, "next_action", TimelineMaxWaitText, false); err != nil {
 		return err
 	}
 	if err := w.Policy.Validate(); err != nil {
 		return err
 	}
-	if err := timelineCandidate(w.Candidate); err != nil {
+	if err := timelineCandidate(candidate.TimelineCandidate); err != nil {
 		return err
 	}
-	if err := timelineHTTPS(w.PullRequestURL, "pull_request_url"); err != nil {
+	if err := timelineID(w.PullRequestRef.DeliveryID, "pull_request_ref.delivery_id"); err != nil {
+		return err
+	}
+	if w.PullRequestRef.Snapshot.Kind != "pull_request" {
+		return timelineError("pull_request_ref", "pull_request_required")
+	}
+	if err := timelineDeliverySnapshot(w.PullRequestRef.Snapshot); err != nil {
 		return err
 	}
 	if !contains(timelineWaitStates, w.State) || len(w.Attempts) > TimelineMaxWaitAttempts || len(w.Observations) > TimelineMaxWaitObservations {
@@ -1047,7 +1105,7 @@ func ValidateTimelineCIWait(w TimelineCIWait) error {
 	knownRuns := map[timelineExternalRunIdentity]bool{}
 	var gen int64
 	for _, a := range w.Attempts {
-		if a.ExternalRun.Commit != w.Candidate.Commit {
+		if a.ExternalRun.Commit != candidate.Commit {
 			return timelineError("commit", "candidate_mismatch")
 		}
 		identity := timelineExternalRunIdentity{Commit: a.ExternalRun.Commit, RunID: a.ExternalRun.RunID}
@@ -1171,16 +1229,16 @@ func AggregateTimelineCIWait(policy TimelineCheckPolicy, applicable map[string]s
 	return "succeeded"
 }
 
-var timelineV2ResultFields = map[string][]string{
+var timelineV3ResultFields = map[string][]string{
 	"join_request": {"request_id"}, "producer_accept": {"request_id", "producer_id"}, "foreground_transfer": {"producer_id"}, "recover_lead": {"request_id", "producer_id"},
 	"task_create": {"task_id", "task_version"}, "task_patch": {"task_id", "task_version"}, "task_transition": {"task_id", "task_version"},
 	"wait_create": {"wait_id", "wait_version"}, "wait_attempt_start": {"wait_id", "wait_version", "attempt_id", "generation"}, "wait_observe": {"wait_id", "wait_version", "observation_id"},
 }
 
-func validateTimelineV2Result(r TimelineOperationResult) error {
+func validateTimelineV3Result(r TimelineOperationResult) error {
 	values := map[string]string{"request_id": r.RequestID, "producer_id": r.ProducerID, "task_id": r.TaskID, "wait_id": r.WaitID, "attempt_id": r.AttemptID, "observation_id": r.ObservationID}
 	numbers := map[string]int64{"task_version": r.TaskVersion, "wait_version": r.WaitVersion, "generation": r.Generation}
-	for _, k := range timelineV2ResultFields[string(r.Kind)] {
+	for _, k := range timelineV3ResultFields[string(r.Kind)] {
 		if n, ok := numbers[k]; ok {
 			if err := timelineNumber(n, k); err != nil {
 				return err
@@ -1361,32 +1419,35 @@ func validateTimelineAuditReferences(s TimelineSession, e TimelineEvent) error {
 	}
 	return nil
 }
-func timelineV2ProtocolDefinitions(actor TimelineActor) []timelineProtocolDefinition {
-	base := TimelineNativeOperation{SchemaVersion: 2, OperationID: "operation-example", Actor: actor, ExpectedSessionVersion: 1, Reason: "Explicit authorized change"}
+func timelineV3ProtocolDefinitions(actor TimelineActor) []timelineProtocolDefinition {
+	base := TimelineNativeOperation{SchemaVersion: 3, OperationID: "operation-example", Actor: actor, ExpectedSessionVersion: 1, Reason: "Explicit authorized change"}
 	recovery := base
 	recovery.Actor = TimelineActor{Kind: "local_viewer"}
 	policy := TimelineCheckPolicy{PolicyID: "policy-example", Confirmed: true, Authority: "Repository branch policy", SourceURL: "https://example.test/policy", ObservedAt: "2026-11-01T00:00:00Z", RequiredChecks: []TimelineRequiredCheck{{CheckKey: "test", Label: "Tests"}}}
 	run := TimelineCIExternalRun{Commit: "abc1234", RunID: "run-example", URL: "https://example.test/runs/1"}
 	return []timelineProtocolDefinition{
-		{"join_request", "hive view producer request <session-id> --json <file|->", TimelineJoinRequestInput{}, TimelineOperationResult{}, TimelineJoinRequestInput{SchemaVersion: 2, OperationID: "join-example", Source: TimelineSource{ProjectRoot: "/workspace/example", Host: "claude-code", NativeSessionID: "real-native-session"}, ExpectedSessionVersion: 1, Reason: "Authorized collaboration"}},
+		{"join_request", "hive view producer request <session-id> --json <file|->", TimelineJoinRequestInput{}, TimelineOperationResult{}, TimelineJoinRequestInput{SchemaVersion: 3, OperationID: "join-example", Source: TimelineSource{ProjectRoot: "/workspace/example", Host: "claude-code", NativeSessionID: "real-native-session"}, ExpectedSessionVersion: 1, Reason: "Authorized collaboration"}},
 		{"producer_accept", "hive view producer accept <session-id> --json <file|->", TimelineProducerAcceptRequest{}, TimelineOperationResult{}, TimelineProducerAcceptRequest{TimelineNativeOperation: base, RequestID: "request-example"}},
 		{"foreground_transfer", "hive view producer transfer <session-id> --json <file|->", TimelineForegroundTransferRequest{}, TimelineOperationResult{}, TimelineForegroundTransferRequest{TimelineNativeOperation: base, TargetProducerID: "producer-next"}},
 		{"recover_lead", "Local viewer only: recover_lead", TimelineRecoverLeadRequest{}, TimelineOperationResult{}, TimelineRecoverLeadRequest{TimelineNativeOperation: recovery, RequestID: "request-example"}},
-		{"task_create", "hive view task create <session-id> --json <file|->", TimelineTaskCreateRequest{}, TimelineOperationResult{}, TimelineTaskCreateRequest{TimelineNativeOperation: base, TaskKey: "T1", Title: "Implement contract", Summary: "Freeze typed boundaries", Segments: []TimelineTaskSegmentInput{{PlannedStage: "build", Order: 1}}}},
+		{"task_create", "hive view task create <session-id> --json <file|->", TimelineTaskCreateRequest{}, TimelineOperationResult{}, TimelineTaskCreateRequest{TimelineNativeOperation: base, PlanOrder: 1, TaskKey: "T1", Title: "Implement contract", Summary: "Freeze typed boundaries", Segments: []TimelineTaskSegmentInput{{PlannedStage: "build", Order: 1}}}},
 		{"task_patch", "hive view task update <session-id> <task-id> --json <file|->", TimelineTaskPatchRequest{}, TimelineOperationResult{}, TimelineTaskPatchRequest{TimelineNativeOperation: base, ExpectedTaskVersion: 1, Title: timelineStringPointer("Updated task")}},
 		{"task_transition", "hive view task transition <session-id> <task-id> --json <file|->", TimelineTaskTransitionRequest{}, TimelineOperationResult{}, TimelineTaskTransitionRequest{TimelineNativeOperation: base, ExpectedTaskVersion: 1, SegmentID: "segment-example", State: "in_progress"}},
-		{"wait_create", "hive view wait create <session-id> --json <file|->", TimelineWaitCreateRequest{}, TimelineOperationResult{}, TimelineWaitCreateRequest{TimelineNativeOperation: base, TargetStageEventID: "stage-delivery", Candidate: TimelineCandidate{Branch: "feature/example", Commit: "abc1234", Base: "development"}, PullRequestURL: "https://example.test/pull/1", Policy: policy}},
+		{"wait_create", "hive view wait create <session-id> --json <file|->", TimelineWaitCreateRequest{}, TimelineOperationResult{}, TimelineWaitCreateRequest{TimelineNativeOperation: base, TargetStageEventID: "stage-delivery", CandidateID: "candidate-example", PullRequestDeliveryID: "delivery-example", Policy: policy}},
 		{"wait_attempt_start", "hive view wait attempt <session-id> <wait-id> --json <file|->", TimelineWaitAttemptStartRequest{}, TimelineOperationResult{}, TimelineWaitAttemptStartRequest{TimelineNativeOperation: base, ExpectedWaitVersion: 1, CheckKeys: []string{"test"}, ExternalRun: run, SourceURL: "https://example.test/runs/1", ObservedAt: "2026-11-01T00:00:00Z"}},
 		{"wait_observe", "hive view wait observe <session-id> <wait-id> --json <file|->", TimelineWaitObserveRequest{}, TimelineOperationResult{}, TimelineWaitObserveRequest{TimelineNativeOperation: base, ExpectedWaitVersion: 1, AttemptID: "attempt-example", CheckKey: "test", ExternalRun: run, State: "waiting", Summary: "Tests running", ObservedAt: "2026-11-01T00:00:00Z"}},
 	}
 }
 
-// ValidateTimelineV2OperationReferences closes authority and same-work references.
+// ValidateTimelineV3OperationReferences closes authority and same-work references.
 // objectID is the task/wait route parameter, never trusted as an ownership claim.
 // Registered-project resolution is a separate required server boundary documented
 // by ValidateTimelineResolvedProject, not a comparison of Source root strings.
-func ValidateTimelineV2OperationReferences(s TimelineSession, kind, objectID string, value any) error {
-	if err := ValidateTimelineV2Operation(value); err != nil {
+func ValidateTimelineV3OperationReferences(s TimelineSession, kind, objectID string, value any) error {
+	if _, ok, _ := validateTimelineCatalogOperation(value); ok {
+		return ValidateTimelineCatalogReferences(s, kind, objectID, value)
+	}
+	if err := ValidateTimelineV3Operation(value); err != nil {
 		return err
 	}
 	if r, ok := value.(*TimelineJoinRequestInput); ok {
@@ -1487,6 +1548,9 @@ func ValidateTimelineV2OperationReferences(s TimelineSession, kind, objectID str
 			return timelineError("tasks", "limit")
 		}
 		for _, t := range s.Tasks {
+			if !t.Withdrawn && t.PlanOrder == r.PlanOrder {
+				return timelineError("plan_order", "duplicate_plan_order")
+			}
 			if t.TaskKey == r.TaskKey {
 				return timelineError("task_key", "duplicate_key")
 			}
@@ -1507,6 +1571,13 @@ func ValidateTimelineV2OperationReferences(s TimelineSession, kind, objectID str
 			}
 		}
 	case *TimelineTaskPatchRequest:
+		if r.PlanOrder != nil {
+			for _, t := range s.Tasks {
+				if !t.Withdrawn && t.TaskID != objectID && t.PlanOrder == *r.PlanOrder {
+					return timelineError("plan_order", "duplicate_plan_order")
+				}
+			}
+		}
 		if r.DecisionTarget != nil {
 			if err := timelineEventReferences(s, TimelineAppendEventRequest{Target: r.DecisionTarget}); err != nil {
 				return err
@@ -1518,6 +1589,9 @@ func ValidateTimelineV2OperationReferences(s TimelineSession, kind, objectID str
 		}
 		if t.TaskVersion != r.ExpectedTaskVersion {
 			return timelineError("expected_task_version", "version_conflict")
+		}
+		if r.PlanOrder != nil && *r.PlanOrder != t.PlanOrder && r.PlanRevisionID == "" && r.DecisionTarget == nil {
+			return timelineError("plan_order", "scope_reference_required")
 		}
 		if r.PlanRevisionID != "" && !timelineHasRevision(s, r.PlanRevisionID) {
 			return timelineError("plan_revision_id", "unknown_revision")
@@ -1577,6 +1651,16 @@ func ValidateTimelineV2OperationReferences(s TimelineSession, kind, objectID str
 		}
 		return timelineError("segment_id", "unknown_task_segment")
 	case *TimelineWaitCreateRequest:
+		if _, err := TimelineCandidateByID(s, r.CandidateID); err != nil {
+			return err
+		}
+		d, err := TimelineDeliveryByID(s, r.PullRequestDeliveryID)
+		if err != nil {
+			return err
+		}
+		if d.Kind != "pull_request" {
+			return timelineError("pull_request_delivery_id", "pull_request_required")
+		}
 		if len(s.Waits) >= TimelineMaxWaits {
 			return timelineError("waits", "limit")
 		}
@@ -1597,7 +1681,7 @@ func ValidateTimelineV2OperationReferences(s TimelineSession, kind, objectID str
 			for _, w := range s.Waits {
 				if w.WaitID == r.PreviousWaitID {
 					found = true
-					if w.Candidate == r.Candidate && w.Policy.PolicyID == r.Policy.PolicyID {
+					if w.CandidateID == r.CandidateID && w.Policy.PolicyID == r.Policy.PolicyID {
 						return timelineError("previous_wait_id", "same_candidate_policy")
 					}
 				}
@@ -1614,7 +1698,11 @@ func ValidateTimelineV2OperationReferences(s TimelineSession, kind, objectID str
 		if w.WaitVersion != r.ExpectedWaitVersion {
 			return timelineError("expected_wait_version", "version_conflict")
 		}
-		if r.ExternalRun.Commit != w.Candidate.Commit {
+		candidate, err := TimelineCandidateByID(s, w.CandidateID)
+		if err != nil {
+			return err
+		}
+		if r.ExternalRun.Commit != candidate.Commit {
 			return timelineError("commit", "candidate_mismatch")
 		}
 		if len(w.Attempts) >= TimelineMaxWaitAttempts {
@@ -1772,7 +1860,7 @@ func ResolveTimelineStageEventID(s TimelineSession, r TimelineAppendEventRequest
 	}
 	return target, nil
 }
-func validateTimelineSnapshotReferencesV2(s TimelineSession, eventID string, r TimelineDocumentSnapshotRequest) error {
+func validateTimelineSnapshotReferencesV3(s TimelineSession, eventID string, r TimelineDocumentSnapshotRequest) error {
 	if err := ValidateTimelineAuthority(s, "document_snapshot", r.Actor, ""); err != nil {
 		return err
 	}

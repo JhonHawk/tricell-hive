@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { timelineCandidateByID } from "./timeline-catalog";
 import {
   isSafeTimelineArtifactURL,
   isSafeTimelineURL,
@@ -43,7 +44,7 @@ import {
   type TimelineCIWait,
   type TimelineTaskState,
   type TimelineWaitState,
-} from "./timeline-contract-v2";
+} from "./timeline-contract-v3";
 import {
   type TimelineLanguage,
   timelineCopy,
@@ -106,6 +107,7 @@ function captured(data: TimelineSessionResponse) {
 }
 export function currentWaitObservations(
   wait: TimelineCIWait,
+  candidate: { commit: string },
 ): Record<string, TimelineCIObservation> {
   const result: Record<string, TimelineCIObservation> = {};
   for (const observation of wait.observations) {
@@ -115,8 +117,8 @@ export function currentWaitObservations(
     if (
       observation.attempt_id !==
         wait.applicable_attempt_id[observation.check_key] ||
-      observation.external_run.commit !== wait.candidate.commit ||
-      attempt?.external_run.commit !== wait.candidate.commit
+      observation.external_run.commit !== candidate.commit ||
+      attempt?.external_run.commit !== candidate.commit
     )
       continue;
     if (
@@ -736,7 +738,11 @@ export function useTimelinePanel({
   };
   const waitBody = (tab: string) => {
     if (!wait) return regionalEmpty(t.unavailableDetail);
-    const observations = currentWaitObservations(wait);
+    if (!panel) return null;
+    const observations = currentWaitObservations(
+      wait,
+      timelineCandidateByID(panel.data.session, wait.candidate_id),
+    );
     return tab === "checks" ? (
       <div className="flex flex-col gap-4">
         {(!wait.policy.confirmed || !wait.policy.required_checks.length) &&
@@ -1154,10 +1160,17 @@ export function useTimelinePanel({
             {wait && (
               <div className="flex shrink-0 flex-col gap-2">
                 <p className="break-all text-sm">
-                  {t.candidate}: <code>{wait.candidate.commit}</code>
+                  {t.candidate}:{" "}
+                  <code>
+                    {
+                      panel.data.session.candidates.find(
+                        (c) => c.candidate_id === wait.candidate_id,
+                      )?.commit
+                    }
+                  </code>
                 </p>
-                <SafeLink url={wait.pull_request_url}>
-                  {wait.pull_request_url}
+                <SafeLink url={wait.pull_request_ref.snapshot.url}>
+                  {wait.pull_request_ref.snapshot.url}
                 </SafeLink>
               </div>
             )}

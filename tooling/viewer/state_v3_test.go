@@ -51,7 +51,7 @@ func stateManifest(t *testing.T, dir string) map[string]stateEvidence {
 	}
 	return out
 }
-func TestV2CutoffPreservesState(t *testing.T) {
+func TestV3CutoffPreservesState(t *testing.T) {
 	for _, name := range []string{"index.json", "sessions", "session-groups", "timeline-api-v1", "registry.json"} {
 		t.Run(name, func(t *testing.T) {
 			state := t.TempDir()
@@ -74,7 +74,7 @@ func TestV2CutoffPreservesState(t *testing.T) {
 		})
 	}
 }
-func TestV2UnknownCorruptInventoryPreserved(t *testing.T) {
+func TestV3UnknownCorruptInventoryPreserved(t *testing.T) {
 	for _, scenario := range []string{"unmarked", "bad-marker", "unknown-file", "bad-record", "symlink", "hardlink", "bad-registry", "unknown-blob"} {
 		t.Run(scenario, func(t *testing.T) {
 			state := t.TempDir()
@@ -87,7 +87,7 @@ func TestV2UnknownCorruptInventoryPreserved(t *testing.T) {
 				os.Remove(filepath.Join(s.Dir(), stateMarker))
 				os.WriteFile(filepath.Join(s.Dir(), "server.json"), []byte("{}"), 0600)
 			case "bad-marker":
-				os.WriteFile(filepath.Join(s.Dir(), stateMarker), []byte(`{"storage_version":2} {}`), 0600)
+				os.WriteFile(filepath.Join(s.Dir(), stateMarker), []byte(`{"storage_version":3} {}`), 0600)
 			case "unknown-file":
 				os.WriteFile(filepath.Join(s.Dir(), "unknown"), nil, 0600)
 			case "bad-record":
@@ -116,7 +116,7 @@ func TestV2UnknownCorruptInventoryPreserved(t *testing.T) {
 	}
 }
 func string64() string { return fmt.Sprintf("%064d", 1) }
-func newV2Fixture(t *testing.T) (*Store, TimelineSession, TimelineCreateSessionRequest) {
+func newV3Fixture(t *testing.T) (*Store, TimelineSession, TimelineCreateSessionRequest) {
 	t.Helper()
 	state := t.TempDir()
 	repo := newRepo(t)
@@ -128,17 +128,17 @@ func newV2Fixture(t *testing.T) (*Store, TimelineSession, TimelineCreateSessionR
 	if err != nil {
 		t.Fatal(err)
 	}
-	request := TimelineCreateSessionRequest{SchemaVersion: 2, OperationID: "create", Source: TimelineSource{ProjectRoot: registration.Root, Host: "codex", NativeSessionID: "v2-native"}, Title: "V2 work", Summary: "Persistence fixture", Tickets: []TimelineTicket{}}
+	request := TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "create", Source: TimelineSource{ProjectRoot: registration.Root, Host: "codex", NativeSessionID: "v2-native"}, Title: "V3 work", Summary: "Persistence fixture", Tickets: []TimelineTicketInput{}}
 	response, err := s.TimelineCreate(request)
 	if err != nil {
 		t.Fatal(err)
 	}
 	return s, response.Session, request
 }
-func TestV2PersistenceUploadReplayRestart(t *testing.T) {
-	s, v, request := newV2Fixture(t)
+func TestV3PersistenceUploadReplayRestart(t *testing.T) {
+	s, v, request := newV3Fixture(t)
 	actor := TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}
-	upload := TimelineDocumentMetadata{SchemaVersion: 2, OperationID: "doc", Actor: actor, MediaType: "text/markdown"}
+	upload := TimelineDocumentMetadata{SchemaVersion: 3, OperationID: "doc", Actor: actor, MediaType: "text/markdown"}
 	result, err := s.TimelineAddDocument(v.ViewerSessionID, upload, []byte("# Durable v2"))
 	if err != nil {
 		t.Fatal(err)
@@ -159,7 +159,7 @@ func TestV2PersistenceUploadReplayRestart(t *testing.T) {
 		t.Fatalf("create replay %v", err)
 	}
 	doc, err := restarted.TimelineDocument(v.ViewerSessionID, result.DocumentID)
-	if err != nil || doc.SchemaVersion != 2 || doc.Content != "# Durable v2" {
+	if err != nil || doc.SchemaVersion != 3 || doc.Content != "# Durable v2" {
 		t.Fatalf("read %v", err)
 	}
 	raw, _ := json.Marshal(response)
@@ -170,11 +170,11 @@ func TestV2PersistenceUploadReplayRestart(t *testing.T) {
 		t.Fatal("legacy copy directory exists")
 	}
 }
-func TestV2DurableReceiptFaultRecovery(t *testing.T) {
+func TestV3DurableReceiptFaultRecovery(t *testing.T) {
 	for _, phase := range []string{"before_file_sync", "after_file_sync", "before_rename", "after_rename", "before_directory_sync", "after_directory_sync"} {
 		t.Run(phase, func(t *testing.T) {
-			s, v, _ := newV2Fixture(t)
-			metadata := TimelineDocumentMetadata{SchemaVersion: 2, OperationID: "fault", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, MediaType: "text/markdown"}
+			s, v, _ := newV3Fixture(t)
+			metadata := TimelineDocumentMetadata{SchemaVersion: 3, OperationID: "fault", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, MediaType: "text/markdown"}
 			renamed := false
 			s.timelineFault = func(at, path string) error {
 				if path == s.timelineRecordPath(v.ViewerSessionID) && at == "after_rename" {
@@ -208,8 +208,8 @@ func TestV2DurableReceiptFaultRecovery(t *testing.T) {
 		})
 	}
 }
-func TestV2RunNeverScansLegacy(t *testing.T) {
-	s, _, _ := newV2Fixture(t)
+func TestV3RunNeverScansLegacy(t *testing.T) {
+	s, _, _ := newV3Fixture(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
 	go func() { done <- s.Run(ctx, RunOptions{PollInterval: time.Millisecond}) }()
@@ -225,7 +225,7 @@ func TestV2RunNeverScansLegacy(t *testing.T) {
 	requireTimelineCode(t, err, "unsupported_protocol")
 }
 
-func TestV2ResolvedIdentityAndAliases(t *testing.T) {
+func TestV3ResolvedIdentityAndAliases(t *testing.T) {
 	state := t.TempDir()
 	repo := newRepo(t)
 	registration, err := RegisterRepository(state, repo)
@@ -237,7 +237,7 @@ func TestV2ResolvedIdentityAndAliases(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	request := TimelineCreateSessionRequest{SchemaVersion: 2, OperationID: "remote", Source: TimelineSource{ProjectRoot: registration.Root, Host: "codex", NativeSessionID: "remote-native"}, Title: "Remote work", Summary: "Identity", Tickets: []TimelineTicket{}}
+	request := TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "remote", Source: TimelineSource{ProjectRoot: registration.Root, Host: "codex", NativeSessionID: "remote-native"}, Title: "Remote work", Summary: "Identity", Tickets: []TimelineTicketInput{}}
 	response, err := s.TimelineCreate(request)
 	if err != nil {
 		t.Fatal(err)
@@ -273,8 +273,8 @@ func TestV2ResolvedIdentityAndAliases(t *testing.T) {
 	}
 }
 
-func TestV2HTTPIndexAndRetiredRoutes(t *testing.T) {
-	s, _, _ := newV2Fixture(t)
+func TestV3HTTPIndexAndRetiredRoutes(t *testing.T) {
+	s, _, _ := newV3Fixture(t)
 	server, err := NewServer(ServerOptions{Store: s, Token: "v2-test-secret-is-not-production", Port: 45555})
 	if err != nil {
 		t.Fatal(err)
@@ -308,7 +308,7 @@ func TestV2HTTPIndexAndRetiredRoutes(t *testing.T) {
 	if !reflect.DeepEqual(keys, expected) {
 		t.Fatal(keys)
 	}
-	if string(envelope["protocol_version"]) != "2" || string(envelope["errors"]) != "[]" {
+	if string(envelope["protocol_version"]) != "3" || string(envelope["errors"]) != "[]" {
 		t.Fatal("wrong v2 index")
 	}
 	before := stateManifest(t, filepath.Dir(s.Dir()))
@@ -320,13 +320,13 @@ func TestV2HTTPIndexAndRetiredRoutes(t *testing.T) {
 		t.Fatal("legacy route changed state")
 	}
 	w = request("GET", "/api/health", true)
-	if !strings.Contains(w.Body.String(), `"timeline_protocol_version":2`) {
+	if !strings.Contains(w.Body.String(), `"timeline_protocol_version":3`) {
 		t.Fatal("wrong protocol health")
 	}
 }
 
-func TestV2ValidationPrecedesCleanup(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+func TestV3ValidationPrecedesCleanup(t *testing.T) {
+	s, v, _ := newV3Fixture(t)
 	orphan := filepath.Join(s.timelineDir(), ".timeline-write-incomplete")
 	if err := os.WriteFile(orphan, []byte("incomplete"), 0600); err != nil {
 		t.Fatal(err)
@@ -353,9 +353,9 @@ func TestV2ValidationPrecedesCleanup(t *testing.T) {
 	}
 }
 
-func TestV2BlobHardlinksRejectedAtReadAndRestart(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
-	result, err := s.TimelineAddDocument(v.ViewerSessionID, TimelineDocumentMetadata{SchemaVersion: 2, OperationID: "hardlink-doc", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, MediaType: "text/markdown"}, []byte("# Kept"))
+func TestV3BlobHardlinksRejectedAtReadAndRestart(t *testing.T) {
+	s, v, _ := newV3Fixture(t)
+	result, err := s.TimelineAddDocument(v.ViewerSessionID, TimelineDocumentMetadata{SchemaVersion: 3, OperationID: "hardlink-doc", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, MediaType: "text/markdown"}, []byte("# Kept"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -372,7 +372,7 @@ func TestV2BlobHardlinksRejectedAtReadAndRestart(t *testing.T) {
 	}
 }
 
-func TestV2OriginalSourceAliasIsNeverRewritten(t *testing.T) {
+func TestV3OriginalSourceAliasIsNeverRewritten(t *testing.T) {
 	state := t.TempDir()
 	repo := newRepo(t)
 	if _, err := RegisterRepository(state, repo); err != nil {
@@ -387,7 +387,7 @@ func TestV2OriginalSourceAliasIsNeverRewritten(t *testing.T) {
 		t.Fatal(err)
 	}
 	source := TimelineSource{ProjectRoot: alias, Host: "codex", NativeSessionID: "actual-native"}
-	response, err := s.TimelineCreate(TimelineCreateSessionRequest{SchemaVersion: 2, OperationID: "alias-create", Source: source, Title: "Actual source", Summary: "Canonical identity, actual provenance", Tickets: []TimelineTicket{}})
+	response, err := s.TimelineCreate(TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "alias-create", Source: source, Title: "Actual source", Summary: "Canonical identity, actual provenance", Tickets: []TimelineTicketInput{}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -404,14 +404,14 @@ func TestV2OriginalSourceAliasIsNeverRewritten(t *testing.T) {
 	}
 }
 
-func TestV2PendingDeletionAndReceiptSurviveRestart(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
-	meta := TimelineDocumentMetadata{SchemaVersion: 2, OperationID: "pending-doc", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, MediaType: "text/markdown"}
+func TestV3PendingDeletionAndReceiptSurviveRestart(t *testing.T) {
+	s, v, _ := newV3Fixture(t)
+	meta := TimelineDocumentMetadata{SchemaVersion: 3, OperationID: "pending-doc", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, MediaType: "text/markdown"}
 	result, err := s.TimelineAddDocument(v.ViewerSessionID, meta, []byte("# To delete"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	request := TimelineMutationRequest{SchemaVersion: 2, OperationID: "delete", ExpectedVersion: result.SessionVersion, Actor: TimelineActor{Kind: "local_viewer"}}
+	request := TimelineMutationRequest{SchemaVersion: 3, OperationID: "delete", ExpectedVersion: result.SessionVersion, Actor: TimelineActor{Kind: "local_viewer"}}
 	s.timelineFault = func(phase, path string) error {
 		if phase == "before_delete_blobs" {
 			return errors.New("interrupted")
@@ -448,8 +448,8 @@ func TestV2PendingDeletionAndReceiptSurviveRestart(t *testing.T) {
 	}
 }
 
-func TestV2ManualRetentionNeverScansOrExpires(t *testing.T) {
-	s, v, _ := newV2Fixture(t)
+func TestV3ManualRetentionNeverScansOrExpires(t *testing.T) {
+	s, v, _ := newV3Fixture(t)
 	s.now = func() time.Time { return time.Now().Add(365 * 24 * time.Hour) }
 	if _, err := s.Purge(); err != nil {
 		t.Fatal(err)
@@ -463,10 +463,10 @@ func TestV2ManualRetentionNeverScansOrExpires(t *testing.T) {
 	}
 }
 
-func TestV2RestoredBindingSurvivesUnavailableSource(t *testing.T) {
+func TestV3RestoredBindingSurvivesUnavailableSource(t *testing.T) {
 	for _, scenario := range []string{"deleted-alias", "moved-repository"} {
 		t.Run(scenario, func(t *testing.T) {
-			s, original, request := newV2Fixture(t)
+			s, original, request := newV3Fixture(t)
 			alias := filepath.Join(t.TempDir(), "source-alias")
 			if err := os.Symlink(original.Source.ProjectRoot, alias); err != nil {
 				t.Fatal(err)
@@ -510,7 +510,7 @@ func TestV2RestoredBindingSurvivesUnavailableSource(t *testing.T) {
 	}
 }
 
-func TestV2UnavailableAliasDoesNotHideContradictoryIdentity(t *testing.T) {
+func TestV3UnavailableAliasDoesNotHideContradictoryIdentity(t *testing.T) {
 	state := t.TempDir()
 	repo := newRepo(t)
 	if _, err := RegisterRepository(state, repo); err != nil {
@@ -526,7 +526,7 @@ func TestV2UnavailableAliasDoesNotHideContradictoryIdentity(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = s.TimelineCreate(TimelineCreateSessionRequest{SchemaVersion: 2, OperationID: "bound", Source: TimelineSource{ProjectRoot: alias, Host: "codex", NativeSessionID: "native"}, Title: "Bound work", Summary: "Keep original provenance", Tickets: []TimelineTicket{}})
+	_, err = s.TimelineCreate(TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "bound", Source: TimelineSource{ProjectRoot: alias, Host: "codex", NativeSessionID: "native"}, Title: "Bound work", Summary: "Keep original provenance", Tickets: []TimelineTicketInput{}})
 	if err != nil {
 		t.Fatal(err)
 	}

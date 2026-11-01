@@ -3,7 +3,7 @@ import type {
   TimelineCIWait,
   TimelineTask,
   TimelineTaskSegment,
-} from "./timeline-contract-v2";
+} from "./timeline-contract-v3";
 export type TimelineTaskProjection = {
   task: TimelineTask;
   segment: TimelineTaskSegment;

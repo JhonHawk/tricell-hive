@@ -57,12 +57,12 @@ func (s *Server) timelineDomain(w http.ResponseWriter, r *http.Request, id strin
 		timelineHTTPError(w, err)
 		return true
 	}
-	request, err := DecodeTimelineV2Operation(kind, raw)
+	request, err := DecodeTimelineV3Operation(kind, raw)
 	if err != nil {
 		timelineHTTPError(w, err)
 		return true
 	}
-	result, err := s.store.TimelineV2Operation(id, kind, object, request)
+	result, err := s.store.TimelineV3Operation(id, kind, object, request)
 	if err != nil {
 		timelineHTTPError(w, err)
 		return true

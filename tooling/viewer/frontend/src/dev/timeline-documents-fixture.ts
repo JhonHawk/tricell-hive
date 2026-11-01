@@ -3,6 +3,7 @@ import type {
   TimelineDocument,
   TimelineDocumentResponse,
 } from "../timeline-contract";
+import { completeTaskMarkdown } from "./timeline-plan-fixture";
 export const previewDocumentMetadata: TimelineDocument[] = [
   {
     actor: {
@@ -38,8 +39,8 @@ export const previewDocumentMetadata: TimelineDocument[] = [
     document_id: "document_tasks",
     session_id:
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    sha256: "b4ad8e698468b4fbf9ba03b1170a41b6097f930cc9aa2258269aab4fca83e9ea",
-    size: 581,
+    sha256: "ff40152c3ae3dfe72bf3c2abae9749562515a4141fbc73f9d23aa6b6c5068fab",
+    size: 574,
     media_type: "text/markdown",
     received_at: "2026-10-31T20:00:00-06:00",
   },
@@ -140,8 +141,7 @@ const content: Record<string, string> = {
     "# Propuesta · R3\n\nLeer el trabajo de arriba hacia abajo y conservar las decisiones, las revisiones y la evidencia de cada etapa.\n\n## Resultado esperado\n\n1. Historial ascendente con tareas en su etapa real.\n2. Un Sheet común para investigación, plan, build, verificación y entrega.\n3. Lecturas estables que se actualizan solo por una acción explícita.\n\nLa publicación de este documento no equivale a aprobación.\n",
   document_design:
     "# Diseño · R3\n\n### Native composition and sketches\n\nReutilizar Timeline, Sheet, Tabs, Select, Collapsible, Tooltip y Spinner instalados. El encabezado y las pestañas permanecen fijos; el cuerpo tiene su propio scroll. En móvil el Sheet ocupa el ancho completo y en escritorio dos tercios.\n\n```text\nTrabajo                         6/7 finalizadas\nBuild                           6/6 finalizadas\nVerificación                    1/1 finalizadas\nEntrega                         0/1 finalizadas\n  ◌ T7 — Verificación y entrega\n    Ⅱ CI — Checks del pull request\n```\n\n## Estados independientes\n\n| Tramo | Estado declarado | Acción de lectura | Evidencia de origen |\n| --- | --- | --- | --- |\n| Build | Finalizada | Abrir detalle de implementación | Capturas de escritorio y móvil |\n| Verificación | Finalizada | Revisar resultados y observaciones | Contratos y pruebas completas |\n| Entrega | No iniciada | Consultar el candidato publicado | Checks del commit actual |\n\nLos estados se muestran solamente en el punto de cada fila. El Sheet muestra el global y todos los tramos, sin deducir progreso por la posición.\n",
-  document_tasks:
-    "# Tareas · R3\n\n- [x] T1 — Contrato tipado de productores, tareas y CI.\n- [x] T2 — Historial ascendente y navegación por trabajo.\n- [ ] T3 — Lecturas estables de documentos, tareas y CI.\n- [ ] T4 — Almacén v2 nuevo y corte limpio.\n- [ ] T5 — Colaboración y autoridad en el servidor.\n- [ ] T6 — Recorrido real de publicación con binario aislado.\n- [ ] T7 — Guía canónica y documentación.\n- [ ] T8 — Verificación integrada y validación humana.\n\nEsta lista es documento del plan. Los indicadores y contadores usan el registro tipado, nunca el texto Markdown.\n",
+  document_tasks: completeTaskMarkdown,
   document_criteria:
     "# Criterios · R3\n\n## MODIFIED Requirements\n\n### Lectura común\n\nEl panel conserva el documento abierto y ofrece Ver la última cuando llega un sucesor de su misma cadena. Las pestañas nuevas, cambiadas y quitadas se comparan por etiqueta e identidad del documento.\n\n### Tareas y Entrega\n\nT7 conserva un único ID entre Verificación y Entrega. Los checks verdes del candidato actual no prueban integración ni autorizan merge.\n",
   document_earlier:
@@ -164,5 +164,5 @@ export async function loadPreviewDocument(
     (d) => d.document_id === documentID,
   );
   if (!document) throw new Error("preview_document_missing");
-  return { schema_version: 2, document, content: content[documentID] };
+  return { schema_version: 3, document, content: content[documentID] };
 }

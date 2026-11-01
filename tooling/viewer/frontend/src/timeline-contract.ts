@@ -1,6 +1,20 @@
 import {
-  isTimelineV2Operation,
-  parseTimelineV2Request,
+  isTimelineCatalogOperation,
+  parseTimelineCatalogRequest,
+  type TimelineCatalogRequestMap,
+  validateTimelineCatalogs,
+  validateTimelineDeliveryReference,
+  validateTimelineIDs,
+  validateTimelineTicketInput,
+  validateTimelineTicketRecord,
+  validateTimelineTicketReferences,
+} from "./timeline-catalog";
+
+export * from "./timeline-catalog";
+
+import {
+  isTimelineV3Operation,
+  parseTimelineV3Request,
   resolveTimelineStageEventID,
   type TimelineActor,
   type TimelineAudit,
@@ -8,23 +22,23 @@ import {
   type TimelineJoinRequest,
   type TimelineProducer,
   type TimelineTask,
-  type TimelineV2RequestMap,
+  type TimelineV3RequestMap,
   validateTimelineActor,
-  validateTimelineAppendV2,
+  validateTimelineAppendV3,
   validateTimelineAuthority,
   validateTimelineSessionPatchActor,
-  validateTimelineSnapshotReferencesV2,
-  validateTimelineSnapshotV2,
-  validateTimelineV2Graph,
-} from "./timeline-contract-v2";
+  validateTimelineSnapshotReferencesV3,
+  validateTimelineSnapshotV3,
+  validateTimelineV3Graph,
+} from "./timeline-contract-v3";
 
-export * from "./timeline-contract-v2";
+export * from "./timeline-contract-v3";
 
 import type { RawSession } from "./api";
 
 // This contract is independent of the legacy walkthrough manifest. External
 // data must be parsed before it reaches typed timeline rendering.
-export const TIMELINE_SCHEMA_VERSION = 2 as const;
+export const TIMELINE_SCHEMA_VERSION = 3 as const;
 export const TIMELINE_LIMITS = {
   body: 2 << 20,
   content: 7 << 18,
@@ -75,12 +89,30 @@ export type TimelineSource = {
   host: TimelineHost;
   native_session_id: string;
 };
-export type TimelineTicket = { key: string; title?: string; url?: string };
-export type TimelineTicketRef = { key: string; url?: string };
+export type TimelineTicketInput = {
+  external_scope: string;
+  external_id: string;
+  key: string;
+  title?: string;
+  url?: string;
+};
+export type TimelineTicket = TimelineTicketInput & { ticket_id: string };
+export type TimelineTicketSnapshot = {
+  key: string;
+  title?: string;
+  url?: string;
+};
+export type TimelineTicketRef = {
+  ticket_id: string;
+  snapshot: TimelineTicketSnapshot;
+};
 export type TimelineCandidate = {
   branch: string;
   commit: string;
   base: string;
+};
+export type TimelineCandidateRecord = TimelineCandidate & {
+  candidate_id: string;
 };
 export type TimelineStage =
   | "research"
@@ -126,13 +158,13 @@ export type TimelineDocumentSnapshot = {
   tabs: TimelineDocumentTab[];
 };
 export type TimelineDocumentResponse = {
-  schema_version: 2;
+  schema_version: 3;
   document: TimelineDocument;
   content: string;
 };
 export type TimelineDocumentMetadata = {
   actor: TimelineActor;
-  schema_version: 2;
+  schema_version: 3;
   operation_id: string;
   media_type: "text/markdown";
 };
@@ -143,7 +175,7 @@ export type TimelineDocumentSnapshotRequest = {
   task_id?: string;
   segment_id?: string;
   actor: TimelineActor;
-  schema_version: 2;
+  schema_version: 3;
   operation_id: string;
   expected_version: number;
   status: "draft" | "complete";
@@ -168,14 +200,24 @@ export type TimelineView = {
   image_refs: TimelineImageRef[];
   supersedes?: TimelineSupersedes;
 };
-export type TimelineViewInput = Omit<TimelineView, "view_id"> & {
-  view_id?: string;
-};
-export type TimelineDelivery = {
+export type TimelineViewInput = Omit<
+  TimelineView,
+  "view_id" | "ticket_refs"
+> & { view_id?: string; ticket_ids: string[] };
+export type TimelineDeliverySnapshot = {
   kind: "pull_request" | "commit";
   label: string;
   url: string;
   status: "open" | "merged" | "local";
+};
+export type TimelineDelivery = TimelineDeliverySnapshot & {
+  delivery_id: string;
+  repository_url: string;
+  external_id: string;
+};
+export type TimelineDeliveryReference = {
+  delivery_id: string;
+  snapshot: TimelineDeliverySnapshot;
 };
 export type TimelineClosure = {
   reason: "completed" | "paused" | "abandoned";
@@ -200,13 +242,13 @@ export type TimelineEvent = {
   origin: "agent_reported" | "server";
   ticket_refs: TimelineTicketRef[];
   withdrawn?: boolean;
-  candidate?: TimelineCandidate;
+  candidate_id?: string;
   evidence_id?: string;
   views?: TimelineView[];
   related_event_id?: string;
   target?: TimelineEvidenceTarget;
   source_reference?: string;
-  deliveries?: TimelineDelivery[];
+  delivery_refs?: TimelineDeliveryReference[];
   closure?: TimelineClosure;
   stage?: TimelineStage;
   stage_state?: TimelineStageState;
@@ -224,18 +266,20 @@ export type TimelineArtifact = {
   media_type: "image/png" | "image/jpeg" | "image/webp";
   received_at: string;
   captured_at: string;
-  candidate: TimelineCandidate;
+  candidate_id: string;
   viewport: "desktop" | "mobile";
   theme: "light" | "dark" | "unspecified";
 };
 export type TimelineSession = {
+  deliveries: TimelineDelivery[];
+  candidates: TimelineCandidateRecord[];
   producers: TimelineProducer[];
   foreground_producer_id: string;
   pending_join_requests: TimelineJoinRequest[];
   tasks: TimelineTask[];
   waits: TimelineCIWait[];
   reason?: string;
-  schema_version: 2;
+  schema_version: 3;
   viewer_session_id: string;
   project_key: string;
   project_name: string;
@@ -267,12 +311,19 @@ export type TimelineAPIIndexEntry = Omit<
   | "pending_join_requests"
   | "tasks"
   | "waits"
+  | "deliveries"
+  | "candidates"
 > & { mode: "timeline_api" };
 export type TimelineLegacyIndexEntry = { mode: "legacy"; session: RawSession };
 export type TimelineIndexEntry =
   | TimelineAPIIndexEntry
   | TimelineLegacyIndexEntry;
 export type TimelineOperationKind =
+  | "ticket_create"
+  | "ticket_patch"
+  | "delivery_create"
+  | "delivery_patch"
+  | "candidate_create"
   | "join_request"
   | "producer_accept"
   | "foreground_transfer"
@@ -293,7 +344,7 @@ export type TimelineOperationKind =
   | "document_add"
   | "document_snapshot";
 type TimelineOperationBase = {
-  schema_version: 2;
+  schema_version: 3;
   operation_id: string;
   viewer_session_id: string;
   session_version: number;
@@ -308,6 +359,11 @@ type TimelineEventOperationFields = {
 };
 export type TimelineOperationResult = TimelineOperationBase &
   (
+    | { kind: "ticket_create"; ticket_id: string; created: boolean }
+    | { kind: "ticket_patch"; ticket_id: string }
+    | { kind: "delivery_create"; delivery_id: string; created: boolean }
+    | { kind: "delivery_patch"; delivery_id: string }
+    | { kind: "candidate_create"; candidate_id: string; created: boolean }
     | { kind: "create_session"; created: boolean }
     | { kind: "session_patch" }
     | { kind: "join_request"; request_id: string }
@@ -364,7 +420,7 @@ export type TimelineOperationReceipt = {
   result: TimelineOperationResult;
 };
 export type TimelineSessionResponse = {
-  schema_version: 2;
+  schema_version: 3;
   mode: "timeline_api";
   session: TimelineSession;
   artifact_urls?: Record<string, string>;
@@ -372,26 +428,23 @@ export type TimelineSessionResponse = {
   created?: boolean;
 };
 export type TimelineCreateSessionRequest = {
-  schema_version: 2;
+  schema_version: 3;
   operation_id: string;
   source: TimelineSource;
   title: string;
   summary: string;
-  tickets: TimelineTicket[];
+  tickets: TimelineTicketInput[];
 };
 export type TimelineMutationRequest = {
   actor: TimelineActor;
-  schema_version: 2;
+  schema_version: 3;
   operation_id: string;
   expected_version: number;
 };
 export type TimelineSessionPatchRequest = TimelineMutationRequest & {
   reason?: string;
 } & Partial<
-    Pick<
-      TimelineSession,
-      "title" | "summary" | "state" | "tickets" | "archived" | "pinned"
-    >
+    Pick<TimelineSession, "title" | "summary" | "state" | "archived" | "pinned">
   >;
 export type TimelineEventPatchRequest = TimelineMutationRequest &
   Partial<Pick<TimelineEvent, "title" | "summary" | "stage_state">> & {
@@ -405,18 +458,18 @@ export type TimelineAppendEventRequest = {
   reason?: string;
   review_status?: string;
   actor: TimelineActor;
-  schema_version: 2;
+  schema_version: 3;
   operation_id: string;
   kind: TimelineEventKind;
   title: string;
   summary: string;
-  ticket_refs: TimelineTicketRef[];
-  candidate?: TimelineCandidate;
+  ticket_ids: string[];
+  candidate_id?: string;
   views?: TimelineViewInput[];
   related_event_id?: string;
   target?: TimelineEvidenceTarget;
   source_reference?: string;
-  deliveries?: TimelineDelivery[];
+  delivery_ids?: string[];
   closure?: TimelineClosure;
   stage?: TimelineStage;
   stage_state?: "in_progress";
@@ -425,16 +478,17 @@ export type TimelineAppendEventRequest = {
 };
 export type TimelineArtifactMetadata = {
   actor: TimelineActor;
-  schema_version: 2;
+  schema_version: 3;
   operation_id: string;
   captured_at: string;
-  candidate: TimelineCandidate;
+  candidate_id: string;
   viewport: "desktop" | "mobile";
   theme: "light" | "dark" | "unspecified";
   media_type: "image/png" | "image/jpeg" | "image/webp";
 };
 export type TimelineContractKind =
-  | keyof TimelineV2RequestMap
+  | keyof TimelineV3RequestMap
+  | keyof TimelineCatalogRequestMap
   | "create_session"
   | "session_patch"
   | "event_patch"
@@ -582,6 +636,20 @@ export function isSafeTimelineURL(value: unknown): value is string {
     );
   if (!authority || (authority[2] && Number(authority[2].slice(1)) > 65535))
     return false;
+  const rawHost = authority[1].toLowerCase();
+  if (!rawHost.startsWith("[")) {
+    const last = rawHost.replace(/\.$/, "").split(".").at(-1) ?? "";
+    if (/^[0-9]+$/.test(last) || /^0x[0-9a-f]*$/.test(last)) {
+      const octets = rawHost.split(".");
+      if (
+        octets.length !== 4 ||
+        octets.some(
+          (part) => !/^(0|[1-9][0-9]*)$/.test(part) || Number(part) > 255,
+        )
+      )
+        return false;
+    }
+  }
   try {
     const parsed = new URL(value);
     return (
@@ -625,30 +693,19 @@ export function validateTimelineSource(value: unknown) {
     fail("source.native_session_id", "native_id_required");
 }
 const source = validateTimelineSource;
-export function timelineTicketIdentity(ref: TimelineTicketRef): string {
-  return `${ref.key}\0${ref.url ?? ""}`;
+export function timelineTicketIdentity(ref: { ticket_id: string }): string {
+  return ref.ticket_id;
 }
-function ticket(value: unknown, full = false) {
-  const obj = object(value, ["key"], full ? ["url", "title"] : ["url"]);
-  text(obj.key, "tickets.key", 100);
-  if (obj.url !== undefined && !isSafeTimelineURL(obj.url))
-    fail("tickets.url", "invalid_https_url");
-  if (obj.title !== undefined) text(obj.title, "tickets.title", 300);
-}
-function tickets(value: unknown, full = false) {
+function tickets(value: unknown, full = false, bootstrap = false) {
   const list = array(value, "tickets", 100);
-  const seen = new Set<string>();
-  for (const item of list) {
-    ticket(item, full);
-    const key = timelineTicketIdentity(item as TimelineTicketRef);
-    if (seen.has(key)) fail("tickets", "duplicate_ticket");
-    seen.add(key);
+  if (!full) {
+    validateTimelineTicketReferences(list);
+    return;
   }
-}
-function candidate(value: unknown) {
-  const obj = object(value, ["branch", "commit", "base"]);
-  for (const field of ["branch", "commit", "base"])
-    text(obj[field], `candidate.${field}`, 256);
+  for (const item of list) {
+    if (bootstrap) validateTimelineTicketInput(item);
+    else validateTimelineTicketRecord(item);
+  }
 }
 function target(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value))
@@ -678,7 +735,7 @@ function view(value: unknown, output = false) {
     value,
     [
       "title",
-      "ticket_refs",
+      output ? "ticket_refs" : "ticket_ids",
       "steps",
       "expected_result",
       "image_refs",
@@ -688,7 +745,8 @@ function view(value: unknown, output = false) {
   );
   if (obj.view_id !== undefined) id(obj.view_id, "views.view_id");
   text(obj.title, "views.title", 200);
-  tickets(obj.ticket_refs);
+  if (output) tickets(obj.ticket_refs);
+  else validateTimelineIDs(obj.ticket_ids, "views.ticket_ids");
   for (const step of array(obj.steps, "views.steps", 100, 1))
     text(step, "views.steps", 2000);
   text(obj.expected_result, "views.expected_result", 4000);
@@ -712,7 +770,7 @@ function view(value: unknown, output = false) {
   }
 }
 function operation(obj: ObjectValue, version = false) {
-  if (obj.schema_version !== 2) fail("schema_version", "unsupported_protocol");
+  if (obj.schema_version !== 3) fail("schema_version", "unsupported_protocol");
   if (
     typeof obj.operation_id !== "string" ||
     !operationID.test(obj.operation_id)
@@ -734,8 +792,9 @@ function eventPayload(obj: ObjectValue, output = false) {
   if (!kinds.includes(obj.kind as string)) fail("kind", "unsupported_kind");
   text(obj.title, "title", 200);
   text(obj.summary, "summary", 4000);
-  tickets(obj.ticket_refs);
-  if (obj.candidate !== undefined) candidate(obj.candidate);
+  if (output) tickets(obj.ticket_refs);
+  else validateTimelineIDs(obj.ticket_ids, "ticket_ids");
+  if (obj.candidate_id !== undefined) id(obj.candidate_id, "candidate_id");
   if (obj.related_event_id !== undefined)
     id(obj.related_event_id, "related_event_id");
   if (obj.occurred_at !== undefined) timestamp(obj.occurred_at, "occurred_at");
@@ -778,19 +837,18 @@ function eventPayload(obj: ObjectValue, output = false) {
   } else if (obj.target !== undefined || obj.source_reference !== undefined)
     fail("target", "forbidden_for_kind");
   if (obj.kind === "delivery") {
-    for (const item of array(obj.deliveries, "deliveries", 100, 1)) {
-      const d = object(item, ["kind", "label", "url", "status"]);
-      if (
-        !["pull_request", "commit"].includes(d.kind as string) ||
-        !["open", "merged", "local"].includes(d.status as string)
-      )
-        fail("deliveries", "invalid_kind_or_status");
-      text(d.label, "deliveries.label", 200);
-      if (!isSafeTimelineURL(d.url))
-        fail("deliveries.url", "invalid_https_url");
-    }
-  } else if (obj.deliveries !== undefined)
-    fail("deliveries", "forbidden_for_kind");
+    if (output) {
+      const refs = array(obj.delivery_refs, "delivery_refs", 100, 1);
+      const seen = new Set<string>();
+      for (const ref of refs) {
+        validateTimelineDeliveryReference(ref);
+        const id = (ref as TimelineDeliveryReference).delivery_id;
+        if (seen.has(id)) fail("delivery_refs", "duplicate_id");
+        seen.add(id);
+      }
+    } else validateTimelineIDs(obj.delivery_ids, "delivery_ids", true);
+  } else if (obj.delivery_ids !== undefined || obj.delivery_refs !== undefined)
+    fail("delivery_ids", "forbidden_for_kind");
   if (obj.kind === "closure") {
     const c = object(obj.closure, ["reason", "result"]);
     if (!["completed", "paused", "abandoned"].includes(c.reason as string))
@@ -798,41 +856,51 @@ function eventPayload(obj: ObjectValue, output = false) {
     text(c.result, "closure.result", 4000);
   } else if (obj.closure !== undefined) fail("closure", "forbidden_for_kind");
 }
-const eventRequired = ["kind", "title", "summary", "ticket_refs"];
+const eventRequired = ["kind", "title", "summary", "ticket_ids"];
 const eventOptional = [
   "target_stage_event_id",
   "task_id",
   "segment_id",
   "reason",
   "review_status",
-  "candidate",
+  "candidate_id",
   "views",
   "related_event_id",
   "target",
   "source_reference",
-  "deliveries",
+  "delivery_ids",
   "closure",
   "stage",
   "stage_state",
   "expected_session_version",
   "occurred_at",
 ];
-export type TimelineRequestMap = TimelineV2RequestMap & {
-  create_session: TimelineCreateSessionRequest;
-  session_patch: TimelineSessionPatchRequest;
-  event_patch: TimelineEventPatchRequest;
-  mutation: TimelineMutationRequest;
-  append_event: TimelineAppendEventRequest;
-  artifact_metadata: TimelineArtifactMetadata;
-  document_metadata: TimelineDocumentMetadata;
-  document_snapshot: TimelineDocumentSnapshotRequest;
-};
+export type TimelineRequestMap = TimelineV3RequestMap &
+  TimelineCatalogRequestMap & {
+    create_session: TimelineCreateSessionRequest;
+    session_patch: TimelineSessionPatchRequest;
+    event_patch: TimelineEventPatchRequest;
+    mutation: TimelineMutationRequest;
+    append_event: TimelineAppendEventRequest;
+    artifact_metadata: TimelineArtifactMetadata;
+    document_metadata: TimelineDocumentMetadata;
+    document_snapshot: TimelineDocumentSnapshotRequest;
+  };
 export function parseTimelineRequest<K extends keyof TimelineRequestMap>(
   kind: K,
   value: unknown,
 ): TimelineRequestMap[K] {
-  if (isTimelineV2Operation(kind))
-    return parseTimelineV2Request(
+  if (
+    value &&
+    typeof value === "object" &&
+    "schema_version" in value &&
+    value.schema_version !== 3
+  )
+    fail("schema_version", "unsupported_protocol");
+  if (isTimelineCatalogOperation(kind))
+    return parseTimelineCatalogRequest(kind, value) as TimelineRequestMap[K];
+  if (isTimelineV3Operation(kind))
+    return parseTimelineV3Request(
       kind,
       value,
     ) as unknown as TimelineRequestMap[K];
@@ -851,14 +919,13 @@ export function parseTimelineRequest<K extends keyof TimelineRequestMap>(
       source(obj.source);
       text(obj.title, "title", 200);
       text(obj.summary, "summary", 4000);
-      tickets(obj.tickets, true);
+      tickets(obj.tickets, true, true);
       break;
     case "session_patch": {
       const fields = [
         "title",
         "summary",
         "state",
-        "tickets",
         "archived",
         "pinned",
         "reason",
@@ -875,7 +942,6 @@ export function parseTimelineRequest<K extends keyof TimelineRequestMap>(
       if (obj.summary !== undefined) text(obj.summary, "summary", 4000);
       if (obj.state !== undefined && !states.includes(obj.state as string))
         fail("state", "unsupported_state");
-      if (obj.tickets !== undefined) tickets(obj.tickets, true);
       for (const field of ["archived", "pinned"])
         if (obj[field] !== undefined && typeof obj[field] !== "boolean")
           fail(field);
@@ -962,14 +1028,14 @@ export function parseTimelineRequest<K extends keyof TimelineRequestMap>(
         "operation_id",
         "actor",
         "captured_at",
-        "candidate",
+        "candidate_id",
         "viewport",
         "theme",
         "media_type",
       ]);
       operation(obj);
       timestamp(obj.captured_at, "captured_at");
-      candidate(obj.candidate);
+      id(obj.candidate_id, "candidate_id");
       if (!["desktop", "mobile"].includes(obj.viewport as string))
         fail("viewport");
       if (!["light", "dark", "unspecified"].includes(obj.theme as string))
@@ -990,9 +1056,9 @@ export function parseTimelineRequest<K extends keyof TimelineRequestMap>(
   if (kind === "session_patch")
     validateTimelineSessionPatchActor(obj as TimelineSessionPatchRequest);
   if (kind === "append_event")
-    validateTimelineAppendV2(obj as unknown as TimelineAppendEventRequest);
+    validateTimelineAppendV3(obj as unknown as TimelineAppendEventRequest);
   if (kind === "document_snapshot")
-    validateTimelineSnapshotV2(obj as TimelineDocumentSnapshotRequest);
+    validateTimelineSnapshotV3(obj as TimelineDocumentSnapshotRequest);
   return obj as unknown as TimelineRequestMap[K];
 }
 
@@ -1033,7 +1099,7 @@ export function validateTimelineDecisionReference(
   target(t);
   checkReferences(
     s,
-    { ticket_refs: [], target: t } as unknown as TimelineAppendEventRequest,
+    { ticket_ids: [], target: t } as unknown as TimelineAppendEventRequest,
     false,
   );
 }
@@ -1043,12 +1109,21 @@ function checkReferences(
   restored: boolean,
 ) {
   const knownTickets = new Set(session.tickets.map(timelineTicketIdentity));
-  const checkTickets = (refs: TimelineTicketRef[]) => {
+  const checkTickets = (refs: string[]) => {
     for (const ref of refs)
-      if (!knownTickets.has(timelineTicketIdentity(ref)))
-        fail("ticket_refs", "unknown_ticket");
+      if (!knownTickets.has(ref)) fail("ticket_refs", "unknown_ticket");
   };
-  checkTickets(request.ticket_refs);
+  checkTickets(request.ticket_ids);
+  if (request.candidate_id) {
+    if (
+      !session.candidates.some((c) => c.candidate_id === request.candidate_id)
+    )
+      fail("candidate_id", "unknown_candidate");
+  }
+  for (const id of request.delivery_ids ?? []) {
+    if (!session.deliveries.some((d) => d.delivery_id === id))
+      fail("delivery_ids", "unknown_delivery");
+  }
   const events = new Map(
     session.events.map((event) => [event.event_id, event]),
   );
@@ -1093,7 +1168,7 @@ function checkReferences(
     fail("related_event_id", "unknown_event");
   if (request.target) checkTarget(request.target);
   for (const v of request.views ?? []) {
-    checkTickets(v.ticket_refs);
+    checkTickets(v.ticket_ids);
     if (v.view_id && !knownViews.has(v.view_id))
       fail("views.view_id", "unknown_view");
     for (const image of v.image_refs)
@@ -1109,6 +1184,13 @@ function checkReferences(
   }
 }
 export function parseTimelineSession(value: unknown): TimelineSession {
+  if (
+    value &&
+    typeof value === "object" &&
+    "schema_version" in value &&
+    value.schema_version !== 3
+  )
+    fail("schema_version", "unsupported_protocol");
   const obj = object(
     value,
     [
@@ -1118,6 +1200,8 @@ export function parseTimelineSession(value: unknown): TimelineSession {
       "pending_join_requests",
       "tasks",
       "waits",
+      "deliveries",
+      "candidates",
       "viewer_session_id",
       "project_key",
       "project_name",
@@ -1139,7 +1223,7 @@ export function parseTimelineSession(value: unknown): TimelineSession {
     ],
     ["reason"],
   );
-  if (obj.schema_version !== 2) fail("schema_version", "unsupported_protocol");
+  if (obj.schema_version !== 3) fail("schema_version", "unsupported_protocol");
   if (
     typeof obj.viewer_session_id !== "string" ||
     !sha256.test(obj.viewer_session_id)
@@ -1158,7 +1242,8 @@ export function parseTimelineSession(value: unknown): TimelineSession {
   timestamp(obj.updated_at, "updated_at");
   integer(obj.validation_count, "validation_count", 0, TIMELINE_LIMITS.events);
   tickets(obj.tickets, true);
-  validateTimelineV2Graph(obj as unknown as TimelineSession);
+  validateTimelineCatalogs(obj as unknown as TimelineSession);
+  validateTimelineV3Graph(obj as unknown as TimelineSession);
   const artifacts = array(obj.artifacts, "artifacts", TIMELINE_LIMITS.body);
   const seenArtifacts = new Set<string>();
   for (const value of artifacts) {
@@ -1171,7 +1256,7 @@ export function parseTimelineSession(value: unknown): TimelineSession {
       "media_type",
       "received_at",
       "captured_at",
-      "candidate",
+      "candidate_id",
       "viewport",
       "theme",
     ]);
@@ -1187,11 +1272,11 @@ export function parseTimelineSession(value: unknown): TimelineSession {
     integer(a.size, "artifacts.size", 1, 20 << 20);
     timestamp(a.received_at, "artifacts.received_at");
     parseTimelineRequest("artifact_metadata", {
-      schema_version: 2,
+      schema_version: 3,
       operation_id: "restore",
       actor: a.actor,
       captured_at: a.captured_at,
-      candidate: a.candidate,
+      candidate_id: a.candidate_id,
       viewport: a.viewport,
       theme: a.theme,
       media_type: a.media_type,
@@ -1215,7 +1300,7 @@ export function parseTimelineSession(value: unknown): TimelineSession {
         "updated_at",
         "origin",
         "actor",
-        ...eventRequired,
+        ...eventRequired.map((f) => (f === "ticket_ids" ? "ticket_refs" : f)),
       ],
       [
         "withdrawn",
@@ -1225,7 +1310,9 @@ export function parseTimelineSession(value: unknown): TimelineSession {
         "started_at",
         "finished_at",
         "document_snapshots",
-        ...eventOptional.filter((f) => f !== "expected_session_version"),
+        ...eventOptional
+          .filter((f) => f !== "expected_session_version")
+          .map((f) => (f === "delivery_ids" ? "delivery_refs" : f)),
       ],
     );
     id(e.event_id, "events.event_id");
@@ -1258,7 +1345,23 @@ export function parseTimelineSession(value: unknown): TimelineSession {
       for (const ref of v.ticket_refs)
         if (!topTickets.has(timelineTicketIdentity(ref)))
           fail("events.ticket_refs", "missing_view_ticket");
-    checkReferences(prefix, e as unknown as TimelineAppendEventRequest, true);
+    checkReferences(
+      prefix,
+      {
+        ...e,
+        ticket_ids: (e.ticket_refs as TimelineTicketRef[]).map(
+          (r) => r.ticket_id,
+        ),
+        delivery_ids: (
+          e.delivery_refs as TimelineDeliveryReference[] | undefined
+        )?.map((r) => r.delivery_id),
+        views: ((e.views ?? []) as TimelineView[]).map((v) => ({
+          ...v,
+          ticket_ids: v.ticket_refs.map((r) => r.ticket_id),
+        })),
+      } as unknown as TimelineAppendEventRequest,
+      true,
+    );
     prefix.events.push(e as unknown as TimelineEvent);
   }
   if (obj.validation_count !== count)
@@ -1274,7 +1377,7 @@ export function parseTimelineSessionResponse(
     ["schema_version", "mode", "session"],
     ["artifact_urls", "document_urls", "created"],
   );
-  if (obj.schema_version !== 2 || obj.mode !== "timeline_api")
+  if (obj.schema_version !== 3 || obj.mode !== "timeline_api")
     fail("mode", "unsupported_version_or_mode");
   const session = parseTimelineSession(obj.session);
   if (obj.created !== undefined && typeof obj.created !== "boolean")
@@ -1451,7 +1554,9 @@ export function parseTimelineIndexEntry(value: unknown): TimelineIndexEntry {
     pending_join_requests: [],
     tasks: [],
     waits: [],
-    schema_version: 2,
+    schema_version: 3,
+    deliveries: [],
+    candidates: [],
     events: [],
     artifacts: [],
     documents: [],
@@ -1466,7 +1571,12 @@ export function parseTimelineIndexEntry(value: unknown): TimelineIndexEntry {
   );
   return entry as TimelineAPIIndexEntry;
 }
-const v2ResultFields: Record<string, string[]> = {
+const v3ResultFields: Record<string, string[]> = {
+  ticket_create: ["ticket_id", "created"],
+  ticket_patch: ["ticket_id"],
+  delivery_create: ["delivery_id", "created"],
+  delivery_patch: ["delivery_id"],
+  candidate_create: ["candidate_id", "created"],
   join_request: ["request_id"],
   producer_accept: ["request_id", "producer_id"],
   foreground_transfer: ["producer_id"],
@@ -1523,9 +1633,9 @@ export function parseTimelineOperationResult(
       required.push("artifact_id", "created");
       break;
     default:
-      if (typeof kind !== "string" || !Object.hasOwn(v2ResultFields, kind))
+      if (typeof kind !== "string" || !Object.hasOwn(v3ResultFields, kind))
         fail("kind", "unsupported_operation");
-      required.push(...v2ResultFields[kind]);
+      required.push(...v3ResultFields[kind]);
   }
   const result = object(value, required, optional);
   operation(result);
@@ -1559,6 +1669,9 @@ export function parseTimelineOperationResult(
       seen.add(viewID);
     }
   }
+  for (const field of ["ticket_id", "delivery_id", "candidate_id"]) {
+    if (result[field] !== undefined) id(result[field], field);
+  }
   if (kind === "artifact_add") id(result.artifact_id, "artifact_id");
   if (kind === "document_add") {
     id(result.document_id, "document_id");
@@ -1568,11 +1681,11 @@ export function parseTimelineOperationResult(
   }
   if (kind === "document_snapshot")
     id(result.document_revision_id, "document_revision_id");
-  if (typeof kind === "string" && Object.hasOwn(v2ResultFields, kind))
-    for (const field of v2ResultFields[kind]) {
+  if (typeof kind === "string" && Object.hasOwn(v3ResultFields, kind))
+    for (const field of v3ResultFields[kind]) {
       if (field.endsWith("_version") || field === "generation")
         integer(result[field], field);
-      else id(result[field], field);
+      else if (field !== "created") id(result[field], field);
     }
   return result as TimelineOperationResult;
 }
@@ -1863,7 +1976,7 @@ export function validateTimelineDocumentSnapshot(
   eventID: string,
   r: TimelineDocumentSnapshotRequest,
 ): void {
-  validateTimelineSnapshotReferencesV2(s, eventID, r);
+  validateTimelineSnapshotReferencesV3(s, eventID, r);
   parseTimelineRequest("document_snapshot", r);
   if (s.state === "closed") fail("state", "session_closed");
   const e = s.events.find((e) => e.event_id === eventID);
@@ -1891,7 +2004,7 @@ export async function parseTimelineDocumentResponse(
   value: unknown,
 ): Promise<TimelineDocumentResponse> {
   const r = object(value, ["schema_version", "document", "content"]);
-  if (r.schema_version !== 2) fail("schema_version", "unsupported_protocol");
+  if (r.schema_version !== 3) fail("schema_version", "unsupported_protocol");
   const d = object(r.document, [
     "document_id",
     "actor",

@@ -103,12 +103,12 @@ func (s *timelineScenario) op(prefix string) string {
 }
 func (s *timelineScenario) base(prefix string) viewer.TimelineNativeOperation {
 	v := s.current()
-	return viewer.TimelineNativeOperation{SchemaVersion: 2, OperationID: s.op(prefix), Actor: s.actor, ExpectedSessionVersion: v.Version, Reason: "Explicit isolated CLI " + prefix}
+	return viewer.TimelineNativeOperation{SchemaVersion: 3, OperationID: s.op(prefix), Actor: s.actor, ExpectedSessionVersion: v.Version, Reason: "Explicit isolated CLI " + prefix}
 }
 func (s *timelineScenario) stage(kind viewer.TimelineStage) string {
 	s.t.Helper()
 	v := s.current()
-	return s.result([]string{"stage", "start", s.id}, viewer.TimelineAppendEventRequest{SchemaVersion: 2, OperationID: s.op("stage"), Actor: s.actor, Reason: "Start " + string(kind), Kind: "stage", Stage: kind, StageState: "in_progress", ExpectedSessionVersion: &v.Version, Title: string(kind), Summary: "Isolated end-to-end stage", TicketRefs: []viewer.TimelineTicketRef{}}).EventID
+	return s.result([]string{"stage", "start", s.id}, viewer.TimelineAppendEventRequest{SchemaVersion: 3, OperationID: s.op("stage"), Actor: s.actor, Reason: "Start " + string(kind), Kind: "stage", Stage: kind, StageState: "in_progress", ExpectedSessionVersion: &v.Version, Title: string(kind), Summary: "Isolated end-to-end stage", TicketIDs: []string{}}).EventID
 }
 func scenarioEvent(t *testing.T, v viewer.TimelineSession, id string) viewer.TimelineEvent {
 	t.Helper()
@@ -134,7 +134,7 @@ func (s *timelineScenario) finish(stage string) {
 	v := s.current()
 	event := scenarioEvent(s.t, v, stage)
 	done := viewer.TimelineStageState("completed")
-	s.result([]string{"stage", "update", s.id, stage}, viewer.TimelineEventPatchRequest{SchemaVersion: 2, OperationID: s.op("finish"), Actor: s.actor, ExpectedVersion: event.Version, ExpectedSessionVersion: &v.Version, StageState: &done, Reason: "Stage completed explicitly"})
+	s.result([]string{"stage", "update", s.id, stage}, viewer.TimelineEventPatchRequest{SchemaVersion: 3, OperationID: s.op("finish"), Actor: s.actor, ExpectedVersion: event.Version, ExpectedSessionVersion: &v.Version, StageState: &done, Reason: "Stage completed explicitly"})
 }
 func (s *timelineScenario) bind(task, segment, stage string) {
 	v := s.current()
@@ -173,13 +173,13 @@ func completedScenarioTasks(v viewer.TimelineSession) int {
 	return n
 }
 
-func TestTimelineCLIV2SharedTasksCIAndRestart(t *testing.T) {
+func TestTimelineCLIV3SharedTasksCIAndRestart(t *testing.T) {
 	f := newViewFixture(t)
 	repo := newProjectRepo(t)
 	f.mustView("register", "--dir", repo)
 	f.mustView("start")
 	s := &timelineScenario{t: t, f: f, input: filepath.Join(t.TempDir(), "request.json")}
-	create := viewer.TimelineCreateSessionRequest{SchemaVersion: 2, OperationID: "shared-create", Source: viewer.TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "fixture-A"}, Title: "Shared CLI fixture", Summary: "Synthetic evidence; no provider calls or integration", Tickets: []viewer.TimelineTicket{}}
+	create := viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "shared-create", Source: viewer.TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "fixture-A"}, Title: "Shared CLI fixture", Summary: "Synthetic evidence; no provider calls or integration", Tickets: []viewer.TimelineTicketInput{}}
 	response, err := viewer.DecodeTimelineSessionResponse([]byte(s.invoke([]string{"session", "create"}, create)))
 	if err != nil {
 		t.Fatal(err)
@@ -202,17 +202,17 @@ func TestTimelineCLIV2SharedTasksCIAndRestart(t *testing.T) {
 	plan := s.stage("plan")
 	sourceB := viewer.TimelineSource{ProjectRoot: repo, Host: "claude-code", NativeSessionID: "fixture-B"}
 	current := s.current()
-	join := viewer.TimelineJoinRequestInput{SchemaVersion: 2, OperationID: "shared-join", Source: sourceB, ExpectedSessionVersion: current.Version, Reason: "Explicitly share the selected work"}
+	join := viewer.TimelineJoinRequestInput{SchemaVersion: 3, OperationID: "shared-join", Source: sourceB, ExpectedSessionVersion: current.Version, Reason: "Explicitly share the selected work"}
 	joinedRaw := s.invoke([]string{"producer", "request", s.id}, join)
 	joined, err := viewer.DecodeTimelineOperationResult([]byte(joinedRaw))
 	if err != nil {
 		t.Fatal(err)
 	}
-	s.denied([]string{"event", "add", s.id}, viewer.TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "pending-cannot-publish", Actor: viewer.TimelineActor{Kind: "native_producer", ProducerID: "pending"}, Kind: "review", ReviewStatus: "in_progress", TargetStageEventID: plan, Title: "Rejected pending review", Summary: "Must not publish", TicketRefs: []viewer.TimelineTicketRef{}})
+	s.denied([]string{"event", "add", s.id}, viewer.TimelineAppendEventRequest{SchemaVersion: 3, OperationID: "pending-cannot-publish", Actor: viewer.TimelineActor{Kind: "native_producer", ProducerID: "pending"}, Kind: "review", ReviewStatus: "in_progress", TargetStageEventID: plan, Title: "Rejected pending review", Summary: "Must not publish", TicketIDs: []string{}})
 	accepted := s.result([]string{"producer", "accept", s.id}, viewer.TimelineProducerAcceptRequest{TimelineNativeOperation: s.base("accept"), RequestID: joined.RequestID})
 	actorB := viewer.TimelineActor{Kind: "native_producer", ProducerID: accepted.ProducerID}
 	s.actor = actorB
-	s.result([]string{"event", "add", s.id}, viewer.TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "parallel-review", Actor: actorB, Kind: "review", ReviewStatus: "completed", TargetStageEventID: plan, Title: "Parallel review", Summary: "Does not take foreground", TicketRefs: []viewer.TimelineTicketRef{}})
+	s.result([]string{"event", "add", s.id}, viewer.TimelineAppendEventRequest{SchemaVersion: 3, OperationID: "parallel-review", Actor: actorB, Kind: "review", ReviewStatus: "completed", TargetStageEventID: plan, Title: "Parallel review", Summary: "Does not take foreground", TicketIDs: []string{}})
 	if v := s.current(); v.ForegroundProducerID != originalActor.ProducerID || v.CurrentStageEventID == nil || *v.CurrentStageEventID != plan {
 		t.Fatal("parallel review took foreground")
 	}
@@ -226,10 +226,10 @@ func TestTimelineCLIV2SharedTasksCIAndRestart(t *testing.T) {
 		if err = os.WriteFile(file, []byte(contents[key]), 0600); err != nil {
 			t.Fatal(err)
 		}
-		docs[key] = s.result([]string{"document", "add", s.id, "--file", file}, viewer.TimelineDocumentMetadata{SchemaVersion: 2, OperationID: s.op("upload"), Actor: s.actor, MediaType: "text/markdown"})
+		docs[key] = s.result([]string{"document", "add", s.id, "--file", file}, viewer.TimelineDocumentMetadata{SchemaVersion: 3, OperationID: s.op("upload"), Actor: s.actor, MediaType: "text/markdown"})
 		v := s.current()
 		event := scenarioEvent(t, v, plan)
-		snapshot := s.result([]string{"stage", "snapshot", s.id, plan}, viewer.TimelineDocumentSnapshotRequest{SchemaVersion: 2, OperationID: s.op("snapshot"), Actor: s.actor, DocumentKey: key, ExpectedVersion: event.Version, ExpectedSessionVersion: v.Version, Status: "complete", Tabs: []viewer.TimelineDocumentTab{{Label: key, DocumentID: docs[key].DocumentID}}})
+		snapshot := s.result([]string{"stage", "snapshot", s.id, plan}, viewer.TimelineDocumentSnapshotRequest{SchemaVersion: 3, OperationID: s.op("snapshot"), Actor: s.actor, DocumentKey: key, ExpectedVersion: event.Version, ExpectedSessionVersion: v.Version, Status: "complete", Tabs: []viewer.TimelineDocumentTab{{Label: key, DocumentID: docs[key].DocumentID}}})
 		revisions[key] = snapshot.DocumentRevisionID
 	}
 	s.result([]string{"producer", "transfer", s.id}, viewer.TimelineForegroundTransferRequest{TimelineNativeOperation: s.base("transfer"), TargetProducerID: actorB.ProducerID})
@@ -242,10 +242,10 @@ func TestTimelineCLIV2SharedTasksCIAndRestart(t *testing.T) {
 	if err = os.WriteFile(revisedFile, []byte(contents["architecture"]), 0600); err != nil {
 		t.Fatal(err)
 	}
-	docs["architecture"] = s.result([]string{"document", "add", s.id, "--file", revisedFile}, viewer.TimelineDocumentMetadata{SchemaVersion: 2, OperationID: s.op("revised-document"), Actor: s.actor, MediaType: "text/markdown"})
+	docs["architecture"] = s.result([]string{"document", "add", s.id, "--file", revisedFile}, viewer.TimelineDocumentMetadata{SchemaVersion: 3, OperationID: s.op("revised-document"), Actor: s.actor, MediaType: "text/markdown"})
 	current = s.current()
 	planEvent := scenarioEvent(t, current, plan)
-	revised := s.result([]string{"stage", "snapshot", s.id, plan}, viewer.TimelineDocumentSnapshotRequest{SchemaVersion: 2, OperationID: s.op("continued-chain"), Actor: s.actor, DocumentKey: "architecture", PredecessorRevisionID: revisions["architecture"], ExpectedVersion: planEvent.Version, ExpectedSessionVersion: current.Version, Status: "complete", Tabs: []viewer.TimelineDocumentTab{{Label: "architecture", DocumentID: docs["architecture"].DocumentID}}})
+	revised := s.result([]string{"stage", "snapshot", s.id, plan}, viewer.TimelineDocumentSnapshotRequest{SchemaVersion: 3, OperationID: s.op("continued-chain"), Actor: s.actor, DocumentKey: "architecture", PredecessorRevisionID: revisions["architecture"], ExpectedVersion: planEvent.Version, ExpectedSessionVersion: current.Version, Status: "complete", Tabs: []viewer.TimelineDocumentTab{{Label: "architecture", DocumentID: docs["architecture"].DocumentID}}})
 	revisions["architecture"] = revised.DocumentRevisionID
 	retained, decodeErr := viewer.DecodeTimelineDocumentResponse([]byte(f.mustView("document", "get", s.id, previousArchitecture.DocumentID)))
 	if decodeErr != nil || retained.Content != previousContent {
@@ -291,15 +291,15 @@ func TestTimelineCLIV2SharedTasksCIAndRestart(t *testing.T) {
 		t.Fatal("build did not remain 6/7 unique tasks")
 	}
 	wait := viewer.TimelineAwaitingValidation
-	s.result([]string{"session", "update", s.id}, viewer.TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: s.op("ask"), Actor: s.actor, ExpectedVersion: current.Version, State: &wait, Reason: "Synthetic user validation pause"})
+	s.result([]string{"session", "update", s.id}, viewer.TimelineSessionPatchRequest{SchemaVersion: 3, OperationID: s.op("ask"), Actor: s.actor, ExpectedVersion: current.Version, State: &wait, Reason: "Synthetic user validation pause"})
 	current = s.current()
 	if current.CurrentStageEventID == nil || *current.CurrentStageEventID != build {
 		t.Fatal("validation lost foreground")
 	}
-	s.result([]string{"event", "add", s.id}, viewer.TimelineAppendEventRequest{SchemaVersion: 2, OperationID: s.op("response"), Actor: s.actor, Kind: "approval_reported", TargetStageEventID: build, Title: "Synthetic reported response", Summary: "Fixture evidence only", TicketRefs: []viewer.TimelineTicketRef{}, Target: &viewer.TimelineEvidenceTarget{Kind: "document", EventID: plan, DocumentRevisionID: revisions["architecture"]}, SourceReference: "Synthetic fixture, not an authenticated human approval"})
+	s.result([]string{"event", "add", s.id}, viewer.TimelineAppendEventRequest{SchemaVersion: 3, OperationID: s.op("response"), Actor: s.actor, Kind: "approval_reported", TargetStageEventID: build, Title: "Synthetic reported response", Summary: "Fixture evidence only", TicketIDs: []string{}, Target: &viewer.TimelineEvidenceTarget{Kind: "document", EventID: plan, DocumentRevisionID: revisions["architecture"]}, SourceReference: "Synthetic fixture, not an authenticated human approval"})
 	current = s.current()
 	active := viewer.TimelineActive
-	s.result([]string{"session", "update", s.id}, viewer.TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: s.op("resume"), Actor: s.actor, ExpectedVersion: current.Version, State: &active, Reason: "Explicit continuation after fixture response"})
+	s.result([]string{"session", "update", s.id}, viewer.TimelineSessionPatchRequest{SchemaVersion: 3, OperationID: s.op("resume"), Actor: s.actor, ExpectedVersion: current.Version, State: &active, Reason: "Explicit continuation after fixture response"})
 	s.finish(build)
 	verify := s.stage("verify")
 	last := tasks[6]
@@ -314,14 +314,14 @@ func TestTimelineCLIV2SharedTasksCIAndRestart(t *testing.T) {
 	delivery := s.stage("delivery")
 	s.bind(last.TaskID, last.Segments[1].SegmentID, delivery)
 	policy := viewer.TimelineCheckPolicy{PolicyID: "unknown", Confirmed: false, Authority: "No confirmed access", SourceURL: "https://example.test/policy", ObservedAt: "2026-01-01T00:00:00Z", RequiredChecks: []viewer.TimelineRequiredCheck{}}
-	waiting := viewer.TimelineWaitCreateRequest{TimelineNativeOperation: s.base("unknown-policy"), TargetStageEventID: delivery, TaskID: last.TaskID, SegmentID: last.Segments[1].SegmentID, Candidate: viewer.TimelineCandidate{Branch: "feature", Commit: "unknown", Base: "development"}, PullRequestURL: "https://example.test/pr/1", Policy: policy}
+	waiting := viewer.TimelineWaitCreateRequest{TimelineNativeOperation: s.base("unknown-policy"), TargetStageEventID: delivery, TaskID: last.TaskID, SegmentID: last.Segments[1].SegmentID, CandidateID: "candidate-test", PullRequestDeliveryID: "delivery-test", Policy: policy}
 	unknown := s.result([]string{"wait", "create", s.id}, waiting)
 	if s.current().Waits[0].State != "unknown" {
 		t.Fatal("unconfirmed checks became green")
 	}
 	waiting.TimelineNativeOperation = s.base("known-policy")
 	waiting.PreviousWaitID = unknown.WaitID
-	waiting.Candidate.Commit = "abc"
+	waiting.CandidateID = "candidate-abc"
 	waiting.Policy = viewer.TimelineCheckPolicy{PolicyID: "required", Confirmed: true, Authority: "Synthetic provider snapshot", SourceURL: "https://example.test/policy", ObservedAt: "2026-01-01T00:00:00Z", RequiredChecks: []viewer.TimelineRequiredCheck{{CheckKey: "unit", Label: "Unit"}, {CheckKey: "lint", Label: "Lint"}}}
 	made := s.result([]string{"wait", "create", s.id}, waiting)
 	wrongCandidate := viewer.TimelineWaitAttemptStartRequest{TimelineNativeOperation: s.base("wrong-candidate"), ExpectedWaitVersion: s.current().Waits[1].WaitVersion, CheckKeys: []string{"unit"}, ExternalRun: viewer.TimelineCIExternalRun{Commit: "other-commit", RunID: "wrong", URL: "https://example.test/runs/wrong"}, SourceURL: "https://example.test/runs/wrong", ObservedAt: "2026-01-01T00:00:00Z"}
@@ -376,7 +376,7 @@ func TestTimelineCLIV2SharedTasksCIAndRestart(t *testing.T) {
 		t.Fatal("final task did not reach 7/7")
 	}
 	s.finish(delivery)
-	s.result([]string{"event", "add", s.id}, viewer.TimelineAppendEventRequest{SchemaVersion: 2, OperationID: s.op("close"), Actor: s.actor, Kind: "closure", Title: "Fixture finished", Summary: "No provider calls, reruns or merge performed", Reason: "Explicit fixture closure", TicketRefs: []viewer.TimelineTicketRef{}, Closure: &viewer.TimelineClosure{Reason: "completed", Result: "Isolated flow verified; no integration claimed"}})
+	s.result([]string{"event", "add", s.id}, viewer.TimelineAppendEventRequest{SchemaVersion: 3, OperationID: s.op("close"), Actor: s.actor, Kind: "closure", Title: "Fixture finished", Summary: "No provider calls, reruns or merge performed", Reason: "Explicit fixture closure", TicketIDs: []string{}, Closure: &viewer.TimelineClosure{Reason: "completed", Result: "Isolated flow verified; no integration claimed"}})
 	f.mustView("stop")
 	f.mustView("start")
 	current = s.current()
@@ -396,13 +396,13 @@ func TestTimelineCLIV2SharedTasksCIAndRestart(t *testing.T) {
 	f.mustView("stop")
 }
 
-func TestTimelineCLIV2LocalRecoveryHTTPConcurrencyAndRestart(t *testing.T) {
+func TestTimelineCLIV3LocalRecoveryHTTPConcurrencyAndRestart(t *testing.T) {
 	f := newViewFixture(t)
 	repo := newProjectRepo(t)
 	f.mustView("register", "--dir", repo)
 	f.mustView("start")
 	s := &timelineScenario{t: t, f: f, input: filepath.Join(t.TempDir(), "recovery.json")}
-	create := viewer.TimelineCreateSessionRequest{SchemaVersion: 2, OperationID: "recovery-create", Source: viewer.TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "recovery-original"}, Title: "Isolated recovery fixture", Summary: "No process-authentication claim", Tickets: []viewer.TimelineTicket{}}
+	create := viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "recovery-create", Source: viewer.TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "recovery-original"}, Title: "Isolated recovery fixture", Summary: "No process-authentication claim", Tickets: []viewer.TimelineTicketInput{}}
 	initial, err := viewer.DecodeTimelineSessionResponse([]byte(s.invoke([]string{"session", "create"}, create)))
 	if err != nil {
 		t.Fatal(err)
@@ -413,7 +413,7 @@ func TestTimelineCLIV2LocalRecoveryHTTPConcurrencyAndRestart(t *testing.T) {
 	requests := []string{}
 	for _, native := range []string{"recovery-peer-B", "recovery-peer-C"} {
 		v := s.current()
-		joined := s.result([]string{"producer", "request", s.id}, viewer.TimelineJoinRequestInput{SchemaVersion: 2, OperationID: s.op("request"), ExpectedSessionVersion: v.Version, Source: viewer.TimelineSource{ProjectRoot: repo, Host: "claude-code", NativeSessionID: native}, Reason: "Explicit pending fixture participant"})
+		joined := s.result([]string{"producer", "request", s.id}, viewer.TimelineJoinRequestInput{SchemaVersion: 3, OperationID: s.op("request"), ExpectedSessionVersion: v.Version, Source: viewer.TimelineSource{ProjectRoot: repo, Host: "claude-code", NativeSessionID: native}, Reason: "Explicit pending fixture participant"})
 		requests = append(requests, joined.RequestID)
 	}
 	before := s.current()
@@ -429,7 +429,7 @@ func TestTimelineCLIV2LocalRecoveryHTTPConcurrencyAndRestart(t *testing.T) {
 		group.Add(1)
 		go func(index int, requestID string) {
 			defer group.Done()
-			value := viewer.TimelineRecoverLeadRequest{TimelineNativeOperation: viewer.TimelineNativeOperation{SchemaVersion: 2, OperationID: fmt.Sprintf("local-recover-%d", index), Actor: viewer.TimelineActor{Kind: "local_viewer"}, ExpectedSessionVersion: before.Version, Reason: "Explicit isolated browser recovery"}, RequestID: requestID}
+			value := viewer.TimelineRecoverLeadRequest{TimelineNativeOperation: viewer.TimelineNativeOperation{SchemaVersion: 3, OperationID: fmt.Sprintf("local-recover-%d", index), Actor: viewer.TimelineActor{Kind: "local_viewer"}, ExpectedSessionVersion: before.Version, Reason: "Explicit isolated browser recovery"}, RequestID: requestID}
 			raw, _ := json.Marshal(value)
 			request, _ := http.NewRequest("POST", info.url()+"/api/timeline/sessions/"+s.id+"/recover-lead", bytes.NewReader(raw))
 			request.Header.Set("Content-Type", "application/json")

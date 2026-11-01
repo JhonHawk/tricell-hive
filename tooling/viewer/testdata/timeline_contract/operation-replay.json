@@ -4,7 +4,7 @@
     "request_sha256": "5e7cd6bfd5f48b38be3675c735e2f57baeb435c557a4e334eed91528e1c49f18",
     "completed_at": "2026-10-31T18:30:00-06:00",
     "result": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "validation:1",
       "kind": "append_event",
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",

@@ -32,10 +32,13 @@ type srvEnv struct {
 	key    string
 }
 
-// newSrvEnv uses only v2 API state; shared auth/static tests do not scan manifests.
+// newSrvEnv uses only v3 API state; shared auth/static tests do not scan manifests.
 func newSrvEnv(t *testing.T) *srvEnv {
 	t.Helper()
-	store, v, _ := newV2Fixture(t)
+	store, v, _ := newV3Fixture(t)
+	// Seed an already registered candidate for auth/static tests. Catalog writer
+	// transactions are tested independently; this helper makes no writer claim.
+	store.timeline[v.ViewerSessionID].Session.Candidates = append(store.timeline[v.ViewerSessionID].Session.Candidates, TimelineCandidateRecord{CandidateID: "candidate-test", TimelineCandidate: TimelineCandidate{Branch: "test", Commit: "abc", Base: "development"}})
 	e := &env{t: t, state: filepath.Dir(store.Dir()), store: store}
 	srv, err := NewServer(ServerOptions{Store: store, Token: testToken, Port: testPort, Version: "test"})
 	if err != nil {
@@ -45,7 +48,7 @@ func newSrvEnv(t *testing.T) *srvEnv {
 	if err = png.Encode(&imageBytes, image.NewRGBA(image.Rect(0, 0, 1, 1))); err != nil {
 		t.Fatal(err)
 	}
-	artifact, err := store.TimelineAddArtifact(v.ViewerSessionID, TimelineArtifactMetadata{SchemaVersion: 2, OperationID: "security-image", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, CapturedAt: v.CreatedAt, Candidate: TimelineCandidate{Branch: "test", Commit: "abc", Base: "development"}, Viewport: "desktop", Theme: "dark", MediaType: "image/png"}, imageBytes.Bytes())
+	artifact, err := store.TimelineAddArtifact(v.ViewerSessionID, TimelineArtifactMetadata{SchemaVersion: 3, OperationID: "security-image", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, CapturedAt: v.CreatedAt, CandidateID: "candidate-test", Viewport: "desktop", Theme: "dark", MediaType: "image/png"}, imageBytes.Bytes())
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -24,6 +24,8 @@ type TimelineProtocolDescription struct {
 	Invariants      []string                    `json:"invariants"`
 }
 type TimelineProtocolOperation struct {
+	Method       string          `json:"method,omitempty"`
+	Path         string          `json:"path,omitempty"`
 	Operation    string          `json:"operation"`
 	Usage        string          `json:"usage"`
 	InputSchema  map[string]any  `json:"input_schema"`
@@ -42,37 +44,41 @@ func TimelineProtocolContract(operation string) (TimelineProtocolDescription, er
 	actor := TimelineActor{Kind: "native_producer", ProducerID: "producer-example"}
 	one := int64(1)
 	source := TimelineSource{ProjectRoot: "/workspace/example", Host: "codex", NativeSessionID: "native-example"}
-	create := TimelineCreateSessionRequest{SchemaVersion: 2, OperationID: "create-example", Source: source, Title: "Example", Summary: "Scope", Tickets: []TimelineTicket{}}
-	stage := TimelineAppendEventRequest{Actor: actor, SchemaVersion: 2, OperationID: "stage-example", Reason: "Start the plan", Kind: "stage", Title: "Plan", Summary: "Prepare the plan", TicketRefs: []TimelineTicketRef{}, Stage: "plan", StageState: "in_progress", ExpectedSessionVersion: &one}
+	create := TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "create-example", Source: source, Title: "Example", Summary: "Scope", Tickets: []TimelineTicketInput{}}
+	stage := TimelineAppendEventRequest{Actor: actor, SchemaVersion: 3, OperationID: "stage-example", Reason: "Start the plan", Kind: "stage", Title: "Plan", Summary: "Prepare the plan", TicketIDs: []string{}, Stage: "plan", StageState: "in_progress", ExpectedSessionVersion: &one}
 	state := TimelineStageState("completed")
-	patch := TimelineEventPatchRequest{Actor: actor, SchemaVersion: 2, OperationID: "complete-example", Reason: "Plan completed", ExpectedVersion: 1, StageState: &state, ExpectedSessionVersion: &one}
-	mutation := TimelineMutationRequest{Actor: actor, SchemaVersion: 2, OperationID: "delete-example", ExpectedVersion: 1}
+	patch := TimelineEventPatchRequest{Actor: actor, SchemaVersion: 3, OperationID: "complete-example", Reason: "Plan completed", ExpectedVersion: 1, StageState: &state, ExpectedSessionVersion: &one}
+	mutation := TimelineMutationRequest{Actor: actor, SchemaVersion: 3, OperationID: "delete-example", ExpectedVersion: 1}
 	definitions := []timelineProtocolDefinition{
 		{"create_session", "hive view session create --json <file|->", TimelineCreateSessionRequest{}, TimelineSessionResponse{}, create},
 		{"session_get", "hive view session get <session-id>", nil, TimelineSessionResponse{}, map[string]any{}},
-		{"session_patch", "hive view session update <session-id> --json <file|->", TimelineSessionPatchRequest{}, TimelineOperationResult{}, TimelineSessionPatchRequest{Actor: actor, SchemaVersion: 2, OperationID: "update-example", ExpectedVersion: 1, Summary: timelineStringPointer("Updated summary")}},
-		{"session_delete", "Local viewer only: DELETE /api/timeline/sessions/<session-id>", TimelineMutationRequest{}, TimelineOperationResult{}, TimelineMutationRequest{SchemaVersion: 2, OperationID: "delete-example", ExpectedVersion: 1, Actor: TimelineActor{Kind: "local_viewer"}}},
-		{"append_event", "hive view event add <session-id> --json <file|->", TimelineAppendEventRequest{}, TimelineOperationResult{}, TimelineAppendEventRequest{Actor: actor, SchemaVersion: 2, OperationID: "request-example", Kind: "request", Title: "Request", Summary: "Initial scope", TicketRefs: []TimelineTicketRef{}}},
-		{"event_patch", "hive view event update <session-id> <event-id> --json <file|->", TimelineEventPatchRequest{}, TimelineOperationResult{}, TimelineEventPatchRequest{Actor: actor, SchemaVersion: 2, OperationID: "copy-example", ExpectedVersion: 1, Title: timelineStringPointer("Corrected title")}},
+		{"session_patch", "hive view session update <session-id> --json <file|->", TimelineSessionPatchRequest{}, TimelineOperationResult{}, TimelineSessionPatchRequest{Actor: actor, SchemaVersion: 3, OperationID: "update-example", ExpectedVersion: 1, Summary: timelineStringPointer("Updated summary")}},
+		{"session_delete", "Local viewer only: DELETE /api/timeline/sessions/<session-id>", TimelineMutationRequest{}, TimelineOperationResult{}, TimelineMutationRequest{SchemaVersion: 3, OperationID: "delete-example", ExpectedVersion: 1, Actor: TimelineActor{Kind: "local_viewer"}}},
+		{"append_event", "hive view event add <session-id> --json <file|->", TimelineAppendEventRequest{}, TimelineOperationResult{}, TimelineAppendEventRequest{Actor: actor, SchemaVersion: 3, OperationID: "request-example", Kind: "request", Title: "Request", Summary: "Initial scope", TicketIDs: []string{}}},
+		{"event_patch", "hive view event update <session-id> <event-id> --json <file|->", TimelineEventPatchRequest{}, TimelineOperationResult{}, TimelineEventPatchRequest{Actor: actor, SchemaVersion: 3, OperationID: "copy-example", ExpectedVersion: 1, Title: timelineStringPointer("Corrected title")}},
 		{"event_withdraw", "hive view event withdraw <session-id> <event-id> --json <file|->", TimelineMutationRequest{}, TimelineOperationResult{}, mutation},
-		{"artifact_add", "hive view artifact add <session-id> --json <file|-> --file <image>", TimelineArtifactMetadata{}, TimelineOperationResult{}, TimelineArtifactMetadata{Actor: actor, SchemaVersion: 2, OperationID: "image-example", CapturedAt: "2026-01-01T00:00:00Z", Candidate: TimelineCandidate{Branch: "feature/example", Commit: "abc1234", Base: "development"}, Viewport: "desktop", Theme: "light", MediaType: "image/png"}},
-		{"document_add", "hive view document add <session-id> --json <file|-> --file <markdown>", TimelineDocumentMetadata{}, TimelineOperationResult{}, TimelineDocumentMetadata{Actor: actor, SchemaVersion: 2, OperationID: "document-example", MediaType: "text/markdown"}},
+		{"artifact_add", "hive view artifact add <session-id> --json <file|-> --file <image>", TimelineArtifactMetadata{}, TimelineOperationResult{}, TimelineArtifactMetadata{Actor: actor, SchemaVersion: 3, OperationID: "image-example", CapturedAt: "2026-01-01T00:00:00Z", CandidateID: "candidate-example", Viewport: "desktop", Theme: "light", MediaType: "image/png"}},
+		{"document_add", "hive view document add <session-id> --json <file|-> --file <markdown>", TimelineDocumentMetadata{}, TimelineOperationResult{}, TimelineDocumentMetadata{Actor: actor, SchemaVersion: 3, OperationID: "document-example", MediaType: "text/markdown"}},
 		{"document_get", "hive view document get <session-id> <document-id>", nil, TimelineDocumentResponse{}, map[string]any{}},
 		{"stage_start", "hive view stage start <session-id> --json <file|->", TimelineAppendEventRequest{}, TimelineOperationResult{}, stage},
 		{"stage_update", "hive view stage update <session-id> <event-id> --json <file|->", TimelineEventPatchRequest{}, TimelineOperationResult{}, patch},
-		{"document_snapshot", "hive view stage snapshot <session-id> <event-id> --json <file|->", TimelineDocumentSnapshotRequest{}, TimelineOperationResult{}, TimelineDocumentSnapshotRequest{Actor: actor, SchemaVersion: 2, OperationID: "snapshot-example", DocumentKey: "plan", ExpectedSessionVersion: 1, ExpectedVersion: 1, Status: "draft", Tabs: []TimelineDocumentTab{{Label: "Proposal", DocumentID: "document-example"}}}},
+		{"document_snapshot", "hive view stage snapshot <session-id> <event-id> --json <file|->", TimelineDocumentSnapshotRequest{}, TimelineOperationResult{}, TimelineDocumentSnapshotRequest{Actor: actor, SchemaVersion: 3, OperationID: "snapshot-example", DocumentKey: "plan", ExpectedSessionVersion: 1, ExpectedVersion: 1, Status: "draft", Tabs: []TimelineDocumentTab{{Label: "Proposal", DocumentID: "document-example"}}}},
 	}
-	definitions = append(definitions, timelineV2ProtocolDefinitions(actor)...)
-	result := TimelineProtocolDescription{StorageVersion: 2, Authority: map[string]string{
+	definitions = append(definitions, timelineV3ProtocolDefinitions(actor)...)
+	definitions = append(definitions, timelineCatalogProtocolDefinitions(actor)...)
+	result := TimelineProtocolDescription{StorageVersion: 3, Authority: map[string]string{
 		"create_session":  "native source bootstrap; server creates original producer and lead",
 		"join_request":    "same-project native source; no membership until acceptance",
 		"producer_accept": "lead; re-resolve pending Source against work.ProjectKey", "foreground_transfer": "lead to accepted producer", "recover_lead": "local_viewer; pending same-project request; nonterminal work",
-		"session_patch":  "lead for summary/tickets/lifecycle; local_viewer for title/archive/pin only",
+		"session_patch":  "lead for summary/lifecycle; local_viewer for title/archive/pin only",
 		"session_delete": "local_viewer", "stage_start": "lead", "stage_update": "lead", "closure": "lead",
 		"append_event": "accepted producer; collaborator requires explicit stage target", "event_patch": "content owner; lead for stage lifecycle", "event_withdraw": "content owner or lead moderation; immutable audit forbidden",
 		"artifact_add": "accepted producer", "document_add": "accepted producer", "document_snapshot": "accepted producer; explicit stage and chain predecessor",
+		"ticket_create": "lead", "ticket_patch": "lead", "delivery_create": "lead", "delivery_patch": "lead", "candidate_create": "accepted native producer",
 		"task_create": "lead", "task_patch": "lead", "task_transition": "lead or assigned segment producer", "wait_create": "lead or assigned delivery-segment producer; lead only when unbound", "wait_attempt_start": "lead or assigned delivery-segment producer; lead only when unbound", "wait_observe": "lead or assigned delivery-segment producer; lead only when unbound",
-	}, ErrorCodes: []string{"project_identity_unavailable", "duplicate_identity", "segment_assignee_required", "invalid_audit_operation", "invalid_state_transition", "forbidden_for_operation", "server_event_required", "invalid_producer_transition", "unsupported_protocol", "cutoff_required", "version_conflict", "operation_conflict", "producer_not_accepted", "foreign_project", "lead_required", "forbidden_actor", "immutable_audit", "stage_binding_mismatch", "candidate_mismatch", "current_predecessor_required", "pending_request_required", "unknown_or_mixed_attempt", "superseded_attempt", "wait_aggregate_mismatch", "limit"}, ProtocolVersion: 2, SchemaDialect: "https://json-schema.org/draft/2020-12/schema", Retention: "manual", TTLSeconds: 0, Capabilities: []string{"timeline_api", "conditional_mutations", "immutable_evidence", "stage_lifecycle", "document_snapshots", "manual_retention"}, Commands: []TimelineProtocolOperation{}, Limits: map[string]int64{"body_bytes": TimelineMaxBody, "document_bytes": TimelineMaxDocumentBytes, "document_tabs": TimelineMaxDocumentTabs, "documents": TimelineMaxDocuments, "document_snapshots": TimelineMaxDocumentSnapshots, "aggregate_document_bytes": TimelineMaxAggregateDocumentBytes, "events": TimelineMaxEvents, "content_events": TimelineContentEvents, "producers": 16, "pending_join_requests": 16, "tasks": 100, "task_segments": 5, "required_checks": TimelineMaxRequiredChecks, "wait_attempts": TimelineMaxWaitAttempts, "wait_observations": TimelineMaxWaitObservations, "waits": TimelineMaxWaits, "wait_text": TimelineMaxWaitText, "views": TimelineMaxViews}, Invariants: []string{
+	}, ErrorCodes: []string{"scope_reference_required", "entity_exists", "entity_conflict", "duplicate_plan_order", "unknown_ticket", "unknown_delivery", "unknown_candidate", "duplicate_id", "pull_request_required", "project_identity_unavailable", "duplicate_identity", "segment_assignee_required", "invalid_audit_operation", "invalid_state_transition", "forbidden_for_operation", "server_event_required", "invalid_producer_transition", "unsupported_protocol", "cutoff_required", "version_conflict", "operation_conflict", "producer_not_accepted", "foreign_project", "lead_required", "forbidden_actor", "immutable_audit", "stage_binding_mismatch", "candidate_mismatch", "current_predecessor_required", "pending_request_required", "unknown_or_mixed_attempt", "superseded_attempt", "wait_aggregate_mismatch", "limit"}, ProtocolVersion: 3, SchemaDialect: "https://json-schema.org/draft/2020-12/schema", Retention: "manual", TTLSeconds: 0, Capabilities: []string{"canonical_registries", "timeline_api", "conditional_mutations", "immutable_evidence", "stage_lifecycle", "document_snapshots", "manual_retention"}, Commands: []TimelineProtocolOperation{}, Limits: map[string]int64{"body_bytes": TimelineMaxBody, "document_bytes": TimelineMaxDocumentBytes, "document_tabs": TimelineMaxDocumentTabs, "documents": TimelineMaxDocuments, "document_snapshots": TimelineMaxDocumentSnapshots, "aggregate_document_bytes": TimelineMaxAggregateDocumentBytes, "events": TimelineMaxEvents, "content_events": TimelineContentEvents, "producers": 16, "pending_join_requests": 16, "tasks": 100, "task_segments": 5, "required_checks": TimelineMaxRequiredChecks, "wait_attempts": TimelineMaxWaitAttempts, "wait_observations": TimelineMaxWaitObservations, "waits": TimelineMaxWaits, "wait_text": TimelineMaxWaitText, "tickets": 100, "deliveries": 100, "candidates": 100, "plan_order": TimelineMaxNumber, "external_id": 256, "identity_url": 4096, "views": TimelineMaxViews}, Invariants: []string{
+		"Work-local catalogs use typed natural identities and stable opaque IDs. Ticket/delivery metadata patches preserve immutable publication snapshots. Candidate records are immutable and every publication selects its candidate_id explicitly. No current-candidate pointer exists.",
+		"Registry patches advance every affected task_version and wait_version once in the same durable commit; unrelated changes, no-ops and exact operation replays do not invalidate readers. New entity operations consume content capacity and closure reserves.",
 		"Reject unknown or duplicate keys, null except required current_stage_event_id, trailing JSON and unsafe integer literals; require exact case-sensitive JSON keys.",
 		"Sources require an absolute project root, canonical supported host and real native session ID. Session identity is server-owned.",
 		"Project identity comes from resolving the actual Source against the trusted registered-root registry to canonical ProjectKey at create/join/accept/recover/load. Distinct alias/worktree roots can share a project; path equality is not project proof. Accepted membership is server-owned; deduplicate (canonical project, host, native session) across alias roots while preserving the first actual Source. No request accepts caller-asserted project proof.",
@@ -88,7 +94,7 @@ func TimelineProtocolContract(operation string) (TimelineProtocolDescription, er
 		"Native actors declare provenance, not cryptographic process identity. local_viewer never publishes or conducts stage lifecycle; recovery is a separate conditional authority-only operation.",
 		"Tasks have one stable work identity and up to five explicit required stage segments; aggregate state and counts never infer approval or cascade lifecycle. Linked snapshot changes increment each affected task_version atomically once, including evidence/documents/CI, excluding no-ops and retries.",
 		"CI results use only applicable_attempt_id per required check; server generations advance explicitly. Late old-attempt observations extend history without restoring success. Policy must be confirmed and required checks nonempty for succeeded; a different candidate/policy creates a linked wait.",
-		"v2 rejects old protocol and prior state with unsupported_protocol/cutoff_required; no import, reader, conversion or migration is promised.",
+		"v3 rejects old protocol and prior state with unsupported_protocol/cutoff_required; no import, reader, conversion or migration is promised.",
 		"All content uses manual retention and ttl_seconds zero; capacity rejects new content without pruning history. Persistence/atomic transition behavior is implemented by the server, not this description.",
 	}}
 	for _, d := range definitions {
@@ -133,7 +139,7 @@ func TimelineProtocolContract(operation string) (TimelineProtocolDescription, er
 			outputSchema["required"] = required
 			properties["kind"].(map[string]any)["const"] = operationKind
 		}
-		result.Commands = append(result.Commands, TimelineProtocolOperation{Operation: d.name, Usage: d.usage, InputSchema: inputSchema, OutputSchema: outputSchema, Example: example})
+		result.Commands = append(result.Commands, TimelineProtocolOperation{Method: timelineCatalogRoute(d.name).method, Path: timelineCatalogRoute(d.name).path, Operation: d.name, Usage: d.usage, InputSchema: inputSchema, OutputSchema: outputSchema, Example: example})
 	}
 	if len(result.Commands) == 0 {
 		return result, timelineError("operation", "unsupported_operation")
@@ -174,9 +180,9 @@ func timelineProtocolSchema(t reflect.Type) map[string]any {
 				schema["const"] = "timeline_api"
 			}
 			if name == "schema_version" {
-				schema["const"] = 2
+				schema["const"] = 3
 			}
-			if name == "expected_task_version" || name == "task_version" || name == "expected_wait_version" || name == "wait_version" || name == "generation" || name == "order" || name == "expected_version" || name == "expected_session_version" || name == "session_version" || name == "event_version" || name == "sequence" || name == "version" {
+			if name == "plan_order" || name == "expected_task_version" || name == "task_version" || name == "expected_wait_version" || name == "wait_version" || name == "generation" || name == "order" || name == "expected_version" || name == "expected_session_version" || name == "session_version" || name == "event_version" || name == "sequence" || name == "version" {
 				schema["minimum"] = 1
 				schema["maximum"] = TimelineMaxNumber
 			}
@@ -272,6 +278,56 @@ func timelineProtocolSchema(t reflect.Type) map[string]any {
 			}
 			if name == "observations" {
 				schema["maxItems"] = 500
+			}
+			switch name {
+			case "ticket_ids", "delivery_ids":
+				schema["maxItems"] = 100
+				schema["uniqueItems"] = true
+				schema["items"] = map[string]any{"type": "string", "pattern": timelineOpaqueID.String()}
+				if name == "delivery_ids" {
+					schema["minItems"] = 1
+				}
+			case "tickets", "deliveries", "candidates", "ticket_refs", "delivery_refs":
+				schema["maxItems"] = 100
+			case "ticket_id", "delivery_id", "candidate_id", "pull_request_delivery_id":
+				schema["pattern"] = timelineOpaqueID.String()
+			case "external_id":
+				schema["minLength"] = 1
+				schema["maxLength"] = 256
+				schema["pattern"] = `^[^\s\p{Cc}]+$`
+			case "external_scope", "repository_url":
+				schema["format"] = "uri"
+				schema["maxLength"] = 4096
+				schema["description"] = "Canonical HTTPS namespace: lowercase scheme/host, no default port, trailing slash, credentials, query, fragment or dot segments. Path case is preserved."
+			}
+			if t == reflect.TypeOf(TimelineTicketInput{}) || t == reflect.TypeOf(TimelineTicket{}) || t == reflect.TypeOf(TimelineTicketCreateRequest{}) || t == reflect.TypeOf(TimelineTicketSnapshot{}) || t == reflect.TypeOf(TimelineTicketPatchRequest{}) {
+				switch name {
+				case "key":
+					schema["minLength"] = 1
+					schema["maxLength"] = 100
+				case "title":
+					schema["maxLength"] = 300
+				case "url":
+					schema["maxLength"] = 4096
+				}
+			}
+			if t == reflect.TypeOf(TimelineDeliverySnapshot{}) || t == reflect.TypeOf(TimelineDelivery{}) || t == reflect.TypeOf(TimelineDeliveryCreateRequest{}) || t == reflect.TypeOf(TimelineDeliveryPatchRequest{}) {
+				switch name {
+				case "kind":
+					schema["enum"] = []string{"pull_request", "commit"}
+				case "status":
+					schema["enum"] = []string{"open", "merged", "local"}
+				case "label":
+					schema["minLength"] = 1
+					schema["maxLength"] = 200
+				case "url":
+					schema["format"] = "uri"
+					schema["maxLength"] = 4096
+				}
+			}
+			if (t == reflect.TypeOf(TimelineCandidate{}) || t == reflect.TypeOf(TimelineCandidateRecord{}) || t == reflect.TypeOf(TimelineCandidateCreateRequest{})) && contains([]string{"branch", "commit", "base"}, name) {
+				schema["minLength"] = 1
+				schema["maxLength"] = 256
 			}
 			properties[name] = schema
 			if !strings.Contains(flags, "omitempty") {

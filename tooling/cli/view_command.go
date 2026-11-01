@@ -361,7 +361,7 @@ func viewStart(p viewPaths, f viewFlags, w io.Writer, deps viewDeps) error {
 	for {
 		if info, err := readServerInfo(p.info); err == nil && (pid <= 0 || info.PID == pid) && viewHealth(info, p) == nil {
 			if index, readErr := viewIndex(info); readErr == nil && len(index.TimelineSessions) == 0 {
-				fmt.Fprintln(w, "Viewer v2 starts empty; previous viewer data is not imported.")
+				fmt.Fprintln(w, "Viewer v3 starts empty; previous viewer data is not imported.")
 			}
 			if !f.portSet && info.Port != viewDefaultPort {
 				fmt.Fprintf(w, "The default port %d is busy, so the viewer took a free port.\n", viewDefaultPort)
@@ -569,7 +569,7 @@ func viewStop(p viewPaths, w io.Writer) error {
 
 func viewStatus(p viewPaths, w io.Writer, dir string) error {
 	if dir != "" {
-		return errors.New("unsupported_protocol: v2 status does not inspect source directories; use hive view session get with the work ID")
+		return errors.New("unsupported_protocol: v3 status does not inspect source directories; use hive view session get with the work ID")
 	}
 	out := map[string]any{"running": false}
 	info, running, err := viewRunning(p)
@@ -590,7 +590,7 @@ func viewStatus(p viewPaths, w io.Writer, dir string) error {
 			out["protocol_version"] = idx.ProtocolVersion
 			out["repositories"], out["timeline_sessions"], out["errors"], out["retention"] = len(idx.Repositories), len(idx.TimelineSessions), len(idx.Errors), idx.Retention
 		} else {
-			out["problem"] = "viewer index is incompatible or unavailable; update client and viewer together for protocol v2"
+			out["problem"] = "viewer index is incompatible or unavailable; update client and viewer together for protocol v3"
 		}
 	default:
 		if held, _ := viewLockHeld(p); held {
@@ -644,12 +644,12 @@ func viewIndex(info serverInfo) (viewIndexSnapshot, error) {
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.DisallowUnknownFields()
 	if decoder.Decode(&v) != nil || decoder.Decode(new(any)) != io.EOF || v.ProtocolVersion != viewer.TimelineSchemaVersion || v.Retention != "manual" || v.TTLSeconds == nil || *v.TTLSeconds != 0 || v.TimelineSessions == nil || v.Repositories == nil || v.Errors == nil {
-		return v, errors.New("unsupported viewer index; update client and viewer together for protocol v2")
+		return v, errors.New("unsupported viewer index; update client and viewer together for protocol v3")
 	}
 	for _, entry := range v.TimelineSessions {
 		raw, _ := json.Marshal(entry)
 		if _, err := viewer.DecodeTimelineIndexEntry(raw); err != nil {
-			return v, errors.New("invalid v2 viewer work summary")
+			return v, errors.New("invalid v3 viewer work summary")
 		}
 	}
 	return v, nil

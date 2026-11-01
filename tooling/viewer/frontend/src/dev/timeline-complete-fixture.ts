@@ -5,9 +5,10 @@ import type {
   TimelineSessionResponse,
   TimelineStage,
 } from "../timeline-contract";
-import type { TimelineTask, TimelineTaskState } from "../timeline-contract-v2";
+import type { TimelineTask } from "../timeline-contract-v3";
 import { previewDocumentMetadata } from "./timeline-documents-fixture";
 import { timelineFixture } from "./timeline-fixture";
+import { completeTaskPlan } from "./timeline-plan-fixture";
 import { workFixture } from "./timeline-work-fixture";
 
 export function completeFixture(): TimelineSessionResponse {
@@ -94,6 +95,15 @@ export function completeFixture(): TimelineSessionResponse {
   s.state = "active";
   s.reason = "Entrega en curso; todavía no se ha observado integración.";
   s.version = 40;
+  s.deliveries.push({
+    delivery_id: "delivery-commit",
+    repository_url: "https://example.test/repository",
+    external_id: "preview-r2",
+    kind: "commit",
+    label: "Commit preview-r2",
+    url: "https://example.test/commit/preview-r2",
+    status: "local",
+  });
   s.validation_count = 0;
   s.documents = structuredClone(previewDocumentMetadata);
   const findStage = (kind: TimelineStage) => {
@@ -158,45 +168,20 @@ export function completeFixture(): TimelineSessionResponse {
       { label: "Candidato y CI", document_id: "document_delivery" },
     ]),
   ];
-  const titles = [
-    "Contrato de consultas y permisos del dashboard",
-    "Acceso al entorno para validar el perfil personal",
-    "Revisión de búsqueda y filtros de conversaciones en móvil",
-    "Comprobación de permisos con el proveedor del entorno",
-    "Documentación de ayuda para la configuración de equipos",
-    "Pruebas de regresión y resultados del candidato",
-  ];
-  const summaries = [
-    "Contrato terminado y disponible en el documento de implementación.",
-    "El equipo del entorno debe habilitar el acceso antes de retomar esta validación.",
-    "Se corrigió el filtro móvil; comparar la galería anterior con las capturas actuales.",
-    "Comprobación en curso. La captura de esta sesión todavía no está disponible para lectura.",
-    "No ha comenzado. Esta tarea todavía no tiene documentos ni imágenes adjuntos.",
-    "El alcance de pruebas de esta tarea terminó; los resultados de etapa permanecen en Verificación.",
-  ];
-  const states: TimelineTaskState[] = [
-    "completed",
-    "blocked",
-    "in_review",
-    "in_progress",
-    "not_started",
-    "completed",
-  ];
-  s.tasks = titles.map(
-    (title, i): TimelineTask => ({
+  s.tasks = completeTaskPlan.slice(0, 6).map(
+    (definition, i): TimelineTask => ({
+      ...definition,
       task_id: `task-${i + 1}`,
-      task_key: `T${i + 1}`,
-      title,
-      summary: summaries[i],
+
       task_version: 3,
       plan_revision_id: "revision-plan-three",
-      state: states[i],
+      state: definition.state,
       segments: [
         {
           segment_id: `build-${i + 1}`,
           planned_stage: "build",
           order: i + 1,
-          state: states[i],
+          state: definition.state,
           assigned_producer_id:
             i === 2 ? "producer-reviewer" : "producer-original",
           display_stage_event_id: "build-stage",
@@ -222,10 +207,7 @@ export function completeFixture(): TimelineSessionResponse {
   );
   s.tasks.push({
     task_id: "task-7",
-    task_key: "T7",
-    title: "Verificación y entrega del candidato de perfil y conversaciones",
-    summary:
-      "Verificación finalizó su tramo. Entrega espera los checks del candidato actual y el cierre observado.",
+    ...completeTaskPlan[6],
     task_version: 4,
     plan_revision_id: "revision-plan-three",
     state: "in_progress",
@@ -248,44 +230,6 @@ export function completeFixture(): TimelineSessionResponse {
       },
     ],
   });
-  s.tasks.push(
-    {
-      task_id: "task-8",
-      task_key: "T8",
-      title: "Investigación de navegación y lectura de evidencia",
-      summary: "Hallazgos iniciales publicados.",
-      task_version: 1,
-      state: "completed",
-      segments: [
-        {
-          segment_id: "research-8",
-          planned_stage: "research",
-          order: 1,
-          state: "completed",
-          assigned_producer_id: "producer-original",
-          display_stage_event_id: "research-stage",
-        },
-      ],
-    },
-    {
-      task_id: "task-9",
-      task_key: "T9",
-      title: "Plan de implementación y revisión de riesgos",
-      summary: "Plan acordado con notas de riesgo separadas.",
-      task_version: 1,
-      state: "completed",
-      segments: [
-        {
-          segment_id: "plan-9",
-          planned_stage: "plan",
-          order: 1,
-          state: "completed",
-          assigned_producer_id: "producer-original",
-          display_stage_event_id: "plan-stage",
-        },
-      ],
-    },
-  );
   s.producers.push({
     producer_id: "producer-reviewer",
     source: {
@@ -439,11 +383,7 @@ export function completeFixture(): TimelineSessionResponse {
     },
   });
   const wait = s.waits[0];
-  wait.candidate = {
-    branch: "fix/profile-chat",
-    commit: "preview-r2",
-    base: "development",
-  };
+  wait.candidate_id = "candidate-r2";
   wait.next_action =
     "Esperar los resultados de Pruebas y Build del intento vigente.";
   wait.state = "waiting";
@@ -518,18 +458,24 @@ export function completeFixture(): TimelineSessionResponse {
       title: "Pull request del candidato abierto",
       summary:
         "El candidato está publicado para revisar sus checks. La integración sigue sin confirmar.",
-      deliveries: [
+      delivery_refs: [
         {
-          kind: "pull_request",
-          label: "PR #42",
-          url: "https://example.test/pull/42",
-          status: "open",
+          delivery_id: "delivery-pr",
+          snapshot: {
+            kind: "pull_request",
+            label: "PR #42",
+            url: "https://example.test/pull/42",
+            status: "open",
+          },
         },
         {
-          kind: "commit",
-          label: "Commit preview-r2",
-          url: "https://example.test/commit/preview-r2",
-          status: "local",
+          delivery_id: "delivery-commit",
+          snapshot: {
+            kind: "commit",
+            label: "Commit preview-r2",
+            url: "https://example.test/commit/preview-r2",
+            status: "local",
+          },
         },
       ],
     });

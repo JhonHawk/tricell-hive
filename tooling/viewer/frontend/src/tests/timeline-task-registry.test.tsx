@@ -32,7 +32,7 @@ async function click(label: string, within: ParentNode = document) {
 test("global task projection retains canonical objects and counts a multistage task only once", () => {
   const data = completeFixture(),
     registry = workTaskRegistry(data.session);
-  assert.equal(registry.length, 9);
+  assert.equal(registry.length, 7);
   const t7 = registry.find((row) => row.task.task_key === "T7");
   assert.ok(t7);
   assert.equal(
@@ -64,7 +64,7 @@ test("toolbar opens the canonical task registry and a single origin marker never
     ),
     ["Tasks", "Go to current"],
   );
-  assert.equal(container.textContent?.includes("4/9 completed"), false);
+  assert.equal(container.textContent?.includes("2/7 completed"), false);
   const origins = container.querySelectorAll('[data-ui-origin="true"]');
   assert.equal(origins.length, 1);
   assert.ok(origins[0].textContent?.includes("Start"));
@@ -84,8 +84,8 @@ test("toolbar opens the canonical task registry and a single origin marker never
   await click("Tasks", toolbar);
   const popover = document.querySelector('[data-slot="popover-content"]');
   assert.ok(popover);
-  assert.ok(popover.textContent?.includes("4/9 completed"));
-  assert.equal(popover.querySelectorAll("[data-registry-task-id]").length, 9);
+  assert.ok(popover.textContent?.includes("2/7 completed"));
+  assert.equal(popover.querySelectorAll("[data-registry-task-id]").length, 7);
   const t7 = popover.querySelector('[data-registry-task-id="task-7"]');
   assert.ok(t7);
   assert.equal(

@@ -53,11 +53,13 @@ test("real application wires API timeline, documents, conditional title and v2 n
           pending_join_requests: _joins,
           tasks: _tasks,
           waits: _waits,
+          deliveries: _deliveries,
+          candidates: _candidates,
           ...entry
         } = data.session;
         return new Response(
           JSON.stringify({
-            protocol_version: 2,
+            protocol_version: 3,
             retention: "manual",
             repositories: [],
             errors: [],
@@ -79,7 +81,7 @@ test("real application wires API timeline, documents, conditional title and v2 n
         data.session.version++;
         return new Response(
           JSON.stringify({
-            schema_version: 2,
+            schema_version: 3,
             kind: "session_patch",
             viewer_session_id: sid,
             operation_id: body.operation_id,
@@ -181,11 +183,13 @@ test("pending API deletion exposes recovery outside the removed session header",
           pending_join_requests: _joins,
           tasks: _tasks,
           waits: _waits,
+          deliveries: _deliveries,
+          candidates: _candidates,
           ...entry
         } = data.session;
         return new Response(
           JSON.stringify({
-            protocol_version: 2,
+            protocol_version: 3,
             retention: "manual",
             repositories: [],
             errors: [],
@@ -206,7 +210,7 @@ test("pending API deletion exposes recovery outside the removed session header",
             attempts === 1
               ? { code: "delete_pending", cleanup_pending: true }
               : {
-                  schema_version: 2,
+                  schema_version: 3,
                   kind: "session_delete",
                   viewer_session_id: sid,
                   operation_id: body.operation_id,

@@ -3,11 +3,17 @@ import type {
   TimelineEvent,
   TimelineSessionResponse,
 } from "../timeline-contract";
-import type { TimelineTaskState } from "../timeline-contract-v2";
+import type { TimelineTaskState } from "../timeline-contract-v3";
 import { timelineFixture } from "./timeline-fixture";
 export function workFixture(scenario = "cam"): TimelineSessionResponse {
   const data = structuredClone(timelineFixture),
     s = data.session;
+  s.candidates.push({
+    candidate_id: "candidate-dashboard",
+    branch: "fix/dashboard",
+    commit: "abc1234",
+    base: "development",
+  });
   const actor = {
     kind: "native_producer" as const,
     producer_id: "producer-original",
@@ -76,6 +82,7 @@ export function workFixture(scenario = "cam"): TimelineSessionResponse {
   s.tasks = Array.from({ length: count }, (_, i) => ({
     task_id: `task-${i + 1}`,
     task_key: `T${i + 1}`,
+    plan_order: i + 1,
     title: titles[i % titles.length],
     summary:
       "Revisar los resultados con permisos reales, documentar las diferencias y conservar la evidencia de escritorio y móvil.",
@@ -179,12 +186,16 @@ export function workFixture(scenario = "cam"): TimelineSessionResponse {
         stage_event_id: "delivery-stage",
         task_id: "task-7",
         segment_id: "delivery-7",
-        candidate: {
-          branch: "fix/dashboard",
-          commit: "abc1234",
-          base: "development",
+        candidate_id: "candidate-dashboard",
+        pull_request_ref: {
+          delivery_id: "delivery-pr",
+          snapshot: {
+            kind: "pull_request",
+            label: "PR #42",
+            url: "https://example.test/pull/42",
+            status: "open",
+          },
         },
-        pull_request_url: "https://example.test/pull/42",
         policy: {
           policy_id: "required-v1",
           confirmed: true,

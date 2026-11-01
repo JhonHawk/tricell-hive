@@ -18,7 +18,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -40,12 +40,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -168,11 +174,13 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "transition",
       "expected_version": 2,
       "expected_session_version": 7,
@@ -204,7 +212,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -226,12 +234,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -354,11 +368,13 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "transition",
       "expected_version": 999,
       "expected_session_version": 7,
@@ -390,7 +406,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -412,12 +428,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -540,11 +562,13 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "transition",
       "expected_version": 2,
       "expected_session_version": 999,
@@ -576,7 +600,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -598,12 +622,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -726,11 +756,13 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-1",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "transition",
       "expected_version": 2,
       "expected_session_version": 7,
@@ -762,7 +794,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -784,12 +816,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -912,11 +950,13 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "transition",
       "expected_version": 2,
       "expected_session_version": 7,
@@ -948,7 +988,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -970,12 +1010,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -1098,11 +1144,13 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "transition",
       "expected_version": 2,
       "expected_session_version": 7,
@@ -1134,7 +1182,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1156,12 +1204,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -1284,11 +1338,13 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "transition",
       "expected_version": 2,
       "expected_session_version": 7,
@@ -1320,7 +1376,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1342,12 +1398,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -1470,11 +1532,13 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "withdraw",
       "expected_version": 2,
       "actor": {
@@ -1503,7 +1567,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1525,12 +1589,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -1653,11 +1723,13 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "withdraw",
       "expected_version": 2,
       "actor": {
@@ -1686,7 +1758,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1708,12 +1780,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -1836,11 +1914,13 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "state",
       "expected_version": 7,
       "state": "awaiting_validation",
@@ -1871,7 +1951,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1893,12 +1973,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -2021,11 +2107,13 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "state",
       "expected_version": 7,
       "state": "closed",
@@ -2056,7 +2144,7 @@
         }
       ],
       "current_stage_event_id": null,
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2078,12 +2166,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -2206,11 +2300,13 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "state",
       "expected_version": 7,
       "state": "closed",
@@ -2241,7 +2337,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2263,12 +2359,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -2391,16 +2493,17 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "stage",
       "kind": "stage",
       "title": "Verify",
       "summary": "Declared review",
-      "ticket_refs": [],
       "stage": "verify",
       "stage_state": "in_progress",
       "expected_session_version": 7,
@@ -2408,7 +2511,8 @@
         "kind": "native_producer",
         "producer_id": "producer-original"
       },
-      "reason": "Explicit lifecycle change"
+      "reason": "Explicit lifecycle change",
+      "ticket_ids": []
     },
     "valid": true
   },
@@ -2431,7 +2535,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2453,12 +2557,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -2581,16 +2691,17 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "stage",
       "kind": "stage",
       "title": "Verify",
       "summary": "Declared review",
-      "ticket_refs": [],
       "stage": "verify",
       "stage_state": "in_progress",
       "expected_session_version": 999,
@@ -2598,7 +2709,8 @@
         "kind": "native_producer",
         "producer_id": "producer-original"
       },
-      "reason": "Explicit lifecycle change"
+      "reason": "Explicit lifecycle change",
+      "ticket_ids": []
     },
     "valid": false
   },
@@ -2621,7 +2733,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2643,12 +2755,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -2771,16 +2889,17 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "stage",
       "kind": "stage",
       "title": "Verify",
       "summary": "Declared review",
-      "ticket_refs": [],
       "stage": "plan",
       "stage_state": "in_progress",
       "expected_session_version": 7,
@@ -2788,7 +2907,8 @@
         "kind": "native_producer",
         "producer_id": "producer-original"
       },
-      "reason": "Explicit lifecycle change"
+      "reason": "Explicit lifecycle change",
+      "ticket_ids": []
     },
     "valid": false
   },
@@ -2811,7 +2931,7 @@
         }
       ],
       "current_stage_event_id": null,
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2833,12 +2953,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -2962,16 +3088,17 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "stage",
       "kind": "stage",
       "title": "Verify",
       "summary": "Declared review",
-      "ticket_refs": [],
       "stage": "plan",
       "stage_state": "in_progress",
       "expected_session_version": 7,
@@ -2980,7 +3107,8 @@
         "kind": "native_producer",
         "producer_id": "producer-original"
       },
-      "reason": "Explicit lifecycle change"
+      "reason": "Explicit lifecycle change",
+      "ticket_ids": []
     },
     "valid": true
   },
@@ -3003,7 +3131,7 @@
         }
       ],
       "current_stage_event_id": null,
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -3025,12 +3153,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -3154,16 +3288,17 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "stage",
       "kind": "stage",
       "title": "Verify",
       "summary": "Declared review",
-      "ticket_refs": [],
       "stage": "plan",
       "stage_state": "in_progress",
       "expected_session_version": 7,
@@ -3171,7 +3306,8 @@
         "kind": "native_producer",
         "producer_id": "producer-original"
       },
-      "reason": "Explicit lifecycle change"
+      "reason": "Explicit lifecycle change",
+      "ticket_ids": []
     },
     "valid": false
   },
@@ -3194,7 +3330,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -3216,12 +3352,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -3344,16 +3486,17 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "close",
       "kind": "closure",
       "title": "Closed",
       "summary": "Done",
-      "ticket_refs": [],
       "closure": {
         "reason": "completed",
         "result": "Verified"
@@ -3362,7 +3505,8 @@
         "kind": "native_producer",
         "producer_id": "producer-original"
       },
-      "reason": "Explicit lifecycle change"
+      "reason": "Explicit lifecycle change",
+      "ticket_ids": []
     },
     "valid": false
   },
@@ -3385,7 +3529,7 @@
         }
       ],
       "current_stage_event_id": null,
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -3407,12 +3551,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -3535,16 +3685,17 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "close",
       "kind": "closure",
       "title": "Closed",
       "summary": "Done",
-      "ticket_refs": [],
       "closure": {
         "reason": "completed",
         "result": "Verified"
@@ -3553,7 +3704,8 @@
         "kind": "native_producer",
         "producer_id": "producer-original"
       },
-      "reason": "Explicit lifecycle change"
+      "reason": "Explicit lifecycle change",
+      "ticket_ids": []
     },
     "valid": true
   },
@@ -3576,7 +3728,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -3598,12 +3750,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -3726,11 +3884,13 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "snapshot",
       "expected_version": 2,
       "status": "complete",
@@ -3769,7 +3929,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -3791,12 +3951,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -3919,11 +4085,13 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-1",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "snapshot",
       "expected_version": 2,
       "status": "complete",
@@ -3962,7 +4130,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -3984,12 +4152,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -4112,11 +4286,13 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "snapshot",
       "expected_version": 999,
       "status": "complete",
@@ -4155,7 +4331,7 @@
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -4177,12 +4353,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -4305,11 +4487,13 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "snapshot",
       "expected_version": 2,
       "status": "complete",
@@ -4348,7 +4532,7 @@
         }
       ],
       "current_stage_event_id": null,
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -4370,12 +4554,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -4499,16 +4689,17 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "stage",
       "kind": "stage",
       "title": "Verify",
       "summary": "Declared review",
-      "ticket_refs": [],
       "stage": "verify",
       "stage_state": "in_progress",
       "expected_session_version": 7,
@@ -4516,7 +4707,8 @@
         "kind": "native_producer",
         "producer_id": "producer-original"
       },
-      "reason": "Explicit lifecycle change"
+      "reason": "Explicit lifecycle change",
+      "ticket_ids": []
     },
     "valid": false
   },
@@ -4539,7 +4731,7 @@
         }
       ],
       "current_stage_event_id": null,
-      "schema_version": 2,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -4561,12 +4753,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -4690,11 +4888,13 @@
       "foreground_producer_id": "producer-original",
       "pending_join_requests": [],
       "tasks": [],
-      "waits": []
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 2,
+      "schema_version": 3,
       "operation_id": "snapshot",
       "expected_version": 2,
       "status": "complete",

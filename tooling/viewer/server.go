@@ -303,7 +303,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		ProtocolVersion int    `json:"timeline_protocol_version"`
 		Revision        string `json:"revision"`
 		Modified        bool   `json:"modified"`
-	}{s.pid, filepath.Dir(s.store.Dir()), s.version, s.store.TTL().String(), "manual", 2, s.revision, s.modified})
+	}{s.pid, filepath.Dir(s.store.Dir()), s.version, s.store.TTL().String(), "manual", TimelineSchemaVersion, s.revision, s.modified})
 }
 
 // indexSession is retained only as the rejected legacy wire shape in the contract decoder.
@@ -340,7 +340,7 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 		timelineHTTPError(w, err)
 		return
 	}
-	writeJSON(w, indexView{TimelineSessions: s.store.TimelineIndex(), ProtocolVersion: 2, Retention: "manual", Repositories: repositoryStatuses(reg), Errors: []IngestError{}})
+	writeJSON(w, indexView{TimelineSessions: s.store.TimelineIndex(), ProtocolVersion: 3, Retention: "manual", Repositories: repositoryStatuses(reg), Errors: []IngestError{}})
 }
 
 // file serves /files/<key>/<cap>/<path> from a stored copy. The Store validates the

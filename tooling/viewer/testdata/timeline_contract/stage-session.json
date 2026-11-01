@@ -14,7 +14,7 @@
     }
   ],
   "current_stage_event_id": "plan-2",
-  "schema_version": 2,
+  "schema_version": 3,
   "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
   "project_key": "example.com/fixture/project",
   "project_name": "CAM fixture",
@@ -36,12 +36,18 @@
     {
       "key": "COM-1",
       "url": "https://example.com/issues/COM-1",
-      "title": "Profile spacing"
+      "title": "Profile spacing",
+      "ticket_id": "ticket-1",
+      "external_scope": "https://example.test/tracker",
+      "external_id": "COM-1"
     },
     {
       "key": "COM-2",
       "url": "https://example.com/issues/COM-2",
-      "title": "Chat filters"
+      "title": "Chat filters",
+      "ticket_id": "ticket-2",
+      "external_scope": "https://example.test/tracker",
+      "external_id": "COM-2"
     }
   ],
   "events": [
@@ -164,5 +170,7 @@
   "foreground_producer_id": "producer-original",
   "pending_join_requests": [],
   "tasks": [],
-  "waits": []
+  "waits": [],
+  "deliveries": [],
+  "candidates": []
 }

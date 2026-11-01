@@ -38,7 +38,7 @@ import {
   type TimelineEvent,
   type TimelineSessionResponse,
 } from "./timeline-contract";
-import type { TimelineCIWait, TimelineTaskState } from "./timeline-contract-v2";
+import type { TimelineCIWait, TimelineTaskState } from "./timeline-contract-v3";
 import { type TimelineLanguage, timelineCopy } from "./timeline-copy";
 import type { TimelineTaskProjection } from "./timeline-grouping";
 import { TimelineSummary } from "./timeline-summary";
@@ -141,7 +141,7 @@ export function taskContent(
     history > 0 ||
     reviews > 0 ||
     waits > 0 ||
-    events.some((e) => Boolean(e.deliveries?.length) || Boolean(e.target));
+    events.some((e) => Boolean(e.delivery_refs?.length) || Boolean(e.target));
   return {
     images,
     unavailable: refs.length - images,

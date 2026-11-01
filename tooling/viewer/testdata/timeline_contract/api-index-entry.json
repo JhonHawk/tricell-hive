@@ -21,12 +21,18 @@
     {
       "key": "COM-1",
       "url": "https://example.com/issues/COM-1",
-      "title": "Profile spacing"
+      "title": "Profile spacing",
+      "ticket_id": "ticket-1",
+      "external_scope": "https://example.test/tracker",
+      "external_id": "COM-1"
     },
     {
       "key": "COM-2",
       "url": "https://example.com/issues/COM-2",
-      "title": "Chat filters"
+      "title": "Chat filters",
+      "ticket_id": "ticket-2",
+      "external_scope": "https://example.test/tracker",
+      "external_id": "COM-2"
     }
   ],
   "mode": "timeline_api"

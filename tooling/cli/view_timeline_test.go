@@ -24,7 +24,7 @@ func TestTimelineCLIContractIsOfflineAndNarrowed(t *testing.T) {
 		t.Fatal(err)
 	}
 	var full viewer.TimelineProtocolDescription
-	if err := json.Unmarshal(out.Bytes(), &full); err != nil || len(full.Commands) != 23 || full.ProtocolVersion != 2 || full.Retention != "manual" {
+	if err := json.Unmarshal(out.Bytes(), &full); err != nil || len(full.Commands) != 28 || full.ProtocolVersion != 3 || full.Retention != "manual" {
 		t.Fatalf("invalid full contract: %v", err)
 	}
 	for _, operation := range full.Commands {
@@ -136,7 +136,7 @@ func timelineCLIInfo(t *testing.T, server *httptest.Server) serverInfo {
 
 func TestTimelineCLITransportGuardsAndProtocolIdentity(t *testing.T) {
 	var protocolVersion atomic.Int32
-	protocolVersion.Store(2)
+	protocolVersion.Store(3)
 	var info serverInfo
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("X-Hive-Token") != info.Token {
@@ -160,7 +160,7 @@ func TestTimelineCLITransportGuardsAndProtocolIdentity(t *testing.T) {
 	if err := viewTimelineProtocolReady(info, "/fixture-state"); err == nil {
 		t.Fatal("accepted obsolete v1 server")
 	}
-	protocolVersion.Store(2)
+	protocolVersion.Store(3)
 	if err := viewTimelineProtocolReady(info, "/different-state"); err == nil {
 		t.Fatal("accepted wrong server identity")
 	}
@@ -277,7 +277,7 @@ func TestTimelineCLIRealServerDocumentsStagesReplayAndTarget(t *testing.T) {
 		}
 		return f.mustView(append(args, "--json", input)...)
 	}
-	create := viewer.TimelineCreateSessionRequest{SchemaVersion: 2, OperationID: "cli-create", Source: viewer.TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "fixture-native"}, Title: "CLI fixture", Summary: "Isolated integration", Tickets: []viewer.TimelineTicket{}}
+	create := viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "cli-create", Source: viewer.TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "fixture-native"}, Title: "CLI fixture", Summary: "Isolated integration", Tickets: []viewer.TimelineTicketInput{}}
 	raw := invoke([]string{"session", "create"}, create)
 	session, err := viewer.DecodeTimelineSessionResponse([]byte(raw))
 	if err != nil {
@@ -296,7 +296,7 @@ func TestTimelineCLIRealServerDocumentsStagesReplayAndTarget(t *testing.T) {
 		t.Fatal("create replay changed public result")
 	}
 	version := session.Session.Version
-	stageRaw := invoke([]string{"stage", "start", sid}, viewer.TimelineAppendEventRequest{Actor: actor, Reason: "Explicit fixture operation", SchemaVersion: 2, OperationID: "cli-plan", Kind: "stage", Title: "Plan", Summary: "Document fixture", TicketRefs: []viewer.TimelineTicketRef{}, Stage: "plan", StageState: "in_progress", ExpectedSessionVersion: &version})
+	stageRaw := invoke([]string{"stage", "start", sid}, viewer.TimelineAppendEventRequest{Actor: actor, Reason: "Explicit fixture operation", SchemaVersion: 3, OperationID: "cli-plan", Kind: "stage", Title: "Plan", Summary: "Document fixture", TicketIDs: []string{}, Stage: "plan", StageState: "in_progress", ExpectedSessionVersion: &version})
 	stage, err := viewer.DecodeTimelineOperationResult([]byte(stageRaw))
 	if err != nil {
 		t.Fatal(err)
@@ -306,12 +306,12 @@ func TestTimelineCLIRealServerDocumentsStagesReplayAndTarget(t *testing.T) {
 	if err := os.WriteFile(markdown, []byte(content), 0600); err != nil {
 		t.Fatal(err)
 	}
-	docRaw := invoke([]string{"document", "add", sid, "--file", markdown}, viewer.TimelineDocumentMetadata{Actor: actor, SchemaVersion: 2, OperationID: "cli-doc", MediaType: "text/markdown"})
+	docRaw := invoke([]string{"document", "add", sid, "--file", markdown}, viewer.TimelineDocumentMetadata{Actor: actor, SchemaVersion: 3, OperationID: "cli-doc", MediaType: "text/markdown"})
 	doc, err := viewer.DecodeTimelineOperationResult([]byte(docRaw))
 	if err != nil {
 		t.Fatal(err)
 	}
-	snapshotRaw := invoke([]string{"stage", "snapshot", sid, stage.EventID}, viewer.TimelineDocumentSnapshotRequest{Actor: actor, DocumentKey: "cli-plan", ExpectedSessionVersion: doc.SessionVersion, SchemaVersion: 2, OperationID: "cli-snapshot", ExpectedVersion: stage.EventVersion, Status: "complete", Tabs: []viewer.TimelineDocumentTab{{Label: "Plan", DocumentID: doc.DocumentID}}})
+	snapshotRaw := invoke([]string{"stage", "snapshot", sid, stage.EventID}, viewer.TimelineDocumentSnapshotRequest{Actor: actor, DocumentKey: "cli-plan", ExpectedSessionVersion: doc.SessionVersion, SchemaVersion: 3, OperationID: "cli-snapshot", ExpectedVersion: stage.EventVersion, Status: "complete", Tabs: []viewer.TimelineDocumentTab{{Label: "Plan", DocumentID: doc.DocumentID}}})
 	snapshot, err := viewer.DecodeTimelineOperationResult([]byte(snapshotRaw))
 	if err != nil {
 		t.Fatal(err)
@@ -323,7 +323,7 @@ func TestTimelineCLIRealServerDocumentsStagesReplayAndTarget(t *testing.T) {
 	}
 	state := viewer.TimelineStageState("completed")
 	current := snapshot.SessionVersion
-	complete := viewer.TimelineEventPatchRequest{Actor: actor, Reason: "Explicit fixture operation", SchemaVersion: 2, OperationID: "cli-complete", ExpectedVersion: snapshot.EventVersion, StageState: &state, ExpectedSessionVersion: &current}
+	complete := viewer.TimelineEventPatchRequest{Actor: actor, Reason: "Explicit fixture operation", SchemaVersion: 3, OperationID: "cli-complete", ExpectedVersion: snapshot.EventVersion, StageState: &state, ExpectedSessionVersion: &current}
 	completeRaw := invoke([]string{"stage", "update", sid, stage.EventID}, complete)
 	if _, err := viewer.DecodeTimelineOperationResult([]byte(completeRaw)); err != nil {
 		t.Fatal(err)
@@ -349,7 +349,7 @@ func TestTimelineCLIRealServerDocumentsStagesReplayAndTarget(t *testing.T) {
 	if err != nil || len(read.Session.Events) != 2 || len(read.Session.Documents) != 1 || read.Session.CurrentStageEventID != nil {
 		t.Fatal("restart lost stage/documents")
 	}
-	deletion := viewer.TimelineMutationRequest{Actor: viewer.TimelineActor{Kind: "local_viewer"}, SchemaVersion: 2, OperationID: "cli-delete", ExpectedVersion: read.Session.Version}
+	deletion := viewer.TimelineMutationRequest{Actor: viewer.TimelineActor{Kind: "local_viewer"}, SchemaVersion: 3, OperationID: "cli-delete", ExpectedVersion: read.Session.Version}
 	deleted := timelineLocalJSON(t, f, "DELETE", "/api/timeline/sessions/"+sid, deletion)
 	f.mustView("stop")
 	f.mustView("start")

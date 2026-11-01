@@ -1,28 +1,12 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "operation_id": "validation:1",
   "kind": "validation",
   "title": "First validation",
   "summary": "Profile and chat are ready to review.",
-  "ticket_refs": [],
-  "candidate": {
-    "branch": "fix/profile-chat",
-    "commit": "working tree",
-    "base": "development"
-  },
   "views": [
     {
       "title": "Chat mobile",
-      "ticket_refs": [
-        {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1"
-        },
-        {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2"
-        }
-      ],
       "steps": [
         "Open Conversations at 390px.",
         "Activate a filter and close the panel."
@@ -31,14 +15,22 @@
       "image_refs": [
         {
           "artifact_id": "artifact_chat",
-          "caption": "390px · dark",
+          "caption": "390px \u00b7 dark",
           "alt": "Chat search with compact filter"
         }
+      ],
+      "ticket_ids": [
+        "ticket-1"
       ]
     }
   ],
   "actor": {
     "kind": "native_producer",
     "producer_id": "producer-original"
-  }
+  },
+  "ticket_ids": [
+    "ticket-1",
+    "ticket-2"
+  ],
+  "candidate_id": "candidate-1"
 }

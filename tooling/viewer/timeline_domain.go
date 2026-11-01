@@ -132,14 +132,14 @@ func (s *Store) timelineBind(r *timelineRecord, source TimelineSource) error {
 	return nil
 }
 
-// TimelineV2Operation runs one conditional domain transaction, including replay,
+// TimelineV3Operation runs one conditional domain transaction, including replay,
 // authority, source resolution, history and receipt, under the store mutex.
-func (s *Store) TimelineV2Operation(id, kind, objectID string, value any) (TimelineOperationResult, error) {
+func (s *Store) TimelineV3Operation(id, kind, objectID string, value any) (TimelineOperationResult, error) {
 	raw, err := json.Marshal(value)
 	if err != nil {
 		return TimelineOperationResult{}, err
 	}
-	value, err = DecodeTimelineV2Operation(kind, raw)
+	value, err = DecodeTimelineV3Operation(kind, raw)
 	if err != nil {
 		return TimelineOperationResult{}, err
 	}
@@ -154,7 +154,7 @@ func (s *Store) TimelineV2Operation(id, kind, objectID string, value any) (Timel
 	if result, done, err := s.timelineReplay(old, op, digest); done || err != nil {
 		return result, err
 	}
-	if err = ValidateTimelineV2OperationReferences(*old.Session, kind, objectID, value); err != nil {
+	if err = ValidateTimelineV3OperationReferences(*old.Session, kind, objectID, value); err != nil {
 		return TimelineOperationResult{}, err
 	}
 	if old.Session.State == TimelineClosed || old.Session.State == "failed" {
@@ -177,6 +177,8 @@ func (s *Store) TimelineV2Operation(id, kind, objectID string, value any) (Timel
 		if err = s.timelineAudit(r, TimelineOperationKind(kind), op, result.RequestID, nil, &request.Source, request.Reason); err != nil {
 			return result, err
 		}
+	case *TimelineTicketCreateRequest, *TimelineTicketPatchRequest, *TimelineDeliveryCreateRequest, *TimelineDeliveryPatchRequest, *TimelineCandidateCreateRequest:
+		return TimelineOperationResult{}, timelineError("operation", "unsupported_operation")
 	case *TimelineProducerAcceptRequest:
 		result.RequestID = request.RequestID
 		result.ProducerID, err = s.timelineAccept(r, request.RequestID, base.Actor, kind, base.Reason, false)
@@ -199,7 +201,7 @@ func (s *Store) TimelineV2Operation(id, kind, objectID string, value any) (Timel
 		if err != nil {
 			return result, err
 		}
-		task := TimelineTask{TaskID: result.TaskID, TaskKey: request.TaskKey, Title: request.Title, Summary: request.Summary, TaskVersion: 1, PlanRevisionID: request.PlanRevisionID, State: "not_started", Segments: []TimelineTaskSegment{}}
+		task := TimelineTask{TaskID: result.TaskID, TaskKey: request.TaskKey, PlanOrder: request.PlanOrder, Title: request.Title, Summary: request.Summary, TaskVersion: 1, PlanRevisionID: request.PlanRevisionID, State: "not_started", Segments: []TimelineTaskSegment{}}
 		for _, input := range request.Segments {
 			sid, e := timelineRandomID("segment-")
 			if e != nil {
@@ -218,6 +220,9 @@ func (s *Store) TimelineV2Operation(id, kind, objectID string, value any) (Timel
 		task := &v.Tasks[i]
 		before := *task
 		before.Segments = append([]TimelineTaskSegment{}, task.Segments...)
+		if request.PlanOrder != nil {
+			task.PlanOrder = *request.PlanOrder
+		}
 		if request.Title != nil {
 			task.Title = *request.Title
 		}
@@ -260,7 +265,7 @@ func (s *Store) TimelineV2Operation(id, kind, objectID string, value any) (Timel
 				}
 			}
 		}
-		scopeChanged := before.Withdrawn != task.Withdrawn
+		scopeChanged := before.Withdrawn != task.Withdrawn || before.PlanOrder != task.PlanOrder
 		for j, previous := range before.Segments {
 			next := task.Segments[j]
 			scopeChanged = scopeChanged || previous.AssignedProducerID != next.AssignedProducerID || previous.Order != next.Order || previous.Withdrawn != next.Withdrawn
@@ -310,13 +315,13 @@ func (s *Store) TimelineV2Operation(id, kind, objectID string, value any) (Timel
 		publicAudit = true
 	case *TimelineWaitCreateRequest:
 		for _, w := range v.Waits {
-			if w.Candidate == request.Candidate && w.Policy.PolicyID == request.Policy.PolicyID {
+			if w.CandidateID == request.CandidateID && w.Policy.PolicyID == request.Policy.PolicyID {
 				return result, timelineFailure("wait_already_exists", 409)
 			}
 		}
 		previous := ""
 		for _, wait := range v.Waits {
-			if wait.PullRequestURL == request.PullRequestURL && wait.TaskID == request.TaskID && wait.SegmentID == request.SegmentID {
+			if wait.PullRequestRef.DeliveryID == request.PullRequestDeliveryID && wait.TaskID == request.TaskID && wait.SegmentID == request.SegmentID {
 				previous = wait.WaitID
 			}
 		}
@@ -327,7 +332,11 @@ func (s *Store) TimelineV2Operation(id, kind, objectID string, value any) (Timel
 		if err != nil {
 			return result, err
 		}
-		wait := TimelineCIWait{WaitID: result.WaitID, WaitVersion: 1, StageEventID: request.TargetStageEventID, TaskID: request.TaskID, SegmentID: request.SegmentID, Candidate: request.Candidate, PullRequestURL: request.PullRequestURL, Policy: request.Policy, PreviousWaitID: request.PreviousWaitID, NextAction: request.NextAction, ApplicableAttemptID: map[string]string{}, Attempts: []TimelineCIAttempt{}, Observations: []TimelineCIObservation{}}
+		refs, e := CaptureTimelineDeliveryReferences(*v, []string{request.PullRequestDeliveryID})
+		if e != nil {
+			return result, e
+		}
+		wait := TimelineCIWait{WaitID: result.WaitID, WaitVersion: 1, StageEventID: request.TargetStageEventID, TaskID: request.TaskID, SegmentID: request.SegmentID, CandidateID: request.CandidateID, PullRequestRef: refs[0], Policy: request.Policy, PreviousWaitID: request.PreviousWaitID, NextAction: request.NextAction, ApplicableAttemptID: map[string]string{}, Attempts: []TimelineCIAttempt{}, Observations: []TimelineCIObservation{}}
 		wait.State = timelineWaitAggregate(wait)
 		v.Waits = append(v.Waits, wait)
 		result.WaitVersion = 1
@@ -443,7 +452,7 @@ func validateTimelinePrivateAudit(r *timelineRecord) error {
 		return timelineFailure("corrupt_storage", 500)
 	}
 	ids, ops := map[string]bool{}, map[string]bool{}
-	allowed := []string{"create_session", "join_request", "task_create", "task_patch", "wait_create", "wait_attempt_start", "wait_observe", "session_patch", "event_patch", "event_withdraw", "document_add", "artifact_add", "session_delete"}
+	allowed := []string{"ticket_create", "ticket_patch", "delivery_create", "delivery_patch", "candidate_create", "create_session", "join_request", "task_create", "task_patch", "wait_create", "wait_attempt_start", "wait_observe", "session_patch", "event_patch", "event_withdraw", "document_add", "artifact_add", "session_delete"}
 	for _, a := range r.Audit {
 		if timelineID(a.AuditID, "audit_id") != nil || !contains(allowed, string(a.Operation)) || !timelineOperationID.MatchString(a.OperationID) || ids[a.AuditID] || ops[a.OperationID] || timelineReason(a.Reason) != nil || timelineTime(a.ReceivedAt, "received_at") != nil {
 			return timelineFailure("corrupt_storage", 500)

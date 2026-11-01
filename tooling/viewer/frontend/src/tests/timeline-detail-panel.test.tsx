@@ -1,3 +1,4 @@
+import { timelineCandidateByID } from "../timeline-catalog";
 import "./dom-setup.mjs";
 import assert from "node:assert/strict";
 import test, { type TestContext } from "node:test";
@@ -7,7 +8,7 @@ import { loadPreviewDocument } from "../dev/timeline-documents-fixture";
 import { timelineFixture } from "../dev/timeline-fixture";
 import { workFixture } from "../dev/timeline-work-fixture";
 import type { TimelineSessionResponse } from "../timeline-contract";
-import { aggregateTimelineCIWait } from "../timeline-contract-v2";
+import { aggregateTimelineCIWait } from "../timeline-contract-v3";
 import {
   currentWaitObservations,
   useTimelinePanel,
@@ -250,7 +251,7 @@ test("CI snapshots display only applicable attempts and update through explicit 
     check_keys: ["tests"],
     external_run: {
       run_id: "rerun-2",
-      commit: wait.candidate.commit,
+      commit: timelineCandidateByID(data.session, wait.candidate_id).commit,
       url: "https://example.test/actions/2",
     },
   });
@@ -273,12 +274,21 @@ test("CI snapshots display only applicable attempts and update through explicit 
     },
   );
   wait.state = "failed";
-  assert.equal(currentWaitObservations(wait).tests.state, "failed");
+  assert.equal(
+    currentWaitObservations(
+      wait,
+      timelineCandidateByID(data.session, wait.candidate_id),
+    ).tests.state,
+    "failed",
+  );
   assert.equal(
     aggregateTimelineCIWait(
       wait.policy,
       wait.applicable_attempt_id,
-      currentWaitObservations(wait),
+      currentWaitObservations(
+        wait,
+        timelineCandidateByID(data.session, wait.candidate_id),
+      ),
     ),
     "failed",
   );
@@ -321,13 +331,19 @@ test("CI snapshots display only applicable attempts and update through explicit 
     ...structuredClone(data.session.waits[0]),
     wait_id: "next-candidate",
     previous_wait_id: "ci-wait",
-    candidate: { ...data.session.waits[0].candidate, commit: "def5678" },
+    candidate_id: "candidate-next",
     policy: { ...data.session.waits[0].policy, confirmed: false },
     state: "unknown" as const,
     attempts: [],
     observations: [],
     applicable_attempt_id: {},
   };
+  data.session.candidates.push({
+    candidate_id: "candidate-next",
+    branch: "fix/dashboard",
+    commit: "def5678",
+    base: "development",
+  });
   data.session.waits.push(successor);
   await render();
   assert.ok(sheet.textContent?.includes("abc1234"));

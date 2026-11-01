@@ -45,7 +45,7 @@ test("opening code is removed synchronously and exchange is reused with unavaila
 
 test("v2 cutoff rejects old or mixed indices without interpreting legacy content", () => {
   const valid = {
-    protocol_version: 2,
+    protocol_version: 3,
     retention: "manual",
     ttl_seconds: 0,
     timeline_sessions: [],

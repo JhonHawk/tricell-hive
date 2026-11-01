@@ -48,7 +48,7 @@ export function DocumentBody({
       .then(() => loadDocument(document.document_id))
       .then((response) => {
         if (
-          response.schema_version !== 2 ||
+          response.schema_version !== 3 ||
           response.document.document_id !== document.document_id ||
           response.document.session_id !== document.session_id ||
           response.document.sha256 !== document.sha256 ||

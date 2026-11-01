@@ -2,15 +2,16 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { completeFixture } from "../dev/timeline-complete-fixture";
 import { loadPreviewDocument } from "../dev/timeline-documents-fixture";
+import { timelineCandidateByID } from "../timeline-catalog";
 import {
   parseTimelineDocumentResponse,
   parseTimelineSessionResponse,
 } from "../timeline-contract";
-import { aggregateTimelineCIWait } from "../timeline-contract-v2";
+import { aggregateTimelineCIWait } from "../timeline-contract-v3";
 import { currentWaitObservations } from "../timeline-detail-panel";
 import { groupTimeline, taskProgress } from "../timeline-grouping";
 
-test("comprehensive review is one valid v2 work with five stages and existing asset presentations", async () => {
+test("comprehensive review is one valid v3 work with five stages and existing asset presentations", async () => {
   const data = parseTimelineSessionResponse(completeFixture()),
     s = data.session,
     groups = groupTimeline(s);
@@ -41,7 +42,7 @@ test("comprehensive review is one valid v2 work with five stages and existing as
       "completed",
     ]),
   );
-  assert.deepEqual(taskProgress(s.tasks), { completed: 4, total: 9 });
+  assert.deepEqual(taskProgress(s.tasks), { completed: 2, total: 7 });
   assert.equal(groups.find((g) => g.stage?.stage === "build")?.tasks.length, 6);
   assert.equal(
     groups.find((g) => g.stage?.stage === "verify")?.tasks[0].task.task_id,
@@ -85,7 +86,10 @@ test("comprehensive review is one valid v2 work with five stages and existing as
     aggregateTimelineCIWait(
       policy.policy,
       policy.applicable_attempt_id,
-      currentWaitObservations(policy),
+      currentWaitObservations(
+        policy,
+        timelineCandidateByID(s, policy.candidate_id),
+      ),
     ),
     "waiting",
   );

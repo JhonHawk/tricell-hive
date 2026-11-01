@@ -80,7 +80,7 @@ func (s *Store) TimelineAddArtifact(id string, request TimelineArtifactMetadata,
 		}
 		created = true
 
-		r.Session.Artifacts = append(r.Session.Artifacts, TimelineArtifact{Actor: request.Actor, ArtifactID: aid, SessionID: id, SHA256: sha, Size: int64(len(content)), MediaType: request.MediaType, ReceivedAt: s.timelineTime(), CapturedAt: request.CapturedAt, Candidate: request.Candidate, Viewport: request.Viewport, Theme: request.Theme})
+		r.Session.Artifacts = append(r.Session.Artifacts, TimelineArtifact{Actor: request.Actor, ArtifactID: aid, SessionID: id, SHA256: sha, Size: int64(len(content)), MediaType: request.MediaType, ReceivedAt: s.timelineTime(), CapturedAt: request.CapturedAt, CandidateID: request.CandidateID, Viewport: request.Viewport, Theme: request.Theme})
 		raw, _ := json.Marshal(r.Session)
 		if len(raw) > TimelineContentBudget {
 			return TimelineOperationResult{}, timelineFailure("capacity", 413)
@@ -216,7 +216,7 @@ func (s *Store) TimelineDocument(id, did string) (TimelineDocumentResponse, erro
 			if err != nil {
 				return TimelineDocumentResponse{}, err
 			}
-			return TimelineDocumentResponse{SchemaVersion: 2, Document: d, Content: string(content)}, nil
+			return TimelineDocumentResponse{SchemaVersion: 3, Document: d, Content: string(content)}, nil
 		}
 	}
 	return TimelineDocumentResponse{}, ErrNotFound

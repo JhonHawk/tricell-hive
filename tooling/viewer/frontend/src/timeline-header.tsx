@@ -123,14 +123,7 @@ export function TimelineHeader({
   const editVersion = useRef(session.version);
   const editSession = useRef(session.viewer_session_id);
   const deleteVersion = useRef(session.version);
-  const deliveries = [
-    ...new Map(
-      session.events
-        .filter((e) => !e.withdrawn)
-        .flatMap((e) => e.deliveries ?? [])
-        .map((d) => [d.url, d]),
-    ).values(),
-  ];
+  const deliveries = session.deliveries;
   // The installed outline variant keeps status text readable on the viewer surface.
   const statusVariant = "outline";
   const update = async (

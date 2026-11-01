@@ -14,7 +14,7 @@ import (
 	"tricell-hive/tooling/viewer"
 )
 
-func TestViewTimelineV2NativeCommandShapes(t *testing.T) {
+func TestViewTimelineV3NativeCommandShapes(t *testing.T) {
 	id := strings.Repeat("a", 64)
 	for _, c := range []struct {
 		args            []string
@@ -39,8 +39,8 @@ func TestViewTimelineV2NativeCommandShapes(t *testing.T) {
 		t.Fatal("native CLI exposes local recovery")
 	}
 }
-func TestViewTimelineV2OfflineInput(t *testing.T) {
-	raw, err := os.ReadFile("../viewer/testdata/timeline_contract/v2-cases.json")
+func TestViewTimelineV3OfflineInput(t *testing.T) {
+	raw, err := os.ReadFile("../viewer/testdata/timeline_contract/v3-cases.json")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -61,12 +61,12 @@ func TestViewTimelineV2OfflineInput(t *testing.T) {
 			t.Fatalf("%s valid=%v: %v", c.Kind, c.Valid, err)
 		}
 	}
-	if err := validateViewTimelineInput("session_patch", []byte(`{"schema_version":2,"operation_id":"rename","actor":{"kind":"local_viewer"},"expected_version":1,"title":"Updated"}`)); err == nil {
+	if err := validateViewTimelineInput("session_patch", []byte(`{"schema_version":3,"operation_id":"rename","actor":{"kind":"local_viewer"},"expected_version":1,"title":"Updated"}`)); err == nil {
 		t.Fatal("native CLI bypassed producer identity")
 	}
 }
 
-func TestViewTimelineV2RejectsCompleteV1Write(t *testing.T) {
+func TestViewTimelineV3RejectsCompleteV1Write(t *testing.T) {
 	raw, err := os.ReadFile("../viewer/testdata/timeline_contract/create-session.json")
 	if err != nil {
 		t.Fatal(err)
@@ -85,15 +85,15 @@ func TestViewTimelineV2RejectsCompleteV1Write(t *testing.T) {
 	}
 }
 
-func TestViewTimelineV2NativeDeletionPointsToBrowser(t *testing.T) {
+func TestViewTimelineV3NativeDeletionPointsToBrowser(t *testing.T) {
 	var out bytes.Buffer
-	err := runViewTimeline([]string{"session", "delete", strings.Repeat("a", 64), "--json", "-", "--state-dir", filepath.Join(t.TempDir(), "missing")}, &out, strings.NewReader(`{"schema_version":2}`))
+	err := runViewTimeline([]string{"session", "delete", strings.Repeat("a", 64), "--json", "-", "--state-dir", filepath.Join(t.TempDir(), "missing")}, &out, strings.NewReader(`{"schema_version":3}`))
 	if err == nil || !strings.Contains(err.Error(), "authenticated browser") || out.Len() != 0 {
 		t.Fatal("native deletion did not preserve browser-only boundary", err)
 	}
 }
 
-func TestViewTimelineV2OfflineDeletionUsageIsBrowserOnly(t *testing.T) {
+func TestViewTimelineV3OfflineDeletionUsageIsBrowserOnly(t *testing.T) {
 	var out bytes.Buffer
 	if err := runViewTimeline([]string{"contract", "--operation", "session_delete"}, &out, nil); err != nil {
 		t.Fatal(err)
@@ -107,7 +107,7 @@ func TestViewTimelineV2OfflineDeletionUsageIsBrowserOnly(t *testing.T) {
 	}
 }
 
-func TestViewTimelineV2CompatibilityRejectsBeforeTransportMutation(t *testing.T) {
+func TestViewTimelineV3CompatibilityRejectsBeforeTransportMutation(t *testing.T) {
 	state, err := filepath.EvalSymlinks(t.TempDir())
 	if err != nil {
 		t.Fatal(err)
@@ -138,7 +138,7 @@ func TestViewTimelineV2CompatibilityRejectsBeforeTransportMutation(t *testing.T)
 	if err = writeServerInfo(paths, info); err != nil {
 		t.Fatal(err)
 	}
-	request := viewer.TimelineCreateSessionRequest{SchemaVersion: 1, OperationID: "compatibility", Source: viewer.TimelineSource{ProjectRoot: "/fixture", Host: "codex", NativeSessionID: "fixture"}, Title: "Compatibility fixture", Summary: "Must preserve input", Tickets: []viewer.TimelineTicket{}}
+	request := viewer.TimelineCreateSessionRequest{SchemaVersion: 1, OperationID: "compatibility", Source: viewer.TimelineSource{ProjectRoot: "/fixture", Host: "codex", NativeSessionID: "fixture"}, Title: "Compatibility fixture", Summary: "Must preserve input", Tickets: []viewer.TimelineTicketInput{}}
 	input := filepath.Join(t.TempDir(), "request.json")
 	raw, _ := json.Marshal(request)
 	os.WriteFile(input, raw, 0600)
@@ -147,12 +147,12 @@ func TestViewTimelineV2CompatibilityRejectsBeforeTransportMutation(t *testing.T)
 	if err == nil || !strings.Contains(err.Error(), "unsupported_protocol") || healthCalls.Load() != 0 || mutationCalls.Load() != 0 || out.Len() != 0 {
 		t.Fatal("v1 input was not rejected offline", err)
 	}
-	request.SchemaVersion = 2
+	request.SchemaVersion = 3
 	raw, _ = json.Marshal(request)
 	os.WriteFile(input, raw, 0600)
 	protocol.Store(1)
 	err = runViewTimeline([]string{"session", "create", "--json", input, "--state-dir", state}, &out, nil)
-	if err == nil || !strings.Contains(err.Error(), "fresh v2 state directory") || healthCalls.Load() != 1 || mutationCalls.Load() != 0 || out.Len() != 0 {
+	if err == nil || !strings.Contains(err.Error(), "fresh v3 state directory") || healthCalls.Load() != 1 || mutationCalls.Load() != 0 || out.Len() != 0 {
 		t.Fatal("v2 client sent mutation to v1 server", err)
 	}
 	preserved, _ := os.ReadFile(input)

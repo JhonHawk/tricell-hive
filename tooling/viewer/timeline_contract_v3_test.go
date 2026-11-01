@@ -5,8 +5,8 @@ import (
 	"testing"
 )
 
-func TestTimelineV2SharedFixtures(t *testing.T) {
-	s, err := DecodeTimelineSession(timelineFixture(t, "v2-session.json"))
+func TestTimelineV3SharedFixtures(t *testing.T) {
+	s, err := DecodeTimelineSession(timelineFixture(t, "v3-session.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -18,7 +18,7 @@ func TestTimelineV2SharedFixtures(t *testing.T) {
 		Valid    bool   `json:"valid"`
 		JSON     string `json:"json"`
 	}
-	if err := json.Unmarshal(timelineFixture(t, "v2-cases.json"), &cases); err != nil {
+	if err := json.Unmarshal(timelineFixture(t, "v3-cases.json"), &cases); err != nil {
 		t.Fatal(err)
 	}
 	for _, c := range cases {
@@ -37,18 +37,23 @@ func TestTimelineV2SharedFixtures(t *testing.T) {
 			case "graph":
 				_, err = DecodeTimelineSession([]byte(c.JSON))
 			case "shape":
-				_, err = DecodeTimelineV2Operation(c.Kind, []byte(c.JSON))
+				_, err = DecodeTimelineV3Operation(c.Kind, []byte(c.JSON))
 			case "references":
 				var value any
-				value, err = DecodeTimelineV2Operation(c.Kind, []byte(c.JSON))
+				value, err = DecodeTimelineV3Operation(c.Kind, []byte(c.JSON))
 				if err == nil {
-					err = ValidateTimelineV2OperationReferences(s, c.Kind, c.ObjectID, value)
+					err = ValidateTimelineV3OperationReferences(s, c.Kind, c.ObjectID, value)
 				}
 			case "wait":
 				var w TimelineCIWait
 				err = DecodeTimelineJSON([]byte(c.JSON), &w)
 				if err == nil {
-					err = ValidateTimelineCIWait(w)
+					candidate, e := TimelineCandidateByID(s, w.CandidateID)
+					if e != nil {
+						err = e
+					} else {
+						err = ValidateTimelineCIWait(w, candidate)
+					}
 				}
 			case "authority":
 				var a TimelineActor
@@ -65,7 +70,7 @@ func TestTimelineV2SharedFixtures(t *testing.T) {
 		})
 	}
 }
-func TestTimelineV2TaskAggregateAndBounds(t *testing.T) {
+func TestTimelineV3TaskAggregateAndBounds(t *testing.T) {
 	for _, c := range []struct {
 		states []string
 		want   string
@@ -87,8 +92,8 @@ func TestTimelineV2TaskAggregateAndBounds(t *testing.T) {
 		}
 	}
 }
-func TestTimelineV2RejectsServerFieldsAndMixedActors(t *testing.T) {
-	raw := []byte(`{"schema_version":2,"operation_id":"add","actor":{"kind":"native_producer","producer_id":"producer-original"},"kind":"request","title":"Request","summary":"Scope","ticket_refs":[],"stage_event_id":"injected"}`)
+func TestTimelineV3RejectsServerFieldsAndMixedActors(t *testing.T) {
+	raw := []byte(`{"schema_version":3,"operation_id":"add","actor":{"kind":"native_producer","producer_id":"producer-original"},"kind":"request","title":"Request","summary":"Scope","ticket_refs":[],"stage_event_id":"injected"}`)
 	if _, err := DecodeTimelineAppendEvent(raw); err == nil {
 		t.Fatal("server association accepted")
 	}
@@ -97,8 +102,8 @@ func TestTimelineV2RejectsServerFieldsAndMixedActors(t *testing.T) {
 	}
 }
 
-func TestTimelineV2CanonicalProjectPreservesActualSources(t *testing.T) {
-	s, err := DecodeTimelineSession(timelineFixture(t, "v2-session.json"))
+func TestTimelineV3CanonicalProjectPreservesActualSources(t *testing.T) {
+	s, err := DecodeTimelineSession(timelineFixture(t, "v3-session.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
