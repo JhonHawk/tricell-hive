@@ -5,6 +5,10 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
   return lang === "es"
     ? {
         locale: "es-MX",
+        start: "Inicio",
+        timelineActions: "Navegación del historial",
+        taskRegistry: "Registro global de tareas",
+        segmentProgress: "tramos finalizados",
         waitCount: (n: number) =>
           `${n} ${n === 1 ? "espera de CI" : "esperas de CI"}`,
         imageCount: (n: number) => `${n} ${n === 1 ? "imagen" : "imágenes"}`,
@@ -212,6 +216,10 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
       }
     : {
         locale: "en-US",
+        start: "Start",
+        timelineActions: "Timeline navigation",
+        taskRegistry: "Global task registry",
+        segmentProgress: "segments completed",
         waitCount: (n: number) => `${n} CI ${n === 1 ? "wait" : "waits"}`,
         imageCount: (n: number) => `${n} ${n === 1 ? "image" : "images"}`,
         documentCount: (n: number) =>

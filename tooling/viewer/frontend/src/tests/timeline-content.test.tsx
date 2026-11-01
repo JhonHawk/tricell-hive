@@ -147,9 +147,7 @@ test("timeline is ascending, shared tickets do not duplicate a view, and steps s
     root.render(<TimelineContent data={data} onRetry={() => {}} />);
   });
   assert.deepEqual(
-    [...container.querySelectorAll('[data-slot="timeline-item"]')].map(
-      (e) => e.id,
-    ),
+    [...container.querySelectorAll("[data-event-id]")].map((e) => e.id),
     ["timeline-event-event-first", "timeline-event-event-later"],
   );
   assert.equal(
@@ -161,9 +159,7 @@ test("timeline is ascending, shared tickets do not duplicate a view, and steps s
       .length,
     0,
   );
-  for (const item of container.querySelectorAll(
-    '[data-slot="timeline-item"]',
-  )) {
+  for (const item of container.querySelectorAll("[data-event-id]")) {
     assert.equal(item.querySelectorAll("time").length, 1);
     assert.ok(item.querySelector('[data-slot="timeline-event-footer"] time'));
   }

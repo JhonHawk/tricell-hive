@@ -153,13 +153,12 @@ export function taskContent(
     substantive,
   };
 }
-export function TaskIndicator({
+export function TimelineStateIcon({
   state,
-  label,
-}: {
-  state: TimelineTaskState | TimelineCIWait["state"];
-  label: string;
-}) {
+  ...props
+}: { state: TimelineTaskState | TimelineCIWait["state"] } & ComponentProps<
+  typeof Check
+>) {
   const Icon =
     state === "completed" || state === "succeeded"
       ? Check
@@ -172,6 +171,15 @@ export function TaskIndicator({
             : state === "unknown"
               ? CircleHelp
               : Circle;
+  return <Icon {...props} />;
+}
+export function TaskIndicator({
+  state,
+  label,
+}: {
+  state: TimelineTaskState | TimelineCIWait["state"];
+  label: string;
+}) {
   return (
     <Tooltip>
       <TooltipTrigger
@@ -185,9 +193,11 @@ export function TaskIndicator({
           />
         }
       >
-        {Icon && (
-          <Icon aria-hidden className="size-4 motion-reduce:animate-none" />
-        )}
+        <TimelineStateIcon
+          state={state}
+          aria-hidden
+          className="size-4 motion-reduce:animate-none"
+        />
       </TooltipTrigger>
       <TooltipContent>{label}</TooltipContent>
     </Tooltip>

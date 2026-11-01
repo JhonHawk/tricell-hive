@@ -4,6 +4,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CircleAlert,
+  CircleDot,
   FileText,
   Flag,
   GitBranch,
@@ -79,10 +80,10 @@ import {
   distinctCaptions,
   groupMustStayOpen,
   groupTimeline,
-  taskProgress,
 } from "./timeline-grouping";
 import { CaptureImage, CaptureThumbnail } from "./timeline-images";
 import { TimelineSummary } from "./timeline-summary";
+import { TimelineTaskRegistry } from "./timeline-task-registry";
 import {
   type TimelineDetailTarget,
   TimelineTaskRow,
@@ -192,7 +193,6 @@ export function TimelineContent({
   const [expandedStages, setExpandedStages] = useState<Record<string, boolean>>(
     {},
   );
-  const progress = taskProgress(session.tasks);
   const open = (
     event: TimelineEvent,
     view: TimelineView,
@@ -593,41 +593,49 @@ export function TimelineContent({
       {session.summary && (
         <TimelineSummary content={session.summary} lines={2} lang={lang} />
       )}
-      {progress.total > 0 && (
-        <p className="text-xs tabular-nums">
-          {progress.completed}/{progress.total} {t.completedTasks}
-        </p>
-      )}
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="self-start"
-        disabled={!events.length}
-        onClick={() => {
-          const visible = [
-            ...document.querySelectorAll<HTMLElement>("[data-event-id]"),
-          ].filter((node) => !node.closest("[hidden]"));
-          const node = session.current_stage_event_id
-            ? document.getElementById(
-                `timeline-event-${session.current_stage_event_id}`,
-              )
-            : visible.at(-1);
-          const canvas = node?.closest<HTMLElement>(
-            '[data-slot="viewer-canvas"]',
-          );
-          if (node && canvas)
-            canvas.scrollTop +=
-              node.getBoundingClientRect().top -
-              canvas.getBoundingClientRect().top;
-          if (node) {
-            node.tabIndex = -1;
-            node.focus({ preventScroll: true });
-          }
-        }}
+      <div
+        role="toolbar"
+        aria-label={t.timelineActions}
+        className="flex flex-wrap items-center gap-2"
       >
-        {t.goCurrent}
-      </Button>
+        <TimelineTaskRegistry
+          session={session}
+          lang={lang}
+          onRetry={onRetry}
+          loading={loading}
+          error={error}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="self-start"
+          disabled={!events.length}
+          onClick={() => {
+            const visible = [
+              ...document.querySelectorAll<HTMLElement>("[data-event-id]"),
+            ].filter((node) => !node.closest("[hidden]"));
+            const node = session.current_stage_event_id
+              ? document.getElementById(
+                  `timeline-event-${session.current_stage_event_id}`,
+                )
+              : visible.at(-1);
+            const canvas = node?.closest<HTMLElement>(
+              '[data-slot="viewer-canvas"]',
+            );
+            if (node && canvas)
+              canvas.scrollTop +=
+                node.getBoundingClientRect().top -
+                canvas.getBoundingClientRect().top;
+            if (node) {
+              node.tabIndex = -1;
+              node.focus({ preventScroll: true });
+            }
+          }}
+        >
+          {t.goCurrent}
+        </Button>
+      </div>
       {error && (
         <Alert variant="destructive">
           <AlertTitle>{t.loadFailed}</AlertTitle>
@@ -656,114 +664,133 @@ export function TimelineContent({
           </Button>
         </div>
       )}
-      {events.length > 0 && (
-        <>
-          <h2 className="sr-only">{t.timeline}</h2>
-          <Timeline value={0} role="region" aria-label={t.timeline}>
-            {groups.map((group, index) => {
-              if (!group.stage)
-                return group.events.map((e) => renderEvent(e, index));
-              const stage = group.stage;
-              const targeted =
-                stage.event_id === targetEventID ||
-                group.events.some((e) => e.event_id === targetEventID) ||
-                group.tasks.some((p) =>
-                  p.events.some((e) => e.event_id === targetEventID),
-                );
-              const forced =
-                groupMustStayOpen(group, session.current_stage_event_id) ||
-                targeted;
-              const stageOpen =
-                forced || (expandedStages[stage.event_id] ?? false);
-              return (
-                <Collapsible key={stage.event_id} open={stageOpen}>
-                  {renderEvent(
-                    stage,
-                    index,
-                    <CollapsibleContent keepMounted className="w-full min-w-0">
-                      {!group.tasks.length &&
-                        ["build", "verify", "delivery"].includes(
-                          stage.stage ?? "",
-                        ) && (
-                          <div
-                            role="status"
-                            className="flex flex-col items-start gap-2"
-                          >
-                            <p className="text-sm">{t.noTasks}</p>
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={onRetry}
-                            >
-                              {t.reload}
-                            </Button>
-                          </div>
-                        )}
-                      {group.tasks.length > 0 && (
-                        <Timeline
-                          value={0}
-                          className="mt-4 w-full"
-                          role="group"
-                          aria-label={t.tasks}
+      <h2 className="sr-only">{t.timeline}</h2>
+      <Timeline value={0} role="region" aria-label={t.timeline}>
+        <TimelineItem
+          step={1}
+          id={`timeline-origin-${session.viewer_session_id}`}
+          data-ui-origin="true"
+          className="group-data-[orientation=vertical]/timeline:ms-9"
+        >
+          {events.length > 0 && (
+            <TimelineSeparator className="bg-border group-data-[orientation=vertical]/timeline:top-1 group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:h-[calc(100%-2.25rem)] group-data-[orientation=vertical]/timeline:translate-y-6" />
+          )}
+          <TimelineIndicator className="flex size-6 items-center justify-center border-0 bg-background text-primary group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:-top-0.5">
+            <CircleDot aria-hidden className="size-4" />
+          </TimelineIndicator>
+          <TimelineHeader>
+            <TimelineTitle>{t.start}</TimelineTitle>
+          </TimelineHeader>
+          <EventContent className="flex flex-wrap items-center gap-2">
+            <TimelineDate dateTime={session.created_at}>
+              {timelineDate(session.created_at, lang)}
+            </TimelineDate>
+            <span
+              className="text-xs text-muted-foreground"
+              title={session.source.native_session_id}
+            >
+              {session.source.host} ·{" "}
+              {session.source.native_session_id.slice(0, 8)}
+            </span>
+          </EventContent>
+        </TimelineItem>
+        {groups.map((group, index) => {
+          if (!group.stage)
+            return group.events.map((e) => renderEvent(e, index));
+          const stage = group.stage;
+          const targeted =
+            stage.event_id === targetEventID ||
+            group.events.some((e) => e.event_id === targetEventID) ||
+            group.tasks.some((p) =>
+              p.events.some((e) => e.event_id === targetEventID),
+            );
+          const forced =
+            groupMustStayOpen(group, session.current_stage_event_id) ||
+            targeted;
+          const stageOpen = forced || (expandedStages[stage.event_id] ?? false);
+          return (
+            <Collapsible key={stage.event_id} open={stageOpen}>
+              {renderEvent(
+                stage,
+                index,
+                <CollapsibleContent keepMounted className="w-full min-w-0">
+                  {!group.tasks.length &&
+                    ["build", "verify", "delivery"].includes(
+                      stage.stage ?? "",
+                    ) && (
+                      <div
+                        role="status"
+                        className="flex flex-col items-start gap-2"
+                      >
+                        <p className="text-sm">{t.noTasks}</p>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={onRetry}
                         >
-                          {group.tasks.map((projection, i) => (
-                            <TimelineTaskRow
-                              key={projection.segment.segment_id}
-                              projection={projection}
-                              data={data}
-                              initiallyExpanded={defaultExpandedTaskIDs.includes(
-                                projection.task.task_id,
-                              )}
-                              targetEventID={targetEventID}
-                              index={i}
-                              last={i === group.tasks.length - 1}
-                              lang={lang}
-                              onOpen={openDetail}
-                              renderActivity={(e) => renderEvent(e, i)}
-                            />
-                          ))}
-                        </Timeline>
-                      )}
-                      {group.waits.length > 0 && (
-                        <Timeline value={0} role="group" aria-label={t.checks}>
-                          {group.waits.map((wait, i) => (
-                            <TimelineWaitRow
-                              key={wait.wait_id}
-                              wait={wait}
-                              index={i}
-                              last={i === group.waits.length - 1}
-                              lang={lang}
-                              onOpen={openDetail}
-                            />
-                          ))}
-                        </Timeline>
-                      )}
-                      {group.events.length > 0 && (
-                        <Timeline
-                          value={0}
-                          role="group"
-                          aria-label={t.activity}
-                        >
-                          {group.events.map((e, i) => renderEvent(e, i))}
-                        </Timeline>
-                      )}
-                    </CollapsibleContent>,
-                    stageOpen,
-                    forced
-                      ? undefined
-                      : () =>
-                          setExpandedStages((old) => ({
-                            ...old,
-                            [stage.event_id]: !stageOpen,
-                          })),
+                          {t.reload}
+                        </Button>
+                      </div>
+                    )}
+                  {group.tasks.length > 0 && (
+                    <Timeline
+                      value={0}
+                      className="mt-4 w-full"
+                      role="group"
+                      aria-label={t.tasks}
+                    >
+                      {group.tasks.map((projection, i) => (
+                        <TimelineTaskRow
+                          key={projection.segment.segment_id}
+                          projection={projection}
+                          data={data}
+                          initiallyExpanded={defaultExpandedTaskIDs.includes(
+                            projection.task.task_id,
+                          )}
+                          targetEventID={targetEventID}
+                          index={i}
+                          last={i === group.tasks.length - 1}
+                          lang={lang}
+                          onOpen={openDetail}
+                          renderActivity={(e) => renderEvent(e, i)}
+                        />
+                      ))}
+                    </Timeline>
                   )}
-                </Collapsible>
-              );
-            })}
-          </Timeline>
-        </>
-      )}
+                  {group.waits.length > 0 && (
+                    <Timeline value={0} role="group" aria-label={t.checks}>
+                      {group.waits.map((wait, i) => (
+                        <TimelineWaitRow
+                          key={wait.wait_id}
+                          wait={wait}
+                          index={i}
+                          last={i === group.waits.length - 1}
+                          lang={lang}
+                          onOpen={openDetail}
+                        />
+                      ))}
+                    </Timeline>
+                  )}
+                  {group.events.length > 0 && (
+                    <Timeline value={0} role="group" aria-label={t.activity}>
+                      {group.events.map((e, i) => renderEvent(e, i))}
+                    </Timeline>
+                  )}
+                </CollapsibleContent>,
+                stageOpen,
+                forced
+                  ? undefined
+                  : () =>
+                      setExpandedStages((old) => ({
+                        ...old,
+                        [stage.event_id]: !stageOpen,
+                      })),
+              )}
+            </Collapsible>
+          );
+        })}
+      </Timeline>
       {panel.sheet}
       <Dialog
         open={Boolean(snapshot)}

@@ -57,7 +57,13 @@ test("CAM stage counts use bound segments and work total deduplicates T7", async
       />,
     ),
   );
-  assert.ok(container.textContent?.includes("6/7 finalizadas"));
+  await click("Tareas");
+  assert.ok(
+    document
+      .querySelector('[data-slot="popover-content"]')
+      ?.textContent?.includes("6/7 finalizadas"),
+  );
+  await click("Tareas");
   for (const [id, count] of [
     ["build-stage", "6/6"],
     ["verify-stage", "1/1"],
