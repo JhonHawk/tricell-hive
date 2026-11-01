@@ -461,48 +461,31 @@ func TestViewServesRegisteredRepositoryEndToEnd(t *testing.T) {
 	f.mustView("register", "--dir", repo)
 	f.mustView("start")
 
-	type indexView struct {
-		Projects []struct {
-			Key, Name string
-			Tickets   []struct {
-				Sessions []struct {
-					Source string `json:"source"`
-				}
-			}
-		}
-		Errors []struct{ Path, Message string }
+	// Old valid and invalid manifests remain source evidence, never v2 input.
+	code, body := f.get("/api/index", true)
+	var index struct {
+		ProtocolVersion  int                            `json:"protocol_version"`
+		TimelineSessions []viewer.TimelineAPIIndexEntry `json:"timeline_sessions"`
+		Errors           []any                          `json:"errors"`
 	}
-	var v indexView
-	deadline := time.Now().Add(6 * time.Second) // two 1 s intervals plus slack
-	for {
-		_, body := f.get("/api/index", true)
-		v = indexView{}
-		if err := json.Unmarshal(body, &v); err != nil {
-			t.Fatal(err)
-		}
-		if len(v.Projects) > 0 && len(v.Errors) > 0 {
-			break
-		}
-		if time.Now().After(deadline) {
-			t.Fatalf("index never showed the walkthrough and the error: %s", body)
-		}
-		time.Sleep(100 * time.Millisecond)
+	if code != 200 || json.Unmarshal(body, &index) != nil || index.ProtocolVersion != 2 || len(index.TimelineSessions) != 0 || len(index.Errors) != 0 {
+		t.Fatal("legacy manifest was ingested")
 	}
-	p := v.Projects[0]
-	if p.Name != "Demo Project" || p.Key != "github.com/acme/demo" {
-		t.Fatalf("grouping = key %q name %q, want the Hive project and the normalized remote", p.Key, p.Name)
+	raw, _ := json.Marshal(viewer.TimelineCreateSessionRequest{SchemaVersion: 2, OperationID: "cli-create", Source: viewer.TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "cli-v2"}, Title: "Published v2 work", Summary: "Real API path", Tickets: []viewer.TimelineTicket{}})
+	var out bytes.Buffer
+	if err := runViewTimeline([]string{"session", "create", "--state-dir", f.stateDir, "--json", "-"}, &out, bytes.NewReader(raw)); err != nil {
+		t.Fatal(err)
 	}
-	found := false
-	for _, tk := range p.Tickets {
-		for _, s := range tk.Sessions {
-			found = found || s.Source == good
-		}
+	var response viewer.TimelineSessionResponse
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
 	}
-	if !found {
-		t.Fatalf("valid/final (%s) is not listed: %+v", good, p)
+	if response.SchemaVersion != 2 || response.Session.ProjectKey != "github.com/acme/demo" || response.Session.ProjectName != "Demo Project" {
+		t.Fatal("wrong v2 identity")
 	}
-	if code, _ := f.get("/api/health", true); code != http.StatusOK {
-		t.Fatalf("server stopped answering after an invalid fixture: %d", code)
+	code, body = f.get("/api/index", true)
+	if code != 200 || json.Unmarshal(body, &index) != nil || len(index.TimelineSessions) != 1 {
+		t.Fatal("publication absent from index")
 	}
 	f.mustView("stop")
 }
@@ -545,7 +528,7 @@ func TestViewOpenNeedsARunningServer(t *testing.T) {
 func TestViewStopNeverSignalsWithoutAMatchingHealth(t *testing.T) {
 	f := newViewFixture(t)
 	vdir := filepath.Join(f.stateDir, "viewer")
-	if err := os.MkdirAll(vdir, 0o700); err != nil {
+	if err := viewer.PrepareState(f.stateDir); err != nil {
 		t.Fatal(err)
 	}
 	lock, err := viewer.AcquireLock(filepath.Join(vdir, "server.lock"), false)
@@ -685,7 +668,7 @@ func TestViewHiveProjectReaderRefusesOversizeAndLinks(t *testing.T) {
 func TestViewServeRetriesALockHeldMomentarily(t *testing.T) {
 	f := newViewFixture(t)
 	p := newViewPaths(f.stateDir)
-	if err := os.MkdirAll(p.dir, 0o700); err != nil {
+	if err := viewer.PrepareState(f.stateDir); err != nil {
 		t.Fatal(err)
 	}
 	probe, err := viewer.AcquireLock(p.lock, false)

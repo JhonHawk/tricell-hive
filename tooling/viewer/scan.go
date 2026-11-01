@@ -40,33 +40,14 @@ type RunOptions struct {
 	OnError func(error)
 }
 
-// Run starts and scans the store, then repeats scans until cancellation.
-// Content is never removed because of age. Scan errors go to OnError.
+// Run validates and cleans owned v2 temporaries, then waits for cancellation.
+// API publication is the only ingestion path; no manifest scanner runs.
 func (s *Store) Run(ctx context.Context, o RunOptions) error {
-	if o.PollInterval <= 0 {
-		o.PollInterval = 5 * time.Second
-	}
-	report := func(err error) {
-		if err != nil && ctx.Err() == nil && o.OnError != nil {
-			o.OnError(err)
-		}
-	}
 	if err := s.Startup(); err != nil {
 		return err
 	}
-	_, err := s.Sync(ctx)
-	report(err)
-	poll := time.NewTicker(o.PollInterval)
-	defer poll.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-poll.C:
-			_, err := s.Sync(ctx)
-			report(err)
-		}
-	}
+	<-ctx.Done()
+	return nil
 }
 
 // sessionKey identifies a copy: one per source folder and session id.
@@ -360,158 +341,7 @@ func (p *problemLog) add(repo int, path string, err error) {
 // current is skipped without being read. The apply phase then takes the
 // mutex, re-checks tombstones and the current index, and copies.
 func (s *Store) Sync(ctx context.Context) (SyncResult, error) {
-	var res SyncResult
-	reg, err := s.readRegistryShared()
-	if err != nil {
-		return res, err
-	}
-	s.mu.Lock()
-	recovery := s.current().clone()
-	s.recoverPendingGroups(recovery, true)
-	recoveryErr := s.commit(recovery)
-	s.mu.Unlock()
-	now := s.now()
-	s.noteRepositories(reg)
-	snap := s.current()
-	// Discover paths without reading manifests, then classify before consulting the fingerprint cache.
-	paths := sessionSourcePaths(snap)
-	namesByRoot := make(map[string][]string)
-	for _, r := range reg.Repositories {
-		ws, names, _ := openWorkspace(r.Root)
-		if ws != nil {
-			ws.Close()
-		}
-		namesByRoot[r.Root] = names
-		for _, name := range names {
-			paths = append(paths, filepath.Join(r.Root, "_support", "workspace", name, manifestFile))
-		}
-	}
-	classification := s.classifySources(ctx, paths)
-	repos := repositoryStatuses(reg)
-	log := &problemLog{count: make([]int, len(reg.Repositories)), omitted: make([]int, len(reg.Repositories))}
-
-	batchSize, batchBytes := s.batchSize, s.batchBytes
-	if batchSize <= 0 {
-		batchSize = defaultBatchSize
-	}
-	if batchBytes <= 0 {
-		batchBytes = defaultBatchBytes
-	}
-	var cands []*candidate
-	var retained int64
-	closeBatch := func() {
-		for _, c := range cands {
-			if c.root != nil {
-				c.root.Close()
-			}
-		}
-		cands, retained = nil, 0
-	}
-	defer closeBatch()
-	// flush applies the batch under the mutex, then closes its roots, so a
-	// pass never keeps more than one bounded batch of open folders and raw
-	// manifests. Each batch is committed on its own.
-	flush := func() error {
-		if len(cands) == 0 {
-			return nil
-		}
-		if s.onBatch != nil {
-			s.onBatch(len(cands))
-		}
-		s.mu.Lock()
-		defer s.mu.Unlock()
-		d := s.current().clone()
-		for _, c := range cands {
-			if c.err != nil {
-				log.add(c.repo, c.problemPath, c.err)
-				continue
-			}
-			if err := s.apply(c, now, d, &res); err != nil {
-				log.add(c.repo, filepath.Join(c.folder, manifestFile), err)
-			}
-		}
-		s.classifySessions(d, classification)
-		closeBatch()
-		s.enrich(d)
-		return s.commit(d)
-	}
-	seen := map[string]bool{}
-	cancelled := ctx.Err()
-	var flushErr error
-	for i, r := range reg.Repositories {
-		if cancelled != nil {
-			break
-		}
-		if repos[i].Absent {
-			continue
-		}
-		ws, _, errs := openWorkspace(r.Root)
-		names := namesByRoot[r.Root]
-		for _, e := range errs {
-			log.add(i, e.Path, errors.New(e.Reason))
-		}
-		if ws != nil {
-			wsDir := filepath.Join(r.Root, "_support", "workspace")
-			for _, name := range names {
-				if cancelled = ctx.Err(); cancelled != nil {
-					break
-				}
-				folder := filepath.Join(wsDir, name)
-				seen[folder] = true
-				if classification[filepath.Join(folder, manifestFile)].Status == "tracked" {
-					continue
-				}
-				if c := s.inspect(ws, name, wsDir, now, snap); c != nil {
-					c.repo = i
-					cands = append(cands, c)
-					if c.m != nil {
-						retained += int64(len(c.m.Raw))
-					}
-					if len(cands) >= batchSize || retained >= batchBytes {
-						if err := flush(); err != nil && flushErr == nil {
-							flushErr = err
-						}
-					}
-				}
-			}
-			ws.Close()
-		}
-		if cancelled != nil {
-			break
-		}
-	}
-	if err := flush(); err != nil && flushErr == nil {
-		flushErr = err
-	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	d := s.current().clone()
-	s.classifySessions(d, classification)
-	d.Repositories = repos
-	for i, r := range reg.Repositories {
-		if log.omitted[i] > 0 {
-			log.items = append(log.items, IngestError{Path: r.Root, Reason: fmt.Sprintf("%d more ingest errors omitted", log.omitted[i])})
-		}
-	}
-	res.Errors = log.errors
-	if cancelled == nil {
-		s.pruneTombstones(d)
-		s.pruneFingerprints(seen)
-	}
-	d.Errors = append([]IngestError{}, log.items...)
-	s.enrich(d)
-	err = s.commit(d)
-	if cancelled != nil {
-		return res, cancelled
-	}
-	if flushErr != nil {
-		return res, flushErr
-	}
-	if err == nil && recoveryErr != nil {
-		err = recoveryErr
-	}
-	return res, err
+	return SyncResult{}, timelineFailure("unsupported_protocol", 409)
 }
 
 func (s *Store) readRegistryShared() (Registry, error) {

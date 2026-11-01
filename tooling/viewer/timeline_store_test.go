@@ -2,7 +2,6 @@ package viewer
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,7 +13,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 )
 
 func newTimelineFixture(t *testing.T) (*Store, TimelineCreateSessionRequest) {
@@ -31,7 +29,7 @@ func newTimelineFixture(t *testing.T) (*Store, TimelineCreateSessionRequest) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return s, TimelineCreateSessionRequest{SchemaVersion: 1, OperationID: "create", Source: TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "native-1"}, Title: "A bounded session", Summary: "Test publication", Tickets: []TimelineTicket{}}
+	return s, TimelineCreateSessionRequest{SchemaVersion: 2, OperationID: "create", Source: TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "native-1"}, Title: "A bounded session", Summary: "Test publication", Tickets: []TimelineTicket{}}
 }
 func createTimeline(t *testing.T, s *Store, r TimelineCreateSessionRequest) TimelineSession {
 	t.Helper()
@@ -123,11 +121,11 @@ func TestTimelineRuntimeStageDocumentEvidenceAndReplay(t *testing.T) {
 	s, request := newTimelineFixture(t)
 	v := createTimeline(t, s, request)
 	id := v.ViewerSessionID
-	stage, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 1, OperationID: "plan", Kind: "stage", Title: "Plan", Summary: "Prepare", TicketRefs: []TimelineTicketRef{}, Stage: "plan", StageState: "in_progress", ExpectedSessionVersion: timelineInt(v.Version)})
+	stage, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "plan", Kind: "stage", Title: "Plan", Summary: "Prepare", TicketRefs: []TimelineTicketRef{}, Stage: "plan", StageState: "in_progress", ExpectedSessionVersion: timelineInt(v.Version)})
 	if err != nil {
 		t.Fatal(err)
 	}
-	metadata := TimelineDocumentMetadata{SchemaVersion: 1, OperationID: "doc", MediaType: "text/markdown"}
+	metadata := TimelineDocumentMetadata{Actor: timelineTestActor(s, id), SchemaVersion: 2, OperationID: "doc", MediaType: "text/markdown"}
 	content := []byte("\xef\xbb\xbf# Plan\n")
 	doc, err := s.TimelineAddDocument(id, metadata, content)
 	if err != nil {
@@ -139,7 +137,7 @@ func TestTimelineRuntimeStageDocumentEvidenceAndReplay(t *testing.T) {
 	}
 	_, err = s.TimelineAddDocument(id, metadata, []byte("changed"))
 	requireTimelineCode(t, err, "operation_conflict")
-	snapshot, err := s.TimelineSnapshot(id, stage.EventID, TimelineDocumentSnapshotRequest{SchemaVersion: 1, OperationID: "snapshot", ExpectedVersion: 1, Status: "complete", Tabs: []TimelineDocumentTab{{Label: "Plan", DocumentID: doc.DocumentID}}})
+	snapshot, err := s.TimelineSnapshot(id, stage.EventID, TimelineDocumentSnapshotRequest{SchemaVersion: 2, OperationID: "snapshot", ExpectedVersion: 1, Status: "complete", Tabs: []TimelineDocumentTab{{Label: "Plan", DocumentID: doc.DocumentID}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -149,7 +147,7 @@ func TestTimelineRuntimeStageDocumentEvidenceAndReplay(t *testing.T) {
 	}
 	current, _ := s.TimelineGet(id)
 	wait := TimelineAwaitingValidation
-	result, err := s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 1, OperationID: "wait", ExpectedVersion: current.Version, State: &wait})
+	result, err := s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: "wait", ExpectedVersion: current.Version, State: &wait})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -160,14 +158,14 @@ func TestTimelineRuntimeStageDocumentEvidenceAndReplay(t *testing.T) {
 	if current.Events[0].StageState != "paused" {
 		t.Fatal("stage not paused atomically")
 	}
-	resumed, err := s.TimelinePatchEvent(id, stage.EventID, TimelineEventPatchRequest{SchemaVersion: 1, OperationID: "resume-stage", ExpectedVersion: current.Events[0].Version, ExpectedSessionVersion: timelineInt(current.Version), StageState: timelineState("in_progress")})
+	resumed, err := s.TimelinePatchEvent(id, stage.EventID, TimelineEventPatchRequest{SchemaVersion: 2, OperationID: "resume-stage", ExpectedVersion: current.Events[0].Version, ExpectedSessionVersion: timelineInt(current.Version), StageState: timelineState("in_progress")})
 	if err != nil || resumed.CurrentStageEventID == nil {
 		t.Fatal("resume", err)
 	}
 	current, _ = s.TimelineGet(id)
-	_, err = s.TimelinePatchEvent(id, stage.EventID, TimelineEventPatchRequest{SchemaVersion: 1, OperationID: "stale", ExpectedVersion: 1, Title: timelineString("stale")})
+	_, err = s.TimelinePatchEvent(id, stage.EventID, TimelineEventPatchRequest{SchemaVersion: 2, OperationID: "stale", ExpectedVersion: 1, Title: timelineString("stale")})
 	requireTimelineCode(t, err, "version_conflict")
-	done, err := s.TimelinePatchEvent(id, stage.EventID, TimelineEventPatchRequest{SchemaVersion: 1, OperationID: "done", ExpectedVersion: current.Events[0].Version, ExpectedSessionVersion: timelineInt(current.Version), StageState: timelineState("completed")})
+	done, err := s.TimelinePatchEvent(id, stage.EventID, TimelineEventPatchRequest{SchemaVersion: 2, OperationID: "done", ExpectedVersion: current.Events[0].Version, ExpectedSessionVersion: timelineInt(current.Version), StageState: timelineState("completed")})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -175,7 +173,7 @@ func TestTimelineRuntimeStageDocumentEvidenceAndReplay(t *testing.T) {
 	if current.Events[0].Sequence != stage.Sequence || current.Events[0].DocumentSnapshots[0].DocumentRevisionID != snapshot.DocumentRevisionID {
 		t.Fatal("status changed evidence/order")
 	}
-	_, err = s.TimelinePatchEvent(id, stage.EventID, TimelineEventPatchRequest{SchemaVersion: 1, OperationID: "terminal", ExpectedVersion: done.EventVersion, ExpectedSessionVersion: timelineInt(done.SessionVersion), StageState: timelineState("in_progress")})
+	_, err = s.TimelinePatchEvent(id, stage.EventID, TimelineEventPatchRequest{SchemaVersion: 2, OperationID: "terminal", ExpectedVersion: done.EventVersion, ExpectedSessionVersion: timelineInt(done.SessionVersion), StageState: timelineState("in_progress")})
 	requireTimelineCode(t, err, "stage_terminal")
 	restarted, err := Open(Options{StateDir: filepath.Dir(s.Dir())})
 	if err != nil {
@@ -185,7 +183,7 @@ func TestTimelineRuntimeStageDocumentEvidenceAndReplay(t *testing.T) {
 	if err != nil || read.Content != string(content) {
 		t.Fatal("restart lost immutable data", err)
 	}
-	replay, err := restarted.TimelineSnapshot(id, stage.EventID, TimelineDocumentSnapshotRequest{SchemaVersion: 1, OperationID: "snapshot", ExpectedVersion: 1, Status: "complete", Tabs: []TimelineDocumentTab{{Label: "Plan", DocumentID: doc.DocumentID}}})
+	replay, err := restarted.TimelineSnapshot(id, stage.EventID, TimelineDocumentSnapshotRequest{SchemaVersion: 2, OperationID: "snapshot", ExpectedVersion: 1, Status: "complete", Tabs: []TimelineDocumentTab{{Label: "Plan", DocumentID: doc.DocumentID}}})
 	if err != nil || replay.DocumentRevisionID != snapshot.DocumentRevisionID {
 		t.Fatal("snapshot replay before stale validation", err)
 	}
@@ -206,7 +204,7 @@ func TestTimelineRuntimeDurableWriteFailureRecovery(t *testing.T) {
 				}
 				return nil
 			}
-			patch := TimelineSessionPatchRequest{SchemaVersion: 1, OperationID: "patch", ExpectedVersion: 1, Title: timelineString("Changed")}
+			patch := TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: "patch", Actor: TimelineActor{Kind: "local_viewer"}, ExpectedVersion: 1, Title: timelineString("Changed")}
 			_, err := s.TimelinePatch(id, patch)
 			if err == nil {
 				t.Fatal("failed durable write reported success")
@@ -238,7 +236,7 @@ func TestTimelineRuntimeImageAndDeleteTombstone(t *testing.T) {
 	if err := png.Encode(&data, image.NewRGBA(image.Rect(0, 0, 1, 1))); err != nil {
 		t.Fatal(err)
 	}
-	meta := TimelineArtifactMetadata{SchemaVersion: 1, OperationID: "image", CapturedAt: "2026-01-01T00:00:00Z", Candidate: TimelineCandidate{Branch: "feature", Commit: "abc", Base: "development"}, Viewport: "desktop", Theme: "dark", MediaType: "image/png"}
+	meta := TimelineArtifactMetadata{Actor: timelineTestActor(s, id), SchemaVersion: 2, OperationID: "image", CapturedAt: "2026-01-01T00:00:00Z", Candidate: TimelineCandidate{Branch: "feature", Commit: "abc", Base: "development"}, Viewport: "desktop", Theme: "dark", MediaType: "image/png"}
 	imageResult, err := s.TimelineAddArtifact(id, meta, data.Bytes())
 	if err != nil {
 		t.Fatal(err)
@@ -253,7 +251,7 @@ func TestTimelineRuntimeImageAndDeleteTombstone(t *testing.T) {
 		t.Fatal(err)
 	}
 	current, _ := s.TimelineGet(id)
-	del := TimelineMutationRequest{SchemaVersion: 1, OperationID: "delete", ExpectedVersion: current.Version}
+	del := TimelineMutationRequest{Actor: TimelineActor{Kind: "local_viewer"}, SchemaVersion: 2, OperationID: "delete", ExpectedVersion: current.Version}
 	s.timelineFault = func(phase, path string) error {
 		if phase == "before_delete_blobs" {
 			return errors.New("injected")
@@ -281,7 +279,7 @@ func TestTimelineRuntimeImageAndDeleteTombstone(t *testing.T) {
 	request.OperationID = "resurrect"
 	_, err = s.TimelineCreate(request)
 	requireTimelineCode(t, err, "session_deleted")
-	_, err = s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 1, OperationID: "unknown", ExpectedVersion: 1, Title: timelineString("new")})
+	_, err = s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: "unknown", Actor: TimelineActor{Kind: "local_viewer"}, ExpectedVersion: 1, Title: timelineString("new")})
 	requireTimelineCode(t, err, "session_deleted")
 }
 func TestTimelineRuntimeCorruptionAndNamespaceLinks(t *testing.T) {
@@ -347,74 +345,6 @@ func TestTimelineRuntimeHTTPAuthenticationAndStrictInput(t *testing.T) {
 		t.Fatal("unauthorized read")
 	}
 }
-func TestTimelineRuntimeManualRetentionAndExpectedInventory(t *testing.T) {
-	e, _ := groupFixture(t)
-	members := e.sessions()
-	expected := []ExpectedSessionMember{}
-	for _, m := range members {
-		expected = append(expected, ExpectedSessionMember{m.Key, m.ContentHash})
-	}
-	e.advance(365 * 24 * time.Hour)
-	if _, err := e.store.Purge(); err != nil {
-		t.Fatal(err)
-	}
-	if len(e.sessions()) != len(members) {
-		t.Fatal("age deleted content")
-	}
-	wrong := append([]ExpectedSessionMember{}, expected...)
-	wrong[0].ContentHash = strings.Repeat("0", 64)
-	err := e.store.DeleteExpected(members[0].Key, wrong)
-	requireTimelineCode(t, err, "members_changed")
-	if len(e.sessions()) != len(members) {
-		t.Fatal("mismatch removed a member")
-	}
-	if err = e.store.DeleteExpected(members[0].Key, expected); err != nil {
-		t.Fatal(err)
-	}
-	if len(e.sessions()) != 0 {
-		t.Fatal("matched inventory not removed")
-	}
-	if _, err = e.store.Sync(context.Background()); err != nil {
-		t.Fatal(err)
-	}
-	if len(e.sessions()) != 0 {
-		t.Fatal("deleted inventory resurrected")
-	}
-}
-
-func TestTimelineRuntimeLegacyAuthorityAndTombstoneSuppression(t *testing.T) {
-	e, repo := groupFixture(t)
-	e.remotes[repo] = "" // An explicit successful lookup establishes a remote-less project.
-	legacy := e.sessions()[0]
-	request := TimelineCreateSessionRequest{SchemaVersion: 1, OperationID: "own", Source: TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "shared"}, Title: "API authority", Summary: "Own this tuple", Tickets: []TimelineTicket{}}
-	response, err := e.store.TimelineCreate(request)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !e.store.timelineLegacyHidden(legacy) {
-		t.Fatal("legacy duplicate not suppressed")
-	}
-	source := readManifestMap(t, legacy.Source)
-	source["title"] = "Changed legacy"
-	writeManifestMap(t, legacy.Source, source)
-	e.touch(legacy.Source)
-	e.sync()
-	current, err := e.store.TimelineGet(response.Session.ViewerSessionID)
-	if err != nil || current.Title != "API authority" {
-		t.Fatal("scanner changed API authority", err)
-	}
-	_, err = e.store.TimelineDelete(current.ViewerSessionID, TimelineMutationRequest{SchemaVersion: 1, OperationID: "delete-owned", ExpectedVersion: current.Version})
-	if err != nil {
-		t.Fatal(err)
-	}
-	source["title"] = "Another legacy update"
-	writeManifestMap(t, legacy.Source, source)
-	e.touch(legacy.Source)
-	e.sync()
-	if !e.store.timelineLegacyHidden(legacy) {
-		t.Fatal("deleted identity lost suppression")
-	}
-}
 func TestTimelineRuntimeCapacityKeepsLifecycleAndDeletionAvailable(t *testing.T) {
 	s, request := newTimelineFixture(t)
 	v := createTimeline(t, s, request)
@@ -434,13 +364,13 @@ func TestTimelineRuntimeCapacityKeepsLifecycleAndDeletionAvailable(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 1, OperationID: "content-full", Kind: "request", Title: "Too much", Summary: "Bounded", TicketRefs: []TimelineTicketRef{}})
+	_, err = s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "content-full", Kind: "request", Title: "Too much", Summary: "Bounded", TicketRefs: []TimelineTicketRef{}})
 	requireTimelineCode(t, err, "capacity")
-	closure, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 1, OperationID: "close-full", Kind: "closure", Title: "Finished", Summary: "Done", TicketRefs: []TimelineTicketRef{}, Closure: &TimelineClosure{Reason: "completed", Result: "Complete"}})
+	closure, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "close-full", Kind: "closure", Title: "Finished", Summary: "Done", TicketRefs: []TimelineTicketRef{}, Closure: &TimelineClosure{Reason: "completed", Result: "Complete"}})
 	if err != nil {
 		t.Fatal("reserved closure capacity", err)
 	}
-	deleted, err := s.TimelineDelete(id, TimelineMutationRequest{SchemaVersion: 1, OperationID: "delete-full", ExpectedVersion: closure.SessionVersion})
+	deleted, err := s.TimelineDelete(id, TimelineMutationRequest{Actor: TimelineActor{Kind: "local_viewer"}, SchemaVersion: 2, OperationID: "delete-full", ExpectedVersion: closure.SessionVersion})
 	if err != nil || deleted.Deleted == nil {
 		t.Fatal("reserved delete", err)
 	}
@@ -467,7 +397,7 @@ func TestTimelineRuntimeInterruptedBlobNeverPublishesReference(t *testing.T) {
 				}
 				return nil
 			}
-			meta := TimelineDocumentMetadata{SchemaVersion: 1, OperationID: "interrupt-doc", MediaType: "text/markdown"}
+			meta := TimelineDocumentMetadata{Actor: timelineTestActor(s, id), SchemaVersion: 2, OperationID: "interrupt-doc", MediaType: "text/markdown"}
 			_, err := s.TimelineAddDocument(id, meta, []byte("# Safe"))
 			if err == nil {
 				t.Fatal("failed blob publication reported success")
@@ -527,7 +457,7 @@ func TestTimelineRuntimeRegisteredNonGitWorkspaceDoesNotBorrowRemote(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	response, err := s.TimelineCreate(TimelineCreateSessionRequest{SchemaVersion: 1, OperationID: "workspace", Source: TimelineSource{ProjectRoot: registration.Root, Host: "codex", NativeSessionID: "workspace-native"}, Title: "Workspace", Summary: "No borrowed identity", Tickets: []TimelineTicket{}})
+	response, err := s.TimelineCreate(TimelineCreateSessionRequest{SchemaVersion: 2, OperationID: "workspace", Source: TimelineSource{ProjectRoot: registration.Root, Host: "codex", NativeSessionID: "workspace-native"}, Title: "Workspace", Summary: "No borrowed identity", Tickets: []TimelineTicket{}})
 	if err != nil || response.Session.ProjectKey != registration.Root {
 		t.Fatal("remote-less workspace failed", err)
 	}
@@ -550,7 +480,7 @@ func TestTimelineRuntimeDirectoryCreationSyncRetries(t *testing.T) {
 						target = filepath.Join(target, "documents")
 					}
 					operation = func() error {
-						_, err := s.TimelineAddDocument(id, TimelineDocumentMetadata{SchemaVersion: 1, OperationID: "directory-retry", MediaType: "text/markdown"}, []byte("# Durable"))
+						_, err := s.TimelineAddDocument(id, TimelineDocumentMetadata{Actor: timelineTestActor(s, id), SchemaVersion: 2, OperationID: "directory-retry", MediaType: "text/markdown"}, []byte("# Durable"))
 						return err
 					}
 				}
@@ -643,7 +573,7 @@ func TestTimelineRuntimePrivateReceiptEnvelopeExceedsPublicBodyLimit(t *testing.
 	s, request := newTimelineFixture(t)
 	v := createTimeline(t, s, request)
 	id := v.ViewerSessionID
-	metadata := TimelineDocumentMetadata{SchemaVersion: 1, OperationID: "large-record-document", MediaType: "text/markdown"}
+	metadata := TimelineDocumentMetadata{Actor: timelineTestActor(s, id), SchemaVersion: 2, OperationID: "large-record-document", MediaType: "text/markdown"}
 	document, err := s.TimelineAddDocument(id, metadata, []byte("# Retained document\n"))
 	if err != nil {
 		t.Fatal(err)
@@ -652,7 +582,7 @@ func TestTimelineRuntimePrivateReceiptEnvelopeExceedsPublicBodyLimit(t *testing.
 	now := s.timelineTime()
 	for len(r.Session.Events) < TimelineMaxEvents {
 		n := len(r.Session.Events) + 1
-		r.Session.Events = append(r.Session.Events, TimelineEvent{EventID: fmt.Sprintf("large-event-%d", n), Sequence: int64(n), Version: 1, Kind: "request", Title: "A meaningful milestone", Summary: strings.Repeat("s", 4000), CreatedAt: now, UpdatedAt: now, Origin: "agent_reported", TicketRefs: []TimelineTicketRef{}})
+		r.Session.Events = append(r.Session.Events, TimelineEvent{Actor: timelineTestActor(s, id), EventID: fmt.Sprintf("large-event-%d", n), Sequence: int64(n), Version: 1, Kind: "request", Title: "A meaningful milestone", Summary: strings.Repeat("s", 4000), CreatedAt: now, UpdatedAt: now, Origin: "agent_reported", TicketRefs: []TimelineTicketRef{}})
 		raw, _ := json.Marshal(r.Session)
 		if len(raw) >= TimelineContentBudget-8192 {
 			break
@@ -721,9 +651,9 @@ func TestTimelineRuntimePrivateRecordLimitAndStrictDecoder(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, mutated := range [][]byte{
-		bytes.Replace(raw, []byte(`"storage_version":1`), []byte(`"storage_version":1,"storage_version":1`), 1),
-		bytes.Replace(raw, []byte(`"storage_version":1`), []byte(`"Storage_version":1`), 1),
-		bytes.Replace(raw, []byte(`"storage_version":1`), []byte(`"storage_version":1,"unknown":true`), 1),
+		bytes.Replace(raw, []byte(`"storage_version":2`), []byte(`"storage_version":2,"storage_version":2`), 1),
+		bytes.Replace(raw, []byte(`"storage_version":2`), []byte(`"Storage_version":2`), 1),
+		bytes.Replace(raw, []byte(`"storage_version":2`), []byte(`"storage_version":2,"unknown":true`), 1),
 	} {
 		var decoded timelineRecord
 		if err = decodeTimelineJSONBounded(mutated, &decoded, timelineMaxRecordBytes); err == nil {
@@ -745,7 +675,7 @@ func TestTimelineRuntimePrivateRecordLimitAndStrictDecoder(t *testing.T) {
 	if err != nil || info.Size() != int64(len(oversized)) {
 		t.Fatal("failed startup altered oversized evidence", err)
 	}
-	publicRequest, _ := json.Marshal(TimelineMutationRequest{SchemaVersion: 1, OperationID: "public-bound", ExpectedVersion: 1})
+	publicRequest, _ := json.Marshal(TimelineMutationRequest{Actor: TimelineActor{Kind: "local_viewer"}, SchemaVersion: 2, OperationID: "public-bound", ExpectedVersion: 1})
 	publicRequest = append(publicRequest, bytes.Repeat([]byte(" "), TimelineMaxBody-len(publicRequest)+1)...)
 	if _, err = DecodeTimelineMutation(publicRequest); err == nil {
 		t.Fatal("public decoder no longer enforces2MiB")
@@ -756,7 +686,7 @@ func TestTimelineRuntimeExplicitConditionalReopenPreservesConversation(t *testin
 	s, request := newTimelineFixture(t)
 	initial := createTimeline(t, s, request)
 	id := initial.ViewerSessionID
-	closure, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 1, OperationID: "finish-first-work", Kind: "closure", Title: "First work completed", Summary: "Delivered", TicketRefs: []TimelineTicketRef{}, Closure: &TimelineClosure{Reason: "completed", Result: "First delivery complete"}})
+	closure, err := s.TimelineAppend(id, TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "finish-first-work", Kind: "closure", Title: "First work completed", Summary: "Delivered", TicketRefs: []TimelineTicketRef{}, Closure: &TimelineClosure{Reason: "completed", Result: "First delivery complete"}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -774,19 +704,19 @@ func TestTimelineRuntimeExplicitConditionalReopenPreservesConversation(t *testin
 	if resumed.Session.ViewerSessionID != id || resumed.Session.State != TimelineClosed || *resumed.Created || resumed.Session.Title != initial.Title {
 		t.Fatal("get/create silently reopened or replaced conversation")
 	}
-	next := TimelineAppendEventRequest{SchemaVersion: 1, OperationID: "new-work-before-reopen", Kind: "request", Title: "Next work", Summary: "Explicit new user request", TicketRefs: []TimelineTicketRef{}}
+	next := TimelineAppendEventRequest{SchemaVersion: 2, OperationID: "new-work-before-reopen", Kind: "request", Title: "Next work", Summary: "Explicit new user request", TicketRefs: []TimelineTicketRef{}}
 	if _, err = s.TimelineAppend(id, next); err == nil {
 		t.Fatal("append silently reopened closed session")
 	} else {
 		requireTimelineCode(t, err, "session_closed")
 	}
 	active := TimelineActive
-	if _, err = s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 1, OperationID: "stale-reopen", ExpectedVersion: initial.Version, State: &active}); err == nil {
+	if _, err = s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: "stale-reopen", ExpectedVersion: initial.Version, State: &active}); err == nil {
 		t.Fatal("stale reopen accepted")
 	} else {
 		requireTimelineCode(t, err, "version_conflict")
 	}
-	reopened, err := s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 1, OperationID: "explicit-reopen", ExpectedVersion: closure.SessionVersion, State: &active})
+	reopened, err := s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: "explicit-reopen", ExpectedVersion: closure.SessionVersion, State: &active})
 	if err != nil {
 		t.Fatal("explicit versioned reopen rejected", err)
 	}
@@ -809,13 +739,18 @@ func TestTimelineRuntimeExplicitConditionalReopenPreservesConversation(t *testin
 	if err != nil || appended.Sequence != history.Sequence+1 {
 		t.Fatal("new work did not extend existing timeline", err)
 	}
-	_, err = s.TimelineDelete(id, TimelineMutationRequest{SchemaVersion: 1, OperationID: "delete-conversation", ExpectedVersion: appended.SessionVersion})
+	_, err = s.TimelineDelete(id, TimelineMutationRequest{Actor: TimelineActor{Kind: "local_viewer"}, SchemaVersion: 2, OperationID: "delete-conversation", ExpectedVersion: appended.SessionVersion})
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 1, OperationID: "reopen-deleted", ExpectedVersion: appended.SessionVersion, State: &active})
+	_, err = s.TimelinePatch(id, TimelineSessionPatchRequest{SchemaVersion: 2, OperationID: "reopen-deleted", ExpectedVersion: appended.SessionVersion, State: &active})
 	requireTimelineCode(t, err, "session_deleted")
 	request.OperationID = "recreate-deleted"
 	_, err = s.TimelineCreate(request)
 	requireTimelineCode(t, err, "session_deleted")
+}
+
+func timelineTestActor(s *Store, id string) TimelineActor {
+	v, _ := s.TimelineGet(id)
+	return TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}
 }

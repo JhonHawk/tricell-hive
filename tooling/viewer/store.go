@@ -120,9 +120,8 @@ type Store struct {
 	timelineFault     func(phase, path string) error
 }
 
-// Open prepares <StateDir>/viewer/ (mode 0700) and loads the index read-only:
-// it deletes nothing. A server calls Startup next; a command that only reads
-// (status) may call View directly.
+// Open rejects previous or invalid viewer state before initializing a fresh
+// v2 namespace and loading API records. It never imports or cleans legacy data.
 func Open(o Options) (*Store, error) {
 	if o.StateDir == "" || !filepath.IsAbs(o.StateDir) {
 		return nil, fmt.Errorf("viewer: state directory must be an absolute path, got %q", o.StateDir)
@@ -140,15 +139,13 @@ func Open(o Options) (*Store, error) {
 	if s.now == nil {
 		s.now = time.Now
 	}
-	for _, dir := range []string{s.vdir, s.sessionsDir()} {
-		if err := os.MkdirAll(dir, 0o700); err != nil {
-			return nil, err
-		}
-		if info, err := os.Lstat(dir); err != nil || !info.IsDir() {
-			return nil, fmt.Errorf("viewer: %s must be a real directory", dir)
-		}
+	if err := ValidateStateOptions(o); err != nil {
+		return nil, err
 	}
-	s.idx = s.load()
+	if err := initializeState(o.StateDir); err != nil {
+		return nil, err
+	}
+	s.idx = newIndexData()
 	if err := s.timelineLoad(); err != nil {
 		return nil, err
 	}
@@ -167,26 +164,18 @@ func (s *Store) sessionDir(key string) string { return filepath.Join(s.sessionsD
 
 func (s *Store) indexPath() string { return filepath.Join(s.vdir, "index.json") }
 
-// Startup is the server's boot sequence: remove leftovers of interrupted
-// work, rebuild the in-memory index from sessions/*/meta.json (keeping the
-// tombstones and errors of a readable index.json) and persist it. Call it
-// once, from the process that owns the state directory.
+// Startup validates the complete v2 inventory before cleaning owned incomplete
+// writes and unreferenced blobs. Legacy cleanup and index rebuilding never run.
 func (s *Store) Startup() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if err := s.cleanup(); err != nil {
+	if err := ValidateState(filepath.Dir(s.vdir)); err != nil {
 		return err
 	}
 	if err := s.timelineLoad(); err != nil {
 		return err
 	}
-	if err := s.timelineCleanup(); err != nil {
-		return err
-	}
-	s.clearProjects()
-	d := s.load()
-	s.recoverPendingGroups(d, true)
-	return s.commit(d)
+	return s.timelineCleanup()
 }
 
 // cleanup removes temporary copy directories and stray atomic-write files,

@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-const timelineStorageVersion = 1
+const timelineStorageVersion = 2
 const timelineMaxRecordBytes = 4 << 20
 
 // TimelineError contains public, value-free failure semantics.
@@ -46,7 +46,7 @@ type timelineRecord struct {
 	DeleteResult    *TimelineOperationResult   `json:"delete_result,omitempty"`
 }
 
-func (s *Store) timelineDir() string { return filepath.Join(s.vdir, "timeline-api-v1") }
+func (s *Store) timelineDir() string { return filepath.Join(s.vdir, "timeline-api-v2") }
 func (s *Store) timelineRecordPath(id string) string {
 	return filepath.Join(s.timelineDir(), id+".json")
 }
@@ -55,7 +55,7 @@ func timelineSessionKey(project string, source TimelineSource) string {
 	var b bytes.Buffer
 	enc := json.NewEncoder(&b)
 	enc.SetEscapeHTML(false)
-	_ = enc.Encode([]any{"timeline-api-v1", project, source.Host, source.NativeSessionID})
+	_ = enc.Encode([]any{"timeline-api-v2", project, source.Host, source.NativeSessionID})
 	raw := strings.TrimSuffix(b.String(), "\n")
 	raw = strings.ReplaceAll(strings.ReplaceAll(raw, `\u2028`, "\u2028"), `\u2029`, "\u2029")
 	sum := sha256.Sum256([]byte(raw))
@@ -206,7 +206,7 @@ func (s *Store) timelineLoad() error {
 		if !keyPattern.MatchString(id) {
 			return timelineFailure("corrupt_storage", 500)
 		}
-		raw, err := readBounded(s.timelineRecordPath(id), timelineMaxRecordBytes)
+		raw, err := readStateFile(s.timelineRecordPath(id), timelineMaxRecordBytes)
 		if err != nil {
 			return timelineFailure("corrupt_storage", 500)
 		}
@@ -259,9 +259,114 @@ func (s *Store) timelineLoad() error {
 		}
 		s.timeline[id] = &r
 	}
+	// Resolve against the complete set, so durable aliases remain available
+	// even when the original source metadata cannot currently be read.
+	for _, r := range s.timeline {
+		if r.Session == nil {
+			continue
+		}
+		sources := []TimelineSource{r.Source}
+		for _, root := range r.Roots {
+			source := r.Source
+			source.ProjectRoot = root
+			sources = append(sources, source)
+		}
+		for _, p := range r.Session.Producers {
+			sources = append(sources, p.Source)
+		}
+		for _, p := range r.Session.PendingJoinRequests {
+			sources = append(sources, p.Source)
+		}
+		for _, source := range sources {
+			key, err := s.timelineRestoredProject(r, source)
+			if err != nil {
+				return err
+			}
+			if err = ValidateTimelineResolvedProject(*r.Session, source, key); err != nil {
+				return err
+			}
+		}
+		// A durable pending delete may already have removed some blobs.
+		if r.DeletePending {
+			continue
+		}
+		for _, d := range r.Session.Documents {
+			if _, err := s.timelineReadBlob(r.ID, "documents", d.DocumentID+".md", d.SHA256, d.Size); err != nil {
+				return err
+			}
+		}
+		for _, a := range r.Session.Artifacts {
+			if _, err := s.timelineReadBlob(r.ID, "artifacts", a.ArtifactID+timelineImageExtension(a.MediaType), a.SHA256, a.Size); err != nil {
+				return err
+			}
+		}
+	}
 	s.timelinePublish()
 	return nil
 }
+
+// timelineRestoredProject is load-only: an unavailable original path cannot
+// revoke a previously validated durable binding. New publications still use
+// timelineProject and require a currently resolvable, registered source root.
+func (s *Store) timelineRestoredProject(record *timelineRecord, source TimelineSource) (string, error) {
+	_, key, _, err := s.timelineProject(source)
+	if err == nil {
+		return key, nil
+	}
+	var failure *TimelineError
+	if !errors.As(err, &failure) || failure.Code != "project_unavailable" {
+		return "", err
+	}
+	if _, statErr := os.Stat(source.ProjectRoot); !errors.Is(statErr, os.ErrNotExist) {
+		return "", err
+	}
+	sourceBound := false
+	for _, root := range record.Roots {
+		sourceBound = sourceBound || root == source.ProjectRoot
+	}
+	if !sourceBound {
+		return "", timelineFailure("project_identity_unavailable", 409)
+	}
+	registry, readErr := readRegistry(s.vdir)
+	if readErr != nil {
+		return "", readErr
+	}
+	canonicalBound := false
+	for _, repo := range registry.Repositories {
+		bound := false
+		for _, root := range record.Roots {
+			bound = bound || root == repo.Root
+		}
+		if !bound {
+			continue
+		}
+		canonicalBound = true
+		for _, other := range s.timeline {
+			for _, root := range other.Roots {
+				if root == repo.Root && other.ProjectKey != record.ProjectKey {
+					return "", timelineFailure("project_identity_changed", 409)
+				}
+			}
+		}
+		if _, statErr := os.Stat(repo.Root); errors.Is(statErr, os.ErrNotExist) {
+			continue
+		}
+		resolved := source
+		resolved.ProjectRoot = repo.Root
+		_, canonicalKey, _, resolveErr := s.timelineProject(resolved)
+		if resolveErr != nil {
+			return "", resolveErr
+		}
+		if canonicalKey != record.ProjectKey {
+			return "", timelineFailure("project_identity_changed", 409)
+		}
+	}
+	if !canonicalBound {
+		return "", timelineFailure("project_identity_unavailable", 409)
+	}
+	return record.ProjectKey, nil
+}
+
 func (s *Store) timelineReconcile() error {
 	if !s.timelineUncertain {
 		return nil
@@ -394,7 +499,7 @@ func (s *Store) timelineCommit(r *timelineRecord, kind TimelineOperationKind, op
 }
 func timelineResult(r *timelineRecord, kind TimelineOperationKind, op string) TimelineOperationResult {
 	v := r.Session
-	return TimelineOperationResult{SchemaVersion: 1, OperationID: op, Kind: kind, ViewerSessionID: r.ID, SessionVersion: v.Version, CurrentStageEventID: v.CurrentStageEventID}
+	return TimelineOperationResult{SchemaVersion: 2, OperationID: op, Kind: kind, ViewerSessionID: r.ID, SessionVersion: v.Version, CurrentStageEventID: v.CurrentStageEventID}
 }
 func (s *Store) timelineProject(source TimelineSource) (string, string, string, error) {
 	root, err := canonicalDir(source.ProjectRoot)
@@ -469,7 +574,6 @@ func (s *Store) TimelineCreate(request TimelineCreateSessionRequest) (TimelineSe
 	if err != nil {
 		return TimelineSessionResponse{}, err
 	}
-	request.Source.ProjectRoot = root
 	id := timelineSessionKey(key, request.Source)
 	digest := timelineDigest("create_session", id, "", request, nil)
 	if old, ok := s.timeline[id]; ok {
@@ -503,8 +607,20 @@ func (s *Store) TimelineCreate(request TimelineCreateSessionRequest) (TimelineSe
 		return timelineResponse(*r.Session, false), nil
 	}
 	now := s.timelineTime()
-	v := TimelineSession{SchemaVersion: 1, ViewerSessionID: id, ProjectKey: key, ProjectName: name, Source: request.Source, Version: 1, Title: request.Title, Summary: request.Summary, State: TimelineActive, CreatedAt: now, UpdatedAt: now, Tickets: request.Tickets, Events: []TimelineEvent{}, Artifacts: []TimelineArtifact{}, Documents: []TimelineDocument{}}
-	r := &timelineRecord{StorageVersion: 1, ID: id, Source: request.Source, ProjectKey: key, ProjectName: name, Roots: []string{root}, Session: &v, Receipts: []TimelineOperationReceipt{}}
+	producer, err := timelineRandomID("producer-")
+	if err != nil {
+		return TimelineSessionResponse{}, err
+	}
+	v := TimelineSession{SchemaVersion: 2, ViewerSessionID: id, ProjectKey: key, ProjectName: name, Source: request.Source, Version: 1, Title: request.Title, Summary: request.Summary, State: TimelineActive, CreatedAt: now, UpdatedAt: now, Tickets: request.Tickets, Events: []TimelineEvent{}, Artifacts: []TimelineArtifact{}, Documents: []TimelineDocument{}}
+	v.Producers = []TimelineProducer{{ProducerID: producer, Source: request.Source, JoinedAt: now}}
+	v.ForegroundProducerID = producer
+	v.PendingJoinRequests = []TimelineJoinRequest{}
+	v.Tasks = []TimelineTask{}
+	v.Waits = []TimelineCIWait{}
+	if err = ValidateTimelineResolvedProject(v, request.Source, key); err != nil {
+		return TimelineSessionResponse{}, err
+	}
+	r := &timelineRecord{StorageVersion: 2, ID: id, Source: request.Source, ProjectKey: key, ProjectName: name, Roots: timelineSourceRoots(root, request.Source.ProjectRoot), Session: &v, Receipts: []TimelineOperationReceipt{}}
 	yes := true
 	result := timelineResult(r, "create_session", request.OperationID)
 	result.Created = &yes
@@ -514,7 +630,7 @@ func (s *Store) TimelineCreate(request TimelineCreateSessionRequest) (TimelineSe
 	return timelineResponse(v, true), nil
 }
 func timelineResponse(v TimelineSession, created bool) TimelineSessionResponse {
-	return TimelineSessionResponse{SchemaVersion: 1, Mode: "timeline_api", Session: v, Created: &created}
+	return TimelineSessionResponse{SchemaVersion: 2, Mode: "timeline_api", Session: v, Created: &created}
 }
 func (s *Store) TimelineGet(id string) (TimelineSession, error) {
 	s.mu.Lock()
@@ -847,4 +963,11 @@ func (s *Store) timelineHasID(id string) bool {
 }
 func (s *Store) timelineLegacyHidden(v Session) bool {
 	return s.timelineHasID(timelineSessionKey(v.ProjectKey, TimelineSource{Host: TimelineHost(v.Host), NativeSessionID: v.SessionID}))
+}
+
+func timelineSourceRoots(root, source string) []string {
+	if root == source {
+		return []string{root}
+	}
+	return []string{root, source}
 }

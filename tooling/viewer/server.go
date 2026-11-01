@@ -10,7 +10,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/fs"
 	"net"
 	"net/http"
@@ -21,7 +20,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"unicode/utf8"
 )
 
 //go:embed static
@@ -171,7 +169,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case p == "/api/timeline/sessions" || strings.HasPrefix(p, "/api/timeline/sessions/"):
 		s.timeline(w, r)
 	case strings.HasPrefix(p, "/api/sessions/"):
-		s.session(w, r, strings.TrimPrefix(p, "/api/sessions/"))
+		timelineHTTPError(w, timelineFailure("unsupported_protocol", 409))
 	case strings.HasPrefix(p, "/files/"):
 		s.file(w, r, strings.TrimPrefix(p, "/files/"))
 	default:
@@ -305,38 +303,22 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		ProtocolVersion int    `json:"timeline_protocol_version"`
 		Revision        string `json:"revision"`
 		Modified        bool   `json:"modified"`
-	}{s.pid, filepath.Dir(s.store.Dir()), s.version, s.store.TTL().String(), "manual", 1, s.revision, s.modified})
+	}{s.pid, filepath.Dir(s.store.Dir()), s.version, s.store.TTL().String(), "manual", 2, s.revision, s.modified})
 }
 
-// indexSession adds the base of the session's file URLs to a Session. It is
-// what the authenticated page mounts the walkthrough with.
+// indexSession is retained only as the rejected legacy wire shape in the contract decoder.
 type indexSession struct {
 	Session
 	FileBase string `json:"fileBase"`
-}
-
-type indexTicket struct {
-	Name     string         `json:"ticket"`
-	Sessions []indexSession `json:"sessions"`
-}
-
-type indexProject struct {
-	Key     string        `json:"key"`
-	Name    string        `json:"name"`
-	Absent  bool          `json:"absent"`
-	Tickets []indexTicket `json:"tickets"`
 }
 
 type indexView struct {
 	TimelineSessions []TimelineAPIIndexEntry `json:"timeline_sessions"`
 	ProtocolVersion  int                     `json:"protocol_version"`
 	Retention        string                  `json:"retention"`
-	ExcludedSessions []Session               `json:"excluded_sessions"`
 	TTLSeconds       int64                   `json:"ttl_seconds"`
-	Projects         []indexProject          `json:"projects"`
 	Repositories     []RepositoryStatus      `json:"repositories"`
 	Errors           []IngestError           `json:"errors"`
-	Tombstones       []Tombstone             `json:"tombstones"`
 }
 
 // fileCap is the capability for the files of one session: the hex
@@ -353,129 +335,12 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 	if !allow(w, r, http.MethodGet) || !s.authorize(w, r, false) {
 		return
 	}
-	v := s.store.View()
-	out := indexView{
-		TimelineSessions: s.store.TimelineIndex(), ProtocolVersion: 1, Retention: "manual",
-		TTLSeconds: v.TTLSeconds, Repositories: v.Repositories, Errors: v.Errors, Tombstones: v.Tombstones,
-		ExcludedSessions: v.ExcludedSessions,
-		Projects:         make([]indexProject, 0, len(v.Projects)),
-	}
-	for _, p := range v.Projects {
-		ip := indexProject{Key: p.Key, Name: p.Name, Absent: p.Absent, Tickets: make([]indexTicket, 0, len(p.Tickets))}
-		for _, t := range p.Tickets {
-			it := indexTicket{Name: t.Name, Sessions: make([]indexSession, 0, len(t.Sessions))}
-			for _, sess := range t.Sessions {
-				if s.store.timelineLegacyHidden(sess) {
-					continue
-				}
-				it.Sessions = append(it.Sessions, indexSession{Session: sess, FileBase: "/files/" + sess.Key + "/" + s.fileCap(sess.Key) + "/"})
-			}
-			ip.Tickets = append(ip.Tickets, it)
-		}
-		out.Projects = append(out.Projects, ip)
-	}
-	writeJSON(w, out)
-}
-
-// session serves /api/sessions/<key>[/pin|/archive|/title].
-func (s *Server) session(w http.ResponseWriter, r *http.Request, rest string) {
-	key, sub, _ := strings.Cut(rest, "/")
-	switch sub {
-	case "":
-		switch r.Method {
-		case http.MethodGet:
-			if !s.authorize(w, r, false) {
-				return
-			}
-			data, err := s.store.Manifest(key)
-			if err != nil {
-				storeError(w, err)
-				return
-			}
-			w.Header().Set("Content-Type", "application/json; charset=utf-8")
-			w.Header().Set("Cache-Control", "no-store")
-			w.Write(data)
-		case http.MethodDelete:
-			if s.authorizeSessionWrite(w, r) {
-				var expected []ExpectedSessionMember
-				raw, err := io.ReadAll(io.LimitReader(r.Body, TimelineMaxBody+1))
-				if err != nil || len(raw) > TimelineMaxBody {
-					timelineHTTPError(w, timelineFailure("body_too_large", 413))
-					return
-				}
-				if len(raw) > 0 {
-					var body struct {
-						ExpectedMembers *[]ExpectedSessionMember `json:"expected_members,omitempty"`
-					}
-					if err = DecodeTimelineJSON(raw, &body); err != nil {
-						timelineHTTPError(w, err)
-						return
-					}
-					if body.ExpectedMembers != nil {
-						expected = *body.ExpectedMembers
-					}
-				}
-				err = s.store.DeleteExpected(key, expected)
-				var failure *TimelineError
-				if errors.As(err, &failure) {
-					timelineHTTPError(w, err)
-					return
-				}
-				s.done(w, err)
-			}
-		default:
-			allow(w, r, http.MethodGet, http.MethodDelete)
-		}
-	case "pin":
-		if !allow(w, r, http.MethodPost, http.MethodDelete) || !s.authorizeSessionWrite(w, r) {
-			return
-		}
-		s.done(w, s.store.Pin(key, r.Method == http.MethodPost))
-	case "title":
-		if !allow(w, r, http.MethodPut) || !s.authorizeSessionWrite(w, r) {
-			return
-		}
-		raw, err := io.ReadAll(io.LimitReader(r.Body, 2049))
-		if err != nil || len(raw) > 2048 || !utf8.Valid(raw) {
-			httpError(w, http.StatusBadRequest, "invalid title request")
-			return
-		}
-		var body struct {
-			Title *string `json:"title"`
-		}
-		dec := json.NewDecoder(bytes.NewReader(raw))
-		dec.DisallowUnknownFields()
-		if err := dec.Decode(&body); err != nil || body.Title == nil {
-			httpError(w, http.StatusBadRequest, "invalid title request")
-			return
-		}
-		if err := dec.Decode(new(any)); err != io.EOF {
-			httpError(w, http.StatusBadRequest, "invalid title request")
-			return
-		}
-		title, err := validateSessionTitle(*body.Title)
-		if err != nil {
-			httpError(w, http.StatusBadRequest, "invalid session title")
-			return
-		}
-		s.done(w, s.store.SetTitle(key, title))
-	case "archive":
-		if !allow(w, r, http.MethodPost, http.MethodDelete) || !s.authorizeSessionWrite(w, r) {
-			return
-		}
-		s.done(w, s.store.Archive(key, r.Method == http.MethodPost))
-	default:
-		httpError(w, http.StatusNotFound, "not found")
-	}
-}
-
-func (s *Server) done(w http.ResponseWriter, err error) {
+	reg, err := ReadRegistry(filepath.Dir(s.store.Dir()))
 	if err != nil {
-		storeError(w, err)
+		timelineHTTPError(w, err)
 		return
 	}
-	w.Header().Set("Cache-Control", "no-store")
-	w.WriteHeader(http.StatusNoContent)
+	writeJSON(w, indexView{TimelineSessions: s.store.TimelineIndex(), ProtocolVersion: 2, Retention: "manual", Repositories: repositoryStatuses(reg), Errors: []IngestError{}})
 }
 
 // file serves /files/<key>/<cap>/<path> from a stored copy. The Store validates the
@@ -502,23 +367,5 @@ func (s *Server) file(w http.ResponseWriter, r *http.Request, rest string) {
 		http.ServeContent(w, r, "", time.Time{}, bytes.NewReader(content))
 		return
 	}
-	f, err := s.store.OpenFile(key, rel)
-	if err != nil {
-		storeError(w, err)
-		return
-	}
-	defer f.Close()
-	info, err := f.Stat()
-	if err != nil {
-		httpError(w, http.StatusInternalServerError, "internal error")
-		return
-	}
-	ct, ok := fileTypes[extension(rel)]
-	if !ok {
-		httpError(w, http.StatusBadRequest, "bad request")
-		return
-	}
-	w.Header().Set("Content-Type", ct)
-	w.Header().Set("Cache-Control", "no-cache")
-	http.ServeContent(w, r, "", info.ModTime(), f)
+	timelineHTTPError(w, ErrNotFound)
 }

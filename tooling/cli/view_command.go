@@ -318,6 +318,9 @@ func viewRunning(p viewPaths) (serverInfo, bool, error) {
 }
 
 func viewStart(p viewPaths, f viewFlags, w io.Writer, deps viewDeps) error {
+	if err := viewer.ValidateStateOptions(viewer.Options{StateDir: p.state, GitRemote: viewGitRemote(newGitRunner()), HiveProject: viewHiveProject}); err != nil {
+		return err
+	}
 	if _, err := parseViewTTL(f.ttl); err != nil {
 		return err
 	}
@@ -340,7 +343,7 @@ func viewStart(p viewPaths, f viewFlags, w io.Writer, deps viewDeps) error {
 	if err := os.Remove(p.info); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-	if err := os.MkdirAll(p.dir, 0o700); err != nil {
+	if err := viewer.PrepareState(p.state); err != nil {
 		return err
 	}
 	args := []string{"view", "serve", "--state-dir", p.state}
@@ -377,6 +380,9 @@ func viewStart(p viewPaths, f viewFlags, w io.Writer, deps viewDeps) error {
 }
 
 func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
+	if err := viewer.ValidateStateOptions(viewer.Options{StateDir: p.state, GitRemote: viewGitRemote(newGitRunner()), HiveProject: viewHiveProject}); err != nil {
+		return err
+	}
 	ttl, err := parseViewTTL(f.ttl)
 	if err != nil {
 		return err
@@ -384,7 +390,7 @@ func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
 	if err := checkViewPort(f.port); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(p.dir, 0o700); err != nil {
+	if err := viewer.PrepareState(p.state); err != nil {
 		return err
 	}
 	// start, stop and status probe server.lock by taking it for an instant, so
@@ -403,6 +409,9 @@ func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
 		return err
 	}
 	defer lock.Release()
+	if err := viewer.ValidateStateOptions(viewer.Options{StateDir: p.state, GitRemote: viewGitRemote(newGitRunner()), HiveProject: viewHiveProject}); err != nil {
+		return err
+	}
 
 	git := newGitRunner()
 	store, err := viewer.Open(viewer.Options{
@@ -413,6 +422,9 @@ func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
 		SourceTracking: viewSourceTracking(runViewerTrackingGit),
 	})
 	if err != nil {
+		return err
+	}
+	if err := store.Startup(); err != nil {
 		return err
 	}
 	ln, err := listenView(f, w)
@@ -509,6 +521,10 @@ func writeServerInfo(p viewPaths, info serverInfo) error {
 }
 
 func viewStop(p viewPaths, w io.Writer) error {
+	if err := viewer.ValidateStateOptions(viewer.Options{StateDir: p.state, GitRemote: viewGitRemote(newGitRunner()), HiveProject: viewHiveProject}); err != nil {
+		return err
+	}
+
 	held, err := viewLockHeld(p)
 	if err != nil {
 		return err

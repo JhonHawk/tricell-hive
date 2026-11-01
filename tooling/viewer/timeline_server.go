@@ -61,7 +61,7 @@ func timelineReadBody(w http.ResponseWriter, r *http.Request) ([]byte, error) {
 	return raw, nil
 }
 func (s *Server) timelineResponse(v TimelineSession, created *bool) TimelineSessionResponse {
-	out := TimelineSessionResponse{SchemaVersion: 1, Mode: "timeline_api", Session: v, Created: created, ArtifactURLs: map[string]string{}, DocumentURLs: map[string]string{}}
+	out := TimelineSessionResponse{SchemaVersion: 2, Mode: "timeline_api", Session: v, Created: created, ArtifactURLs: map[string]string{}, DocumentURLs: map[string]string{}}
 	for _, a := range v.Artifacts {
 		out.ArtifactURLs[a.ArtifactID] = "/files/" + v.ViewerSessionID + "/" + s.fileCap(v.ViewerSessionID) + "/artifacts/" + a.ArtifactID + timelineImageExtension(a.MediaType)
 	}
