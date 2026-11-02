@@ -9,8 +9,8 @@ At plan entry, the primary producer follows [flow-walkthrough](../flow-walkthrou
 
 1. Read the code, the `## Hive` settings and the existing specs the change touches.
 2. Resolve with the user the decisions that are theirs, asked as the global guidance sets. A change to what a consumer of a public interface sends or receives is a contract change: decide in the plan whether it stays compatible. For a change to a screen, settle the UI decisions below.
-3. Write the change folder from the templates in [assets/change-folder/](assets/change-folder/) as [Change folder](#change-folder) sets, with acceptance criteria as [Acceptance criteria](#acceptance-criteria) sets.
-4. Once the change folder is saved, launch step 5's review when it applies, then ask the delivery mode and the code review mechanism while it runs, as the global guidance's «Delivery» section sets. A UI change is always verified as `flow-verify` sets: your own browser walk and one `hive-review-ux` child.
+3. Write the plan where [Where the plan lives](#where-the-plan-lives) sets, with acceptance criteria as [Acceptance criteria](#acceptance-criteria) sets.
+4. Once the plan is written, launch step 5's review when it applies, then ask the delivery mode and the code review mechanism while it runs, as the global guidance's «Delivery» section sets; an operational task gets neither. A UI change is always verified as `flow-verify` sets: your own browser walk and one `hive-review-ux` child.
 5. When the plan changes a contract, stored data, security or a dependency, have one `hive-review-plan` child review it, launched before step 4's question, and apply what holds before step 6.
 6. Read and follow [plan handoff](references/plan-handoff.md): write the plan summary in the message and end it with the build route. A plan does not authorize implementation: only the user's reply starts `flow-build`.
 
@@ -30,9 +30,13 @@ For a new or rearranged screen, order the tasks by what each one needs in order 
 
 Number them `AC1`, `AC2`…, one observable behavior each. Name for each the observation that would show it false, and check that the observation is false on the current base branch: a criterion already true there, or one that restates the request, grades nothing; rewrite or drop it. Every criterion appears in the `Closes:` line of at least one task, whose verification covers it.
 
+## Where the plan lives
+
+Write the change folder when the user asks for it, when the work must resume in another session or be delegated to children (a child's brief names the change folder), when its deliveries need coordination, such as more than one pull request or repository, or when the plan changes a contract, stored data, security, money, concurrency or a dependency, since those plans get a reviewer or a task check that read the folder. Otherwise keep the plan in the conversation, as every operational task does (the global guidance's «Proportionality»): the plan summary carries the decisions, the criteria, the prerequisites, and the tasks with their `Closes:` line and verification, and the viewer gets its snapshot when the viewer runs. A plan kept in the conversation that changes a behavior an existing `<Specs>/specs/<capability>/spec.md` describes has a task that updates that spec directly, since no delta exists to merge at close. When it later meets one of these conditions, write the change folder then.
+
 ## Change folder
 
-Write `<Specs>/changes/<change-id>/`, with `<change-id>` in English kebab-case starting with the ticket key. Earlier change folders in the repository are context, not a model: the templates and this skill set the shape and the ceremony, such as one `hive-review-plan` child, even when earlier folders record more. Copy each template from [assets/change-folder/](assets/change-folder/), fill it, and delete its comments and the sections that do not apply:
+Write `<Specs>/changes/<change-id>/`, with `<change-id>` in English kebab-case starting with the ticket key when the work has a ticket, otherwise a short slug of the work. Earlier change folders in the repository are context, not a model: the templates and this skill set the shape and the ceremony, such as one `hive-review-plan` child, even when earlier folders record more. Copy each template from [assets/change-folder/](assets/change-folder/), fill it, and delete its comments and the sections that do not apply:
 
 - `proposal.md`: the request and the ticket's criteria quoted, the user's decisions in plain words, the scope, the numbered criteria, the prerequisites, and the delivery decisions;
 - `tasks.md`: the tasks with checkboxes, each with its `Closes:` line and how it is checked, and the verification of the whole change;

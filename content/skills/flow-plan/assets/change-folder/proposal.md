@@ -1,11 +1,11 @@
-# <TICKET> — <one-line title>
+# <TICKET, or the change-id without a ticket> — <one-line title>
 
 <!-- Template from flow-plan. Write the text, headings and field names in the session language; keep code and identifiers as they are. Name the first field `Status`, or `Estado` in Spanish, and start its value with the phase, since the archive helper reads it. Delete these comments. -->
 
 | Field | Value |
 | --- | --- |
 | Status | <Draft · Ready for flow-build · In build · Completed> |
-| Tracker | <ticket link · state · priority · related tickets> |
+| Tracker | <ticket link · state · priority · related tickets, or none> |
 | Git | <repository, base branch and commit, proposed branch> |
 
 ## Decisions

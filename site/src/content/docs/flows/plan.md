@@ -23,13 +23,15 @@ The agent reads the code, your project settings and the existing specs first, th
 
 - Choices that change the outcome, asked in rounds and in the shared question format. A change to what an interface sends or receives counts as a contract change, and you decide whether it stays compatible.
 - For a changed screen, the layout and its states, shown as before-and-after sketches you can choose between.
-- Once the plan is saved, how the work is delivered and which code review runs, unless you already answered.
+- Once the plan is written, how the work is delivered and which code review runs, unless you already answered. The recommended delivery follows the kind of work: automatic when its checks, review and verification can judge it, such as infrastructure or CI; interactive when it has a screen, copy or flow only you can judge. A one-off operation that leaves nothing in the repository, such as a database dump, gets neither question.
 
 The rules for questions and for delivery are in the [shared guidance](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md).
 
 ## What it produces
 
-A change folder in your specs directory, copied from the [templates](https://github.com/JhonHawk/tricell-hive/tree/master/content/skills/flow-plan/assets/change-folder):
+A bounded plan stays in the message: its decisions, criteria, prerequisites and tasks. The agent writes a change folder in your specs directory when you ask for one, when the work will resume in another session or be handed to helpers, when its deliveries need coordination, or when it changes a contract, stored data, security, money, concurrency or a dependency. A one-off operation always keeps its plan in the message; when one of those conditions applies, or you agree to add files to the repository for it, it is handled as a regular change. A plan in the message that changes a behavior your specs describe includes a task that updates them. Without a ticket, the folder is named by a short slug; a plan never waits for a ticket to exist.
+
+The change folder is copied from the [templates](https://github.com/JhonHawk/tricell-hive/tree/master/content/skills/flow-plan/assets/change-folder):
 
 - `proposal.md`: your request quoted, your decisions in plain words, the scope, numbered acceptance criteria, and what the build needs from outside the repository.
 - `tasks.md`: small tasks, each saying which criteria it closes, what it depends on and how to check it.
@@ -37,7 +39,7 @@ A change folder in your specs directory, copied from the [templates](https://git
 
 Every criterion is one observable behavior, with the observation that would show it false today. A criterion that is already true, or that only restates your request, is rewritten or dropped. When the plan changes a contract, stored data, security or a dependency, one independent reviewer checks it before it is ready. A running viewer can show the plan documents, as the [walkthrough skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) describes.
 
-The folder stays uncommitted while the work runs; [Close](/flows/close/) versions it at the end.
+A change folder stays uncommitted while the work runs; [Close](/flows/close/) versions it at the end.
 
 ## How it ends
 
