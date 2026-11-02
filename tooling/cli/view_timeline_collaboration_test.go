@@ -187,17 +187,19 @@ func TestTimelineCLIV3SharedTasksCIAndRestart(t *testing.T) {
 	s.id = response.Session.ViewerSessionID
 	s.actor = viewer.TimelineActor{Kind: "native_producer", ProducerID: response.Session.ForegroundProducerID}
 	originalActor := s.actor
-	legacy := create
-	legacy.SchemaVersion = 1
-	legacy.OperationID = "old-client-write"
-	legacy.Source.NativeSessionID = "fixture-v1"
-	status, legacyBody := timelineLocalStatus(t, f, "POST", "/api/timeline/sessions", legacy)
-	var legacyFailure struct {
-		Code string `json:"code"`
-	}
-	json.Unmarshal([]byte(legacyBody), &legacyFailure)
-	if status != 400 || legacyFailure.Code != "unsupported_protocol" {
-		t.Fatal("v1 write was accepted by v2 viewer")
+	for _, version := range []int{1, 2} {
+		legacy := create
+		legacy.SchemaVersion = version
+		legacy.OperationID = fmt.Sprintf("old-client-%d", version)
+		legacy.Source.NativeSessionID = fmt.Sprintf("fixture-v%d", version)
+		status, body := timelineLocalStatus(t, f, "POST", "/api/timeline/sessions", legacy)
+		var failure struct {
+			Code string `json:"code"`
+		}
+		json.Unmarshal([]byte(body), &failure)
+		if status != 400 || failure.Code != "unsupported_protocol" {
+			t.Fatalf("v%d write accepted by v3 viewer", version)
+		}
 	}
 	plan := s.stage("plan")
 	sourceB := viewer.TimelineSource{ProjectRoot: repo, Host: "claude-code", NativeSessionID: "fixture-B"}
@@ -253,14 +255,14 @@ func TestTimelineCLIV3SharedTasksCIAndRestart(t *testing.T) {
 	}
 	s.finish(plan)
 	// A phase-looking title never supplies the missing explicit segment phase.
-	s.denied([]string{"task", "create", s.id}, viewer.TimelineTaskCreateRequest{TimelineNativeOperation: s.base("missing-phase"), TaskKey: "T8", Title: "Build implementation", Summary: "No inferred phase", Segments: []viewer.TimelineTaskSegmentInput{}})
+	s.denied([]string{"task", "create", s.id}, viewer.TimelineTaskCreateRequest{TimelineNativeOperation: s.base("missing-phase"), TaskKey: "T8", PlanOrder: 8, Title: "Build implementation", Summary: "No inferred phase", Segments: []viewer.TimelineTaskSegmentInput{}})
 	tasks := []viewer.TimelineTask{}
 	for i := 1; i <= 7; i++ {
 		segments := []viewer.TimelineTaskSegmentInput{{PlannedStage: "build", Order: int64(i)}}
 		if i == 7 {
 			segments = []viewer.TimelineTaskSegmentInput{{PlannedStage: "verify", Order: 1}, {PlannedStage: "delivery", Order: 1}}
 		}
-		result := s.result([]string{"task", "create", s.id}, viewer.TimelineTaskCreateRequest{TimelineNativeOperation: s.base("declare"), TaskKey: fmt.Sprintf("T%d", i), Title: fmt.Sprintf("Explicit task %d", i), Summary: "Declared phases, never inferred", Segments: segments, PlanRevisionID: revisions["scope"]})
+		result := s.result([]string{"task", "create", s.id}, viewer.TimelineTaskCreateRequest{TimelineNativeOperation: s.base("declare"), TaskKey: fmt.Sprintf("T%d", i), PlanOrder: int64(i), Title: fmt.Sprintf("Explicit task %d", i), Summary: "Declared phases, never inferred", Segments: segments, PlanRevisionID: revisions["scope"]})
 		tasks = append(tasks, scenarioTask(t, s.current(), result.TaskID))
 	}
 	build := s.stage("build")
@@ -314,14 +316,29 @@ func TestTimelineCLIV3SharedTasksCIAndRestart(t *testing.T) {
 	delivery := s.stage("delivery")
 	s.bind(last.TaskID, last.Segments[1].SegmentID, delivery)
 	policy := viewer.TimelineCheckPolicy{PolicyID: "unknown", Confirmed: false, Authority: "No confirmed access", SourceURL: "https://example.test/policy", ObservedAt: "2026-01-01T00:00:00Z", RequiredChecks: []viewer.TimelineRequiredCheck{}}
-	waiting := viewer.TimelineWaitCreateRequest{TimelineNativeOperation: s.base("unknown-policy"), TargetStageEventID: delivery, TaskID: last.TaskID, SegmentID: last.Segments[1].SegmentID, CandidateID: "candidate-test", PullRequestDeliveryID: "delivery-test", Policy: policy}
+	candidate := s.result([]string{"candidate", "create", s.id}, viewer.TimelineCandidateCreateRequest{TimelineNativeOperation: s.base("register-candidate"), TimelineCandidate: viewer.TimelineCandidate{Branch: "feature", Commit: "abc", Base: "development"}})
+	pr := s.result([]string{"delivery", "create", s.id}, viewer.TimelineDeliveryCreateRequest{TimelineNativeOperation: s.base("register-delivery"), RepositoryURL: "https://example.test/repository", ExternalID: "42", TimelineDeliverySnapshot: viewer.TimelineDeliverySnapshot{Kind: "pull_request", Label: "PR42", URL: "https://example.test/pull/42", Status: "open"}})
+
+	waiting := viewer.TimelineWaitCreateRequest{TimelineNativeOperation: s.base("unknown-policy"), TargetStageEventID: delivery, TaskID: last.TaskID, SegmentID: last.Segments[1].SegmentID, CandidateID: candidate.CandidateID, PullRequestDeliveryID: pr.DeliveryID, Policy: policy}
 	unknown := s.result([]string{"wait", "create", s.id}, waiting)
+	// Both item routes must reconcile the typed entity ID, never EventID.
+	beforeCatalogPatch := s.current()
+	updatedLabel := "Corrected PR label"
+	s.result([]string{"delivery", "update", s.id, pr.DeliveryID}, viewer.TimelineDeliveryPatchRequest{TimelineNativeOperation: s.base("patch-delivery"), Label: &updatedLabel})
+	ticket := s.result([]string{"ticket", "create", s.id}, viewer.TimelineTicketCreateRequest{TimelineNativeOperation: s.base("ticket-register"), TimelineTicketInput: viewer.TimelineTicketInput{ExternalScope: "https://example.test/tracker", ExternalID: "one", Key: "EX-1"}})
+	correctedKey := "EX-2"
+	s.result([]string{"ticket", "update", s.id, ticket.TicketID}, viewer.TimelineTicketPatchRequest{TimelineNativeOperation: s.base("patch-ticket"), Key: &correctedKey})
+	afterCatalogPatch := s.current()
+	if afterCatalogPatch.Waits[0].PullRequestRef != beforeCatalogPatch.Waits[0].PullRequestRef || afterCatalogPatch.Waits[0].WaitVersion != beforeCatalogPatch.Waits[0].WaitVersion+1 {
+		t.Fatal("catalog patch changed publication snapshot or failed wait invalidation")
+	}
+
 	if s.current().Waits[0].State != "unknown" {
 		t.Fatal("unconfirmed checks became green")
 	}
 	waiting.TimelineNativeOperation = s.base("known-policy")
 	waiting.PreviousWaitID = unknown.WaitID
-	waiting.CandidateID = "candidate-abc"
+	waiting.CandidateID = candidate.CandidateID
 	waiting.Policy = viewer.TimelineCheckPolicy{PolicyID: "required", Confirmed: true, Authority: "Synthetic provider snapshot", SourceURL: "https://example.test/policy", ObservedAt: "2026-01-01T00:00:00Z", RequiredChecks: []viewer.TimelineRequiredCheck{{CheckKey: "unit", Label: "Unit"}, {CheckKey: "lint", Label: "Lint"}}}
 	made := s.result([]string{"wait", "create", s.id}, waiting)
 	wrongCandidate := viewer.TimelineWaitAttemptStartRequest{TimelineNativeOperation: s.base("wrong-candidate"), ExpectedWaitVersion: s.current().Waits[1].WaitVersion, CheckKeys: []string{"unit"}, ExternalRun: viewer.TimelineCIExternalRun{Commit: "other-commit", RunID: "wrong", URL: "https://example.test/runs/wrong"}, SourceURL: "https://example.test/runs/wrong", ObservedAt: "2026-01-01T00:00:00Z"}

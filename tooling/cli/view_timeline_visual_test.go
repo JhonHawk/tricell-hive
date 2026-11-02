@@ -33,12 +33,13 @@ func TestTimelineCLIVisualWorkflowKeepsFocusedEvidenceAcrossRestart(t *testing.T
 		}
 		return f.mustView(append(args, "--json", input)...)
 	}
-	refs := []string{"ticket-one", "ticket-two"}
+	var refs []string
 	created := invoke([]string{"session", "create"}, viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "visual-create", Source: viewer.TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "fixture-visual"}, Title: "Visual fixture", Summary: "Two screens and a focused revision", Tickets: []viewer.TimelineTicketInput{{ExternalScope: "https://example.test/tracker", ExternalID: "issue-one", Key: "TST-1"}, {ExternalScope: "https://example.test/tracker", ExternalID: "issue-two", Key: "TST-2"}}})
 	response, err := viewer.DecodeTimelineSessionResponse([]byte(created))
 	if err != nil {
 		t.Fatal(err)
 	}
+	refs = []string{response.Session.Tickets[0].TicketID, response.Session.Tickets[1].TicketID}
 	sid := response.Session.ViewerSessionID
 	actor := viewer.TimelineActor{Kind: "native_producer", ProducerID: response.Session.ForegroundProducerID}
 	result := func(raw string) viewer.TimelineOperationResult {
@@ -53,7 +54,16 @@ func TestTimelineCLIVisualWorkflowKeepsFocusedEvidenceAcrossRestart(t *testing.T
 	version := request.SessionVersion
 	stage := result(invoke([]string{"stage", "start", sid}, viewer.TimelineAppendEventRequest{Actor: actor, Reason: "Explicit visual fixture operation", SchemaVersion: 3, OperationID: "visual-build", Kind: "stage", Stage: "build", StageState: "in_progress", ExpectedSessionVersion: &version, Title: "Build", Summary: "Fixture only", TicketIDs: refs}))
 
-	candidateID := "candidate-test"
+	candidate := func(commit string) string {
+		t.Helper()
+		raw := f.mustView("session", "get", sid)
+		current, err := viewer.DecodeTimelineSessionResponse([]byte(raw))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return result(invoke([]string{"candidate", "create", sid}, viewer.TimelineCandidateCreateRequest{TimelineNativeOperation: viewer.TimelineNativeOperation{SchemaVersion: 3, OperationID: "candidate-" + commit, Actor: actor, ExpectedSessionVersion: current.Session.Version, Reason: "Register reported candidate"}, TimelineCandidate: viewer.TimelineCandidate{Branch: "feature", Commit: commit, Base: "development"}})).CandidateID
+	}
+	candidateID := candidate("abc")
 	upload := func(operation, name string) viewer.TimelineOperationResult {
 		t.Helper()
 		file := filepath.Join("..", "viewer", "frontend", "src", "dev", "evidence", name)
@@ -69,12 +79,18 @@ func TestTimelineCLIVisualWorkflowKeepsFocusedEvidenceAcrossRestart(t *testing.T
 	}
 	changed := upload("visual-chat-change", "chat-mobile-after.png")
 
-	candidateID = "candidate-next"
+	candidateID = candidate("def")
 	iterationRequest := viewer.TimelineAppendEventRequest{Actor: actor, Reason: "Explicit visual fixture operation", SchemaVersion: 3, OperationID: "visual-iteration", Kind: "iteration", Title: "Chat correction", Summary: "Only Chat changes", TicketIDs: refs[1:], CandidateID: candidateID, RelatedEventID: validation.EventID, Views: []viewer.TimelineViewInput{{ViewID: validation.ViewIDs[1], Title: "Chat", TicketIDs: refs[1:], Steps: []string{"Open corrected chat"}, ExpectedResult: "Compact filter", ImageRefs: []viewer.TimelineImageRef{{ArtifactID: changed.ArtifactID, Caption: "Corrected Chat"}}, Supersedes: &viewer.TimelineSupersedes{EventID: validation.EventID, EvidenceID: validation.EvidenceID, ViewID: validation.ViewIDs[1]}}}}
 	iterationRaw := invoke([]string{"event", "add", sid}, iterationRequest)
 	iteration := result(iterationRaw)
 	result(invoke([]string{"event", "add", sid}, viewer.TimelineAppendEventRequest{Actor: actor, Reason: "Explicit visual fixture operation", SchemaVersion: 3, OperationID: "visual-decision", Kind: "approval_reported", Title: "Reported fixture decision", Summary: "Synthetic approval", TicketIDs: refs[1:], Target: &viewer.TimelineEvidenceTarget{Kind: "evidence", EventID: iteration.EventID, EvidenceID: iteration.EvidenceID, ViewIDs: iteration.ViewIDs}, SourceReference: "Synthetic test fixture, not a real human approval"}))
-	result(invoke([]string{"event", "add", sid}, viewer.TimelineAppendEventRequest{Actor: actor, Reason: "Explicit visual fixture operation", SchemaVersion: 3, OperationID: "visual-delivery", Kind: "delivery", Title: "Open fixture PR", Summary: "Open is not closed", TicketIDs: refs, DeliveryIDs: []string{"delivery-test"}}))
+	rawCurrent := f.mustView("session", "get", sid)
+	currentDelivery, decodeErr := viewer.DecodeTimelineSessionResponse([]byte(rawCurrent))
+	if decodeErr != nil {
+		t.Fatal(decodeErr)
+	}
+	pr := result(invoke([]string{"delivery", "create", sid}, viewer.TimelineDeliveryCreateRequest{TimelineNativeOperation: viewer.TimelineNativeOperation{SchemaVersion: 3, OperationID: "delivery-register", Actor: actor, ExpectedSessionVersion: currentDelivery.Session.Version, Reason: "Register observed delivery"}, RepositoryURL: "https://example.test/repository", ExternalID: "42", TimelineDeliverySnapshot: viewer.TimelineDeliverySnapshot{Kind: "pull_request", Label: "PR42", URL: "https://example.test/pull/42", Status: "open"}}))
+	result(invoke([]string{"event", "add", sid}, viewer.TimelineAppendEventRequest{Actor: actor, Reason: "Explicit visual fixture operation", SchemaVersion: 3, OperationID: "visual-delivery", Kind: "delivery", Title: "Open fixture PR", Summary: "Open is not closed", TicketIDs: refs, DeliveryIDs: []string{pr.DeliveryID}}))
 	read := func() viewer.TimelineSession {
 		t.Helper()
 		raw := f.mustView("session", "get", sid)

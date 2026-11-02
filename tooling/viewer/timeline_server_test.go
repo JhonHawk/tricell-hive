@@ -67,7 +67,7 @@ func TestTimelineHTTPMultipartReadbackAndScope(t *testing.T) {
 	}
 	var imageBytes bytes.Buffer
 	png.Encode(&imageBytes, image.NewRGBA(image.Rect(0, 0, 1, 1)))
-	meta := TimelineArtifactMetadata{Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, SchemaVersion: 3, OperationID: "http-image", CapturedAt: "2026-01-01T00:00:00Z", CandidateID: "candidate-test", Viewport: "desktop", Theme: "dark", MediaType: "image/png"}
+	meta := TimelineArtifactMetadata{Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, SchemaVersion: 3, OperationID: "http-image", CapturedAt: "2026-01-01T00:00:00Z", CandidateID: domainCandidate(t, store, v.ViewerSessionID, "abc"), Viewport: "desktop", Theme: "dark", MediaType: "image/png"}
 	w = upload(path+"/artifacts", meta, imageBytes.Bytes())
 	if w.Code != 200 {
 		t.Fatalf("image %d %s", w.Code, w.Body.String())

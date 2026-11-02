@@ -78,7 +78,7 @@ func domainAccept(t *testing.T, s *Store, id, request string) string {
 func domainTask(t *testing.T, s *Store, id string) TimelineTask {
 	t.Helper()
 	v := domainCurrent(t, s, id)
-	r := TimelineTaskCreateRequest{TimelineNativeOperation: domainBase(t, s, id, "task", v.ForegroundProducerID), TaskKey: "T7", Title: "Verify and deliver", Summary: "One task across stages", Segments: []TimelineTaskSegmentInput{{PlannedStage: "verify", Order: 1}, {PlannedStage: "delivery", Order: 1}}}
+	r := TimelineTaskCreateRequest{TimelineNativeOperation: domainBase(t, s, id, "task", v.ForegroundProducerID), TaskKey: "T7", PlanOrder: 7, Title: "Verify and deliver", Summary: "One task across stages", Segments: []TimelineTaskSegmentInput{{PlannedStage: "verify", Order: 1}, {PlannedStage: "delivery", Order: 1}}}
 	res, err := s.TimelineV3Operation(id, "task_create", "", &r)
 	if err != nil {
 		t.Fatal(err)
@@ -205,12 +205,14 @@ func TestTimelineDomainRecoveryConcurrencyAndProvenance(t *testing.T) {
 func TestTimelineDomainCIApplicableAttemptAndTaskSnapshots(t *testing.T) {
 	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
+	candidateID := domainCandidate(t, s, id, "abc")
+	deliveryID := domainDelivery(t, s, id)
 	stage := domainStage(t, s, id, "delivery")
 	task := domainTask(t, s, id)
 	segment := task.Segments[1].SegmentID
 	domainBind(t, s, id, task.TaskID, segment, stage, "bind-delivery")
 	policy := TimelineCheckPolicy{PolicyID: "required-v1", Confirmed: true, Authority: "Branch protection", SourceURL: "https://example.com/policy", ObservedAt: "2026-01-01T00:00:00Z", RequiredChecks: []TimelineRequiredCheck{{CheckKey: "unit", Label: "Unit tests"}}}
-	create := TimelineWaitCreateRequest{TimelineNativeOperation: domainBase(t, s, id, "wait", v.ForegroundProducerID), TargetStageEventID: stage, TaskID: task.TaskID, SegmentID: segment, CandidateID: "candidate-test", PullRequestDeliveryID: "delivery-test", Policy: policy}
+	create := TimelineWaitCreateRequest{TimelineNativeOperation: domainBase(t, s, id, "wait", v.ForegroundProducerID), TargetStageEventID: stage, TaskID: task.TaskID, SegmentID: segment, CandidateID: candidateID, PullRequestDeliveryID: deliveryID, Policy: policy}
 	result, err := s.TimelineV3Operation(id, "wait_create", "", &create)
 	if err != nil {
 		t.Fatal(err)
@@ -644,8 +646,10 @@ func TestTimelineDomainLocalManagementAndLongReasons(t *testing.T) {
 func TestTimelineDomainWaitUnknownPolicyAndNewCandidateLink(t *testing.T) {
 	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
+	candidateID := domainCandidate(t, s, id, "abc")
+	deliveryID := domainDelivery(t, s, id)
 	build := domainStage(t, s, id, "build")
-	create := TimelineWaitCreateRequest{TimelineNativeOperation: domainBase(t, s, id, "wrong-stage", v.ForegroundProducerID), TargetStageEventID: build, CandidateID: "candidate-test", PullRequestDeliveryID: "delivery-test", Policy: TimelineCheckPolicy{PolicyID: "unconfirmed", Confirmed: false, Authority: "Unknown requirements", SourceURL: "https://example.com/policy", ObservedAt: "2026-01-01T00:00:00Z", RequiredChecks: []TimelineRequiredCheck{}}}
+	create := TimelineWaitCreateRequest{TimelineNativeOperation: domainBase(t, s, id, "wrong-stage", v.ForegroundProducerID), TargetStageEventID: build, CandidateID: candidateID, PullRequestDeliveryID: deliveryID, Policy: TimelineCheckPolicy{PolicyID: "unconfirmed", Confirmed: false, Authority: "Unknown requirements", SourceURL: "https://example.com/policy", ObservedAt: "2026-01-01T00:00:00Z", RequiredChecks: []TimelineRequiredCheck{}}}
 	_, err := s.TimelineV3Operation(id, "wait_create", "", &create)
 	requireTimelineCode(t, err, "delivery_required")
 	delivery := domainStage(t, s, id, "delivery")
@@ -660,8 +664,8 @@ func TestTimelineDomainWaitUnknownPolicyAndNewCandidateLink(t *testing.T) {
 	if wait.State != "unknown" {
 		t.Fatal("unconfirmed requirements became success")
 	}
+	create.CandidateID = domainCandidate(t, s, id, "def")
 	create.TimelineNativeOperation = domainBase(t, s, id, "new-candidate", v.ForegroundProducerID)
-	create.CandidateID = "candidate-def"
 	_, err = s.TimelineV3Operation(id, "wait_create", "", &create)
 	requireTimelineCode(t, err, "previous_wait_required")
 	create.PreviousWaitID = result.WaitID
@@ -716,8 +720,10 @@ func TestTimelineDomainFailedWorkRequiresExplicitReopen(t *testing.T) {
 func TestTimelineDomainKnownRunCannotPromoteViaURLChange(t *testing.T) {
 	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID
+	candidateID := domainCandidate(t, s, id, "abc")
+	deliveryID := domainDelivery(t, s, id)
 	stage := domainStage(t, s, id, "delivery")
-	create := TimelineWaitCreateRequest{TimelineNativeOperation: domainBase(t, s, id, "identity-wait", v.ForegroundProducerID), TargetStageEventID: stage, CandidateID: "candidate-test", PullRequestDeliveryID: "delivery-test", Policy: TimelineCheckPolicy{PolicyID: "required", Confirmed: true, Authority: "Provider policy", SourceURL: "https://example.com/policy", ObservedAt: "2026-01-01T00:00:00Z", RequiredChecks: []TimelineRequiredCheck{{CheckKey: "unit", Label: "Unit"}}}}
+	create := TimelineWaitCreateRequest{TimelineNativeOperation: domainBase(t, s, id, "identity-wait", v.ForegroundProducerID), TargetStageEventID: stage, CandidateID: candidateID, PullRequestDeliveryID: deliveryID, Policy: TimelineCheckPolicy{PolicyID: "required", Confirmed: true, Authority: "Provider policy", SourceURL: "https://example.com/policy", ObservedAt: "2026-01-01T00:00:00Z", RequiredChecks: []TimelineRequiredCheck{{CheckKey: "unit", Label: "Unit"}}}}
 	made, err := s.TimelineV3Operation(id, "wait_create", "", &create)
 	if err != nil {
 		t.Fatal(err)

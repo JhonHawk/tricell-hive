@@ -48,7 +48,7 @@ func viewCutoffManifest(t *testing.T, state string) map[string]viewCutoffEvidenc
 }
 func TestViewV3CutoffBeforeStartupEffects(t *testing.T) {
 	for _, command := range []string{"start", "serve", "stop"} {
-		for _, kind := range []string{"legacy", "unknown", "corrupt"} {
+		for _, kind := range []string{"legacy", "provisional-v2", "marker-v1", "marker-v2", "unknown", "corrupt"} {
 			t.Run(command+"/"+kind, func(t *testing.T) {
 				state := t.TempDir()
 				dir := filepath.Join(state, "viewer")
@@ -60,6 +60,12 @@ func TestViewV3CutoffBeforeStartupEffects(t *testing.T) {
 				switch kind {
 				case "legacy":
 					os.Mkdir(filepath.Join(dir, "timeline-api-v1"), 0700)
+				case "provisional-v2":
+					os.Mkdir(filepath.Join(dir, "timeline-api-v2"), 0700)
+				case "marker-v1":
+					os.WriteFile(filepath.Join(dir, "storage.json"), []byte(`{"storage_version":1}`), 0600)
+				case "marker-v2":
+					os.WriteFile(filepath.Join(dir, "storage.json"), []byte(`{"storage_version":2}`), 0600)
 				case "unknown":
 					os.WriteFile(filepath.Join(dir, "unknown"), nil, 0600)
 				case "corrupt":
@@ -80,7 +86,7 @@ func TestViewV3CutoffBeforeStartupEffects(t *testing.T) {
 				if err == nil {
 					t.Fatal("invalid state accepted")
 				}
-				if kind == "legacy" && !strings.Contains(err.Error(), "cutoff_required") {
+				if (kind == "legacy" || kind == "provisional-v2" || strings.HasPrefix(kind, "marker-")) && !strings.Contains(err.Error(), "cutoff_required") {
 					t.Fatal(err)
 				}
 				if launched {

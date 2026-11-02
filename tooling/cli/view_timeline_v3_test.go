@@ -153,7 +153,12 @@ func TestViewTimelineV3CompatibilityRejectsBeforeTransportMutation(t *testing.T)
 	protocol.Store(1)
 	err = runViewTimeline([]string{"session", "create", "--json", input, "--state-dir", state}, &out, nil)
 	if err == nil || !strings.Contains(err.Error(), "fresh v3 state directory") || healthCalls.Load() != 1 || mutationCalls.Load() != 0 || out.Len() != 0 {
-		t.Fatal("v2 client sent mutation to v1 server", err)
+		t.Fatal("v3 client sent mutation to v1 server", err)
+	}
+	protocol.Store(2)
+	err = runViewTimeline([]string{"session", "create", "--json", input, "--state-dir", state}, &out, nil)
+	if err == nil || !strings.Contains(err.Error(), "fresh v3 state directory") || healthCalls.Load() != 2 || mutationCalls.Load() != 0 {
+		t.Fatal("v3 client sent mutation to v2 server", err)
 	}
 	preserved, _ := os.ReadFile(input)
 	if !bytes.Equal(preserved, raw) {

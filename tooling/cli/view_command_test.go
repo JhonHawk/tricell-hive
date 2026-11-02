@@ -480,8 +480,8 @@ func TestViewServesRegisteredRepositoryEndToEnd(t *testing.T) {
 	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
 		t.Fatal(err)
 	}
-	if response.SchemaVersion != 2 || response.Session.ProjectKey != "github.com/acme/demo" || response.Session.ProjectName != "Demo Project" {
-		t.Fatal("wrong v2 identity")
+	if response.SchemaVersion != 3 || response.Session.ProjectKey != "github.com/acme/demo" || response.Session.ProjectName != "Demo Project" {
+		t.Fatal("wrong v3 identity")
 	}
 	code, body = f.get("/api/index", true)
 	if code != 200 || json.Unmarshal(body, &index) != nil || len(index.TimelineSessions) != 1 {

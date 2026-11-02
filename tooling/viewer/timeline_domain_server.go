@@ -10,6 +10,12 @@ func (s *Server) timelineDomain(w http.ResponseWriter, r *http.Request, id strin
 			kind = "join_request"
 		case "recover-lead":
 			kind = "recover_lead"
+		case "tickets":
+			kind = "ticket_create"
+		case "deliveries":
+			kind = "delivery_create"
+		case "candidates":
+			kind = "candidate_create"
 		case "tasks":
 			kind = "task_create"
 		case "waits":
@@ -22,6 +28,14 @@ func (s *Server) timelineDomain(w http.ResponseWriter, r *http.Request, id strin
 			kind = "producer_accept"
 		case "producers/transfer":
 			kind = "foreground_transfer"
+		}
+		if parts[0] == "tickets" || parts[0] == "deliveries" {
+			kind = "ticket_patch"
+			if parts[0] == "deliveries" {
+				kind = "delivery_patch"
+			}
+			object = parts[1]
+			method = http.MethodPatch
 		}
 		if parts[0] == "tasks" {
 			kind = "task_patch"

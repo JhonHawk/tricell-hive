@@ -52,7 +52,7 @@ func stateManifest(t *testing.T, dir string) map[string]stateEvidence {
 	return out
 }
 func TestV3CutoffPreservesState(t *testing.T) {
-	for _, name := range []string{"index.json", "sessions", "session-groups", "timeline-api-v1", "registry.json"} {
+	for _, name := range []string{"index.json", "sessions", "session-groups", "timeline-api-v1", "timeline-api-v2", "registry.json"} {
 		t.Run(name, func(t *testing.T) {
 			state := t.TempDir()
 			dir := viewerDir(state)

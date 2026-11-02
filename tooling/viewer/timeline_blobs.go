@@ -62,6 +62,9 @@ func (s *Store) TimelineAddArtifact(id string, request TimelineArtifactMetadata,
 	if err := ValidateTimelineAuthority(*old.Session, "artifact_add", request.Actor, ""); err != nil {
 		return TimelineOperationResult{}, err
 	}
+	if _, err := TimelineCandidateByID(*old.Session, request.CandidateID); err != nil {
+		return TimelineOperationResult{}, err
+	}
 	r := timelineClone(old)
 	hash := sha256.Sum256(content)
 	sha := hex.EncodeToString(hash[:])

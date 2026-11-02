@@ -237,11 +237,13 @@ func TestTimelineRuntimeImageAndDeleteTombstone(t *testing.T) {
 	if err := png.Encode(&data, image.NewRGBA(image.Rect(0, 0, 1, 1))); err != nil {
 		t.Fatal(err)
 	}
-	meta := TimelineArtifactMetadata{Actor: timelineTestActor(s, id), SchemaVersion: 3, OperationID: "image", CapturedAt: "2026-01-01T00:00:00Z", CandidateID: "candidate-test", Viewport: "desktop", Theme: "dark", MediaType: "image/png"}
+	meta := TimelineArtifactMetadata{Actor: timelineTestActor(s, id), SchemaVersion: 3, OperationID: "image", CapturedAt: "2026-01-01T00:00:00Z", CandidateID: domainCandidate(t, s, id, "abc"), Viewport: "desktop", Theme: "dark", MediaType: "image/png"}
 	imageResult, err := s.TimelineAddArtifact(id, meta, data.Bytes())
 	if err != nil {
 		t.Fatal(err)
 	}
+	originalCandidate := meta.CandidateID
+	meta.CandidateID = domainCandidate(t, s, id, "later-head")
 	meta.OperationID = "reuse"
 	reused, err := s.TimelineAddArtifact(id, meta, data.Bytes())
 	if err != nil || *reused.Created || reused.ArtifactID != imageResult.ArtifactID {
@@ -252,6 +254,9 @@ func TestTimelineRuntimeImageAndDeleteTombstone(t *testing.T) {
 		t.Fatal(err)
 	}
 	current, _ := s.TimelineGet(id)
+	if len(current.Artifacts) != 1 || current.Artifacts[0].CandidateID != originalCandidate {
+		t.Fatal("same-byte reuse relabeled immutable provenance")
+	}
 	del := TimelineMutationRequest{Actor: TimelineActor{Kind: "local_viewer"}, SchemaVersion: 3, OperationID: "delete", ExpectedVersion: current.Version}
 	s.timelineFault = func(phase, path string) error {
 		if phase == "before_delete_blobs" {

@@ -178,7 +178,7 @@ func (s *Store) TimelineV3Operation(id, kind, objectID string, value any) (Timel
 			return result, err
 		}
 	case *TimelineTicketCreateRequest, *TimelineTicketPatchRequest, *TimelineDeliveryCreateRequest, *TimelineDeliveryPatchRequest, *TimelineCandidateCreateRequest:
-		return TimelineOperationResult{}, timelineError("operation", "unsupported_operation")
+		err = s.timelineWriteCatalog(v, value, objectID, &result)
 	case *TimelineProducerAcceptRequest:
 		result.RequestID = request.RequestID
 		result.ProducerID, err = s.timelineAccept(r, request.RequestID, base.Actor, kind, base.Reason, false)
@@ -401,7 +401,16 @@ func (s *Store) TimelineV3Operation(id, kind, objectID string, value any) (Timel
 	if _, join := value.(*TimelineJoinRequestInput); !join && !publicAudit {
 		object := objectID
 		if object == "" {
-			object = result.TaskID
+			object = result.TicketID
+			if object == "" {
+				object = result.DeliveryID
+			}
+			if object == "" {
+				object = result.CandidateID
+			}
+			if object == "" {
+				object = result.TaskID
+			}
 			if object == "" {
 				object = result.WaitID
 			}

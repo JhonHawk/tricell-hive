@@ -457,6 +457,15 @@ func viewTimelineDecodeOutput(w io.Writer, command viewTimelineCommand, input, r
 			kind = "event_patch"
 		}
 		resultObjectID := result.EventID
+		if strings.HasPrefix(kind, "ticket_") {
+			resultObjectID = result.TicketID
+		}
+		if strings.HasPrefix(kind, "delivery_") {
+			resultObjectID = result.DeliveryID
+		}
+		if kind == "candidate_create" {
+			resultObjectID = result.CandidateID
+		}
 		if strings.HasPrefix(kind, "task_") {
 			resultObjectID = result.TaskID
 		}
