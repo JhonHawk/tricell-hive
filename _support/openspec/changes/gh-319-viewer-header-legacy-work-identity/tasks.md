@@ -45,7 +45,7 @@
 
 ### T2 — Runtime Go y CLI sin legacy, guardas ni `--ttl`
 
-- [ ] Se borra el código, los assets embebidos y los tests solo legacy de `tooling/viewer` y `tooling/cli`, las tres guardas y `--ttl`.
+- [x] Se borra el código, los assets embebidos y los tests solo legacy de `tooling/viewer` y `tooling/cli`, las tres guardas y `--ttl`.
 
 **Closes:** AC3, AC5, AC6
 
@@ -69,7 +69,7 @@
 
 ### T3 — Frontend: header compacto, contador de validaciones y sin legacy
 
-- [ ] El header sigue el boceto de `design.md`, el canvas pierde el resumen, el contador de validaciones entra en la barra, se borra el código frontend legacy y se regenera el bundle.
+- [x] El header sigue el boceto de `design.md`, el canvas pierde el resumen, el contador de validaciones entra en la barra, se borra el código frontend legacy y se regenera el bundle.
 
 **Closes:** AC1, AC2, AC3
 
@@ -120,7 +120,7 @@
 
 ### T5 — Spec y documentación
 
-- [ ] El delta de `walkthrough-viewer` se aplica a la spec en el cierre; README, `llms.txt` si cambia algo que declara, `site/src/content/docs/viewer.md` y `_support/docs/architecture/deployment-manager.md` quedan sin legacy ni `--ttl`, con `work_key` y la regla de apertura descritas.
+- [x] El delta de `walkthrough-viewer` se aplica a la spec en el cierre; README, `llms.txt` si cambia algo que declara, `site/src/content/docs/viewer.md` y `_support/docs/architecture/deployment-manager.md` quedan sin legacy ni `--ttl`, con `work_key` y la regla de apertura descritas.
 
 **Closes:** AC4
 
@@ -158,3 +158,7 @@
 2026-11-02 — T4 hecha · `d54fb51d` · `go test ./tests/...` en verde; el renderer, los assets y los fixtures legacy se borran al integrar T2 y T3, que quitan sus últimos consumidores.
 2026-11-02 — T5 (documentación) · `cfb46d8a` · README, sitio, `deployment-manager.md`; el delta de spec se aplica en el cierre.
 2026-11-02 — Checkpoint: build, paso 2. T2 (hijo backend) y T3 (hijo frontend) corren en worktrees propios desde `49a0d10d`. Siguiente: integrar T2 y T3, borrar `content/skills/flow-walkthrough/assets/`, primera vista del header al usuario, suite completa.
+2026-11-02 — T3 hecha · `611a6b10` · 700 tests de pnpm; además se corrigió el corte a 2 líneas del resumen (raíz flex del markdown) y el `h1` de los estados sin sesión; primera vista aceptada por el usuario en un visor de prueba con el binario del candidato (D20 A).
+2026-11-02 — T2 hecha · `37df77ed` · suite Go completa en verde; también se borró `PartialDeleteError`, que quedó sin uso, y los assets del skill.
+2026-11-02 — `d97349b3`: la CLI muestra el código de error del servidor; `viewer-publication` dice cómo asociar segmentos (hallado al publicar las tareas). `8ce07f90`: H16, el test de la derivación vieja ahora fija su valor.
+2026-11-02 — Checkpoint: build terminado (T1–T5); sin workflows de CI. Siguiente: `flow-verify` (conservación con el binario final, recorrido de UI con `hive-review-ux`, `/code-review`), parada de validación.
