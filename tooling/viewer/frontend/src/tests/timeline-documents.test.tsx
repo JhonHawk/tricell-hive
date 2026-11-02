@@ -17,7 +17,9 @@ function button(label: string) {
     ...document.querySelectorAll<HTMLButtonElement>("button"),
   ].find(
     (b) =>
-      b.getAttribute("aria-label") === label || b.textContent?.trim() === label,
+      !b.closest("[hidden]") &&
+      (b.getAttribute("aria-label") === label ||
+        b.textContent?.trim() === label),
   );
   assert.ok(value, `Missing button ${label}`);
   return value;
@@ -34,102 +36,161 @@ function mount() {
   return { container, root: createRoot(container) };
 }
 
-test("stage documents default to latest snapshot; native tabs, revision selection and refresh preserve context", async () => {
+test("common Sheet keeps document snapshots, compares the same chain and updates tabs manually", async (t) => {
   const { root, container } = mount();
-  const data = structuredClone(timelineFixture);
-  await act(async () =>
-    root.render(
-      <TimelineContent
-        data={data}
-        onRetry={() => {}}
-        loadDocument={loadPreviewDocument}
-      />,
-    ),
-  );
-  const trigger = button("View plan"); // First plan button belongs to the newest occurrence.
-  await act(async () => {
-    trigger.focus();
-    trigger.click();
-    await settle();
+  t.after(async () => {
+    await act(async () => root.unmount());
+    container.remove();
   });
-  let dialog = document.querySelector<HTMLElement>('[role="dialog"]');
-  assert.ok(dialog);
-  assert.ok(dialog.textContent?.includes("Propuesta · R3"));
-  assert.equal(dialog.querySelectorAll('[role="tab"]').length, 4);
-  assert.equal(dialog.style.maxWidth, "40rem");
-  await click("Diseño");
-  assert.ok(dialog.textContent?.includes("Native composition and sketches"));
-  await act(async () => {
-    button("Diseño").focus();
-    button("Diseño").dispatchEvent(
-      new KeyboardEvent("keydown", { key: "ArrowRight", bubbles: true }),
+  let data = structuredClone(timelineFixture);
+  const render = async () => {
+    await act(async () =>
+      root.render(
+        <TimelineContent
+          data={data}
+          onRetry={() => {}}
+          loadDocument={loadPreviewDocument}
+        />,
+      ),
     );
-    await settle();
+  };
+  await render();
+  await click("View plan");
+  const sheet = document.querySelector<HTMLElement>(
+    '[data-slot="sheet-content"]',
+  );
+  assert.ok(sheet);
+  assert.ok(sheet.className.includes("sm:w-2/3"));
+  assert.equal(sheet.querySelectorAll('[aria-label="Close"]').length, 1);
+  assert.ok(sheet.textContent?.includes("Propuesta · R3"));
+  assert.ok(sheet.textContent?.includes("Published"));
+  assert.equal(sheet.querySelectorAll('[role="tab"]').length, 4);
+  await click("Diseño");
+  assert.ok(sheet.textContent?.includes("Native composition and sketches"));
+  data = structuredClone(data);
+  data.session.version++;
+  data.session.title = "Unrelated title";
+  await render();
+  assert.equal(sheet.textContent?.includes("A newer revision"), false);
+  const stage = data.session.events.find((e) => e.event_id === "event_plan_r3");
+  assert.ok(stage);
+  const previous = stage.document_snapshots?.at(-1);
+  assert.ok(previous);
+  stage.document_snapshots?.push({
+    ...previous,
+    document_revision_id: "revision-plan-four",
+    predecessor_revision_id: previous.document_revision_id,
+    tabs: previous.tabs.map((tab) =>
+      tab.label === "Diseño"
+        ? { ...tab, document_id: "document_earlier" }
+        : tab,
+    ),
   });
-  assert.equal(document.activeElement?.textContent, "Tareas");
-  const newer = structuredClone(data);
-  newer.session.version++;
-  const stage = newer.session.events.find(
+  await render();
+  assert.ok(sheet.textContent?.includes("A newer revision"));
+  assert.ok(sheet.textContent?.includes("Native composition and sketches"));
+  await click("Show latest");
+  assert.ok(sheet.textContent?.includes("Plan · revisión R2"));
+  assert.ok(sheet.textContent?.includes("Changed: Diseño"));
+  data = structuredClone(data);
+  const current = data.session.events.find(
     (e) => e.event_id === "event_plan_r3",
   );
-  assert.ok(stage);
-  stage.title = "Replacement title";
-  stage.document_snapshots = [];
-  await act(async () =>
-    root.render(
-      <TimelineContent
-        data={newer}
-        onRetry={() => {}}
-        loadDocument={loadPreviewDocument}
-      />,
-    ),
-  );
-  dialog = document.querySelector<HTMLElement>('[role="dialog"]');
-  assert.ok(dialog);
-  assert.ok(dialog.textContent?.includes("An update is available"));
-  assert.ok(dialog.textContent?.includes("Plan · revisión R3"));
-  assert.equal(dialog.querySelectorAll('[role="tab"]').length, 4);
-  await click("Revision");
-  const option = [
-    ...document.querySelectorAll<HTMLElement>('[role="option"]'),
-  ].at(-1);
-  assert.ok(option);
-  await act(async () => {
-    option.click();
-    await settle();
+  assert.ok(current);
+  const fourth = current.document_snapshots?.at(-1);
+  assert.ok(fourth);
+  current.document_snapshots?.push({
+    ...fourth,
+    document_revision_id: "revision-plan-five",
+    predecessor_revision_id: fourth.document_revision_id,
+    tabs: fourth.tabs.filter((tab) => tab.label !== "Diseño"),
   });
-  assert.equal(dialog.querySelectorAll('[role="tab"]').length, 1);
-  assert.ok(dialog.textContent?.includes("borrador inicial"));
+  await render();
+  await click("Show latest");
+  assert.ok(sheet.textContent?.includes("The previous tab no longer exists"));
+  assert.ok(sheet.textContent?.includes("Removed: Diseño"));
   await click("Close");
-  await act(async () => {
-    await new Promise((resolve) => setTimeout(resolve, 10));
-  });
-  assert.equal(document.querySelector('[role="dialog"]'), null);
-  // The native close restores focus when the trigger remains available.
-  await act(async () => root.unmount());
-  container.remove();
 });
 
-test("document error retries, empty reloads, and a delayed inactive tab cannot replace the selected document", async () => {
+test("documents from all five stages use the same Sheet and only structured plans group specifications", async (t) => {
+  for (const kind of [
+    "research",
+    "plan",
+    "build",
+    "verify",
+    "delivery",
+  ] as const) {
+    const { root, container } = mount();
+    const data = structuredClone(timelineFixture);
+    const stage = data.session.events.find(
+      (e) => e.event_id === "event_plan_r3",
+    );
+    assert.ok(stage);
+    stage.stage = kind;
+    await act(async () =>
+      root.render(
+        <TimelineContent
+          data={data}
+          onRetry={() => {}}
+          loadDocument={loadPreviewDocument}
+        />,
+      ),
+    );
+    const target = container.querySelector("#timeline-event-event_plan_r3");
+    assert.ok(target);
+    const label = {
+      research: "View research",
+      plan: "View plan",
+      build: "View implementation",
+      verify: "View verification",
+      delivery: "View delivery",
+    }[kind];
+    const trigger = [
+      ...target.querySelectorAll<HTMLButtonElement>("button"),
+    ].find((b) => b.textContent?.trim() === label);
+    assert.ok(trigger);
+    await act(async () => {
+      trigger.click();
+      await settle();
+    });
+    const sheet = document.querySelector('[data-slot="sheet-content"]');
+    assert.ok(sheet);
+    assert.equal(
+      sheet.textContent?.includes("Specifications"),
+      kind === "plan",
+    );
+    assert.equal(sheet.querySelectorAll('[data-slot="sheet-close"]').length, 1);
+    await click("Close");
+    await act(async () => root.unmount());
+    container.remove();
+  }
+  assert.ok(t);
+});
+
+test("document errors retry locally, empty content reloads and inactive reads cannot replace the selected tab", async (t) => {
   const { root, container } = mount();
-  const data = structuredClone(timelineFixture);
-  let calls = 0;
-  let release: ((response: TimelineDocumentResponse) => void) | undefined;
+  t.after(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+  });
+  let count = 0;
+  let release: ((value: TimelineDocumentResponse) => void) | undefined;
   const loader = async (id: string) => {
-    if (id === "document_proposal") {
-      calls++;
-      if (calls === 1) throw new Error("unavailable");
-      if (calls === 2)
-        return { ...(await loadPreviewDocument(id)), content: "" };
-      return new Promise<TimelineDocumentResponse>((resolve) => {
-        release = resolve;
-      });
-    }
-    return loadPreviewDocument(id);
+    if (id !== "document_proposal") return loadPreviewDocument(id);
+    count++;
+    if (count === 1) throw new Error("unavailable");
+    if (count === 2) return { ...(await loadPreviewDocument(id)), content: "" };
+    return new Promise<TimelineDocumentResponse>((resolve) => {
+      release = resolve;
+    });
   };
   await act(async () =>
     root.render(
-      <TimelineContent data={data} onRetry={() => {}} loadDocument={loader} />,
+      <TimelineContent
+        data={timelineFixture}
+        onRetry={() => {}}
+        loadDocument={loader}
+      />,
     ),
   );
   await click("View plan");
@@ -146,11 +207,11 @@ test("document error retries, empty reloads, and a delayed inactive tab cannot r
   );
   await click("Reload");
   assert.ok(document.querySelector('[aria-label="Loading document"]'));
-  await click("Criterios");
+  await click("Diseño");
   assert.ok(
     document
       .querySelector('[role="dialog"]')
-      ?.textContent?.includes("Criterios · R3"),
+      ?.textContent?.includes("Native composition and sketches"),
   );
   assert.ok(release);
   await act(async () => {
@@ -167,8 +228,6 @@ test("document error retries, empty reloads, and a delayed inactive tab cannot r
     false,
   );
   await click("Close");
-  await act(async () => root.unmount());
-  container.remove();
 });
 
 test("Markdown preserves document semantics while HTML, images and unsafe destinations stay inert", async () => {
@@ -199,7 +258,7 @@ test("Markdown preserves document semantics while HTML, images and unsafe destin
   container.remove();
 });
 
-test("stage indicators use declared paused/failed/completed states without marking the feed steps completed", async () => {
+test("stage completion markers follow explicit states instead of feed indices", async () => {
   const { root, container } = mount();
   const data = structuredClone(timelineFixture);
   const stage = data.session.events.find((e) => e.event_id === "event_plan_r3");
@@ -226,7 +285,7 @@ test("stage indicators use declared paused/failed/completed states without marki
     assert.equal(
       container.querySelectorAll('[data-slot="timeline-item"][data-completed]')
         .length,
-      0,
+      data.session.events.filter((e) => e.stage_state === "completed").length,
     );
   }
   await act(async () => root.unmount());
@@ -261,4 +320,64 @@ test("native document Dialog closes with Escape and restores its trigger focus",
   assert.equal(document.activeElement, trigger);
   await act(async () => root.unmount());
   container.remove();
+});
+
+test("document selector isolates chains with identical labels and ignores a successor in another chain", async (t) => {
+  const { root, container } = mount();
+  t.after(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+  });
+  let data = structuredClone(timelineFixture);
+  const stage = data.session.events.find((e) => e.event_id === "event_plan_r3");
+  assert.ok(stage);
+  const current = stage.document_snapshots?.at(-1);
+  assert.ok(current);
+  stage.document_snapshots?.push({
+    ...structuredClone(current),
+    document_key: "notes",
+    document_revision_id: "notes-first",
+    predecessor_revision_id: undefined,
+    tabs: [{ label: "Diseño", document_id: "document_research" }],
+  });
+  const render = async () => {
+    await act(async () =>
+      root.render(
+        <TimelineContent
+          data={data}
+          onRetry={() => {}}
+          loadDocument={loadPreviewDocument}
+        />,
+      ),
+    );
+  };
+  await render();
+  await click("View plan");
+  await click("Document");
+  const option = [
+    ...document.querySelectorAll<HTMLElement>('[role="option"]'),
+  ].find((n) => n.textContent?.trim() === "notes");
+  assert.ok(option);
+  await act(async () => {
+    option.click();
+    await settle();
+  });
+  const sheet = document.querySelector('[data-slot="sheet-content"]');
+  assert.ok(sheet);
+  assert.ok(sheet.textContent?.includes("Initial revision"));
+  assert.ok(sheet.textContent?.includes("Hallazgos"));
+  assert.equal(sheet.querySelectorAll('[role="tab"]').length, 1);
+  data = structuredClone(data);
+  const live = data.session.events.find((e) => e.event_id === "event_plan_r3");
+  assert.ok(live);
+  live.document_snapshots?.push({
+    ...structuredClone(current),
+    document_revision_id: "plan-unrelated-successor",
+    predecessor_revision_id: current.document_revision_id,
+  });
+  data.session.version++;
+  await render();
+  assert.equal(sheet.textContent?.includes("A newer revision"), false);
+  assert.ok(sheet.textContent?.includes("Hallazgos"));
+  await click("Close");
 });

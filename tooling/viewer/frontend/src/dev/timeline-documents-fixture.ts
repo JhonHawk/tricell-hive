@@ -1,77 +1,161 @@
-// Read-only, development-only extracts; IDs and transport are synthetic.
+// Typed synthetic Markdown and exact immutable metadata for local previews.
 import type {
   TimelineDocument,
   TimelineDocumentResponse,
 } from "../timeline-contract";
+import { completeTaskMarkdown } from "./timeline-plan-fixture";
 export const previewDocumentMetadata: TimelineDocument[] = [
   {
+    actor: {
+      kind: "native_producer",
+      producer_id: "producer-original",
+    },
     document_id: "document_proposal",
     session_id:
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    sha256: "d6af195d8f6367c6f2b6a3373cee428e18c267b2e2d0da8f79d45d10bc45c5a8",
-    size: 793,
+    sha256: "607c24787366fa5717d9a93078f7927c6688b61803aeda727ed702b7d629a423",
+    size: 419,
     media_type: "text/markdown",
     received_at: "2026-10-31T20:00:00-06:00",
   },
   {
+    actor: {
+      kind: "native_producer",
+      producer_id: "producer-original",
+    },
     document_id: "document_design",
     session_id:
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    sha256: "b45b33fca37e0c65a44b02c360553081d58316b29868d6c0f9514b1ebda6205c",
-    size: 2124,
+    sha256: "4af3e6ab0b1c73a6f64ed208d0db15217fac5ed03b2e943e631df7cf1215f369",
+    size: 1128,
     media_type: "text/markdown",
     received_at: "2026-10-31T20:00:00-06:00",
   },
   {
+    actor: {
+      kind: "native_producer",
+      producer_id: "producer-original",
+    },
     document_id: "document_tasks",
     session_id:
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    sha256: "fd8a3ad7709aa5d31f2d861992c3b0c500e47676ba79c5a450b353bd3a700b78",
-    size: 2054,
+    sha256: "ff40152c3ae3dfe72bf3c2abae9749562515a4141fbc73f9d23aa6b6c5068fab",
+    size: 574,
     media_type: "text/markdown",
     received_at: "2026-10-31T20:00:00-06:00",
   },
   {
+    actor: {
+      kind: "native_producer",
+      producer_id: "producer-original",
+    },
     document_id: "document_criteria",
     session_id:
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    sha256: "c7f1dd120954614e8b36e985fb5df549389c718aeb9fa770cb621be21692a457",
-    size: 449,
+    sha256: "df5d97e6bb40eddeca16b957a97c4fad0f19e20c57f7d6c5ef6aaf2388ed3bb4",
+    size: 429,
     media_type: "text/markdown",
     received_at: "2026-10-31T20:00:00-06:00",
   },
   {
+    actor: {
+      kind: "native_producer",
+      producer_id: "producer-original",
+    },
     document_id: "document_earlier",
     session_id:
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    sha256: "ca559af0b06cc0d552428d01a2efd2c5435b69c064cf9e223772f083cf7f4048",
-    size: 143,
+    sha256: "f70822d448a642ab9ed271113e3ff41f17575f689aa1e87feb7994e1fd86a725",
+    size: 152,
     media_type: "text/markdown",
     received_at: "2026-10-31T20:00:00-06:00",
   },
   {
+    actor: {
+      kind: "native_producer",
+      producer_id: "producer-original",
+    },
     document_id: "document_research",
     session_id:
       "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
-    sha256: "8b15fece6d99c0489f97796c199da70c6bdec878a316318a295e0288173423a0",
-    size: 191,
+    sha256: "0323b121a5a998f3328820c5744cad0a23477a31838de504703beae4c663cc05",
+    size: 213,
+    media_type: "text/markdown",
+    received_at: "2026-10-31T20:00:00-06:00",
+  },
+  {
+    actor: {
+      kind: "native_producer",
+      producer_id: "producer-original",
+    },
+    document_id: "document_access",
+    session_id:
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    sha256: "c6578f8ea793266b5ca937441c500217f604f27bcc663b61cc7c02069e3501b0",
+    size: 458,
+    media_type: "text/markdown",
+    received_at: "2026-10-31T20:00:00-06:00",
+  },
+  {
+    actor: {
+      kind: "native_producer",
+      producer_id: "producer-original",
+    },
+    document_id: "document_build",
+    session_id:
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    sha256: "56d615fc8d57ae7d27a8794dd7b4b2dd0f8931560afc1a1401aff1c3fb1e7cc7",
+    size: 698,
+    media_type: "text/markdown",
+    received_at: "2026-10-31T20:00:00-06:00",
+  },
+  {
+    actor: {
+      kind: "native_producer",
+      producer_id: "producer-original",
+    },
+    document_id: "document_verify",
+    session_id:
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    sha256: "e45c4ba377c46a71d0e510e8772adabf2cea2e273e6394ac6def39f52e8c6cf4",
+    size: 459,
+    media_type: "text/markdown",
+    received_at: "2026-10-31T20:00:00-06:00",
+  },
+  {
+    actor: {
+      kind: "native_producer",
+      producer_id: "producer-original",
+    },
+    document_id: "document_delivery",
+    session_id:
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    sha256: "188ce705c53f4af9bafed25e1c394664baeb4b7c97d257bd79f48f0b54e83a19",
+    size: 467,
     media_type: "text/markdown",
     received_at: "2026-10-31T20:00:00-06:00",
   },
 ];
 const content: Record<string, string> = {
   document_proposal:
-    "# Propuesta · R3\n\nExtracto local del plan actual, importado para previsualización. No es una publicación del API.\n\n## Objective\n\nPresent a session as a compact evidence timeline. Let the agent publish bounded, typed events and images to the existing local server through Hive CLI, recovering the same server session from its verified project/declared host/native session ID. Separate storage IDs from native runtime identity and preserve explicit evidence-to-ticket relationships.\n\n## Alcance de esta revisión\n\n1. Mostrar etapas explícitas de investigación, plan, implementación y verificación.\n2. Conservar revisiones inmutables de documentos Markdown.\n3. Mantener el historial hasta una eliminación manual.\n\n[Referencia de composición](https://reui.io/blocks/application/timeline)\n",
+    "# Propuesta · R3\n\nLeer el trabajo de arriba hacia abajo y conservar las decisiones, las revisiones y la evidencia de cada etapa.\n\n## Resultado esperado\n\n1. Historial ascendente con tareas en su etapa real.\n2. Un Sheet común para investigación, plan, build, verificación y entrega.\n3. Lecturas estables que se actualizan solo por una acción explícita.\n\nLa publicación de este documento no equivale a aprobación.\n",
   document_design:
-    "# Diseño · R3\n\n### Native composition and sketches\n\nKeep the approved timeline-4 centered feed and compact header. Use timeline-1 only for declared active/completed indicator semantics; no owner/avatar card duplication. Reference: https://reui.io/preview/base/timeline-1?ref=mcp. Reuse installed Timeline, Badge outline, Button outline size sm, Dialog/Header/Footer/Cancel. Add native Tabs from the same base-nova registry (no local restyling). Use an installed Spinner if available, otherwise the selected icon library's loading indicator with accessible text and reduced-motion support; stage state must never depend on animation alone. Do not infer process liveness from a spinner.\n\nBefore (R2):\n```text\n  [iteration] Filter correction\n              [thumbnails] [Instructions]\n  [request]   Original request\n```\nAfter (R3, newest first):\n```text\n  [spinner] Plan revision 2       [In progress]\n            Add stages and retained documents\n            [View plan]  21:40\n  [check]   Build                 [Completed]\n            [Evidence]\n  [check]   Plan revision 1       [Completed]\n            [View plan]  20:18\n  [check]   Research              [Completed]\n            [View research]\n```\nDocument dialog:\n```text\n  Plan revision 2                 [Draft]\n  [Proposal][Design][Tasks][Criteria]  (Tabs)\n  --------------------------------------------------\n  Read-only Markdown, scroll inside the dialog\n  Headings / lists / tables / code / verified links\n  Snapshot date + revision                 [Close]\n```\nTabs wrap or scroll within their own region on narrow screens; the page must not overflow. Loading uses Skeleton; empty documents offer Reload; fetch errors stay inline with Retry; unavailable/auth-denied reads retain context and use existing access recovery. Dialog size follows the approved readable instruction dialog; use native spacing/motion. Latest snapshot is default; a native revision Select permits an explicit historical selection. Opening captures an immutable snapshot; newer publication shows Update available without replacing open text. No inline editing or browser feedback controls.\n\n",
-  document_tasks:
-    "# Tareas · R3\n\n### T14 — Extend contracts for stage lifecycle, documents and introspection\n\n- [ ] Extend T7 Go/TS contracts and shared fixtures for stage state, foreground pointer, immutable document revisions, document approval targets, strict limits and CLI contract output.\n\n**Closes:** AC20, AC21, AC22, AC23\n\n**Depends on:** T7 (completed)\n\n**Locations:** Existing timeline contracts/tests/shared fixtures, new self-describing contract definitions.\n\n**Execution:** Settled-contract backend builder; main integrates; one independent task verifier.\n\n**Test approach:** Exact Go/TS parity and schema/validator fixtures.\n\n**Verification:** Start/complete/resume/failed/re-entry sequences; stale transitions; one foreground pointer; terminal closure handling; stable event order independent of reported occurred_at; foreground withdrawal conflict; awaiting-validation atomic pause/resume; immutable snapshots; foreign/missing document/decision references; UTF-8/byte/count bounds; offline contract examples parse with production validators; legacy fixtures remain valid. No API1 compatibility claim for unshipped draft records.\n\n### T15 — Render stage progress and document Dialog against typed stubs\n\n- [ ] Extend approved R2 composition with declared stage indicators and read-only native Tabs/Markdown snapshot Dialog.\n\n**Closes:** AC21, AC22\n\n**Depends on:** T14\n\n**Locations:** Timeline components/copy/dev fixtures/tests; native Tabs/Select source if missing; Markdown dependencies/lock; generated bundle.\n\n**Execution:** Frontend builder; main checks rendered result.\n\n**Verification:** Typed current plan revision fixture, draft/completed/paused/error states, snapshot isolation after refresh, historic selection, keyboard/focus/Tabs, headings/lists/tables/code and safe links, hostile raw HTML/URLs and remote images remain inert. Check expected publisher/advisories before installs. Focused desktop/narrow layout checks only; reuse R2 evidence outside changed regions. Independent UX and show only new stage/Dialog composition before T9.\n\n",
+    "# Diseño · R3\n\n### Native composition and sketches\n\nReutilizar Timeline, Sheet, Tabs, Select, Collapsible, Tooltip y Spinner instalados. El encabezado y las pestañas permanecen fijos; el cuerpo tiene su propio scroll. En móvil el Sheet ocupa el ancho completo y en escritorio dos tercios.\n\n```text\nTrabajo                         6/7 finalizadas\nBuild                           6/6 finalizadas\nVerificación                    1/1 finalizadas\nEntrega                         0/1 finalizadas\n  ◌ T7 — Verificación y entrega\n    Ⅱ CI — Checks del pull request\n```\n\n## Estados independientes\n\n| Tramo | Estado declarado | Acción de lectura | Evidencia de origen |\n| --- | --- | --- | --- |\n| Build | Finalizada | Abrir detalle de implementación | Capturas de escritorio y móvil |\n| Verificación | Finalizada | Revisar resultados y observaciones | Contratos y pruebas completas |\n| Entrega | No iniciada | Consultar el candidato publicado | Checks del commit actual |\n\nLos estados se muestran solamente en el punto de cada fila. El Sheet muestra el global y todos los tramos, sin deducir progreso por la posición.\n",
+  document_tasks: completeTaskMarkdown,
   document_criteria:
-    '# Criterios · R3\n\n| Criterio | Resultado esperado |\n| --- | --- |\n| AC21 | Etapas con estado declarado y orden estable |\n| AC22 | Documentos inmutables, con revisión histórica |\n\n## Verificación proporcional\n\n- Revisar las regiones nuevas del timeline y el diálogo.\n- Conservar la evidencia aprobada de la composición anterior.\n- Evitar repetir recorridos completos cuando no cambian.\n\n```json\n{"stage":"plan","stage_state":"in_progress"}\n```\n',
+    "# Criterios · R3\n\n## MODIFIED Requirements\n\n### Lectura común\n\nEl panel conserva el documento abierto y ofrece Ver la última cuando llega un sucesor de su misma cadena. Las pestañas nuevas, cambiadas y quitadas se comparan por etiqueta e identidad del documento.\n\n### Tareas y Entrega\n\nT7 conserva un único ID entre Verificación y Entrega. Los checks verdes del candidato actual no prueban integración ni autorizan merge.\n",
   document_earlier:
-    "# Plan · borrador inicial\n\nEsta revisión histórica permanece disponible.\n\n1. Incorporar las etapas.\n2. Definir las revisiones documentales.\n",
+    "# Plan · revisión R2\n\nRevisión anterior retenida para comparar las pestañas. Esta versión todavía no incluía el detalle completo de tareas y CI.\n",
   document_research:
-    "# Investigación\n\nSe eligió una composición nativa de timeline y documentos de solo lectura.\n\n- Usar Tabs y Select instalados.\n- Mantener las imágenes de evidencia separadas del Markdown.\n",
+    "# Investigación\n\n## Hallazgos\n\n- Los eventos asociados a etapas necesitan una jerarquía explícita.\n- Las lecturas largas requieren espacio y pestañas desplazables.\n- Cada productor conserva su identidad real.\n",
+  document_access:
+    "# Acceso al entorno de validación\n\nLa tarea T2 espera una cuenta de prueba del entorno compartido.\n\n## Desbloqueo\n\n1. Solicitar acceso al equipo del entorno.\n2. Guardar la credencial en la ubicación segura declarada por el proyecto.\n3. Ejecutar la prueba de conexión y registrar el resultado.\n\n**Responsable:** equipo del entorno.\n\n**Reanudar cuando:** la conexión termine correctamente con permisos de lectura.\n\nNo se publican credenciales en el visor.\n",
+  document_build:
+    "# Implementación de perfil y conversaciones\n\n## Trabajo realizado\n\n- Contrato de consultas y permisos preparado.\n- Perfil con campos separados y navegación accesible.\n- Filtro de conversaciones corregido en móvil.\n\n| Tarea | Resultado | Evidencia |\n| --- | --- | --- |\n| T1 | Contrato finalizado | Documento tipado |\n| T2 | Bloqueada por acceso | Pasos de desbloqueo y capturas |\n| T3 | Espera revisión de la corrección | Galería anterior y actual |\n| T4 | Validación local en curso | Captura aún inaccesible |\n| T5 | No iniciada | Sin adjuntos todavía |\n| T6 | Pruebas finalizadas | Resultado de verificación |\n\n```text\nprofile → fields → permissions\nchat → search → filters\n```\n",
+  document_verify:
+    "# Resultado de verificación\n\n## Evidencia revisada\n\n| Comprobación | Resultado | Alcance |\n| --- | --- | --- |\n| Contratos | Correcto | Datos y referencias de este candidato |\n| Teclado | Correcto | Navegación y retorno desde el lector |\n| Capturas | Revisadas | Escritorio y móvil, claro y oscuro |\n\nEl tramo de Verificación de T7 está finalizado. Su tramo de Entrega permanece en curso. Las tareas de seguimiento conservan sus estados independientes.\n",
+  document_delivery:
+    "# Entrega del candidato\n\n## Candidato actual\n\n- Rama: fix/profile-chat\n- Commit: preview-r2\n- [Pull request de demostración](https://example.test/pull/42)\n\n## CI\n\nLos checks requeridos están confirmados para este candidato. El intento actual terminó Contratos y sigue esperando Pruebas y Build. Los fallos, cancelaciones y resultados atrasados anteriores se conservan en Intentos.\n\nChecks verdes no equivalen a integración, aceptación ni autorización de merge.\n",
 };
 export async function loadPreviewDocument(
   documentID: string,
@@ -80,5 +164,5 @@ export async function loadPreviewDocument(
     (d) => d.document_id === documentID,
   );
   if (!document) throw new Error("preview_document_missing");
-  return { schema_version: 1, document, content: content[documentID] };
+  return { schema_version: 3, document, content: content[documentID] };
 }

@@ -1,3 +1,4 @@
+import { resolveLanguage } from "./language";
 import type { ViewerSession } from "./shell";
 import {
   parseTimelineIndexEntry,
@@ -176,191 +177,53 @@ export type RawSession = {
   fileBase?: string;
 };
 export type RawIndex = {
-  timeline_sessions?: TimelineAPIIndexEntry[];
-  projects: {
-    key: string;
-    name: string;
-    absent?: boolean;
-    tickets: { ticket: string; sessions: RawSession[] }[];
-  }[];
-  excluded_sessions?: RawSession[];
+  protocol_version: 3;
+  retention: "manual";
+  ttl_seconds: 0;
+  timeline_sessions: TimelineAPIIndexEntry[];
   repositories: { root: string; absent: boolean }[];
-  errors: {
-    path: string;
-    reason: string;
-    code?: string;
-    session_group?: string;
-  }[];
-  ttl_seconds: number;
-};
-export type LibrarySession = ViewerSession & {
-  raw: RawSession;
-  excluded: boolean;
-  absent: boolean;
-  fileBase: string;
+  errors: { path: string; reason: string; code?: string }[];
 };
 export function validateIndex(value: RawIndex): RawIndex {
   if (
-    !value ||
-    !Array.isArray(value.projects) ||
+    value?.protocol_version !== 3 ||
+    value.retention !== "manual" ||
+    value.ttl_seconds !== 0 ||
+    !Array.isArray(value.timeline_sessions) ||
     !Array.isArray(value.repositories) ||
     !Array.isArray(value.errors) ||
-    !Number.isFinite(value.ttl_seconds) ||
-    value.ttl_seconds < 0
+    Object.keys(value).some(
+      (k) =>
+        ![
+          "protocol_version",
+          "retention",
+          "ttl_seconds",
+          "timeline_sessions",
+          "repositories",
+          "errors",
+        ].includes(k),
+    )
   )
-    throw new Error("Invalid viewer index");
-  for (const repository of value.repositories) {
+    throw new Error("Incompatible viewer index; update the viewer and reload");
+  const ids = new Set<string>();
+  for (const e of value.timeline_sessions) {
+    const entry = parseTimelineIndexEntry(e);
+    if (entry.mode !== "timeline_api" || ids.has(entry.viewer_session_id))
+      throw new Error("Duplicate viewer work");
+    ids.add(entry.viewer_session_id);
+  }
+  for (const r of value.repositories)
+    if (!r || typeof r.root !== "string" || typeof r.absent !== "boolean")
+      throw new Error("Invalid registered repository");
+  for (const e of value.errors)
     if (
-      !repository ||
-      typeof repository.root !== "string" ||
-      typeof repository.absent !== "boolean"
+      !e ||
+      typeof e.path !== "string" ||
+      typeof e.reason !== "string" ||
+      (e.code !== undefined && typeof e.code !== "string")
     )
-      throw new Error("Invalid viewer repository");
-  }
-  for (const error of value.errors) {
-    if (
-      !error ||
-      typeof error.path !== "string" ||
-      typeof error.reason !== "string" ||
-      (error.code !== undefined && typeof error.code !== "string") ||
-      (error.session_group !== undefined &&
-        typeof error.session_group !== "string")
-    )
-      throw new Error("Invalid viewer ingest error");
-  }
-  for (const project of value.projects) {
-    if (
-      typeof project.key !== "string" ||
-      typeof project.name !== "string" ||
-      !Array.isArray(project.tickets)
-    )
-      throw new Error("Invalid viewer project");
-    for (const ticket of project.tickets) {
-      if (typeof ticket.ticket !== "string" || !Array.isArray(ticket.sessions))
-        throw new Error("Invalid viewer ticket");
-    }
-  }
-  if (
-    value.excluded_sessions !== undefined &&
-    !Array.isArray(value.excluded_sessions)
-  )
-    throw new Error("Invalid excluded sessions");
-  for (const session of [
-    ...value.projects.flatMap((p) => p.tickets.flatMap((t) => t.sessions)),
-    ...(value.excluded_sessions ?? []),
-  ]) {
-    if (
-      !session ||
-      !/^[a-f0-9]{64}$/.test(session.key) ||
-      typeof session.title !== "string" ||
-      typeof session.session_id !== "string" ||
-      typeof session.content_hash !== "string" ||
-      typeof session.source !== "string"
-    )
-      throw new Error("Invalid viewer session");
-    if (session.archived !== undefined && typeof session.archived !== "boolean")
-      throw new Error("Invalid session archive state");
-    for (const field of [
-      "session_title",
-      "project_key",
-      "project_name",
-      "repository",
-      "ticket",
-      "source_reason",
-      "host",
-      "created_at",
-      "ingested_at",
-    ] as const) {
-      if (session[field] !== undefined && typeof session[field] !== "string")
-        throw new Error("Invalid viewer session metadata");
-    }
-  }
-  if (value.timeline_sessions !== undefined) {
-    if (!Array.isArray(value.timeline_sessions))
-      throw new Error("Invalid timeline index");
-    const ids = new Set(
-      value.projects
-        .flatMap((p) => p.tickets.flatMap((t) => t.sessions.map((s) => s.key)))
-        .concat((value.excluded_sessions ?? []).map((s) => s.key)),
-    );
-    for (const entry of value.timeline_sessions) {
-      const parsed = parseTimelineIndexEntry(entry);
-      if (parsed.mode !== "timeline_api" || ids.has(parsed.viewer_session_id))
-        throw new Error("Invalid timeline index entry");
-      ids.add(parsed.viewer_session_id);
-    }
-  }
+      throw new Error("Invalid viewer error");
   return value;
-}
-export function mapIndex(
-  index: RawIndex,
-  language = typeof navigator === "undefined" ? "en" : navigator.language,
-): LibrarySession[] {
-  const format = new Intl.DateTimeFormat(
-    language.startsWith("es") ? "es" : "en",
-    { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" },
-  );
-  const map = (
-    raw: RawSession,
-    project: string,
-    projectKey: string,
-    ticket: string,
-    excluded: boolean,
-    absent = false,
-  ): LibrarySession => {
-    const created = Date.parse(raw.created_at);
-    const time = Number.isNaN(created) ? Date.parse(raw.ingested_at) : created;
-    const classification =
-      raw.source_status === "tracked"
-        ? "tracked"
-        : raw.source_status === "local"
-          ? "local"
-          : "unknown";
-    const fileBase = raw.fileBase ?? "";
-    if (
-      !excluded &&
-      !new RegExp(`^/files/${raw.key}/[a-f0-9]{64}/$`).test(fileBase)
-    )
-      throw new Error("Invalid session capability path");
-    return {
-      id: raw.key,
-      project,
-      projectKey,
-      ticket:
-        ticket || (language.startsWith("es") ? "Sin ticket" : "No ticket"),
-      title: raw.title || raw.session_id,
-      createdAt: Number.isNaN(time) ? "" : format.format(time),
-      classification,
-      pinned: Boolean(raw.pinned),
-      archived: Boolean(raw.archived),
-      status:
-        raw.session_status === "in_progress" || raw.session_status === "closed"
-          ? raw.session_status
-          : "unknown",
-      raw,
-      excluded,
-      absent,
-      fileBase,
-    };
-  };
-  return [
-    ...index.projects.flatMap((p) =>
-      p.tickets.flatMap((t) =>
-        t.sessions.map((s) =>
-          map(s, p.name || p.key, p.key, t.ticket, false, p.absent),
-        ),
-      ),
-    ),
-    ...(index.excluded_sessions ?? []).map((s) =>
-      map(
-        s,
-        s.project_name || s.repository || s.source,
-        s.project_key || s.repository || s.source,
-        s.ticket || "",
-        true,
-      ),
-    ),
-  ];
 }
 
 export type ViewerOpenTarget =
@@ -396,19 +259,20 @@ export function mapTimelineIndex(
     localTitle: true,
     ticket:
       entry.tickets.map((t) => t.key).join(" · ") ||
-      (language.startsWith("es") ? "Sin ticket" : "No ticket"),
+      (resolveLanguage(language) === "es" ? "Sin ticket" : "No ticket"),
     createdAt: new Intl.DateTimeFormat(
-      language.startsWith("es") ? "es" : "en",
+      resolveLanguage(language) === "es" ? "es" : "en",
       { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" },
     ).format(date),
     classification: "unknown",
     pinned: entry.pinned,
     archived: entry.archived,
-    status:
-      entry.state === "active"
-        ? "in_progress"
-        : entry.state === "closed"
-          ? "closed"
-          : "unknown",
+    status: ["active", "in_review", "awaiting_validation", "paused"].includes(
+      entry.state,
+    )
+      ? "in_progress"
+      : entry.state === "closed"
+        ? "closed"
+        : "unknown",
   };
 }

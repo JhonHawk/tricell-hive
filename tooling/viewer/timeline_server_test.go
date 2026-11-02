@@ -44,7 +44,7 @@ func TestTimelineHTTPMultipartReadbackAndScope(t *testing.T) {
 		return call("POST", path, buf.Bytes(), m.FormDataContentType())
 	}
 	path := "/api/timeline/sessions/" + v.ViewerSessionID
-	w := upload(path+"/documents", TimelineDocumentMetadata{SchemaVersion: 1, OperationID: "http-doc", MediaType: "text/markdown"}, []byte("# Document\n"))
+	w := upload(path+"/documents", TimelineDocumentMetadata{Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, SchemaVersion: 3, OperationID: "http-doc", MediaType: "text/markdown"}, []byte("# Document\n"))
 	if w.Code != 200 {
 		t.Fatalf("upload %d %s", w.Code, w.Body.String())
 	}
@@ -67,7 +67,7 @@ func TestTimelineHTTPMultipartReadbackAndScope(t *testing.T) {
 	}
 	var imageBytes bytes.Buffer
 	png.Encode(&imageBytes, image.NewRGBA(image.Rect(0, 0, 1, 1)))
-	meta := TimelineArtifactMetadata{SchemaVersion: 1, OperationID: "http-image", CapturedAt: "2026-01-01T00:00:00Z", Candidate: TimelineCandidate{Branch: "feature", Commit: "abc", Base: "development"}, Viewport: "desktop", Theme: "dark", MediaType: "image/png"}
+	meta := TimelineArtifactMetadata{Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, SchemaVersion: 3, OperationID: "http-image", CapturedAt: "2026-01-01T00:00:00Z", CandidateID: domainCandidate(t, store, v.ViewerSessionID, "abc"), Viewport: "desktop", Theme: "dark", MediaType: "image/png"}
 	w = upload(path+"/artifacts", meta, imageBytes.Bytes())
 	if w.Code != 200 {
 		t.Fatalf("image %d %s", w.Code, w.Body.String())
@@ -107,7 +107,7 @@ func TestTimelineHTTPMultipartReadbackAndScope(t *testing.T) {
 	w = call("GET", "/api/health", nil, "")
 	var health map[string]any
 	json.Unmarshal(w.Body.Bytes(), &health)
-	if health["retention"] != "manual" || health["ttl"] != "0s" || health["timeline_protocol_version"] != float64(1) {
+	if health["retention"] != "manual" || health["ttl"] != "0s" || health["timeline_protocol_version"] != float64(3) {
 		t.Fatalf("health contract %v", health)
 	}
 }
@@ -119,7 +119,7 @@ func TestTimelineHTTPRejectsOversizedAndDuplicateMultipart(t *testing.T) {
 		t.Run(test, func(t *testing.T) {
 			var buf bytes.Buffer
 			m := multipart.NewWriter(&buf)
-			metadata, _ := json.Marshal(TimelineDocumentMetadata{SchemaVersion: 1, OperationID: "test", MediaType: "text/markdown"})
+			metadata, _ := json.Marshal(TimelineDocumentMetadata{Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, SchemaVersion: 3, OperationID: "test", MediaType: "text/markdown"})
 			part, _ := m.CreateFormField("metadata")
 			part.Write(metadata)
 			part, _ = m.CreateFormFile("file", "plan.md")

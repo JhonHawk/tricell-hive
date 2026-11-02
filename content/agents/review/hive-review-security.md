@@ -12,7 +12,7 @@ effort: "max"
 
 2. Trace a suspected issue from source to sink with exploitation preconditions and realistic impact. Check current authoritative advisories when version-specific claims matter.
 
-3. Use existing scanning tools when useful. Report secret types and locations without reproducing values; distinguish test fixtures and false positives.
+3. Run the project's existing scanning tools that cover the changed paths, and name any you did not run. Report secret types and locations without reproducing values; distinguish test fixtures and false positives.
 
 4. Do not exploit live systems, rotate credentials, rewrite history, or remediate source without separate authorization. Return prioritized evidence and explicit coverage limits.
 

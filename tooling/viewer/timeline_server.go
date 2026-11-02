@@ -24,12 +24,16 @@ func timelineHTTPError(w http.ResponseWriter, err error) {
 		field = contract.Field
 		status = 400
 		switch code {
-		case "version_conflict", "stage_active", "session_closed", "stage_terminal", "stage_resume_required", "already_in_state":
+		case "version_conflict", "stage_active", "session_closed", "stage_terminal", "stage_resume_required", "already_in_state", "entity_exists", "entity_conflict", "duplicate_plan_order":
 			status = 409
-		case "capacity", "session_limit":
+		case "capacity", "session_limit", "limit":
 			status = 413
-		case "unknown_event":
+		case "producer_not_accepted", "lead_required", "content_owner_required", "segment_assignee_required", "forbidden_actor", "local_viewer_required", "native_producer_required":
+			status = 403
+		case "unknown_event", "unknown_task", "unknown_wait", "unknown_ticket", "unknown_delivery", "unknown_candidate":
 			status = 404
+		case "current_predecessor_required", "stage_unavailable", "stage_binding_mismatch", "reentry_binding_required", "duplicate_identity", "duplicate_key", "duplicate_stage_order", "pending_request_required", "session_terminal", "immutable_audit", "invalid_transition", "foreign_project", "unknown_or_mixed_attempt", "candidate_mismatch", "attempt_already_known":
+			status = 409
 		}
 	case errors.Is(err, ErrNotFound):
 		status = 404
@@ -61,7 +65,7 @@ func timelineReadBody(w http.ResponseWriter, r *http.Request) ([]byte, error) {
 	return raw, nil
 }
 func (s *Server) timelineResponse(v TimelineSession, created *bool) TimelineSessionResponse {
-	out := TimelineSessionResponse{SchemaVersion: 1, Mode: "timeline_api", Session: v, Created: created, ArtifactURLs: map[string]string{}, DocumentURLs: map[string]string{}}
+	out := TimelineSessionResponse{SchemaVersion: 3, Mode: "timeline_api", Session: v, Created: created, ArtifactURLs: map[string]string{}, DocumentURLs: map[string]string{}}
 	for _, a := range v.Artifacts {
 		out.ArtifactURLs[a.ArtifactID] = "/files/" + v.ViewerSessionID + "/" + s.fileCap(v.ViewerSessionID) + "/artifacts/" + a.ArtifactID + timelineImageExtension(a.MediaType)
 	}
@@ -99,6 +103,9 @@ func (s *Server) timeline(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	id := parts[1]
+	if s.timelineDomain(w, r, id, parts[2:]) {
+		return
+	}
 	if len(parts) == 2 {
 		if r.Method == http.MethodGet {
 			if !s.authorize(w, r, false) {

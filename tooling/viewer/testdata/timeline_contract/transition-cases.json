@@ -10,11 +10,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -36,12 +40,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -71,9 +81,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -90,7 +110,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -118,20 +143,53 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "transition",
       "expected_version": 2,
       "expected_session_version": 7,
-      "stage_state": "completed"
+      "stage_state": "completed",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": true
   },
@@ -146,11 +204,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -172,12 +234,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -207,9 +275,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -226,7 +304,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -254,20 +337,53 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "transition",
       "expected_version": 999,
       "expected_session_version": 7,
-      "stage_state": "completed"
+      "stage_state": "completed",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": false
   },
@@ -282,11 +398,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -308,12 +428,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -343,9 +469,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -362,7 +498,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -390,20 +531,53 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "transition",
       "expected_version": 2,
       "expected_session_version": 999,
-      "stage_state": "completed"
+      "stage_state": "completed",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": false
   },
@@ -418,11 +592,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -444,12 +622,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -479,9 +663,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -498,7 +692,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -526,20 +725,53 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-1",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "transition",
       "expected_version": 2,
       "expected_session_version": 7,
-      "stage_state": "in_progress"
+      "stage_state": "in_progress",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": false
   },
@@ -554,11 +786,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
-      "current_stage_event_id": null,
-      "schema_version": 1,
+      "current_stage_event_id": "plan-2",
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -580,12 +816,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -615,9 +857,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -634,7 +886,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -648,7 +905,7 @@
           "summary": "Declared stage",
           "ticket_refs": [],
           "stage": "plan",
-          "stage_state": "paused",
+          "stage_state": "awaiting_validation",
           "started_at": "2026-10-31T20:03:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
           "related_event_id": "plan-1",
@@ -662,20 +919,53 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "transition",
       "expected_version": 2,
       "expected_session_version": 7,
-      "stage_state": "in_progress"
+      "stage_state": "in_progress",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": true
   },
@@ -690,11 +980,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
-      "current_stage_event_id": null,
-      "schema_version": 1,
+      "current_stage_event_id": "plan-2",
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -716,12 +1010,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -751,9 +1051,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -770,7 +1080,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -784,7 +1099,7 @@
           "summary": "Declared stage",
           "ticket_refs": [],
           "stage": "plan",
-          "stage_state": "paused",
+          "stage_state": "awaiting_validation",
           "started_at": "2026-10-31T20:03:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
           "related_event_id": "plan-1",
@@ -798,25 +1113,58 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "transition",
       "expected_version": 2,
       "expected_session_version": 7,
-      "stage_state": "completed"
+      "stage_state": "completed",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": true
   },
   {
-    "name": "repeat paused rejected",
+    "name": "repeated paused state is a no-op",
     "action": "event_patch",
     "session": {
       "documents": [
@@ -826,11 +1174,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
-      "current_stage_event_id": null,
-      "schema_version": 1,
+      "current_stage_event_id": "plan-2",
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -852,12 +1204,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -887,9 +1245,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -906,7 +1274,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -920,7 +1293,7 @@
           "summary": "Declared stage",
           "ticket_refs": [],
           "stage": "plan",
-          "stage_state": "paused",
+          "stage_state": "awaiting_validation",
           "started_at": "2026-10-31T20:03:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
           "related_event_id": "plan-1",
@@ -934,22 +1307,55 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "transition",
       "expected_version": 2,
       "expected_session_version": 7,
-      "stage_state": "paused"
+      "stage_state": "paused",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
-    "valid": false
+    "valid": true
   },
   {
     "name": "foreground withdrawal rejected",
@@ -962,11 +1368,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -988,12 +1398,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -1023,9 +1439,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -1042,7 +1468,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -1070,18 +1501,50 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "withdraw",
-      "expected_version": 2
+      "expected_version": 2,
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      }
     },
     "valid": false
   },
@@ -1096,11 +1559,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
-      "current_stage_event_id": null,
-      "schema_version": 1,
+      "current_stage_event_id": "plan-2",
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1122,12 +1589,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -1157,9 +1630,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -1176,7 +1659,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -1190,7 +1678,7 @@
           "summary": "Declared stage",
           "ticket_refs": [],
           "stage": "plan",
-          "stage_state": "paused",
+          "stage_state": "awaiting_validation",
           "started_at": "2026-10-31T20:03:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
           "related_event_id": "plan-1",
@@ -1204,18 +1692,50 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "withdraw",
-      "expected_version": 2
+      "expected_version": 2,
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      }
     },
     "valid": true
   },
@@ -1230,11 +1750,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1256,12 +1780,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -1291,9 +1821,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -1310,7 +1850,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -1338,19 +1883,52 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "state",
       "expected_version": 7,
-      "state": "awaiting_validation"
+      "state": "awaiting_validation",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": true
   },
@@ -1365,11 +1943,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1391,12 +1973,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -1426,9 +2014,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -1445,7 +2043,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -1473,19 +2076,52 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "state",
       "expected_version": 7,
-      "state": "closed"
+      "state": "closed",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": false
   },
@@ -1500,11 +2136,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": null,
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1516,7 +2156,7 @@
       "version": 7,
       "title": "Profile and chat",
       "summary": "Improve profile spacing and chat filters.",
-      "state": "awaiting_validation",
+      "state": "paused",
       "archived": false,
       "pinned": false,
       "created_at": "2026-10-31T18:20:00-06:00",
@@ -1526,12 +2166,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -1561,9 +2207,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -1580,7 +2236,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -1608,19 +2269,52 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "state",
       "expected_version": 7,
-      "state": "closed"
+      "state": "closed",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change"
     },
     "valid": true
   },
@@ -1635,11 +2329,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1661,12 +2359,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -1696,9 +2400,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -1715,7 +2429,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -1743,24 +2462,57 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "stage",
       "kind": "stage",
       "title": "Verify",
       "summary": "Declared review",
-      "ticket_refs": [],
       "stage": "verify",
       "stage_state": "in_progress",
-      "expected_session_version": 7
+      "expected_session_version": 7,
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change",
+      "ticket_ids": []
     },
     "valid": true
   },
@@ -1775,11 +2527,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1801,12 +2557,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -1836,9 +2598,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -1855,7 +2627,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -1883,24 +2660,57 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "stage",
       "kind": "stage",
       "title": "Verify",
       "summary": "Declared review",
-      "ticket_refs": [],
       "stage": "verify",
       "stage_state": "in_progress",
-      "expected_session_version": 999
+      "expected_session_version": 999,
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change",
+      "ticket_ids": []
     },
     "valid": false
   },
@@ -1915,11 +2725,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -1941,12 +2755,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -1976,9 +2796,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -1995,7 +2825,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -2023,24 +2858,57 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "stage",
       "kind": "stage",
       "title": "Verify",
       "summary": "Declared review",
-      "ticket_refs": [],
       "stage": "plan",
       "stage_state": "in_progress",
-      "expected_session_version": 7
+      "expected_session_version": 7,
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change",
+      "ticket_ids": []
     },
     "valid": false
   },
@@ -2055,11 +2923,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": null,
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2081,12 +2953,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -2116,9 +2994,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -2135,7 +3023,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -2163,26 +3056,59 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
           ],
-          "finished_at": "2026-10-31T20:03:30Z"
+          "finished_at": "2026-10-31T20:03:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "stage",
       "kind": "stage",
       "title": "Verify",
       "summary": "Declared review",
-      "ticket_refs": [],
       "stage": "plan",
       "stage_state": "in_progress",
       "expected_session_version": 7,
-      "related_event_id": "plan-2"
+      "related_event_id": "plan-2",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change",
+      "ticket_ids": []
     },
     "valid": true
   },
@@ -2197,11 +3123,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": null,
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2223,12 +3153,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -2258,9 +3194,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -2277,7 +3223,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -2305,25 +3256,58 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
           ],
-          "finished_at": "2026-10-31T20:03:30Z"
+          "finished_at": "2026-10-31T20:03:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "stage",
       "kind": "stage",
       "title": "Verify",
       "summary": "Declared review",
-      "ticket_refs": [],
       "stage": "plan",
       "stage_state": "in_progress",
-      "expected_session_version": 7
+      "expected_session_version": 7,
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change",
+      "ticket_ids": []
     },
     "valid": false
   },
@@ -2338,11 +3322,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2364,12 +3352,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -2399,9 +3393,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -2418,7 +3422,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -2446,25 +3455,58 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "close",
       "kind": "closure",
       "title": "Closed",
       "summary": "Done",
-      "ticket_refs": [],
       "closure": {
         "reason": "completed",
         "result": "Verified"
-      }
+      },
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change",
+      "ticket_ids": []
     },
     "valid": false
   },
@@ -2479,11 +3521,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": null,
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2495,7 +3541,7 @@
       "version": 7,
       "title": "Profile and chat",
       "summary": "Improve profile spacing and chat filters.",
-      "state": "awaiting_validation",
+      "state": "paused",
       "archived": false,
       "pinned": false,
       "created_at": "2026-10-31T18:20:00-06:00",
@@ -2505,12 +3551,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -2540,9 +3592,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -2559,7 +3621,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -2587,25 +3654,58 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "close",
       "kind": "closure",
       "title": "Closed",
       "summary": "Done",
-      "ticket_refs": [],
       "closure": {
         "reason": "completed",
         "result": "Verified"
-      }
+      },
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change",
+      "ticket_ids": []
     },
     "valid": true
   },
@@ -2620,11 +3720,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2646,12 +3750,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -2681,9 +3791,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -2700,7 +3820,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -2728,16 +3853,44 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "snapshot",
       "expected_version": 2,
       "status": "complete",
@@ -2746,12 +3899,19 @@
           "label": "Proposal",
           "document_id": "doc-plan"
         }
-      ]
+      ],
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "document_key": "plan",
+      "expected_session_version": 7,
+      "predecessor_revision_id": "rev-2-draft"
     },
     "valid": true
   },
   {
-    "name": "snapshot no replacement even terminal state",
+    "name": "stale document chain on prior occurrence rejected",
     "action": "snapshot",
     "session": {
       "documents": [
@@ -2761,11 +3921,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2787,12 +3951,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -2822,9 +3992,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -2841,7 +4021,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -2869,16 +4054,44 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-1",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "snapshot",
       "expected_version": 2,
       "status": "complete",
@@ -2887,9 +4100,16 @@
           "label": "Proposal",
           "document_id": "doc-plan"
         }
-      ]
+      ],
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "document_key": "plan",
+      "expected_session_version": 7,
+      "predecessor_revision_id": "rev-2-draft"
     },
-    "valid": true
+    "valid": false
   },
   {
     "name": "snapshot stale event",
@@ -2902,11 +4122,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -2928,12 +4152,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -2963,9 +4193,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -2982,7 +4222,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -3010,16 +4255,44 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "snapshot",
       "expected_version": 999,
       "status": "complete",
@@ -3028,7 +4301,14 @@
           "label": "Proposal",
           "document_id": "doc-plan"
         }
-      ]
+      ],
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "document_key": "plan",
+      "expected_session_version": 7,
+      "predecessor_revision_id": "rev-2-draft"
     },
     "valid": false
   },
@@ -3043,11 +4323,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": "plan-2",
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -3069,12 +4353,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -3104,9 +4394,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -3123,7 +4423,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -3151,16 +4456,44 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "snapshot",
       "expected_version": 2,
       "status": "complete",
@@ -3169,7 +4502,14 @@
           "label": "Other",
           "document_id": "foreign"
         }
-      ]
+      ],
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "document_key": "plan",
+      "expected_session_version": 7,
+      "predecessor_revision_id": "rev-2-draft"
     },
     "valid": false
   },
@@ -3184,11 +4524,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": null,
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -3210,12 +4554,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -3245,9 +4595,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -3264,7 +4624,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -3292,25 +4657,58 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
           ],
-          "finished_at": "2026-10-31T20:03:30Z"
+          "finished_at": "2026-10-31T20:03:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "stage",
       "kind": "stage",
       "title": "Verify",
       "summary": "Declared review",
-      "ticket_refs": [],
       "stage": "verify",
       "stage_state": "in_progress",
-      "expected_session_version": 7
+      "expected_session_version": 7,
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Explicit lifecycle change",
+      "ticket_ids": []
     },
     "valid": false
   },
@@ -3325,11 +4723,15 @@
           "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
           "size": 29,
           "media_type": "text/markdown",
-          "received_at": "2026-10-31T20:00:00Z"
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
         }
       ],
       "current_stage_event_id": null,
-      "schema_version": 1,
+      "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
       "project_name": "CAM fixture",
@@ -3351,12 +4753,18 @@
         {
           "key": "COM-1",
           "url": "https://example.com/issues/COM-1",
-          "title": "Profile spacing"
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
         },
         {
           "key": "COM-2",
           "url": "https://example.com/issues/COM-2",
-          "title": "Chat filters"
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
         }
       ],
       "events": [
@@ -3386,9 +4794,19 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
             }
-          ]
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "build-1",
@@ -3405,7 +4823,12 @@
           "stage_state": "completed",
           "started_at": "2026-10-31T20:02:00Z",
           "occurred_at": "2026-10-01T00:00:00Z",
-          "finished_at": "2026-10-31T20:02:30Z"
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         },
         {
           "event_id": "plan-2",
@@ -3433,17 +4856,45 @@
                   "label": "Proposal",
                   "document_id": "doc-plan"
                 }
-              ]
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
             }
           ],
-          "finished_at": "2026-10-31T20:03:30Z"
+          "finished_at": "2026-10-31T20:03:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
         }
       ],
-      "artifacts": []
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
     },
     "event_id": "plan-2",
     "request": {
-      "schema_version": 1,
+      "schema_version": 3,
       "operation_id": "snapshot",
       "expected_version": 2,
       "status": "complete",
@@ -3452,7 +4903,655 @@
           "label": "Proposal",
           "document_id": "doc-plan"
         }
+      ],
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "document_key": "plan",
+      "expected_session_version": 7,
+      "predecessor_revision_id": "rev-2-draft"
+    },
+    "valid": false
+  },
+  {
+    "name": "empty context target stage",
+    "action": "event_patch",
+    "session": {
+      "documents": [
+        {
+          "document_id": "doc-plan",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+          "size": 29,
+          "media_type": "text/markdown",
+          "received_at": "2026-10-31T20:00:00Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
+        }
+      ],
+      "current_stage_event_id": "plan-2",
+      "schema_version": 3,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 0,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "plan-1",
+          "sequence": 1,
+          "version": 2,
+          "created_at": "2026-10-31T20:01:00Z",
+          "updated_at": "2026-10-31T20:01:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:01:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:01:30Z",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-1",
+              "status": "complete",
+              "created_at": "2026-10-31T20:01:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan"
+            }
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
+        },
+        {
+          "event_id": "build-1",
+          "sequence": 2,
+          "version": 2,
+          "created_at": "2026-10-31T20:02:00Z",
+          "updated_at": "2026-10-31T20:02:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Build",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "build",
+          "stage_state": "completed",
+          "started_at": "2026-10-31T20:02:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "finished_at": "2026-10-31T20:02:30Z",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
+        },
+        {
+          "event_id": "plan-2",
+          "sequence": 3,
+          "version": 2,
+          "created_at": "2026-10-31T20:03:00Z",
+          "updated_at": "2026-10-31T20:03:30Z",
+          "origin": "agent_reported",
+          "kind": "stage",
+          "title": "Plan",
+          "summary": "Declared stage",
+          "ticket_refs": [],
+          "stage": "plan",
+          "stage_state": "in_progress",
+          "started_at": "2026-10-31T20:03:00Z",
+          "occurred_at": "2026-10-01T00:00:00Z",
+          "related_event_id": "plan-1",
+          "document_snapshots": [
+            {
+              "document_revision_id": "rev-2-draft",
+              "status": "draft",
+              "created_at": "2026-10-31T20:03:30Z",
+              "tabs": [
+                {
+                  "label": "Proposal",
+                  "document_id": "doc-plan"
+                }
+              ],
+              "actor": {
+                "kind": "native_producer",
+                "producer_id": "producer-original"
+              },
+              "document_key": "plan",
+              "predecessor_revision_id": "rev-1"
+            }
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "reason": "Declared lifecycle change"
+        }
+      ],
+      "artifacts": [],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [],
+      "candidates": []
+    },
+    "event_id": "plan-1",
+    "request": {
+      "schema_version": 3,
+      "operation_id": "clear-context",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "expected_version": 2,
+      "title": ""
+    },
+    "valid": true
+  },
+  {
+    "name": "empty context target request",
+    "action": "event_patch",
+    "session": {
+      "documents": [],
+      "current_stage_event_id": null,
+      "schema_version": 3,
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "project_key": "example.com/fixture/project",
+      "project_name": "CAM fixture",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "version": 7,
+      "title": "Profile and chat",
+      "summary": "Improve profile spacing and chat filters.",
+      "state": "active",
+      "archived": false,
+      "pinned": false,
+      "created_at": "2026-10-31T18:20:00-06:00",
+      "updated_at": "2026-10-31T18:26:00-06:00",
+      "validation_count": 2,
+      "tickets": [
+        {
+          "key": "COM-1",
+          "url": "https://example.com/issues/COM-1",
+          "title": "Profile spacing",
+          "ticket_id": "ticket-1",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-1"
+        },
+        {
+          "key": "COM-2",
+          "url": "https://example.com/issues/COM-2",
+          "title": "Chat filters",
+          "ticket_id": "ticket-2",
+          "external_scope": "https://example.test/tracker",
+          "external_id": "COM-2"
+        }
+      ],
+      "events": [
+        {
+          "event_id": "event_request",
+          "sequence": 1,
+          "version": 1,
+          "kind": "request",
+          "title": "Profile and chat",
+          "summary": "Improve profile spacing and chat filters.",
+          "created_at": "2026-10-31T18:21:00-06:00",
+          "updated_at": "2026-10-31T18:21:00-06:00",
+          "origin": "agent_reported",
+          "ticket_refs": [
+            {
+              "ticket_id": "ticket-1",
+              "snapshot": {
+                "key": "COM-1",
+                "url": "https://example.com/issues/COM-1"
+              }
+            },
+            {
+              "ticket_id": "ticket-2",
+              "snapshot": {
+                "key": "COM-2",
+                "url": "https://example.com/issues/COM-2"
+              }
+            }
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
+        },
+        {
+          "event_id": "event_started",
+          "sequence": 2,
+          "version": 1,
+          "kind": "work_started",
+          "title": "Work started",
+          "summary": "Implement the approved scope.",
+          "created_at": "2026-10-31T18:22:00-06:00",
+          "updated_at": "2026-10-31T18:22:00-06:00",
+          "origin": "agent_reported",
+          "ticket_refs": [
+            {
+              "ticket_id": "ticket-1",
+              "snapshot": {
+                "key": "COM-1",
+                "url": "https://example.com/issues/COM-1"
+              }
+            },
+            {
+              "ticket_id": "ticket-2",
+              "snapshot": {
+                "key": "COM-2",
+                "url": "https://example.com/issues/COM-2"
+              }
+            }
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "candidate_id": "candidate-1"
+        },
+        {
+          "event_id": "event_validation",
+          "sequence": 3,
+          "version": 1,
+          "kind": "validation",
+          "title": "First validation",
+          "summary": "Profile and Chat can be reviewed.",
+          "created_at": "2026-10-31T18:23:00-06:00",
+          "updated_at": "2026-10-31T18:23:00-06:00",
+          "origin": "agent_reported",
+          "ticket_refs": [
+            {
+              "ticket_id": "ticket-1",
+              "snapshot": {
+                "key": "COM-1",
+                "url": "https://example.com/issues/COM-1"
+              }
+            },
+            {
+              "ticket_id": "ticket-2",
+              "snapshot": {
+                "key": "COM-2",
+                "url": "https://example.com/issues/COM-2"
+              }
+            }
+          ],
+          "evidence_id": "evidence_initial",
+          "views": [
+            {
+              "title": "Profile",
+              "ticket_refs": [
+                {
+                  "ticket_id": "ticket-1",
+                  "snapshot": {
+                    "key": "COM-1",
+                    "url": "https://example.com/issues/COM-1"
+                  }
+                }
+              ],
+              "steps": [
+                "Open Conversations at 390px.",
+                "Activate a filter and close the panel."
+              ],
+              "expected_result": "The filter icon remains beside search.",
+              "image_refs": [
+                {
+                  "artifact_id": "artifact_profile",
+                  "caption": "1280px \u00b7 light"
+                }
+              ],
+              "view_id": "view_profile"
+            },
+            {
+              "title": "Chat mobile",
+              "ticket_refs": [
+                {
+                  "ticket_id": "ticket-1",
+                  "snapshot": {
+                    "key": "COM-1",
+                    "url": "https://example.com/issues/COM-1"
+                  }
+                },
+                {
+                  "ticket_id": "ticket-2",
+                  "snapshot": {
+                    "key": "COM-2",
+                    "url": "https://example.com/issues/COM-2"
+                  }
+                }
+              ],
+              "steps": [
+                "Open Conversations at 390px.",
+                "Activate a filter and close the panel."
+              ],
+              "expected_result": "The filter icon remains beside search.",
+              "image_refs": [
+                {
+                  "artifact_id": "artifact_chat",
+                  "caption": "390px \u00b7 dark",
+                  "alt": "Chat search with compact filter"
+                }
+              ],
+              "view_id": "view_chat"
+            }
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "candidate_id": "candidate-1"
+        },
+        {
+          "event_id": "event_iteration",
+          "sequence": 4,
+          "version": 1,
+          "kind": "iteration",
+          "title": "Compact mobile filter",
+          "summary": "Only Chat changed.",
+          "created_at": "2026-10-31T18:24:00-06:00",
+          "updated_at": "2026-10-31T18:24:00-06:00",
+          "origin": "agent_reported",
+          "ticket_refs": [
+            {
+              "ticket_id": "ticket-1",
+              "snapshot": {
+                "key": "COM-1",
+                "url": "https://example.com/issues/COM-1"
+              }
+            },
+            {
+              "ticket_id": "ticket-2",
+              "snapshot": {
+                "key": "COM-2",
+                "url": "https://example.com/issues/COM-2"
+              }
+            }
+          ],
+          "evidence_id": "evidence_refined",
+          "views": [
+            {
+              "title": "Chat mobile",
+              "ticket_refs": [
+                {
+                  "ticket_id": "ticket-1",
+                  "snapshot": {
+                    "key": "COM-1",
+                    "url": "https://example.com/issues/COM-1"
+                  }
+                },
+                {
+                  "ticket_id": "ticket-2",
+                  "snapshot": {
+                    "key": "COM-2",
+                    "url": "https://example.com/issues/COM-2"
+                  }
+                }
+              ],
+              "steps": [
+                "Open Conversations at 390px.",
+                "Activate a filter and close the panel."
+              ],
+              "expected_result": "The filter icon remains beside search.",
+              "image_refs": [
+                {
+                  "artifact_id": "artifact_chat_refined",
+                  "caption": "390px \u00b7 dark \u00b7 refined"
+                }
+              ],
+              "view_id": "view_chat",
+              "supersedes": {
+                "event_id": "event_validation",
+                "evidence_id": "evidence_initial",
+                "view_id": "view_chat"
+              }
+            }
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "candidate_id": "candidate-1"
+        },
+        {
+          "event_id": "event_approval",
+          "sequence": 5,
+          "version": 1,
+          "kind": "approval_reported",
+          "title": "Approval reported from chat",
+          "summary": "The user accepted the current Chat evidence.",
+          "created_at": "2026-10-31T18:25:00-06:00",
+          "updated_at": "2026-10-31T18:25:00-06:00",
+          "origin": "agent_reported",
+          "ticket_refs": [
+            {
+              "ticket_id": "ticket-1",
+              "snapshot": {
+                "key": "COM-1",
+                "url": "https://example.com/issues/COM-1"
+              }
+            },
+            {
+              "ticket_id": "ticket-2",
+              "snapshot": {
+                "key": "COM-2",
+                "url": "https://example.com/issues/COM-2"
+              }
+            }
+          ],
+          "target": {
+            "kind": "evidence",
+            "event_id": "event_iteration",
+            "evidence_id": "evidence_refined",
+            "view_ids": [
+              "view_chat"
+            ]
+          },
+          "source_reference": "User accepted D2 A",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          }
+        },
+        {
+          "event_id": "event_delivery",
+          "sequence": 6,
+          "version": 1,
+          "kind": "delivery",
+          "title": "PR opened",
+          "summary": "Integration is pending.",
+          "created_at": "2026-10-31T18:26:00-06:00",
+          "updated_at": "2026-10-31T18:26:00-06:00",
+          "origin": "agent_reported",
+          "ticket_refs": [
+            {
+              "ticket_id": "ticket-1",
+              "snapshot": {
+                "key": "COM-1",
+                "url": "https://example.com/issues/COM-1"
+              }
+            },
+            {
+              "ticket_id": "ticket-2",
+              "snapshot": {
+                "key": "COM-2",
+                "url": "https://example.com/issues/COM-2"
+              }
+            }
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "delivery_refs": [
+            {
+              "delivery_id": "delivery-1",
+              "snapshot": {
+                "kind": "pull_request",
+                "label": "PR 321",
+                "url": "https://example.com/pull/321",
+                "status": "open"
+              }
+            }
+          ]
+        }
+      ],
+      "artifacts": [
+        {
+          "artifact_id": "artifact_profile",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "size": 1024,
+          "media_type": "image/png",
+          "received_at": "2026-10-31T18:29:30-06:00",
+          "captured_at": "2026-10-31T18:29:00-06:00",
+          "viewport": "desktop",
+          "theme": "light",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "candidate_id": "candidate-1"
+        },
+        {
+          "artifact_id": "artifact_chat",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+          "size": 1024,
+          "media_type": "image/png",
+          "received_at": "2026-10-31T18:29:30-06:00",
+          "captured_at": "2026-10-31T18:29:00-06:00",
+          "viewport": "mobile",
+          "theme": "dark",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "candidate_id": "candidate-1"
+        },
+        {
+          "artifact_id": "artifact_chat_refined",
+          "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+          "sha256": "3333333333333333333333333333333333333333333333333333333333333333",
+          "size": 1024,
+          "media_type": "image/png",
+          "received_at": "2026-10-31T18:29:30-06:00",
+          "captured_at": "2026-10-31T18:29:00-06:00",
+          "viewport": "mobile",
+          "theme": "dark",
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "candidate_id": "candidate-1"
+        }
+      ],
+      "producers": [
+        {
+          "producer_id": "producer-original",
+          "source": {
+            "project_root": "/fixture/project",
+            "host": "codex",
+            "native_session_id": "native-session-alpha"
+          },
+          "joined_at": "2026-10-31T18:20:00-06:00"
+        }
+      ],
+      "foreground_producer_id": "producer-original",
+      "pending_join_requests": [],
+      "tasks": [],
+      "waits": [],
+      "deliveries": [
+        {
+          "delivery_id": "delivery-1",
+          "repository_url": "https://example.test/repository",
+          "external_id": "delivery-1",
+          "kind": "pull_request",
+          "label": "PR 321",
+          "url": "https://example.com/pull/321",
+          "status": "open"
+        }
+      ],
+      "candidates": [
+        {
+          "candidate_id": "candidate-1",
+          "branch": "fix/profile-chat",
+          "commit": "working tree",
+          "base": "development"
+        }
       ]
+    },
+    "event_id": "event_request",
+    "request": {
+      "schema_version": 3,
+      "operation_id": "clear-context",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "expected_version": 1,
+      "title": ""
     },
     "valid": false
   }

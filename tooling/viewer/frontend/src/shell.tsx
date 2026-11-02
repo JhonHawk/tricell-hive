@@ -63,6 +63,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { optionalStorage, save, stored } from "./api";
+import { browserLanguage } from "./language";
 import { messages as t } from "./messages";
 export type ViewerSession = {
   id: string;
@@ -102,7 +103,7 @@ export type ViewerShellProps = {
   writing?: boolean;
   coldLoading?: boolean;
 };
-const spanish = navigator.language.startsWith("es");
+const spanish = browserLanguage() === "es";
 const copy = spanish
   ? {
       walkthroughs: "Recorridos",
@@ -267,11 +268,7 @@ function SessionNavigationButton({
     <button
       type="button"
       data-session-key={session.id}
-      title={
-        session.segments
-          ? session.title
-          : `${session.title} — ${copy.sessionStatus[session.status ?? "unknown"]}. ${copy.statusDescription}`
-      }
+      title={`${session.title} — ${copy.sessionStatus[session.status ?? "unknown"]}. ${copy.statusDescription}`}
       className="session-navigation-link flex w-full min-w-0 items-start gap-2 text-left text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-sidebar-ring"
       aria-current={selectedId === session.id ? "page" : undefined}
       onClick={() => {
@@ -285,13 +282,13 @@ function SessionNavigationButton({
           );
       }}
     >
-      {!session.segments && (
+      {
         <span
           aria-hidden="true"
           data-session-status={session.status ?? "unknown"}
           className="session-status-dot mt-1.5 size-1.5 shrink-0 rounded-full"
         />
-      )}
+      }
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex min-w-0 items-start gap-2">
           <span className="session-navigation-title min-w-0 flex-1 font-normal">
@@ -301,18 +298,11 @@ function SessionNavigationButton({
         </div>
         <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
           <span className="truncate">{session.ticket}</span>
-          {session.segments && (
-            <span className="shrink-0">
-              · {session.segments.length}{" "}
-              {session.segments.length === 1 ? t.segment : t.segments}
-            </span>
-          )}
           <span aria-hidden="true">·</span>
           <span className="shrink-0 tabular-nums">{session.createdAt}</span>
           <span className="sr-only">
-            {!session.segments &&
-              copy.sessionStatus[session.status ?? "unknown"]}
-            . {!session.segments && copy.statusDescription}
+            {copy.sessionStatus[session.status ?? "unknown"]}.{" "}
+            {copy.statusDescription}
           </span>
         </div>
       </div>
@@ -324,7 +314,6 @@ function Navigation({
   selectedId,
   state,
   onSelect,
-  onJump,
   onRetry,
   showArchived,
   onShowArchivedChange,
@@ -344,29 +333,15 @@ function Navigation({
   preferences: NavigationPreferences;
   onProjectOpenChange: (key: string, open: boolean) => void;
 }) {
-  const { setOpenMobile } = useSidebar();
   const navigationRef = useRef<HTMLDivElement>(null);
   const focusKey = useRef<string | undefined>(undefined);
   const [query, setQuery] = useState("");
   const matches = (session: ViewerSession) =>
     !query.trim() ||
-    session.title
+    `${session.title} ${session.ticket}`
       .toLocaleLowerCase()
-      .includes(query.trim().toLocaleLowerCase()) ||
-    (session.segments ?? [session]).some((segment) =>
-      `${segment.title} ${segment.ticket}`
-        .toLocaleLowerCase()
-        .includes(query.trim().toLocaleLowerCase()),
-    );
-  const normal = sessions.filter(
-    (session) =>
-      !session.excluded &&
-      session.classification !== "tracked" &&
-      matches(session),
-  );
-  const excluded = sessions.filter(
-    (session) => session.excluded || session.classification === "tracked",
-  );
+      .includes(query.trim().toLocaleLowerCase());
+  const normal = sessions.filter(matches);
   useLayoutEffect(() => {
     if (
       focusKey.current &&
@@ -468,9 +443,7 @@ function Navigation({
                 </Button>
               </div>
             ) : normal.length === 0 ? (
-              <p className="p-2 text-sm text-muted-foreground">
-                {copy.excludedOnly}
-              </p>
+              <p className="p-2 text-sm text-muted-foreground">{t.noMatches}</p>
             ) : (
               <SidebarMenu>
                 {projects.map((projectKey) => {
@@ -520,32 +493,6 @@ function Navigation({
                                 selectedId={selectedId}
                                 onSelect={onSelect}
                               />
-                              {query &&
-                                session.segments
-                                  ?.filter((segment) =>
-                                    `${segment.title} ${segment.ticket}`
-                                      .toLocaleLowerCase()
-                                      .includes(
-                                        query.trim().toLocaleLowerCase(),
-                                      ),
-                                  )
-                                  .map((segment) => (
-                                    <Button
-                                      key={segment.id}
-                                      type="button"
-                                      size="sm"
-                                      variant="ghost"
-                                      className="max-w-full justify-start"
-                                      onClick={() => {
-                                        onJump?.(segment.id);
-                                        setOpenMobile(false);
-                                      }}
-                                    >
-                                      <span className="truncate">
-                                        {segment.ticket} · {segment.title}
-                                      </span>
-                                    </Button>
-                                  ))}
                             </SidebarMenuItem>
                           ))}
                         </SidebarMenu>
@@ -558,31 +505,6 @@ function Navigation({
           </SidebarGroupContent>
         </SidebarGroup>
       </nav>
-      {excluded.length > 0 && (
-        <section aria-label={copy.excluded}>
-          <SidebarGroup>
-            <SidebarGroupLabel>
-              {copy.excluded} ({excluded.length})
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <p className="p-2 text-xs text-muted-foreground">
-                {copy.excludedDescription}
-              </p>
-              <SidebarMenu>
-                {excluded.map((session) => (
-                  <SidebarMenuItem key={session.id}>
-                    <SessionNavigationButton
-                      session={session}
-                      selectedId={selectedId}
-                      onSelect={onSelect}
-                    />
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </section>
-      )}
     </div>
   );
 }
@@ -592,7 +514,6 @@ export function ViewerShell({
   state,
   notice,
   onSelect,
-  onJump,
   onRetry,
   onPin,
   onDelete,
@@ -644,13 +565,16 @@ export function ViewerShell({
           </div>
         </SidebarHeader>
         <SidebarSeparator />
-        <SidebarContent tabIndex={0} aria-label={copy.walkthroughs}>
+        <SidebarContent
+          tabIndex={0}
+          role="region"
+          aria-label={copy.walkthroughs}
+        >
           <Navigation
             sessions={sessions}
             selectedId={selectedId}
             state={state}
             onSelect={onSelect}
-            onJump={onJump}
             onRetry={onRetry}
             showArchived={showArchived}
             onShowArchivedChange={onShowArchivedChange}
@@ -722,8 +646,7 @@ export function ViewerShell({
                 </span>
                 {selected && (
                   <p className="text-xs text-muted-foreground">
-                    {selected.createdAt} · {selected.segments?.length ?? 1}{" "}
-                    {t.segments}
+                    {selected.createdAt}
                   </p>
                 )}
               </div>
@@ -867,15 +790,6 @@ export function ViewerShell({
                         </div>
                       ) : selected ? (
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge
-                            variant={
-                              selected.classification === "unknown"
-                                ? "warning-light"
-                                : "outline"
-                            }
-                          >
-                            {copy[selected.classification]}
-                          </Badge>
                           <section
                             aria-label={copy.sessionIdentifier}
                             // biome-ignore lint/a11y/noNoninteractiveTabindex: This scroll region exposes the complete identifier to keyboard users.

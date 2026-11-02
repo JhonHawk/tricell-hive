@@ -1,12 +1,53 @@
 // Synthetic development-only data. No tracker or project account is contacted.
+import { captureTimelineTicketReferences } from "../timeline-catalog";
 import type { TimelineSessionResponse } from "../timeline-contract";
 import { previewDocumentMetadata } from "./timeline-documents-fixture";
 
 export const timelineFixture: TimelineSessionResponse = {
-  schema_version: 1,
+  schema_version: 3,
   mode: "timeline_api",
   session: {
-    schema_version: 1,
+    schema_version: 3,
+    producers: [
+      {
+        producer_id: "producer-original",
+        source: {
+          project_root: "/fixture/demo",
+          host: "codex",
+          native_session_id: "preview-native-session",
+        },
+        joined_at: "2026-10-31T17:20:00-06:00",
+      },
+    ],
+    foreground_producer_id: "producer-original",
+    pending_join_requests: [],
+    deliveries: [
+      {
+        delivery_id: "delivery-pr",
+        repository_url: "https://example.test/repository",
+        external_id: "42",
+        kind: "pull_request",
+        label: "PR #42",
+        url: "https://example.test/pull/42",
+        status: "open",
+      },
+    ],
+    candidates: [
+      {
+        candidate_id: "candidate-r1",
+        branch: "fix/profile-chat",
+        commit: "preview-r1",
+        base: "development",
+      },
+      {
+        candidate_id: "candidate-r2",
+        branch: "fix/profile-chat",
+        commit: "preview-r2",
+        base: "development",
+      },
+    ],
+    tasks: [],
+    waits: [],
     documents: previewDocumentMetadata,
     current_stage_event_id: "event_plan_r3",
     viewer_session_id:
@@ -30,11 +71,17 @@ export const timelineFixture: TimelineSessionResponse = {
     validation_count: 2,
     tickets: [
       {
+        ticket_id: "ticket-1",
+        external_scope: "https://example.test/tracker",
+        external_id: "COM-1",
         key: "COM-1",
         title: "Espaciado del perfil",
         url: "https://example.test/tickets/COM-1",
       },
       {
+        ticket_id: "ticket-2",
+        external_scope: "https://example.test/tracker",
+        external_id: "COM-2",
         key: "COM-2",
         title: "Filtros de conversaciones",
         url: "https://example.test/tickets/COM-2",
@@ -42,6 +89,7 @@ export const timelineFixture: TimelineSessionResponse = {
     ],
     events: [
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         event_id: "event_request",
         sequence: 1,
         version: 1,
@@ -53,16 +101,23 @@ export const timelineFixture: TimelineSessionResponse = {
         origin: "agent_reported",
         ticket_refs: [
           {
-            key: "COM-1",
-            url: "https://example.test/tickets/COM-1",
+            ticket_id: "ticket-1",
+            snapshot: {
+              key: "COM-1",
+              url: "https://example.test/tickets/COM-1",
+            },
           },
           {
-            key: "COM-2",
-            url: "https://example.test/tickets/COM-2",
+            ticket_id: "ticket-2",
+            snapshot: {
+              key: "COM-2",
+              url: "https://example.test/tickets/COM-2",
+            },
           },
         ],
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         event_id: "event_started",
         sequence: 2,
         version: 1,
@@ -74,21 +129,24 @@ export const timelineFixture: TimelineSessionResponse = {
         origin: "agent_reported",
         ticket_refs: [
           {
-            key: "COM-1",
-            url: "https://example.test/tickets/COM-1",
+            ticket_id: "ticket-1",
+            snapshot: {
+              key: "COM-1",
+              url: "https://example.test/tickets/COM-1",
+            },
           },
           {
-            key: "COM-2",
-            url: "https://example.test/tickets/COM-2",
+            ticket_id: "ticket-2",
+            snapshot: {
+              key: "COM-2",
+              url: "https://example.test/tickets/COM-2",
+            },
           },
         ],
-        candidate: {
-          branch: "fix/profile-chat",
-          commit: "preview-r1",
-          base: "development",
-        },
+        candidate_id: "candidate-r1",
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         event_id: "event_pr",
         sequence: 3,
         version: 1,
@@ -101,24 +159,34 @@ export const timelineFixture: TimelineSessionResponse = {
         origin: "agent_reported",
         ticket_refs: [
           {
-            key: "COM-1",
-            url: "https://example.test/tickets/COM-1",
+            ticket_id: "ticket-1",
+            snapshot: {
+              key: "COM-1",
+              url: "https://example.test/tickets/COM-1",
+            },
           },
           {
-            key: "COM-2",
-            url: "https://example.test/tickets/COM-2",
+            ticket_id: "ticket-2",
+            snapshot: {
+              key: "COM-2",
+              url: "https://example.test/tickets/COM-2",
+            },
           },
         ],
-        deliveries: [
+        delivery_refs: [
           {
-            kind: "pull_request",
-            label: "PR #42",
-            url: "https://example.test/pull/42",
-            status: "open",
+            delivery_id: "delivery-pr",
+            snapshot: {
+              kind: "pull_request",
+              label: "PR #42",
+              url: "https://example.test/pull/42",
+              status: "open",
+            },
           },
         ],
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         event_id: "event_validation",
         sequence: 4,
         version: 1,
@@ -130,19 +198,21 @@ export const timelineFixture: TimelineSessionResponse = {
         origin: "agent_reported",
         ticket_refs: [
           {
-            key: "COM-1",
-            url: "https://example.test/tickets/COM-1",
+            ticket_id: "ticket-1",
+            snapshot: {
+              key: "COM-1",
+              url: "https://example.test/tickets/COM-1",
+            },
           },
           {
-            key: "COM-2",
-            url: "https://example.test/tickets/COM-2",
+            ticket_id: "ticket-2",
+            snapshot: {
+              key: "COM-2",
+              url: "https://example.test/tickets/COM-2",
+            },
           },
         ],
-        candidate: {
-          branch: "fix/profile-chat",
-          commit: "preview-r1",
-          base: "development",
-        },
+        candidate_id: "candidate-r1",
         evidence_id: "evidence_initial",
         views: [
           {
@@ -150,8 +220,11 @@ export const timelineFixture: TimelineSessionResponse = {
             title: "Perfil personal",
             ticket_refs: [
               {
-                key: "COM-1",
-                url: "https://example.test/tickets/COM-1",
+                ticket_id: "ticket-1",
+                snapshot: {
+                  key: "COM-1",
+                  url: "https://example.test/tickets/COM-1",
+                },
               },
             ],
             steps: [
@@ -176,8 +249,11 @@ export const timelineFixture: TimelineSessionResponse = {
             title: "Conversaciones",
             ticket_refs: [
               {
-                key: "COM-2",
-                url: "https://example.test/tickets/COM-2",
+                ticket_id: "ticket-2",
+                snapshot: {
+                  key: "COM-2",
+                  url: "https://example.test/tickets/COM-2",
+                },
               },
             ],
             steps: [
@@ -200,6 +276,7 @@ export const timelineFixture: TimelineSessionResponse = {
         ],
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         event_id: "event_changes",
         sequence: 5,
         version: 1,
@@ -212,8 +289,11 @@ export const timelineFixture: TimelineSessionResponse = {
         origin: "agent_reported",
         ticket_refs: [
           {
-            key: "COM-2",
-            url: "https://example.test/tickets/COM-2",
+            ticket_id: "ticket-2",
+            snapshot: {
+              key: "COM-2",
+              url: "https://example.test/tickets/COM-2",
+            },
           },
         ],
         target: {
@@ -225,6 +305,7 @@ export const timelineFixture: TimelineSessionResponse = {
         source_reference: "Solicitud de ejemplo en el chat",
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         event_id: "event_iteration",
         sequence: 6,
         version: 1,
@@ -237,15 +318,14 @@ export const timelineFixture: TimelineSessionResponse = {
         origin: "agent_reported",
         ticket_refs: [
           {
-            key: "COM-2",
-            url: "https://example.test/tickets/COM-2",
+            ticket_id: "ticket-2",
+            snapshot: {
+              key: "COM-2",
+              url: "https://example.test/tickets/COM-2",
+            },
           },
         ],
-        candidate: {
-          branch: "fix/profile-chat",
-          commit: "preview-r2",
-          base: "development",
-        },
+        candidate_id: "candidate-r2",
         evidence_id: "evidence_iteration",
         views: [
           {
@@ -253,8 +333,11 @@ export const timelineFixture: TimelineSessionResponse = {
             title: "Chat móvil",
             ticket_refs: [
               {
-                key: "COM-2",
-                url: "https://example.test/tickets/COM-2",
+                ticket_id: "ticket-2",
+                snapshot: {
+                  key: "COM-2",
+                  url: "https://example.test/tickets/COM-2",
+                },
               },
             ],
             steps: [
@@ -286,6 +369,7 @@ export const timelineFixture: TimelineSessionResponse = {
     ],
     artifacts: [
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         artifact_id: "artifact_profile-light",
         session_id:
           "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -295,15 +379,12 @@ export const timelineFixture: TimelineSessionResponse = {
         media_type: "image/png",
         received_at: "2026-10-31T18:20:00-06:00",
         captured_at: "2026-10-31T18:19:00-06:00",
-        candidate: {
-          branch: "fix/profile-chat",
-          commit: "preview-r1",
-          base: "development",
-        },
+        candidate_id: "candidate-r1",
         viewport: "desktop",
         theme: "light",
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         artifact_id: "artifact_profile-mobile",
         session_id:
           "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -313,15 +394,12 @@ export const timelineFixture: TimelineSessionResponse = {
         media_type: "image/png",
         received_at: "2026-10-31T18:20:00-06:00",
         captured_at: "2026-10-31T18:19:00-06:00",
-        candidate: {
-          branch: "fix/profile-chat",
-          commit: "preview-r1",
-          base: "development",
-        },
+        candidate_id: "candidate-r1",
         viewport: "mobile",
         theme: "light",
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         artifact_id: "artifact_chat-light",
         session_id:
           "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -331,15 +409,12 @@ export const timelineFixture: TimelineSessionResponse = {
         media_type: "image/png",
         received_at: "2026-10-31T18:20:00-06:00",
         captured_at: "2026-10-31T18:19:00-06:00",
-        candidate: {
-          branch: "fix/profile-chat",
-          commit: "preview-r1",
-          base: "development",
-        },
+        candidate_id: "candidate-r1",
         viewport: "desktop",
         theme: "light",
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         artifact_id: "artifact_chat-mobile-before",
         session_id:
           "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -349,15 +424,12 @@ export const timelineFixture: TimelineSessionResponse = {
         media_type: "image/png",
         received_at: "2026-10-31T18:20:00-06:00",
         captured_at: "2026-10-31T18:19:00-06:00",
-        candidate: {
-          branch: "fix/profile-chat",
-          commit: "preview-r1",
-          base: "development",
-        },
+        candidate_id: "candidate-r1",
         viewport: "mobile",
         theme: "dark",
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         artifact_id: "artifact_chat-mobile-after",
         session_id:
           "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -367,15 +439,12 @@ export const timelineFixture: TimelineSessionResponse = {
         media_type: "image/png",
         received_at: "2026-10-31T19:08:00-06:00",
         captured_at: "2026-10-31T19:07:00-06:00",
-        candidate: {
-          branch: "fix/profile-chat",
-          commit: "preview-r2",
-          base: "development",
-        },
+        candidate_id: "candidate-r2",
         viewport: "mobile",
         theme: "light",
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         artifact_id: "artifact_chat-mobile-dark",
         session_id:
           "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -385,11 +454,7 @@ export const timelineFixture: TimelineSessionResponse = {
         media_type: "image/png",
         received_at: "2026-10-31T19:08:00-06:00",
         captured_at: "2026-10-31T19:07:00-06:00",
-        candidate: {
-          branch: "fix/profile-chat",
-          commit: "preview-r2",
-          base: "development",
-        },
+        candidate_id: "candidate-r2",
         viewport: "mobile",
         theme: "dark",
       },
@@ -415,13 +480,14 @@ export const timelineFixture: TimelineSessionResponse = {
 const stageTime = "2026-10-31T21:30:00-06:00";
 timelineFixture.session.events.push(
   {
+    actor: { kind: "native_producer", producer_id: "producer-original" },
     event_id: "event_research",
     sequence: 7,
     version: 2,
     kind: "stage",
     stage: "research",
     stage_state: "completed",
-    title: "Investigación",
+    title: "",
     summary: "Composición nativa y documentos de solo lectura.",
     origin: "agent_reported",
     ticket_refs: [],
@@ -431,6 +497,8 @@ timelineFixture.session.events.push(
     finished_at: "2026-10-31T20:15:00-06:00",
     document_snapshots: [
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
+        document_key: "research",
         document_revision_id: "revision_research",
         status: "complete",
         created_at: "2026-10-31T20:15:00-06:00",
@@ -439,13 +507,14 @@ timelineFixture.session.events.push(
     ],
   },
   {
+    actor: { kind: "native_producer", producer_id: "producer-original" },
     event_id: "event_plan_r2",
     sequence: 8,
     version: 2,
     kind: "stage",
     stage: "plan",
     stage_state: "completed",
-    title: "Plan anterior",
+    title: "Revisión anterior",
     summary: "Primera revisión del plan, conservada como documento completo.",
     origin: "agent_reported",
     ticket_refs: [],
@@ -455,6 +524,8 @@ timelineFixture.session.events.push(
     finished_at: "2026-10-31T20:30:00-06:00",
     document_snapshots: [
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
+        document_key: "plan",
         document_revision_id: "revision_plan_r2",
         status: "complete",
         created_at: "2026-10-31T20:30:00-06:00",
@@ -463,13 +534,14 @@ timelineFixture.session.events.push(
     ],
   },
   {
+    actor: { kind: "native_producer", producer_id: "producer-original" },
     event_id: "event_build_r2",
     sequence: 9,
     version: 2,
     kind: "stage",
     stage: "build",
     stage_state: "completed",
-    title: "Implementación de la composición",
+    title: "Composición",
     summary:
       "La evidencia visual de perfil y chat permanece en los nodos anteriores.",
     origin: "agent_reported",
@@ -480,13 +552,14 @@ timelineFixture.session.events.push(
     finished_at: "2026-10-31T21:00:00-06:00",
   },
   {
+    actor: { kind: "native_producer", producer_id: "producer-original" },
     event_id: "event_plan_r3",
     sequence: 10,
     version: 3,
     kind: "stage",
     stage: "plan",
     stage_state: "in_progress",
-    title: "Plan · revisión R3",
+    title: "Revisión R3",
     summary:
       "Etapas declaradas, revisiones de documentos y conservación manual. Extractos locales del plan; datos de previsualización.",
     origin: "agent_reported",
@@ -497,12 +570,18 @@ timelineFixture.session.events.push(
     related_event_id: "event_plan_r2",
     document_snapshots: [
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
+        document_key: "plan",
+        predecessor_revision_id: "revision_plan_r2",
         document_revision_id: "revision_plan_r3_initial",
         status: "draft",
         created_at: "2026-10-31T21:35:00-06:00",
         tabs: [{ label: "Propuesta", document_id: "document_earlier" }],
       },
       {
+        actor: { kind: "native_producer", producer_id: "producer-original" },
+        document_key: "plan",
+        predecessor_revision_id: "revision_plan_r3_initial",
         document_revision_id: "revision_plan_r3_current",
         status: "draft",
         created_at: "2026-10-31T21:40:00-06:00",
@@ -516,3 +595,17 @@ timelineFixture.session.events.push(
     ],
   },
 );
+
+// Emulate server publication capture once, before previews can patch the catalog.
+for (const event of timelineFixture.session.events) {
+  event.ticket_refs = captureTimelineTicketReferences(
+    timelineFixture.session,
+    event.ticket_refs.map((ref) => ref.ticket_id),
+  );
+  for (const view of event.views ?? []) {
+    view.ticket_refs = captureTimelineTicketReferences(
+      timelineFixture.session,
+      view.ticket_refs.map((ref) => ref.ticket_id),
+    );
+  }
+}

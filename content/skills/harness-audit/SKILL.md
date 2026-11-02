@@ -5,11 +5,13 @@ description: Audit coding-agent instruction files (AGENTS.md and CLAUDE.md at wo
 
 # Harness audit
 
-Audit what coding-agent hosts actually load and whether each instruction, skill, or agent earns its place. Report findings with evidence, ask the decisions they need, and, after the user's answer, apply the accepted outcomes in the current project, as [Apply accepted outcomes](#apply-accepted-outcomes) sets. A read-only role, such as `hive-review-harness`, only reports and returns those decisions to its parent, which asks and applies.
+Audit what coding-agent hosts actually load and whether each instruction, skill, or agent earns its place. Report findings with evidence, ask the decisions they need, and, after the user's answer, apply the accepted outcomes in the current project as [apply](references/apply.md) sets.
+
+A role launched read-only, such as `hive-review-harness`, or a delegated auditor edits nothing: it returns findings, decisions and any migration manifest to its parent, which asks and applies. In the main thread, write only what [apply](references/apply.md) allows after the user's answer, plus an approved migration manifest, whose mechanical entries run through the `workspace-conventions` procedure for applying a layout migration, stopping at `manual` and `ask` entries. Do not edit configuration outside the project or trackers.
 
 ## Scope
 
-Before resolving project settings needed by the audit or migration, read the global guidance's «Project settings» section. Before applying an outcome that writes `Specs`, creates a specs directory, or creates or continues a change record, read [change folder](../flow-plan/SKILL.md#change-folder); before writing or cleaning supporting artifacts, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). An audit that applies nothing needs neither. Before findings or messages with citations, links or externally defined IDs, read [final report](../flow-close/SKILL.md#final-report); before a user decision, read the global guidance's «Questions and routes» section.
+Before applying an outcome that writes `Specs`, creates a specs directory, or creates or continues a change record, read [change folder](../flow-plan/SKILL.md#change-folder); before writing or cleaning supporting artifacts, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). An audit that applies nothing needs neither.
 
 Establish before reading deeply:
 
@@ -20,13 +22,13 @@ Establish before reading deeply:
 
 ## Procedure
 
-1. For instruction files, read [hierarchy](references/hierarchy.md) and compute the effective set per host and entry point before judging any single file. When the project's sessions start at more than one entry point, or the caller asks why sessions behave differently by where they start, add the memory and folder trust of each entry point for the hosts in use (HA-HI-08 to HA-HI-10). When the caller asks to audit or clean memory, check HA-HI-08 and HA-HI-11 for every host in use and the project's Engram records, even from a single entry point. Then read [instruction files](references/instruction-files.md) and apply its admission test and rules.
+1. For instruction files, read [hierarchy](references/hierarchy.md) and compute the effective set per host and entry point before judging any single file. When the project's sessions start at more than one entry point, or the caller asks why sessions behave differently by where they start, or asks to audit or clean memory, read [memory](references/memory.md) too: it covers HA-HI-08 to HA-HI-11, and for a memory request every host in use and the project's Engram records, even from a single entry point. Then read [instruction files](references/instruction-files.md) and apply its admission test and rules.
 2. For skills or agents, read [skills and agents](references/skills-and-agents.md), together with the project's own authoring conventions.
 3. Before running any native tool, relying on its output, or asserting version-sensitive loading behavior, read [native tools](references/native-tools.md).
 4. For a project's repositories, or when the caller asks to prepare a layout migration, read [project layout](references/project-layout.md) and include its migration manifest.
 5. Before proposing `delete`, `demote`, or `soften`, or reporting `already lean`, for any artifact type, read [instruction files](references/instruction-files.md) for HA-IF-10, HA-IF-13, and HA-IF-14, and recover the rule's rationale (HA-IF-10).
-6. Report in the format below. Prefer fewer, consequential findings over exhaustive restatement.
-7. Ask the decisions and apply the accepted outcomes, as [Apply accepted outcomes](#apply-accepted-outcomes) sets.
+6. Report in the format below. Prefer fewer findings: report each `high` and `medium` finding in full, and group `low` and `info` findings by rule ID with a count.
+7. Ask the decisions as [Ask](#ask) sets; after the user's answer, read [apply](references/apply.md).
 
 When the caller asks only to set up or update a repository's `## Hive` section, such as onboarding a project to Hive, limit the audit to HA-IF-17 and HA-PL-01 for each repository it names and for the workspace section when sessions start there, and to the prose those rules relocate; then continue at step 6.
 
@@ -60,15 +62,16 @@ For each finding give severity, `file:line`, rule ID, outcome, evidence (quoted 
 
 Close with coverage: targets, entry points, hosts, native outputs used, what was not verified, and decisions needed from the caller. Report `no material findings` when that is the result; it does not certify uninspected areas.
 
-## Apply accepted outcomes
+## Ask
 
-1. **Ask.** In one round, by following the global guidance's «Questions and routes» section, ask the decisions the findings need: each HA-IF-08 choice of which version to keep and each conflict with a global layer; each standing grant written in prose, to remove or keep as a stated exception; each `## Hive` value the repository's evidence does not settle; each memory entry to change, grouped by host and store, with every deletion named one by one; and which outcomes to apply, one option per group of findings with its files. When the applied edits will end in a Git delivery in a code repository, add to that round the delivery and review questions of the global guidance's «Delivery» section, which must be answered before the first edit; `hold` keeps the edits uncommitted. Wait for the answers; a delegated auditor returns the decisions to its parent, which asks.
-2. **Apply.** After the answer, edit only the current project, with the host's file-editing tool, and only the outcomes the answer accepted: `delete`, `discoverable`, `stale`, `relocate`, `re-anchor`, `soften`, `demote` with its one-line pointer, `fix`, `insert`, and the `## Hive` section with the facts the global guidance's «Project settings» section defines. For an accepted memory outcome (HA-HI-08, HA-HI-11), change only entries about the current project, through the path [hierarchy](references/hierarchy.md#memory-per-entry-point) gives for that host. Before editing a memory file, copy it to a dated backup outside the directories the host reads, with the same permissions, and name the backup in the report; a file that holds a secret value gets no backup. Change an Engram record by updating it, and delete one only when the answer named it. Never change a store setting. Leave `keep` and `manual` entries untouched and list the `manual` ones as remaining work. Never apply `propose-global`, never write `CLAUDE.local.md`, and never edit another project: report its findings for that project's own session.
-3. **Validate.** For each repository whose `## Hive` section you wrote, run `hive doctor --project <repository>`: exit status 0 and no line naming a retired key mean the section is valid; any other status means it is not, so fix it and run again. When `hive` is not on the `PATH`, and for a workspace section, which `hive doctor` does not check, reread the section against the global guidance's «Project settings» section and report that the command check did not run.
-4. **Deliver.** Commits, pushes and pull requests follow the mode chosen in step 1, through [flow-build](../flow-build/SKILL.md) and [git-workflow](../git-workflow/SKILL.md).
+In one round, following the global guidance's «Questions and routes», ask the decisions the findings need:
+
+- each HA-IF-08 choice of which version to keep and each conflict with a global layer;
+- each standing grant written in prose, to remove or keep as a stated exception;
+- each `## Hive` value the repository's evidence does not settle;
+- each memory entry to change, grouped by host and store, with every deletion named one by one;
+- which outcomes to apply. Exception to one question per decision: group these as one option per group of findings, each with its files.
+
+When the applied edits will end in a Git delivery in a code repository, add the delivery and review questions of «Delivery» to that round; they must be answered before the first edit. Apply nothing before the answers.
 
 Under [unattended delegation](../unattended-delegation/SKILL.md), leave unapplied and report the decisions that belong to the user: which version of a rule to keep, a conflict with a global layer, and each standing grant in prose.
-
-## Boundaries
-
-A role launched read-only, such as `hive-review-harness`, edits nothing: it returns findings, decisions and any migration manifest to its parent, which asks and applies. In the main thread, write only what [Apply accepted outcomes](#apply-accepted-outcomes) allows after the user's answer, and an approved migration manifest, whose mechanical entries run through the `workspace-conventions` procedure for applying a layout migration, stopping at `manual` and `ask` entries. Do not edit configuration outside the project or trackers, and edit memory only as [Apply accepted outcomes](#apply-accepted-outcomes) sets. Never propose writing `CLAUDE.local.md`. Run only static tools your boundary allows, and request the rest from the caller; run a model-invoking evaluation only when the caller authorizes it with a cost cap (HA-ME-01).

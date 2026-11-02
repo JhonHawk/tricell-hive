@@ -10,7 +10,7 @@ When this work has a viewer session or a legacy walkthrough, follow [flow-walkth
 The completion point is the merge into the base branch. When a human reviewer is assigned to the pull request, opening it is the completion point: the ticket stays in progress, and a later session that finds it merged runs this close.
 
 1. When the work is integrated into the base branch, move its ticket to the state the project uses for that.
-2. Close an integrated change folder: merge each delta into `<Specs>/specs/<capability>/spec.md`, mark `proposal.md` completed, move the folder to `<Specs>/changes/archive/YYYY-MM-DD-<change-id>/`, and deliver that move as the delivery says.
+2. Steps 1 and 2 are independent: run them together. Close an integrated change folder: merge each delta into `<Specs>/specs/<capability>/spec.md`, mark `proposal.md` completed, move the folder to `<Specs>/changes/archive/YYYY-MM-DD-<change-id>/`, and deliver that move as the delivery says.
 3. After the viewer close above, clean up as [Branch cleanup](#branch-cleanup) sets, stop the processes this work started, and remove its reproducible temporary files. Keep anything with uncommitted work or uncertain ownership.
 4. Write the final report as [Final report](#final-report) sets.
 5. Write the outcome to persistent memory.
@@ -29,11 +29,11 @@ Report the whole work item in one message, each part only when it has content:
 - **Findings:** the defects not fixed, as [Findings](#findings) sets.
 - **Next:** what remains, with who owns it, and what comes next.
 
-When the user will share or keep this report, offer a `flow-report` page as one option of the close question.
+When the user asks to keep or share this report, or it exceeds what fits on one screen, offer a `flow-report` page as one option of the close question.
 
 ## Findings
 
-A finding is a defect the work found but did not fix: a review finding below P1, a UI defect that was already there, a test that already failed or fails intermittently (keep its error output), or anything else noticed on the way. A finding of P2 or higher with a concrete failure scenario is proposed; the rest are listed in one line each in the final report. Never open a ticket without the user's answer.
+A finding is a defect the work found but did not fix: a review finding below P1, a UI defect that was already there, a test that already failed or fails intermittently (keep its error output), or anything else noticed on the way. Every finding carries one priority by its observable impact, whatever scale its source used: P0 blocks the release, an operation or a core flow for every input; P1 must be fixed before merge; P2 should be fixed but does not block; P3 is minor. A finding of P2 or higher with a concrete failure scenario is proposed; the rest are listed in one line each in the final report. P2 findings that share an area or a cause are proposed as one group that lists each member with its evidence; findings of P1 or higher are proposed one by one. Never open a ticket without the user's answer.
 
 ## Close question
 
@@ -49,9 +49,9 @@ Ask once, as the global guidance sets, with these options:
 | --- | --- | --- | --- |
 | H1 | <what, with its severity> | <where, how it fails, who it affects, the evidence> | <open a ticket, ignore, or fix now, with its reason> |
 
-Recommend fixing now when the fix is small, in the area the work touched and has no new effect; a ticket when it is larger or belongs to another area; ignoring when it did not recur or has no impact. After the table, ask the findings as a round, as the global guidance's «Questions and routes» section sets: each finding is one question with the options fix now, ticket and ignore, its recommendation starred; the user may answer all at once or a few at a time, such as "ok" or "H1 ticket, H2 ignore". A ticket answer opens it unless one already exists; a fix-now answer goes through `flow-build` with the code review of the fix and its checks; an ignore answer is noted in the report. When every finding has an answer, ask the close question again without this option.
+Recommend fixing now when the fix changes only files this work already changed and adds no task, dependency or effect; a ticket when it is larger or belongs to another area; ignoring when it did not recur or has no impact. After the table, ask the findings as a round, as the global guidance's «Questions and routes» section sets: each finding is one question with the options fix now, ticket and ignore, its recommendation starred; the user may answer all at once or a few at a time, such as "ok" or "H1 ticket, H2 ignore". A ticket answer opens it unless one already exists; a fix-now answer goes through `flow-build` with the code review of the fix and its checks; an ignore answer is noted in the report. When every finding has an answer, ask the close question again without this option.
 
-**Find the next ticket** runs `flow-status` with the cut of the tickets that reuse this session's context: the files, modules and decisions it touched. Leave out the tickets another session has in progress and those opened from this work's findings, unless they are P0 or P1. Recommend the one that reuses the most context, with its estimated size; choosing it starts `flow-research` to assess it.
+**Find the next ticket** runs `flow-status` with the cut of the tickets that reuse this session's context: the files, modules and decisions it touched. Leave out the tickets another session has in progress and those opened from this work's findings, unless they are P0 or P1. Recommend the one that reuses the most context, with its task count (from its description or checklist); choosing it starts `flow-research` to assess it.
 
 ## Branch cleanup
 

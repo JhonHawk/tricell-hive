@@ -3,6 +3,7 @@ package viewer
 import (
 	"encoding/json"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -11,8 +12,8 @@ func TestTimelineProtocolOfflineExamplesUseProductionDecoders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if contract.ProtocolVersion != 1 || contract.Retention != "manual" || contract.TTLSeconds != 0 || len(contract.Commands) != 13 {
-		t.Fatalf("invalid contract metadata: %+v", contract)
+	if contract.ProtocolVersion != 3 || contract.Retention != "manual" || contract.TTLSeconds != 0 || len(contract.Commands) != 28 {
+		t.Fatal("invalid contract metadata")
 	}
 	for _, command := range contract.Commands {
 		t.Run(command.Operation, func(t *testing.T) {
@@ -39,7 +40,7 @@ func TestTimelineProtocolOfflineExamplesUseProductionDecoders(t *testing.T) {
 					t.Fatal("read must have no body")
 				}
 			default:
-				t.Fatal("unknown command")
+				_, err = DecodeTimelineV3Operation(command.Operation, command.Example)
 			}
 			if err != nil {
 				t.Fatal(err)
@@ -130,5 +131,67 @@ func TestTimelineProtocolResultSchemasUseProductionAllowedFields(t *testing.T) {
 				t.Fatal("schema leaked field", name)
 			}
 		}
+	}
+}
+
+func TestTimelineProtocolV3ApprovedLimitsAndAuditUnion(t *testing.T) {
+	contract, err := TimelineProtocolContract("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for key, want := range map[string]int64{"waits": 50, "wait_attempts": 20, "required_checks": 50, "wait_text": 500} {
+		if contract.Limits[key] != want {
+			t.Fatalf("%s limit: got %d want %d", key, contract.Limits[key], want)
+		}
+	}
+	cases := []struct {
+		typ   reflect.Type
+		field string
+		want  int
+	}{{reflect.TypeOf(TimelineSession{}), "waits", 50}, {reflect.TypeOf(TimelineCIWait{}), "attempts", 20}, {reflect.TypeOf(TimelineCheckPolicy{}), "required_checks", 50}, {reflect.TypeOf(TimelineWaitAttemptStartRequest{}), "check_keys", 50}}
+	for _, c := range cases {
+		props := timelineProtocolSchema(c.typ)["properties"].(map[string]any)
+		if props[c.field].(map[string]any)["maxItems"] != c.want {
+			t.Fatalf("%s.%s bound drift", c.typ.Name(), c.field)
+		}
+	}
+	audit := timelineProtocolSchema(reflect.TypeOf(TimelineAudit{}))
+	branches, ok := audit["oneOf"].([]any)
+	if !ok || len(branches) != 6 {
+		t.Fatal("audit is not a closed operation union")
+	}
+	for _, b := range branches {
+		if b.(map[string]any)["additionalProperties"] != false {
+			t.Fatal("audit permits unknown keys")
+		}
+	}
+	for _, op := range []string{"wait_create", "wait_attempt_start", "wait_observe"} {
+		if !strings.Contains(contract.Authority[op], "assigned delivery-segment") {
+			t.Fatal("wait authority drift", op)
+		}
+	}
+}
+
+func TestTimelineCandidateSchemaPreservesInheritedBounds(t *testing.T) {
+	c, err := TimelineProtocolContract("candidate_create")
+	if err != nil {
+		t.Fatal(err)
+	}
+	props := c.Commands[0].InputSchema["properties"].(map[string]any)
+	if props["reason"].(map[string]any)["maxLength"] != 500 {
+		t.Fatal("candidate schema overrides reason bound", props["reason"])
+	}
+	for _, field := range []string{"branch", "commit", "base"} {
+		if props[field].(map[string]any)["maxLength"] != 256 {
+			t.Fatal("candidate descriptor bound missing", field)
+		}
+	}
+	var request TimelineCandidateCreateRequest
+	if err = DecodeTimelineJSON(c.Commands[0].Example, &request); err != nil {
+		t.Fatal(err)
+	}
+	request.Reason = strings.Repeat("r", 500)
+	if err = ValidateTimelineV3Operation(&request); err != nil {
+		t.Fatal("500-character reason rejected", err)
 	}
 }

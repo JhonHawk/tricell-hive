@@ -3,11 +3,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import { completeFixture } from "../dev/timeline-complete-fixture";
 import { TimelineContent } from "../timeline-content";
 import type {
   TimelineEvent,
   TimelineSessionResponse,
 } from "../timeline-contract";
+import { timelineCopy } from "../timeline-copy";
 import { TimelineHeader } from "../timeline-header";
 
 const sid = "a".repeat(64);
@@ -17,9 +19,14 @@ const candidate = {
   base: "development",
 };
 const stamp = "2026-10-31T18:00:00-06:00";
-const ticket = { key: "COM-1", url: "https://example.com/tickets/COM-1" };
+const ticket = {
+  ticket_id: "ticket-one",
+  snapshot: { key: "COM-1", url: "https://example.com/tickets/COM-1" },
+};
+const secondTicket = { ticket_id: "ticket-two", snapshot: { key: "COM-2" } };
 function fixture(): TimelineSessionResponse {
   const event: TimelineEvent = {
+    actor: { kind: "native_producer", producer_id: "producer-original" },
     event_id: "event-first",
     sequence: 1,
     version: 1,
@@ -29,14 +36,14 @@ function fixture(): TimelineSessionResponse {
     created_at: stamp,
     updated_at: stamp,
     origin: "agent_reported",
-    ticket_refs: [ticket, { key: "COM-2" }],
+    ticket_refs: [ticket, secondTicket],
     evidence_id: "evidence-first",
-    candidate,
+    candidate_id: "candidate-test",
     views: [
       {
         view_id: "view-chat",
         title: "Chat",
-        ticket_refs: [ticket, { key: "COM-2" }],
+        ticket_refs: [ticket, secondTicket],
         steps: ["Open Chat.", "Choose a filter."],
         expected_result: "The icon stays beside search.",
         image_refs: [
@@ -47,10 +54,27 @@ function fixture(): TimelineSessionResponse {
     ],
   };
   return {
-    schema_version: 1,
+    schema_version: 3,
     mode: "timeline_api",
     session: {
-      schema_version: 1,
+      schema_version: 3,
+      producers: [
+        {
+          producer_id: "producer-original",
+          source: {
+            project_root: "/fixture",
+            host: "codex",
+            native_session_id: "native-example",
+          },
+          joined_at: stamp,
+        },
+      ],
+      foreground_producer_id: "producer-original",
+      pending_join_requests: [],
+      tasks: [],
+      deliveries: [],
+      candidates: [{ candidate_id: "candidate-test", ...candidate }],
+      waits: [],
       documents: [],
       current_stage_event_id: null,
       viewer_session_id: sid,
@@ -70,17 +94,23 @@ function fixture(): TimelineSessionResponse {
       created_at: stamp,
       updated_at: stamp,
       validation_count: 1,
-      tickets: [ticket, { key: "COM-2" }],
+      tickets: [ticket, secondTicket].map((t) => ({
+        ticket_id: t.ticket_id,
+        external_scope: "https://example.com/tracker",
+        external_id: t.snapshot.key,
+        ...t.snapshot,
+      })),
       events: [event],
       artifacts: ["image-one", "image-two"].map((artifact_id) => ({
         artifact_id,
+        actor: { kind: "native_producer", producer_id: "producer-original" },
         session_id: sid,
         sha256: "b".repeat(64),
         size: 100,
         media_type: "image/png",
         received_at: stamp,
         captured_at: stamp,
-        candidate,
+        candidate_id: "candidate-test",
         viewport: "mobile",
         theme: "light",
       })),
@@ -111,13 +141,14 @@ async function click(label: string) {
   });
 }
 
-test("timeline is newest-first, shared tickets do not duplicate a view, and steps stay behind Instructions", async () => {
+test("timeline is ascending, shared tickets do not duplicate a view, and steps stay behind Instructions", async () => {
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
   const data = fixture();
   data.session.events.push({
     ...data.session.events[0],
+    actor: { kind: "native_producer", producer_id: "producer-original" },
     event_id: "event-later",
     evidence_id: "evidence-later",
     sequence: 2,
@@ -129,10 +160,8 @@ test("timeline is newest-first, shared tickets do not duplicate a view, and step
     root.render(<TimelineContent data={data} onRetry={() => {}} />);
   });
   assert.deepEqual(
-    [...container.querySelectorAll('[data-slot="timeline-item"]')].map(
-      (e) => e.id,
-    ),
-    ["timeline-event-event-later", "timeline-event-event-first"],
+    [...container.querySelectorAll("[data-event-id]")].map((e) => e.id),
+    ["timeline-event-event-first", "timeline-event-event-later"],
   );
   assert.equal(
     container.querySelectorAll('section[aria-label="Chat"]').length,
@@ -143,9 +172,7 @@ test("timeline is newest-first, shared tickets do not duplicate a view, and step
       .length,
     0,
   );
-  for (const item of container.querySelectorAll(
-    '[data-slot="timeline-item"]',
-  )) {
+  for (const item of container.querySelectorAll("[data-event-id]")) {
     assert.equal(item.querySelectorAll("time").length, 1);
     assert.ok(item.querySelector('[data-slot="timeline-event-footer"] time'));
   }
@@ -330,6 +357,150 @@ test("empty, loading and error regions expose reload/retry instead of fabricated
   assert.ok(container.querySelector('[aria-label="Loading evidence"]'));
   await click("Retry");
   assert.equal(retries, 2);
+  await act(async () => root.unmount());
+  container.remove();
+});
+
+test("state audit and validation icons follow their declared state without an extra node ring", async (t) => {
+  const { completeFixture } = await import("../dev/timeline-complete-fixture");
+  const data = completeFixture();
+  const stage = data.session.events.find((e) => e.stage === "delivery");
+  assert.ok(stage);
+  stage.stage_state = "awaiting_validation";
+  data.session.state = "awaiting_validation";
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  t.after(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+  });
+  await act(async () =>
+    root.render(
+      <TimelineContent
+        data={data}
+        defaultExpandedTaskIDs={["task-2"]}
+        onRetry={() => {}}
+      />,
+    ),
+  );
+  const blocked = container.querySelector(
+    '#timeline-event-task-block-audit [data-slot="timeline-indicator"]',
+  );
+  assert.ok(blocked);
+  assert.match(
+    blocked.querySelector("svg")?.getAttribute("class") ?? "",
+    /circle-alert/,
+  );
+  assert.ok(blocked.classList.contains("border-0"));
+  const validation = container.querySelector(
+    '#timeline-event-delivery-stage [data-slot="timeline-indicator"]',
+  );
+  assert.ok(validation);
+  assert.match(
+    validation.querySelector("svg")?.getAttribute("class") ?? "",
+    /circle-pause/,
+  );
+});
+
+test("an open gallery retains its captured candidate when another work reuses the opaque candidate ID", async (t) => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  t.after(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+  });
+  const data = fixture();
+  await act(async () =>
+    root.render(<TimelineContent data={data} onRetry={() => {}} />),
+  );
+  await click("Captures: Chat · 390 px · light");
+  const next = structuredClone(data);
+  next.session.viewer_session_id = "c".repeat(64);
+  next.session.candidates[0].commit = "other-work-commit";
+  await act(async () =>
+    root.render(<TimelineContent data={next} onRetry={() => {}} />),
+  );
+  const dialog = document.querySelector('[role="dialog"]');
+  assert.ok(dialog?.textContent?.includes("abc1234"));
+  assert.equal(dialog?.textContent?.includes("other-work-commit"), false);
+  await click("Close");
+});
+
+test("retired tasks retain accessible stage evidence without a false empty state", async () => {
+  const data = completeFixture();
+  for (const task of data.session.tasks) {
+    if (task.task_key === "T2" || task.task_key === "T7") task.withdrawn = true;
+  }
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => {
+      root.render(<TimelineContent data={data} lang="en" onRetry={() => {}} />);
+    });
+    assert.ok(container.querySelector('[data-event-id="profile-evidence"]'));
+    assert.equal(
+      container.querySelectorAll('[data-wait-id="ci-wait"]').length,
+      1,
+    );
+    assert.equal(container.querySelector('[data-task-id="task-2"]'), null);
+    assert.equal(container.querySelector('[data-task-id="task-7"]'), null);
+    const delivery = container.querySelector(
+      '[data-event-id="delivery-stage"]',
+    );
+    assert.ok(delivery);
+    assert.equal(
+      delivery.textContent?.includes(timelineCopy("en").noTasks),
+      false,
+    );
+    await click("CI — Pull request checks");
+    assert.ok(
+      document
+        .querySelector('[role="dialog"]')
+        ?.textContent?.includes("Required checks"),
+    );
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
+});
+
+test("a server state transition shows its reason once, in a title that wraps", async () => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const data = fixture();
+  const reason =
+    "Delivery paused at the user's request: local commits without push or pull request";
+  data.session.events.push({
+    actor: { kind: "native_producer", producer_id: "producer-original" },
+    event_id: "event-paused",
+    sequence: 2,
+    version: 1,
+    kind: "state_transition",
+    title: reason,
+    summary: reason,
+    created_at: stamp,
+    updated_at: stamp,
+    origin: "server",
+    ticket_refs: [],
+    audit: {
+      operation: "session_patch",
+      reason,
+      previous_state: "active",
+      next_state: "paused",
+    },
+  } as TimelineEvent);
+  await act(async () => {
+    root.render(<TimelineContent data={data} onRetry={() => {}} />);
+  });
+  const item = container.querySelector("#timeline-event-event-paused");
+  assert.ok(item);
+  assert.equal(item.textContent?.split(reason).length, 2);
+  const title = item.querySelector('[data-slot="timeline-title"]');
+  assert.equal(title?.className.includes("truncate"), false);
   await act(async () => root.unmount());
   container.remove();
 });

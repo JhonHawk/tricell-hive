@@ -69,7 +69,7 @@ test("timeline output validates shared separate-view and focused-iteration fixtu
   assert.equal(s.validation_count, 2);
   assert.equal(s.events.length, 6);
   assert.equal(s.state, "active");
-  assert.equal(s.events[5].deliveries?.[0].status, "open");
+  assert.equal(s.events[5].delivery_refs?.[0].snapshot.status, "open");
   assert.equal(s.events[2].views?.length, 2);
   assert.equal(s.events[2].views?.[1].ticket_refs.length, 2);
   assert.equal(s.events[3].views?.length, 1);
@@ -106,7 +106,9 @@ const corruptions: [string, (s: TimelineSession) => void][] = [
   [
     "unknown ticket",
     (s) => {
-      evidenceViews(s.events[2])[0].ticket_refs = [{ key: "OTHER" }];
+      evidenceViews(s.events[2])[0].ticket_refs = [
+        { ticket_id: "unknown", snapshot: { key: "OTHER" } },
+      ];
     },
   ],
   [
@@ -186,13 +188,11 @@ test("runtime reference checking uses session membership, not matching names", (
   requestViews(r)[0].image_refs[0].artifact_id = "foreign_image";
   assert.throws(() => validateTimelineEventReferences(s, r));
   requestViews(r)[0].image_refs[0].artifact_id = "artifact_chat";
-  requestViews(r)[0].ticket_refs = [
-    { key: "COM-1", url: "https://other.example/COM-1" },
-  ];
+  requestViews(r)[0].ticket_ids = ["unknown-ticket"];
   assert.throws(() => validateTimelineEventReferences(s, r));
   assert.notEqual(
     timelineTicketIdentity(s.tickets[0]),
-    timelineTicketIdentity(requestViews(r)[0].ticket_refs[0]),
+    requestViews(r)[0].ticket_ids[0],
   );
 });
 test("artifact URLs are transport-only, bound to known session artifacts", () => {
@@ -220,7 +220,7 @@ test("artifact URLs are transport-only, bound to known session artifacts", () =>
   );
   assert.doesNotThrow(() =>
     parseTimelineSessionResponse({
-      schema_version: 1,
+      schema_version: 3,
       mode: "timeline_api",
       session: s,
       artifact_urls: { artifact_profile: url },
@@ -228,7 +228,7 @@ test("artifact URLs are transport-only, bound to known session artifacts", () =>
   );
   assert.throws(() =>
     parseTimelineSessionResponse({
-      schema_version: 1,
+      schema_version: 3,
       mode: "timeline_api",
       session: s,
       artifact_urls: { foreign: url },
@@ -300,14 +300,12 @@ test("receipt retry contracts recover committed IDs and reject changed request d
   );
   assert.equal(Object.hasOwn(session(), "operation_receipts"), false);
 });
-test("index entry union preserves the existing legacy source record without creating native identity", () => {
-  const raw = JSON.parse(fixture("legacy-index-entry.json"));
-  const legacy = parseTimelineIndexEntry(raw);
-  assert.equal(legacy.mode, "legacy");
-  if (legacy.mode !== "legacy") assert.fail("Expected legacy index variant");
-  assert.deepEqual(legacy.session, raw.session);
-  assert.equal(legacy.session.session_id, "codex-20261019T150000Z");
-  assert.equal(Object.hasOwn(legacy.session, "viewer_session_id"), false);
+test("v2 index rejects legacy input", () => {
+  assert.throws(
+    () =>
+      parseTimelineIndexEntry(JSON.parse(fixture("legacy-index-entry.json"))),
+    TimelineContractError,
+  );
   const api = parseTimelineIndexEntry(
     JSON.parse(fixture("api-index-entry.json")),
   );
@@ -389,7 +387,7 @@ test("document route map accepts only scoped known immutable IDs", () => {
   const path = `/api/timeline/sessions/${s.viewer_session_id}/documents/doc-plan`;
   assert.ok(isSafeTimelineDocumentURL(path, s.viewer_session_id, "doc-plan"));
   const response = {
-    schema_version: 1,
+    schema_version: 3,
     mode: "timeline_api",
     session: s,
     document_urls: { "doc-plan": path },

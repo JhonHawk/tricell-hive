@@ -28,10 +28,27 @@ async function settle() {
 }
 function fixture(id = sid): TimelineSessionResponse {
   return {
-    schema_version: 1,
+    schema_version: 3,
     mode: "timeline_api",
     session: {
-      schema_version: 1,
+      schema_version: 3,
+      producers: [
+        {
+          producer_id: "producer-original",
+          source: {
+            project_root: "/fixture/project",
+            host: "codex",
+            native_session_id: `native-${id}`,
+          },
+          joined_at: stamp,
+        },
+      ],
+      foreground_producer_id: "producer-original",
+      pending_join_requests: [],
+      tasks: [],
+      deliveries: [],
+      candidates: [],
+      waits: [],
       viewer_session_id: id,
       project_key: "example.test/project",
       project_name: "Example",
@@ -52,6 +69,7 @@ function fixture(id = sid): TimelineSessionResponse {
       tickets: [],
       events: [
         {
+          actor: { kind: "native_producer", producer_id: "producer-original" },
           event_id: "request_one",
           sequence: 1,
           version: 1,
@@ -76,13 +94,21 @@ function entry(data: TimelineSessionResponse): TimelineAPIIndexEntry {
     events: _events,
     artifacts: _artifacts,
     documents: _documents,
+    producers: _producers,
+    foreground_producer_id: _lead,
+    pending_join_requests: _joins,
+    tasks: _tasks,
+    waits: _waits,
+    deliveries: _deliveries,
+    candidates: _candidates,
     ...rest
   } = data.session;
   return { mode: "timeline_api", ...rest };
 }
 function index(...data: TimelineSessionResponse[]): RawIndex {
   return {
-    projects: [],
+    protocol_version: 3,
+    retention: "manual",
     repositories: [],
     errors: [],
     ttl_seconds: 0,
@@ -265,7 +291,7 @@ test("conditional API mutations read JSON receipts, refresh authority and reuse 
         a.session.version++;
         a.session.title = body.title;
         receipt = {
-          schema_version: 1,
+          schema_version: 3,
           kind: "session_patch",
           operation_id: body.operation_id,
           viewer_session_id: sid,
@@ -378,7 +404,7 @@ test("API pin, archive, restore and delete use versioned session mutations and p
         if (body.archived !== undefined) a.session.archived = body.archived;
       }
       return response({
-        schema_version: 1,
+        schema_version: 3,
         kind: options.method === "DELETE" ? "session_delete" : "session_patch",
         operation_id: body.operation_id,
         viewer_session_id: sid,
@@ -446,59 +472,6 @@ test("unchanged polls reuse an outstanding API read while a newer version supers
   assert.equal(controller.getSnapshot().timeline?.data?.session.version, 3);
 });
 
-test("switching to API invalidates pending legacy reads without leaving a stuck loading cache on return", async () => {
-  const a = fixture(),
-    legacyID = "1".repeat(64);
-  const pending: ((r: Response) => void)[] = [];
-  const mixed = index(a);
-  mixed.projects = [
-    {
-      key: "legacy",
-      name: "Legacy",
-      tickets: [
-        {
-          ticket: "#1",
-          sessions: [
-            {
-              key: legacyID,
-              title: "Legacy",
-              session_id: "legacy",
-              source: "/fixture",
-              source_status: "local",
-              content_hash: "hash",
-              created_at: stamp,
-              ingested_at: stamp,
-              fileBase: `/files/${legacyID}/${"c".repeat(64)}/`,
-            },
-          ],
-        },
-      ],
-    },
-  ];
-  const { controller } = setup(async (path) => {
-    if (path === "/api/index") return response(mixed);
-    if (path === `/api/sessions/${legacyID}`)
-      return new Promise<Response>((resolve) => pending.push(resolve));
-    return response(a);
-  });
-  await controller.open(null);
-  assert.equal(pending.length, 1);
-  controller.select(sid);
-  await settle();
-  controller.select(legacyID);
-  assert.equal(pending.length, 2);
-  pending[0](response({ title: "Obsolete legacy" }));
-  await settle();
-  assert.equal(controller.getSnapshot().documents[legacyID]?.state, "loading");
-  pending[1](response({ title: "Current legacy" }));
-  await settle();
-  assert.equal(controller.getSnapshot().documents[legacyID]?.state, "ready");
-  assert.equal(
-    controller.getSnapshot().documents[legacyID]?.document?.manifest.title,
-    "Current legacy",
-  );
-});
-
 test("pending deletion remains retryable with its original operation after tombstoning removes the index entry", async () => {
   const a = fixture(),
     b = fixture(other);
@@ -519,7 +492,7 @@ test("pending deletion remains retryable with its original operation after tombs
           attempts === 1 ? 503 : 409,
         );
       return response({
-        schema_version: 1,
+        schema_version: 3,
         kind: "session_delete",
         operation_id: body.operation_id,
         viewer_session_id: sid,
@@ -602,7 +575,7 @@ test("definitive delete rejection clears recovery and permits deleting another s
           bGone = true;
           const body = JSON.parse(String(options.body));
           return response({
-            schema_version: 1,
+            schema_version: 3,
             kind: "session_delete",
             operation_id: body.operation_id,
             viewer_session_id: other,
@@ -630,4 +603,102 @@ test("definitive delete rejection clears recovery and permits deleting another s
       assert.equal(controller.getSnapshot().notice, "deleted");
     });
   }
+});
+
+test("local recovery sends the explicit request and conditional version, and never replays a stale conflict", async () => {
+  const data = fixture();
+  data.session.pending_join_requests = [
+    {
+      request_id: "pending-one",
+      source: {
+        project_root: "/fixture/alias-root",
+        host: "claude-code",
+        native_session_id: "real-new-session",
+      },
+      requested_at: stamp,
+      reason: "Authorized continuation",
+    },
+  ];
+  const calls: { path: string; body: Record<string, unknown> }[] = [];
+  const controller = new ViewerController(
+    new AccessClient(
+      async (path, options) => {
+        if (path === "/api/index") return response(index(data));
+        if (options?.method === "POST") {
+          calls.push({
+            path: String(path),
+            body: JSON.parse(String(options.body)),
+          });
+          return response({ code: "version_conflict" }, 409);
+        }
+        return response(data);
+      },
+      { getItem: () => "test-token", setItem() {}, removeItem() {} },
+    ),
+    () => false,
+  );
+  await controller.open(null);
+  await settle();
+  await assert.rejects(
+    controller.recoverTimelineLead(
+      sid,
+      "pending-one",
+      "Continue from the accepted handoff",
+      1,
+    ),
+  );
+  await settle();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].path, `/api/timeline/sessions/${sid}/recover-lead`);
+  assert.deepEqual(calls[0].body.actor, { kind: "local_viewer" });
+  assert.equal(calls[0].body.expected_session_version, 1);
+  assert.equal(calls[0].body.request_id, "pending-one");
+  assert.equal(
+    controller.getSnapshot().timeline?.data?.session.pending_join_requests[0]
+      .source.project_root,
+    "/fixture/alias-root",
+  );
+});
+
+test("archive Undo reads fresh authority for original work after selection and version change", async () => {
+  const a = fixture(sid),
+    b = fixture(other);
+  const writes: { id: string; body: Record<string, unknown> }[] = [];
+  const controller = new ViewerController(
+    new AccessClient(
+      async (path, options) => {
+        if (path === "/api/index") return response(index(a, b));
+        const data = String(path).endsWith(sid) ? a : b;
+        if (options?.method === "PATCH") {
+          const body = JSON.parse(String(options.body));
+          writes.push({ id: data.session.viewer_session_id, body });
+          if (body.expected_version !== data.session.version)
+            return response({ code: "version_conflict" }, 409);
+          data.session.archived = body.archived;
+          data.session.version++;
+          return response({
+            schema_version: 3,
+            kind: "session_patch",
+            viewer_session_id: data.session.viewer_session_id,
+            operation_id: body.operation_id,
+            session_version: data.session.version,
+            current_stage_event_id: null,
+          });
+        }
+        return response(data);
+      },
+      { getItem: () => "test-token", setItem() {}, removeItem() {} },
+    ),
+    () => false,
+  );
+  await controller.open(null);
+  await settle();
+  await controller.updateTimelineSession(sid, { archived: true }, 1);
+  assert.equal(controller.getSnapshot().selectedId, other);
+  a.session.version++;
+  await controller.undoArchive();
+  assert.equal(writes[1].id, sid);
+  assert.equal(writes[1].body.expected_version, 3);
+  assert.equal(a.session.archived, false);
+  assert.equal(controller.getSnapshot().selectedId, other);
 });

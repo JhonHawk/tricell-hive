@@ -27,7 +27,7 @@ async function click(label: string) {
   });
 }
 
-test("real application wires API timeline, documents, conditional title and mixed legacy navigation with one controller", async (t) => {
+test("real application wires API timeline, documents, conditional title and v2 navigation with one controller", async (t) => {
   const container = document.createElement("div");
   document.body.append(container);
   const root = createRoot(container);
@@ -37,8 +37,6 @@ test("real application wires API timeline, documents, conditional title and mixe
   });
   const data = structuredClone(timelineFixture);
   const sid = data.session.viewer_session_id;
-  const legacyID = "1".repeat(64);
-  let legacyRenders = 0;
   let savedVersion: number | undefined;
   const paths: string[] = [];
   const client = new AccessClient(
@@ -50,34 +48,19 @@ test("real application wires API timeline, documents, conditional title and mixe
           events: _e,
           artifacts: _a,
           documents: _d,
+          producers: _producers,
+          foreground_producer_id: _lead,
+          pending_join_requests: _joins,
+          tasks: _tasks,
+          waits: _waits,
+          deliveries: _deliveries,
+          candidates: _candidates,
           ...entry
         } = data.session;
         return new Response(
           JSON.stringify({
-            projects: [
-              {
-                key: "legacy-project",
-                name: "Legacy",
-                tickets: [
-                  {
-                    ticket: "#1",
-                    sessions: [
-                      {
-                        key: legacyID,
-                        title: "Legacy session",
-                        session_id: "legacy-native",
-                        source: "/fixture",
-                        source_status: "local",
-                        content_hash: "hash",
-                        created_at: "2026-10-31",
-                        ingested_at: "2026-10-31",
-                        fileBase: `/files/${legacyID}/${"c".repeat(64)}/`,
-                      },
-                    ],
-                  },
-                ],
-              },
-            ],
+            protocol_version: 3,
+            retention: "manual",
             repositories: [],
             errors: [],
             ttl_seconds: 0,
@@ -91,8 +74,6 @@ test("real application wires API timeline, documents, conditional title and mixe
             await loadPreviewDocument(String(path).split("/").at(-1) as string),
           ),
         );
-      if (path === `/api/sessions/${legacyID}`)
-        return new Response(JSON.stringify({ title: "Legacy content" }));
       if (options?.method === "PATCH") {
         const body = JSON.parse(String(options.body));
         savedVersion = body.expected_version;
@@ -100,7 +81,7 @@ test("real application wires API timeline, documents, conditional title and mixe
         data.session.version++;
         return new Response(
           JSON.stringify({
-            schema_version: 1,
+            schema_version: 3,
             kind: "session_patch",
             viewer_session_id: sid,
             operation_id: body.operation_id,
@@ -117,25 +98,13 @@ test("real application wires API timeline, documents, conditional title and mixe
   await controller.open(null, { sessionID: sid, eventID: "event_plan_r3" });
   await settle();
   await act(async () => {
-    root.render(
-      <ViewerApplication
-        controller={controller}
-        loadModule={async () => ({
-          validDeliveries: () => [],
-          renderWalkthrough: (node) => {
-            legacyRenders++;
-            node.textContent = "Legacy renderer";
-          },
-        })}
-      />,
-    );
+    root.render(<ViewerApplication controller={controller} />);
     await new Promise((resolve) => setTimeout(resolve, 15));
   });
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 15));
   });
   assert.ok(container.querySelector('[aria-label="Session timeline"]'));
-  assert.equal(legacyRenders, 0);
   assert.equal(document.activeElement?.id, "timeline-event-event_plan_r3");
   await click("Edit title");
   const input = container.querySelector<HTMLInputElement>(
@@ -154,7 +123,20 @@ test("real application wires API timeline, documents, conditional title and mixe
   await click("Save title");
   assert.equal(savedVersion, version);
   assert.ok(container.textContent?.includes("Conditional API title"));
-  await click("View plan");
+  await act(async () => {
+    const target = container.querySelector<HTMLButtonElement>(
+      "#timeline-event-event_plan_r3 button",
+    );
+    const plan = [
+      ...container.querySelectorAll<HTMLButtonElement>(
+        "#timeline-event-event_plan_r3 button",
+      ),
+    ].find((b) => b.textContent?.trim() === "View plan");
+    assert.ok(target);
+    assert.ok(plan);
+    plan.click();
+    await settle();
+  });
   await act(async () => {
     await new Promise((resolve) => setTimeout(resolve, 10));
   });
@@ -167,35 +149,10 @@ test("real application wires API timeline, documents, conditional title and mixe
     paths.some((path) => path.includes("/documents/document_proposal")),
   );
   await click("Close");
-  await act(async () => {
-    const project = container.querySelector<HTMLButtonElement>(
-      'button[title="Legacy"]',
-    );
-    assert.ok(project);
-    project.click();
-    await settle();
-  });
-  await act(async () => {
-    const row = container.querySelector<HTMLButtonElement>(
-      `[data-session-key="${legacyID}"]`,
-    );
-    assert.ok(row);
-    row.click();
-    await settle();
-  });
-  assert.equal(controller.getSnapshot().selectedId, legacyID);
-  assert.ok(container.textContent?.includes("Legacy renderer"));
-  assert.ok(legacyRenders > 0);
-  await act(async () => {
-    container
-      .querySelector<HTMLButtonElement>(`[data-session-key="${sid}"]`)
-      ?.click();
-    await settle();
-  });
-  assert.equal(controller.getSnapshot().selectedId, sid);
-  assert.ok(container.querySelector('[aria-label="Session timeline"]'));
   assert.equal(
-    paths.some((path) => path === `/api/sessions/${sid}`),
+    paths.some(
+      (path) => path.startsWith("/api/sessions/") || path.startsWith("/files/"),
+    ),
     false,
   );
 });
@@ -221,11 +178,19 @@ test("pending API deletion exposes recovery outside the removed session header",
           events: _e,
           artifacts: _a,
           documents: _d,
+          producers: _producers,
+          foreground_producer_id: _lead,
+          pending_join_requests: _joins,
+          tasks: _tasks,
+          waits: _waits,
+          deliveries: _deliveries,
+          candidates: _candidates,
           ...entry
         } = data.session;
         return new Response(
           JSON.stringify({
-            projects: [],
+            protocol_version: 3,
+            retention: "manual",
             repositories: [],
             errors: [],
             ttl_seconds: 0,
@@ -245,7 +210,7 @@ test("pending API deletion exposes recovery outside the removed session header",
             attempts === 1
               ? { code: "delete_pending", cleanup_pending: true }
               : {
-                  schema_version: 1,
+                  schema_version: 3,
                   kind: "session_delete",
                   viewer_session_id: sid,
                   operation_id: body.operation_id,

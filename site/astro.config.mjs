@@ -66,6 +66,8 @@ export default defineConfig({
       sidebar: [
         { label: "[home] Home", slug: "index" },
         { label: "[book] Getting started", slug: "getting-started" },
+        { label: "Viewer", slug: "viewer" },
+        { label: "Host limits", slug: "host-limits" },
         { label: "[history] Changelog", slug: "changelog" },
         {
           label: "[layers] Skills",
@@ -73,6 +75,7 @@ export default defineConfig({
           items: [
             { label: "Overview", slug: "skills" },
             { label: "Changes and loops", slug: "flows/overview" },
+            { slug: "flows/status" },
             { slug: "flows/research" },
             { slug: "flows/plan" },
             { slug: "flows/build" },

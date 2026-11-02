@@ -132,7 +132,9 @@ func TestTimelineContractRejectsCorruptSession(t *testing.T) {
 		change func(*TimelineSession)
 	}{
 		{"foreign artifact owner", func(s *TimelineSession) { s.Artifacts[0].SessionID = strings.Repeat("2", 64) }},
-		{"unknown ticket", func(s *TimelineSession) { s.Events[2].Views[0].TicketRefs = []TimelineTicketRef{{Key: "OTHER"}} }},
+		{"unknown ticket", func(s *TimelineSession) {
+			s.Events[2].Views[0].TicketRefs = []TimelineTicketRef{{TicketID: "unknown-ticket", Snapshot: TimelineTicketSnapshot{Key: "OTHER"}}}
+		}},
 		{"foreign image", func(s *TimelineSession) { s.Events[2].Views[0].ImageRefs[0].ArtifactID = "another_session_image" }},
 		{"invalid evidence target", func(s *TimelineSession) { s.Events[3].Views[0].Supersedes.EvidenceID = "other_evidence" }},
 		{"wrong view target", func(s *TimelineSession) { s.Events[3].Views[0].Supersedes.ViewID = "other_view" }},
@@ -168,7 +170,7 @@ func TestTimelineContractReferencesUseSessionSnapshot(t *testing.T) {
 		t.Fatal("foreign artifact reference accepted")
 	}
 	r.Views[0].ImageRefs[0].ArtifactID = "artifact_chat"
-	r.Views[0].TicketRefs = []TimelineTicketRef{{Key: "COM-1", URL: "https://other.example/COM-1"}}
+	r.Views[0].TicketIDs = []string{"unknown-ticket"}
 	if err = ValidateTimelineEventReferences(s, r); err == nil {
 		t.Fatal("equal key at another tracker was treated as same ticket")
 	}
@@ -199,7 +201,7 @@ func TestTimelineContractLimitsAndRedactedErrors(t *testing.T) {
 	if err := DecodeTimelineJSON(raw, &TimelineCreateSessionRequest{}); err == nil {
 		t.Fatal("oversized body accepted")
 	}
-	_, err := DecodeTimelineCreateSession([]byte(`{"schema_version":1,"operation_id":"create","source":{"project_root":"/private-sensitive-root","host":"unknown-sensitive-host","native_session_id":"private-sensitive-id"},"title":"Test","summary":"Scope","tickets":[]}`))
+	_, err := DecodeTimelineCreateSession([]byte(`{"schema_version":3,"operation_id":"create","source":{"project_root":"/private-sensitive-root","host":"unknown-sensitive-host","native_session_id":"private-sensitive-id"},"title":"Test","summary":"Scope","tickets":[]}`))
 	if err == nil || strings.Contains(err.Error(), "sensitive") {
 		t.Fatalf("error includes supplied data: %v", err)
 	}
@@ -228,7 +230,7 @@ func TestTimelineContractCapabilityURLs(t *testing.T) {
 	if IsSafeTimelineArtifactURL(rawURL, strings.Repeat("2", 64)) {
 		t.Fatal("foreign session capability accepted")
 	}
-	response := TimelineSessionResponse{SchemaVersion: 1, Mode: "timeline_api", Session: s, ArtifactURLs: map[string]string{"artifact_profile": rawURL}}
+	response := TimelineSessionResponse{SchemaVersion: 3, Mode: "timeline_api", Session: s, ArtifactURLs: map[string]string{"artifact_profile": rawURL}}
 	raw, _ := json.Marshal(response)
 	if _, err := DecodeTimelineSessionResponse(raw); err != nil {
 		t.Fatal(err)
@@ -294,17 +296,9 @@ func TestTimelineContractReceiptAndRetryContracts(t *testing.T) {
 		t.Fatal("private receipts leaked into public session")
 	}
 }
-func TestTimelineContractIndexUnionPreservesLegacyFields(t *testing.T) {
-	legacy, err := DecodeTimelineIndexEntry(timelineFixture(t, "legacy-index-entry.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	old, ok := legacy.(TimelineLegacyIndexEntry)
-	if !ok {
-		t.Fatal("legacy entry cast to API mode")
-	}
-	if old.Session.Key != strings.Repeat("9", 64) || old.Session.Source != "/fixture/project/_support/workspace/old-review" || old.Session.SessionID != "codex-20261019T150000Z" {
-		t.Fatal("legacy source/copy identity was rewritten")
+func TestTimelineContractIndexRejectsLegacy(t *testing.T) {
+	if _, err := DecodeTimelineIndexEntry(timelineFixture(t, "legacy-index-entry.json")); TimelineContractCode(err) != "unsupported_protocol" {
+		t.Fatal("legacy entry accepted", err)
 	}
 	api, err := DecodeTimelineIndexEntry(timelineFixture(t, "api-index-entry.json"))
 	if err != nil {
@@ -399,7 +393,7 @@ func TestTimelineContractDocumentBytesAndReadback(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	meta := TimelineDocumentMetadata{SchemaVersion: 1, OperationID: "doc", MediaType: "text/markdown"}
+	meta := TimelineDocumentMetadata{Actor: TimelineActor{Kind: "native_producer", ProducerID: "producer-original"}, SchemaVersion: 3, OperationID: "doc", MediaType: "text/markdown"}
 	if err := ValidateTimelineDocumentUpload(s, meta, []byte("new")); err != nil {
 		t.Fatal(err)
 	}
@@ -414,7 +408,7 @@ func TestTimelineContractDocumentURLsScopedToKnownMetadata(t *testing.T) {
 		t.Fatal(err)
 	}
 	path := "/api/timeline/sessions/" + s.ViewerSessionID + "/documents/doc-plan"
-	response := TimelineSessionResponse{SchemaVersion: 1, Mode: "timeline_api", Session: s, DocumentURLs: map[string]string{"doc-plan": path}}
+	response := TimelineSessionResponse{SchemaVersion: 3, Mode: "timeline_api", Session: s, DocumentURLs: map[string]string{"doc-plan": path}}
 	raw, _ := json.Marshal(response)
 	if _, err := DecodeTimelineSessionResponse(raw); err != nil {
 		t.Fatal(err)

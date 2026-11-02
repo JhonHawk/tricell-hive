@@ -74,6 +74,7 @@ go run ./tooling/cli models [--home DIR] [--state-dir DIR]
 - **Sessions** covers the registered hosts. When Claude Code or Grok is registered, its first line answers whether to restart anything for the hosts Hive checked, such as `2 open Claude Code or Grok sessions should be restarted` or `No open Claude Code or Grok session needs a restart`, and names a host it could not check, as in `No open Claude Code session needs a restart; Grok could not be checked.` When Codex, Pi, or Cursor is registered, the next line says `Hive cannot see Codex, Pi or Cursor sessions; restart them after each update.`, naming only the registered ones. Each host's line then reads, for example, `claude: 3 open sessions, 1 to restart`. It reads Claude Code's `sessions/*.json` under `CLAUDE_CONFIG_DIR` or `~/.claude` and Grok's `active_sessions.json` under `GROK_HOME` or `~/.grok`. It counts only sessions whose process is alive and marks one `started before the installed release; restart it` when it started before the installed release's snapshot was last written. It shows only the process ID, working directory, and start time. A missing session directory or file means no open sessions; a file larger than 1 MiB, unreadable, not a regular file, or in an unknown format, or more than 500 Claude Code session files, makes that host `Session check unavailable` without failing the other sections. OpenCode gets a note that it applies `AGENTS.md` instruction changes on the next message and that role or skill changes need a new session.
 - **Integrations** shows Engram, Context7, pi-subagents, `agent-browser`, CodeGraph, only when Pi is a registered host a `Pi codemode` row, and only when Codex is a registered host (or the registration read fails) a `Codex question card` row and a `Codex wait floor` row: the local evidence (the program on `PATH` or the skill file, with its path), the status in the last onboarding record, the official source, and a concrete next step for its case. The Hive-suggested commands are Context7's `npx ctx7@latest setup --cli`, which may ask the user to sign in, and `hive install` for `agent-browser` when it is absent or has no browser, whose record shows the worst status of its onboarding steps; for the others it points to the Source line above, since Hive does not install them. The `agent-browser` check reads `PATH` and files only; the CodeGraph check only looks `codegraph` up on `PATH`, never runs it, and its next step points to CodeGraph's own `codegraph install` and to indexing a repository only by the user's decision. The `Pi codemode` row is built from constants, whether or not codemode is on (`not checked`), and its next step names the `"defaultTools": ["+codemode"]` line for Pi's own `settings.json` and Pi's `/reload`; Pi turns codemode on by itself with MCP servers of `codemode` exposure. Registration is read from Hive's own state (a failed read still shows the row), never from Pi's configuration. Apart from the `Codex wait floor` row, described below, it executes no integration program and reads no host or provider configuration, so pi-subagents shows only its onboarding status and `Pi codemode` none. The `Codex question card` row is built the same way: `not checked`, the catalog source, the status of its `codex-question-card-*` onboarding steps, and a next step naming `codex features enable default_mode_request_user_input`, `codex features disable …` and `codex features list`; it never reads Codex's `config.toml`. The `Codex wait floor` row is the exception: it reads that file and reports whether the two `min_wait_timeout_ms` and `default_wait_timeout_ms` keys under `[features.multi_agent_v2]` are set, whether Hive's state records that it wrote them, and whether `config.toml.hive-backup` exists. It runs `codex --version` only to warn when the table exists with a Codex older than 0.164. The view reserves room for eight rows at 80x24.
 - **Project** validates the `## Hive` section of `AGENTS.md` at the root of the Git repository that contains `--project`, or the current directory: missing or duplicated section, missing or empty required values (`Project`, `Base branch`, `Tracker`, `Specs`), a `Specs` path that is not a directory, a `Base branch` that is neither a local branch nor on `origin`, unknown keys, a `Delivery` value other than `direct-base`, or a `Hive guidance` value other than `required`. The retired keys `Review` and `UI verification`, and `Delivery: automatic` or `interactive`, warn without blocking (`<Key>: retired; Hive asks it each session, and the old value only informs the recommended option — remove it with hive project set --unset <Key> or run harness-audit`, with `Delivery: <value> is retired; …` naming the retired value) and are not unknown keys; `Completion` is a known key and warns when it lacks the shape `<state> on <ref> · <state> on <ref>`. The blocking findings, which fail the command, are a missing or empty required value, a `Base branch` name that Git rejects, an invalid `Delivery` or `Hive guidance`, a duplicated section, and an `AGENTS.md` that is not a regular file, cannot be read, or exceeds 1 MiB. A `Base branch` that could not be checked because `git` failed to run is a warning for the doctor, but `hive project set` refuses to write it. The retired keys named in `retiredHiveKeys` must match the "Retired keys:" line of `project-settings.md`, which a test checks. A `--project` directory that does not exist, or is not a directory, is reported as `Directory not found` or `Not a directory` without running `git`. It runs read-only `git` queries with Git's local environment variables removed. A section in a workspace `AGENTS.md` outside a repository is not checked.
+  It also warns, without blocking, about each active change folder under `Specs` whose `proposal.md` defines an `AC<n>` that no `**Closes:**` line in `tasks.md` names (ranges such as `AC11–AC15` count), about a change folder that is not English kebab-case, and about an archived change that does not match `YYYY-MM-DD-<kebab-case>`.
 
 With `--home`, as elsewhere, host environment overrides are ignored, no program is looked up on `PATH` or executed (neither the host binaries nor `engram`, `agent-browser`, `codegraph` and `codex`), and sessions are read under that home; the Project check still finds and runs `git` in `--project` or the current directory. Text read from outside the manager (versions, paths, session directories, `AGENTS.md` values) has control characters and escape sequences removed before it is shown.
 
@@ -115,159 +116,96 @@ The write is atomic: a temporary file in the same directory renamed over the old
 ```sh
 go run ./tooling/cli view register [--dir DIR] [--home DIR] [--state-dir DIR]
 go run ./tooling/cli view start [--port N] [--home DIR] [--state-dir DIR]
-go run ./tooling/cli view status [--dir DIR] [--home DIR] [--state-dir DIR]
+go run ./tooling/cli view status [--home DIR] [--state-dir DIR]
 go run ./tooling/cli view open [--session-id ID [--event-id ID]] [--home DIR] [--state-dir DIR]
 go run ./tooling/cli view stop [--home DIR] [--state-dir DIR]
 go run ./tooling/cli view serve [--port N] [--home DIR] [--state-dir DIR]
 go run ./tooling/cli view contract [--operation NAME]
 ```
 
-The user starts and stops the local viewer; agents publish through
-[flow-walkthrough](../../../content/skills/flow-walkthrough/SKILL.md). The
-machine-readable `hive view contract [--operation NAME]` runs offline and is
-the source for exact commands, schemas, limits and examples. API mutations use
-`--json FILE` or `--json -`; image and Markdown uploads use a local `--file`.
-With an installed binary, an unavailable or outdated server is reported without
-starting it or selecting a different publishing authority. Only an absent binary
+The user starts and stops the service explicitly. Agents publish through
+[flow-walkthrough](../../../content/skills/flow-walkthrough/SKILL.md); the offline
+`hive view contract [--operation NAME]` owns exact operations, schemas,
+authority, limits and examples. JSON inputs use `--json FILE` or stdin; uploads
+take `--file`. An installed but stopped/incompatible service does not select a
+different authority or cause an automatic restart. Only an absent binary
 selects the standalone HTML fallback for a UI walkthrough.
 
-`register` adds the root of `--dir`, or the current directory, to
-`viewer/registry.json`; an existing registration needs no write. A directory
-under `<root>/_support/workspace/` registers `<root>`, even for a non-Git
-workspace; otherwise registration uses its Git root. A nested Git repository
-registered from its own folder keeps its own root. A Git toplevel with a verified
-`origin` uses its normalized remote as project key; a registered workspace without
-its own `.git`, or a Git root with a verified missing origin, uses its path. A
-transient metadata failure must not silently create a new identity.
+Registration records project roots in `viewer/registry.json`. Resolution uses
+the verified Git origin when available and the registered path for a workspace
+or verified missing origin. Transient resolution failure is not a new identity.
+Native Source preserves the actual project root, canonical host and native
+session ID; durable canonical project bindings allow registered aliases while
+rejecting contradictory membership. An unavailable historical root is different
+from authorizing a new publication without resolving its source.
 
-`start` launches `serve` detached and waits for health; `serve` holds the one
-server lock for that state directory. `status` reports URL, PID, manual retention
-and counts without the token. Its `--dir` confirmation applies to a legacy source,
-not API readback. `open` uses the existing one-use opening code; optional validated
-session/event IDs select an API target. `stop` checks the server identity before
-signalling it. Rebuilding the binary does not alter a running server.
+Protocol, schema and storage are3. `viewer/storage.json` positively identifies
+that format; API records live in `viewer/timeline-api-v3/`. Preflight rejects
+old1/provisional2 state with cutoff_required before mkdir, locking, log creation,
+cleanup, registration or signaling. Unknown/corrupt state is an error, not an
+empty library. There is no older-record reader, scanner, import, preference copy
+or migration. A real cutover uses a separate fresh state directory, preserved
+old data and explicitly coordinated writers. Rebuilding a binary does not
+restart a service or change its state directory.
 
-API-owned records live separately in `viewer/timeline-api-v1/`. Their session ID
-is derived from the bound project key, canonical host and native session ID; root
-aliases and operation receipts persist with the record. Conditional mutations
-check versions and committed operation IDs replay after retry; a different body
-under the same operation ID conflicts. Stage updates preserve event order;
-Markdown document revisions and image artifacts are immutable and session-scoped.
-Document reads are authenticated, and image capabilities are delivered only to
-an authenticated browser. The CLI checks the server protocol and validates its
-responses without printing the server token or browser image capabilities.
+A work has a stable server ID derived from canonical project and its initial
+native identity. Accepted producers join that work under their own Source and
+producer IDs; lead/foreground transfers do not replace its identity. Native
+provenance is not cryptographic proof of a process. Typed browser management and
+explicit lead recovery use local_viewer; publication requires an accepted native
+producer and the operation's lead/assignment rules. No browser task executor,
+provider fetch, CI rerun or automatic merge is exposed.
 
-Blob publication syncs and commits the bytes before committing the session
-reference; the session record and parent directory are synced before success.
-An uncertain commit must be reconciled with its receipt and the original
-operation ID. Deletion preserves tombstones and can resume partial cleanup.
-Legacy scanning cannot replace an API-owned record, and a matching tuple is
-suppressed in the legacy projection without removing its source.
+Transactions run under the store lock against a cloned record. Version checks,
+private request digests, receipts and atomic durable replacement prevent partial
+catalog/task/event changes. Exact operation replay returns the original receipt;
+different content under the same operation ID conflicts. Uncertain persistence
+is reconciled from the receipt, never retried under a guessed new ID. Event,
+receipt, public/private byte and lifecycle reserves stay binding. Blob bytes
+are committed before their references; candidate scope is checked before
+artifact dedup or file writes. Same-byte reuse keeps its first provenance.
 
-Each stored copy retains its resolved project key and name in optional
-`project_key` and `project_name` fields in `meta.json`. When a previously resolved
-remote becomes unavailable, including after a worktree is removed, its copies
-keep that identity across scans and restarts. Projects with the same display name
-are not merged by name. Older copies can recover their identity from a matching
-cached index entry; an identity already lost before the update needs an explicit,
-verified association. Stop the viewer before a manual repair and preserve its
-copy contents, archive/pin state and ingestion time. Older binaries reject the
-new metadata fields: keep a metadata backup before upgrading, and coordinate any
-binary rollback with restoration of compatible metadata.
+Tasks are canonical work records with independent stage segments. Tickets and
+deliveries use natural-identity registries and opaque IDs; candidates are
+immutable descriptors selected per publication. Server-generated reference
+snapshots preserve publication context. Registry patches resolve current links
+without rewriting documents/images/audit/provider history, and bump each
+affected task/wait reader version once. Open UI readers preserve their captured
+catalogs until manual update. The detailed final
+[canonical contract](../../openspec/specs/walkthrough-viewer/canonical-references.md)
+defines those boundaries.
 
-`status --dir <work folder>` preserves the normal status fields and adds `found`
-and `session_status`. It queries the existing authenticated index, without opening
-another Store. `found=true` requires the canonical source, session ID, key,
-content hash (including referenced files), and explicit status to match the
-current source, fingerprinted both before and after the query. A missing or
-changed source/copy returns `found=false` and `session_status=unknown`; tokens
-and file capabilities never enter the output. `session.status` is optional
-`in_progress|closed`; absent status remains valid and projects to `unknown`,
-independently of report kind or Git classification. Store load reconstructs the
-derived `session_status` from the manifest, without migrating historical
-metadata. Status changes use the existing content-replacement behavior, including
-pin and archive preservation and refreshed ingestion time. For source closure and retention,
-follow [Close the current walkthrough](../../../content/skills/flow-close/SKILL.md). Publication can update JSON without creating HTML; confirmation checks JSON and resources in either output mode.
+Browser rename/archive/pin/delete operations remain conditional and same-origin,
+with action-scope checks. Deletion commits a durable work tombstone and resumes
+pending cleanup; it never deletes project sources or native history. An unchanged
+or modified manifest cannot recreate that deleted work identity. Manual
+retention has no age expiry; deprecated --ttl is ignored with a warning.
+`status` reports service/work counts without credentials; retired --dir
+source-copy confirmation is rejected. API readback verifies work, versions,
+references and immutable hashes through the authenticated API.
 
 Access setup uses `POST /api/access-codes` with `X-Hive-Token`, explicit same-origin `Origin` and an empty body. It returns `{code}` without caching: 32 random bytes encoded as 64 hex characters, valid for 60 seconds, held only in memory. At most 64 unconsumed codes may be pending; a full set returns 429 without evicting valid codes. `POST /api/access-codes/exchange` requires the allowed Host and explicit same-origin Origin, `application/json`, and only `{code}` within 1 KiB. It returns `{token}` without caching, consuming the code atomically; expired, missing, invalid or reused codes return 403. Invalid JSON returns 400, unsupported media type 415, and wrong method 405. Codes disappear on server restart. The page removes the fragment before awaiting exchange, stores only the token in sessionStorage for reloads, and ignores responses from superseded openings, including earlier authenticated reads and writes. An explicit failed opening asks for `hive view open` again. An old running server returning 404 to issuance requires `hive view stop`, `hive view start`, then `hive view open`; the CLI never falls back to a token URL or restarts it automatically. A stolen unconsumed code can still be used by a local process; Origin is not authentication for non-browser clients.
 
-The server binds only to `127.0.0.1`, on port 4483 (HIVE on a phone keypad) by default. `--port N` names another port and `--port 0` takes a free one. A port counts as busy when binding it fails or when a connection to it already answers, since on macOS a `127.0.0.1` bind succeeds over a program listening on the wildcard address and would shadow it. When 4483 is busy and no `--port` was given, it takes a free port and `start` says so; an explicit port that is busy fails the start. It checks the `Host` header on every request, and requires the token from `viewer/server.json` (mode 0600) on API requests, reads included, except the access-code exchange below; every write requires an explicit same-origin `Origin`. The page and `/assets/*` carry no data and need no token; copied captures and recordings are served at `/files/<key>/<cap>/<path>`, where `<cap>` is the hex HMAC-SHA256 of the key under the token, handed out only by the authenticated index, because an `<img>` cannot send a header. Every five seconds it scans the registered repositories, validates each manifest with the same rules as the renderer, and copies a valid one with its files into `viewer/sessions/<key>/`, one copy per source folder and session, replaced when the manifest or a referenced file changes. Invalid manifests are listed as ingest errors and never stop the server. Neither legacy copies nor API content are purged or excluded from ingestion because of age. The old `--ttl` flag is accepted as a deprecated no-op; status and health report manual retention. Explicitly deleted legacy copies leave tombstones so unchanged sources do not reappear on the next scan. Deleting from the session toolbar removes the session's store copies, never repository files. The package is `tooling/viewer`: no external modules (standard library and in-repository packages), checked by the dependency test. Each workspace folder is opened once as an `os.Root` and that same handle validates, hashes and copies it, and the text of ingest errors is bounded.
+The server binds only to 127.0.0.1, on 4483 by default; an explicit port selects
+that port and port 0 selects a free one. Without an explicit port, a busy default
+falls back to a free port. `start` launches `serve` detached and waits for
+matching health; `serve` holds the state-directory lock. `stop` validates
+storage and server identity before signaling. The browser opens through a
+one-use code, never a token URL.
 
-Before scanning file content, the viewer checks current Git tracking through a
-bounded, NUL-delimited lookup for the owning repository, including worktrees and
-ancestor repositories. Confirmed tracked manifests are not ingested; an unavailable
-or incomplete check produces an explicit unknown-source warning, not a claim of
-agent authorship or confirmed untracked status. Classification changes are applied
-even when content hashes do not change and are reconstructed without changing
-per-copy `meta.json`. Previously stored copies whose source is now tracked move
-to a separate explanatory section. Their normal document and file reads return
-409; archive/restore, pin and explicit deletion remain available. Unknown sources remain
-accessible with a warning. A local file is not proof of agent authorship.
+The React shell reads only the protocol3 index and work records. The timeline
+is ascending with declared stage containers, a derived Start marker and a
+Tasks/Go-to-current toolbar. Header Popovers project canonical IDs, not
+URL-deduplicated manifests. Shared Sheets display immutable/manual document,
+task and wait snapshots; simple task descriptions expand inline. Source
+warnings, connection errors and declared work state are distinct. The manual is
+[Viewer](../../../site/src/content/docs/viewer.md).
 
-Session preferences belong to versioned `viewer/session-groups/<digest>.json`
-records keyed by exact project, declared host (null when absent) and session ID.
-They contain the local title override, archive and keep state independently of
-the reconstructible index. The index retains physical copies and exposes their
-effective `archived`, `pinned` and optional `session_title` values. Continuations
-inherit those preferences; archive changes visibility and does not change source files or work status. Keeping is a preference, not a prerequisite for preservation.
-
-The first startup imports legacy copy flags: archive only when every member was
-archived, keep when any was pinned. A mixed archive group becomes active. A valid
-group record is written before legacy fields are retired, and an interrupted
-import resumes without recalculating that record. Back up the old binary,
-metadata, index/tombstones and any existing group records before upgrading;
-do not copy `server.json` or tokens. Rollback to an older binary needs compatible
-copy flags restored and must preserve subsequent changes and local names.
-
-Token-authenticated same-origin writes use a member key to locate the entire
-logical session, including archived/excluded members. All require
-`X-Hive-Action-Scope: session`: missing or older scope returns
-`409 {"code":"reload_required"}` without mutation, protecting already open old
-tabs. POST/DELETE `/api/sessions/<key>/archive` archives/restores; POST/DELETE
-`/api/sessions/<key>/pin` keeps/unkeeps. PUT `/api/sessions/<key>/title` accepts
-only a JSON `title` string, within 2048 bytes and 200 Unicode code points after
-trimming, rejecting control characters; empty clears the local override.
-Successful preference writes return 204. Document and resource reads retain
-physical keys, capabilities and source-classification restrictions.
-
-DELETE `/api/sessions/<key>` removes all current members without modifying their
-sources. It commits their tombstones before removing folders and records
-`delete_pending` for recovery. `partial_delete` returns only safe counts
-(`deleted`, `remaining`, `cleanup_pending`) and failure, never false success.
-Survivors remain available for retry. Startup and Sync finish pending cleanup
-when no members remain, and new ingestion waits for cleanup before applying new
-preferences. Errors tagged `delete_cleanup_pending` remain queryable even with
-zero members; GET only reports them. Tombstones still describe physical content,
-so new or modified deliveries can return rather than permanently blocking a chat.
-
-For legacy records, the React shell groups copies by that exact logical identity, with compact
-name/ticket/walkthrough/date rows and no ticket level or connector branches.
-A fixed session toolbar owns naming and management; its document canvas alone
-scrolls chronological walkthroughs with separators, work-status indicators and
-ticket search jumps. The local name participates in search without modifying
-source titles. A prefilled single-field dialog edits it; confirmed deletion
-counts every stored member. Archive feedback offers Undo without a persistent
-copy banner. Actual source and connection warnings remain separate.
-Projects initially open for explicitly in-progress work; manual expansion takes
-precedence. The accessible icon beside Projects includes archived sessions,
-hidden by default. The sidebar brand header retains its route icon.
-The session header aggregates explicit delivery links from its visible accessible
-segment manifests, deduplicated by URL; documents and standalone pages retain their
-own links. The optional `delivery` contract lives in the manifest reference,
-separately from `candidate`; no provider lookup or historical backfill runs.
-Both readers validate it and link rendering checks its destination again.
-An old strict reader can reject that field, so update binary before content and
-follow the maintainer viewer restart rule in the repository `AGENTS.md` when refreshing this checkout; outside that case, obtain explicit permission to restart an already running viewer. Sidebar visibility, project expansion, archive
-filter and selection persist in sessionStorage for the same tab and origin.
-
-Manifest and resource ingestion rejects files with more than one hard link using
-metadata from each opened descriptor before reading, including hashing and copying.
-This does not impose a same-owner rule or authenticate the origin of an inode.
-Existing path, symlink, byte-limit and hash checks still apply.
-
-The viewer embeds its assets: replacing the manager binary does not replace a
-running viewer process. The updated behavior and assets activate at its next start;
-refreshing content does not rewrite previously generated standalone HTML pages.
+The viewer embeds its assets and needs no Node process at runtime. Frontend
+source and checked-in output freshness are verified separately from actual
+service identity. Standalone HTML keeps its renderer and file validation, but
+is not a source ingested by protocol3. Existing path, byte, descriptor and hash
+guards remain relevant; a safe local file does not authenticate its author.
 
 ### Terminal interface
 

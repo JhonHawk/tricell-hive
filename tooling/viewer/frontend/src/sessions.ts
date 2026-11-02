@@ -1,4 +1,20 @@
-import type { LibrarySession } from "./api";
+import type { ViewerSession } from "./shell";
+
+type LibrarySession = ViewerSession & {
+  raw: {
+    session_id: string;
+    host?: string;
+    project_key?: string;
+    repository?: string;
+    source: string;
+    session_title?: string;
+    created_at: string;
+    ingested_at: string;
+  };
+  excluded: boolean;
+  absent: boolean;
+  fileBase: string;
+};
 
 export type SessionGroup = {
   id: string;

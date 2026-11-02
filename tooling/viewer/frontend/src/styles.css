@@ -70,7 +70,23 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 }
+/* Keep the installed neutral semantic palette available to portalled surfaces in both themes. */
 :root {
+  --background: oklch(1 0 0);
+  --sidebar: oklch(0.985 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --border: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --radius: 0.625rem;
+  color-scheme: light;
+}
+.dark {
   --background: oklch(0.145 0 0);
   --sidebar: oklch(0.17 0 0);
   --foreground: oklch(0.985 0 0);
@@ -82,7 +98,6 @@
   --border: oklch(1 0 0 / 10%);
   --ring: oklch(0.556 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --radius: 0.625rem;
   color-scheme: dark;
 }
 body {
@@ -99,6 +114,7 @@ body {
 }
 .viewer-shell *,
 [data-slot="dialog-content"],
+[data-slot="sheet-content"],
 [data-slot="alert-dialog-content"],
 [data-slot="dialog-content"] *,
 [data-slot="dialog-content"]::before,
@@ -118,6 +134,7 @@ body {
 :is(
     .viewer-shell,
     [data-slot="dialog-content"],
+    [data-slot="sheet-content"],
     [data-slot="popover-content"],
     [data-slot="dropdown-menu-content"],
     [data-slot="select-content"]
@@ -151,6 +168,7 @@ body {
       .viewer-shell,
       [data-sidebar="sidebar"],
       [data-slot="dialog-content"],
+      [data-slot="sheet-content"],
       [data-slot="popover-content"],
       [data-slot="dropdown-menu-content"],
       [data-slot="select-content"]
@@ -164,6 +182,7 @@ body {
       .viewer-shell,
       [data-sidebar="sidebar"],
       [data-slot="dialog-content"],
+      [data-slot="sheet-content"],
       [data-slot="popover-content"],
       [data-slot="dropdown-menu-content"],
       [data-slot="select-content"]
@@ -177,6 +196,7 @@ body {
       .viewer-shell,
       [data-sidebar="sidebar"],
       [data-slot="dialog-content"],
+      [data-slot="sheet-content"],
       [data-slot="popover-content"],
       [data-slot="dropdown-menu-content"],
       [data-slot="select-content"]
@@ -192,6 +212,7 @@ body {
     .viewer-shell,
     [data-sidebar="sidebar"],
     [data-slot="dialog-content"],
+    [data-slot="sheet-content"],
     [data-slot="popover-content"],
     [data-slot="dropdown-menu-content"],
     [data-slot="select-content"]

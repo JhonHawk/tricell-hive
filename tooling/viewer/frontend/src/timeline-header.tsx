@@ -11,7 +11,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { type ReactNode, useRef, useState } from "react";
+import { type ReactNode, useId, useRef, useState } from "react";
 import { Alert, AlertAction, AlertDescription } from "@/components/reui/alert";
 import { Badge } from "@/components/reui/badge";
 import {
@@ -46,13 +46,13 @@ import {
 import {
   isSafeTimelineURL,
   type TimelineSessionResponse,
-  timelineTicketIdentity,
 } from "./timeline-contract";
 import {
   type TimelineLanguage,
   timelineCopy,
   timelineDate,
 } from "./timeline-copy";
+import { TimelineParticipants } from "./timeline-participants";
 
 export type TimelineHeaderPatch = {
   title?: string;
@@ -66,7 +66,12 @@ export type TimelineHeaderProps = {
     expectedVersion: number,
   ) => Promise<void>;
   onDelete: (expectedVersion: number) => Promise<void>;
-  onRetry: () => void;
+  onRetry: () => void | Promise<void>;
+  onRecover?: (
+    requestID: string,
+    reason: string,
+    expectedVersion: number,
+  ) => Promise<void>;
   lang?: TimelineLanguage;
 };
 
@@ -103,9 +108,11 @@ export function TimelineHeader({
   onUpdate,
   onDelete,
   onRetry,
+  onRecover,
   lang = "en",
 }: TimelineHeaderProps) {
   const { session } = data;
+  const titleHintID = useId();
   const t = timelineCopy(lang);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(session.title);
@@ -115,14 +122,7 @@ export function TimelineHeader({
   const editVersion = useRef(session.version);
   const editSession = useRef(session.viewer_session_id);
   const deleteVersion = useRef(session.version);
-  const deliveries = [
-    ...new Map(
-      session.events
-        .filter((e) => !e.withdrawn)
-        .flatMap((e) => e.deliveries ?? [])
-        .map((d) => [d.url, d]),
-    ).values(),
-  ];
+  const deliveries = session.deliveries;
   // The installed outline variant keeps status text readable on the viewer surface.
   const statusVariant = "outline";
   const update = async (
@@ -141,7 +141,11 @@ export function TimelineHeader({
     }
   };
   const saveTitle = () => {
-    if (!draft.trim() || [...draft.trim()].length > 200) {
+    if (
+      !draft.trim() ||
+      [...draft.trim()].length > 200 ||
+      /\p{Cc}/u.test(draft)
+    ) {
       setError("required");
       return;
     }
@@ -211,11 +215,22 @@ export function TimelineHeader({
           ) : (
             <div className="flex min-w-0 items-center gap-2">
               <h1
-                className="min-w-0 truncate text-lg font-semibold tracking-tight"
+                className="min-w-0 overflow-x-auto whitespace-normal break-normal text-lg font-semibold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                style={{
+                  whiteSpace: /\s/u.test(session.title) ? "normal" : "nowrap",
+                }}
+                aria-describedby={titleHintID}
+                // biome-ignore lint/a11y/noNoninteractiveTabindex: The title is a deliberate keyboard-accessible horizontal reading region.
+                tabIndex={0}
                 title={session.title}
               >
                 {session.title}
               </h1>
+              <span id={titleHintID} className="sr-only">
+                {lang === "es"
+                  ? "Si el nombre no cabe, usa las flechas izquierda y derecha para leerlo completo."
+                  : "If the name does not fit, use the left and right arrow keys to read it in full."}
+              </span>
               <IconAction
                 label={t.edit}
                 disabled={pending}
@@ -234,21 +249,28 @@ export function TimelineHeader({
           <p className="text-xs text-muted-foreground">
             <time dateTime={session.created_at}>
               {timelineDate(session.created_at, lang, false)}
-            </time>{" "}
-            · {session.validation_count} {t.walkthroughs}
+            </time>
+            {session.validation_count > 0 && (
+              <>
+                {" "}
+                · {session.validation_count} {t.validations}
+              </>
+            )}
           </p>
         </div>
         <div
           className="flex max-w-full flex-wrap items-center gap-2 self-end lg:shrink-0 lg:justify-end lg:self-auto"
           aria-busy={pending}
         >
-          <ButtonGroup aria-label={t.actions}>
+          <ButtonGroup aria-label={t.states[session.state]}>
             <ButtonGroupText>
               <Badge variant={statusVariant}>
                 <Circle aria-hidden className="size-2 fill-current" />
                 {t.states[session.state]}
               </Badge>
             </ButtonGroupText>
+          </ButtonGroup>
+          <ButtonGroup aria-label={t.actions}>
             <Popover>
               <PopoverTrigger
                 render={
@@ -257,6 +279,7 @@ export function TimelineHeader({
                     variant="outline"
                     size="sm"
                     aria-label={`${t.tickets}: ${session.tickets.length}`}
+                    title={`${t.tickets}: ${session.tickets.length}`}
                   />
                 }
               >
@@ -269,7 +292,7 @@ export function TimelineHeader({
                   <ul className="flex flex-col gap-2">
                     {session.tickets.map((ticket) => (
                       <li
-                        key={timelineTicketIdentity(ticket)}
+                        key={ticket.ticket_id}
                         className="flex min-w-0 flex-col gap-0.5"
                       >
                         {isSafeTimelineURL(ticket.url) ? (
@@ -307,6 +330,7 @@ export function TimelineHeader({
                     variant="outline"
                     size="sm"
                     aria-label={`${t.git}: ${deliveries.length}`}
+                    title={`${t.git}: ${deliveries.length}`}
                   />
                 }
               >
@@ -319,7 +343,7 @@ export function TimelineHeader({
                   <ul className="flex flex-col gap-2">
                     {deliveries.map((delivery) => (
                       <li
-                        key={delivery.url}
+                        key={delivery.delivery_id}
                         className="flex min-w-0 items-center justify-between gap-2"
                       >
                         {isSafeTimelineURL(delivery.url) ? (
@@ -347,6 +371,12 @@ export function TimelineHeader({
               </PopoverContent>
             </Popover>
           </ButtonGroup>
+          <TimelineParticipants
+            data={data}
+            lang={lang}
+            onRetry={onRetry}
+            onRecover={onRecover}
+          />
           <ButtonGroup aria-label={t.more}>
             <IconAction
               label={session.archived ? t.unarchive : t.archive}
@@ -403,6 +433,7 @@ export function TimelineHeader({
           )}
         </div>
       </div>
+      {session.reason && <p className="text-sm">{session.reason}</p>}
       {error && !deleting && (
         <Alert variant="destructive">
           <AlertDescription>
