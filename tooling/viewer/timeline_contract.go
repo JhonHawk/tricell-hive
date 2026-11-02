@@ -1523,59 +1523,70 @@ func DecodeTimelineIndexEntry(raw []byte) (TimelineIndexEntry, error) {
 		if err := DecodeTimelineJSON(raw, &entry); err != nil {
 			return nil, err
 		}
-		rawSummary, err := json.Marshal(entry)
-		if err != nil {
-			return nil, timelineError("body", "invalid_summary")
-		}
-		var obj map[string]json.RawMessage
-		if err = json.Unmarshal(rawSummary, &obj); err != nil {
-			return nil, timelineError("body", "invalid_summary")
-		}
-		delete(obj, "mode")
-		// The summary carries the stage pointer but not its event, so the
-		// synthetic session below cannot prove the foreground. Check the
-		// pointer on the entry and validate the rest as an active session.
-		if timelineStateRequiresForeground(entry.State) {
-			if entry.CurrentStageEventID == nil {
-				return nil, timelineError("current_stage_event_id", "foreground_required")
-			}
-			obj["state"] = json.RawMessage(`"active"`)
-		}
-		obj["schema_version"] = json.RawMessage(`3`)
-		obj["producers"], _ = json.Marshal([]TimelineProducer{{ProducerID: "summary", Source: entry.Source, JoinedAt: entry.CreatedAt}})
-		obj["foreground_producer_id"] = json.RawMessage(`"summary"`)
-		obj["pending_join_requests"] = json.RawMessage(`[]`)
-		obj["tasks"] = json.RawMessage(`[]`)
-		obj["waits"] = json.RawMessage(`[]`)
-		obj["deliveries"] = json.RawMessage(`[]`)
-		obj["candidates"] = json.RawMessage(`[]`)
-		obj["events"] = json.RawMessage(`[]`)
-		obj["artifacts"] = json.RawMessage(`[]`)
-		obj["documents"] = json.RawMessage(`[]`)
-		obj["current_stage_event_id"] = json.RawMessage(`null`)
-		obj["validation_count"] = json.RawMessage(`0`)
-		rawSummary, err = json.Marshal(obj)
-		if err != nil {
-			return nil, timelineError("body", "invalid_summary")
-		}
-		if _, err = DecodeTimelineSession(rawSummary); err != nil {
+		if err := validateTimelineIndexEntry(entry); err != nil {
 			return nil, err
-		}
-		if entry.ValidationCount < 0 || entry.ValidationCount > TimelineMaxEvents {
-			return nil, timelineError("validation_count", "invalid_count")
-		}
-		if entry.CurrentStageEventID != nil {
-			if err := timelineID(*entry.CurrentStageEventID, "current_stage_event_id"); err != nil {
-				return nil, err
-			}
-			if !timelineStateAllowsForeground(entry.State) {
-				return nil, timelineError("state", "foreground_requires_active_session")
-			}
 		}
 		return entry, nil
 	default:
 		return nil, timelineError("mode", "unsupported_mode")
 	}
+}
+
+// validateTimelineIndexEntry applies the session rules that a work summary
+// carries: its identity, texts, state, times and tickets, plus the stage
+// pointer, which the summary holds without the event it points to.
+func validateTimelineIndexEntry(e TimelineAPIIndexEntry) error {
+	if timelineStateRequiresForeground(e.State) && e.CurrentStageEventID == nil {
+		return timelineError("current_stage_event_id", "foreground_required")
+	}
+	if !timelineSHA256.MatchString(e.ViewerSessionID) {
+		return timelineError("viewer_session_id", "invalid_id")
+	}
+	if err := timelineSource(e.Source); err != nil {
+		return err
+	}
+	if err := timelineText(e.ProjectKey, "project_key", 2048, true); err != nil {
+		return err
+	}
+	if err := timelineText(e.ProjectName, "project_name", 200, true); err != nil {
+		return err
+	}
+	if err := timelineNumber(e.Version, "version"); err != nil {
+		return err
+	}
+	if err := timelineText(e.Title, "title", 200, true); err != nil {
+		return err
+	}
+	if err := timelineText(e.Summary, "summary", 4000, true); err != nil {
+		return err
+	}
+	if !contains(timelineStates, string(e.State)) {
+		return timelineError("state", "unsupported_state")
+	}
+	if err := timelineTime(e.CreatedAt, "created_at"); err != nil {
+		return err
+	}
+	if err := timelineTime(e.UpdatedAt, "updated_at"); err != nil {
+		return err
+	}
+	if err := newTimelineCatalogIdentities().addTickets(e.Tickets); err != nil {
+		return err
+	}
+	if err := timelineTickets(e.Tickets); err != nil {
+		return err
+	}
+	if e.ValidationCount < 0 || e.ValidationCount > TimelineMaxEvents {
+		return timelineError("validation_count", "invalid_count")
+	}
+	if e.CurrentStageEventID != nil {
+		if err := timelineID(*e.CurrentStageEventID, "current_stage_event_id"); err != nil {
+			return err
+		}
+		if !timelineStateAllowsForeground(e.State) {
+			return timelineError("state", "foreground_requires_active_session")
+		}
+	}
+	return nil
 }
 
 func (r TimelineOperationResult) Validate() error {
