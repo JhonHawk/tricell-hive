@@ -4,6 +4,7 @@ import {
   Check,
   Circle,
   GitPullRequest,
+  ListChecks,
   MoreHorizontal,
   Pencil,
   Pin,
@@ -47,12 +48,9 @@ import {
   isSafeTimelineURL,
   type TimelineSessionResponse,
 } from "./timeline-contract";
-import {
-  type TimelineLanguage,
-  timelineCopy,
-  timelineDate,
-} from "./timeline-copy";
+import { type TimelineLanguage, timelineCopy } from "./timeline-copy";
 import { TimelineParticipants } from "./timeline-participants";
+import { TimelineSummary } from "./timeline-summary";
 
 export type TimelineHeaderPatch = {
   title?: string;
@@ -123,6 +121,8 @@ export function TimelineHeader({
   const editSession = useRef(session.viewer_session_id);
   const deleteVersion = useRef(session.version);
   const deliveries = session.deliveries;
+  const validations =
+    t.validations.charAt(0).toUpperCase() + t.validations.slice(1);
   // The installed outline variant keeps status text readable on the viewer surface.
   const statusVariant = "outline";
   const update = async (
@@ -172,94 +172,83 @@ export function TimelineHeader({
       data-slot="timeline-header"
       className="flex min-w-0 flex-col gap-3 border-b border-border px-4 py-3 md:px-6"
     >
-      <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 flex-1 flex-col gap-1">
-          <p className="text-xs text-muted-foreground">
-            {session.project_name}
-          </p>
-          {editing ? (
-            <div className="flex min-w-0 items-center gap-1">
-              <Input
-                autoFocus
-                aria-label={t.title}
-                aria-invalid={Boolean(error)}
-                value={draft}
-                disabled={pending}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    saveTitle();
-                  }
-                  if (e.key === "Escape") {
-                    e.preventDefault();
-                    setEditing(false);
-                    setError(null);
-                  }
-                }}
-              />
-              <IconAction label={t.save} disabled={pending} onClick={saveTitle}>
-                <Check aria-hidden />
-              </IconAction>
-              <IconAction
-                label={t.cancel}
-                disabled={pending}
-                onClick={() => {
+      <div className="flex min-w-0 flex-col gap-1">
+        {editing ? (
+          <div className="flex min-w-0 items-center gap-1">
+            <Input
+              autoFocus
+              aria-label={t.title}
+              aria-invalid={Boolean(error)}
+              value={draft}
+              disabled={pending}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  saveTitle();
+                }
+                if (e.key === "Escape") {
+                  e.preventDefault();
                   setEditing(false);
                   setError(null);
-                }}
-              >
-                <X aria-hidden />
-              </IconAction>
-            </div>
-          ) : (
-            <div className="flex min-w-0 items-center gap-2">
-              <h1
-                className="min-w-0 overflow-x-auto whitespace-normal break-normal text-lg font-semibold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                style={{
-                  whiteSpace: /\s/u.test(session.title) ? "normal" : "nowrap",
-                }}
-                aria-describedby={titleHintID}
-                // biome-ignore lint/a11y/noNoninteractiveTabindex: The title is a deliberate keyboard-accessible horizontal reading region.
-                tabIndex={0}
-                title={session.title}
-              >
-                {session.title}
-              </h1>
-              <span id={titleHintID} className="sr-only">
-                {lang === "es"
-                  ? "Si el nombre no cabe, usa las flechas izquierda y derecha para leerlo completo."
-                  : "If the name does not fit, use the left and right arrow keys to read it in full."}
-              </span>
-              <IconAction
-                label={t.edit}
-                disabled={pending}
-                onClick={() => {
-                  setDraft(session.title);
-                  editVersion.current = session.version;
-                  editSession.current = session.viewer_session_id;
-                  setEditing(true);
-                  setError(null);
-                }}
-              >
-                <Pencil aria-hidden />
-              </IconAction>
-            </div>
-          )}
-          <p className="text-xs text-muted-foreground">
-            <time dateTime={session.created_at}>
-              {timelineDate(session.created_at, lang, false)}
-            </time>
-            {session.validation_count > 0 && (
-              <>
-                {" "}
-                · {session.validation_count} {t.validations}
-              </>
-            )}
-          </p>
+                }
+              }}
+            />
+            <IconAction label={t.save} disabled={pending} onClick={saveTitle}>
+              <Check aria-hidden />
+            </IconAction>
+            <IconAction
+              label={t.cancel}
+              disabled={pending}
+              onClick={() => {
+                setEditing(false);
+                setError(null);
+              }}
+            >
+              <X aria-hidden />
+            </IconAction>
+          </div>
+        ) : (
+          <div className="flex min-w-0 items-center gap-2">
+            <h1
+              className="min-w-0 overflow-x-auto whitespace-normal break-normal text-lg font-semibold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+              style={{
+                whiteSpace: /\s/u.test(session.title) ? "normal" : "nowrap",
+              }}
+              aria-describedby={titleHintID}
+              // biome-ignore lint/a11y/noNoninteractiveTabindex: The title is a deliberate keyboard-accessible horizontal reading region.
+              tabIndex={0}
+              title={session.title}
+            >
+              {session.title}
+            </h1>
+            <span id={titleHintID} className="sr-only">
+              {lang === "es"
+                ? "Si el nombre no cabe, usa las flechas izquierda y derecha para leerlo completo."
+                : "If the name does not fit, use the left and right arrow keys to read it in full."}
+            </span>
+            <IconAction
+              label={t.edit}
+              disabled={pending}
+              onClick={() => {
+                setDraft(session.title);
+                editVersion.current = session.version;
+                editSession.current = session.viewer_session_id;
+                setEditing(true);
+                setError(null);
+              }}
+            >
+              <Pencil aria-hidden />
+            </IconAction>
+          </div>
+        )}
+      </div>
+      <div className="flex min-w-0 flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div className="min-w-0 flex-1">
+          <TimelineSummary content={session.summary} lines={2} lang={lang} />
         </div>
         <div
-          className="flex max-w-full flex-wrap items-center gap-2 self-end lg:shrink-0 lg:justify-end lg:self-auto"
+          className="flex max-w-full flex-wrap items-center justify-end gap-2 self-end lg:shrink-0 lg:self-auto"
           aria-busy={pending}
         >
           <ButtonGroup aria-label={t.states[session.state]}>
@@ -370,6 +359,16 @@ export function TimelineHeader({
                 )}
               </PopoverContent>
             </Popover>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              aria-label={`${validations}: ${session.validation_count}`}
+              title={`${validations}: ${session.validation_count}`}
+            >
+              <ListChecks aria-hidden />
+              {session.validation_count}
+            </Button>
           </ButtonGroup>
           <TimelineParticipants
             data={data}

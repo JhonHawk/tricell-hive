@@ -19,9 +19,11 @@ export function TimelineSummary({
       <div
         className={
           !expanded
-            ? lines === 2
-              ? "line-clamp-2"
-              : "line-clamp-3"
+            ? // The markdown root is a flex column, which line-clamp cannot
+              // count through; render it as a block while collapsed.
+              lines === 2
+              ? "line-clamp-2 [&>div]:block"
+              : "line-clamp-3 [&>div]:block"
             : undefined
         }
       >

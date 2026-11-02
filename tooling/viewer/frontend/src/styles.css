@@ -292,31 +292,10 @@ body {
   }
 }
 
-/* Stacked session documents keep their report content and metadata without a
-   standalone page's viewport height, title or surrounding page gutters. */
-.walkthrough.walkthrough-embedded {
-  min-height: 0;
-  max-width: none;
-  margin: 0;
-  padding: 0;
-  background: transparent;
-  font-size: 0.875rem;
-}
-.walkthrough-embedded h2 {
-  font-size: 1rem;
-  margin-top: 1.5rem;
-}
-
 [data-slot="alert-dialog-content"],
 [data-slot="alert-dialog-content"] * {
   box-sizing: border-box;
 }
 [data-slot="alert-dialog-content"] :is(h2, p) {
   margin: 0;
-}
-@media print {
-  [data-slot="session-toolbar"],
-  [data-slot="session-feedback"] {
-    display: none;
-  }
 }

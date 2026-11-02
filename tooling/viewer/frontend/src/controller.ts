@@ -18,27 +18,6 @@ import {
   type TimelineAPIIndexEntry,
   type TimelineSessionResponse,
 } from "./timeline-contract";
-export type Delivery = {
-  kind: "pull_request" | "commit";
-  label: string;
-  url: string;
-};
-export type WalkthroughManifest = {
-  title: string;
-  delivery?: Delivery[];
-  [key: string]: unknown;
-};
-export type DocumentData = {
-  key: string;
-  hash: string;
-  fileBase: string;
-  manifest: WalkthroughManifest;
-};
-export type SegmentDocument = {
-  revision: string;
-  state: "loading" | "ready" | "error" | "excluded";
-  document: DocumentData | null;
-};
 export type TimelineRead = {
   id: string;
   state: "loading" | "ready" | "error";
