@@ -24,7 +24,7 @@ One question at the end, the close question. Its options are to end the session,
 ## What it produces
 
 - The ticket moved to the state your project uses for integrated work, and the change record folded into the project's current requirements and archived.
-- Merged branches and their clean working copies removed, temporary files deleted, the processes and containers the work started stopped, and the local images and intermediate dumps it created removed; a file you asked for as the result is kept. Resources it created outside your machine, such as storage objects or registry images, are listed with the command that removes each, and removed only if you say so. Anything with uncommitted work or uncertain ownership is kept.
+- Merged branches and their clean working copies removed, temporary files deleted, the processes stopped, and the containers it started (with their volumes) and the images it built removed. A dump or export it made is listed and removed only if you say so. Resources it created outside your machine, such as storage objects or registry images, are listed with the command that removes each, and removed only if you say so. Anything with uncommitted work or uncertain ownership is kept.
 - One final report of the whole work item: what was integrated, how each acceptance criterion was shown, what was skipped or could not run, local repairs, the findings and what remains.
 - A page version of the report through [flow-report](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-report/SKILL.md), offered as an option when you want to keep or share it.
 
