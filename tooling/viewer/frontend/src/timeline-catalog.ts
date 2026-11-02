@@ -191,10 +191,10 @@ export function timelineCatalogIdentities() {
       urls.add(url);
     }
   }
-  /** Validates each ticket record and registers its identity and URL. */
+  /** Registers each ticket's identity and URL; the caller has already
+   * validated the records. */
   function addTickets(tickets: TimelineSession["tickets"]) {
     for (const t of tickets) {
-      validateTimelineTicketRecord(t);
       add(
         t.ticket_id,
         `ticket\0${canonicalTimelineIdentityURL(t.external_scope)}\0${t.external_id}`,

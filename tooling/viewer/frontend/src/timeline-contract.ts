@@ -46,6 +46,7 @@ export const TIMELINE_LIMITS = {
   body: 2 << 20,
   content: 7 << 18,
   events: 508,
+  catalogRecords: 100,
   views: 50,
   images: 100,
   receipts: 1000,
@@ -699,8 +700,35 @@ const source = validateTimelineSource;
 export function timelineTicketIdentity(ref: { ticket_id: string }): string {
   return ref.ticket_id;
 }
+/** Checks the header fields a session and its index entry share. */
+function summaryHeader(obj: ObjectValue) {
+  if (
+    typeof obj.viewer_session_id !== "string" ||
+    !sha256.test(obj.viewer_session_id)
+  )
+    fail("viewer_session_id", "invalid_id");
+  source(obj.source);
+  text(obj.project_key, "project_key", 2048);
+  text(obj.project_name, "project_name", 200);
+  integer(obj.version, "version");
+  text(obj.title, "title", 200);
+  text(obj.summary, "summary", 4000);
+  if (!states.includes(obj.state as string)) fail("state", "unsupported_state");
+  for (const field of ["archived", "pinned"])
+    if (typeof obj[field] !== "boolean") fail(field);
+  timestamp(obj.created_at, "created_at");
+  timestamp(obj.updated_at, "updated_at");
+}
 function tickets(value: unknown, full = false, bootstrap = false) {
-  const list = array(value, "tickets", 100);
+  // A full ticket list over the limit gets the Go validator's code; event
+  // ticket references keep the generic array error.
+  if (
+    full &&
+    Array.isArray(value) &&
+    value.length > TIMELINE_LIMITS.catalogRecords
+  )
+    fail("tickets", "array_required_or_limit");
+  const list = array(value, "tickets", TIMELINE_LIMITS.catalogRecords);
   if (!full) {
     validateTimelineTicketReferences(list);
     return;
@@ -1227,22 +1255,7 @@ export function parseTimelineSession(value: unknown): TimelineSession {
     ["reason"],
   );
   if (obj.schema_version !== 3) fail("schema_version", "unsupported_protocol");
-  if (
-    typeof obj.viewer_session_id !== "string" ||
-    !sha256.test(obj.viewer_session_id)
-  )
-    fail("viewer_session_id", "invalid_id");
-  source(obj.source);
-  text(obj.project_key, "project_key", 2048);
-  text(obj.project_name, "project_name", 200);
-  integer(obj.version, "version");
-  text(obj.title, "title", 200);
-  text(obj.summary, "summary", 4000);
-  if (!states.includes(obj.state as string)) fail("state", "unsupported_state");
-  for (const field of ["archived", "pinned"])
-    if (typeof obj[field] !== "boolean") fail(field);
-  timestamp(obj.created_at, "created_at");
-  timestamp(obj.updated_at, "updated_at");
+  summaryHeader(obj);
   integer(obj.validation_count, "validation_count", 0, TIMELINE_LIMITS.events);
   tickets(obj.tickets, true);
   validateTimelineCatalogs(obj as unknown as TimelineSession);
@@ -1541,43 +1554,18 @@ export function parseTimelineIndexEntry(value: unknown): TimelineIndexEntry {
     "tickets",
     "current_stage_event_id",
   ]);
-  if (entry.current_stage_event_id !== null)
-    id(entry.current_stage_event_id, "current_stage_event_id");
-  // The summary carries the stage pointer but not the event it points to.
+  // The order matches the Go validator, so an entry with several faults
+  // reports the same first code in both languages.
   if (
     timelineStateRequiresForeground(entry.state) &&
     entry.current_stage_event_id === null
   )
     fail("current_stage_event_id", "foreground_required");
-  if (
-    typeof entry.viewer_session_id !== "string" ||
-    !sha256.test(entry.viewer_session_id)
-  )
-    fail("viewer_session_id", "invalid_id");
-  source(entry.source);
-  text(entry.project_key, "project_key", 2048);
-  text(entry.project_name, "project_name", 200);
-  integer(entry.version, "version");
-  text(entry.title, "title", 200);
-  text(entry.summary, "summary", 4000);
-  if (!states.includes(entry.state as string))
-    fail("state", "unsupported_state");
-  for (const field of ["archived", "pinned"])
-    if (typeof entry[field] !== "boolean") fail(field);
-  timestamp(entry.created_at, "created_at");
-  timestamp(entry.updated_at, "updated_at");
-  // Same code as the Go validator for an oversized list.
-  if (Array.isArray(entry.tickets) && entry.tickets.length > 100)
-    fail("tickets", "array_required_or_limit");
+  summaryHeader(entry);
   tickets(entry.tickets, true);
   timelineCatalogIdentities().addTickets(
     entry.tickets as TimelineSession["tickets"],
   );
-  if (
-    entry.current_stage_event_id !== null &&
-    !timelineStateAllowsForeground(entry.state)
-  )
-    fail("state", "foreground_requires_active_session");
   // An integer out of range gets the Go validator's code; other values keep
   // the generic integer error.
   const count = entry.validation_count;
@@ -1585,6 +1573,12 @@ export function parseTimelineIndexEntry(value: unknown): TimelineIndexEntry {
     if (count < 0 || count > TIMELINE_LIMITS.events)
       fail("validation_count", "invalid_count");
   } else integer(count, "validation_count", 0, TIMELINE_LIMITS.events);
+  // The summary carries the stage pointer but not the event it points to.
+  if (entry.current_stage_event_id !== null) {
+    id(entry.current_stage_event_id, "current_stage_event_id");
+    if (!timelineStateAllowsForeground(entry.state))
+      fail("state", "foreground_requires_active_session");
+  }
   return entry as TimelineAPIIndexEntry;
 }
 const v3ResultFields: Record<string, string[]> = {
