@@ -32,6 +32,13 @@ raise the minor or the patch version.
   abandoned, paused when it was paused. It was a note above the steps and a
   close could skip it.
 
+### Removed
+
+- The plan's build route no longer recommends compacting first. Claude Code
+  does not tell the model its context window, so the agent estimated against a
+  smaller window and recommended compacting at about 20% of a 1M window. Compacting is
+  left to you and the host's own automatic compaction.
+
 ## [0.7.0] - 2026-11-01
 
 ### Added

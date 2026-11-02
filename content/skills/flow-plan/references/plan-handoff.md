@@ -21,7 +21,6 @@ The saved change folder holds the detail and the user may not open it, so summar
 End the summary with the next-step block that the global guidance's «Questions and routes» section sets, never with a question card. The build route is a route, not a request for leave to proceed: a plan does not authorize implementation, and only the user's reply starts `flow-build`.
 
 - Recommend building unless something blocks it, and say in the block that typing the build command approves the criteria shown, by their IDs with a gloss, such as "approves AC1–AC4 (export, permissions and audit)": `/flow-build <change folder>` in the host's syntax.
-- When the context used exceeds 40% of the model's window, as the host shows it or as you estimate it, recommend compacting first: give the host's compaction command, such as `/compact` (or `/summarize` in Cursor CLI), followed where the host accepts instructions by what to keep (the change folder path, the approved criteria and the delivery answers), and then the build command. No host lets the agent compact its own session.
 - Recommend stopping with the plan ready only for a named blocker, such as an open decision, an unmet prerequisite or the user's statement not to implement now, and say which; that the user asked for a plan is not a blocker.
 
 A correction to a criterion or a sketch is not approval: revise the plan, show the revised criteria or sketch, and end with the build route again.
