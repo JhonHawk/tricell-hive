@@ -121,7 +121,7 @@ Keep mutex/CAS, private request digests, atomic persistence, receipts, restart/r
 
 Use protocol_version/schema_version/storage_version 3 consistently, including health, index, offline schemas/catalog, operation results and receipts. This avoids an extra subrevision handshake: an installed provisional CLI already advertises version 2, while incompatible pairs must fail before writes. CLI/new server and old clients must reject incompatible versions explicitly.
 
-Use a new positive version-3 state marker and namespace. Preflight rejects version-1/version-2 state, like any name outside the v3 inventory, with invalid_storage before mkdir, lock, log, cleanup, signaling, registry mutation or startup. Unknown/corrupt state remains an explicit error. Do not load/convert an old record to discover compatible data. No compatibility reader, migration, auto-import, preference copy or deletion of old state. Build and verify only in new task-owned directories; preserve the installed binary, habitual viewer, registry, old copies and CAM runtime. The real cutover remains separately authorized.
+Use a new positive version-3 state marker and namespace. Preflight rejects known version-1/version-2 state with cutoff_required before mkdir, lock, log, cleanup, signaling, registry mutation or startup. Unknown/corrupt state remains an explicit error. Do not load/convert an old record to discover compatible data. No compatibility reader, migration, auto-import, preference copy or deletion of old state. Build and verify only in new task-owned directories; preserve the installed binary, habitual viewer, registry, old copies and CAM runtime. The real cutover remains separately authorized.
 
 ## Coherent example and UI
 

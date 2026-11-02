@@ -189,3 +189,16 @@ func TestTimelineCreateRejectsInvalidWorkKeys(t *testing.T) {
 		requireTimelineCode(t, err, "invalid_text")
 	}
 }
+
+// A work stored under a work key owns only its own ID: the key-less tuple ID
+// names no work, so /files/ must not treat it as owned.
+func TestTimelineKeyedWorkDoesNotOwnTheBareTupleID(t *testing.T) {
+	s, base := newTimelineFixture(t)
+	v := createTimeline(t, s, workKeyRequest(base, "op-keyed", timelineString("COM-9")))
+	if !s.timelineHasID(v.ViewerSessionID) {
+		t.Fatal("work does not own its own ID")
+	}
+	if s.timelineHasID(preWorkKeyID(v.ProjectKey, v.Source)) {
+		t.Fatal("the bare tuple ID is owned without a record")
+	}
+}

@@ -131,9 +131,18 @@ export function TimelineHeader({
   useEffect(() => {
     if (!editing && returnFocus.current) {
       returnFocus.current = false;
-      titleRow.current?.querySelector<HTMLButtonElement>("button")?.focus();
+      // Only when focus was lost with the input, never taken from where the
+      // user moved it while a save was pending.
+      const active = document.activeElement;
+      const header = titleRow.current?.closest('[data-slot="timeline-header"]');
+      if (active === document.body || header?.contains(active)) {
+        titleRow.current
+          ?.querySelector<HTMLButtonElement>(`button[aria-label="${t.edit}"]`)
+          ?.focus();
+      }
     }
-  }, [editing]);
+  }, [editing, t.edit]);
+  const titleWraps = /\s/u.test(session.title);
   const deliveries = session.deliveries;
   const validations =
     t.validations.charAt(0).toUpperCase() + t.validations.slice(1);
@@ -224,26 +233,33 @@ export function TimelineHeader({
           </div>
         ) : (
           <div ref={titleRow} className="flex min-w-0 items-center gap-2">
-            <h1
-              // A title with spaces wraps and is clamped to two lines, with the
-              // full text in its tooltip; an unbroken one scrolls sideways.
-              className={`min-w-0 break-normal text-lg font-semibold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
-                /\s/u.test(session.title)
-                  ? "line-clamp-2 whitespace-normal"
-                  : "overflow-x-auto whitespace-nowrap"
-              }`}
-              aria-describedby={titleHintID}
-              // biome-ignore lint/a11y/noNoninteractiveTabindex: The title is a deliberate keyboard-accessible horizontal reading region.
-              tabIndex={0}
-              title={session.title}
-            >
-              {session.title}
-            </h1>
-            <span id={titleHintID} className="sr-only">
-              {lang === "es"
-                ? "Si el nombre no cabe, usa las flechas izquierda y derecha para leerlo completo."
-                : "If the name does not fit, use the left and right arrow keys to read it in full."}
-            </span>
+            {titleWraps ? (
+              // A title with spaces wraps, long tokens included, and is clamped
+              // to two lines; screen readers still read the whole text.
+              <h1
+                className="line-clamp-2 min-w-0 whitespace-normal text-lg font-semibold tracking-tight [overflow-wrap:anywhere]"
+                title={session.title}
+              >
+                {session.title}
+              </h1>
+            ) : (
+              <h1
+                className="min-w-0 overflow-x-auto whitespace-nowrap break-normal text-lg font-semibold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                aria-describedby={titleHintID}
+                // biome-ignore lint/a11y/noNoninteractiveTabindex: An unbroken title is a deliberate keyboard-accessible horizontal reading region.
+                tabIndex={0}
+                title={session.title}
+              >
+                {session.title}
+              </h1>
+            )}
+            {!titleWraps && (
+              <span id={titleHintID} className="sr-only">
+                {lang === "es"
+                  ? "Si el nombre no cabe, usa las flechas izquierda y derecha para leerlo completo."
+                  : "If the name does not fit, use the left and right arrow keys to read it in full."}
+              </span>
+            )}
             <IconAction
               label={t.edit}
               disabled={pending}

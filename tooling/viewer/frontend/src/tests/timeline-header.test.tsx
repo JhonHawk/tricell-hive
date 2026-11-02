@@ -109,11 +109,61 @@ test("a long title with spaces is clamped to two lines; an unbroken one scrolls"
   );
   const h1 = spaced.container.querySelector("h1");
   assert.ok(h1?.classList.contains("line-clamp-2"));
+  // A long token inside a spaced title wraps instead of being clipped, and the
+  // clamped title is not offered as a horizontal reading region.
+  assert.ok(h1?.className.includes("[overflow-wrap:anywhere]"));
+  assert.equal(h1?.hasAttribute("tabindex"), false);
+  assert.equal(h1?.hasAttribute("aria-describedby"), false);
   assert.equal(h1?.getAttribute("title"), "word ".repeat(40).trim());
   await spaced.unmount();
   const unbroken = await mount(header(withTitle("x".repeat(200)), "en"));
   const h1b = unbroken.container.querySelector("h1");
   assert.ok(h1b?.classList.contains("overflow-x-auto"));
+  assert.equal(h1b?.getAttribute("tabindex"), "0");
   assert.equal(h1b?.classList.contains("line-clamp-2"), false);
   await unbroken.unmount();
+});
+
+test("a slow save does not take focus from where the user moved it", async () => {
+  let resolve = () => {};
+  const pending = new Promise<void>((r) => {
+    resolve = r;
+  });
+  const elsewhere = document.createElement("button");
+  document.body.append(elsewhere);
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  await act(async () =>
+    root.render(
+      <TimelineHeader
+        data={timelineFixture}
+        lang="en"
+        onUpdate={() => pending}
+        onDelete={async () => {}}
+        onRetry={() => {}}
+      />,
+    ),
+  );
+  await act(async () =>
+    container
+      .querySelector<HTMLButtonElement>('button[aria-label="Edit title"]')
+      ?.click(),
+  );
+  const input = container.querySelector<HTMLInputElement>("input");
+  assert.ok(input);
+  await act(async () => {
+    input.dispatchEvent(
+      new KeyboardEvent("keydown", { key: "Enter", bubbles: true }),
+    );
+  });
+  elsewhere.focus();
+  await act(async () => {
+    resolve();
+    await pending;
+  });
+  assert.equal(document.activeElement, elsewhere);
+  await act(async () => root.unmount());
+  container.remove();
+  elsewhere.remove();
 });
