@@ -58,22 +58,36 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 		}
 		switch {
 		case visited["list"]:
-			return viewTimelineOutput(w, viewer.TimelineProtocolList())
+			list, err := viewer.TimelineProtocolList()
+			if err != nil {
+				return err
+			}
+			return viewTimelineOutput(w, list)
 		case visited["section"]:
 			if *section != "rules" {
 				return errors.New("unknown contract section; valid sections: rules")
 			}
-			return viewTimelineOutput(w, viewer.TimelineProtocolRules())
+			rules, err := viewer.TimelineProtocolRules()
+			if err != nil {
+				return err
+			}
+			return viewTimelineOutput(w, rules)
 		case visited["for"]:
 			brief, err := viewer.TimelineProtocolBrief(*flow)
 			if err != nil {
-				return errors.New("unknown flow; valid flows: " + strings.Join(viewer.TimelineProtocolFlows(), ", "))
+				if viewer.TimelineContractCode(err) == "unsupported_flow" {
+					return errors.New("unknown flow; valid flows: " + strings.Join(viewer.TimelineProtocolFlows(), ", "))
+				}
+				return err
 			}
 			return viewTimelineOutput(w, brief)
 		}
 		contract, err := viewer.TimelineProtocolContract(*operation)
 		if err != nil {
-			return errors.New("unknown timeline operation; run `hive view contract --list`")
+			if viewer.TimelineContractCode(err) == "unsupported_operation" {
+				return errors.New("unknown timeline operation; run `hive view contract --list`")
+			}
+			return err
 		}
 		return viewTimelineOutput(w, contract)
 	}
@@ -119,7 +133,7 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 			}
 			var field *viewer.TimelineContractError
 			if errors.As(err, &field) && field.Field != "" {
-				return fmt.Errorf("invalid timeline input: %s: %s", field.Field, code)
+				return fmt.Errorf("invalid timeline input: %s on %s", code, field.Field)
 			}
 			return fmt.Errorf("invalid timeline input: %s", code)
 		}

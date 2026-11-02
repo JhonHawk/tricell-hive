@@ -216,7 +216,10 @@ func TestTimelineProtocolEveryOperationHasKnownFlow(t *testing.T) {
 			}
 		}
 	}
-	list := TimelineProtocolList()
+	list, err := TimelineProtocolList()
+	if err != nil {
+		t.Fatal(err)
+	}
 	if len(list.Operations) != len(contract.Commands) {
 		t.Fatalf("list has %d entries for %d operations", len(list.Operations), len(contract.Commands))
 	}
@@ -280,7 +283,11 @@ func TestTimelineProtocolBriefStaysUnderSizeLimit(t *testing.T) {
 }
 
 func TestTimelineProtocolRulesBlockHoldsSharedRules(t *testing.T) {
-	rules, err := json.Marshal(TimelineProtocolRules())
+	block, err := TimelineProtocolRules()
+	if err != nil {
+		t.Fatal(err)
+	}
+	rules, err := json.Marshal(block)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -314,4 +321,145 @@ func TestTimelineProtocolStageReasonRequiredAndConstsTyped(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestTimelineProtocolLocalFlowHoldsLocalViewerOperations(t *testing.T) {
+	if !contains(TimelineProtocolFlows(), "local") {
+		t.Fatal("local flow not listed")
+	}
+	local, err := timelineFlowMembers("local")
+	if err != nil || strings.Join(local, ",") != "session_delete,recover_lead" {
+		t.Fatalf("local flow: %v %v", local, err)
+	}
+	collab, err := timelineFlowMembers("collab")
+	if err != nil || strings.Join(collab, ",") != "join_request,producer_accept,foreground_transfer" {
+		t.Fatalf("collab flow: %v %v", collab, err)
+	}
+}
+
+func TestTimelineCollectEnumsMergesUnionBranches(t *testing.T) {
+	full, err := TimelineProtocolContract("stage_start")
+	if err != nil {
+		t.Fatal(err)
+	}
+	enums := map[string][]string{}
+	timelineCollectEnums(full.Commands[0].InputSchema, "", enums)
+	if got := strings.Join(enums["actor.kind"], ","); got != "native_producer,local_viewer" {
+		t.Fatalf("actor.kind = %q", got)
+	}
+	if _, ok := enums["schema_version"]; ok {
+		t.Fatal("integer const listed")
+	}
+	// The local flow keeps the merged values; native flows leave them out to stay under the size limit.
+	local, err := TimelineProtocolBrief("local")
+	if err != nil || len(local.Operations) == 0 {
+		t.Fatal(err)
+	}
+	for _, o := range local.Operations {
+		if got := strings.Join(o.Enums["actor.kind"], ","); got != "native_producer,local_viewer" {
+			t.Fatalf("%s actor.kind = %q", o.Operation, got)
+		}
+	}
+	plan, _ := TimelineProtocolBrief("plan")
+	for _, o := range plan.Operations {
+		if _, ok := o.Enums["actor.kind"]; ok {
+			t.Fatalf("%s lists actor.kind in a native flow", o.Operation)
+		}
+	}
+}
+
+func TestTimelineCollectEnumsWalksUnionKeywordsAndDeduplicates(t *testing.T) {
+	schema := map[string]any{"properties": map[string]any{"f": map[string]any{
+		"oneOf": []any{map[string]any{"const": "a"}, map[string]any{"enum": []string{"b", "a"}}},
+		"allOf": []any{map[string]any{"const": "c"}},
+		"anyOf": []any{map[string]any{"const": "b"}, map[string]any{"const": 3}},
+	}}}
+	out := map[string][]string{}
+	timelineCollectEnums(schema, "", out)
+	if got := strings.Join(out["f"], ","); got != "b,a,c" {
+		t.Fatalf("f = %q", got)
+	}
+	if len(out["f"]) != 3 {
+		t.Fatalf("not deduplicated or integer const leaked: %v", out["f"])
+	}
+}
+
+func TestTimelineNestedRequiredDescendsIntoListElements(t *testing.T) {
+	schema := map[string]any{"type": "object", "required": []string{"segments", "maybe"}, "properties": map[string]any{
+		"segments": map[string]any{"type": "array", "items": map[string]any{"type": "object", "required": []string{"planned_stage"}, "properties": map[string]any{"planned_stage": map[string]any{"type": "string"}}}},
+		"maybe":    map[string]any{"anyOf": []any{map[string]any{"type": "array", "items": map[string]any{"type": "object", "required": []string{"label"}, "properties": map[string]any{"label": map[string]any{"type": "string"}}}}, map[string]any{"type": "null"}}},
+	}}
+	got := strings.Join(timelineNestedRequired(schema, "x"), ",")
+	if got != "x.segments,x.segments[].planned_stage,x.maybe,x.maybe[].label" {
+		t.Fatalf("got %q", got)
+	}
+	brief, err := TimelineProtocolBrief("build")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, o := range brief.Operations {
+		if o.Operation == "task_create" && !contains(o.Required, "segments[].planned_stage") {
+			t.Fatalf("task_create required lacks segments[].planned_stage: %v", o.Required)
+		}
+	}
+	plan, _ := TimelineProtocolBrief("plan")
+	for _, o := range plan.Operations {
+		if o.Operation == "document_snapshot" && !contains(o.Required, "tabs[].label") {
+			t.Fatalf("document_snapshot required lacks tabs[].label: %v", o.Required)
+		}
+	}
+}
+
+// A required name without a property would be dropped silently by the brief.
+func TestTimelineProtocolRequiredNamesHaveProperties(t *testing.T) {
+	full, err := TimelineProtocolContract("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var walk func(schema map[string]any, path string)
+	walk = func(schema map[string]any, path string) {
+		properties, _ := schema["properties"].(map[string]any)
+		required, _ := schema["required"].([]string)
+		for _, name := range required {
+			if _, ok := properties[name]; !ok {
+				t.Errorf("%s: required %q has no property", path, name)
+			}
+		}
+		for name, child := range properties {
+			if m, ok := child.(map[string]any); ok {
+				walk(m, path+"."+name)
+			}
+		}
+		if items, ok := schema["items"].(map[string]any); ok {
+			walk(items, path+"[]")
+		}
+		for _, key := range []string{"anyOf", "oneOf"} {
+			if branches, ok := schema[key].([]any); ok {
+				for i, b := range branches {
+					if m, ok := b.(map[string]any); ok {
+						walk(m, path+"|"+key+string(rune('0'+i)))
+					}
+				}
+			}
+		}
+	}
+	for _, c := range full.Commands {
+		walk(c.InputSchema, c.Operation)
+	}
+}
+
+func TestTimelineProtocolEventPatchBriefStatesReasonCondition(t *testing.T) {
+	brief, err := TimelineProtocolBrief("build")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, o := range brief.Operations {
+		if o.Operation == "event_patch" {
+			if len(o.Notes) == 0 || !strings.Contains(o.Notes[0], "reason") || !strings.Contains(o.Notes[0], "stage_state") {
+				t.Fatalf("event_patch notes: %v", o.Notes)
+			}
+			return
+		}
+	}
+	t.Fatal("event_patch missing")
 }

@@ -201,7 +201,8 @@ func TestViewContractPartsAreCompactAndExclusive(t *testing.T) {
 	var listed struct {
 		Operations []struct{ Operation string } `json:"operations"`
 	}
-	if err != nil || json.Unmarshal([]byte(list), &listed) != nil || len(listed.Operations) != 28 {
+	var complete viewer.TimelineProtocolDescription
+	if err != nil || json.Unmarshal([]byte(full), &complete) != nil || len(complete.Commands) == 0 || json.Unmarshal([]byte(list), &listed) != nil || len(listed.Operations) != len(complete.Commands) {
 		t.Fatalf("invalid --list output: %v", err)
 	}
 	rules, err := run("--section", "rules")
@@ -223,16 +224,31 @@ func TestViewStageStartWithoutReasonNamesTheField(t *testing.T) {
 	input := `{"actor":{"kind":"native_producer","producer_id":"producer-example"},"schema_version":3,"operation_id":"stage-example","kind":"stage","title":"","summary":"Prepare","ticket_ids":[],"stage":"plan","stage_state":"in_progress","expected_session_version":1}`
 	var out bytes.Buffer
 	err := runViewTimeline([]string{"stage", "start", strings.Repeat("a", 64), "--json", "-", "--state-dir", filepath.Join(t.TempDir(), "missing")}, &out, strings.NewReader(input))
-	if err == nil || err.Error() != "invalid timeline input: reason: invalid_text" {
+	if err == nil || err.Error() != "invalid timeline input: invalid_text on reason" {
 		t.Fatalf("got %v", err)
 	}
 }
 
+// Operations whose example the native CLI validator rejects by design, or that
+// have no input, so the brief check cannot run on them. Any other skipped
+// operation fails the test.
+var viewBriefSkipped = map[string]string{
+	"session_delete": "local_viewer actor is rejected by the native validator",
+	"recover_lead":   "local_viewer actor is rejected by the native validator",
+	"session_get":    "no input",
+	"document_get":   "no input",
+}
+
+// Operations that must change at least one field: dropping the example's only
+// optional field leaves an empty patch, which the validator rejects.
+var viewBriefMustChange = map[string]bool{
+	"session_patch": true, "event_patch": true, "ticket_patch": true, "task_patch": true, "delivery_patch": true,
+}
+
 // The brief's required and optional labels must match the production
 // validators: dropping a required field from an operation's example is
-// rejected, and dropping an optional one is accepted, except when it is the
-// example's only optional field of a *_patch operation, which must change at
-// least one field.
+// rejected, and dropping an optional one is accepted, except for the
+// operations in viewBriefMustChange when it is the example's only optional field.
 func TestViewContractBriefMatchesValidator(t *testing.T) {
 	seen := map[string]bool{}
 	for _, flow := range viewer.TimelineProtocolFlows() {
@@ -247,7 +263,13 @@ func TestViewContractBriefMatchesValidator(t *testing.T) {
 			seen[op.Operation] = true
 			var example map[string]json.RawMessage
 			if json.Unmarshal(op.Example, &example) != nil || len(example) == 0 || validateViewTimelineInput(op.Operation, op.Example) != nil {
+				if _, allowed := viewBriefSkipped[op.Operation]; !allowed {
+					t.Errorf("%s: example skipped but not in the allow-list (%v)", op.Operation, validateViewTimelineInput(op.Operation, op.Example))
+				}
 				continue
+			}
+			if reason, skipped := viewBriefSkipped[op.Operation]; skipped {
+				t.Errorf("%s is allow-listed (%s) but its example validates; remove it from the list", op.Operation, reason)
 			}
 			var optionalInExample []string
 			for name := range example {
@@ -267,10 +289,22 @@ func TestViewContractBriefMatchesValidator(t *testing.T) {
 				switch {
 				case contains(op.Required, name) && !rejected:
 					t.Errorf("%s: brief marks %s required, validator accepts it missing", op.Operation, name)
-				case contains(op.Optional, name) && rejected && !(strings.HasSuffix(op.Operation, "_patch") && len(optionalInExample) == 1):
+				case contains(op.Optional, name) && rejected && !(viewBriefMustChange[op.Operation] && len(optionalInExample) == 1):
 					t.Errorf("%s: brief marks %s optional, validator rejects it missing", op.Operation, name)
 				}
 			}
 		}
+	}
+}
+
+func TestViewContractReportsRealBuildErrorsNotUnknownFlow(t *testing.T) {
+	var out bytes.Buffer
+	err := runViewTimeline([]string{"contract", "--for", "nope"}, &out, nil)
+	if err == nil || !strings.Contains(err.Error(), "unknown flow") || !strings.Contains(err.Error(), "local") {
+		t.Fatalf("unknown flow error: %v", err)
+	}
+	out.Reset()
+	if err := runViewTimeline([]string{"contract", "--for", "local"}, &out, nil); err != nil || !strings.Contains(out.String(), `"session_delete"`) {
+		t.Fatalf("local flow: %v", err)
 	}
 }
