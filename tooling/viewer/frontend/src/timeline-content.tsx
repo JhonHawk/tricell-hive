@@ -696,6 +696,8 @@ export function TimelineContent({
                 index,
                 <CollapsibleContent keepMounted className="w-full min-w-0">
                   {!group.tasks.length &&
+                    !group.events.length &&
+                    !group.waits.length &&
                     ["build", "verify", "delivery"].includes(
                       stage.stage ?? "",
                     ) && (

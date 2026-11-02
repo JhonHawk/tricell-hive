@@ -3,11 +3,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { act } from "react";
 import { createRoot } from "react-dom/client";
+import { completeFixture } from "../dev/timeline-complete-fixture";
 import { TimelineContent } from "../timeline-content";
 import type {
   TimelineEvent,
   TimelineSessionResponse,
 } from "../timeline-contract";
+import { timelineCopy } from "../timeline-copy";
 import { TimelineHeader } from "../timeline-header";
 
 const sid = "a".repeat(64);
@@ -424,4 +426,43 @@ test("an open gallery retains its captured candidate when another work reuses th
   assert.ok(dialog?.textContent?.includes("abc1234"));
   assert.equal(dialog?.textContent?.includes("other-work-commit"), false);
   await click("Close");
+});
+
+test("retired tasks retain accessible stage evidence without a false empty state", async () => {
+  const data = completeFixture();
+  for (const task of data.session.tasks) {
+    if (task.task_key === "T2" || task.task_key === "T7") task.withdrawn = true;
+  }
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  try {
+    await act(async () => {
+      root.render(<TimelineContent data={data} lang="en" onRetry={() => {}} />);
+    });
+    assert.ok(container.querySelector('[data-event-id="profile-evidence"]'));
+    assert.equal(
+      container.querySelectorAll('[data-wait-id="ci-wait"]').length,
+      1,
+    );
+    assert.equal(container.querySelector('[data-task-id="task-2"]'), null);
+    assert.equal(container.querySelector('[data-task-id="task-7"]'), null);
+    const delivery = container.querySelector(
+      '[data-event-id="delivery-stage"]',
+    );
+    assert.ok(delivery);
+    assert.equal(
+      delivery.textContent?.includes(timelineCopy("en").noTasks),
+      false,
+    );
+    await click("CI — Pull request checks");
+    assert.ok(
+      document
+        .querySelector('[role="dialog"]')
+        ?.textContent?.includes("Required checks"),
+    );
+  } finally {
+    await act(async () => root.unmount());
+    container.remove();
+  }
 });

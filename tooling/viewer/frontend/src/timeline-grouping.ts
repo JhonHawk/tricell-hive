@@ -46,15 +46,25 @@ export function groupTimeline(session: TimelineSession): TimelineGroup[] {
           })),
       )
       .sort((a, b) => a.segment.order - b.segment.order);
+    // Historical activity outlives a segment's current binding or withdrawal.
+    const hasCurrentProjection = (activity: {
+      task_id?: string;
+      segment_id?: string;
+    }) =>
+      tasks.some(
+        ({ task, segment }) =>
+          task.task_id === activity.task_id &&
+          segment.segment_id === activity.segment_id,
+      );
     return {
       id: stage.event_id,
       stage,
       tasks,
       events: events.filter(
-        (e) => e.stage_event_id === stage.event_id && !e.task_id,
+        (e) => e.stage_event_id === stage.event_id && !hasCurrentProjection(e),
       ),
       waits: session.waits.filter(
-        (w) => w.stage_event_id === stage.event_id && !w.task_id,
+        (w) => w.stage_event_id === stage.event_id && !hasCurrentProjection(w),
       ),
     };
   };

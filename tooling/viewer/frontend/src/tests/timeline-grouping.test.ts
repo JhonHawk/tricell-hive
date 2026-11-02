@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { completeFixture } from "../dev/timeline-complete-fixture";
 import { timelineFixture } from "../dev/timeline-fixture";
 import type { TimelineTask } from "../timeline-contract-v3";
 import {
@@ -127,3 +128,78 @@ test("captions strip common context while retaining nonempty duplicate and empty
     "Capture 3",
   ]);
 });
+
+for (const change of ["rebind", "task withdrawal", "segment withdrawal"]) {
+  test(`historical task activity remains visible after ${change}`, () => {
+    const session = completeFixture().session;
+    const task = session.tasks.find((item) => item.task_key === "T7");
+    assert.ok(task);
+    const segment = task.segments.find(
+      (item) => item.planned_stage === "delivery",
+    );
+    assert.ok(segment?.display_stage_event_id);
+    const stage = session.events.find(
+      (item) => item.event_id === segment.display_stage_event_id,
+    );
+    assert.ok(stage);
+    const historicalEvents = session.events.filter(
+      (item) =>
+        item.task_id === task.task_id &&
+        item.segment_id === segment.segment_id &&
+        item.stage_event_id === stage.event_id,
+    );
+    const historicalWaits = session.waits.filter(
+      (item) =>
+        item.task_id === task.task_id &&
+        item.segment_id === segment.segment_id &&
+        item.stage_event_id === stage.event_id,
+    );
+    assert.ok(historicalEvents.length > 0);
+    assert.ok(historicalWaits.length > 0);
+    if (change === "rebind") {
+      session.events.push({
+        ...structuredClone(stage),
+        event_id: "delivery-reentry",
+        sequence:
+          Math.max(...session.events.map((event) => event.sequence)) + 1,
+      });
+      segment.display_stage_event_id = "delivery-reentry";
+    } else if (change === "task withdrawal") {
+      task.withdrawn = true;
+    } else {
+      segment.withdrawn = true;
+      task.state = "completed";
+    }
+    const progress = taskProgress(session.tasks);
+    const groups = groupTimeline(session);
+    const historical = groups.find((group) => group.id === stage.event_id);
+    assert.ok(historical);
+    assert.equal(historical.tasks.length, 0);
+    for (const event of historicalEvents) {
+      assert.ok(
+        historical.events.some((item) => item.event_id === event.event_id),
+      );
+    }
+    for (const wait of historicalWaits) {
+      assert.ok(historical.waits.some((item) => item.wait_id === wait.wait_id));
+    }
+    const visibleEvents = groups.flatMap((group) => [
+      ...group.events,
+      ...group.tasks.flatMap((projection) => projection.events),
+    ]);
+    const visibleWaits = groups.flatMap((group) => [
+      ...group.waits,
+      ...group.tasks.flatMap((projection) => projection.waits),
+    ]);
+    assert.equal(
+      new Set(visibleEvents.map((event) => event.event_id)).size,
+      visibleEvents.length,
+    );
+    assert.equal(
+      new Set(visibleWaits.map((wait) => wait.wait_id)).size,
+      visibleWaits.length,
+    );
+    assert.deepEqual(taskProgress(session.tasks), progress);
+    assert.equal(progress.total, change === "task withdrawal" ? 6 : 7);
+  });
+}
