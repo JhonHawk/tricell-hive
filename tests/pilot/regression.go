@@ -1124,8 +1124,8 @@ func maskFencedBlocks(s string) string {
 }
 
 // inlineCodeSpan matches a single-backtick inline code span on one line
-// (Markdown inline code never spans a newline). A multi-backtick span
-// (`` `` ``) is a declared, unhandled limit: no fixture or test in this
+// (Markdown inline code never spans a newline). A span delimited by two or
+// more backticks is a declared, unhandled limit: no fixture or test in this
 // change needs it.
 var inlineCodeSpan = regexp.MustCompile("`[^`\n]+`")
 
