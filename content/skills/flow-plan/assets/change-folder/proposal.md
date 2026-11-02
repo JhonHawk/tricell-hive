@@ -1,13 +1,19 @@
 # <TICKET> — <one-line title>
 
-<!-- Template from flow-plan. Write the text in the session language; keep headings, field names, code and identifiers as they are. Delete these comments. -->
+<!-- Template from flow-plan. Write the text, headings and field names in the session language; keep code and identifiers as they are. Name the first field `Status`, or `Estado` in Spanish, and start its value with the phase, since the archive helper reads it. Delete these comments. -->
 
 | Field | Value |
 | --- | --- |
 | Status | <Draft · Ready for flow-build · In build · Completed> |
 | Tracker | <ticket link · state · priority · related tickets> |
 | Git | <repository, base branch and commit, proposed branch> |
-| Decisions | <date: each decision the user took> |
+
+## Decisions
+
+<!-- One line per decision the user took, under its date: the question in plain words, the answer and what it changes, and the decision ID last, in parentheses, such as "- Who links each event to its stage? The server; the agent no longer declares it. (D62 B)". Readers outside the conversation do not know the IDs: no line here or in any other section relies on an ID alone. -->
+
+<date>
+- <question?> <answer and what it changes>. (<D<n> letter>)
 
 ## Request
 

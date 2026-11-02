@@ -1,11 +1,35 @@
 # #306 — Legibilidad y continuidad del visor
 
-| Field | Value |
+| Campo | Valor |
 | --- | --- |
-| Status | Paused · verified local candidate committed on current branch; user requested no publication |
-| Tracker | [#306](https://github.com/JhonHawk/tricell-hive/issues/306) · OPEN, read 2026-11-01 |
-| Git | Base development 044664a0; checkout refactor/flow-ceremony-2 at 2f0a133b |
-| Decisions | D62 B server association; D63 A Sheet; D64 A issue; D65 A interactive; D66 A Claude Code /code-review; D67 C existing branch; D68 A common documents; D69 A shared work; D70 A states with reasons; D71 A new protocol; D72 A local viewer recovery; D73 A expandable task nodes and task Sheet; D74 A work-owned tasks with stage-filtered views; user correction: clean cutoff, no legacy compatibility; final canonical-reference protocol3 supersedes provisional2 |
+| Estado | Pausado · candidato local verificado y commiteado en la rama actual; el usuario pidió no publicar todavía |
+| Ticket | [#306](https://github.com/JhonHawk/tricell-hive/issues/306) · abierto, leído el 2026-11-01 |
+| Git | Base `development` en 044664a0; trabajo en `refactor/flow-ceremony-2` desde 2f0a133b |
+
+## Decisiones
+
+Los IDs D62–D67 son de la sesión de Claude cfb6fcae; D68–D81, de la sesión de Codex 01a19638.
+
+1 nov 2026
+- ¿Quién asigna cada evento a su etapa? El servidor; el agente ya no la declara. (D62 B)
+- ¿Dónde se abren los documentos? En un panel lateral (Sheet) en lugar del diálogo estrecho. (D63 A)
+- ¿Dónde se registra el trabajo? En el issue #306. (D64 A)
+- ¿Cómo se entrega? Interactivo: se detiene antes del push para tu validación y luego PR y merge a `development`. (D65 A)
+- ¿Qué revisión de código corre? Claude Code `/code-review`; después se cambió por Codex `/review` (ver D77). (D66 A)
+- ¿En qué rama se trabaja? En la actual, `refactor/flow-ceremony-2`, nombrando los commits ajenos antes de publicar. (D67 C)
+- ¿Qué documentos muestra el panel? Markdown versionado de cualquier etapa, no solo del plan. (D68 A)
+- ¿Cómo colaboran dos sesiones en el mismo trabajo? Cada una publica con su propia identidad y la sesión conductora la acepta; ninguna usa el ID de la otra. (D69 A)
+- ¿Cómo se muestran la revisión y la espera del usuario? Como estados propios con su motivo: En curso, Revisión, Validación, Pausado, Finalizado, Fallido. (D70 A)
+- ¿Qué pasa con la compatibilidad del protocolo? Protocolo nuevo; luego pediste un corte limpio, sin conservar los datos antiguos. (D71 A)
+- ¿Qué pasa si la sesión conductora desaparece? Desde el visor local se puede reasignar la conducción a mano, con motivo y auditoría. (D72 A)
+- ¿Cómo se ven las tareas? Una flecha despliega su resumen y el título abre su panel de detalle. (D73 A)
+- ¿Una tarea pertenece a una etapa? No: pertenece al trabajo y cada etapa muestra solo los tramos que le tocan. (D74 A)
+- ¿Desde dónde se construye? Se propuso un worktree; luego pediste seguir en el checkout actual, sin worktree. (D75)
+- ¿Qué revisión de código corre antes de tu validación? Codex `/review`, porque Claude Code `/code-review` pedía un PR. (D77 A)
+- ¿Entran los 15 commits previos de la rama? Sí: se revisan y publican junto con los 16 de #306. (D80 A)
+- ¿Se acepta el candidato final? Quedó en pausa por tu pedido: los commits quedan locales, sin push ni PR. (D81)
+
+Correcciones tuyas fuera de las tarjetas: orden ascendente (lo más antiguo arriba), corte limpio sin compatibilidad con datos antiguos, y la referencia canónica del protocolo 3 reemplaza a la provisional del 2.
 
 ## Request
 
@@ -18,7 +42,7 @@ Ampliación solicitada en Codex el 2026-11-01:
 > “son dos sesiones en paralelo, y el registro en el visor es con el id de la otra sesión”
 > “Faltan estados tambien [...] las pausas con el usuario son relevantes”
 
-D68 A limita el contenido a Markdown versionado de cualquier etapa; D69 A comparte el trabajo con productor real; D70 A añade estados con motivo; D71 A usa protocolo nuevo; la instrucción posterior de cutoff supersede su lectura compatible v1. Correcciones:
+El panel admite Markdown versionado de cualquier etapa (D68 A); el trabajo se comparte con la identidad real de cada sesión (D69 A); los estados llevan motivo (D70 A); el protocolo es nuevo (D71 A), y el corte limpio que pediste después reemplaza la lectura compatible con v1. Correcciones:
 > “Los estados con formato corto / Validación | En curso | Finalizado”
 > “ascendente, lo mas antiguo arriba y va creciendo hacia abajo”
 > “podemos hacer un un cutoff, no es necesario preservar el legacy, solo tenemos unas cuantas sesiones con el binario anterior”
@@ -26,9 +50,9 @@ D68 A limita el contenido a Markdown versionado de cualquier etapa; D69 A compar
 > “que se vayan viendo el progreso de las task, cada una con su estado independiente, pero solo en el punto”
 > “Bloqueada [...] el sheet debe contener los pasos para desbloquear”
 
-D73 A acepta flecha para expansión breve y título para abrir el Sheet de tarea.
+La flecha despliega un resumen breve y el título abre el panel de la tarea (D73 A).
 
-D74 A adopta tarea perteneciente al trabajo, con identidad conservada a través de etapas. El usuario precisa:
+La tarea pertenece al trabajo y conserva su identidad a través de las etapas (D74 A). El usuario precisa:
 > “en build solo se muestran las tareas de esa etapa, y las de verify u otras etapas las que correspon”
 > “la espera del CI entiendo que pertenece a entrega, que tenga su nodo de espera tambien”
 > “Puedes ir contruyendo y probando sin alterar el binario que esta usando la sesión de cam verdad?”
@@ -94,23 +118,23 @@ None: the build needs nothing from outside the repository. Preparar un directori
 
 2026-11-01: checkout 2f0a133b, development 044664a0; tooling/viewer sin diferencias entre ambos. Leídos contratos/store/server/CLI, timeline-content/documents/copy, spec walkthrough-viewer y componentes instalados Sheet/Badge/Tabs, patrones Popover/Select. Visor habitual pid 49211 puerto 4483, revisión 0b6f2380 modified=true: distinto al checkout.
 
-CAM 01a195f8 tenía research/plan completos y build activo. Claude cfb6fcae publicó cuatro documentos idénticos a los archivos previos, pero etapa in_progress pese al plan listo. No se demostró escritura cruzada: colaboración es requisito adoptado, no causa afirmada. Esta ampliación tiene registro propio b31295ed… con identidad real Codex 01a19638-64aa-7e73-af2a-7559b46529c4. Antes de D68–D70 se verificó awaiting_validation y etapa paused.
+CAM 01a195f8 tenía research/plan completos y build activo. Claude cfb6fcae publicó cuatro documentos idénticos a los archivos previos, pero etapa in_progress pese al plan listo. No se demostró escritura cruzada: colaboración es requisito adoptado, no causa afirmada. Esta ampliación tiene registro propio b31295ed… con identidad real Codex 01a19638-64aa-7e73-af2a-7559b46529c4. Antes de decidir documentos, colaboración y estados (D68–D70) se verificó awaiting_validation y etapa paused.
 
 ## Delivery
 
-D65 A: interactiva, validación antes del push y después PR/merge a development. D66 A: Claude Code /code-review; si el host de build no puede ejecutarlo, no sustituirlo sin decisión. D67 C: rama actual; enumerar y consultar commits ajenos antes de publicar. No autoriza build en este flujo, release ni cambios en otros proyectos. La restricción actual del usuario prevalece sobre el refresh de mantenedor: no reemplazar el binario instalado ni actualizar guía/globales ni reiniciar el visor habitual mientras CAM lo use. Integrar no autoriza ese corte; solicitar la acción concreta separada cuando corresponda.
+Entrega interactiva: validación antes del push y después PR y merge a `development` (D65 A). Revisión de código: Codex `/review` (D77 A), que reemplazó a Claude Code `/code-review` (D66 A) porque este pedía un PR. Rama actual, nombrando y consultando los commits ajenos antes de publicar (D67 C); los 15 previos entran en la misma publicación (D80 A). No autoriza build en este flujo, release ni cambios en otros proyectos. La restricción actual del usuario prevalece sobre el refresh de mantenedor: no reemplazar el binario instalado ni actualizar guía/globales ni reiniciar el visor habitual mientras CAM lo use. Integrar no autoriza ese corte; solicitar la acción concreta separada cuando corresponda.
 
 ## Review status and progress
 
 2026-11-01 — La revisión anterior de Claude no valida esta ampliación. Se conservan decisiones previas salvo orden descendente y alcance exclusivo de plan, supersedidos por el usuario. flow-plan paso 5: hive-review-plan completó una revisión independiente. H1 P1 (actor de acciones del navegador) aplicado con AC18. H2 P1 (conductor no disponible) resuelto con D72 A, recuperación local explícita y AC19. Una revisión independiente completa; correcciones reconciliadas por el principal. Tras la revisión, el usuario pidió corte limpio: se retiran adaptación v1 y recuperación de formato anterior. Reconciliación acotada del mismo revisor: H3 P1 por contratos legacy aún vigentes, corregido ahora con delta explícito de los requisitos afectados; ninguna tarea empezada.
 
-2026-11-01 — D73 A amplía el mismo plan con tareas expandibles y Sheet. AC20–AC24 añadidos; AC3 precisa orden de tareas del plan. Revisión acotada hive-review-plan completada sin hallazgos materiales; build sigue sin autorización. AC1–AC24 y T1–T8 listos.
+2026-11-01 — El plan se amplía con tareas desplegables y su panel de detalle (D73 A). AC20–AC24 añadidos; AC3 precisa orden de tareas del plan. Revisión acotada hive-review-plan completada sin hallazgos materiales; build sigue sin autorización. AC1–AC24 y T1–T8 listos.
 
-2026-11-01 — D74 A y corrección por etapa incorporadas; espera de CI en nueva etapa Entrega añadida. AC20/AC22–AC24 ajustados y AC25–AC27 añadidos. Revisión acotada completada: H4 P1 invalidación task_version por contenido enlazado y H5 P1 intento CI aplicable corregidos en contrato/tareas/pruebas. AC1–AC27 y T1–T8 listos. Ninguna implementación ni cambio al binario/servicio habitual.
+2026-11-01 — Tareas del trabajo con tramos por etapa (D74 A) y corrección por etapa incorporadas; espera de CI en nueva etapa Entrega añadida. AC20/AC22–AC24 ajustados y AC25–AC27 añadidos. Revisión acotada completada: H4 P1 invalidación task_version por contenido enlazado y H5 P1 intento CI aplicable corregidos en contrato/tareas/pruebas. AC1–AC27 y T1–T8 listos. Ninguna implementación ni cambio al binario/servicio habitual.
 
 2026-11-01 — Usuario autoriza flow-build. Continúa en checkout existente por instrucción posterior explícita, sin worktree; no habrá cambios de otras sesiones hasta terminar. HEAD de arranque 5e956577, con commit ajeno de viewport móvil preservado.
 
-2026-11-01 — Usuario pide Inicio, toolbar/popover y fuente única para todas las referencias, autorizando ajustar schema ahora. Se añaden AC28–AC35 y T9–T12; contrato propietario canonical-references.md, protocolo/schema/storage final3 con corte limpio1/2. T1–T6 completados verifican el baselinev2; sus recorridos afectados se repiten sobre3. D65/D67 y restricción CAM conservadas; D77mecanismoreview siguependiente. No publicación, instalación ni cambio habitual.
+2026-11-01 — Usuario pide Inicio, toolbar/popover y fuente única para todas las referencias, autorizando ajustar schema ahora. Se añaden AC28–AC35 y T9–T12; contrato propietario canonical-references.md, protocolo, schema y storage final v3 con corte limpio de v1 y v2. T1–T6 completados verifican la base v2; sus recorridos afectados se repiten sobre v3. Se conservan la entrega interactiva (D65 A), la rama actual (D67 C) y la restricción de CAM; la revisión de código queda pendiente de decidir (D77). No publicación, instalación ni cambio habitual.
 
 ## Additional acceptance criteria — browser language and reading space
 - AC36: English is the UI default/fallback; es/es-* browser languages select Spanish consistently in production and preview, including system headings, controls, accessible names, status/date text and document language. Producer content is unchanged.

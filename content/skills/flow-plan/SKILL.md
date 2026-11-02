@@ -34,7 +34,7 @@ Number them `AC1`, `AC2`…, one observable behavior each. Name for each the obs
 
 Write `<Specs>/changes/<change-id>/`, with `<change-id>` in English kebab-case starting with the ticket key. Earlier change folders in the repository are context, not a model: the templates and this skill set the shape and the ceremony, such as one `hive-review-plan` child, even when earlier folders record more. Copy each template from [assets/change-folder/](assets/change-folder/), fill it, and delete its comments and the sections that do not apply:
 
-- `proposal.md`: the request and the ticket's criteria quoted, the scope, the numbered criteria, the prerequisites, and the delivery decisions;
+- `proposal.md`: the request and the ticket's criteria quoted, the user's decisions in plain words, the scope, the numbered criteria, the prerequisites, and the delivery decisions;
 - `tasks.md`: the tasks with checkboxes, each with its `Closes:` line and how it is checked, and the verification of the whole change;
 - `design.md`: only when there are design decisions to record;
 - `specs/<capability>/spec.md`: a delta, with `ADDED`, `MODIFIED` or `REMOVED Requirements`, when the change adds, alters or removes an observable behavior, a contract, a permission or stored data.
