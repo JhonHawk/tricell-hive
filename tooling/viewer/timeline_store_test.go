@@ -155,6 +155,14 @@ func TestTimelineRuntimeStageDocumentEvidenceAndReplay(t *testing.T) {
 	if result.CurrentStageEventID == nil {
 		t.Fatal("validation lost foreground")
 	}
+	// The browser decodes every index entry the server emits; a session
+	// awaiting validation must not make the client reject the index.
+	for _, entry := range s.TimelineIndex() {
+		raw, _ := json.Marshal(entry)
+		if _, err := DecodeTimelineIndexEntry(raw); err != nil {
+			t.Fatal("emitted index entry rejected", entry.State, err)
+		}
+	}
 	current, _ = s.TimelineGet(id)
 	if current.Events[0].StageState != "awaiting_validation" {
 		t.Fatal("stage not awaiting validation atomically")

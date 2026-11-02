@@ -53,6 +53,7 @@ const cases = JSON.parse(fixture("cases.json")) as {
   kind: TimelineContractKind;
   valid: boolean;
   json: string;
+  code?: string;
 }[];
 for (const item of cases)
   test(`timeline shared contract: ${item.name}`, () => {
@@ -61,7 +62,9 @@ for (const item of cases)
     else
       assert.throws(
         () => decodeTimelineContract(item.kind, item.json),
-        TimelineContractError,
+        (error) =>
+          error instanceof TimelineContractError &&
+          (item.code === undefined || error.code === item.code),
       );
   });
 test("timeline output validates shared separate-view and focused-iteration fixture", () => {

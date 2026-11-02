@@ -1532,6 +1532,15 @@ func DecodeTimelineIndexEntry(raw []byte) (TimelineIndexEntry, error) {
 			return nil, timelineError("body", "invalid_summary")
 		}
 		delete(obj, "mode")
+		// The summary carries the stage pointer but not its event, so the
+		// synthetic session below cannot prove the foreground. Check the
+		// pointer on the entry and validate the rest as an active session.
+		if timelineStateRequiresForeground(entry.State) {
+			if entry.CurrentStageEventID == nil {
+				return nil, timelineError("current_stage_event_id", "foreground_required")
+			}
+			obj["state"] = json.RawMessage(`"active"`)
+		}
 		obj["schema_version"] = json.RawMessage(`3`)
 		obj["producers"], _ = json.Marshal([]TimelineProducer{{ProducerID: "summary", Source: entry.Source, JoinedAt: entry.CreatedAt}})
 		obj["foreground_producer_id"] = json.RawMessage(`"summary"`)
@@ -1558,6 +1567,9 @@ func DecodeTimelineIndexEntry(raw []byte) (TimelineIndexEntry, error) {
 		if entry.CurrentStageEventID != nil {
 			if err := timelineID(*entry.CurrentStageEventID, "current_stage_event_id"); err != nil {
 				return nil, err
+			}
+			if !timelineStateAllowsForeground(entry.State) {
+				return nil, timelineError("state", "foreground_requires_active_session")
 			}
 		}
 		return entry, nil
@@ -2052,7 +2064,7 @@ func validateTimelineR3Session(s TimelineSession) error {
 			return timelineError("current_stage_event_id", "foreground_mismatch")
 		}
 	}
-	if active != "" && s.State != TimelineActive && s.State != "in_review" && s.State != TimelineAwaitingValidation {
+	if active != "" && !timelineStateAllowsForeground(s.State) {
 		return timelineError("state", "foreground_requires_active_session")
 	}
 	return nil

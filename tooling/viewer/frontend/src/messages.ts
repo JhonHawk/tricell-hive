@@ -65,6 +65,8 @@ export const messages =
         tickets: "tickets",
         indexFailure:
           "No se pudo actualizar la biblioteca. Puedes seguir leyendo la copia abierta y reintentar.",
+        skippedSessions:
+          "Algunos recorridos no se pudieron leer: se muestra su última copia leída, si la hay.",
         access: "Esta página necesita acceso",
         missing: "Ejecuta hive view open para abrir esta página con acceso.",
         rejected:
@@ -184,6 +186,8 @@ export const messages =
         tickets: "tickets",
         indexFailure:
           "Could not refresh the library. You can keep reading the open copy and retry.",
+        skippedSessions:
+          "Some walkthroughs could not be read: their last copy read is shown, if any.",
         access: "This page needs access",
         missing: "Run hive view open to open this page with access.",
         rejected:

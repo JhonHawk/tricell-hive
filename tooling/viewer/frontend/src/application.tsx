@@ -199,6 +199,11 @@ export function ViewerApplication({
           </AlertAction>
         </Alert>
       )}
+      {state.index?.skipped_sessions?.length ? (
+        <Alert variant="warning" role="status">
+          <AlertDescription>{t.skippedSessions}</AlertDescription>
+        </Alert>
+      ) : null}
       {state.pendingTimelineDelete && (
         <Alert variant="warning" role="status">
           <AlertTitle>{t.partialDelete}</AlertTitle>
