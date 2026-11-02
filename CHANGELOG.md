@@ -33,6 +33,13 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- A manual action or a piece of information is asked of you only when you alone
+  can do it or hold it, such as a credential or a sign-in; validation stays
+  yours. A command that stops for lack of a terminal runs through its own
+  documented non-interactive path when the effect is already authorized, and a
+  confirmation prompt meant for you is never answered by the agent. The skills
+  rebuild had dropped this condition, so an agent asked you to run
+  `hive update` itself.
 - `flow-close` closes the work's viewer session as its first step, before any
   cleanup, and reads it back: closed when the work was integrated or
   abandoned, paused when it was paused. It was a note above the steps and a
@@ -45,11 +52,6 @@ raise the minor or the patch version.
 
 ### Changed
 
-- A manual action or a piece of information is asked of you only when you alone
-  hold it or can do it. Before handing you a command, the agent tries the ways
-  the tool itself offers, such as a non-interactive flag, a saved plan to apply
-  or a pseudo-terminal. The skills rebuild had dropped this condition, so an
-  agent asked you to run `hive update` it could run itself.
 - Compacting is offered at two moments instead of by context size: when an
   approved plan moves to its build in the same session, and when another work
   item starts after a close. It is one more reply of the next-step block, with
