@@ -7,6 +7,7 @@ import { timelineFixture } from "../dev/timeline-fixture";
 import { TimelineContent } from "../timeline-content";
 import type { TimelineSessionResponse } from "../timeline-contract";
 import { TimelineHeader } from "../timeline-header";
+import { TimelineSummary } from "../timeline-summary";
 
 const summary = timelineFixture.session.summary;
 
@@ -166,4 +167,65 @@ test("a slow save does not take focus from where the user moved it", async () =>
   await act(async () => root.unmount());
   container.remove();
   elsewhere.remove();
+});
+
+async function withBoxHeights(
+  scroll: number,
+  client: number,
+  run: () => Promise<void>,
+) {
+  const proto = HTMLElement.prototype;
+  const saved = [
+    Object.getOwnPropertyDescriptor(proto, "scrollHeight"),
+    Object.getOwnPropertyDescriptor(proto, "clientHeight"),
+  ];
+  Object.defineProperty(proto, "scrollHeight", {
+    configurable: true,
+    get: () => scroll,
+  });
+  Object.defineProperty(proto, "clientHeight", {
+    configurable: true,
+    get: () => client,
+  });
+  try {
+    await run();
+  } finally {
+    for (const [name, descriptor] of [
+      ["scrollHeight", saved[0]],
+      ["clientHeight", saved[1]],
+    ] as const) {
+      if (descriptor) Object.defineProperty(proto, name, descriptor);
+      else delete (proto as unknown as Record<string, unknown>)[name];
+    }
+  }
+}
+
+test("show more appears only when the summary is actually clipped", async () => {
+  const toggle = (c: HTMLElement) =>
+    [...c.querySelectorAll("button")].find(
+      (b) =>
+        b.hasAttribute("aria-expanded") &&
+        /more|less/i.test(b.textContent ?? ""),
+    );
+  await withBoxHeights(40, 40, async () => {
+    const { container, unmount } = await mount(
+      <TimelineSummary content={"word ".repeat(80)} lines={2} lang="en" />,
+    );
+    assert.equal(
+      toggle(container),
+      undefined,
+      "fits: no toggle even for long text",
+    );
+    await unmount();
+  });
+  await withBoxHeights(120, 40, async () => {
+    const { container, unmount } = await mount(
+      <TimelineSummary content="short" lines={2} lang="en" />,
+    );
+    const button = toggle(container);
+    assert.ok(button, "clipped: toggle shown");
+    await act(async () => button.click());
+    assert.equal(toggle(container)?.getAttribute("aria-expanded"), "true");
+    await unmount();
+  });
 });
