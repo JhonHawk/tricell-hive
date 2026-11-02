@@ -1535,7 +1535,7 @@ func DecodeTimelineIndexEntry(raw []byte) (TimelineIndexEntry, error) {
 		// The summary carries the stage pointer but not its event, so the
 		// synthetic session below cannot prove the foreground. Check the
 		// pointer on the entry and validate the rest as an active session.
-		if entry.State == TimelineInReview || entry.State == TimelineAwaitingValidation {
+		if timelineStateRequiresForeground(entry.State) {
 			if entry.CurrentStageEventID == nil {
 				return nil, timelineError("current_stage_event_id", "foreground_required")
 			}
@@ -1567,6 +1567,9 @@ func DecodeTimelineIndexEntry(raw []byte) (TimelineIndexEntry, error) {
 		if entry.CurrentStageEventID != nil {
 			if err := timelineID(*entry.CurrentStageEventID, "current_stage_event_id"); err != nil {
 				return nil, err
+			}
+			if !timelineStateAllowsForeground(entry.State) {
+				return nil, timelineError("state", "foreground_requires_active_session")
 			}
 		}
 		return entry, nil
@@ -2061,7 +2064,7 @@ func validateTimelineR3Session(s TimelineSession) error {
 			return timelineError("current_stage_event_id", "foreground_mismatch")
 		}
 	}
-	if active != "" && s.State != TimelineActive && s.State != "in_review" && s.State != TimelineAwaitingValidation {
+	if active != "" && !timelineStateAllowsForeground(s.State) {
 		return timelineError("state", "foreground_requires_active_session")
 	}
 	return nil

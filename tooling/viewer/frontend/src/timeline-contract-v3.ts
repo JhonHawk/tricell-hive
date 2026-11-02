@@ -1288,6 +1288,15 @@ export function validateTimelineCIWait(
   )
     fail("state", "wait_aggregate_mismatch");
 }
+// States that must point at a foreground stage event; the session and index
+// validators share them.
+export function timelineStateRequiresForeground(state: unknown): boolean {
+  return state === "in_review" || state === "awaiting_validation";
+}
+// States that may hold a foreground stage event.
+export function timelineStateAllowsForeground(state: unknown): boolean {
+  return state === "active" || timelineStateRequiresForeground(state);
+}
 export function validateTimelineV3Graph(s: TimelineSession): void {
   if (s.schema_version !== 3) fail("schema_version", "unsupported_protocol");
   array(s.producers, "producers", 16, 1);
@@ -1295,7 +1304,7 @@ export function validateTimelineV3Graph(s: TimelineSession): void {
   array(s.tasks, "tasks", 100);
   array(s.waits, "waits", TIMELINE_V3_LIMITS.waits);
   if (
-    (s.state === "in_review" || s.state === "awaiting_validation") &&
+    timelineStateRequiresForeground(s.state) &&
     s.current_stage_event_id === null
   )
     fail("current_stage_event_id", "foreground_required");

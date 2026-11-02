@@ -23,6 +23,8 @@ import {
   type TimelineProducer,
   type TimelineTask,
   type TimelineV3RequestMap,
+  timelineStateAllowsForeground,
+  timelineStateRequiresForeground,
   validateTimelineActor,
   validateTimelineAppendV3,
   validateTimelineAuthority,
@@ -1544,8 +1546,7 @@ export function parseTimelineIndexEntry(value: unknown): TimelineIndexEntry {
   // The summary carries the stage pointer but not its event, so the synthetic
   // session below cannot prove the foreground. Check the pointer on the entry
   // and validate the rest as an active session.
-  const needsForeground =
-    entry.state === "in_review" || entry.state === "awaiting_validation";
+  const needsForeground = timelineStateRequiresForeground(entry.state);
   if (needsForeground && entry.current_stage_event_id === null)
     fail("current_stage_event_id", "foreground_required");
   parseTimelineSession({
@@ -1571,6 +1572,11 @@ export function parseTimelineIndexEntry(value: unknown): TimelineIndexEntry {
     current_stage_event_id: null,
     validation_count: 0,
   });
+  if (
+    entry.current_stage_event_id !== null &&
+    !timelineStateAllowsForeground(entry.state)
+  )
+    fail("state", "foreground_requires_active_session");
   integer(
     entry.validation_count,
     "validation_count",
@@ -1884,10 +1890,7 @@ function validateR3Session(s: TimelineSession) {
     id(s.current_stage_event_id, "current_stage_event_id");
   if (active !== s.current_stage_event_id)
     fail("current_stage_event_id", "foreground_mismatch");
-  if (
-    active &&
-    !["active", "in_review", "awaiting_validation"].includes(s.state)
-  )
+  if (active && !timelineStateAllowsForeground(s.state))
     fail("state", "foreground_requires_active_session");
 }
 export function isSafeTimelineDocumentURL(
