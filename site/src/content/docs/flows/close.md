@@ -7,7 +7,7 @@ Close is the last step of a piece of work. It makes sure the records match reali
 
 ## When to use
 
-Close starts when work reaches its completion point: the merge into the base branch, or the open pull request when the delivery is `ready` (it stops before the merge for you) or a human reviewer is assigned to it. In that second case the ticket stays in progress, the viewer shows the work as in review, and a later session that finds the pull request merged runs the close. It also runs when you abandon or pause work, when you end the session, or when you ask for a cleanup.
+Close starts when work reaches its completion point: the merge into the base branch, or the open pull request when the delivery is `ready` (it stops before the merge for you) or a human reviewer is assigned to it. In that second case the ticket stays in progress, the viewer shows the work as in review, and a later session that finds the pull request merged finishes only what waited for the merge: the viewer close, the ticket, the change record and the branch cleanup. It also runs when you abandon or pause work, when you end the session, or when you ask for a cleanup.
 
 Example requests:
 
