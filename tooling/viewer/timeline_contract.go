@@ -1569,10 +1569,11 @@ func validateTimelineIndexEntry(e TimelineAPIIndexEntry) error {
 	if err := timelineTime(e.UpdatedAt, "updated_at"); err != nil {
 		return err
 	}
-	if err := newTimelineCatalogIdentities().addTickets(e.Tickets); err != nil {
+	// The limit comes before identities, as in the TypeScript validator.
+	if err := timelineTickets(e.Tickets); err != nil {
 		return err
 	}
-	if err := timelineTickets(e.Tickets); err != nil {
+	if err := newTimelineCatalogIdentities().addTickets(e.Tickets); err != nil {
 		return err
 	}
 	if e.ValidationCount < 0 || e.ValidationCount > TimelineMaxEvents {

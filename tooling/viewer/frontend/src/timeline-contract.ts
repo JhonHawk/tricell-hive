@@ -1566,6 +1566,9 @@ export function parseTimelineIndexEntry(value: unknown): TimelineIndexEntry {
     if (typeof entry[field] !== "boolean") fail(field);
   timestamp(entry.created_at, "created_at");
   timestamp(entry.updated_at, "updated_at");
+  // Same code as the Go validator for an oversized list.
+  if (Array.isArray(entry.tickets) && entry.tickets.length > 100)
+    fail("tickets", "array_required_or_limit");
   tickets(entry.tickets, true);
   timelineCatalogIdentities().addTickets(
     entry.tickets as TimelineSession["tickets"],
@@ -1575,12 +1578,13 @@ export function parseTimelineIndexEntry(value: unknown): TimelineIndexEntry {
     !timelineStateAllowsForeground(entry.state)
   )
     fail("state", "foreground_requires_active_session");
-  integer(
-    entry.validation_count,
-    "validation_count",
-    0,
-    TIMELINE_LIMITS.events,
-  );
+  // An integer out of range gets the Go validator's code; other values keep
+  // the generic integer error.
+  const count = entry.validation_count;
+  if (typeof count === "number" && Number.isInteger(count)) {
+    if (count < 0 || count > TIMELINE_LIMITS.events)
+      fail("validation_count", "invalid_count");
+  } else integer(count, "validation_count", 0, TIMELINE_LIMITS.events);
   return entry as TimelineAPIIndexEntry;
 }
 const v3ResultFields: Record<string, string[]> = {
