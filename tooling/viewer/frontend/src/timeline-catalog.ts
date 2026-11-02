@@ -174,7 +174,9 @@ export function timelineCandidateByID(
   if (!c) fail("candidate_id", "unknown_candidate");
   return c;
 }
-export function validateTimelineCatalogs(s: TimelineSession) {
+/** Tracks the identities and locators that tickets, deliveries and candidates
+ * of one catalog must not repeat. */
+export function timelineCatalogIdentities() {
   const ids = new Set<string>(),
     natural = new Set<string>(),
     urls = new Set<string>();
@@ -189,17 +191,26 @@ export function validateTimelineCatalogs(s: TimelineSession) {
       urls.add(url);
     }
   }
+  /** Validates each ticket record and registers its identity and URL. */
+  function addTickets(tickets: TimelineSession["tickets"]) {
+    for (const t of tickets) {
+      validateTimelineTicketRecord(t);
+      add(
+        t.ticket_id,
+        `ticket\0${canonicalTimelineIdentityURL(t.external_scope)}\0${t.external_id}`,
+        t.url ? `ticket\0${locator(t.url)}` : undefined,
+      );
+    }
+  }
+  return { add, addTickets };
+}
+export function validateTimelineCatalogs(s: TimelineSession) {
   for (const list of [s.tickets, s.deliveries, s.candidates])
     if (!Array.isArray(list) || list.length > 100)
       fail("catalog", "array_required_or_limit");
-  for (const t of s.tickets) {
-    validateTimelineTicketRecord(t);
-    add(
-      t.ticket_id,
-      `ticket\0${canonicalTimelineIdentityURL(t.external_scope)}\0${t.external_id}`,
-      t.url ? `ticket\0${locator(t.url)}` : undefined,
-    );
-  }
+  const identities = timelineCatalogIdentities();
+  const add = identities.add;
+  identities.addTickets(s.tickets);
   for (const d of s.deliveries) {
     const o = object(d, [
       "delivery_id",

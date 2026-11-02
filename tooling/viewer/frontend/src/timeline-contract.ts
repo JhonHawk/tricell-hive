@@ -2,6 +2,7 @@ import {
   isTimelineCatalogOperation,
   parseTimelineCatalogRequest,
   type TimelineCatalogRequestMap,
+  timelineCatalogIdentities,
   validateTimelineCatalogs,
   validateTimelineDeliveryReference,
   validateTimelineIDs,
@@ -1542,47 +1543,48 @@ export function parseTimelineIndexEntry(value: unknown): TimelineIndexEntry {
   ]);
   if (entry.current_stage_event_id !== null)
     id(entry.current_stage_event_id, "current_stage_event_id");
-  const { mode: _mode, ...summary } = entry;
-  // The summary carries the stage pointer but not its event, so the synthetic
-  // session below cannot prove the foreground. Check the pointer on the entry
-  // and validate the rest as an active session.
-  const needsForeground = timelineStateRequiresForeground(entry.state);
-  if (needsForeground && entry.current_stage_event_id === null)
+  // The summary carries the stage pointer but not the event it points to.
+  if (
+    timelineStateRequiresForeground(entry.state) &&
+    entry.current_stage_event_id === null
+  )
     fail("current_stage_event_id", "foreground_required");
-  parseTimelineSession({
-    ...summary,
-    state: needsForeground ? "active" : entry.state,
-    producers: [
-      {
-        producer_id: "summary",
-        source: entry.source,
-        joined_at: entry.created_at,
-      },
-    ],
-    foreground_producer_id: "summary",
-    pending_join_requests: [],
-    tasks: [],
-    waits: [],
-    schema_version: 3,
-    deliveries: [],
-    candidates: [],
-    events: [],
-    artifacts: [],
-    documents: [],
-    current_stage_event_id: null,
-    validation_count: 0,
-  });
+  if (
+    typeof entry.viewer_session_id !== "string" ||
+    !sha256.test(entry.viewer_session_id)
+  )
+    fail("viewer_session_id", "invalid_id");
+  source(entry.source);
+  text(entry.project_key, "project_key", 2048);
+  text(entry.project_name, "project_name", 200);
+  integer(entry.version, "version");
+  text(entry.title, "title", 200);
+  text(entry.summary, "summary", 4000);
+  if (!states.includes(entry.state as string))
+    fail("state", "unsupported_state");
+  for (const field of ["archived", "pinned"])
+    if (typeof entry[field] !== "boolean") fail(field);
+  timestamp(entry.created_at, "created_at");
+  timestamp(entry.updated_at, "updated_at");
+  // Same code as the Go validator for an oversized list.
+  if (Array.isArray(entry.tickets) && entry.tickets.length > 100)
+    fail("tickets", "array_required_or_limit");
+  tickets(entry.tickets, true);
+  timelineCatalogIdentities().addTickets(
+    entry.tickets as TimelineSession["tickets"],
+  );
   if (
     entry.current_stage_event_id !== null &&
     !timelineStateAllowsForeground(entry.state)
   )
     fail("state", "foreground_requires_active_session");
-  integer(
-    entry.validation_count,
-    "validation_count",
-    0,
-    TIMELINE_LIMITS.events,
-  );
+  // An integer out of range gets the Go validator's code; other values keep
+  // the generic integer error.
+  const count = entry.validation_count;
+  if (typeof count === "number" && Number.isInteger(count)) {
+    if (count < 0 || count > TIMELINE_LIMITS.events)
+      fail("validation_count", "invalid_count");
+  } else integer(count, "validation_count", 0, TIMELINE_LIMITS.events);
   return entry as TimelineAPIIndexEntry;
 }
 const v3ResultFields: Record<string, string[]> = {
