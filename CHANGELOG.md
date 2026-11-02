@@ -13,11 +13,11 @@ raise the minor or the patch version.
 ### Added
 
 - `hive view contract --for <flow>` prints a brief contract with only that
-  flow's operations (research, plan, build, verify, delivery, close, collab):
+  flow's operations (research, plan, build, verify, delivery, close, collab, local):
   usage, required and optional fields, allowed values and an example.
   `--list` prints one line per operation with its flows, and
   `--section rules` the shared rules. A rejected input names its field, such
-  as `invalid timeline input: reason: invalid_text` (#328).
+  as `invalid timeline input: invalid_text on reason` (#328).
 - A `ready` delivery mode: the agent reviews, pushes, opens a non-draft pull
   request, waits for CI and answers its reviews, then stops for you to merge.
   It never merges, enables auto-merge or joins a merge queue, and asks first

@@ -420,7 +420,7 @@ hive view stop
 The server keeps running until you stop it. The agent registers the project and
 publishes through the versioned API. `hive view contract` prints the offline
 commands, schemas, limits and examples as compact JSON; `--for FLOW` prints one
-flow's brief (research, plan, build, verify, delivery, close or collab), `--list`
+flow's brief (research, plan, build, verify, delivery, close, collab or local), `--list`
 names every operation with its flows, `--section rules` prints the shared rules,
 and `--operation NAME` narrows to one operation.
 JSON inputs use `--json FILE` or `--json -`. The

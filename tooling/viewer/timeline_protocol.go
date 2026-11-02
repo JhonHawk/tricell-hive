@@ -420,12 +420,19 @@ var timelineFlowOperations = map[string][]string{
 	"verify":   {"event_patch", "event_withdraw", "task_transition", "candidate_create", "artifact_add", "document_add", "document_snapshot"},
 	"delivery": {"candidate_create", "delivery_create", "delivery_patch", "wait_create", "wait_attempt_start", "wait_observe", "task_transition"},
 	"close":    {"stage_update", "session_patch", "session_get", "document_get"},
-	"collab":   {"join_request", "producer_accept", "foreground_transfer", "recover_lead", "session_delete"},
+	"collab":   {"join_request", "producer_accept", "foreground_transfer"},
+	// local holds what only the local browser viewer (actor local_viewer) runs.
+	"local": {"session_delete", "recover_lead"},
+}
+
+// timelineBriefNotes states conditions the field lists cannot express.
+var timelineBriefNotes = map[string][]string{
+	"event_patch": {"reason is required, with expected_session_version, when stage_state is set"},
 }
 
 // TimelineProtocolFlows lists the flows `--for` accepts, in display order.
 func TimelineProtocolFlows() []string {
-	return []string{"research", "plan", "build", "verify", "delivery", "close", "collab"}
+	return []string{"research", "plan", "build", "verify", "delivery", "close", "collab", "local"}
 }
 
 // timelineFlowMembers returns the operations of a flow, deduplicated.
@@ -434,7 +441,7 @@ func timelineFlowMembers(flow string) ([]string, error) {
 	if !ok {
 		return nil, timelineError("flow", "unsupported_flow")
 	}
-	if flow == "close" || flow == "collab" {
+	if flow == "close" || flow == "collab" || flow == "local" {
 		return append([]string{}, extra...), nil
 	}
 	seen := map[string]bool{}
@@ -453,6 +460,7 @@ type TimelineProtocolBriefOperation struct {
 	Usage     string              `json:"usage"`
 	Required  []string            `json:"required"`
 	Optional  []string            `json:"optional"`
+	Notes     []string            `json:"notes,omitempty"`
 	Enums     map[string][]string `json:"enums,omitempty"`
 	Example   json.RawMessage     `json:"example"`
 }
@@ -506,7 +514,7 @@ func TimelineProtocolBrief(flow string) (TimelineProtocolBriefDescription, error
 		schemaRequired, _ := command.InputSchema["required"].([]string)
 		required := schemaRequired
 		properties, _ := command.InputSchema["properties"].(map[string]any)
-		item := TimelineProtocolBriefOperation{Operation: command.Operation, Usage: command.Usage, Required: []string{}, Optional: []string{}, Example: command.Example}
+		item := TimelineProtocolBriefOperation{Operation: command.Operation, Usage: command.Usage, Required: []string{}, Optional: []string{}, Notes: timelineBriefNotes[command.Operation], Example: command.Example}
 		for name := range properties {
 			if contains(required, name) {
 				item.Required = append(item.Required, name)
@@ -521,6 +529,11 @@ func TimelineProtocolBrief(flow string) (TimelineProtocolBriefDescription, error
 		sort.Strings(item.Optional)
 		enums := map[string][]string{}
 		timelineCollectEnums(command.InputSchema, "", enums)
+		if flow != "local" {
+			// Native producers never act as local_viewer (the native validator
+			// rejects it), so only the local flow spends bytes on actor.kind.
+			delete(enums, "actor.kind")
+		}
 		if len(enums) > 0 {
 			item.Enums = enums
 		}
@@ -530,30 +543,56 @@ func TimelineProtocolBrief(flow string) (TimelineProtocolBriefDescription, error
 }
 
 // timelineNestedRequired names, with a dotted path, the required fields of a
-// plain nested object, recursively. Union branches (anyOf, oneOf) are left to
-// the example, since their required fields depend on the branch.
+// nested object, recursively. List elements use `[]` in the path. A nullable
+// wrapper (anyOf with one non-null branch) is followed into that branch; other
+// unions are left to the example, since their required fields depend on the branch.
 func timelineNestedRequired(schema map[string]any, path string) []string {
+	if branches, ok := schema["anyOf"].([]any); ok {
+		var live []map[string]any
+		for _, b := range branches {
+			if m, ok := b.(map[string]any); ok && m["type"] != "null" {
+				live = append(live, m)
+			}
+		}
+		if len(live) == 1 {
+			return timelineNestedRequired(live[0], path)
+		}
+		return nil
+	}
+	if items, ok := schema["items"].(map[string]any); ok {
+		return timelineNestedRequired(items, path+"[]")
+	}
 	var out []string
 	required, _ := schema["required"].([]string)
 	properties, _ := schema["properties"].(map[string]any)
 	for _, name := range required {
+		child, ok := properties[name].(map[string]any)
+		if !ok {
+			continue
+		}
 		next := path + "." + name
 		out = append(out, next)
-		if child, ok := properties[name].(map[string]any); ok {
-			out = append(out, timelineNestedRequired(child, next)...)
-		}
+		out = append(out, timelineNestedRequired(child, next)...)
 	}
 	return out
 }
 
-// timelineCollectEnums walks object properties, array items and anyOf branches,
-// naming nested fields with a dotted path.
+// timelineCollectEnums walks object properties, array items and anyOf, oneOf
+// and allOf branches, naming nested fields with a dotted path. Values found at
+// the same path in several branches are merged, deduplicated, in first-seen order.
 func timelineCollectEnums(schema map[string]any, path string, out map[string][]string) {
+	add := func(values ...string) {
+		for _, v := range values {
+			if !contains(out[path], v) {
+				out[path] = append(out[path], v)
+			}
+		}
+	}
 	if values, ok := schema["enum"].([]string); ok && path != "" {
-		out[path] = values
+		add(values...)
 	}
 	if value, ok := schema["const"].(string); ok && path != "" {
-		out[path] = []string{value}
+		add(value)
 	}
 	if properties, ok := schema["properties"].(map[string]any); ok {
 		for name, child := range properties {
@@ -569,21 +608,23 @@ func timelineCollectEnums(schema map[string]any, path string, out map[string][]s
 	if items, ok := schema["items"].(map[string]any); ok {
 		timelineCollectEnums(items, path, out)
 	}
-	if branches, ok := schema["anyOf"].([]any); ok {
-		for _, b := range branches {
-			if m, ok := b.(map[string]any); ok {
-				timelineCollectEnums(m, path, out)
+	for _, key := range []string{"anyOf", "oneOf", "allOf"} {
+		if branches, ok := schema[key].([]any); ok {
+			for _, b := range branches {
+				if m, ok := b.(map[string]any); ok {
+					timelineCollectEnums(m, path, out)
+				}
 			}
 		}
 	}
 }
 
 // TimelineProtocolList names every operation with the flows that use it.
-func TimelineProtocolList() TimelineProtocolListing {
+func TimelineProtocolList() (TimelineProtocolListing, error) {
 	list := TimelineProtocolListing{ProtocolVersion: 3}
 	full, err := TimelineProtocolContract("")
 	if err != nil {
-		return list
+		return list, err
 	}
 	for _, command := range full.Commands {
 		entry := TimelineProtocolListEntry{Operation: command.Operation, Flows: []string{}, Usage: command.Usage}
@@ -594,11 +635,14 @@ func TimelineProtocolList() TimelineProtocolListing {
 		}
 		list.Operations = append(list.Operations, entry)
 	}
-	return list
+	return list, nil
 }
 
 // TimelineProtocolRules returns the shared rules block without any operation.
-func TimelineProtocolRules() TimelineProtocolRulesBlock {
-	full, _ := TimelineProtocolContract("session_get")
-	return TimelineProtocolRulesBlock{ProtocolVersion: full.ProtocolVersion, StorageVersion: full.StorageVersion, SchemaDialect: full.SchemaDialect, Localization: full.Localization, Capabilities: full.Capabilities, Retention: full.Retention, TTLSeconds: full.TTLSeconds, Authority: full.Authority, ErrorCodes: full.ErrorCodes, Limits: full.Limits, Invariants: full.Invariants}
+func TimelineProtocolRules() (TimelineProtocolRulesBlock, error) {
+	full, err := TimelineProtocolContract("session_get")
+	if err != nil {
+		return TimelineProtocolRulesBlock{}, err
+	}
+	return TimelineProtocolRulesBlock{ProtocolVersion: full.ProtocolVersion, StorageVersion: full.StorageVersion, SchemaDialect: full.SchemaDialect, Localization: full.Localization, Capabilities: full.Capabilities, Retention: full.Retention, TTLSeconds: full.TTLSeconds, Authority: full.Authority, ErrorCodes: full.ErrorCodes, Limits: full.Limits, Invariants: full.Invariants}, nil
 }
