@@ -31,6 +31,11 @@ raise the minor or the patch version.
   cleanup, and reads it back: closed when the work was integrated or
   abandoned, paused when it was paused. It was a note above the steps and a
   close could skip it.
+- UI verification and the UX reviewer prefer `agent-browser` again when it is
+  installed, use Chrome DevTools MCP only for audits, traces and an independent
+  reproduction, bound each browser command to 45 seconds, and close the
+  sessions they open. The skill cut had replaced that rule with "the available
+  browser automation capability", so a session used another browser tool.
 
 ### Removed
 
