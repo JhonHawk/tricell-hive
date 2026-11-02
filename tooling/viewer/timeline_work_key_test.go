@@ -1,6 +1,8 @@
 package viewer
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -145,7 +147,7 @@ func legacyRecord(t *testing.T, s *Store, v TimelineSession, oldID string) {
 func TestTimelineRecordStoredWithTheOldDerivationLoads(t *testing.T) {
 	s, base := newTimelineFixture(t)
 	v := createTimeline(t, s, workKeyRequest(base, "op-old", nil))
-	oldID := timelineSessionKey(v.ProjectKey, v.Source, "")
+	oldID := preWorkKeyID(v.ProjectKey, v.Source)
 	if oldID == v.ViewerSessionID {
 		t.Fatal("test needs a derivation that differs from the old one")
 	}
@@ -157,6 +159,26 @@ func TestTimelineRecordStoredWithTheOldDerivationLoads(t *testing.T) {
 	got, err := restarted.TimelineGet(oldID)
 	if err != nil || got.ViewerSessionID != oldID || got.WorkKey != nil {
 		t.Fatal("record with the old derivation did not load unchanged", err)
+	}
+}
+
+// preWorkKeyID writes out the derivation used before work keys existed, apart
+// from timelineSessionKey, so a change to that function cannot pass unnoticed.
+func preWorkKeyID(project string, source TimelineSource) string {
+	raw, _ := json.Marshal([]any{"timeline-api-v3", project, source.Host, source.NativeSessionID})
+	sum := sha256.Sum256(raw)
+	return hex.EncodeToString(sum[:])
+}
+
+// Sessions stored before work keys must keep their IDs: this pins the value.
+func TestTimelineEmptyWorkKeyKeepsThePinnedDerivation(t *testing.T) {
+	source := TimelineSource{Host: "codex", NativeSessionID: "native-session-alpha"}
+	const want = "e83c9a92a9e50f9d8e8141d9b45b7302aeb5ca69ef4b73316e8ab534f604f3c2"
+	if got := timelineSessionKey("example.com/fixture/project", source, ""); got != want {
+		t.Fatalf("old derivation changed: got %s, want %s", got, want)
+	}
+	if got := preWorkKeyID("example.com/fixture/project", source); got != want {
+		t.Fatalf("test helper drifted: got %s, want %s", got, want)
 	}
 }
 
