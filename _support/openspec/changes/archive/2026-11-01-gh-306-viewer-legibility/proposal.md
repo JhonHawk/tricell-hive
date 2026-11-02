@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Pausado · candidato local verificado y commiteado en la rama actual; el usuario pidió no publicar todavía |
+| Estado | Completado · integrado en `development` con el PR #307 (merge d28b42fd, 2026-11-01) |
 | Ticket | [#306](https://github.com/JhonHawk/tricell-hive/issues/306) · abierto, leído el 2026-11-01 |
 | Git | Base `development` en 044664a0; trabajo en `refactor/flow-ceremony-2` desde 2f0a133b |
 

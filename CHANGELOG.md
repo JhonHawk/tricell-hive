@@ -10,6 +10,8 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-01
+
 ### Added
 
 - A shared-work viewer with an ascending timeline, declared research/plan/build/
