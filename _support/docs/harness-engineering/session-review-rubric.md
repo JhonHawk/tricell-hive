@@ -22,7 +22,7 @@ Each check names what to look for and how to observe it in the transcript.
 
 | Area | What to check | How to observe it | Added |
 | --- | --- | --- | --- |
-| Questions | Each decision has an ID and a title holding the question; options on their own line with `(★)` on the recommended one | Card labels and text rounds; count labels with a host marker such as «(Recommended)» instead of ★ | 2026-10-31 |
+| Questions | Each decision has an ID and a title holding the question; options on their own line with `(★)` on the recommended one | Card labels and text rounds; a cosmetic label difference, such as a host marker «(Recommended)» instead of ★, is not reported until the user asks | 2026-10-31 |
 | Questions | No question in a round depends on another open question of the same round | A later question presupposes an option, usually the recommended one, of an earlier one | 2026-11-01 |
 | Questions | An empty or timed-out card gets one line, not the round repeated | Codex Default mode closes a card after 120 s | 2026-10-31 |
 | Flow boundaries | Moving between flows ends with a next-step block and the host's command, not a card | The report closing research or plan | 2026-10-31 |

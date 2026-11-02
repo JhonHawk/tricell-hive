@@ -31,6 +31,7 @@ The main thread coordinates and verifies; it keeps its own context small so the 
 - Pick the role by surface: `hive-build-backend`, `hive-build-frontend`, `hive-build-data`, `hive-build-infra`, `hive-build-kmp`, `hive-write-tests` or `hive-write-docs`.
 - Launch independent children in the same step, not in waves; tasks that share a file go one after another.
 - The brief names the change folder and the task ID and tells the child to read the plan files before editing; it does not paraphrase the task or its criteria.
+- Wait for children with the host's wait tool, which returns when a child finishes or sends a message; never with a loop of sleeps and status checks.
 - Children stay in their working tree and files: they do not commit, push, open pull requests, write trackers or launch children. The main thread checks the evidence they return, runs the task's checks, commits and marks the task.
 
 ## Stored data
