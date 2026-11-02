@@ -539,3 +539,52 @@ test("a past transition back to in progress does not show a live spinner", async
   await act(async () => root.unmount());
   container.remove();
 });
+
+test("a stage in progress spins only while the session is live, and task transitions never spin", async (t) => {
+  const { completeFixture } = await import("../dev/timeline-complete-fixture");
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  t.after(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+  });
+  const render = async (state: TimelineSessionResponse["session"]["state"]) => {
+    const data = completeFixture();
+    const stage = data.session.events.find((e) => e.kind === "stage");
+    assert.ok(stage);
+    stage.stage_state = "in_progress";
+    data.session.state = state;
+    data.session.events.push({
+      actor: { kind: "native_producer", producer_id: "producer-original" },
+      event_id: "event-task-started",
+      sequence: 999,
+      version: 1,
+      kind: "task_state_transition",
+      title: "Task started",
+      summary: "Task started",
+      created_at: stamp,
+      updated_at: stamp,
+      origin: "server",
+      ticket_refs: [],
+      audit: {
+        operation: "task_transition",
+        reason: "Task started",
+        previous_state: "pending",
+        next_state: "in_progress",
+      },
+    } as TimelineEvent);
+    await act(async () => {
+      root.render(<TimelineContent data={data} onRetry={() => {}} />);
+    });
+    return container.querySelector(`#timeline-event-${stage.event_id}`);
+  };
+  const closed = await render("closed");
+  assert.ok(closed);
+  assert.equal(closed.querySelector('[data-slot="spinner"]'), null);
+  const active = await render("active");
+  assert.ok(active?.querySelector('[data-slot="spinner"]'));
+  const task = container.querySelector("#timeline-event-event-task-started");
+  assert.ok(task);
+  assert.equal(task.querySelector('[data-slot="spinner"]'), null);
+});
