@@ -184,6 +184,16 @@ raise the minor or the patch version.
 - The manager keeps only the newest 10 finished recovery journals under its
   `transactions/` folder, and the install summary says so.
 
+- `flow-build` waits for helper agents with the host's wait tool, which returns
+  when a helper finishes or writes, never with a loop of sleeps and status
+  checks (observed in a Codex 0.166 session: 74 sleep calls, no wait).
+- A plan's `proposal.md` records each user decision on its own line, in plain
+  words: the question, the answer and what it changes, with the decision ID
+  last. Field names follow the session language; the first field stays
+  `Status` (or `Estado`), which the archive helper reads.
+- The documentation site describes the rebuilt flows in plain words and links
+  each skill; new pages cover Status, Security review and Host limits.
+
 ### Removed
 
 - The `flow-security` and `workspace-archive` skills, and the
@@ -204,6 +214,9 @@ raise the minor or the patch version.
 - The walkthrough viewer keeps a project's resolved identity when a worktree
   disappears or its remote cannot be read, including after a restart, instead
   of splitting its saved copies into another project with the same name.
+- The viewer timeline places work-level activity, such as a pause, where it
+  happened between stages instead of above every stage, and shows a server
+  reason once, in a title that wraps, instead of three times.
 
 ### Migration
 
@@ -215,14 +228,13 @@ raise the minor or the patch version.
   review (`hive-review-security`) or an archive of closed sessions in plain
   words, or use `security-advisory` and `workspace-conventions`. Stop
   invoking `hive-refute-claim`.
-- Restart an existing viewer with the new binary and reload old browser
-  tabs. Stop it and back up its `index.json` and session `meta.json` files
-  before the first start; the new binary upgrades their metadata (the
-  project identity fields, and archive and pin flags into `session-groups`:
-  mixed archive groups become active, and any pin keeps the group). Older
-  binaries reject the new fields, so a rollback also needs the backed-up
-  metadata restored without overwriting later changes. Copy-scope writes are
-  rejected.
+- The viewer moves to protocol 3, which does not read earlier viewer data. Stop
+  the running viewer (`hive view stop`), move the `viewer` folder out of the
+  Hive state directory (on macOS `~/Library/Application Support/tricell-hive`)
+  to keep it, rebuild the binary, start the viewer again and register each
+  repository with `hive view register --dir <root>`. Earlier works stay in the
+  moved folder and do not appear in the new viewer; restoring that folder and
+  the previous binary is the way back.
 - Remove `Review`, `UI verification` and `Delivery: automatic|interactive` from
   each `## Hive` section with `hive project set --unset <Key>`, or run
   `harness-audit`; sections that keep them still work, and `hive doctor` only
