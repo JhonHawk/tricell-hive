@@ -42,7 +42,7 @@ or `interactive` is retired: it answers no question, the agent asks it each sess
 and the old value only informs the recommended option. `hive doctor` warns
 about those lines.
 Each key's meaning and accepted values are in
-[project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/references/project-settings.md).
+[project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md).
 `hive project set` edits the section for you after a confirmation, and the
 [harness audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/SKILL.md)
 can create or update it for you: ask it to set up your repository's Hive section,
@@ -62,6 +62,8 @@ Implement the agreed change locally and verify it. Do not commit or publish.
 ```
 
 ## Choose the right depth
+
+If a CLI behaves differently from what these pages describe, check [Host limits](/host-limits/).
 
 Start with [Research](/flows/research/) when facts are missing, [Plan](/flows/plan/)
 for consequential decisions, or [Build](/flows/build/) for an authorized change.
