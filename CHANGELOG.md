@@ -12,6 +12,12 @@ raise the minor or the patch version.
 
 ### Added
 
+- `hive view contract --for <flow>` prints a brief contract with only that
+  flow's operations (research, plan, build, verify, delivery, close, collab):
+  usage, required and optional fields, allowed values and an example.
+  `--list` prints one line per operation with its flows, and
+  `--section rules` the shared rules. A rejected input names its field, such
+  as `invalid timeline input: reason: invalid_text` (#328).
 - A `ready` delivery mode: the agent reviews, pushes, opens a non-draft pull
   request, waits for CI and answers its reviews, then stops for you to merge.
   It never merges, enables auto-merge or joins a merge queue, and asks first
@@ -37,12 +43,27 @@ raise the minor or the patch version.
   sessions they open. The skill cut had replaced that rule with "the available
   browser automation capability", so a session used another browser tool.
 
-### Removed
+### Changed
 
-- The plan's build route no longer recommends compacting first. Claude Code
-  does not tell the model its context window, so the agent estimated against a
-  smaller window and recommended compacting at about 20% of a 1M window. Compacting is
-  left to you and the host's own automatic compaction.
+- Compacting is offered at two moments instead of by context size: when an
+  approved plan moves to its build in the same session, and when another work
+  item starts after a close. It is one more reply of the next-step block, with
+  what to keep; after you compact, the agent shows the same next step again.
+  The old rule recommended compacting past 40% of the window, but Claude Code
+  does not tell the model its window, so the agent estimated against a smaller
+  one and recommended it at about 20% of a 1M window (#328).
+- A flow's command is offered only when the next step needs that flow. A single
+  action that changes no repository file, such as creating the ticket a route
+  needs, closing a ticket or deleting a merged branch, is asked directly ("Do
+  you want me to create the ticket?") instead of being sent through a flow
+  command, and your answer authorizes only that action (#328).
+- The viewer publication procedure is read once per session and again after a
+  compaction, not at each stage change. Each flow reads its own part of the
+  contract once, uses the versions every write returns instead of reading the
+  session after each one, and reads the session back before saying something
+  is visible, at close, and when resuming. Publishing took 5–16% of the tokens
+  of a session (#328).
+- `hive view` prints compact JSON, with the same content (#328).
 
 ## [0.7.0] - 2026-11-01
 

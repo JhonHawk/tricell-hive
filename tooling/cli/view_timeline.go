@@ -44,12 +44,36 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 		fs := flag.NewFlagSet("view contract", flag.ContinueOnError)
 		fs.SetOutput(io.Discard)
 		operation := fs.String("operation", "", "narrow to one protocol operation")
+		flow := fs.String("for", "", "brief of one flow's operations")
+		list := fs.Bool("list", false, "list every operation with its flows")
+		section := fs.String("section", "", "one shared part of the contract: rules")
+		usage := errors.New("use `hive view contract [--operation NAME | --for FLOW | --list | --section rules]`; options are mutually exclusive; flows: " + strings.Join(viewer.TimelineProtocolFlows(), ", "))
 		if err := fs.Parse(args[1:]); err != nil || fs.NArg() != 0 {
-			return errors.New("use `hive view contract [--operation NAME]`")
+			return usage
+		}
+		visited := map[string]bool{}
+		fs.Visit(func(f *flag.Flag) { visited[f.Name] = true })
+		if len(visited) > 1 || visited["list"] && !*list {
+			return usage
+		}
+		switch {
+		case visited["list"]:
+			return viewTimelineOutput(w, viewer.TimelineProtocolList())
+		case visited["section"]:
+			if *section != "rules" {
+				return errors.New("unknown contract section; valid sections: rules")
+			}
+			return viewTimelineOutput(w, viewer.TimelineProtocolRules())
+		case visited["for"]:
+			brief, err := viewer.TimelineProtocolBrief(*flow)
+			if err != nil {
+				return errors.New("unknown flow; valid flows: " + strings.Join(viewer.TimelineProtocolFlows(), ", "))
+			}
+			return viewTimelineOutput(w, brief)
 		}
 		contract, err := viewer.TimelineProtocolContract(*operation)
 		if err != nil {
-			return errors.New("unknown timeline operation; run `hive view contract`")
+			return errors.New("unknown timeline operation; run `hive view contract --list`")
 		}
 		return viewTimelineOutput(w, contract)
 	}
@@ -92,6 +116,10 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 			code := viewer.TimelineContractCode(err)
 			if code == "unsupported_protocol" {
 				return errors.New("unsupported_protocol: protocol v3 is required; update client and viewer together, preserve inputs and use a fresh v3 state directory")
+			}
+			var field *viewer.TimelineContractError
+			if errors.As(err, &field) && field.Field != "" {
+				return fmt.Errorf("invalid timeline input: %s: %s", field.Field, code)
 			}
 			return fmt.Errorf("invalid timeline input: %s", code)
 		}
@@ -489,9 +517,7 @@ func viewTimelineDecodeOutput(w io.Writer, command viewTimelineCommand, input, r
 }
 
 func viewTimelineOutput(w io.Writer, value any) error {
-	encoder := json.NewEncoder(w)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(value)
+	return json.NewEncoder(w).Encode(value)
 }
 
 // viewErrorTokenPattern bounds what a failed response may echo: only the

@@ -406,3 +406,174 @@ func timelineAuditSchema() map[string]any {
 		branch([]string{"session_rename", "session_archive", "session_pin", "session_delete"}, nil, nil),
 	}}
 }
+
+// timelineCommonOperations are published by every stage flow (research, plan,
+// build, verify, delivery) on top of their own operations.
+var timelineCommonOperations = []string{"create_session", "session_get", "session_patch", "stage_start", "stage_update", "append_event", "ticket_create"}
+
+// timelineFlowOperations maps each flow to the operations it adds. Every
+// protocol operation must appear in at least one flow; a test enforces it.
+var timelineFlowOperations = map[string][]string{
+	"research": {"document_add", "document_snapshot", "document_get", "ticket_patch"},
+	"plan":     {"document_add", "document_snapshot", "document_get", "ticket_patch"},
+	"build":    {"event_patch", "event_withdraw", "task_create", "task_patch", "task_transition", "candidate_create", "artifact_add"},
+	"verify":   {"event_patch", "event_withdraw", "task_transition", "candidate_create", "artifact_add", "document_add", "document_snapshot"},
+	"delivery": {"candidate_create", "delivery_create", "delivery_patch", "wait_create", "wait_attempt_start", "wait_observe", "task_transition"},
+	"close":    {"stage_update", "session_patch", "session_get", "document_get"},
+	"collab":   {"join_request", "producer_accept", "foreground_transfer", "recover_lead", "session_delete"},
+}
+
+// TimelineProtocolFlows lists the flows `--for` accepts, in display order.
+func TimelineProtocolFlows() []string {
+	return []string{"research", "plan", "build", "verify", "delivery", "close", "collab"}
+}
+
+// timelineFlowMembers returns the operations of a flow, deduplicated.
+func timelineFlowMembers(flow string) ([]string, error) {
+	extra, ok := timelineFlowOperations[flow]
+	if !ok {
+		return nil, timelineError("flow", "unsupported_flow")
+	}
+	if flow == "close" || flow == "collab" {
+		return append([]string{}, extra...), nil
+	}
+	seen := map[string]bool{}
+	var names []string
+	for _, name := range append(append([]string{}, timelineCommonOperations...), extra...) {
+		if !seen[name] {
+			seen[name] = true
+			names = append(names, name)
+		}
+	}
+	return names, nil
+}
+
+type TimelineProtocolBriefOperation struct {
+	Operation string              `json:"operation"`
+	Usage     string              `json:"usage"`
+	Required  []string            `json:"required"`
+	Optional  []string            `json:"optional"`
+	Enums     map[string][]string `json:"enums,omitempty"`
+	Example   json.RawMessage     `json:"example"`
+}
+type TimelineProtocolBriefDescription struct {
+	ProtocolVersion int                              `json:"protocol_version"`
+	Flow            string                           `json:"flow"`
+	Operations      []TimelineProtocolBriefOperation `json:"operations"`
+}
+type TimelineProtocolListEntry struct {
+	Operation string   `json:"operation"`
+	Flows     []string `json:"flows"`
+	Usage     string   `json:"usage"`
+}
+type TimelineProtocolListing struct {
+	ProtocolVersion int                         `json:"protocol_version"`
+	Operations      []TimelineProtocolListEntry `json:"operations"`
+}
+
+// TimelineProtocolRulesBlock is the shared part of the contract: everything but
+// the per-operation commands.
+type TimelineProtocolRulesBlock struct {
+	ProtocolVersion int                          `json:"protocol_version"`
+	StorageVersion  int                          `json:"storage_version"`
+	SchemaDialect   string                       `json:"schema_dialect"`
+	Localization    TimelineLocalizationMetadata `json:"localization"`
+	Capabilities    []string                     `json:"capabilities"`
+	Retention       string                       `json:"retention"`
+	TTLSeconds      int                          `json:"ttl_seconds"`
+	Authority       map[string]string            `json:"authority"`
+	ErrorCodes      []string                     `json:"error_codes"`
+	Limits          map[string]int64             `json:"limits"`
+	Invariants      []string                     `json:"invariants"`
+}
+
+// TimelineProtocolBrief summarizes one flow's operations: usage, input field
+// names, enum values and the example, without output schemas.
+func TimelineProtocolBrief(flow string) (TimelineProtocolBriefDescription, error) {
+	brief := TimelineProtocolBriefDescription{ProtocolVersion: 3, Flow: flow}
+	members, err := timelineFlowMembers(flow)
+	if err != nil {
+		return brief, err
+	}
+	full, err := TimelineProtocolContract("")
+	if err != nil {
+		return brief, err
+	}
+	for _, command := range full.Commands {
+		if !contains(members, command.Operation) {
+			continue
+		}
+		required, _ := command.InputSchema["required"].([]string)
+		properties, _ := command.InputSchema["properties"].(map[string]any)
+		item := TimelineProtocolBriefOperation{Operation: command.Operation, Usage: command.Usage, Required: []string{}, Optional: []string{}, Example: command.Example}
+		item.Required = append(item.Required, required...)
+		sort.Strings(item.Required)
+		for name := range properties {
+			if !contains(required, name) {
+				item.Optional = append(item.Optional, name)
+			}
+		}
+		sort.Strings(item.Optional)
+		enums := map[string][]string{}
+		timelineCollectEnums(command.InputSchema, "", enums)
+		if len(enums) > 0 {
+			item.Enums = enums
+		}
+		brief.Operations = append(brief.Operations, item)
+	}
+	return brief, nil
+}
+
+// timelineCollectEnums walks object properties, array items and anyOf branches,
+// naming nested fields with a dotted path.
+func timelineCollectEnums(schema map[string]any, path string, out map[string][]string) {
+	if values, ok := schema["enum"].([]string); ok && path != "" {
+		out[path] = values
+	}
+	if properties, ok := schema["properties"].(map[string]any); ok {
+		for name, child := range properties {
+			if m, ok := child.(map[string]any); ok {
+				next := name
+				if path != "" {
+					next = path + "." + name
+				}
+				timelineCollectEnums(m, next, out)
+			}
+		}
+	}
+	if items, ok := schema["items"].(map[string]any); ok {
+		timelineCollectEnums(items, path, out)
+	}
+	if branches, ok := schema["anyOf"].([]any); ok {
+		for _, b := range branches {
+			if m, ok := b.(map[string]any); ok {
+				timelineCollectEnums(m, path, out)
+			}
+		}
+	}
+}
+
+// TimelineProtocolList names every operation with the flows that use it.
+func TimelineProtocolList() TimelineProtocolListing {
+	list := TimelineProtocolListing{ProtocolVersion: 3}
+	full, err := TimelineProtocolContract("")
+	if err != nil {
+		return list
+	}
+	for _, command := range full.Commands {
+		entry := TimelineProtocolListEntry{Operation: command.Operation, Flows: []string{}, Usage: command.Usage}
+		for _, flow := range TimelineProtocolFlows() {
+			if members, _ := timelineFlowMembers(flow); contains(members, command.Operation) {
+				entry.Flows = append(entry.Flows, flow)
+			}
+		}
+		list.Operations = append(list.Operations, entry)
+	}
+	return list
+}
+
+// TimelineProtocolRules returns the shared rules block without any operation.
+func TimelineProtocolRules() TimelineProtocolRulesBlock {
+	full, _ := TimelineProtocolContract("session_get")
+	return TimelineProtocolRulesBlock{ProtocolVersion: full.ProtocolVersion, StorageVersion: full.StorageVersion, SchemaDialect: full.SchemaDialect, Localization: full.Localization, Capabilities: full.Capabilities, Retention: full.Retention, TTLSeconds: full.TTLSeconds, Authority: full.Authority, ErrorCodes: full.ErrorCodes, Limits: full.Limits, Invariants: full.Invariants}
+}

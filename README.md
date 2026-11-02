@@ -419,7 +419,10 @@ hive view stop
 
 The server keeps running until you stop it. The agent registers the project and
 publishes through the versioned API. `hive view contract` prints the offline
-commands, schemas, limits and examples; `--operation NAME` narrows the output.
+commands, schemas, limits and examples as compact JSON; `--for FLOW` prints one
+flow's brief (research, plan, build, verify, delivery, close or collab), `--list`
+names every operation with its flows, `--section rules` prints the shared rules,
+and `--operation NAME` narrows to one operation.
 JSON inputs use `--json FILE` or `--json -`. The
 [publication skill](content/skills/flow-walkthrough/SKILL.md) owns the agent's
 procedure; the [viewer manual](https://hive.tricell.tech/viewer/) explains how to

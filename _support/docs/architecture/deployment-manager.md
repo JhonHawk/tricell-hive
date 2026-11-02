@@ -120,13 +120,14 @@ go run ./tooling/cli view status [--home DIR] [--state-dir DIR]
 go run ./tooling/cli view open [--session-id ID [--event-id ID]] [--home DIR] [--state-dir DIR]
 go run ./tooling/cli view stop [--home DIR] [--state-dir DIR]
 go run ./tooling/cli view serve [--port N] [--home DIR] [--state-dir DIR]
-go run ./tooling/cli view contract [--operation NAME]
+go run ./tooling/cli view contract [--operation NAME | --for FLOW | --list | --section rules]
 ```
 
 The user starts and stops the service explicitly. Agents publish through
 [flow-walkthrough](../../../content/skills/flow-walkthrough/SKILL.md); the offline
-`hive view contract [--operation NAME]` owns exact operations, schemas,
-authority, limits and examples. JSON inputs use `--json FILE` or stdin; uploads
+`hive view contract [--operation NAME | --for FLOW | --list | --section rules]`
+owns exact operations, schemas, authority, limits and examples (compact JSON;
+`--for` gives a per-flow brief under 10,000 bytes). JSON inputs use `--json FILE` or stdin; uploads
 take `--file`. An installed but stopped/incompatible service does not select a
 different authority or cause an automatic restart, and an absent binary leaves
 the work unpublished; there is no other publication format. `create_session`
