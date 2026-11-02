@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { AccessClient, takeCode, takeTarget } from "./api";
 import { ViewerApplication } from "./application";
 import { ViewerController } from "./controller";
+import { browserLanguage } from "./language";
 import "./styles.css";
 
 const container = document.getElementById("root");
@@ -12,9 +13,7 @@ const root = createRoot(container);
 const target = takeTarget();
 const code = takeCode();
 const controller = new ViewerController(new AccessClient());
-document.documentElement.lang = navigator.language.startsWith("es")
-  ? "es"
-  : "en";
+document.documentElement.lang = browserLanguage();
 if (
   import.meta.env.DEV &&
   new URLSearchParams(location.search).has("preview")

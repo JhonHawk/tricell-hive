@@ -49,6 +49,7 @@ import {
   type TimelineLanguage,
   timelineCopy,
   timelineDate,
+  timelineEventTitle,
 } from "./timeline-copy";
 import {
   compareRevisionTabs,
@@ -560,7 +561,7 @@ export function useTimelinePanel({
         ))}
         {events.map((event) => (
           <section key={event.event_id} className="flex min-w-0 flex-col gap-3">
-            <h3 className="font-medium">{event.title}</h3>
+            <h3 className="font-medium">{timelineEventTitle(event, lang)}</h3>
             <TimelineTicketLinks
               session={panel.data.session}
               refs={event.ticket_refs}
@@ -622,7 +623,7 @@ export function useTimelinePanel({
         ) : (
           history.map((event) => (
             <section key={event.event_id} className="flex flex-col gap-2">
-              <h3 className="font-medium">{event.title}</h3>
+              <h3 className="font-medium">{timelineEventTitle(event, lang)}</h3>
               <p>
                 {t.taskStates[
                   event.audit?.previous_state as TimelineTaskState
@@ -1075,7 +1076,7 @@ export function useTimelinePanel({
   };
   const title =
     panel?.kind === "document"
-      ? revision?.event.title
+      ? revision && timelineEventTitle(revision.event, lang)
       : panel?.kind === "task"
         ? `${task?.task_key ?? ""} — ${task?.title ?? t.unavailableDetail}`
         : panel?.kind === "wait"

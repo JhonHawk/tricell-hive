@@ -1,4 +1,8 @@
-import type { TimelineEventKind, TimelineState } from "./timeline-contract";
+import type {
+  TimelineEvent,
+  TimelineEventKind,
+  TimelineState,
+} from "./timeline-contract";
 
 export type TimelineLanguage = "es" | "en";
 export function timelineCopy(lang: TimelineLanguage = "en") {
@@ -6,6 +10,10 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
     ? {
         locale: "es-MX",
         start: "Inicio",
+        navigation: "Alternar navegación",
+        navigationTitle: "Navegación",
+        navigationDescription: "Explora proyectos y sesiones.",
+        loadingLabel: "Cargando",
         timelineActions: "Navegación del historial",
         taskRegistry: "Registro global de tareas",
         segmentProgress: "tramos finalizados",
@@ -58,7 +66,7 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         stageNames: {
           research: "Investigación",
           plan: "Plan",
-          build: "Build",
+          build: "Implementación",
           verify: "Verificación",
           delivery: "Entrega",
         },
@@ -218,6 +226,10 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
     : {
         locale: "en-US",
         start: "Start",
+        navigation: "Toggle navigation",
+        navigationTitle: "Navigation",
+        navigationDescription: "Browse projects and sessions.",
+        loadingLabel: "Loading",
         timelineActions: "Timeline navigation",
         taskRegistry: "Global task registry",
         segmentProgress: "segments completed",
@@ -439,4 +451,14 @@ export function timelineDate(
     year: withTime ? undefined : "numeric",
     ...(withTime ? { hour: "2-digit", minute: "2-digit" } : {}),
   }).format(date);
+}
+
+/** Reserved stage names come from the enum; producer context is never translated. */
+export function timelineEventTitle(
+  event: TimelineEvent,
+  lang: TimelineLanguage,
+): string {
+  if (event.kind !== "stage" || !event.stage) return event.title;
+  const name = timelineCopy(lang).stageNames[event.stage];
+  return event.title ? `${name} · ${event.title}` : name;
 }

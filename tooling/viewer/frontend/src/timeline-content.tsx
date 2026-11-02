@@ -67,6 +67,7 @@ import {
   type TimelineLanguage,
   timelineCopy,
   timelineDate,
+  timelineEventTitle,
 } from "./timeline-copy";
 import { useTimelinePanel } from "./timeline-detail-panel";
 import {
@@ -299,8 +300,11 @@ export function TimelineContent({
         </TimelineIndicator>
         <TimelineHeader className="flex min-w-0 items-start justify-between gap-2.5">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
-            <TimelineTitle className="min-w-0 truncate" title={event.title}>
-              {event.withdrawn ? t.withdrawn : event.title}
+            <TimelineTitle
+              className="min-w-0 truncate"
+              title={timelineEventTitle(event, lang)}
+            >
+              {event.withdrawn ? t.withdrawn : timelineEventTitle(event, lang)}
             </TimelineTitle>
             {stageTasks.length > 0 && (
               <span className="text-xs tabular-nums">
@@ -318,7 +322,7 @@ export function TimelineContent({
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    aria-label={`${stageOpen ? t.collapse : t.expand} ${event.title}`}
+                    aria-label={`${stageOpen ? t.collapse : t.expand} ${timelineEventTitle(event, lang)}`}
                   />
                 }
                 onClick={toggleStage}
@@ -796,7 +800,7 @@ export function TimelineContent({
           <DialogHeader>
             <DialogTitle>{snapshot?.view.title}</DialogTitle>
             <DialogDescription className="whitespace-pre-line">
-              {snapshot?.event.title}
+              {snapshot && timelineEventTitle(snapshot.event, lang)}
             </DialogDescription>
           </DialogHeader>
           {isUpdated && (

@@ -63,6 +63,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { optionalStorage, save, stored } from "./api";
+import { browserLanguage } from "./language";
 import { messages as t } from "./messages";
 export type ViewerSession = {
   id: string;
@@ -102,7 +103,7 @@ export type ViewerShellProps = {
   writing?: boolean;
   coldLoading?: boolean;
 };
-const spanish = navigator.language.startsWith("es");
+const spanish = browserLanguage() === "es";
 const copy = spanish
   ? {
       walkthroughs: "Recorridos",

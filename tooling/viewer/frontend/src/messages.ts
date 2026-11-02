@@ -1,9 +1,10 @@
-export const language = navigator.language.toLowerCase().startsWith("es")
-  ? "es"
-  : "en";
+import { browserLanguage } from "./language";
+export const language = browserLanguage();
 export const messages =
   language === "es"
     ? {
+        publishWork: "Publica un trabajo para verlo aquí.",
+        walkthroughs: "Recorridos",
         rename: "Editar nombre de la sesión",
         sessionName: "Nombre de la sesión",
         nameReadingHint:
@@ -122,6 +123,8 @@ export const messages =
         },
       }
     : {
+        publishWork: "Publish a work to see it here.",
+        walkthroughs: "Walkthroughs",
         rename: "Edit session name",
         sessionName: "Session name",
         nameReadingHint:

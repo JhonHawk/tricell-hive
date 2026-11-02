@@ -19,13 +19,6 @@ export function completeFixture(): TimelineSessionResponse {
     producer_id: "producer-original",
   };
   const stamp = "2026-11-01T10:00:00-06:00";
-  const stageTitles: Record<TimelineStage, string> = {
-    research: "Investigación",
-    plan: "Plan",
-    build: "Build",
-    verify: "Verificación",
-    delivery: "Entrega",
-  };
   const snapshot = (
     key: string,
     id: string,
@@ -49,7 +42,7 @@ export function completeFixture(): TimelineSessionResponse {
     kind: "stage",
     stage: kind,
     stage_state: state,
-    title: stageTitles[kind],
+    title: "",
     sequence,
     version: 1,
     actor,

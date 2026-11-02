@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { mapTimelineIndex, optionalStorage, save, stored } from "./api";
 import type { ViewerController } from "./controller";
+import { browserLanguage } from "./language";
 import { messages as t } from "./messages";
 import { ViewerShell } from "./shell";
 import { TimelineContent } from "./timeline-content";
@@ -40,7 +41,7 @@ export function ViewerApplication({
   const selected = state.timelineSessions.find(
     (s) => s.viewer_session_id === state.selectedId,
   );
-  const lang = navigator.language.startsWith("es") ? "es" : "en";
+  const lang = browserLanguage();
   const scrolls = useRef(new Map<string, number>()),
     last = useRef<string | undefined>(undefined);
   const focusedTarget = useRef<object | undefined>(undefined);
@@ -53,7 +54,7 @@ export function ViewerApplication({
   useEffect(() => {
     document.title = selected
       ? `${selected.title} · Hive`
-      : "Hive · Walkthroughs";
+      : `Hive · ${t.walkthroughs}`;
   }, [selected]);
   useLayoutEffect(() => {
     const canvas = document.querySelector<HTMLElement>(
@@ -170,13 +171,7 @@ export function ViewerApplication({
             ? t.archivedOnly
             : t.empty}
         </h2>
-        <p>
-          {state.index.repositories.length
-            ? lang === "es"
-              ? "Publica un trabajo mediante la API v2 para verlo aquí."
-              : "Publish a work through the v2 API to see it here."
-            : t.register}
-        </p>
+        <p>{state.index.repositories.length ? t.publishWork : t.register}</p>
         {!state.index.repositories.length && <code>hive view register</code>}
         {state.index.timeline_sessions.some((s) => s.archived) && (
           <Button

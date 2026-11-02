@@ -1,3 +1,4 @@
+import { resolveLanguage } from "./language";
 import type { ViewerSession } from "./shell";
 import {
   parseTimelineIndexEntry,
@@ -258,9 +259,9 @@ export function mapTimelineIndex(
     localTitle: true,
     ticket:
       entry.tickets.map((t) => t.key).join(" · ") ||
-      (language.startsWith("es") ? "Sin ticket" : "No ticket"),
+      (resolveLanguage(language) === "es" ? "Sin ticket" : "No ticket"),
     createdAt: new Intl.DateTimeFormat(
-      language.startsWith("es") ? "es" : "en",
+      resolveLanguage(language) === "es" ? "es" : "en",
       { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" },
     ).format(date),
     classification: "unknown",

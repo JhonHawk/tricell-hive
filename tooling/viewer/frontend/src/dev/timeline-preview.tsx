@@ -1,9 +1,11 @@
 // Development-only adapter: the production components receive typed stub data.
 import { useEffect, useState } from "react";
 import { HttpError } from "../api";
+import { browserLanguage } from "../language";
 import { ViewerShell } from "../shell";
 import { TimelineContent } from "../timeline-content";
 import type { TimelineSessionResponse } from "../timeline-contract";
+import { timelineDate } from "../timeline-copy";
 import { TimelineHeader } from "../timeline-header";
 import { completeFixture } from "./timeline-complete-fixture";
 import { loadPreviewDocument } from "./timeline-documents-fixture";
@@ -11,17 +13,27 @@ import { timelineFixture } from "./timeline-fixture";
 import { workFixture } from "./timeline-work-fixture";
 
 export function TimelineDevelopmentPreview() {
+  const lang = browserLanguage();
   const query = new URLSearchParams(location.search);
   const scenario = query.get("state");
   const dark = query.get("theme") !== "light";
   const [data, setData] = useState<TimelineSessionResponse>(() => {
-    const fixture = ["complete", "canonical-changed"].includes(scenario ?? "")
+    const fixture = ["complete", "canonical-changed", "context"].includes(
+      scenario ?? "",
+    )
       ? completeFixture()
       : ["cam", "volume", "future", "recovery-conflict"].includes(
             scenario ?? "",
           )
         ? workFixture(scenario ?? "cam")
         : structuredClone(timelineFixture);
+    if (scenario === "context") {
+      const stage = fixture.session.events.find(
+        (event) => event.stage === "research",
+      );
+      if (stage) stage.title = "Contexto literal · customer note";
+      fixture.session.events[0].title = "Investigación";
+    }
     if (scenario === "canonical-changed") {
       fixture.session.tickets[0].key = "PERFIL-7";
       fixture.session.tickets[0].title =
@@ -84,8 +96,9 @@ export function TimelineDevelopmentPreview() {
   });
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
-    document.documentElement.lang = "es";
-  }, [dark]);
+    document.documentElement.lang = lang;
+    document.title = `${data.session.title} · Hive`;
+  }, [dark, lang, data.session.title]);
   const session = data.session;
   const selected = {
     id: session.viewer_session_id,
@@ -93,7 +106,7 @@ export function TimelineDevelopmentPreview() {
     projectKey: session.project_key,
     ticket: session.tickets.map((ticket) => ticket.key).join(" · "),
     title: session.title,
-    createdAt: "31 oct 2026",
+    createdAt: timelineDate(session.created_at, lang, false),
     classification: "local" as const,
     status: "in_progress" as const,
     pinned: session.pinned,
@@ -108,7 +121,7 @@ export function TimelineDevelopmentPreview() {
       sessionHeader={
         <TimelineHeader
           data={data}
-          lang="es"
+          lang={lang}
           onRetry={() => {}}
           onUpdate={async (patch, expectedVersion) => {
             if (scenario === "fail-save")
@@ -168,11 +181,11 @@ export function TimelineDevelopmentPreview() {
       <TimelineContent
         data={data}
         defaultExpandedTaskIDs={
-          ["complete", "canonical-changed"].includes(scenario ?? "")
+          ["complete", "canonical-changed", "context"].includes(scenario ?? "")
             ? ["task-2", "task-3", "task-4", "task-7"]
             : undefined
         }
-        lang="es"
+        lang={lang}
         loadDocument={async (documentID) => {
           if (scenario === "document-error")
             throw new Error("preview_document_failure");
