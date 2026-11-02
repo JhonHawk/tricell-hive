@@ -32,7 +32,7 @@ Number them `AC1`, `AC2`…, one observable behavior each. Name for each the obs
 
 ## Where the plan lives
 
-Write the change folder when the user asks for it, when the work must resume in another session or be delegated to children (a child's brief names the change folder), when its deliveries need coordination, such as more than one pull request or repository, or when the plan changes a contract, stored data, security or a dependency. Otherwise, and always for an operational task as the global guidance's «Proportionality» defines it, keep the plan in the conversation: the plan summary carries the decisions, the criteria, the prerequisites, and the tasks with their `Closes:` line and verification, and the viewer gets its snapshot when the viewer runs. When a plan kept in the conversation later meets one of these conditions, write the change folder then.
+Write the change folder when the user asks for it, when the work must resume in another session or be delegated to children (a child's brief names the change folder), when its deliveries need coordination, such as more than one pull request or repository, or when the plan changes a contract, stored data, security, money, concurrency or a dependency, since those plans get a reviewer or a task check that read the folder. Otherwise, and always for an operational task as the global guidance's «Proportionality» defines it, keep the plan in the conversation: the plan summary carries the decisions, the criteria, the prerequisites, and the tasks with their `Closes:` line and verification, and the viewer gets its snapshot when the viewer runs. When a plan kept in the conversation later meets one of these conditions, write the change folder then.
 
 ## Change folder
 
