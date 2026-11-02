@@ -790,7 +790,7 @@ function eventPayload(obj: ObjectValue, output = false) {
   } else if (obj.review_status !== undefined)
     fail("review_status", "forbidden_for_kind");
   if (!kinds.includes(obj.kind as string)) fail("kind", "unsupported_kind");
-  text(obj.title, "title", 200);
+  text(obj.title, "title", 200, obj.kind !== "stage");
   text(obj.summary, "summary", 4000);
   if (output) tickets(obj.ticket_refs);
   else validateTimelineIDs(obj.ticket_ids, "ticket_ids");
@@ -966,7 +966,7 @@ export function parseTimelineRequest<K extends keyof TimelineRequestMap>(
         obj.stage_state === undefined
       )
         fail("body", "empty_patch");
-      if (obj.title !== undefined) text(obj.title, "title", 200);
+      if (obj.title !== undefined) text(obj.title, "title", 200, false);
       if (obj.summary !== undefined) text(obj.summary, "summary", 4000);
       if (obj.stage_state !== undefined) {
         text(obj.reason, "reason", 500);
@@ -1911,6 +1911,7 @@ export function validateTimelineEventPatch(
   parseTimelineRequest("event_patch", r);
   const e = s.events.find((e) => e.event_id === eventID);
   if (!e) fail("event_id", "unknown_event");
+  if (r.title !== undefined) text(r.title, "title", 200, e.kind !== "stage");
   if (e.audit) fail("event_id", "immutable_audit");
   validateTimelineAuthority(
     s,

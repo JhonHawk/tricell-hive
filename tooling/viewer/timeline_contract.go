@@ -946,7 +946,7 @@ func (r TimelineEventPatchRequest) Validate() error {
 		return timelineError("body", "empty_patch")
 	}
 	if r.Title != nil {
-		if err := timelineText(*r.Title, "title", 200, true); err != nil {
+		if err := timelineText(*r.Title, "title", 200, false); err != nil {
 			return err
 		}
 	}
@@ -1030,6 +1030,12 @@ func DecodeTimelineAppendEvent(raw []byte) (TimelineAppendEventRequest, error) {
 	return r, err
 }
 func (r TimelineAppendEventRequest) Validate() error {
+	return r.validate(r.Kind == "stage")
+}
+
+// Stored stages reuse the common payload checks after their lifecycle fields are
+// validated separately; retain their original title-context rule in that path.
+func (r TimelineAppendEventRequest) validate(stageContext bool) error {
 	if err := validateTimelineAppendV3(r); err != nil {
 		return err
 	}
@@ -1039,7 +1045,7 @@ func (r TimelineAppendEventRequest) Validate() error {
 	if !contains(timelineEventKinds, string(r.Kind)) {
 		return timelineError("kind", "unsupported_kind")
 	}
-	if err := timelineText(r.Title, "title", 200, true); err != nil {
+	if err := timelineText(r.Title, "title", 200, !stageContext); err != nil {
 		return err
 	}
 	if err := timelineText(r.Summary, "summary", 4000, true); err != nil {
@@ -1422,7 +1428,7 @@ func ValidateTimelineSession(s TimelineSession) error {
 			r.Kind = "request"
 		}
 		if e.Audit == nil {
-			if err := r.Validate(); err != nil {
+			if err := r.validate(e.Kind == "stage"); err != nil {
 				return err
 			}
 		} else if err := validateTimelineAuditEvent(e); err != nil {
@@ -2094,6 +2100,11 @@ func ValidateTimelineEventPatch(s TimelineSession, eventID string, r TimelineEve
 	}
 	if event == nil {
 		return timelineError("event_id", "unknown_event")
+	}
+	if r.Title != nil {
+		if err := timelineText(*r.Title, "title", 200, event.Kind != "stage"); err != nil {
+			return err
+		}
 	}
 	if event.Audit != nil {
 		return timelineError("event_id", "immutable_audit")

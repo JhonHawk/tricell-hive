@@ -7,21 +7,29 @@ import (
 	"strings"
 )
 
+// TimelineLocalizationMetadata describes closed system labels, not producer text.
+type TimelineLocalizationMetadata struct {
+	DefaultLanguage    string   `json:"default_language"`
+	SupportedLanguages []string `json:"supported_languages"`
+	ReservedTitleKeys  []string `json:"reserved_title_keys"`
+}
+
 // TimelineProtocolDescription is offline metadata; it never starts or contacts a viewer.
 // Schemas describe exact structural fields from the production Go DTOs. The
 // semantic invariants remain authoritative validator rules, not JSON Schema promises.
 type TimelineProtocolDescription struct {
-	StorageVersion  int                         `json:"storage_version"`
-	Authority       map[string]string           `json:"authority"`
-	ErrorCodes      []string                    `json:"error_codes"`
-	ProtocolVersion int                         `json:"protocol_version"`
-	SchemaDialect   string                      `json:"schema_dialect"`
-	Capabilities    []string                    `json:"capabilities"`
-	Retention       string                      `json:"retention"`
-	TTLSeconds      int                         `json:"ttl_seconds"`
-	Commands        []TimelineProtocolOperation `json:"commands"`
-	Limits          map[string]int64            `json:"limits"`
-	Invariants      []string                    `json:"invariants"`
+	Localization    TimelineLocalizationMetadata `json:"localization"`
+	StorageVersion  int                          `json:"storage_version"`
+	Authority       map[string]string            `json:"authority"`
+	ErrorCodes      []string                     `json:"error_codes"`
+	ProtocolVersion int                          `json:"protocol_version"`
+	SchemaDialect   string                       `json:"schema_dialect"`
+	Capabilities    []string                     `json:"capabilities"`
+	Retention       string                       `json:"retention"`
+	TTLSeconds      int                          `json:"ttl_seconds"`
+	Commands        []TimelineProtocolOperation  `json:"commands"`
+	Limits          map[string]int64             `json:"limits"`
+	Invariants      []string                     `json:"invariants"`
 }
 type TimelineProtocolOperation struct {
 	Method       string          `json:"method,omitempty"`
@@ -45,7 +53,7 @@ func TimelineProtocolContract(operation string) (TimelineProtocolDescription, er
 	one := int64(1)
 	source := TimelineSource{ProjectRoot: "/workspace/example", Host: "codex", NativeSessionID: "native-example"}
 	create := TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "create-example", Source: source, Title: "Example", Summary: "Scope", Tickets: []TimelineTicketInput{}}
-	stage := TimelineAppendEventRequest{Actor: actor, SchemaVersion: 3, OperationID: "stage-example", Reason: "Start the plan", Kind: "stage", Title: "Plan", Summary: "Prepare the plan", TicketIDs: []string{}, Stage: "plan", StageState: "in_progress", ExpectedSessionVersion: &one}
+	stage := TimelineAppendEventRequest{Actor: actor, SchemaVersion: 3, OperationID: "stage-example", Reason: "Start the plan", Kind: "stage", Title: "", Summary: "Prepare the plan", TicketIDs: []string{}, Stage: "plan", StageState: "in_progress", ExpectedSessionVersion: &one}
 	state := TimelineStageState("completed")
 	patch := TimelineEventPatchRequest{Actor: actor, SchemaVersion: 3, OperationID: "complete-example", Reason: "Plan completed", ExpectedVersion: 1, StageState: &state, ExpectedSessionVersion: &one}
 	mutation := TimelineMutationRequest{Actor: actor, SchemaVersion: 3, OperationID: "delete-example", ExpectedVersion: 1}
@@ -66,7 +74,7 @@ func TimelineProtocolContract(operation string) (TimelineProtocolDescription, er
 	}
 	definitions = append(definitions, timelineV3ProtocolDefinitions(actor)...)
 	definitions = append(definitions, timelineCatalogProtocolDefinitions(actor)...)
-	result := TimelineProtocolDescription{StorageVersion: 3, Authority: map[string]string{
+	result := TimelineProtocolDescription{Localization: TimelineLocalizationMetadata{DefaultLanguage: "en", SupportedLanguages: []string{"en", "es"}, ReservedTitleKeys: []string{"start", "research", "plan", "build", "verify", "delivery", "tasks", "ci_wait"}}, StorageVersion: 3, Authority: map[string]string{
 		"create_session":  "native source bootstrap; server creates original producer and lead",
 		"join_request":    "same-project native source; no membership until acceptance",
 		"producer_accept": "lead; re-resolve pending Source against work.ProjectKey", "foreground_transfer": "lead to accepted producer", "recover_lead": "local_viewer; pending same-project request; nonterminal work",
@@ -329,12 +337,23 @@ func timelineProtocolSchema(t reflect.Type) map[string]any {
 				schema["minLength"] = 1
 				schema["maxLength"] = 256
 			}
+			if name == "title" && (t == reflect.TypeOf(TimelineAppendEventRequest{}) || t == reflect.TypeOf(TimelineEvent{}) || t == reflect.TypeOf(TimelineEventPatchRequest{})) {
+				schema["maxLength"] = 200
+				schema["description"] = "For stages, title is verbatim context only: do not repeat the reserved stage heading; use an empty string when no extra context is needed. Other event kinds require a nonempty free title. Patch omission preserves context; an empty string clears stage context only, validated against the target event."
+			}
 			properties[name] = schema
 			if !strings.Contains(flags, "omitempty") {
 				required = append(required, name)
 			}
 		}
-		return map[string]any{"type": "object", "properties": properties, "required": required, "additionalProperties": false}
+		result := map[string]any{"type": "object", "properties": properties, "required": required, "additionalProperties": false}
+		if t == reflect.TypeOf(TimelineAppendEventRequest{}) || t == reflect.TypeOf(TimelineEvent{}) {
+			result["allOf"] = []any{map[string]any{
+				"if":   map[string]any{"properties": map[string]any{"kind": map[string]any{"const": "stage"}}, "required": []string{"kind"}},
+				"else": map[string]any{"properties": map[string]any{"title": map[string]any{"minLength": 1}}},
+			}}
+		}
+		return result
 	case reflect.Slice, reflect.Array:
 		return map[string]any{"type": "array", "items": timelineProtocolSchema(t.Elem())}
 	case reflect.Map:
