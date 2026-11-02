@@ -128,8 +128,12 @@ The user starts and stops the service explicitly. Agents publish through
 `hive view contract [--operation NAME]` owns exact operations, schemas,
 authority, limits and examples. JSON inputs use `--json FILE` or stdin; uploads
 take `--file`. An installed but stopped/incompatible service does not select a
-different authority or cause an automatic restart. Only an absent binary
-selects the standalone HTML fallback for a UI walkthrough.
+different authority or cause an automatic restart, and an absent binary leaves
+the work unpublished; there is no other publication format. `create_session`
+takes an optional `work_key`: the ticket key keeps one work per ticket and native
+session; without it, each creation's operation ID starts a new work, and the
+response returns the given key or null. Sessions created before work keys keep
+their IDs.
 
 Registration records project roots in `viewer/registry.json`. Resolution uses
 the verified Git origin when available and the registered path for a workspace
@@ -141,7 +145,8 @@ from authorizing a new publication without resolving its source.
 
 Protocol, schema and storage are3. `viewer/storage.json` positively identifies
 that format; API records live in `viewer/timeline-api-v3/`. Preflight rejects
-old1/provisional2 state with cutoff_required before mkdir, locking, log creation,
+old1/provisional2 state, like any name outside the v3 inventory, with
+invalid_storage before mkdir, locking, log creation,
 cleanup, registration or signaling. Unknown/corrupt state is an error, not an
 empty library. There is no older-record reader, scanner, import, preference copy
 or migration. A real cutover uses a separate fresh state directory, preserved
@@ -177,11 +182,9 @@ defines those boundaries.
 
 Browser rename/archive/pin/delete operations remain conditional and same-origin,
 with action-scope checks. Deletion commits a durable work tombstone and resumes
-pending cleanup; it never deletes project sources or native history. An unchanged
-or modified manifest cannot recreate that deleted work identity. Manual
-retention has no age expiry; deprecated --ttl is ignored with a warning.
-`status` reports service/work counts without credentials; retired --dir
-source-copy confirmation is rejected. API readback verifies work, versions,
+pending cleanup; it never deletes project sources or native history. Manual
+retention has no age expiry, and the commands take no TTL option.
+`status` reports service/work counts without credentials. API readback verifies work, versions,
 references and immutable hashes through the authenticated API.
 
 Access setup uses `POST /api/access-codes` with `X-Hive-Token`, explicit same-origin `Origin` and an empty body. It returns `{code}` without caching: 32 random bytes encoded as 64 hex characters, valid for 60 seconds, held only in memory. At most 64 unconsumed codes may be pending; a full set returns 429 without evicting valid codes. `POST /api/access-codes/exchange` requires the allowed Host and explicit same-origin Origin, `application/json`, and only `{code}` within 1 KiB. It returns `{token}` without caching, consuming the code atomically; expired, missing, invalid or reused codes return 403. Invalid JSON returns 400, unsupported media type 415, and wrong method 405. Codes disappear on server restart. The page removes the fragment before awaiting exchange, stores only the token in sessionStorage for reloads, and ignores responses from superseded openings, including earlier authenticated reads and writes. An explicit failed opening asks for `hive view open` again. An old running server returning 404 to issuance requires `hive view stop`, `hive view start`, then `hive view open`; the CLI never falls back to a token URL or restarts it automatically. A stolen unconsumed code can still be used by a local process; Origin is not authentication for non-browser clients.
@@ -203,9 +206,8 @@ warnings, connection errors and declared work state are distinct. The manual is
 
 The viewer embeds its assets and needs no Node process at runtime. Frontend
 source and checked-in output freshness are verified separately from actual
-service identity. Standalone HTML keeps its renderer and file validation, but
-is not a source ingested by protocol3. Existing path, byte, descriptor and hash
-guards remain relevant; a safe local file does not authenticate its author.
+service identity. Existing path, byte, descriptor and hash guards remain
+relevant; a safe local file does not authenticate its author.
 
 ### Terminal interface
 
@@ -506,4 +508,4 @@ core remains installed if an optional provider fails. Status is still readable
 while reconciliation is pending. Existing tools, credentials and memory are not
 owned merely because the onboarding catalog detected them.
 
-The running viewer reports the executable’s stamped VCS revision and modified flag in authenticated health and CLI status when available; archive builds without VCS metadata report unknown rather than inferring a checkout revision at request time. Status keeps legacy walkthrough counts and reports timeline_sessions separately. These build fields are not the host’s native session identity.
+The running viewer reports the executable’s stamped VCS revision and modified flag in authenticated health and CLI status when available; archive builds without VCS metadata report unknown rather than inferring a checkout revision at request time. Status reports timeline_sessions. These build fields are not the host’s native session identity.

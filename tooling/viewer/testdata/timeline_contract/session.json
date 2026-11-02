@@ -429,5 +429,6 @@
       "commit": "working tree",
       "base": "development"
     }
-  ]
+  ],
+  "work_key": null
 }

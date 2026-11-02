@@ -503,5 +503,6 @@
       "commit": "abc1234",
       "base": "development"
     }
-  ]
+  ],
+  "work_key": null
 }

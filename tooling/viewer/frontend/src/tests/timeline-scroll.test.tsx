@@ -25,6 +25,7 @@ function indexEntry(data: TimelineSessionResponse) {
     waits: _waits,
     deliveries: _deliveries,
     candidates: _candidates,
+    work_key: _workKey,
     ...rest
   } = data.session;
   return { mode: "timeline_api", ...rest };

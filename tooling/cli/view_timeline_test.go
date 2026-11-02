@@ -360,3 +360,44 @@ func TestTimelineCLIRealServerDocumentsStagesReplayAndTarget(t *testing.T) {
 		t.Fatal("CLI altered source Markdown")
 	}
 }
+
+func TestTimelineCLICreateReadbackChecksTheWorkKey(t *testing.T) {
+	request := func(key any) []byte {
+		var body map[string]any
+		if err := json.Unmarshal(timelineCLIFixture(t, "create-session.json"), &body); err != nil {
+			t.Fatal(err)
+		}
+		if key != nil {
+			body["work_key"] = key
+		}
+		raw, _ := json.Marshal(body)
+		return raw
+	}
+	response := func(key any) []byte {
+		var session map[string]any
+		if err := json.Unmarshal(timelineCLIFixture(t, "session.json"), &session); err != nil {
+			t.Fatal(err)
+		}
+		session["work_key"] = key
+		raw, _ := json.Marshal(map[string]any{"schema_version": 3, "mode": "timeline_api", "session": session, "created": true})
+		return raw
+	}
+	command := viewTimelineCommand{operation: "create_session"}
+	for _, c := range []struct {
+		name         string
+		sent, echoed any
+		ok           bool
+	}{
+		{"no key sent and null returned", nil, nil, true},
+		{"key sent and echoed", "COM-1", "COM-1", true},
+		{"key sent and null returned", "COM-1", nil, false},
+		{"key sent and another returned", "COM-1", "COM-2", false},
+		{"no key sent and a key returned", nil, "COM-1", false},
+	} {
+		var out bytes.Buffer
+		err := viewTimelineDecodeOutput(&out, command, request(c.sent), response(c.echoed))
+		if (err == nil) != c.ok || (!c.ok && out.Len() != 0) {
+			t.Fatalf("%s: ok=%v err=%v", c.name, c.ok, err)
+		}
+	}
+}

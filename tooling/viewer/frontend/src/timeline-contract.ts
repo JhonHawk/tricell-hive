@@ -37,10 +37,7 @@ import {
 
 export * from "./timeline-contract-v3";
 
-import type { RawSession } from "./api";
-
-// This contract is independent of the legacy walkthrough manifest. External
-// data must be parsed before it reaches typed timeline rendering.
+// External data must be parsed before it reaches typed timeline rendering.
 export const TIMELINE_SCHEMA_VERSION = 3 as const;
 export const TIMELINE_LIMITS = {
   body: 2 << 20,
@@ -298,12 +295,13 @@ export type TimelineSession = {
   updated_at: string;
   validation_count: number;
   tickets: TimelineTicket[];
+  work_key: string | null;
   events: TimelineEvent[];
   artifacts: TimelineArtifact[];
   documents: TimelineDocument[];
   current_stage_event_id: string | null;
 };
-export type TimelineContentMode = "timeline_api" | "legacy";
+export type TimelineContentMode = "timeline_api";
 export type TimelineAPIIndexEntry = Omit<
   TimelineSession,
   | "schema_version"
@@ -317,11 +315,9 @@ export type TimelineAPIIndexEntry = Omit<
   | "waits"
   | "deliveries"
   | "candidates"
+  | "work_key"
 > & { mode: "timeline_api" };
-export type TimelineLegacyIndexEntry = { mode: "legacy"; session: RawSession };
-export type TimelineIndexEntry =
-  | TimelineAPIIndexEntry
-  | TimelineLegacyIndexEntry;
+export type TimelineIndexEntry = TimelineAPIIndexEntry;
 export type TimelineOperationKind =
   | "ticket_create"
   | "ticket_patch"
@@ -438,6 +434,7 @@ export type TimelineCreateSessionRequest = {
   title: string;
   summary: string;
   tickets: TimelineTicketInput[];
+  work_key?: string;
 };
 export type TimelineMutationRequest = {
   actor: TimelineActor;
@@ -546,6 +543,16 @@ const sha256 = /^[0-9a-f]{64}$/;
 function fail(field: string, code = "invalid_value"): never {
   throw new TimelineContractError(field, code);
 }
+/** 1 to 128 characters without whitespace or controls, as in Go. */
+function workKey(value: unknown): void {
+  if (
+    typeof value !== "string" ||
+    !value ||
+    [...value].length > 128 ||
+    /[\p{White_Space}\p{Cc}]/u.test(value)
+  )
+    fail("work_key", "invalid_text");
+}
 function object(
   value: unknown,
   required: string[],
@@ -560,7 +567,11 @@ function object(
   for (const key of Object.keys(obj))
     if (![...required, ...optional].includes(key)) fail(field, "unknown_field");
   for (const [key, item] of Object.entries(obj))
-    if (item === null && key !== "current_stage_event_id")
+    if (
+      item === null &&
+      key !== "current_stage_event_id" &&
+      !(key === "work_key" && required.includes(key))
+    )
       fail(field, "null_not_allowed");
   return obj;
 }
@@ -938,18 +949,23 @@ export function parseTimelineRequest<K extends keyof TimelineRequestMap>(
   let obj: ObjectValue = {};
   switch (kind) {
     case "create_session":
-      obj = object(value, [
-        "schema_version",
-        "operation_id",
-        "source",
-        "title",
-        "summary",
-        "tickets",
-      ]);
+      obj = object(
+        value,
+        [
+          "schema_version",
+          "operation_id",
+          "source",
+          "title",
+          "summary",
+          "tickets",
+        ],
+        ["work_key"],
+      );
       operation(obj);
       source(obj.source);
       text(obj.title, "title", 200);
       text(obj.summary, "summary", 4000);
+      if (obj.work_key !== undefined) workKey(obj.work_key);
       tickets(obj.tickets, true, true);
       break;
     case "session_patch": {
@@ -1247,6 +1263,7 @@ export function parseTimelineSession(value: unknown): TimelineSession {
       "updated_at",
       "validation_count",
       "tickets",
+      "work_key",
       "events",
       "artifacts",
       "documents",
@@ -1256,6 +1273,7 @@ export function parseTimelineSession(value: unknown): TimelineSession {
   );
   if (obj.schema_version !== 3) fail("schema_version", "unsupported_protocol");
   summaryHeader(obj);
+  if (obj.work_key !== null) workKey(obj.work_key);
   integer(obj.validation_count, "validation_count", 0, TIMELINE_LIMITS.events);
   tickets(obj.tickets, true);
   validateTimelineCatalogs(obj as unknown as TimelineSession);
@@ -1464,7 +1482,10 @@ export function parseTimelineJSON(raw: string): unknown {
         seen.add(key);
         space();
         if (raw[index++] !== ":") fail("body", "invalid_json");
-        visit(depth + 1, key === "current_stage_event_id");
+        visit(
+          depth + 1,
+          key === "current_stage_event_id" || key === "work_key",
+        );
         space();
         const end = raw[index++];
         if (end === "}") return;
@@ -1532,8 +1553,6 @@ export function decodeTimelineContract(
 export function parseTimelineIndexEntry(value: unknown): TimelineIndexEntry {
   if (!value || typeof value !== "object" || Array.isArray(value))
     fail("body", "object_required");
-  if ((value as ObjectValue).mode === "legacy")
-    fail("mode", "unsupported_protocol");
   if ((value as ObjectValue).mode !== "timeline_api")
     fail("mode", "unsupported_mode");
   const entry = object(value, [

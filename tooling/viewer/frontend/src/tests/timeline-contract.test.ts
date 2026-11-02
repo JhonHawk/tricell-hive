@@ -307,7 +307,9 @@ test("v2 index rejects legacy input", () => {
   assert.throws(
     () =>
       parseTimelineIndexEntry(JSON.parse(fixture("legacy-index-entry.json"))),
-    TimelineContractError,
+    (error) =>
+      error instanceof TimelineContractError &&
+      error.code === "unsupported_mode",
   );
   const api = parseTimelineIndexEntry(
     JSON.parse(fixture("api-index-entry.json")),

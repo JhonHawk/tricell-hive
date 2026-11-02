@@ -43,20 +43,11 @@ func ValidateStateOptions(o Options) error {
 	}
 	marked := false
 	for _, e := range entries {
-		switch e.Name() {
-		case "index.json", "sessions", "session-groups", "timeline-api-v1", "timeline-api-v2":
-			return timelineFailure("cutoff_required", 409)
-		case stateMarker:
+		if e.Name() == stateMarker {
 			marked = true
 		}
 	}
 	if !marked {
-		// A registry-only old installation is still an old installation.
-		for _, e := range entries {
-			if e.Name() == "registry.json" {
-				return timelineFailure("cutoff_required", 409)
-			}
-		}
 		return timelineFailure("invalid_storage", 500)
 	}
 	raw, err := readStateFile(filepath.Join(vdir, stateMarker), 1024)
@@ -66,9 +57,6 @@ func ValidateStateOptions(o Options) error {
 	var marker viewerStorage
 	if decodeTimelineJSONBounded(raw, &marker, 1024) != nil {
 		return timelineFailure("invalid_storage", 500)
-	}
-	if marker.StorageVersion == 1 || marker.StorageVersion == 2 {
-		return timelineFailure("cutoff_required", 409)
 	}
 	if marker.StorageVersion != 3 {
 		return timelineFailure("invalid_storage", 500)
@@ -101,7 +89,7 @@ func ValidateStateOptions(o Options) error {
 	if err != nil {
 		return err
 	}
-	s := &Store{vdir: vdir, now: time.Now, remote: o.GitRemote, hive: o.HiveProject, idx: newIndexData(), timeline: map[string]*timelineRecord{}}
+	s := &Store{vdir: vdir, now: time.Now, remote: o.GitRemote, hive: o.HiveProject, timeline: map[string]*timelineRecord{}}
 	return s.timelineLoad()
 }
 

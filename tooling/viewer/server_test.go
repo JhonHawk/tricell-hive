@@ -23,6 +23,13 @@ const (
 	testHost  = "127.0.0.1:41234"
 )
 
+// env is the state directory and store a test runs against.
+type env struct {
+	t     *testing.T
+	state string
+	store *Store
+}
+
 type srvEnv struct {
 	*env
 	repo   string
@@ -196,7 +203,7 @@ func capFor(key string) string {
 
 func TestServerChecksTheHostOnEveryRoute(t *testing.T) {
 	s := newSrvEnv(t)
-	for _, target := range []string{"/", "/assets/walkthrough.mjs", "/api/index", "/api/timeline/sessions/" + s.key, s.files() + s.image, "/api/health"} {
+	for _, target := range []string{"/", "/assets/hive-mark.svg", "/api/index", "/api/timeline/sessions/" + s.key, s.files() + s.image, "/api/health"} {
 		if w := s.do(http.MethodGet, target, reqOpts{host: "evil.example:41234", token: testToken}); w.Code != http.StatusForbidden {
 			t.Errorf("GET %s with a foreign Host = %d, want 403", target, w.Code)
 		}
@@ -255,8 +262,7 @@ func TestServerSendsSecurityHeadersAndTheRightContentTypes(t *testing.T) {
 	}
 	for target, prefix := range map[string]string{
 		"/":                               "text/html",
-		"/assets/walkthrough.mjs":         "text/javascript",
-		"/assets/walkthrough.css":         "text/css",
+		"/assets/hive-mark.svg":           "image/svg+xml",
 		"/api/index":                      "application/json",
 		"/api/timeline/sessions/" + s.key: "application/json",
 	} {
@@ -285,10 +291,8 @@ func TestServerStaticPagesHaveNoInlineScriptOrStyle(t *testing.T) {
 			t.Errorf("inline <script%s>", tag)
 		}
 	}
-	for _, name := range []string{"walkthrough.mjs", "walkthrough.css"} {
-		if w := s.do(http.MethodGet, "/assets/"+name, reqOpts{}); w.Code != http.StatusOK || w.Body.Len() == 0 {
-			t.Errorf("/assets/%s = %d (%d bytes)", name, w.Code, w.Body.Len())
-		}
+	if w := s.do(http.MethodGet, "/assets/hive-mark.svg", reqOpts{}); w.Code != http.StatusOK || w.Body.Len() == 0 {
+		t.Errorf("/assets/hive-mark.svg = %d (%d bytes)", w.Code, w.Body.Len())
 	}
 	for _, name := range []string{"viewer.mjs", "viewer.css", "index.html"} {
 		if w := s.do(http.MethodGet, "/assets/"+name, reqOpts{}); w.Code != http.StatusNotFound {
@@ -297,8 +301,22 @@ func TestServerStaticPagesHaveNoInlineScriptOrStyle(t *testing.T) {
 	}
 }
 
+// The retired /api/sessions/* routes are not special-cased any more: they fall
+// to the default route and answer 404, with or without the token.
+func TestServerAnswers404ForTheRetiredSessionsAPI(t *testing.T) {
+	s := newSrvEnv(t)
+	for _, target := range []string{"/api/sessions/x", "/api/sessions/" + s.key, "/api/sessions/"} {
+		for _, method := range []string{http.MethodGet, http.MethodPost, http.MethodDelete} {
+			if w := s.do(method, target, reqOpts{token: testToken, origin: "http://" + testHost, scope: "session"}); w.Code != http.StatusNotFound {
+				t.Errorf("%s %s = %d, want 404", method, target, w.Code)
+			}
+		}
+	}
+}
+
 func TestServerConstructorValidatesItsOptions(t *testing.T) {
-	e := newEnv(t)
+	store, _, _ := newV3Fixture(t)
+	e := &env{t: t, state: filepath.Dir(store.Dir()), store: store}
 	for name, o := range map[string]ServerOptions{
 		"no store":    {Token: testToken, Port: 1},
 		"no token":    {Store: e.store, Port: 1},

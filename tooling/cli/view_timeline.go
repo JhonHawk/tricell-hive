@@ -393,7 +393,7 @@ func viewTimelineHTTP(info serverInfo, method, path, contentType string, body io
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return nil, fmt.Errorf("viewer request failed (HTTP %d); preserve inputs, read current state and retry only with the appropriate original operation ID", response.StatusCode)
+		return nil, fmt.Errorf("viewer request failed (HTTP %d%s); preserve inputs, read current state and retry only with the appropriate original operation ID", response.StatusCode, viewErrorDetail(response.Body))
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, int64(limit)+1))
 	if err != nil || len(data) > limit {
@@ -418,6 +418,15 @@ func viewTimelineProtocolReady(info serverInfo, state string) error {
 	return nil
 }
 
+// sameWorkKey reports whether the response echoes the key the request gave,
+// where no key on both sides also matches.
+func sameWorkKey(got, sent *string) bool {
+	if got == nil || sent == nil {
+		return got == sent
+	}
+	return *got == *sent
+}
+
 func viewTimelineDecodeOutput(w io.Writer, command viewTimelineCommand, input, raw []byte) error {
 	invalid := errors.New("invalid or mismatched viewer response; preserve inputs and reconcile the unchanged operation ID")
 	switch command.operation {
@@ -428,7 +437,7 @@ func viewTimelineDecodeOutput(w io.Writer, command viewTimelineCommand, input, r
 		}
 		if command.operation == "create_session" {
 			request, err := viewer.DecodeTimelineCreateSession(input)
-			if err != nil || response.Session.Source.Host != request.Source.Host || response.Session.Source.NativeSessionID != request.Source.NativeSessionID {
+			if err != nil || response.Session.Source.Host != request.Source.Host || response.Session.Source.NativeSessionID != request.Source.NativeSessionID || !sameWorkKey(response.Session.WorkKey, request.WorkKey) {
 				return invalid
 			}
 		}
@@ -483,4 +492,25 @@ func viewTimelineOutput(w io.Writer, value any) error {
 	encoder := json.NewEncoder(w)
 	encoder.SetIndent("", "  ")
 	return encoder.Encode(value)
+}
+
+// viewErrorTokenPattern bounds what a failed response may echo: only the
+// server's own error code and field names, never arbitrary text.
+var viewErrorTokenPattern = regexp.MustCompile(`^[a-z][a-z0-9_.]{0,63}$`)
+
+// viewErrorDetail names the server's error code, and its field when present,
+// so a caller can tell why a request was rejected.
+func viewErrorDetail(body io.Reader) string {
+	var failure struct {
+		Code  string `json:"code"`
+		Field string `json:"field"`
+	}
+	data, err := io.ReadAll(io.LimitReader(body, 1024))
+	if err != nil || json.Unmarshal(data, &failure) != nil || !viewErrorTokenPattern.MatchString(failure.Code) {
+		return ""
+	}
+	if viewErrorTokenPattern.MatchString(failure.Field) {
+		return ": " + failure.Code + " on " + failure.Field
+	}
+	return ": " + failure.Code
 }

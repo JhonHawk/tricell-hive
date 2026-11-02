@@ -155,28 +155,6 @@ export class AccessClient {
     return responseJSON ? response.json() : undefined;
   }
 }
-export type RawSession = {
-  key: string;
-  source: string;
-  source_status: string;
-  source_reason?: string;
-  content_hash: string;
-  ingested_at: string;
-  pinned?: boolean;
-  archived?: boolean;
-  session_id: string;
-  session_title?: string;
-  session_status?: string;
-  host?: string;
-  ticket?: string;
-  title: string;
-  kind?: string;
-  created_at: string;
-  project_key?: string;
-  project_name?: string;
-  repository?: string;
-  fileBase?: string;
-};
 export type RawIndex = {
   protocol_version: 3;
   retention: "manual";
@@ -232,10 +210,7 @@ export function validateIndex(
   value.timeline_sessions.forEach((e, position) => {
     let entry: TimelineAPIIndexEntry | undefined;
     try {
-      const parsed = parseTimelineIndexEntry(e);
-      if (parsed.mode !== "timeline_api")
-        throw new Error("Unsupported viewer work");
-      entry = parsed;
+      entry = parseTimelineIndexEntry(e);
     } catch (error) {
       if (!(error instanceof TimelineContractError)) throw error;
       const raw = (e as { viewer_session_id?: unknown } | null)
@@ -298,7 +273,6 @@ export function mapTimelineIndex(
       resolveLanguage(language) === "es" ? "es" : "en",
       { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" },
     ).format(date),
-    classification: "unknown",
     pinned: entry.pinned,
     archived: entry.archived,
     status: ["active", "in_review", "awaiting_validation", "paused"].includes(

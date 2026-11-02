@@ -29,7 +29,7 @@ func newTimelineFixture(t *testing.T) (*Store, TimelineCreateSessionRequest) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return s, TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "create", Source: TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "native-1"}, Title: "A bounded session", Summary: "Test publication", Tickets: []TimelineTicketInput{}}
+	return s, TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "create", Source: TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "native-1"}, Title: "A bounded session", Summary: "Test publication", Tickets: []TimelineTicketInput{}, WorkKey: timelineString("work-1")}
 }
 func createTimeline(t *testing.T, s *Store, r TimelineCreateSessionRequest) TimelineSession {
 	t.Helper()
@@ -483,7 +483,7 @@ func TestTimelineRuntimeDirectoryCreationSyncRetries(t *testing.T) {
 		for _, kind := range []string{"namespace", "blob-session", "blob-document"} {
 			t.Run(kind+"/"+phase, func(t *testing.T) {
 				s, request := newTimelineFixture(t)
-				id := timelineSessionKey(request.Source.ProjectRoot, request.Source)
+				id := timelineSessionKey(request.Source.ProjectRoot, request.Source, timelineEffectiveWorkKey(request))
 				target := s.timelineDir()
 				var operation func() error
 				if kind == "namespace" {

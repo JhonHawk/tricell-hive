@@ -34,6 +34,9 @@ export function TimelineDevelopmentPreview() {
       if (stage) stage.title = "Contexto literal · customer note";
       fixture.session.events[0].title = "Investigación";
     }
+    if (scenario === "long-summary")
+      fixture.session.summary =
+        "Decisión de alcance: separar la actualización de dependencias por la ventana de siete días antes de publicar. Se revisan HeroUI, las pruebas de regresión del visor y la compatibilidad con los temas claro y oscuro, y se deja constancia de cada validación pendiente con el usuario antes de integrar el cambio en la rama base.";
     if (scenario === "canonical-changed") {
       fixture.session.tickets[0].key = "PERFIL-7";
       fixture.session.tickets[0].title =
@@ -107,7 +110,6 @@ export function TimelineDevelopmentPreview() {
     ticket: session.tickets.map((ticket) => ticket.key).join(" · "),
     title: session.title,
     createdAt: timelineDate(session.created_at, lang, false),
-    classification: "local" as const,
     status: "in_progress" as const,
     pinned: session.pinned,
     archived: session.archived,

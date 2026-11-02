@@ -10,7 +10,7 @@ export default defineConfig({
     react(),
     tailwindcss(),
     {
-      name: "shared-walkthrough-development",
+      name: "viewer-development-assets",
       apply: "serve",
       configureServer(server) {
         server.middlewares.use(async (req, res, next) => {
@@ -32,20 +32,8 @@ export default defineConfig({
             );
             return;
           }
-          if (
-            asset !== "/assets/walkthrough.mjs" &&
-            asset !== "/assets/walkthrough.css" &&
-            asset !== "/assets/hive-mark.svg"
-          )
-            return next();
-          res.setHeader(
-            "Content-Type",
-            asset.endsWith(".svg")
-              ? "image/svg+xml"
-              : asset.endsWith(".css")
-                ? "text/css"
-                : "text/javascript",
-          );
+          if (asset !== "/assets/hive-mark.svg") return next();
+          res.setHeader("Content-Type", "image/svg+xml");
           res.end(
             await readFile(
               fileURLToPath(

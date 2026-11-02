@@ -289,6 +289,10 @@ type TimelineSession struct {
 	Artifacts            []TimelineArtifact        `json:"artifacts"`
 	Documents            []TimelineDocument        `json:"documents"`
 	CurrentStageEventID  *string                   `json:"current_stage_event_id" timeline:"nullable"`
+	// WorkKey is the key the creating request gave, or null when it gave none.
+	// Records stored before work keys existed lack it; the store loader accepts
+	// that absence and nothing else does.
+	WorkKey *string `json:"work_key" timeline:"nullable" stored:"optional"`
 }
 
 // TimelineAPIIndexEntry is the API v3 work summary.
@@ -311,19 +315,10 @@ type TimelineAPIIndexEntry struct {
 	Tickets             []TimelineTicket `json:"tickets"`
 }
 
-// TimelineIndexEntry decoders accept only timeline_api v3. The legacy wrapper
-// below remains solely for the old runtime to compile until its T4 removal.
+// TimelineIndexEntry decoders accept only timeline_api v3.
 type TimelineIndexEntry interface{ timelineIndexMode() string }
 
 func (TimelineAPIIndexEntry) timelineIndexMode() string { return "timeline_api" }
-
-type TimelineLegacySession = indexSession
-type TimelineLegacyIndexEntry struct {
-	Mode    string                `json:"mode"`
-	Session TimelineLegacySession `json:"session"`
-}
-
-func (TimelineLegacyIndexEntry) timelineIndexMode() string { return "legacy" }
 
 type TimelineOperationKind string
 
@@ -384,6 +379,9 @@ type TimelineCreateSessionRequest struct {
 	Title         string                `json:"title"`
 	Summary       string                `json:"summary"`
 	Tickets       []TimelineTicketInput `json:"tickets"`
+	// WorkKey optionally names the work inside one native session, such as a
+	// ticket key. Without it the operation ID names the work.
+	WorkKey *string `json:"work_key,omitempty"`
 }
 type TimelineSessionPatchRequest struct {
 	Reason          string         `json:"reason,omitempty"`
@@ -459,6 +457,15 @@ func DecodeTimelineJSON(raw []byte, target any) error {
 // decodeTimelineJSONBounded shares exact-field, duplicate-key and encoding
 // validation between HTTP payloads and the larger private receipt envelope.
 func decodeTimelineJSONBounded(raw []byte, target any, maxBytes int) error {
+	return decodeTimelineJSONMode(raw, target, maxBytes, false)
+}
+
+// decodeTimelineStoredJSON also accepts the fields that records written by an
+// earlier version lack, as the stored:"optional" tag marks them.
+func decodeTimelineStoredJSON(raw []byte, target any, maxBytes int) error {
+	return decodeTimelineJSONMode(raw, target, maxBytes, true)
+}
+func decodeTimelineJSONMode(raw []byte, target any, maxBytes int, stored bool) error {
 	if len(raw) == 0 || len(raw) > maxBytes || !utf8.Valid(raw) {
 		return timelineError("body", "invalid_size_or_encoding")
 	}
@@ -480,7 +487,7 @@ func decodeTimelineJSONBounded(raw []byte, target any, maxBytes int) error {
 			return timelineError("schema_version", "unsupported_protocol")
 		}
 	}
-	if err := timelineRequiredFields(raw, targetType.Elem()); err != nil {
+	if err := timelineRequiredFields(raw, targetType.Elem(), stored); err != nil {
 		return err
 	}
 	dec := json.NewDecoder(bytes.NewReader(raw))
@@ -502,7 +509,7 @@ func timelineJSONFields(t reflect.Type) []reflect.StructField {
 	}
 	return fields
 }
-func timelineRequiredFields(raw []byte, t reflect.Type) error {
+func timelineRequiredFields(raw []byte, t reflect.Type, stored bool) error {
 	for t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
@@ -530,8 +537,6 @@ func timelineRequiredFields(raw []byte, t reflect.Type) error {
 				return timelineError("body", "unknown_field")
 			}
 		}
-		legacy := t == reflect.TypeOf(indexSession{})
-		legacyRequired := map[string]bool{"key": true, "title": true, "session_id": true, "source": true, "content_hash": true}
 		for _, field := range declared {
 			name, options, _ := strings.Cut(field.Tag.Get("json"), ",")
 			if name == "-" || name == "" {
@@ -539,7 +544,7 @@ func timelineRequiredFields(raw []byte, t reflect.Type) error {
 			}
 			value, ok := fields[name]
 			if !ok {
-				if (!legacy && !strings.Contains(options, "omitempty")) || (legacy && legacyRequired[name]) {
+				if !strings.Contains(options, "omitempty") && !(stored && field.Tag.Get("stored") == "optional") {
 					return timelineError(name, "required_field")
 				}
 				continue
@@ -550,10 +555,10 @@ func timelineRequiredFields(raw []byte, t reflect.Type) error {
 				}
 				return timelineError(name, "null_not_allowed")
 			}
-			if !legacy && !(name == "title" && (t == reflect.TypeOf(TimelineTicketInput{}) || t == reflect.TypeOf(TimelineTicketSnapshot{}) || t == reflect.TypeOf(TimelineTicketCreateRequest{}) || t == reflect.TypeOf(TimelineTicket{}))) && field.Type.Kind() == reflect.String && strings.Contains(options, "omitempty") && bytes.Equal(value, []byte(`""`)) {
+			if !(name == "title" && (t == reflect.TypeOf(TimelineTicketInput{}) || t == reflect.TypeOf(TimelineTicketSnapshot{}) || t == reflect.TypeOf(TimelineTicketCreateRequest{}) || t == reflect.TypeOf(TimelineTicket{}))) && field.Type.Kind() == reflect.String && strings.Contains(options, "omitempty") && bytes.Equal(value, []byte(`""`)) {
 				return timelineError(name, "empty_optional_field")
 			}
-			if err := timelineRequiredFields(value, field.Type); err != nil {
+			if err := timelineRequiredFields(value, field.Type, stored); err != nil {
 				return err
 			}
 		}
@@ -566,7 +571,7 @@ func timelineRequiredFields(raw []byte, t reflect.Type) error {
 			return timelineError("body", "invalid_fields_or_types")
 		}
 		for _, value := range values {
-			if err := timelineRequiredFields(value, t.Elem()); err != nil {
+			if err := timelineRequiredFields(value, t.Elem(), stored); err != nil {
 				return err
 			}
 		}
@@ -604,7 +609,7 @@ func timelineJSONValue(dec *json.Decoder, depth int, nullable ...bool) error {
 				return timelineError("body", "duplicate_key")
 			}
 			seen[name] = true
-			if err := timelineJSONValue(dec, depth+1, name == "current_stage_event_id"); err != nil {
+			if err := timelineJSONValue(dec, depth+1, name == "current_stage_event_id" || name == "work_key"); err != nil {
 				return err
 			}
 		}
@@ -686,6 +691,20 @@ func timelineSource(source TimelineSource) error {
 	for _, r := range source.NativeSessionID {
 		if unicode.IsControl(r) || unicode.IsSpace(r) {
 			return timelineError("source.native_session_id", "native_id_required")
+		}
+	}
+	return nil
+}
+
+// timelineWorkKey accepts 1 to 128 characters without whitespace or controls,
+// the same shape as a ticket external_id.
+func timelineWorkKey(key string) error {
+	if !utf8.ValidString(key) || key == "" || utf8.RuneCountInString(key) > 128 {
+		return timelineError("work_key", "invalid_text")
+	}
+	for _, r := range key {
+		if unicode.IsControl(r) || unicode.IsSpace(r) {
+			return timelineError("work_key", "invalid_text")
 		}
 	}
 	return nil
@@ -884,6 +903,11 @@ func (r TimelineCreateSessionRequest) Validate() error {
 	}
 	if err := timelineText(r.Summary, "summary", 4000, true); err != nil {
 		return err
+	}
+	if r.WorkKey != nil {
+		if err := timelineWorkKey(*r.WorkKey); err != nil {
+			return err
+		}
 	}
 	return timelineTicketBootstrap(r.Tickets)
 }
@@ -1272,6 +1296,11 @@ func ValidateTimelineSession(s TimelineSession) error {
 	}); err != nil {
 		return err
 	}
+	if s.WorkKey != nil {
+		if err := timelineWorkKey(*s.WorkKey); err != nil {
+			return err
+		}
+	}
 	// The limit and each ticket come before identities, as in the index entry.
 	if err := timelineTickets(s.Tickets); err != nil {
 		return err
@@ -1494,8 +1523,6 @@ func DecodeTimelineIndexEntry(raw []byte) (TimelineIndexEntry, error) {
 		return nil, timelineError("mode", "required_field")
 	}
 	switch mode {
-	case "legacy":
-		return nil, timelineError("mode", "unsupported_protocol")
 	case "timeline_api":
 		var entry TimelineAPIIndexEntry
 		if err := DecodeTimelineJSON(raw, &entry); err != nil {

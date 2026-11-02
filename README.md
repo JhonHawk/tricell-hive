@@ -437,15 +437,15 @@ while keeping the original publication context.
 
 Browser rename, archive, pin and confirmed deletion manage the work; they do
 not execute agent tasks or approve a plan. Retention is manual, without age
-expiry. The old `--ttl` flag is ignored with a warning. Deletion removes stored
+expiry. Deletion removes stored
 viewer data, not project sources or native conversations. Deleted work identities
 remain unavailable; a modified source does not recreate a deleted work.
 
-Protocol3 requires a fresh state directory. Earlier API/state formats and
-`walkthrough.json` are not imported, scanned or migrated. Preserve the old state
-and coordinate writers before an explicitly authorized cutover. The standalone
-HTML fallback remains available only when the binary is absent; an incompatible
-or stopped service does not select another publication authority.
+Protocol3 requires a fresh state directory. Earlier state formats are not
+imported or migrated, and a directory holding them fails to start. Preserve the
+old state and coordinate writers before an explicitly authorized cutover.
+Publication goes only through the running service: an incompatible or stopped
+service, or a missing binary, leaves the work unpublished and reported.
 
 `hive view open` exchanges a short-lived, one-use URL-fragment code before data
 loads, then removes the fragment. Optional `--session-id ID --event-id ID` opens

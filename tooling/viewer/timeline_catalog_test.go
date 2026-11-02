@@ -2,8 +2,6 @@ package viewer
 
 import (
 	"encoding/json"
-	"errors"
-	"os"
 	"path/filepath"
 	"reflect"
 	"testing"
@@ -113,34 +111,6 @@ func TestTimelineCatalogIdentityNormalization(t *testing.T) {
 		}
 	}
 }
-func TestTimelineCatalogVersionCutoffIsReadOnly(t *testing.T) {
-	for _, v := range []int{1, 2} {
-		t.Run(string(rune('0'+v)), func(t *testing.T) {
-			root := t.TempDir()
-			dir := viewerDir(root)
-			if err := os.MkdirAll(dir, 0700); err != nil {
-				t.Fatal(err)
-			}
-			body, _ := json.Marshal(viewerStorage{StorageVersion: v})
-			path := filepath.Join(dir, stateMarker)
-			if err := os.WriteFile(path, body, 0600); err != nil {
-				t.Fatal(err)
-			}
-			before, _ := os.ReadDir(dir)
-			err := ValidateState(root)
-			var failure *TimelineError
-			if !errors.As(err, &failure) || failure.Code != "cutoff_required" {
-				t.Fatal("old marker did not cut off", err)
-			}
-			after, _ := os.ReadDir(dir)
-			current, _ := os.ReadFile(path)
-			if !reflect.DeepEqual(before, after) || string(current) != string(body) {
-				t.Fatal("preflight changed prior state")
-			}
-		})
-	}
-}
-
 func TestTimelineTaskPlanOrderPersistsAndInvalidatesExactlyOnce(t *testing.T) {
 	s, v, _ := newV3Fixture(t)
 	id := v.ViewerSessionID

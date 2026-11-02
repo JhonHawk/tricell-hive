@@ -172,5 +172,6 @@
   "tasks": [],
   "waits": [],
   "deliveries": [],
-  "candidates": []
+  "candidates": [],
+  "work_key": null
 }

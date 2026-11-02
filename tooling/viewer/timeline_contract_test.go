@@ -302,7 +302,7 @@ func TestTimelineContractReceiptAndRetryContracts(t *testing.T) {
 	}
 }
 func TestTimelineContractIndexRejectsLegacy(t *testing.T) {
-	if _, err := DecodeTimelineIndexEntry(timelineFixture(t, "legacy-index-entry.json")); TimelineContractCode(err) != "unsupported_protocol" {
+	if _, err := DecodeTimelineIndexEntry(timelineFixture(t, "legacy-index-entry.json")); TimelineContractCode(err) != "unsupported_mode" {
 		t.Fatal("legacy entry accepted", err)
 	}
 	api, err := DecodeTimelineIndexEntry(timelineFixture(t, "api-index-entry.json"))

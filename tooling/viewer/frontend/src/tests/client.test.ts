@@ -43,7 +43,7 @@ test("opening code is removed synchronously and exchange is reused with unavaila
   assert.equal(access.token, "test-access");
 });
 
-test("v2 cutoff rejects old or mixed indices without interpreting legacy content", () => {
+test("the index validator accepts only protocol 3 with manual retention", () => {
   const valid = {
     protocol_version: 3,
     retention: "manual",
