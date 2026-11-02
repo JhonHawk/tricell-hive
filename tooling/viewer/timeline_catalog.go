@@ -300,12 +300,10 @@ func (c timelineCatalogIdentities) add(id, key, locator string) error {
 	return nil
 }
 
-// addTickets validates each ticket record and registers its identity and URL.
+// addTickets registers each ticket's identity and URL; the caller has already
+// validated the records with timelineTickets.
 func (c timelineCatalogIdentities) addTickets(tickets []TimelineTicket) error {
 	for _, t := range tickets {
-		if e := timelineTicketInput(t.TimelineTicketInput); e != nil {
-			return e
-		}
 		scope, _ := CanonicalTimelineIdentityURL(t.ExternalScope)
 		locator := ""
 		if t.URL != "" {

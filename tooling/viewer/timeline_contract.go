@@ -713,7 +713,7 @@ func timelineTicketRef(ref TimelineTicketRef, field string) error {
 	return nil
 }
 func timelineTickets(tickets []TimelineTicket) error {
-	if tickets == nil || len(tickets) > 100 {
+	if tickets == nil || len(tickets) > TimelineMaxCatalogRecords {
 		return timelineError("tickets", "array_required_or_limit")
 	}
 	for _, t := range tickets {
@@ -727,7 +727,7 @@ func timelineTickets(tickets []TimelineTicket) error {
 	return nil
 }
 func timelineTicketBootstrap(tickets []TimelineTicketInput) error {
-	if tickets == nil || len(tickets) > 100 {
+	if tickets == nil || len(tickets) > TimelineMaxCatalogRecords {
 		return timelineError("tickets", "array_required_or_limit")
 	}
 	seen := map[string]bool{}
@@ -1265,40 +1265,18 @@ func ValidateTimelineSession(s TimelineSession) error {
 	if s.SchemaVersion != TimelineSchemaVersion {
 		return timelineError("schema_version", "unsupported_protocol")
 	}
-	if !timelineSHA256.MatchString(s.ViewerSessionID) {
-		return timelineError("viewer_session_id", "invalid_id")
-	}
-	if err := timelineSource(s.Source); err != nil {
+	if err := validateTimelineSummaryHeader(timelineSummaryHeader{
+		ViewerSessionID: s.ViewerSessionID, Source: s.Source, ProjectKey: s.ProjectKey,
+		ProjectName: s.ProjectName, Version: s.Version, Title: s.Title, Summary: s.Summary,
+		State: s.State, CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt,
+	}); err != nil {
 		return err
 	}
-	if err := timelineText(s.ProjectKey, "project_key", 2048, true); err != nil {
-		return err
-	}
-	if err := timelineText(s.ProjectName, "project_name", 200, true); err != nil {
-		return err
-	}
-	if err := timelineNumber(s.Version, "version"); err != nil {
-		return err
-	}
-	if err := timelineText(s.Title, "title", 200, true); err != nil {
-		return err
-	}
-	if err := timelineText(s.Summary, "summary", 4000, true); err != nil {
-		return err
-	}
-	if !contains(timelineStates, string(s.State)) {
-		return timelineError("state", "unsupported_state")
-	}
-	if err := timelineTime(s.CreatedAt, "created_at"); err != nil {
-		return err
-	}
-	if err := timelineTime(s.UpdatedAt, "updated_at"); err != nil {
+	// The limit and each ticket come before identities, as in the index entry.
+	if err := timelineTickets(s.Tickets); err != nil {
 		return err
 	}
 	if err := validateTimelineCatalog(s); err != nil {
-		return err
-	}
-	if err := timelineTickets(s.Tickets); err != nil {
 		return err
 	}
 	if s.Events == nil || len(s.Events) > TimelineMaxEvents || s.Artifacts == nil {
@@ -1532,6 +1510,50 @@ func DecodeTimelineIndexEntry(raw []byte) (TimelineIndexEntry, error) {
 	}
 }
 
+// timelineSummaryHeader holds the fields a session and its index entry share.
+type timelineSummaryHeader struct {
+	ViewerSessionID, ProjectKey, ProjectName, Title, Summary, CreatedAt, UpdatedAt string
+	Source                                                                         TimelineSource
+	Version                                                                        int64
+	State                                                                          TimelineState
+}
+
+// validateTimelineSummaryHeader checks the shared header fields in the order
+// both the session and the index entry report them.
+func validateTimelineSummaryHeader(h timelineSummaryHeader) error {
+	if !timelineSHA256.MatchString(h.ViewerSessionID) {
+		return timelineError("viewer_session_id", "invalid_id")
+	}
+	if err := timelineSource(h.Source); err != nil {
+		return err
+	}
+	if err := timelineText(h.ProjectKey, "project_key", 2048, true); err != nil {
+		return err
+	}
+	if err := timelineText(h.ProjectName, "project_name", 200, true); err != nil {
+		return err
+	}
+	if err := timelineNumber(h.Version, "version"); err != nil {
+		return err
+	}
+	if err := timelineText(h.Title, "title", 200, true); err != nil {
+		return err
+	}
+	if err := timelineText(h.Summary, "summary", 4000, true); err != nil {
+		return err
+	}
+	if !contains(timelineStates, string(h.State)) {
+		return timelineError("state", "unsupported_state")
+	}
+	if err := timelineTime(h.CreatedAt, "created_at"); err != nil {
+		return err
+	}
+	if err := timelineTime(h.UpdatedAt, "updated_at"); err != nil {
+		return err
+	}
+	return nil
+}
+
 // validateTimelineIndexEntry applies the session rules that a work summary
 // carries: its identity, texts, state, times and tickets, plus the stage
 // pointer, which the summary holds without the event it points to.
@@ -1539,37 +1561,14 @@ func validateTimelineIndexEntry(e TimelineAPIIndexEntry) error {
 	if timelineStateRequiresForeground(e.State) && e.CurrentStageEventID == nil {
 		return timelineError("current_stage_event_id", "foreground_required")
 	}
-	if !timelineSHA256.MatchString(e.ViewerSessionID) {
-		return timelineError("viewer_session_id", "invalid_id")
-	}
-	if err := timelineSource(e.Source); err != nil {
+	if err := validateTimelineSummaryHeader(timelineSummaryHeader{
+		ViewerSessionID: e.ViewerSessionID, Source: e.Source, ProjectKey: e.ProjectKey,
+		ProjectName: e.ProjectName, Version: e.Version, Title: e.Title, Summary: e.Summary,
+		State: e.State, CreatedAt: e.CreatedAt, UpdatedAt: e.UpdatedAt,
+	}); err != nil {
 		return err
 	}
-	if err := timelineText(e.ProjectKey, "project_key", 2048, true); err != nil {
-		return err
-	}
-	if err := timelineText(e.ProjectName, "project_name", 200, true); err != nil {
-		return err
-	}
-	if err := timelineNumber(e.Version, "version"); err != nil {
-		return err
-	}
-	if err := timelineText(e.Title, "title", 200, true); err != nil {
-		return err
-	}
-	if err := timelineText(e.Summary, "summary", 4000, true); err != nil {
-		return err
-	}
-	if !contains(timelineStates, string(e.State)) {
-		return timelineError("state", "unsupported_state")
-	}
-	if err := timelineTime(e.CreatedAt, "created_at"); err != nil {
-		return err
-	}
-	if err := timelineTime(e.UpdatedAt, "updated_at"); err != nil {
-		return err
-	}
-	// The limit comes before identities, as in the TypeScript validator.
+	// The limit and each ticket come before identities, as in the session.
 	if err := timelineTickets(e.Tickets); err != nil {
 		return err
 	}
