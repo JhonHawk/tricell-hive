@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | In verification · canonical3 and browser-i18n candidate built; integrated walkthrough and final review pending |
+| Status | Paused · verified local candidate committed on current branch; user requested no publication |
 | Tracker | [#306](https://github.com/JhonHawk/tricell-hive/issues/306) · OPEN, read 2026-11-01 |
 | Git | Base development 044664a0; checkout refactor/flow-ceremony-2 at 2f0a133b |
 | Decisions | D62 B server association; D63 A Sheet; D64 A issue; D65 A interactive; D66 A Claude Code /code-review; D67 C existing branch; D68 A common documents; D69 A shared work; D70 A states with reasons; D71 A new protocol; D72 A local viewer recovery; D73 A expandable task nodes and task Sheet; D74 A work-owned tasks with stage-filtered views; user correction: clean cutoff, no legacy compatibility; final canonical-reference protocol3 supersedes provisional2 |
