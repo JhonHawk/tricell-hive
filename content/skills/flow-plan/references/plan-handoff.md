@@ -18,7 +18,7 @@ The saved change folder holds the detail and the user may not open it, so summar
 
 ## Then end with the build route
 
-End the summary with the next-step block that the global guidance's «Questions and routes» section sets, never with a question card; when the plan has a viewer session, that block carries the open-viewer reply line that [viewer publication](../../flow-walkthrough/references/viewer-publication.md#open-the-viewer) sets. The build route is a route, not a request for leave to proceed: a plan does not authorize implementation, and only the user's reply starts `flow-build`.
+End the summary with the next-step block that the global guidance's «Questions and routes» section sets, with its compaction reply for a build in the same session, never with a question card; when the plan has a viewer session, that block carries the open-viewer reply line that [viewer publication](../../flow-walkthrough/references/viewer-publication.md#open-the-viewer) sets. The build route is a route, not a request for leave to proceed: a plan does not authorize implementation, and only the user's reply starts `flow-build`.
 
 - Recommend building unless something blocks it, and say in the block that typing the build command approves the criteria shown, by their IDs with a gloss, such as "approves AC1–AC4 (export, permissions and audit)": `/flow-build <change folder>` in the host's syntax.
 - Recommend stopping with the plan ready only for a named blocker, such as an open decision, an unmet prerequisite or the user's statement not to implement now, and say which; that the user asked for a plan is not a blocker.
