@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Listo para flow-build |
+| Estado | Completado · integrado por el PR #322 (`2aa61ab7`) el 2026-11-02 |
 | Tracker | [JhonHawk/tricell-hive#316](https://github.com/JhonHawk/tricell-hive/issues/316) · cerrado (PR #320); estos son sus hallazgos de cierre, sin ticket propio |
 | Git | `tricell-hive`, base `development` en `93b0ce79`; rama `fix/gh-316-review-findings` en `.claude/worktrees/gh-316-review-findings` |
 
@@ -64,3 +64,4 @@ Modo `automatic`, solo para este trabajo: tras la suite completa y `/code-review
 
 2026-11-02 — Plan escrito.
 2026-11-02 — Revisión del plan (`hive-review-plan`): nada bloqueante; confirma que cada criterio es falso hoy y que ningún otro llamador ni consumidor depende de la validación o los códigos que cambian. Ajustes aplicados: la verificación de T1 dice qué falla en cada lenguaje; un quinto caso fija el orden límite-antes-que-identidades en la entrada del índice; Go reutiliza `TimelineMaxCatalogRecords`; T4 corre solo el test de AC5 y registra el riesgo restante del test de timeout; la conservación pasa también el parser TypeScript sobre el índice real.
+2026-11-02 — Integrado por el PR #322 (`2aa61ab7`). `/code-review` sin hallazgos bloqueantes; los no bloqueantes quedan como H8–H16 en el reporte de cierre. Binario local reconstruido y visor reiniciado en `2aa61ab7`.
