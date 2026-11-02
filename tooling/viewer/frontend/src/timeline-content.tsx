@@ -566,7 +566,7 @@ export function TimelineContent({
     );
   };
   return (
-    <div className="mx-auto flex w-full min-w-0 max-w-2xl flex-col gap-6">
+    <div className="mx-auto flex w-full min-w-0 max-w-2xl flex-col gap-6 pb-8">
       {session.summary && (
         <TimelineSummary content={session.summary} lines={2} lang={lang} />
       )}

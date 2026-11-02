@@ -99,7 +99,7 @@ export function TimelineTaskRegistry({
             tabIndex={0}
             className="min-h-0 overflow-auto"
           >
-            <ul className="flex flex-col gap-3">
+            <ul className="flex flex-col gap-4 py-1">
               {registry.map(({ task, completed, total }) => (
                 <li
                   key={task.task_id}
