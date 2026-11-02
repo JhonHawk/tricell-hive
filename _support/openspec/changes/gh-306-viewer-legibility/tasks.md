@@ -75,7 +75,7 @@ Orden contrato → UI tipada → backend → publicación/corte. T2/T3 comparten
 **Verification:** crear A, solicitar B, aceptar A, revisión B, transfer A→B, continuar plan/build, preguntar/reanudar, leer documentos de dos cadenas, reiniciar servicio aislado y comprobar hashes/recibos. CLI vieja contra nuevo y nueva contra viejo fallan antes de escribir cuando incompatibles. Recorrer desde navegador renombrar/archivar/fijar/eliminar con actor local y recuperar sesión A ausente hacia B mediante Dialog, con conflicto de versión y auditoría persistente. Registrar plan completo con fases explícitas, vincular segmentos al iniciar etapas, T7 Verify/Delivery global6/7 y cierre7/7; publicar espera CI e iniciar/promover intentos aplicables explícitos por check, publicar éxito atrasado anterior sin recuperar verde actual, con snapshots sintéticos de proveedor (sin llamadas pagadas ni reruns remotos), falta permisos/requiredset desconocido/fallo/éxito verificado para commit correcto; registrar tarea sin fase no adivina título. Progresarlas con productores asignados, bloquear/desbloquear/reabrir y leer auditoría/evidencia tras restart, verificando no duplicados por retry. Sin modelos ni fixtures en Engram; sin importar sesiones previas. hive-verify-task independiente del contrato CLI.
 
 ### T7 — Guía y documentación coherentes
-- [x] Guía/manual/spec coherentes verificados; commit de documentación en esta entrega. Publisher~11KB, links/currentcontractcopy exactos; contenttests/sitecheck/build/lint PASS, manual1280/440 sin overflow, UXmanual aprobado; integraciónfinalT12/T8 aún pendiente.
+- [x] Guía/manual/spec coherentes verificados · 2c0fc28a. Publisher~11KB, links/currentcontractcopy exactos; contenttests/sitecheck/build/lint PASS, manual1280/440 sin overflow, UXmanual aprobado; integraciónfinalT12/T8 aún pendiente.
 
 **Closes:** AC10, AC20/AC24–AC27 (publicación), AC28–AC33 (publicación canónica)
 **Depends on:** T6, T10, T11, T13, T14
@@ -131,7 +131,7 @@ Orden contrato → UI tipada → backend → publicación/corte. T2/T3 comparten
 **Verification:** cambiar una tarea/ticket/entrega en el dataset único y verificar todas las proyecciones actuales sin editar copias; snapshot abierto ofrece actualización específica, no reemplazo automático; publicación anterior/candidato/CI viejos conservan contexto. Popover7/Build6/T7unique, órdenesglobales vssegmentos independientes, IDs inválidos no render falso, loading/empty/error/retry. Capturas1280/440 con temas y320/390 relevantes; teclado/scrollfoco/galerías/casos del usuario sin regresión. Frontendcheck/lint/test/build/verifydist y ReUI. Primera vista ajustada al contrato final, mientras T10independiente sigue.
 
 ### T12 — Recorrido integrado del origen canónico
-- [ ] Publicación real aislada prueba actualización única, historia intacta y pares incompatibles.
+- [x] Recorrido integrado final3 verificado por main y verify_t12_integrated; AC28–AC33met. 2productores/7tasks, updatesmanuales reales, conteos7/7→6/7, hashes/auditprefix/CIcontextintactos; cloneindependiente IDs inválidos/CAS/replay/restartPASS. Commit de checkpoint en esta entrega.
 
 **Closes:** AC28–AC33 (end-to-end)
 **Depends on:** T10, T11, T13, T14
@@ -149,7 +149,7 @@ Orden contrato → UI tipada → backend → publicación/corte. T2/T3 comparten
 | Contract/data verification | T1/T4/T5/T6 | hive-verify-task independent evidence | Build instruction |
 | Full suite | Final candidate | T8 commands plus applicable CI | Build instruction |
 | UI | First view T3, final candidate | Own walk and hive-review-ux | Build instruction |
-| Code review | Before final human validation | Claude Code /code-review | D66 A |
+| Code review | Before final human validation | D66 Claude PR-only cannot review local candidate; D77 alternative pending | No substitution without answer |
 | Delivery | After human acceptance | Push, PR, merge development; conditional maintainer refresh | D65 A and AGENTS.md |
 
 Servidor de prueba con puerto/estado propios. Volumen UI sintético, sin importar registros CAM ni editar su checkout, tracker o servicio. Sin pilotos de modelos. Ofrecer revisión de seguridad de membresía; ejecutarla solo si el usuario la pide.
@@ -266,3 +266,7 @@ T7 borrador avanzado: guía publicación~11KB con registroúnico/productores/CI/
 T14 commit48eff9fc con21rutas verificadasporhash/secretmatches0; evidencia55archivos retenidaycomparadaenworkspace/verification/t14-i18n. Root648testsPASS+3scripts, tsc/biome/dist/GoBundle0.208s ybrowsersreales3locales. T7terminaidiomas/manual+frontendREADMErebuild; siguienteT12realysuites/revisionesT8. D77sinresolver; noaceptaciónvisualfinal ni publicación.
 
 T7 listo: skills de publicación+fallback/retención, manualViewerconidiomas ysidebar, README/llms/CHANGELOG/arquitectura yspecvigente actualizados. Sitecheck0errores/build15páginas/lint14archivos/contentPASS; manual real5195 a1280/440 sin overflow, imágenesmanualretenidas. Avisospreexistentescoleccióni18n/404 ausentes noimpidenbuild. RootrebuildfrontendREADME/distPASS. RevisiónUXindependiente completada sin hallazgos enUI/galería/doc/refs/list30/estados/manual; actualizaciónrealdeSheetquedaenT12main. RuntimeT12propioPID45670/63342 seed53→ticketpatch54→deliverypatch55; abiertoT2conservórefvieja yShowlatestactualizó. FullGo/race/vet encurso(0falloshastaahora), D77/D79aúnabiertas.
+
+✓ T12 aprobado main+verify_t12_integrated AC28–33. Rootfixturev58 PID70997/63342; cloneindependiente terminado sin cambios aloriginal(hashestodosiguales). Rootactualen/es browser: Task/Wait conservansnapshot antepatchcanónico→aviso→Showlatest manual; Tasksummary igual;7/7→6/7 desdeunamutación;2PNG1280x800/390x760cargadasenGalería yMarkdown7readonly. DeltasT2+3/T6+1/T7+3/wait+1(dos entidades+summary+stateprobe); otros0. Document/image/candidate/oldEvents/auditprefix/CIpolicyobservationsiguales,2auditsestadosnuevossoloappend. Restart+5exactreplays idénticos. Verificadorclonado confirma12rechazosinalterados, no-op/retry/ajeno sinaviso,1ganadorCAS200/409 ylectoresactualizadossolomanualmente. Evidenciaretendidayhashverificada workspace/verification/t12-{root,independent}.
+
+T8 checkpoint flow-verify pasos1–2: fullGo1712top-levelPASS/20packages, race894PASSviewerCLI, vetPASS; frontend648+3/check/lint/build/dist/GoBundlePASS; sitecheck0errores/build15pages/lintPASS. UXindependiente completo sin hallazgosconfirmados, actualizaciónreal cubiertaenT12. Versiónservida48eff9fcmodifiedtrue conJSexacto almanifestfinal (cambiosposterioresdocssolo); habitualpid49211protocol1rev0b6f2380healthigualbaseline, instaladohash21dexternoprevioconservado. Democongelada5178fuente2c0fc28aexec55018, manual5195. No instalación/restart/CAMeffects. Antesrevisionfinal: D77mecanismopendiente, D80inclusión15commitsajenosporpreguntar; total antes de este checkpoint30. No aceptaciónfinal ni publicación. Próximo preguntarambasrutas; trasrespuesta revisióncódigo→validaciónhumanaD65→entregaautorizada.
