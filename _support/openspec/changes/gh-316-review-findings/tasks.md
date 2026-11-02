@@ -4,7 +4,8 @@ Base: `tricell-hive` en `93b0ce79` (`origin/development`), rama `fix/gh-316-revi
 
 ### T1 — Casos de dos fallos y del límite de tickets
 
-- [ ] `cases.json` fija los códigos de AC3 y AC4 y esos casos fallan sobre el código actual.
+- [x] `cases.json` fija los códigos de AC3 y AC4 y esos casos fallan sobre el código actual.
+  Hecha · `f94ebe9b` · sobre `93b0ce79` TypeScript falló en los cuatro casos previstos y Go solo en el de sesión; el de entrada con duplicado pasó en ambos.
 
 **Closes:** AC3, AC4
 
@@ -22,7 +23,8 @@ Base: `tricell-hive` en `93b0ce79` (`origin/development`), rama `fix/gh-316-revi
 
 ### T2 — Go: cabecera compartida y tickets una vez
 
-- [ ] La sesión y la entrada del índice comparten `validateTimelineSummaryHeader`; `addTickets` solo registra identidades; la sesión revisa el límite antes que las identidades.
+- [x] La sesión y la entrada del índice comparten `validateTimelineSummaryHeader`; `addTickets` solo registra identidades; la sesión revisa el límite antes que las identidades.
+  Hecha · `80f90542` · `go test ./tooling/viewer ./tooling/cli` pasa.
 
 **Closes:** AC1, AC2, AC4
 
@@ -40,7 +42,8 @@ Base: `tricell-hive` en `93b0ce79` (`origin/development`), rama `fix/gh-316-revi
 
 ### T3 — TypeScript: cabecera compartida, orden, tickets una vez y código del límite
 
-- [ ] `parseTimelineSession` y `parseTimelineIndexEntry` comparten `summaryHeader`; la entrada sigue el orden de Go; `addTickets` no revalida; `tickets()` completo da `array_required_or_limit`.
+- [x] `parseTimelineSession` y `parseTimelineIndexEntry` comparten `summaryHeader`; la entrada sigue el orden de Go; `addTickets` no revalida; `tickets()` completo da `array_required_or_limit`.
+  Hecha · `31ec1429` · la cadena de `pnpm` pasa (693 tests) y el bundle está regenerado.
 
 **Closes:** AC1, AC2, AC3, AC4
 
@@ -58,7 +61,8 @@ Base: `tricell-hive` en `93b0ce79` (`origin/development`), rama `fix/gh-316-revi
 
 ### T4 — Test de interrupción determinista
 
-- [ ] El falso `pi` publica su PID con un renombrado atómico.
+- [x] El falso `pi` publica su PID con un renombrado atómico.
+  Hecha · `dce5fe39` · 50 corridas pasan con `go test ./tooling/...` en paralelo.
 
 **Closes:** AC5
 
@@ -76,7 +80,8 @@ Base: `tricell-hive` en `93b0ce79` (`origin/development`), rama `fix/gh-316-revi
 
 ### T5 — `gofmt` limpio
 
-- [ ] El comentario de `inlineCodeSpan` describe el límite sin la secuencia de backticks que `gofmt` reescribe.
+- [x] El comentario de `inlineCodeSpan` describe el límite sin la secuencia de backticks que `gofmt` reescribe.
+  Hecha · `e809be90` · `gofmt -l tooling/ tests/` vacío; `go test ./tests/pilot` pasa.
 
 **Closes:** AC6
 
@@ -106,3 +111,5 @@ No hay recorrido de UI: la biblioteca no cambia de aspecto ni de comportamiento.
 ## Estado de revisión y avance
 
 2026-11-02 — Plan escrito; ninguna tarea empezada.
+2026-11-02 — Checkpoint: build terminado (T1–T5, último commit `e809be90`); no hay workflows de CI. En `flow-verify`: conservación hecha (visor de prueba con el binario del candidato sobre una copia del estado: 0 errores, 5 sesiones; `parseTimelineIndexEntry` acepta las 5 entradas). Siguiente: suite completa y `/code-review` sobre `93b0ce79..HEAD`, luego push, PR y merge.
+2026-11-02 — Suite completa en verde (`gofmt` vacío, `go vet`, `go test ./tooling/... ./tests/...`, cadena de `pnpm`). `/code-review` sobre `93b0ce79..e809be90`: 9 hallazgos, ninguno bloqueante; pasan a los hallazgos del cierre (H8–H16). Siguiente: push, PR a `development` y merge.
