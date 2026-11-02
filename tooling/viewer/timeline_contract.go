@@ -1532,6 +1532,15 @@ func DecodeTimelineIndexEntry(raw []byte) (TimelineIndexEntry, error) {
 			return nil, timelineError("body", "invalid_summary")
 		}
 		delete(obj, "mode")
+		// The summary carries the stage pointer but not its event, so the
+		// synthetic session below cannot prove the foreground. Check the
+		// pointer on the entry and validate the rest as an active session.
+		if entry.State == TimelineInReview || entry.State == TimelineAwaitingValidation {
+			if entry.CurrentStageEventID == nil {
+				return nil, timelineError("current_stage_event_id", "foreground_required")
+			}
+			obj["state"] = json.RawMessage(`"active"`)
+		}
 		obj["schema_version"] = json.RawMessage(`3`)
 		obj["producers"], _ = json.Marshal([]TimelineProducer{{ProducerID: "summary", Source: entry.Source, JoinedAt: entry.CreatedAt}})
 		obj["foreground_producer_id"] = json.RawMessage(`"summary"`)

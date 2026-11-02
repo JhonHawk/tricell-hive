@@ -1541,8 +1541,16 @@ export function parseTimelineIndexEntry(value: unknown): TimelineIndexEntry {
   if (entry.current_stage_event_id !== null)
     id(entry.current_stage_event_id, "current_stage_event_id");
   const { mode: _mode, ...summary } = entry;
+  // The summary carries the stage pointer but not its event, so the synthetic
+  // session below cannot prove the foreground. Check the pointer on the entry
+  // and validate the rest as an active session.
+  const needsForeground =
+    entry.state === "in_review" || entry.state === "awaiting_validation";
+  if (needsForeground && entry.current_stage_event_id === null)
+    fail("current_stage_event_id", "foreground_required");
   parseTimelineSession({
     ...summary,
+    state: needsForeground ? "active" : entry.state,
     producers: [
       {
         producer_id: "summary",
