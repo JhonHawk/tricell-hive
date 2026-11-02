@@ -295,3 +295,23 @@ func TestTimelineProtocolRulesBlockHoldsSharedRules(t *testing.T) {
 		t.Fatal("rules carry commands")
 	}
 }
+
+func TestTimelineProtocolStageReasonRequiredAndConstsTyped(t *testing.T) {
+	for _, op := range []string{"stage_start", "stage_update"} {
+		full, err := TimelineProtocolContract(op)
+		if err != nil || !contains(full.Commands[0].InputSchema["required"].([]string), "reason") {
+			t.Fatalf("%s schema does not require reason: %v", op, err)
+		}
+	}
+	for _, flow := range TimelineProtocolFlows() {
+		brief, err := TimelineProtocolBrief(flow)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, o := range brief.Operations {
+			if _, ok := o.Enums["schema_version"]; ok {
+				t.Fatalf("%s lists the integer schema_version as a string value", o.Operation)
+			}
+		}
+	}
+}

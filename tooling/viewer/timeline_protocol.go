@@ -2,7 +2,6 @@ package viewer
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"sort"
 	"strings"
@@ -119,10 +118,10 @@ func TimelineProtocolContract(operation string) (TimelineProtocolDescription, er
 			properties := inputSchema["properties"].(map[string]any)
 			properties["kind"].(map[string]any)["const"] = "stage"
 			properties["stage_state"].(map[string]any)["const"] = "in_progress"
-			inputSchema["required"] = append(inputSchema["required"].([]string), "stage", "stage_state", "expected_session_version")
+			inputSchema["required"] = append(inputSchema["required"].([]string), "stage", "stage_state", "expected_session_version", "reason")
 		}
 		if d.name == "stage_update" {
-			inputSchema["required"] = append(inputSchema["required"].([]string), "stage_state", "expected_session_version")
+			inputSchema["required"] = append(inputSchema["required"].([]string), "stage_state", "expected_session_version", "reason")
 		}
 		if reflect.TypeOf(d.output) == reflect.TypeOf(TimelineOperationResult{}) {
 			operationKind := TimelineOperationKind(d.name)
@@ -505,7 +504,7 @@ func TimelineProtocolBrief(flow string) (TimelineProtocolBriefDescription, error
 			continue
 		}
 		schemaRequired, _ := command.InputSchema["required"].([]string)
-		required := append(append([]string{}, schemaRequired...), timelineBriefValidatorRequired[command.Operation]...)
+		required := schemaRequired
 		properties, _ := command.InputSchema["properties"].(map[string]any)
 		item := TimelineProtocolBriefOperation{Operation: command.Operation, Usage: command.Usage, Required: []string{}, Optional: []string{}, Example: command.Example}
 		for name := range properties {
@@ -528,15 +527,6 @@ func TimelineProtocolBrief(flow string) (TimelineProtocolBriefDescription, error
 		brief.Operations = append(brief.Operations, item)
 	}
 	return brief, nil
-}
-
-// timelineBriefValidatorRequired names input fields the production validators
-// require although the schema, derived from the Go DTOs, marks them optional.
-// TestViewContractBriefMatchesValidator in the CLI checks it against the
-// validators.
-var timelineBriefValidatorRequired = map[string][]string{
-	"stage_start":  {"reason"},
-	"stage_update": {"reason"},
 }
 
 // timelineNestedRequired names, with a dotted path, the required fields of a
@@ -562,8 +552,8 @@ func timelineCollectEnums(schema map[string]any, path string, out map[string][]s
 	if values, ok := schema["enum"].([]string); ok && path != "" {
 		out[path] = values
 	}
-	if value, ok := schema["const"]; ok && path != "" {
-		out[path] = []string{fmt.Sprint(value)}
+	if value, ok := schema["const"].(string); ok && path != "" {
+		out[path] = []string{value}
 	}
 	if properties, ok := schema["properties"].(map[string]any); ok {
 		for name, child := range properties {
