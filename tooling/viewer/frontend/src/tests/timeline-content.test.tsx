@@ -466,3 +466,41 @@ test("retired tasks retain accessible stage evidence without a false empty state
     container.remove();
   }
 });
+
+test("a server state transition shows its reason once, in a title that wraps", async () => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const data = fixture();
+  const reason =
+    "Delivery paused at the user's request: local commits without push or pull request";
+  data.session.events.push({
+    actor: { kind: "native_producer", producer_id: "producer-original" },
+    event_id: "event-paused",
+    sequence: 2,
+    version: 1,
+    kind: "state_transition",
+    title: reason,
+    summary: reason,
+    created_at: stamp,
+    updated_at: stamp,
+    origin: "server",
+    ticket_refs: [],
+    audit: {
+      operation: "session_patch",
+      reason,
+      previous_state: "active",
+      next_state: "paused",
+    },
+  } as TimelineEvent);
+  await act(async () => {
+    root.render(<TimelineContent data={data} onRetry={() => {}} />);
+  });
+  const item = container.querySelector("#timeline-event-event-paused");
+  assert.ok(item);
+  assert.equal(item.textContent?.split(reason).length, 2);
+  const title = item.querySelector('[data-slot="timeline-title"]');
+  assert.equal(title?.className.includes("truncate"), false);
+  await act(async () => root.unmount());
+  container.remove();
+});

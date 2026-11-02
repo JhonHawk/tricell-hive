@@ -86,14 +86,13 @@ export function groupTimeline(session: TimelineSession): TimelineGroup[] {
       .map((e) => ({ id: e.event_id, events: [e], tasks: [], waits: [] })),
   ];
 }
-// Server audit events copy their reason into title and summary; show each text once.
-export function eventBodyTexts(event: {
-  title: string;
-  summary?: string;
-  reason?: string;
-  audit?: { reason: string };
-}) {
-  const seen = new Set([event.title.trim()]);
+// Server audit events copy their reason into title and summary; show each text
+// once. Callers pass the title as shown, which wraps for non-stage events.
+export function eventBodyTexts(
+  event: { summary?: string; reason?: string; audit?: { reason: string } },
+  shownTitle: string,
+) {
+  const seen = new Set([shownTitle.trim()]);
   const once = (text?: string) => {
     const clean = text?.trim();
     if (!clean || seen.has(clean)) return undefined;

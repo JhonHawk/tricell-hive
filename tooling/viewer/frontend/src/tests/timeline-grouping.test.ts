@@ -23,7 +23,13 @@ test("work-level activity after a stage sits below it, not above every stage", (
       sequence: 2,
     },
     { ...source, event_id: "paused", kind: "state_transition", sequence: 3 },
-    { ...source, event_id: "build", kind: "stage", stage: "build", sequence: 4 },
+    {
+      ...source,
+      event_id: "build",
+      kind: "stage",
+      stage: "build",
+      sequence: 4,
+    },
   ];
   assert.deepEqual(
     groupTimeline(s).map((x) => x.stage?.event_id ?? x.events[0]?.event_id),
@@ -33,11 +39,15 @@ test("work-level activity after a stage sits below it, not above every stage", (
 test("an audit reason copied into title and summary is shown once", () => {
   const reason = "Delivery paused at the user's request";
   assert.deepEqual(
-    eventBodyTexts({ title: reason, summary: reason, audit: { reason } }),
+    eventBodyTexts({ summary: reason, audit: { reason } }, reason),
     { summary: undefined, reason: undefined, auditReason: undefined },
   );
+  assert.equal(
+    eventBodyTexts({ summary: reason }, "Withdrawn").summary,
+    reason,
+  );
   assert.deepEqual(
-    eventBodyTexts({ title: "", summary: "Plan rewritten", reason: "Done" }),
+    eventBodyTexts({ summary: "Plan rewritten", reason: "Done" }, "Plan"),
     { summary: "Plan rewritten", reason: "Done", auditReason: undefined },
   );
 });

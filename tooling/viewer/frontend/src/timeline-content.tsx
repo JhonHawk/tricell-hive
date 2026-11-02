@@ -284,6 +284,10 @@ export function TimelineContent({
               ? CheckCircle2
               : FileText
       : icons[event.kind];
+    const shownTitle = event.withdrawn
+      ? t.withdrawn
+      : timelineEventTitle(event, lang);
+    const body = eventBodyTexts(event, shownTitle);
     return (
       <TimelineItem
         key={event.event_id}
@@ -302,10 +306,14 @@ export function TimelineContent({
         <TimelineHeader className="flex min-w-0 items-start justify-between gap-2.5">
           <div className="flex min-w-0 flex-wrap items-center gap-2">
             <TimelineTitle
-              className="min-w-0 truncate"
+              className={
+                event.kind === "stage"
+                  ? "min-w-0 truncate"
+                  : "min-w-0 break-words"
+              }
               title={timelineEventTitle(event, lang)}
             >
-              {event.withdrawn ? t.withdrawn : timelineEventTitle(event, lang)}
+              {shownTitle}
             </TimelineTitle>
             {stageTasks.length > 0 && (
               <span className="text-xs tabular-nums">
@@ -347,7 +355,7 @@ export function TimelineContent({
           hidden={!stageOpen}
           className="flex min-w-0 flex-col items-start gap-2 pb-1"
         >
-          {!event.withdrawn && eventBodyTexts(event).summary && (
+          {!event.withdrawn && body.summary && (
             <TimelineSummary content={event.summary} lines={3} lang={lang} />
           )}
           {!event.withdrawn &&
@@ -509,12 +517,8 @@ export function TimelineContent({
               onOpen={panel.openDocument}
             />
           )}
-          {eventBodyTexts(event).reason && (
-            <p className="text-sm">{event.reason}</p>
-          )}
-          {eventBodyTexts(event).auditReason && (
-            <p className="text-sm">{event.audit?.reason}</p>
-          )}
+          {body.reason && <p className="text-sm">{event.reason}</p>}
+          {body.auditReason && <p className="text-sm">{event.audit?.reason}</p>}
           {children}
           {!event.withdrawn && event.closure && (
             <p className="text-sm">{event.closure.result}</p>
