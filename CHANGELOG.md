@@ -10,6 +10,13 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Fixed
+
+- `flow-close` closes the work's viewer session as its first step, before any
+  cleanup, and reads it back: closed when the work was integrated or
+  abandoned, paused when it was paused. It was a note above the steps and a
+  close could skip it.
+
 ## [0.7.0] - 2026-11-01
 
 ### Added
