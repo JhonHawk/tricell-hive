@@ -504,3 +504,38 @@ test("a server state transition shows its reason once, in a title that wraps", a
   await act(async () => root.unmount());
   container.remove();
 });
+
+test("a past transition back to in progress does not show a live spinner", async () => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  const data = fixture();
+  data.session.events.push({
+    actor: { kind: "native_producer", producer_id: "producer-original" },
+    event_id: "event-reopened",
+    sequence: 2,
+    version: 1,
+    kind: "state_transition",
+    title: "The user asked for the plan",
+    summary: "The user asked for the plan",
+    created_at: stamp,
+    updated_at: stamp,
+    origin: "server",
+    ticket_refs: [],
+    audit: {
+      operation: "session_patch",
+      reason: "The user asked for the plan",
+      previous_state: "closed",
+      next_state: "active",
+    },
+  } as TimelineEvent);
+  await act(async () => {
+    root.render(<TimelineContent data={data} onRetry={() => {}} />);
+  });
+  const item = container.querySelector("#timeline-event-event-reopened");
+  assert.ok(item);
+  assert.equal(item.querySelector('[data-slot="spinner"]'), null);
+  assert.ok(item.querySelector("svg.lucide-circle-play"));
+  await act(async () => root.unmount());
+  container.remove();
+});

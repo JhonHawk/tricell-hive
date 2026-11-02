@@ -14,6 +14,7 @@ import {
   MessageSquare,
   Monitor,
   PauseCircle,
+  PlayCircle,
   RefreshCw,
   Smartphone,
   X,
@@ -279,7 +280,11 @@ export function TimelineContent({
             )
           ? PauseCircle
           : nodeState === "in_progress" || nodeState === "active"
-            ? Spinner
+            ? // A transition is a past change; only live work spins.
+              event.kind === "state_transition" ||
+              event.kind === "task_state_transition"
+              ? PlayCircle
+              : Spinner
             : ["completed", "closed", "succeeded"].includes(nodeState ?? "")
               ? CheckCircle2
               : FileText
