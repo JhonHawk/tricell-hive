@@ -27,4 +27,4 @@ When your delivery answer stops for validation, Verify shows the result in the [
 
 ## How it ends
 
-Before the push, if the candidate changed since Build's checks, it reruns the CI jobs it can run locally and names the rest as CI-only. Then it integrates as your delivery says: push, pull request, a single wait for CI to end, and merge. A failing CI job is diagnosed from its log and fixed at the cause. [Close](/flows/close/) follows.
+Before the push, if the candidate changed since Build's checks, it reruns the CI jobs it can run locally and names the rest as CI-only. Then it integrates as your delivery says: push, pull request, a single wait for CI to end, one read of the reviews, and merge. Review bots count only for the latest commit, their findings are checked against the code and get one round of fixes, and a bot that has not reviewed yet does not hold the merge. With the `ready` delivery it stops before the merge instead, with the pull request open, checked against the current base, for you to merge. A failing CI job is diagnosed from its log and fixed at the cause. [Close](/flows/close/) follows.

@@ -5,16 +5,15 @@ description: Close a work item and its session hygiene. Use when a work item rea
 
 # Close a work item and the session
 
-When this work has a viewer session or a legacy walkthrough, follow [flow-walkthrough](../flow-walkthrough/SKILL.md) for its conditional stage, session and evidence close before cleanup.
+The completion point is the merge into the base branch. When the delivery is `ready` or a human reviewer is assigned to the pull request, the open pull request is the completion point, reached when `ready` stops or the pull request opens: the ticket stays in progress, and a later session that finds it merged runs this close.
 
-The completion point is the merge into the base branch. When a human reviewer is assigned to the pull request, opening it is the completion point: the ticket stays in progress, and a later session that finds it merged runs this close.
-
-1. When the work is integrated into the base branch, move its ticket to the state the project uses for that.
-2. Steps 1 and 2 are independent: run them together. Close an integrated change folder: merge each delta into `<Specs>/specs/<capability>/spec.md`, mark `proposal.md` completed, move the folder to `<Specs>/changes/archive/YYYY-MM-DD-<change-id>/`, and deliver that move as the delivery says.
-3. After the viewer close above, clean up as [Branch cleanup](#branch-cleanup) sets, stop the processes this work started, and remove its reproducible temporary files. Keep anything with uncommitted work or uncertain ownership.
-4. Write the final report as [Final report](#final-report) sets.
-5. Write the outcome to persistent memory.
-6. Ask the close question as [Close question](#close-question) sets.
+1. When this work has a viewer session or a legacy walkthrough, close it first, as [flow-walkthrough](../flow-walkthrough/SKILL.md) sets for its stage, session and evidence, and read it back: the work reads closed when it was integrated or abandoned, `in_review` when its open pull request waits for the user's merge or a human reviewer, and paused when it was paused; a legacy walkthrough, which holds only `in_progress` or `closed`, reads closed in every case. This step comes before any cleanup, because cleanup removes the inputs a failed close would need.
+2. When the work is integrated into the base branch, move its ticket to the state the project uses for that.
+3. Steps 2 and 3 are independent: run them together. Close an integrated change folder: merge each delta into `<Specs>/specs/<capability>/spec.md`, mark `proposal.md` completed, move the folder to `<Specs>/changes/archive/YYYY-MM-DD-<change-id>/`, and deliver that move as the delivery says.
+4. After the viewer close in step 1, clean up as [Branch cleanup](#branch-cleanup) sets, stop the processes this work started, and remove its reproducible temporary files. Keep anything with uncommitted work or uncertain ownership.
+5. Write the final report as [Final report](#final-report) sets.
+6. Write the outcome to persistent memory.
+7. Ask the close question as [Close question](#close-question) sets.
 
 Close a work item once. After the close question is answered, act on the answer; do not run the close or repeat the final report again.
 
@@ -22,12 +21,12 @@ Close a work item once. After the close question is answered, act on the answer;
 
 Report the whole work item in one message, each part only when it has content:
 
-- **Integrated:** what changed and where: the pull request, the commits, the ticket's state.
+- **Integrated:** what changed and where: the pull request, the commits, the ticket's state; for a pull request left open, its head commit, the base commit its current-base check passed on, and the CI result.
 - **Resolved:** each acceptance criterion with how it was shown, and the corrections the user asked for.
 - **Omitted:** each check that was skipped or could not run, with its reason, including the CI-only jobs.
 - **Repaired:** the local environment repairs made, such as reinstalled dependencies or seeded data.
 - **Findings:** the defects not fixed, as [Findings](#findings) sets.
-- **Next:** what remains, with who owns it, and what comes next.
+- **Next:** what remains, with who owns it, and what comes next, such as the merge left to the user and the review bots still pending.
 
 When the user asks to keep or share this report, or it exceeds what fits on one screen, offer a `flow-report` page as one option of the close question.
 
