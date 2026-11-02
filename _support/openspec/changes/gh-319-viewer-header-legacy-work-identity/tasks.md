@@ -10,7 +10,7 @@
 
 ### T1 — Identidad de trabajo en `create_session`
 
-- [ ] `work_key` opcional en la petición, la derivación del ID, el registro guardado, la salida de sesión, los validadores Go/TS, el chequeo de la CLI y el contrato offline; y el contrato sin `mode:"legacy"` en Go y TypeScript, como fija `design.md`.
+- [x] `work_key` opcional en la petición, la derivación del ID, el registro guardado, la salida de sesión, los validadores Go/TS, el chequeo de la CLI y el contrato offline; y el contrato sin `mode:"legacy"` en Go y TypeScript, como fija `design.md`.
 
 **Closes:** AC7, AC5 (parte del índice)
 
@@ -93,7 +93,7 @@
 
 ### T4 — Guidance: apertura con pregunta, `work_key` y sin fallback
 
-- [ ] `flow-walkthrough` y sus referencias, `flow-close` y `artifact-layout` quedan sin fallback y con las reglas de apertura y de `work_key`; se borran el manifiesto, el renderer, los assets y sus tests Python.
+- [x] `flow-walkthrough` y sus referencias, `flow-close` y `artifact-layout` quedan sin fallback y con las reglas de apertura y de `work_key`; se borran el manifiesto, el renderer, los assets y sus tests Python.
 
 **Closes:** AC4, AC8, AC9
 
@@ -154,3 +154,7 @@
 ## Estado de revisión y avance
 
 2026-11-02 — Plan escrito; ninguna tarea empezada.
+2026-11-02 — T1 hecha · `49a0d10d` · Go y pnpm en verde; los registros guardados sin `work_key` se leen con un decodificador tolerante (`decodeTimelineStoredJSON`) y la carga comprueba que la clave efectiva coincida; `hive-verify-task` en curso.
+2026-11-02 — T4 hecha · `d54fb51d` · `go test ./tests/...` en verde; el renderer, los assets y los fixtures legacy se borran al integrar T2 y T3, que quitan sus últimos consumidores.
+2026-11-02 — T5 (documentación) · `cfb46d8a` · README, sitio, `deployment-manager.md`; el delta de spec se aplica en el cierre.
+2026-11-02 — Checkpoint: build, paso 2. T2 (hijo backend) y T3 (hijo frontend) corren en worktrees propios desde `49a0d10d`. Siguiente: integrar T2 y T3, borrar `content/skills/flow-walkthrough/assets/`, primera vista del header al usuario, suite completa.
