@@ -76,6 +76,7 @@ import {
 } from "./timeline-documents";
 import {
   distinctCaptions,
+  eventBodyTexts,
   groupMustStayOpen,
   groupTimeline,
 } from "./timeline-grouping";
@@ -346,7 +347,7 @@ export function TimelineContent({
           hidden={!stageOpen}
           className="flex min-w-0 flex-col items-start gap-2 pb-1"
         >
-          {!event.withdrawn && event.summary && (
+          {!event.withdrawn && eventBodyTexts(event).summary && (
             <TimelineSummary content={event.summary} lines={3} lang={lang} />
           )}
           {!event.withdrawn &&
@@ -508,8 +509,12 @@ export function TimelineContent({
               onOpen={panel.openDocument}
             />
           )}
-          {event.reason && <p className="text-sm">{event.reason}</p>}
-          {event.audit && <p className="text-sm">{event.audit.reason}</p>}
+          {eventBodyTexts(event).reason && (
+            <p className="text-sm">{event.reason}</p>
+          )}
+          {eventBodyTexts(event).auditReason && (
+            <p className="text-sm">{event.audit?.reason}</p>
+          )}
           {children}
           {!event.withdrawn && event.closure && (
             <p className="text-sm">{event.closure.result}</p>

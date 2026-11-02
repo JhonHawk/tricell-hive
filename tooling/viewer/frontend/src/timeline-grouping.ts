@@ -71,15 +71,40 @@ export function groupTimeline(session: TimelineSession): TimelineGroup[] {
   const standalone = events.filter(
     (e) => e.kind !== "stage" && !e.stage_event_id,
   );
+  // Work-level activity sits where it happened between stages, not above them all.
+  const ordered = [...stages, ...standalone.filter((e) => e.kind !== "closure")]
+    .sort((a, b) => a.sequence - b.sequence)
+    .map((e) =>
+      e.kind === "stage"
+        ? project(e)
+        : { id: e.event_id, events: [e], tasks: [], waits: [] },
+    );
   return [
-    ...standalone
-      .filter((e) => e.kind !== "closure")
-      .map((e) => ({ id: e.event_id, events: [e], tasks: [], waits: [] })),
-    ...stages.map(project),
+    ...ordered,
     ...standalone
       .filter((e) => e.kind === "closure")
       .map((e) => ({ id: e.event_id, events: [e], tasks: [], waits: [] })),
   ];
+}
+// Server audit events copy their reason into title and summary; show each text once.
+export function eventBodyTexts(event: {
+  title: string;
+  summary?: string;
+  reason?: string;
+  audit?: { reason: string };
+}) {
+  const seen = new Set([event.title.trim()]);
+  const once = (text?: string) => {
+    const clean = text?.trim();
+    if (!clean || seen.has(clean)) return undefined;
+    seen.add(clean);
+    return clean;
+  };
+  return {
+    summary: once(event.summary),
+    reason: once(event.reason),
+    auditReason: once(event.audit?.reason),
+  };
 }
 export function taskProgress(tasks: TimelineTask[]) {
   const active = tasks.filter((t) => !t.withdrawn);

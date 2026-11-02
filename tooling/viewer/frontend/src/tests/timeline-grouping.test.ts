@@ -5,9 +5,42 @@ import { timelineFixture } from "../dev/timeline-fixture";
 import type { TimelineTask } from "../timeline-contract-v3";
 import {
   distinctCaptions,
+  eventBodyTexts,
   groupTimeline,
   taskProgress,
 } from "../timeline-grouping";
+
+test("work-level activity after a stage sits below it, not above every stage", () => {
+  const s = structuredClone(timelineFixture.session);
+  const source = s.events[0];
+  s.events = [
+    { ...source, event_id: "plan", kind: "stage", stage: "plan", sequence: 1 },
+    {
+      ...source,
+      event_id: "plan-done",
+      kind: "state_transition",
+      stage_event_id: "plan",
+      sequence: 2,
+    },
+    { ...source, event_id: "paused", kind: "state_transition", sequence: 3 },
+    { ...source, event_id: "build", kind: "stage", stage: "build", sequence: 4 },
+  ];
+  assert.deepEqual(
+    groupTimeline(s).map((x) => x.stage?.event_id ?? x.events[0]?.event_id),
+    ["plan", "paused", "build"],
+  );
+});
+test("an audit reason copied into title and summary is shown once", () => {
+  const reason = "Delivery paused at the user's request";
+  assert.deepEqual(
+    eventBodyTexts({ title: reason, summary: reason, audit: { reason } }),
+    { summary: undefined, reason: undefined, auditReason: undefined },
+  );
+  assert.deepEqual(
+    eventBodyTexts({ title: "", summary: "Plan rewritten", reason: "Done" }),
+    { summary: "Plan rewritten", reason: "Done", auditReason: undefined },
+  );
+});
 
 test("ascending stages retain old occurrence activity and closure is last", () => {
   const s = structuredClone(timelineFixture.session);
