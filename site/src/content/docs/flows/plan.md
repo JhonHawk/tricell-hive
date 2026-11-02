@@ -29,7 +29,7 @@ The rules for questions and for delivery are in the [shared guidance](https://gi
 
 ## What it produces
 
-A bounded plan stays in the message: its decisions, criteria, prerequisites and tasks. The agent writes a change folder in your specs directory when you ask for one, when the work will resume in another session or be handed to helpers, when its deliveries need coordination, or when it changes a contract, stored data, security, money, concurrency or a dependency. A one-off operation always keeps its plan in the message. Without a ticket, the folder is named by a short slug; a plan never waits for a ticket to exist.
+A bounded plan stays in the message: its decisions, criteria, prerequisites and tasks. The agent writes a change folder in your specs directory when you ask for one, when the work will resume in another session or be handed to helpers, when its deliveries need coordination, or when it changes a contract, stored data, security, money, concurrency or a dependency. A one-off operation keeps its plan in the message too, unless one of those conditions applies. A plan in the message that changes a behavior your specs describe includes a task that updates them. Without a ticket, the folder is named by a short slug; a plan never waits for a ticket to exist.
 
 The change folder is copied from the [templates](https://github.com/JhonHawk/tricell-hive/tree/master/content/skills/flow-plan/assets/change-folder):
 
