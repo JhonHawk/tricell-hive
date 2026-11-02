@@ -10,6 +10,21 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Added
+
+- A `ready` delivery mode: the agent reviews, pushes, opens a non-draft pull
+  request, waits for CI and answers its reviews, then stops for you to merge.
+  It never merges, enables auto-merge or joins a merge queue, and asks first
+  when the repository's automation would merge the pull request. The open
+  pull request is the work's completion point, and the viewer shows it as in
+  review (#312).
+- After the push, review bots are read once when CI ends: only their output
+  for the latest commit counts, each finding is checked against the code,
+  dismissed ones get a reply with the reason, and their fixes get a single
+  round. A bot that has not reviewed yet does not hold the merge. When GitHub's
+  GraphQL quota runs out, the pull request and its checks are read through
+  REST and CI is awaited with `gh run watch` (#312).
+
 ### Fixed
 
 - `flow-close` closes the work's viewer session as its first step, before any
