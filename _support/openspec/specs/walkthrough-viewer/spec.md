@@ -4,7 +4,7 @@
 
 ## Purpose
 
-A user-controlled local server for shared work, native producers, declared stages, canonical tasks and references, immutable documents and view-scoped evidence. Protocol3 starts with a clean state cutoff; standalone HTML remains separate.
+A user-controlled local server for shared work, native producers, declared stages, canonical tasks and references, immutable documents and view-scoped evidence. Publication uses only the protocol v3 API; there is no standalone HTML fallback.
 
 ## Requirements
 
@@ -24,15 +24,15 @@ The manager SHALL provide `hive view start`, `stop`, `status`, `open`, `serve` a
 - **THEN** the command exits successfully without writing the registry.
 
 ### Requirement: Walkthrough ingestion and grouping
-The protocol v3 runtime SHALL serve API-owned works from a new v3 state directory exclusively. It SHALL NOT scan or import legacy manifests, API v1 or provisional v2 sessions or copy preferences. Project roots SHALL be explicitly registered in v3. Existing state from an earlier binary SHALL cause cutoff_required before any state mutation rather than migration or silent empty-state fallback. Unknown or corrupt state SHALL fail without cleanup. Legacy standalone HTML SHALL remain independent and SHALL NOT be ingested into v3. API commits SHALL finalize blobs and synchronize files/directories before success and SHALL reconcile outcome_unknown after uncertain durable commits.
+The protocol v3 runtime SHALL serve API-owned works from a v3 state directory exclusively. It SHALL NOT scan or import manifests, API v1 or provisional v2 sessions or copy preferences. Any name outside the v3 inventory SHALL make startup fail as unknown state. Project roots SHALL be explicitly registered in v3. Unknown or corrupt v3 state SHALL fail without cleanup. API commits SHALL finalize blobs and synchronize files/directories before success and SHALL reconcile outcome_unknown after uncertain durable commits.
 
 #### Scenario: Clean start
 - WHEN v3 starts on a new state directory and roots are registered
-- THEN its index is initially empty and old project walkthrough.json files do not appear.
+- THEN its index is initially empty.
 
-#### Scenario: Old directory selected
-- WHEN v3 is pointed at earlier viewer state
-- THEN startup fails actionably before creating or altering files, preserving that state.
+#### Scenario: Earlier state selected
+- WHEN v3 is pointed at a state directory that holds an earlier viewer's files or lacks the v3 storage marker
+- THEN startup fails with invalid_storage before creating or altering files, preserving that state.
 
 ### Requirement: Store retention and deletion
 All v3 work content SHALL use manual retention without age-based expiry. Archive/pin SHALL affect visibility/preferences only. Authenticated same-origin, session-scoped, version-conditional deletion SHALL remove the selected work and its owned stored blobs without editing project files or other works. A durable tombstone and operation receipt SHALL precede cleanup; partial failure SHALL report remaining work and allow scoped retry without resurrection. Reads SHALL require the existing token/capability protections. Restart recovery SHALL complete pending deletion without treating a failed write as success.
@@ -75,28 +75,14 @@ Any retained Git source/identity lookup SHALL disable repository-configured fsmo
 - THEN repository callbacks do not execute and inherited pathspec variables do not change the selected path.
 
 ### Requirement: Open-file hardlink rejection
-Retained file-based upload and standalone rendering operations SHALL inspect the opened descriptor before hashing/reading referenced local resources, rejecting regular files with multiple hard links or unavailable required link-count metadata. Rejection SHALL not publish partial content or replace valid content. API endpoints SHALL receive bounded bytes, never follow publisher-supplied filesystem paths.
+Retained file-based upload operations SHALL inspect the opened descriptor before hashing/reading referenced local resources, rejecting regular files with multiple hard links or unavailable required link-count metadata. Rejection SHALL not publish partial content or replace valid content. API endpoints SHALL receive bounded bytes, never follow publisher-supplied filesystem paths.
 
 #### Scenario: Resource replacement
 - WHEN a local referenced resource is replaced by a hard-linked regular file before reading
 - THEN descriptor checks reject the read and no new publication is committed.
 
-### Requirement: Full-width desktop screen capture preview
-On screen, a desktop capture preview in a strip wider than 520 CSS pixels SHALL occupy the strip's usable width. Narrow strips SHALL retain the existing next-capture peek, and additional captures SHALL remain horizontally accessible. Mobile capture sizing, carousel access and the existing print arrangement SHALL remain unchanged. The skill asset and embedded viewer stylesheet SHALL remain byte-identical. Previously generated standalone pages SHALL NOT be rewritten automatically.
-
-#### Scenario: Wide screen strip
-- **WHEN** a newly generated standalone walkthrough or the current viewer displays desktop captures in a wide strip
-- **THEN** one capture occupies its usable width rather than half, without adding page-level horizontal overflow.
-
-### Requirement: Explicit walkthrough session lifecycle
-The independent standalone HTML fallback MAY keep its existing optional manifest status contract and SHALL NOT be ingested into v3. v3 lifecycle SHALL use the typed work/stage API exclusively; neither age, document completion, host process nor fallback manifest kind SHALL imply approval or conversation termination.
-
-#### Scenario: Standalone fallback
-- WHEN the binary is absent and a standalone walkthrough is rendered
-- THEN its existing manifest/HTML behavior remains usable without a v3 server or import path.
-
 ### Requirement: Confirmed lifecycle ingestion before artifact cleanup
-For v3, closure cleanup SHALL confirm the exact committed work/version, state, revision/artifact IDs, hashes and sizes through authenticated API readback before removing owned disposable upload inputs. An unavailable runtime, mismatch or uncertain commit SHALL preserve inputs and report the limit without starting/restarting the viewer. This is API confirmation, not manifest ingestion. Standalone fallback retention SHALL remain an independent artifact unit. Tokens/capabilities SHALL never appear in evidence.
+For v3, closure cleanup SHALL confirm the exact committed work/version, state, revision/artifact IDs, hashes and sizes through authenticated API readback before removing owned disposable upload inputs. An unavailable runtime, mismatch or uncertain commit SHALL preserve inputs and report the limit without starting/restarting the viewer. Tokens/capabilities SHALL never appear in evidence.
 
 #### Scenario: Uncertain publication
 - WHEN exact committed readback cannot be established
@@ -117,25 +103,33 @@ The retained archive behavior SHALL apply to a v3 work rather than legacy copies
 - THEN Undo restores A without changing B.
 
 ### Requirement: Explicit walkthrough delivery links
-v3 API delivery events and independent standalone pages SHALL accept only verified PR/commit links, distinguish candidate metadata from delivery and never infer integration. URLs SHALL be absolute HTTPS with valid ASCII hosts and no credentials, spaces or controls; labels SHALL render as text, destinations SHALL be validated on rendering, and new contexts SHALL use noopener noreferrer. The v3 compact header SHALL expose deduplicated canonical work delivery entities by ID in its accessible delivery popover; no links SHALL be fabricated from candidate text. Standalone manifests/HTML may retain their existing validated link rendering independently, without import or backfill.
+v3 API delivery events SHALL accept only verified PR/commit links, distinguish candidate metadata from delivery and never infer integration. URLs SHALL be absolute HTTPS with valid ASCII hosts and no credentials, spaces or controls; labels SHALL render as text, destinations SHALL be validated on rendering, and new contexts SHALL use noopener noreferrer. The v3 compact header SHALL expose deduplicated canonical work delivery entities by ID in its accessible delivery popover; no links SHALL be fabricated from candidate text.
 
 #### Scenario: Unsafe URL
 - WHEN a delivery contains an executable, relative or credential-bearing URL
 - THEN validation rejects it and no unsafe browser link is created.
 
 ### Requirement: Viewer-first walkthrough publication
-With the binary present, substantive publication SHALL use only the compatible v3 API and confirmed readback. A stopped/incompatible viewer SHALL preserve inputs and report publication unavailable without starting a daemon, emitting a legacy viewer manifest or switching to HTML. Only absence of the executable SHALL select the independent existing standalone HTML fallback. Previously generated HTML and selected artifact units SHALL not be deleted or rewritten by this cutoff.
+Substantive publication SHALL use only the compatible v3 API and confirmed readback. A missing executable or a stopped/incompatible viewer SHALL preserve inputs and report publication unavailable without starting a daemon or producing any other format. Previously generated HTML pages and user-selected artifact units SHALL not be deleted or rewritten by the removal of the renderer. The agent SHALL NOT open the viewer on its own: at each stop where the viewer holds something for the user to review (a plan at its approval stop, a research report, a UI walkthrough, including the build's first rendered view) it SHALL ask whether to open it, until the user accepts once in the conversation; after acceptance it SHALL open the work once and not ask again unless the user asks.
 
 #### Scenario: Binary present, server incompatible
 - WHEN publication finds a v1 server
-- THEN it requests the coordinated v3 update and preserves inputs without manifest import or HTML substitution.
+- THEN it requests the coordinated v3 update and preserves inputs without HTML substitution.
+
+#### Scenario: User declines
+- WHEN the user declines to open the viewer at a review stop
+- THEN the viewer stays closed and the question is asked again at the next review stop.
 
 ### Requirement: Fixed session toolbar
-The selected v3 work title and management actions SHALL stay visible outside its scrolling timeline/document canvas. Deep-linked stage/event headings SHALL remain visible below the toolbar. Keyboard actions, unbroken long names through bounded local scrolling, narrow layouts without page overflow and print omission of management controls SHALL remain supported. No physical walkthrough segment controls SHALL be required.
+The selected v3 work title and management actions SHALL stay visible outside its scrolling timeline/document canvas. The header SHALL show the title with its edit action on its first row, and the work summary, clamped to two lines with an expand control, beside a right-aligned toolbar on its second row; it SHALL NOT show the project name or the creation date. The toolbar SHALL hold the state, the validation count and the ticket, delivery and participant counters, and the archive and more actions. Deep-linked stage/event headings SHALL remain visible below the toolbar. Keyboard actions, unbroken long names through bounded local scrolling, narrow layouts without page overflow (the toolbar wrapping below the summary) and print omission of management controls SHALL remain supported.
 
 #### Scenario: Narrow long title
 - WHEN a valid unbroken title exceeds a narrow viewport
 - THEN local keyboard-accessible title scrolling exposes it without page-level overflow or hiding actions.
+
+#### Scenario: Long summary
+- WHEN the work summary exceeds two lines
+- THEN the header shows two lines with an expand control, and the canvas does not repeat the summary.
 
 ### Requirement: Local session name and preferences
 v3 title/archive/pin management SHALL use work-local typed API state and local_viewer provenance, not imported logical-copy preferences. Names SHALL be trimmed, nonempty, bounded to 200 Unicode code points, reject controls and render as text. A canceled edit SHALL write nothing; a failed save SHALL retain input and a retryable error. Renaming SHALL preserve source/producers, stage titles and content, remain searchable and survive restart. Corrupt persisted state SHALL fail explicitly rather than enable defaults that delete content.
@@ -152,11 +146,15 @@ Browser title/archive/pin/deletion and recovery SHALL require existing authentic
 - THEN v3 rejects it without changing work and offers reload instead of automatic replay.
 
 ### Requirement: Required native session registration
-New timeline sessions SHALL require the resolved registered project, canonical host and actual native session ID. The server SHALL assign a distinct viewer ID and enforce exact tuple uniqueness across concurrent requests, retries and restarts. Missing identity SHALL be rejected rather than synthesized. Native IDs SHALL remain opaque and separate from viewer storage IDs. Existing registration SHALL not overwrite metadata or reopen closed/deleted work. API registration SHALL recover persisted root/project bindings before hashing identity; temporary metadata failure SHALL not replace a known project key with a path fallback, and unresolved/conflicting identity SHALL fail explicitly.
+New timeline sessions SHALL require the resolved registered project, canonical host and actual native session ID, and MAY carry a work key. The server SHALL derive a distinct viewer ID from the project, host, native session ID and the effective work key: the given work key, or, when absent, the creating operation ID. It SHALL enforce exact uniqueness across concurrent requests, retries and restarts. Sessions stored before work keys existed SHALL keep their IDs. Missing identity SHALL be rejected rather than synthesized. Native IDs SHALL remain opaque and separate from viewer storage IDs. Existing registration SHALL not overwrite metadata or reopen closed/deleted work. API registration SHALL recover persisted root/project bindings before hashing identity; temporary metadata failure SHALL not replace a known project key with a path fallback, and unresolved/conflicting identity SHALL fail explicitly.
 
 #### Scenario: Resume or concurrent creation
-- WHEN two clients register the same resolved project/host/native-session tuple
+- WHEN two clients from the same native session register the same project/host/native-session tuple with the same work key
 - THEN both receive the same viewer ID and existing session content remains intact.
+
+#### Scenario: Two works in one native session
+- WHEN one native session registers two different work keys, or two creations without a work key with different operation IDs
+- THEN the server creates two viewer sessions.
 
 #### Scenario: Separation
 - WHEN the native ID is equal but project or host differs
@@ -227,14 +225,14 @@ Documents from all five stage types SHALL use one read-only Markdown Sheet, full
 - THEN comparisons and update notices stay separate, including across linked same-type occurrences.
 
 ### Requirement: Manual viewer retention
-Neither legacy nor API content SHALL be purged or excluded from ingestion due to age. Archive SHALL change visibility only; pin SHALL not be necessary for preservation. Previously accepted TTL flags SHALL not silently activate expiry. Explicit deletion and bounded incomplete-staging recovery SHALL remain separate from age retention.
+API content SHALL NOT be purged due to age. Archive SHALL change visibility only; pin SHALL not be necessary for preservation. The viewer commands SHALL NOT accept an age or TTL option. Explicit deletion and bounded incomplete-staging recovery SHALL remain separate from age retention.
 
 #### Scenario: Inactive session survives
 - WHEN an unpinned archived session ages beyond fourteen days and the server restarts
 - THEN its documents and images remain readable until explicit authorized deletion.
 
 ### Requirement: Self-describing protocol and confirmed-input hygiene
-Offline contract usage/schemas/limits SHALL describe protocol/storage v3 exclusively and the clean-cutoff policy. New CLI and viewer SHALL require compatible v3 peers for publication. v1/v2 writes/replays SHALL fail before mutation with safe update guidance. No v1/v2 reader, migration or imported evidence reconstruction SHALL be part of the v3 runtime. Cutover SHALL coordinate old writers and service/client/content versions and use a new state directory without modifying the earlier one. v3 receipts, immutable blobs and atomic state transitions SHALL remain durable after restart or uncertain commit.
+Offline contract usage/schemas/limits SHALL describe protocol/storage v3 exclusively. New CLI and viewer SHALL require compatible v3 peers for publication. No v1/v2 reader, endpoint, migration or imported evidence reconstruction SHALL be part of the v3 runtime. v3 receipts, immutable blobs and atomic state transitions SHALL remain durable after restart or uncertain commit.
 
 One canonical publication procedure SHALL own collaboration/native identity, meaningful snapshots, states before user stops, explicit resumption and readable summaries. Consumers SHALL link to it. Children SHALL return evidence to the main producer. Viewer identity SHALL NOT change Engram runtime identity. Hygiene SHALL retain authoritative plans, current review inputs, uncertain uploads and unique evidence.
 
@@ -243,8 +241,8 @@ One canonical publication procedure SHALL own collaboration/native identity, mea
 - THEN IDs, hashes, actor audit and operation receipts remain resolvable without a legacy adapter.
 
 #### Scenario: Old writer
-- WHEN a v1 or provisional v2 publisher sends a mutation to v3
-- THEN it receives an update diagnostic before mutation.
+- WHEN a v1 or provisional v2 publisher sends a request to a v1 endpoint of v3
+- THEN the endpoint does not exist and nothing is mutated.
 
 ### Requirement: Local viewer management actor
 The v3 actor union SHALL distinguish accepted native_producer from local_viewer. Browser rename, archive/restore, pin/unpin and confirmed deletion SHALL remain available without native identity and SHALL be audited as local viewer actions, not native publication or authenticated human approvals. local_viewer SHALL NOT publish documents, evidence or approval events or operate stage lifecycle. An explicit recover_lead management operation MAY accept a pending same-project join and replace the lead atomically without changing declared stage/work state. Mixed actor branches SHALL fail. Deletion SHALL preserve an auditable receipt/tombstone without retaining or resurrecting deleted content.
@@ -258,9 +256,9 @@ The v3 actor union SHALL distinguish accepted native_producer from local_viewer.
 - THEN deletion retains its durable operation result for retry without a native actor or content resurrection.
 
 ### Requirement: Shared work producers and lead authority
-Protocol v3 SHALL preserve the original source tuple and opaque viewer_session_id as work identity, accepting additional real native producers only by explicit join request and lead acceptance within the same registered project. A request SHALL NOT confer membership. Native lead transfer SHALL be version-conditional to an accepted member. Explicit local recovery SHALL atomically accept a chosen pending same-project request and reassign lead under expected version, durable operation receipt, reason and audit. Recovery SHALL NOT infer process death, stop processes, reopen terminal works, change original source or alter stage/evidence state. The previous lead SHALL remain a collaborator without lead privileges. Original tuple creation SHALL remain idempotent. Joining SHALL NOT merge historical works or reassign IDs.
+Protocol v3 SHALL preserve the original source tuple, its work key and the opaque viewer_session_id as work identity, accepting additional real native producers only by explicit join request and lead acceptance within the same registered project. A request SHALL NOT confer membership. Native lead transfer SHALL be version-conditional to an accepted member. Explicit local recovery SHALL atomically accept a chosen pending same-project request and reassign lead under expected version, durable operation receipt, reason and audit. Recovery SHALL NOT infer process death, stop processes, reopen terminal works, change original source or alter stage/evidence state. The previous lead SHALL remain a collaborator without lead privileges. Creation with the same tuple and work key SHALL remain idempotent. Joining SHALL NOT merge historical works or reassign IDs.
 
-Pending, foreign-project and unauthorized publishers SHALL fail unchanged. Producers SHALL use their actual native IDs, never another session's or invented IDs. Provenance SHALL be declared rather than represented as cryptographic host authentication; local capability remains the authentication boundary. No historical actor or content SHALL be synthesized during cutoff.
+Pending, foreign-project and unauthorized publishers SHALL fail unchanged. Producers SHALL use their actual native IDs, never another session's or invented IDs. Provenance SHALL be declared rather than represented as cryptographic host authentication; local capability remains the authentication boundary. No historical actor or content SHALL be synthesized.
 
 #### Scenario: Continue elsewhere
 - WHEN the user authorizes continuation of an explicit work in another native session
@@ -269,7 +267,6 @@ Pending, foreign-project and unauthorized publishers SHALL fail unchanged. Produ
 #### Scenario: Unauthorized transfer
 - WHEN a pending member or stale transfer attempts control
 - THEN authority and content stay unchanged.
-
 
 #### Scenario: Original lead unavailable
 - WHEN the user selects a pending same-project request in the authenticated local viewer and confirms Reassign with a reason

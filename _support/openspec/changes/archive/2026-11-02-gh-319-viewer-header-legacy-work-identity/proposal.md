@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | En build |
+| Estado | Completado · integrado por el PR #326 (`19ace284`) el 2026-11-02 |
 | Tracker | [JhonHawk/tricell-hive#319](https://github.com/JhonHawk/tricell-hive/issues/319) · abierto · incluye el hallazgo H15 del cierre de los hallazgos de #316 |
 | Git | `tricell-hive`, base `development` en `c72549e4`; rama propuesta `feat/gh-319-viewer-cleanup` en `.claude/worktrees/gh-319-viewer-cleanup` |
 
@@ -75,3 +75,4 @@ Modo `interactive`, solo para este trabajo: tras la suite completa, `/code-revie
 
 2026-11-02 — Plan escrito.
 2026-11-02 — Revisión del plan (`hive-review-plan`): 3 bloqueantes, 5 importantes y 4 menores, todos aplicados. La quita de guardas deja fallar el estado viejo con `invalid_storage` en lugar de arrancar, porque tolerarlo debilitaba la detección de estado corrupto; los archivos legacy que aún tienen símbolos de v3 se recortan en lugar de borrarse; el retiro del contrato legacy (Go, TypeScript y fixtures) pasa a T1 para que T2 y T3 no compartan archivos; se modifica también el requisito «Self-describing protocol»; `work_key` en la respuesta es `null` sin clave dada; la regla de apertura gana punteros en las paradas que hacen la pregunta; se suman `index.mdx` y la cláusula completa de `flow-close`.
+2026-11-02 — Integrado por el PR #326 (`19ace284`); validado por el usuario en un visor de prueba (D20 A, D21 A, D22 A); dos `/code-review`, `hive-review-ux` y `hive-verify-task`; corregidos en la verificación H16, H17, H18 y «Ver más» solo cuando hay texto oculto. Binario reconstruido, visor real reiniciado y contenido desplegado desde `19ace284`. Delta aplicado a `specs/walkthrough-viewer/spec.md` y `canonical-references.md`.
