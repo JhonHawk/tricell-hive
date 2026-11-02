@@ -202,7 +202,12 @@ Each validation/iteration SHALL associate evidence with explicit views and relat
 - THEN the new iteration contains Chat evidence and links its predecessor while Profile retains its earlier evidence.
 
 ### Requirement: Proportional identity-aware publication procedure
-Shared walkthrough instructions SHALL name host capabilities rather than concrete host tool identifiers. Host-specific identity acquisition SHALL have one conditional reference verified against current official documentation and installed versions; unsupported discovery SHALL not be represented as a native ID. The canonical walkthrough procedure SHALL obtain host/native session identity, register or resume the server session, preserve returned IDs in the work checkpoint, upload immutable new captures and publish typed meaningful milestones. It SHALL verify committed readback before claiming a visible update. Initial affected-layout verification SHALL cover relevant desktop/mobile widths and supported themes; correction rounds SHALL check affected regions/neighbors, relevant states/widths and theme-sensitive behavior only. Navigation changes SHALL exercise their affected sequence. Publication consumers SHALL follow flow-walkthrough; review/capture consumers SHALL follow the single verify-owned conditional UI policy without a conflicting full-matrix iteration instruction. Human responses SHALL continue through native host questions in this delivery.
+Shared walkthrough instructions SHALL name host capabilities rather than concrete host tool identifiers. Host-specific identity acquisition SHALL have one conditional reference verified against current official documentation and installed versions; unsupported discovery SHALL not be represented as a native ID. The canonical walkthrough procedure SHALL obtain host/native session identity, register or resume the server session, preserve returned IDs in the work checkpoint, upload immutable new captures and publish typed meaningful milestones. A mutation's returned receipt (IDs and versions) SHALL confirm that write; the procedure SHALL read the committed session back before claiming to the user that a publication is visible, at close, and when resuming after an interruption or a version conflict, and SHALL NOT require a session read after every mutation. The procedure SHALL be read once per session and again after a compaction, not at each stage change. Initial affected-layout verification SHALL cover relevant desktop/mobile widths and supported themes; correction rounds SHALL check affected regions/neighbors, relevant states/widths and theme-sensitive behavior only. Navigation changes SHALL exercise their affected sequence. Publication consumers SHALL follow flow-walkthrough; review/capture consumers SHALL follow the single verify-owned conditional UI policy without a conflicting full-matrix iteration instruction. Human responses SHALL continue through native host questions in this delivery.
+
+#### Scenario: Publication without per-write reads
+- WHEN a producer starts a stage and later updates it in the same session
+- THEN it uses the versions returned by the start for the update, without reading the session in between
+- AND it reads the session back before telling the user the stage is visible.
 
 ### Requirement: Declared flow stages and immutable documents
 Stages SHALL include research, plan, build, verify and delivery. Stage states SHALL include in_progress, in_review, awaiting_validation, paused, completed and failed. Work states SHALL distinguish active, in_review, awaiting_validation, paused, closed and failed. Labels SHALL be short, reasons separate. One accepted lead SHALL control at most one foreground; global/foreground review or validation changes SHALL be atomic. Parallel review SHALL NOT change that foreground. completed/failed occurrences SHALL be terminal; re-entry SHALL create a linked occurrence.
@@ -234,6 +239,8 @@ API content SHALL NOT be purged due to age. Archive SHALL change visibility only
 ### Requirement: Self-describing protocol and confirmed-input hygiene
 Offline contract usage/schemas/limits SHALL describe protocol/storage v3 exclusively. New CLI and viewer SHALL require compatible v3 peers for publication. No v1/v2 reader, endpoint, migration or imported evidence reconstruction SHALL be part of the v3 runtime. v3 receipts, immutable blobs and atomic state transitions SHALL remain durable after restart or uncertain commit.
 
+The offline contract SHALL be readable by part: the full contract; one operation in full; a brief per flow (research, plan, build, verify, delivery, close, collab) with each operation's usage, required and optional input fields, enum values and example, without output schemas; a list of every operation with its flows and usage; and the shared rules block. Every operation SHALL belong to at least one flow. Contract and command output SHALL be compact JSON with the same content as the indented form. A rejected input SHALL name its field and code.
+
 One canonical publication procedure SHALL own collaboration/native identity, meaningful snapshots, states before user stops, explicit resumption and readable summaries. Consumers SHALL link to it. Children SHALL return evidence to the main producer. Viewer identity SHALL NOT change Engram runtime identity. Hygiene SHALL retain authoritative plans, current review inputs, uncertain uploads and unique evidence.
 
 #### Scenario: v3 restart
@@ -243,6 +250,18 @@ One canonical publication procedure SHALL own collaboration/native identity, mea
 #### Scenario: Old writer
 - WHEN a v1 or provisional v2 publisher sends a request to a v1 endpoint of v3
 - THEN the endpoint does not exist and nothing is mutated.
+
+#### Scenario: Brief contract for one flow
+- WHEN a producer runs `hive view contract --for build`
+- THEN it receives only the build operations, each with usage, required and optional fields, enum values and an example, plus the common session, stage and ticket operations, in under 10,000 bytes of compact JSON.
+
+#### Scenario: Operation without a flow
+- WHEN a new operation is added without a flow
+- THEN the contract test fails.
+
+#### Scenario: Rejected input
+- WHEN a stage start omits its reason
+- THEN the CLI reports `invalid timeline input: reason: invalid_text` and nothing is sent.
 
 ### Requirement: Local viewer management actor
 The v3 actor union SHALL distinguish accepted native_producer from local_viewer. Browser rename, archive/restore, pin/unpin and confirmed deletion SHALL remain available without native identity and SHALL be audited as local viewer actions, not native publication or authenticated human approvals. local_viewer SHALL NOT publish documents, evidence or approval events or operate stage lifecycle. An explicit recover_lead management operation MAY accept a pending same-project join and replace the lead atomically without changing declared stage/work state. Mixed actor branches SHALL fail. Deletion SHALL preserve an auditable receipt/tombstone without retaining or resurrecting deleted content.
