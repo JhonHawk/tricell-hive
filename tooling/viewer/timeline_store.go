@@ -446,9 +446,6 @@ func (s *Store) TimelineIndex() []TimelineAPIIndexEntry {
 	}
 	return result
 }
-func (s *Store) timelineOwns(project, host, native string) bool {
-	return s.timelineHasID(timelineSessionKey(project, TimelineSource{Host: TimelineHost(host), NativeSessionID: native}, ""))
-}
 func (s *Store) timelineReplay(r *timelineRecord, op, digest string) (TimelineOperationResult, bool, error) {
 	for _, receipt := range r.Receipts {
 		if receipt.OperationID == op {
@@ -1145,9 +1142,6 @@ func (s *Store) timelineHasID(id string) bool {
 	s.viewMu.RLock()
 	defer s.viewMu.RUnlock()
 	return s.timelineOwned[id]
-}
-func (s *Store) timelineLegacyHidden(v Session) bool {
-	return s.timelineHasID(timelineSessionKey(v.ProjectKey, TimelineSource{Host: TimelineHost(v.Host), NativeSessionID: v.SessionID}, ""))
 }
 
 func timelineSourceRoots(root, source string) []string {

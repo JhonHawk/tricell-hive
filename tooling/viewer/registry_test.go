@@ -249,7 +249,9 @@ func newWorkspace(t *testing.T) (root, work string) {
 		t.Fatal(err)
 	}
 	work = filepath.Join(root, "_support", "workspace", "2026-10-19-x")
-	copyTree(t, filepath.Join(fixturesRoot, "valid", "final"), work)
+	if err := os.MkdirAll(filepath.Join(work, "images"), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	return root, work
 }
 
@@ -281,7 +283,7 @@ func TestRegistryWorkspaceRuleWinsOverTheEnclosingGitRepository(t *testing.T) {
 	outer := newRepo(t)
 	root := filepath.Join(outer, "ws")
 	work := filepath.Join(root, "_support", "workspace", "w")
-	os.MkdirAll(work, 0o755)
+	os.MkdirAll(filepath.Join(work, "images"), 0o755)
 	res, err := RegisterRepository(state, work)
 	if err != nil || res.Root != root {
 		t.Fatalf("root = %+v, %v; want the workspace root %s, not the Git toplevel", res, err, root)

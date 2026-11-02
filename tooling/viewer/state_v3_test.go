@@ -51,25 +51,38 @@ func stateManifest(t *testing.T, dir string) map[string]stateEvidence {
 	}
 	return out
 }
-func TestV3CutoffPreservesState(t *testing.T) {
-	for _, name := range []string{"index.json", "sessions", "session-groups", "timeline-api-v1", "timeline-api-v2", "registry.json"} {
+
+// Previous-generation state is not recognized any more: it falls into the strict
+// inventory and fails with the generic invalid_storage, before anything is written.
+func TestV3PreviousStateFailsInvalidStorageWithoutWriting(t *testing.T) {
+	setup := map[string]func(dir string){
+		"index.json":         func(dir string) { os.WriteFile(filepath.Join(dir, "index.json"), []byte(`{"version":1}`), 0600) },
+		"sessions":           func(dir string) { os.Mkdir(filepath.Join(dir, "sessions"), 0700) },
+		"session-groups":     func(dir string) { os.Mkdir(filepath.Join(dir, "session-groups"), 0700) },
+		"timeline-api-v1":    func(dir string) { os.Mkdir(filepath.Join(dir, "timeline-api-v1"), 0700) },
+		"timeline-api-v2":    func(dir string) { os.Mkdir(filepath.Join(dir, "timeline-api-v2"), 0700) },
+		"registry-no-marker": func(dir string) { os.WriteFile(filepath.Join(dir, "registry.json"), []byte(`{"version":1}`), 0600) },
+		"marker-v1":          func(dir string) { os.WriteFile(filepath.Join(dir, stateMarker), []byte(`{"storage_version":1}`), 0600) },
+		"marker-v2":          func(dir string) { os.WriteFile(filepath.Join(dir, stateMarker), []byte(`{"storage_version":2}`), 0600) },
+		"marker-v3-with-index": func(dir string) {
+			os.WriteFile(filepath.Join(dir, stateMarker), []byte(`{"storage_version":3}`), 0600)
+			os.WriteFile(filepath.Join(dir, "index.json"), []byte(`{"version":1}`), 0600)
+		},
+	}
+	for name, prepare := range setup {
 		t.Run(name, func(t *testing.T) {
 			state := t.TempDir()
 			dir := viewerDir(state)
 			os.Mkdir(dir, 0700)
-			if filepath.Ext(name) == ".json" {
-				os.WriteFile(filepath.Join(dir, name), []byte(`{"version":1}`), 0600)
-			} else {
-				os.Mkdir(filepath.Join(dir, name), 0700)
-			}
+			prepare(dir)
 			before := stateManifest(t, state)
-			requireTimelineCode(t, ValidateState(state), "cutoff_required")
+			requireTimelineCode(t, ValidateState(state), "invalid_storage")
 			_, err := Open(Options{StateDir: state})
-			requireTimelineCode(t, err, "cutoff_required")
+			requireTimelineCode(t, err, "invalid_storage")
 			_, err = RegisterRepository(state, newRepo(t))
-			requireTimelineCode(t, err, "cutoff_required")
+			requireTimelineCode(t, err, "invalid_storage")
 			if !reflect.DeepEqual(before, stateManifest(t, state)) {
-				t.Fatal("cutoff mutated old state")
+				t.Fatal("rejected state was mutated")
 			}
 		})
 	}
@@ -208,7 +221,7 @@ func TestV3DurableReceiptFaultRecovery(t *testing.T) {
 		})
 	}
 }
-func TestV3RunNeverScansLegacy(t *testing.T) {
+func TestV3RunWaitsForCancellation(t *testing.T) {
 	s, _, _ := newV3Fixture(t)
 	ctx, cancel := context.WithCancel(context.Background())
 	done := make(chan error, 1)
@@ -218,11 +231,6 @@ func TestV3RunNeverScansLegacy(t *testing.T) {
 	if err := <-done; err != nil {
 		t.Fatal(err)
 	}
-	if len(s.View().Projects) != 0 {
-		t.Fatal("legacy index populated")
-	}
-	_, err := s.Sync(context.Background())
-	requireTimelineCode(t, err, "unsupported_protocol")
 }
 
 func TestV3ResolvedIdentityAndAliases(t *testing.T) {
@@ -313,11 +321,11 @@ func TestV3HTTPIndexAndRetiredRoutes(t *testing.T) {
 	}
 	before := stateManifest(t, filepath.Dir(s.Dir()))
 	w = request("POST", "/api/sessions/"+string64()+"/pin", true)
-	if w.Code != 409 {
+	if w.Code != 404 {
 		t.Fatal(w.Code)
 	}
 	if !reflect.DeepEqual(before, stateManifest(t, filepath.Dir(s.Dir()))) {
-		t.Fatal("legacy route changed state")
+		t.Fatal("retired route changed state")
 	}
 	w = request("GET", "/api/health", true)
 	if !strings.Contains(w.Body.String(), `"timeline_protocol_version":3`) {
@@ -451,9 +459,6 @@ func TestV3PendingDeletionAndReceiptSurviveRestart(t *testing.T) {
 func TestV3ManualRetentionNeverScansOrExpires(t *testing.T) {
 	s, v, _ := newV3Fixture(t)
 	s.now = func() time.Time { return time.Now().Add(365 * 24 * time.Hour) }
-	if _, err := s.Purge(); err != nil {
-		t.Fatal(err)
-	}
 	if err := s.Startup(); err != nil {
 		t.Fatal(err)
 	}
@@ -539,5 +544,23 @@ func TestV3UnavailableAliasDoesNotHideContradictoryIdentity(t *testing.T) {
 	requireTimelineCode(t, err, "project_identity_changed")
 	if !reflect.DeepEqual(before, stateManifest(t, state)) {
 		t.Fatal("contradictory identity altered state")
+	}
+}
+
+func replaceWithHardlink(t *testing.T, path string) {
+	t.Helper()
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	outside := filepath.Join(t.TempDir(), "linked-source")
+	if err := os.WriteFile(outside, raw, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(path); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Link(outside, path); err != nil {
+		t.Fatal(err)
 	}
 }

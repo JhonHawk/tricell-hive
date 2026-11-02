@@ -33,9 +33,7 @@ const (
 
 // embeddedAssets are the only static files served under /assets/.
 var embeddedAssets = map[string]string{
-	"walkthrough.mjs": "text/javascript; charset=utf-8",
-	"walkthrough.css": "text/css; charset=utf-8",
-	"hive-mark.svg":   "image/svg+xml",
+	"hive-mark.svg": "image/svg+xml",
 }
 
 // fileTypes maps the extensions OpenFile can return to a Content-Type. The
@@ -168,8 +166,6 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.index(w, r)
 	case p == "/api/timeline/sessions" || strings.HasPrefix(p, "/api/timeline/sessions/"):
 		s.timeline(w, r)
-	case strings.HasPrefix(p, "/api/sessions/"):
-		timelineHTTPError(w, timelineFailure("unsupported_protocol", 409))
 	case strings.HasPrefix(p, "/files/"):
 		s.file(w, r, strings.TrimPrefix(p, "/files/"))
 	default:
@@ -237,34 +233,6 @@ func writeJSON(w http.ResponseWriter, v any) {
 	w.Write(append(data, '\n'))
 }
 
-// storeError maps the Store's sentinel errors to a status without echoing
-// internal detail.
-func storeError(w http.ResponseWriter, err error) {
-	var partial *PartialDeleteError
-	if errors.As(err, &partial) {
-		w.Header().Set("Content-Type", "application/json; charset=utf-8")
-		w.Header().Set("Cache-Control", "no-store")
-		w.WriteHeader(http.StatusInternalServerError)
-		_ = json.NewEncoder(w).Encode(struct {
-			Code           string `json:"code"`
-			Deleted        int    `json:"deleted"`
-			Remaining      int    `json:"remaining"`
-			CleanupPending bool   `json:"cleanup_pending"`
-		}{"partial_delete", partial.Deleted, partial.Remaining, partial.CleanupPending})
-		return
-	}
-	switch {
-	case errors.Is(err, ErrInvalidKey), errors.Is(err, ErrInvalidPath):
-		httpError(w, http.StatusBadRequest, "bad request")
-	case errors.Is(err, ErrExcluded):
-		httpError(w, http.StatusConflict, "session source is tracked")
-	case errors.Is(err, ErrNotFound):
-		httpError(w, http.StatusNotFound, "not found")
-	default:
-		httpError(w, http.StatusInternalServerError, "internal error")
-	}
-}
-
 func allow(w http.ResponseWriter, r *http.Request, methods ...string) bool {
 	for _, m := range methods {
 		if r.Method == m {
@@ -304,12 +272,6 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		Revision        string `json:"revision"`
 		Modified        bool   `json:"modified"`
 	}{s.pid, filepath.Dir(s.store.Dir()), s.version, s.store.TTL().String(), "manual", TimelineSchemaVersion, s.revision, s.modified})
-}
-
-// indexSession is retained only as the rejected legacy wire shape in the contract decoder.
-type indexSession struct {
-	Session
-	FileBase string `json:"fileBase"`
 }
 
 type indexView struct {

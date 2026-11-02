@@ -507,4 +507,4 @@ core remains installed if an optional provider fails. Status is still readable
 while reconciliation is pending. Existing tools, credentials and memory are not
 owned merely because the onboarding catalog detected them.
 
-The running viewer reports the executable’s stamped VCS revision and modified flag in authenticated health and CLI status when available; archive builds without VCS metadata report unknown rather than inferring a checkout revision at request time. Status keeps legacy walkthrough counts and reports timeline_sessions separately. These build fields are not the host’s native session identity.
+The running viewer reports the executable’s stamped VCS revision and modified flag in authenticated health and CLI status when available; archive builds without VCS metadata report unknown rather than inferring a checkout revision at request time. Status reports timeline_sessions. These build fields are not the host’s native session identity.

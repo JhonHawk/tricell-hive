@@ -151,10 +151,6 @@ func newViewRepo(t *testing.T) string {
 	return dir
 }
 
-func walkthroughFixture(name string) string {
-	return filepath.Join("..", "..", "tests", "fixtures", "walkthrough", name)
-}
-
 func TestViewRequiresKnownSubcommand(t *testing.T) {
 	var buf bytes.Buffer
 	if err := runView(nil, &buf, viewDeps{}); err == nil {
@@ -398,12 +394,19 @@ func TestViewStartFallsBackWhenTheHivePortIsBusy(t *testing.T) {
 	}
 }
 
-func TestViewLegacyTTLIsIgnoredWithManualRetention(t *testing.T) {
+func TestViewRetentionIsManualAndTTLIsAnUnknownFlag(t *testing.T) {
 	f := newViewFixture(t)
-	out := f.mustView("start", "--ttl", "1h")
-	if !strings.Contains(out, "deprecated and ignored") {
-		t.Fatal("missing TTL compatibility warning")
+	for _, sub := range []string{"start", "serve"} {
+		for _, args := range [][]string{{sub, "--ttl", "1h"}, {sub, "--ttl", "soon"}} {
+			if _, err := f.view(args...); err == nil || !strings.Contains(err.Error(), "-ttl") {
+				t.Fatalf("view %v: want an unknown-flag error naming -ttl, got %v", args, err)
+			}
+		}
 	}
+	if _, err := os.Stat(filepath.Join(f.stateDir, "viewer")); !os.IsNotExist(err) {
+		t.Fatalf("a rejected flag created viewer state: %v", err)
+	}
+	f.mustView("start")
 	code, body := f.get("/api/health", true)
 	if code != http.StatusOK {
 		t.Fatalf("health = %d", code)
@@ -424,9 +427,6 @@ func TestViewLegacyTTLIsIgnoredWithManualRetention(t *testing.T) {
 	}
 	if err := json.Unmarshal(body, &v); err != nil || v.TTLSeconds != 0 {
 		t.Fatalf("index ttl_seconds = %d (%v)", v.TTLSeconds, err)
-	}
-	if _, err := f.view("start", "--ttl", "soon"); err == nil {
-		t.Fatal("an invalid --ttl was accepted")
 	}
 	f.mustView("stop")
 }
@@ -449,19 +449,10 @@ func TestViewServesRegisteredRepositoryEndToEnd(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(repo, "AGENTS.md"), []byte(agents), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	ws := filepath.Join(repo, "_support", "workspace")
-	good := filepath.Join(ws, "2026-10-18-x")
-	bad := filepath.Join(ws, "2026-10-18-bad")
-	for dst, src := range map[string]string{good: "valid/final", bad: "invalid/missing-required"} {
-		if err := os.MkdirAll(dst, 0o700); err != nil {
-			t.Fatal(err)
-		}
-		copyTree(t, walkthroughFixture(src), dst)
-	}
 	f.mustView("register", "--dir", repo)
 	f.mustView("start")
 
-	// Old valid and invalid manifests remain source evidence, never v2 input.
+	// A registered repository starts with no work: only the API publishes.
 	code, body := f.get("/api/index", true)
 	var index struct {
 		ProtocolVersion  int                            `json:"protocol_version"`
@@ -469,7 +460,7 @@ func TestViewServesRegisteredRepositoryEndToEnd(t *testing.T) {
 		Errors           []any                          `json:"errors"`
 	}
 	if code != 200 || json.Unmarshal(body, &index) != nil || index.ProtocolVersion != 3 || len(index.TimelineSessions) != 0 || len(index.Errors) != 0 {
-		t.Fatal("legacy manifest was ingested")
+		t.Fatal("a fresh viewer must start with an empty index")
 	}
 	raw, _ := json.Marshal(viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "cli-create", Source: viewer.TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "cli-v2"}, Title: "Published v2 work", Summary: "Real API path", Tickets: []viewer.TimelineTicketInput{}})
 	var out bytes.Buffer

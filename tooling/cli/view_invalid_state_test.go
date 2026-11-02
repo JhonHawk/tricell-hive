@@ -11,16 +11,16 @@ import (
 	"testing"
 )
 
-type viewCutoffEvidence struct {
+type viewStateEvidence struct {
 	Mode     os.FileMode
 	Size     int64
 	Modified int64
 	Hash     string
 }
 
-func viewCutoffManifest(t *testing.T, state string) map[string]viewCutoffEvidence {
+func viewStateManifest(t *testing.T, state string) map[string]viewStateEvidence {
 	t.Helper()
-	out := map[string]viewCutoffEvidence{}
+	out := map[string]viewStateEvidence{}
 	err := filepath.WalkDir(state, func(p string, e os.DirEntry, err error) error {
 		if err != nil {
 			return err
@@ -29,7 +29,7 @@ func viewCutoffManifest(t *testing.T, state string) map[string]viewCutoffEvidenc
 		if err != nil {
 			return err
 		}
-		v := viewCutoffEvidence{Mode: i.Mode(), Size: i.Size(), Modified: i.ModTime().UnixNano()}
+		v := viewStateEvidence{Mode: i.Mode(), Size: i.Size(), Modified: i.ModTime().UnixNano()}
 		if i.Mode().IsRegular() {
 			raw, err := os.ReadFile(p)
 			if err != nil {
@@ -46,7 +46,7 @@ func viewCutoffManifest(t *testing.T, state string) map[string]viewCutoffEvidenc
 	}
 	return out
 }
-func TestViewV3CutoffBeforeStartupEffects(t *testing.T) {
+func TestViewInvalidStateFailsBeforeStartupEffects(t *testing.T) {
 	for _, command := range []string{"start", "serve", "stop"} {
 		for _, kind := range []string{"legacy", "provisional-v2", "marker-v1", "marker-v2", "unknown", "corrupt"} {
 			t.Run(command+"/"+kind, func(t *testing.T) {
@@ -71,7 +71,7 @@ func TestViewV3CutoffBeforeStartupEffects(t *testing.T) {
 				case "corrupt":
 					os.WriteFile(filepath.Join(dir, "storage.json"), []byte(`{"storage_version":99}`), 0600)
 				}
-				before := viewCutoffManifest(t, state)
+				before := viewStateManifest(t, state)
 				launched := false
 				var output bytes.Buffer
 				deps := viewDeps{launch: func([]string, string) (int, error) { launched = true; return 0, nil }}
@@ -86,13 +86,13 @@ func TestViewV3CutoffBeforeStartupEffects(t *testing.T) {
 				if err == nil {
 					t.Fatal("invalid state accepted")
 				}
-				if (kind == "legacy" || kind == "provisional-v2" || strings.HasPrefix(kind, "marker-")) && !strings.Contains(err.Error(), "cutoff_required") {
+				if !strings.Contains(err.Error(), "invalid_storage") {
 					t.Fatal(err)
 				}
 				if launched {
 					t.Fatal("launched on rejected state")
 				}
-				if !reflect.DeepEqual(before, viewCutoffManifest(t, state)) {
+				if !reflect.DeepEqual(before, viewStateManifest(t, state)) {
 					t.Fatal("rejected state mutated")
 				}
 			})
