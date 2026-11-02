@@ -1,0 +1,23 @@
+{
+  "mode": "legacy",
+  "session": {
+    "key": "9999999999999999999999999999999999999999999999999999999999999999",
+    "source": "/fixture/project/_support/workspace/old-review",
+    "source_status": "local",
+    "repository": "/fixture/project",
+    "content_hash": "8888888888888888888888888888888888888888888888888888888888888888",
+    "ingested_at": "2026-10-19T15:01:00Z",
+    "pinned": false,
+    "archived": false,
+    "session_id": "codex-20261019T150000Z",
+    "session_status": "closed",
+    "host": "codex",
+    "ticket": "COM-1",
+    "title": "Historical review",
+    "kind": "final",
+    "created_at": "2026-10-19T15:00:00Z",
+    "project_key": "example.com/fixture/project",
+    "project_name": "CAM fixture",
+    "fileBase": "/files/9999999999999999999999999999999999999999999999999999999999999999/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/"
+  }
+}

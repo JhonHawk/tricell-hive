@@ -1,0 +1,30 @@
+{
+  "receipt": {
+    "operation_id": "validation:1",
+    "request_sha256": "5e7cd6bfd5f48b38be3675c735e2f57baeb435c557a4e334eed91528e1c49f18",
+    "completed_at": "2026-10-31T18:30:00-06:00",
+    "result": {
+      "schema_version": 3,
+      "operation_id": "validation:1",
+      "kind": "append_event",
+      "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "session_version": 4,
+      "current_stage_event_id": null,
+      "event_id": "event_validation",
+      "event_version": 1,
+      "sequence": 3,
+      "evidence_id": "evidence_initial",
+      "view_ids": [
+        "view_chat"
+      ]
+    }
+  },
+  "matching_retry": {
+    "operation_id": "validation:1",
+    "request_sha256": "5e7cd6bfd5f48b38be3675c735e2f57baeb435c557a4e334eed91528e1c49f18"
+  },
+  "conflicting_retry": {
+    "operation_id": "validation:1",
+    "request_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"
+  }
+}

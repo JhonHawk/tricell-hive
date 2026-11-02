@@ -1,62 +1,30 @@
 ---
 title: Verify
-description: Check a built candidate at a level you can see and change, then integrate it as your delivery settings allow.
+description: Check a built candidate at a level you can see and change, then integrate it as your delivery answer allows.
 ---
 
-Verify is the step between a built change and a finished one. Build hands over a candidate; Verify gathers the evidence that it meets what you asked for and says what was not checked.
+Verify is the step between a built change and a finished one. [Build](/flows/build/) hands over a candidate; Verify gathers the evidence that it meets what you asked for, and says what was not checked. The [Verify skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-verify/SKILL.md) owns the steps and their order.
 
-## When to use
+## When it starts
 
-Use Verify when a candidate exists and needs evidence before it is accepted. It follows Build in the usual order, and you can also start here with a change that is already built.
-
-Example requests:
+Verify starts when a candidate exists: commits, or the working tree when your delivery answer is to hold. You can also start it on a change that is already built. Without a candidate, it says what is missing and returns the work to Build.
 
 ```text wrap
 Verify the change on this branch and integrate it if everything passes.
-Full verify, including the UI review.
 Skip verify for this one; I will check it myself.
 ```
 
-## What it produces
+## What it does
 
-At the start the agent says in one line whether verify runs and at which level. The level combines settings that already exist: the project's `UI verification` and `Review` values, your answers to the delivery questions, and whether the change is mechanical. Verify adds no setting and no question of its own. The levels, and what each check covers, are in the [skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-verify/SKILL.md).
+- Runs the full local suite, serves the candidate the way production would, and exercises the changed behavior through its real path, checking each numbered acceptance criterion. A screen that shows a sign-in page, an error or an empty list counts as a setup failure, not as evidence.
+- For an interface change, captures the changed screens and states on desktop and, when the layout is responsive, mobile, as the [UI verification reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-verify/references/ui-verification.md) sets. An independent UX reviewer works from those captures.
+- Runs the code review you chose, alongside the walk. A security review runs only if you ask for it.
+- Fixes, in one round, your corrections, every interface defect the change introduced, and each confirmed blocking finding. A second review covers only that round's fixes. Other findings go to the close instead of another round.
 
-- Affected tests and evidence for the changed behavior, always when verify runs.
-- The full local suite of each affected application, run before a validation stop, or once on the final candidate when no CI gate runs it. A mechanical change does not need it.
-- A local run of the changed behavior when it calls for one. When it does not, the report says why in one line; there is no question about it.
-- For a visible interface change, independent reviewers and a functional walk, as the `UI verification` value selects, followed, in a delivery mode that stops for your validation, by the human validation of the [walkthrough](/flows/build/#what-happens-to-a-user-interface-change).
-- The dedicated code review on the local candidate, after the full suite and at the point your delivery mode sets: before the validation request under `interactive`, before the push under `automatic` and under `direct-base` chosen for a code repository, and on the working tree under `hold`, as [delivery decisions](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/delivery-decisions.md#dedicated-review-timing) sets. The corrections you ask for during validation get one more review, limited to what changed since the reviewed candidate. A mechanical change gets none.
-- The [security review](/flows/security/) only when you ask for it.
+## What it asks you
 
-When it finishes, the report names the level that ran and each check that failed, could not run or was accepted without verification. If the delivery mode lets it, the accepted candidate is integrated, and [Close](/flows/close/) follows.
+When your delivery answer stops for validation, Verify shows the result in the [viewer](/viewer/) while the reviews still run, saying that approval is subject to their findings, and asks you to approve or request corrections. After a round that changed something visible, it shows only those screens and asks again. A visible defect that was already there, in a region the change affects, comes to you as a finding with a recommendation. Decisions follow the [delivery and question rules](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md).
 
-## Raising, lowering or skipping the level
+## How it ends
 
-You can raise or lower the level for the work with a request such as "full verify", "no UI review" or "skip verify". Verify is skipped on its own only for a mechanical change, and the report then names the checks that already cover it. When you ask to skip a check, it counts as accepted without verification: the agent names each one at the start and in the report, and does not treat it as a pending gate. That acceptance never waives CI, branch protection or a review the project requires. Unattended delegation cannot skip verify or lower its level.
-
-## What it does not do
-
-- It does not write the change; that is [Build](/flows/build/).
-- It does not mark a check as passed when it could not run it.
-- It does not run a security review you did not ask for. It offers one when the change crosses a security boundary.
-- It does not push or merge beyond the delivery you authorized, and it does not deploy; that is [Deploy](/flows/deploy/).
-
-## Related flows
-
-- [Build](/flows/build/) comes first and hands over the candidate.
-- [Security](/flows/security/) runs inside Verify, or on a merged commit, on request.
-- [Close](/flows/close/) follows once the candidate is integrated.
-- [Deploy](/flows/deploy/) is a separate step after integration.
-
-## FAQ
-
-### Do I need a plan first?
-No. Verify needs a candidate and the criteria it must meet. When it is entered directly, it asks only for the delivery and review values that are still missing.
-
-### Is the code review part of Verify?
-Yes, except for a mechanical change. A declared `Review` value is the default mechanism, not a demand: if you skip verify, the dedicated review counts as accepted without verification, unless the repository requires it.
-
-### Where is the exact rule?
-See the source linked below.
-
-Source: [content/skills/flow-verify/SKILL.md](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-verify/SKILL.md)
+Before the push, if the candidate changed since Build's checks, it reruns the CI jobs it can run locally and names the rest as CI-only. Then it integrates as your delivery says: push, pull request, a single wait for CI to end, and merge. A failing CI job is diagnosed from its log and fixed at the cause. [Close](/flows/close/) follows.

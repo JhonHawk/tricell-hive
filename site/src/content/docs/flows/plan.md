@@ -5,9 +5,9 @@ description: Turn a larger change into settled decisions and small tasks that ea
 
 Plan is for work that is too big or too uncertain to start typing. The agent sorts out the choices with you first, so whoever builds it does not have to guess.
 
-## When to use
+## When it starts
 
-Use Plan when a change touches several places, has trade-offs you should decide, or will be handed to another session or agent.
+Use Plan when a change touches several places, has trade-offs you should decide, or will be handed to another session or agent. A small, clear edit needs no plan; ask for it through [Build](/flows/build/).
 
 Example requests:
 
@@ -17,69 +17,51 @@ Plan moving our uploads to the new storage service. Ask me before choosing anyth
 Break this feature into tasks I can review one at a time.
 ```
 
-A small, clear edit does not need a plan. Ask for it directly through [Build](/flows/build/).
+## What it asks you
+
+The agent reads the code, your project settings and the existing specs first, then asks only for the decisions that are yours. Facts it can find, it looks up itself.
+
+- Choices that change the outcome, asked in rounds and in the shared question format. A change to what an interface sends or receives counts as a contract change, and you decide whether it stays compatible.
+- For a changed screen, the layout and its states, shown as before-and-after sketches you can choose between.
+- Once the plan is saved, how the work is delivered and which code review runs, unless you already answered.
+
+The rules for questions and for delivery are in the [shared guidance](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md).
 
 ## What it produces
 
-A plan that someone else could follow. It covers:
+A change folder in your specs directory, copied from the [templates](https://github.com/JhonHawk/tricell-hive/tree/master/content/skills/flow-plan/assets/change-folder):
 
-- the outcome you want and what is in and out of scope;
-- the decisions you made, with the alternatives that mattered;
-- in-scope questions that cannot be stated precisely yet, kept apart from the decisions and the exclusions, with no task built on them until they can;
-- what changes for the pieces that talk to each other, such as inputs, outputs and data;
-- when the work removes, closes, disables, migrates, renames or moves something that runs in production, or changes untested production behavior, what depends on it today and what is still unverified, checked only as far as the situation calls for, as the [change impact reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/references/change-impact.md) sets;
-- tasks grouped into results you can check separately, each with the command or observation that proves it and what you should see;
-- when the work replaces or migrates a writer, parser, query or system and the old path can still run, the old-against-new comparison that the [verification reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-build/references/verification.md) sets, so the plan checks the new path against the old one;
-- acceptance criteria that are numbered and can be tested;
-- when the criteria are numbered, the checkpoints at which Build verifies the tasks: the plan groups tasks into checkpoints and closes a group after each task that is risky to get wrong, chosen by the risk criterion in the [plan format](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/plan-format.md), so a long plan is not verified after every task.
+- `proposal.md`: your request quoted, your decisions in plain words, the scope, numbered acceptance criteria, and what the build needs from outside the repository.
+- `tasks.md`: small tasks, each saying which criteria it closes, what it depends on and how to check it.
+- `design.md` and spec deltas, only when the change has design decisions or alters a behavior, contract, permission or stored data.
 
-When the plan is saved, independent reviewer agents read it before the agent calls it ready, one per affected area. A reviewer finding whose fix has a conventional default and changes no scope, contract, criterion or decision of yours is applied without asking and noted in the plan's progress section with its reason. A plan with a screen where you enter or choose data also gets a reviewer that walks your task looking for data you would have to enter twice or steps you could skip. A plan that edits agent guidance also gets a guidance-consistency reviewer, which searches the guidance for sentences that would still contradict a rule the plan changes and flags an option or task that contradicts a standing rule; a decision you recorded never counts as a violation, as the [plan review reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/plan-review.md) sets. It also asks how you want the work delivered through Git and how it should be reviewed, together with the last design questions that do not depend on those answers.
+Every criterion is one observable behavior, with the observation that would show it false today. A criterion that is already true, or that only restates your request, is rewritten or dropped. When the plan changes a contract, stored data, security or a dependency, one independent reviewer checks it before it is ready. A running viewer can show the plan documents, as the [walkthrough skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) describes.
 
-The skill links directly to the procedures for questions, project settings,
-change records and plan review. Reading one reference does not start its whole
-owning flow. The optional OpenCode loader can supply a generated plan-review
-snapshot for the explicit reviewer role without runtime reference-file reads;
-refresh requires manager regeneration and plugin reload. It does not prepare the
-plan or choose its scope.
+The folder stays uncommitted while the work runs; [Close](/flows/close/) versions it at the end.
 
-A short plan can live in the conversation. When work will span sessions, or you ask for a saved plan, the agent writes it as a change folder in your project's specs directory, starting with your request quoted word for word, plus the acceptance criteria of any ticket it names. That folder stays uncommitted while the work runs. [Close](/flows/close/) versions it at the end.
+## How it ends
+
+The agent summarizes the plan in the message: the objective, each criterion, your decisions, the tasks on one line each, what is still missing, the checks and the delivery mode. It then gives the Build command as the next step. A plan does not authorize implementation: typing that command is what approves the criteria shown and starts [Build](/flows/build/). A correction to a criterion is not approval; the agent revises and shows it again. The steps are in the [plan handoff reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/plan-handoff.md).
 
 ## What it does not do
 
-- It does not write the implementation.
-- It does not approve commits, pushes, pull requests, merges or deployments. Those stay your call.
-- It does not hide open technical doubts inside later tasks. A doubt that could sink the approach is investigated first or marked as blocking.
-- It does not ask you to keep two versions of an interface running unless evidence shows a real need.
+- It does not write the implementation, or approve commits, pushes, pull requests, merges or deployments.
+- It does not hide open technical doubts inside later tasks.
 
 ## Related flows
 
-- Start from [Research](/flows/research/) when you still need facts before planning. The agent reuses sound findings and rechecks the ones that may have changed.
-- Hand the finished plan to [Build](/flows/build/), pointing it at the change folder or plan path.
+- Start from [Research](/flows/research/) when you still need facts before planning.
+- Hand the finished plan to [Build](/flows/build/) by pointing it at the change folder.
 - [Close](/flows/close/) archives the change folder when the work is integrated.
+- If something new comes up while the plan is open, the agent classifies it first; see [changes and loops](/flows/overview/).
 
 ## FAQ
 
 ### Do I need a plan for a small change?
-No. A small change you already understand can go straight to Build. Keep its checks in the conversation.
+No. A small change you already understand can go straight to Build.
 
 ### Does a ready plan mean the agent may start building?
-No. When the plan is ready, the agent summarizes it in the conversation: the objective, the text of each acceptance criterion and the requirements that change, the decisions in force and the minor calls it took without asking with their reasons, each task in one line, the checks, how it will be delivered and reviewed, the `UI verification` value for a visible interface change, what is still open, and where the full plan is saved. It then asks whether to start Build now or stop with the plan ready. Choosing Build approves those criteria as the contract the work is checked against; if you correct one in your own words instead, the agent revises the plan and asks again with the revised criteria. Starting the work still needs your answer, unless you already gave the instruction.
-
-### Will the agent ask me many questions?
-It asks about choices that change the outcome, and groups independent questions into one exchange. Facts it can find in the code, it looks up itself. A question whose options depend on the answer to another one, such as one that changes the course of the plan or assumes a recommended option was chosen, is asked in a later turn, after that answer; the same round carries only questions whose options hold with any answer to the others. The planning round also settles how the work is delivered and reviewed and, for a visible interface change, the `UI verification` value that sets which independent checks run on the built result before you validate it, unless the repository's `## Hive` section declares them. Authorizations the plan already foresees for later steps are asked in that same round, or on their own at that point when your settings, an earlier answer or your request already settled delivery and review, so the build does not stop for them later; one you leave unanswered stays unauthorized. The question format, the size estimates some options carry and the grouping rules are in the [questions reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/questions.md); the classes of effects beyond your machine are in the [verification reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-build/references/verification.md#gate-selection-and-timing).
-
-Topics you add while the plan is written go on a list of open topics. The agent tells you in one line how it classifies each, closes none without a destination, and names them all in its findings and completion reports and in the route and close questions. The rule is in the [guidance](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md).
-
-### What happens when a decision changes the design?
-The agent does not save it for later. It shows the decision at once, under the context line that opens every progress or decision message, with an explanation and the recommended option, asked like any other question. The message ends with a line marking that it waits for you, and work that depends on the decision waits for your answer: a consequential design question is asked before any task that depends on it is written. After your answer, the agent says in one line whether it settles the question, opens the next round, or sends the work back to research, and if tasks already written become invalid it updates the plan. Independent questions are still grouped. The exact format is in the [questions reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/questions.md#pause-and-handle-the-answer).
-
-### What if the plan has to change while the work is being built?
-The agent drafts the change in the conversation, names what it touches (your request, a criterion, a decision, a task or a requirement delta) and then edits the saved plan itself, keeping those parts consistent with each other. A change that alters a criterion, a decision or a contract goes back to the plan reviewers once; a smaller one the agent reconciles and records. If the change alters what you asked for, it becomes a new change rather than an edit of this one.
-
-### Why are the criteria numbered?
-Each one is checked later, so every criterion must be testable and covered by at least one task.
+No. Your reply starts Build, unless you already authorized it to proceed.
 
 ### Where is the exact rule?
-See the source linked below.
-
 Source: [content/skills/flow-plan/SKILL.md](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/SKILL.md)

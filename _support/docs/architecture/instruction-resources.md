@@ -10,17 +10,33 @@ Native agent renderers can flatten or relocate role files. In role instructions,
 
 ## Runtime resolution
 
-The essential runtime boundaries and read conditions remain in `content/guidance/global.md`; the delegation procedure has its canonical home in `content/skills/flow-research/references/delegation.md`. Resolve the named skill through the host's available catalog/loader or an explicit task path, then read the resource relative to that skill directory. Reading a reference does not invoke its owner's complete workflow. Native discovery, parent context inheritance, and automatic reference reading are different capabilities; do not assume one establishes another.
+The essential runtime boundaries and read conditions remain in `content/guidance/global.md`; the delegation procedure has its canonical home in `content/skills/flow-research/references/delegation.md`. Resolve the named skill through the host's available catalog/loader or an explicit task path, then read the resource relative to that skill directory. Reading a reference does not invoke its owner's complete workflow; a resource that is read is read whole, under the resource rule in `content/guidance/global.md`, and `tests/content/skill_size_test.go` keeps each reference at or under 16,000 bytes (issue #204). Native discovery, parent context inheritance, and automatic reference reading are different capabilities; do not assume one establishes another.
 
 Canonical procedural homes under `content/skills/`:
 
-- `flow-close/references/reporting.md`: before a report of work or findings, a relay of a child's or tool's result, an explanation of how something works or why it failed, or a message that cites links or IDs defined outside it, as `global.md` sets; a greeting or a short direct answer needs no read, and a progress or decision message opens with the context line the reference sets.
-- `flow-close/references/incidental-findings.md`: before listing, asking about or recording the incidental findings proposed at a work item's close; `flow-close/SKILL.md` step 5, `flow-verify/references/ui-gate.md` and `flow-verify/references/ui-review-criteria.md` point to it.
-- `flow-plan/references/questions.md`: before a user decision or manual validation request.
-- `flow-plan/references/effect-authorization.md`: before asking to authorize an effect beyond this machine, as `global.md` sets.
+- `flow-walkthrough/SKILL.md`: publish a substantive flow's declared session stages, documents and evidence to the viewer, or deliver a UI walkthrough through the supported fallback. Its consumers link to it instead of repeating publication steps; `hive view contract` owns the machine-readable protocol.
+- `flow-verify/SKILL.md` and its linked conditional UI reference: verification, review and proportional capture coverage. Publication consumers point here for those checks instead of restating a second capture policy.
+
+- `flow-close/references/reporting.md`: before a report of work or findings, a relay of a child's or tool's result, an explanation of how something works or why it failed, or a message that cites links or IDs defined outside it, as `global.md` sets; a greeting or a short direct answer needs no read, and a decision, validation, result, blocker or closing message opens with the context line the reference sets.
+- `flow-close/references/work-item-boundary.md`: before the first message of authorized work while work of your own remains, before ending a turn while it remains, and before ending a turn that completes a work item; it sets when the turn may end. `content/guidance/global.md` (Communication), which keeps the rule's invariant, `flow-build/SKILL.md`, `flow-verify/SKILL.md` and a pointer section in `reporting.md` for the other flows that read it point to it (issue #265).
+- `flow-close/references/incidental-findings.md`: before proposing an incidental finding, during the work or at a work item's close, and before listing, asking about or recording them; `content/guidance/global.md` (incidental findings), the Incidental findings and Memory steps of `flow-close/SKILL.md`, `flow-verify/references/ui-gate.md` and `flow-verify/references/ui-review-criteria.md` point to it.
+- `hive-core/references/questions.md`: before a user decision or manual validation request.
+- `hive-core/references/option-scope.md`: before a question whose options build different amounts for the same request, or that must state an option's estimated size; `questions.md`, `hive-core/SKILL.md`, the build route of `flow-plan/references/plan-handoff.md` and the close question of `flow-close/SKILL.md` point to it (issue #259).
+- `hive-core/references/scope-changes.md`: before acting on a change the user asks for, or the work finds it needs, while work is open in any flow; the open-topics rule in `content/guidance/global.md`, `flow-research`, `flow-plan` and its plan revision, `flow-build`, `flow-verify`, `flow-walkthrough`, `flow-close` and `flow-deploy` point to it.
+- `hive-core/references/effect-authorization.md`: before asking to authorize an effect beyond this machine or acting on an earlier grant, as `global.md` sets.
+- `hive-core/references/loops.md`: before starting or resuming work that repeats cycles until a condition is met; `content/guidance/global.md`, the iterative route of `flow-research` and `unattended-delegation` point to it (change `gh-256`).
+- `hive-core/references/context.md`: before ending the turn at a plan handoff, at verify's user validation stop, or at a close question while a flow is still in progress; `hive-core/SKILL.md`, `flow-plan/references/plan-handoff.md`, `flow-verify/SKILL.md` and `flow-close/SKILL.md` point to it (issue #300).
 - `flow-research/references/delegation.md`: before dispatching a child or waiting for external work.
+- `flow-research/references/pr-review.md`: before reviewing a pull request outside the current work; `flow-research/SKILL.md` points to it and `content/guidance/global.md` routes the request to `flow-research`.
 - `workspace-conventions/references/artifact-layout.md`: before writing or cleaning support artifacts; basic placement remains global.
-- `flow-plan/references/project-settings.md`: before resolving needed settings; `flow-plan/references/change-records.md`: before creating or continuing a change record.
+- `hive-core/references/project-settings.md`: before resolving needed settings; `flow-plan/references/change-records.md`: before creating or continuing a change record.
+- `flow-plan/references/delivery-decisions.md`: before resolving the Git delivery mode, at the planning handoff or before the first edit of work without a plan; `flow-build`, `flow-verify`, `flow-deploy`, `flow-close`, `git-workflow` and `harness-audit` point to it.
+- `flow-plan/references/review-decisions.md`: before resolving the code-review mechanism or placing the dedicated review in time.
+- `flow-plan/references/ui-verification-decision.md`: before resolving the `UI verification` level for a rendered UI effect.
+
+- `hive-core/references/{language,third-party-requests,secrets,memory,evidence-tools,tool-scripts}.md`: the procedures that left `global.md` when it was split into layers (change `gh-240`); `global.md` keeps each rule's invariant and the read condition that points to its reference.
+
+The `hive-core` references are shared by every flow and the global guidance; `hive-core/SKILL.md` lists their read conditions and is not loaded for a workflow of its own. A consumer reaches each reference by its path and condition, never by selecting `hive-core` from its description.
 
 Activity and role consumers link directly to required resources. The global core
 does not delegate authorization, preservation or secrets to a selector. The
@@ -74,9 +90,10 @@ The predicates and full file lists are in `TestGuidanceReadingFootprint`:
   decision, read-only plan reviewer, delegated backend implementer and task
   verifier, local tests, then pause through Close. Include the selected
   Plan/Build/Close entrypoints, the Verify entrypoint and its review-and-gates
-  reference (stage handoff from Build), Research's planning exploration criterion,
+  and runtime-gates references (stage handoff from Build), Research's planning exploration criterion,
   plan format/review, settings/change records, delivery decisions, verification,
-  delegation, artifact layout, questions/reporting and the three role sources.
+  delegation, artifact layout, questions/option scope/reporting and the three
+  role sources.
   No UI, security/data migration, deployment, Git execution or incidental finding
   is assumed, so their conditional procedures are not added.
 
@@ -105,4 +122,4 @@ callback checks do not resolve that separate prerequisite.
 
 ## Vendored upstream material
 
-`content/skills/flow-report/references/diagram-grammar.md` adapts [cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design) v2.3.2 (MIT). To pull upstream updates, re-read that repository's `skills/diagram-design/SKILL.md` §4–§9 and `references/type-*.md`, then re-map them onto the reference. Deliberately not adopted: Mermaid/draw.io import pipelines, animation, PNG/SVG export, brand onboarding, and long-tail types (medallion, radar, venn, DP matrices, loop, org chart).
+`content/skills/flow-report/references/diagram-grammar.md` and `diagram-svg-construction.md` (one numbering, split at 16,000 bytes) adapt [cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design) v2.3.2 (MIT). To pull upstream updates, re-read that repository's `skills/diagram-design/SKILL.md` §4–§9 and `references/type-*.md`, then re-map them onto the two references. Deliberately not adopted: Mermaid/draw.io import pipelines, animation, PNG/SVG export, brand onboarding, and long-tail types (medallion, radar, venn, DP matrices, loop, org chart).

@@ -378,6 +378,20 @@ func releaseSources(r *Release) []string {
 	}
 	return sources
 }
+
+// initialLeading is what goes before a block written into a file Hive does
+// not own yet: a newline after text that lacks one, or, for the Cursor rule
+// file Hive creates, the frontmatter that makes Cursor apply it always.
+func initialLeading(t target.Target, current []byte) string {
+	if len(current) == 0 && t.Path != "" && filepath.Ext(t.Path) == ".mdc" {
+		return cursor.RuleFrontmatter
+	}
+	if len(current) > 0 && !bytes.HasSuffix(current, []byte("\n")) {
+		return "\n"
+	}
+	return ""
+}
+
 func payload(r *Release, source string) []byte {
 	for _, f := range r.Files {
 		if f.Path == source {
@@ -705,8 +719,8 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 			text = rewritten
 		}
 		r.Managed = managedBlock(text, s.Data, hiveMarkers)
-		if (old == nil || gone) && len(s.Data) > 0 && !bytes.HasSuffix(s.Data, []byte("\n")) {
-			r.Leading = "\n"
+		if old == nil || gone {
+			r.Leading = initialLeading(g.Target, s.Data)
 		}
 	case "skill":
 		r.Managed = payload(p.Release, g.Target.Source)
@@ -775,19 +789,36 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 	}
 	return &r, nil
 }
+
+// resolvePlanPath resolves a caller-chosen plan file. Safe rejects a symlink
+// ancestor, and on macOS the default temporary directory is under /var, which
+// is one. Opening the resolved path keeps a later swap of the original link
+// from redirecting the file. Managed install paths do not use this helper.
+func resolvePlanPath(path string) (string, error) {
+	resolved, err := target.Canonical(path)
+	if err != nil {
+		return "", err
+	}
+	if err := target.Safe(resolved); err != nil {
+		return "", err
+	}
+	return resolved, nil
+}
+
 func SavePlan(path string, p Plan) error {
 	if len(p.Legacy) > 0 {
 		return fmt.Errorf("legacy migration plans contain private configuration; use hive install to preview and apply in one session")
 	}
-	if err := target.Safe(path); err != nil {
+	resolved, err := resolvePlanPath(path)
+	if err != nil {
 		return err
 	}
-	if _, err := os.Lstat(path); err == nil {
+	if _, err := os.Lstat(resolved); err == nil {
 		return fmt.Errorf("plan output already exists")
 	} else if !os.IsNotExist(err) {
 		return err
 	}
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
+	f, err := os.OpenFile(resolved, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	if err != nil {
 		return err
 	}
@@ -800,7 +831,11 @@ func SavePlan(path string, p Plan) error {
 }
 func LoadPlan(path string) (Plan, error) {
 	var p Plan
-	err := decodeFile(path, &p)
+	path, err := resolvePlanPath(path)
+	if err != nil {
+		return p, err
+	}
+	err = decodeFile(path, &p)
 	if err != nil {
 		return p, err
 	}
@@ -928,7 +963,7 @@ func validatePlan(p Plan, state State) error {
 				if old == nil || freshGone {
 					expected.Leading = ch.After.Leading
 				}
-				if expected.Leading != "" && expected.Leading != "\n" {
+				if expected.Leading != "" && expected.Leading != "\n" && expected.Leading != cursor.RuleFrontmatter {
 					return fmt.Errorf("invalid separator")
 				}
 			}
@@ -942,11 +977,7 @@ func validatePlan(p Plan, state State) error {
 				return err
 			}
 			if finger(current) == ch.Expected && ch.After != nil && (old == nil || freshGone) && g.Target.Kind == "block" {
-				leading := ""
-				if len(current.Data) > 0 && !bytes.HasSuffix(current.Data, []byte("\n")) {
-					leading = "\n"
-				}
-				if ch.After.Leading != leading {
+				if ch.After.Leading != initialLeading(g.Target, current.Data) {
 					return fmt.Errorf("invalid initial ownership")
 				}
 			}

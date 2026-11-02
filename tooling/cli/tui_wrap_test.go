@@ -172,7 +172,7 @@ func TestPlainScrollBoxBreaksLongPathsAfterASlash(t *testing.T) {
 	box.vp.SetWidth(40)
 	box.vp.SetHeight(20)
 	path := "/Users/someone/Development/projects/client-workspace/nested-projects-area/home/state/transactions"
-	box.setText("Private backups: " + path)
+	box.setText("Recovery journals (newest 10 kept): " + path)
 	var joined string
 	for _, l := range strings.Split(box.vp.View(), "\n") {
 		l = strings.TrimRight(l, " ")

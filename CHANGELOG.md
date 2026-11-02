@@ -10,6 +10,242 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-01
+
+### Added
+
+- A shared-work viewer with an ascending timeline, declared research/plan/build/
+  verification/delivery stages, independent task segments, visible review
+  evidence and a compact Tasks/Go-to-current toolbar. One common detail panel
+  supports immutable Markdown revisions, galleries, task review and CI attempts
+  with manual snapshot updates.
+- Native producers join the same work using their own verified Source and
+  accepted producer IDs. Canonical ticket/delivery registries and immutable
+  candidates replace repeated inline entities; one metadata patch updates
+  current references while preserving publication context and history.
+  Conditional operations retain CAS, audit, durable receipts and recovery.
+  `hive view contract` describes commands, schemas and limits offline.
+- Protocol/schema/storage3 starts on a fresh state directory and rejects earlier
+  formats before writes. No legacy scanning, migration or preference import is
+  performed. Standalone HTML fallback remains separate. Retention is manual,
+  deprecated --ttl is ignored, and the viewer defaults to 4483 with a free-port
+  fallback. Browser rename/archive/pin/delete manage the work without changing
+  source files or native host history.
+- Viewer system labels follow the primary browser language: English default/
+  fallback and Spanish for es/es-* locales, including accessible names and
+  dates. Stage keys render one localized heading with optional verbatim context;
+  producer titles, captions and document history are unchanged. The offline
+  catalog exposes the reserved labels and supported languages.
+- A [viewer manual](site/src/content/docs/viewer.md) covers published work,
+  stage-specific tasks, evidence, current/published references and delivery CI.
+  The canonical publisher guide documents shared producers and ID-based
+  publication without duplicating task state or provider observations.
+- A new `flow-status` skill reports the project's status and backlog, read
+  only: open tickets grouped by product module, unfinished local work (branch,
+  uncommitted changes, unmerged branches, worktrees, open pull requests), and
+  numbered recommendations. A ticket another session has in progress is listed
+  apart and never recommended. Asking "what's next?" ends with the ticket to
+  assess and the command that starts `flow-research` on it.
+- A repository test checks that every heading an instruction link in
+  `content/` points to exists, with the same link grammar and fence rule as
+  release validation, so renaming a heading can no longer break a link
+  without a failing test.
+- `harness-audit` compares the memory each host loads at every entry point,
+  not only the instruction files: Claude Code, Grok Build and Codex key their
+  own memory by where the session starts, so a project whose memory lives at
+  the workspace behaves differently from one started in a repository. It
+  proposes a home for each fact that only one entry point loads, flags an
+  Engram project that sessions split across two names, finds memory that
+  restates the guidance in use, and flags an entry point where Grok Build
+  loads no project instructions because that folder has no trust grant. It
+  now also asks the decisions its findings need and applies the accepted
+  outcomes, including creating or updating a repository's `## Hive` section
+  and checking it with `hive doctor --project`.
+- Unattended work that repeats cycles has a loop contract: a measured
+  objective, a cap, a check every cycle, a stop after two flat cycles, and a
+  state file a new session resumes from.
+- Before each push of a change that is not mechanical, the agent runs locally
+  the checks CI would run on that push: the jobs from the workflow files that
+  are deterministic and need no service, secret or deployment, for the
+  packages the change touches and those that depend on them. Jobs that need a
+  service, a secret or a deployment stay in CI and the report names them as
+  CI-only.
+
+### Changed
+
+- The skills are rebuilt as a small core. `content/guidance/global.md` shrinks
+  from about 39 KB to about 20 KB and holds the rules every session needs,
+  each stated once, in one place: language, scope and authorization,
+  preservation, secrets, proportionality, questions and routes, delivery,
+  project settings, memory and scope changes. The flow skills (`flow-research`,
+  `flow-plan`, `flow-build`, `flow-verify`, `flow-deploy`, `flow-close`,
+  `flow-walkthrough`) keep their main path in `SKILL.md` and lose most of
+  their shared references. Rules a skill needs stay with that skill.
+- Questions are asked one way everywhere. Each decision has an ID (`D1`, `D2`)
+  and a title that holds the question; findings are `H1`, plan tasks `T1` and
+  acceptance criteria `AC1`. Each option takes one line, with the recommended
+  one first and marked with a star. The agent writes the round as text, then
+  asks it in one native question card, and replying "ok" applies every
+  starred option while `D2 B` changes one. When a card closes without an
+  answer, one line says so and the answer goes in the chat. A message that
+  asks, reports a result or a blocker, or closes work opens with a context
+  line (stage, ticket, progress) and ends by saying what it waits for. A
+  blocker comes with the smallest fix and, when it needs your choice, that fix
+  as the starred option.
+- The delivery mode and the code review mechanism are asked once per work
+  item, before the first edit, from the global guidance, in one round. The
+  review question has fixed options: the host's native review, the
+  `hive-review-code` agent, or no dedicated review, with the recommendation
+  following what the change touches. A repository that declares
+  `Delivery: direct-base` is not asked. Before the validation or the push, the
+  agent compares the branch with its base and, when it carries commits that
+  are not this work's, names them with their count and asks whether they go in
+  the same publication.
+- Moving from one flow to the next is no longer a question card. A report ends
+  with a separate next-step block: the recommended flow, its reason, and the
+  command to type, written once in the syntax of the host you run in (for
+  example `/flow-plan COM-833` in Claude Code, `$flow-plan COM-833` in
+  Codex), with a real ticket or a recommendation to create it first. Only your
+  reply starts the next flow.
+- Every child (delegated role) starts with a fresh context window, not a copy
+  of the conversation, and its brief carries what it needs. Children never
+  commit, push, open pull requests, write trackers or launch children; the
+  main thread commits and checks the evidence they return. Findings from every
+  review use one scale: P0 blocks a release or a core flow, P1 must be fixed
+  before merge, P2 should be fixed but does not block, P3 is minor.
+- After a context compaction the agent resumes from the work's checkpoint
+  (the change's `tasks.md`, which records the stage and step, the last commit,
+  the open findings and the next action), does not repeat a report the history
+  shows already done, and skips the hook-suggested session-summary save.
+- `git-workflow` is cut to a minimal core that analyzes the situation first:
+  it fetches, names commits that are not this work's, and, when conventions
+  and state do not settle a Git choice (which branch, a worktree, how to split
+  commits, a diverged branch, a conflict, a rejected push), asks one decision
+  with concrete options instead of picking silently. It stages named paths
+  only, lets hooks run, checks each effect after it happens, and merges only
+  on a current base.
+- `flow-plan` writes the change folder from templates (proposal, tasks,
+  design) with a prerequisites section, numbered acceptance criteria that must
+  be false on the current base, and, for a screen change, UI decisions settled
+  against the real design system with ASCII sketches. It ends with a plan
+  summary and the build route, and offers compacting first when the context is
+  past 40%.
+- `flow-build` keeps a native task list and a checkpoint, fixes a failing
+  check by first deciding whether the code, the criterion or the test is
+  wrong (a test is changed only when the test is wrong), repairs the local
+  environment without asking, shows the first rendered view of a new screen
+  for acceptance, and lets a delegated child work only where its writes do not
+  overlap other work. `flow-verify` validates while the reviews run, in one
+  walk and one fix round: the user's corrections and each confirmed blocking
+  finding are fixed, a CI job that fails is diagnosed from its log before any
+  rerun, and the second review covers only the fixes.
+- `flow-close` ends with one final report (integrated, resolved, omitted,
+  repaired, findings, next), proposes findings as a table answered by ID with
+  P2 findings of one cause or area grouped, and asks one close question: end
+  the session, see the findings, or find the next ticket.
+- `flow-research` lists every plausible cause of a failure and checks each one
+  before concluding, reporting the ones it ruled out with their evidence. Code
+  review checks that a diff is minimal and rates an unrelated refactor or
+  added feature as P2. Verification names what is not evidence: a sign-in
+  page, an error or an empty list on a changed screen, a claim that checks
+  passed without their output, a capture taken before the last change, and a
+  child's report the main thread did not check.
+- The documentation and UX review children use a lighter model profile. On
+  Codex that is GPT-6.1 Terra for state collection, documentation and UX
+  review, and routine task verification uses GPT-6.1 Sol high instead of GPT-6
+  Astra high; other hosts keep their role models. Roles on Pi and OpenCode run
+  on the session's model by default (OpenCode roles also take its effort)
+  instead of models that need subscriptions that are often inactive; use
+  `hive models set` to choose a model per role. Rebuild the manager before
+  `hive update` to support the new profile.
+- Cursor CLI gets the Hive guidance as an always-applied rule at
+  `~/.cursor/rules/hive.mdc`, because it never loaded `~/.cursor/AGENTS.md`.
+  The rule reaches workspaces under the home folder only. An update retires
+  the block an earlier release wrote into `~/.cursor/AGENTS.md`.
+- Unattended delegation no longer ends when you add a resource, feedback, a
+  correction or a question about the work within its goal; changing the goal,
+  the scope or an earlier answer still ends it. When you delegate or say you
+  are leaving before the delivery, review and authorization questions were
+  asked, the agent asks them at once in text and keeps working, stopping at a
+  verified local result without your answers.
+- Walkthroughs use screenshots of relevant states, including open dialogs and
+  menus, instead of recording flows. Existing video manifests remain
+  compatible. UI verification checks only the widths, themes and neighboring
+  regions the change affects.
+- The `## Hive` section of `AGENTS.md` now holds facts only: `Project`,
+  `Base branch`, `Tracker`, `Specs`, `Environments`, `Delivery: direct-base`,
+  `Completion` and `Hive guidance`. The delivery mode and the review mechanism
+  are asked every work item; `Review`, `UI verification` and
+  `Delivery: automatic|interactive` no longer answer or authorize anything. A
+  later completion point is the new `Completion` key, written
+  `<state> on <ref> · <state> on <ref>`.
+- `hive doctor` warns about retired keys and a malformed `Completion`, and exits
+  non-zero, printing `hive: Project section has blocking findings`, when the
+  section has a blocking finding. `hive project set` and the Project view no
+  longer offer `Review` or `UI verification`.
+- The manager keeps only the newest 10 finished recovery journals under its
+  `transactions/` folder, and the install summary says so.
+
+- `flow-build` waits for helper agents with the host's wait tool, which returns
+  when a helper finishes or writes, never with a loop of sleeps and status
+  checks (observed in a Codex 0.166 session: 74 sleep calls, no wait).
+- A plan's `proposal.md` records each user decision on its own line, in plain
+  words: the question, the answer and what it changes, with the decision ID
+  last. Field names follow the session language; the first field stays
+  `Status` (or `Estado`), which the archive helper reads.
+- The documentation site describes the rebuilt flows in plain words and links
+  each skill; new pages cover Status, Security review and Host limits.
+
+### Removed
+
+- The `flow-security` and `workspace-archive` skills, and the
+  `hive-refute-claim` role. A security review is the `hive-review-security`
+  role, run only when you ask; a check of whether an advisory affects your
+  repositories is `security-advisory`. Archiving closed `sessions/` folders is
+  part of `workspace-conventions`. Checking a claim is part of `hive-research`
+  and of the main thread's own check of what a child returns.
+- The "matching declared job" source of unattended delegation, which no rule
+  defined: a scheduled or background turn activates no unattended delegation.
+
+### Fixed
+
+- `hive update --out`, `hive plan --out`, `hive voice --out`, `hive models --out`
+  and `hive apply --plan` accept a plan path whose ancestor is a symlink, such
+  as macOS `/var` for `mktemp -d`. The file is written and read at the
+  resolved path. A symlink that remains after resolution is still rejected.
+- The walkthrough viewer keeps a project's resolved identity when a worktree
+  disappears or its remote cannot be read, including after a restart, instead
+  of splitting its saved copies into another project with the same name.
+- The viewer timeline places work-level activity, such as a pause, where it
+  happened between stages instead of above every stage, and shows a server
+  reason once, in a title that wraps, instead of three times.
+
+### Migration
+
+- Run `hive update` and restart open sessions, since they still carry the
+  previous guidance and skills. Rebuild the manager first
+  (`go build -o "$(command -v hive)" ./tooling/cli` from a checkout) when you
+  update from a checkout, because an older binary can reject newer content.
+- Stop invoking `flow-security` and `workspace-archive`: ask for a security
+  review (`hive-review-security`) or an archive of closed sessions in plain
+  words, or use `security-advisory` and `workspace-conventions`. Stop
+  invoking `hive-refute-claim`.
+- The viewer moves to protocol 3, which does not read earlier viewer data. Stop
+  the running viewer (`hive view stop`), move the `viewer` folder out of the
+  Hive state directory (on macOS `~/Library/Application Support/tricell-hive`)
+  to keep it, rebuild the binary, start the viewer again and register each
+  repository with `hive view register --dir <root>`. Earlier works stay in the
+  moved folder and do not appear in the new viewer; restoring that folder and
+  the previous binary is the way back.
+- Remove `Review`, `UI verification` and `Delivery: automatic|interactive` from
+  each `## Hive` section with `hive project set --unset <Key>`, or run
+  `harness-audit`; sections that keep them still work, and `hive doctor` only
+  warns.
+- Move a later completion point written in prose into `Completion`.
+- Scripts that run `hive doctor` must expect a non-zero exit when the section
+  has a blocking finding, and, with `--project` given explicitly, when the
+  repository has no section or the path cannot be checked.
+
 ## [0.6.0] - 2026-10-25
 
 ### Security

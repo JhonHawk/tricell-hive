@@ -17,6 +17,21 @@ export default defineConfig({
           const asset = req.url
             ?.split("?")[0]
             ?.replace("/assets/app/assets/", "/assets/");
+          const evidence = asset?.match(
+            /^\/files\/a{64}\/b{64}\/(profile-light|profile-mobile|chat-light|chat-mobile-before|chat-mobile-after|chat-mobile-dark)\.png$/,
+          );
+          if (evidence) {
+            res.setHeader("Content-Type", "image/png");
+            res.end(
+              await readFile(
+                new URL(
+                  `./src/dev/evidence/${evidence[1]}.png`,
+                  import.meta.url,
+                ),
+              ),
+            );
+            return;
+          }
           if (
             asset !== "/assets/walkthrough.mjs" &&
             asset !== "/assets/walkthrough.css" &&

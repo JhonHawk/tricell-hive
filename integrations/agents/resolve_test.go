@@ -99,6 +99,30 @@ func threeProfiles(t *testing.T) []byte {
 	return editProfiles(t, func(_ string, models map[string]any) { delete(models, "verifier") })
 }
 
+func TestResolveFocusedProfilePreservesHostAndRoleEffort(t *testing.T) {
+	profiles := editProfiles(t, func(host string, models map[string]any) {
+		models["focused"] = models["execution"]
+		if host == "codex" {
+			models["focused"] = map[string]any{"model": "syn-codex-focused", "effort": "medium"}
+		}
+	})
+	for _, host := range []string{"claude", "codex", "grok", "pi", "opencode", "cursor"} {
+		for _, effort := range []string{"", "low", "medium"} {
+			_, want, err := Resolve(resolveSource, resolveRole("execution", effort), profiles, host, nil)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if host == "codex" {
+				want.Model = "syn-codex-focused"
+			}
+			_, got, err := Resolve(resolveSource, resolveRole("focused", effort), profiles, host, nil)
+			if err != nil || got != want {
+				t.Fatalf("Resolve(%s/focused, %q) = %+v, %v; want %+v", host, effort, got, err, want)
+			}
+		}
+	}
+}
+
 func TestReadProfilesValidatesVerifierLikeOtherProfiles(t *testing.T) {
 	ok := editProfiles(t, func(host string, models map[string]any) {
 		models["verifier"] = map[string]any{"model": "inherit"}

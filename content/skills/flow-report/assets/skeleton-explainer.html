@@ -22,9 +22,9 @@
     Delete sections the topic doesn't need.
   - The inline SVG here is a deliberately MINIMAL but grammar-compliant
     diagram (2 nodes, 1 connector, masked label, legend). For a real
-    diagram, read references/diagram-grammar.md — type selection, the
-    connector rules, the 4px grid, and the accessible-SVG contract are all
-    mandatory. Verify with scripts/verify_geometry.py + self_check.py.
+    diagram, read references/diagram-grammar.md (type selection, the 4px grid) and
+    references/diagram-svg-construction.md (connector rules, the
+    accessible-SVG contract) — all mandatory. Verify with scripts/verify_geometry.py + self_check.py.
   - Keep the DESIGN SYSTEM (:root tokens + type scale) intact unless you
     have a reason. That is what makes outputs consistent.
   - Self-contained always: all CSS in <style>, all JS in one <script>, all
@@ -232,7 +232,7 @@
   nav.toc ul{margin:10px 0 0; padding-left:20px; columns:2; column-gap:40px}
   nav.toc li{margin:5px 0}
 
-  /* ---- concept diagram (skin per diagram-grammar.md §4) ---- */
+  /* ---- concept diagram (skin per diagram-svg-construction.md §3) ---- */
   .diagram{background-image:
       repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
       repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
@@ -315,7 +315,7 @@
   /* ---- diagrams: framed, and colored by TOKEN (never hard-coded hex) ----
      SVG presentation attributes cannot read var(), so diagram color lives in
      these CSS classes instead. That is what makes a diagram follow the theme
-     toggle AND invert correctly for print. See references/diagram-grammar.md. */
+     toggle AND invert correctly for print. See references/diagram-svg-construction.md §3. */
   figure.diagram{margin:26px 0}
   .diagram svg{display:block; width:100%; height:auto; min-width:640px}
   .diagram figcaption{font-family:var(--mono); font-size:12px; color:var(--muted); margin-top:12px}
@@ -420,8 +420,9 @@
   <!-- ===== 1 · MENTAL MODEL: one diagram, then the paragraph that reads it.
        This SVG is the minimal grammar-compliant form (2 nodes, 1 connector,
        masked label, bottom legend). Real diagrams: follow
-       references/diagram-grammar.md — draw only when the visual beats a
-       paragraph, orthogonal connectors, 4px grid, ≤2 accent elements. -->
+       references/diagram-grammar.md (draw only when the visual beats a
+       paragraph, 4px grid) and diagram-svg-construction.md (orthogonal
+       connectors, ≤2 accent elements). -->
   <h2 id="model">The mental model</h2>
   <p>One short paragraph that primes the diagram: name the two roles and the
     single relationship the reader must hold on to.</p>

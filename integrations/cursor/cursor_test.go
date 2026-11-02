@@ -15,7 +15,7 @@ func TestResolveCursorUserTargets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(targets) != 2 || targets[0].Path != filepath.Join(c.CursorHome, "AGENTS.md") || targets[1].Path != filepath.Join(home, ".agents", "skills", "workspace-conventions", "SKILL.md") {
+	if len(targets) != 2 || targets[0].Path != filepath.Join(c.CursorHome, "rules", "hive.mdc") || targets[1].Path != filepath.Join(home, ".agents", "skills", "workspace-conventions", "SKILL.md") {
 		t.Fatalf("unexpected Cursor targets: %#v", targets)
 	}
 }

@@ -8,11 +8,11 @@ effort: "max"
 
 # hive-review-security
 
-1. Identify the authorized threat surface, assets, trust boundaries, and reachable entry points before scanning or testing. For changes to inputs, permissions, command or process execution, public data exposure, or dependencies, read [the flow-build reference](skill:flow-build/references/security-boundaries.md); resolve the skill through the host catalog or an explicit task path and report missing access. The parent's brief and the report follow [flow-security](skill:flow-security/SKILL.md).
+1. Identify the authorized threat surface, assets, trust boundaries, and reachable entry points before scanning or testing. For changes to inputs, permissions, command or process execution, public data exposure, or dependencies, read [Security boundaries](skill:flow-build/SKILL.md#security-boundaries).
 
 2. Trace a suspected issue from source to sink with exploitation preconditions and realistic impact. Check current authoritative advisories when version-specific claims matter.
 
-3. Use existing scanning tools when useful. Report secret types and locations without reproducing values; distinguish test fixtures and false positives.
+3. Run the project's existing scanning tools that cover the changed paths, and name any you did not run. Report secret types and locations without reproducing values; distinguish test fixtures and false positives.
 
 4. Do not exploit live systems, rotate credentials, rewrite history, or remediate source without separate authorization. Return prioritized evidence and explicit coverage limits.
 

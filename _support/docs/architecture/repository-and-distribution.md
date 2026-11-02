@@ -11,7 +11,7 @@ Reviewed: 2026-10-25. The shared guidance, activity skills, six host adapters, G
 | `integrations/{claude,codex,grok,pi,opencode,cursor}/` | Native destination differences | Six user-scope adapters; Codex/Claude project scope; optional inactive OpenCode loader |
 | `tooling/cli/` | Command interface | Go CLI, invoked from the checkout or a complete package |
 | `tooling/management/` | Shared installation, diagnosis, and removal logic | Managed blocks, snapshots, plans, state, and recovery |
-| `tooling/viewer/` | Local walkthrough viewer behind `hive view` | Standard library only; store, ingest, and loopback HTTP server with embedded pages |
+| `tooling/viewer/` | Local walkthrough viewer behind `hive view` | Standard library only; typed work store, authenticated protocol API and loopback server with embedded pages |
 | `tooling/package/` | Offline package builder | Builds complete platform packages on demand |
 | `tests/{content,fixtures,pilot,skills}/` | Content, fixture, pilot, and skill verification | Integration and management tests live beside their Go packages |
 | `site/` | Documentation site for people | Starlight site published from `master`; not packaged or deployed by the manager |
@@ -60,8 +60,9 @@ reproducible from the available evidence and is not an acceptance threshold.
 
 Grok gets one managed `PreToolUse` hook that drops `offset` and `limit` when a
 session reads a skill reference, because Grok models read references partially
-in about one session in three; it changes how a reference is read, not what any
-guidance says. Its contract is in [the deployment manager](deployment-manager.md#grok-read-whole-hook).
+in about one session in three; for skill references read with Grok's read tool,
+it enforces part of the read-whole rule that the global guidance states for
+every host. Its contract is in [the deployment manager](deployment-manager.md#grok-read-whole-hook).
 
 An optional OpenCode user-scope plugin supplies two fixed-role reference snapshots
 in the session context hook when explicitly activated. The manager generates

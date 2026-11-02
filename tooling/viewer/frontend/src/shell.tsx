@@ -4,6 +4,7 @@ import {
   BookOpen,
   ChevronRight,
   Folder,
+  Pencil,
   Pin,
   Route,
   Trash2,
@@ -31,7 +32,7 @@ import {
   FrameTitle,
 } from "@/components/reui/frame";
 import { Button } from "@/components/ui/button";
-import { ButtonGroup, ButtonGroupText } from "@/components/ui/button-group";
+import { ButtonGroup } from "@/components/ui/button-group";
 import {
   Collapsible,
   CollapsibleContent,
@@ -62,6 +63,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { optionalStorage, save, stored } from "./api";
+import { browserLanguage } from "./language";
 import { messages as t } from "./messages";
 export type ViewerSession = {
   id: string;
@@ -70,6 +72,7 @@ export type ViewerSession = {
   projectKey?: string;
   ticket: string;
   title: string;
+  localTitle?: boolean;
   createdAt: string;
   classification: "tracked" | "local" | "unknown";
   pinned?: boolean;
@@ -88,16 +91,19 @@ export type ViewerShellProps = {
   onPin?: () => void;
   onDelete?: () => void;
   onArchive?: () => void;
+  onRename?: () => void;
+  feedback?: ReactNode;
   showArchived?: boolean;
   onShowArchivedChange?: (show: boolean) => void;
   children?: ReactNode;
   panel?: ReactNode;
+  sessionHeader?: ReactNode;
   libraryFooter?: ReactNode;
   notices?: ReactNode;
   writing?: boolean;
   coldLoading?: boolean;
 };
-const spanish = navigator.language.startsWith("es");
+const spanish = browserLanguage() === "es";
 const copy = spanish
   ? {
       walkthroughs: "Recorridos",
@@ -106,11 +112,11 @@ const copy = spanish
       projects: "Proyectos",
       showArchived: "Mostrar archivados",
       hideArchived: "Ocultar archivados",
-      archive: "Archivar copia",
-      unarchive: "Restaurar copia",
+      archive: "Archivar sesión",
+      unarchive: "Restaurar sesión",
       actions: "Acciones de la sesión",
       statusDescription:
-        "Estado del trabajo declarado en el manifiesto del recorrido.",
+        "Estado declarado del trabajo. Cerrado no significa aprobado.",
       excluded: "Copias apartadas",
       excludedOnly:
         "Solo hay copias apartadas. Selecciona una abajo para conocer el motivo.",
@@ -126,9 +132,9 @@ const copy = spanish
       select: "Selecciona un recorrido",
       selectDescription:
         "Abre una sesión en la navegación para revisar su evidencia.",
-      pin: "Conservar",
-      unpin: "Dejar de conservar",
-      remove: "Borrar copia",
+      pin: "Conservar sesión",
+      unpin: "Dejar de conservar sesión",
+      remove: "Eliminar sesión",
       navigation: "Alternar navegación",
       navigationDescription: "Explora proyectos y sesiones.",
       tracked: "Versionado",
@@ -150,10 +156,10 @@ const copy = spanish
       projects: "Projects",
       showArchived: "Show archived",
       hideArchived: "Hide archived",
-      archive: "Archive copy",
-      unarchive: "Restore copy",
+      archive: "Archive session",
+      unarchive: "Restore session",
       actions: "Session actions",
-      statusDescription: "Work status declared in the walkthrough manifest.",
+      statusDescription: "Declared work status. Closed does not mean approved.",
       excluded: "Set-aside copies",
       excludedOnly:
         "Only set-aside copies are available. Select one below to see why.",
@@ -169,9 +175,9 @@ const copy = spanish
       select: "Select a walkthrough",
       selectDescription:
         "Open a session in the navigation to review its evidence.",
-      pin: "Keep",
-      unpin: "Stop keeping",
-      remove: "Delete copy",
+      pin: "Keep session",
+      unpin: "Stop keeping session",
+      remove: "Delete session",
       navigation: "Toggle navigation",
       navigationDescription: "Browse projects and sessions.",
       tracked: "Tracked",
@@ -209,8 +215,12 @@ function readNavigationPreferences(): NavigationPreferences {
 export function ActionButton({
   label,
   children,
+  description,
   ...props
-}: React.ComponentProps<typeof Button> & { label: string }) {
+}: React.ComponentProps<typeof Button> & {
+  label: string;
+  description?: string;
+}) {
   return (
     <Tooltip>
       <TooltipTrigger
@@ -226,11 +236,15 @@ export function ActionButton({
       >
         {children}
       </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
+      <TooltipContent>
+        {label}
+        {description ? `. ${description}` : ""}
+      </TooltipContent>
     </Tooltip>
   );
 }
 function sessionDisplayTitle(session: ViewerSession) {
+  if (session.localTitle) return session.title;
   if (!/^(?:#\d+|[a-z][a-z0-9]*-\d+)$/i.test(session.ticket))
     return session.title;
   const prefix = session.title.slice(0, session.ticket.length);
@@ -254,7 +268,7 @@ function SessionNavigationButton({
     <button
       type="button"
       data-session-key={session.id}
-      title={session.title}
+      title={`${session.title} — ${copy.sessionStatus[session.status ?? "unknown"]}. ${copy.statusDescription}`}
       className="session-navigation-link flex w-full min-w-0 items-start gap-2 text-left text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-sidebar-ring"
       aria-current={selectedId === session.id ? "page" : undefined}
       onClick={() => {
@@ -268,11 +282,13 @@ function SessionNavigationButton({
           );
       }}
     >
-      <span
-        aria-hidden="true"
-        data-session-status={session.status ?? "unknown"}
-        className="session-status-dot mt-1.5 size-1.5 shrink-0 rounded-full"
-      />
+      {
+        <span
+          aria-hidden="true"
+          data-session-status={session.status ?? "unknown"}
+          className="session-status-dot mt-1.5 size-1.5 shrink-0 rounded-full"
+        />
+      }
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex min-w-0 items-start gap-2">
           <span className="session-navigation-title min-w-0 flex-1 font-normal">
@@ -282,16 +298,11 @@ function SessionNavigationButton({
         </div>
         <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
           <span className="truncate">{session.ticket}</span>
-          {session.segments && (
-            <span className="shrink-0">
-              · {session.segments.length}{" "}
-              {session.segments.length === 1 ? t.segment : t.segments}
-            </span>
-          )}
           <span aria-hidden="true">·</span>
           <span className="shrink-0 tabular-nums">{session.createdAt}</span>
           <span className="sr-only">
-            {copy.sessionStatus[session.status ?? "unknown"]}
+            {copy.sessionStatus[session.status ?? "unknown"]}.{" "}
+            {copy.statusDescription}
           </span>
         </div>
       </div>
@@ -303,7 +314,6 @@ function Navigation({
   selectedId,
   state,
   onSelect,
-  onJump,
   onRetry,
   showArchived,
   onShowArchivedChange,
@@ -323,26 +333,15 @@ function Navigation({
   preferences: NavigationPreferences;
   onProjectOpenChange: (key: string, open: boolean) => void;
 }) {
-  const { setOpenMobile } = useSidebar();
   const navigationRef = useRef<HTMLDivElement>(null);
   const focusKey = useRef<string | undefined>(undefined);
   const [query, setQuery] = useState("");
   const matches = (session: ViewerSession) =>
     !query.trim() ||
-    (session.segments ?? [session]).some((segment) =>
-      `${segment.title} ${segment.ticket}`
-        .toLocaleLowerCase()
-        .includes(query.trim().toLocaleLowerCase()),
-    );
-  const normal = sessions.filter(
-    (session) =>
-      !session.excluded &&
-      session.classification !== "tracked" &&
-      matches(session),
-  );
-  const excluded = sessions.filter(
-    (session) => session.excluded || session.classification === "tracked",
-  );
+    `${session.title} ${session.ticket}`
+      .toLocaleLowerCase()
+      .includes(query.trim().toLocaleLowerCase());
+  const normal = sessions.filter(matches);
   useLayoutEffect(() => {
     if (
       focusKey.current &&
@@ -395,6 +394,7 @@ function Navigation({
             <div className="flex flex-col gap-2 p-2">
               <Input
                 type="search"
+                className="border-ring"
                 aria-label={t.search}
                 placeholder={t.search}
                 value={query}
@@ -443,9 +443,7 @@ function Navigation({
                 </Button>
               </div>
             ) : normal.length === 0 ? (
-              <p className="p-2 text-sm text-muted-foreground">
-                {copy.excludedOnly}
-              </p>
+              <p className="p-2 text-sm text-muted-foreground">{t.noMatches}</p>
             ) : (
               <SidebarMenu>
                 {projects.map((projectKey) => {
@@ -495,32 +493,6 @@ function Navigation({
                                 selectedId={selectedId}
                                 onSelect={onSelect}
                               />
-                              {query &&
-                                session.segments
-                                  ?.filter((segment) =>
-                                    `${segment.title} ${segment.ticket}`
-                                      .toLocaleLowerCase()
-                                      .includes(
-                                        query.trim().toLocaleLowerCase(),
-                                      ),
-                                  )
-                                  .map((segment) => (
-                                    <Button
-                                      key={segment.id}
-                                      type="button"
-                                      size="sm"
-                                      variant="ghost"
-                                      className="max-w-full justify-start"
-                                      onClick={() => {
-                                        onJump?.(segment.id);
-                                        setOpenMobile(false);
-                                      }}
-                                    >
-                                      <span className="truncate">
-                                        {segment.ticket} · {segment.title}
-                                      </span>
-                                    </Button>
-                                  ))}
                             </SidebarMenuItem>
                           ))}
                         </SidebarMenu>
@@ -533,31 +505,6 @@ function Navigation({
           </SidebarGroupContent>
         </SidebarGroup>
       </nav>
-      {excluded.length > 0 && (
-        <section aria-label={copy.excluded}>
-          <SidebarGroup>
-            <SidebarGroupLabel>
-              {copy.excluded} ({excluded.length})
-            </SidebarGroupLabel>
-            <SidebarGroupContent>
-              <p className="p-2 text-xs text-muted-foreground">
-                {copy.excludedDescription}
-              </p>
-              <SidebarMenu>
-                {excluded.map((session) => (
-                  <SidebarMenuItem key={session.id}>
-                    <SessionNavigationButton
-                      session={session}
-                      selectedId={selectedId}
-                      onSelect={onSelect}
-                    />
-                  </SidebarMenuItem>
-                ))}
-              </SidebarMenu>
-            </SidebarGroupContent>
-          </SidebarGroup>
-        </section>
-      )}
     </div>
   );
 }
@@ -567,15 +514,17 @@ export function ViewerShell({
   state,
   notice,
   onSelect,
-  onJump,
   onRetry,
   onPin,
   onDelete,
   onArchive,
+  onRename,
+  feedback,
   showArchived = false,
   onShowArchivedChange,
   children,
   panel,
+  sessionHeader,
   libraryFooter,
   notices,
   writing,
@@ -616,13 +565,16 @@ export function ViewerShell({
           </div>
         </SidebarHeader>
         <SidebarSeparator />
-        <SidebarContent tabIndex={0} aria-label={copy.walkthroughs}>
+        <SidebarContent
+          tabIndex={0}
+          role="region"
+          aria-label={copy.walkthroughs}
+        >
           <Navigation
             sessions={sessions}
             selectedId={selectedId}
             state={state}
             onSelect={onSelect}
-            onJump={onJump}
             onRetry={onRetry}
             showArchived={showArchived}
             onShowArchivedChange={onShowArchivedChange}
@@ -652,6 +604,103 @@ export function ViewerShell({
           </div>
           <Badge variant="outline">{copy.readOnly}</Badge>
         </header>
+        {coldLoading ? (
+          <div
+            data-slot="session-toolbar"
+            role="status"
+            className="shrink-0 border-b border-border p-4"
+          >
+            <span className="sr-only">{copy.loading}</span>
+            <Skeleton className="h-8 w-2/3" />
+          </div>
+        ) : sessionHeader ? (
+          sessionHeader
+        ) : (
+          <div
+            data-slot="session-toolbar"
+            className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 md:px-6"
+          >
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex min-w-0 flex-col gap-0.5">
+                <p className="text-xs text-muted-foreground">
+                  {selected
+                    ? `${selected.project} / ${selected.ticket}`
+                    : copy.readOnly}
+                </p>
+                <h1
+                  title={selected?.title}
+                  // biome-ignore lint/a11y/noNoninteractiveTabindex: The name is a deliberate keyboard-accessible horizontal reading region.
+                  tabIndex={0}
+                  aria-describedby="session-name-reading-hint"
+                  style={{
+                    whiteSpace: /\s/u.test(selected?.title ?? copy.library)
+                      ? "normal"
+                      : "nowrap",
+                  }}
+                  className="min-w-0 overflow-x-auto whitespace-normal break-normal text-lg font-semibold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                >
+                  {selected?.title ?? copy.library}
+                </h1>
+                <span id="session-name-reading-hint" className="sr-only">
+                  {t.nameReadingHint}
+                </span>
+                {selected && (
+                  <p className="text-xs text-muted-foreground">
+                    {selected.createdAt}
+                  </p>
+                )}
+              </div>
+            </div>
+            {selected && (onPin || onArchive || onDelete) && (
+              <ButtonGroup aria-label={copy.actions} aria-busy={writing}>
+                {onRename && (
+                  <ActionButton
+                    label={t.rename}
+                    disabled={writing}
+                    onClick={onRename}
+                  >
+                    <Pencil aria-hidden />
+                  </ActionButton>
+                )}
+                <ActionButton
+                  label={selected.archived ? copy.unarchive : copy.archive}
+                  disabled={!onArchive || writing}
+                  onClick={onArchive}
+                >
+                  {selected.archived ? (
+                    <ArchiveRestore aria-hidden />
+                  ) : (
+                    <Archive aria-hidden />
+                  )}
+                </ActionButton>
+                <ActionButton
+                  label={selected.pinned ? copy.unpin : copy.pin}
+                  description={t.keepHelp}
+                  aria-pressed={Boolean(selected.pinned)}
+                  disabled={!onPin || writing}
+                  onClick={onPin}
+                >
+                  <Pin aria-hidden />
+                </ActionButton>
+                <ActionButton
+                  label={copy.remove}
+                  disabled={!onDelete || writing}
+                  onClick={onDelete}
+                >
+                  <Trash2 aria-hidden />
+                </ActionButton>
+              </ButtonGroup>
+            )}
+          </div>
+        )}
+        {feedback && (
+          <div
+            data-slot="session-feedback"
+            className="shrink-0 px-4 py-2 md:px-6"
+          >
+            {feedback}
+          </div>
+        )}
         <div
           data-slot="viewer-canvas"
           aria-busy={coldLoading}
@@ -668,70 +717,6 @@ export function ViewerShell({
             </div>
           ) : (
             <>
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex min-w-0 flex-col gap-0.5">
-                    <p className="text-xs text-muted-foreground">
-                      {selected
-                        ? `${selected.project} / ${selected.ticket}`
-                        : copy.readOnly}
-                    </p>
-                    <h1 className="break-words text-lg font-semibold tracking-tight">
-                      {selected?.title ?? copy.library}
-                    </h1>
-                  </div>
-                </div>
-                {selected && (onPin || onArchive || onDelete) && (
-                  <ButtonGroup aria-label={copy.actions}>
-                    <Tooltip>
-                      <TooltipTrigger
-                        render={
-                          <ButtonGroupText
-                            className="border-border bg-transparent"
-                            tabIndex={0}
-                          />
-                        }
-                      >
-                        <span
-                          aria-hidden="true"
-                          data-session-status={selected.status ?? "unknown"}
-                          className="session-status-dot size-1.5 shrink-0 rounded-full"
-                        />
-                        <span>
-                          {copy.sessionStatus[selected.status ?? "unknown"]}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>{copy.statusDescription}</TooltipContent>
-                    </Tooltip>
-                    <ActionButton
-                      label={selected.archived ? copy.unarchive : copy.archive}
-                      disabled={!onArchive || writing}
-                      onClick={onArchive}
-                    >
-                      {selected.archived ? (
-                        <ArchiveRestore aria-hidden />
-                      ) : (
-                        <Archive aria-hidden />
-                      )}
-                    </ActionButton>
-                    <ActionButton
-                      label={selected.pinned ? copy.unpin : copy.pin}
-                      aria-pressed={Boolean(selected.pinned)}
-                      disabled={!onPin || writing}
-                      onClick={onPin}
-                    >
-                      <Pin aria-hidden />
-                    </ActionButton>
-                    <ActionButton
-                      label={copy.remove}
-                      disabled={!onDelete || writing}
-                      onClick={onDelete}
-                    >
-                      <Trash2 aria-hidden />
-                    </ActionButton>
-                  </ButtonGroup>
-                )}
-              </div>
               {notice && (
                 <Alert variant="warning" role="status">
                   <AlertTitle>{copy.readOnly}</AlertTitle>
@@ -741,109 +726,102 @@ export function ViewerShell({
                 </Alert>
               )}
               {notices}
-              <Frame spacing="default">
-                <FrameHeader>
-                  <FrameTitle>
-                    {selected ? copy.session : copy.walkthroughs}
-                  </FrameTitle>
-                  <FrameDescription>
-                    {selected?.createdAt ?? copy.description}
-                  </FrameDescription>
-                </FrameHeader>
-                <FramePanel>
-                  {panel ??
-                    (state === "loading" ? (
-                      <div
-                        role="status"
-                        aria-busy="true"
-                        className="flex flex-col gap-4"
-                      >
-                        <span className="sr-only">{copy.loading}</span>
-                        <Skeleton className="h-5 w-2/3" />
-                        <Skeleton className="h-4 w-1/2" />
-                        <Skeleton className="h-24 w-full" />
-                      </div>
-                    ) : state === "error" ? (
-                      <Alert variant="destructive">
-                        <AlertTitle>{copy.error}</AlertTitle>
-                        <AlertDescription>
-                          {copy.errorDescription}
-                        </AlertDescription>
-                        <AlertAction>
+              {!sessionHeader && (
+                <Frame spacing="default">
+                  <FrameHeader>
+                    <FrameTitle>
+                      {selected ? copy.session : copy.walkthroughs}
+                    </FrameTitle>
+                    <FrameDescription>
+                      {selected?.createdAt ?? copy.description}
+                    </FrameDescription>
+                  </FrameHeader>
+                  <FramePanel>
+                    {panel ??
+                      (state === "loading" ? (
+                        <div
+                          role="status"
+                          aria-busy="true"
+                          className="flex flex-col gap-4"
+                        >
+                          <span className="sr-only">{copy.loading}</span>
+                          <Skeleton className="h-5 w-2/3" />
+                          <Skeleton className="h-4 w-1/2" />
+                          <Skeleton className="h-24 w-full" />
+                        </div>
+                      ) : state === "error" ? (
+                        <Alert variant="destructive">
+                          <AlertTitle>{copy.error}</AlertTitle>
+                          <AlertDescription>
+                            {copy.errorDescription}
+                          </AlertDescription>
+                          <AlertAction>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={onRetry}
+                            >
+                              {copy.retry}
+                            </Button>
+                          </AlertAction>
+                        </Alert>
+                      ) : state === "empty" ? (
+                        <div
+                          role="status"
+                          className="flex flex-col items-start gap-3"
+                        >
+                          <BookOpen
+                            aria-hidden
+                            className="size-5 text-muted-foreground"
+                          />
+                          <h2 className="font-medium">{copy.empty}</h2>
+                          <p className="text-muted-foreground">
+                            {copy.emptyDescription}
+                          </p>
                           <Button
                             type="button"
-                            size="sm"
                             variant="outline"
+                            size="sm"
                             onClick={onRetry}
                           >
                             {copy.retry}
                           </Button>
-                        </AlertAction>
-                      </Alert>
-                    ) : state === "empty" ? (
-                      <div
-                        role="status"
-                        className="flex flex-col items-start gap-3"
-                      >
-                        <BookOpen
-                          aria-hidden
-                          className="size-5 text-muted-foreground"
-                        />
-                        <h2 className="font-medium">{copy.empty}</h2>
-                        <p className="text-muted-foreground">
-                          {copy.emptyDescription}
-                        </p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={onRetry}
-                        >
-                          {copy.retry}
-                        </Button>
-                      </div>
-                    ) : selected ? (
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge
-                          variant={
-                            selected.classification === "unknown"
-                              ? "warning-light"
-                              : "outline"
-                          }
-                        >
-                          {copy[selected.classification]}
-                        </Badge>
-                        <section
-                          aria-label={copy.sessionIdentifier}
-                          // biome-ignore lint/a11y/noNoninteractiveTabindex: This scroll region exposes the complete identifier to keyboard users.
-                          tabIndex={0}
-                          className="min-w-0 w-full overflow-x-auto whitespace-nowrap text-xs text-muted-foreground"
-                        >
-                          <code>{selected.id}</code>
-                        </section>
-                      </div>
-                    ) : (
-                      <div className="flex flex-col gap-3">
-                        <p>{copy.selectDescription}</p>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={onRetry}
-                        >
-                          {copy.retry}
-                        </Button>
-                      </div>
-                    ))}
-                </FramePanel>
-                {!selected && (
-                  <FrameFooter>
-                    <p className="text-xs text-muted-foreground">
-                      {copy.selectDescription}
-                    </p>
-                  </FrameFooter>
-                )}
-              </Frame>
+                        </div>
+                      ) : selected ? (
+                        <div className="flex flex-wrap items-center gap-2">
+                          <section
+                            aria-label={copy.sessionIdentifier}
+                            // biome-ignore lint/a11y/noNoninteractiveTabindex: This scroll region exposes the complete identifier to keyboard users.
+                            tabIndex={0}
+                            className="min-w-0 w-full overflow-x-auto whitespace-nowrap text-xs text-muted-foreground"
+                          >
+                            <code>{selected.id}</code>
+                          </section>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col gap-3">
+                          <p>{copy.selectDescription}</p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            onClick={onRetry}
+                          >
+                            {copy.retry}
+                          </Button>
+                        </div>
+                      ))}
+                  </FramePanel>
+                  {!selected && (
+                    <FrameFooter>
+                      <p className="text-xs text-muted-foreground">
+                        {copy.selectDescription}
+                      </p>
+                    </FrameFooter>
+                  )}
+                </Frame>
+              )}
               <section
                 id="document"
                 tabIndex={-1}

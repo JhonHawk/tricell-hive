@@ -70,7 +70,23 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 }
+/* Keep the installed neutral semantic palette available to portalled surfaces in both themes. */
 :root {
+  --background: oklch(1 0 0);
+  --sidebar: oklch(0.985 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --border: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --radius: 0.625rem;
+  color-scheme: light;
+}
+.dark {
   --background: oklch(0.145 0 0);
   --sidebar: oklch(0.17 0 0);
   --foreground: oklch(0.985 0 0);
@@ -82,7 +98,6 @@
   --border: oklch(1 0 0 / 10%);
   --ring: oklch(0.556 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --radius: 0.625rem;
   color-scheme: dark;
 }
 body {
@@ -99,52 +114,109 @@ body {
 }
 .viewer-shell *,
 [data-slot="dialog-content"],
+[data-slot="sheet-content"],
+[data-slot="alert-dialog-content"],
 [data-slot="dialog-content"] *,
 [data-slot="dialog-content"]::before,
 [data-slot="dialog-content"]::after,
 [data-slot="dialog-content"] *::before,
 [data-slot="dialog-content"] *::after,
+[data-slot="popover-content"],
+[data-slot="popover-content"] *,
+[data-slot="dropdown-menu-content"],
+[data-slot="dropdown-menu-content"] *,
+[data-slot="select-content"],
+[data-slot="select-content"] *,
 [data-slot="sheet-content"] *,
 [data-sidebar="sidebar"] * {
   box-sizing: border-box;
 }
-:is(.viewer-shell, [data-slot="dialog-content"])
-  :is(h1, h2, p):not(.walkthrough *) {
+:is(
+    .viewer-shell,
+    [data-slot="dialog-content"],
+    [data-slot="sheet-content"],
+    [data-slot="popover-content"],
+    [data-slot="dropdown-menu-content"],
+    [data-slot="select-content"]
+  )
+  :is(h1, h2, h3, h4, h5, h6, p, figure, blockquote, pre):not(.walkthrough *) {
   margin: 0;
 }
 .viewer-shell button:not(.walkthrough *),
 [data-slot="sheet-content"] button,
-[data-slot="dialog-content"] button {
+[data-slot="dialog-content"] button,
+[data-slot="popover-content"] button,
+[data-slot="dropdown-menu-content"] button,
+[data-slot="select-content"] button {
   cursor: pointer;
 }
-/* Reset only the application shell and its portalled navigation and Dialog. The report
+/* Reset the application shell and its portalled navigation, dialogs and menus. The report
    renderer deliberately keeps its own styles instead of Tailwind preflight. */
 @layer base {
+  :where([data-slot="popover-content"], [data-slot="dropdown-menu-content"])
+    :where(h1, h2, h3, h4) {
+    font-size: inherit;
+    font-weight: inherit;
+  }
   :where(button, input, select, textarea):not(.walkthrough *) {
     font: inherit;
   }
   :where(*, ::before, ::after):not(.walkthrough, .walkthrough *) {
     border-color: var(--border);
   }
-  :is(.viewer-shell, [data-sidebar="sidebar"], [data-slot="dialog-content"])
-    :where(ul):not(.walkthrough *) {
+  :is(
+      .viewer-shell,
+      [data-sidebar="sidebar"],
+      [data-slot="dialog-content"],
+      [data-slot="sheet-content"],
+      [data-slot="popover-content"],
+      [data-slot="dropdown-menu-content"],
+      [data-slot="select-content"]
+    )
+    :where(ul, ol):not(.walkthrough *) {
     margin: 0;
     padding: 0;
     list-style: none;
   }
-  :is(.viewer-shell, [data-sidebar="sidebar"], [data-slot="dialog-content"])
+  :is(
+      .viewer-shell,
+      [data-sidebar="sidebar"],
+      [data-slot="dialog-content"],
+      [data-slot="sheet-content"],
+      [data-slot="popover-content"],
+      [data-slot="dropdown-menu-content"],
+      [data-slot="select-content"]
+    )
     :where(button, a):not(.walkthrough *) {
     color: inherit;
     font: inherit;
     text-decoration: none;
   }
-  :is(.viewer-shell, [data-sidebar="sidebar"], [data-slot="dialog-content"])
+  :is(
+      .viewer-shell,
+      [data-sidebar="sidebar"],
+      [data-slot="dialog-content"],
+      [data-slot="sheet-content"],
+      [data-slot="popover-content"],
+      [data-slot="dropdown-menu-content"],
+      [data-slot="select-content"]
+    )
     :where(button):not(.walkthrough *) {
+    margin: 0;
+    padding: 0;
     border: 0 solid;
     background: transparent;
   }
 }
-:is(.viewer-shell, [data-sidebar="sidebar"], [data-slot="dialog-content"])
+:is(
+    .viewer-shell,
+    [data-sidebar="sidebar"],
+    [data-slot="dialog-content"],
+    [data-slot="sheet-content"],
+    [data-slot="popover-content"],
+    [data-slot="dropdown-menu-content"],
+    [data-slot="select-content"]
+  )
   [data-sidebar="menu-button"] {
   border: 0;
   cursor: pointer;
@@ -233,4 +305,18 @@ body {
 .walkthrough-embedded h2 {
   font-size: 1rem;
   margin-top: 1.5rem;
+}
+
+[data-slot="alert-dialog-content"],
+[data-slot="alert-dialog-content"] * {
+  box-sizing: border-box;
+}
+[data-slot="alert-dialog-content"] :is(h2, p) {
+  margin: 0;
+}
+@media print {
+  [data-slot="session-toolbar"],
+  [data-slot="session-feedback"] {
+    display: none;
+  }
 }

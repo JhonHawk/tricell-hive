@@ -32,51 +32,22 @@ type SyncResult struct {
 
 // RunOptions configures Run.
 type RunOptions struct {
-	// PollInterval is the time between scans (default 5 s); PurgeInterval
-	// the time between purges (default 1 h).
+	// PollInterval is the time between scans (default 5 s). PurgeInterval is
+	// a deprecated compatibility field and has no effect.
 	PollInterval, PurgeInterval time.Duration
 	// OnError, when set, receives failures of a scan or purge. They never
 	// stop Run.
 	OnError func(error)
 }
 
-// Run is the server's background loop. It calls Startup, purges, scans, then
-// repeats both on their intervals until ctx is cancelled (it then returns
-// nil). A failure in a pass goes to OnError and the loop continues.
+// Run validates and cleans owned v2 temporaries, then waits for cancellation.
+// API publication is the only ingestion path; no manifest scanner runs.
 func (s *Store) Run(ctx context.Context, o RunOptions) error {
-	if o.PollInterval <= 0 {
-		o.PollInterval = 5 * time.Second
-	}
-	if o.PurgeInterval <= 0 {
-		o.PurgeInterval = time.Hour
-	}
-	report := func(err error) {
-		if err != nil && ctx.Err() == nil && o.OnError != nil {
-			o.OnError(err)
-		}
-	}
 	if err := s.Startup(); err != nil {
 		return err
 	}
-	_, err := s.Purge()
-	report(err)
-	_, err = s.Sync(ctx)
-	report(err)
-	poll, purge := time.NewTicker(o.PollInterval), time.NewTicker(o.PurgeInterval)
-	defer poll.Stop()
-	defer purge.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-poll.C:
-			_, err := s.Sync(ctx)
-			report(err)
-		case <-purge.C:
-			_, err := s.Purge()
-			report(err)
-		}
-	}
+	<-ctx.Done()
+	return nil
 }
 
 // sessionKey identifies a copy: one per source folder and session id.
@@ -166,7 +137,7 @@ func hashFiles(root *os.Root, m *Manifest) (string, error) {
 }
 
 // install writes the copy of one source as sessions/<key>, replacing any
-// previous copy and carrying its pinned and archived flags over. The copy is
+// previous copy. Logical preferences are applied separately. The copy is
 // assembled in a temporary directory and swapped in with renames, so a reader sees the
 // old or the new copy, never a mix; Startup repairs a crash in between.
 func (s *Store) install(key, folder string, root *os.Root, m *Manifest, hash string, now time.Time) (Session, error) {
@@ -188,12 +159,11 @@ func (s *Store) install(key, folder string, root *os.Root, m *Manifest, hash str
 		return Session{}, errors.New("source changed while it was being copied; it will be retried")
 	}
 	final := s.sessionDir(key)
-	pinned, archived := false, false
+	mt := meta{Source: folder, ContentHash: hash, IngestedAt: now.UTC()}
 	if old, err := readMeta(final); err == nil {
-		pinned, archived = old.Pinned, old.Archived
+		mt.ProjectKey, mt.ProjectName = old.ProjectKey, old.ProjectName
 	}
-	mt := meta{Source: folder, ContentHash: hash, IngestedAt: now.UTC(), Pinned: pinned, Archived: archived}
-	if err := writeJSONAtomic(filepath.Join(tmp, "meta.json"), mt); err != nil {
+	if err := writeMeta(tmp, mt); err != nil {
 		return Session{}, err
 	}
 	old := filepath.Join(s.sessionsDir(), oldPrefix+key)
@@ -360,8 +330,8 @@ func (p *problemLog) add(repo int, path string, err error) {
 // sessions/<key>/ when the content is new or changed. Invalid sources are
 // listed as ingest errors and do not stop the pass; a source the user
 // deleted or that was purged stays out until its content changes; a source
-// whose manifest is older than the TTL is skipped; a registered repository
-// missing from disk is flagged absent and its copies are kept. Links are
+// of any age remains eligible; a registered repository missing from disk is
+// flagged absent and its copies are kept. Links are
 // never followed. A cancelled ctx commits what was done and returns its
 // error.
 //
@@ -371,150 +341,7 @@ func (p *problemLog) add(repo int, path string, err error) {
 // current is skipped without being read. The apply phase then takes the
 // mutex, re-checks tombstones and the current index, and copies.
 func (s *Store) Sync(ctx context.Context) (SyncResult, error) {
-	var res SyncResult
-	reg, err := s.readRegistryShared()
-	if err != nil {
-		return res, err
-	}
-	now := s.now()
-	s.noteRepositories(reg)
-	snap := s.current()
-	// Discover paths without reading manifests, then classify before cache or TTL.
-	paths := sessionSourcePaths(snap)
-	namesByRoot := make(map[string][]string)
-	for _, r := range reg.Repositories {
-		ws, names, _ := openWorkspace(r.Root)
-		if ws != nil {
-			ws.Close()
-		}
-		namesByRoot[r.Root] = names
-		for _, name := range names {
-			paths = append(paths, filepath.Join(r.Root, "_support", "workspace", name, manifestFile))
-		}
-	}
-	classification := s.classifySources(ctx, paths)
-	repos := repositoryStatuses(reg)
-	log := &problemLog{count: make([]int, len(reg.Repositories)), omitted: make([]int, len(reg.Repositories))}
-
-	batchSize, batchBytes := s.batchSize, s.batchBytes
-	if batchSize <= 0 {
-		batchSize = defaultBatchSize
-	}
-	if batchBytes <= 0 {
-		batchBytes = defaultBatchBytes
-	}
-	var cands []*candidate
-	var retained int64
-	closeBatch := func() {
-		for _, c := range cands {
-			if c.root != nil {
-				c.root.Close()
-			}
-		}
-		cands, retained = nil, 0
-	}
-	defer closeBatch()
-	// flush applies the batch under the mutex, then closes its roots, so a
-	// pass never keeps more than one bounded batch of open folders and raw
-	// manifests. Each batch is committed on its own.
-	flush := func() error {
-		if len(cands) == 0 {
-			return nil
-		}
-		if s.onBatch != nil {
-			s.onBatch(len(cands))
-		}
-		s.mu.Lock()
-		defer s.mu.Unlock()
-		d := s.current().clone()
-		for _, c := range cands {
-			if c.err != nil {
-				log.add(c.repo, c.problemPath, c.err)
-				continue
-			}
-			if err := s.apply(c, now, d, &res); err != nil {
-				log.add(c.repo, filepath.Join(c.folder, manifestFile), err)
-			}
-		}
-		s.classifySessions(d, classification)
-		closeBatch()
-		s.enrich(d)
-		return s.commit(d)
-	}
-	seen := map[string]bool{}
-	cancelled := ctx.Err()
-	var flushErr error
-	for i, r := range reg.Repositories {
-		if cancelled != nil {
-			break
-		}
-		if repos[i].Absent {
-			continue
-		}
-		ws, _, errs := openWorkspace(r.Root)
-		names := namesByRoot[r.Root]
-		for _, e := range errs {
-			log.add(i, e.Path, errors.New(e.Reason))
-		}
-		if ws != nil {
-			wsDir := filepath.Join(r.Root, "_support", "workspace")
-			for _, name := range names {
-				if cancelled = ctx.Err(); cancelled != nil {
-					break
-				}
-				folder := filepath.Join(wsDir, name)
-				seen[folder] = true
-				if classification[filepath.Join(folder, manifestFile)].Status == "tracked" {
-					continue
-				}
-				if c := s.inspect(ws, name, wsDir, now, snap); c != nil {
-					c.repo = i
-					cands = append(cands, c)
-					if c.m != nil {
-						retained += int64(len(c.m.Raw))
-					}
-					if len(cands) >= batchSize || retained >= batchBytes {
-						if err := flush(); err != nil && flushErr == nil {
-							flushErr = err
-						}
-					}
-				}
-			}
-			ws.Close()
-		}
-		if cancelled != nil {
-			break
-		}
-	}
-	if err := flush(); err != nil && flushErr == nil {
-		flushErr = err
-	}
-
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	d := s.current().clone()
-	s.classifySessions(d, classification)
-	d.Repositories = repos
-	for i, r := range reg.Repositories {
-		if log.omitted[i] > 0 {
-			log.items = append(log.items, IngestError{Path: r.Root, Reason: fmt.Sprintf("%d more ingest errors omitted", log.omitted[i])})
-		}
-	}
-	res.Errors = log.errors
-	if cancelled == nil {
-		s.pruneTombstones(d)
-		s.pruneFingerprints(seen)
-	}
-	d.Errors = append([]IngestError{}, log.items...)
-	s.enrich(d)
-	err = s.commit(d)
-	if cancelled != nil {
-		return res, cancelled
-	}
-	if flushErr != nil {
-		return res, flushErr
-	}
-	return res, err
+	return SyncResult{}, timelineFailure("unsupported_protocol", 409)
 }
 
 func (s *Store) readRegistryShared() (Registry, error) {
@@ -605,10 +432,6 @@ func (s *Store) inspect(ws *os.Root, name, wsDir string, now time.Time, snap *in
 	if !info.Mode().IsRegular() {
 		return fail(manifestPath, errors.New("walkthrough.json must be a regular file, not a link"))
 	}
-	if now.Sub(info.ModTime()) > s.ttl {
-		root.Close()
-		return nil
-	}
 	manifest := statOf(info)
 	if s.unchanged(folder, root, manifest, snap) {
 		root.Close()
@@ -655,13 +478,41 @@ func (s *Store) apply(c *candidate, now time.Time, d *indexData, res *SyncResult
 	if exists && d.Sessions[i].ContentHash == c.hash {
 		return nil
 	}
+	// Resolve the same project identity used by publication before touching disk.
+	probe := Session{Key: c.key, Source: c.folder, SessionID: c.m.SessionID, Host: c.m.SessionHost}
+	if exists {
+		probe = d.Sessions[i]
+		probe.SessionID, probe.Host = c.m.SessionID, c.m.SessionHost
+	}
+	identities := newIndexData()
+	identities.Sessions = []Session{probe}
+	s.enrich(identities)
+	resolved := identities.Sessions[0]
+	if s.timelineOwns(resolved.ProjectKey, resolved.Host, resolved.SessionID) {
+		return nil
+	}
+	group, groupErr := s.readGroup(identityOf(identities.Sessions[0]))
+	if groupErr != nil && !errors.Is(groupErr, fs.ErrNotExist) {
+		return fmt.Errorf("session preferences: %w", groupErr)
+	}
+	if groupErr == nil && group.DeletePending && len(groupMembers(d, group.Identity)) == 0 {
+		if err := s.clearPendingGroup(d, group); err != nil {
+			return err
+		}
+		groupErr = fs.ErrNotExist
+	}
 	sess, err := s.install(c.key, c.folder, c.root, c.m, c.hash, now)
 	if err != nil {
 		s.forget(c.folder)
 		return err
 	}
+	if groupErr == nil {
+		sess.Pinned, sess.Archived, sess.SessionTitle = group.Pinned, group.Archived, group.TitleOverride
+	}
 	d.dropTombstone(c.key)
 	if exists {
+		previous := d.Sessions[i]
+		sess.Repository, sess.ProjectKey, sess.ProjectName = previous.Repository, previous.ProjectKey, previous.ProjectName
 		d.Sessions[i] = sess
 		res.Replaced++
 		return nil

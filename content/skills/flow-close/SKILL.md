@@ -5,94 +5,57 @@ description: Close a work item and its session hygiene. Use when a work item rea
 
 # Close a work item and the session
 
-This skill grants no effect of its own. The global guidance authorizes the deletions it names (task temporaries, processes the task or its children started, merged work branches from this work or the user's earlier work and their clean worktrees) and the ticket state moves; everything else here follows the delivery answer already recorded for the work.
+When this work has a viewer session or a legacy walkthrough, follow [flow-walkthrough](../flow-walkthrough/SKILL.md) for its conditional stage, session and evidence close before cleanup.
 
-Before a report, read [reporting](references/reporting.md); before a user decision or manual validation request, read [questions](../flow-plan/references/questions.md). Before cleaning support artifacts, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). Before resolving settings needed for closure, read [project settings](../flow-plan/references/project-settings.md).
+The completion point is the merge into the base branch. When a human reviewer is assigned to the pull request, opening it is the completion point: the ticket stays in progress, and a later session that finds it merged runs this close.
 
-## Entry and exit
+1. When the work is integrated into the base branch, move its ticket to the state the project uses for that.
+2. Steps 1 and 2 are independent: run them together. Close an integrated change folder: merge each delta into `<Specs>/specs/<capability>/spec.md`, mark `proposal.md` completed, move the folder to `<Specs>/changes/archive/YYYY-MM-DD-<change-id>/`, and deliver that move as the delivery says.
+3. After the viewer close above, clean up as [Branch cleanup](#branch-cleanup) sets, stop the processes this work started, and remove its reproducible temporary files. Keep anything with uncommitted work or uncertain ownership.
+4. Write the final report as [Final report](#final-report) sets.
+5. Write the outcome to persistent memory.
+6. Ask the close question as [Close question](#close-question) sets.
 
-Enter at the completion point (integration by [flow-verify](../flow-verify/SKILL.md), or flow-build when verify is skipped; a later completion point a project declares follows [project settings](../flow-plan/references/project-settings.md#later-completion-point)), on abandonment, a pause, a hygiene request or the session's end; any of these enters directly. [flow-deploy](../flow-deploy/SKILL.md) is a separate stage after integration; after a promotion, only the cleanup below runs. Exit with the record closed, the cleanup done and the report.
+Close a work item once. After the close question is answered, act on the answer; do not run the close or repeat the final report again.
 
-## When to run it
+## Final report
 
-1. **Work item close:** the item reached its completion point (merged into the base branch with any required post-merge CI passed, pushed to the base branch under `direct-base`, or the working tree verified under `hold`), or it is abandoned or paused. Under `hold`, the ticket stays in progress and the delivery the user chose not to make is a reminder in the report, not a pending item. When the delivery hands the open pull request to a human reviewer, opening it is the completion point: the ticket stays in progress until the merge, and the report gives the merge as a reminder; the next session that sees the merge moves the ticket and closes the record.
-2. **Session end:** the user ends the session.
-3. **Explicit request:** the user asks for hygiene or cleanup. Run the parts of 1 and 2 that apply to the current state.
-4. **After a promotion:** run only [Clean up after a merge](#clean-up-after-a-merge) and step 4 of the work-item close, without a completion report or close question.
+Report the whole work item in one message, each part only when it has content:
 
-## Close a work item
+- **Integrated:** what changed and where: the pull request, the commits, the ticket's state.
+- **Resolved:** each acceptance criterion with how it was shown, and the corrections the user asked for.
+- **Omitted:** each check that was skipped or could not run, with its reason, including the CI-only jobs.
+- **Repaired:** the local environment repairs made, such as reinstalled dependencies or seeded data.
+- **Findings:** the defects not fixed, as [Findings](#findings) sets.
+- **Next:** what remains, with who owns it, and what comes next.
 
-Before these steps, follow [Close the current walkthrough](#close-the-current-walkthrough) when this work has one. Run these steps in order; the last one ends the turn.
+When the user asks to keep or share this report, or it exceeds what fits on one screen, offer a `flow-report` page as one option of the close question.
 
-1. **Tracker.** When the work was integrated, confirm the move the global ticket-state rule made then, or apply it now, for the ticket and each sub-issue the same work covers; under `hold`, a human-review route or a pause, leave it in progress; when abandoned, report the move back as a reminder.
-2. **Change record.** When the work has a change folder, close it as described in [Close the change record](#close-the-change-record).
-3. **Git cleanup.** Run [Clean up after a merge](#clean-up-after-a-merge) when you merged. When the change record goes to the base branch through a closing pull request, do this step after that publication, not before. Update the record of each worktree you removed, merged or abandoned, in the project's persistent memory, when one is available, to say it was removed, so no later session tries to resume it; write these records, with the recurrence counts of step 5, in one memory write after step 5 and before the report, also when no worktree was removed but counts changed; the answers to the findings question are saved later, when the user gives them, as [incidental findings](references/incidental-findings.md) sets.
-4. **Temporaries and processes.** Remove only reproducible temporary files this task created and no longer needs, and stop only the processes it or its children started, including those recorded when a child returned, as [check returned work](../flow-research/references/delegation.md#check-returned-work) sets; a recorded process is not of uncertain ownership. Keep prior material, unique evidence, and anything whose ownership or disposability is uncertain. Restore the local state the user relies on that this task changed, such as containers or services left pointing at a removed worktree, or a local development database behind migrations the work integrated: do it yourself rather than listing it for the user. First check that restoring loses none of the user's data; if it could, ask, stating what you checked.
-5. **Incidental findings.** Before listing, asking about or recording incidental findings, read and follow [incidental findings](references/incidental-findings.md); it holds how they are listed, asked about, answered and recorded.
-6. **Completion report.** Follow [reporting](references/reporting.md), with a cleanup line stating what was removed and what was kept, and why.
-7. **Close question.** Follow [Close question](#close-question), after the report.
+## Findings
+
+A finding is a defect the work found but did not fix: a review finding below P1, a UI defect that was already there, a test that already failed or fails intermittently (keep its error output), or anything else noticed on the way. Every finding carries one priority by its observable impact, whatever scale its source used: P0 blocks the release, an operation or a core flow for every input; P1 must be fixed before merge; P2 should be fixed but does not block; P3 is minor. A finding of P2 or higher with a concrete failure scenario is proposed; the rest are listed in one line each in the final report. P2 findings that share an area or a cause are proposed as one group that lists each member with its evidence; findings of P1 or higher are proposed one by one. Never open a ticket without the user's answer.
 
 ## Close question
 
-**Condition:** the turn completes a work item, after its report and closing items.
+Ask once, as the global guidance sets, with these options:
 
-**Actions:** ask the close question by reading and following [questions](../flow-plan/references/questions.md). This question replaces the Recommendations route question.
+- **End the session**: recommended when no proposed finding is P1 or higher and no plan is in progress.
+- **See the findings**, with their count and highest severity in the label, such as "See the 3 findings (1 P1)", and only when there are proposed findings: recommended when one is P1 or higher.
+- **Find the next ticket.**
 
-**Exceptions:** skip it when the user already answered it or explicitly asked to end, or the work was a mechanical change with no Pending item and no open topic without a destination. That report still carries its cleanup label, delivery state, and reminders. Investigation-only findings use [flow-research](../flow-research/SKILL.md#deliver-the-finding)'s route question instead.
+**See the findings** shows one table, after searching the tracker for an existing ticket for each finding:
 
-For every applicable close question, name the next ticket and the reason, such as a blocker, a P0 or P1 defect found, or the next ticket of the same module. You choose it; an option that asks the user to name it does not count. Do not recommend as the next ticket a ticket opened from this work item's findings, during the build or this close, or a finding proposed in this close, unless it is P0 or P1 or blocks the next ticket or a pending item of the work.
+| ID | Finding | Detail and impact | Recommendation |
+| --- | --- | --- | --- |
+| H1 | <what, with its severity> | <where, how it fails, who it affects, the evidence> | <open a ticket, ignore, or fix now, with its reason> |
 
-Offer one option per route, each continue option naming the flow it starts and the recommended ticket's estimated size, which the size condition of [questions](../flow-plan/references/questions.md) sets, given once for the question instead of on every option; when the next work continues a plan in progress, that size is its remaining tasks with their time range:
+Recommend fixing now when the fix changes only files this work already changed and adds no task, dependency or effect; a ticket when it is larger or belongs to another area; ignoring when it did not recur or has no impact. After the table, ask the findings as a round, as the global guidance's «Questions and routes» section sets: each finding is one question with the options fix now, ticket and ignore, its recommendation starred; the user may answer all at once or a few at a time, such as "ok" or "H1 ticket, H2 ignore". A ticket answer opens it unless one already exists; a fix-now answer goes through `flow-build` with the code review of the fix and its checks; an ignore answer is noted in the report. When every finding has an answer, ask the close question again without this option.
 
-- Continue now with the recommended ticket when the loaded context helps it.
-- Take that ticket to a new session when the context no longer helps.
-- End the session, stating what stays open if it ends: pending items with their owner, and reminders.
+**Find the next ticket** runs `flow-status` with the cut of the tickets that reuse this session's context: the files, modules and decisions it touched. Leave out the tickets another session has in progress and those opened from this work's findings, unless they are P0 or P1. Recommend the one that reuses the most context, with its task count (from its description or checklist); choosing it starts `flow-research` to assess it.
 
-When the round also asks about incidental findings, [incidental findings](references/incidental-findings.md) sets their option to resolve them in this work and when a route that depends on those answers waits for a later turn.
+## Branch cleanup
 
-**Condition:** the next work continues a plan still in progress.
-
-**Actions:** the continue option covers all of its remaining tasks, and names in one line the effects they need that are not yet authorized, grouped as [effect authorization](../flow-plan/references/effect-authorization.md) sets, so one answer authorizes them. A critical effect, such as changing DNS or creating a resource that spends money, keeps its own question as that reference sets, and a production deployment keeps its own question unless the user already named it, and the build still stops for a blocking decision.
-
-**Condition:** the next ticket reuses neither the closed item's files nor its decisions, or the session has used more than half of its context window.
-
-**Actions:** recommend the new session, but never for a plan still in progress or after the user chose to continue it in this session; never split a flow that is still in progress.
-
-## Close the current walkthrough
-
-When completing, abandoning or pausing the current work with a `walkthrough.json`, or removing its source evidence unit after closure, read and follow [walkthrough close](references/walkthrough-close.md).
-
-## Close the change record
-
-Run this after the code is integrated and any required post-merge CI has passed. While the work runs, `tasks.md` and the status in `proposal.md` are updated on disk only; nobody versions the folder before this step.
-
-1. For each delta file, apply it to the current-requirements home. Use the delta formats in [change records](../flow-plan/references/change-records.md#requirement-deltas) and, for a product map, [product map projects](../flow-plan/references/change-records.md#product-map-projects). In `<specs>/specs/`: apply ADDED requirements to `<specs>/specs/<capability>/spec.md`, creating it when absent, with the delta's preamble as its title and Purpose; replace each MODIFIED requirement block by name; delete each REMOVED block. Edit only those blocks, leave the rest of the file untouched, and review the resulting diff. Then check every delta: each ADDED or MODIFIED requirement appears in the spec with the same text, apart from whitespace, and no `### Requirement:` heading of a REMOVED one remains; on a product-map page, the new text of each ADDED or MODIFIED rule, without its marker or quoted current rule, is present and each REMOVED rule is gone. Fix the spec where it does not match.
-2. Set the change's status in `proposal.md` to Completed only after that check passes, the final phase in [the plan format](../flow-plan/references/plan-format.md), citing the commit or pull request that integrated it.
-3. Move the folder to `<specs>/changes/archive/YYYY-MM-DD-<change-id>`, using the closing date. Use `mv` when the folder was never tracked by Git, and `git mv` only when it is already versioned. Never recreate the files by rewriting them.
-4. Update `<specs>/project.md` only if the phase, an open decision, or a blocker changed.
-5. Version the record once, as the cases below say. Stage by named path, never a directory (see [git-workflow](../git-workflow/SKILL.md)).
-
-Versioning cases:
-
-- **Specs repository with `Delivery: direct-base`:** one commit and one push with the deltas applied and the folder already in `archive/`, after the code is integrated and, when it applies, the post-merge CI has passed.
-- **Specs inside the code repository, or in a separate specs repository that does not declare `Delivery: direct-base`:** the commit goes to the base branch by the closing route the user chose in the delivery question, or the one a declared `Delivery` value sets: a direct push, or a small closing pull request without dedicated review, with the named merger. Act only on the recorded answer, or on the route a declared `Delivery` value sets, with you as the merger, as [delivery decisions](../flow-plan/references/delivery-decisions.md) sets; repository policy does not replace either. Order: return to the base branch and fast-forward it, make the record commit, publish it by the chosen route, then clean up as [Clean up after a merge](#clean-up-after-a-merge) sets, including the closing pull request's branch. If no closing route was recorded and none follows from a declared `Delivery` value, ask for it before publishing.
-- **`hold`:** the record stays unversioned and is reported as a reminder, like the code.
-- **Human-review route:** close the record after the reviewer merges, by the same closing route; until then, report it as a reminder with the open pull request.
-- **Pause:** do not archive. Leave the folder on disk with its current status and report it as pending.
-- **Abandon:** archive without applying deltas, renaming its delta folder with an `unapplied-` prefix (`unapplied-specs/`, `unapplied-product/`) so no check reads it as applied, with the reason in `proposal.md`, and version it by the same closing route as a normal close.
-
-## Clean up after a merge
-
-After verifying a merge you performed, clean up its branches in this order. The global guidance grants the deletion of merged work branches, from this work or the user's earlier work, and their clean worktrees.
-
-1. **Check eligibility.** Exclude the base and environment branches. Confirm that no open pull request uses the work branch as its base; if one does, keep the branch and report it. `gh pr merge --delete-branch` skips that check, so delete separately. Inspect the branch's local head and every worktree that checks it out. Preserve worktrees with uncommitted or untracked files, or still-needed material; if one must remain on the work branch, keep that branch too. A branch merged by squash or rebase counts as merged only when `gh pr view <branch> --json state,headRefOid` reports `MERGED` and its `headRefOid` equals the branch's local head. Delete a remote branch only when its remote head equals that pull request's `headRefOid` or is an ancestor of the base, so commits pushed after the merge are not lost. Otherwise, a branch with unmerged commits is a decision, not noise: report its work (`git log <base>..<branch>`) and recommend integrating it or ask; never delete it.
-2. **Leave the work branch.** Return the retained checkout to the base branch without overwriting changes. If the work branch is checked out in a separate eligible clean worktree, leave that directory and remove that worktree before attempting to delete the branch. Do not force worktree removal. If a checkout or retained worktree still uses the branch, keep the branch and report why.
-3. **Refresh the base.** Run `git fetch --prune` and fast-forward the base. After a promotion, also fast-forward each local environment branch it moved, such as `qa`, when it is behind its remote and has no commits of its own.
-4. **Delete eligible branches.** Delete the merged remote branch unless the host already removed it, then the local branch with `git branch -d`, which refuses unmerged work. Use `git branch -D` only for a squash- or rebase-merged branch whose pull request and unchanged local head passed step 1; never rewrite history to make a branch eligible.
-5. **Check the remaining branches.** Apply the same checks and order to merged preview or temporary branches the work created and this repository's other local and remote branches whose pull requests the authenticated user authored (`gh api user`) and are merged into the base. Report the branches checked, the worktrees and branches removed, the fast-forwards, and the branches left with their reasons.
-
-## End the session
-
-1. Before deleting the UI review unit, follow [Close the current walkthrough](#close-the-current-walkthrough) when applicable. Apply [artifact layout and retention](../workspace-conventions/references/artifact-layout.md) for the user's selected walkthrough output and its dependent resources, optional HTML, individual files and paused work; remove or update links to material deleted under that rule. Name the retained unit's folder in the handoff.
-2. Stop the task's processes that are still running, as step 4 of the work-item close sets.
-3. List the reminders the user still controls, and what stays open with its owner.
+1. Exclude the base and environment branches, and keep a branch that an open pull request uses as its base.
+2. A branch merged by squash or rebase counts as merged only when `gh pr view <branch> --json state,headRefOid` reports `MERGED` and its `headRefOid` equals the local head. A branch with unmerged commits is never deleted: report it with `git log <base>..<branch>`.
+3. Return the checkout to the base branch, and remove the branch's clean worktree before deleting the branch; never force the removal. Keep a worktree with uncommitted or untracked files, and its branch.
+4. Delete the merged remote branch, then the local one with `git branch -d`; use `git branch -D` only for a squash- or rebase-merged branch that passed step 2.

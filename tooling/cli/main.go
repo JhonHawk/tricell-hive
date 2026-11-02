@@ -3,6 +3,7 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -99,7 +100,9 @@ func printHelp() {
 
 // readOnlyOptions parses the --home and --state-dir flags that the read-only
 // commands share, and fails when the state directory cannot be one: findings
-// never fail these commands, only their own errors do.
+// never fail these commands, only their own errors do. The one exception is
+// hive doctor's Project section, whose blocking findings runDoctor turns into
+// an error.
 func readOnlyOptions(fs *flag.FlagSet, args []string) (management.Options, bool, error) {
 	var o management.Options
 	fs.StringVar(&o.Home, "home", "", "explicit synthetic home; ignores host environment paths")
@@ -133,12 +136,20 @@ func runDoctor(args []string, w io.Writer, deps doctorDeps) error {
 	if !ok {
 		return err
 	}
-	if project == "" {
+	explicit := project != ""
+	if !explicit {
 		if project, err = os.Getwd(); err != nil {
 			return err
 		}
 	}
-	renderDoctorText(collectDoctor(o, project, deps), w)
+	report := collectDoctor(o, project, deps)
+	renderDoctorText(report, w)
+	// Only the Project section fails the command (D6-A): a blocking finding in
+	// a section that exists, and, for an explicit --project, a missing file or
+	// section, or a path that cannot be checked (D10-A, D11-A), so harness-audit can tell that its write did not land.
+	if report.Project.Blocking || (explicit && (report.Project.Absent || report.Project.Unchecked || report.Project.Err != "")) {
+		return errors.New(projectBlockingMessage)
+	}
 	return nil
 }
 
@@ -371,5 +382,5 @@ func printVoiceSpan(label string, s *management.VoiceSpan) {
 }
 
 func printViewHelp(w io.Writer) {
-	fmt.Fprintln(w, "hive view start [--port N] [--ttl D] [--home DIR] [--state-dir DIR]  (start the local walkthrough viewer server)\nhive view stop|open [--home DIR] [--state-dir DIR]  (stop it, open it in the browser)\nhive view status [--dir DIR] [--home DIR] [--state-dir DIR]  (print JSON status; --dir confirms the current source revision and its session status)\nhive view register [--dir DIR] [--home DIR] [--state-dir DIR]  (add a Git repository, or the workspace that holds DIR's _support/workspace, to the viewer; needs no server)\nhive view serve [--port N] [--ttl D] [--home DIR] [--state-dir DIR]  (run the server in the foreground)")
+	fmt.Fprintln(w, "hive view start [--port N] [--home DIR] [--state-dir DIR]  (start the local viewer; manual retention, no age expiry)\nhive view stop [--home DIR] [--state-dir DIR]\nhive view open [--session-id ID [--event-id ID]] [--home DIR] [--state-dir DIR]  (open the library or an exact API target)\nhive view status [--home DIR] [--state-dir DIR]  (print protocol v3 work and repository status)\nhive view register [--dir DIR] [--home DIR] [--state-dir DIR]  (register a repository/workspace; needs no server)\nhive view serve [--port N] [--home DIR] [--state-dir DIR]  (run in the foreground; old --ttl is deprecated and ignored)\nhive view contract [--operation NAME]  (offline JSON protocol, usage, schemas, limits and examples)\nhive view session|producer|ticket|delivery|candidate|task|wait|event|stage|artifact|document ...  (native protocol v3; local management and recovery use the browser; read `hive view contract` for exact commands and --json FILE|-) ")
 }

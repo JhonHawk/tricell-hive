@@ -29,6 +29,7 @@ type viewFixture struct {
 	stateDir string
 	launched []int
 	opened   []string
+	hivePort bool // start and serve keep the default port instead of --port 0
 }
 
 func newViewFixture(t *testing.T) *viewFixture {
@@ -70,11 +71,26 @@ func (f *viewFixture) deps() viewDeps {
 	}
 }
 
+// args appends --state-dir and, so that tests never hold the user's viewer
+// port, --port 0 to a start or serve that names no port.
+func (f *viewFixture) args(args ...string) []string {
+	args = append(args, "--state-dir", f.stateDir)
+	if f.hivePort || len(args) == 0 || (args[0] != "start" && args[0] != "serve") {
+		return args
+	}
+	for _, a := range args {
+		if a == "--port" || strings.HasPrefix(a, "--port=") {
+			return args
+		}
+	}
+	return append(args, "--port", "0")
+}
+
 // view runs `hive view <args> --state-dir <dir>` and returns its output.
 func (f *viewFixture) view(args ...string) (string, error) {
 	f.t.Helper()
 	var buf bytes.Buffer
-	err := runView(append(args, "--state-dir", f.stateDir), &buf, f.deps())
+	err := runView(f.args(args...), &buf, f.deps())
 	return buf.String(), err
 }
 
@@ -228,7 +244,7 @@ func TestViewStartStatusStopLifecycle(t *testing.T) {
 	}
 	run := func(args ...string) (string, error) {
 		var buf bytes.Buffer
-		err := runView(append(args, "--state-dir", f.stateDir), &buf, deps)
+		err := runView(f.args(args...), &buf, deps)
 		return buf.String(), err
 	}
 
@@ -330,9 +346,64 @@ func TestViewStartStatusStopLifecycle(t *testing.T) {
 	}
 }
 
-func TestViewStartTTLReachesHealthAndStore(t *testing.T) {
+func TestViewStartDefaultsToTheHivePort(t *testing.T) {
+	probe, err := net.Listen("tcp4", fmt.Sprintf("127.0.0.1:%d", viewDefaultPort))
+	if err != nil {
+		t.Skipf("port %d is in use on this machine: %v", viewDefaultPort, err)
+	}
+	probe.Close()
 	f := newViewFixture(t)
-	f.mustView("start", "--ttl", "1h")
+	f.hivePort = true
+	out := f.mustView("start")
+	if strings.Contains(out, "busy") && f.info().Port != viewDefaultPort {
+		f.mustView("stop")
+		t.Skipf("another process took port %d during the test", viewDefaultPort)
+	}
+	if got := f.info().Port; got != viewDefaultPort {
+		t.Fatalf("default port = %d, want %d\n%s", got, viewDefaultPort, out)
+	}
+	if strings.Contains(out, "busy") {
+		t.Fatalf("start reported a busy port: %s", out)
+	}
+	f.mustView("stop")
+
+	// --port 0 still asks for a free port.
+	out = f.mustView("start", "--port", "0")
+	if got := f.info().Port; got == viewDefaultPort || got <= 0 {
+		t.Fatalf("--port 0 took port %d\n%s", got, out)
+	}
+	f.mustView("stop")
+}
+
+func TestViewStartFallsBackWhenTheHivePortIsBusy(t *testing.T) {
+	// Hold the default port on the wildcard address, which a 127.0.0.1 bind
+	// would shadow on macOS; when another process holds it, it is busy anyway.
+	if ln, err := net.Listen("tcp4", fmt.Sprintf("0.0.0.0:%d", viewDefaultPort)); err == nil {
+		t.Cleanup(func() { ln.Close() })
+	}
+	f := newViewFixture(t)
+	f.hivePort = true
+	out := f.mustView("start")
+	if got := f.info().Port; got == viewDefaultPort || got <= 0 {
+		t.Fatalf("start with %d busy took port %d\n%s", viewDefaultPort, got, out)
+	}
+	if !strings.Contains(out, fmt.Sprintf("port %d is busy", viewDefaultPort)) {
+		t.Fatalf("start did not say the default port was busy: %s", out)
+	}
+	f.mustView("stop")
+
+	// An explicit port never falls back.
+	if out, err := f.view("start", "--port", fmt.Sprint(viewDefaultPort)); err == nil {
+		t.Fatalf("start --port %d succeeded on a busy port: %s", viewDefaultPort, out)
+	}
+}
+
+func TestViewLegacyTTLIsIgnoredWithManualRetention(t *testing.T) {
+	f := newViewFixture(t)
+	out := f.mustView("start", "--ttl", "1h")
+	if !strings.Contains(out, "deprecated and ignored") {
+		t.Fatal("missing TTL compatibility warning")
+	}
 	code, body := f.get("/api/health", true)
 	if code != http.StatusOK {
 		t.Fatalf("health = %d", code)
@@ -341,17 +412,17 @@ func TestViewStartTTLReachesHealthAndStore(t *testing.T) {
 	if err := json.Unmarshal(body, &h); err != nil {
 		t.Fatal(err)
 	}
-	if h["ttl"] != "1h0m0s" {
+	if h["ttl"] != "0s" {
 		t.Fatalf("health ttl = %v", h["ttl"])
 	}
-	if f.info().TTL != "1h0m0s" {
+	if f.info().TTL != "0s" {
 		t.Fatalf("server.json ttl = %q", f.info().TTL)
 	}
 	_, body = f.get("/api/index", true)
 	var v struct {
 		TTLSeconds int64 `json:"ttl_seconds"`
 	}
-	if err := json.Unmarshal(body, &v); err != nil || v.TTLSeconds != 3600 {
+	if err := json.Unmarshal(body, &v); err != nil || v.TTLSeconds != 0 {
 		t.Fatalf("index ttl_seconds = %d (%v)", v.TTLSeconds, err)
 	}
 	if _, err := f.view("start", "--ttl", "soon"); err == nil {
@@ -390,48 +461,31 @@ func TestViewServesRegisteredRepositoryEndToEnd(t *testing.T) {
 	f.mustView("register", "--dir", repo)
 	f.mustView("start")
 
-	type indexView struct {
-		Projects []struct {
-			Key, Name string
-			Tickets   []struct {
-				Sessions []struct {
-					Source string `json:"source"`
-				}
-			}
-		}
-		Errors []struct{ Path, Message string }
+	// Old valid and invalid manifests remain source evidence, never v2 input.
+	code, body := f.get("/api/index", true)
+	var index struct {
+		ProtocolVersion  int                            `json:"protocol_version"`
+		TimelineSessions []viewer.TimelineAPIIndexEntry `json:"timeline_sessions"`
+		Errors           []any                          `json:"errors"`
 	}
-	var v indexView
-	deadline := time.Now().Add(6 * time.Second) // two 1 s intervals plus slack
-	for {
-		_, body := f.get("/api/index", true)
-		v = indexView{}
-		if err := json.Unmarshal(body, &v); err != nil {
-			t.Fatal(err)
-		}
-		if len(v.Projects) > 0 && len(v.Errors) > 0 {
-			break
-		}
-		if time.Now().After(deadline) {
-			t.Fatalf("index never showed the walkthrough and the error: %s", body)
-		}
-		time.Sleep(100 * time.Millisecond)
+	if code != 200 || json.Unmarshal(body, &index) != nil || index.ProtocolVersion != 3 || len(index.TimelineSessions) != 0 || len(index.Errors) != 0 {
+		t.Fatal("legacy manifest was ingested")
 	}
-	p := v.Projects[0]
-	if p.Name != "Demo Project" || p.Key != "github.com/acme/demo" {
-		t.Fatalf("grouping = key %q name %q, want the Hive project and the normalized remote", p.Key, p.Name)
+	raw, _ := json.Marshal(viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "cli-create", Source: viewer.TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "cli-v2"}, Title: "Published v2 work", Summary: "Real API path", Tickets: []viewer.TimelineTicketInput{}})
+	var out bytes.Buffer
+	if err := runViewTimeline([]string{"session", "create", "--state-dir", f.stateDir, "--json", "-"}, &out, bytes.NewReader(raw)); err != nil {
+		t.Fatal(err)
 	}
-	found := false
-	for _, tk := range p.Tickets {
-		for _, s := range tk.Sessions {
-			found = found || s.Source == good
-		}
+	var response viewer.TimelineSessionResponse
+	if err := json.Unmarshal(out.Bytes(), &response); err != nil {
+		t.Fatal(err)
 	}
-	if !found {
-		t.Fatalf("valid/final (%s) is not listed: %+v", good, p)
+	if response.SchemaVersion != 3 || response.Session.ProjectKey != "github.com/acme/demo" || response.Session.ProjectName != "Demo Project" {
+		t.Fatal("wrong v3 identity")
 	}
-	if code, _ := f.get("/api/health", true); code != http.StatusOK {
-		t.Fatalf("server stopped answering after an invalid fixture: %d", code)
+	code, body = f.get("/api/index", true)
+	if code != 200 || json.Unmarshal(body, &index) != nil || len(index.TimelineSessions) != 1 {
+		t.Fatal("publication absent from index")
 	}
 	f.mustView("stop")
 }
@@ -474,7 +528,7 @@ func TestViewOpenNeedsARunningServer(t *testing.T) {
 func TestViewStopNeverSignalsWithoutAMatchingHealth(t *testing.T) {
 	f := newViewFixture(t)
 	vdir := filepath.Join(f.stateDir, "viewer")
-	if err := os.MkdirAll(vdir, 0o700); err != nil {
+	if err := viewer.PrepareState(f.stateDir); err != nil {
 		t.Fatal(err)
 	}
 	lock, err := viewer.AcquireLock(filepath.Join(vdir, "server.lock"), false)
@@ -614,14 +668,14 @@ func TestViewHiveProjectReaderRefusesOversizeAndLinks(t *testing.T) {
 func TestViewServeRetriesALockHeldMomentarily(t *testing.T) {
 	f := newViewFixture(t)
 	p := newViewPaths(f.stateDir)
-	if err := os.MkdirAll(p.dir, 0o700); err != nil {
+	if err := viewer.PrepareState(f.stateDir); err != nil {
 		t.Fatal(err)
 	}
 	probe, err := viewer.AcquireLock(p.lock, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	pid, err := defaultViewLauncher([]string{"view", "serve", "--state-dir", f.stateDir}, p.log)
+	pid, err := defaultViewLauncher([]string{"view", "serve", "--state-dir", f.stateDir, "--port", "0"}, p.log)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -768,5 +822,24 @@ func TestViewAccessCodeNeverFollowsRedirect(t *testing.T) {
 	_, err := viewAccessCode(serverInfo{Port: srv.Listener.Addr().(*net.TCPAddr).Port, Token: "fixture-token-0123456789"})
 	if err == nil || targetCalls != 0 {
 		t.Fatal("issuance must reject redirects without forwarding credentials")
+	}
+}
+
+func TestViewIndexRequiresLeanV3Envelope(t *testing.T) {
+	for _, body := range []string{`{"projects":[]}`, `{"protocol_version":1,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[]}`, `{"protocol_version":3,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[],"projects":[]}`, `{"protocol_version":3,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[]} {}`} {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(body)) }))
+		_, err := viewIndex(serverInfo{Port: server.Listener.Addr().(*net.TCPAddr).Port, Token: "fixture-token"})
+		server.Close()
+		if err == nil {
+			t.Fatal("incompatible index accepted")
+		}
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"protocol_version":3,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[]}`))
+	}))
+	defer server.Close()
+	index, err := viewIndex(serverInfo{Port: server.Listener.Addr().(*net.TCPAddr).Port, Token: "fixture-token"})
+	if err != nil || index.ProtocolVersion != 3 || index.TimelineSessions == nil {
+		t.Fatal("valid v2 index rejected", err)
 	}
 }

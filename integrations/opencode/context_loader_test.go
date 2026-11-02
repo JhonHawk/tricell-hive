@@ -70,7 +70,7 @@ func runContextLoaderScript(t *testing.T, script string) {
 			t.Fatal(err)
 		}
 	}
-	files["content/skills/flow-plan/references/plan-review.md"] = []byte("Regenerated reference\n")
+	files["content/skills/flow-plan/SKILL.md"] = []byte("Regenerated reference\n")
 	reloaded, _, err := RenderContextLoader(source, files)
 	if err != nil {
 		t.Fatal(err)

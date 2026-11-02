@@ -65,7 +65,7 @@ func TestRegistryAddIsIdempotentAndWritesNothingTheSecondTime(t *testing.T) {
 	if string(before) != string(after) {
 		t.Fatal("registry content changed on an idempotent add")
 	}
-	if got := readRegistryFile(t, state); len(got.Repositories) != 1 || got.Version != 1 {
+	if got := readRegistryFile(t, state); len(got.Repositories) != 1 || got.Version != 2 {
 		t.Fatalf("registry = %+v", got)
 	}
 }
@@ -136,7 +136,7 @@ func TestRegistryCorruptFileIsReportedAndLeftAlone(t *testing.T) {
 	if data, _ := os.ReadFile(file); string(data) != "{broken" {
 		t.Fatalf("corrupt registry overwritten: %q", data)
 	}
-	os.WriteFile(file, []byte(`{"version":2,"repositories":[]}`), 0o600)
+	os.WriteFile(file, []byte(`{"version":99,"repositories":[]}`), 0o600)
 	if _, err := ReadRegistry(state); err == nil {
 		t.Fatal("unknown registry version accepted")
 	}
@@ -151,7 +151,7 @@ func TestRegistryMissingFileReadsAsEmpty(t *testing.T) {
 
 func TestRegistryWaitsForTheCrossProcessLock(t *testing.T) {
 	state, repo := t.TempDir(), newRepo(t)
-	if err := os.MkdirAll(filepath.Join(state, "viewer"), 0o700); err != nil {
+	if err := PrepareState(state); err != nil {
 		t.Fatal(err)
 	}
 	lock, err := AcquireLock(filepath.Join(state, "viewer", "lock"), true)

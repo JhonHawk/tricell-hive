@@ -49,38 +49,18 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 	const global = "content/guidance/global.md"
 	const skills = "content/skills/"
 	// Predicates are explicit scenarios, not a transitive inventory of links.
-	common := []string{global, skills + "flow-close/references/reporting.md"}
-	question := append(append([]string{}, common...), skills+"flow-plan/references/questions.md")
+	common := []string{global}
+	question := common
 	cycle := append(append([]string{}, question...),
 		skills+"flow-plan/SKILL.md", skills+"flow-build/SKILL.md", skills+"flow-close/SKILL.md",
-		skills+"flow-research/SKILL.md", // planning's exploration/delegation criterion
-		skills+"flow-verify/SKILL.md", skills+"flow-verify/references/review-and-gates.md",
-		skills+"flow-plan/references/project-settings.md",
-		skills+"flow-plan/references/change-records.md",
-		skills+"flow-plan/references/plan-format.md",
-		skills+"flow-build/references/plan-execution.md",
-		skills+"flow-build/references/tdd.md",
-		skills+"flow-plan/references/plan-review.md",
-		skills+"flow-plan/references/delivery-decisions.md",
-		skills+"flow-build/references/verification.md",
-		skills+"flow-research/references/delegation.md",
-		skills+"workspace-conventions/references/artifact-layout.md",
+		skills+"flow-research/SKILL.md", skills+"flow-verify/SKILL.md",
 		"content/agents/review/hive-review-plan.md",
 		"content/agents/development/hive-build-backend.md",
 		"content/agents/quality/hive-verify-task.md",
-		// Several readers require these resources; union excludes repeats.
-		skills+"flow-close/references/reporting.md", skills+"flow-plan/references/plan-review.md",
 	)
+	// Minimal skills (skills-rebuild): sources absent from the baseline commit.
 	moved := map[string]bool{
-		skills + "flow-close/references/reporting.md":                  true,
-		skills + "flow-plan/references/questions.md":                   true,
-		skills + "flow-plan/references/project-settings.md":            true,
-		skills + "flow-build/references/plan-execution.md":             true,
-		skills + "flow-build/references/tdd.md":                        true,
-		skills + "flow-verify/SKILL.md":                                true,
-		skills + "flow-verify/references/review-and-gates.md":          true,
-		skills + "flow-research/references/delegation.md":              true,
-		skills + "workspace-conventions/references/artifact-layout.md": true,
+		skills + "flow-verify/SKILL.md": true,
 	}
 	scenarios := []struct {
 		name, predicate string

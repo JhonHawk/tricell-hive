@@ -39,7 +39,6 @@ func TestVoicePreambleKeepsHiveRulesFirst(t *testing.T) {
 		// What a voice never changes.
 		"The first sentence carries the result",
 		"labeled sections",
-		"plain everyday words",
 		"gloss",
 		"without flattery",
 		"session language",

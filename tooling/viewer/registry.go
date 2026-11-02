@@ -13,13 +13,13 @@ import (
 	"tricell-hive/integrations/target"
 )
 
-const registryVersion = 1
+const registryVersion = 2
 
 // ErrNotGitRepository is returned by RegisterRepository for a directory that
 // is neither inside a Git working tree nor inside a _support/workspace folder.
 var ErrNotGitRepository = errors.New("not inside a Git repository or a _support/workspace folder")
 
-// Registry is viewer/registry.json: the repositories the server scans.
+// Registry is viewer/registry.json: the roots authorized for v2 publication.
 type Registry struct {
 	Version      int          `json:"version"`
 	Repositories []Repository `json:"repositories"`
@@ -106,7 +106,7 @@ func ReadRegistry(stateDir string) (Registry, error) {
 }
 
 func readRegistry(vdir string) (Registry, error) {
-	data, err := os.ReadFile(filepath.Join(vdir, "registry.json"))
+	data, err := readStateFile(filepath.Join(vdir, "registry.json"), maxIndexBytes)
 	if errors.Is(err, os.ErrNotExist) {
 		return Registry{Version: registryVersion}, nil
 	}
@@ -125,6 +125,13 @@ func readRegistry(vdir string) (Registry, error) {
 	if r.Version != registryVersion {
 		return Registry{}, fmt.Errorf("registry.json: unsupported version %d", r.Version)
 	}
+	seen := map[string]bool{}
+	for _, repo := range r.Repositories {
+		if !filepath.IsAbs(repo.Root) || filepath.Clean(repo.Root) != repo.Root || seen[repo.Root] || repo.AddedAt.IsZero() {
+			return Registry{}, timelineFailure("invalid_storage", 500)
+		}
+		seen[repo.Root] = true
+	}
 	return r, nil
 }
 
@@ -142,7 +149,7 @@ func registerRepository(vdir, dir string, now time.Time) (RegisterResult, error)
 	if err != nil {
 		return RegisterResult{}, err
 	}
-	if err := os.MkdirAll(vdir, 0o700); err != nil {
+	if err := initializeState(filepath.Dir(vdir)); err != nil {
 		return RegisterResult{}, err
 	}
 	lock, err := AcquireLock(filepath.Join(vdir, "lock"), true)
@@ -150,6 +157,9 @@ func registerRepository(vdir, dir string, now time.Time) (RegisterResult, error)
 		return RegisterResult{}, err
 	}
 	defer lock.Release()
+	if err := ValidateState(filepath.Dir(vdir)); err != nil {
+		return RegisterResult{}, err
+	}
 	reg, err := readRegistry(vdir)
 	if err != nil {
 		return RegisterResult{}, err

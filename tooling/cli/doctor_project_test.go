@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -208,6 +209,15 @@ func TestHiveSectionBaseBranch(t *testing.T) {
 	}
 }
 
+func TestHiveSectionBaseBranchThatCannotBeCheckedOnlyWarns(t *testing.T) {
+	timeout := func(string, ...string) (string, error) { return "", errors.New("git timed out") }
+	v := validateHiveSection(t.TempDir(), "## Hive\n- Project: p\n- Base branch: main\n- Tracker: t\n- Specs: .\n", timeout)
+	mustContain(t, strings.Join(v.Lines, "\n"), "Base branch: main could not be checked")
+	if v.Blocking {
+		t.Errorf("a base branch that could not be checked blocks:\n%s", strings.Join(v.Lines, "\n"))
+	}
+}
+
 // recordingGit is a gitRunner that records its calls and answers by script.
 type recordingGit struct {
 	mu    sync.Mutex
@@ -226,7 +236,7 @@ func TestHiveSectionRejectsDashAndReflogBranchesWithoutCallingGit(t *testing.T) 
 	for _, bad := range []string{"-x", "--help", "@{-1}", "main@{upstream}"} {
 		rec := &recordingGit{}
 		content := "## Hive\n- Project: p\n- Base branch: " + bad + "\n- Tracker: t\n- Specs: .\n"
-		lines := validateHiveSection(root, content, rec.run)
+		lines := validateHiveSection(root, content, rec.run).Lines
 		mustContain(t, strings.Join(lines, "\n"), "Base branch: "+bad+" is not a valid branch name")
 		if len(rec.calls) != 0 {
 			t.Fatalf("%q called git: %q", bad, rec.calls)
@@ -234,7 +244,7 @@ func TestHiveSectionRejectsDashAndReflogBranchesWithoutCallingGit(t *testing.T) 
 	}
 	// A plausible name does reach git, with a fixed argument vector.
 	rec := &recordingGit{}
-	lines := validateHiveSection(root, "## Hive\n- Project: p\n- Base branch: main\n- Tracker: t\n- Specs: .\n", rec.run)
+	lines := validateHiveSection(root, "## Hive\n- Project: p\n- Base branch: main\n- Tracker: t\n- Specs: .\n", rec.run).Lines
 	mustContain(t, strings.Join(lines, "\n"), "Valid")
 	want := [][]string{
 		{root, "check-ref-format", "--branch", "main"},
@@ -257,7 +267,7 @@ func TestHiveSectionUnknownKeyAndOptionalValues(t *testing.T) {
 	mustContain(t, text, "Colour: unknown key")
 	mustNotContain(t, text, "Valid")
 	// The known keys are named once, however many keys are unknown.
-	known := "Known keys: Project, Base branch, Tracker, Specs, Environments, Review, Delivery, Hive guidance"
+	known := "Known keys: Project, Base branch, Tracker, Specs, Environments, Delivery, Completion, Hive guidance"
 	mustContain(t, text, known)
 	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Colour: blue\n- Shape: round\n- Specs:", 1))
 	text = projectText(t, root)
@@ -270,41 +280,69 @@ func TestHiveSectionUnknownKeyAndOptionalValues(t *testing.T) {
 
 	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Delivery: pr\n- Hive guidance: optional\n- Specs:", 1))
 	text = projectText(t, root)
-	mustContain(t, text, `Delivery: expected one of "direct-base", "automatic", "interactive", found "pr"`, `Hive guidance: expected "required", found "optional"`)
+	mustContain(t, text, `Delivery: expected "direct-base", found "pr"`, `Hive guidance: expected "required", found "optional"`)
 	mustNotContain(t, text, "Valid")
 
-	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Delivery: direct-base\n- Hive guidance: required\n- Environments: a → b\n- Review: /code-review\n- Specs:", 1))
-	mustContain(t, projectText(t, root), "Valid", "Delivery: direct-base", "Hive guidance: required", "Review: /code-review")
+	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Delivery: direct-base\n- Hive guidance: required\n- Environments: a → b\n- Completion: To Deploy on origin/a · Done on origin/b\n- Specs:", 1))
+	mustContain(t, projectText(t, root), "Valid", "Delivery: direct-base", "Hive guidance: required", "Completion: To Deploy on origin/a · Done on origin/b")
 }
 
-func TestDoctorProjectAcceptsDeliveryModes(t *testing.T) {
+func TestDoctorProjectDeliveryAcceptsOnlyDirectBase(t *testing.T) {
 	root := projectRepoWithSpecs(t, validHiveSection)
-	for _, mode := range []string{"direct-base", "automatic", "interactive"} {
-		writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Delivery: "+mode+"\n- Specs:", 1))
-		text := projectText(t, root)
-		mustContain(t, text, "Valid", "Delivery: "+mode)
-		mustNotContain(t, text, "Delivery: expected")
-	}
-	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Delivery: pr\n- Specs:", 1))
+	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Delivery: direct-base\n- Specs:", 1))
 	text := projectText(t, root)
-	mustContain(t, text, `Delivery: expected one of "direct-base", "automatic", "interactive", found "pr"`)
-	mustNotContain(t, text, "Valid")
+	mustContain(t, text, "Valid", "Delivery: direct-base")
+	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Delivery: pr\n- Specs:", 1))
+	text = projectText(t, root)
+	mustContain(t, text, `Delivery: expected "direct-base", found "pr"`)
+	mustNotContain(t, text, "Valid", "retired")
 }
 
-func TestDoctorProjectChecksUIVerificationValues(t *testing.T) {
+// A retired key or Delivery value warns, names how to remove it, and is not an
+// unknown key. The value of a retired key is never judged.
+func TestDoctorProjectWarnsOnEachRetiredKeyWithoutBlocking(t *testing.T) {
 	root := projectRepoWithSpecs(t, validHiveSection)
-	cases := []struct {
-		value string
-		valid bool
-	}{{"full", true}, {"functional", true}, {"none", true}, {"partial", false}}
+	cases := []struct{ line, key, subject string }{
+		{"Review: /code-review", "Review", "Review:"},
+		{"UI verification: full", "UI verification", "UI verification:"},
+		{"UI verification: partial", "UI verification", "UI verification:"},
+		{"Delivery: automatic", "Delivery", "Delivery: automatic is"},
+		{"Delivery: interactive", "Delivery", "Delivery: interactive is"},
+	}
 	for _, c := range cases {
-		writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- UI verification: "+c.value+"\n- Specs:", 1))
+		t.Run(c.line, func(t *testing.T) {
+			writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- "+c.line+"\n- Specs:", 1))
+			sec := collectProject(root, doctorDeps{})
+			text := projectText(t, root)
+			mustContain(t, text, c.subject+" retired; Hive asks it each session, and the old value only informs the recommended option — remove it with hive project set --unset "+c.key+" or run harness-audit")
+			mustNotContain(t, text, "unknown key", "Known keys:", "Valid")
+			if sec.Blocking {
+				t.Fatalf("a retired setting must not block:\n%s", text)
+			}
+		})
+	}
+}
+
+func TestDoctorProjectChecksTheShapeOfCompletion(t *testing.T) {
+	root := projectRepoWithSpecs(t, validHiveSection)
+	for value, ok := range map[string]bool{
+		"To Deploy on origin/development · Done on origin/qa": true,
+		"Merged on main · Released on origin/master":          true,
+		"Done":                          false,
+		"To Deploy on main, Done on qa": false,
+		"":                              false,
+	} {
+		writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Completion: "+value+"\n- Specs:", 1))
+		sec := collectProject(root, doctorDeps{})
 		text := projectText(t, root)
-		if c.valid {
-			mustContain(t, text, "Valid", "UI verification: "+c.value)
-			mustNotContain(t, text, "UI verification: expected")
+		mustNotContain(t, text, "unknown key")
+		if sec.Blocking {
+			t.Fatalf("Completion %q must never block:\n%s", value, text)
+		}
+		if ok {
+			mustContain(t, text, "Valid")
 		} else {
-			mustContain(t, text, `UI verification: expected one of "full", "functional", "none", found "partial"`)
+			mustContain(t, text, "Completion: expected \"<state> on <ref> · <state> on <ref>\"")
 			mustNotContain(t, text, "Valid")
 		}
 	}
@@ -406,11 +444,11 @@ func TestHiveSectionGitNotFoundIsAnErrorNotAFinding(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 // projectSettingsSection returns the canonical settings declaration, split into
-// prose lines and lines inside fenced code blocks. The global kernel links to
-// this reference rather than repeating the keys and example.
+// prose lines and lines inside fenced code blocks. It lives in the global
+// guidance, which every session loads.
 func projectSettingsSection(t *testing.T) (prose, code []string) {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join("..", "..", "content", "skills", "flow-plan", "references", "project-settings.md"))
+	data, err := os.ReadFile(filepath.Join("..", "..", "content", "guidance", "global.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -419,7 +457,7 @@ func projectSettingsSection(t *testing.T) (prose, code []string) {
 		trimmed := strings.TrimSpace(line)
 		switch {
 		case !fenced && strings.HasPrefix(line, "## "):
-			in = strings.TrimSpace(strings.TrimPrefix(line, "## ")) == "Declare settings"
+			in = strings.TrimSpace(strings.TrimPrefix(line, "## ")) == "Project settings"
 			continue
 		case !in:
 			continue
@@ -489,10 +527,40 @@ func TestHiveSettingKeysRequiredSet(t *testing.T) {
 	if got := strings.Join(required, ","); got != "Project,Base branch,Tracker,Specs" {
 		t.Fatalf("required keys: %s", got)
 	}
-	for _, name := range []string{"Environments", "Review", "Delivery", "Hive guidance", "UI verification"} {
+	for _, name := range []string{"Environments", "Delivery", "Completion", "Hive guidance"} {
 		if !knownHiveKey(name) {
 			t.Errorf("optional key %q is missing", name)
 		}
+	}
+	for _, name := range []string{"Review", "UI verification"} {
+		if knownHiveKey(name) {
+			t.Errorf("retired key %q must not be a known key", name)
+		}
+	}
+}
+
+// The retired keys and Delivery values the manager warns about are the ones
+// project-settings.md names on its «Retired keys:» line.
+func TestRetiredHiveKeysMatchTheGuidance(t *testing.T) {
+	prose, _ := projectSettingsSection(t)
+	var line string
+	for _, l := range prose {
+		if strings.HasPrefix(l, "Retired keys:") {
+			line = l
+		}
+	}
+	if line == "" {
+		t.Fatal("project-settings.md has no line starting \"Retired keys:\"")
+	}
+	var sentence string
+	sentence, _, _ = strings.Cut(line, ".")
+	var got []string
+	for _, m := range regexp.MustCompile("`([^`]+)`").FindAllStringSubmatch(sentence, -1) {
+		got = append(got, m[1])
+	}
+	want := append(append(append([]string{}, retiredHiveKeys...), "Delivery"), retiredDeliveryValues...)
+	if strings.Join(got, "|") != strings.Join(want, "|") {
+		t.Fatalf("guidance names %q as retired, the manager %q", got, want)
 	}
 }
 
@@ -523,4 +591,68 @@ func TestCheckProjectReportsAFileAsNotADirectoryWithoutCallingGit(t *testing.T) 
 		t.Fatalf("section = %+v", sec)
 	}
 	mustNotContain(t, strings.Join(sec.Lines, "\n"), outsideGitLine)
+}
+
+// writeChangeFile writes content under <root>/_support/openspec/changes/<rel>.
+func writeChangeFile(t *testing.T, root, rel, content string) {
+	t.Helper()
+	p := filepath.Join(root, "_support", "openspec", "changes", filepath.FromSlash(rel))
+	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestDoctorProjectChangeRecordChecksWarnWithoutBlocking(t *testing.T) {
+	proposal := "# P\n\n- AC1 — one\n- AC2 — two\n- AC3 — three\n"
+	cases := []struct {
+		name    string
+		files   map[string]string
+		want    []string
+		notWant []string
+	}{
+		{"covered set", map[string]string{"good-change/proposal.md": proposal, "good-change/tasks.md": "**Closes:** AC1, AC2\n**Closes:** AC3\n"}, nil, []string{"Closes", "kebab"}},
+		{"missing AC", map[string]string{"good-change/proposal.md": proposal, "good-change/tasks.md": "**Closes:** AC1, AC3\n"},
+			[]string{`Specs: change "good-change": AC2 in proposal.md not named by any **Closes:** line in tasks.md`}, nil},
+		{"closes with extra words and ranges", map[string]string{"good-change/proposal.md": proposal, "good-change/tasks.md": "**Closes:** AC1 (forma), AC2–AC3 (UI)\n"}, nil, []string{"Closes"}},
+		{"slash and short range", map[string]string{"good-change/proposal.md": proposal, "good-change/tasks.md": "**Closes:** AC1/AC2-3\n"}, nil, []string{"Closes"}},
+		{"folder without tasks", map[string]string{"good-change/proposal.md": proposal}, nil, []string{"Closes"}},
+		{"non-kebab folder", map[string]string{"Bad_Change/notes.md": "x"},
+			[]string{`Specs: change folder "Bad_Change" is not English kebab-case`}, nil},
+		{"bad archive name", map[string]string{"archive/2026-09-25-ok-name/x.md": "x", "archive/old-thing/x.md": "x", "archive/2026-9-1-late/x.md": "x"},
+			[]string{`Specs: archived change "old-thing" does not match YYYY-MM-DD-<kebab-case>`, `Specs: archived change "2026-9-1-late" does not match`},
+			[]string{`"2026-09-25-ok-name"`, "kebab-case (lowercase"}},
+		{"archive itself is not a change", map[string]string{"archive/2026-09-25-ok/x.md": "x"}, nil, []string{"kebab", "archived"}},
+		{"no changes folder", nil, nil, []string{"kebab", "Closes", "archived"}},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			root := projectRepoWithSpecs(t, validHiveSection)
+			for rel, content := range c.files {
+				writeChangeFile(t, root, rel, content)
+			}
+			sec := collectProject(root, doctorDeps{})
+			text := projectText(t, root)
+			if sec.Blocking {
+				t.Fatalf("change record warnings must not block:\n%s", text)
+			}
+			mustContain(t, text, c.want...)
+			mustNotContain(t, text, c.notWant...)
+			if len(c.want) == 0 {
+				mustContain(t, text, "Valid")
+			} else {
+				mustNotContain(t, text, "Valid")
+			}
+		})
+	}
+}
+
+func TestDoctorProjectChangeChecksIgnoreAMissingSpecsDirectory(t *testing.T) {
+	root := newProjectRepo(t)
+	writeAgents(t, root, validHiveSection) // Specs points at a directory that does not exist
+	text := projectText(t, root)
+	mustContain(t, text, "Specs: _support/openspec is not an existing directory")
+	mustNotContain(t, text, "kebab", "Closes", "archived")
 }

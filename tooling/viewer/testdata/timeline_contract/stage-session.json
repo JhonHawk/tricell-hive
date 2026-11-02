@@ -1,0 +1,176 @@
+{
+  "documents": [
+    {
+      "document_id": "doc-plan",
+      "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+      "sha256": "19724eda6e0f542a9d45ca11957a204f759c0d0cb13548d422982976d53117f6",
+      "size": 29,
+      "media_type": "text/markdown",
+      "received_at": "2026-10-31T20:00:00Z",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      }
+    }
+  ],
+  "current_stage_event_id": "plan-2",
+  "schema_version": 3,
+  "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+  "project_key": "example.com/fixture/project",
+  "project_name": "CAM fixture",
+  "source": {
+    "project_root": "/fixture/project",
+    "host": "codex",
+    "native_session_id": "native-session-alpha"
+  },
+  "version": 7,
+  "title": "Profile and chat",
+  "summary": "Improve profile spacing and chat filters.",
+  "state": "active",
+  "archived": false,
+  "pinned": false,
+  "created_at": "2026-10-31T18:20:00-06:00",
+  "updated_at": "2026-10-31T18:26:00-06:00",
+  "validation_count": 0,
+  "tickets": [
+    {
+      "key": "COM-1",
+      "url": "https://example.com/issues/COM-1",
+      "title": "Profile spacing",
+      "ticket_id": "ticket-1",
+      "external_scope": "https://example.test/tracker",
+      "external_id": "COM-1"
+    },
+    {
+      "key": "COM-2",
+      "url": "https://example.com/issues/COM-2",
+      "title": "Chat filters",
+      "ticket_id": "ticket-2",
+      "external_scope": "https://example.test/tracker",
+      "external_id": "COM-2"
+    }
+  ],
+  "events": [
+    {
+      "event_id": "plan-1",
+      "sequence": 1,
+      "version": 2,
+      "created_at": "2026-10-31T20:01:00Z",
+      "updated_at": "2026-10-31T20:01:30Z",
+      "origin": "agent_reported",
+      "kind": "stage",
+      "title": "Plan",
+      "summary": "Declared stage",
+      "ticket_refs": [],
+      "stage": "plan",
+      "stage_state": "completed",
+      "started_at": "2026-10-31T20:01:00Z",
+      "occurred_at": "2026-10-01T00:00:00Z",
+      "finished_at": "2026-10-31T20:01:30Z",
+      "document_snapshots": [
+        {
+          "document_revision_id": "rev-1",
+          "status": "complete",
+          "created_at": "2026-10-31T20:01:30Z",
+          "tabs": [
+            {
+              "label": "Proposal",
+              "document_id": "doc-plan"
+            }
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "document_key": "plan"
+        }
+      ],
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Declared lifecycle change"
+    },
+    {
+      "event_id": "build-1",
+      "sequence": 2,
+      "version": 2,
+      "created_at": "2026-10-31T20:02:00Z",
+      "updated_at": "2026-10-31T20:02:30Z",
+      "origin": "agent_reported",
+      "kind": "stage",
+      "title": "Build",
+      "summary": "Declared stage",
+      "ticket_refs": [],
+      "stage": "build",
+      "stage_state": "completed",
+      "started_at": "2026-10-31T20:02:00Z",
+      "occurred_at": "2026-10-01T00:00:00Z",
+      "finished_at": "2026-10-31T20:02:30Z",
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Declared lifecycle change"
+    },
+    {
+      "event_id": "plan-2",
+      "sequence": 3,
+      "version": 2,
+      "created_at": "2026-10-31T20:03:00Z",
+      "updated_at": "2026-10-31T20:03:30Z",
+      "origin": "agent_reported",
+      "kind": "stage",
+      "title": "Plan",
+      "summary": "Declared stage",
+      "ticket_refs": [],
+      "stage": "plan",
+      "stage_state": "in_progress",
+      "started_at": "2026-10-31T20:03:00Z",
+      "occurred_at": "2026-10-01T00:00:00Z",
+      "related_event_id": "plan-1",
+      "document_snapshots": [
+        {
+          "document_revision_id": "rev-2-draft",
+          "status": "draft",
+          "created_at": "2026-10-31T20:03:30Z",
+          "tabs": [
+            {
+              "label": "Proposal",
+              "document_id": "doc-plan"
+            }
+          ],
+          "actor": {
+            "kind": "native_producer",
+            "producer_id": "producer-original"
+          },
+          "document_key": "plan",
+          "predecessor_revision_id": "rev-1"
+        }
+      ],
+      "actor": {
+        "kind": "native_producer",
+        "producer_id": "producer-original"
+      },
+      "reason": "Declared lifecycle change"
+    }
+  ],
+  "artifacts": [],
+  "producers": [
+    {
+      "producer_id": "producer-original",
+      "source": {
+        "project_root": "/fixture/project",
+        "host": "codex",
+        "native_session_id": "native-session-alpha"
+      },
+      "joined_at": "2026-10-31T18:20:00-06:00"
+    }
+  ],
+  "foreground_producer_id": "producer-original",
+  "pending_join_requests": [],
+  "tasks": [],
+  "waits": [],
+  "deliveries": [],
+  "candidates": []
+}

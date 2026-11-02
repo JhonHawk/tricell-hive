@@ -84,6 +84,8 @@ type serverInfo struct {
 	TTL      string `json:"ttl"`
 	StateDir string `json:"state_dir"`
 	Started  string `json:"started"`
+	Revision string `json:"revision,omitempty"`
+	Modified bool   `json:"modified,omitempty"`
 }
 
 func (i serverInfo) url() string { return fmt.Sprintf("http://127.0.0.1:%d", i.Port) }
@@ -105,12 +107,18 @@ func newViewPaths(state string) viewPaths {
 // viewFlags are the flags beyond --home and --state-dir; each subcommand
 // registers the ones it accepts.
 type viewFlags struct {
-	port int
-	ttl  string
-	dir  string
+	port      int
+	portSet   bool // --port was given, so a busy port is an error
+	ttl       string
+	dir       string
+	sessionID string
+	eventID   string
 }
 
 func runView(args []string, w io.Writer, deps viewDeps) error {
+	if len(args) > 0 && isTimelineViewCommand(args[0]) {
+		return runViewTimeline(args, w, os.Stdin)
+	}
 	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h" || args[0] == "help") {
 		printViewHelp(w)
 		return nil
@@ -123,13 +131,16 @@ func runView(args []string, w io.Writer, deps viewDeps) error {
 	var f viewFlags
 	switch sub {
 	case "start", "serve":
-		fs.IntVar(&f.port, "port", 0, "TCP port on 127.0.0.1 (default: a free port)")
-		fs.StringVar(&f.ttl, "ttl", "", "how long an unpinned copy lives, e.g. 72h (default 14 days)")
+		fs.IntVar(&f.port, "port", viewDefaultPort, "TCP port on 127.0.0.1; 0 picks a free port")
+		fs.StringVar(&f.ttl, "ttl", "", "deprecated compatibility option; ignored (retention is manual)")
 	case "register":
 		fs.StringVar(&f.dir, "dir", "", "directory inside the repository to register (default: the current directory)")
 	case "status":
 		fs.StringVar(&f.dir, "dir", "", "walkthrough source folder to confirm against the running viewer")
-	case "stop", "open":
+	case "open":
+		fs.StringVar(&f.sessionID, "session-id", "", "target an API viewer session")
+		fs.StringVar(&f.eventID, "event-id", "", "target an event within --session-id")
+	case "stop":
 	default:
 		return fmt.Errorf("unknown view subcommand %q", sub)
 	}
@@ -137,6 +148,11 @@ func runView(args []string, w io.Writer, deps viewDeps) error {
 	if !ok {
 		return err
 	}
+	fs.Visit(func(fl *flag.Flag) {
+		if fl.Name == "port" {
+			f.portSet = true
+		}
+	})
 	_, state, err := management.NormalizeOptions(o)
 	if err != nil {
 		return err
@@ -145,6 +161,9 @@ func runView(args []string, w io.Writer, deps viewDeps) error {
 		return err
 	}
 	p := newViewPaths(state)
+	if f.ttl != "" {
+		fmt.Fprintln(w, "Warning: --ttl is deprecated and ignored; viewer retention is manual.")
+	}
 	switch sub {
 	case "start":
 		return viewStart(p, f, w, deps)
@@ -155,6 +174,9 @@ func runView(args []string, w io.Writer, deps viewDeps) error {
 	case "status":
 		return viewStatus(p, w, f.dir)
 	case "open":
+		if f.sessionID != "" || f.eventID != "" {
+			return viewOpenTimelineTarget(p, w, deps, f.sessionID, f.eventID)
+		}
 		return viewOpen(p, w, deps)
 	default:
 		return viewRegister(p, f, w)
@@ -169,7 +191,30 @@ func parseViewTTL(raw string) (time.Duration, error) {
 	if err != nil || d <= 0 {
 		return 0, fmt.Errorf("invalid --ttl %q: use a positive duration such as 72h", raw)
 	}
-	return d, nil
+	return 0, nil
+}
+
+// viewDefaultPort spells HIVE on a phone keypad.
+const viewDefaultPort = 4483
+
+// listenView binds the port. A port is busy when the bind fails with
+// EADDRINUSE or when a connection to it answers: on macOS a 127.0.0.1 bind
+// succeeds over another program listening on the wildcard address and would
+// shadow it. A busy --port fails; a busy default falls back to a free port.
+func listenView(f viewFlags, w io.Writer) (net.Listener, error) {
+	if f.port != 0 {
+		addr := net.JoinHostPort("127.0.0.1", fmt.Sprint(f.port))
+		if conn, err := net.DialTimeout("tcp4", addr, viewHealthLimit); err == nil {
+			conn.Close()
+		} else if ln, err := viewer.Listen(f.port); !errors.Is(err, syscall.EADDRINUSE) {
+			return ln, err
+		}
+		if f.portSet {
+			return nil, fmt.Errorf("port %d is busy", f.port)
+		}
+		fmt.Fprintf(w, "port %d is busy; listening on a free port\n", f.port)
+	}
+	return viewer.Listen(0)
 }
 
 func checkViewPort(port int) error {
@@ -273,6 +318,9 @@ func viewRunning(p viewPaths) (serverInfo, bool, error) {
 }
 
 func viewStart(p viewPaths, f viewFlags, w io.Writer, deps viewDeps) error {
+	if err := viewer.ValidateStateOptions(viewer.Options{StateDir: p.state, GitRemote: viewGitRemote(newGitRunner()), HiveProject: viewHiveProject}); err != nil {
+		return err
+	}
 	if _, err := parseViewTTL(f.ttl); err != nil {
 		return err
 	}
@@ -295,11 +343,11 @@ func viewStart(p viewPaths, f viewFlags, w io.Writer, deps viewDeps) error {
 	if err := os.Remove(p.info); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-	if err := os.MkdirAll(p.dir, 0o700); err != nil {
+	if err := viewer.PrepareState(p.state); err != nil {
 		return err
 	}
 	args := []string{"view", "serve", "--state-dir", p.state}
-	if f.port != 0 {
+	if f.portSet {
 		args = append(args, "--port", fmt.Sprint(f.port))
 	}
 	if f.ttl != "" {
@@ -312,6 +360,12 @@ func viewStart(p viewPaths, f viewFlags, w io.Writer, deps viewDeps) error {
 	deadline := time.Now().Add(viewStartTimeout)
 	for {
 		if info, err := readServerInfo(p.info); err == nil && (pid <= 0 || info.PID == pid) && viewHealth(info, p) == nil {
+			if index, readErr := viewIndex(info); readErr == nil && len(index.TimelineSessions) == 0 {
+				fmt.Fprintln(w, "Viewer v3 starts empty; previous viewer data is not imported.")
+			}
+			if !f.portSet && info.Port != viewDefaultPort {
+				fmt.Fprintf(w, "The default port %d is busy, so the viewer took a free port.\n", viewDefaultPort)
+			}
 			fmt.Fprintf(w, "The viewer is running at %s (pid %d). Run `hive view open` to open it.\n", info.url(), info.PID)
 			return nil
 		}
@@ -329,6 +383,9 @@ func viewStart(p viewPaths, f viewFlags, w io.Writer, deps viewDeps) error {
 }
 
 func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
+	if err := viewer.ValidateStateOptions(viewer.Options{StateDir: p.state, GitRemote: viewGitRemote(newGitRunner()), HiveProject: viewHiveProject}); err != nil {
+		return err
+	}
 	ttl, err := parseViewTTL(f.ttl)
 	if err != nil {
 		return err
@@ -336,7 +393,7 @@ func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
 	if err := checkViewPort(f.port); err != nil {
 		return err
 	}
-	if err := os.MkdirAll(p.dir, 0o700); err != nil {
+	if err := viewer.PrepareState(p.state); err != nil {
 		return err
 	}
 	// start, stop and status probe server.lock by taking it for an instant, so
@@ -355,6 +412,9 @@ func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
 		return err
 	}
 	defer lock.Release()
+	if err := viewer.ValidateStateOptions(viewer.Options{StateDir: p.state, GitRemote: viewGitRemote(newGitRunner()), HiveProject: viewHiveProject}); err != nil {
+		return err
+	}
 
 	git := newGitRunner()
 	store, err := viewer.Open(viewer.Options{
@@ -367,7 +427,10 @@ func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	ln, err := viewer.Listen(f.port)
+	if err := store.Startup(); err != nil {
+		return err
+	}
+	ln, err := listenView(f, w)
 	if err != nil {
 		return err
 	}
@@ -377,13 +440,15 @@ func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	srv, err := viewer.NewServer(viewer.ServerOptions{Store: store, Token: token, Port: port, Version: version.Current})
+	revision, modified := viewBuildIdentity()
+	srv, err := viewer.NewServer(viewer.ServerOptions{Store: store, Token: token, Port: port, Version: version.Current, Revision: revision, Modified: modified})
 	if err != nil {
 		return err
 	}
 	info := serverInfo{
 		PID: os.Getpid(), Port: port, Version: version.Current, Token: token,
 		TTL: store.TTL().String(), StateDir: p.state, Started: time.Now().UTC().Format(time.RFC3339),
+		Revision: revision, Modified: modified,
 	}
 	if err := writeServerInfo(p, info); err != nil {
 		return err
@@ -459,6 +524,10 @@ func writeServerInfo(p viewPaths, info serverInfo) error {
 }
 
 func viewStop(p viewPaths, w io.Writer) error {
+	if err := viewer.ValidateStateOptions(viewer.Options{StateDir: p.state, GitRemote: viewGitRemote(newGitRunner()), HiveProject: viewHiveProject}); err != nil {
+		return err
+	}
+
 	held, err := viewLockHeld(p)
 	if err != nil {
 		return err
@@ -499,13 +568,10 @@ func viewStop(p viewPaths, w io.Writer) error {
 }
 
 func viewStatus(p viewPaths, w io.Writer, dir string) error {
-	out := map[string]any{"running": false}
-	var source viewer.SourceFingerprint
-	var sourceErr error
 	if dir != "" {
-		out["found"], out["session_status"] = false, "unknown"
-		source, sourceErr = viewer.FingerprintSource(dir)
+		return errors.New("unsupported_protocol: v3 status does not inspect source directories; use hive view session get with the work ID")
 	}
+	out := map[string]any{"running": false}
 	info, running, err := viewRunning(p)
 	if err != nil {
 		return err
@@ -516,21 +582,15 @@ func viewStatus(p viewPaths, w io.Writer, dir string) error {
 		out["url"] = info.url()
 		out["pid"] = info.PID
 		out["version"] = info.Version
+		if info.Revision != "" {
+			out["revision"], out["modified"] = info.Revision, info.Modified
+		}
 		out["ttl"] = info.TTL
 		if idx, err := viewIndex(info); err == nil {
-			count := 0
-			for _, project := range idx.Projects {
-				for _, ticket := range project.Tickets {
-					count += len(ticket.Sessions)
-				}
-			}
-			out["repositories"], out["walkthroughs"], out["ingest_errors"] = len(idx.Repositories), count, len(idx.Errors)
-			if dir != "" && sourceErr == nil {
-				after, err := viewer.FingerprintSource(dir)
-				if err == nil && after == source && viewHasSource(idx, source) {
-					out["found"], out["session_status"] = true, source.SessionStatus
-				}
-			}
+			out["protocol_version"] = idx.ProtocolVersion
+			out["repositories"], out["timeline_sessions"], out["errors"], out["retention"] = len(idx.Repositories), len(idx.TimelineSessions), len(idx.Errors), idx.Retention
+		} else {
+			out["problem"] = "viewer index is incompatible or unavailable; update client and viewer together for protocol v3"
 		}
 	default:
 		if held, _ := viewLockHeld(p); held {
@@ -545,34 +605,23 @@ func viewStatus(p viewPaths, w io.Writer, dir string) error {
 	return enc.Encode(out)
 }
 
-// viewHasSource matches every identity and revision field, including explicit
-// status. A legacy index without session_status cannot confirm a revision.
-func viewHasSource(v viewer.View, source viewer.SourceFingerprint) bool {
-	matches := func(s viewer.Session) bool {
-		return s.Source == source.Source && s.SessionID == source.SessionID && s.Key == source.Key &&
-			s.ContentHash == source.ContentHash && s.SessionStatus == source.SessionStatus
-	}
-	for _, s := range v.ExcludedSessions {
-		if matches(s) {
-			return true
-		}
-	}
-	for _, project := range v.Projects {
-		for _, ticket := range project.Tickets {
-			for _, s := range ticket.Sessions {
-				if matches(s) {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
 // viewIndex reads the existing authenticated index without opening a Store.
 // Redirects must not forward the token to another listener.
-func viewIndex(info serverInfo) (viewer.View, error) {
-	var v viewer.View
+type viewIndexSnapshot struct {
+	ProtocolVersion  int                            `json:"protocol_version"`
+	Retention        string                         `json:"retention"`
+	TTLSeconds       *int64                         `json:"ttl_seconds"`
+	TimelineSessions []viewer.TimelineAPIIndexEntry `json:"timeline_sessions"`
+	Repositories     []viewer.RepositoryStatus      `json:"repositories"`
+	Errors           []struct {
+		Path   string `json:"path"`
+		Reason string `json:"reason"`
+		Code   string `json:"code,omitempty"`
+	} `json:"errors"`
+}
+
+func viewIndex(info serverInfo) (viewIndexSnapshot, error) {
+	var v viewIndexSnapshot
 	req, err := http.NewRequest(http.MethodGet, info.url()+"/api/index", nil)
 	if err != nil {
 		return v, err
@@ -588,8 +637,20 @@ func viewIndex(info serverInfo) (viewer.View, error) {
 	if resp.StatusCode != http.StatusOK {
 		return v, fmt.Errorf("index answered %d", resp.StatusCode)
 	}
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 64<<20)).Decode(&v); err != nil {
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, (64<<20)+1))
+	if err != nil || len(raw) > 64<<20 {
 		return v, errors.New("invalid viewer index")
+	}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.DisallowUnknownFields()
+	if decoder.Decode(&v) != nil || decoder.Decode(new(any)) != io.EOF || v.ProtocolVersion != viewer.TimelineSchemaVersion || v.Retention != "manual" || v.TTLSeconds == nil || *v.TTLSeconds != 0 || v.TimelineSessions == nil || v.Repositories == nil || v.Errors == nil {
+		return v, errors.New("unsupported viewer index; update client and viewer together for protocol v3")
+	}
+	for _, entry := range v.TimelineSessions {
+		raw, _ := json.Marshal(entry)
+		if _, err := viewer.DecodeTimelineIndexEntry(raw); err != nil {
+			return v, errors.New("invalid v3 viewer work summary")
+		}
 	}
 	return v, nil
 }
@@ -692,10 +753,14 @@ func viewGitRemote(git gitRunner) viewer.GitRemoteReader {
 		}
 		out, err := git(root, "config", "--get", "remote.origin.url")
 		if err != nil {
+			var exit *exec.ExitError
+			if errors.As(err, &exit) && exit.ExitCode() == 1 && strings.TrimSpace(out) == "" {
+				return "", nil // Verified missing key, not an unreadable Git configuration.
+			}
 			return "", err
 		}
 		if out = strings.TrimSpace(out); out == "" {
-			return "", errors.New("no origin remote")
+			return "", nil
 		}
 		return out, nil
 	}

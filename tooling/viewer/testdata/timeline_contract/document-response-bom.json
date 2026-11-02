@@ -1,0 +1,16 @@
+{
+  "schema_version": 3,
+  "document": {
+    "document_id": "doc-plan-bom",
+    "session_id": "1111111111111111111111111111111111111111111111111111111111111111",
+    "sha256": "d58e2f6d5d846c4960387b9afdac5ec7aba37d6785782cd7d6f9d057990eeb43",
+    "size": 32,
+    "media_type": "text/markdown",
+    "received_at": "2026-10-31T20:00:00Z",
+    "actor": {
+      "kind": "native_producer",
+      "producer_id": "producer-original"
+    }
+  },
+  "content": "﻿# Plan\n\n- Immutable snapshot\n"
+}

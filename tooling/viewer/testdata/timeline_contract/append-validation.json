@@ -1,0 +1,36 @@
+{
+  "schema_version": 3,
+  "operation_id": "validation:1",
+  "kind": "validation",
+  "title": "First validation",
+  "summary": "Profile and chat are ready to review.",
+  "views": [
+    {
+      "title": "Chat mobile",
+      "steps": [
+        "Open Conversations at 390px.",
+        "Activate a filter and close the panel."
+      ],
+      "expected_result": "The filter icon remains beside search.",
+      "image_refs": [
+        {
+          "artifact_id": "artifact_chat",
+          "caption": "390px \u00b7 dark",
+          "alt": "Chat search with compact filter"
+        }
+      ],
+      "ticket_ids": [
+        "ticket-1"
+      ]
+    }
+  ],
+  "actor": {
+    "kind": "native_producer",
+    "producer_id": "producer-original"
+  },
+  "ticket_ids": [
+    "ticket-1",
+    "ticket-2"
+  ],
+  "candidate_id": "candidate-1"
+}

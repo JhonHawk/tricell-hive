@@ -5,11 +5,11 @@ description: Organize existing support artifacts, curate retained evidence, prom
 
 # Workspace conventions
 
-Maintain existing work records without losing their provenance or creating competing sources of truth. Apply the project's artifact locations and authorization boundaries; this procedure does not create a new workspace or grant permission to move, delete, or publish material.
+Maintain existing work records without losing their provenance or creating competing sources of truth. Apply the project's artifact locations; this procedure does not create a new workspace.
 
 ## Inspect the requested material
 
-Before writing or cleaning a support artifact, read [artifact layout and retention](references/artifact-layout.md). Before reporting the operation, read [reporting](../flow-close/references/reporting.md). Before resolving needed project settings or formulating a user decision, read [project settings](../flow-plan/references/project-settings.md) or [questions](../flow-plan/references/questions.md), respectively.
+Before writing or cleaning a support artifact, read [artifact layout and retention](references/artifact-layout.md).
 
 Resolve the established support home and current work identifier. Read the relevant records and inspect candidate destinations and links before proposing a reorganization. Limit inventory to the requested scope; do not bulk-read unrelated logs or sensitive files.
 
@@ -20,13 +20,13 @@ Distinguish current knowledge, execution history, reproducible scratch, and uniq
 - **Organize existing records:** retain their original work identifier and initial date. Move only material covered by the request; do not retrofit an entire repository to a folder template. When useful, use descriptive work-prefixed filenames, internal stages, or a `reports/` subfolder rather than creating parallel sessions.
 - **Curate evidence:** retain the smallest useful subset that substantiates the finding. Keep interpretation in Markdown with links to actual evidence. Record observation date and relevant provenance; distinguish a historical snapshot from current state. Preserve unique evidence until the curated replacement is checked. Sensitive evidence stays in an appropriate private location; describe access limits without copying secrets into the report.
 - **Promote a finding:** reconcile it with current sources and the existing durable document, then update that canonical home. Link the originating session and mark historical conclusions as historical or superseded where needed. Keep execution history without leaving two live policies.
-- **Apply a layout migration:** execute an approved migration manifest from the `harness-audit` skill, one repository at a time. Run only its mechanical `git mv`, `mkdir`, and `insert` entries, adding an `insert` line exactly as written after its stated line and skipping it when the file already contains it; stop at `manual` and `ask` entries, update affected links, and verify with `git status`, `git diff -M --stat`, and the manifest's checks. Commit only under the repository's Git rules and an explicit commit instruction.
-- **Archive closed work:** a closed change folder is archived by [flow-close](../flow-close/SKILL.md). For existing `sessions/` folders the user selects for archival, use [workspace-archive](../workspace-archive/SKILL.md), which defines the closure criteria and the file operation under `sessions/archived/<original-folder>/`.
+- **Apply a layout migration:** execute an approved migration manifest from the `harness-audit` skill, one repository at a time. Run only its mechanical `git mv`, `mkdir`, and `insert` entries, adding an `insert` line exactly as written after its stated line and skipping it when the file already contains it; stop at `manual` and `ask` entries, update affected links, and verify with `git status`, `git diff -M --stat`, and the manifest's checks. Commit only as the global guidance's «Delivery» answer allows.
+- **Archive closed work:** a closed change folder is archived by [flow-close](../flow-close/SKILL.md). For existing `sessions/` folders the user selects for archival, read and follow [archive](references/archive.md), which defines the closure criteria and the file operation under `sessions/archived/<original-folder>/`.
 
 ## Apply and verify
 
-Make the source-to-destination mapping and retained material clear. If the request is only an inventory or proposal, stop there. Apply moves already covered by explicit authorization without asking again; obtain missing authorization before additional destructive operations.
+Make the source-to-destination mapping and retained material clear. If the request is only an inventory or proposal, stop there. Apply the moves the request already covers without asking again.
 
 Check for destination collisions before each move. Preserve both artifacts rather than overwriting; resolve ambiguity with the user when it affects which record is canonical. Update affected relative links and existing indexes, including links from a moved record to evidence that stayed in place.
 
-Verify the final locations, content preservation, and links against the intended mapping. Report what changed, what was intentionally retained, and unresolved items in the session language. Archiving does not delete history or authorize a commit, push, or publication.
+Verify the final locations, content preservation, and links against the intended mapping. Report what changed, what was intentionally retained, and unresolved items in the session language.

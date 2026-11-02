@@ -7,7 +7,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-HELPER = ROOT / "content/skills/workspace-archive/scripts/archive_sessions.py"
+HELPER = ROOT / "content/skills/workspace-conventions/scripts/archive_sessions.py"
 sys.dont_write_bytecode = True  # keep __pycache__ out of the distributed skill folder
 _spec = importlib.util.spec_from_file_location("archive_sessions", HELPER)
 HELPER_MODULE = importlib.util.module_from_spec(_spec)

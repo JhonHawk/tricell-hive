@@ -6,6 +6,8 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"image"
+	"image/png"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +15,6 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
-	"time"
 )
 
 const (
@@ -27,28 +28,35 @@ type srvEnv struct {
 	repo   string
 	folder string
 	srv    *Server
+	image  string
 	key    string
 }
 
-// newSrvEnv ingests valid/final from a fake repository and builds a server.
+// newSrvEnv uses only v3 API state; shared auth/static tests do not scan manifests.
 func newSrvEnv(t *testing.T) *srvEnv {
 	t.Helper()
-	e := newEnv(t)
-	repo := newRepo(t)
-	e.hive[repo] = "Sample Project"
-	e.remotes[repo] = "git@github.com:Acme/Sample.git"
-	folder := e.place(repo, "run1", nil)
-	e.register(repo)
-	e.start()
-	e.sync()
-	srv, err := NewServer(ServerOptions{Store: e.store, Token: testToken, Port: testPort, Version: "test"})
+	store, v, _ := newV3Fixture(t)
+	// Seed an already registered candidate for auth/static tests. Catalog writer
+	// transactions are tested independently; this helper makes no writer claim.
+	store.timeline[v.ViewerSessionID].Session.Candidates = append(store.timeline[v.ViewerSessionID].Session.Candidates, TimelineCandidateRecord{CandidateID: "candidate-test", TimelineCandidate: TimelineCandidate{Branch: "test", Commit: "abc", Base: "development"}})
+	e := &env{t: t, state: filepath.Dir(store.Dir()), store: store}
+	srv, err := NewServer(ServerOptions{Store: store, Token: testToken, Port: testPort, Version: "test"})
 	if err != nil {
 		t.Fatal(err)
 	}
-	return &srvEnv{env: e, repo: repo, folder: folder, srv: srv, key: e.onlySession().Key}
+	var imageBytes bytes.Buffer
+	if err = png.Encode(&imageBytes, image.NewRGBA(image.Rect(0, 0, 1, 1))); err != nil {
+		t.Fatal(err)
+	}
+	artifact, err := store.TimelineAddArtifact(v.ViewerSessionID, TimelineArtifactMetadata{SchemaVersion: 3, OperationID: "security-image", Actor: TimelineActor{Kind: "native_producer", ProducerID: v.ForegroundProducerID}, CapturedAt: v.CreatedAt, CandidateID: "candidate-test", Viewport: "desktop", Theme: "dark", MediaType: "image/png"}, imageBytes.Bytes())
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &srvEnv{env: e, repo: v.Source.ProjectRoot, srv: srv, key: v.ViewerSessionID, image: "artifacts/" + artifact.ArtifactID + ".png"}
 }
 
 type reqOpts struct {
+	scope  string
 	host   string
 	token  string
 	origin string
@@ -67,6 +75,9 @@ func (s *srvEnv) do(method, target string, o reqOpts) *httptest.ResponseRecorder
 	if o.origin != "" {
 		r.Header.Set("Origin", o.origin)
 	}
+	if o.scope != "" {
+		r.Header.Set("X-Hive-Action-Scope", o.scope)
+	}
 	w := httptest.NewRecorder()
 	s.srv.ServeHTTP(w, r)
 	return w
@@ -84,7 +95,7 @@ func (s *srvEnv) cap() string {
 func (s *srvEnv) files() string { return "/files/" + s.key + "/" + s.cap() + "/" }
 
 func (s *srvEnv) write(method, target string) *httptest.ResponseRecorder {
-	return s.do(method, target, reqOpts{token: testToken, origin: "http://" + testHost})
+	return s.do(method, target, reqOpts{token: testToken, origin: "http://" + testHost, scope: "session"})
 }
 
 func TestServerRejectsWritesWithoutTokenOrWithAForeignTokenOriginOrHost(t *testing.T) {
@@ -100,19 +111,20 @@ func TestServerRejectsWritesWithoutTokenOrWithAForeignTokenOriginOrHost(t *testi
 	}
 	for name, o := range cases {
 		for _, req := range [][2]string{
-			{http.MethodDelete, "/api/sessions/" + s.key},
-			{http.MethodPost, "/api/sessions/" + s.key + "/pin"},
-			{http.MethodDelete, "/api/sessions/" + s.key + "/pin"},
-			{http.MethodPost, "/api/sessions/" + s.key + "/archive"},
-			{http.MethodDelete, "/api/sessions/" + s.key + "/archive"},
+			{http.MethodDelete, "/api/timeline/sessions/" + s.key},
+			{http.MethodPatch, "/api/timeline/sessions/" + s.key},
+			{http.MethodPost, "/api/timeline/sessions/" + s.key + "/events"},
+			{http.MethodPost, "/api/timeline/sessions/" + s.key + "/artifacts"},
+			{http.MethodPost, "/api/timeline/sessions/" + s.key + "/documents"},
 		} {
 			if w := s.do(req[0], req[1], o); w.Code != http.StatusForbidden {
 				t.Errorf("%s: %s %s = %d, want 403", name, req[0], req[1], w.Code)
 			}
 		}
 	}
-	if len(s.sessions()) != 1 || s.sessions()[0].Pinned || s.sessions()[0].Archived {
-		t.Fatal("a rejected write changed the store")
+	current, err := s.store.TimelineGet(s.key)
+	if err != nil || current.Version != 2 {
+		t.Fatal("rejected write changed store", err)
 	}
 }
 
@@ -120,7 +132,7 @@ func TestServerRejectsWritesWithoutTokenOrWithAForeignTokenOriginOrHost(t *testi
 // needs the per-session capability derived from it.
 func TestServerReadsNeedTheTokenOrTheCapability(t *testing.T) {
 	s := newSrvEnv(t)
-	for _, target := range []string{"/api/index", "/api/sessions/" + s.key} {
+	for _, target := range []string{"/api/index", "/api/timeline/sessions/" + s.key} {
 		for name, o := range map[string]reqOpts{
 			"no token":       {},
 			"foreign token":  {token: "other-token-0123456789"},
@@ -136,7 +148,7 @@ func TestServerReadsNeedTheTokenOrTheCapability(t *testing.T) {
 			t.Errorf("GET %s with the token = %d", target, w.Code)
 		}
 	}
-	img := "images/nav-1.png"
+	img := s.image
 	other := strings.Repeat("a", 64)
 	for name, target := range map[string]string{
 		"no capability":       "/files/" + s.key + "/" + img,
@@ -158,23 +170,21 @@ func TestServerReadsNeedTheTokenOrTheCapability(t *testing.T) {
 	if w := s.do(http.MethodGet, s.files()+img, reqOpts{}); w.Code != http.StatusOK {
 		t.Errorf("file with the capability and no token = %d, want 200 (an <img> cannot send headers)", w.Code)
 	}
-	// The index hands the authenticated page its file base.
-	var v struct {
-		Projects []struct {
-			Tickets []struct {
-				Sessions []struct {
-					Key      string `json:"key"`
-					FileBase string `json:"fileBase"`
-				} `json:"sessions"`
-			} `json:"tickets"`
-		} `json:"projects"`
-	}
-	w := s.do(http.MethodGet, "/api/index", reqOpts{token: testToken})
-	if err := json.Unmarshal(w.Body.Bytes(), &v); err != nil {
+	// The authenticated work response, rather than the summary, carries file capabilities.
+	var response TimelineSessionResponse
+	w := s.do(http.MethodGet, "/api/timeline/sessions/"+s.key, reqOpts{token: testToken})
+	if err := json.Unmarshal(w.Body.Bytes(), &response); err != nil {
 		t.Fatal(err)
 	}
-	if got := v.Projects[0].Tickets[0].Sessions[0].FileBase; got != s.files() {
-		t.Fatalf("fileBase = %q, want %q", got, s.files())
+	for _, url := range response.ArtifactURLs {
+		if url != s.files()+s.image {
+			t.Fatal("wrong artifact capability")
+		}
+	}
+	for _, suffix := range []string{"../storage.json", "artifacts/../storage.json", "documents/file.md", "artifacts/unknown.png"} {
+		if w := s.do(http.MethodGet, s.files()+suffix, reqOpts{}); w.Code == 200 {
+			t.Fatal("served unrecorded path", suffix)
+		}
 	}
 }
 
@@ -186,7 +196,7 @@ func capFor(key string) string {
 
 func TestServerChecksTheHostOnEveryRoute(t *testing.T) {
 	s := newSrvEnv(t)
-	for _, target := range []string{"/", "/assets/walkthrough.mjs", "/api/index", "/api/sessions/" + s.key, s.files() + "images/nav-1.png", "/api/health"} {
+	for _, target := range []string{"/", "/assets/walkthrough.mjs", "/api/index", "/api/timeline/sessions/" + s.key, s.files() + s.image, "/api/health"} {
 		if w := s.do(http.MethodGet, target, reqOpts{host: "evil.example:41234", token: testToken}); w.Code != http.StatusForbidden {
 			t.Errorf("GET %s with a foreign Host = %d, want 403", target, w.Code)
 		}
@@ -220,7 +230,7 @@ func TestServerHealthNeedsTheTokenAndReportsPidStateDirVersionAndTTL(t *testing.
 	if err := json.Unmarshal(w.Body.Bytes(), &h); err != nil {
 		t.Fatal(err)
 	}
-	if h.PID != os.Getpid() || h.StateDir != s.state || h.Version != "test" || h.TTL != (14*24*time.Hour).String() {
+	if h.PID != os.Getpid() || h.StateDir != s.state || h.Version != "test" || h.TTL != "0s" {
 		t.Fatalf("health = %+v", h)
 	}
 	if strings.Contains(w.Body.String(), testToken) {
@@ -228,139 +238,10 @@ func TestServerHealthNeedsTheTokenAndReportsPidStateDirVersionAndTTL(t *testing.
 	}
 }
 
-func TestServerDeleteRemovesOnlyTheCopyAndItStaysGone(t *testing.T) {
-	s := newSrvEnv(t)
-	source := filepath.Join(s.folder, "walkthrough.json")
-	image := filepath.Join(s.folder, "images", "nav-1.png")
-	before := [2]string{sha(string(readFile(t, source))), sha(string(readFile(t, image)))}
-
-	if w := s.write(http.MethodDelete, "/api/sessions/"+s.key); w.Code != http.StatusNoContent {
-		t.Fatalf("DELETE = %d: %s", w.Code, w.Body)
-	}
-	if _, err := os.Stat(s.sessionDir(s.key)); !os.IsNotExist(err) {
-		t.Fatalf("the copy is still on disk: %v", err)
-	}
-	if w := s.do(http.MethodGet, "/api/sessions/"+s.key, reqOpts{token: testToken}); w.Code != http.StatusNotFound {
-		t.Fatalf("GET after delete = %d", w.Code)
-	}
-	s.advance(time.Minute)
-	s.sync() // the poll: the tombstone keeps the same content out
-	s.sync()
-	if _, err := os.Stat(s.sessionDir(s.key)); !os.IsNotExist(err) {
-		t.Fatal("the deleted copy came back after a poll")
-	}
-	after := [2]string{sha(string(readFile(t, source))), sha(string(readFile(t, image)))}
-	if before != after {
-		t.Fatal("the source files in the repository changed")
-	}
-	if w := s.write(http.MethodDelete, "/api/sessions/"+s.key); w.Code != http.StatusNotFound {
-		t.Fatalf("second DELETE = %d, want 404", w.Code)
-	}
-}
-
-func TestServerPinAndUnpin(t *testing.T) {
-	s := newSrvEnv(t)
-	if w := s.write(http.MethodPost, "/api/sessions/"+s.key+"/pin"); w.Code != http.StatusNoContent {
-		t.Fatalf("POST pin = %d", w.Code)
-	}
-	if !s.onlySession().Pinned {
-		t.Fatal("not pinned")
-	}
-	if w := s.write(http.MethodDelete, "/api/sessions/"+s.key+"/pin"); w.Code != http.StatusNoContent {
-		t.Fatalf("DELETE pin = %d", w.Code)
-	}
-	if s.onlySession().Pinned {
-		t.Fatal("still pinned")
-	}
-}
-
-func TestServerKeyAndMethodErrors(t *testing.T) {
-	s := newSrvEnv(t)
-	missing := strings.Repeat("a", 64)
-	for _, tc := range []struct {
-		method, target string
-		want           int
-	}{
-		{http.MethodGet, "/api/sessions/not-a-key", http.StatusBadRequest},
-		{http.MethodDelete, "/api/sessions/..", http.StatusBadRequest},
-		{http.MethodGet, "/api/sessions/" + missing, http.StatusNotFound},
-		{http.MethodPost, "/api/sessions/" + missing + "/pin", http.StatusNotFound},
-		{http.MethodPost, "/api/sessions/" + missing + "/archive", http.StatusNotFound},
-		{http.MethodDelete, "/api/sessions/" + missing + "/archive", http.StatusNotFound},
-		{http.MethodPost, "/api/sessions/not-a-key/archive", http.StatusBadRequest},
-		{http.MethodDelete, "/api/sessions/not-a-key/archive", http.StatusBadRequest},
-		{http.MethodGet, "/api/sessions/" + s.key + "/archive", http.StatusMethodNotAllowed},
-		{http.MethodPost, "/api/sessions/" + s.key, http.StatusMethodNotAllowed},
-		{http.MethodPut, "/api/index", http.StatusMethodNotAllowed},
-		{http.MethodGet, "/nope", http.StatusNotFound},
-		{http.MethodGet, "/assets/meta.json", http.StatusNotFound},
-		{http.MethodGet, "/assets/../server.go", http.StatusNotFound},
-	} {
-		w := s.write(tc.method, tc.target)
-		if w.Code != tc.want {
-			t.Errorf("%s %s = %d, want %d", tc.method, tc.target, w.Code, tc.want)
-		}
-	}
-}
-
-func TestServerFilesRejectTraversalAndServeMediaByExtension(t *testing.T) {
-	s := newSrvEnv(t)
-	for _, target := range []string{
-		s.files() + "../x",
-		s.files() + "images/../../meta.json",
-		s.files() + "%2e%2e/meta.json",
-		s.files() + "meta.json",
-		s.files() + "walkthrough.json",
-		s.files() + "images/nav-1.png/",
-	} {
-		w := s.do(http.MethodGet, target, reqOpts{token: testToken})
-		if w.Code != http.StatusBadRequest && w.Code != http.StatusNotFound {
-			t.Errorf("GET %s = %d, want 400 or 404", target, w.Code)
-		}
-		if bytes.Contains(w.Body.Bytes(), []byte("ingested_at")) {
-			t.Errorf("GET %s leaked meta.json", target)
-		}
-	}
-	w := s.do(http.MethodGet, s.files()+"images/nav-1.png", reqOpts{})
-	if w.Code != http.StatusOK || w.Header().Get("Content-Type") != "image/png" {
-		t.Fatalf("png: %d %q", w.Code, w.Header().Get("Content-Type"))
-	}
-	if !bytes.Equal(w.Body.Bytes(), readFile(t, filepath.Join(s.folder, "images", "nav-1.png"))) {
-		t.Fatal("served bytes differ from the copy")
-	}
-	if w := s.do(http.MethodGet, s.files()+"images/missing.png", reqOpts{}); w.Code != http.StatusNotFound {
-		t.Fatalf("missing file = %d", w.Code)
-	}
-
-	// Content-Type per extension, on files placed in the copy (the copy's own
-	// validation is the Store's job; here only the header mapping is checked).
-	dir := s.sessionDir(s.key)
-	for name, want := range map[string]string{
-		"a.jpg": "image/jpeg", "b.jpeg": "image/jpeg", "c.webp": "image/webp", "d.mp4": "video/mp4",
-	} {
-		if err := os.WriteFile(filepath.Join(dir, name), []byte("x"), 0o600); err != nil {
-			t.Fatal(err)
-		}
-		w := s.do(http.MethodGet, s.files()+name, reqOpts{})
-		if got := w.Header().Get("Content-Type"); w.Code != http.StatusOK || got != want {
-			t.Errorf("%s: %d, Content-Type = %q, want %q", name, w.Code, got, want)
-		}
-	}
-	// A video range request works (seek in the browser).
-	r := httptest.NewRequest(http.MethodGet, s.files()+"d.mp4", nil)
-	r.Host = testHost
-	r.Header.Set("Range", "bytes=0-0")
-	rec := httptest.NewRecorder()
-	s.srv.ServeHTTP(rec, r)
-	if rec.Code != http.StatusPartialContent {
-		t.Fatalf("range request = %d", rec.Code)
-	}
-}
-
 func TestServerSendsSecurityHeadersAndTheRightContentTypes(t *testing.T) {
 	s := newSrvEnv(t)
 	wantCSP := "default-src 'self'; img-src 'self'; media-src 'self'; object-src 'none'; frame-ancestors 'none'; base-uri 'none'"
-	for _, target := range []string{"/", "/assets/app/index.html", "/api/index", "/api/sessions/" + s.key, s.files() + "images/nav-1.png", "/nope"} {
+	for _, target := range []string{"/", "/assets/app/index.html", "/api/index", "/api/timeline/sessions/" + s.key, s.files() + s.image, "/nope"} {
 		w := s.do(http.MethodGet, target, reqOpts{token: testToken})
 		if got := w.Header().Get("Content-Security-Policy"); got != wantCSP {
 			t.Errorf("%s: CSP = %q", target, got)
@@ -369,15 +250,15 @@ func TestServerSendsSecurityHeadersAndTheRightContentTypes(t *testing.T) {
 			t.Errorf("%s: nosniff = %q", target, got)
 		}
 	}
-	if w := s.write(http.MethodPost, "/api/sessions/"+s.key); w.Header().Get("X-Content-Type-Options") != "nosniff" {
+	if w := s.write(http.MethodPost, "/api/timeline/sessions/"+s.key); w.Header().Get("X-Content-Type-Options") != "nosniff" {
 		t.Error("error responses need nosniff too")
 	}
 	for target, prefix := range map[string]string{
-		"/":                       "text/html",
-		"/assets/walkthrough.mjs": "text/javascript",
-		"/assets/walkthrough.css": "text/css",
-		"/api/index":              "application/json",
-		"/api/sessions/" + s.key:  "application/json",
+		"/":                               "text/html",
+		"/assets/walkthrough.mjs":         "text/javascript",
+		"/assets/walkthrough.css":         "text/css",
+		"/api/index":                      "application/json",
+		"/api/timeline/sessions/" + s.key: "application/json",
 	} {
 		w := s.do(http.MethodGet, target, reqOpts{token: testToken})
 		if w.Code != http.StatusOK || !strings.HasPrefix(w.Header().Get("Content-Type"), prefix) {
@@ -413,74 +294,6 @@ func TestServerStaticPagesHaveNoInlineScriptOrStyle(t *testing.T) {
 		if w := s.do(http.MethodGet, "/assets/"+name, reqOpts{}); w.Code != http.StatusNotFound {
 			t.Errorf("retired /assets/%s = %d", name, w.Code)
 		}
-	}
-}
-
-func TestServerIndexGroupsByProjectTicketAndSession(t *testing.T) {
-	s := newSrvEnv(t)
-	// Second session of the same ticket, a session of another ticket, one
-	// without a ticket, and a repository that has its own project.
-	s.place(s.repo, "run2", nil)
-	s.place(s.repo, "other", func(m map[string]any) { m["ticket"] = "gh-99-other" })
-	s.place(s.repo, "free", func(m map[string]any) { delete(m, "ticket") })
-	repo2 := newRepo(t)
-	s.hive[repo2] = "Second Project"
-	s.remotes[repo2] = "https://github.com/Acme/Second.git"
-	s.place(repo2, "run1", nil)
-	s.register(repo2)
-	s.sync()
-
-	w := s.do(http.MethodGet, "/api/index", reqOpts{token: testToken})
-	if w.Code != http.StatusOK {
-		t.Fatalf("index = %d", w.Code)
-	}
-	var v struct {
-		Projects []struct {
-			Key     string `json:"key"`
-			Name    string `json:"name"`
-			Tickets []struct {
-				Ticket   string `json:"ticket"`
-				Sessions []struct {
-					Key       string `json:"key"`
-					SessionID string `json:"session_id"`
-					Pinned    bool   `json:"pinned"`
-				} `json:"sessions"`
-			} `json:"tickets"`
-		} `json:"projects"`
-		Errors []any `json:"errors"`
-	}
-	if err := json.Unmarshal(w.Body.Bytes(), &v); err != nil {
-		t.Fatal(err)
-	}
-	if len(v.Projects) != 2 {
-		t.Fatalf("projects = %d, want 2: %s", len(v.Projects), w.Body)
-	}
-	p := v.Projects[0]
-	if p.Name != "Sample Project" || p.Key != "github.com/Acme/Sample" {
-		t.Fatalf("first project = %+v", p)
-	}
-	byTicket := map[string][]string{}
-	for _, tk := range p.Tickets {
-		for _, se := range tk.Sessions {
-			byTicket[tk.Ticket] = append(byTicket[tk.Ticket], se.SessionID)
-		}
-	}
-	if len(byTicket["gh-67-flow-walkthrough-skill"]) != 2 || len(byTicket["gh-99-other"]) != 1 || len(byTicket[""]) != 1 || len(p.Tickets) != 3 {
-		t.Fatalf("tickets = %v", byTicket)
-	}
-	if last := p.Tickets[len(p.Tickets)-1]; last.Ticket != "" {
-		t.Fatalf("the no-ticket group must be last, got %q", last.Ticket)
-	}
-	if v.Projects[1].Name != "Second Project" || len(v.Projects[1].Tickets) != 1 || len(v.Projects[1].Tickets[0].Sessions) != 1 {
-		t.Fatalf("second project = %+v", v.Projects[1])
-	}
-}
-
-func TestServerServesTheStoredManifest(t *testing.T) {
-	s := newSrvEnv(t)
-	w := s.do(http.MethodGet, "/api/sessions/"+s.key, reqOpts{token: testToken})
-	if w.Code != http.StatusOK || !bytes.Equal(w.Body.Bytes(), readFile(t, filepath.Join(s.sessionDir(s.key), "walkthrough.json"))) {
-		t.Fatalf("manifest: %d", w.Code)
 	}
 }
 

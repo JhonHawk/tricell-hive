@@ -148,7 +148,8 @@ func TestViewerSourceTrackingForcedManifestIsNotIngested(t *testing.T) {
 		t.Fatal(err)
 	}
 	res, err := store.Sync(context.Background())
-	if err != nil || res.Added != 0 || res.Errors != 0 || len(store.View().Projects) != 0 {
+	var cutoff *viewer.TimelineError
+	if !errors.As(err, &cutoff) || cutoff.Code != "unsupported_protocol" || res.Added != 0 || len(store.View().Projects) != 0 {
 		t.Fatalf("tracked invalid manifest was read: result=%+v err=%v", res, err)
 	}
 }

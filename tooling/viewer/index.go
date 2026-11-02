@@ -44,9 +44,10 @@ type Session struct {
 	Pinned      bool      `json:"pinned"`
 	Archived    bool      `json:"archived"`
 
+	SessionTitle  string `json:"session_title,omitempty"`
 	SessionID     string `json:"session_id"`
 	SessionStatus string `json:"session_status"`
-	Host          string `json:"host"`
+	Host          string `json:"host,omitempty"`
 	Ticket        string `json:"ticket"`
 	Title         string `json:"title"`
 	Kind          string `json:"kind"`
@@ -70,8 +71,10 @@ type Tombstone struct {
 // IngestError is a source that could not be ingested, or a stored copy that
 // could not be read.
 type IngestError struct {
-	Path   string `json:"path"`
-	Reason string `json:"reason"`
+	Code         string `json:"code,omitempty"`
+	SessionGroup string `json:"session_group,omitempty"`
+	Path         string `json:"path"`
+	Reason       string `json:"reason"`
 }
 
 // RepositoryStatus reports one registered repository.
@@ -440,12 +443,22 @@ func (s *Store) projectFor(root string) projectInfo {
 	return info
 }
 
-// enrich fills Repository, ProjectKey and ProjectName of every session from
-// the project cache.
+// enrich refreshes project information without replacing a previously resolved
+// remote identity with a path fallback when the repository cannot be read.
 func (s *Store) enrich(d *indexData) {
+	known := map[string]projectInfo{}
+	for _, sess := range d.Sessions {
+		root := repoRootOf(sess.Source)
+		if sess.Repository == root && sess.ProjectKey != "" && sess.ProjectKey != root && NormalizeRemote("https://"+sess.ProjectKey) == sess.ProjectKey {
+			known[root] = projectInfo{key: sess.ProjectKey, name: sess.ProjectName}
+		}
+	}
 	for i := range d.Sessions {
 		root := repoRootOf(d.Sessions[i].Source)
 		info := s.projectFor(root)
+		if previous, ok := known[root]; ok && info.key == root {
+			info = previous
+		}
 		d.Sessions[i].Repository = root
 		d.Sessions[i].ProjectKey = info.key
 		d.Sessions[i].ProjectName = info.name

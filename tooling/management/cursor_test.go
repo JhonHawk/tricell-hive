@@ -9,7 +9,7 @@ import (
 )
 
 func cursorHome(o Options) string      { return filepath.Join(o.Home, ".cursor") }
-func cursorBlockPath(o Options) string { return filepath.Join(cursorHome(o), "AGENTS.md") }
+func cursorBlockPath(o Options) string { return filepath.Join(cursorHome(o), "rules", "hive.mdc") }
 func cursorAgentsDir(o Options) string { return filepath.Join(cursorHome(o), "agents") }
 func cursorAgentPath(o Options, role string) string {
 	return filepath.Join(cursorAgentsDir(o), role+".md")
@@ -21,6 +21,9 @@ func TestCursorLifecycleInstallUpdateRemoveWithSharedConsumer(t *testing.T) {
 	p := plan(t, "install", o)
 	apply(t, p)
 
+	if !strings.HasPrefix(get(t, cursorBlockPath(o)), "---\ndescription: Tricell Hive guidance\nalwaysApply: true\n---\n") {
+		t.Fatal("the Cursor rule does not start with its always-apply frontmatter")
+	}
 	if !strings.Contains(get(t, cursorBlockPath(o)), Begin) {
 		t.Fatal("Cursor block not written")
 	}
@@ -116,7 +119,7 @@ func TestCursorForeignAGENTSTextIsPreserved(t *testing.T) {
 	put(t, cursorBlockPath(o), original)
 	apply(t, plan(t, "install", o))
 	if !strings.HasPrefix(get(t, cursorBlockPath(o)), original) {
-		t.Fatal("foreign AGENTS.md text was not preserved")
+		t.Fatal("foreign rule text was not preserved")
 	}
 	if !strings.Contains(get(t, cursorBlockPath(o)), Begin) {
 		t.Fatal("Hive block missing after preserving foreign text")
