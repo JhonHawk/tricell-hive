@@ -145,7 +145,8 @@ from authorizing a new publication without resolving its source.
 
 Protocol, schema and storage are3. `viewer/storage.json` positively identifies
 that format; API records live in `viewer/timeline-api-v3/`. Preflight rejects
-old1/provisional2 state with cutoff_required before mkdir, locking, log creation,
+old1/provisional2 state, like any name outside the v3 inventory, with
+invalid_storage before mkdir, locking, log creation,
 cleanup, registration or signaling. Unknown/corrupt state is an error, not an
 empty library. There is no older-record reader, scanner, import, preference copy
 or migration. A real cutover uses a separate fresh state directory, preserved

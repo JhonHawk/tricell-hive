@@ -63,18 +63,20 @@ test("the summary lives in the header, clamped to two lines, and not in the canv
   await canvas.unmount();
 });
 
-test("the validation count is one more toolbar counter with an accessible name", async () => {
+test("the validation count is a toolbar counter that reads its name and is not a control", async () => {
   for (const [lang, name] of [
     ["es", "Validaciones: 2"],
     ["en", "Validations: 2"],
   ] as const) {
     const { container, unmount } = await mount(header(timelineFixture, lang));
-    const counter = container.querySelector<HTMLButtonElement>(
-      `button[aria-label="${name}"]`,
-    );
+    const counter = [
+      ...container.querySelectorAll<HTMLElement>(
+        '[data-slot="button-group-text"]',
+      ),
+    ].find((node) => node.textContent === name);
     assert.ok(counter, name);
-    assert.equal(counter.textContent, "2");
-    assert.equal(counter.getAttribute("aria-haspopup"), null);
+    assert.equal(counter.tagName === "BUTTON", false);
+    assert.equal(counter.closest("button"), null);
     await unmount();
   }
 });

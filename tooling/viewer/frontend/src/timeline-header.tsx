@@ -359,16 +359,14 @@ export function TimelineHeader({
                 )}
               </PopoverContent>
             </Popover>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              aria-label={`${validations}: ${session.validation_count}`}
+            {/* A count, not an action: it stays out of the tab order. */}
+            <ButtonGroupText
               title={`${validations}: ${session.validation_count}`}
             >
               <ListChecks aria-hidden />
+              <span className="sr-only">{validations}: </span>
               {session.validation_count}
-            </Button>
+            </ButtonGroupText>
           </ButtonGroup>
           <TimelineParticipants
             data={data}

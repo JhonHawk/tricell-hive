@@ -427,10 +427,8 @@ func (s *Store) timelinePublish() {
 	sort.Slice(entries, func(i, j int) bool { return entries[i].ViewerSessionID < entries[j].ViewerSessionID })
 	s.viewMu.Lock()
 	s.timelineOwned = map[string]bool{}
-	for id, r := range s.timeline {
+	for id := range s.timeline {
 		s.timelineOwned[id] = true
-		// The native tuple stays owned whatever work key named the work.
-		s.timelineOwned[timelineSessionKey(r.ProjectKey, r.Source, "")] = true
 	}
 	s.timelineIndex = entries
 	s.viewMu.Unlock()
