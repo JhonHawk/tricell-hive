@@ -2,6 +2,7 @@ package viewer
 
 import (
 	"encoding/json"
+	"fmt"
 	"reflect"
 	"sort"
 	"strings"
@@ -503,16 +504,21 @@ func TimelineProtocolBrief(flow string) (TimelineProtocolBriefDescription, error
 		if !contains(members, command.Operation) {
 			continue
 		}
-		required, _ := command.InputSchema["required"].([]string)
+		schemaRequired, _ := command.InputSchema["required"].([]string)
+		required := append(append([]string{}, schemaRequired...), timelineBriefValidatorRequired[command.Operation]...)
 		properties, _ := command.InputSchema["properties"].(map[string]any)
 		item := TimelineProtocolBriefOperation{Operation: command.Operation, Usage: command.Usage, Required: []string{}, Optional: []string{}, Example: command.Example}
-		item.Required = append(item.Required, required...)
-		sort.Strings(item.Required)
 		for name := range properties {
-			if !contains(required, name) {
+			if contains(required, name) {
+				item.Required = append(item.Required, name)
+				if child, ok := properties[name].(map[string]any); ok {
+					item.Required = append(item.Required, timelineNestedRequired(child, name)...)
+				}
+			} else {
 				item.Optional = append(item.Optional, name)
 			}
 		}
+		sort.Strings(item.Required)
 		sort.Strings(item.Optional)
 		enums := map[string][]string{}
 		timelineCollectEnums(command.InputSchema, "", enums)
@@ -524,11 +530,40 @@ func TimelineProtocolBrief(flow string) (TimelineProtocolBriefDescription, error
 	return brief, nil
 }
 
+// timelineBriefValidatorRequired names input fields the production validators
+// require although the schema, derived from the Go DTOs, marks them optional.
+// TestViewContractBriefMatchesValidator in the CLI checks it against the
+// validators.
+var timelineBriefValidatorRequired = map[string][]string{
+	"stage_start":  {"reason"},
+	"stage_update": {"reason"},
+}
+
+// timelineNestedRequired names, with a dotted path, the required fields of a
+// plain nested object, recursively. Union branches (anyOf, oneOf) are left to
+// the example, since their required fields depend on the branch.
+func timelineNestedRequired(schema map[string]any, path string) []string {
+	var out []string
+	required, _ := schema["required"].([]string)
+	properties, _ := schema["properties"].(map[string]any)
+	for _, name := range required {
+		next := path + "." + name
+		out = append(out, next)
+		if child, ok := properties[name].(map[string]any); ok {
+			out = append(out, timelineNestedRequired(child, next)...)
+		}
+	}
+	return out
+}
+
 // timelineCollectEnums walks object properties, array items and anyOf branches,
 // naming nested fields with a dotted path.
 func timelineCollectEnums(schema map[string]any, path string, out map[string][]string) {
 	if values, ok := schema["enum"].([]string); ok && path != "" {
 		out[path] = values
+	}
+	if value, ok := schema["const"]; ok && path != "" {
+		out[path] = []string{fmt.Sprint(value)}
 	}
 	if properties, ok := schema["properties"].(map[string]any); ok {
 		for name, child := range properties {

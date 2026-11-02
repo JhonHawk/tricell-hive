@@ -227,3 +227,50 @@ func TestViewStageStartWithoutReasonNamesTheField(t *testing.T) {
 		t.Fatalf("got %v", err)
 	}
 }
+
+// The brief's required and optional labels must match the production
+// validators: dropping a required field from an operation's example is
+// rejected, and dropping an optional one is accepted, except when it is the
+// example's only optional field of a *_patch operation, which must change at
+// least one field.
+func TestViewContractBriefMatchesValidator(t *testing.T) {
+	seen := map[string]bool{}
+	for _, flow := range viewer.TimelineProtocolFlows() {
+		brief, err := viewer.TimelineProtocolBrief(flow)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, op := range brief.Operations {
+			if seen[op.Operation] {
+				continue
+			}
+			seen[op.Operation] = true
+			var example map[string]json.RawMessage
+			if json.Unmarshal(op.Example, &example) != nil || len(example) == 0 || validateViewTimelineInput(op.Operation, op.Example) != nil {
+				continue
+			}
+			var optionalInExample []string
+			for name := range example {
+				if contains(op.Optional, name) {
+					optionalInExample = append(optionalInExample, name)
+				}
+			}
+			for name := range example {
+				without := map[string]json.RawMessage{}
+				for k, v := range example {
+					if k != name {
+						without[k] = v
+					}
+				}
+				raw, _ := json.Marshal(without)
+				rejected := validateViewTimelineInput(op.Operation, raw) != nil
+				switch {
+				case contains(op.Required, name) && !rejected:
+					t.Errorf("%s: brief marks %s required, validator accepts it missing", op.Operation, name)
+				case contains(op.Optional, name) && rejected && !(strings.HasSuffix(op.Operation, "_patch") && len(optionalInExample) == 1):
+					t.Errorf("%s: brief marks %s optional, validator rejects it missing", op.Operation, name)
+				}
+			}
+		}
+	}
+}

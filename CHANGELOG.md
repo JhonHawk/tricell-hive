@@ -54,7 +54,7 @@ raise the minor or the patch version.
   one and recommended it at about 20% of a 1M window (#328).
 - A flow's command is offered only when the next step needs that flow. A single
   action that changes no repository file, such as creating the ticket a route
-  needs, closing a ticket or deleting a merged branch, is asked directly ("Do
+  needs, closing a ticket as not planned or deleting a merged branch, is asked directly ("Do
   you want me to create the ticket?") instead of being sent through a flow
   command, and your answer authorizes only that action (#328).
 - The viewer publication procedure is read once per session and again after a

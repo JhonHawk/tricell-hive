@@ -248,7 +248,7 @@ func TestTimelineProtocolBriefCarriesFieldsEnumsAndExample(t *testing.T) {
 		t.Fatal("plan brief carries a build-only operation")
 	}
 	update := byName["stage_update"]
-	if update.Usage == "" || len(update.Example) == 0 || !contains(update.Required, "stage_state") || !contains(update.Optional, "reason") {
+	if update.Usage == "" || len(update.Example) == 0 || !contains(update.Required, "stage_state") || !contains(update.Required, "reason") {
 		t.Fatalf("incomplete stage_update brief: %+v", update)
 	}
 	if len(update.Enums["stage_state"]) == 0 {
