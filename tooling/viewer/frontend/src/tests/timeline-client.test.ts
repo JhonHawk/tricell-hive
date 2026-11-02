@@ -6,7 +6,6 @@ import {
   mapTimelineIndex,
   OPEN_KEY,
   type RawIndex,
-  skippedSessionCount,
   takeCode,
   takeTarget,
   validateIndex,
@@ -192,35 +191,53 @@ test("opening target validates opaque IDs, takes precedence, and remains in the 
     ] as unknown as TimelineAPIIndexEntry[],
   });
   assert.equal(invented.timeline_sessions.length, 0);
-  assert.equal(skippedSessionCount(invented), 1);
+  assert.deepEqual(invented.skipped_sessions, [
+    { position: 0, code: "unknown_field", id: sid },
+  ]);
 });
 
-test("an unreadable or duplicate index entry is skipped and reported without hiding the others", () => {
+test("an unreadable index entry is skipped, keeps its last copy, and duplicates still fail", () => {
   const a = fixture(),
     b = fixture(other);
-  const checked = validateIndex({
+  const unreadable = {
+    ...entry(b),
+    state: "awaiting_validation",
+    current_stage_event_id: null,
+  } as TimelineAPIIndexEntry;
+  const first = validateIndex({
     ...index(a, b),
-    timeline_sessions: [
-      entry(a),
-      {
-        ...entry(b),
-        state: "awaiting_validation",
-        current_stage_event_id: null,
-      },
-      entry(a),
-    ],
+    timeline_sessions: [entry(a), unreadable],
   });
   assert.deepEqual(
-    checked.timeline_sessions.map((s) => s.viewer_session_id),
+    first.timeline_sessions.map((s) => s.viewer_session_id),
     [sid],
   );
-  assert.equal(skippedSessionCount(checked), 2);
-  assert.deepEqual(
-    checked.errors.map((e) => [e.path, e.code]),
-    [
-      [`timeline_sessions/${other}`, "foreground_required"],
-      [`timeline_sessions/${sid}`, "duplicate_id"],
-    ],
+  assert.deepEqual(first.skipped_sessions, [
+    { position: 1, code: "foreground_required", id: other },
+  ]);
+  assert.deepEqual(first.errors, []);
+  const previous = index(a, b);
+  const kept = validateIndex(
+    { ...index(a, b), timeline_sessions: [entry(a), unreadable] },
+    previous,
+  );
+  assert.equal(kept.timeline_sessions[1], previous.timeline_sessions[1]);
+  const opaque = validateIndex({
+    ...index(a),
+    timeline_sessions: [
+      { ...unreadable, viewer_session_id: "../../bad" },
+    ] as TimelineAPIIndexEntry[],
+  });
+  assert.deepEqual(opaque.skipped_sessions, [
+    { position: 0, code: "foreground_required" },
+  ]);
+  assert.throws(
+    () =>
+      validateIndex({
+        ...index(a),
+        timeline_sessions: [entry(a), entry(a)],
+      }),
+    /Duplicate viewer work/,
   );
   const clean = index(a, b);
   assert.equal(validateIndex(clean), clean);

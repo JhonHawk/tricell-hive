@@ -174,7 +174,10 @@ export class ViewerController {
       seq = ++this.readSeq;
     this.reading = true;
     try {
-      const index = validateIndex(await this.client.request("/api/index"));
+      const index = validateIndex(
+        await this.client.request("/api/index"),
+        this.state.index,
+      );
       if (epoch !== this.epoch || seq !== this.readSeq) return;
       this.update({
         down: false,

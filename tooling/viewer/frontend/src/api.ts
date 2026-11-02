@@ -184,8 +184,14 @@ export type RawIndex = {
   timeline_sessions: TimelineAPIIndexEntry[];
   repositories: { root: string; absent: boolean }[];
   errors: { path: string; reason: string; code?: string }[];
+  /** Set by validateIndex, never by the server: entries the client skipped. */
+  skipped_sessions?: SkippedSession[];
 };
-export function validateIndex(value: RawIndex): RawIndex {
+export type SkippedSession = { position: number; code: string; id?: string };
+export function validateIndex(
+  value: RawIndex,
+  previous?: RawIndex | null,
+): RawIndex {
   if (
     value?.protocol_version !== 3 ||
     value.retention !== "manual" ||
@@ -218,45 +224,41 @@ export function validateIndex(value: RawIndex): RawIndex {
     )
       throw new Error("Invalid viewer error");
   // One entry the client cannot read must not hide every other session: skip
-  // it and report it among the index errors under a timeline_sessions/ path.
+  // it, keep the last copy read when there is one, and record it apart from
+  // the server's errors. Duplicates and non-contract failures still fail.
   const ids = new Set<string>();
   const sessions: TimelineAPIIndexEntry[] = [];
-  const skipped: RawIndex["errors"] = [];
+  const skipped: SkippedSession[] = [];
   value.timeline_sessions.forEach((e, position) => {
-    const raw = e as { viewer_session_id?: unknown } | null;
-    const path = `${SKIPPED_SESSION_PATH}${
-      typeof raw?.viewer_session_id === "string"
-        ? raw.viewer_session_id
-        : position
-    }`;
+    let entry: TimelineAPIIndexEntry | undefined;
     try {
-      const entry = parseTimelineIndexEntry(e);
-      if (entry.mode !== "timeline_api")
-        throw new TimelineContractError("mode", "unsupported_mode");
-      if (ids.has(entry.viewer_session_id))
-        throw new TimelineContractError("viewer_session_id", "duplicate_id");
-      ids.add(entry.viewer_session_id);
-      sessions.push(entry);
+      const parsed = parseTimelineIndexEntry(e);
+      if (parsed.mode !== "timeline_api")
+        throw new Error("Unsupported viewer work");
+      entry = parsed;
     } catch (error) {
-      skipped.push({
-        path,
-        reason: error instanceof Error ? error.message : "invalid entry",
-        ...(error instanceof TimelineContractError ? { code: error.code } : {}),
-      });
+      if (!(error instanceof TimelineContractError)) throw error;
+      const raw = (e as { viewer_session_id?: unknown } | null)
+        ?.viewer_session_id;
+      const id =
+        typeof raw === "string" && VIEWER_SESSION_ID.test(raw)
+          ? raw
+          : undefined;
+      skipped.push({ position, code: error.code, ...(id ? { id } : {}) });
+      entry = id
+        ? previous?.timeline_sessions.find((s) => s.viewer_session_id === id)
+        : undefined;
     }
+    if (!entry) return;
+    if (ids.has(entry.viewer_session_id))
+      throw new Error("Duplicate viewer work");
+    ids.add(entry.viewer_session_id);
+    sessions.push(entry);
   });
   if (!skipped.length) return value;
-  return {
-    ...value,
-    timeline_sessions: sessions,
-    errors: [...value.errors, ...skipped],
-  };
+  return { ...value, timeline_sessions: sessions, skipped_sessions: skipped };
 }
-export const SKIPPED_SESSION_PATH = "timeline_sessions/";
-export function skippedSessionCount(index: RawIndex): number {
-  return index.errors.filter((e) => e.path.startsWith(SKIPPED_SESSION_PATH))
-    .length;
-}
+const VIEWER_SESSION_ID = /^[0-9a-f]{64}$/;
 
 export type ViewerOpenTarget =
   | { sessionID: string; eventID?: string }

@@ -15,13 +15,7 @@ import {
 } from "@/components/reui/alert";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  mapTimelineIndex,
-  optionalStorage,
-  save,
-  skippedSessionCount,
-  stored,
-} from "./api";
+import { mapTimelineIndex, optionalStorage, save, stored } from "./api";
 import type { ViewerController } from "./controller";
 import { browserLanguage } from "./language";
 import { messages as t } from "./messages";
@@ -205,16 +199,11 @@ export function ViewerApplication({
           </AlertAction>
         </Alert>
       )}
-      {state.index && skippedSessionCount(state.index) > 0 && (
+      {state.index?.skipped_sessions?.length ? (
         <Alert variant="warning" role="status">
           <AlertDescription>{t.skippedSessions}</AlertDescription>
-          <AlertAction>
-            <Button type="button" variant="outline" onClick={retry}>
-              {t.retry}
-            </Button>
-          </AlertAction>
         </Alert>
-      )}
+      ) : null}
       {state.pendingTimelineDelete && (
         <Alert variant="warning" role="status">
           <AlertTitle>{t.partialDelete}</AlertTitle>
