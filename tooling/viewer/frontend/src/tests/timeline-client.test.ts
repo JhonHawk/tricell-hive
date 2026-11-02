@@ -6,6 +6,7 @@ import {
   mapTimelineIndex,
   OPEN_KEY,
   type RawIndex,
+  skippedSessionCount,
   takeCode,
   takeTarget,
   validateIndex,
@@ -184,14 +185,45 @@ test("opening target validates opaque IDs, takes precedence, and remains in the 
   const mapped = mapTimelineIndex(entry(a));
   assert.equal("raw" in mapped, false);
   assert.equal("fileBase" in mapped, false);
-  assert.throws(() =>
-    validateIndex({
-      ...index(a),
-      timeline_sessions: [
-        { ...entry(a), fileBase: "/invented" },
-      ] as unknown as TimelineAPIIndexEntry[],
-    }),
+  const invented = validateIndex({
+    ...index(a),
+    timeline_sessions: [
+      { ...entry(a), fileBase: "/invented" },
+    ] as unknown as TimelineAPIIndexEntry[],
+  });
+  assert.equal(invented.timeline_sessions.length, 0);
+  assert.equal(skippedSessionCount(invented), 1);
+});
+
+test("an unreadable or duplicate index entry is skipped and reported without hiding the others", () => {
+  const a = fixture(),
+    b = fixture(other);
+  const checked = validateIndex({
+    ...index(a, b),
+    timeline_sessions: [
+      entry(a),
+      {
+        ...entry(b),
+        state: "awaiting_validation",
+        current_stage_event_id: null,
+      },
+      entry(a),
+    ],
+  });
+  assert.deepEqual(
+    checked.timeline_sessions.map((s) => s.viewer_session_id),
+    [sid],
   );
+  assert.equal(skippedSessionCount(checked), 2);
+  assert.deepEqual(
+    checked.errors.map((e) => [e.path, e.code]),
+    [
+      [`timeline_sessions/${other}`, "foreground_required"],
+      [`timeline_sessions/${sid}`, "duplicate_id"],
+    ],
+  );
+  const clean = index(a, b);
+  assert.equal(validateIndex(clean), clean);
 });
 
 test("missing and invalid destinations do not select another session; explicit archived target does not change preference", async () => {

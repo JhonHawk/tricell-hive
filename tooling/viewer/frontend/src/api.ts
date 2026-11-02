@@ -3,6 +3,7 @@ import type { ViewerSession } from "./shell";
 import {
   parseTimelineIndexEntry,
   type TimelineAPIIndexEntry,
+  TimelineContractError,
 } from "./timeline-contract";
 export const TOKEN_KEY = "hive-view-token";
 export const OPEN_KEY = "hive-view-open";
@@ -205,13 +206,6 @@ export function validateIndex(value: RawIndex): RawIndex {
     )
   )
     throw new Error("Incompatible viewer index; update the viewer and reload");
-  const ids = new Set<string>();
-  for (const e of value.timeline_sessions) {
-    const entry = parseTimelineIndexEntry(e);
-    if (entry.mode !== "timeline_api" || ids.has(entry.viewer_session_id))
-      throw new Error("Duplicate viewer work");
-    ids.add(entry.viewer_session_id);
-  }
   for (const r of value.repositories)
     if (!r || typeof r.root !== "string" || typeof r.absent !== "boolean")
       throw new Error("Invalid registered repository");
@@ -223,7 +217,45 @@ export function validateIndex(value: RawIndex): RawIndex {
       (e.code !== undefined && typeof e.code !== "string")
     )
       throw new Error("Invalid viewer error");
-  return value;
+  // One entry the client cannot read must not hide every other session: skip
+  // it and report it among the index errors under a timeline_sessions/ path.
+  const ids = new Set<string>();
+  const sessions: TimelineAPIIndexEntry[] = [];
+  const skipped: RawIndex["errors"] = [];
+  value.timeline_sessions.forEach((e, position) => {
+    const raw = e as { viewer_session_id?: unknown } | null;
+    const path = `${SKIPPED_SESSION_PATH}${
+      typeof raw?.viewer_session_id === "string"
+        ? raw.viewer_session_id
+        : position
+    }`;
+    try {
+      const entry = parseTimelineIndexEntry(e);
+      if (entry.mode !== "timeline_api")
+        throw new TimelineContractError("mode", "unsupported_mode");
+      if (ids.has(entry.viewer_session_id))
+        throw new TimelineContractError("viewer_session_id", "duplicate_id");
+      ids.add(entry.viewer_session_id);
+      sessions.push(entry);
+    } catch (error) {
+      skipped.push({
+        path,
+        reason: error instanceof Error ? error.message : "invalid entry",
+        ...(error instanceof TimelineContractError ? { code: error.code } : {}),
+      });
+    }
+  });
+  if (!skipped.length) return value;
+  return {
+    ...value,
+    timeline_sessions: sessions,
+    errors: [...value.errors, ...skipped],
+  };
+}
+export const SKIPPED_SESSION_PATH = "timeline_sessions/";
+export function skippedSessionCount(index: RawIndex): number {
+  return index.errors.filter((e) => e.path.startsWith(SKIPPED_SESSION_PATH))
+    .length;
 }
 
 export type ViewerOpenTarget =
