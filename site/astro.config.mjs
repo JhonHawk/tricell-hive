@@ -66,6 +66,7 @@ export default defineConfig({
       sidebar: [
         { label: "[home] Home", slug: "index" },
         { label: "[book] Getting started", slug: "getting-started" },
+        { label: "Viewer", slug: "viewer" },
         { label: "[history] Changelog", slug: "changelog" },
         {
           label: "[layers] Skills",

@@ -12,22 +12,32 @@ raise the minor or the patch version.
 
 ### Added
 
-- A session timeline viewer with a compact ReUI header, view-scoped image
-  collections and instructions, declared research/plan/build/verify stages,
-  and immutable Markdown documents. The authenticated local publishing API
-  requires the actual project/host/native-session identity, returns durable
-  operation receipts, and supports conditional edits and recovery. Agents can
-  discover commands and schemas offline with `hive view contract`.
-- Viewer content now has manual retention: existing and new content no longer
-  expires with age, and the old `--ttl` option is accepted but ignored.
-  Legacy walkthroughs remain readable without automatic history conversion.
-  The viewer also defaults to port 4483 and falls back to a free port when it
-  is busy.
-- The walkthrough viewer keeps one fixed session toolbar above its scrolling
-  content. Rename, archive/restore, keep and confirmed deletion cover every
-  walkthrough in the session, across tickets; local names take part in search
-  and archive feedback offers Undo. Deletion keeps a tombstone before
-  removing copies and retries an incomplete cleanup.
+- A shared-work viewer with an ascending timeline, declared research/plan/build/
+  verification/delivery stages, independent task segments, visible review
+  evidence and a compact Tasks/Go-to-current toolbar. One common detail panel
+  supports immutable Markdown revisions, galleries, task review and CI attempts
+  with manual snapshot updates.
+- Native producers join the same work using their own verified Source and
+  accepted producer IDs. Canonical ticket/delivery registries and immutable
+  candidates replace repeated inline entities; one metadata patch updates
+  current references while preserving publication context and history.
+  Conditional operations retain CAS, audit, durable receipts and recovery.
+  `hive view contract` describes commands, schemas and limits offline.
+- Protocol/schema/storage3 starts on a fresh state directory and rejects earlier
+  formats before writes. No legacy scanning, migration or preference import is
+  performed. Standalone HTML fallback remains separate. Retention is manual,
+  deprecated --ttl is ignored, and the viewer defaults to 4483 with a free-port
+  fallback. Browser rename/archive/pin/delete manage the work without changing
+  source files or native host history.
+- Viewer system labels follow the primary browser language: English default/
+  fallback and Spanish for es/es-* locales, including accessible names and
+  dates. Stage keys render one localized heading with optional verbatim context;
+  producer titles, captions and document history are unchanged. The offline
+  catalog exposes the reserved labels and supported languages.
+- A [viewer manual](site/src/content/docs/viewer.md) covers published work,
+  stage-specific tasks, evidence, current/published references and delivery CI.
+  The canonical publisher guide documents shared producers and ID-based
+  publication without duplicating task state or provider observations.
 - A new `flow-status` skill reports the project's status and backlog, read
   only: open tickets grouped by product module, unfinished local work (branch,
   uncommitted changes, unmerged branches, worktrees, open pull requests), and

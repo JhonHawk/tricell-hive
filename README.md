@@ -405,68 +405,54 @@ Close this work item and clean up only the temporary resources it created.
 
 ### Review UI walkthroughs in one place
 
-The viewer brings an agent session's research, plan, build and verification
-milestones together in a timeline. When the viewer is running and the host can
-provide its native session identity, the agent can publish progress before it
-takes screenshots. Start and stop the local viewer yourself:
+The local viewer brings a shared work's research, plan, build, verification and
+delivery together in an ascending timeline. Several native sessions can
+contribute using their own identities and accepted producer IDs. Start and stop
+the service explicitly:
 
 ```sh
 hive view start      # 127.0.0.1:4483, or a free port if that port is busy
-hive view open       # open the library in a browser
-hive view status     # show the service status without its access token
+hive view open
+hive view status     # service status without its access token
 hive view stop
 ```
 
-The server keeps running until you stop it. The agent registers the repository
-or workspace when publishing; `hive view register --dir <folder>` can also do
-this without a running server. `hive view contract` prints the versioned CLI
-commands, input/output schemas, limits and examples without starting the server;
-`--operation NAME` narrows the output. Producers send JSON with `--json FILE`
-or `--json -` for standard input. The [publication skill](content/skills/flow-walkthrough/SKILL.md)
-sets when and how agents use these commands.
+The server keeps running until you stop it. The agent registers the project and
+publishes through the versioned API. `hive view contract` prints the offline
+commands, schemas, limits and examples; `--operation NAME` narrows the output.
+JSON inputs use `--json FILE` or `--json -`. The
+[publication skill](content/skills/flow-walkthrough/SKILL.md) owns the agent's
+procedure; the [viewer manual](https://hive.tricell.tech/viewer/) explains how to
+read and manage published work.
 
-Each API session is keyed by a resolved project, host and the native session
-ID supplied by the agent; the server returns a separate viewer ID. The identity
-is metadata for grouping, not server attestation of the agent process. Its newest milestones appear first,
-with declared stage progress, ticket and Git links, and a short scope summary.
-Stage documents open as read-only Markdown tabs with their saved revisions;
-visual evidence is grouped by view and ticket, with thumbnails opening a
-carousel and instructions available on demand. Later iterations retain prior
-views and identify the evidence they supersede. Status and approvals reported
-from the chat are agent-reported context, not proof that a process is alive or
-that the person acted in the viewer. Review decisions still happen through the
-host conversation.
+System labels follow the browser: English by default, Spanish for a Spanish primary language. Producer-authored content remains verbatim.
 
-Rename, archive/restore, keep and confirmed deletion act on a session. Archive
-changes the default list's visibility; it does not close the work. The viewer
-does not expire sessions, archived copies, documents or images because of age.
-The old `--ttl` flag is accepted for compatibility but ignored with a warning.
-Explicit deletion removes the viewer's stored session, not repository source
-files or the host conversation. A modified legacy source may be ingested again
-after its stored copy is deleted. The agent confirms the stored session and its
-resources before removing disposable publication inputs; it keeps inputs when a
-publication fails or its result cannot be confirmed.
+Stages contain their own activity. The Tasks Popover lists the single task
+registry; each stage projects its assigned segments, including tasks that span
+verification and delivery. Status, pauses and CI waits are declared records,
+not proof of host liveness or human approval. Documents, galleries and review
+panels preserve the snapshot you opened until you choose an update. Tickets and
+Git deliveries have canonical IDs: a metadata correction updates current links
+while keeping the original publication context.
 
-The legacy scanner still reads eligible `walkthrough.json` files and referenced
-resources under registered workspaces, preserving their historical presentation
-instead of inventing timeline events. Tracked manifests are not imported;
-previously copied sources now tracked are listed separately without rendering,
-and unknown source classification is shown as a warning. API-owned sessions
-and their tombstones suppress a matching legacy projection without deleting the
-source. If the binary is absent, a UI walkthrough can still use standalone HTML;
-a stopped or unreachable installed viewer does not select another publication
-authority. A local source file does not prove who authored it.
+Browser rename, archive, pin and confirmed deletion manage the work; they do
+not execute agent tasks or approve a plan. Retention is manual, without age
+expiry. The old `--ttl` flag is ignored with a warning. Deletion removes stored
+viewer data, not project sources or native conversations. Deleted work identities
+remain unavailable; a modified source does not recreate a deleted work.
 
-`hive view open` uses a short-lived, one-use code in the URL fragment. The page
-removes the fragment before exchange and does not load session data until access
-succeeds. Optional `--session-id ID --event-id ID` opens a specific API event;
-the IDs are not the server token. Publication does not start or restart the viewer.
-Rebuilding the binary does not update a running process: update the binary before
-the installed content and coordinate a restart before expecting new server
-features. Before upgrading, back up the old binary, copy metadata, index and
-session-group records without copying `server.json` or access tokens. Older
-binaries do not understand API-owned records: retain those files for recovery,
-and avoid overwriting preferences changed after a backup when rolling back.
+Protocol3 requires a fresh state directory. Earlier API/state formats and
+`walkthrough.json` are not imported, scanned or migrated. Preserve the old state
+and coordinate writers before an explicitly authorized cutover. The standalone
+HTML fallback remains available only when the binary is absent; an incompatible
+or stopped service does not select another publication authority.
+
+`hive view open` exchanges a short-lived, one-use URL-fragment code before data
+loads, then removes the fragment. Optional `--session-id ID --event-id ID` opens
+an exact target; these IDs are not credentials. Publishing does not start or
+restart the service. Updating a binary does not update a running process.
+Installation, service restart and a state-directory cutover remain distinct
+operations; do not overwrite the old directory or restore it over later edits.
 
 The viewer uses React with public MIT shadcn/ui and ReUI components. It needs no
 Node, ReUI license or third-party network connection at runtime. Frontend

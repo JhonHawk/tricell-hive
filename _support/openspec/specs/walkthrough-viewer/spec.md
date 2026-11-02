@@ -1,8 +1,10 @@
 # walkthrough-viewer
 
+[canonical-references]: canonical-references.md
+
 ## Purpose
 
-A user-controlled local server, `hive view`, for session-bound work stages, immutable documents and view-scoped UI evidence, grouped by project, host and native session identity. Legacy walkthroughs remain separately readable.
+A user-controlled local server for shared work, native producers, declared stages, canonical tasks and references, immutable documents and view-scoped evidence. Protocol3 starts with a clean state cutoff; standalone HTML remains separate.
 
 ## Requirements
 
@@ -22,68 +24,22 @@ The manager SHALL provide `hive view start`, `stop`, `status`, `open`, `serve` a
 - **THEN** the command exits successfully without writing the registry.
 
 ### Requirement: Walkthrough ingestion and grouping
-For legacy inputs, the server SHALL copy valid `walkthrough.json` files found under `_support/workspace/*/` of registered roots, with their referenced files, into its own store. Physical copies SHALL retain their folder/session-derived keys and per-copy resources. The viewer SHALL group normal visible copies by exact project key, declared host and `session.id`, across tickets, and SHALL present each copy as a chronological segment of that session. Different tuple values SHALL remain separate; titles and tickets SHALL NOT establish identity. It SHALL NOT ingest a manifest confirmed as tracked by a complete check of its owning Git index. Tracking SHALL be checked before unchanged-source shortcuts, including ancestor repositories and worktrees. A confirmed non-Git workspace SHALL remain supported. An unavailable or incomplete tracking check SHALL produce unknown status and a warning, never confirmed untracked status; ingestion and access in that unknown state SHALL NOT claim tracking exclusion or verified authorship. The project key SHALL be the normalized Git remote, or the repository root without one; the project label SHALL come from the root's `## Hive` `Project:` value, then `.engram/config.json` `project_name`, then the remote's last segment or the folder name.
+The protocol v3 runtime SHALL serve API-owned works from a new v3 state directory exclusively. It SHALL NOT scan or import legacy manifests, API v1 or provisional v2 sessions or copy preferences. Project roots SHALL be explicitly registered in v3. Existing state from an earlier binary SHALL cause cutoff_required before any state mutation rather than migration or silent empty-state fallback. Unknown or corrupt state SHALL fail without cleanup. Legacy standalone HTML SHALL remain independent and SHALL NOT be ingested into v3. API commits SHALL finalize blobs and synchronize files/directories before success and SHALL reconcile outcome_unknown after uncertain durable commits.
 
-#### Scenario: Multiple tickets in one session
-- **WHEN** two visible normal copies share project, host and session ID but carry different tickets
-- **THEN** the sidebar shows one session and its content includes both chronological segments with their own headings and resources.
+#### Scenario: Clean start
+- WHEN v3 starts on a new state directory and roots are registered
+- THEN its index is initially empty and old project walkthrough.json files do not appear.
 
-#### Scenario: Same ticket in different sessions
-- **WHEN** copies share a ticket but differ in project, host or session ID
-- **THEN** they remain separate sessions.
-
-#### Scenario: Invalid manifest
-- **WHEN** a manifest has an unknown field or a path outside its folder
-- **THEN** it is not copied, the error is listed in the index, and the server keeps serving.
-
-#### Scenario: Force-added manifest
-- **WHEN** a complete owning-index check confirms that a valid manifest is tracked even under an ignored workspace directory
-- **THEN** no new stored copy is created from it.
-
-New API-owned sessions SHALL use the existing project/host/native-session identity principle and SHALL have exclusive server-side content authority. Scanner passes SHALL not overwrite their events or expose duplicate legacy content of the same tuple. Legacy manifests and existing standalone HTML fallback SHALL remain readable without invented event reconstruction. An installed CLI with an unavailable server SHALL report failed publication and retain local evidence without automatically starting a daemon or creating an alternate authority. API records SHALL use explicitly versioned storage and preserve readable committed state after restart or failed writes. API commits SHALL durably finalize artifacts before records/receipts reference them, synchronize files and parent directories before success, and report/reconcile outcome_unknown after an uncertain post-rename failure rather than claim a rollback. Content limits SHALL reserve lifecycle capacity and SHALL not prevent terminal deletion.
-
-#### Scenario: Legacy producer and new API session
-- WHEN a source manifest changes for a tuple already owned by an API session
-- THEN it cannot replace the API session's content or produce a duplicate visible session.
-
-#### Scenario: Server unavailable
-- WHEN a CLI attempts API publication while the viewer is stopped
-- THEN it fails actionably, preserves captures and neither starts the viewer nor claims publication success.
+#### Scenario: Old directory selected
+- WHEN v3 is pointed at earlier viewer state
+- THEN startup fails actionably before creating or altering files, preserving that state.
 
 ### Requirement: Store retention and deletion
-Neither legacy nor API content SHALL expire or be excluded from ingestion due to age; pinning and archiving SHALL change preferences or visibility only. Explicit deletion through a session member's authenticated same-origin management route SHALL delete all currently stored copies with the same exact project key, declared host and session ID, including archived and source-excluded members. Deleting SHALL never modify repository files. Per-copy tombstones SHALL be persisted before removing copy directories and SHALL prevent unchanged deleted content from returning; new or modified source content MAY be ingested again. Every API read SHALL require the server token, and copied files SHALL be served only under a per-copy capability derived from it. Partial deletion SHALL be reported as a failure with remaining-copy counts and a retry path, never as complete success. Restart recovery SHALL reconstruct actual surviving copies and complete pending logical-record cleanup when no member remains.
+All v3 work content SHALL use manual retention without age-based expiry. Archive/pin SHALL affect visibility/preferences only. Authenticated same-origin, session-scoped, version-conditional deletion SHALL remove the selected work and its owned stored blobs without editing project files or other works. A durable tombstone and operation receipt SHALL precede cleanup; partial failure SHALL report remaining work and allow scoped retry without resurrection. Reads SHALL require the existing token/capability protections. Restart recovery SHALL complete pending deletion without treating a failed write as success.
 
-#### Scenario: Read without token
-- **WHEN** a request for the index, a session or a copied file lacks the token or matching capability
-- **THEN** the server answers 403 and returns no data.
-
-#### Scenario: Delete without token or same origin
-- **WHEN** deletion lacks the server token or carries a foreign Origin or Host
-- **THEN** the server answers 403 and all copies remain.
-
-#### Scenario: Delete a logical session
-- **WHEN** the user confirms deletion of a session containing several tickets and archived members
-- **THEN** every current member is deleted from the viewer, its source is untouched, and new or modified source content can appear later.
-
-#### Scenario: Preserve a session independently of pinning
-- **WHEN** a session receives a new walkthrough and its members age while pinned, unpinned or archived
-- **THEN** all its members remain stored until explicit deletion.
-
-#### Scenario: Partial storage failure during deletion
-- **WHEN** a member cannot be deleted after other members were removed
-- **THEN** the operation reports failure, publishes the surviving members and allows retry without resurrecting successfully deleted unchanged content.
-
-#### Scenario: Pending record cleanup without restart
-- **WHEN** the last copy was removed but logical-record cleanup failed
-- **THEN** the periodic scan retries cleanup and any new ingestion for that identity waits until cleanup succeeds, without inheriting stale name or preference values; the UI distinguishes pending cleanup from a completed delete and lets the user check recovery without presenting a read as a repair.
-
-This scenario was approved under D10-B (final cleanup recovery and implementation).
-
-Existing local-server authentication, capability serving, pin/archive preferences and source-preserving explicit deletion SHALL extend to API sessions. API identity deletion SHALL retain a tombstone against implicit recreation. Legacy historical cleanup SHALL require the exact approved member-key/hash set inside the deletion lock; a mismatch SHALL preserve the whole group. It SHALL not expand the fixed inventory or remove source files, new sessions, registry, authentication or service settings. Partial deletion SHALL report survivors and preserve recovery state.
-
-#### Scenario: Historical group changes before cleanup
-- WHEN a member is added or changed after the authorized inventory but before deletion
-- THEN the conditional deletion rejects that whole group without tombstones or removed copies.
+#### Scenario: Delete and retry
+- WHEN deletion commits but its response is lost
+- THEN exact retry after restart returns the receipt and no deleted work reappears.
 
 ### Requirement: Single-use viewer access handoff
 The CLI SHALL obtain a cryptographically random access code through a token-authenticated same-origin POST and pass only that code, never the server token, in the system opener URL fragment. Codes SHALL expire after 60 seconds, SHALL be consumed atomically once, and SHALL exist only in server memory. The exchange POST SHALL require a valid code and the server's own Host and Origin instead of the server token; this exception SHALL NOT relax authentication on any other existing API route. Exchange responses SHALL be non-cacheable. Tokens and codes SHALL NOT appear in CLI output, errors or logs.
@@ -111,34 +67,19 @@ The manager SHALL display the viewer management and publishing subcommands and e
 - **WHEN** the user requests viewer group help without a server or state directory
 - **THEN** the command lists start, stop, status, open, register, serve, contract, session, event, stage, artifact and document and exits successfully without creating state.
 
-### Requirement: Current source classification
-The server SHALL derive `tracked`, `local` or `unknown` source status for every stored copy before publishing its initial or reconstructed view and on each complete scan. It SHALL place tracked copies outside the normal project/session list, preserve their files, keys, ingestion time, pins, archive state and existing retention behavior, and show an explanatory entry without rendering the document's instructions. Authenticated normal reads of a tracked copy's manifest or files SHALL return 409 without document bytes; authenticated archive/restore, pin and delete operations SHALL remain available. Missing sources without positive tracking evidence and failed classification SHALL be shown as unknown with a warning. Local status SHALL NOT claim verified agent authorship. The list and open document SHALL update source warnings when source status or reason changes, even when content hashes remain unchanged. Classification SHALL NOT require changes to stored per-copy metadata.
-
-#### Scenario: Tracking changes without content changes
-- **WHEN** an existing source becomes tracked or stops being tracked while its bytes remain unchanged and its file remains present
-- **THEN** the next complete scan changes its placement without resetting its ingestion time or pin.
-
-#### Scenario: Source missing or tracking unavailable
-- **WHEN** the source is missing without positive tracking evidence or its tracking cannot be determined
-- **THEN** its retained copy remains accessible with an explicit unknown-origin warning rather than a verified-authorship claim.
-
 ### Requirement: Safe and deterministic Git tracking lookup
-The source classifier SHALL explicitly disable repository-configured `core.fsmonitor` callbacks for its Git read processes without changing stored Git configuration. Inherited pathspec environment variables SHALL NOT alter the classifier's selected pathspec interpretation. Index paths resolving to the same filesystem object as a manifest SHALL be recognized as tracked despite case differences; distinct files on case-sensitive filesystems SHALL NOT be conflated. Prefix selection SHALL account for case aliases in parent directories. These controls SHALL preserve the existing bounded-output and unknown-status policies.
+Any retained Git source/identity lookup SHALL disable repository-configured fsmonitor callbacks for that process without changing configuration, neutralize inherited pathspec interpretation, preserve bounded-output handling and avoid conflating distinct filesystem objects. Removing the legacy scanner SHALL NOT weaken these controls in remaining lookups.
 
-#### Scenario: Repository filesystem monitor
-- **WHEN** Git accepts a repository configured with a filesystem-monitor callback and the classifier reads its index
-- **THEN** the callback is not executed and the index still determines tracking status.
-
-#### Scenario: Inherited literal pathspec semantics
-- **WHEN** the parent environment sets `GIT_LITERAL_PATHSPECS=1` and a manifest is tracked
-- **THEN** the complete query still identifies that manifest as tracked rather than producing a false local result.
+#### Scenario: Retained Git lookup
+- WHEN a v3 project/source operation needs a Git lookup
+- THEN repository callbacks do not execute and inherited pathspec variables do not change the selected path.
 
 ### Requirement: Open-file hardlink rejection
-Before reading an ingestion manifest or referenced resource, including each hashing and copying read, the server SHALL inspect the opened file descriptor and reject a regular file with more than one hard link. It SHALL reject unavailable link-count metadata explicitly rather than claiming the check passed. This policy SHALL NOT require the file owner to equal the server's effective user. Rejection SHALL NOT install a partial copy or replace the last valid stored copy.
+Retained file-based upload and standalone rendering operations SHALL inspect the opened descriptor before hashing/reading referenced local resources, rejecting regular files with multiple hard links or unavailable required link-count metadata. Rejection SHALL not publish partial content or replace valid content. API endpoints SHALL receive bounded bytes, never follow publisher-supplied filesystem paths.
 
-#### Scenario: Resource replaced after validation
-- **WHEN** a validated resource is replaced with a hard-linked regular file before a hashing or copying open
-- **THEN** descriptor inspection rejects it before reading its bytes and leaves the last valid stored copy intact.
+#### Scenario: Resource replacement
+- WHEN a local referenced resource is replaced by a hard-linked regular file before reading
+- THEN descriptor checks reject the read and no new publication is committed.
 
 ### Requirement: Full-width desktop screen capture preview
 On screen, a desktop capture preview in a strip wider than 520 CSS pixels SHALL occupy the strip's usable width. Narrow strips SHALL retain the existing next-capture peek, and additional captures SHALL remain horizontally accessible. Mobile capture sizing, carousel access and the existing print arrangement SHALL remain unchanged. The skill asset and embedded viewer stylesheet SHALL remain byte-identical. Previously generated standalone pages SHALL NOT be rewritten automatically.
@@ -148,161 +89,67 @@ On screen, a desktop capture preview in a strip wider than 520 CSS pixels SHALL 
 - **THEN** one capture occupies its usable width rather than half, without adding page-level horizontal overflow.
 
 ### Requirement: Explicit walkthrough session lifecycle
-The walkthrough manifest SHALL accept an optional `session.status` with values `in_progress` or `closed`. A missing status SHALL remain valid and SHALL be exposed by the viewer as `unknown`, never inferred from the manifest kind, age, source classification, or host process. Active walkthrough producers SHALL declare `in_progress`. Closing the current work through flow-close SHALL declare `closed`; this describes closure of that work, not approval or termination of the host conversation. Explicitly resuming it SHALL declare `in_progress` again.
+The independent standalone HTML fallback MAY keep its existing optional manifest status contract and SHALL NOT be ingested into v3. v3 lifecycle SHALL use the typed work/stage API exclusively; neither age, document completion, host process nor fallback manifest kind SHALL imply approval or conversation termination.
 
-#### Scenario: Historical final report
-- **WHEN** an existing final report has no explicit session status
-- **THEN** it remains valid and its status indicator states that no status was reported.
-
-#### Scenario: Closing the current work
-- **WHEN** flow-close completes, abandons or pauses a work item with a walkthrough
-- **THEN** it updates only that work's manifest to closed, publishes JSON with HTML only when the executable is absent, and confirms the current revision before deleting its worktree or review artifacts.
-
-#### Scenario: Cleanup without closure
-- **WHEN** hygiene runs without closing the work item
-- **THEN** it does not mark the walkthrough closed.
+#### Scenario: Standalone fallback
+- WHEN the binary is absent and a standalone walkthrough is rendered
+- THEN its existing manifest/HTML behavior remains usable without a v3 server or import path.
 
 ### Requirement: Confirmed lifecycle ingestion before artifact cleanup
-The manager SHALL support a directory-targeted viewer status query through its existing authenticated API access. The closing flow SHALL confirm that the exact source/session's current closed revision was ingested before removing its review artifact unit. An unavailable viewer, unsupported runtime, ingestion error or bounded confirmation timeout SHALL retain that unit and report the unresolved confirmation, without starting or restarting the viewer. Queries SHALL NOT expose authentication tokens or file capabilities.
+For v3, closure cleanup SHALL confirm the exact committed work/version, state, revision/artifact IDs, hashes and sizes through authenticated API readback before removing owned disposable upload inputs. An unavailable runtime, mismatch or uncertain commit SHALL preserve inputs and report the limit without starting/restarting the viewer. This is API confirmation, not manifest ingestion. Standalone fallback retention SHALL remain an independent artifact unit. Tokens/capabilities SHALL never appear in evidence.
 
-#### Scenario: Reopened walkthrough has an old closed copy
-- **WHEN** an earlier closed copy exists but the source is reopened and later closed with changed content
-- **THEN** the earlier closed copy does not count as confirmation of the current revision.
+#### Scenario: Uncertain publication
+- WHEN exact committed readback cannot be established
+- THEN review inputs remain available and no successful cleanup/publication is claimed.
 
 ### Requirement: Hierarchical React viewer navigation
-The React shell SHALL list logical sessions directly under projects, with visible-session counts and compact session title, ticket summary, walkthrough count and date presentation, without a ticket navigation level or connector branches. Projects SHALL initially open only when they contain a visible explicitly in-progress walkthrough, with manual expansion taking precedence. Sidebar visibility, project expansion, archive filter and selection by physical member key SHALL survive refresh in sessionStorage within the same tab and origin. Searching a member ticket SHALL find its session and allow navigation to that walkthrough without hiding its siblings. The sidebar brand header SHALL show a route icon. The session content SHALL stack accessible walkthroughs chronologically with separators, individual headings and informational work status. Session management actions SHALL appear once in the fixed session toolbar and SHALL target the entire logical session, independently of the selected member or filter. Lifecycle SHALL remain separate from source provenance and SHALL NOT be editable in the viewer. Explicit work states SHALL be presented as in progress or closed; absent status SHALL be presented as unreported, never inferred as conversation termination. Archive filtering SHALL operate on logical sessions. The shell SHALL retain keyboard and mobile navigation and SHALL consume the Go API and shared walkthrough renderer. Simultaneous document controls, anchors, ARIA references, printing and cleanup SHALL remain scoped to their owning walkthrough.
+The React shell SHALL list API v3 works under registered projects, with title, ticket summary, date and visible count. Archive filtering, sidebar visibility, manual expansion and selection by work ID SHALL survive refresh in the same tab/origin. Search SHALL find work titles and tickets without splitting shared work by producer. Keyboard/mobile navigation SHALL remain accessible; controls, anchors and ARIA IDs SHALL be scoped. Declared lifecycle SHALL remain separate from process liveness; local management actions SHALL occur once in the toolbar. There SHALL be no legacy physical-member selection or manifest-renderer branch in v3.
 
-#### Scenario: Common session controls
-- **WHEN** a session contains walkthroughs from several tickets
-- **THEN** a single toolbar controls its archive, pin and delete state and no walkthrough repeats those management controls.
-
-#### Scenario: Different lifecycle and provenance
-- **WHEN** a walkthrough is closed while its source classification is unknown
-- **THEN** its work indicator remains closed and its source uncertainty remains independently visible, without asserting termination of the host conversation.
-
-#### Scenario: Refresh after manual navigation
-- **WHEN** the user changes project expansion, sidebar visibility, archive filter or walkthrough selection and refreshes the same tab
-- **THEN** the shell restores those choices instead of replacing them with initial defaults.
-
-#### Scenario: Two walkthroughs with identical flow indexes
-- **WHEN** two walkthroughs with their own capture tabs and carousel are mounted together
-- **THEN** IDs and ARIA references remain unique, each interaction controls its own document, and unmounting retires its listeners.
+#### Scenario: Refresh navigation
+- WHEN the user changes selection/expansion/filter and reloads
+- THEN the same work and manual choices remain selected with its own scroll context.
 
 ### Requirement: Reversible copy archiving
-The server SHALL support authenticated, same-origin POST and DELETE requests to `/api/sessions/<key>/archive`, where the key locates a stored member and the operation archives or restores its entire logical session, including source-excluded members, with 204 on success. Archive state SHALL belong to the exact project/host/session identity, default to false for a new identity, and appear as effective `archived` state in the index for all normal and excluded members. It SHALL survive restarts, index reconstruction and source-content replacement, independently of pinning, ingestion time, TTL and manifest work status. New members SHALL inherit their logical session's archive state. Archiving SHALL NOT edit source files or exempt an unpinned session's copies from normal TTL deletion. Archived sessions SHALL be hidden by default; the existing accessible icon-only toggle beside Projects SHALL include or hide them. The shell SHALL offer brief feedback with Undo for a successful archive action, preserving that action's identity across selection changes, instead of a persistent archived-copy banner in the document area. Source warnings and actual errors SHALL remain visible and distinct from archive feedback.
+The retained archive behavior SHALL apply to a v3 work rather than legacy copies. Authenticated same-origin scoped local-viewer writes SHALL atomically update archived under expected version; archive SHALL not modify content, source identity, lifecycle or pin and SHALL survive restart. Archived works SHALL be hidden by default with the accessible include-archived toggle. Undo SHALL target the originally archived work even after selection changes. No archive SHALL enable TTL deletion.
 
-#### Scenario: Archive and restore a pinned session
-- **WHEN** the user archives and later restores a pinned session
-- **THEN** its whole group disappears from and returns to the default list, remains pinned throughout, and its source manifests and work states remain unchanged.
-
-#### Scenario: Archived unpinned session expires
-- **WHEN** an archived, unpinned copy exceeds the configured retention age
-- **THEN** normal TTL purging removes that copy.
-
-#### Scenario: Continuation of an archived session
-- **WHEN** another ticket's walkthrough arrives with the same exact project, host and session ID
-- **THEN** it remains archived with that session instead of making the session reappear in the active list.
-
-#### Scenario: Undo after selection changes
-- **WHEN** archiving hides the selected session and the user activates Undo while another session is selected
-- **THEN** the archived session is restored as a whole and the newly selected session is not modified.
+#### Scenario: Undo elsewhere
+- WHEN archiving hides work A and the user selects B before Undo
+- THEN Undo restores A without changing B.
 
 ### Requirement: Explicit walkthrough delivery links
-The manifest SHALL accept optional `delivery` entries containing `kind` (`pull_request` or `commit`), nonempty text `label`, and an absolute HTTPS `url` with an ASCII host (including punycode names or IP literals) and without credentials, literal spaces or control characters. Unicode host names SHALL be rejected without normalization; labels and paths MAY contain Unicode. Named hosts SHALL use ASCII letters, digits, dots, hyphens or underscores; bracketed hosts SHALL be valid IPv6 literals. Python and Go validators SHALL apply the same contract; existing manifests without the field SHALL remain valid in updated readers. Delivery SHALL identify known work links separately from `candidate`, and SHALL NOT infer integration or remote check status. New readers SHALL be distributed before producing manifests with the new field; older strict readers may reject it. Producers SHALL add only verified links available for the current work; closure SHALL update only the current artifact unit while preserving the shown candidate. No historical backfill SHALL run automatically.
+v3 API delivery events and independent standalone pages SHALL accept only verified PR/commit links, distinguish candidate metadata from delivery and never infer integration. URLs SHALL be absolute HTTPS with valid ASCII hosts and no credentials, spaces or controls; labels SHALL render as text, destinations SHALL be validated on rendering, and new contexts SHALL use noopener noreferrer. The v3 compact header SHALL expose deduplicated canonical work delivery entities by ID in its accessible delivery popover; no links SHALL be fabricated from candidate text. Standalone manifests/HTML may retain their existing validated link rendering independently, without import or backfill.
 
-The viewer header SHALL aggregate delivery links from visible accessible segments, deduplicated by exact URL, with two direct links and access to remaining links through an accessible dialog. Each segment and its standalone page SHALL expose its own links. An absence SHALL be shown as unregistered delivery rather than fabricated URLs; pending or failed document reads SHALL be distinguished from absence. Link rendering SHALL validate its destination again, treat labels as text, and isolate a new browsing context with `noopener noreferrer`.
-
-#### Scenario: Session with several deliveries
-- **WHEN** visible segments provide more than two distinct verified delivery URLs
-- **THEN** the header shows two links and an accessible way to inspect all of them, while each segment retains its own association.
-
-#### Scenario: Historical candidate without delivery
-- **WHEN** an older manifest contains only `candidate.commit`, including `working tree`
-- **THEN** the updated reader accepts it and shows no registered delivery without inventing a PR or commit URL.
-
-#### Scenario: Unsafe delivery URL
-- **WHEN** a delivery entry has a relative, executable, credential-bearing or otherwise invalid URL
-- **THEN** both validators reject it without replacing the last valid copy, and a renderer never creates an unsafe external link.
-
-#### Scenario: Closing a current work with a known PR
-- **WHEN** closure has a verified implementation PR for the current walkthrough
-- **THEN** it can record that delivery before rendering and confirmation while preserving the candidate and leaving other session segments untouched.
+#### Scenario: Unsafe URL
+- WHEN a delivery contains an executable, relative or credential-bearing URL
+- THEN validation rejects it and no unsafe browser link is created.
 
 ### Requirement: Viewer-first walkthrough publication
-For legacy manifest publication, the walkthrough publisher SHALL determine whether the `hive` executable is available on PATH. When available, it SHALL validate and publish only the JSON manifest and its explicit lifecycle update, SHALL NOT build or write an HTML page, and SHALL leave any existing HTML unchanged. Producers SHALL register the artifact for the viewer and identify the JSON/visual evidence in the handoff. When the executable is absent, the publisher SHALL generate the standalone HTML fallback, preserving the existing preparation and recovery behavior. Server availability, registration errors and failed confirmation SHALL NOT enable HTML generation when the executable is present. Closure SHALL still confirm the current JSON/resources or retain the unit when confirmation fails. The artifact unit SHALL include HTML only when present; selecting the JSON manifest or an existing HTML page for retention SHALL retain its referenced captures and recordings. Existing HTML SHALL NOT be deleted automatically.
+With the binary present, substantive publication SHALL use only the compatible v3 API and confirmed readback. A stopped/incompatible viewer SHALL preserve inputs and report publication unavailable without starting a daemon, emitting a legacy viewer manifest or switching to HTML. Only absence of the executable SHALL select the independent existing standalone HTML fallback. Previously generated HTML and selected artifact units SHALL not be deleted or rewritten by this cutoff.
 
-#### Scenario: Installed binary with stopped server
-- **WHEN** `hive` is available but the viewer is stopped
-- **THEN** publication validates or updates JSON without building or writing HTML, and failed closure confirmation retains evidence rather than switching output modes.
-
-#### Scenario: Previous standalone page
-- **WHEN** an HTML fallback already exists and a later publication finds `hive`
-- **THEN** it leaves that HTML byte-identical and reports JSON as the current output.
-
-#### Scenario: Binary absent
-- **WHEN** no `hive` executable is available
-- **THEN** publication generates the standalone HTML fallback from the validated JSON and keeps its existing atomic replacement and recovery checks.
-
-#### Scenario: Retaining the viewer manifest
-- **WHEN** the user selects walkthrough.json for retention
-- **THEN** cleanup retains its referenced captures and recordings together with it, even without an HTML page.
+#### Scenario: Binary present, server incompatible
+- WHEN publication finds a v1 server
+- THEN it requests the coordinated v3 update and preserves inputs without manifest import or HTML substitution.
 
 ### Requirement: Fixed session toolbar
-The viewer SHALL keep the selected session's title and management actions visible outside the scrolling document canvas. Deliveries and chronological walkthroughs SHALL scroll within the canvas without covering the toolbar. Navigation to a walkthrough SHALL leave its heading visible. All actions SHALL remain keyboard-accessible and reachable at narrow widths without page-level horizontal overflow. Valid session names SHALL NOT be truncated or split inside an unbroken token: bounded local horizontal scroll regions in the heading and deletion confirmation SHALL make overflowing names fully reachable by keyboard with visible focus, while ordinary spaced names reflow by words. Print output SHALL omit management controls and retain scoped walkthrough content.
+The selected v3 work title and management actions SHALL stay visible outside its scrolling timeline/document canvas. Deep-linked stage/event headings SHALL remain visible below the toolbar. Keyboard actions, unbroken long names through bounded local scrolling, narrow layouts without page overflow and print omission of management controls SHALL remain supported. No physical walkthrough segment controls SHALL be required.
 
-#### Scenario: Long session
-- **WHEN** the user scrolls from the beginning to the end of a multi-ticket session
-- **THEN** the toolbar remains at a stable position and the walkthrough content scrolls below it.
-
-#### Scenario: Narrow viewport
-- **WHEN** the viewport is 390 CSS pixels wide
-- **THEN** the title and every management action remain reachable without horizontal page scrolling or obstructing the entire content viewport.
-
-
-#### Scenario: Read an unbroken session name
-- **WHEN** a valid name without spaces exceeds the width of the fixed heading or deletion confirmation
-- **THEN** a keyboard user can focus its local horizontal region, read either end without splitting the token, and tab onward to the actions, without horizontal page overflow.
+#### Scenario: Narrow long title
+- WHEN a valid unbroken title exceeds a narrow viewport
+- THEN local keyboard-accessible title scrolling exposes it without page-level overflow or hiding actions.
 
 ### Requirement: Local session name and preferences
-For legacy sessions, the viewer SHALL allow the user to edit one local name per exact project/host/session identity, using a prefilled single-field dialog without asking again for known ticket, project or date values. The name SHALL be trimmed, contain at most 200 Unicode code points, reject control characters and be rendered as text. An empty name or reset action SHALL remove the override and recover the existing derived title. The name SHALL appear in the session toolbar and sidebar, participate in search alongside individual walkthrough titles and tickets, and survive reload, restart and index reconstruction. Naming SHALL NOT modify identity, source manifests or individual walkthrough titles. The server SHALL persist name, archive and pin preferences in a versioned logical-session record independent of the reconstructible index. Corrupt preferences SHALL produce an explicit error rather than silently allowing destructive retention under default flags.
+v3 title/archive/pin management SHALL use work-local typed API state and local_viewer provenance, not imported logical-copy preferences. Names SHALL be trimmed, nonempty, bounded to 200 Unicode code points, reject controls and render as text. A canceled edit SHALL write nothing; a failed save SHALL retain input and a retryable error. Renaming SHALL preserve source/producers, stage titles and content, remain searchable and survive restart. Corrupt persisted state SHALL fail explicitly rather than enable defaults that delete content.
 
-#### Scenario: Save a session name
-- **WHEN** the user saves a valid name and reloads or the viewer rebuilds its index
-- **THEN** the same session retains that name and all member source titles remain unchanged.
-
-#### Scenario: Cancel or failed save
-- **WHEN** the user cancels editing or saving fails
-- **THEN** cancellation writes nothing, and a failed save preserves the entered name with an inline retryable error.
-
-#### Scenario: Reset the local name
-- **WHEN** the user resets the session name
-- **THEN** the stored override is removed and the derived title appears without renaming any walkthrough.
-
-#### Scenario: Find the edited name
-- **WHEN** the user renames a session, reloads and searches for the saved name
-- **THEN** the complete session is found with all its accessible siblings, while individual ticket and title searches still work.
+#### Scenario: Rename and restart
+- WHEN the user saves a title and restarts v3
+- THEN the title is searchable and source, producers and stages remain unchanged.
 
 ### Requirement: Explicit session mutation scope
-Session archive, pin, title and deletion writes SHALL require `X-Hive-Action-Scope: session` in addition to existing authentication and same-origin checks. An older client's write without that scope marker SHALL return 409 with `reload_required` and SHALL NOT change any copy or logical preference. The updated client SHALL show a reload action and SHALL NOT automatically replay the rejected write. Reads and CLI fingerprint confirmation SHALL remain unchanged.
+Browser title/archive/pin/deletion and recovery SHALL require existing authentication, same-origin/Host checks, explicit session action scope and the v3 local_viewer actor. Obsolete clients SHALL receive a safe reload/update rejection before mutation; the UI SHALL not replay a rejected write automatically. Native publisher operations SHALL follow the separately typed producer authority rules, not claim a browser actor.
 
-#### Scenario: Older tab after runtime refresh
-- **WHEN** an already open copy-oriented frontend sends its former delete or preference request to the updated server
-- **THEN** it receives a reload-required rejection without affecting any member of the session.
-
-### Requirement: Import existing copy preferences
-Before using logical-session preferences, the viewer SHALL import each legacy group with archive enabled only when every member was archived and pin enabled when any member was pinned. It SHALL preserve physical keys, resources, source identity and ingestion times, retire legacy per-copy preference fields as the authority, and resume an interrupted import without replacing an already persisted logical preference. A mixed archive group SHALL remain active. Import and recovery SHALL operate locally without touching repositories. Migration instructions SHALL describe coordinated backup and rollback with an older binary.
-
-#### Scenario: Mixed historical archive
-- **WHEN** an existing session contains archived and active copies
-- **THEN** its imported state is active and all accessible members are visible together.
-
-#### Scenario: Fully archived historical session
-- **WHEN** all historical members were archived
-- **THEN** the imported session remains archived.
-
-#### Scenario: Interrupted import
-- **WHEN** a logical record was written before removing all legacy fields and the process stops
-- **THEN** reopening completes the import without recalculating or losing the saved logical preference.
+#### Scenario: Old tab
+- WHEN an old browser tab sends an obsolete management write
+- THEN v3 rejects it without changing work and offers reload instead of automatic replay.
 
 ### Requirement: Required native session registration
 New timeline sessions SHALL require the resolved registered project, canonical host and actual native session ID. The server SHALL assign a distinct viewer ID and enforce exact tuple uniqueness across concurrent requests, retries and restarts. Missing identity SHALL be rejected rather than synthesized. Native IDs SHALL remain opaque and separate from viewer storage IDs. Existing registration SHALL not overwrite metadata or reopen closed/deleted work. API registration SHALL recover persisted root/project bindings before hashing identity; temporary metadata failure SHALL not replace a known project key with a path fallback, and unresolved/conflicting identity SHALL fail explicitly.
@@ -316,22 +163,34 @@ New timeline sessions SHALL require the resolved registered project, canonical h
 - THEN the server creates separate viewer sessions.
 
 ### Requirement: Versioned event and immutable artifact publication
-The local server SHALL receive strictly typed, bounded milestone events and image artifacts via authenticated session-scoped API/CLI. It SHALL assign durable IDs, versions and event ordering. Operation-key retries, including successful DELETE after restart, SHALL recover the same result; tombstones SHALL retain operation receipts and replay SHALL precede stale-version/lifecycle rejection; changed content under a reused key SHALL conflict. Stale mutations and cross-session references SHALL fail without overwrite. Image bytes and origin SHALL remain immutable once published; substantive evidence changes SHALL create an iteration linked to its prior view. An immutable evidence_id SHALL identify each validation payload independently of mutable presentation versions, keeping referenced instructions/images resolvable after copy edits and restart.
+The local server SHALL accept typed, bounded protocol v3 events, images and Markdown documents under work-scoped authentication, assign durable IDs/versions/sequences and preserve immutable bytes. Native publication mutations SHALL carry an accepted producer and operation ID. Local viewer management mutations SHALL use the separate local_viewer actor and SHALL NOT impersonate a native producer. Exact replay SHALL return its durable receipt after restart; changed operation payloads, stale mutations and cross-work references SHALL fail without overwrite.
 
-#### Scenario: Lost response
-- WHEN a committed image/event publication is retried after a lost response or server restart
-- THEN it returns its original IDs without duplicate nodes/artifacts.
+Server-side durable receipts SHALL preserve successful DELETE replay after restart, with replay preceding stale-version or lifecycle rejection for v3 operations. Image bytes and origin SHALL remain immutable; substantive evidence changes SHALL create an iteration linked to the prior view. Each validation payload SHALL retain its immutable evidence_id independently of copy edits, preserving instructions/images after restart.
 
-#### Scenario: Conditional text edit
-- WHEN the caller edits a node with its current version
-- THEN allowed copy changes commit without moving its event order; an obsolete version fails unchanged.
+Stage-associated events SHALL receive server-owned stage_event_id from a validated target_stage_event_id or the lead's foreground/latest preceding non-withdrawn stage. Non-lead publishers SHALL provide explicit stage targets. Clients SHALL NOT set the output field. Stages, closure and global membership/handoff events SHALL carry none. Protocol v1 events SHALL NOT be imported or reconstructed.
+
+#### Scenario: Concurrent producers
+- WHEN two publishers use the same expected version
+- THEN one commits and one conflicts without overwriting; exact retry preserves receipt identity.
+
+#### Scenario: Foreign stage
+- WHEN a publisher targets a foreign or withdrawn stage
+- THEN publication fails without content or state mutation.
 
 ### Requirement: Compact session content timeline
-The content pane SHALL present project, inline-editable title, date/walkthrough count, compact status/tickets/Git/archive/overflow controls, a short objective/scope summary and a newest-first milestone timeline. Per-event timestamps SHALL carry chronology. It SHALL omit redundant session cards, index, checks, environment and provenance presentation sections. Removing those sections SHALL not remove build/review requirements. Open PRs and agent-reported chat approvals SHALL not masquerade as integrated work or authenticated browser actions.
+The content pane SHALL preserve project, inline-editable title, date, compact status/archive/overflow controls and honest agent-reported chat approvals without presenting them as browser-authenticated approval or integrated work. It SHALL omit redundant session cards, index, checks, environment and provenance presentation sections while retaining required build/review verification.
 
-#### Scenario: Edit and navigate
-- WHEN the user renames the session or opens ticket/Git lists
-- THEN the header preserves context, supports keyboard/mobile use and shows real links without repeating a deliveries card.
+The content pane SHALL show compact icon-and-count ticket/delivery controls with full accessible labels and hover help, hide zero validation count, clamp expandable summaries and render Markdown lists. It SHALL show pre-stage events first, stages by ascending start sequence, only explicitly assigned task-segment projections in declared plan order and ascending activity within each task or the stage general-activity section, and closure last. Content associated with a task SHALL NOT be duplicated as a sibling stage event. Current, paused, review and validation stages and stages with in-progress/review/blocked tasks SHALL stay expanded; finished/failed stages SHALL initially collapse but remain expandable. Withdrawn stages SHALL retain their content under a withdrawn label.
+
+Resumed old occurrences SHALL retain their original group position; timestamps SHALL not imply global chronological ordering across nested groups. Captions SHALL show non-empty distinctive text with full accessible names. A compact read-only session popover SHALL identify contributors and lead. New content SHALL preserve the viewport; Go to current SHALL navigate to the foreground or latest visible event. Deep links and per-work scroll SHALL preserve navigation context.
+
+#### Scenario: Read work order
+- WHEN research, plan, build and verification publish content
+- THEN reading downward follows occurrence starts and their events, with closure at the bottom.
+
+#### Scenario: Live arrival
+- WHEN new content arrives while the user reads earlier content
+- THEN the viewport stays put and Go to current remains available.
 
 ### Requirement: Ticket-scoped evidence views
 Each validation/iteration SHALL associate evidence with explicit views and related tickets. Shared views SHALL not duplicate their image collection for each ticket; distinct screens SHALL remain separately labeled within one timeline. Each view SHALL open its event/evidence-ID-bound instructions in a Dialog and its image collection in a carousel. Later iterations SHALL identify only affected views and link superseded evidence without changing images in an already-open historical dialog.
@@ -348,11 +207,24 @@ Each validation/iteration SHALL associate evidence with explicit views and relat
 Shared walkthrough instructions SHALL name host capabilities rather than concrete host tool identifiers. Host-specific identity acquisition SHALL have one conditional reference verified against current official documentation and installed versions; unsupported discovery SHALL not be represented as a native ID. The canonical walkthrough procedure SHALL obtain host/native session identity, register or resume the server session, preserve returned IDs in the work checkpoint, upload immutable new captures and publish typed meaningful milestones. It SHALL verify committed readback before claiming a visible update. Initial affected-layout verification SHALL cover relevant desktop/mobile widths and supported themes; correction rounds SHALL check affected regions/neighbors, relevant states/widths and theme-sensitive behavior only. Navigation changes SHALL exercise their affected sequence. Publication consumers SHALL follow flow-walkthrough; review/capture consumers SHALL follow the single verify-owned conditional UI policy without a conflicting full-matrix iteration instruction. Human responses SHALL continue through native host questions in this delivery.
 
 ### Requirement: Declared flow stages and immutable documents
-The producer SHALL create/resume a session at substantive flow entry before captures, retain one stage occurrence through conditional progress/completion transitions without reordering, and publish a linked new occurrence for later re-entry. The server SHALL atomically maintain at most one foreground in-progress stage and distinguish human waiting from process liveness. Immutable document revisions SHALL belong to the same session, remain resolvable after restart, and render as read-only Markdown in native tabbed Dialogs. Approval targets SHALL distinguish document revisions from visual evidence. Open snapshots SHALL not change on refresh.
+Stages SHALL include research, plan, build, verify and delivery. Stage states SHALL include in_progress, in_review, awaiting_validation, paused, completed and failed. Work states SHALL distinguish active, in_review, awaiting_validation, paused, closed and failed. Labels SHALL be short, reasons separate. One accepted lead SHALL control at most one foreground; global/foreground review or validation changes SHALL be atomic. Parallel review SHALL NOT change that foreground. completed/failed occurrences SHALL be terminal; re-entry SHALL create a linked occurrence.
 
-#### Scenario: Revise an existing plan
-- WHEN the person expands a completed plan
-- THEN the same session receives a linked new plan occurrence, separate immutable revision and truthful declared stage state, without replacing the earlier approved plan.
+Distinct transitions SHALL append immutable server-timestamped audit events with declared producer, reason and previous/next states. Membership/handoff and all other new mutations SHALL retain actor provenance and audit; local browser renaming, archiving, pinning and confirmed deletion SHALL use local_viewer actor provenance with existing scope/origin/version checks; audit events SHALL NOT be editable or withdrawable. User questions SHALL publish awaiting_validation first. Responses SHALL reference concrete targets when known, never be inferred from silence, and resumption SHALL be explicit. Closure SHALL require no foreground.
+
+Documents from all five stage types SHALL use one read-only Markdown Sheet, full width mobile/two-thirds desktop, fixed scrollable tabs and one close action/publication indicator. Only structured plan deltas SHALL group under Specs. Work-scoped document_key SHALL separate independent revision chains. Successors SHALL identify their predecessor and cross-occurrence continuation SHALL require linked same-type stages. Open content SHALL not change until user action. Only a later revision in that chain SHALL trigger an update notice; switching SHALL preserve the selected label or announce its removal. Comparisons SHALL identify added/changed/removed tabs by label/document identity; the first revision SHALL be labeled initial.
+
+#### Scenario: Wait for a plan choice
+- WHEN the lead presents a plan for user input
+- THEN work/foreground show Validation with a separate reason and immutable transition before asking.
+- AND a complete published document does not imply approval or completed work.
+
+#### Scenario: Parallel review
+- WHEN a collaborator posts review progress or findings during build
+- THEN its declared producer and stage target are visible while build stays In progress.
+
+#### Scenario: Independent documents
+- WHEN separate document keys use identical tab labels
+- THEN comparisons and update notices stay separate, including across linked same-type occurrences.
 
 ### Requirement: Manual viewer retention
 Neither legacy nor API content SHALL be purged or excluded from ingestion due to age. Archive SHALL change visibility only; pin SHALL not be necessary for preservation. Previously accepted TTL flags SHALL not silently activate expiry. Explicit deletion and bounded incomplete-staging recovery SHALL remain separate from age retention.
@@ -362,8 +234,138 @@ Neither legacy nor API content SHALL be purged or excluded from ingestion due to
 - THEN its documents and images remain readable until explicit authorized deletion.
 
 ### Requirement: Self-describing protocol and confirmed-input hygiene
-The CLI SHALL expose offline versioned usage/schemas/limits/examples derived from authoritative contracts. One publication skill SHALL own the protocol, with short flow-specific pointers and no duplicated review policy. Hygiene SHALL delete only owned disposable source inputs after exact committed session/revision/artifact readback, preserving failed/uncertain uploads, paused work, selected evidence and authoritative source plans.
+Offline contract usage/schemas/limits SHALL describe protocol/storage v3 exclusively and the clean-cutoff policy. New CLI and viewer SHALL require compatible v3 peers for publication. v1/v2 writes/replays SHALL fail before mutation with safe update guidance. No v1/v2 reader, migration or imported evidence reconstruction SHALL be part of the v3 runtime. Cutover SHALL coordinate old writers and service/client/content versions and use a new state directory without modifying the earlier one. v3 receipts, immutable blobs and atomic state transitions SHALL remain durable after restart or uncertain commit.
 
-#### Scenario: Lost publication response
-- WHEN the client cannot establish durable storage of every referenced document/image
-- THEN source inputs remain and the handoff does not claim publication or successful cleanup.
+One canonical publication procedure SHALL own collaboration/native identity, meaningful snapshots, states before user stops, explicit resumption and readable summaries. Consumers SHALL link to it. Children SHALL return evidence to the main producer. Viewer identity SHALL NOT change Engram runtime identity. Hygiene SHALL retain authoritative plans, current review inputs, uncertain uploads and unique evidence.
+
+#### Scenario: v3 restart
+- WHEN a v3 publication commits and the service restarts
+- THEN IDs, hashes, actor audit and operation receipts remain resolvable without a legacy adapter.
+
+#### Scenario: Old writer
+- WHEN a v1 or provisional v2 publisher sends a mutation to v3
+- THEN it receives an update diagnostic before mutation.
+
+### Requirement: Local viewer management actor
+The v3 actor union SHALL distinguish accepted native_producer from local_viewer. Browser rename, archive/restore, pin/unpin and confirmed deletion SHALL remain available without native identity and SHALL be audited as local viewer actions, not native publication or authenticated human approvals. local_viewer SHALL NOT publish documents, evidence or approval events or operate stage lifecycle. An explicit recover_lead management operation MAY accept a pending same-project join and replace the lead atomically without changing declared stage/work state. Mixed actor branches SHALL fail. Deletion SHALL preserve an auditable receipt/tombstone without retaining or resurrecting deleted content.
+
+#### Scenario: Browser management without native identity
+- WHEN the authenticated local viewer renames, archives or pins a work
+- THEN the action commits with local_viewer provenance and no fabricated producer ID.
+
+#### Scenario: Confirmed browser deletion
+- WHEN the user confirms deletion through the existing scoped browser flow
+- THEN deletion retains its durable operation result for retry without a native actor or content resurrection.
+
+### Requirement: Shared work producers and lead authority
+Protocol v3 SHALL preserve the original source tuple and opaque viewer_session_id as work identity, accepting additional real native producers only by explicit join request and lead acceptance within the same registered project. A request SHALL NOT confer membership. Native lead transfer SHALL be version-conditional to an accepted member. Explicit local recovery SHALL atomically accept a chosen pending same-project request and reassign lead under expected version, durable operation receipt, reason and audit. Recovery SHALL NOT infer process death, stop processes, reopen terminal works, change original source or alter stage/evidence state. The previous lead SHALL remain a collaborator without lead privileges. Original tuple creation SHALL remain idempotent. Joining SHALL NOT merge historical works or reassign IDs.
+
+Pending, foreign-project and unauthorized publishers SHALL fail unchanged. Producers SHALL use their actual native IDs, never another session's or invented IDs. Provenance SHALL be declared rather than represented as cryptographic host authentication; local capability remains the authentication boundary. No historical actor or content SHALL be synthesized during cutoff.
+
+#### Scenario: Continue elsewhere
+- WHEN the user authorizes continuation of an explicit work in another native session
+- THEN the session joins under its own identity, the lead accepts/transfers authority, and future content stays in one timeline with correct attribution.
+
+#### Scenario: Unauthorized transfer
+- WHEN a pending member or stale transfer attempts control
+- THEN authority and content stay unchanged.
+
+
+#### Scenario: Original lead unavailable
+- WHEN the user selects a pending same-project request in the authenticated local viewer and confirms Reassign with a reason
+- THEN that producer is accepted and becomes lead in one durable commit, with immutable audit and no inferred abandonment or changed evidence.
+- AND a stale competing recovery fails, and exact replay after restart returns the original result.
+
+### Requirement: Independent task progress and task detail
+Tasks SHALL belong to the work with stable task_id, unique task_key, short title, plan reference when available and explicit required stage segments. The lead SHALL declare the full plan including future tasks without needing fake stage occurrences. Each segment SHALL have planned_stage, local state, accepted assignee, order and an explicit binding to a real matching stage occurrence when available. Stage panes SHALL display only their bound segments; future-stage tasks SHALL remain accessible in the plan and global count, not inside Build.
+
+A task may span verify and delivery without becoming multiple tasks. Each stage projection SHALL show only its segment state; the task Sheet SHALL show aggregate state and the complete stage-labeled history. Global count SHALL deduplicate task_id and count completed only when all its required active segments are complete. Stage counts SHALL use only their assigned segments. No foreground change SHALL automatically move, clone or complete a task/segment. Assignment changes SHALL be explicit, versioned and audited.
+
+Segment states SHALL be not_started, in_progress, in_review, blocked and completed. Aggregate task state SHALL be blocked if any active required segment is blocked; otherwise in_review if any is in review; completed if all are complete; not_started if all are not started; in_progress otherwise. State SHALL be displayed only in the row indicator with empty circle, loader, pause, alert or check and accessible text/tooltip. Indicators SHALL use semantic context colors alongside their distinct shapes and accessible labels; the icon stroke SHALL NOT receive a second decorative container border. Neither index, commits, checklist text nor process observation SHALL infer completion. No heuristic percentage SHALL be displayed.
+
+Each row SHALL expose available review content before expansion through compact evidence/document/wait/history affordances. Contentful rows SHALL provide independent disclosure and title actions: disclosure expands concise summary/optional relevant evidence; title opens the common-width task Sheet with Summary/Evidence/History and the selected segment in context. A task containing only a description and assignment/stage metadata, without linked evidence, documents, waits, blocking details or meaningful transition history, SHALL use inline disclosure rather than open a mostly empty Sheet. Refresh, state changes and return from Sheet SHALL preserve expansion/focus/scroll keyed by work/task/segment. Open task snapshots SHALL update only on explicit action and only a newer task_version SHALL trigger the notice. Any mutation changing visible task snapshot content, including linked evidence, document revisions and CI observations/attempt selection, SHALL atomically advance each affected task_version with the durable mutation/receipt. Unlinked uploads, unrelated tasks, no-ops and exact retries SHALL NOT advance it. Nested documents SHALL have a return path without stacked Sheets.
+
+Blocked transitions SHALL require reason, concrete steps, owner and resume condition; incomplete payload SHALL fail unchanged. Blocking a segment SHALL NOT automatically block others or pause work. The lead or segment-assigned accepted producer SHALL perform conditional transitions and retain immutable actor audit and receipts. completed segments may reopen explicitly with a reason; terminal-stage re-entry SHALL use a linked new occurrence and explicit segment binding. Old evidence/history SHALL remain. Local viewer SHALL not approve/complete tasks. Withdrawal SHALL preserve history and exclude the withdrawn requirement from current counts.
+
+Task content SHALL identify task_id/segment_id and its actual stage occurrence; references SHALL belong to that work, segment and origin stage. Activity from multiple stages SHALL stay attributable without duplicating task entities or blobs. Per-stage expansions SHALL show only relevant content, while the Sheet aggregates it. Decisions SHALL retain exact evidence/revision targets. Images SHALL be optional. Bounds SHALL fail atomically without preventing terminal cleanup.
+
+#### Scenario: CAM task crossing stages
+- WHEN Build tasks T1–T6 are complete and T7 has a completed verify segment and pending delivery segment
+- THEN Build shows 6/6, Verify 1/1 and Delivery 0/1 when that stage exists, while the work remains 6/7 unique tasks.
+- AND T7 does not appear within Build or create a fake future Delivery occurrence.
+
+#### Scenario: Independent indicator states
+- WHEN T1 and T3 segments are completed, T2 blocked, T4 in review and T5 not started
+- THEN each indicator uses its explicit local state and the stage count is 2/5 regardless of index.
+
+#### Scenario: Block and correct
+- WHEN incomplete unblock instructions are submitted
+- THEN transition fails unchanged.
+- WHEN a completed segment reopens explicitly or a blocked one resolves
+- THEN it retains IDs, evidence and immutable history across retry/restart.
+
+### Requirement: Delivery stage and CI wait node
+Delivery SHALL be a distinct declared stage after candidate verification, preserving existing foreground/lifecycle rules. It SHALL expose a typed stable CI wait node, optionally tied to a task's delivery segment. CI waiting SHALL NOT be represented as awaiting a human response or as task approval. The row SHALL use a pause indicator for waiting; its Sheet SHALL show candidate/PR, required-check authority/source/time, observed results, attempts and safe real links. The node SHALL not initiate reruns, modify provider policy or merge.
+
+Wait observations SHALL be published by authenticated provider reads through existing authorized tools, not anonymous private-repository queries. State SHALL be waiting, succeeded, failed, cancelled or unknown; lack of access/confirmed requirements SHALL remain unknown, never success from an empty list. succeeded SHALL require observed outcomes satisfying all confirmed required checks for the actual candidate and policy. CI success SHALL not imply merge, integration or acceptance.
+
+Wait IDs/versions and operation receipts SHALL be durable. Same candidate/check policy reruns SHALL preserve the node and append immutable attempts/observations; each required check SHALL have an explicit applicable_attempt_id selected by a versioned attempt-start/promotion operation with observed current-provider evidence. Only observations matching that applicable attempt SHALL affect current outcome. Earlier attempts may extend history but SHALL NOT overwrite current results, even using the latest wait version. Unknown attempts SHALL NOT self-promote, and uncertain applicability SHALL remain unknown. Attempt mapping/generations SHALL persist across restart; a new commit or changed required set SHALL create a linked new wait without reusing prior success. Foreign stage/task/candidate references and stale mutations SHALL fail unchanged. Reading snapshots SHALL not change them automatically. Failed CI SHALL not fabricate task-blocked instructions: a separate explicit blocked transition SHALL include its full unblock payload.
+
+#### Scenario: Wait during delivery
+- WHEN verification finishes and delivery starts awaiting PR CI
+- THEN Delivery contains the wait node and its actual task segment, while Build stays complete and no user-validation state is fabricated.
+
+#### Scenario: Wrong candidate or unconfirmed policy
+- WHEN a previous commit is green or required checks cannot be confirmed
+- THEN the current wait is not succeeded and no integration is claimed.
+
+#### Scenario: Late successful prior attempt
+- WHEN a rerun is waiting or failed and an older successful attempt is published later using the current expected version
+- THEN the old result is retained only as history and does not restore succeeded, including after restart.
+
+#### Scenario: Task snapshot invalidation without state change
+- WHEN linked task evidence, a document revision or CI observation changes without a task state transition
+- THEN its task_version advances atomically and the open Sheet offers an update while preserving its snapshot.
+- AND a mutation of an unrelated task does not trigger that notice.
+
+#### Scenario: Retry and rerun
+- WHEN an exact publication retries after restart or CI reruns on the same commit/policy
+- THEN receipts avoid duplicate nodes and attempt history remains readable.
+
+### Requirement: One canonical origin for referenced entities
+
+The final protocol/schema/storage SHALL be 3, replacing v1 and provisional v2 without a compatibility reader or migration. The detailed closed contract is [canonical references][canonical-references]. Work-owned task, ticket, delivery, candidate, producer, artifact, document and wait IDs SHALL be the origin of current projections. Stages SHALL NOT own redeclared task entities. The live task catalog SHALL be the toolbar Popover, ordered by explicit unique plan_order; stage segment order SHALL remain independent.
+
+Native ticket/delivery writers SHALL update one work-local entity under lead authority and CAS. Candidate records SHALL be immutable and creatable by accepted native producers. Typed natural identity SHALL deduplicate repeated external-resource creation without using editable labels/URLs as identity. Projection inputs SHALL accept IDs, not redeclared entity values or caller-generated historical snapshots. Unknown, foreign, mixed-type, duplicate or retired inline references SHALL fail without writes. Entity/catalog mutations SHALL preserve audit, receipts, restart/replay, failure atomicity and all terminal capacity reserves.
+
+A visible ticket/delivery patch SHALL update current labels/links/status across all resolving views after one read, advancing each affected task_version and wait_version exactly once where their visible snapshots change. No-op, exact retry and unrelated changes SHALL NOT advance these reader versions. Published reference context SHALL be captured by the server and remain immutable alongside documents, artifacts, audit and provider observations. Explicit current/published labels SHALL prevent attributing a current status to an earlier publication. An open reader SHALL preserve its snapshot until manual update. New candidate selection for a publication SHALL NOT retarget older evidence/waits or imply task/stage completion.
+
+#### Scenario: One update, several projections
+- WHEN a lead updates a ticket URL/key or a delivery label/status by stable ID
+- THEN every current reference resolves the new values without republication of the referencing events/views.
+- AND original publication snapshots and stored document/image hashes remain unchanged.
+
+#### Scenario: Coherent seven-task plan
+- WHEN the complete example registers T1–T7 from one typed definition
+- THEN the Popover lists seven unique tasks, Build projects six, and Verify/Delivery share T7 without inventing tasks for Research/Plan.
+- AND a task transition changes its current projections and derived counts after one canonical mutation; the published Markdown task snapshot remains historical.
+
+### Requirement: Clear origin and compact task toolbar
+
+The timeline SHALL start with a clear Inicio marker derived from work.created_at and its original Source, without publishing a fictitious API event or incrementing activity counts. A horizontal Tareas/Ir al actual toolbar SHALL replace the standalone global task-count column. Tareas SHALL open the installed compact Popover with one row per canonical task, state by point, truncated visual title with full accessible text and segment progress. The global total SHALL live in that Popover. The list SHALL remain viewport-bounded and keyboard-scrollable; Escape SHALL restore focus. Existing task disclosures, content affordances, navigation, polling scroll and immutable Sheets SHALL remain intact.
+
+### Requirement: Reserved labels and browser-selected interface language
+The viewer SHALL support English as default/fallback and Spanish for es/es-* browser primary language. Production and previews SHALL share that selection for system copy, accessible labels, dates and document language. Producer text and immutable content SHALL remain verbatim. The reserved-label contract is defined in [canonical references][canonical-references].
+
+The existing stage enum SHALL select its translated system heading once; optional title context SHALL not redeclare that heading. Other nodes SHALL retain free titles. The schema/catalog SHALL expose closed reserved-key/language metadata. Empty stage context SHALL be allowed; empty non-stage titles and unknown stage values SHALL fail without mutations. Context updates/clearing SHALL obey existing CAS, authority, replay and persistence.
+
+#### Scenario: English browser and Spanish browser
+- WHEN the same work opens under en-US, es-MX or an unsupported browser locale
+- THEN system labels use English, Spanish or English respectively without rewriting producer content.
+
+#### Scenario: Custom node and standard stage
+- WHEN a stage has empty or nonempty producer title context, or a custom non-stage node has a free title
+- THEN the stage heading renders its localized name once with optional verbatim context, and the custom node renders its free title.
+
+### Requirement: Clear reading bounds
+The task Popover SHALL avoid residual scrolling for seven rows where space permits, while remaining viewport-bounded and keyboard-scrollable for longer lists. The timeline scroll canvas SHALL retain visible space after its true last footer without a fictitious node or event.
