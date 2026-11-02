@@ -33,13 +33,13 @@ raise the minor or the patch version.
 
 ### Fixed
 
-- A manual action or a piece of information is asked of you only when you alone
-  can do it or hold it, such as a credential or a sign-in; validation stays
-  yours. A command that stops for lack of a terminal runs through its own
-  documented non-interactive path when the effect is already authorized, and a
-  confirmation prompt meant for you is never answered by the agent. The skills
-  rebuild had dropped this condition, so an agent asked you to run
-  `hive update` itself.
+- Before asking you to run a command or take a step, the agent checks whether
+  its access and the authorization it already has let it do it, including the
+  command's own non-interactive options, and does it when they do. You are asked
+  only for what it cannot do, such as a browser sign-in, and for authorizations
+  as decisions; it never gives a confirmation the guidance requires from you.
+  The skills rebuild had dropped this check, so an agent asked you to run
+  `hive update` when it could have run it itself.
 - `flow-close` closes the work's viewer session as its first step, before any
   cleanup, and reads it back: closed when the work was integrated or
   abandoned, paused when it was paused. It was a note above the steps and a
