@@ -237,7 +237,7 @@ func TestV3ResolvedIdentityAndAliases(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	request := TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "remote", Source: TimelineSource{ProjectRoot: registration.Root, Host: "codex", NativeSessionID: "remote-native"}, Title: "Remote work", Summary: "Identity", Tickets: []TimelineTicketInput{}}
+	request := TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "remote", Source: TimelineSource{ProjectRoot: registration.Root, Host: "codex", NativeSessionID: "remote-native"}, Title: "Remote work", Summary: "Identity", Tickets: []TimelineTicketInput{}, WorkKey: timelineString("remote-work")}
 	response, err := s.TimelineCreate(request)
 	if err != nil {
 		t.Fatal(err)

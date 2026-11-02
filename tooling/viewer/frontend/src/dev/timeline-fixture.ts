@@ -69,6 +69,7 @@ export const timelineFixture: TimelineSessionResponse = {
     created_at: "2026-10-31T17:20:00-06:00",
     updated_at: "2026-10-31T21:40:00-06:00",
     validation_count: 2,
+    work_key: null,
     tickets: [
       {
         ticket_id: "ticket-1",

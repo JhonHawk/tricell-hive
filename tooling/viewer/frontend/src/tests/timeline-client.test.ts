@@ -66,6 +66,7 @@ function fixture(id = sid): TimelineSessionResponse {
       created_at: stamp,
       updated_at: stamp,
       validation_count: 0,
+      work_key: null,
       tickets: [],
       events: [
         {
@@ -101,6 +102,7 @@ function entry(data: TimelineSessionResponse): TimelineAPIIndexEntry {
     waits: _waits,
     deliveries: _deliveries,
     candidates: _candidates,
+    work_key: _workKey,
     ...rest
   } = data.session;
   return { mode: "timeline_api", ...rest };

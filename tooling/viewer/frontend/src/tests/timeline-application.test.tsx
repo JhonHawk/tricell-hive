@@ -55,6 +55,7 @@ test("real application wires API timeline, documents, conditional title and v2 n
           waits: _waits,
           deliveries: _deliveries,
           candidates: _candidates,
+          work_key: _workKey,
           ...entry
         } = data.session;
         return new Response(
@@ -185,6 +186,7 @@ test("pending API deletion exposes recovery outside the removed session header",
           waits: _waits,
           deliveries: _deliveries,
           candidates: _candidates,
+          work_key: _workKey,
           ...entry
         } = data.session;
         return new Response(

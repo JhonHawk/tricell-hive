@@ -94,6 +94,7 @@ function fixture(): TimelineSessionResponse {
       created_at: stamp,
       updated_at: stamp,
       validation_count: 1,
+      work_key: null,
       tickets: [ticket, secondTicket].map((t) => ({
         ticket_id: t.ticket_id,
         external_scope: "https://example.com/tracker",

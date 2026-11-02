@@ -32,13 +32,17 @@ func timelineFailure(code string, status int) error {
 }
 
 type timelineRecord struct {
-	Audit           []timelinePrivateAudit     `json:"audit,omitempty"`
-	StorageVersion  int                        `json:"storage_version"`
-	ID              string                     `json:"id"`
-	Source          TimelineSource             `json:"source"`
-	ProjectKey      string                     `json:"project_key"`
-	ProjectName     string                     `json:"project_name"`
-	Roots           []string                   `json:"roots"`
+	Audit          []timelinePrivateAudit `json:"audit,omitempty"`
+	StorageVersion int                    `json:"storage_version"`
+	ID             string                 `json:"id"`
+	Source         TimelineSource         `json:"source"`
+	ProjectKey     string                 `json:"project_key"`
+	ProjectName    string                 `json:"project_name"`
+	Roots          []string               `json:"roots"`
+	// WorkKey is the effective key behind ID: "work:<key>" or
+	// "operation:<id>". Records written before work keys carry none and keep
+	// the original derivation.
+	WorkKey         string                     `json:"work_key,omitempty"`
 	Session         *TimelineSession           `json:"session,omitempty"`
 	Receipts        []TimelineOperationReceipt `json:"receipts"`
 	DeletePending   bool                       `json:"delete_pending,omitempty"`
@@ -52,11 +56,35 @@ func (s *Store) timelineRecordPath(id string) string {
 	return filepath.Join(s.timelineDir(), id+".json")
 }
 func (s *Store) timelineBlobDir(id string) string { return filepath.Join(s.timelineDir(), id) }
-func timelineSessionKey(project string, source TimelineSource) string {
+
+// timelineEffectiveWorkKey names the work a create request addresses.
+func timelineEffectiveWorkKey(request TimelineCreateSessionRequest) string {
+	if request.WorkKey != nil {
+		return "work:" + *request.WorkKey
+	}
+	return "operation:" + request.OperationID
+}
+
+// timelineWorkKeyMatches reports whether a session's public work key agrees
+// with the effective key its record holds.
+func timelineWorkKeyMatches(effective string, public *string) bool {
+	if value, ok := strings.CutPrefix(effective, "work:"); ok {
+		return public != nil && *public == value
+	}
+	return public == nil
+}
+
+// timelineSessionKey derives the viewer session ID. An empty effective key is
+// the derivation of records stored before work keys; stored IDs stay stable.
+func timelineSessionKey(project string, source TimelineSource, effective string) string {
 	var b bytes.Buffer
 	enc := json.NewEncoder(&b)
 	enc.SetEscapeHTML(false)
-	_ = enc.Encode([]any{"timeline-api-v3", project, source.Host, source.NativeSessionID})
+	parts := []any{"timeline-api-v3", project, source.Host, source.NativeSessionID}
+	if kind, value, ok := strings.Cut(effective, ":"); ok {
+		parts = append(parts, kind, value)
+	}
+	_ = enc.Encode(parts)
 	raw := strings.TrimSuffix(b.String(), "\n")
 	raw = strings.ReplaceAll(strings.ReplaceAll(raw, `\u2028`, "\u2028"), `\u2029`, "\u2029")
 	sum := sha256.Sum256([]byte(raw))
@@ -212,10 +240,10 @@ func (s *Store) timelineLoad() error {
 			return timelineFailure("corrupt_storage", 500)
 		}
 		var r timelineRecord
-		if err = decodeTimelineJSONBounded(raw, &r, timelineMaxRecordBytes); err != nil {
+		if err = decodeTimelineStoredJSON(raw, &r, timelineMaxRecordBytes); err != nil {
 			return timelineFailure("corrupt_storage", 500)
 		}
-		if r.StorageVersion != timelineStorageVersion || r.ID != id || len(r.Roots) == 0 || r.ProjectKey == "" || timelineSessionKey(r.ProjectKey, r.Source) != id {
+		if r.StorageVersion != timelineStorageVersion || r.ID != id || len(r.Roots) == 0 || r.ProjectKey == "" || timelineSessionKey(r.ProjectKey, r.Source, r.WorkKey) != id {
 			return timelineFailure("corrupt_storage", 500)
 		}
 		if err = timelineSource(r.Source); err != nil {
@@ -239,6 +267,9 @@ func (s *Store) timelineLoad() error {
 
 		if r.Session != nil {
 			if err = ValidateTimelineSession(*r.Session); err != nil || r.Session.ViewerSessionID != id || r.Session.Source != r.Source || r.Session.ProjectKey != r.ProjectKey {
+				return timelineFailure("corrupt_storage", 500)
+			}
+			if !timelineWorkKeyMatches(r.WorkKey, r.Session.WorkKey) {
 				return timelineFailure("corrupt_storage", 500)
 			}
 		}
@@ -396,8 +427,10 @@ func (s *Store) timelinePublish() {
 	sort.Slice(entries, func(i, j int) bool { return entries[i].ViewerSessionID < entries[j].ViewerSessionID })
 	s.viewMu.Lock()
 	s.timelineOwned = map[string]bool{}
-	for id := range s.timeline {
+	for id, r := range s.timeline {
 		s.timelineOwned[id] = true
+		// The native tuple stays owned whatever work key named the work.
+		s.timelineOwned[timelineSessionKey(r.ProjectKey, r.Source, "")] = true
 	}
 	s.timelineIndex = entries
 	s.viewMu.Unlock()
@@ -414,9 +447,7 @@ func (s *Store) TimelineIndex() []TimelineAPIIndexEntry {
 	return result
 }
 func (s *Store) timelineOwns(project, host, native string) bool {
-	id := timelineSessionKey(project, TimelineSource{Host: TimelineHost(host), NativeSessionID: native})
-	_, ok := s.timeline[id]
-	return ok
+	return s.timelineHasID(timelineSessionKey(project, TimelineSource{Host: TimelineHost(host), NativeSessionID: native}, ""))
 }
 func (s *Store) timelineReplay(r *timelineRecord, op, digest string) (TimelineOperationResult, bool, error) {
 	for _, receipt := range r.Receipts {
@@ -613,7 +644,8 @@ func (s *Store) TimelineCreate(request TimelineCreateSessionRequest) (TimelineSe
 	if err != nil {
 		return TimelineSessionResponse{}, err
 	}
-	id := timelineSessionKey(key, request.Source)
+	effective := timelineEffectiveWorkKey(request)
+	id := timelineSessionKey(key, request.Source, effective)
 	digest := timelineDigest("create_session", id, "", request, nil)
 	if old, ok := s.timeline[id]; ok {
 		if old.Session == nil || old.DeletePending {
@@ -669,7 +701,12 @@ func (s *Store) TimelineCreate(request TimelineCreateSessionRequest) (TimelineSe
 		input.ExternalScope, _ = CanonicalTimelineIdentityURL(input.ExternalScope)
 		tickets = append(tickets, TimelineTicket{TicketID: tid, TimelineTicketInput: input})
 	}
-	v := TimelineSession{SchemaVersion: 3, ViewerSessionID: id, ProjectKey: key, ProjectName: name, Source: request.Source, Version: 1, Title: request.Title, Summary: request.Summary, State: TimelineActive, CreatedAt: now, UpdatedAt: now, Tickets: tickets, Deliveries: []TimelineDelivery{}, Candidates: []TimelineCandidateRecord{}, Events: []TimelineEvent{}, Artifacts: []TimelineArtifact{}, Documents: []TimelineDocument{}}
+	var workKey *string
+	if request.WorkKey != nil {
+		copied := *request.WorkKey
+		workKey = &copied
+	}
+	v := TimelineSession{SchemaVersion: 3, ViewerSessionID: id, ProjectKey: key, ProjectName: name, Source: request.Source, Version: 1, WorkKey: workKey, Title: request.Title, Summary: request.Summary, State: TimelineActive, CreatedAt: now, UpdatedAt: now, Tickets: tickets, Deliveries: []TimelineDelivery{}, Candidates: []TimelineCandidateRecord{}, Events: []TimelineEvent{}, Artifacts: []TimelineArtifact{}, Documents: []TimelineDocument{}}
 	v.Producers = []TimelineProducer{{ProducerID: producer, Source: request.Source, JoinedAt: now}}
 	v.ForegroundProducerID = producer
 	v.PendingJoinRequests = []TimelineJoinRequest{}
@@ -678,7 +715,7 @@ func (s *Store) TimelineCreate(request TimelineCreateSessionRequest) (TimelineSe
 	if err = ValidateTimelineResolvedProject(v, request.Source, key); err != nil {
 		return TimelineSessionResponse{}, err
 	}
-	r := &timelineRecord{StorageVersion: 3, ID: id, Source: request.Source, ProjectKey: key, ProjectName: name, Roots: timelineSourceRoots(root, request.Source.ProjectRoot), Session: &v, Receipts: []TimelineOperationReceipt{}}
+	r := &timelineRecord{StorageVersion: 3, ID: id, Source: request.Source, ProjectKey: key, ProjectName: name, Roots: timelineSourceRoots(root, request.Source.ProjectRoot), WorkKey: effective, Session: &v, Receipts: []TimelineOperationReceipt{}}
 	if err = s.timelineAudit(r, "create_session", request.OperationID, id, &TimelineActor{Kind: "native_producer", ProducerID: producer}, nil, "Created work from actual source"); err != nil {
 		return TimelineSessionResponse{}, err
 	}
@@ -1110,7 +1147,7 @@ func (s *Store) timelineHasID(id string) bool {
 	return s.timelineOwned[id]
 }
 func (s *Store) timelineLegacyHidden(v Session) bool {
-	return s.timelineHasID(timelineSessionKey(v.ProjectKey, TimelineSource{Host: TimelineHost(v.Host), NativeSessionID: v.SessionID}))
+	return s.timelineHasID(timelineSessionKey(v.ProjectKey, TimelineSource{Host: TimelineHost(v.Host), NativeSessionID: v.SessionID}, ""))
 }
 
 func timelineSourceRoots(root, source string) []string {

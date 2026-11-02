@@ -418,6 +418,15 @@ func viewTimelineProtocolReady(info serverInfo, state string) error {
 	return nil
 }
 
+// sameWorkKey reports whether the response echoes the key the request gave,
+// where no key on both sides also matches.
+func sameWorkKey(got, sent *string) bool {
+	if got == nil || sent == nil {
+		return got == sent
+	}
+	return *got == *sent
+}
+
 func viewTimelineDecodeOutput(w io.Writer, command viewTimelineCommand, input, raw []byte) error {
 	invalid := errors.New("invalid or mismatched viewer response; preserve inputs and reconcile the unchanged operation ID")
 	switch command.operation {
@@ -428,7 +437,7 @@ func viewTimelineDecodeOutput(w io.Writer, command viewTimelineCommand, input, r
 		}
 		if command.operation == "create_session" {
 			request, err := viewer.DecodeTimelineCreateSession(input)
-			if err != nil || response.Session.Source.Host != request.Source.Host || response.Session.Source.NativeSessionID != request.Source.NativeSessionID {
+			if err != nil || response.Session.Source.Host != request.Source.Host || response.Session.Source.NativeSessionID != request.Source.NativeSessionID || !sameWorkKey(response.Session.WorkKey, request.WorkKey) {
 				return invalid
 			}
 		}

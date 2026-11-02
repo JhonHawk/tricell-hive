@@ -52,7 +52,7 @@ func TimelineProtocolContract(operation string) (TimelineProtocolDescription, er
 	actor := TimelineActor{Kind: "native_producer", ProducerID: "producer-example"}
 	one := int64(1)
 	source := TimelineSource{ProjectRoot: "/workspace/example", Host: "codex", NativeSessionID: "native-example"}
-	create := TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "create-example", Source: source, Title: "Example", Summary: "Scope", Tickets: []TimelineTicketInput{}}
+	create := TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "create-example", Source: source, Title: "Example", Summary: "Scope", Tickets: []TimelineTicketInput{}, WorkKey: timelineStringPointer("COM-123")}
 	stage := TimelineAppendEventRequest{Actor: actor, SchemaVersion: 3, OperationID: "stage-example", Reason: "Start the plan", Kind: "stage", Title: "", Summary: "Prepare the plan", TicketIDs: []string{}, Stage: "plan", StageState: "in_progress", ExpectedSessionVersion: &one}
 	state := TimelineStageState("completed")
 	patch := TimelineEventPatchRequest{Actor: actor, SchemaVersion: 3, OperationID: "complete-example", Reason: "Plan completed", ExpectedVersion: 1, StageState: &state, ExpectedSessionVersion: &one}
@@ -303,6 +303,11 @@ func timelineProtocolSchema(t reflect.Type) map[string]any {
 				schema["minLength"] = 1
 				schema["maxLength"] = 256
 				schema["pattern"] = `^[^\s\p{Cc}]+$`
+			case "work_key":
+				schema["minLength"] = 1
+				schema["maxLength"] = 128
+				schema["pattern"] = `^[^\s\p{Cc}]+$`
+				schema["description"] = "Optional name of one work inside a native session, such as a ticket key. The same key from the same native session resumes that work; without it, each new operation_id creates a new work."
 			case "external_scope", "repository_url":
 				schema["format"] = "uri"
 				schema["maxLength"] = 4096
