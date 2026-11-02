@@ -80,3 +80,40 @@ test("the validation count is a toolbar counter that reads its name and is not a
     await unmount();
   }
 });
+
+function withTitle(title: string): TimelineSessionResponse {
+  return { ...timelineFixture, session: { ...timelineFixture.session, title } };
+}
+
+test("leaving title edit returns focus to the edit button", async () => {
+  for (const key of ["Escape", "Enter"]) {
+    const { container, unmount } = await mount(header(timelineFixture, "en"));
+    const edit = () =>
+      container.querySelector<HTMLButtonElement>(
+        'button[aria-label="Edit title"]',
+      );
+    await act(async () => edit()?.click());
+    const input = container.querySelector<HTMLInputElement>("input");
+    assert.ok(input, "edit mode");
+    await act(async () => {
+      input.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true }));
+    });
+    assert.equal(document.activeElement, edit(), key);
+    await unmount();
+  }
+});
+
+test("a long title with spaces is clamped to two lines; an unbroken one scrolls", async () => {
+  const spaced = await mount(
+    header(withTitle("word ".repeat(40).trim()), "en"),
+  );
+  const h1 = spaced.container.querySelector("h1");
+  assert.ok(h1?.classList.contains("line-clamp-2"));
+  assert.equal(h1?.getAttribute("title"), "word ".repeat(40).trim());
+  await spaced.unmount();
+  const unbroken = await mount(header(withTitle("x".repeat(200)), "en"));
+  const h1b = unbroken.container.querySelector("h1");
+  assert.ok(h1b?.classList.contains("overflow-x-auto"));
+  assert.equal(h1b?.classList.contains("line-clamp-2"), false);
+  await unbroken.unmount();
+});

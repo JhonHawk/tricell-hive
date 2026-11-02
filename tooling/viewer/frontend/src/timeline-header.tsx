@@ -12,7 +12,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { type ReactNode, useId, useRef, useState } from "react";
+import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 import { Alert, AlertAction, AlertDescription } from "@/components/reui/alert";
 import { Badge } from "@/components/reui/badge";
 import {
@@ -120,6 +120,20 @@ export function TimelineHeader({
   const editVersion = useRef(session.version);
   const editSession = useRef(session.viewer_session_id);
   const deleteVersion = useRef(session.version);
+  // Leaving title edit returns focus to the edit button, so keyboard users
+  // keep their place instead of landing on the page body.
+  const titleRow = useRef<HTMLDivElement>(null);
+  const returnFocus = useRef(false);
+  const closeEdit = () => {
+    returnFocus.current = true;
+    setEditing(false);
+  };
+  useEffect(() => {
+    if (!editing && returnFocus.current) {
+      returnFocus.current = false;
+      titleRow.current?.querySelector<HTMLButtonElement>("button")?.focus();
+    }
+  }, [editing]);
   const deliveries = session.deliveries;
   const validations =
     t.validations.charAt(0).toUpperCase() + t.validations.slice(1);
@@ -133,7 +147,7 @@ export function TimelineHeader({
     setError(null);
     try {
       await onUpdate(patch, version);
-      if (patch.title !== undefined) setEditing(false);
+      if (patch.title !== undefined) closeEdit();
     } catch {
       setError("save");
     } finally {
@@ -189,7 +203,7 @@ export function TimelineHeader({
                 }
                 if (e.key === "Escape") {
                   e.preventDefault();
-                  setEditing(false);
+                  closeEdit();
                   setError(null);
                 }
               }}
@@ -201,7 +215,7 @@ export function TimelineHeader({
               label={t.cancel}
               disabled={pending}
               onClick={() => {
-                setEditing(false);
+                closeEdit();
                 setError(null);
               }}
             >
@@ -209,12 +223,15 @@ export function TimelineHeader({
             </IconAction>
           </div>
         ) : (
-          <div className="flex min-w-0 items-center gap-2">
+          <div ref={titleRow} className="flex min-w-0 items-center gap-2">
             <h1
-              className="min-w-0 overflow-x-auto whitespace-normal break-normal text-lg font-semibold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-              style={{
-                whiteSpace: /\s/u.test(session.title) ? "normal" : "nowrap",
-              }}
+              // A title with spaces wraps and is clamped to two lines, with the
+              // full text in its tooltip; an unbroken one scrolls sideways.
+              className={`min-w-0 break-normal text-lg font-semibold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring ${
+                /\s/u.test(session.title)
+                  ? "line-clamp-2 whitespace-normal"
+                  : "overflow-x-auto whitespace-nowrap"
+              }`}
               aria-describedby={titleHintID}
               // biome-ignore lint/a11y/noNoninteractiveTabindex: The title is a deliberate keyboard-accessible horizontal reading region.
               tabIndex={0}
