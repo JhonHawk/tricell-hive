@@ -41,7 +41,7 @@ The folder stays uncommitted while the work runs; [Close](/flows/close/) version
 
 ## How it ends
 
-The agent summarizes the plan in the message: the objective, each criterion, your decisions, the tasks on one line each, what is still missing, the checks and the delivery mode. It then gives the Build command as the next step. A plan does not authorize implementation: typing that command is what approves the criteria shown and starts [Build](/flows/build/). A correction to a criterion is not approval; the agent revises and shows it again. The steps are in the [plan handoff reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/plan-handoff.md).
+The agent summarizes the plan in the message: the objective, each criterion, your decisions, the tasks on one line each, what is still missing, the checks and the delivery mode. It then gives the Build command as the next step, and offers to compact the session first, with what to keep, so the build starts without the research and planning history; after you compact, it shows the same next step again. A plan does not authorize implementation: typing that command is what approves the criteria shown and starts [Build](/flows/build/). A correction to a criterion is not approval; the agent revises and shows it again. The steps are in the [plan handoff reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/references/plan-handoff.md).
 
 ## What it does not do
 

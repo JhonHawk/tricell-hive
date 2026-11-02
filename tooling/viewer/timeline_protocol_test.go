@@ -195,3 +195,123 @@ func TestTimelineCandidateSchemaPreservesInheritedBounds(t *testing.T) {
 		t.Fatal("500-character reason rejected", err)
 	}
 }
+
+func TestTimelineProtocolEveryOperationHasKnownFlow(t *testing.T) {
+	contract, err := TimelineProtocolContract("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	known := map[string]bool{}
+	for _, c := range contract.Commands {
+		known[c.Operation] = true
+	}
+	for _, flow := range TimelineProtocolFlows() {
+		operations, err := timelineFlowMembers(flow)
+		if err != nil || len(operations) == 0 {
+			t.Fatalf("flow %s: %v", flow, err)
+		}
+		for _, name := range operations {
+			if !known[name] {
+				t.Fatalf("flow %s names unknown operation %s", flow, name)
+			}
+		}
+	}
+	list := TimelineProtocolList()
+	if len(list.Operations) != len(contract.Commands) {
+		t.Fatalf("list has %d entries for %d operations", len(list.Operations), len(contract.Commands))
+	}
+	for _, entry := range list.Operations {
+		if len(entry.Flows) == 0 || !known[entry.Operation] || entry.Usage == "" {
+			t.Fatalf("operation %s lacks a flow or is unknown", entry.Operation)
+		}
+	}
+	if _, err := timelineFlowMembers("nope"); err == nil {
+		t.Fatal("unknown flow accepted")
+	}
+}
+
+func TestTimelineProtocolBriefCarriesFieldsEnumsAndExample(t *testing.T) {
+	brief, err := TimelineProtocolBrief("plan")
+	if err != nil || brief.Flow != "plan" || brief.ProtocolVersion != 3 {
+		t.Fatal(err)
+	}
+	byName := map[string]TimelineProtocolBriefOperation{}
+	for _, o := range brief.Operations {
+		byName[o.Operation] = o
+	}
+	for _, want := range []string{"stage_start", "stage_update", "document_add", "ticket_create", "session_get"} {
+		if _, ok := byName[want]; !ok {
+			t.Fatalf("plan brief lacks %s", want)
+		}
+	}
+	if _, ok := byName["task_create"]; ok {
+		t.Fatal("plan brief carries a build-only operation")
+	}
+	update := byName["stage_update"]
+	if update.Usage == "" || len(update.Example) == 0 || !contains(update.Required, "stage_state") || !contains(update.Required, "reason") {
+		t.Fatalf("incomplete stage_update brief: %+v", update)
+	}
+	if len(update.Enums["stage_state"]) == 0 {
+		t.Fatal("stage_state enum missing")
+	}
+	if _, ok := byName["create_session"].Enums["source.host"]; !ok {
+		t.Fatal("nested enum path source.host missing")
+	}
+	raw, _ := json.Marshal(brief)
+	if strings.Contains(string(raw), "output_schema") {
+		t.Fatal("brief carries output schemas")
+	}
+	if _, err := TimelineProtocolBrief("nope"); err == nil {
+		t.Fatal("unknown flow accepted")
+	}
+}
+
+func TestTimelineProtocolBriefStaysUnderSizeLimit(t *testing.T) {
+	for _, flow := range TimelineProtocolFlows() {
+		brief, err := TimelineProtocolBrief(flow)
+		if err != nil {
+			t.Fatal(err)
+		}
+		raw, _ := json.Marshal(brief)
+		if len(raw) >= 10000 {
+			t.Fatalf("%s brief is %d bytes", flow, len(raw))
+		}
+	}
+}
+
+func TestTimelineProtocolRulesBlockHoldsSharedRules(t *testing.T) {
+	rules, err := json.Marshal(TimelineProtocolRules())
+	if err != nil {
+		t.Fatal(err)
+	}
+	var keys map[string]json.RawMessage
+	_ = json.Unmarshal(rules, &keys)
+	for _, k := range []string{"protocol_version", "storage_version", "schema_dialect", "localization", "capabilities", "retention", "ttl_seconds", "authority", "error_codes", "limits", "invariants"} {
+		if _, ok := keys[k]; !ok {
+			t.Fatalf("rules lack %s", k)
+		}
+	}
+	if _, ok := keys["commands"]; ok {
+		t.Fatal("rules carry commands")
+	}
+}
+
+func TestTimelineProtocolStageReasonRequiredAndConstsTyped(t *testing.T) {
+	for _, op := range []string{"stage_start", "stage_update"} {
+		full, err := TimelineProtocolContract(op)
+		if err != nil || !contains(full.Commands[0].InputSchema["required"].([]string), "reason") {
+			t.Fatalf("%s schema does not require reason: %v", op, err)
+		}
+	}
+	for _, flow := range TimelineProtocolFlows() {
+		brief, err := TimelineProtocolBrief(flow)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, o := range brief.Operations {
+			if _, ok := o.Enums["schema_version"]; ok {
+				t.Fatalf("%s lists the integer schema_version as a string value", o.Operation)
+			}
+		}
+	}
+}

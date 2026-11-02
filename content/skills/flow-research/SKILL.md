@@ -7,7 +7,7 @@ description: Investigate a technical question, a reported failure, or a ticket t
 
 The primary producer follows [flow-walkthrough](../flow-walkthrough/SKILL.md), which sets when a viewer session applies, to start or resume the viewer stage and publish at each stage change, new capture or document snapshot; publication failure does not stop independent research.
 
-Research does not change the project, tracker or shared data until the user chooses a route; the local viewer publication above records its progress.
+Research does not change the project, tracker or shared data until the user chooses a route, or answers the question for a single action that the global guidance's «Questions and routes» section sets; the local viewer publication above records its progress.
 
 ## Entry and exit
 
@@ -21,7 +21,7 @@ Enter with a question, a reported failure or a proposal, including a question wh
 4. Report the answer, its evidence, and what remains uncertain. When the user asks to keep or share the result, or the report exceeds what fits on one screen, offer a `flow-report` page as one option of the question the message ends with. When the research has a viewer session, ask the open-viewer question that [viewer publication](../flow-walkthrough/references/viewer-publication.md#open-the-viewer) sets.
 5. When the findings leave work the user could run next, end the report with the route as the global guidance's «Questions and routes» section sets: the recommended flow (`flow-build` for a small understood change as «Proportionality» defines it, `flow-plan` for larger work) with its reason, and one line saying how to continue, keep investigating or stop.
 
-The user's reply authorizes only the flow it names.
+The user's reply authorizes only the flow it names, or the single action it answers.
 
 ## Assess a chosen ticket
 

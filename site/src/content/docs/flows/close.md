@@ -19,7 +19,7 @@ Clean up the session.
 
 ## What it asks
 
-One question at the end, the close question. Its options are to end the session, to see the findings (only when the work left some), or to find the next ticket. The findings round asks, for each defect the work found but did not fix, whether to fix it now, open a ticket or ignore it. A ticket is never opened without your answer. Close runs once: after you answer, the agent acts on the answer and does not repeat the report.
+One question at the end, the close question. Its options are to end the session, to see the findings (only when the work left some), or to find the next ticket. The findings round asks, for each defect the work found but did not fix, whether to fix it now, open a ticket or ignore it. A ticket is never opened without your answer. When you choose to find the next ticket, the status report that follows offers to compact the session before the next work starts. Close runs once: after you answer, the agent acts on the answer and does not repeat the report.
 
 ## What it produces
 
