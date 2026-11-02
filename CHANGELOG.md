@@ -45,6 +45,11 @@ raise the minor or the patch version.
 
 ### Changed
 
+- A manual action or a piece of information is asked of you only when you alone
+  hold it or can do it. Before handing you a command, the agent tries the ways
+  the tool itself offers, such as a non-interactive flag, a saved plan to apply
+  or a pseudo-terminal. The skills rebuild had dropped this condition, so an
+  agent asked you to run `hive update` it could run itself.
 - Compacting is offered at two moments instead of by context size: when an
   approved plan moves to its build in the same session, and when another work
   item starts after a close. It is one more reply of the next-step block, with
