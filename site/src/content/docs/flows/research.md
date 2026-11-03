@@ -46,7 +46,7 @@ It does not change code, tickets, documents or deployments, and it does not trea
 
 The answer comes in the conversation: what was concluded, the evidence, and what is still uncertain, with what you said kept apart from what the agent proposes.
 
-- If you asked to analyze, explain or find out why, it ends at the findings with a footer that asks how to continue and lists the replies you can give, none recommended and with no command to type.
+- If you asked to analyze, explain or find out why, it ends at the findings with a footer that asks how to continue and lists the replies you can give, each with a letter and the best one starred, with no command to type and never a flow you did not ask for.
 - If you asked for a change whose how leaves you no decision and can be finished from your request and the `git diff`, it continues into Build in the same turn.
 - Otherwise it ends with the command to start [Plan](/flows/plan/) and the reason, because the how has a decision for you or the work could not be resumed from the request and the diff.
 
