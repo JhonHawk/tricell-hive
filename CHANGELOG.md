@@ -23,6 +23,11 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Build hands its check evidence to Verify, which reuses passing results only
+  while the inputs they cover remain unchanged and reruns missing or invalidated
+  checks. The real-path walk and required independent verification remain.
+  Code findings use an available, authorized local reproduction or conclusive
+  source evidence, including when adjudicating a native review's output.
 - Every request to do work now enters `flow-research`, which settles what the
   user needs before any how: it reads before asking, asks one open question
   per message in the text, checks a complete request for blockers and does it
