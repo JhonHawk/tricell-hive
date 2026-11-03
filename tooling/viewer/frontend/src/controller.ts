@@ -18,27 +18,6 @@ import {
   type TimelineAPIIndexEntry,
   type TimelineSessionResponse,
 } from "./timeline-contract";
-export type Delivery = {
-  kind: "pull_request" | "commit";
-  label: string;
-  url: string;
-};
-export type WalkthroughManifest = {
-  title: string;
-  delivery?: Delivery[];
-  [key: string]: unknown;
-};
-export type DocumentData = {
-  key: string;
-  hash: string;
-  fileBase: string;
-  manifest: WalkthroughManifest;
-};
-export type SegmentDocument = {
-  revision: string;
-  state: "loading" | "ready" | "error" | "excluded";
-  document: DocumentData | null;
-};
 export type TimelineRead = {
   id: string;
   state: "loading" | "ready" | "error";
@@ -174,7 +153,10 @@ export class ViewerController {
       seq = ++this.readSeq;
     this.reading = true;
     try {
-      const index = validateIndex(await this.client.request("/api/index"));
+      const index = validateIndex(
+        await this.client.request("/api/index"),
+        this.state.index,
+      );
       if (epoch !== this.epoch || seq !== this.readSeq) return;
       this.update({
         down: false,

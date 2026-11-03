@@ -44,12 +44,50 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 		fs := flag.NewFlagSet("view contract", flag.ContinueOnError)
 		fs.SetOutput(io.Discard)
 		operation := fs.String("operation", "", "narrow to one protocol operation")
+		flow := fs.String("for", "", "brief of one flow's operations")
+		list := fs.Bool("list", false, "list every operation with its flows")
+		section := fs.String("section", "", "one shared part of the contract: rules")
+		usage := errors.New("use `hive view contract [--operation NAME | --for FLOW | --list | --section rules]`; options are mutually exclusive; flows: " + strings.Join(viewer.TimelineProtocolFlows(), ", "))
 		if err := fs.Parse(args[1:]); err != nil || fs.NArg() != 0 {
-			return errors.New("use `hive view contract [--operation NAME]`")
+			return usage
+		}
+		visited := map[string]bool{}
+		fs.Visit(func(f *flag.Flag) { visited[f.Name] = true })
+		if len(visited) > 1 || visited["list"] && !*list {
+			return usage
+		}
+		switch {
+		case visited["list"]:
+			list, err := viewer.TimelineProtocolList()
+			if err != nil {
+				return err
+			}
+			return viewTimelineOutput(w, list)
+		case visited["section"]:
+			if *section != "rules" {
+				return errors.New("unknown contract section; valid sections: rules")
+			}
+			rules, err := viewer.TimelineProtocolRules()
+			if err != nil {
+				return err
+			}
+			return viewTimelineOutput(w, rules)
+		case visited["for"]:
+			brief, err := viewer.TimelineProtocolBrief(*flow)
+			if err != nil {
+				if viewer.TimelineContractCode(err) == "unsupported_flow" {
+					return errors.New("unknown flow; valid flows: " + strings.Join(viewer.TimelineProtocolFlows(), ", "))
+				}
+				return err
+			}
+			return viewTimelineOutput(w, brief)
 		}
 		contract, err := viewer.TimelineProtocolContract(*operation)
 		if err != nil {
-			return errors.New("unknown timeline operation; run `hive view contract`")
+			if viewer.TimelineContractCode(err) == "unsupported_operation" {
+				return errors.New("unknown timeline operation; run `hive view contract --list`")
+			}
+			return err
 		}
 		return viewTimelineOutput(w, contract)
 	}
@@ -92,6 +130,10 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 			code := viewer.TimelineContractCode(err)
 			if code == "unsupported_protocol" {
 				return errors.New("unsupported_protocol: protocol v3 is required; update client and viewer together, preserve inputs and use a fresh v3 state directory")
+			}
+			var field *viewer.TimelineContractError
+			if errors.As(err, &field) && field.Field != "" {
+				return fmt.Errorf("invalid timeline input: %s on %s", code, field.Field)
 			}
 			return fmt.Errorf("invalid timeline input: %s", code)
 		}
@@ -393,7 +435,7 @@ func viewTimelineHTTP(info serverInfo, method, path, contentType string, body io
 	}
 	defer response.Body.Close()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return nil, fmt.Errorf("viewer request failed (HTTP %d); preserve inputs, read current state and retry only with the appropriate original operation ID", response.StatusCode)
+		return nil, fmt.Errorf("viewer request failed (HTTP %d%s); preserve inputs, read current state and retry only with the appropriate original operation ID", response.StatusCode, viewErrorDetail(response.Body))
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, int64(limit)+1))
 	if err != nil || len(data) > limit {
@@ -418,6 +460,15 @@ func viewTimelineProtocolReady(info serverInfo, state string) error {
 	return nil
 }
 
+// sameWorkKey reports whether the response echoes the key the request gave,
+// where no key on both sides also matches.
+func sameWorkKey(got, sent *string) bool {
+	if got == nil || sent == nil {
+		return got == sent
+	}
+	return *got == *sent
+}
+
 func viewTimelineDecodeOutput(w io.Writer, command viewTimelineCommand, input, raw []byte) error {
 	invalid := errors.New("invalid or mismatched viewer response; preserve inputs and reconcile the unchanged operation ID")
 	switch command.operation {
@@ -428,7 +479,7 @@ func viewTimelineDecodeOutput(w io.Writer, command viewTimelineCommand, input, r
 		}
 		if command.operation == "create_session" {
 			request, err := viewer.DecodeTimelineCreateSession(input)
-			if err != nil || response.Session.Source.Host != request.Source.Host || response.Session.Source.NativeSessionID != request.Source.NativeSessionID {
+			if err != nil || response.Session.Source.Host != request.Source.Host || response.Session.Source.NativeSessionID != request.Source.NativeSessionID || !sameWorkKey(response.Session.WorkKey, request.WorkKey) {
 				return invalid
 			}
 		}
@@ -480,7 +531,26 @@ func viewTimelineDecodeOutput(w io.Writer, command viewTimelineCommand, input, r
 }
 
 func viewTimelineOutput(w io.Writer, value any) error {
-	encoder := json.NewEncoder(w)
-	encoder.SetIndent("", "  ")
-	return encoder.Encode(value)
+	return json.NewEncoder(w).Encode(value)
+}
+
+// viewErrorTokenPattern bounds what a failed response may echo: only the
+// server's own error code and field names, never arbitrary text.
+var viewErrorTokenPattern = regexp.MustCompile(`^[a-z][a-z0-9_.]{0,63}$`)
+
+// viewErrorDetail names the server's error code, and its field when present,
+// so a caller can tell why a request was rejected.
+func viewErrorDetail(body io.Reader) string {
+	var failure struct {
+		Code  string `json:"code"`
+		Field string `json:"field"`
+	}
+	data, err := io.ReadAll(io.LimitReader(body, 1024))
+	if err != nil || json.Unmarshal(data, &failure) != nil || !viewErrorTokenPattern.MatchString(failure.Code) {
+		return ""
+	}
+	if viewErrorTokenPattern.MatchString(failure.Field) {
+		return ": " + failure.Code + " on " + failure.Field
+	}
+	return ": " + failure.Code
 }

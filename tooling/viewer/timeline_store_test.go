@@ -29,7 +29,7 @@ func newTimelineFixture(t *testing.T) (*Store, TimelineCreateSessionRequest) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return s, TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "create", Source: TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "native-1"}, Title: "A bounded session", Summary: "Test publication", Tickets: []TimelineTicketInput{}}
+	return s, TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "create", Source: TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "native-1"}, Title: "A bounded session", Summary: "Test publication", Tickets: []TimelineTicketInput{}, WorkKey: timelineString("work-1")}
 }
 func createTimeline(t *testing.T, s *Store, r TimelineCreateSessionRequest) TimelineSession {
 	t.Helper()
@@ -154,6 +154,14 @@ func TestTimelineRuntimeStageDocumentEvidenceAndReplay(t *testing.T) {
 	}
 	if result.CurrentStageEventID == nil {
 		t.Fatal("validation lost foreground")
+	}
+	// The browser decodes every index entry the server emits; a session
+	// awaiting validation must not make the client reject the index.
+	for _, entry := range s.TimelineIndex() {
+		raw, _ := json.Marshal(entry)
+		if _, err := DecodeTimelineIndexEntry(raw); err != nil {
+			t.Fatal("emitted index entry rejected", entry.State, err)
+		}
 	}
 	current, _ = s.TimelineGet(id)
 	if current.Events[0].StageState != "awaiting_validation" {
@@ -475,7 +483,7 @@ func TestTimelineRuntimeDirectoryCreationSyncRetries(t *testing.T) {
 		for _, kind := range []string{"namespace", "blob-session", "blob-document"} {
 			t.Run(kind+"/"+phase, func(t *testing.T) {
 				s, request := newTimelineFixture(t)
-				id := timelineSessionKey(request.Source.ProjectRoot, request.Source)
+				id := timelineSessionKey(request.Source.ProjectRoot, request.Source, timelineEffectiveWorkKey(request))
 				target := s.timelineDir()
 				var operation func() error
 				if kind == "namespace" {

@@ -1,13 +1,10 @@
 import {
   Archive,
-  ArchiveRestore,
   BookOpen,
   ChevronRight,
   Folder,
-  Pencil,
   Pin,
   Route,
-  Trash2,
 } from "lucide-react";
 import {
   type ReactNode,
@@ -32,7 +29,6 @@ import {
   FrameTitle,
 } from "@/components/reui/frame";
 import { Button } from "@/components/ui/button";
-import { ButtonGroup } from "@/components/ui/button-group";
 import {
   Collapsible,
   CollapsibleContent,
@@ -67,40 +63,28 @@ import { browserLanguage } from "./language";
 import { messages as t } from "./messages";
 export type ViewerSession = {
   id: string;
-  segments?: { id: string; title: string; ticket: string }[];
   project: string;
   projectKey?: string;
   ticket: string;
   title: string;
   localTitle?: boolean;
   createdAt: string;
-  classification: "tracked" | "local" | "unknown";
   pinned?: boolean;
   archived?: boolean;
-  excluded?: boolean;
   status?: "in_progress" | "closed" | "unknown";
 };
 export type ViewerShellProps = {
   sessions: ViewerSession[];
   selectedId?: string;
   state: "ready" | "loading" | "empty" | "error";
-  notice?: string;
   onSelect?: (id: string) => void;
-  onJump?: (id: string) => void;
   onRetry: () => void;
-  onPin?: () => void;
-  onDelete?: () => void;
-  onArchive?: () => void;
-  onRename?: () => void;
-  feedback?: ReactNode;
   showArchived?: boolean;
   onShowArchivedChange?: (show: boolean) => void;
   children?: ReactNode;
   panel?: ReactNode;
   sessionHeader?: ReactNode;
-  libraryFooter?: ReactNode;
   notices?: ReactNode;
-  writing?: boolean;
   coldLoading?: boolean;
 };
 const spanish = browserLanguage() === "es";
@@ -117,11 +101,6 @@ const copy = spanish
       actions: "Acciones de la sesión",
       statusDescription:
         "Estado declarado del trabajo. Cerrado no significa aprobado.",
-      excluded: "Copias apartadas",
-      excludedOnly:
-        "Solo hay copias apartadas. Selecciona una abajo para conocer el motivo.",
-      excludedDescription:
-        "El manifiesto fuente está versionado en Git. Estas copias se mantienen fuera del árbol de proyectos; su documento no se abre aquí.",
       empty: "Aún no hay recorridos",
       emptyDescription: "Registra un recorrido con hive view para verlo aquí.",
       retry: "Actualizar",
@@ -160,11 +139,6 @@ const copy = spanish
       unarchive: "Restore session",
       actions: "Session actions",
       statusDescription: "Declared work status. Closed does not mean approved.",
-      excluded: "Set-aside copies",
-      excludedOnly:
-        "Only set-aside copies are available. Select one below to see why.",
-      excludedDescription:
-        "The source manifest is tracked in Git. These copies stay outside the project tree; their documents cannot be opened here.",
       empty: "No walkthroughs yet",
       emptyDescription: "Register a walkthrough with hive view to see it here.",
       retry: "Refresh",
@@ -325,7 +299,6 @@ function Navigation({
   | "selectedId"
   | "state"
   | "onSelect"
-  | "onJump"
   | "onRetry"
   | "showArchived"
   | "onShowArchivedChange"
@@ -512,22 +485,14 @@ export function ViewerShell({
   sessions,
   selectedId,
   state,
-  notice,
   onSelect,
   onRetry,
-  onPin,
-  onDelete,
-  onArchive,
-  onRename,
-  feedback,
   showArchived = false,
   onShowArchivedChange,
   children,
   panel,
   sessionHeader,
-  libraryFooter,
   notices,
-  writing,
   coldLoading = false,
 }: ViewerShellProps) {
   const selected = sessions.find((session) => session.id === selectedId);
@@ -592,7 +557,6 @@ export function ViewerShell({
           <div className="flex flex-col gap-1 p-2">
             <span className="text-xs font-medium">{copy.readOnly}</span>
             <p className="text-xs text-muted-foreground">{copy.description}</p>
-            {libraryFooter}
           </div>
         </SidebarFooter>
       </Sidebar>
@@ -600,7 +564,12 @@ export function ViewerShell({
         <header className="flex shrink-0 items-center justify-between gap-4 border-b border-border px-4 py-3 md:px-6">
           <div className="flex min-w-0 items-center gap-3">
             <SidebarTrigger type="button" aria-label={copy.navigation} />
-            <span className="font-medium">{copy.walkthroughs}</span>
+            {/* Without a session header, the page title is the only heading. */}
+            {sessionHeader ? (
+              <span className="font-medium">{copy.walkthroughs}</span>
+            ) : (
+              <h1 className="font-medium">{copy.walkthroughs}</h1>
+            )}
           </div>
           <Badge variant="outline">{copy.readOnly}</Badge>
         </header>
@@ -613,93 +582,8 @@ export function ViewerShell({
             <span className="sr-only">{copy.loading}</span>
             <Skeleton className="h-8 w-2/3" />
           </div>
-        ) : sessionHeader ? (
-          sessionHeader
         ) : (
-          <div
-            data-slot="session-toolbar"
-            className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-3 md:px-6"
-          >
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex min-w-0 flex-col gap-0.5">
-                <p className="text-xs text-muted-foreground">
-                  {selected
-                    ? `${selected.project} / ${selected.ticket}`
-                    : copy.readOnly}
-                </p>
-                <h1
-                  title={selected?.title}
-                  // biome-ignore lint/a11y/noNoninteractiveTabindex: The name is a deliberate keyboard-accessible horizontal reading region.
-                  tabIndex={0}
-                  aria-describedby="session-name-reading-hint"
-                  style={{
-                    whiteSpace: /\s/u.test(selected?.title ?? copy.library)
-                      ? "normal"
-                      : "nowrap",
-                  }}
-                  className="min-w-0 overflow-x-auto whitespace-normal break-normal text-lg font-semibold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                >
-                  {selected?.title ?? copy.library}
-                </h1>
-                <span id="session-name-reading-hint" className="sr-only">
-                  {t.nameReadingHint}
-                </span>
-                {selected && (
-                  <p className="text-xs text-muted-foreground">
-                    {selected.createdAt}
-                  </p>
-                )}
-              </div>
-            </div>
-            {selected && (onPin || onArchive || onDelete) && (
-              <ButtonGroup aria-label={copy.actions} aria-busy={writing}>
-                {onRename && (
-                  <ActionButton
-                    label={t.rename}
-                    disabled={writing}
-                    onClick={onRename}
-                  >
-                    <Pencil aria-hidden />
-                  </ActionButton>
-                )}
-                <ActionButton
-                  label={selected.archived ? copy.unarchive : copy.archive}
-                  disabled={!onArchive || writing}
-                  onClick={onArchive}
-                >
-                  {selected.archived ? (
-                    <ArchiveRestore aria-hidden />
-                  ) : (
-                    <Archive aria-hidden />
-                  )}
-                </ActionButton>
-                <ActionButton
-                  label={selected.pinned ? copy.unpin : copy.pin}
-                  description={t.keepHelp}
-                  aria-pressed={Boolean(selected.pinned)}
-                  disabled={!onPin || writing}
-                  onClick={onPin}
-                >
-                  <Pin aria-hidden />
-                </ActionButton>
-                <ActionButton
-                  label={copy.remove}
-                  disabled={!onDelete || writing}
-                  onClick={onDelete}
-                >
-                  <Trash2 aria-hidden />
-                </ActionButton>
-              </ButtonGroup>
-            )}
-          </div>
-        )}
-        {feedback && (
-          <div
-            data-slot="session-feedback"
-            className="shrink-0 px-4 py-2 md:px-6"
-          >
-            {feedback}
-          </div>
+          sessionHeader
         )}
         <div
           data-slot="viewer-canvas"
@@ -717,14 +601,6 @@ export function ViewerShell({
             </div>
           ) : (
             <>
-              {notice && (
-                <Alert variant="warning" role="status">
-                  <AlertTitle>{copy.readOnly}</AlertTitle>
-                  <AlertDescription className="text-foreground">
-                    {notice}
-                  </AlertDescription>
-                </Alert>
-              )}
               {notices}
               {!sessionHeader && (
                 <Frame spacing="default">

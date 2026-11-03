@@ -2,6 +2,7 @@ import {
   isTimelineCatalogOperation,
   parseTimelineCatalogRequest,
   type TimelineCatalogRequestMap,
+  timelineCatalogIdentities,
   validateTimelineCatalogs,
   validateTimelineDeliveryReference,
   validateTimelineIDs,
@@ -23,6 +24,8 @@ import {
   type TimelineProducer,
   type TimelineTask,
   type TimelineV3RequestMap,
+  timelineStateAllowsForeground,
+  timelineStateRequiresForeground,
   validateTimelineActor,
   validateTimelineAppendV3,
   validateTimelineAuthority,
@@ -34,15 +37,13 @@ import {
 
 export * from "./timeline-contract-v3";
 
-import type { RawSession } from "./api";
-
-// This contract is independent of the legacy walkthrough manifest. External
-// data must be parsed before it reaches typed timeline rendering.
+// External data must be parsed before it reaches typed timeline rendering.
 export const TIMELINE_SCHEMA_VERSION = 3 as const;
 export const TIMELINE_LIMITS = {
   body: 2 << 20,
   content: 7 << 18,
   events: 508,
+  catalogRecords: 100,
   views: 50,
   images: 100,
   receipts: 1000,
@@ -294,12 +295,13 @@ export type TimelineSession = {
   updated_at: string;
   validation_count: number;
   tickets: TimelineTicket[];
+  work_key: string | null;
   events: TimelineEvent[];
   artifacts: TimelineArtifact[];
   documents: TimelineDocument[];
   current_stage_event_id: string | null;
 };
-export type TimelineContentMode = "timeline_api" | "legacy";
+export type TimelineContentMode = "timeline_api";
 export type TimelineAPIIndexEntry = Omit<
   TimelineSession,
   | "schema_version"
@@ -313,11 +315,9 @@ export type TimelineAPIIndexEntry = Omit<
   | "waits"
   | "deliveries"
   | "candidates"
+  | "work_key"
 > & { mode: "timeline_api" };
-export type TimelineLegacyIndexEntry = { mode: "legacy"; session: RawSession };
-export type TimelineIndexEntry =
-  | TimelineAPIIndexEntry
-  | TimelineLegacyIndexEntry;
+export type TimelineIndexEntry = TimelineAPIIndexEntry;
 export type TimelineOperationKind =
   | "ticket_create"
   | "ticket_patch"
@@ -434,6 +434,7 @@ export type TimelineCreateSessionRequest = {
   title: string;
   summary: string;
   tickets: TimelineTicketInput[];
+  work_key?: string;
 };
 export type TimelineMutationRequest = {
   actor: TimelineActor;
@@ -542,6 +543,16 @@ const sha256 = /^[0-9a-f]{64}$/;
 function fail(field: string, code = "invalid_value"): never {
   throw new TimelineContractError(field, code);
 }
+/** 1 to 128 characters without whitespace or controls, as in Go. */
+function workKey(value: unknown): void {
+  if (
+    typeof value !== "string" ||
+    !value ||
+    [...value].length > 128 ||
+    /[\p{White_Space}\p{Cc}]/u.test(value)
+  )
+    fail("work_key", "invalid_text");
+}
 function object(
   value: unknown,
   required: string[],
@@ -556,7 +567,11 @@ function object(
   for (const key of Object.keys(obj))
     if (![...required, ...optional].includes(key)) fail(field, "unknown_field");
   for (const [key, item] of Object.entries(obj))
-    if (item === null && key !== "current_stage_event_id")
+    if (
+      item === null &&
+      key !== "current_stage_event_id" &&
+      !(key === "work_key" && required.includes(key))
+    )
       fail(field, "null_not_allowed");
   return obj;
 }
@@ -696,8 +711,35 @@ const source = validateTimelineSource;
 export function timelineTicketIdentity(ref: { ticket_id: string }): string {
   return ref.ticket_id;
 }
+/** Checks the header fields a session and its index entry share. */
+function summaryHeader(obj: ObjectValue) {
+  if (
+    typeof obj.viewer_session_id !== "string" ||
+    !sha256.test(obj.viewer_session_id)
+  )
+    fail("viewer_session_id", "invalid_id");
+  source(obj.source);
+  text(obj.project_key, "project_key", 2048);
+  text(obj.project_name, "project_name", 200);
+  integer(obj.version, "version");
+  text(obj.title, "title", 200);
+  text(obj.summary, "summary", 4000);
+  if (!states.includes(obj.state as string)) fail("state", "unsupported_state");
+  for (const field of ["archived", "pinned"])
+    if (typeof obj[field] !== "boolean") fail(field);
+  timestamp(obj.created_at, "created_at");
+  timestamp(obj.updated_at, "updated_at");
+}
 function tickets(value: unknown, full = false, bootstrap = false) {
-  const list = array(value, "tickets", 100);
+  // A full ticket list over the limit gets the Go validator's code; event
+  // ticket references keep the generic array error.
+  if (
+    full &&
+    Array.isArray(value) &&
+    value.length > TIMELINE_LIMITS.catalogRecords
+  )
+    fail("tickets", "array_required_or_limit");
+  const list = array(value, "tickets", TIMELINE_LIMITS.catalogRecords);
   if (!full) {
     validateTimelineTicketReferences(list);
     return;
@@ -907,18 +949,23 @@ export function parseTimelineRequest<K extends keyof TimelineRequestMap>(
   let obj: ObjectValue = {};
   switch (kind) {
     case "create_session":
-      obj = object(value, [
-        "schema_version",
-        "operation_id",
-        "source",
-        "title",
-        "summary",
-        "tickets",
-      ]);
+      obj = object(
+        value,
+        [
+          "schema_version",
+          "operation_id",
+          "source",
+          "title",
+          "summary",
+          "tickets",
+        ],
+        ["work_key"],
+      );
       operation(obj);
       source(obj.source);
       text(obj.title, "title", 200);
       text(obj.summary, "summary", 4000);
+      if (obj.work_key !== undefined) workKey(obj.work_key);
       tickets(obj.tickets, true, true);
       break;
     case "session_patch": {
@@ -1216,6 +1263,7 @@ export function parseTimelineSession(value: unknown): TimelineSession {
       "updated_at",
       "validation_count",
       "tickets",
+      "work_key",
       "events",
       "artifacts",
       "documents",
@@ -1224,22 +1272,8 @@ export function parseTimelineSession(value: unknown): TimelineSession {
     ["reason"],
   );
   if (obj.schema_version !== 3) fail("schema_version", "unsupported_protocol");
-  if (
-    typeof obj.viewer_session_id !== "string" ||
-    !sha256.test(obj.viewer_session_id)
-  )
-    fail("viewer_session_id", "invalid_id");
-  source(obj.source);
-  text(obj.project_key, "project_key", 2048);
-  text(obj.project_name, "project_name", 200);
-  integer(obj.version, "version");
-  text(obj.title, "title", 200);
-  text(obj.summary, "summary", 4000);
-  if (!states.includes(obj.state as string)) fail("state", "unsupported_state");
-  for (const field of ["archived", "pinned"])
-    if (typeof obj[field] !== "boolean") fail(field);
-  timestamp(obj.created_at, "created_at");
-  timestamp(obj.updated_at, "updated_at");
+  summaryHeader(obj);
+  if (obj.work_key !== null) workKey(obj.work_key);
   integer(obj.validation_count, "validation_count", 0, TIMELINE_LIMITS.events);
   tickets(obj.tickets, true);
   validateTimelineCatalogs(obj as unknown as TimelineSession);
@@ -1448,7 +1482,10 @@ export function parseTimelineJSON(raw: string): unknown {
         seen.add(key);
         space();
         if (raw[index++] !== ":") fail("body", "invalid_json");
-        visit(depth + 1, key === "current_stage_event_id");
+        visit(
+          depth + 1,
+          key === "current_stage_event_id" || key === "work_key",
+        );
         space();
         const end = raw[index++];
         if (end === "}") return;
@@ -1516,8 +1553,6 @@ export function decodeTimelineContract(
 export function parseTimelineIndexEntry(value: unknown): TimelineIndexEntry {
   if (!value || typeof value !== "object" || Array.isArray(value))
     fail("body", "object_required");
-  if ((value as ObjectValue).mode === "legacy")
-    fail("mode", "unsupported_protocol");
   if ((value as ObjectValue).mode !== "timeline_api")
     fail("mode", "unsupported_mode");
   const entry = object(value, [
@@ -1538,37 +1573,31 @@ export function parseTimelineIndexEntry(value: unknown): TimelineIndexEntry {
     "tickets",
     "current_stage_event_id",
   ]);
-  if (entry.current_stage_event_id !== null)
-    id(entry.current_stage_event_id, "current_stage_event_id");
-  const { mode: _mode, ...summary } = entry;
-  parseTimelineSession({
-    ...summary,
-    producers: [
-      {
-        producer_id: "summary",
-        source: entry.source,
-        joined_at: entry.created_at,
-      },
-    ],
-    foreground_producer_id: "summary",
-    pending_join_requests: [],
-    tasks: [],
-    waits: [],
-    schema_version: 3,
-    deliveries: [],
-    candidates: [],
-    events: [],
-    artifacts: [],
-    documents: [],
-    current_stage_event_id: null,
-    validation_count: 0,
-  });
-  integer(
-    entry.validation_count,
-    "validation_count",
-    0,
-    TIMELINE_LIMITS.events,
+  // The order matches the Go validator, so an entry with several faults
+  // reports the same first code in both languages.
+  if (
+    timelineStateRequiresForeground(entry.state) &&
+    entry.current_stage_event_id === null
+  )
+    fail("current_stage_event_id", "foreground_required");
+  summaryHeader(entry);
+  tickets(entry.tickets, true);
+  timelineCatalogIdentities().addTickets(
+    entry.tickets as TimelineSession["tickets"],
   );
+  // An integer out of range gets the Go validator's code; other values keep
+  // the generic integer error.
+  const count = entry.validation_count;
+  if (typeof count === "number" && Number.isInteger(count)) {
+    if (count < 0 || count > TIMELINE_LIMITS.events)
+      fail("validation_count", "invalid_count");
+  } else integer(count, "validation_count", 0, TIMELINE_LIMITS.events);
+  // The summary carries the stage pointer but not the event it points to.
+  if (entry.current_stage_event_id !== null) {
+    id(entry.current_stage_event_id, "current_stage_event_id");
+    if (!timelineStateAllowsForeground(entry.state))
+      fail("state", "foreground_requires_active_session");
+  }
   return entry as TimelineAPIIndexEntry;
 }
 const v3ResultFields: Record<string, string[]> = {
@@ -1876,10 +1905,7 @@ function validateR3Session(s: TimelineSession) {
     id(s.current_stage_event_id, "current_stage_event_id");
   if (active !== s.current_stage_event_id)
     fail("current_stage_event_id", "foreground_mismatch");
-  if (
-    active &&
-    !["active", "in_review", "awaiting_validation"].includes(s.state)
-  )
+  if (active && !timelineStateAllowsForeground(s.state))
     fail("state", "foreground_requires_active_session");
 }
 export function isSafeTimelineDocumentURL(

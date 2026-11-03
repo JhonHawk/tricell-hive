@@ -13,6 +13,8 @@ type timelineFixtureCase struct {
 	Kind  string `json:"kind"`
 	Valid bool   `json:"valid"`
 	JSON  string `json:"json"`
+	// Code, when set, is the contract error code an invalid case must return.
+	Code string `json:"code,omitempty"`
 }
 
 func timelineFixture(t *testing.T, name string) []byte {
@@ -83,6 +85,9 @@ func TestTimelineContractSharedFixtures(t *testing.T) {
 			err := timelineFixtureDecode(c.Kind, []byte(c.JSON))
 			if (err == nil) != c.Valid {
 				t.Fatalf("valid=%v, got %v", c.Valid, err)
+			}
+			if c.Code != "" && TimelineContractCode(err) != c.Code {
+				t.Fatalf("code=%s, got %v", c.Code, err)
 			}
 		})
 	}
@@ -297,7 +302,7 @@ func TestTimelineContractReceiptAndRetryContracts(t *testing.T) {
 	}
 }
 func TestTimelineContractIndexRejectsLegacy(t *testing.T) {
-	if _, err := DecodeTimelineIndexEntry(timelineFixture(t, "legacy-index-entry.json")); TimelineContractCode(err) != "unsupported_protocol" {
+	if _, err := DecodeTimelineIndexEntry(timelineFixture(t, "legacy-index-entry.json")); TimelineContractCode(err) != "unsupported_mode" {
 		t.Fatal("legacy entry accepted", err)
 	}
 	api, err := DecodeTimelineIndexEntry(timelineFixture(t, "api-index-entry.json"))

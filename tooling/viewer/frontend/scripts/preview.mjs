@@ -18,13 +18,10 @@ assets.set("/", {
   url: new URL("index.html", output),
   mime: "text/html; charset=utf-8",
 });
-for (const file of ["walkthrough.mjs", "walkthrough.css"])
-  assets.set(`/assets/${file}`, {
-    url: new URL(`../../static/${file}`, import.meta.url),
-    mime: file.endsWith(".css")
-      ? "text/css; charset=utf-8"
-      : "text/javascript; charset=utf-8",
-  });
+assets.set("/assets/hive-mark.svg", {
+  url: new URL("../../static/hive-mark.svg", import.meta.url),
+  mime: "image/svg+xml",
+});
 const server = createServer(async (req, res) => {
   res.setHeader(
     "Content-Security-Policy",

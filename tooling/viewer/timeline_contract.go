@@ -289,6 +289,10 @@ type TimelineSession struct {
 	Artifacts            []TimelineArtifact        `json:"artifacts"`
 	Documents            []TimelineDocument        `json:"documents"`
 	CurrentStageEventID  *string                   `json:"current_stage_event_id" timeline:"nullable"`
+	// WorkKey is the key the creating request gave, or null when it gave none.
+	// Records stored before work keys existed lack it; the store loader accepts
+	// that absence and nothing else does.
+	WorkKey *string `json:"work_key" timeline:"nullable" stored:"optional"`
 }
 
 // TimelineAPIIndexEntry is the API v3 work summary.
@@ -311,19 +315,10 @@ type TimelineAPIIndexEntry struct {
 	Tickets             []TimelineTicket `json:"tickets"`
 }
 
-// TimelineIndexEntry decoders accept only timeline_api v3. The legacy wrapper
-// below remains solely for the old runtime to compile until its T4 removal.
+// TimelineIndexEntry decoders accept only timeline_api v3.
 type TimelineIndexEntry interface{ timelineIndexMode() string }
 
 func (TimelineAPIIndexEntry) timelineIndexMode() string { return "timeline_api" }
-
-type TimelineLegacySession = indexSession
-type TimelineLegacyIndexEntry struct {
-	Mode    string                `json:"mode"`
-	Session TimelineLegacySession `json:"session"`
-}
-
-func (TimelineLegacyIndexEntry) timelineIndexMode() string { return "legacy" }
 
 type TimelineOperationKind string
 
@@ -384,6 +379,9 @@ type TimelineCreateSessionRequest struct {
 	Title         string                `json:"title"`
 	Summary       string                `json:"summary"`
 	Tickets       []TimelineTicketInput `json:"tickets"`
+	// WorkKey optionally names the work inside one native session, such as a
+	// ticket key. Without it the operation ID names the work.
+	WorkKey *string `json:"work_key,omitempty"`
 }
 type TimelineSessionPatchRequest struct {
 	Reason          string         `json:"reason,omitempty"`
@@ -459,6 +457,15 @@ func DecodeTimelineJSON(raw []byte, target any) error {
 // decodeTimelineJSONBounded shares exact-field, duplicate-key and encoding
 // validation between HTTP payloads and the larger private receipt envelope.
 func decodeTimelineJSONBounded(raw []byte, target any, maxBytes int) error {
+	return decodeTimelineJSONMode(raw, target, maxBytes, false)
+}
+
+// decodeTimelineStoredJSON also accepts the fields that records written by an
+// earlier version lack, as the stored:"optional" tag marks them.
+func decodeTimelineStoredJSON(raw []byte, target any, maxBytes int) error {
+	return decodeTimelineJSONMode(raw, target, maxBytes, true)
+}
+func decodeTimelineJSONMode(raw []byte, target any, maxBytes int, stored bool) error {
 	if len(raw) == 0 || len(raw) > maxBytes || !utf8.Valid(raw) {
 		return timelineError("body", "invalid_size_or_encoding")
 	}
@@ -480,7 +487,7 @@ func decodeTimelineJSONBounded(raw []byte, target any, maxBytes int) error {
 			return timelineError("schema_version", "unsupported_protocol")
 		}
 	}
-	if err := timelineRequiredFields(raw, targetType.Elem()); err != nil {
+	if err := timelineRequiredFields(raw, targetType.Elem(), stored); err != nil {
 		return err
 	}
 	dec := json.NewDecoder(bytes.NewReader(raw))
@@ -502,7 +509,7 @@ func timelineJSONFields(t reflect.Type) []reflect.StructField {
 	}
 	return fields
 }
-func timelineRequiredFields(raw []byte, t reflect.Type) error {
+func timelineRequiredFields(raw []byte, t reflect.Type, stored bool) error {
 	for t.Kind() == reflect.Pointer {
 		t = t.Elem()
 	}
@@ -530,8 +537,6 @@ func timelineRequiredFields(raw []byte, t reflect.Type) error {
 				return timelineError("body", "unknown_field")
 			}
 		}
-		legacy := t == reflect.TypeOf(indexSession{})
-		legacyRequired := map[string]bool{"key": true, "title": true, "session_id": true, "source": true, "content_hash": true}
 		for _, field := range declared {
 			name, options, _ := strings.Cut(field.Tag.Get("json"), ",")
 			if name == "-" || name == "" {
@@ -539,7 +544,7 @@ func timelineRequiredFields(raw []byte, t reflect.Type) error {
 			}
 			value, ok := fields[name]
 			if !ok {
-				if (!legacy && !strings.Contains(options, "omitempty")) || (legacy && legacyRequired[name]) {
+				if !strings.Contains(options, "omitempty") && !(stored && field.Tag.Get("stored") == "optional") {
 					return timelineError(name, "required_field")
 				}
 				continue
@@ -550,10 +555,10 @@ func timelineRequiredFields(raw []byte, t reflect.Type) error {
 				}
 				return timelineError(name, "null_not_allowed")
 			}
-			if !legacy && !(name == "title" && (t == reflect.TypeOf(TimelineTicketInput{}) || t == reflect.TypeOf(TimelineTicketSnapshot{}) || t == reflect.TypeOf(TimelineTicketCreateRequest{}) || t == reflect.TypeOf(TimelineTicket{}))) && field.Type.Kind() == reflect.String && strings.Contains(options, "omitempty") && bytes.Equal(value, []byte(`""`)) {
+			if !(name == "title" && (t == reflect.TypeOf(TimelineTicketInput{}) || t == reflect.TypeOf(TimelineTicketSnapshot{}) || t == reflect.TypeOf(TimelineTicketCreateRequest{}) || t == reflect.TypeOf(TimelineTicket{}))) && field.Type.Kind() == reflect.String && strings.Contains(options, "omitempty") && bytes.Equal(value, []byte(`""`)) {
 				return timelineError(name, "empty_optional_field")
 			}
-			if err := timelineRequiredFields(value, field.Type); err != nil {
+			if err := timelineRequiredFields(value, field.Type, stored); err != nil {
 				return err
 			}
 		}
@@ -566,7 +571,7 @@ func timelineRequiredFields(raw []byte, t reflect.Type) error {
 			return timelineError("body", "invalid_fields_or_types")
 		}
 		for _, value := range values {
-			if err := timelineRequiredFields(value, t.Elem()); err != nil {
+			if err := timelineRequiredFields(value, t.Elem(), stored); err != nil {
 				return err
 			}
 		}
@@ -604,7 +609,7 @@ func timelineJSONValue(dec *json.Decoder, depth int, nullable ...bool) error {
 				return timelineError("body", "duplicate_key")
 			}
 			seen[name] = true
-			if err := timelineJSONValue(dec, depth+1, name == "current_stage_event_id"); err != nil {
+			if err := timelineJSONValue(dec, depth+1, name == "current_stage_event_id" || name == "work_key"); err != nil {
 				return err
 			}
 		}
@@ -690,6 +695,20 @@ func timelineSource(source TimelineSource) error {
 	}
 	return nil
 }
+
+// timelineWorkKey accepts 1 to 128 characters without whitespace or controls,
+// the same shape as a ticket external_id.
+func timelineWorkKey(key string) error {
+	if !utf8.ValidString(key) || key == "" || utf8.RuneCountInString(key) > 128 {
+		return timelineError("work_key", "invalid_text")
+	}
+	for _, r := range key {
+		if unicode.IsControl(r) || unicode.IsSpace(r) {
+			return timelineError("work_key", "invalid_text")
+		}
+	}
+	return nil
+}
 func timelineHTTPS(raw, field string) error {
 	if utf8.RuneCountInString(raw) > 4096 || (!safeDeliveryURL(raw) || !timelineURLHost(raw)) {
 		return timelineError(field, "invalid_https_url")
@@ -713,7 +732,7 @@ func timelineTicketRef(ref TimelineTicketRef, field string) error {
 	return nil
 }
 func timelineTickets(tickets []TimelineTicket) error {
-	if tickets == nil || len(tickets) > 100 {
+	if tickets == nil || len(tickets) > TimelineMaxCatalogRecords {
 		return timelineError("tickets", "array_required_or_limit")
 	}
 	for _, t := range tickets {
@@ -727,7 +746,7 @@ func timelineTickets(tickets []TimelineTicket) error {
 	return nil
 }
 func timelineTicketBootstrap(tickets []TimelineTicketInput) error {
-	if tickets == nil || len(tickets) > 100 {
+	if tickets == nil || len(tickets) > TimelineMaxCatalogRecords {
 		return timelineError("tickets", "array_required_or_limit")
 	}
 	seen := map[string]bool{}
@@ -884,6 +903,11 @@ func (r TimelineCreateSessionRequest) Validate() error {
 	}
 	if err := timelineText(r.Summary, "summary", 4000, true); err != nil {
 		return err
+	}
+	if r.WorkKey != nil {
+		if err := timelineWorkKey(*r.WorkKey); err != nil {
+			return err
+		}
 	}
 	return timelineTicketBootstrap(r.Tickets)
 }
@@ -1265,40 +1289,23 @@ func ValidateTimelineSession(s TimelineSession) error {
 	if s.SchemaVersion != TimelineSchemaVersion {
 		return timelineError("schema_version", "unsupported_protocol")
 	}
-	if !timelineSHA256.MatchString(s.ViewerSessionID) {
-		return timelineError("viewer_session_id", "invalid_id")
-	}
-	if err := timelineSource(s.Source); err != nil {
+	if err := validateTimelineSummaryHeader(timelineSummaryHeader{
+		ViewerSessionID: s.ViewerSessionID, Source: s.Source, ProjectKey: s.ProjectKey,
+		ProjectName: s.ProjectName, Version: s.Version, Title: s.Title, Summary: s.Summary,
+		State: s.State, CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt,
+	}); err != nil {
 		return err
 	}
-	if err := timelineText(s.ProjectKey, "project_key", 2048, true); err != nil {
-		return err
+	if s.WorkKey != nil {
+		if err := timelineWorkKey(*s.WorkKey); err != nil {
+			return err
+		}
 	}
-	if err := timelineText(s.ProjectName, "project_name", 200, true); err != nil {
-		return err
-	}
-	if err := timelineNumber(s.Version, "version"); err != nil {
-		return err
-	}
-	if err := timelineText(s.Title, "title", 200, true); err != nil {
-		return err
-	}
-	if err := timelineText(s.Summary, "summary", 4000, true); err != nil {
-		return err
-	}
-	if !contains(timelineStates, string(s.State)) {
-		return timelineError("state", "unsupported_state")
-	}
-	if err := timelineTime(s.CreatedAt, "created_at"); err != nil {
-		return err
-	}
-	if err := timelineTime(s.UpdatedAt, "updated_at"); err != nil {
+	// The limit and each ticket come before identities, as in the index entry.
+	if err := timelineTickets(s.Tickets); err != nil {
 		return err
 	}
 	if err := validateTimelineCatalog(s); err != nil {
-		return err
-	}
-	if err := timelineTickets(s.Tickets); err != nil {
 		return err
 	}
 	if s.Events == nil || len(s.Events) > TimelineMaxEvents || s.Artifacts == nil {
@@ -1516,54 +1523,97 @@ func DecodeTimelineIndexEntry(raw []byte) (TimelineIndexEntry, error) {
 		return nil, timelineError("mode", "required_field")
 	}
 	switch mode {
-	case "legacy":
-		return nil, timelineError("mode", "unsupported_protocol")
 	case "timeline_api":
 		var entry TimelineAPIIndexEntry
 		if err := DecodeTimelineJSON(raw, &entry); err != nil {
 			return nil, err
 		}
-		rawSummary, err := json.Marshal(entry)
-		if err != nil {
-			return nil, timelineError("body", "invalid_summary")
-		}
-		var obj map[string]json.RawMessage
-		if err = json.Unmarshal(rawSummary, &obj); err != nil {
-			return nil, timelineError("body", "invalid_summary")
-		}
-		delete(obj, "mode")
-		obj["schema_version"] = json.RawMessage(`3`)
-		obj["producers"], _ = json.Marshal([]TimelineProducer{{ProducerID: "summary", Source: entry.Source, JoinedAt: entry.CreatedAt}})
-		obj["foreground_producer_id"] = json.RawMessage(`"summary"`)
-		obj["pending_join_requests"] = json.RawMessage(`[]`)
-		obj["tasks"] = json.RawMessage(`[]`)
-		obj["waits"] = json.RawMessage(`[]`)
-		obj["deliveries"] = json.RawMessage(`[]`)
-		obj["candidates"] = json.RawMessage(`[]`)
-		obj["events"] = json.RawMessage(`[]`)
-		obj["artifacts"] = json.RawMessage(`[]`)
-		obj["documents"] = json.RawMessage(`[]`)
-		obj["current_stage_event_id"] = json.RawMessage(`null`)
-		obj["validation_count"] = json.RawMessage(`0`)
-		rawSummary, err = json.Marshal(obj)
-		if err != nil {
-			return nil, timelineError("body", "invalid_summary")
-		}
-		if _, err = DecodeTimelineSession(rawSummary); err != nil {
+		if err := validateTimelineIndexEntry(entry); err != nil {
 			return nil, err
-		}
-		if entry.ValidationCount < 0 || entry.ValidationCount > TimelineMaxEvents {
-			return nil, timelineError("validation_count", "invalid_count")
-		}
-		if entry.CurrentStageEventID != nil {
-			if err := timelineID(*entry.CurrentStageEventID, "current_stage_event_id"); err != nil {
-				return nil, err
-			}
 		}
 		return entry, nil
 	default:
 		return nil, timelineError("mode", "unsupported_mode")
 	}
+}
+
+// timelineSummaryHeader holds the fields a session and its index entry share.
+type timelineSummaryHeader struct {
+	ViewerSessionID, ProjectKey, ProjectName, Title, Summary, CreatedAt, UpdatedAt string
+	Source                                                                         TimelineSource
+	Version                                                                        int64
+	State                                                                          TimelineState
+}
+
+// validateTimelineSummaryHeader checks the shared header fields in the order
+// both the session and the index entry report them.
+func validateTimelineSummaryHeader(h timelineSummaryHeader) error {
+	if !timelineSHA256.MatchString(h.ViewerSessionID) {
+		return timelineError("viewer_session_id", "invalid_id")
+	}
+	if err := timelineSource(h.Source); err != nil {
+		return err
+	}
+	if err := timelineText(h.ProjectKey, "project_key", 2048, true); err != nil {
+		return err
+	}
+	if err := timelineText(h.ProjectName, "project_name", 200, true); err != nil {
+		return err
+	}
+	if err := timelineNumber(h.Version, "version"); err != nil {
+		return err
+	}
+	if err := timelineText(h.Title, "title", 200, true); err != nil {
+		return err
+	}
+	if err := timelineText(h.Summary, "summary", 4000, true); err != nil {
+		return err
+	}
+	if !contains(timelineStates, string(h.State)) {
+		return timelineError("state", "unsupported_state")
+	}
+	if err := timelineTime(h.CreatedAt, "created_at"); err != nil {
+		return err
+	}
+	if err := timelineTime(h.UpdatedAt, "updated_at"); err != nil {
+		return err
+	}
+	return nil
+}
+
+// validateTimelineIndexEntry applies the session rules that a work summary
+// carries: its identity, texts, state, times and tickets, plus the stage
+// pointer, which the summary holds without the event it points to.
+func validateTimelineIndexEntry(e TimelineAPIIndexEntry) error {
+	if timelineStateRequiresForeground(e.State) && e.CurrentStageEventID == nil {
+		return timelineError("current_stage_event_id", "foreground_required")
+	}
+	if err := validateTimelineSummaryHeader(timelineSummaryHeader{
+		ViewerSessionID: e.ViewerSessionID, Source: e.Source, ProjectKey: e.ProjectKey,
+		ProjectName: e.ProjectName, Version: e.Version, Title: e.Title, Summary: e.Summary,
+		State: e.State, CreatedAt: e.CreatedAt, UpdatedAt: e.UpdatedAt,
+	}); err != nil {
+		return err
+	}
+	// The limit and each ticket come before identities, as in the session.
+	if err := timelineTickets(e.Tickets); err != nil {
+		return err
+	}
+	if err := newTimelineCatalogIdentities().addTickets(e.Tickets); err != nil {
+		return err
+	}
+	if e.ValidationCount < 0 || e.ValidationCount > TimelineMaxEvents {
+		return timelineError("validation_count", "invalid_count")
+	}
+	if e.CurrentStageEventID != nil {
+		if err := timelineID(*e.CurrentStageEventID, "current_stage_event_id"); err != nil {
+			return err
+		}
+		if !timelineStateAllowsForeground(e.State) {
+			return timelineError("state", "foreground_requires_active_session")
+		}
+	}
+	return nil
 }
 
 func (r TimelineOperationResult) Validate() error {
@@ -2052,7 +2102,7 @@ func validateTimelineR3Session(s TimelineSession) error {
 			return timelineError("current_stage_event_id", "foreground_mismatch")
 		}
 	}
-	if active != "" && s.State != TimelineActive && s.State != "in_review" && s.State != TimelineAwaitingValidation {
+	if active != "" && !timelineStateAllowsForeground(s.State) {
 		return timelineError("state", "foreground_requires_active_session")
 	}
 	return nil

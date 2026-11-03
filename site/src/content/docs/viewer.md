@@ -5,13 +5,13 @@ description: Follow published work, inspect evidence, and manage the local viewe
 
 The local viewer presents a timeline of work published by an agent. A work can have several native producer sessions contributing to it; the viewer groups their published stages, tasks and evidence. A producer's presence in the timeline does not prove that its host is still running. The viewer is separate from the host's native history and from Engram.
 
-The [flow-walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) skill is what publishes stages, documents and captures to the viewer; the viewer shows what has been published to it.
+The [flow-walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) skill is what publishes stages, documents and captures to the viewer; the viewer shows what has been published to it. Each work gets its own entry: a work tied to a ticket keeps one entry across the flows of that ticket in the same agent session, and a work without a ticket gets a new one. The agent does not open the viewer by itself: at each point with something to review (a plan, a research report, a screen to validate) it asks whether to open it, and stops asking once you accept. When a build starts, the agent publishes the plan's tasks so **Tasks** follows their progress.
 
 ## Start and stop
 
 Start the viewer explicitly with `hive view start`, then use `hive view open` to open it. Use `hive view status` to check the service and `hive view stop` to stop it. Retention is manual: stopping the service does not mean the stored timeline has been deleted.
 
-Protocol 3 uses a fresh state directory. Earlier viewer state is not imported or migrated. Preserve the old directory and use a separate fresh one when changing to this version; coordinate any writers with the new service. The [viewer publication procedure](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/references/viewer-publication.md) describes the producer's publication contract.
+Protocol 3 uses a fresh state directory. Earlier viewer state is not imported or migrated, and a directory holding it fails to start. Preserve the old directory and use a separate fresh one when changing to this version; coordinate any writers with the new service. The [viewer publication procedure](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/references/viewer-publication.md) describes the producer's publication contract.
 
 ## Interface language
 

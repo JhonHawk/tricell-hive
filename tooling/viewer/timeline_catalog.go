@@ -271,43 +271,58 @@ func validateTimelineCatalogOperation(value any) (TimelineNativeOperation, bool,
 	}
 	return base, true, base.validate(false)
 }
+
+// timelineCatalogIdentities tracks the identities and locators that tickets,
+// deliveries and candidates of one catalog must not repeat.
+type timelineCatalogIdentities struct {
+	ids, natural, urls map[string]bool
+}
+
+func newTimelineCatalogIdentities() timelineCatalogIdentities {
+	return timelineCatalogIdentities{ids: map[string]bool{}, natural: map[string]bool{}, urls: map[string]bool{}}
+}
+
+func (c timelineCatalogIdentities) add(id, key, locator string) error {
+	if e := timelineID(id, "catalog.id"); e != nil {
+		return e
+	}
+	if c.ids[id] || c.natural[key] {
+		return timelineError("catalog", "duplicate_identity")
+	}
+	c.ids[id] = true
+	c.natural[key] = true
+	if locator != "" {
+		if c.urls[locator] {
+			return timelineError("catalog", "entity_conflict")
+		}
+		c.urls[locator] = true
+	}
+	return nil
+}
+
+// addTickets registers each ticket's identity and URL; the caller has already
+// validated the records with timelineTickets.
+func (c timelineCatalogIdentities) addTickets(tickets []TimelineTicket) error {
+	for _, t := range tickets {
+		scope, _ := CanonicalTimelineIdentityURL(t.ExternalScope)
+		locator := ""
+		if t.URL != "" {
+			locator = "ticket\x00" + timelineLocator(t.URL)
+		}
+		if e := c.add(t.TicketID, "ticket\x00"+scope+"\x00"+t.ExternalID, locator); e != nil {
+			return e
+		}
+	}
+	return nil
+}
+
 func validateTimelineCatalog(s TimelineSession) error {
 	if s.Deliveries == nil || s.Candidates == nil || len(s.Deliveries) > 100 || len(s.Candidates) > 100 {
 		return timelineError("catalog", "array_required_or_limit")
 	}
-	ids := map[string]bool{}
-	natural := map[string]bool{}
-	urls := map[string]bool{}
-	add := func(id, key, locator string) error {
-		if e := timelineID(id, "catalog.id"); e != nil {
-			return e
-		}
-		if ids[id] || natural[key] {
-			return timelineError("catalog", "duplicate_identity")
-		}
-		ids[id] = true
-		natural[key] = true
-		if locator != "" {
-			if urls[locator] {
-				return timelineError("catalog", "entity_conflict")
-			}
-			urls[locator] = true
-		}
-		return nil
-	}
-	for _, t := range s.Tickets {
-		if e := timelineTicketInput(t.TimelineTicketInput); e != nil {
-			return e
-		}
-		scope, _ := CanonicalTimelineIdentityURL(t.ExternalScope)
-		if e := add(t.TicketID, "ticket\x00"+scope+"\x00"+t.ExternalID, func() string {
-			if t.URL == "" {
-				return ""
-			}
-			return "ticket\x00" + timelineLocator(t.URL)
-		}()); e != nil {
-			return e
-		}
+	identities := newTimelineCatalogIdentities()
+	if e := identities.addTickets(s.Tickets); e != nil {
+		return e
 	}
 	for _, d := range s.Deliveries {
 		if e := timelineDeliverySnapshot(d.TimelineDeliverySnapshot); e != nil {
@@ -320,7 +335,7 @@ func validateTimelineCatalog(s TimelineSession) error {
 		if e = timelineExternalID(d.ExternalID); e != nil {
 			return e
 		}
-		if e = add(d.DeliveryID, "delivery\x00"+scope+"\x00"+d.Kind+"\x00"+d.ExternalID, "delivery\x00"+timelineLocator(d.URL)); e != nil {
+		if e = identities.add(d.DeliveryID, "delivery\x00"+scope+"\x00"+d.Kind+"\x00"+d.ExternalID, "delivery\x00"+timelineLocator(d.URL)); e != nil {
 			return e
 		}
 	}
@@ -328,7 +343,7 @@ func validateTimelineCatalog(s TimelineSession) error {
 		if e := timelineCandidate(c.TimelineCandidate); e != nil {
 			return e
 		}
-		if e := add(c.CandidateID, "candidate\x00"+c.Branch+"\x00"+c.Commit+"\x00"+c.Base, ""); e != nil {
+		if e := identities.add(c.CandidateID, "candidate\x00"+c.Branch+"\x00"+c.Commit+"\x00"+c.Base, ""); e != nil {
 			return e
 		}
 	}

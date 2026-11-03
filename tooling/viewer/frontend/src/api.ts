@@ -3,6 +3,7 @@ import type { ViewerSession } from "./shell";
 import {
   parseTimelineIndexEntry,
   type TimelineAPIIndexEntry,
+  TimelineContractError,
 } from "./timeline-contract";
 export const TOKEN_KEY = "hive-view-token";
 export const OPEN_KEY = "hive-view-open";
@@ -154,28 +155,6 @@ export class AccessClient {
     return responseJSON ? response.json() : undefined;
   }
 }
-export type RawSession = {
-  key: string;
-  source: string;
-  source_status: string;
-  source_reason?: string;
-  content_hash: string;
-  ingested_at: string;
-  pinned?: boolean;
-  archived?: boolean;
-  session_id: string;
-  session_title?: string;
-  session_status?: string;
-  host?: string;
-  ticket?: string;
-  title: string;
-  kind?: string;
-  created_at: string;
-  project_key?: string;
-  project_name?: string;
-  repository?: string;
-  fileBase?: string;
-};
 export type RawIndex = {
   protocol_version: 3;
   retention: "manual";
@@ -183,8 +162,14 @@ export type RawIndex = {
   timeline_sessions: TimelineAPIIndexEntry[];
   repositories: { root: string; absent: boolean }[];
   errors: { path: string; reason: string; code?: string }[];
+  /** Set by validateIndex, never by the server: entries the client skipped. */
+  skipped_sessions?: SkippedSession[];
 };
-export function validateIndex(value: RawIndex): RawIndex {
+export type SkippedSession = { position: number; code: string; id?: string };
+export function validateIndex(
+  value: RawIndex,
+  previous?: RawIndex | null,
+): RawIndex {
   if (
     value?.protocol_version !== 3 ||
     value.retention !== "manual" ||
@@ -205,13 +190,6 @@ export function validateIndex(value: RawIndex): RawIndex {
     )
   )
     throw new Error("Incompatible viewer index; update the viewer and reload");
-  const ids = new Set<string>();
-  for (const e of value.timeline_sessions) {
-    const entry = parseTimelineIndexEntry(e);
-    if (entry.mode !== "timeline_api" || ids.has(entry.viewer_session_id))
-      throw new Error("Duplicate viewer work");
-    ids.add(entry.viewer_session_id);
-  }
   for (const r of value.repositories)
     if (!r || typeof r.root !== "string" || typeof r.absent !== "boolean")
       throw new Error("Invalid registered repository");
@@ -223,8 +201,39 @@ export function validateIndex(value: RawIndex): RawIndex {
       (e.code !== undefined && typeof e.code !== "string")
     )
       throw new Error("Invalid viewer error");
-  return value;
+  // One entry the client cannot read must not hide every other session: skip
+  // it, keep the last copy read when there is one, and record it apart from
+  // the server's errors. Duplicates and non-contract failures still fail.
+  const ids = new Set<string>();
+  const sessions: TimelineAPIIndexEntry[] = [];
+  const skipped: SkippedSession[] = [];
+  value.timeline_sessions.forEach((e, position) => {
+    let entry: TimelineAPIIndexEntry | undefined;
+    try {
+      entry = parseTimelineIndexEntry(e);
+    } catch (error) {
+      if (!(error instanceof TimelineContractError)) throw error;
+      const raw = (e as { viewer_session_id?: unknown } | null)
+        ?.viewer_session_id;
+      const id =
+        typeof raw === "string" && VIEWER_SESSION_ID.test(raw)
+          ? raw
+          : undefined;
+      skipped.push({ position, code: error.code, ...(id ? { id } : {}) });
+      entry = id
+        ? previous?.timeline_sessions.find((s) => s.viewer_session_id === id)
+        : undefined;
+    }
+    if (!entry) return;
+    if (ids.has(entry.viewer_session_id))
+      throw new Error("Duplicate viewer work");
+    ids.add(entry.viewer_session_id);
+    sessions.push(entry);
+  });
+  if (!skipped.length) return value;
+  return { ...value, timeline_sessions: sessions, skipped_sessions: skipped };
 }
+const VIEWER_SESSION_ID = /^[0-9a-f]{64}$/;
 
 export type ViewerOpenTarget =
   | { sessionID: string; eventID?: string }
@@ -264,7 +273,6 @@ export function mapTimelineIndex(
       resolveLanguage(language) === "es" ? "es" : "en",
       { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" },
     ).format(date),
-    classification: "unknown",
     pinned: entry.pinned,
     archived: entry.archived,
     status: ["active", "in_review", "awaiting_validation", "paused"].includes(

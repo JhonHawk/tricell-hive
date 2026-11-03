@@ -1,6 +1,7 @@
 package viewer
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -36,25 +37,20 @@ func TestIndexNormalizeRemote(t *testing.T) {
 	}
 }
 
-func projectOf(t *testing.T, e *env, repo string) Project {
-	t.Helper()
-	for _, p := range e.store.View().Projects {
-		for _, tk := range p.Tickets {
-			for _, s := range tk.Sessions {
-				if s.Repository == repo {
-					return p
-				}
+// resolveStore is a Store with injected project readers, enough to resolve names.
+func resolveStore(remotes, hive map[string]string) *Store {
+	return &Store{
+		remote: func(root string) (string, error) {
+			if r, ok := remotes[root]; ok {
+				return r, nil
 			}
-		}
+			return "", errors.New("no remote")
+		},
+		hive: func(root string) (string, bool) {
+			n, ok := hive[root]
+			return n, ok
+		},
 	}
-	t.Fatalf("no project for %s", repo)
-	return Project{}
-}
-
-func (e *env) calls(root string) (hive, remote int) {
-	e.mu.Lock()
-	defer e.mu.Unlock()
-	return e.hiveCalls[root], e.remoteCalls[root]
 }
 
 func TestIndexDisplayNamePrecedence(t *testing.T) {
@@ -76,20 +72,21 @@ func TestIndexDisplayNamePrecedence(t *testing.T) {
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			e := newEnv(t)
 			repo := newRepo(t)
+			remotes, hive := map[string]string{}, map[string]string{}
 			if c.remote != "" {
-				e.remotes[repo] = c.remote
+				remotes[repo] = c.remote
 			}
 			if c.hive != "" {
-				e.hive[repo] = c.hive
+				hive[repo] = c.hive
 			}
+			store := resolveStore(remotes, hive)
 			if c.engram != "" {
 				os.MkdirAll(filepath.Join(repo, ".engram"), 0o755)
 				os.WriteFile(filepath.Join(repo, ".engram", "config.json"), []byte(c.engram), 0o644)
 			}
 
-			if got, want := e.store.resolveProject(repo).name, c.want(repo); got != want {
+			if got, want := store.resolveProject(repo).name, c.want(repo); got != want {
 				t.Fatalf("name = %q, want %q", got, want)
 			}
 		})
@@ -110,23 +107,23 @@ func TestIndexEngramConfigIsBoundedAndSanitized(t *testing.T) {
 	}
 	for name, setup := range cases {
 		t.Run(name, func(t *testing.T) {
-			e := newEnv(t)
+			store := resolveStore(nil, nil)
 			repo := newRepo(t)
 			os.MkdirAll(filepath.Join(repo, ".engram"), 0o755)
 			setup(repo)
 
-			if got := e.store.resolveProject(repo).name; got != filepath.Base(repo) {
+			if got := store.resolveProject(repo).name; got != filepath.Base(repo) {
 				t.Fatalf("name = %q, want the folder name", got)
 			}
 		})
 	}
 	t.Run("control characters", func(t *testing.T) {
-		e := newEnv(t)
+		store := resolveStore(nil, nil)
 		repo := newRepo(t)
 		os.MkdirAll(filepath.Join(repo, ".engram"), 0o755)
 		os.WriteFile(filepath.Join(repo, ".engram", "config.json"), []byte(`{"project_name":"a\u0000b\nc\u001b[31md"}`), 0o644)
 
-		if got := e.store.resolveProject(repo).name; got != "abc[31md" {
+		if got := store.resolveProject(repo).name; got != "abc[31md" {
 			t.Fatalf("name = %q", got)
 		}
 	})

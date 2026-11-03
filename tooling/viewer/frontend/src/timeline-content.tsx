@@ -5,6 +5,7 @@ import {
   ChevronRight,
   CircleAlert,
   CircleDot,
+  CirclePlay,
   FileText,
   Flag,
   GitBranch,
@@ -266,11 +267,15 @@ export function TimelineContent({
                 ? "completed"
                 : "paused"
               : undefined));
-    const stateDriven =
-      event.kind === "stage" ||
+    const isTransition =
       event.kind === "state_transition" ||
-      event.kind === "task_state_transition" ||
-      event.kind === "review";
+      event.kind === "task_state_transition";
+    const stateDriven =
+      event.kind === "stage" || isTransition || event.kind === "review";
+    // Only live work spins: a transition is a past change, and a stage left
+    // in progress stops being live once the session is closed, failed or paused.
+    const live =
+      !isTransition && !["closed", "failed", "paused"].includes(session.state);
     const Icon = stateDriven
       ? nodeState === "blocked" || nodeState === "failed"
         ? CircleAlert
@@ -279,7 +284,9 @@ export function TimelineContent({
             )
           ? PauseCircle
           : nodeState === "in_progress" || nodeState === "active"
-            ? Spinner
+            ? live
+              ? Spinner
+              : CirclePlay
             : ["completed", "closed", "succeeded"].includes(nodeState ?? "")
               ? CheckCircle2
               : FileText
@@ -580,9 +587,6 @@ export function TimelineContent({
   };
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-2xl flex-col gap-6 pb-8">
-      {session.summary && (
-        <TimelineSummary content={session.summary} lines={2} lang={lang} />
-      )}
       <div
         role="toolbar"
         aria-label={t.timelineActions}

@@ -18,8 +18,9 @@ Fix the date parsing bug and add a test that would have caught it.
 ## What it does
 
 - Checks the plan's prerequisites and asks you for any that are missing, while it starts the tasks that do not need them.
-- Moves the tracked ticket to in progress, and works on a branch when your delivery answer makes commits.
-- Works task by task: implements it (or gives it to a helper when the task is settled, independent and bigger than its brief), runs the checks that cover it, commits when the delivery says so, and marks it in `tasks.md`. Helpers never commit, push or write to trackers; the main agent checks what they return.
+- Moves the tracked ticket to in progress, except for a one-off operation that leaves nothing in the repository, whose ticket moves only if you ask, and works on a branch when your delivery answer makes commits.
+- Works task by task: implements it (or gives it to a helper when the task is settled, independent and bigger than its brief), runs the checks that cover it, commits when the delivery says so, and marks it in `tasks.md`, or in the message when the plan lives there. Helpers never commit, push or write to trackers; the main agent checks what they return.
+- Writes few, meaningful tests. A test must fail before the code changes only for a bug it fixes, as one regression where the bug lives, and for permissions, money, data integrity or a public contract; other changes get a direct check or extend the test that already covers that behavior. Each contract has one owning test at the strongest boundary your test setup runs cheaply, and only external services, time, randomness and, in a client's tests, your own server API through typed stub data are faked. Tests also cover the failure, limit, ordering or rollback a change handles. In a project without tests, a bug fix or consequential change first pins what the code does today for everything that calls it, and the agent asks you once whether to add a test setup. The [Build skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-build/SKILL.md#tests) holds the rule.
 - Has a separate helper check a task that touches stored data, security, money, concurrency or a public contract. Stored-data changes get a count of affected records and a recovery path before anything runs.
 - Offers a security review in one line; it runs only if you ask.
 - Repairs the local environment the work needs, such as reinstalling dependencies, without asking, and names it in the report.
@@ -33,4 +34,4 @@ Between tasks it keeps going rather than reporting. It stops to ask you somethin
 
 ## How it ends
 
-When every task is done, the agent runs locally the CI jobs that need no external service, secret or deployment, then hands the candidate to Verify. A mechanical change skips Verify: its criteria are checked, it is integrated as your delivery says, and [Close](/flows/close/) follows. The progress is kept in `tasks.md`, so a long session can resume after a compaction.
+When every task is done, the agent runs locally the CI jobs that need no external service, secret or deployment, then hands the candidate to Verify. A mechanical change skips Verify: its criteria are checked, it is integrated as your delivery says, and [Close](/flows/close/) follows. A one-off operation skips the CI run and Verify: its criteria are checked and Close follows. The progress is kept in `tasks.md`, or in the message for a plan that lives there, so a long session can resume after a compaction.

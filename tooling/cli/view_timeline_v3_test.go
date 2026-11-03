@@ -165,3 +165,146 @@ func TestViewTimelineV3CompatibilityRejectsBeforeTransportMutation(t *testing.T)
 		t.Fatal("compatibility failure changed input")
 	}
 }
+
+func TestViewContractPartsAreCompactAndExclusive(t *testing.T) {
+	run := func(args ...string) (string, error) {
+		var out bytes.Buffer
+		err := runViewTimeline(append([]string{"contract"}, args...), &out, nil)
+		return out.String(), err
+	}
+	full, err := run()
+	if err != nil || strings.Contains(full, "\n  ") || strings.Count(strings.TrimSuffix(full, "\n"), "\n") != 0 {
+		t.Fatalf("full contract is not compact: %v", err)
+	}
+	one, err := run("--operation", "stage_start")
+	if err != nil || strings.Contains(one, "\n  ") {
+		t.Fatalf("operation output is not compact: %v", err)
+	}
+	var indented bytes.Buffer
+	if json.Indent(&indented, []byte(one), "", "  ") != nil {
+		t.Fatal("operation output is not JSON")
+	}
+	brief, err := run("--for", "build")
+	var parsed struct {
+		Flow       string           `json:"flow"`
+		Operations []map[string]any `json:"operations"`
+	}
+	if err != nil || json.Unmarshal([]byte(brief), &parsed) != nil || parsed.Flow != "build" || len(parsed.Operations) == 0 {
+		t.Fatalf("invalid --for output: %v", err)
+	}
+	for _, o := range parsed.Operations {
+		if _, ok := o["output_schema"]; ok {
+			t.Fatal("brief carries output_schema")
+		}
+	}
+	list, err := run("--list")
+	var listed struct {
+		Operations []struct{ Operation string } `json:"operations"`
+	}
+	var complete viewer.TimelineProtocolDescription
+	if err != nil || json.Unmarshal([]byte(full), &complete) != nil || len(complete.Commands) == 0 || json.Unmarshal([]byte(list), &listed) != nil || len(listed.Operations) != len(complete.Commands) {
+		t.Fatalf("invalid --list output: %v", err)
+	}
+	rules, err := run("--section", "rules")
+	if err != nil || !strings.Contains(rules, `"error_codes"`) || strings.Contains(rules, `"commands"`) {
+		t.Fatalf("invalid rules block: %v", err)
+	}
+	for _, args := range [][]string{{"--for", "build", "--list"}, {"--for", "build", "--operation", "stage_start"}, {"--list", "--section", "rules"}, {"--operation", "stage_start", "--section", "rules"}, {"--for", "nope"}, {"--section", "nope"}, {"--for="}, {"--section="}, {"--list=false"}} {
+		out, err := run(args...)
+		if err == nil || out != "" {
+			t.Fatalf("%v accepted", args)
+		}
+	}
+	if _, err := run("--for", "nope"); err == nil || !strings.Contains(err.Error(), "research") {
+		t.Fatalf("unknown flow error does not list valid values: %v", err)
+	}
+}
+
+func TestViewStageStartWithoutReasonNamesTheField(t *testing.T) {
+	input := `{"actor":{"kind":"native_producer","producer_id":"producer-example"},"schema_version":3,"operation_id":"stage-example","kind":"stage","title":"","summary":"Prepare","ticket_ids":[],"stage":"plan","stage_state":"in_progress","expected_session_version":1}`
+	var out bytes.Buffer
+	err := runViewTimeline([]string{"stage", "start", strings.Repeat("a", 64), "--json", "-", "--state-dir", filepath.Join(t.TempDir(), "missing")}, &out, strings.NewReader(input))
+	if err == nil || err.Error() != "invalid timeline input: invalid_text on reason" {
+		t.Fatalf("got %v", err)
+	}
+}
+
+// Operations whose example the native CLI validator rejects by design, or that
+// have no input, so the brief check cannot run on them. Any other skipped
+// operation fails the test.
+var viewBriefSkipped = map[string]string{
+	"session_delete": "local_viewer actor is rejected by the native validator",
+	"recover_lead":   "local_viewer actor is rejected by the native validator",
+	"session_get":    "no input",
+	"document_get":   "no input",
+}
+
+// Operations that must change at least one field: dropping the example's only
+// optional field leaves an empty patch, which the validator rejects.
+var viewBriefMustChange = map[string]bool{
+	"session_patch": true, "event_patch": true, "ticket_patch": true, "task_patch": true, "delivery_patch": true,
+}
+
+// The brief's required and optional labels must match the production
+// validators: dropping a required field from an operation's example is
+// rejected, and dropping an optional one is accepted, except for the
+// operations in viewBriefMustChange when it is the example's only optional field.
+func TestViewContractBriefMatchesValidator(t *testing.T) {
+	seen := map[string]bool{}
+	for _, flow := range viewer.TimelineProtocolFlows() {
+		brief, err := viewer.TimelineProtocolBrief(flow)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, op := range brief.Operations {
+			if seen[op.Operation] {
+				continue
+			}
+			seen[op.Operation] = true
+			var example map[string]json.RawMessage
+			if json.Unmarshal(op.Example, &example) != nil || len(example) == 0 || validateViewTimelineInput(op.Operation, op.Example) != nil {
+				if _, allowed := viewBriefSkipped[op.Operation]; !allowed {
+					t.Errorf("%s: example skipped but not in the allow-list (%v)", op.Operation, validateViewTimelineInput(op.Operation, op.Example))
+				}
+				continue
+			}
+			if reason, skipped := viewBriefSkipped[op.Operation]; skipped {
+				t.Errorf("%s is allow-listed (%s) but its example validates; remove it from the list", op.Operation, reason)
+			}
+			var optionalInExample []string
+			for name := range example {
+				if contains(op.Optional, name) {
+					optionalInExample = append(optionalInExample, name)
+				}
+			}
+			for name := range example {
+				without := map[string]json.RawMessage{}
+				for k, v := range example {
+					if k != name {
+						without[k] = v
+					}
+				}
+				raw, _ := json.Marshal(without)
+				rejected := validateViewTimelineInput(op.Operation, raw) != nil
+				switch {
+				case contains(op.Required, name) && !rejected:
+					t.Errorf("%s: brief marks %s required, validator accepts it missing", op.Operation, name)
+				case contains(op.Optional, name) && rejected && !(viewBriefMustChange[op.Operation] && len(optionalInExample) == 1):
+					t.Errorf("%s: brief marks %s optional, validator rejects it missing", op.Operation, name)
+				}
+			}
+		}
+	}
+}
+
+func TestViewContractReportsRealBuildErrorsNotUnknownFlow(t *testing.T) {
+	var out bytes.Buffer
+	err := runViewTimeline([]string{"contract", "--for", "nope"}, &out, nil)
+	if err == nil || !strings.Contains(err.Error(), "unknown flow") || !strings.Contains(err.Error(), "local") {
+		t.Fatalf("unknown flow error: %v", err)
+	}
+	out.Reset()
+	if err := runViewTimeline([]string{"contract", "--for", "local"}, &out, nil); err != nil || !strings.Contains(out.String(), `"session_delete"`) {
+		t.Fatalf("local flow: %v", err)
+	}
+}

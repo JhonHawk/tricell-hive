@@ -46,7 +46,7 @@ Use it to investigate an uncertain request, plan a consequential change, or carr
 an understood task through implementation and verification—with clear boundaries
 between what was requested, what was authorized, and what was demonstrated.
 
-> **Version 0.7.0 · a smaller rebuilt guidance core, a shared-work viewer, and plain-language plans**
+> **Version 0.8.0 · a narrower test rule and a test-audit skill, a ready delivery mode, and brief viewer contracts per flow**
 > Each release sets [VERSION](VERSION) to its product version; between releases,
 > `development` carries `dev`. Packages for macOS Apple
 > Silicon and Linux arm64/amd64 are published on
@@ -87,7 +87,7 @@ It asks which hosts to install and confirms before it writes.
 
 - **Preview first:** append `-s -- --dry-run`. No host changes; the package is
   still downloaded.
-- **Pick a release or hosts:** append `-s -- --version 0.7.0 --hosts claude,codex`.
+- **Pick a release or hosts:** append `-s -- --version 0.8.0 --hosts claude,codex`.
 - **Afterwards:** `hive` is not added to your `PATH`. It lives at
   `~/.local/share/hive/packages/hive-<version>-<os>-<arch>/bin/hive`.
 - **Requirements:** `curl`, `tar`, and `shasum` or `sha256sum`.
@@ -419,7 +419,10 @@ hive view stop
 
 The server keeps running until you stop it. The agent registers the project and
 publishes through the versioned API. `hive view contract` prints the offline
-commands, schemas, limits and examples; `--operation NAME` narrows the output.
+commands, schemas, limits and examples as compact JSON; `--for FLOW` prints one
+flow's brief (research, plan, build, verify, delivery, close, collab or local), `--list`
+names every operation with its flows, `--section rules` prints the shared rules,
+and `--operation NAME` narrows to one operation.
 JSON inputs use `--json FILE` or `--json -`. The
 [publication skill](content/skills/flow-walkthrough/SKILL.md) owns the agent's
 procedure; the [viewer manual](https://hive.tricell.tech/viewer/) explains how to
@@ -437,15 +440,15 @@ while keeping the original publication context.
 
 Browser rename, archive, pin and confirmed deletion manage the work; they do
 not execute agent tasks or approve a plan. Retention is manual, without age
-expiry. The old `--ttl` flag is ignored with a warning. Deletion removes stored
+expiry. Deletion removes stored
 viewer data, not project sources or native conversations. Deleted work identities
 remain unavailable; a modified source does not recreate a deleted work.
 
-Protocol3 requires a fresh state directory. Earlier API/state formats and
-`walkthrough.json` are not imported, scanned or migrated. Preserve the old state
-and coordinate writers before an explicitly authorized cutover. The standalone
-HTML fallback remains available only when the binary is absent; an incompatible
-or stopped service does not select another publication authority.
+Protocol3 requires a fresh state directory. Earlier state formats are not
+imported or migrated, and a directory holding them fails to start. Preserve the
+old state and coordinate writers before an explicitly authorized cutover.
+Publication goes only through the running service: an incompatible or stopped
+service, or a missing binary, leaves the work unpublished and reported.
 
 `hive view open` exchanges a short-lived, one-use URL-fragment code before data
 loads, then removes the fragment. Optional `--session-id ID --event-id ID` opens

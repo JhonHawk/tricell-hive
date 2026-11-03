@@ -52,7 +52,7 @@ func TimelineProtocolContract(operation string) (TimelineProtocolDescription, er
 	actor := TimelineActor{Kind: "native_producer", ProducerID: "producer-example"}
 	one := int64(1)
 	source := TimelineSource{ProjectRoot: "/workspace/example", Host: "codex", NativeSessionID: "native-example"}
-	create := TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "create-example", Source: source, Title: "Example", Summary: "Scope", Tickets: []TimelineTicketInput{}}
+	create := TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "create-example", Source: source, Title: "Example", Summary: "Scope", Tickets: []TimelineTicketInput{}, WorkKey: timelineStringPointer("COM-123")}
 	stage := TimelineAppendEventRequest{Actor: actor, SchemaVersion: 3, OperationID: "stage-example", Reason: "Start the plan", Kind: "stage", Title: "", Summary: "Prepare the plan", TicketIDs: []string{}, Stage: "plan", StageState: "in_progress", ExpectedSessionVersion: &one}
 	state := TimelineStageState("completed")
 	patch := TimelineEventPatchRequest{Actor: actor, SchemaVersion: 3, OperationID: "complete-example", Reason: "Plan completed", ExpectedVersion: 1, StageState: &state, ExpectedSessionVersion: &one}
@@ -84,7 +84,7 @@ func TimelineProtocolContract(operation string) (TimelineProtocolDescription, er
 		"artifact_add": "accepted producer", "document_add": "accepted producer", "document_snapshot": "accepted producer; explicit stage and chain predecessor",
 		"ticket_create": "lead", "ticket_patch": "lead", "delivery_create": "lead", "delivery_patch": "lead", "candidate_create": "accepted native producer",
 		"task_create": "lead", "task_patch": "lead", "task_transition": "lead or assigned segment producer", "wait_create": "lead or assigned delivery-segment producer; lead only when unbound", "wait_attempt_start": "lead or assigned delivery-segment producer; lead only when unbound", "wait_observe": "lead or assigned delivery-segment producer; lead only when unbound",
-	}, ErrorCodes: []string{"scope_reference_required", "entity_exists", "entity_conflict", "duplicate_plan_order", "unknown_ticket", "unknown_delivery", "unknown_candidate", "duplicate_id", "pull_request_required", "project_identity_unavailable", "duplicate_identity", "segment_assignee_required", "invalid_audit_operation", "invalid_state_transition", "forbidden_for_operation", "server_event_required", "invalid_producer_transition", "unsupported_protocol", "cutoff_required", "version_conflict", "operation_conflict", "producer_not_accepted", "foreign_project", "lead_required", "forbidden_actor", "immutable_audit", "stage_binding_mismatch", "candidate_mismatch", "current_predecessor_required", "pending_request_required", "unknown_or_mixed_attempt", "superseded_attempt", "wait_aggregate_mismatch", "limit"}, ProtocolVersion: 3, SchemaDialect: "https://json-schema.org/draft/2020-12/schema", Retention: "manual", TTLSeconds: 0, Capabilities: []string{"canonical_registries", "timeline_api", "conditional_mutations", "immutable_evidence", "stage_lifecycle", "document_snapshots", "manual_retention"}, Commands: []TimelineProtocolOperation{}, Limits: map[string]int64{"body_bytes": TimelineMaxBody, "document_bytes": TimelineMaxDocumentBytes, "document_tabs": TimelineMaxDocumentTabs, "documents": TimelineMaxDocuments, "document_snapshots": TimelineMaxDocumentSnapshots, "aggregate_document_bytes": TimelineMaxAggregateDocumentBytes, "events": TimelineMaxEvents, "content_events": TimelineContentEvents, "producers": 16, "pending_join_requests": 16, "tasks": 100, "task_segments": 5, "required_checks": TimelineMaxRequiredChecks, "wait_attempts": TimelineMaxWaitAttempts, "wait_observations": TimelineMaxWaitObservations, "waits": TimelineMaxWaits, "wait_text": TimelineMaxWaitText, "tickets": 100, "deliveries": 100, "candidates": 100, "plan_order": TimelineMaxNumber, "external_id": 256, "identity_url": 4096, "views": TimelineMaxViews}, Invariants: []string{
+	}, ErrorCodes: []string{"scope_reference_required", "entity_exists", "entity_conflict", "duplicate_plan_order", "unknown_ticket", "unknown_delivery", "unknown_candidate", "duplicate_id", "pull_request_required", "project_identity_unavailable", "duplicate_identity", "segment_assignee_required", "invalid_audit_operation", "invalid_state_transition", "forbidden_for_operation", "server_event_required", "invalid_producer_transition", "unsupported_protocol", "version_conflict", "operation_conflict", "producer_not_accepted", "foreign_project", "lead_required", "forbidden_actor", "immutable_audit", "stage_binding_mismatch", "candidate_mismatch", "current_predecessor_required", "pending_request_required", "unknown_or_mixed_attempt", "superseded_attempt", "wait_aggregate_mismatch", "limit"}, ProtocolVersion: 3, SchemaDialect: "https://json-schema.org/draft/2020-12/schema", Retention: "manual", TTLSeconds: 0, Capabilities: []string{"canonical_registries", "timeline_api", "conditional_mutations", "immutable_evidence", "stage_lifecycle", "document_snapshots", "manual_retention"}, Commands: []TimelineProtocolOperation{}, Limits: map[string]int64{"body_bytes": TimelineMaxBody, "document_bytes": TimelineMaxDocumentBytes, "document_tabs": TimelineMaxDocumentTabs, "documents": TimelineMaxDocuments, "document_snapshots": TimelineMaxDocumentSnapshots, "aggregate_document_bytes": TimelineMaxAggregateDocumentBytes, "events": TimelineMaxEvents, "content_events": TimelineContentEvents, "producers": 16, "pending_join_requests": 16, "tasks": 100, "task_segments": 5, "required_checks": TimelineMaxRequiredChecks, "wait_attempts": TimelineMaxWaitAttempts, "wait_observations": TimelineMaxWaitObservations, "waits": TimelineMaxWaits, "wait_text": TimelineMaxWaitText, "tickets": 100, "deliveries": 100, "candidates": 100, "plan_order": TimelineMaxNumber, "external_id": 256, "identity_url": 4096, "views": TimelineMaxViews}, Invariants: []string{
 		"Work-local catalogs use typed natural identities and stable opaque IDs. Ticket/delivery metadata patches preserve immutable publication snapshots. Candidate records are immutable and every publication selects its candidate_id explicitly. No current-candidate pointer exists.",
 		"Registry patches advance every affected task_version and wait_version once in the same durable commit; unrelated changes, no-ops and exact operation replays do not invalidate readers. New entity operations consume content capacity and closure reserves.",
 		"Reject unknown or duplicate keys, null except required current_stage_event_id, trailing JSON and unsafe integer literals; require exact case-sensitive JSON keys.",
@@ -102,7 +102,6 @@ func TimelineProtocolContract(operation string) (TimelineProtocolDescription, er
 		"Native actors declare provenance, not cryptographic process identity. local_viewer never publishes or conducts stage lifecycle; recovery is a separate conditional authority-only operation.",
 		"Tasks have one stable work identity and up to five explicit required stage segments; aggregate state and counts never infer approval or cascade lifecycle. Linked snapshot changes increment each affected task_version atomically once, including evidence/documents/CI, excluding no-ops and retries.",
 		"CI results use only applicable_attempt_id per required check; server generations advance explicitly. Late old-attempt observations extend history without restoring success. Policy must be confirmed and required checks nonempty for succeeded; a different candidate/policy creates a linked wait.",
-		"v3 rejects old protocol and prior state with unsupported_protocol/cutoff_required; no import, reader, conversion or migration is promised.",
 		"All content uses manual retention and ttl_seconds zero; capacity rejects new content without pruning history. Persistence/atomic transition behavior is implemented by the server, not this description.",
 	}}
 	for _, d := range definitions {
@@ -119,10 +118,10 @@ func TimelineProtocolContract(operation string) (TimelineProtocolDescription, er
 			properties := inputSchema["properties"].(map[string]any)
 			properties["kind"].(map[string]any)["const"] = "stage"
 			properties["stage_state"].(map[string]any)["const"] = "in_progress"
-			inputSchema["required"] = append(inputSchema["required"].([]string), "stage", "stage_state", "expected_session_version")
+			inputSchema["required"] = append(inputSchema["required"].([]string), "stage", "stage_state", "expected_session_version", "reason")
 		}
 		if d.name == "stage_update" {
-			inputSchema["required"] = append(inputSchema["required"].([]string), "stage_state", "expected_session_version")
+			inputSchema["required"] = append(inputSchema["required"].([]string), "stage_state", "expected_session_version", "reason")
 		}
 		if reflect.TypeOf(d.output) == reflect.TypeOf(TimelineOperationResult{}) {
 			operationKind := TimelineOperationKind(d.name)
@@ -303,6 +302,11 @@ func timelineProtocolSchema(t reflect.Type) map[string]any {
 				schema["minLength"] = 1
 				schema["maxLength"] = 256
 				schema["pattern"] = `^[^\s\p{Cc}]+$`
+			case "work_key":
+				schema["minLength"] = 1
+				schema["maxLength"] = 128
+				schema["pattern"] = `^[^\s\p{Cc}]+$`
+				schema["description"] = "Optional name of one work inside a native session, such as a ticket key. The same key from the same native session resumes that work; without it, each new operation_id creates a new work."
 			case "external_scope", "repository_url":
 				schema["format"] = "uri"
 				schema["maxLength"] = 4096
@@ -401,4 +405,244 @@ func timelineAuditSchema() map[string]any {
 		branch([]string{"task_transition"}, []string{"previous_state", "next_state"}, []string{"block", "resolution", "previous_segment", "next_segment", "plan_revision_id"}),
 		branch([]string{"session_rename", "session_archive", "session_pin", "session_delete"}, nil, nil),
 	}}
+}
+
+// timelineCommonOperations are published by every stage flow (research, plan,
+// build, verify, delivery) on top of their own operations.
+var timelineCommonOperations = []string{"create_session", "session_get", "session_patch", "stage_start", "stage_update", "append_event", "ticket_create"}
+
+// timelineFlowOperations maps each flow to the operations it adds. Every
+// protocol operation must appear in at least one flow; a test enforces it.
+var timelineFlowOperations = map[string][]string{
+	"research": {"document_add", "document_snapshot", "document_get", "ticket_patch"},
+	"plan":     {"document_add", "document_snapshot", "document_get", "ticket_patch"},
+	"build":    {"event_patch", "event_withdraw", "task_create", "task_patch", "task_transition", "candidate_create", "artifact_add"},
+	"verify":   {"event_patch", "event_withdraw", "task_transition", "candidate_create", "artifact_add", "document_add", "document_snapshot"},
+	"delivery": {"candidate_create", "delivery_create", "delivery_patch", "wait_create", "wait_attempt_start", "wait_observe", "task_transition"},
+	"close":    {"stage_update", "session_patch", "session_get", "document_get"},
+	"collab":   {"join_request", "producer_accept", "foreground_transfer"},
+	// local holds what only the local browser viewer (actor local_viewer) runs.
+	"local": {"session_delete", "recover_lead"},
+}
+
+// timelineBriefNotes states conditions the field lists cannot express.
+var timelineBriefNotes = map[string][]string{
+	"event_patch": {"reason is required, with expected_session_version, when stage_state is set"},
+}
+
+// TimelineProtocolFlows lists the flows `--for` accepts, in display order.
+func TimelineProtocolFlows() []string {
+	return []string{"research", "plan", "build", "verify", "delivery", "close", "collab", "local"}
+}
+
+// timelineFlowMembers returns the operations of a flow, deduplicated.
+func timelineFlowMembers(flow string) ([]string, error) {
+	extra, ok := timelineFlowOperations[flow]
+	if !ok {
+		return nil, timelineError("flow", "unsupported_flow")
+	}
+	if flow == "close" || flow == "collab" || flow == "local" {
+		return append([]string{}, extra...), nil
+	}
+	seen := map[string]bool{}
+	var names []string
+	for _, name := range append(append([]string{}, timelineCommonOperations...), extra...) {
+		if !seen[name] {
+			seen[name] = true
+			names = append(names, name)
+		}
+	}
+	return names, nil
+}
+
+type TimelineProtocolBriefOperation struct {
+	Operation string              `json:"operation"`
+	Usage     string              `json:"usage"`
+	Required  []string            `json:"required"`
+	Optional  []string            `json:"optional"`
+	Notes     []string            `json:"notes,omitempty"`
+	Enums     map[string][]string `json:"enums,omitempty"`
+	Example   json.RawMessage     `json:"example"`
+}
+type TimelineProtocolBriefDescription struct {
+	ProtocolVersion int                              `json:"protocol_version"`
+	Flow            string                           `json:"flow"`
+	Operations      []TimelineProtocolBriefOperation `json:"operations"`
+}
+type TimelineProtocolListEntry struct {
+	Operation string   `json:"operation"`
+	Flows     []string `json:"flows"`
+	Usage     string   `json:"usage"`
+}
+type TimelineProtocolListing struct {
+	ProtocolVersion int                         `json:"protocol_version"`
+	Operations      []TimelineProtocolListEntry `json:"operations"`
+}
+
+// TimelineProtocolRulesBlock is the shared part of the contract: everything but
+// the per-operation commands.
+type TimelineProtocolRulesBlock struct {
+	ProtocolVersion int                          `json:"protocol_version"`
+	StorageVersion  int                          `json:"storage_version"`
+	SchemaDialect   string                       `json:"schema_dialect"`
+	Localization    TimelineLocalizationMetadata `json:"localization"`
+	Capabilities    []string                     `json:"capabilities"`
+	Retention       string                       `json:"retention"`
+	TTLSeconds      int                          `json:"ttl_seconds"`
+	Authority       map[string]string            `json:"authority"`
+	ErrorCodes      []string                     `json:"error_codes"`
+	Limits          map[string]int64             `json:"limits"`
+	Invariants      []string                     `json:"invariants"`
+}
+
+// TimelineProtocolBrief summarizes one flow's operations: usage, input field
+// names, enum values and the example, without output schemas.
+func TimelineProtocolBrief(flow string) (TimelineProtocolBriefDescription, error) {
+	brief := TimelineProtocolBriefDescription{ProtocolVersion: 3, Flow: flow}
+	members, err := timelineFlowMembers(flow)
+	if err != nil {
+		return brief, err
+	}
+	full, err := TimelineProtocolContract("")
+	if err != nil {
+		return brief, err
+	}
+	for _, command := range full.Commands {
+		if !contains(members, command.Operation) {
+			continue
+		}
+		schemaRequired, _ := command.InputSchema["required"].([]string)
+		required := schemaRequired
+		properties, _ := command.InputSchema["properties"].(map[string]any)
+		item := TimelineProtocolBriefOperation{Operation: command.Operation, Usage: command.Usage, Required: []string{}, Optional: []string{}, Notes: timelineBriefNotes[command.Operation], Example: command.Example}
+		for name := range properties {
+			if contains(required, name) {
+				item.Required = append(item.Required, name)
+				if child, ok := properties[name].(map[string]any); ok {
+					item.Required = append(item.Required, timelineNestedRequired(child, name)...)
+				}
+			} else {
+				item.Optional = append(item.Optional, name)
+			}
+		}
+		sort.Strings(item.Required)
+		sort.Strings(item.Optional)
+		enums := map[string][]string{}
+		timelineCollectEnums(command.InputSchema, "", enums)
+		if flow != "local" {
+			// Native producers never act as local_viewer (the native validator
+			// rejects it), so only the local flow spends bytes on actor.kind.
+			delete(enums, "actor.kind")
+		}
+		if len(enums) > 0 {
+			item.Enums = enums
+		}
+		brief.Operations = append(brief.Operations, item)
+	}
+	return brief, nil
+}
+
+// timelineNestedRequired names, with a dotted path, the required fields of a
+// nested object, recursively. List elements use `[]` in the path. A nullable
+// wrapper (anyOf with one non-null branch) is followed into that branch; other
+// unions are left to the example, since their required fields depend on the branch.
+func timelineNestedRequired(schema map[string]any, path string) []string {
+	if branches, ok := schema["anyOf"].([]any); ok {
+		var live []map[string]any
+		for _, b := range branches {
+			if m, ok := b.(map[string]any); ok && m["type"] != "null" {
+				live = append(live, m)
+			}
+		}
+		if len(live) == 1 {
+			return timelineNestedRequired(live[0], path)
+		}
+		return nil
+	}
+	if items, ok := schema["items"].(map[string]any); ok {
+		return timelineNestedRequired(items, path+"[]")
+	}
+	var out []string
+	required, _ := schema["required"].([]string)
+	properties, _ := schema["properties"].(map[string]any)
+	for _, name := range required {
+		child, ok := properties[name].(map[string]any)
+		if !ok {
+			continue
+		}
+		next := path + "." + name
+		out = append(out, next)
+		out = append(out, timelineNestedRequired(child, next)...)
+	}
+	return out
+}
+
+// timelineCollectEnums walks object properties, array items and anyOf, oneOf
+// and allOf branches, naming nested fields with a dotted path. Values found at
+// the same path in several branches are merged, deduplicated, in first-seen order.
+func timelineCollectEnums(schema map[string]any, path string, out map[string][]string) {
+	add := func(values ...string) {
+		for _, v := range values {
+			if !contains(out[path], v) {
+				out[path] = append(out[path], v)
+			}
+		}
+	}
+	if values, ok := schema["enum"].([]string); ok && path != "" {
+		add(values...)
+	}
+	if value, ok := schema["const"].(string); ok && path != "" {
+		add(value)
+	}
+	if properties, ok := schema["properties"].(map[string]any); ok {
+		for name, child := range properties {
+			if m, ok := child.(map[string]any); ok {
+				next := name
+				if path != "" {
+					next = path + "." + name
+				}
+				timelineCollectEnums(m, next, out)
+			}
+		}
+	}
+	if items, ok := schema["items"].(map[string]any); ok {
+		timelineCollectEnums(items, path, out)
+	}
+	for _, key := range []string{"anyOf", "oneOf", "allOf"} {
+		if branches, ok := schema[key].([]any); ok {
+			for _, b := range branches {
+				if m, ok := b.(map[string]any); ok {
+					timelineCollectEnums(m, path, out)
+				}
+			}
+		}
+	}
+}
+
+// TimelineProtocolList names every operation with the flows that use it.
+func TimelineProtocolList() (TimelineProtocolListing, error) {
+	list := TimelineProtocolListing{ProtocolVersion: 3}
+	full, err := TimelineProtocolContract("")
+	if err != nil {
+		return list, err
+	}
+	for _, command := range full.Commands {
+		entry := TimelineProtocolListEntry{Operation: command.Operation, Flows: []string{}, Usage: command.Usage}
+		for _, flow := range TimelineProtocolFlows() {
+			if members, _ := timelineFlowMembers(flow); contains(members, command.Operation) {
+				entry.Flows = append(entry.Flows, flow)
+			}
+		}
+		list.Operations = append(list.Operations, entry)
+	}
+	return list, nil
+}
+
+// TimelineProtocolRules returns the shared rules block without any operation.
+func TimelineProtocolRules() (TimelineProtocolRulesBlock, error) {
+	full, err := TimelineProtocolContract("session_get")
+	if err != nil {
+		return TimelineProtocolRulesBlock{}, err
+	}
+	return TimelineProtocolRulesBlock{ProtocolVersion: full.ProtocolVersion, StorageVersion: full.StorageVersion, SchemaDialect: full.SchemaDialect, Localization: full.Localization, Capabilities: full.Capabilities, Retention: full.Retention, TTLSeconds: full.TTLSeconds, Authority: full.Authority, ErrorCodes: full.ErrorCodes, Limits: full.Limits, Invariants: full.Invariants}, nil
 }

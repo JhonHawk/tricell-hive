@@ -10,6 +10,101 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-03
+
+### Added
+
+- A `test-audit` skill trims one area's tests to one owner per contract. It
+  records a baseline (test and production lines, pass or fail, coverage when
+  measured, suite time), marks every test retain, repair, consolidate or
+  delete in a read-only ledger, adds the keeper tests before deleting what
+  they absorb, and has an independent reviewer and one deliberate code change
+  per affected contract show that nothing lost its only test. Product defects
+  it finds go to you as a decision. Adapted from OpenClaw's `test-audit`
+  (MIT).
+- Lists the user reads, such as reports, closes and pending items, open each
+  point with what it is in plain words and carry one task per point; an ID it
+  cites goes last, in parentheses, such as "**Move the plan summary to the
+  top** (D2)". Decision titles and options keep their format.
+- The UX reviewer runs an automated accessibility audit on each screen and
+  state it reviews, including states reached by interaction, with
+  `agent-browser a11y`: WCAG A/AA violations count as defects, best-practice
+  rules as P3 findings, and results axe cannot decide as pending manual
+  review. A UI linter the project names also runs when it is already
+  installed; its style rules are informational only.
+- `hive view contract --for <flow>` prints a brief contract with only that
+  flow's operations (research, plan, build, verify, delivery, close, collab, local):
+  usage, required and optional fields, allowed values and an example.
+  `--list` prints one line per operation with its flows, and
+  `--section rules` the shared rules. A rejected input names its field, such
+  as `invalid timeline input: invalid_text on reason` (#328).
+- A `ready` delivery mode: the agent reviews, pushes, opens a non-draft pull
+  request, waits for CI and answers its reviews, then stops for you to merge.
+  It never merges, enables auto-merge or joins a merge queue, and asks first
+  when the repository's automation would merge the pull request. The open
+  pull request is the work's completion point, and the viewer shows it as in
+  review (#312).
+- After the push, review bots are read once when CI ends: only their output
+  for the latest commit counts, each finding is checked against the code,
+  dismissed ones get a reply with the reason, and their fixes get a single
+  round. A bot that has not reviewed yet does not hold the merge. When GitHub's
+  GraphQL quota runs out, the pull request and its checks are read through
+  REST and CI is awaited with `gh run watch` (#312).
+
+### Fixed
+
+- Before asking you to run a command or take a step, the agent checks whether
+  its access and the authorization it already has let it do it, including the
+  command's own non-interactive options, and does it when they do. You are asked
+  only for what it cannot do, such as a browser sign-in, and for authorizations
+  as decisions; it never gives a confirmation the guidance requires from you.
+  The skills rebuild had dropped this check, so an agent asked you to run
+  `hive update` when it could have run it itself.
+- `flow-close` closes the work's viewer session as its first step, before any
+  cleanup, and reads it back: closed when the work was integrated or
+  abandoned, paused when it was paused. It was a note above the steps and a
+  close could skip it.
+- UI verification and the UX reviewer prefer `agent-browser` again when it is
+  installed, use Chrome DevTools MCP only for audits, traces and an independent
+  reproduction, bound each browser command to 45 seconds, and close the
+  sessions they open. The skill cut had replaced that rule with "the available
+  browser automation capability", so a session used another browser tool.
+
+### Changed
+
+- Build has a Tests section again, narrower than the test-first rule the
+  skills rebuild removed. A test must fail first only for a fixed defect, as
+  one regression at the layer that owns it, and for permissions, money, data
+  integrity or a public or persisted contract; other changes get a direct
+  check or extend the test that already owns the behavior. Each new test
+  needs a realistic change that would make it fail, one owner per contract at
+  the strongest boundary the harness runs cheaply, test doubles only for
+  external services, time, randomness and a client's view of the project's
+  own server API, and no fixed sleeps; a failure, limit, ordering or rollback
+  the change handles is covered too. In a project
+  without a test runner, a bug fix or consequential change first pins the current
+  behavior for every caller, and adding test infrastructure is asked once.
+  The roles that write tests follow it.
+- Compacting is offered at two moments instead of by context size: when an
+  approved plan moves to its build in the same session, and when another work
+  item starts after a close. It is one more reply of the next-step block, with
+  what to keep; after you compact, the agent shows the same next step again.
+  The old rule recommended compacting past 40% of the window, but Claude Code
+  does not tell the model its window, so the agent estimated against a smaller
+  one and recommended it at about 20% of a 1M window (#328).
+- A flow's command is offered only when the next step needs that flow. A single
+  action that changes no repository file, such as creating the ticket a route
+  needs, closing a ticket as not planned or deleting a merged branch, is asked
+  directly ("Do you want me to create the ticket?") instead of being sent
+  through a flow command, and your answer authorizes only that action (#328).
+- The viewer publication procedure is read once per session and again after a
+  compaction, not at each stage change. Each flow reads its own part of the
+  contract once, uses the versions every write returns instead of reading the
+  session after each one, and reads the session back before saying something
+  is visible, at close, and when resuming. Publishing took 5–16% of the tokens
+  of a session (#328).
+- `hive view` prints compact JSON, with the same content (#328).
+
 ## [0.7.0] - 2026-11-01
 
 ### Added

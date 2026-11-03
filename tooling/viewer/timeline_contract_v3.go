@@ -806,6 +806,18 @@ func validateTimelineHistoricalTaskReference(s TimelineSession, taskID, segmentI
 	return timelineError("task_id", "unknown_task_segment")
 }
 
+// timelineStateRequiresForeground reports the states that must point at a
+// foreground stage event; the session and index validators share it.
+func timelineStateRequiresForeground(s TimelineState) bool {
+	return s == TimelineInReview || s == TimelineAwaitingValidation
+}
+
+// timelineStateAllowsForeground reports the states that may hold a foreground
+// stage event.
+func timelineStateAllowsForeground(s TimelineState) bool {
+	return s == TimelineActive || timelineStateRequiresForeground(s)
+}
+
 // ValidateTimelineV3Graph checks structure and server-owned membership. Before
 // trusting restored authority, follow ValidateTimelineResolvedProject load rules.
 func ValidateTimelineV3Graph(s TimelineSession) error {
@@ -815,7 +827,7 @@ func ValidateTimelineV3Graph(s TimelineSession) error {
 	if s.PendingJoinRequests == nil || s.Tasks == nil || s.Waits == nil || len(s.Producers) < 1 || len(s.Producers) > 16 || len(s.PendingJoinRequests) > 16 || len(s.Tasks) > 100 || len(s.Waits) > TimelineMaxWaits {
 		return timelineError("session", "v3_collection_limit")
 	}
-	if (s.State == "in_review" || s.State == "awaiting_validation") && s.CurrentStageEventID == nil {
+	if timelineStateRequiresForeground(s.State) && s.CurrentStageEventID == nil {
 		return timelineError("current_stage_event_id", "foreground_required")
 	}
 	if s.CurrentStageEventID != nil {

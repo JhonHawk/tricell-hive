@@ -53,6 +53,7 @@ const cases = JSON.parse(fixture("cases.json")) as {
   kind: TimelineContractKind;
   valid: boolean;
   json: string;
+  code?: string;
 }[];
 for (const item of cases)
   test(`timeline shared contract: ${item.name}`, () => {
@@ -61,7 +62,9 @@ for (const item of cases)
     else
       assert.throws(
         () => decodeTimelineContract(item.kind, item.json),
-        TimelineContractError,
+        (error) =>
+          error instanceof TimelineContractError &&
+          (item.code === undefined || error.code === item.code),
       );
   });
 test("timeline output validates shared separate-view and focused-iteration fixture", () => {
@@ -304,7 +307,9 @@ test("v2 index rejects legacy input", () => {
   assert.throws(
     () =>
       parseTimelineIndexEntry(JSON.parse(fixture("legacy-index-entry.json"))),
-    TimelineContractError,
+    (error) =>
+      error instanceof TimelineContractError &&
+      error.code === "unsupported_mode",
   );
   const api = parseTimelineIndexEntry(
     JSON.parse(fixture("api-index-entry.json")),

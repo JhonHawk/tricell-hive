@@ -12,15 +12,15 @@ import (
 	"testing"
 )
 
-func TestViewStatusRejectsLegacyDirectoryWithoutCreatingState(t *testing.T) {
+func TestViewStatusDirIsAnUnknownFlagAndCreatesNoState(t *testing.T) {
 	state := filepath.Join(t.TempDir(), "unused-state")
 	var out bytes.Buffer
-	err := runView([]string{"status", "--dir", filepath.Join(t.TempDir(), "walkthrough.json"), "--state-dir", state}, &out, viewDeps{})
-	if err == nil || !strings.Contains(err.Error(), "unsupported_protocol") || !strings.Contains(err.Error(), "v3 status") {
-		t.Fatal("source-directory status did not fail cutoff", err)
+	err := runView([]string{"status", "--dir", t.TempDir(), "--state-dir", state}, &out, viewDeps{})
+	if err == nil || !strings.Contains(err.Error(), "-dir") {
+		t.Fatal("status --dir must fail as an unknown flag", err)
 	}
 	if out.Len() != 0 {
-		t.Fatal("rejected status printed a confirmation")
+		t.Fatal("rejected status printed output")
 	}
 	if _, err = os.Stat(state); !os.IsNotExist(err) {
 		t.Fatal("rejected status created viewer state")

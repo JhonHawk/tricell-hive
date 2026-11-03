@@ -7,7 +7,7 @@ description: Investigate a technical question, a reported failure, or a ticket t
 
 The primary producer follows [flow-walkthrough](../flow-walkthrough/SKILL.md), which sets when a viewer session applies, to start or resume the viewer stage and publish at each stage change, new capture or document snapshot; publication failure does not stop independent research.
 
-Research does not change the project, tracker or shared data until the user chooses a route; the local viewer publication above records its progress.
+Research does not change the project, tracker or shared data until the user chooses a route, or answers the question for a single action that the global guidance's «Questions and routes» section sets; the local viewer publication above records its progress.
 
 ## Entry and exit
 
@@ -18,10 +18,10 @@ Enter with a question, a reported failure or a proposal, including a question wh
 1. Name the question and the decision it informs. Ask the user only for intent that changes the conclusion.
 2. Investigate. Delegate an aspect to a `hive-research` child when its brief is shorter than the lookup and the lookup needs more than 5 file or source reads; keep the rest in the main thread. Brief each child with the decision, the aspects to cover, what is settled, and when to stop. Run a tracker query that lists tickets in the main thread, capped at 50 tickets and short fields (identifier, title, state, labels, priority, assignee); use `hive-read-state` children only to run several independent collections at once. For a failure whose cause is not yet shown, list the plausible causes and check each one, in parallel when the checks are independent, before concluding; report the ones you ruled out with the evidence that ruled them out.
 3. Check each claim that decides the answer by opening its cited source. Resolve conflicting sources by their dates, versions, scope and direct observation; neither the backlog nor the documentation takes precedence, and missing delivery evidence means delivery is not verified, not that it did not happen.
-4. Report the answer, its evidence, and what remains uncertain. When the user asks to keep or share the result, or the report exceeds what fits on one screen, offer a `flow-report` page as one option of the question the message ends with.
+4. Report the answer, its evidence, and what remains uncertain. When the user asks to keep or share the result, or the report exceeds what fits on one screen, offer a `flow-report` page as one option of the question the message ends with. When the research has a viewer session, ask the open-viewer question that [viewer publication](../flow-walkthrough/references/viewer-publication.md#open-the-viewer) sets.
 5. When the findings leave work the user could run next, end the report with the route as the global guidance's «Questions and routes» section sets: the recommended flow (`flow-build` for a small understood change as «Proportionality» defines it, `flow-plan` for larger work) with its reason, and one line saying how to continue, keep investigating or stop.
 
-The user's reply authorizes only the flow it names.
+The user's reply authorizes only the flow it names, or the single action it answers.
 
 ## Assess a chosen ticket
 

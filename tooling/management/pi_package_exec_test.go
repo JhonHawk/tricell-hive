@@ -15,12 +15,13 @@ import (
 
 // fakeHangingPi puts a `pi` on PATH that starts a long-lived descendant,
 // records its PID and then blocks, so a test can check both the returned
-// error and that the descendant does not outlive the run.
+// error and that the descendant does not outlive the run. The PID is written
+// to a temporary file and renamed into place, so the file never appears empty.
 func fakeHangingPi(t *testing.T) (pidFile string) {
 	t.Helper()
 	dir := t.TempDir()
 	pidFile = filepath.Join(dir, "child.pid")
-	script := "#!/bin/sh\nsleep 300 &\necho $! > \"$HIVE_TEST_PID_FILE\"\nwait\n"
+	script := "#!/bin/sh\nsleep 300 &\necho $! > \"$HIVE_TEST_PID_FILE.tmp\"\nmv \"$HIVE_TEST_PID_FILE.tmp\" \"$HIVE_TEST_PID_FILE\"\nwait\n"
 	if err := os.WriteFile(filepath.Join(dir, "pi"), []byte(script), 0700); err != nil {
 		t.Fatal(err)
 	}

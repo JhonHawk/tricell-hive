@@ -109,7 +109,6 @@ func newViewPaths(state string) viewPaths {
 type viewFlags struct {
 	port      int
 	portSet   bool // --port was given, so a busy port is an error
-	ttl       string
 	dir       string
 	sessionID string
 	eventID   string
@@ -132,11 +131,9 @@ func runView(args []string, w io.Writer, deps viewDeps) error {
 	switch sub {
 	case "start", "serve":
 		fs.IntVar(&f.port, "port", viewDefaultPort, "TCP port on 127.0.0.1; 0 picks a free port")
-		fs.StringVar(&f.ttl, "ttl", "", "deprecated compatibility option; ignored (retention is manual)")
 	case "register":
 		fs.StringVar(&f.dir, "dir", "", "directory inside the repository to register (default: the current directory)")
 	case "status":
-		fs.StringVar(&f.dir, "dir", "", "walkthrough source folder to confirm against the running viewer")
 	case "open":
 		fs.StringVar(&f.sessionID, "session-id", "", "target an API viewer session")
 		fs.StringVar(&f.eventID, "event-id", "", "target an event within --session-id")
@@ -161,9 +158,6 @@ func runView(args []string, w io.Writer, deps viewDeps) error {
 		return err
 	}
 	p := newViewPaths(state)
-	if f.ttl != "" {
-		fmt.Fprintln(w, "Warning: --ttl is deprecated and ignored; viewer retention is manual.")
-	}
 	switch sub {
 	case "start":
 		return viewStart(p, f, w, deps)
@@ -172,7 +166,7 @@ func runView(args []string, w io.Writer, deps viewDeps) error {
 	case "stop":
 		return viewStop(p, w)
 	case "status":
-		return viewStatus(p, w, f.dir)
+		return viewStatus(p, w)
 	case "open":
 		if f.sessionID != "" || f.eventID != "" {
 			return viewOpenTimelineTarget(p, w, deps, f.sessionID, f.eventID)
@@ -181,17 +175,6 @@ func runView(args []string, w io.Writer, deps viewDeps) error {
 	default:
 		return viewRegister(p, f, w)
 	}
-}
-
-func parseViewTTL(raw string) (time.Duration, error) {
-	if raw == "" {
-		return 0, nil
-	}
-	d, err := time.ParseDuration(raw)
-	if err != nil || d <= 0 {
-		return 0, fmt.Errorf("invalid --ttl %q: use a positive duration such as 72h", raw)
-	}
-	return 0, nil
 }
 
 // viewDefaultPort spells HIVE on a phone keypad.
@@ -321,9 +304,6 @@ func viewStart(p viewPaths, f viewFlags, w io.Writer, deps viewDeps) error {
 	if err := viewer.ValidateStateOptions(viewer.Options{StateDir: p.state, GitRemote: viewGitRemote(newGitRunner()), HiveProject: viewHiveProject}); err != nil {
 		return err
 	}
-	if _, err := parseViewTTL(f.ttl); err != nil {
-		return err
-	}
 	if err := checkViewPort(f.port); err != nil {
 		return err
 	}
@@ -349,9 +329,6 @@ func viewStart(p viewPaths, f viewFlags, w io.Writer, deps viewDeps) error {
 	args := []string{"view", "serve", "--state-dir", p.state}
 	if f.portSet {
 		args = append(args, "--port", fmt.Sprint(f.port))
-	}
-	if f.ttl != "" {
-		args = append(args, "--ttl", f.ttl)
 	}
 	pid, err := deps.launch(args, p.log)
 	if err != nil {
@@ -386,10 +363,6 @@ func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
 	if err := viewer.ValidateStateOptions(viewer.Options{StateDir: p.state, GitRemote: viewGitRemote(newGitRunner()), HiveProject: viewHiveProject}); err != nil {
 		return err
 	}
-	ttl, err := parseViewTTL(f.ttl)
-	if err != nil {
-		return err
-	}
 	if err := checkViewPort(f.port); err != nil {
 		return err
 	}
@@ -399,6 +372,7 @@ func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
 	// start, stop and status probe server.lock by taking it for an instant, so
 	// a lock that is busy for a moment is retried before it means "owned".
 	var lock *viewer.FileLock
+	var err error
 	for deadline := time.Now().Add(viewLockRetryLimit); ; time.Sleep(20 * time.Millisecond) {
 		lock, err = viewer.AcquireLock(p.lock, false)
 		if !errors.Is(err, viewer.ErrLocked) {
@@ -418,11 +392,9 @@ func viewServe(p viewPaths, f viewFlags, w io.Writer) error {
 
 	git := newGitRunner()
 	store, err := viewer.Open(viewer.Options{
-		StateDir:       p.state,
-		TTL:            ttl,
-		HiveProject:    viewHiveProject,
-		GitRemote:      viewGitRemote(git),
-		SourceTracking: viewSourceTracking(runViewerTrackingGit),
+		StateDir:    p.state,
+		HiveProject: viewHiveProject,
+		GitRemote:   viewGitRemote(git),
 	})
 	if err != nil {
 		return err
@@ -567,10 +539,7 @@ func viewStop(p viewPaths, w io.Writer) error {
 	}
 }
 
-func viewStatus(p viewPaths, w io.Writer, dir string) error {
-	if dir != "" {
-		return errors.New("unsupported_protocol: v3 status does not inspect source directories; use hive view session get with the work ID")
-	}
+func viewStatus(p viewPaths, w io.Writer) error {
 	out := map[string]any{"running": false}
 	info, running, err := viewRunning(p)
 	if err != nil {

@@ -44,7 +44,7 @@ It does not change code, tickets, documents or deployments, and it does not trea
 
 The answer comes in the conversation: what was concluded, the evidence, and what is still uncertain. When a long or shareable result would help, a report page is offered as one option.
 
-When the findings leave work you could run next, the report ends with a route: [Build](/flows/build/) for a small change that is understood, [Plan](/flows/plan/) for larger work, with the reason, plus how to keep investigating or stop. Your reply starts only the flow it names; research never authorizes the fix.
+When the findings leave work you could run next, the report ends with a route: [Build](/flows/build/) for a small change that is understood, [Plan](/flows/plan/) for larger work, with the reason, plus how to keep investigating or stop. Your reply starts only the flow it names; research never authorizes the fix. No flow needs a ticket. A single action that needs no flow, such as opening a ticket for work that will be done later or by someone else, is asked directly ("Do you want me to create the ticket?") instead of being sent through a flow command.
 
 ## Related flows
 
