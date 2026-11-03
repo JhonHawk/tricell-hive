@@ -62,6 +62,17 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Build has a Tests section again, narrower than the test-first rule the
+  skills rebuild removed. A test must fail first only for a fixed defect, as
+  one regression at the layer that owns it, and for permissions, money, data
+  integrity or a public or persisted contract; other changes get a direct
+  check or extend the test that already owns the behavior. Each new test
+  needs a realistic change that would make it fail, one owner per contract at
+  the strongest boundary the harness runs cheaply, test doubles only for
+  external services, time and randomness, and no fixed sleeps. In a project
+  without a test runner, a consequential change first pins the current
+  behavior for every caller, and adding test infrastructure is asked once.
+  The roles that write tests follow it.
 - Compacting is offered at two moments instead of by context size: when an
   approved plan moves to its build in the same session, and when another work
   item starts after a close. It is one more reply of the next-step block, with
