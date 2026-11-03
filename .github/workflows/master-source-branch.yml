@@ -1,0 +1,32 @@
+# master receives changes only by promotion from development.
+# pull_request_target runs this file from the default branch, so a pull
+# request cannot rewrite the check. It checks out nothing, uses no secrets
+# and gets a token without permissions. The ruleset on master requires
+# the `source-branch` check; see CONTRIBUTING.md "Branches and commits".
+name: master-source-branch
+
+on:
+  pull_request_target:
+    branches: [master]
+    types: [opened, synchronize, reopened, edited]
+
+permissions: {}
+
+jobs:
+  source-branch:
+    name: source-branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Require development of this repository as the source
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+          BASE_REPO: ${{ github.repository }}
+        run: |
+          if [ "$HEAD_REPO" = "$BASE_REPO" ] && [ "$HEAD_REF" = "development" ]; then
+            echo "Source is $HEAD_REPO:$HEAD_REF"
+          else
+            echo "::error::master accepts pull requests only from development of $BASE_REPO; this one comes from $HEAD_REPO:$HEAD_REF"
+            exit 1
+          fi
