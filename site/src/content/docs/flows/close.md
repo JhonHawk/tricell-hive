@@ -29,7 +29,7 @@ At the integration it moves the ticket and reports, then stops at a footer, not 
 - One final report of the whole work item: what was integrated, how each acceptance criterion was shown, what was skipped or could not run, local repairs, the work's support material with what was done to it, the findings and what remains.
 - A page version of the report through [flow-report](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-report/SKILL.md), offered as an option when you want to keep or share it.
 
-When the work had a viewer session, Close finishes it first; see [Viewer](/viewer/). That only marks the work's record: Close never stops the viewer or closes the window you have open. When the viewer is not running, Close goes on without it, keeps what the viewer close needs, and the report says which viewer session stayed open.
+When the work had a viewer session, Close finishes it first; see [Viewer](/viewer/). That only marks the work's record: Close never stops the viewer or closes the window you have open, nor quits a program other sessions may use, such as Docker Desktop or a local database server. When the viewer is not running, Close goes on without it, keeps what the viewer close needs, and the report says which viewer session stayed open.
 
 ## How it ends
 
