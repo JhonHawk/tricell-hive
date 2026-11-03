@@ -10,6 +10,16 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Added
+
+- `flow-close` takes an inventory of the support material its work left, such
+  as research records, working files, evidence or an unarchived change folder,
+  before any cleanup, proposes an action for each item (commit, archive,
+  promote a conclusion into `docs/`, delete or keep), asks it in the close
+  round and applies nothing before the answer. Committed items go with the
+  archived change record, or in a support-only commit on a new branch,
+  delivered the way the work was; paused and held work only list them.
+
 ### Changed
 
 - GitHub now enforces that `master` receives changes only by promotion from

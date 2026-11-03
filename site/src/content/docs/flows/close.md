@@ -25,7 +25,7 @@ One round at the end. When the work left material in the project's support folde
 
 - The ticket moved to the state your project uses for integrated work, and the change record folded into the project's current requirements and archived.
 - Merged branches and their clean working copies removed, temporary files deleted, the processes stopped, and the containers it started (with their volumes) and the images it built removed. A dump or export it made is listed and removed only if you say so. Resources it created outside your machine, such as storage objects or registry images, are listed with the command that removes each, and removed only if you say so. Anything with uncommitted work or uncertain ownership is kept.
-- The work's support material handled as you answered: records you keep are committed with the archived change record, or in a commit of their own when there is none, delivered the way the work was.
+- The work's support material handled as you answered: what you chose to commit, archive or move into the documentation is committed with the archived change record, or in a commit of their own on a new branch when there is none, delivered the way the work was; what you chose to keep stays where it is.
 - One final report of the whole work item: what was integrated, how each acceptance criterion was shown, what was skipped or could not run, local repairs, the work's support material with its proposed actions, the findings and what remains.
 - A page version of the report through [flow-report](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-report/SKILL.md), offered as an option when you want to keep or share it.
 
