@@ -64,9 +64,11 @@ raise the minor or the patch version.
   match another session's processes.
 - `flow-research` writes the aspects of a question, their sources and which go
   to a child in its message before the first read, counts its first reads
-  toward the delegation limit, delegates each aspect that needs more than five reads, does not
-  reread what a child covers, and hands over the rest of an aspect when its
-  sixth read in the main thread still has no answer (#311).
+  toward the delegation limit, delegates each aspect that needs more than five
+  large reads (a whole document or more than 100 lines; filtered queries stay
+  in the main thread), does not reread what a child covers, and hands over the
+  rest of an aspect when its sixth large read in the main thread still has no
+  answer (#311).
 - Viewer navigation groups registered source roots with the same explicit
   `.engram/config.json` project name, keeping each work's original source visible
   and its identity, history and collaboration permissions unchanged. Configured
