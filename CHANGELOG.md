@@ -13,15 +13,18 @@ raise the minor or the patch version.
 ### Added
 
 - `flow-close` takes an inventory of the support material its work left, such
-  as research records, working files, evidence or an unarchived change folder,
-  before any cleanup, proposes an action for each item (commit, archive,
-  promote a conclusion into `docs/`, delete or keep), asks it in the close
-  round and applies nothing before the answer. Committed items go with the
-  archived change record, or in a support-only commit on a new branch,
-  delivered the way the work was; paused and held work only list them.
+  as research records, working files, evidence or an abandoned change folder,
+  proposes an action for each item (commit, archive, promote a conclusion into
+  `docs/`, delete or keep) and asks it right after the viewer close, before
+  archiving and cleanup, applying nothing before the answer. Committed items
+  go with the archived change record, or in a support-only commit on a new
+  branch, delivered the way the work was; kept items in a worktree move to the
+  main checkout before it is removed; paused and held work only list them.
 
 ### Changed
 
+- `flow-close` never stops the viewer service or closes the viewer the user
+  has open: closing a work's viewer session changes only its record.
 - GitHub now enforces that `master` receives changes only by promotion from
   `development`: a ruleset blocks direct pushes, force pushes and deletion, and
   requires the `source-branch` check, which fails for a pull request from any
