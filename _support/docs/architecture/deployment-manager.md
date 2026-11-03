@@ -144,6 +144,27 @@ session ID; durable canonical project bindings allow registered aliases while
 rejecting contradictory membership. An unavailable historical root is different
 from authorizing a new publication without resolving its source.
 
+Presentation grouping is separate from that canonical identity. The authenticated
+`GET /api/index?navigation=grouped` response includes a version-1 `navigation`
+projection; the default index retains its closed legacy shape. Older clients do
+not request the extension, and the new frontend accepts an old server's index
+without it. Invalid navigation metadata is discarded with a visible diagnostic
+without weakening the validation of work records.
+
+The projection reads only `.engram/config.json` at each work's original registered
+source root, once per distinct root per request. Equal explicit `project_name`
+strings after outer-whitespace trimming share a group; case remains significant.
+The reader accepts a regular file up to 64 KiB without following configuration
+links, requires one JSON object and a nonempty name of at most 200 Unicode
+characters without control characters or path separators, and never prints file
+content. Missing configuration retains canonical-project groups; invalid or
+unavailable configuration also exposes a recoverable navigation diagnostic.
+Changing a configuration changes the next projection, not persisted works or
+producer eligibility. No ancestor search, child scan, Engram process or alias
+resolution participates. A root with valid explicit configuration is also
+registrable directly when it is not Git; the existing Git and
+`_support/workspace` resolution paths remain available.
+
 Protocol, schema and storage are3. `viewer/storage.json` positively identifies
 that format; API records live in `viewer/timeline-api-v3/`. Preflight rejects
 old1/provisional2 state, like any name outside the v3 inventory, with

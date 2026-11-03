@@ -154,7 +154,7 @@ export class ViewerController {
     this.reading = true;
     try {
       const index = validateIndex(
-        await this.client.request("/api/index"),
+        await this.client.request("/api/index?navigation=grouped"),
         this.state.index,
       );
       if (epoch !== this.epoch || seq !== this.readSeq) return;

@@ -25,6 +25,14 @@ Select a work to see its timeline in chronological order. Stages group their act
 
 Open **Tasks** in the horizontal toolbar for the global task list; each stage shows only its own task segments. The list shows published task states and their segments in each stage. A task can span stages: for example, seven tasks can have six segments completed in Build while the seventh has a completed Verification segment and a pending Delivery segment. Its overall state is not complete until its work is complete across its segments. Tasks with review content open a detail panel with **Summary**, **Evidence** and **History**. A task containing only a short description expands inline instead of opening an empty panel. Image, document, block and CI indicators are visible even while the task is collapsed. For a blocked task, **See how to unblock** opens its instructions, including the responsible person and the condition for resuming when published.
 
+## Project groups and source
+
+The sidebar groups registered roots that explicitly declare the same `project_name` in their root `.engram/config.json`. For example, a workspace and its API repository can both declare `example-project`: their works appear in one flat group, with the original workspace or repository shown beside each work's ticket and date. This reads the local configuration file; it does not require Engram to be installed or running. Names are compared exactly after trimming outer whitespace, including case.
+
+Grouping is navigation only. Each work keeps its ID, links, original source, documents and collaboration permissions. The viewer does not infer membership from parent folders, matching `AGENTS.md` names or an Engram alias. A root without this configuration keeps its original project group. Changing or removing the name updates the grouping on the next refresh, including existing works; an invalid or unreadable configuration leaves works accessible in their original groups and shows a retryable notice.
+
+Register a configured non-Git workspace directly with `hive view register --dir /path/to/workspace`. The directory itself must contain a valid `.engram/config.json` with a nonempty `project_name`; registration does not search its parents or register its children. Existing Git registration and registration from `_support/workspace` keep working. Repeating registration does not duplicate the root.
+
 ## Inspect evidence and documents
 
 Open a capture to view its gallery and move between images. Open a document to inspect its revisions; when an event has multiple document chains, select the chain before choosing a revision. The detail you opened is a snapshot. If a newer version is published, the viewer signals an update without replacing what you are reading. Use **Show latest** where offered, or close and reopen a document to see the latest revision.
