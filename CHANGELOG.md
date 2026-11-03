@@ -23,6 +23,10 @@ raise the minor or the patch version.
 
 ### Changed
 
+- The offer to open the viewer never goes as a question of its own: it joins
+  the round its stop already asks, or a reply line of the message's waiting
+  line or next-step block, with no decision ID or question card of its own
+  (#311).
 - Build hands its check evidence to Verify, which reuses passing results only
   while the inputs they cover remain unchanged and reruns missing or invalidated
   checks. The real-path walk and required independent verification remain.
