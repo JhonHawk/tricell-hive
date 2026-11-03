@@ -17,6 +17,8 @@ Fix the date parsing bug and add a test that would have caught it.
 
 ## What it does
 
+Task progress is published separately through semantic task and stage commands. The binary resolves technical IDs and versions; the agent still supplies the actual state, reason, ownership and blocking information. Editing the published plan checklist does not update live tasks. See the [viewer publication model](/viewer/#publish-markdown-on-demand).
+
 - Checks the plan's prerequisites and asks you for any that are missing, while it starts the tasks that do not need them.
 - Moves the tracked ticket to in progress, except for a one-off operation that leaves nothing in the repository, whose ticket moves only if you ask, and works on a branch when your delivery answer makes commits.
 - Works task by task: implements it (or gives it to a helper when the task is settled, independent and bigger than its brief), runs the checks that cover it, commits when the delivery says so, and marks it in `tasks.md`, or in the message when the plan lives there. Helpers never commit, push or write to trackers; the main agent checks what they return.

@@ -115,11 +115,15 @@ type viewFlags struct {
 }
 
 func runView(args []string, w io.Writer, deps viewDeps) error {
+	if len(args) > 0 && args[0] == "work" {
+		return runViewWork(args[1:], w, os.Stdin)
+	}
 	if len(args) > 0 && isTimelineViewCommand(args[0]) {
 		return runViewTimeline(args, w, os.Stdin)
 	}
 	if len(args) > 0 && (args[0] == "--help" || args[0] == "-h" || args[0] == "help") {
 		printViewHelp(w)
+		fmt.Fprintln(w, "  work          On-demand publication and semantic work operations; use work contract")
 		return nil
 	}
 	if len(args) == 0 {

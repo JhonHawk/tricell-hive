@@ -417,6 +417,15 @@ hive view status     # service status without its access token
 hive view stop
 ```
 
+Publish retained Markdown on demand with `hive view work publish`: the binary
+scans the selected directory, uploads the bytes and returns a compact work/revision
+receipt. `hive view work contract` describes the semantic commands. A stable key
+and retained work ID keep two change folders separate within one native session;
+`work list` lists them. Repeating unchanged content makes no remote write.
+The agent still declares task progress and stage changes through the task and
+stage commands. There is no background watcher, and editing a checklist does not
+change live task status. Source files stay in the repository.
+
 The server keeps running until you stop it. The agent registers the project and
 publishes through the versioned API. `hive view contract` prints the offline
 commands, schemas, limits and examples as compact JSON; `--for FLOW` prints one
