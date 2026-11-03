@@ -42,7 +42,7 @@ The relationship between [PR1](https://github.com/JhonHawk/tricell-hive-private/
 
 ## Attributions and reproduction
 
-Preserving Hive's evolution includes acknowledging real adaptations. The resources adapted from diagram-design have a [full MIT notice](../../../content/skills/flow-report/references/license-diagram-design.md). The curated history also preserves the Superpowers notice associated with the historical adapter at [global/hooks/flow-session-context/LICENSE.superpowers](https://github.com/JhonHawk/tricell-hive/blob/05b9979a31917d43743cddad3170c74548bb0c66/global/hooks/flow-session-context/LICENSE.superpowers), in its applicable snapshots. These credits are not removed to support a claim of originality.
+Preserving Hive's evolution includes acknowledging real adaptations. The resources adapted from diagram-design have a [full MIT notice](../../../content/skills/flow-report/references/license-diagram-design.md), and the `test-audit` skill adapted from OpenClaw has [its MIT notice](../../../content/skills/test-audit/references/license-openclaw.md). The curated history also preserves the Superpowers notice associated with the historical adapter at [global/hooks/flow-session-context/LICENSE.superpowers](https://github.com/JhonHawk/tricell-hive/blob/05b9979a31917d43743cddad3170c74548bb0c66/global/hooks/flow-session-context/LICENSE.superpowers), in its applicable snapshots. These credits are not removed to support a claim of originality.
 
 To cross-check a milestone, from a copy of the repository with the curated history, replace `<curated-commit>` and `<repository-path>` with the milestone from this timeline:
 
