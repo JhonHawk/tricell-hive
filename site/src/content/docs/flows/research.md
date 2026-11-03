@@ -34,7 +34,7 @@ When a ticket you picked has open scope, such as missing criteria or more than o
 
 ## What it does
 
-- Splits large questions across helper agents when a lookup needs more than five reads, uses the host's built-in explorer only to locate files and checks what it returns, names each system the decision touches and whether it searched it, then opens the cited sources of every claim that decides the answer before reporting.
+- Lists the aspects of the question and their sources before reading, splits across helper agents each aspect that needs more than five reads, and hands over the rest of an aspect when its sixth read in the main conversation still has no answer; uses the host's built-in explorer only to locate files and checks what it returns, names each system the decision touches and whether it searched it, then opens the cited sources of every claim that decides the answer before reporting.
 - For a failure, lists the plausible causes and checks each one, and tells you which it ruled out and with what evidence.
 - Resolves conflicting sources by date, version, scope and direct observation. Missing delivery evidence means delivery is not verified, not that it did not happen.
 - For a chosen ticket, writes an assessment of its impact, complexity, readiness and dependencies.

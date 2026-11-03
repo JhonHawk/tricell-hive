@@ -39,7 +39,15 @@ raise the minor or the patch version.
   such as "can you add this user to the repository?", counts as a request for
   that change; "can we…?" and "how would we…?" stay questions (#311).
 - `flow-close` never stops the viewer service or closes the viewer the user
-  has open: closing a work's viewer session changes only its record.
+  has open: closing a work's viewer session changes only its record. No agent
+  quits, restarts or kills a program other sessions or projects may use, such
+  as Docker Desktop or a local database server, even when it hangs: it reports
+  a blocker for the user to restart it. Starting or stopping a container the
+  task did not start needs the user's confirmation.
+- `flow-research` lists the aspects of a question and their sources before
+  reading, delegates each aspect that needs more than five reads, does not
+  reread what a child covers, and hands over the rest of an aspect when its
+  sixth read in the main thread still has no answer (#311).
 - Viewer navigation groups registered source roots with the same explicit
   `.engram/config.json` project name, keeping each work's original source visible
   and its identity, history and collaboration permissions unchanged. Configured
