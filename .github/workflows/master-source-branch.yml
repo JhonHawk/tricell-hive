@@ -1,14 +1,18 @@
 # master receives changes only by promotion from development.
 # pull_request_target runs this file from the default branch, so a pull
-# request cannot rewrite the check. It checks out nothing, uses no secrets
-# and gets a token without permissions. The ruleset on master requires
-# the `source-branch` check; see CONTRIBUTING.md "Branches and commits".
+# request cannot edit this job. It checks out nothing, uses no secrets
+# and gets a token without permissions. The ruleset on master requires a
+# check named `source-branch` from GitHub Actions: no other workflow may
+# use that job name. See CONTRIBUTING.md "Branches and commits".
+# `edited` is left out on purpose: a pull request whose base changes to
+# master gets no run, so the required check stays missing and the merge
+# stays blocked until a push runs it. A skipped job would count as passed.
 name: master-source-branch
 
 on:
   pull_request_target:
     branches: [master]
-    types: [opened, synchronize, reopened, edited]
+    types: [opened, synchronize, reopened]
 
 permissions: {}
 
