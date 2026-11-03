@@ -1099,6 +1099,55 @@ func glossedAt(field string, end int) bool {
 	return glossMarks[r]
 }
 
+// trailingIDListChar reports whether r may appear between the parentheses of
+// a trailing ID citation besides the IDs themselves: option letters, digits,
+// separators and spaces, as in "(D7 A, D8 A)" or "(S1–S5)".
+func trailingIDListChar(r rune) bool {
+	return r == ' ' || r == ',' || r == '-' || r == '–' || r == '—' ||
+		(r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9')
+}
+
+// glossedBefore reports whether the ID at field[start:end] is glossed by the
+// plain words before it: the global guidance's list-point form, where a point
+// opens with what it is and cites its ID last, in parentheses, such as
+// "**Move the plan summary to the top** (D2)". The ID must sit inside a
+// parenthesis that holds only IDs, option letters and separators, and the
+// text before that parenthesis on the same line must contain a letter.
+func glossedBefore(field string, start, end int) bool {
+	open := -1
+	for i := start; i > 0; {
+		r, size := utf8.DecodeLastRuneInString(field[:i])
+		i -= size
+		if r == '(' {
+			open = i
+			break
+		}
+		if r == '\n' || !trailingIDListChar(r) {
+			return false
+		}
+	}
+	if open < 0 {
+		return false
+	}
+	closed := false
+	for i := end; i < len(field); {
+		r, size := utf8.DecodeRuneInString(field[i:])
+		i += size
+		if r == ')' {
+			closed = true
+			break
+		}
+		if r == '\n' || !trailingIDListChar(r) {
+			return false
+		}
+	}
+	if !closed {
+		return false
+	}
+	lineStart := strings.LastIndexByte(field[:open], '\n') + 1
+	return strings.IndexFunc(field[lineStart:open], unicode.IsLetter) >= 0
+}
+
 // maskFencedBlocks blanks (space-fills, preserving line count and length)
 // every line from an opening ``` or ~~~ fence to its matching close, so an ID
 // or URL inside a fenced code block is invisible to both criteria below.
@@ -1358,7 +1407,7 @@ func scanIDOccurrences(u idScanUnit) []idScanOccurrence {
 	out := make([]idScanOccurrence, len(occs))
 	for i, o := range occs {
 		isDef := defPositions[o.Start]
-		out[i] = idScanOccurrence{unit: u, occ: o, isDef: isDef, glossed: glossedAt(u.text, o.End) || defTokens[o.Token]}
+		out[i] = idScanOccurrence{unit: u, occ: o, isDef: isDef, glossed: glossedAt(u.text, o.End) || glossedBefore(u.text, o.Start, o.End) || defTokens[o.Token]}
 	}
 	return out
 }
@@ -1476,7 +1525,7 @@ func citedIDGlossedWithPrompt(r result, prompt string) criterionAssessment {
 				observed = true
 				continue
 			}
-			f.glossed = glossedAt(f.unit.text, f.occ.End)
+			f.glossed = glossedAt(f.unit.text, f.occ.End) || glossedBefore(f.unit.text, f.occ.Start, f.occ.End)
 		} else if f.isDef {
 			recordDefinition(f.occ.Token, f.unit.message)
 			for _, member := range rangeMembers(f.occ) {

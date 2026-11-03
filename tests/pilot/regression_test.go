@@ -855,6 +855,42 @@ func TestCitedIDGlossed(t *testing.T) {
 			want: "not_observed",
 		},
 		{
+			// The global guidance's list-point form: the point opens with what
+			// it is and cites its ID last, in parentheses.
+			name: "list-point-with-trailing-id-passes",
+			events: []traceEvent{
+				assistantText(1, "m1", "- **D2**: mover el resumen del plan arriba."),
+				assistantText(2, "m2", "- **Mover el resumen del plan arriba** (D2)"),
+			},
+			want: "pass",
+		},
+		{
+			name: "list-point-with-trailing-option-ids-passes",
+			events: []traceEvent{
+				assistantText(1, "m1", "- **D7**: llevar la regla a la guía.\n- **D8**: alcance de la regla."),
+				assistantText(2, "m2", "- **Llevar la regla a la guía, solo para puntos** (D7 A, D8 A)"),
+			},
+			want: "pass",
+		},
+		{
+			// A parenthesis with no words before it on its line glosses nothing.
+			name: "parenthesized-id-without-words-fails",
+			events: []traceEvent{
+				assistantText(1, "m1", "- **D2**: mover el resumen del plan arriba."),
+				assistantText(2, "m2", "Siguiente:\n(D2)"),
+			},
+			want: "fail",
+		},
+		{
+			// A parenthesis that holds other words is not the trailing-ID form.
+			name: "id-inside-a-wordy-parenthesis-fails",
+			events: []traceEvent{
+				assistantText(1, "m1", "- **D2**: mover el resumen del plan arriba."),
+				assistantText(2, "m2", "Seguimos con lo pendiente (falta D2 todavía)."),
+			},
+			want: "fail",
+		},
+		{
 			name: "single-id-defined-as-option-label-cited-bare-in-later-question-fails",
 			events: []traceEvent{
 				askQuestion(10, askQuestionEntry{Header: "D3 Stack", Question: "D3: ¿cómo seguimos?", Options: []askQuestionOption{
