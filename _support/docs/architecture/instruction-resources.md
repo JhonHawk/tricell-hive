@@ -22,7 +22,7 @@ Canonical procedural homes under `content/`:
 - `guidance/global.md` «Project settings», «Language», «Secrets», «Evidence» and «Persistent memory»: the rules that used to live in `hive-core` references (dissolved into the global guidance in `5e6e8907`).
 - `skills/flow-build/SKILL.md` «Delegation»: before dispatching a child or waiting for it; when the turn may end during a build, and the `tasks.md` checkpoint.
 - `skills/flow-plan/SKILL.md` «Change folder» and its `assets/change-folder/` templates: creating or continuing a change record; `skills/flow-close/SKILL.md` closes and archives it. `skills/flow-plan/references/plan-handoff.md`: the plan summary and the build route.
-- `skills/flow-close/SKILL.md` «Final report» and «Findings»: the report of a work item and the severity, grouping and recording of findings.
+- `skills/flow-close/SKILL.md` «Final report» and «Findings»: the report of a work item and the severity, grouping and recording of findings; «Support material»: the inventory of the work's own support material and the actions the user answers at close.
 - `skills/workspace-conventions/references/artifact-layout.md`: before writing or cleaning support artifacts; basic placement remains global.
 
 Activity and role consumers link directly to required resources. The global core

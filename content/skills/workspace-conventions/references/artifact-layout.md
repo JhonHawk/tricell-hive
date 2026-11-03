@@ -41,7 +41,7 @@ Retain necessary evidence, including justified binaries; only curated, shareable
 
 **Condition:** closing a work item or session.
 
-**Actions:** run [flow-close](../../flow-close/SKILL.md), which sets what it removes, stops and keeps.
+**Actions:** run [flow-close](../../flow-close/SKILL.md), which sets what it removes, stops and keeps, and what it proposes for the work's support material.
 
 **Condition:** requested organization of existing support material, evidence curation, promotion of findings into durable guidance, or archiving.
 
