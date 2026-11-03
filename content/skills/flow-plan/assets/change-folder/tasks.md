@@ -16,7 +16,7 @@
 
 **Execution:** <main thread, or the role that runs it>
 
-**Test approach:** <tdd · characterization · check>
+**Test approach:** <tdd · characterization · check, as the Tests section of flow-build defines them; omit when the task changes no behavior>
 
 **Changes:** <what changes and what deliberately does not>
 
