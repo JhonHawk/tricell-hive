@@ -275,6 +275,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 }
 
 type indexView struct {
+	Navigation       *Navigation             `json:"navigation,omitempty"`
 	TimelineSessions []TimelineAPIIndexEntry `json:"timeline_sessions"`
 	ProtocolVersion  int                     `json:"protocol_version"`
 	Retention        string                  `json:"retention"`
@@ -302,7 +303,11 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 		timelineHTTPError(w, err)
 		return
 	}
-	writeJSON(w, indexView{TimelineSessions: s.store.TimelineIndex(), ProtocolVersion: 3, Retention: "manual", Repositories: repositoryStatuses(reg), Errors: []IngestError{}})
+	view := indexView{TimelineSessions: s.store.TimelineIndex(), ProtocolVersion: 3, Retention: "manual", Repositories: repositoryStatuses(reg), Errors: []IngestError{}}
+	if r.URL.Query().Get("navigation") == "grouped" {
+		view.Navigation = groupedNavigation(view.TimelineSessions, reg)
+	}
+	writeJSON(w, view)
 }
 
 // file serves /files/<key>/<cap>/<path> from a stored copy. The Store validates the

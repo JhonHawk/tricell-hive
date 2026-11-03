@@ -16,7 +16,7 @@ import (
 const registryVersion = 2
 
 // ErrNotGitRepository is returned by RegisterRepository for a directory that
-// is neither inside a Git working tree nor inside a _support/workspace folder.
+// is outside Git and _support/workspace and has no valid explicit configuration.
 var ErrNotGitRepository = errors.New("not inside a Git repository or a _support/workspace folder")
 
 // Registry is viewer/registry.json: the roots authorized for v2 publication.
@@ -25,7 +25,7 @@ type Registry struct {
 	Repositories []Repository `json:"repositories"`
 }
 
-// Repository is one registered Git root.
+// Repository is one registered publication root.
 type Repository struct {
 	Root    string    `json:"root"`
 	AddedAt time.Time `json:"added_at"`
@@ -33,7 +33,7 @@ type Repository struct {
 
 // RegisterResult reports what RegisterRepository did.
 type RegisterResult struct {
-	// Root is the canonical Git root that is now registered.
+	// Root is the canonical publication root that is now registered.
 	Root string
 	// Added is false when the root was already registered; nothing is
 	// written in that case.
@@ -83,8 +83,9 @@ func gitRootOf(canonical, original string) (string, error) {
 // resolving links) is inside <root>/_support/workspace/, at any depth, the
 // root is <root>, whether or not it is a Git repository: a multi-repository
 // workspace keeps its walkthroughs there while its repositories are nested
-// folders. Otherwise it is the Git root of dir (FindGitRoot). Otherwise the
-// error wraps ErrNotGitRepository.
+// folders. Otherwise it is the Git root of dir (FindGitRoot), or the exact
+// input directory when its explicit .engram/config.json is valid. Otherwise
+// the error wraps ErrNotGitRepository.
 func ResolveRoot(dir string) (string, error) {
 	canonical, err := canonicalDir(dir)
 	if err != nil {
@@ -96,7 +97,15 @@ func ResolveRoot(dir string) (string, error) {
 			return filepath.Dir(support), nil
 		}
 	}
-	return gitRootOf(canonical, dir)
+	root, gitErr := gitRootOf(canonical, dir)
+	if gitErr == nil {
+		return root, nil
+	}
+	config := readExplicitProject(canonical)
+	if config.status == "valid" {
+		return canonical, nil
+	}
+	return "", fmt.Errorf("%w; expected a valid .engram/config.json at the exact directory", gitErr)
 }
 
 // ReadRegistry reads <stateDir>/viewer/registry.json. A missing file is an

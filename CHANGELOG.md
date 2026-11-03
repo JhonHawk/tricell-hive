@@ -12,6 +12,11 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Viewer navigation groups registered source roots with the same explicit
+  `.engram/config.json` project name, keeping each work's original source visible
+  and its identity, history and collaboration permissions unchanged. Configured
+  non-Git workspaces can be registered directly.
+
 - GitHub now enforces that `master` receives changes only by promotion from
   `development`: a ruleset blocks direct pushes, force pushes and deletion, and
   requires the `source-branch` check, which fails for a pull request from any

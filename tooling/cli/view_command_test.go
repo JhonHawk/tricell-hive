@@ -227,6 +227,43 @@ func TestViewRegisterIsIdempotentAndRejectsNonGit(t *testing.T) {
 	if _, err := f.view("register", "--dir", plain); err == nil || !strings.Contains(err.Error(), "Git") {
 		t.Fatalf("register outside Git error = %v", err)
 	}
+	if err := os.Mkdir(filepath.Join(plain, ".engram"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	config := filepath.Join(plain, ".engram", "config.json")
+	if err := os.WriteFile(config, []byte(`{"project_name":"Explicit workspace"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if out := f.mustView("register", "--dir", plain); !strings.Contains(out, plain) {
+		t.Fatalf("explicit workspace output: %q", out)
+	}
+	before, err := os.ReadFile(reg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out := f.mustView("register", "--dir", plain); !strings.Contains(out, "Already registered") {
+		t.Fatalf("repeat explicit registration: %q", out)
+	}
+	after, err := os.ReadFile(reg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("repeat explicit registration rewrote registry")
+	}
+	if err := os.WriteFile(config, []byte(`{"project_name":false}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.view("register", "--dir", plain); err == nil || !strings.Contains(err.Error(), ".engram/config.json") {
+		t.Fatalf("invalid explicit registration: %v", err)
+	}
+	after, err = os.ReadFile(reg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("invalid registration removed existing root")
+	}
 }
 
 func TestViewStartStatusStopLifecycle(t *testing.T) {
