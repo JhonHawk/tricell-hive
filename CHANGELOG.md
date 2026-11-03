@@ -47,6 +47,8 @@ raise the minor or the patch version.
   A polite request phrased as a question that names the action and its target,
   such as "can you add this user to the repository?", counts as a request for
   that change; "can we…?" and "how would we…?" stay questions (#311).
+- Archiving a viewer work shows a temporary toast naming that work with Undo,
+  replacing the persistent banner that could appear above another active work.
 - `flow-close` never stops the viewer service or closes the viewer the user
   has open: closing a work's viewer session changes only its record. No agent
   quits, restarts or kills a program other sessions or projects may use, such
