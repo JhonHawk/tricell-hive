@@ -4,7 +4,6 @@ import {
   useEffect,
   useLayoutEffect,
   useRef,
-  useState,
   useSyncExternalStore,
 } from "react";
 import {
@@ -16,6 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { mapTimelineIndex, optionalStorage, save, stored } from "./api";
+import { ArchiveNotification } from "./archive-notification";
 import type { ViewerController } from "./controller";
 import { browserLanguage } from "./language";
 import { messages as t } from "./messages";
@@ -31,7 +31,6 @@ export function ViewerApplication({
   controller: ViewerController;
   onOpenDetail?: TimelineDetailOpener;
 }) {
-  const [undoError, setUndoError] = useState(false);
   const state = useSyncExternalStore(
     controller.subscribe,
     controller.getSnapshot,
@@ -224,130 +223,112 @@ export function ViewerApplication({
           </AlertAction>
         </Alert>
       )}
-      {state.undoArchive && (
-        <Alert variant="info">
-          <AlertDescription>
-            {undoError ? t.writeError : t.archived}
-          </AlertDescription>
-          <AlertAction>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() =>
-                void controller
-                  .undoArchive()
-                  .then(() => setUndoError(false))
-                  .catch(() => setUndoError(true))
-              }
-            >
-              {t.undo}
-            </Button>
-          </AlertAction>
-        </Alert>
-      )}
     </>
   );
   return (
-    <ViewerShell
-      sessions={state.timelineSessions.map((s) => ({
-        ...mapTimelineIndex(s),
-        sourceRoot: s.source.project_root,
-        navigation: state.index?.navigation?.entries.find(
-          (entry) => entry.viewer_session_id === s.viewer_session_id,
-        ),
-      }))}
-      groupingWarning={
-        state.index?.navigation_warning ||
-        state.index?.navigation?.entries.some(
-          (entry) =>
-            entry.config_status === "invalid" ||
-            entry.config_status === "unavailable",
-        )
-      }
-      selectedId={state.selectedId}
-      state={
-        state.access !== "ready"
-          ? "ready"
-          : !state.index && !state.indexError
-            ? "loading"
-            : "ready"
-      }
-      onSelect={controller.select}
-      onRetry={retry}
-      showArchived={state.showArchived}
-      onShowArchivedChange={controller.setShowArchived}
-      panel={panel}
-      notices={notices}
-      coldLoading={
-        state.access === "ready" && !state.index && !state.indexError
-      }
-      sessionHeader={
-        data && selected ? (
-          <TimelineHeader
-            key={selected.viewer_session_id}
+    <>
+      <ArchiveNotification controller={controller} undo={state.undoArchive} />
+      <ViewerShell
+        sessions={state.timelineSessions.map((s) => ({
+          ...mapTimelineIndex(s),
+          sourceRoot: s.source.project_root,
+          navigation: state.index?.navigation?.entries.find(
+            (entry) => entry.viewer_session_id === s.viewer_session_id,
+          ),
+        }))}
+        groupingWarning={
+          state.index?.navigation_warning ||
+          state.index?.navigation?.entries.some(
+            (entry) =>
+              entry.config_status === "invalid" ||
+              entry.config_status === "unavailable",
+          )
+        }
+        selectedId={state.selectedId}
+        state={
+          state.access !== "ready"
+            ? "ready"
+            : !state.index && !state.indexError
+              ? "loading"
+              : "ready"
+        }
+        onSelect={controller.select}
+        onRetry={retry}
+        showArchived={state.showArchived}
+        onShowArchivedChange={controller.setShowArchived}
+        panel={panel}
+        notices={notices}
+        coldLoading={
+          state.access === "ready" && !state.index && !state.indexError
+        }
+        sessionHeader={
+          data && selected ? (
+            <TimelineHeader
+              key={selected.viewer_session_id}
+              data={data}
+              lang={lang}
+              onRetry={controller.retryTimeline}
+              onUpdate={(patch, version) =>
+                controller.updateTimelineSession(
+                  selected.viewer_session_id,
+                  patch,
+                  version,
+                )
+              }
+              onDelete={(version) =>
+                controller.deleteTimelineSession(
+                  selected.viewer_session_id,
+                  version,
+                )
+              }
+              onRecover={(request, reason, version) =>
+                controller.recoverTimelineLead(
+                  selected.viewer_session_id,
+                  request,
+                  reason,
+                  version,
+                )
+              }
+            />
+          ) : undefined
+        }
+      >
+        {data ? (
+          <TimelineContent
+            key={data.session.viewer_session_id}
             data={data}
             lang={lang}
+            loadDocument={loadDocument}
             onRetry={controller.retryTimeline}
-            onUpdate={(patch, version) =>
-              controller.updateTimelineSession(
-                selected.viewer_session_id,
-                patch,
-                version,
-              )
+            loading={read?.state === "loading" && !data}
+            error={read?.state === "error"}
+            targetEventID={
+              state.openTarget && "sessionID" in state.openTarget
+                ? state.openTarget.eventID
+                : undefined
             }
-            onDelete={(version) =>
-              controller.deleteTimelineSession(
-                selected.viewer_session_id,
-                version,
-              )
-            }
-            onRecover={(request, reason, version) =>
-              controller.recoverTimelineLead(
-                selected.viewer_session_id,
-                request,
-                reason,
-                version,
-              )
-            }
+            onOpenDetail={onOpenDetail}
           />
-        ) : undefined
-      }
-    >
-      {data ? (
-        <TimelineContent
-          key={data.session.viewer_session_id}
-          data={data}
-          lang={lang}
-          loadDocument={loadDocument}
-          onRetry={controller.retryTimeline}
-          loading={read?.state === "loading" && !data}
-          error={read?.state === "error"}
-          targetEventID={
-            state.openTarget && "sessionID" in state.openTarget
-              ? state.openTarget.eventID
-              : undefined
-          }
-          onOpenDetail={onOpenDetail}
-        />
-      ) : read?.state === "error" ? (
-        <Alert variant="destructive">
-          <AlertTitle>{t.loadFailed}</AlertTitle>
-          <AlertAction>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={controller.retryTimeline}
-            >
-              {t.retry}
-            </Button>
-          </AlertAction>
-        </Alert>
-      ) : selected ? (
-        <div role="status" className="flex flex-col gap-4">
-          <Skeleton className="h-4 w-2/3" />
-          <Skeleton className="h-32 w-full" />
-        </div>
-      ) : null}
-    </ViewerShell>
+        ) : read?.state === "error" ? (
+          <Alert variant="destructive">
+            <AlertTitle>{t.loadFailed}</AlertTitle>
+            <AlertAction>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={controller.retryTimeline}
+              >
+                {t.retry}
+              </Button>
+            </AlertAction>
+          </Alert>
+        ) : selected ? (
+          <div role="status" className="flex flex-col gap-4">
+            <Skeleton className="h-4 w-2/3" />
+            <Skeleton className="h-32 w-full" />
+          </div>
+        ) : null}
+      </ViewerShell>
+    </>
   );
 }

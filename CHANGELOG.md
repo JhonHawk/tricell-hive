@@ -23,6 +23,8 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Archiving a viewer work shows a temporary toast naming that work with Undo,
+  replacing the persistent banner that could appear above another active work.
 - `flow-close` never stops the viewer service or closes the viewer the user
   has open: closing a work's viewer session changes only its record.
 - Viewer navigation groups registered source roots with the same explicit

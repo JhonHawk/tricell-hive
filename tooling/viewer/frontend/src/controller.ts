@@ -40,7 +40,7 @@ export type ViewerState = {
   down: boolean;
   indexError: boolean;
   notice?: "reconnected" | "gone" | "deleted" | "archived";
-  undoArchive?: { id: string; expectedVersion: number };
+  undoArchive?: { id: string; title: string; expectedVersion: number };
   writing: boolean;
   showArchived: boolean;
 };
@@ -182,7 +182,19 @@ export class ViewerController {
         !s.archived ||
         s.viewer_session_id === this.temporaryTargetID,
     );
-    this.update({ index, timelineSessions });
+    const undo = this.state.undoArchive;
+    this.update({
+      index,
+      timelineSessions,
+      undoArchive:
+        undo &&
+        index.timeline_sessions.some(
+          (session) =>
+            session.viewer_session_id === undo.id && session.archived,
+        )
+          ? undo
+          : undefined,
+    });
     const target = this.state.openTarget;
     if (target) {
       if (
@@ -245,11 +257,14 @@ export class ViewerController {
     if (this.state.index) this.apply(this.state.index);
   };
   dismiss = () => this.update({ notice: undefined });
-  clearUndo = () => this.update({ undoArchive: undefined });
-  undoArchive = async () => {
-    const undo = this.state.undoArchive;
-    if (!undo) return;
+  clearUndo = (undo = this.state.undoArchive) => {
+    if (this.state.undoArchive === undo)
+      this.update({ undoArchive: undefined });
+  };
+  undoArchive = async (undo = this.state.undoArchive) => {
+    if (!undo || this.state.undoArchive !== undo) return;
     if (!(await this.refresh())) throw new Error("Refresh required");
+    if (this.state.undoArchive !== undo) return;
     const current = this.state.index?.timeline_sessions.find(
       (s) => s.viewer_session_id === undo.id,
     );
@@ -259,7 +274,7 @@ export class ViewerController {
       { archived: false },
       current.version,
     );
-    this.update({ undoArchive: undefined });
+    this.clearUndo(undo);
   };
   async recoverTimelineLead(
     id: string,
@@ -469,8 +484,8 @@ export class ViewerController {
                 ...patch,
               },
             };
-    const deleteTitle =
-      pending?.title ??
+    const sessionTitle =
+      (pending?.id === id ? pending.title : undefined) ??
       this.state.index?.timeline_sessions?.find(
         (s) => s.viewer_session_id === id,
       )?.title ??
@@ -531,7 +546,11 @@ export class ViewerController {
       if (patch?.archived === true)
         this.update({
           notice: "archived",
-          undoArchive: { id, expectedVersion: result.session_version },
+          undoArchive: {
+            id,
+            title: sessionTitle,
+            expectedVersion: result.session_version,
+          },
         });
       this.timelineMutation = undefined;
     } catch (error) {
@@ -558,7 +577,7 @@ export class ViewerController {
             this.update({
               pendingTimelineDelete: {
                 id,
-                title: deleteTitle,
+                title: sessionTitle,
                 expectedVersion,
               },
             });
