@@ -12,6 +12,14 @@ raise the minor or the patch version.
 
 ### Added
 
+- A `test-audit` skill trims one area's tests to one owner per contract. It
+  records a baseline (test and production lines, pass or fail, coverage when
+  measured, suite time), marks every test retain, repair, consolidate or
+  delete in a read-only ledger, adds the keeper tests before deleting what
+  they absorb, and has an independent reviewer and one deliberate code change
+  per affected contract show that nothing lost its only test. Product defects
+  it finds go to you as a decision. Adapted from OpenClaw's `test-audit`
+  (MIT).
 - Lists the user reads, such as reports, closes and pending items, open each
   point with what it is in plain words and carry one task per point; an ID it
   cites goes last, in parentheses, such as "**Move the plan summary to the
