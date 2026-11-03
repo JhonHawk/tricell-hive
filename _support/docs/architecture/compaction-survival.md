@@ -43,11 +43,25 @@ No host documents that skill or reference text is treated as untrusted data; Met
 
 Corrections to the 2026-10-27 probe: on Claude the probe's skill survived only inside the summary, because `/compact` ran in a separate `--resume` process; inside one process the body is re-injected. On Grok the probe's tiny skill was copied by the summarizer, not re-injected by the host.
 
+### Native task list after compaction
+
+Collected on 2026-11-02 from documentation, source and local transcripts of the installed versions.
+
+| Host · version | Tool and default | Kept after an automatic compaction |
+| --- | --- | --- |
+| Claude Code 2.1.316 | `TaskCreate`/`TaskUpdate`, one JSON file per task under `~/.claude/tasks/<session>/`; off by default on Opus 4.8, Sonnet 5 and newer models unless `CLAUDE_CODE_ENABLE_TODO_TOOLS=1` (doc, changelog 2.1.233) | Yes: a `task_reminder` attachment re-injects the open list after the `compact_boundary` (obs, five sessions; doc "Tasks persist across context compactions") |
+| Grok Build 1.0.73 | `todo_write`; `plan.json` stays empty locally (obs) | Yes: a "## TODO List … still active" user message follows the compaction (obs) |
+| Codex CLI 0.166.0 | `update_plan`, off by default since 0.152 (`tools.update_plan.enabled`); the handler stores nothing (source `plan.rs`) | No: the compacted history keeps no plan, and the model rebuilt it itself (obs on 0.145.0, before the default changed; not rechecked with the tool enabled) |
+| OpenCode v2.2.5 | `todowrite`, only with `experimental.todo: true`; the list is the latest call in the message log (source) | No re-injection: issue #5934 is still reported after its stale close, and PR #25982 was closed unmerged (source, inf) |
+| Pi 1.4.0 | None built in; an example extension keeps state in tool-result details (doc) | Not applicable |
+| Cursor CLI 2026.10.22 | `TodoWrite` through `CallDynamicTool` (obs) | Unknown: no documentation or transcript shows it either way |
+
 ## What it means for Hive
 
 - A rule that must hold every turn and after compaction lives in the global guidance. On Grok, the guidance states its own authority because the host frames it as optional.
 - Each flow skill keeps its binding steps in the first ~60 lines and stays under 8 KB, for Cursor's partial reads and Codex's explicit cut.
 - References are read at a fixed moment, such as `plan-handoff.md` before the build route; a rule that only lives in a reference holds only while that read is in context.
+- A native task list is a live view, not the record: only Claude Code and Grok are shown to re-inject it after a compaction; Codex and OpenCode do not, Pi has none and Cursor is unmeasured. A plan kept in the conversation keeps its checkpoint in a file in the host's temporary location, as `flow-build` sets, because the conversation itself is summarized at compaction.
 - A flow boundary names the command for the next flow in the host's syntax (`/flow-x`, `$flow-x`, `/skill:flow-x`, `@flow-x`), so each flow starts with its skill loaded whole.
 
 ## Sources
@@ -58,4 +72,5 @@ Corrections to the 2026-10-27 probe: on Claude the probe's skill survived only i
 - Pi: installed docs and `dist` 1.4.0 (`skills.md`, `compaction.md`, `core/skills.js`, `agent-session.js`); issues #11019, #9874.
 - OpenCode: source at tag `v2.2.4` (`skill.ts`, `session/prompt.ts`, `compaction.ts`); docs `skills.mdx`, `instructions.mdx`; issues #10744, #46815.
 - Cursor CLI: cursor.com/docs/context/skills, /context/rules, /cli/using; forum threads 163761, 161142, 163768; local transcripts and the installed bundle.
+- Native task lists (2026-11-02): code.claude.com/docs/en/interactive-mode ("Task list") and /tools-reference, Claude Code CHANGELOG 2.1.233 and 2.1.311; openai/codex issue #42365 and `codex-rs/core/src/tools/handlers/plan.rs`; Grok installed user guide `17-sessions.md`; OpenCode `packages/core/src/tool/plugin/todo.ts`, issue #5934, PR #25982, opencode.ai/docs/tools; Pi `docs/extensions.md`; cursor.com/docs/cli/changelog.
 - Evals and reports: vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals; Meta SkillInject summary; X posts by Codex, Claude Code and OpenCode staff (2026).
