@@ -12,8 +12,9 @@ needs access to the Go modules unless they are already cached.
 
 ## Run the full local test suite
 
-The repository has no CI, so contributors run the suite locally before proposing
-a change:
+The repository runs no tests in CI, so contributors run the suite locally before
+proposing a change. Its only GitHub workflow is the `source-branch` check on pull
+requests to `master`, described in [Branches and commits](#branches-and-commits):
 
 ```sh
 go vet ./...
@@ -65,6 +66,13 @@ and preserve the shared offline renderer byte for byte. See the
 
 - Branch from `development`, the base branch, and open pull requests against it.
   `master` is the release branch and receives changes only by promotion.
+  GitHub enforces it: a ruleset on `master` blocks direct pushes, force pushes
+  and deletion, accepts only merge commits, and requires the `source-branch`
+  check of `.github/workflows/master-source-branch.yml`, which passes only for a
+  pull request from `development` of this repository. A hotfix pull request into
+  `master` fails that check; it goes in only through the repository admin's
+  bypass, which works only by merging a pull request, and only when the
+  maintainer decides it for that pull request.
 - Use [Conventional Commits](https://www.conventionalcommits.org/), such as
   `fix(cli): ...`, `feat(guidance): ...`, or `docs: ...`.
 - Keep a change focused, and do not mix unrelated fixes into it.

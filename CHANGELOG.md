@@ -10,6 +10,14 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Changed
+
+- GitHub now enforces that `master` receives changes only by promotion from
+  `development`: a ruleset blocks direct pushes, force pushes and deletion, and
+  requires the `source-branch` check, which fails for a pull request from any
+  other branch. Only the repository admin can bypass it, by merging a pull
+  request.
+
 ## [0.8.0] - 2026-11-03
 
 ### Added
