@@ -73,7 +73,9 @@ and preserve the shared offline renderer byte for byte. See the
   `.github/workflows/master-source-branch.yml` passes only for a pull request
   from `development` of this repository. The ruleset matches the check by name,
   not by file, so no other workflow may define a job named `source-branch`; a
-  pull request that adds one is a reason to reject it. A hotfix pull request into
+  pull request that adds one is a reason to reject it. Workflows from every
+  fork's pull request wait for the maintainer's approval before they run, so a
+  fork's job of that name never runs unseen. A hotfix pull request into
   `master` fails that check: it goes in only through the repository admin's
   bypass, which works only by merging a pull request, only when the maintainer
   decides it for that pull request, and then the same hotfix branch is merged
