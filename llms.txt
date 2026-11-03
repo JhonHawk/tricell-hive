@@ -42,6 +42,7 @@ Source-byte unions are not actual tokens or evidence of small-model reliability.
 - [starlight-docs-site](content/skills/starlight-docs-site/SKILL.md): scaffold, extend or audit a documentation site
 - [harness-audit](content/skills/harness-audit/SKILL.md): audit agent instructions, skills and role definitions, ask the decisions the findings need, and apply the accepted outcomes, including a repository's `## Hive` section
 - [security-advisory](content/skills/security-advisory/SKILL.md): check whether a published advisory affects a set of repositories, without changing them
+- [test-audit](content/skills/test-audit/SKILL.md): prune one area's duplicate or implementation-coupled tests to one owner per contract, proven by an independent review and targeted mutations
 - [workspace-conventions](content/skills/workspace-conventions/SKILL.md): organize support artifacts and retained evidence
 - [unattended-delegation](content/skills/unattended-delegation/SKILL.md): coordinate delegated work with a bounded objective and expiry
 - [engram-init-workspace](content/skills/engram-init-workspace/SKILL.md): establish one Engram identity for a declared workspace, only when asked
