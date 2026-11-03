@@ -9,7 +9,7 @@ Research settles what the work is; [Plan](/flows/plan/) settles how. Every reque
 
 It starts on any request to do work, with no command to type, and when the next step depends on facts you do not have yet.
 
-- A request that already says everything that matters, such as adding a user to the repository, is checked for blockers and done: a change to the repository continues into [Build](/flows/build/) in the same turn, and an action that changes no repository file is done and reported.
+- A request that already says everything that matters, such as adding a user to the repository, is checked for blockers without questions: an action that changes no repository file is done and reported, and a change to the repository continues into [Build](/flows/build/) in the same turn when its how leaves you no decision, or goes to [Plan](/flows/plan/) otherwise.
 
 - Something fails and the cause is unknown, or a bug is reported without a request to fix it.
 - You want to compare two ways of solving a problem, or settle two sources that disagree.
