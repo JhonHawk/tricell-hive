@@ -8,9 +8,17 @@ import (
 
 // Lifecycle context retains semantic input; exact wire requests are separate
 // journal steps. Registration resolves default assignees before preparing intent.
+type viewWorkLifecycleBinding struct {
+	TaskKey string               `json:"task_key"`
+	Stage   viewer.TimelineStage `json:"stage"`
+	EventID string               `json:"event_id,omitempty"`
+}
+
 type viewWorkLifecycleContext struct {
-	Command   viewWorkCommand `json:"command"`
-	FirstStep *viewWorkStep   `json:"first_step,omitempty"`
+	Command      viewWorkCommand            `json:"command"`
+	FirstStep    *viewWorkStep              `json:"first_step,omitempty"`
+	Bindings     []viewWorkLifecycleBinding `json:"bindings,omitempty"`
+	PrimaryStage bool                       `json:"primary_stage,omitempty"`
 }
 
 func workLifecycleSource(s viewer.TimelineSession, a viewer.TimelineActor) viewer.TimelineSource {
@@ -88,6 +96,7 @@ func (e *viewWorkEngine) lifecycle(c viewWorkCommand) (viewWorkResult, error) {
 			return viewWorkResult{}, &viewWorkError{Code: "pending_operation", Pending: pending.ID, Next: "resume the original intent before another lifecycle operation"}
 		}
 	}
+	var bindings []viewWorkLifecycleBinding
 	// Prevalidate the entire batch, including remote collisions and accepted
 	// assignees, before saving an intent or creating its first task.
 	if c.Action == "tasks register" {
@@ -115,6 +124,14 @@ func (e *viewWorkEngine) lifecycle(c viewWorkCommand) (viewWorkResult, error) {
 		if err := e.validateLifecycleRegistration(s, actor, c); err != nil {
 			return viewWorkResult{}, err
 		}
+		for _, task := range c.Tasks {
+			for _, segment := range task.Segments {
+				stage := workLifecycleStage(s, string(segment.Stage))
+				if stage != nil && stage.StageState != "completed" && stage.StageState != "failed" {
+					bindings = append(bindings, viewWorkLifecycleBinding{TaskKey: task.Key, Stage: segment.Stage, EventID: stage.EventID})
+				}
+			}
+		}
 		missing := make([]viewWorkTaskInput, 0, len(c.Tasks))
 		for _, task := range c.Tasks {
 			if workLifecycleTask(s, task.Key) == nil {
@@ -129,10 +146,31 @@ func (e *viewWorkEngine) lifecycle(c viewWorkCommand) (viewWorkResult, error) {
 	if err != nil {
 		return viewWorkResult{}, err
 	}
+	primaryStage := c.Action == "stage" && method != ""
+	if c.Action == "stage" && c.State != "completed" && c.State != "failed" {
+		eventID := ""
+		if stage := workLifecycleStage(s, c.Stage); stage != nil && (!primaryStage || stage.StageState != "completed" && stage.StageState != "failed") {
+			eventID = stage.EventID
+		}
+		for _, task := range s.Tasks {
+			if task.Withdrawn {
+				continue
+			}
+			if segment := workLifecycleSegment(&task, c.Stage); segment != nil {
+				bindings = append(bindings, viewWorkLifecycleBinding{TaskKey: task.TaskKey, Stage: segment.PlannedStage, EventID: eventID})
+			}
+		}
+	}
+	if method == "" {
+		method, path, body, err = e.nextLifecycleBinding(s, actor, c.Reason, bindings, 0)
+		if err != nil {
+			return viewWorkResult{}, err
+		}
+	}
 	if method == "" {
 		return viewWorkResult{WorkID: c.WorkID, Result: "unchanged", SessionVersion: s.Version}, nil
 	}
-	context := viewWorkLifecycleContext{Command: c, FirstStep: &viewWorkStep{Method: method, Path: path, ContentType: "application/json", Body: body}}
+	context := viewWorkLifecycleContext{Command: c, Bindings: bindings, PrimaryStage: primaryStage, FirstStep: &viewWorkStep{Method: method, Path: path, ContentType: "application/json", Body: body}}
 	i, err := e.prepareIntent(c.Action, c.WorkID, workLifecycleSource(s, actor), context)
 	if err != nil {
 		return viewWorkResult{}, err
@@ -354,6 +392,21 @@ func workLifecycleMetadata(s viewer.TimelineSession, a viewer.TimelineActor, c v
 			return nil, workStateError("confirmed_decision_reference_required")
 		}
 	}
+	scopeChanged := m.Order != nil && *m.Order != task.PlanOrder
+	if r.SegmentID == "" {
+		scopeChanged = scopeChanged || m.Withdrawn != nil && *m.Withdrawn != task.Withdrawn
+	} else {
+		for _, segment := range task.Segments {
+			if segment.SegmentID != r.SegmentID {
+				continue
+			}
+			scopeChanged = scopeChanged || m.Withdrawn != nil && *m.Withdrawn != segment.Withdrawn || m.SegmentOrder != nil && *m.SegmentOrder != segment.Order || r.AssignedProducerID != "" && r.AssignedProducerID != segment.AssignedProducerID
+		}
+	}
+	if scopeChanged && r.PlanRevisionID == "" && r.DecisionTarget == nil {
+		return nil, workStateError("scope_reference_required")
+	}
+
 	return r, nil
 }
 
@@ -407,7 +460,41 @@ func (e *viewWorkEngine) resumeLifecycle(i *viewWorkIntent) (viewWorkResult, err
 			return viewWorkResult{}, workStateError("source_mismatch")
 		}
 		last := i.Steps[len(i.Steps)-1]
-		done := c.Action == "stage" || c.Action == "close" || c.Action == "tasks register" && len(i.Steps) == len(c.Tasks) || c.Action == "task update" && (c.Metadata != nil || strings.HasSuffix(last.Path, "/transitions"))
+		creates := 0
+		for _, step := range i.Steps {
+			if step.Method == "POST" && strings.HasSuffix(step.Path, "/tasks") {
+				creates++
+			}
+		}
+		if c.Action == "stage" || c.Action == "tasks register" && creates == len(c.Tasks) {
+			bindings := append([]viewWorkLifecycleBinding{}, context.Bindings...)
+			if context.PrimaryStage {
+				receipt, err := viewer.DecodeTimelineOperationResult(i.Steps[0].Response)
+				if err != nil {
+					return viewWorkResult{}, err
+				}
+				for n := range bindings {
+					if bindings[n].EventID == "" {
+						bindings[n].EventID = receipt.EventID
+					}
+				}
+			}
+			receipt, err := viewer.DecodeTimelineOperationResult(last.Response)
+			if err != nil {
+				return viewWorkResult{}, err
+			}
+			method, path, body, err := e.nextLifecycleBinding(s, actor, c.Reason, bindings, receipt.SessionVersion)
+			if err != nil {
+				return viewWorkResult{}, err
+			}
+			if method != "" {
+				if _, err = e.appendStep(i, method, path, "application/json", body); err != nil {
+					return viewWorkResult{}, err
+				}
+				continue
+			}
+		}
+		done := c.Action == "stage" || c.Action == "close" || c.Action == "tasks register" && creates == len(c.Tasks) || c.Action == "task update" && (c.Metadata != nil || strings.HasSuffix(last.Path, "/transitions"))
 		if done {
 			result.SessionVersion = s.Version
 			if err := e.finishIntent(i); err != nil {
@@ -439,13 +526,13 @@ func (e *viewWorkEngine) resumeLifecycle(i *viewWorkIntent) (viewWorkResult, err
 			}
 			continue
 		}
-		if c.Action == "tasks register" && len(i.Steps) < len(c.Tasks) {
+		if c.Action == "tasks register" && creates < len(c.Tasks) {
 			receipt, err := viewer.DecodeTimelineOperationResult(last.Response)
 			if err != nil {
 				return viewWorkResult{}, err
 			}
 			if s.Version != receipt.SessionVersion {
-				request, err := workLifecycleCreate(s, actor, c, c.Tasks[len(i.Steps)])
+				request, err := workLifecycleCreate(s, actor, c, c.Tasks[creates])
 				if err != nil {
 					return viewWorkResult{}, err
 				}
@@ -477,4 +564,36 @@ func (e *viewWorkEngine) resumeLifecycle(i *viewWorkIntent) (viewWorkResult, err
 			return viewWorkResult{}, err
 		}
 	}
+}
+
+// Only the already accepted lead performs these metadata writes. Assignees
+// subsequently use their own producer for transitions without changing authority.
+func (e *viewWorkEngine) nextLifecycleBinding(s viewer.TimelineSession, actor viewer.TimelineActor, reason string, bindings []viewWorkLifecycleBinding, expected int64) (string, string, []byte, error) {
+	for _, binding := range bindings {
+		task := workLifecycleTask(s, binding.TaskKey)
+		if task == nil || task.Withdrawn {
+			continue
+		}
+		segment := workLifecycleSegment(task, string(binding.Stage))
+		if segment == nil || segment.DisplayStageEventID == binding.EventID {
+			continue
+		}
+		if binding.EventID == "" {
+			return "", "", nil, workStateError("stage_binding_required")
+		}
+		request := &viewer.TimelineTaskPatchRequest{TimelineNativeOperation: workLifecycleBase(s, actor, reason), ExpectedTaskVersion: task.TaskVersion, SegmentID: segment.SegmentID, DisplayStageEventID: binding.EventID}
+		if expected == 0 || expected == s.Version {
+			if err := viewer.ValidateTimelineV3OperationReferences(s, "task_patch", task.TaskID, request); err != nil {
+				return "", "", nil, err
+			}
+		} else if err := viewer.ValidateTimelineV3Operation(request); err != nil {
+			return "", "", nil, err
+		}
+		if expected > 0 {
+			request.ExpectedSessionVersion = expected
+		}
+		raw, err := json.Marshal(request)
+		return "PATCH", "/api/timeline/sessions/" + s.ViewerSessionID + "/tasks/" + task.TaskID, raw, err
+	}
+	return "", "", nil, nil
 }

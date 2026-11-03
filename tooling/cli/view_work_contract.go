@@ -30,7 +30,7 @@ Creation fields and --work-id are exclusive. --project is mandatory on first bin
 
 STAGE: research|plan|build|verify|delivery. Stage STATE: in_progress|in_review|awaiting_validation|completed|paused|failed. A terminal stage needs explicit --previous-stage for reentry. Existing publication never starts a stage. The creation variant explicitly starts the requested stage with --summary/--reason. Snapshot status is draft|complete, not approval.
 
-Plan defaults: proposal.md and tasks.md required, design.md optional, sorted specs/**/spec.md. --document RELATIVE.md adds extras. --explicit-documents replaces defaults and requires at least one --document. Non-plan stages require explicit --document and --document-key. The plan key defaults to plan. Maximum 8 tabs, 256 KiB per UTF-8 Markdown; no truncation. Paths/links/types/stability and all existing v3 limits are checked before mutation. No linked-file traversal. Bytes freeze before network mutation.
+Plan defaults: proposal.md and tasks.md required, design.md optional, sorted specs/**/spec.md. --document RELATIVE.md adds extras. --explicit-documents replaces defaults and requires at least one --document. Non-plan stages require explicit --document and --document-key. The plan key defaults to plan. Maximum 8 tabs, 256 KiB per UTF-8 Markdown; no truncation. Paths/links/types/stability and observable document limits are checked before mutation. The server enforces remaining v3 quotas; partial uploads never count as a published snapshot. No linked-file traversal. Bytes freeze before network mutation.
 
 Registration JSON is a nonempty array (max 100):
 [{"key":"T1","title":"Implement export","summary":"Add the requested export","order":1,"segments":[{"stage":"build","order":1},{"stage":"verify","order":2}]}]

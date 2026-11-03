@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -196,5 +198,174 @@ func TestWorkJournalRejectsMissingSemanticIntent(t *testing.T) {
 	got, _ := os.ReadFile(path)
 	if !bytes.Equal(got, raw) {
 		t.Fatal("modified corrupt semantic intent")
+	}
+}
+
+func TestWorkJournalClosureRequestSurvivesReloadAndReplay(t *testing.T) {
+	for _, committed := range []bool{false, true} {
+		t.Run(fmt.Sprint("committed-", committed), func(t *testing.T) {
+			_, c := workEngineFixture(t)
+			opened := engineWorkOpen(t, c)
+			c.Action, c.WorkID, c.Outcome, c.Reason = "close", opened.WorkID, "completed", "Implementation verified and delivered"
+			e, err := openViewWorkEngine(c)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer e.Close()
+			s, err := e.session(c.WorkID)
+			if err != nil {
+				t.Fatal(err)
+			}
+			actor, err := e.actor(s, c)
+			if err != nil {
+				t.Fatal(err)
+			}
+			method, path, body, _, err := e.nextLifecycleStep(s, actor, c)
+			if err != nil {
+				t.Fatal(err)
+			}
+			step := viewWorkStep{Method: method, Path: path, ContentType: "application/json", Body: body}
+			i, err := e.prepareIntent("close", c.WorkID, workLifecycleSource(s, actor), viewWorkLifecycleContext{Command: c, FirstStep: &step})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err = e.appendStep(i, method, path, "application/json", body); err != nil {
+				t.Fatal(err)
+			}
+			i.Steps[0].Attempted = true
+			i.State = "needs_reconciliation"
+			if err = e.save(); err != nil {
+				t.Fatal(err)
+			}
+			if committed {
+				if _, _, err = viewWorkHTTP(e.info, method, path, "application/json", body); err != nil {
+					t.Fatal(err)
+				}
+			}
+			e.journal, err = readWorkJournal(e.dir)
+			if err != nil {
+				t.Fatal("valid uncertain closure rejected on reload", err)
+			}
+			c.Action = "resume"
+			if err = e.recover(c, io.Discard); err != nil {
+				t.Fatal("closure recovery failed", err)
+			}
+			current, err := e.session(c.WorkID)
+			if err != nil || current.State != viewer.TimelineClosed {
+				t.Fatal("closure was not confirmed", err)
+			}
+			// Earlier candidates retained bodies in confirmed history. Those valid v3
+			// bytes must remain readable, even though new confirmations compact them.
+			retained := e.journal.History[len(e.journal.History)-1]
+			retained.Steps[0].Body = body
+			if err = e.save(); err != nil {
+				t.Fatal(err)
+			}
+			if _, err = readWorkJournal(e.dir); err != nil {
+				t.Fatal("valid retained closure body rejected", err)
+			}
+		})
+	}
+}
+
+func TestWorkJournalReconcilesScopeReferenceRejection(t *testing.T) {
+	_, c := workEngineFixture(t)
+	opened := engineWorkOpen(t, c)
+	c.WorkID = opened.WorkID
+	e, err := openViewWorkEngine(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer e.Close()
+	s, err := e.session(c.WorkID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	actor, err := e.actor(s, c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	create := viewer.TimelineTaskCreateRequest{TimelineNativeOperation: workLifecycleBase(s, actor, "Declare task"), TaskKey: "T1", Title: "Scope change recovery", PlanOrder: 1, Segments: []viewer.TimelineTaskSegmentInput{{PlannedStage: "build", Order: 1}}}
+	raw, _ := json.Marshal(create)
+	response, _, err := viewWorkHTTP(e.info, "POST", "/api/timeline/sessions/"+c.WorkID+"/tasks", "application/json", raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	created, err := viewer.DecodeTimelineOperationResult(response)
+	if err != nil {
+		t.Fatal(err)
+	}
+	s, err = e.session(c.WorkID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	order := int64(2)
+	request := viewer.TimelineTaskPatchRequest{TimelineNativeOperation: workLifecycleBase(s, actor, "Change declared scope"), ExpectedTaskVersion: created.TaskVersion, PlanOrder: &order}
+	body, _ := json.Marshal(request)
+	path := "/api/timeline/sessions/" + c.WorkID + "/tasks/" + created.TaskID
+	c.Action, c.Key, c.Reason = "task update", "T1", "Change declared scope"
+	c.Metadata = &viewWorkTaskMetadata{Order: &order}
+	step := viewWorkStep{Method: "PATCH", Path: path, ContentType: "application/json", Body: body}
+	i, err := e.prepareIntent(c.Action, c.WorkID, workLifecycleSource(s, actor), viewWorkLifecycleContext{Command: c, FirstStep: &step})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = e.appendStep(i, step.Method, path, step.ContentType, body); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = e.executeStep(i, 0); err == nil {
+		t.Fatal("server accepted missing scope reference")
+	}
+	if i.State != "rejected_conflict" || i.Steps[0].Rejection != "scope_reference_required" {
+		t.Fatal("structured scope rejection remained uncertain")
+	}
+	// Older candidates retained this exact rejection as an unknown outcome.
+	// Reconciliation must replay the original request and recover that evidence.
+	i.State = "needs_reconciliation"
+	i.Steps[0].Rejection = ""
+	if err = e.save(); err != nil {
+		t.Fatal(err)
+	}
+	e.journal, err = readWorkJournal(e.dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	reconcile := c
+	reconcile.Action, reconcile.Pending, reconcile.Reason = "reconcile", i.ID, "Archive the exact request rejected for its missing scope reference"
+	if err = e.recover(reconcile, io.Discard); err != nil {
+		t.Fatal(err)
+	}
+	if len(e.journal.Pending) != 0 {
+		t.Fatal("reconciliation left permanent pending intent")
+	}
+	j, err := readWorkJournal(e.dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, archived := range j.History {
+		if archived.ID == i.ID {
+			found = true
+			if archived.State != "archived_rejected" || archived.Steps[0].Rejection != "scope_reference_required" || !bytes.Equal(archived.Steps[0].Body, body) {
+				t.Fatal("archive lost rejection evidence")
+			}
+		}
+	}
+	if !found {
+		t.Fatal("archive missing")
+	}
+	current, err := e.session(c.WorkID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if workLifecycleTask(current, "T1").PlanOrder != 1 {
+		t.Fatal("rejected replay mutated scope")
+	}
+}
+func TestWorkJournalUncertainOutcomesStayUnarchiveable(t *testing.T) {
+	for _, code := range []string{"operation_conflict", "outcome_unknown", "", "internal", "malformed_response", "unrecognized_future_error"} {
+		if definitiveWorkRejection(code) {
+			t.Fatalf("uncertain outcome %q classified as rejection", code)
+		}
 	}
 }

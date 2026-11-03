@@ -118,11 +118,16 @@ func TestWorkLifecycleTaskBatchAndSegmentRecovery(t *testing.T) {
 	s = scenario.current()
 	event := scenarioEvent(t, s, plan.StageID)
 	revision := scenario.result([]string{"stage", "snapshot", c.WorkID, plan.StageID}, viewer.TimelineDocumentSnapshotRequest{SchemaVersion: 3, OperationID: "lifecycle-plan", Actor: scenario.actor, DocumentKey: "plan", ExpectedVersion: event.Version, ExpectedSessionVersion: s.Version, Status: "draft", Tabs: []viewer.TimelineDocumentTab{{Label: "Plan", DocumentID: doc.DocumentID}}})
+	current := scenario.current()
+	joined := scenario.result([]string{"producer", "request", c.WorkID}, viewer.TimelineJoinRequestInput{SchemaVersion: 3, OperationID: "assigned-join", Source: viewer.TimelineSource{Host: "claude-code", NativeSessionID: "assigned-collaborator", ProjectRoot: c.Project}, ExpectedSessionVersion: current.Version, Reason: "Accept assigned collaborator"})
+	scenario.result([]string{"producer", "accept", c.WorkID}, viewer.TimelineProducerAcceptRequest{TimelineNativeOperation: scenario.base("assigned-accept"), RequestID: joined.RequestID})
 	register := c
 	register.Action = "tasks register"
 	register.PlanRevision = revision.DocumentRevisionID
 	source := &viewWorkSource{Host: "codex", NativeSessionID: c.NativeSessionID}
 	register.Tasks = []viewWorkTaskInput{{Key: "T1", Title: "Implement", Summary: "Build and verify separately", Order: 1, Segments: []viewWorkSegmentInput{{Stage: "build", Order: 1, Assignee: source}, {Stage: "verify", Order: 1, Assignee: source}}}, {Key: "T2", Title: "Document", Order: 2, Segments: []viewWorkSegmentInput{{Stage: "build", Order: 2, Assignee: source}}}}
+	collaboratorSource := &viewWorkSource{Host: "claude-code", NativeSessionID: "assigned-collaborator"}
+	register.Tasks[1].Segments[0].Assignee = collaboratorSource
 	// Fail the whole batch before first mutation when the final member conflicts.
 	invalid := register
 	invalid.Tasks = append([]viewWorkTaskInput{}, register.Tasks...)
@@ -183,6 +188,24 @@ func TestWorkLifecycleTaskBatchAndSegmentRecovery(t *testing.T) {
 	if _, err = e.lifecycle(c); err != nil {
 		t.Fatal(err)
 	}
+	collaborator := c
+	collaborator.Action = "task update"
+	collaborator.Key = "T2"
+	collaborator.Host = "claude-code"
+	collaborator.NativeSessionID = "assigned-collaborator"
+	if _, err = e.lifecycle(collaborator); err != nil {
+		t.Fatalf("assigned collaborator cannot start its segment after lead stage startup: %v", err)
+	}
+	// Registration while a stage already exists must establish the same lead-owned binding.
+	later := register
+	later.Tasks = []viewWorkTaskInput{{Key: "T3", Title: "Later assigned task", Order: 3, Segments: []viewWorkSegmentInput{{Stage: "build", Order: 3, Assignee: collaboratorSource}}}}
+	if _, err = e.lifecycle(later); err != nil {
+		t.Fatal(err)
+	}
+	collaborator.Key = "T3"
+	if _, err = e.lifecycle(collaborator); err != nil {
+		t.Fatalf("assigned collaborator cannot start task registered during active stage: %v", err)
+	}
 	update := c
 	update.Action = "task update"
 	update.Key = "T1"
@@ -221,7 +244,7 @@ func TestWorkLifecycleTaskBatchAndSegmentRecovery(t *testing.T) {
 	if _, err = e.lifecycle(update); err != nil {
 		t.Fatal(err)
 	}
-	order := int64(3)
+	order := int64(4)
 	update.Metadata = &viewWorkTaskMetadata{Order: &order}
 	if _, err = e.lifecycle(update); err == nil {
 		t.Fatal("changed scope without reference")
@@ -231,7 +254,7 @@ func TestWorkLifecycleTaskBatchAndSegmentRecovery(t *testing.T) {
 		t.Fatal(err)
 	}
 	task = workLifecycleTask(scenario.current(), "T1")
-	if task.PlanOrder != 3 || task.Segments[0].State != "in_progress" {
+	if task.PlanOrder != 4 || task.Segments[0].State != "in_progress" {
 		t.Fatal("metadata update reset task progress")
 	}
 }
@@ -334,4 +357,56 @@ func TestWorkLifecycleBindingConflictRetainsReconcileableRequest(t *testing.T) {
 	if task.Title != title || task.Segments[0].State != "not_started" {
 		t.Fatal("conflicting transition changed external state")
 	}
+}
+
+func TestWorkLifecycleRejectsUnreferencedScopeBeforePreparing(t *testing.T) {
+	f, c := workEngineFixture(t)
+	e := &viewWorkEngine{dir: t.TempDir(), info: f.info(), journal: newWorkJournal()}
+	s, err := e.open(c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c.WorkID = s.ViewerSessionID
+	actor, err := e.actor(s, c)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := viewer.TimelineTaskCreateRequest{TimelineNativeOperation: workLifecycleBase(s, actor, "Declare scoped task"), TaskKey: "T1", Title: "Scoped task", PlanOrder: 1, Segments: []viewer.TimelineTaskSegmentInput{{PlannedStage: "build", Order: 1}}}
+	raw, _ := json.Marshal(request)
+	if _, _, err = viewWorkHTTP(e.info, "POST", "/api/timeline/sessions/"+c.WorkID+"/tasks", "application/json", raw); err != nil {
+		t.Fatal(err)
+	}
+	scenario := &timelineScenario{t: t, f: f, input: filepath.Join(t.TempDir(), "request.json"), id: c.WorkID, actor: actor}
+	now := scenario.current()
+	joined := scenario.result([]string{"producer", "request", c.WorkID}, viewer.TimelineJoinRequestInput{SchemaVersion: 3, OperationID: "scope-join", Source: viewer.TimelineSource{Host: "claude-code", NativeSessionID: "scope-assignee", ProjectRoot: c.Project}, ExpectedSessionVersion: now.Version, Reason: "Accept scope test assignee"})
+	scenario.result([]string{"producer", "accept", c.WorkID}, viewer.TimelineProducerAcceptRequest{TimelineNativeOperation: scenario.base("scope-accept"), RequestID: joined.RequestID})
+	c.Action = "task update"
+	c.Key = "T1"
+	c.Reason = "Explicit metadata request"
+	withdrawn := true
+	order := int64(2)
+	for _, metadata := range []*viewWorkTaskMetadata{{Withdrawn: &withdrawn}, {Stage: "build", Withdrawn: &withdrawn}, {Stage: "build", SegmentOrder: &order}, {Stage: "build", Assignee: &viewWorkSource{Host: "claude-code", NativeSessionID: "scope-assignee"}}} {
+		c.Metadata = metadata
+		before, err := e.session(c.WorkID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		history := len(e.journal.History)
+		if _, err = e.lifecycle(c); err == nil {
+			t.Fatal("unreferenced scope update succeeded")
+		}
+		after, err := e.session(c.WorkID)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(e.journal.Pending) != 0 || len(e.journal.History) != history || after.Version != before.Version {
+			t.Fatal("unreferenced scope update reached durable preparation or mutation")
+		}
+	}
+	unchanged := false
+	c.Metadata = &viewWorkTaskMetadata{Withdrawn: &unchanged}
+	if _, err = e.lifecycle(c); err != nil {
+		t.Fatalf("unchanged withdrawal value incorrectly requires scope reference: %v", err)
+	}
+
 }

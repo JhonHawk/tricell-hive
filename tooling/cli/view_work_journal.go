@@ -208,6 +208,17 @@ func definitiveWorkRejection(code string) bool {
 	switch code {
 	case "version_conflict", "session_version_conflict", "event_version_conflict", "current_predecessor_required", "predecessor_conflict", "work_closed", "session_closed", "session_deleted", "not_found", "forbidden", "producer_required", "lead_required":
 		return true
+	// Explicit v3 validation/authority/precondition responses reject the write
+	// before a receipt is committed. Keep this finite: transport failures,
+	// malformed responses, operation_conflict and unknown codes remain uncertain.
+	case "scope_reference_required", "entity_exists", "entity_conflict", "duplicate_plan_order",
+		"stage_active", "stage_terminal", "stage_resume_required", "already_in_state", "session_terminal",
+		"stage_unavailable", "stage_binding_mismatch", "reentry_binding_required", "duplicate_identity", "duplicate_key", "duplicate_stage_order",
+		"producer_not_accepted", "content_owner_required", "segment_assignee_required", "forbidden_actor", "forbidden_for_operation", "local_viewer_required", "native_producer_required",
+		"unknown_event", "unknown_task", "unknown_wait", "unknown_ticket", "unknown_delivery", "unknown_candidate",
+		"pending_request_required", "immutable_audit", "invalid_transition", "invalid_state_transition", "invalid_producer_transition", "foreign_project", "unknown_or_mixed_attempt", "candidate_mismatch", "attempt_already_known",
+		"capacity", "session_limit", "limit", "unsupported_protocol", "invalid_request", "invalid_id":
+		return true
 	}
 	return false
 }
@@ -435,6 +446,9 @@ func validateWorkStoredStep(i *viewWorkIntent, s viewWorkStep) error {
 			operation = "session_patch"
 		case tail == "/events" && s.Method == "POST":
 			operation = "stage_start"
+			if i.Action == "close" {
+				operation = "append_event"
+			}
 		case tail == "/documents" && s.Method == "POST":
 			operation = "document_add"
 		case tail == "/tasks" && s.Method == "POST":
@@ -503,6 +517,12 @@ func validateWorkStoredStep(i *viewWorkIntent, s viewWorkStep) error {
 	}
 	if err := validateViewTimelineInput(operation, input); err != nil {
 		return &viewWorkError{Code: "invalid_journal", Field: "step." + operation + "." + viewer.TimelineContractCode(err)}
+	}
+	if operation == "append_event" {
+		r, err := viewer.DecodeTimelineAppendEvent(input)
+		if err != nil || r.Kind != "closure" {
+			return bad()
+		}
 	}
 	if operation == "create_session" {
 		r, err := viewer.DecodeTimelineCreateSession(input)
