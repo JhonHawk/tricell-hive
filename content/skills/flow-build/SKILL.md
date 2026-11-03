@@ -25,9 +25,9 @@ Between tasks, continue with the next tool call instead of ending the turn with 
 
 ## Tests
 
-Read before writing, changing or deleting a test, when a check fails, or when choosing a task's test approach in a plan.
+Read before writing, changing or deleting a test, when a check fails, when choosing a task's test approach in a plan, and, in a repository without a test runner, before the first edit of a defect fix or consequential logic.
 
-**When a check fails**, first decide whether the code, the criterion or the test is wrong, and fix that one: change, skip or delete an existing test only when the test itself is wrong, and say so in the task's line or your report.
+**When a check fails**, first decide whether the code, the criterion or the test is wrong, and fix the code or the test: change, skip or delete an existing test only when the test itself is wrong, and say so in the task's line or your report. A wrong criterion is the user's decision: report it, or a child reports it to its parent, instead of changing it.
 
 **When a test must fail first (`tdd`).** Write the test, run it and see it fail for the intended reason, then change the code until it passes, one behavior at a time. This applies only to:
 
@@ -41,16 +41,16 @@ Verify any other behavior change with a direct check, or by extending the test t
 1. Name the realistic change to the code that would make it fail. If none exists, do not write it.
 2. Find the test that already owns that behavior. Each contract has one owner, at the strongest boundary the repository's test harness runs cheaply, such as an integration test through HTTP and the database rather than a unit test with mocked collaborators. Extend the owner, its table or its fixtures, instead of adding a sibling test or the same assertion at another layer. Keep a lower-layer test only for a branch the owner cannot reach cheaply.
 3. Replace with a test double only what crosses the system boundary: an external service, time, randomness, or, in a client's tests, the project's own server API through stub data typed by its contract. Do not mock the project's own modules in the same process, nor its own database when the repository has an integration harness: the test then stops covering their behavior.
-4. Reject a test that asserts how the code is written instead of what it does, such as which internal functions were called or in what order; that uses a double returning the value the test asserts; that reads source code as text to check how it is written, unless that file is what the project delivers, such as configuration or documentation content; that copies a list or inventory from the code; that computes its expected value with the code under test; that asserts something always true; or that needs an export, flag or wrapper only tests use.
+4. Reject a test that asserts how the code is written instead of what it does, such as which internal functions were called or in what order; that uses a double to supply the behavior the test claims to check, so it tests the double rather than the code; that reads source code as text to check how it is written, unless the file's text is itself what the project delivers to its readers, such as guidance or documentation, never code or build configuration; that copies a list or inventory from the code; that computes its expected value with the code under test; that asserts something always true; or that needs an export, flag or wrapper only tests use.
 5. Wait on an observable condition, never a fixed sleep, and isolate state shared between tests.
 
-When the change handles a failure, a concurrent actor or a transaction, its owner test covers that case too: the negative case, the ordering, or the rollback.
+When the change handles a failure, a boundary value, a concurrent actor or a transaction, its verification covers that case too: the negative case, the limit, the ordering, or the rollback, in the owner test when there is one, otherwise in the direct check.
 
 **Project or area without tests.** When the repository has a test runner but the package the change touches has no tests, the rules above apply, and the first test of a contract becomes its owner. When the repository has no test runner:
 
 - Verify a change without consequences with a direct check, such as the build, the type checker, or running the changed path with a request, a script or the browser, and report "no tests; verified with <check>".
 - For a defect or consequential logic, before editing, find every caller of the behavior by searching its literal values, such as names, routes, roles and hosts, and pin its current behavior for those callers with a check through the real path, adding no dependency. Keep that check where the project already keeps checks, or as evidence of the change when it has none.
-- Adding test infrastructure is the user's decision: the main thread proposes it in the plan, or before the first edit when the work has no plan, the first time a consequential change reaches the project, with the package check of the global guidance, and saves the answer in persistent memory as a project decision so it is not asked again. Never install it without that answer; a child that needs a runner the project lacks reports it to its parent instead.
+- Adding test infrastructure is the user's decision: the main thread proposes it in the plan, or before the first edit when the work has no plan, the first time a defect fix or consequential logic reaches the project, with the package check of the global guidance, and saves the answer in persistent memory as a project decision so it is not asked again. Never install it without that answer; a child that needs a runner the project lacks reports it to its parent instead.
 
 ## Delegation
 

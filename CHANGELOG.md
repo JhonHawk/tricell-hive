@@ -70,8 +70,9 @@ raise the minor or the patch version.
   needs a realistic change that would make it fail, one owner per contract at
   the strongest boundary the harness runs cheaply, test doubles only for
   external services, time, randomness and a client's view of the project's
-  own server API, and no fixed sleeps. In a project
-  without a test runner, a consequential change first pins the current
+  own server API, and no fixed sleeps; a failure, limit, ordering or rollback
+  the change handles is covered too. In a project
+  without a test runner, a bug fix or consequential change first pins the current
   behavior for every caller, and adding test infrastructure is asked once.
   The roles that write tests follow it.
 - Compacting is offered at two moments instead of by context size: when an
