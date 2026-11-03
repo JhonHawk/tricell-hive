@@ -55,8 +55,9 @@ raise the minor or the patch version.
   task did not start needs the user's confirmation, and the processes a task
   started are stopped by their process ID, never by a name or pattern that can
   match another session's processes.
-- `flow-research` lists the aspects of a question and their sources before
-  reading, delegates each aspect that needs more than five reads, does not
+- `flow-research` writes the aspects of a question, their sources and which go
+  to a child in its message before the first read, counts its first reads
+  toward the delegation limit, delegates each aspect that needs more than five reads, does not
   reread what a child covers, and hands over the rest of an aspect when its
   sixth read in the main thread still has no answer (#311).
 - Viewer navigation groups registered source roots with the same explicit
