@@ -9,21 +9,21 @@ Answer "does this advisory affect us, and where?" with evidence for each reposit
 
 ## Frame the sweep
 
-Before delegating, read [flow-research step 2](../flow-research/SKILL.md). Requests to advisory databases, registries and search engines follow the global rule on requests to third-party services: send advisory IDs and public package names, never the name of a repository, client or private package.
+Before delegating, read [flow-research step 4](../flow-research/SKILL.md). Requests to advisory databases, registries and search engines follow the global rule on requests to third-party services: send advisory IDs and public package names, never the name of a repository, client or private package.
 
 1. **Read each advisory from a primary source**: the vendor's or project's advisory, GHSA, OSV, NVD, or the CISA KEV catalog for exploitation in the wild. Record its ID, product and ecosystem, affected and fixed versions, any mitigation, the conditions it needs (platform, feature, configuration), its severity, and whether it is exploited. Mark a fact you found only in secondary reporting, and say so in any verdict that rests on it.
 2. **Resolve the scope**: the repositories or folders the user names. When the user names none, ask. Reading other projects for this sweep is allowed, as the global rule on changing only the current project sets.
 
 ## Collect the evidence
 
-3. **Inventory each repository.** Delegate the sweep to `hive-research` children as [flow-research step 2](../flow-research/SKILL.md) sets. Give the inventory, yours or each child's, these instructions together with the advisory facts from step 1:
+3. **Inventory each repository.** Delegate the sweep to `hive-research` children as [flow-research step 4](../flow-research/SKILL.md) sets. Give the inventory, yours or each child's, these instructions together with the advisory facts from step 1:
    - For each repository and application, record the current branch, because only the working tree is read.
    - Record the version the lockfile resolves, not the manifest range, with its `path:line`.
    - When the advisory affects a runtime, record its pins: `.nvmrc`, `.node-version`, `engines`, Dockerfile base images, CI and hosting build settings.
    - Record whether the advisory's conditions appear, such as a configuration flag, a feature in use or the platform.
    - Run no install, audit, networked scan, Git fetch or checkout; web lookups carry only advisory IDs and public package names; never print a file that may hold secrets.
    - Report what cannot be seen from the repository, such as deployed versions, images behind a digest or hosting settings.
-4. **Check the deciding claims.** Open the locators behind each affected or mitigated verdict, as [flow-research step 3](../flow-research/SKILL.md) sets.
+4. **Check the deciding claims.** Open the locators behind each affected or mitigated verdict, as [flow-research step 4](../flow-research/SKILL.md) sets.
 5. **Assess reachability where it sets priority.** For an affected application whose exposure depends on how the code reaches the vulnerable path, mark that in the report and offer a reachability assessment by a `hive-review-security` child, which runs only if the user asks; it traces untrusted input to that path without exploiting anything, under the same limits on commands and web lookups as step 3, given the application, the advisory and its conditions. When the user asks for it, run that child and update the application's verdict and priority in a follow-up report.
 
 ## Report
