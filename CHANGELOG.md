@@ -43,7 +43,9 @@ raise the minor or the patch version.
   quits, restarts or kills a program other sessions or projects may use, such
   as Docker Desktop or a local database server, even when it hangs: it reports
   a blocker for the user to restart it. Starting or stopping a container the
-  task did not start needs the user's confirmation.
+  task did not start needs the user's confirmation, and the processes a task
+  started are stopped by their process ID, never by a name or pattern that can
+  match another session's processes.
 - `flow-research` lists the aspects of a question and their sources before
   reading, delegates each aspect that needs more than five reads, does not
   reread what a child covers, and hands over the rest of an aspect when its
