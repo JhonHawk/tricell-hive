@@ -452,3 +452,268 @@ test("grouped navigation preserves selection, preferences, search and isolated f
   assert.equal(preferences.projects.untouched, false);
   assert.equal(sessionStorage.getItem("unused"), "preserved");
 });
+
+test("archive notifications expire without replay, restore their original work and clear on direct restoration", async (t) => {
+  const hidden = Object.getOwnPropertyDescriptor(document, "hidden");
+  Object.defineProperty(document, "hidden", {
+    configurable: true,
+    value: false,
+  });
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  t.after(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+    if (hidden) Object.defineProperty(document, "hidden", hidden);
+    else Reflect.deleteProperty(document, "hidden");
+  });
+  const a = structuredClone(timelineFixture),
+    b = JSON.parse(
+      JSON.stringify(timelineFixture).replaceAll(
+        timelineFixture.session.viewer_session_id,
+        "b".repeat(64),
+      ),
+    ) as typeof timelineFixture;
+  a.session.title = "Archive notifications";
+  b.session.viewer_session_id = "b".repeat(64);
+  b.session.title = "Review original authority";
+  let failRestore = false;
+  let delayedIndex: Promise<void> | undefined;
+  const writes: { id: string; archived: boolean; expectedVersion: number }[] =
+    [];
+  const controller = new ViewerController(
+    new AccessClient(
+      async (path, options) => {
+        if (path === "/api/index?navigation=grouped") {
+          await delayedIndex;
+          return new Response(
+            JSON.stringify({
+              protocol_version: 3,
+              retention: "manual",
+              repositories: [],
+              errors: [],
+              ttl_seconds: 0,
+              timeline_sessions: [a, b].map(({ session }) => {
+                const {
+                  schema_version: _s,
+                  events: _e,
+                  artifacts: _a,
+                  documents: _d,
+                  producers: _p,
+                  foreground_producer_id: _lead,
+                  pending_join_requests: _j,
+                  tasks: _t,
+                  waits: _w,
+                  deliveries: _deliveries,
+                  candidates: _c,
+                  work_key: _work,
+                  ...entry
+                } = session;
+                return { mode: "timeline_api", ...entry };
+              }),
+            }),
+          );
+        }
+        const data = String(path).endsWith(a.session.viewer_session_id) ? a : b;
+        if (options?.method === "PATCH") {
+          const body = JSON.parse(String(options.body));
+          writes.push({
+            id: data.session.viewer_session_id,
+            archived: body.archived,
+            expectedVersion: body.expected_version,
+          });
+          if (failRestore && body.archived === false)
+            return new Response(JSON.stringify({ code: "unavailable" }), {
+              status: 503,
+            });
+          assert.equal(body.expected_version, data.session.version);
+          data.session.archived = body.archived;
+          data.session.version++;
+          return new Response(
+            JSON.stringify({
+              schema_version: 3,
+              kind: "session_patch",
+              viewer_session_id: data.session.viewer_session_id,
+              operation_id: body.operation_id,
+              session_version: data.session.version,
+              current_stage_event_id: null,
+            }),
+          );
+        }
+        return new Response(JSON.stringify(data));
+      },
+      { getItem: () => "test-token", setItem() {}, removeItem() {} },
+    ),
+    () => false,
+  );
+  await controller.open(null);
+  const waitFor = async (condition: () => boolean, timeout = 1000) => {
+    const deadline = performance.now() + timeout;
+    while (!condition()) {
+      assert.ok(
+        performance.now() < deadline,
+        "notification condition timed out",
+      );
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 5));
+      });
+    }
+  };
+  const run = async (operation: () => unknown) => {
+    await act(async () => {
+      await operation();
+      await settle();
+    });
+  };
+  const notification = () =>
+    container.querySelector<HTMLElement>(
+      '[data-sonner-toast]:not([data-removed="true"])',
+    );
+  await run(() => root.render(<ViewerApplication controller={controller} />));
+  const archivedAt = performance.now();
+  await run(() =>
+    controller.updateTimelineSession(
+      a.session.viewer_session_id,
+      { archived: true },
+      a.session.version,
+    ),
+  );
+  await waitFor(() => notification() !== null);
+  assert.ok(
+    notification(),
+    "archive uses the real Sonner notification surface",
+  );
+  assert.ok(notification()?.textContent?.includes(a.session.title));
+  assert.ok(notification()?.textContent?.includes("Undo"));
+  assert.equal(
+    controller.getSnapshot().selectedId,
+    b.session.viewer_session_id,
+  );
+  await waitFor(() => notification() === null, 8500);
+  assert.ok(
+    performance.now() - archivedAt >= 8000,
+    "Undo remains available for eight seconds",
+  );
+  assert.equal(notification(), null);
+  assert.equal(controller.getSnapshot().undoArchive, undefined);
+  await run(() => controller.refresh());
+  await run(() => controller.select(b.session.viewer_session_id));
+  assert.equal(
+    notification(),
+    null,
+    "polling and navigation do not replay an expired archive",
+  );
+
+  await run(() =>
+    controller.updateTimelineSession(
+      b.session.viewer_session_id,
+      { archived: true },
+      b.session.version,
+    ),
+  );
+  await run(() => controller.setShowArchived(true));
+  await run(() => controller.select(a.session.viewer_session_id));
+  b.session.version++;
+  await waitFor(() => notification()?.textContent?.includes("Undo") === true);
+  failRestore = true;
+  await run(() => button("Undo").click());
+  await waitFor(
+    () =>
+      notification()?.textContent?.includes(
+        "Could not complete the operation. Try again.",
+      ) === true,
+  );
+  assert.ok(
+    notification()?.textContent?.includes(
+      "Could not complete the operation. Try again.",
+    ),
+  );
+  assert.ok(notification()?.textContent?.includes(b.session.title));
+  failRestore = false;
+  await run(() => button("Retry").click());
+  await waitFor(() => notification() === null);
+  assert.equal(b.session.archived, false);
+  assert.equal(writes.at(-1)?.id, b.session.viewer_session_id);
+  assert.equal(writes.at(-1)?.expectedVersion, b.session.version - 1);
+  assert.equal(notification(), null);
+
+  await run(() =>
+    controller.updateTimelineSession(
+      b.session.viewer_session_id,
+      { archived: true },
+      b.session.version,
+    ),
+  );
+  await run(() =>
+    controller.updateTimelineSession(
+      b.session.viewer_session_id,
+      { archived: false },
+      b.session.version,
+    ),
+  );
+  await waitFor(() => notification() === null);
+  assert.equal(
+    notification(),
+    null,
+    "direct restore removes the stale Undo action",
+  );
+  await run(() => controller.refresh());
+  assert.equal(notification(), null);
+
+  await run(() =>
+    controller.updateTimelineSession(
+      b.session.viewer_session_id,
+      { archived: true },
+      b.session.version,
+    ),
+  );
+  await waitFor(() => notification() !== null);
+  const close = notification()?.querySelector<HTMLButtonElement>(
+    '[data-close-button="true"]',
+  );
+  assert.ok(close);
+  await run(() => close.click());
+  await waitFor(() => notification() === null);
+  assert.equal(controller.getSnapshot().undoArchive, undefined);
+  assert.equal(notification(), null);
+  await run(() =>
+    controller.updateTimelineSession(
+      b.session.viewer_session_id,
+      { archived: false },
+      b.session.version,
+    ),
+  );
+  await run(() =>
+    controller.updateTimelineSession(
+      b.session.viewer_session_id,
+      { archived: true },
+      b.session.version,
+    ),
+  );
+  await waitFor(() => notification()?.textContent?.includes("Undo") === true);
+  let releaseIndex!: () => void;
+  delayedIndex = new Promise<void>((resolve) => {
+    releaseIndex = resolve;
+  });
+  await run(() => button("Undo").click());
+  // The external index response arrives after the original Undo window has closed.
+  const responseTimer = setTimeout(() => {
+    delayedIndex = undefined;
+    releaseIndex();
+  }, 8100);
+  t.after(() => {
+    clearTimeout(responseTimer);
+    releaseIndex();
+  });
+  await waitFor(() => notification()?.dataset.type === "loading");
+  assert.equal(notification()?.querySelector("[data-close-button]"), null);
+  assert.equal(notification()?.querySelector("[data-action]"), null);
+  await waitFor(() => b.session.archived === false, 9000);
+  await waitFor(() => notification() === null);
+  assert.equal(
+    writes.at(-1)?.id,
+    b.session.viewer_session_id,
+    "an accepted Undo completes even when its authority refresh crosses expiry",
+  );
+});

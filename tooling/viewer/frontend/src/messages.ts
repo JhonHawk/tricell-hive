@@ -5,6 +5,7 @@ export const messages =
     ? {
         publishWork: "Publica un trabajo para verlo aquí.",
         walkthroughs: "Recorridos",
+        notifications: "Notificaciones",
         rename: "Editar nombre de la sesión",
         sessionName: "Nombre de la sesión",
         nameReadingHint:
@@ -101,6 +102,7 @@ export const messages =
     : {
         publishWork: "Publish a work to see it here.",
         walkthroughs: "Walkthroughs",
+        notifications: "Notifications",
         rename: "Edit session name",
         sessionName: "Session name",
         nameReadingHint:

@@ -592,12 +592,26 @@ test("unchanged polls reuse an outstanding API read while a newer version supers
 test("pending deletion remains retryable with its original operation after tombstoning removes the index entry", async () => {
   const a = fixture(),
     b = fixture(other);
+  b.session.title = "Archive a different work";
   let tombstoned = false;
   let attempts = 0;
   const bodies: unknown[] = [];
   const { controller } = setup(async (path, options) => {
     if (path === "/api/index?navigation=grouped")
       return response(index(...(tombstoned ? [b] : [a, b])));
+    if (options?.method === "PATCH") {
+      const body = JSON.parse(String(options.body));
+      b.session.archived = body.archived;
+      b.session.version++;
+      return response({
+        schema_version: 3,
+        kind: "session_patch",
+        operation_id: body.operation_id,
+        viewer_session_id: other,
+        session_version: b.session.version,
+        current_stage_event_id: null,
+      });
+    }
     if (options?.method === "DELETE") {
       const body = JSON.parse(String(options.body));
       bodies.push(body);
@@ -629,6 +643,16 @@ test("pending deletion remains retryable with its original operation after tombs
     title: a.session.title,
     expectedVersion: 1,
   });
+  await controller.updateTimelineSession(
+    other,
+    { archived: true },
+    b.session.version,
+  );
+  assert.equal(
+    controller.getSnapshot().undoArchive?.title,
+    b.session.title,
+    "an unrelated pending deletion cannot supply the archived work title",
+  );
   await assert.rejects(controller.retryTimelineDelete());
   assert.equal(controller.getSnapshot().pendingTimelineDelete?.id, sid);
   await controller.retryTimelineDelete();
@@ -820,4 +844,35 @@ test("archive Undo reads fresh authority for original work after selection and v
   assert.equal(writes[1].body.expected_version, 3);
   assert.equal(a.session.archived, false);
   assert.equal(controller.getSnapshot().selectedId, other);
+  await controller.updateTimelineSession(
+    sid,
+    { archived: true },
+    a.session.version,
+  );
+  const oldUndo = controller.getSnapshot().undoArchive;
+  await controller.updateTimelineSession(
+    other,
+    { archived: true },
+    b.session.version,
+  );
+  const newUndo = controller.getSnapshot().undoArchive;
+  assert.ok(oldUndo);
+  assert.ok(newUndo);
+  controller.clearUndo(oldUndo);
+  assert.equal(
+    controller.getSnapshot().undoArchive,
+    newUndo,
+    "late expiry cannot clear a newer archive",
+  );
+  const beforeStaleClick = writes.length;
+  await controller.undoArchive(oldUndo);
+  assert.equal(
+    writes.length,
+    beforeStaleClick,
+    "a stale action cannot restore the newer archive",
+  );
+  assert.equal(b.session.archived, true);
+  await controller.undoArchive(newUndo);
+  assert.equal(b.session.archived, false);
+  assert.equal(a.session.archived, true);
 });
