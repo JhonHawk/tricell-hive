@@ -51,7 +51,7 @@ Collected on 2026-11-02 from documentation, source and local transcripts of the 
 | --- | --- | --- |
 | Claude Code 2.1.316 | `TaskCreate`/`TaskUpdate`, one JSON file per task under `~/.claude/tasks/<session>/`; off by default on Opus 4.8, Sonnet 5 and newer models unless `CLAUDE_CODE_ENABLE_TODO_TOOLS=1` (doc, changelog 2.1.233) | Yes: a `task_reminder` attachment re-injects the open list after the `compact_boundary` (obs, five sessions; doc "Tasks persist across context compactions") |
 | Grok Build 1.0.73 | `todo_write`; `plan.json` stays empty locally (obs) | Yes: a "## TODO List … still active" user message follows the compaction (obs) |
-| Codex CLI 0.166.0 | `update_plan`, off by default since 0.152 (`tools.update_plan.enabled`); the handler stores nothing (source `plan.rs`) | No: the compacted history keeps no plan, and the model rebuilt it itself (obs, 0.145.0) |
+| Codex CLI 0.166.0 | `update_plan`, off by default since 0.152 (`tools.update_plan.enabled`); the handler stores nothing (source `plan.rs`) | No: the compacted history keeps no plan, and the model rebuilt it itself (obs on 0.145.0, before the default changed; not rechecked with the tool enabled) |
 | OpenCode v2.2.5 | `todowrite`, only with `experimental.todo: true`; the list is the latest call in the message log (source) | No re-injection: issue #5934 is still reported after its stale close, and PR #25982 was closed unmerged (source, inf) |
 | Pi 1.4.0 | None built in; an example extension keeps state in tool-result details (doc) | Not applicable |
 | Cursor CLI 2026.10.22 | `TodoWrite` through `CallDynamicTool` (obs) | Unknown: no documentation or transcript shows it either way |
@@ -61,7 +61,7 @@ Collected on 2026-11-02 from documentation, source and local transcripts of the 
 - A rule that must hold every turn and after compaction lives in the global guidance. On Grok, the guidance states its own authority because the host frames it as optional.
 - Each flow skill keeps its binding steps in the first ~60 lines and stays under 8 KB, for Cursor's partial reads and Codex's explicit cut.
 - References are read at a fixed moment, such as `plan-handoff.md` before the build route; a rule that only lives in a reference holds only while that read is in context.
-- A native task list is a live view, not the record: four of six hosts do not re-inject it after a compaction. A plan kept in the conversation must pass the resume test of `flow-plan`, and its checkpoint line in the message carries the pending tasks, as `flow-build` sets.
+- A native task list is a live view, not the record: only Claude Code and Grok are shown to re-inject it after a compaction; Codex and OpenCode do not, Pi has none and Cursor is unmeasured. A plan kept in the conversation keeps its checkpoint in a file in the host's temporary location, as `flow-build` sets, because the conversation itself is summarized at compaction.
 - A flow boundary names the command for the next flow in the host's syntax (`/flow-x`, `$flow-x`, `/skill:flow-x`, `@flow-x`), so each flow starts with its skill loaded whole.
 
 ## Sources
