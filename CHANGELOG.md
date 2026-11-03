@@ -69,7 +69,8 @@ raise the minor or the patch version.
   check or extend the test that already owns the behavior. Each new test
   needs a realistic change that would make it fail, one owner per contract at
   the strongest boundary the harness runs cheaply, test doubles only for
-  external services, time and randomness, and no fixed sleeps. In a project
+  external services, time, randomness and a client's view of the project's
+  own server API, and no fixed sleeps. In a project
   without a test runner, a consequential change first pins the current
   behavior for every caller, and adding test infrastructure is asked once.
   The roles that write tests follow it.
