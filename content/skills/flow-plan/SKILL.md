@@ -1,6 +1,6 @@
 ---
 name: flow-plan
-description: Prepare an implementation plan by resolving consequential decisions, defining affected contracts, and decomposing work into verifiable tasks. Use when planning is requested or needed before a multi-step change; small understood edits need no formal plan.
+description: Prepare how a change is done by presenting its approaches, resolving the decisions of its how, defining affected contracts, and decomposing it into verifiable tasks. Use when research leaves the how with a decision for the user or work that cannot be finished from the request and git diff alone, or when the user asks for a plan; small understood changes need no plan.
 ---
 
 # Prepare an executable plan
@@ -8,7 +8,7 @@ description: Prepare an implementation plan by resolving consequential decisions
 At plan entry, the primary producer follows [flow-walkthrough](../flow-walkthrough/SKILL.md), which sets when a viewer session applies, for the viewer stage and the plan's document snapshots: the first at the approval stop, then one after each round of changes the user asks for.
 
 1. Read the code, the `## Hive` settings and the existing specs the change touches.
-2. Resolve with the user the decisions that are theirs, asked as the global guidance sets. A change to what a consumer of a public interface sends or receives is a contract change: decide in the plan whether it stays compatible. When the repository has no test runner and the change fixes a defect or changes consequential logic, read and follow [Tests](../flow-build/SKILL.md#tests): its test-infrastructure decision is one of them unless a saved project decision already answers it. For a change to a screen, settle the UI decisions below.
+2. When the how has more than one sensible way, present two or three approaches in a message of their own before the tasks, each grounded in what the project already does and with its tradeoff, recommend one and ask which as a decision; when only one way is sensible, say so and why. Record them in `design.md`. Then resolve with the user the other decisions that are theirs, asked as the global guidance sets. A change to what a consumer of a public interface sends or receives is a contract change: decide in the plan whether it stays compatible. When the repository has no test runner and the change fixes a defect or changes consequential logic, read and follow [Tests](../flow-build/SKILL.md#tests): its test-infrastructure decision is one of them unless a saved project decision already answers it. For a change to a screen, settle the UI decisions below.
 3. Write the plan where [Where the plan lives](#where-the-plan-lives) sets, with acceptance criteria as [Acceptance criteria](#acceptance-criteria) sets.
 4. Once the plan is written, launch step 5's review when it applies, then ask the delivery mode and the code review mechanism while it runs, as the global guidance's «Delivery» section sets; an operational task gets neither. A UI change is always verified as `flow-verify` sets: your own browser walk and one `hive-review-ux` child.
 5. When the plan changes a contract, stored data, security or a dependency, have one `hive-review-plan` child review it, launched before step 4's question, and apply what holds before step 6.

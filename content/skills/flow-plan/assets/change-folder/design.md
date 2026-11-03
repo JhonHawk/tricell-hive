@@ -2,6 +2,10 @@
 
 <!-- Template from flow-plan. Write this file only when there are design decisions to record. Write the text in the session language; keep headings, code and identifiers as they are. Delete these comments and any section that does not apply. -->
 
+## Approaches
+
+<The two or three ways of building it that were presented, each with its tradeoff, the one chosen and why; or why only one way was sensible.>
+
 ## Decisions
 
 <Each decision with its options, the one chosen and why.>
