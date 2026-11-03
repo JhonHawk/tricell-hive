@@ -168,7 +168,7 @@ test("opening target validates opaque IDs, takes precedence, and remains in the 
   const { controller } = setup(
     async (path) =>
       response(
-        path === "/api/index"
+        path === "/api/index?navigation=grouped"
           ? index(a, b)
           : String(path).endsWith(sid)
             ? a
@@ -245,6 +245,72 @@ test("an unreadable index entry is skipped, keeps its last copy, and duplicates 
   assert.equal(validateIndex(clean), clean);
 });
 
+test("optional navigation is validated apart from strict session entries", () => {
+  const base = index(fixture(), fixture(other));
+  const entries = [sid, other].map((id) => ({
+    viewer_session_id: id,
+    group_key: `explicit:${"c".repeat(64)}`,
+    group_name: "Example workspace",
+    origin_kind: "repository",
+    origin_label: "project-api",
+    config_status: "valid",
+  }));
+  const navigation = { version: 1, entries };
+  const valid = validateIndex({ ...base, navigation } as never);
+  assert.deepEqual(valid.navigation, navigation);
+  assert.equal(valid.navigation_warning, undefined);
+  for (const invalid of [
+    { version: 2, entries },
+    { version: 1, entries: [null, entries[1]] },
+    {
+      version: 1,
+      entries: [{ ...entries[0], group_name: "bad\u0085name" }, entries[1]],
+    },
+    {
+      version: 1,
+      entries: [{ ...entries[0], config_status: "unknown" }, entries[1]],
+    },
+    {
+      version: 1,
+      entries: [{ ...entries[0], group_key: "invented" }, entries[1]],
+    },
+    { version: 1, entries: [entries[0], entries[0]] },
+    { version: 1, entries: [entries[0]] },
+    {
+      version: 1,
+      entries: [
+        ...entries,
+        { ...entries[0], viewer_session_id: "d".repeat(64) },
+      ],
+    },
+    {
+      version: 1,
+      entries: [{ ...entries[0], origin_kind: "unknown" }, entries[1]],
+    },
+    {
+      version: 1,
+      entries: [{ ...entries[0], group_name: "x".repeat(201) }, entries[1]],
+    },
+  ]) {
+    const result = validateIndex({ ...base, navigation: invalid } as never);
+    assert.deepEqual(result.timeline_sessions, base.timeline_sessions);
+    assert.equal(result.navigation, undefined);
+    assert.equal(result.navigation_warning, true);
+  }
+  const badSession = validateIndex({
+    ...base,
+    timeline_sessions: [
+      { ...base.timeline_sessions[0], invented: true },
+      base.timeline_sessions[1],
+    ],
+    navigation,
+  } as never);
+  assert.equal(badSession.timeline_sessions.length, 1);
+  assert.equal(badSession.skipped_sessions?.[0].code, "unknown_field");
+  assert.equal(badSession.navigation, undefined);
+  assert.equal(badSession.navigation_warning, true);
+});
+
 test("missing and invalid destinations do not select another session; explicit archived target does not change preference", async () => {
   const a = fixture();
   a.session.archived = true;
@@ -252,7 +318,7 @@ test("missing and invalid destinations do not select another session; explicit a
   const { controller, writes } = setup(
     async (path) =>
       response(
-        path === "/api/index"
+        path === "/api/index?navigation=grouped"
           ? index(a, b)
           : String(path).endsWith(sid)
             ? a
@@ -291,7 +357,7 @@ test("late API session reads cannot replace a newer selection; polling failures 
   let offline = false;
   const { controller } = setup(async (path) => {
     if (offline) throw new TypeError("offline");
-    if (path === "/api/index") return response(index(a, b));
+    if (path === "/api/index?navigation=grouped") return response(index(a, b));
     if (String(path).endsWith(sid))
       return new Promise<Response>((resolve) => {
         release = resolve;
@@ -334,7 +400,7 @@ test("conditional API mutations read JSON receipts, refresh authority and reuse 
   const headers: Headers[] = [];
   const { controller } = setup(async (path, options) => {
     headers.push(new Headers(options?.headers));
-    if (path === "/api/index") return response(index(a));
+    if (path === "/api/index?navigation=grouped") return response(index(a));
     if (options?.method === "PATCH") {
       const body = JSON.parse(String(options.body));
       operations.push(body.operation_id);
@@ -380,7 +446,7 @@ test("a stale API write refreshes without replay or silently overwriting newer d
   const a = fixture();
   let patches = 0;
   const { controller } = setup(async (path, options) => {
-    if (path === "/api/index") return response(index(a));
+    if (path === "/api/index?navigation=grouped") return response(index(a));
     if (options?.method === "PATCH") {
       patches++;
       a.session.version = 2;
@@ -409,7 +475,7 @@ test("document reads use authenticated JSON and async hash validation; forbidden
   const paths: string[] = [];
   const { controller, client } = setup(async (path) => {
     paths.push(String(path));
-    if (path === "/api/index") return response(index(data));
+    if (path === "/api/index?navigation=grouped") return response(index(data));
     if (String(path).includes("/documents/")) {
       if (forbidden) return response({}, 403);
       const result = await loadPreviewDocument("document_proposal");
@@ -443,7 +509,7 @@ test("API pin, archive, restore and delete use versioned session mutations and p
     b = fixture(other);
   let deleted = false;
   const { controller } = setup(async (path, options) => {
-    if (path === "/api/index")
+    if (path === "/api/index?navigation=grouped")
       return response(index(...(deleted ? [b] : [a, b])));
     if (options?.method === "PATCH" || options?.method === "DELETE") {
       const body = JSON.parse(String(options.body));
@@ -499,7 +565,7 @@ test("unchanged polls reuse an outstanding API read while a newer version supers
   const pending: ((value: Response) => void)[] = [];
   let reads = 0;
   const { controller } = setup(async (path) => {
-    if (path === "/api/index") return response(index(a));
+    if (path === "/api/index?navigation=grouped") return response(index(a));
     reads++;
     return reads === 1
       ? response(a)
@@ -530,7 +596,7 @@ test("pending deletion remains retryable with its original operation after tombs
   let attempts = 0;
   const bodies: unknown[] = [];
   const { controller } = setup(async (path, options) => {
-    if (path === "/api/index")
+    if (path === "/api/index?navigation=grouped")
       return response(index(...(tombstoned ? [b] : [a, b])));
     if (options?.method === "DELETE") {
       const body = JSON.parse(String(options.body));
@@ -577,7 +643,7 @@ test("pending deletion recovery is cleared when access changes", async () => {
   let tombstoned = false;
   let deletes = 0;
   const { controller } = setup(async (path, options) => {
-    if (path === "/api/index")
+    if (path === "/api/index?navigation=grouped")
       return response(index(...(tombstoned ? [] : [a])));
     if (options?.method === "DELETE") {
       deletes++;
@@ -607,7 +673,7 @@ test("definitive delete rejection clears recovery and permits deleting another s
         firstDelete = true;
       const deletedIDs: string[] = [];
       const { controller } = setup(async (path, options) => {
-        if (path === "/api/index")
+        if (path === "/api/index?navigation=grouped")
           return response(index(...(aGone ? [] : [a]), ...(bGone ? [] : [b])));
         if (options?.method === "DELETE") {
           const id = String(path).split("/").at(-1) as string;
@@ -674,7 +740,8 @@ test("local recovery sends the explicit request and conditional version, and nev
   const controller = new ViewerController(
     new AccessClient(
       async (path, options) => {
-        if (path === "/api/index") return response(index(data));
+        if (path === "/api/index?navigation=grouped")
+          return response(index(data));
         if (options?.method === "POST") {
           calls.push({
             path: String(path),
@@ -718,7 +785,8 @@ test("archive Undo reads fresh authority for original work after selection and v
   const controller = new ViewerController(
     new AccessClient(
       async (path, options) => {
-        if (path === "/api/index") return response(index(a, b));
+        if (path === "/api/index?navigation=grouped")
+          return response(index(a, b));
         const data = String(path).endsWith(sid) ? a : b;
         if (options?.method === "PATCH") {
           const body = JSON.parse(String(options.body));

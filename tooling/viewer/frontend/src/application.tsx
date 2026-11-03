@@ -249,7 +249,21 @@ export function ViewerApplication({
   );
   return (
     <ViewerShell
-      sessions={state.timelineSessions.map((s) => mapTimelineIndex(s))}
+      sessions={state.timelineSessions.map((s) => ({
+        ...mapTimelineIndex(s),
+        sourceRoot: s.source.project_root,
+        navigation: state.index?.navigation?.entries.find(
+          (entry) => entry.viewer_session_id === s.viewer_session_id,
+        ),
+      }))}
+      groupingWarning={
+        state.index?.navigation_warning ||
+        state.index?.navigation?.entries.some(
+          (entry) =>
+            entry.config_status === "invalid" ||
+            entry.config_status === "unavailable",
+        )
+      }
       selectedId={state.selectedId}
       state={
         state.access !== "ready"

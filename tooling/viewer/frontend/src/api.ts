@@ -155,6 +155,15 @@ export class AccessClient {
     return responseJSON ? response.json() : undefined;
   }
 }
+export type NavigationEntry = {
+  viewer_session_id: string;
+  group_key: string;
+  group_name: string;
+  origin_kind: "repository" | "workspace" | "unavailable";
+  origin_label: string;
+  config_status: "valid" | "missing" | "invalid" | "unavailable";
+};
+export type NavigationProjection = { version: 1; entries: NavigationEntry[] };
 export type RawIndex = {
   protocol_version: 3;
   retention: "manual";
@@ -162,6 +171,8 @@ export type RawIndex = {
   timeline_sessions: TimelineAPIIndexEntry[];
   repositories: { root: string; absent: boolean }[];
   errors: { path: string; reason: string; code?: string }[];
+  navigation?: NavigationProjection;
+  navigation_warning?: boolean;
   /** Set by validateIndex, never by the server: entries the client skipped. */
   skipped_sessions?: SkippedSession[];
 };
@@ -186,6 +197,7 @@ export function validateIndex(
           "timeline_sessions",
           "repositories",
           "errors",
+          "navigation",
         ].includes(k),
     )
   )
@@ -230,8 +242,77 @@ export function validateIndex(
     ids.add(entry.viewer_session_id);
     sessions.push(entry);
   });
-  if (!skipped.length) return value;
-  return { ...value, timeline_sessions: sessions, skipped_sessions: skipped };
+  const result = skipped.length
+    ? { ...value, timeline_sessions: sessions, skipped_sessions: skipped }
+    : value;
+  if (!("navigation" in value)) return result;
+  if (!validNavigation(value.navigation, sessions)) {
+    const { navigation: _navigation, ...legacy } = result;
+    return { ...legacy, navigation_warning: true };
+  }
+  return result;
+}
+function validNavigation(
+  value: unknown,
+  sessions: TimelineAPIIndexEntry[],
+): value is NavigationProjection {
+  if (!value || typeof value !== "object") return false;
+  const projection = value as NavigationProjection;
+  if (
+    projection.version !== 1 ||
+    !Array.isArray(projection.entries) ||
+    projection.entries.length !== sessions.length ||
+    Object.keys(projection).some((key) => !["version", "entries"].includes(key))
+  )
+    return false;
+  const remaining = new Set(
+    sessions.map((session) => session.viewer_session_id),
+  );
+  const names = new Map<string, string>();
+  const bounded = (text: unknown, max: number): text is string =>
+    typeof text === "string" &&
+    text.length > 0 &&
+    Array.from(text).length <= max &&
+    !Array.from(text).some(
+      (character) =>
+        (character.codePointAt(0) ?? 0) < 32 ||
+        ((character.codePointAt(0) ?? 0) >= 127 &&
+          (character.codePointAt(0) ?? 0) <= 159),
+    );
+  for (const entry of projection.entries) {
+    if (
+      !entry ||
+      typeof entry !== "object" ||
+      Object.keys(entry).some(
+        (key) =>
+          ![
+            "viewer_session_id",
+            "group_key",
+            "group_name",
+            "origin_kind",
+            "origin_label",
+            "config_status",
+          ].includes(key),
+      ) ||
+      !remaining.delete(entry.viewer_session_id) ||
+      typeof entry.group_key !== "string" ||
+      !/^(explicit|project):[0-9a-f]{64}$/.test(entry.group_key) ||
+      !bounded(entry.group_name, 200) ||
+      !bounded(entry.origin_label, 4096) ||
+      !["repository", "workspace", "unavailable"].includes(entry.origin_kind) ||
+      !["valid", "missing", "invalid", "unavailable"].includes(
+        entry.config_status,
+      )
+    )
+      return false;
+    if (
+      names.has(entry.group_key) &&
+      names.get(entry.group_key) !== entry.group_name
+    )
+      return false;
+    names.set(entry.group_key, entry.group_name);
+  }
+  return remaining.size === 0;
 }
 const VIEWER_SESSION_ID = /^[0-9a-f]{64}$/;
 
