@@ -12,6 +12,10 @@ raise the minor or the patch version.
 
 ### Added
 
+- Lists the user reads, such as reports, closes and pending items, open each
+  point with what it is in plain words and carry one task per point; an ID it
+  cites goes last, in parentheses, such as "**Move the plan summary to the
+  top** (D2)". Decision titles and options keep their format.
 - The UX reviewer runs an automated accessibility audit on each screen and
   state it reviews, including states reached by interaction, with
   `agent-browser a11y`: WCAG A/AA violations count as defects, best-practice
