@@ -13,7 +13,7 @@ It starts on any request to do work, with no command to type, and when the next 
 
 - Something fails and the cause is unknown, or a bug is reported without a request to fix it.
 - You want to compare two ways of solving a problem, or settle two sources that disagree.
-- You ask whether or how something could be done, such as "can you fix this record?". That is a question, so the agent looks first and waits for your choice.
+- You ask whether or how something could be done, such as "can we fix this record?" or "how would we fix it?". That is a question, so the agent looks first and waits for your choice. A polite request that names the action and its target, such as "can you add this user to the repository?", counts as a request for that change.
 - You pick a ticket to work on and want it assessed first.
 
 A single lookup that answers the question needs no investigation: the agent reports the answer with its source and any doubt. For the project's status or backlog, use [Status](/flows/status/).

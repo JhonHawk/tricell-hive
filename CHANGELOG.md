@@ -34,8 +34,10 @@ raise the minor or the patch version.
   `flow-plan` presents two or three approaches before the tasks; and after
   integration `flow-close` moves the ticket, reports and ends with a footer
   recommending to close plus replies from the context, running the archive and
-  cleanup on the user's reply, when other work starts or when the session ends
-  (#311).
+  cleanup on the user's reply, when other work starts or when the session ends.
+  A polite request phrased as a question that names the action and its target,
+  such as "can you add this user to the repository?", counts as a request for
+  that change; "can we…?" and "how would we…?" stay questions (#311).
 - `flow-close` never stops the viewer service or closes the viewer the user
   has open: closing a work's viewer session changes only its record.
 - Viewer navigation groups registered source roots with the same explicit
