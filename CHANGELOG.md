@@ -23,6 +23,9 @@ raise the minor or the patch version.
 
 ### Changed
 
+- A maintainer viewer restart reports that open viewer tabs lost access, since
+  the restart issues a new token, and offers the reply *open the viewer*,
+  which runs `hive view open`.
 - The offer to open the viewer never goes as a question of its own: it joins
   the round its stop already asks, or a reply line of the message's waiting
   line or next-step block, with no decision ID or question card of its own
