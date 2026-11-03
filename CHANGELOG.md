@@ -15,9 +15,9 @@ raise the minor or the patch version.
 - The UX reviewer runs an automated accessibility audit on each screen and
   state it reviews, including states reached by interaction, with
   `agent-browser a11y`: WCAG A/AA violations count as defects, best-practice
-  rules as recommendations, and results axe cannot decide as pending manual
-  review. A UI linter the project declares also runs; its style rules are
-  informational only.
+  rules as P3 findings, and results axe cannot decide as pending manual
+  review. A UI linter the project names also runs when it is already
+  installed; its style rules are informational only.
 - `hive view contract --for <flow>` prints a brief contract with only that
   flow's operations (research, plan, build, verify, delivery, close, collab, local):
   usage, required and optional fields, allowed values and an example.
