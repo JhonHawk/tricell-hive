@@ -23,6 +23,8 @@ raise the minor or the patch version.
 
 ### Changed
 
+- A card that closed after a timeout still counts as a waiting question tool,
+  so the next round goes through a card again instead of only in text (#311).
 - A maintainer viewer restart reports that open viewer tabs lost access, since
   the restart issues a new token, and offers the reply *open the viewer*,
   which runs `hive view open`.

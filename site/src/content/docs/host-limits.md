@@ -111,4 +111,5 @@ verified.
    but restart it when in doubt.
 2. Run `hive doctor` to see what Hive can check on your machine.
 3. If a card closes before you answer, reply in the chat with the decision ID
-   and letter. The decisions are also written in the message.
+   and letter. The decisions are also written in the message, and the next
+   decision still comes in a card.
