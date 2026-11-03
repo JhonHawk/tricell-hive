@@ -1,23 +1,35 @@
 ---
 name: flow-close
-description: Close a work item and its session hygiene. Use when a work item reaches its completion point, is abandoned or is paused; when an operational task ends; when the user ends the session; or when the user asks for hygiene or cleanup, such as "haz higiene" or "clean up". Closes the change record, cleans merged branches, task temporaries and processes, and reports the outcome.
+description: Close a work item and its session hygiene. Use when a work item reaches its completion point, is abandoned or is paused; when an operational task ends; when the user ends the session; or when the user asks for hygiene or cleanup, such as "haz higiene" or "clean up". Closes the change record, cleans merged branches, task temporaries and processes, proposes what to do with the work's support material, and reports the outcome.
 ---
 
 # Close a work item and the session
 
-The completion point is the merge into the base branch. When the delivery is `ready` or a human reviewer is assigned to the pull request, the open pull request is the completion point, reached when `ready` stops or, with a human reviewer, after [git-workflow step 7](../git-workflow/SKILL.md)'s read: the ticket stays in progress, and a later session that finds it merged runs a follow-up close: step 1's viewer close, the ticket move, the change-folder close, the cleanup, the memory write and a final report of those, without the close question.
+The completion point is the merge into the base branch. When the delivery is `ready` or a human reviewer is assigned to the pull request, the open pull request is the completion point, reached when `ready` stops or, with a human reviewer, after [git-workflow step 7](../git-workflow/SKILL.md)'s read: the ticket stays in progress, and a later session that finds it merged runs a follow-up close: step 1's viewer close, the ticket move, the change-folder close, the cleanup, the memory write and a final report of those, without the close question; it asks only the decision of [Support material](#support-material) when that lists items to act on.
 
-The close also runs when an operational task ends, as the global guidance's «Proportionality» defines it, and when the user abandons the work; a step with nothing to act on, such as the ticket move of work that was not integrated, is skipped. Work delivered under `hold` gets no full close until it is delivered later, at that delivery's completion point; until then, when its verified working tree is reported, it closes as a pause: step 1 pauses its viewer session, step 4 stops the processes and containers it started and keeps everything else, and steps 5–7 report what is pending.
+The close also runs when an operational task ends, as the global guidance's «Proportionality» defines it, and when the user abandons the work; a step with nothing to act on, such as the ticket move of work that was not integrated, is skipped. Work delivered under `hold` gets no full close until it is delivered later, at that delivery's completion point; until then, when its verified working tree is reported, it closes as a pause: step 1 pauses its viewer session, step 4 stops the processes and containers it started and keeps everything else, and steps 5–7 report what is pending, its support material included, listed without acting on it.
 
 1. When this work has a viewer session, close it first, as [flow-walkthrough](../flow-walkthrough/SKILL.md) sets for its stage, session and evidence, and read it back: the work reads closed when it was integrated or abandoned, `in_review` when its open pull request waits for the user's merge or a human reviewer, and paused when it was paused. This step comes before any cleanup, because cleanup removes the inputs a failed close would need. When the viewer is not running, do not start it: keep the inputs its close needs, continue the rest of the close, and name in the final report the viewer session left open with where those inputs are.
 2. When the work is integrated into the base branch, move its ticket to the state the project uses for that.
-3. Steps 2 and 3 are independent: run them together. Close an integrated change folder: merge each delta into `<Specs>/specs/<capability>/spec.md`, mark `proposal.md` completed, move the folder to `<Specs>/changes/archive/YYYY-MM-DD-<change-id>/`, and deliver that move as the delivery says.
-4. After step 1, clean up as [Branch cleanup](#branch-cleanup) sets, stop the processes and containers this work started, and remove its reproducible temporary files and checkpoint file, the containers it started with their volumes and the images it built, as the global guidance's «Preservation» authorizes; list a dump or export it made and ask before removing it. List the remote resources it created, such as storage objects, registry images or task definitions, each with the command that removes it, and ask before removing them: each removal is a critical effect. Keep anything with uncommitted work or uncertain ownership.
+3. Steps 2 and 3 are independent: run them together. Close an integrated change folder: merge each delta into `<Specs>/specs/<capability>/spec.md`, mark `proposal.md` completed, move the folder to `<Specs>/changes/archive/YYYY-MM-DD-<change-id>/`, and deliver that move as the delivery says; when step 4's inventory proposes a commit, an archive or a promotion, deliver the move together with the answered items, after the close question's round.
+4. After step 1, clean up as [Branch cleanup](#branch-cleanup) sets, stop the processes and containers this work started, and remove its reproducible temporary files and checkpoint file, the containers it started with their volumes and the images it built, as the global guidance's «Preservation» authorizes; list a dump or export it made and ask before removing it. List the remote resources it created, such as storage objects, registry images or task definitions, each with the command that removes it, and ask before removing them: each removal is a critical effect. Keep anything with uncommitted work or uncertain ownership. Then take the inventory of this work's support material as [Support material](#support-material) sets.
 5. Write the final report as [Final report](#final-report) sets.
 6. Write the outcome to persistent memory.
 7. Ask the close question as [Close question](#close-question) sets.
 
-Close a work item once; the follow-up close of a pull request that waited at its completion point, and the full close of `hold` work after its pause close, are part of that close, not a repeat. After the close question is answered, act on the answer; do not run the close or repeat the final report again.
+Close a work item once; the follow-up close of a pull request that waited at its completion point, and the full close of `hold` work after its pause close, are part of that close, not a repeat. After the close question is answered, apply the support material answer first, then act on the close answer; do not run the close or repeat the final report again.
+
+## Support material
+
+List what this work created or changed under the project's support home: its folders under `sessions/`, `workspace/` and `evidence/`, found by the work's identifier as [artifact layout](../workspace-conventions/references/artifact-layout.md) names it, its change folder when step 3 did not archive it, and any other support path its checkpoint or `git status` shows it wrote. Leave out what step 4 removed; name material of other work or uncertain ownership as kept, without an action. Propose one action for each item, with its reason:
+
+- **Commit:** a curated, shareable record under `sessions/` or `evidence/` that is not yet in Git; never a secret, a raw dump or reproducible output.
+- **Archive:** a `sessions/` folder whose records all read closed, moved as [archive](../workspace-conventions/references/archive.md) sets; the user's answer is its selection.
+- **Promote:** a conclusion that changes a durable document under `docs/`, as [workspace conventions](../workspace-conventions/SKILL.md) «Promote a finding» sets.
+- **Delete:** an item under `workspace/` with positive evidence that it is reproducible or that a kept copy replaces it; never unique evidence, a dump or export, or uncommitted work.
+- **Keep:** anything else, with where it stays.
+
+List the items with their actions in the final report, and ask them as one decision of the close question's round, as the global guidance's «Questions and routes» sets: the starred option applies every proposed action, another keeps everything as it is, and a reply that names an item's path changes its action. Nothing is moved, committed or deleted before the answer. Commit the committed, archived and promoted items with step 3's move or, when no change folder is archived, in one commit that touches only the support home, delivered as the work's delivery mode sets. Work with no delivery mode, such as an operational task, proposes no commit or archive and keeps those items. Work that is paused, held under `hold`, or waiting at an open pull request lists its items as pending and acts on none; the full or follow-up close asks the decision.
 
 ## Final report
 
@@ -27,6 +39,7 @@ Report the whole work item in one message, each part only when it has content:
 - **Resolved:** each acceptance criterion with how it was shown, and the corrections the user asked for.
 - **Omitted:** each check that was skipped or could not run, with its reason, including the CI-only jobs.
 - **Repaired:** the local environment repairs made, such as reinstalled dependencies or seeded data.
+- **Support material:** each item with its path and proposed action, as [Support material](#support-material) sets.
 - **Findings:** the defects not fixed, as [Findings](#findings) sets.
 - **Next:** what remains, with who owns it, and what comes next, such as the merge left to the user and the review bots still pending.
 
@@ -38,7 +51,7 @@ A finding is a defect the work found but did not fix: a review finding below P1,
 
 ## Close question
 
-Ask once, as the global guidance sets, with these options:
+Ask once, as the global guidance sets, in the same round as the decision of [Support material](#support-material) when it lists items to act on, with these options:
 
 - **End the session**: recommended when no proposed finding is P1 or higher and no plan is in progress.
 - **See the findings**, with their count and highest severity in the label, such as "See the 3 findings (1 P1)", and only when there are proposed findings: recommended when one is P1 or higher.
