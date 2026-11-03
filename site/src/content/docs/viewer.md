@@ -5,13 +5,48 @@ description: Follow published work, inspect evidence, and manage the local viewe
 
 The local viewer presents a timeline of work published by an agent. A work can have several native producer sessions contributing to it; the viewer groups their published stages, tasks and evidence. A producer's presence in the timeline does not prove that its host is still running. The viewer is separate from the host's native history and from Engram.
 
-The [flow-walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) skill is what publishes stages, documents and captures to the viewer; the viewer shows what has been published to it. Each work gets its own entry: a work tied to a ticket keeps one entry across the flows of that ticket in the same agent session, and a work without a ticket gets a new one. The agent does not open the viewer by itself: at each point with something to review (a plan, a research report, a screen to validate) it asks whether to open it, and stops asking once you accept. When a build starts, the agent publishes the plan's tasks so **Tasks** follows their progress.
+The [flow-walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) skill is what publishes stages, documents and captures to the viewer; the viewer shows what has been published to it. Each work gets its own entry: a work tied to a ticket keeps one entry across the flows of that ticket in the same agent session, and a work without a ticket uses its own stable work key. The agent does not open the viewer by itself: at each point with something to review (a plan, a research report, a screen to validate) it asks whether to open it, and stops asking once you accept. When a build starts, the agent publishes the plan's tasks so **Tasks** follows their progress.
 
 ## Start and stop
 
 Start the viewer explicitly with `hive view start`, then use `hive view open` to open it. Use `hive view status` to check the service and `hive view stop` to stop it. Retention is manual: stopping the service does not mean the stored timeline has been deleted.
 
 Protocol 3 uses a fresh state directory. Earlier viewer state is not imported or migrated, and a directory holding it fails to start. Preserve the old directory and use a separate fresh one when changing to this version; coordinate any writers with the new service. The [viewer publication procedure](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/references/viewer-publication.md) describes the producer's publication contract.
+
+## Publish Markdown on demand
+
+The agent keeps the research and plan files in their change folder and calls
+`hive view work publish` when a revision is ready to review. The binary scans
+that directory, uploads the original Markdown and verifies the stored copy.
+There is no watcher: editing a file alone does not publish it. An unchanged
+publication returns `unchanged` without adding remote history.
+
+Each work has a stable key and returned ID. Revising ticket 10 reuses its ID;
+starting ticket 11 in another folder creates a separate work, even in the same
+native session. The explicit directory binding prevents a changed working
+directory from selecting the wrong work. `hive view work list --project ROOT`
+finds works, and `hive view work show --work-id ID` shows their observed state.
+
+The plan's default tabs are Proposal, optional Design, Tasks and existing spec
+deltas. An explicit selection can replace those defaults. Publications have at
+most eight tabs, each at most 256 KiB of UTF-8 Markdown; oversized selections
+fail instead of being truncated. The renderer stays the same: it does not load
+local images, execute HTML or navigate relative file links as a documentation
+site. Original sources remain authoritative.
+
+The agent separately registers structured tasks and sends short task/stage
+updates. Editing a Markdown checkbox never changes live task progress. Snapshot
+status is not approval, and finishing a task does not close the work.
+
+If a response is lost, `work resume` recovers the exact pending request using
+its saved bytes; later source edits do not alter that retry. A confirmed conflict
+requires explicit reconciliation before a fresh publication. The local journal
+is retained outside the viewer's storage, under `publisher/v1/`; deleting it is
+not a recovery procedure. No command starts or restarts the viewer.
+
+Run `hive view work contract` for complete commands and required native-source
+fields. Advanced membership, evidence and CI operations retain the existing
+`hive view contract` interface.
 
 ## Interface language
 

@@ -136,6 +136,24 @@ session; without it, each creation's operation ID starts a new work, and the
 response returns the given key or null. Sessions created before work keys keep
 their IDs.
 
+The additive `hive view work` publisher owns on-demand directory scanning and
+semantic task/stage updates over the existing v3 API. Its offline `work contract`
+is the command reference. `open` binds explicit project/change/source/key to the
+returned work ID; `publish` freezes bounded Markdown before writes, compares the
+current remote chain for no-op, uploads missing content and verifies the snapshot.
+`list`/`show` read observed state; `bind` explicitly moves a local source binding.
+`resume` replays exact pending wire requests, and `reconcile archive-rejected`
+retains definite rejection evidence before freeing an intent for a fresh explicit
+publication. Unknown outcomes cannot be discarded. Neither command reopens work.
+
+Client state lives at `<state>/publisher/v1/` (0700 directories, 0600 files),
+outside the server-owned viewer inventory. A separate nonblocking lock protects
+versioned, atomically replaced journals and frozen request bytes. Confirmed history keeps bounded receipt metadata after verified readback; rejected
+intents retain their exact bytes in immutable archive files. Pending inputs have
+no age expiry. No credentials are stored there. There is no watcher, new server endpoint, dependency or storage
+migration. Downgrading the client preserves this journal but cannot resume its
+pending requests; restore a compatible client to recover them.
+
 Registration records project roots in `viewer/registry.json`. Resolution uses
 the verified Git origin when available and the registered path for a workspace
 or verified missing origin. Transient resolution failure is not a new identity.

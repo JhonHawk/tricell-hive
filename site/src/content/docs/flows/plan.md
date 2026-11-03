@@ -29,6 +29,8 @@ The rules for questions and for delivery are in the [shared guidance](https://gi
 
 ## What it produces
 
+Reviewable plan documents are published on demand from their retained source folder. The binary uploads the Markdown and returns a confirmed revision; requested edits publish another revision of the same work. Source files stay in the repository. See the [viewer publication model](/viewer/#publish-markdown-on-demand).
+
 A plan stays in the message only when the work fits one session on this machine: it spans no other session, waits on nothing external and is not handed to helpers. Such a plan carries its decisions, criteria, prerequisites and tasks in the message, and the agent keeps a checkpoint file in the host's temporary folder with the decisions, the pending tasks and anything it created outside the repository, so a compacted session can pick up where it left off. The file is removed at Close. The agent writes a change folder in your specs directory when the plan fails that test, such as work that spans sessions or is handed to helpers, when you ask for one, when its deliveries need coordination, or when it changes a contract, stored data, security, money, concurrency or a dependency. A one-off operation always keeps its plan in the message; when one of those conditions applies, or you agree to add files to the repository for it, it is handled as a regular change. A plan in the message that changes a behavior your specs describe includes a task that updates them. Without a ticket, the folder is named by a short slug; a plan never waits for a ticket to exist.
 
 The change folder is copied from the [templates](https://github.com/JhonHawk/tricell-hive/tree/master/content/skills/flow-plan/assets/change-folder):

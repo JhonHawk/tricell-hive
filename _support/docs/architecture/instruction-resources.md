@@ -14,7 +14,7 @@ The essential runtime boundaries and read conditions remain in `content/guidance
 
 Canonical procedural homes under `content/`:
 
-- `skills/flow-walkthrough/SKILL.md`: publish a substantive flow's declared session stages, documents and evidence to the viewer, or deliver a UI walkthrough through the supported fallback. Its consumers link to it instead of repeating publication steps; `hive view contract` owns the machine-readable protocol.
+- `skills/flow-walkthrough/SKILL.md`: publish a substantive flow's declared session stages, documents and evidence to the viewer, or deliver a UI walkthrough through the supported fallback. Its consumers link to it instead of repeating publication steps; `hive view work contract` owns the semantic publisher interface and `hive view contract` the advanced machine-readable protocol.
 - `skills/flow-verify/SKILL.md` and its conditional `references/ui-verification.md`: verification, review, UI checks and proportional capture coverage. Publication consumers point here for those checks instead of restating a second capture policy.
 - `guidance/global.md` «Questions and routes»: the decision and finding format, the context line and waiting line of a decision, result, blocker or closing message, and the next-step block between flows: which flow commands it offers, the single actions asked directly instead, and the compaction reply at plan → build and after a close.
 - `guidance/global.md` «Scope and authorization»: effects beyond this machine, critical effects, third-party requests and delegation authority; «Scope changes»: a change the user asks for, or the work finds it needs, while work is open.
