@@ -31,7 +31,7 @@ When a deployment fails because of a defect, the fix goes through [Build](/flows
 
 ## How it ends
 
-With a report that lists, per environment, the identity served, the health and the functional acceptance, each as met, failed, blocked or not run. The cleanup part of [Close](/flows/close/) then removes what the run started. The steps and checks are in the [flow-deploy skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/SKILL.md), its [deployment checks](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/references/deployment-checks.md) and its [urgent fixes](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/references/urgent-fixes.md) reference.
+With a report that lists, per environment, the identity served, the health and the functional acceptance, each as met, failed, blocked or not run. [Close](/flows/close/) then ends with its footer, and removes what the run started once you choose to close. The steps and checks are in the [flow-deploy skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/SKILL.md), its [deployment checks](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/references/deployment-checks.md) and its [urgent fixes](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/references/urgent-fixes.md) reference.
 
 ## What it does not do
 

@@ -1,13 +1,15 @@
 ---
 title: Research
-description: Investigate a question and get an answer backed by evidence, without changing your project.
+description: The entry for every request to do work, which settles what you need and then answers, builds or plans; also investigates a question with evidence.
 ---
 
-Research is for the moments when you need to know something before you decide anything. The agent reads your code, documents and project state, then reports what it found and how sure it is.
+Research settles what the work is; [Plan](/flows/plan/) settles how. Every request to do work enters here, so the agent understands what you need before it builds anything, and it is also where you ask a question and get an answer backed by evidence. It reads your code, documents and project state, then reports what it found and how sure it is.
 
 ## When it starts
 
-Use Research when the next step depends on facts you do not have yet.
+It starts on any request to do work, with no command to type, and when the next step depends on facts you do not have yet.
+
+- A request that already says everything that matters, such as adding a user to the repository, is checked for blockers and done: a change to the repository continues into [Build](/flows/build/) in the same turn, and an action that changes no repository file is done and reported.
 
 - Something fails and the cause is unknown, or a bug is reported without a request to fix it.
 - You want to compare two ways of solving a problem, or settle two sources that disagree.
@@ -26,38 +28,42 @@ Assess COM-833 before I start it.
 
 ## What it asks you
 
-Very little. It asks only about intent that would change the conclusion. Questions follow the format in the [shared guidance](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md): a bold context line, the options with the recommended one first, and a line saying what the agent waits for.
+Very little, and only after it has read what the project already answers. It plays your request back: what you want, for whom and why, with any conflict, false premise or cheaper path it found. When something that changes the result is still open, it asks one open question per message, in the text, with the reason and the option to tell it to just start. Choices between options use the cards of the [shared guidance](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md): a bold context line, the options with the recommended one first, and a line saying what the agent waits for.
 
-When a ticket you picked has open scope, such as missing criteria or more than one change in it, the agent settles those scope decisions with you during research, before it recommends a route.
+When a ticket you picked has open scope, such as missing criteria or more than one change in it, the agent settles those scope decisions with you during research, before it closes the what.
 
 ## What it does
 
-- Splits large questions across helper agents, then opens the cited sources of every claim that decides the answer before reporting.
+- Splits large questions across helper agents when a lookup needs more than five reads, uses the host's built-in explorer only to locate files and checks what it returns, names each system the decision touches and whether it searched it, then opens the cited sources of every claim that decides the answer before reporting.
 - For a failure, lists the plausible causes and checks each one, and tells you which it ruled out and with what evidence.
 - Resolves conflicting sources by date, version, scope and direct observation. Missing delivery evidence means delivery is not verified, not that it did not happen.
 - For a chosen ticket, writes an assessment of its impact, complexity, readiness and dependencies.
-- Publishes the stage to a running local viewer when one applies; if the viewer is unavailable, the investigation continues and the gap is reported. See the [walkthrough skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md).
+- Searches for an existing ticket before proposing one. It publishes nothing to the viewer: the [viewer](/viewer/) session starts at Plan or Build, with a one-paragraph summary of the work.
 
 It does not change code, tickets, documents or deployments, and it does not treat "no search results" as proof that something is missing.
 
 ## How it ends
 
-The answer comes in the conversation: what was concluded, the evidence, and what is still uncertain. When a long or shareable result would help, a report page is offered as one option.
+The answer comes in the conversation: what was concluded, the evidence, and what is still uncertain, with what you said kept apart from what the agent proposes.
 
-When the findings leave work you could run next, the report ends with a route: [Build](/flows/build/) for a small change that is understood, [Plan](/flows/plan/) for larger work, with the reason, plus how to keep investigating or stop. Your reply starts only the flow it names; research never authorizes the fix. No flow needs a ticket. A single action that needs no flow, such as opening a ticket for work that will be done later or by someone else, is asked directly ("Do you want me to create the ticket?") instead of being sent through a flow command.
+- If you asked to analyze, explain or find out why, it ends at the findings with a footer of options and no flow recommended.
+- If you asked for a change whose how leaves you no decision and can be finished from your request and the `git diff`, it continues into Build in the same turn.
+- Otherwise it ends with the command to start [Plan](/flows/plan/) and the reason, because the how has a decision for you or the work could not be resumed from the request and the diff.
+
+Your reply starts only the flow it names. No flow needs a ticket. A single action that needs no flow, such as opening a ticket for work that will be done later or by someone else, is asked directly ("Do you want me to create the ticket?") instead of being sent through a flow command.
 
 ## Related flows
 
 - [Status](/flows/status/) reports the backlog; Research takes the one ticket you pick from it.
-- [Plan](/flows/plan/) and [Build](/flows/build/) are the two routes out of the findings.
+- [Build](/flows/build/) follows in the same turn when the how is settled; [Plan](/flows/plan/) follows when it has a decision for you.
 
 ## FAQ
 
 ### Does research give the agent permission to implement the fix?
-No. A question, an investigation or a recommendation is not a go-ahead.
+No for a question, an investigation or a recommendation. A request to do work, once its what is clear and its how leaves you no decision, does continue into Build.
 
 ### Will it write a report file?
-Only if you ask for one. By default the findings stay in the chat.
+Only if you ask for one. By default the findings stay in the chat, and nothing goes to the viewer.
 
 ### Where is the exact rule?
 Source: [content/skills/flow-research/SKILL.md](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/SKILL.md)

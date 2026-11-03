@@ -7,7 +7,7 @@ Build is where the work gets done. The agent changes code or configuration, runs
 
 ## When it starts
 
-Build starts when you ask for a change and either a plan exists or the change is small and understood: one result, settled approach, nothing that touches a contract, security, stored data, concurrency, money or a dependency. For anything bigger the agent goes to [Plan](/flows/plan/) first, or to [Research](/flows/research/) when what to change is not clear, unless you chose to skip the plan.
+Build starts when a plan is ready, or from [Research](/flows/research/) in the same turn, with no command to type, when you asked for a change and its how leaves you no decision and can be finished from your request and the `git diff`. When the how has a decision for you, the agent goes to [Plan](/flows/plan/) first, unless you chose to skip the plan. The [viewer](/viewer/) session for the work starts here when it did not start at Plan.
 
 ```text wrap
 Implement the agreed change locally and verify it. Do not commit or publish.
@@ -34,4 +34,4 @@ Between tasks it keeps going rather than reporting. It stops to ask you somethin
 
 ## How it ends
 
-When every task is done, the agent runs locally the CI jobs that need no external service, secret or deployment, then hands the candidate to Verify. A mechanical change skips Verify: its criteria are checked, it is integrated as your delivery says, and [Close](/flows/close/) follows. A one-off operation skips the CI run and Verify: its criteria are checked and Close follows. The progress is kept in `tasks.md`, or in the message for a plan that lives there, so a long session can resume after a compaction.
+When every task is done, the agent runs locally the CI jobs that need no external service, secret or deployment, then hands the candidate to Verify. A mechanical change skips Verify: its criteria are checked, it is integrated as your delivery says, and it ends with the [Close](/flows/close/) footer. A one-off operation skips the CI run and Verify: its criteria are checked and it ends with the footer. The progress is kept in `tasks.md`, or in the message for a plan that lives there, so a long session can resume after a compaction.

@@ -23,6 +23,19 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Every request to do work now enters `flow-research`, which settles what the
+  user needs before any how: it reads before asking, asks one open question
+  per message in the text, checks a complete request for blockers and does it
+  or continues into `flow-build` in the same turn, and sends to `flow-plan`
+  only when the how has a decision for the user or the work cannot be finished
+  from the request and the `git diff`. An analysis ends at its findings with
+  no flow recommended. `flow-research` no longer publishes to the viewer,
+  which starts its session at plan or build with a one-paragraph summary;
+  `flow-plan` presents two or three approaches before the tasks; and after
+  integration `flow-close` moves the ticket, reports and ends with a footer
+  recommending to close plus replies from the context, running the archive and
+  cleanup on the user's reply, when other work starts or when the session ends
+  (#311).
 - `flow-close` never stops the viewer service or closes the viewer the user
   has open: closing a work's viewer session changes only its record.
 - Viewer navigation groups registered source roots with the same explicit
