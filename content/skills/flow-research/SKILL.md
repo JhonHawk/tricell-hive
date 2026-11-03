@@ -1,35 +1,29 @@
 ---
 name: flow-research
-description: Investigate a technical question, a reported failure, or a ticket the user picked, by inspecting code, documentation, and evidence, comparing alternatives or resolving conflicting claims. Use for an investigation one bounded lookup cannot answer, for a reported failure, bug, error, or regression that comes without an explicit fix request, for a question whether or how to do work, such as "can you fix this record?", even when its cause is already known, and to assess a ticket before working on it; not for the project's status or backlog, which belongs to flow-status, a simple lookup, or implementation the user already authorized.
+description: Settle what the user needs before any work, then send it to flow-build or flow-plan, or answer a question, a reported failure or a ticket assessment. Use for every request to do work without a ready plan, an investigation one bounded lookup cannot answer, a failure reported without a fix request, a question whether or how to do work, and assessing a ticket; not for the project's status or backlog (flow-status) or a simple lookup.
 ---
 
-# Research a question
+# Research what the user needs
 
-The primary producer follows [flow-walkthrough](../flow-walkthrough/SKILL.md), which sets when a viewer session applies, to start or resume the viewer stage and publish at each stage change, new capture or document snapshot; publication failure does not stop independent research.
+Research settles what the work is; `flow-plan` settles how. It publishes nothing to the viewer, and changes nothing in the project, tracker or shared data except through the work it hands to `flow-build` and a single action the user asks for. Follow-up questions keep it open and authorize nothing.
 
-Research does not change the project, tracker or shared data until the user chooses a route, or answers the question for a single action that the global guidance's «Questions and routes» section sets; the local viewer publication above records its progress.
+0. **Complete request.** When the request already says everything that changes the result, such as "add this user to the repository", check that nothing blocks it, such as missing access or a false premise, and do it: a change to repository files continues into `flow-build` in the same turn; an action that changes no repository file is done and reported, under the global guidance's effect rules. When one bounded lookup (as «Proportionality» defines it) answers a question, report the answer with its source and uncertainty, and stop.
+1. **Read before asking.** Read the code, ticket, configuration and verified memory the request touches. Never ask what they answer.
+2. **Play the request back.** State in your words what the user wants, for whom and why, with what you found: a conflict, a false premise, a cheaper path, or that the request is really several.
+3. **Ask what is missing.** When something that changes what gets built is still open, such as why now, what success looks like, what must not happen or what they already tried, ask one open question per message, in the text, with why you ask and no menu of example answers, and add that they can tell you to just start. When they say to just guess, propose something concrete. Choices between options go through the question tool, as «Questions and routes» sets.
+4. **Investigate what is unknown.**
+   - Delegate an aspect to a `hive-research` child when the lookup needs more than 5 file or source reads; launch independent children together, each briefed with the decision, the aspects, what is settled and when to stop. A host's built-in explorer only locates files; verify what it returns.
+   - Run a tracker query that lists tickets in the main thread, capped at 50 tickets and short fields; use `hive-read-state` children only for several independent collections at once. Search the tracker for an existing ticket before proposing one.
+   - For a failure whose cause is not yet shown, list the plausible causes and check each one, in parallel when independent; report the ones ruled out with their evidence.
+   - Name each system the decision touches and whether you searched it.
+   - Open the source of each claim that decides the answer instead of recalling it. Resolve conflicting sources by date, version, scope and direct observation; missing delivery evidence means delivery is not verified, not that it did not happen.
+5. **Close the what.** Report the answer, its evidence and what remains uncertain, and play back what you understood, marking what the user said apart from what you propose. Then:
+   - When the user asked to analyze, explain, review or diagnose without asking for a change, end at the findings with the block of «Questions and routes», recommending no flow.
+   - When the user asked for a change whose how leaves no decision for them and could be finished from the request and `git diff` alone, continue into `flow-build` in the same turn.
+   - Otherwise, end with the route to `flow-plan` and its reason.
 
-## Entry and exit
-
-Enter with a question, a reported failure or a proposal, including a question whether or how to do work; follow-up questions keep the research open and authorize nothing. When one bounded lookup (as the global guidance's «Proportionality» defines it) in the main thread answers the question and no work remains for the user to run, report the answer with its source and any uncertainty, with no delegation or route; a tracker query that lists tickets still follows step 2. Exit with findings and their evidence, and the route of step 5 when work remains that the user could run next. For a reported failure whose cause is confirmed, leave the delivery and review questions to `flow-build`.
-
-## Steps
-
-1. Name the question and the decision it informs. Ask the user only for intent that changes the conclusion.
-2. Investigate. Delegate an aspect to a `hive-research` child when its brief is shorter than the lookup and the lookup needs more than 5 file or source reads; keep the rest in the main thread. Brief each child with the decision, the aspects to cover, what is settled, and when to stop. Run a tracker query that lists tickets in the main thread, capped at 50 tickets and short fields (identifier, title, state, labels, priority, assignee); use `hive-read-state` children only to run several independent collections at once. For a failure whose cause is not yet shown, list the plausible causes and check each one, in parallel when the checks are independent, before concluding; report the ones you ruled out with the evidence that ruled them out.
-3. Check each claim that decides the answer by opening its cited source. Resolve conflicting sources by their dates, versions, scope and direct observation; neither the backlog nor the documentation takes precedence, and missing delivery evidence means delivery is not verified, not that it did not happen.
-4. Report the answer, its evidence, and what remains uncertain. When the user asks to keep or share the result, or the report exceeds what fits on one screen, offer a `flow-report` page as one option of the question the message ends with. When the research has a viewer session, ask the open-viewer question that [viewer publication](../flow-walkthrough/references/viewer-publication.md#open-the-viewer) sets.
-5. When the findings leave work the user could run next, end the report with the route as the global guidance's «Questions and routes» section sets: the recommended flow (`flow-build` for a small understood change as «Proportionality» defines it, `flow-plan` for larger work) with its reason, and one line saying how to continue, keep investigating or stop.
-
-The user's reply authorizes only the flow it names, or the single action it answers.
+   Creating a ticket is a single action, offered as a reply or asked, never part of a route. The user's reply authorizes only the flow it names, or the single action it answers.
 
 ## Assess a chosen ticket
 
-When the user picks a ticket to work on, read it and the code it touches, and write this assessment in the message:
-
-- **Impact:** what uses what the ticket changes, found by searching its literal values (hosts, tables, variables, routes) and direct callers, and whether it touches production.
-- **Complexity:** the files, modules and contracts it changes.
-- **Readiness:** whether its acceptance criteria and decisions are settled, and the access, data or answers still missing.
-- **Dependencies:** the tickets it waits on or blocks.
-
-A ticket is not ready while its scope is open: its criteria are missing, it names more than one change, or the specs contradict it. Settle that in research: ask the scope decisions in rounds, as the global guidance's «Questions and routes» section sets, such as which operations enter or whether the spec or the ticket governs, and add the answers to the assessment. Then end with the route of step 5: `flow-build` for a small change, `flow-plan` for larger work. Plan settles how the change is done, never what enters it.
+When the user picks a ticket, add to the report its **impact** (what uses what it changes, found by searching its literal values and direct callers, and whether it touches production), **complexity** (the files, modules and contracts it changes), **readiness** (settled criteria and decisions, and the access or answers missing) and **dependencies** (the tickets it waits on or blocks). A ticket whose criteria are missing, that names more than one change, or that the specs contradict is not ready: settle its scope here, in rounds, before step 5.
