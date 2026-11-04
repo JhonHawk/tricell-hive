@@ -69,19 +69,34 @@ var completionPattern = regexp.MustCompile(`^.+ on \S+ · .+ on \S+$`)
 
 // otherTrackerKeys is the last part of one Other trackers entry: `keys` with
 // one or more prefixes, or `key` with exactly one.
-var otherTrackerKeys = regexp.MustCompile(`^(?:keys [A-Z][A-Z0-9]*(?:, [A-Z][A-Z0-9]*)*|key [A-Z][A-Z0-9]*)$`)
+var otherTrackerKeys = regexp.MustCompile(`^(?:keys [A-Z][A-Z0-9_]*(?:, [A-Z][A-Z0-9_]*)*|key [A-Z][A-Z0-9_]*)$`)
 
 // completionPrefix opens a Completion value that applies to the tickets of
 // the key prefixes it lists.
-var completionPrefix = regexp.MustCompile(`^([A-Z][A-Z0-9]*(?:, [A-Z][A-Z0-9]*)*): `)
+var completionPrefix = regexp.MustCompile(`^([A-Z][A-Z0-9_]*(?:, [A-Z][A-Z0-9_]*)*): `)
+
+// splitEntries splits a value on ";", trims each entry and drops the empty
+// ones that a trailing or doubled separator leaves.
+func splitEntries(value string) []string {
+	var entries []string
+	for _, e := range strings.Split(value, ";") {
+		if e = strings.TrimSpace(e); e != "" {
+			entries = append(entries, e)
+		}
+	}
+	return entries
+}
 
 // otherTrackerFindings checks the value of Other trackers, entry by entry, and
 // returns the finding texts (without the key) with the declared prefixes.
 func otherTrackerFindings(value string) (texts []string, declared map[string]bool) {
 	declared = map[string]bool{}
 	reported := map[string]bool{}
-	for _, entry := range strings.Split(value, "; ") {
-		entry = strings.TrimSpace(entry)
+	entries := splitEntries(value)
+	if len(entries) == 0 {
+		return []string{fmt.Sprintf("expected %q, found %q", otherTrackersShape, shown(value))}, declared
+	}
+	for _, entry := range entries {
 		parts := strings.Split(entry, " · ")
 		last := strings.TrimSpace(parts[len(parts)-1])
 		if len(parts) < 3 || !otherTrackerKeys.MatchString(last) {
@@ -106,8 +121,11 @@ func completionFindings(value string, declared map[string]bool) (texts []string)
 	seen := map[string]bool{}
 	reported := map[string]bool{}
 	unprefixed := 0
-	for _, entry := range strings.Split(value, "; ") {
-		entry = strings.TrimSpace(entry)
+	entries := splitEntries(value)
+	if len(entries) == 0 {
+		return []string{fmt.Sprintf("expected %q, found %q", completionShape, shown(value))}
+	}
+	for _, entry := range entries {
 		rest := entry
 		if m := completionPrefix.FindStringSubmatch(entry); m != nil {
 			rest = entry[len(m[0]):]

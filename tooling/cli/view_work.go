@@ -8,6 +8,7 @@ import (
 	"io"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"tricell-hive/tooling/management"
@@ -454,6 +455,14 @@ func viewerFault(err error, path string, names map[string]string) error {
 	return faultf(path+"."+name, rule)
 }
 
+// locatableBodyCodes are the refusals of the viewer's decoder about the fields
+// of well-formed JSON, which locateJSONFault can place.
+var locatableBodyCodes = map[string]bool{"unknown_field": true, "invalid_fields_or_types": true, "null_not_allowed": true}
+
+// identifierName is an unknown field name safe to echo: it looks like a field
+// of the contract, not like arbitrary received text.
+var identifierName = regexp.MustCompile(`^[a-z][a-z0-9_]{0,39}$`)
+
 // decodeViewWorkJSON decodes with the closed decoder of the viewer. When it
 // refuses, it walks the input to find the first field at fault, so the error
 // names where and why instead of only that the input is invalid.
@@ -462,11 +471,17 @@ func decodeViewWorkJSON(raw []byte, target any, root string) error {
 	if err == nil {
 		return nil
 	}
-	if path, rule, found := locateJSONFault(raw, reflect.TypeOf(target).Elem(), root); found {
-		return faultf(path, rule)
-	}
 	var contract *viewer.TimelineContractError
-	if errors.As(err, &contract) && contract.Field == "body" {
+	isContract := errors.As(err, &contract)
+	// Only a refusal about the fields can be located. A syntax, size, encoding
+	// or duplicate-key refusal is reported as the viewer states it.
+	locatable := !isContract || contract.Field != "body" || locatableBodyCodes[contract.Code]
+	if locatable {
+		if path, rule, found := locateJSONFault(raw, reflect.TypeOf(target).Elem(), root); found {
+			return faultf(path, rule)
+		}
+	}
+	if isContract && contract.Field == "body" {
 		return faultf("body", strings.ReplaceAll(contract.Code, "_", " "))
 	}
 	return faultf("body", "invalid fields or types")
@@ -507,7 +522,10 @@ func locateJSONFault(raw []byte, t reflect.Type, path string) (faultPath, rule s
 		sort.Strings(names)
 		for _, name := range names {
 			if !allowed[name] {
-				return path + "." + truncateRunes(sanitizeLine(name), 40), "unknown field", true
+				if !identifierName.MatchString(name) {
+					return path, "unknown field", true
+				}
+				return path + "." + name, "unknown field", true
 			}
 		}
 		for _, f := range known {
@@ -532,6 +550,9 @@ func locateJSONFault(raw []byte, t reflect.Type, path string) (faultPath, rule s
 			return path, "wrong type", true
 		}
 		for i, item := range items {
+			if string(item) == "null" {
+				return fmt.Sprintf("%s[%d]", path, i), "null not allowed", true
+			}
 			if p, r, bad := locateJSONFault(item, t.Elem(), fmt.Sprintf("%s[%d]", path, i)); bad {
 				return p, r, true
 			}
@@ -543,6 +564,10 @@ func locateJSONFault(raw []byte, t reflect.Type, path string) (faultPath, rule s
 	}
 	return "", "", false
 }
+
+// assigneeNames maps the fields of the source the viewer validates to the
+// fields of the assignee in the input.
+var assigneeNames = map[string]string{"source.host": "host", "source.native_session_id": "native_session_id"}
 
 func validateViewWorkTasks(tasks []viewWorkTaskInput) error {
 	if len(tasks) == 0 || len(tasks) > viewer.TimelineMaxTasks {
@@ -579,7 +604,7 @@ func validateViewWorkTasks(tasks []viewWorkTaskInput) error {
 			segmentOrders[s.Stage][s.Order] = true
 			if s.Assignee != nil {
 				if err := validateViewWorkSource(*s.Assignee); err != nil {
-					return faultf(segPath+".assignee", "invalid native source")
+					return viewerFault(err, segPath+".assignee", assigneeNames)
 				}
 			}
 			r.Segments = append(r.Segments, viewer.TimelineTaskSegmentInput{PlannedStage: s.Stage, Order: s.Order})
@@ -614,7 +639,7 @@ func validateViewWorkMetadata(m viewWorkTaskMetadata) error {
 	}
 	if m.Assignee != nil {
 		if err := validateViewWorkSource(*m.Assignee); err != nil {
-			return faultf(path+".assignee", "invalid native source")
+			return viewerFault(err, path+".assignee", assigneeNames)
 		}
 		r.AssignedProducerID = "validate"
 	}

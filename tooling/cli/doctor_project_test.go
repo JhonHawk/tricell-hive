@@ -665,10 +665,14 @@ func withLines(lines ...string) string {
 func TestDoctorProjectAcceptsOtherTrackersAndPrefixedCompletion(t *testing.T) {
 	root := projectRepoWithSpecs(t, validHiveSection)
 	for name, lines := range map[string][]string{
-		"one tracker":       {"- Other trackers: Jira · example.atlassian.net · keys XYZ", "- Completion: XYZ: QA on qa · Done on production"},
-		"two trackers":      {"- Other trackers: Jira · example.atlassian.net · keys XYZ, ABC1; Linear · team Example · key QRS", "- Completion: XYZ, ABC1: QA on qa · Done on production; QRS: Merged on main · Done on production"},
-		"primary and other": {"- Other trackers: Jira · example.atlassian.net · keys XYZ", "- Completion: To Deploy on origin/a · Done on origin/b; XYZ: QA on qa · Done on production"},
-		"trackers only":     {"- Other trackers: Jira · example.atlassian.net · keys XYZ"},
+		"one tracker":        {"- Other trackers: Jira · example.atlassian.net · keys XYZ", "- Completion: XYZ: QA on qa · Done on production"},
+		"two trackers":       {"- Other trackers: Jira · example.atlassian.net · keys XYZ, ABC1; Linear · team Example · key QRS", "- Completion: XYZ, ABC1: QA on qa · Done on production; QRS: Merged on main · Done on production"},
+		"primary and other":  {"- Other trackers: Jira · example.atlassian.net · keys XYZ", "- Completion: To Deploy on origin/a · Done on origin/b; XYZ: QA on qa · Done on production"},
+		"trackers only":      {"- Other trackers: Jira · example.atlassian.net · keys XYZ"},
+		"underscore prefix":  {"- Other trackers: Jira · example.atlassian.net · keys AB_C, X_1", "- Completion: AB_C, X_1: QA on qa · Done on production"},
+		"tight separator":    {"- Other trackers: Jira · example.atlassian.net · keys XYZ;Linear · team Example · key QRS", "- Completion: XYZ: QA on qa · Done on production;QRS: A on a · B on b"},
+		"trailing separator": {"- Other trackers: Jira · example.atlassian.net · keys XYZ; ", "- Completion: To Deploy on origin/a · Done on origin/b; "},
+		"doubled separator":  {"- Other trackers: Jira · example.atlassian.net · keys XYZ;; ;Linear · team Example · key QRS", "- Completion: XYZ: QA on qa · Done on production;;"},
 	} {
 		t.Run(name, func(t *testing.T) {
 			writeAgents(t, root, withLines(lines...))
@@ -697,6 +701,8 @@ func TestDoctorProjectWarnsOnMalformedOtherTrackersAndCompletionValues(t *testin
 		{"undeclared completion prefix", []string{"- Other trackers: Jira · example.atlassian.net · keys XYZ", "- Completion: ABC: QA on qa · Done on production"}, `Completion: prefix ABC is not declared in Other trackers`},
 		{"repeated completion prefix", []string{"- Other trackers: Jira · example.atlassian.net · keys XYZ", "- Completion: XYZ: QA on qa · Done on production; XYZ: QA on a · Done on b"}, `Completion: prefix XYZ appears more than once`},
 		{"malformed value after the separator", []string{"- Other trackers: Jira · example.atlassian.net · keys XYZ", "- Completion: Done on qa · Done on production; XYZ: Done"}, `Completion: expected "<state> on <ref> · <state> on <ref>", found "XYZ: Done"`},
+		{"tight separator is still two entries", []string{"- Other trackers: Jira · example.atlassian.net · keys XYZ;Linear · team Example · keys XYZ"}, `Other trackers: prefix XYZ is declared more than once`},
+		{"tight separator completion", []string{"- Completion: A on a · B on b;C on c · D on d"}, `Completion: at most one value may have no prefix`},
 		{"two values without a prefix", []string{"- Completion: A on a · B on b; C on c · D on d"}, `Completion: at most one value may have no prefix`},
 	}
 	for _, c := range cases {

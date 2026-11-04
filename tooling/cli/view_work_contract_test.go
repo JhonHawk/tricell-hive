@@ -185,3 +185,47 @@ func TestViewWorkContractDocumentsThePathConventionAndTwoRules(t *testing.T) {
 		}
 	}
 }
+
+// Review round: syntax errors, null elements, assignee paths and unknown names.
+func TestViewWorkJSONErrorsReviewRound(t *testing.T) {
+	id := strings.Repeat("a", 64)
+	source := []string{"--host", "codex", "--native-session-id", "session-one"}
+	task := `{"key":"T1","title":"Build","summary":"Behavior","order":1,"segments":[{"stage":"build","order":1}]}`
+	register := append([]string{"tasks", "register", "--work-id", id, "--plan-revision", "revision-one", "--json", "-"}, source...)
+	update := append([]string{"task", "update", "--work-id", id, "--key", "T1", "--reason", "Update", "--json", "-"}, source...)
+	withAssignee := func(a string) string {
+		return strings.Replace(task, `"stage":"build"`, `"stage":"build","assignee":`+a, 1)
+	}
+	for _, tc := range []struct {
+		name string
+		args []string
+		raw  string
+		want string
+		not  string
+	}{
+		{"trailing comma", register, `[` + task + `,]`, "body: invalid json", "wrong type"},
+		{"missing comma", register, `[` + task + task + `]`, "body: invalid json", "wrong type"},
+		{"trailing data", register, `[` + task + `] x`, "body: trailing data", "wrong type"},
+		{"truncated", register, `[` + task, "body: invalid json", "wrong type"},
+		{"metadata truncated", update, `{"title":`, "body: invalid json", "wrong type"},
+		{"invalid UTF-8", register, "[" + strings.Replace(task, "Build", "B\xffd", 1) + "]", "body: invalid size or encoding", "tasks["},
+		{"null element", register, `[null]`, "tasks[0]: null not allowed", "required field"},
+		{"null second element", register, `[` + task + `,null]`, "tasks[1]: null not allowed", "required field"},
+		{"assignee bad host", register, `[` + withAssignee(`{"host":"nowhere","native_session_id":"s1"}`) + `]`, "tasks[0].segments[0].assignee.host: unsupported host", "invalid native source"},
+		{"assignee bad session", register, `[` + withAssignee(`{"host":"codex","native_session_id":"a b"}`) + `]`, "tasks[0].segments[0].assignee.native_session_id: native id required", ""},
+		{"metadata assignee bad host", update, `{"stage":"build","plan_revision":"revision-one","assignee":{"host":"nowhere","native_session_id":"s1"}}`, "metadata.assignee.host: unsupported host", "invalid native source"},
+		{"unknown name that is not an identifier", register, `[` + strings.Replace(task, `"order":1,`, `"order":1,"LEAKED value!":1,`, 1) + `]`, "tasks[0]: unknown field", "LEAKED"},
+		{"unknown name with a control character", register, `[` + strings.Replace(task, `"order":1,`, `"order":1,"x\u001by":1,`, 1) + `]`, "tasks[0]: unknown field", "x"},
+		{"unknown identifier name is named", register, `[` + strings.Replace(task, `"order":1,`, `"order":1,"extra_field":1,`, 1) + `]`, "tasks[0].extra_field: unknown field", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := parseViewWorkCommand(tc.args, strings.NewReader(tc.raw))
+			if err == nil || !strings.Contains(err.Error(), "invalid semantic JSON: "+tc.want) {
+				t.Fatalf("error %v, want %q", err, tc.want)
+			}
+			if tc.not != "" && strings.Contains(err.Error(), tc.not) {
+				t.Fatalf("error %v must not contain %q", err, tc.not)
+			}
+		})
+	}
+}
