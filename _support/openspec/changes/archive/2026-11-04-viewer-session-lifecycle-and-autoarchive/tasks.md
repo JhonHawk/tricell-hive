@@ -171,3 +171,10 @@ No install/restart or update of the habitual viewer is a test. A later integrate
 - Publication gate: live origin/development2765624b; #352 stillOPEN/MERGEABLE at8a04118d with63foreigncommits. Owncandidatecontains12commits beyonddependency; no pushes/PR/merge/installperformed. D10mustchoose dependencyPRbase orwaitfor#352integration beforepublication.
 
 - D10 A plus explicit integration request: publish a dependent PR against #352, integrate #352, retarget this PR to development, merge the current-base candidate, then perform the maintainer refresh/restart preserving the existing settings and pre-upgrade state. No master promotion. Read live #352 reviews/comments: no reviews or inline findings; three maintainer evidence comments. Existing original-checkout edits remain untouched.
+
+## Completed close
+
+- PR #352 merged at `12dbca13` and PR #359 at `edc028c8`. The local binary and all six registered hosts were refreshed from `edc028c8`. The viewer is healthy on port 4483 with TTL 0, 30 works, seven repositories and 119 blob files preserved; nine eligible closed records were automatically archived. Native publication after the update was confirmed.
+- Viewer closure was confirmed once: work `d175931f5bfa5078e1c87da68b2ee6c74fcc6148142a4d47e606cf175131e6b6`, version 58, closure `event-973817956368f123820bdf785f5e55dd`. Hygiene reuses that receipt without a second closure.
+- All ten approved delta requirements were reconciled into canonical walkthrough-viewer/workflow-lifecycle specs. The proposal is completed and this change is archived. All 28 support files, captures and check outputs stay at the same path in the main checkout; the private pre-upgrade snapshot remains in its secret location. Original #311 edits and other sessions' support stay untouched.
+- This archive delivery is mechanical support work covered by D10 integration authorization. Cleanup of this worktree, its merged branches and the exact reproducible task temporary homes follows archive integration. The viewer service stays running.

@@ -2,9 +2,9 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Verified locally · T1–T5 complete; publishing and integrating authorized |
+| Status | Completed · PR #359 merged; local refresh and viewer closure verified |
 | Tracker | None; creating a ticket is outside this plan |
-| Git | tricell-hive; base `development` at observed `2765624b`; prerequisite candidate PR #352 at `8a04118d` |
+| Git | PR #352 merged at `12dbca13`; PR #359 merged into `development` at `edc028c8` |
 | Viewer | Work `d175931f5bfa5078e1c87da68b2ee6c74fcc6148142a4d47e606cf175131e6b6`; native Codex session `01a1a55e-9a93-77e0-9237-dc4758e6e4da` |
 
 ## Decisions
