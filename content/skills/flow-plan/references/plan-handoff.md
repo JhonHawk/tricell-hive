@@ -27,4 +27,4 @@ A correction to a criterion or a sketch is not approval: revise the plan, show t
 
 When execution is already explicitly authorized, show the summary the same way and continue to `flow-build`.
 
-Leave a change folder uncommitted: `flow-close` versions it once at close.
+A change folder is committed with the code it plans, as [git-workflow step 4](../../git-workflow/SKILL.md) sets; until then it stays on disk.
