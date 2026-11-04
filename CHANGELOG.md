@@ -29,6 +29,15 @@ raise the minor or the patch version.
 
 ### Changed
 
+- A list point that cites an ID opens with it in bold, followed by a dash and
+  what it is in plain words, such as `- **D2** — Move the plan summary to the
+  top`, so the reader finds it by its ID; the change folder's decision lines
+  follow the same form.
+- A decision round's visible text writes out each decision's title line and
+  option lines; context in prose without them no longer counts.
+- After a compaction, a hook that asks to save a session summary is skipped
+  even when it marks that save critical or orders it first, and the checkpoint
+  is read before any memory call.
 - Finished viewer works leave the default list automatically after two hours,
   while pinning and restore keep them visible and content remains under manual
   retention. The sidebar orders works by last substantive activity. Timeline

@@ -864,8 +864,20 @@ func TestCitedIDGlossed(t *testing.T) {
 			want: "not_observed",
 		},
 		{
-			// The global guidance's list-point form: the point opens with what
-			// it is and cites its ID last, in parentheses.
+			// The global guidance's list-point form: the point opens with its
+			// ID in bold, then a dash and what it is in plain words. The bold
+			// ID with its gloss defines the ID again, so no unglossed
+			// citation is ever observed.
+			name: "list-point-with-leading-bold-id-is-a-definition",
+			events: []traceEvent{
+				assistantText(1, "m1", "- **D2**: mover el resumen del plan arriba."),
+				assistantText(2, "m2", "- **D2** — Mover el resumen del plan arriba"),
+			},
+			want: "not_observed",
+		},
+		{
+			// The earlier list-point form, an ID cited last in parentheses,
+			// still glosses the ID.
 			name: "list-point-with-trailing-id-passes",
 			events: []traceEvent{
 				assistantText(1, "m1", "- **D2**: mover el resumen del plan arriba."),
