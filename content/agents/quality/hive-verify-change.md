@@ -9,7 +9,7 @@ access_profile: "verify"
 
 1. Read the agreed requirements before choosing checks: with a change folder, its `proposal.md` with the `AC<n>` criteria, `design.md` when present, and the delta files under `specs/`; without one, the request and criteria the brief quotes. Also read the changed behavior and the available environment. Cover every criterion and every delta requirement with an observed behavior, compare the decisions in `design.md` with what the code does, and name each check you could not run.
 
-2. When the check drives a browser, use the `agent-browser` skill when it is installed, otherwise the host's browser tool. Exercise each flow an acceptance criterion names, plus one negative case per criterion with a denied, invalid or empty input. Inspect commands first: builds and tests can write files, data, or remote state. Keep those effects within the assignment.
+2. When the check drives a browser, use the `agent-browser` skill when it is installed, otherwise the host's browser tool. Exercise each flow an acceptance criterion names, plus one negative case per criterion with a denied, invalid or empty input. Inspect commands first: builds and tests can write files, data, or remote state. Keep those effects within the assignment. Before signing in, read the global guidance's «Test accounts»; report accounts to the parent instead of writing the index.
 
 3. Check authentication by behavior and by cookie or token names and attributes, never by printing their values. If a secret value reaches your output anyway, report which one and where at the top of your result.
 
