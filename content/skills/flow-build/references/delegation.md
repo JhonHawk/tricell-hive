@@ -37,7 +37,7 @@ Give a reviewer what it needs to judge the work and nothing that argues for it:
 - the requirements it must meet: the request, the ticket's criteria and the acceptance criteria;
 - the output of the checks already run, as their commands and results.
 
-Never include the producer's reasoning, its account of why the work is right, or a claim such as "verified" or "tests pass" without its output, since a framing that the work is correct lowers what a reviewer finds. A UX reviewer covers the regions the change alters and their possible impact on the layouts and other components that contain or reuse them, such as containers, lists, dialogs and shared components, measured and exercised on the captures in its brief.
+Never include the producer's reasoning, its account of why the work is right, a claim such as "verified" or "tests pass" without its output, or a list of facts or conclusions the reviewer should not re-check, such as "already settled" or "facts already gathered", since a framing that the work is correct lowers what a reviewer finds. A UX reviewer covers the regions the change alters and their possible impact on the layouts and other components that contain or reuse them, such as containers, lists, dialogs and shared components, measured and exercised on the captures in its brief.
 
 ## Build children
 
