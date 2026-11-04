@@ -24,7 +24,7 @@ Nothing. The report is never replaced by a question card, and the flow is read-o
 
 - The tickets in every non-terminal state, as short summaries.
 - Unfinished local work: the current branch, uncommitted changes, branches not yet merged, worktrees, open pull requests, and change folders not yet committed in the specs repository, even when it is a separate one.
-- The work left open on purpose: the `Pending:` records [Close](/flows/close/) keeps in persistent memory, each marked stale when its ticket is done and its conditions are met, or its change folder is archived.
+- The work left open on purpose: the `Pending:` records [Close](/flows/close/) keeps in persistent memory, each marked stale when every ticket and condition it names is resolved.
 
 ## What the report holds
 
