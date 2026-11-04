@@ -7,7 +7,7 @@ Read before deciding whether a child does a piece of work, in any flow, and befo
 Delegate for the first of these reasons that applies; when none applies, the main thread does the work.
 
 1. **Independence: every review.** A code, UX, plan or security review and a task verification always run in a child, never in the main thread, because the context that produced the work biases its review. The cost of that child does not decide. Brief it as [Reviewer brief](#reviewer-brief) sets.
-2. **Parallelism: independent work at the same time.** Give tasks that can run side by side, such as a backend task and a frontend task, each to its own child, launched in the same step, only when all four hold:
+2. **Parallelism: independent work at the same time.** Give pieces of work that can run side by side, such as independent read-only collections, each to its own child, launched in the same step. When they write, such as a backend task and a frontend task, do so only when all four hold:
    - the contract they share is written as a typed artifact, such as types, a schema or an API definition, and does not change while they run;
    - their writes touch disjoint files;
    - the main thread does not need either result to continue;

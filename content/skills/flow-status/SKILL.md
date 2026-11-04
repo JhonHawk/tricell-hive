@@ -8,7 +8,7 @@ description: Report the project's current status and backlog, read-only, and rec
 This skill is read-only and assesses no ticket in depth; `flow-research` does that once the user picks one. Read only what the report needs: the `## Hive` section of the repository, the tracker and Git.
 
 1. Collect, in parallel:
-   - the tracker's tickets in every non-terminal state, in the main thread, with queries that cap their output at 50 tickets and return only short fields (identifier, title, state, labels, priority, assignee, parent). Use `hive-read-state` children only to run several independent collections at once, such as more than one tracker or project;
+   - the tracker's tickets in every non-terminal state, in the main thread, with queries that cap their output at 50 tickets and return only short fields (identifier, title, state, labels, priority, assignee, parent). Use `hive-read-state` children only to run several independent collections at once, such as more than one tracker or project, as [delegation](../flow-build/references/delegation.md) sets;
    - unfinished local work: the current branch, uncommitted changes, local branches not merged into the base branch, worktrees, and open pull requests.
 2. Write the report as [Report](#report) sets. Never replace it with a question card.
 3. When the user asked what to take next, end the report with the route as the global guidance's «Questions and routes» section sets: the recommended ticket or group and the command that assesses it, such as `/flow-research COM-833` in the host's syntax. The ticket the user names starts `flow-research`. A plain status request ends with the recommendations.
