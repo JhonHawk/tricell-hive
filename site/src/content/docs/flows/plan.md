@@ -24,7 +24,7 @@ The agent reads the code, your project settings and the existing specs first, th
 - When the how has more than one sensible way, two or three approaches in a message of their own before the tasks, each with its tradeoff and one recommended; you choose, and they are recorded in `design.md`. When only one way is sensible, the agent says so and why.
 - Choices that change the outcome, asked in rounds and in the shared question format. A change to what an interface sends or receives counts as a contract change, and you decide whether it stays compatible.
 - For a changed screen, the layout and its states, shown as before-and-after sketches you can choose between.
-- Once the plan is written, how the work is delivered and which code review runs, unless you already answered. The recommended delivery follows the kind of work: automatic when its checks, review and verification can judge it, such as infrastructure or CI; interactive when it has a screen, copy or flow only you can judge. A one-off operation that leaves nothing in the repository, such as a database dump, gets neither question.
+- Once the plan is written, how the work is delivered and which code review runs, unless you already answered in this session. The recommended delivery follows the kind of work: automatic when its checks, review and verification can judge it, such as infrastructure or CI; interactive when it has a screen, copy or flow only you can judge. A one-off operation that leaves nothing in the repository, such as a database dump, gets neither question.
 
 The rules for questions and for delivery are in the [shared guidance](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md).
 

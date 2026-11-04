@@ -29,7 +29,7 @@ Task progress is published separately through semantic task and stage commands. 
 
 ## What it asks you
 
-- The delivery mode and the code review, once, before the first edit, unless you already answered or the repository declares direct delivery. A mechanical change gets only the delivery question. See the [delivery rules](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md).
+- The delivery mode and the code review, once per session, before the first edit, unless the repository declares direct delivery. Later work in the same session reuses your answers and says which ones apply; you are asked again only when you want to change them or when the mode would merge or publish commits that are not this work's. A mechanical change gets only the delivery question. See the [delivery rules](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md).
 - For a change that adds or rearranges a screen, to accept its first rendered view or ask for corrections before the rest continues. The view is published to the [viewer](/viewer/) through the [walkthrough skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md). When you have delegated the work to run [unattended](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md), the view is captured and published without waiting for you.
 
 Between tasks it keeps going rather than reporting. It stops to ask you something, at a validation stop, or at a blocker.
