@@ -18,7 +18,7 @@ Skip verify for this one; I will check it myself.
 
 - Runs the full local suite, serves the candidate the way production would, and exercises the changed behavior through its real path, checking each numbered acceptance criterion. A screen that shows a sign-in page, an error or an empty list counts as a setup failure, not as evidence.
 - For an interface change, captures the changed screens and states on desktop and, when the layout is responsive, mobile, as the [UI verification reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-verify/references/ui-verification.md) sets. An independent UX reviewer works from those captures and runs an automated accessibility audit, plus any UI linter your project declares, on each screen and state it reviews.
-- Runs the code review you chose, alongside the walk. A security review runs only if you ask for it.
+- Runs the code review you chose, alongside the walk. When you chose a host's native review and the work continues on another host, it runs that host's native review instead, and asks again only when that host has none. A security review runs only if you ask for it.
 - Fixes, in one round, your corrections, every interface defect the change introduced, and each confirmed blocking finding. A second review covers only that round's fixes. Other findings go to the close instead of another round.
 
 ## What it asks you
