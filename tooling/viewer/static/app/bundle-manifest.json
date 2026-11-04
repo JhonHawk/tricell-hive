@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "sourceDigest": "4c9bf26b1ab24f9b3644a85d7aec719b7f4ae4b585b91513ad2a0016837c2685",
+  "entrypoint": "index.html",
+  "files": [
+    {
+      "path": "assets/index-BMx9lW4y.js",
+      "sha256": "d54783c435ce4862fe9a9ff55bf6aece6c03704e53fdc66a29588fc14fa89867",
+      "mime": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "assets/index-CEQiiIET.css",
+      "sha256": "5bcb5c0b0afbb0726d96b03d39073dabf62e1390d6684401b2eee2ad081a3ff4",
+      "mime": "text/css; charset=utf-8"
+    },
+    {
+      "path": "index.html",
+      "sha256": "f195f8cc142d745ebd892798c6402d50ff24e0259e248390637a65f2ffa7c046",
+      "mime": "text/html; charset=utf-8"
+    }
+  ]
+}
