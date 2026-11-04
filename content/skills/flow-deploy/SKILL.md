@@ -11,7 +11,7 @@ This is a stage of its own, after integration, and one run can cover several tic
 
 ## Prepare
 
-Before delegating, read [flow-build «Delegation»](../flow-build/SKILL.md#delegation). Before a branch, merge or push that carries a promotion, read [git-workflow](../git-workflow/SKILL.md), which keeps the promotion invariant. Before stored-data changes, read [stored data](../flow-build/SKILL.md#stored-data). For the checks of this stage, read [deployment checks](references/deployment-checks.md). For a production defect that cannot wait (urgent fixes defines when), read [urgent fixes](references/urgent-fixes.md).
+Before delegating, read [delegation](../flow-build/references/delegation.md). Before a branch, merge or push that carries a promotion, read [git-workflow](../git-workflow/SKILL.md), which keeps the promotion invariant. Before stored-data changes, read [stored data](../flow-build/SKILL.md#stored-data). For the checks of this stage, read [deployment checks](references/deployment-checks.md). For a production defect that cannot wait (urgent fixes defines when), read [urgent fixes](references/urgent-fixes.md).
 
 ## Procedure
 
@@ -29,4 +29,4 @@ Before delegating, read [flow-build «Delegation»](../flow-build/SKILL.md#deleg
 7. **Functional walk gate.** Run the walk, or report it as not run and do not offer it, as [deployment checks](references/deployment-checks.md#functional-walk) sets.
 8. **Report** the run named in step 1 and, per environment, the identity served, the health and the functional acceptance, each as met, failed, blocked or "not run", the triggers decided, the pre-existing CI failures step 5 let through, and the tickets that stay out of their completion state until a due check runs. Record the promotion as step 4 sets.
    - **Completion:** when the repository's `## Hive` declares `Completion` (`<state> on <ref> · …`), once the deployment is verified move each ticket whose change that ref now holds to the declared state; a ticket whose due check did not run stays out of it.
-   - Then run [flow-close](../flow-close/SKILL.md) for the deploy's cleanup: the tickets and the change record closed at integration, so what remains is the temporaries and processes this run started, its final report and the close question.
+   - Then run [flow-close](../flow-close/SKILL.md) for the deploy's cleanup: the tickets and the change record closed at integration, so what remains is the temporaries and processes this run started, and its final report, run at once as flow-close sets for a deploy's cleanup close.

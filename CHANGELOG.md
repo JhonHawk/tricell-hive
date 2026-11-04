@@ -20,13 +20,79 @@ raise the minor or the patch version.
   go with the archived change record, or in a support-only commit on a new
   branch, delivered the way the work was; kept items in a worktree move to the
   main checkout before it is removed; paused and held work only list them.
+- What a work item leaves open on purpose, such as a post-merge task of its
+  plan or a later phase, is commented on its ticket and kept in one
+  `pending/<change-id>` persistent-memory record titled `Pending:`;
+  `flow-status` lists those records, marking those ready to resume, along with change
+  folders not committed under `Specs`, and each close soft-deletes a record
+  left with nothing open.
 
 ### Changed
 
+- A change folder is committed with the code it plans: on the work's branch
+  before the push, moved into the worktree when there is one, or in a
+  separate specs repository at the completion point, a `ready` stop
+  included. It no longer stays untracked until `flow-close` archives it.
+- Every flow delegates by one criterion, kept in
+  `flow-build/references/delegation.md`: the reviews Hive launches always
+  run in a child, briefed with the artifact, the requirements and check
+  outputs but never the producer's reasoning; other work goes to a child
+  only when it is large (more than five large reads, or in a build more than
+  three edited files). Read-only children run side by side; children that
+  write do so only against a frozen typed contract with an integration check
+  after. `global.md` defines a large read and one list of risky changes
+  (#311).
+- `hive-review-plan` reviews every plan with a change folder, and the UX
+  reviewer also covers how the changed regions affect the layouts and
+  components around them (#311).
+- After a deployment, the served-build check runs in the main thread unless
+  it is large (#311).
+- A card that closed after a timeout still counts as a waiting question tool,
+  so the next round goes through a card again instead of only in text (#311).
+- A maintainer viewer restart reports that open viewer tabs lost access, since
+  the restart issues a new token, and offers the reply *open the viewer*,
+  which runs `hive view open`.
+- The offer to open the viewer never goes as a question of its own: it joins
+  the round its stop already asks, or a reply line of the message's waiting
+  line or next-step block, with no decision ID or question card of its own
+  (#311).
+- Build hands its check evidence to Verify, which reuses passing results only
+  while the inputs they cover remain unchanged and reruns missing or invalidated
+  checks. The real-path walk and required independent verification remain.
+  Code findings use an available, authorized local reproduction or conclusive
+  source evidence, including when adjudicating a native review's output.
+- Every request to do work now enters `flow-research`, which settles what the
+  user needs before any how: it reads before asking, asks one open question
+  per message in the text, checks a complete request for blockers and does it
+  or continues into `flow-build` in the same turn, and sends to `flow-plan`
+  only when the how has a decision for the user or the work cannot be finished
+  from the request and the `git diff`. An analysis ends at its findings with
+  no flow recommended. `flow-research` no longer publishes to the viewer,
+  which starts its session at plan or build with a one-paragraph summary;
+  `flow-plan` presents two or three approaches before the tasks; and after
+  integration `flow-close` moves the ticket, reports and ends with a footer
+  recommending to close plus replies from the context, running the archive and
+  cleanup on the user's reply, when other work starts or when the session ends.
+  A polite request phrased as a question that names the action and its target,
+  such as "can you add this user to the repository?", counts as a request for
+  that change; "can we…?" and "how would we…?" stay questions (#311).
 - Archiving a viewer work shows a temporary toast naming that work with Undo,
   replacing the persistent banner that could appear above another active work.
 - `flow-close` never stops the viewer service or closes the viewer the user
-  has open: closing a work's viewer session changes only its record.
+  has open: closing a work's viewer session changes only its record. No agent
+  quits, restarts or kills a program other sessions or projects may use, such
+  as Docker Desktop or a local database server, even when it hangs: it reports
+  a blocker for the user to restart it. Starting or stopping a container the
+  task did not start needs the user's confirmation, and the processes a task
+  started are stopped by their process ID, never by a name or pattern that can
+  match another session's processes.
+- `flow-research` writes the aspects of a question, their sources and which go
+  to a child in its message before the first read, counts its first reads
+  toward the delegation limit, delegates each aspect that needs more than five
+  large reads (a whole document or more than 100 lines; filtered queries stay
+  in the main thread), does not reread what a child covers, and hands over the
+  rest of an aspect when its sixth large read in the main thread still has no
+  answer (#311).
 - Viewer navigation groups registered source roots with the same explicit
   `.engram/config.json` project name, keeping each work's original source visible
   and its identity, history and collaboration permissions unchanged. Configured

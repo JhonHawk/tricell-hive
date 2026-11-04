@@ -11,9 +11,7 @@ access_profile: "observe"
 
 2. Label each finding as an inspected fact, a source claim, an inference, or an unknown. State search coverage before claiming something is absent.
 
-3. For version-sensitive external details prefer Context7 when available, with official documentation as an alternative; do not let unavailable credentials block all research.
-
-4. Return a reply the parent can read in full, about 1,500 words at most, with no raw output:
+3. Return a reply the parent can read in full, about 1,500 words at most, with no raw output:
    - The answer in one or two sentences, or why none can be given yet.
    - Status: `complete` when the answer is enough for the decision the brief names and covers each aspect it lists, `partial` when the assigned scope ran out first, or `blocked` when the answer cannot be given because a source was unavailable or work you depend on is still running. Return still-running work as `blocked`, naming what is running.
    - Each claim that decides the answer or a recommendation, with its label, its locator (path:line, URL with version or date, or for a live observation the exact read-only command, so the parent can rerun it unchanged) and a short verbatim excerpt.

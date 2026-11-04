@@ -308,19 +308,21 @@ sequence for every task. Authorization and preservation apply throughout.
 Start each flow by typing its command, such as `/flow-status` or `/flow-plan COM-833`
 (`$flow-plan` in Codex, `/skill:flow-plan` in Pi, `@flow-plan` in OpenCode). A typed
 command loads the skill whole for that flow, which the host's automatic selection does
-not guarantee; each flow ends by naming the command for the next one.
+not guarantee. A request to do work does not need a command: it enters Research, which
+continues into Build in the same turn when the request is complete. Where a flow needs
+your go-ahead for the next one, it ends by naming that command.
 
 ```mermaid
 flowchart TD
     Entry{"What is needed?"}
     Entry -->|Status or what's next| Status["flow-status"]
-    Entry -->|A question or a ticket| Research["flow-research"]
-    Entry -->|A multi-step change| Plan["flow-plan"]
-    Entry -->|A small authorized change| Build
+    Entry -->|Any request to do work, a question or a ticket| Research["flow-research"]
+    Entry -.->|You ask for a plan| Plan["flow-plan"]
 
     Status -->|User picks a ticket| Research
-    Research -->|Larger work| Plan
-    Research -->|Small change| Build
+    Research -->|The how has a decision for you| Plan
+    Research -->|The how is settled| Build
+    Research -->|An analysis| Findings["Findings, no flow recommended"]
     Plan --> Build["flow-build<br/><small>tasks · first rendered view (flow-walkthrough)</small>"]
     Build --> Verify["flow-verify<br/><small>suite · UX review · code review · validation (flow-walkthrough)</small>"]
     Build -->|Mechanical change| Close
@@ -346,21 +348,28 @@ lists where each flow loops.
 
 - Status ([skill](content/skills/flow-status/SKILL.md)) reports the backlog grouped by
   module and the unfinished local work, and recommends what to take next. It is read-only.
-- [Research](https://hive.tricell.tech/flows/research/) ([skill](content/skills/flow-research/SKILL.md)) turns uncertainty into a supported
-  answer, and assesses a ticket you pick before work starts: impact, complexity,
-  readiness and dependencies. It does not authorize implementation.
-- [Plan](https://hive.tricell.tech/flows/plan/) ([skill](content/skills/flow-plan/SKILL.md)) resolves consequential decisions and
-  defines contracts, verifiable tasks, and acceptance criteria when needed.
+- [Research](https://hive.tricell.tech/flows/research/) ([skill](content/skills/flow-research/SKILL.md)) is the entry for every
+  request to do work: it settles what you need, reading before it asks and asking one
+  open question at a time. A complete request is checked and done, or continues into
+  Build in the same turn; Plan comes only when the how has a decision for you or the work
+  cannot be finished from your request and the `git diff`. It also turns uncertainty into
+  a supported answer and assesses a ticket you pick. An analysis ends at its findings
+  with no flow recommended. It does not publish to the viewer.
+- [Plan](https://hive.tricell.tech/flows/plan/) ([skill](content/skills/flow-plan/SKILL.md)) settles the how: it presents two or
+  three approaches before the tasks, resolves the decisions that are yours, and
+  defines contracts, verifiable tasks, and acceptance criteria.
 - [Build](https://hive.tricell.tech/flows/build/) ([skill](content/skills/flow-build/SKILL.md)) reconciles current state and
   implements authorized work. It ends at a built candidate and hands it to Verify.
 - [Verify](https://hive.tricell.tech/flows/verify/) ([skill](content/skills/flow-verify/SKILL.md)) checks the candidate at a level
   your delivery, review and UI answers and your request set: affected tests, runtime and UI
   checks, the full suite and the dedicated review, a security review only when you
   ask for it, and your validation through a walkthrough, and then integrates it.
-- [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) reconciles the completion record and
-  cleans up task-owned temporary resources while preserving unfinished work. It
-  runs at integration, also when a project declares a later completion point in
-  its `Completion` key.
+- [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) moves the ticket and reports at
+  integration, also when a project declares a later completion point in its
+  `Completion` key, then ends with a footer that recommends closing and lists replies
+  from the context, such as resolving a finding. The record archive and the cleanup of
+  task-owned resources run on your reply, when you start other work or when the session
+  ends, and preserve unfinished work.
 - [Deploy](https://hive.tricell.tech/flows/deploy/) ([skill](content/skills/flow-deploy/SKILL.md)) is a separate stage after
   integration: it promotes through the declared environments and checks what is
   served. It never holds a close open: when a project declares a later

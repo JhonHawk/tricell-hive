@@ -72,6 +72,6 @@ In one round, following the global guidance's «Questions and routes», ask the 
 - each memory entry to change, grouped by host and store, with every deletion named one by one;
 - which outcomes to apply. Exception to one question per decision: group these as one option per group of findings, each with its files.
 
-When the applied edits will end in a Git delivery in a code repository, add the delivery and review questions of «Delivery» to that round; they must be answered before the first edit. Apply nothing before the answers.
+When the applied edits will end in a Git delivery in a code repository, add to that round the delivery and review questions that «Delivery» does not let you reuse from earlier in the session; they must be answered before the first edit. Apply nothing before the answers.
 
 Under [unattended delegation](../unattended-delegation/SKILL.md), leave unapplied and report the decisions that belong to the user: which version of a rule to keep, a conflict with a global layer, and each standing grant in prose.

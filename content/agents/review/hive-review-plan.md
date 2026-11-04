@@ -1,6 +1,6 @@
 ---
 name: "hive-review-plan"
-description: "Review a saved implementation plan as a whole and return evidence-backed gaps to the orchestrator without editing or executing it. Use after saving an implementation plan that changes a contract, stored data, security or a dependency."
+description: "Review a saved implementation plan as a whole and return evidence-backed gaps to the orchestrator without editing or executing it. Use after saving an implementation plan in a change folder."
 model_profile: "reasoning"
 access_profile: "observe"
 effort: "medium"
