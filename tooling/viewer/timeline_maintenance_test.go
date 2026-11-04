@@ -215,6 +215,18 @@ func TestTimelineMaintenanceNoopDoesNotAdvanceActivity(t *testing.T) {
 	if got.LastActivityAt != v.LastActivityAt {
 		t.Fatal("unchanged native mutation advanced activity")
 	}
+	legacy := timelineClone(s.timeline[v.ViewerSessionID])
+	legacy.Maintenance = nil
+	if err = s.timelineSave(legacy); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.Startup(); err != nil {
+		t.Fatal(err)
+	}
+	got, _ = s.TimelineGet(v.ViewerSessionID)
+	if got.LastActivityAt != v.LastActivityAt {
+		t.Fatalf("legacy unchanged native mutation advanced activity: got %s, want %s", got.LastActivityAt, v.LastActivityAt)
+	}
 }
 
 func TestTimelineMaintenancePinReopenAndManualOrigin(t *testing.T) {
@@ -336,8 +348,9 @@ func TestTimelineMaintenanceFailureAndVersionExhaustion(t *testing.T) {
 }
 
 func TestTimelineMaintenanceLegacyHistory(t *testing.T) {
-	for _, restoreCurrent := range []bool{true, false} {
-		t.Run(fmt.Sprint(restoreCurrent), func(t *testing.T) {
+	for _, scenario := range []struct{ restoreCurrent, unknownClosure bool }{{true, false}, {false, false}, {true, true}, {false, true}} {
+		restoreCurrent := scenario.restoreCurrent
+		t.Run(fmt.Sprintf("restore=%v/unknown=%v", restoreCurrent, scenario.unknownClosure), func(t *testing.T) {
 			s, req := newTimelineFixture(t)
 			now := time.Date(2026, 11, 4, 1, 0, 0, 0, time.UTC)
 			s.now = func() time.Time { return now }
@@ -369,6 +382,23 @@ func TestTimelineMaintenanceLegacyHistory(t *testing.T) {
 			}
 			r = timelineClone(s.timeline[id])
 			r.Maintenance = nil
+			// Unknown-time legacy work can retain a manual restore even when
+			// its original close event is absent. Retain reopen transitions.
+			if scenario.unknownClosure {
+				events := []TimelineEvent{}
+				for _, event := range r.Session.Events {
+					if event.Audit != nil && event.Audit.NextState == string(TimelineClosed) {
+						continue
+					}
+					event.Sequence = int64(len(events) + 1)
+					events = append(events, event)
+				}
+				r.Session.Events = events
+			}
+			expectedActivity := time.Date(2026, 11, 4, 1, 0, 0, 0, time.UTC).Format(time.RFC3339Nano)
+			if !restoreCurrent {
+				expectedActivity = now.Format(time.RFC3339Nano)
+			}
 			// Historic private server receipts can truthfully follow general UpdatedAt.
 			audit := r.Audit[0]
 			audit.Operation = "session_patch"
@@ -395,12 +425,22 @@ func TestTimelineMaintenanceLegacyHistory(t *testing.T) {
 				t.Fatal(err)
 			}
 			v, _ = s.TimelineGet(id)
-			if v.Archived == restoreCurrent {
+			if (!scenario.unknownClosure || restoreCurrent) && v.Archived == restoreCurrent {
 				t.Fatal("restore from wrong closure episode applied")
 			}
-			if v.LastActivityAt != audit.ReceivedAt {
-				t.Fatal("private server activity receipt lost")
+			if !scenario.unknownClosure && v.LastActivityAt != expectedActivity {
+				t.Fatalf("ambiguous summary audit replaced proved activity: got %s want %s", v.LastActivityAt, expectedActivity)
 			}
+			// Advance past the persisted fallback window and reload again.
+			now = now.Add(2 * time.Hour)
+			if err = s.Startup(); err != nil {
+				t.Fatal(err)
+			}
+			v, _ = s.TimelineGet(id)
+			if v.Archived == restoreCurrent {
+				t.Fatal("fallback window ignored current manual restore or later reopen")
+			}
+
 		})
 	}
 }

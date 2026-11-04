@@ -30,6 +30,7 @@ func timelineRefreshMaintenance(r *timelineRecord, now string) {
 	}
 	last := m.LastActivityAt
 	var episode *TimelineEvent
+	var episodeBoundary int64
 	for i := range v.Events {
 		e := &v.Events[i]
 		if fresh && e.Actor.Kind == "native_producer" && !contains([]string{"producer_joined", "foreground_transferred", "local_action"}, string(e.Kind)) {
@@ -38,14 +39,20 @@ func timelineRefreshMaintenance(r *timelineRecord, now string) {
 		}
 		if e.Kind == "state_transition" && e.Audit != nil && e.Audit.NextState == string(TimelineClosed) && e.StageEventID == "" {
 			episode = e
+			episodeBoundary = e.Sequence
 		} else if e.Kind == "state_transition" && e.Audit != nil && e.StageEventID == "" && e.Audit.Operation == "session_patch" {
 			episode = nil
+			episodeBoundary = e.Sequence
 		} else if e.Kind == "closure" {
 			episode = e
+			episodeBoundary = e.Sequence
 		}
 	}
+	// A private legacy session_patch receipt does not retain its old payload,
+	// so it cannot distinguish a summary change from an unchanged request.
+	// Explicit lifecycle changes remain proved by their public transitions.
 	for _, a := range r.Audit {
-		if fresh && a.Actor != nil && a.Actor.Kind == "native_producer" && !contains([]string{"create_session", "join_request", "producer_accept", "foreground_transfer", "recover_lead", "session_delete"}, string(a.Operation)) {
+		if fresh && a.Actor != nil && a.Actor.Kind == "native_producer" && !contains([]string{"create_session", "join_request", "producer_accept", "foreground_transfer", "recover_lead", "session_delete", "session_patch"}, string(a.Operation)) {
 			last = timelineLater(last, a.ReceivedAt)
 		}
 	}
@@ -79,13 +86,11 @@ func timelineRefreshMaintenance(r *timelineRecord, now string) {
 				v.UpdatedAt = timelineLater(v.UpdatedAt, now)
 			}
 		}
-		if fresh && episode != nil {
-			// Legacy local archive events express a toggle. Only actions after this
-			// closure can exempt its episode; older restores belong to older work.
-			start := int64(0)
-			if episode != nil {
-				start = episode.Sequence
-			}
+		if fresh {
+			// Preserve a retained restore even when the closure date is unknown.
+			// A later explicit lifecycle transition invalidates older choices;
+			// absence of the original closure event does not revoke a choice.
+			start := episodeBoundary
 			for _, e := range v.Events {
 				if e.Sequence > start && e.Kind == "local_action" && e.Audit != nil && e.Audit.Operation == "session_archive" && e.Actor.Kind == "local_viewer" {
 					m.RestoreExempt = !v.Archived
