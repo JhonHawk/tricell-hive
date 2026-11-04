@@ -18,7 +18,7 @@ Research settles what the work is; `flow-plan` settles how. It publishes nothing
    - Name each system the decision touches and whether you searched it.
    - Open the source of each claim that decides the answer instead of recalling it. Resolve conflicting sources by date, version, scope and direct observation; missing delivery evidence means delivery is not verified, not that it did not happen.
 5. **Close the what.** Report the answer, its evidence and what remains uncertain, and play back what you understood, marking what the user said apart from what you propose. Then:
-   - When the user asked to analyze, explain, review or diagnose without asking for a change, end at the findings with the block of «Questions and routes», recommending no flow.
+   - When the user asked to analyze, explain, review or diagnose without asking for a change, end at the findings with the block of «Questions and routes», recommending no flow; when the findings confirm a defect, list the route to fix it among its options. A ticket the user picked for research is not such a request: when the findings confirm work it asks for, take one of the two routes below.
    - When the user asked for a change, not whether or how to make one, and its how leaves no decision for them and could be finished from the request and `git diff` alone, continue into `flow-build` in the same turn.
    - Otherwise, end with the route to `flow-plan` and its reason.
 
