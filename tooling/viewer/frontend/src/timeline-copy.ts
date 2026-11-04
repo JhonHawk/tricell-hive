@@ -197,13 +197,18 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         local: "Local",
         ticketUnavailable: "Enlace no disponible",
         edited: "Texto actualizado",
+        autoarchived:
+          "Archivada automáticamente dos horas después de finalizar.",
+        archivedExplanation:
+          "Esta sesión está archivada. Puedes seguir leyendo o restaurarla.",
+        restore: "Restaurar",
         states: {
-          in_review: "Revisión",
-          failed: "Fallido",
+          in_review: "En revisión",
+          failed: "Fallida",
           active: "En curso",
-          awaiting_validation: "Validación",
-          paused: "Pausado",
-          closed: "Finalizado",
+          awaiting_validation: "Esperando validación",
+          paused: "Pausada",
+          closed: "Finalizada",
         } satisfies Record<TimelineState, string>,
         kinds: {
           review: "Revisión",
@@ -317,7 +322,7 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         taskStates: {
           not_started: "Not started",
           in_progress: "In progress",
-          in_review: "Review",
+          in_review: "In review",
           blocked: "Blocked",
           completed: "Completed",
         },
@@ -346,8 +351,8 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
           delivery: "View delivery",
         },
         stageStates: {
-          in_review: "Review",
-          awaiting_validation: "Validation",
+          in_review: "In review",
+          awaiting_validation: "Awaiting validation",
           in_progress: "In progress",
           completed: "Completed",
           paused: "Paused",
@@ -411,11 +416,15 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         local: "Local",
         ticketUnavailable: "Link unavailable",
         edited: "Copy updated",
+        autoarchived: "Automatically archived two hours after completion.",
+        archivedExplanation:
+          "This session is archived. You can keep reading or restore it.",
+        restore: "Restore",
         states: {
-          in_review: "Review",
+          in_review: "In review",
           failed: "Failed",
           active: "In progress",
-          awaiting_validation: "Validation",
+          awaiting_validation: "Awaiting validation",
           paused: "Paused",
           closed: "Finished",
         } satisfies Record<TimelineState, string>,

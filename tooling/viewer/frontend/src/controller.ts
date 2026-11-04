@@ -39,6 +39,7 @@ export type ViewerState = {
   };
   down: boolean;
   indexError: boolean;
+  reloadRequired?: boolean;
   notice?: "reconnected" | "gone" | "deleted" | "archived";
   undoArchive?: { id: string; title: string; expectedVersion: number };
   writing: boolean;
@@ -52,9 +53,15 @@ const initial: ViewerState = {
   index: null,
   down: false,
   indexError: false,
+  reloadRequired: false,
   writing: false,
   showArchived: false,
 };
+// Public timestamps preserve server nanoseconds; Date.parse alone rounds them to milliseconds.
+function activityTime(value: string): bigint {
+  const fraction = (value.match(/\.(\d+)/)?.[1] ?? "").padEnd(9, "0");
+  return BigInt(Date.parse(value)) * 1_000_000n + BigInt(fraction.slice(3, 9));
+}
 export class ViewerController {
   private state: ViewerState = { ...initial };
   private listeners = new Set<() => void>();
@@ -66,7 +73,6 @@ export class ViewerController {
   private timelineRequest: object | undefined;
   private timelineRequestedVersion = 0;
   private timelineTask: Promise<void> | undefined;
-  private temporaryTargetID: string | undefined;
   private timelineMutation:
     | { key: string; body: Record<string, unknown> }
     | undefined;
@@ -93,8 +99,6 @@ export class ViewerController {
     this.timelineTask = undefined;
     this.timelineMutation = undefined;
     this.pendingTimelineDeleteMutation = undefined;
-    this.temporaryTargetID =
-      target && "sessionID" in target ? target.sessionID : undefined;
     this.reading = false;
     this.update({
       ...initial,
@@ -141,6 +145,14 @@ export class ViewerController {
     clearTimeout(this.timer);
   }
   private failure(error: unknown) {
+    if (
+      error instanceof HttpError &&
+      error.details.code === "reload_required"
+    ) {
+      this.update({ reloadRequired: true });
+      clearTimeout(this.timer);
+      return true;
+    }
     if (error instanceof HttpError && error.status === 403) {
       this.reject();
       return true;
@@ -148,7 +160,7 @@ export class ViewerController {
     return false;
   }
   async refresh() {
-    if (this.state.access !== "ready") return;
+    if (this.state.access !== "ready" || this.state.reloadRequired) return;
     const epoch = this.epoch,
       seq = ++this.readSeq;
     this.reading = true;
@@ -176,12 +188,21 @@ export class ViewerController {
   }
   private apply(index: RawIndex) {
     const previous = this.state.selectedId;
-    const timelineSessions = index.timeline_sessions.filter(
-      (s) =>
-        this.state.showArchived ||
-        !s.archived ||
-        s.viewer_session_id === this.temporaryTargetID,
-    );
+    const timelineSessions = index.timeline_sessions
+      .filter((s) => this.state.showArchived || !s.archived)
+      .sort((a, b) => {
+        const activity =
+          activityTime(b.last_activity_at) - activityTime(a.last_activity_at);
+        return activity !== 0n
+          ? activity > 0n
+            ? 1
+            : -1
+          : a.viewer_session_id < b.viewer_session_id
+            ? -1
+            : a.viewer_session_id > b.viewer_session_id
+              ? 1
+              : 0;
+      });
     const undo = this.state.undoArchive;
     this.update({
       index,
@@ -199,7 +220,9 @@ export class ViewerController {
     if (target) {
       if (
         !("sessionID" in target) ||
-        !timelineSessions.some((s) => s.viewer_session_id === target.sessionID)
+        !index.timeline_sessions.some(
+          (s) => s.viewer_session_id === target.sessionID,
+        )
       ) {
         this.timelineRequest = undefined;
         this.update({
@@ -213,7 +236,7 @@ export class ViewerController {
       return;
     }
     const id =
-      timelineSessions.find((s) => s.viewer_session_id === previous)
+      index.timeline_sessions.find((s) => s.viewer_session_id === previous)
         ?.viewer_session_id ??
       timelineSessions.find(
         (s) => s.viewer_session_id === stored(this.client.storage, OPEN_KEY),
@@ -231,12 +254,11 @@ export class ViewerController {
   }
   select = (id: string) => this.selectEntry(id);
   private selectEntry(id: string, preserveTarget = false) {
-    const entry = this.state.timelineSessions.find(
+    const entry = this.state.index?.timeline_sessions.find(
       (s) => s.viewer_session_id === id,
     );
     if (!entry) return;
     if (!preserveTarget) {
-      this.temporaryTargetID = undefined;
       this.update({ openTarget: undefined, targetError: false });
     }
     save(this.client.storage, OPEN_KEY, id);
@@ -284,6 +306,7 @@ export class ViewerController {
   ) {
     if (
       this.state.access !== "ready" ||
+      this.state.reloadRequired ||
       this.state.writing ||
       this.state.indexError ||
       this.state.selectedId !== id
@@ -376,6 +399,8 @@ export class ViewerController {
     }
   }
   retryTimeline = async () => {
+    if (this.state.reloadRequired)
+      throw new Error("Update Hive and reload the viewer");
     if (
       this.state.indexError ||
       this.state.targetError ||
@@ -383,7 +408,7 @@ export class ViewerController {
     ) {
       if (!(await this.refresh())) throw new Error("Refresh required");
     }
-    const selected = this.state.timelineSessions.find(
+    const selected = this.state.index?.timeline_sessions.find(
       (s) => s.viewer_session_id === this.state.selectedId,
     );
     if (selected) {
@@ -398,6 +423,7 @@ export class ViewerController {
     const session = this.state.timeline?.data?.session;
     if (
       this.state.access !== "ready" ||
+      this.state.reloadRequired ||
       session?.viewer_session_id !== sessionID ||
       !session.documents.some((d) => d.document_id === documentID)
     )
@@ -451,6 +477,7 @@ export class ViewerController {
       this.pendingTimelineDeleteMutation !== undefined;
     if (
       this.state.access !== "ready" ||
+      this.state.reloadRequired ||
       this.state.writing ||
       (method === "DELETE" && pending && !retryDelete) ||
       (!retryDelete &&
@@ -520,7 +547,6 @@ export class ViewerController {
         this.update({ pendingTimelineDelete: undefined });
       }
       if (method === "DELETE" || patch?.archived !== undefined) {
-        this.temporaryTargetID = undefined;
         this.update({ openTarget: undefined, targetError: false });
       }
       this.readSeq++;
@@ -594,7 +620,12 @@ export class ViewerController {
   }
   private schedule() {
     clearTimeout(this.timer);
-    if (!this.active || this.state.access !== "ready") return;
+    if (
+      !this.active ||
+      this.state.access !== "ready" ||
+      this.state.reloadRequired
+    )
+      return;
     this.timer = setTimeout(
       async () => {
         if (!this.isHidden() && !this.reading) await this.refresh();

@@ -68,6 +68,7 @@ test("work A/B scroll restores independently and polling append never jumps or s
                 String(path).endsWith(d.session.viewer_session_id),
               ),
         ),
+        { headers: { "X-Hive-Timeline-Revision": "2" } },
       ),
     { getItem: () => "test-token", setItem() {}, removeItem() {} },
   );

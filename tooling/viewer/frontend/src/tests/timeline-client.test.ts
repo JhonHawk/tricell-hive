@@ -549,7 +549,7 @@ test("API pin, archive, restore and delete use versioned session mutations and p
   assert.equal(controller.getSnapshot().timeline?.data?.session.pinned, true);
   await controller.updateTimelineSession(sid, { archived: true }, 2);
   await settle();
-  assert.equal(controller.getSnapshot().selectedId, other);
+  assert.equal(controller.getSnapshot().selectedId, sid);
   assert.equal(controller.getSnapshot().showArchived, false);
   controller.setShowArchived(true);
   controller.select(sid);
@@ -850,7 +850,8 @@ test("archive Undo reads fresh authority for original work after selection and v
   await controller.open(null);
   await settle();
   await controller.updateTimelineSession(sid, { archived: true }, 1);
-  assert.equal(controller.getSnapshot().selectedId, other);
+  assert.equal(controller.getSnapshot().selectedId, sid);
+  controller.select(other);
   a.session.version++;
   await controller.undoArchive();
   assert.equal(writes[1].id, sid);
@@ -888,4 +889,58 @@ test("archive Undo reads fresh authority for original work after selection and v
   await controller.undoArchive(newUndo);
   assert.equal(b.session.archived, false);
   assert.equal(a.session.archived, true);
+});
+
+test("navigation orders substantive timestamps with stable ID ties and retains a selected automatic archive until navigation", async () => {
+  const a = fixture(),
+    b = fixture(other),
+    c = fixture("c".repeat(64));
+  a.session.created_at = "2026-10-30T21:00:00Z";
+  b.session.last_activity_at = "2026-10-31T20:00:00Z";
+  c.session.last_activity_at = a.session.last_activity_at;
+  const { controller } = setup(async (path) =>
+    response(
+      path === "/api/index?navigation=grouped"
+        ? index(c, b, a)
+        : String(path).endsWith(sid)
+          ? a
+          : b,
+    ),
+  );
+  await controller.open(null);
+  await settle();
+  assert.deepEqual(
+    controller.getSnapshot().timelineSessions.map((s) => s.viewer_session_id),
+    [sid, c.session.viewer_session_id, other],
+  );
+  assert.equal(
+    mapTimelineIndex(entry(a), "en").createdAt,
+    mapTimelineIndex(entry(c), "en").createdAt,
+  );
+  c.session.last_activity_at = "2026-10-31T21:00:00.000000001Z";
+  c.session.updated_at = c.session.last_activity_at;
+  await controller.refresh();
+  assert.deepEqual(
+    controller.getSnapshot().timelineSessions.map((s) => s.viewer_session_id),
+    [c.session.viewer_session_id, sid, other],
+    "server nanoseconds must not collapse into an ID tie",
+  );
+  a.session.state = "closed";
+  a.session.closed_at = stamp;
+  a.session.archived = true;
+  a.session.archive_origin = "automatic";
+  a.session.version++;
+  await controller.refresh();
+  await settle();
+  assert.equal(controller.getSnapshot().selectedId, sid);
+  assert.equal(
+    controller.getSnapshot().timeline?.data?.session.archive_origin,
+    "automatic",
+  );
+  assert.equal(controller.getSnapshot().timelineSessions.length, 2);
+  assert.equal(controller.getSnapshot().undoArchive, undefined);
+  controller.select(other);
+  await settle();
+  await controller.refresh();
+  assert.equal(controller.getSnapshot().selectedId, other);
 });

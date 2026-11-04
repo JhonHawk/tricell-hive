@@ -352,7 +352,7 @@ export function mapTimelineIndex(
   entry: TimelineAPIIndexEntry,
   language = typeof navigator === "undefined" ? "en" : navigator.language,
 ): ViewerSession {
-  const date = new Date(entry.created_at);
+  const date = new Date(entry.last_activity_at);
   return {
     id: entry.viewer_session_id,
     project: entry.project_name,
@@ -368,12 +368,7 @@ export function mapTimelineIndex(
     ).format(date),
     pinned: entry.pinned,
     archived: entry.archived,
-    status: ["active", "in_review", "awaiting_validation", "paused"].includes(
-      entry.state,
-    )
-      ? "in_progress"
-      : entry.state === "closed"
-        ? "closed"
-        : "unknown",
+    lastActivityAt: entry.last_activity_at,
+    status: entry.state,
   };
 }

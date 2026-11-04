@@ -61,6 +61,9 @@ import {
 import { type NavigationEntry, optionalStorage, save, stored } from "./api";
 import { browserLanguage } from "./language";
 import { messages as t } from "./messages";
+import type { TimelineState } from "./timeline-contract";
+import { timelineCopy } from "./timeline-copy";
+import { timelineStateVariant } from "./timeline-state";
 export type ViewerSession = {
   id: string;
   project: string;
@@ -71,13 +74,15 @@ export type ViewerSession = {
   title: string;
   localTitle?: boolean;
   createdAt: string;
+  lastActivityAt?: string;
   pinned?: boolean;
   archived?: boolean;
-  status?: "in_progress" | "closed" | "unknown";
+  status?: TimelineState | "in_progress" | "unknown";
 };
 export type ViewerShellProps = {
   sessions: ViewerSession[];
   selectedId?: string;
+  selectedSession?: ViewerSession;
   state: "ready" | "loading" | "empty" | "error";
   onSelect?: (id: string) => void;
   onRetry: () => void;
@@ -264,11 +269,16 @@ function SessionNavigationButton({
   const showOrigin =
     session.navigation?.config_status === "valid" &&
     session.navigation.group_key.startsWith("explicit:");
+  const state = session.status === "in_progress" ? "active" : session.status;
+  const stateLabel =
+    state && state !== "unknown"
+      ? timelineCopy(spanish ? "es" : "en").states[state]
+      : copy.sessionStatus.unknown;
   const button = (
     <button
       type="button"
       data-session-key={session.id}
-      title={`${session.title}${showOrigin && session.navigation ? ` — ${sessionOrigin(session)}: ${session.sourceRoot ?? session.navigation.origin_label}` : ""} — ${copy.sessionStatus[session.status ?? "unknown"]}. ${copy.statusDescription}`}
+      title={`${session.title}${showOrigin && session.navigation ? ` — ${sessionOrigin(session)}: ${session.sourceRoot ?? session.navigation.origin_label}` : ""} — ${stateLabel}. ${copy.statusDescription}`}
       className="session-navigation-link flex w-full min-w-0 items-start gap-2 text-left text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-sidebar-ring"
       aria-current={selectedId === session.id ? "page" : undefined}
       onClick={() => {
@@ -282,13 +292,6 @@ function SessionNavigationButton({
           );
       }}
     >
-      {
-        <span
-          aria-hidden="true"
-          data-session-status={session.status ?? "unknown"}
-          className="session-status-dot mt-1.5 size-1.5 shrink-0 rounded-full"
-        />
-      }
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex min-w-0 items-start gap-2">
           <span className="session-navigation-title min-w-0 flex-1 font-normal">
@@ -296,7 +299,33 @@ function SessionNavigationButton({
           </span>
           {session.pinned && <Pin aria-hidden className="size-3 shrink-0" />}
         </div>
-        <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
+        <div
+          className={`flex min-w-0 flex-wrap items-center gap-1 text-xs ${selectedId === session.id ? "text-foreground" : "text-muted-foreground"}`}
+        >
+          <Badge
+            variant={
+              state && state !== "unknown"
+                ? timelineStateVariant[state]
+                : "secondary"
+            }
+          >
+            {stateLabel}
+          </Badge>
+          <time
+            dateTime={session.lastActivityAt}
+            title={`${spanish ? "Última actividad" : "Last activity"}: ${session.lastActivityAt ?? session.createdAt}`}
+            className="tabular-nums"
+          >
+            <span aria-hidden="true">{session.createdAt}</span>
+            <span className="sr-only">
+              {spanish ? "Última actividad" : "Last activity"}:{" "}
+              {session.lastActivityAt ?? session.createdAt}
+            </span>
+          </time>
+        </div>
+        <div
+          className={`flex min-w-0 flex-wrap items-center gap-1 text-xs ${selectedId === session.id ? "text-foreground" : "text-muted-foreground"}`}
+        >
           {showOrigin && session.navigation && (
             <>
               <span className="min-w-0 truncate">{sessionOrigin(session)}</span>
@@ -306,13 +335,7 @@ function SessionNavigationButton({
               <span aria-hidden="true">·</span>
             </>
           )}
-          <span className="truncate">{session.ticket}</span>
-          <span aria-hidden="true">·</span>
-          <span className="shrink-0 tabular-nums">{session.createdAt}</span>
-          <span className="sr-only">
-            {copy.sessionStatus[session.status ?? "unknown"]}.{" "}
-            {copy.statusDescription}
-          </span>
+          <span className="min-w-0 truncate">{session.ticket}</span>
         </div>
       </div>
     </button>
@@ -363,17 +386,19 @@ function Navigation({
       .includes(query.trim().toLocaleLowerCase());
   const normal = sessions.filter(matches);
   useLayoutEffect(() => {
-    if (
-      focusKey.current &&
-      sessions.some((session) => session.id === focusKey.current) &&
-      document.activeElement === document.body
-    ) {
+    if (focusKey.current && document.activeElement === document.body) {
+      const retained = sessions.some(
+        (session) => session.id === focusKey.current,
+      );
       const target = [
         ...(navigationRef.current?.querySelectorAll<HTMLElement>(
           "[data-session-key]",
         ) ?? []),
       ].find((node) => node.dataset.sessionKey === focusKey.current);
-      target?.focus({ preventScroll: true });
+      // A removed archived row hands focus to its retained readable context.
+      (retained ? target : document.getElementById("document"))?.focus({
+        preventScroll: true,
+      });
     }
   }, [sessions]);
   const projects = [...new Set(normal.map(sessionGroupKey))];
@@ -494,8 +519,14 @@ function Navigation({
                       key={projectKey}
                       open={
                         (query ? true : preferences.projects[projectKey]) ??
-                        projectSessions.some(
-                          (session) => session.status === "in_progress",
+                        projectSessions.some((session) =>
+                          [
+                            "active",
+                            "in_review",
+                            "awaiting_validation",
+                            "paused",
+                            "in_progress",
+                          ].includes(session.status ?? "unknown"),
                         )
                       }
                       onOpenChange={(open) =>
@@ -547,6 +578,7 @@ function Navigation({
 }
 export function ViewerShell({
   sessions,
+  selectedSession,
   selectedId,
   state,
   onSelect,
@@ -560,7 +592,8 @@ export function ViewerShell({
   coldLoading = false,
   groupingWarning = false,
 }: ViewerShellProps) {
-  const selected = sessions.find((session) => session.id === selectedId);
+  const selected =
+    sessions.find((session) => session.id === selectedId) ?? selectedSession;
   const [preferences, setPreferences] = useState(readNavigationPreferences);
   const previousDestination = useRef<{ id?: string; key?: string }>({});
   useLayoutEffect(() => {
@@ -583,7 +616,13 @@ export function ViewerShell({
           members.some(
             (item) =>
               previous.projects[item.projectKey ?? item.project] ??
-              item.status === "in_progress",
+              [
+                "active",
+                "in_review",
+                "awaiting_validation",
+                "paused",
+                "in_progress",
+              ].includes(item.status ?? "unknown"),
           ) ||
           (key.startsWith("explicit:") &&
             members.some((item) => item.id === selectedId));

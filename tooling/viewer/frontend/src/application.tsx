@@ -37,7 +37,7 @@ export function ViewerApplication({
   );
   const read = state.timeline?.id === state.selectedId ? state.timeline : null,
     data = read?.data;
-  const selected = state.timelineSessions.find(
+  const selected = state.index?.timeline_sessions.find(
     (s) => s.viewer_session_id === state.selectedId,
   );
   const lang = browserLanguage();
@@ -136,6 +136,21 @@ export function ViewerApplication({
         <code>hive view open</code>
       </div>
     );
+  else if (state.reloadRequired)
+    panel = (
+      <Alert variant="warning">
+        <AlertTitle>{t.reloadRequired}</AlertTitle>
+        <AlertAction>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => location.reload()}
+          >
+            {t.reload}
+          </Button>
+        </AlertAction>
+      </Alert>
+    );
   else if (state.targetError)
     panel = (
       <Alert variant="destructive">
@@ -162,7 +177,7 @@ export function ViewerApplication({
         </AlertAction>
       </Alert>
     );
-  else if (state.index && !state.timelineSessions.length)
+  else if (state.index && !state.timelineSessions.length && !selected)
     panel = (
       <div role="status" className="flex flex-col items-start gap-3">
         <h2>
@@ -188,7 +203,8 @@ export function ViewerApplication({
     );
   const notices = (
     <>
-      {state.indexError && state.index && (
+      {state.reloadRequired && state.index && panel}
+      {state.indexError && state.index && !state.reloadRequired && (
         <Alert variant="destructive">
           <AlertDescription>{t.indexFailure}</AlertDescription>
           <AlertAction>
@@ -213,7 +229,7 @@ export function ViewerApplication({
             <Button
               type="button"
               variant="outline"
-              disabled={state.writing}
+              disabled={state.writing || state.reloadRequired}
               onClick={() =>
                 void controller.retryTimelineDelete().catch(() => {})
               }
@@ -245,6 +261,18 @@ export function ViewerApplication({
           )
         }
         selectedId={state.selectedId}
+        selectedSession={
+          selected
+            ? {
+                ...mapTimelineIndex(selected),
+                sourceRoot: selected.source.project_root,
+                navigation: state.index?.navigation?.entries.find(
+                  (entry) =>
+                    entry.viewer_session_id === selected.viewer_session_id,
+                ),
+              }
+            : undefined
+        }
         state={
           state.access !== "ready"
             ? "ready"
@@ -266,6 +294,7 @@ export function ViewerApplication({
             <TimelineHeader
               key={selected.viewer_session_id}
               data={data}
+              disabled={state.reloadRequired}
               lang={lang}
               onRetry={controller.retryTimeline}
               onUpdate={(patch, version) =>
