@@ -24,7 +24,7 @@ raise the minor or the patch version.
 ### Changed
 
 - Every flow delegates by one criterion, kept in
-  `flow-build/references/delegation.md`: reviews always run in a child,
+  `flow-build/references/delegation.md`: the reviews Hive launches always run in a child,
   briefed with the artifact, the requirements and check outputs but never
   the producer's reasoning; independent work runs in parallel children,
   and writes only against a frozen typed contract with an integration check
