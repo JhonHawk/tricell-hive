@@ -6,7 +6,7 @@ The main thread owns coordination, source adjudication, checks, viewer publicati
 
 ### T1 — Define the coordinated contract and stored lifecycle metadata
 
-- [ ] Publish typed Go/TS projections, contract revision/error handshake, strict normal decoders and backward stored-read initialization, preserving existing history and request replay identity.
+- [x] Publish typed Go/TS projections, contract revision/error handshake, strict normal decoders and backward stored-read initialization, preserving existing history and request replay identity.
 
 **Closes:** AC7, AC6 (contract and stored-read portion)
 
@@ -24,7 +24,7 @@ The main thread owns coordination, source adjudication, checks, viewer publicati
 
 ### T2 — Implement episode-aware automatic archival and activity projection
 
-- [ ] Persist episode dates, historical restore exemption, archive origin, activity and bounded system provenance; run deadline-aware startup/ticks and serialize policy/manual mutations with existing durable storage.
+- [x] Persist episode dates, historical restore exemption, archive origin, activity and bounded system provenance; run deadline-aware startup/ticks and serialize policy/manual mutations with existing durable storage.
 
 **Closes:** AC2, AC3, AC6, AC8; backend portion of AC4
 
@@ -42,7 +42,7 @@ The main thread owns coordination, source adjudication, checks, viewer publicati
 
 ### T3 — Show recent works first with actual states
 
-- [ ] Consume last_activity_at and true lifecycle states in the existing navigation; keep selected-work context usable when background autoarchive occurs.
+- [x] Consume last_activity_at and true lifecycle states in the existing navigation; keep selected-work context usable when background autoarchive occurs.
 
 **Closes:** AC4, AC5; UI portion of AC3/AC7
 
@@ -149,3 +149,9 @@ No install/restart or update of the habitual viewer is a test. A later integrate
 - Runtime verification source copy `/var/folders/dg/0d963h2158s10jggj2_k2w_00000gn/T/hive-viewer-runtime-obrk4g43` at2da7bc1d includes T1responsefix80452228, T2runtime51a722be and T3UI2da7bc1d. Reproducible task-owned source, no habitualdata.
 
 - T5 docs built in README/llms/CHANGELOG/siteviewer/deploymentarchitecture; root clarified temporaryUndo notification appliesonlymanualarchive. Childastrocheck0errors/0warnings/0hints, biome14files PASS. Globalguidance34029→34029bytes. Final checks/sourcefingerprints pending integration.
+
+- First fullGo run failed only CLIendtoendfixture missingnewrevisionheader and packagingrejectingtask-ownednode_moduleslinks. Existingassertions/securitychecks unchanged; fixtureupdated. Parked own frontend/site links in tasktemphome for fullGo/race; stopped ownVite5198 by verifiedPID. NewT2legacy no-op/unknown-closureRestore regressions fixed, targeted/racechecks PASS; recheckpending.
+
+- Corrected T2 source copy `/var/folders/dg/0d963h2158s10jggj2_k2w_00000gn/T/hive-viewer-runtime-fixed-laz87i_j` at1acd7debddae93bb594958a8c3aeaa0de6485d17 for failed-criterionrecheck. FullGo/vet rerunning after realfixture/environment corrections; codefix committed.
+
+- Build checkpoint: T1/T2/T3/T4/T5 source built in e6e0226b,5b8de3fd,80452228,51a722be,2da7bc1d,37bebfe5,e551aecb,1acd7deb. T2independent recheck on1acd7deb PASS AC2/3/backend4/6/8 incltwoindependentreproducers; T1AC7PASS andcorruptionregressionnowPASS. FullGo./... rerunPASS withtaskdepslinksparked, govet./...PASS, frontend711+3PASS, tsc/lint/bundleverifyPASS; Python23PASS. T3UX and realcompiledflow stillpending underverify. Isolatedmanagerstart5stimeout; foregroundserve becamehealthy on5199(PID82553,execsession62979); nohabitualrestart.
