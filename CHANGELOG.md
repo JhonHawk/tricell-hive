@@ -23,6 +23,19 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Every flow delegates by one criterion, kept in
+  `flow-build/references/delegation.md`: reviews always run in a child,
+  briefed with the artifact, the requirements and check outputs but never
+  the producer's reasoning; independent work runs in parallel children,
+  and writes only against a frozen typed contract with an integration check
+  after; other work goes to a child only when it is large (more than five
+  large reads, or in a build more than three edited files). `global.md`
+  defines a large read and one list of risky changes (#311).
+- `hive-review-plan` reviews every plan with a change folder, and the UX
+  reviewer also covers how the changed regions affect the layouts and
+  components around them (#311).
+- After a deployment, the served-build check runs in the main thread unless
+  it is large (#311).
 - A card that closed after a timeout still counts as a waiting question tool,
   so the next round goes through a card again instead of only in text (#311).
 - A maintainer viewer restart reports that open viewer tabs lost access, since

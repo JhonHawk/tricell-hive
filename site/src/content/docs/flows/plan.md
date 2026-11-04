@@ -40,7 +40,7 @@ The change folder is copied from the [templates](https://github.com/JhonHawk/tri
 - `tasks.md`: small tasks, each saying which criteria it closes, what it depends on and how to check it.
 - `design.md` and spec deltas, only when the change has design decisions or alters a behavior, contract, permission or stored data.
 
-Every criterion is one observable behavior, with the observation that would show it false today. A criterion that is already true, or that only restates your request, is rewritten or dropped. When the plan changes a contract, stored data, security or a dependency, one independent reviewer checks it before it is ready. The [viewer](/viewer/) session for the work starts here, and a running viewer can show the plan documents, as the [walkthrough skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) describes.
+Every criterion is one observable behavior, with the observation that would show it false today. A criterion that is already true, or that only restates your request, is rewritten or dropped. When the plan has a change folder, one independent reviewer checks it before it is ready. The [viewer](/viewer/) session for the work starts here, and a running viewer can show the plan documents, as the [walkthrough skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) describes.
 
 A change folder stays uncommitted while the work runs; [Close](/flows/close/) versions it at the end.
 
