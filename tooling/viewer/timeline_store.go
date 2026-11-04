@@ -245,15 +245,25 @@ func (s *Store) timelineLoad() error {
 		if json.Unmarshal(raw, &storedFields) != nil {
 			return timelineFailure("corrupt_storage", 500)
 		}
+		// Derived projections have never been a stored encoding. Reject their
+		// explicit presence before projection can hide corrupt supplied values.
+		var sessionFields map[string]json.RawMessage
+		if data, exists := storedFields["session"]; exists {
+			if json.Unmarshal(data, &sessionFields) != nil {
+				return timelineFailure("corrupt_storage", 500)
+			}
+			for _, key := range []string{"last_activity_at", "closed_at", "autoarchive_at", "archive_origin"} {
+				if _, exists := sessionFields[key]; exists {
+					return timelineFailure("corrupt_storage", 500)
+				}
+			}
+		}
 		contentSize := len(raw)
 		if metadata, ok := storedFields["maintenance"]; ok {
 			if len(metadata)+len(`,"maintenance":`) > TimelineMaintenanceMaxBytes {
 				return timelineFailure("corrupt_storage", 500)
 			}
 			contentSize -= len(metadata) + len(`,"maintenance":`)
-		}
-		if contentSize > timelineMaxRecordBytes {
-			return timelineFailure("corrupt_storage", 500)
 		}
 		var r timelineRecord
 		if err = decodeTimelineStoredJSON(raw, &r, timelineMaxRecordBytes+TimelineMaintenanceMaxBytes); err != nil {
@@ -284,7 +294,7 @@ func (s *Store) timelineLoad() error {
 		if err = validateTimelineMaintenance(&r); err != nil {
 			return err
 		}
-		if content, e := timelineRecordContentBytes(&r); e != nil || len(content) > timelineMaxRecordBytes {
+		if content, growth, e := timelineMaintenanceContentBytes(&r); e != nil || len(content) > timelineMaxRecordBytes || contentSize > timelineMaxRecordBytes+growth {
 			return timelineFailure("corrupt_storage", 500)
 		}
 		timelineProjectMaintenance(&r)
@@ -468,6 +478,16 @@ func (s *Store) TimelineIndex() []TimelineAPIIndexEntry {
 	return result
 }
 func (s *Store) timelineReplay(r *timelineRecord, op, digest string) (TimelineOperationResult, bool, error) {
+	if r.Maintenance != nil {
+		for _, receipt := range []*timelineAdministrativeReceipt{r.Maintenance.ArchiveReceipt, r.Maintenance.RestoreReceipt, r.Maintenance.PinReceipt} {
+			if receipt != nil && receipt.OperationID == op {
+				if receipt.RequestSHA256 != digest {
+					return TimelineOperationResult{}, true, timelineFailure("operation_conflict", 409)
+				}
+				return receipt.Result, true, nil
+			}
+		}
+	}
 	for _, receipt := range r.Receipts {
 		if receipt.OperationID == op {
 			if err := ValidateTimelineOperationRetry(receipt, op, digest); err != nil {
@@ -514,7 +534,7 @@ func (s *Store) timelineSave(r *timelineRecord) error {
 	if err != nil {
 		return err
 	}
-	content, contentErr := timelineRecordContentBytes(r)
+	content, _, contentErr := timelineMaintenanceContentBytes(r)
 	if contentErr != nil {
 		return contentErr
 	}
@@ -532,7 +552,11 @@ func (s *Store) timelineSave(r *timelineRecord) error {
 	return nil
 }
 func (s *Store) timelineCommit(r *timelineRecord, kind TimelineOperationKind, op, digest string, result TimelineOperationResult, terminal bool) (TimelineOperationResult, error) {
-	timelineProjectMaintenance(r)
+	timelineRefreshMaintenance(r, s.timelineTime())
+	timelineCommittedActivity(r, s.timeline[r.ID], kind)
+	if r.Maintenance != nil {
+		r.Maintenance.ContentBaseline = nil
+	}
 	if r.Session != nil {
 		if err := ValidateTimelineClosureReserve(*r.Session); err != nil {
 			return result, err
@@ -774,7 +798,7 @@ func timelineBump(v *TimelineSession, now string) error {
 		return timelineFailure("capacity", 413)
 	}
 	v.Version++
-	v.UpdatedAt = now
+	v.UpdatedAt = timelineLater(v.UpdatedAt, now)
 	return nil
 }
 func timelinePauseForeground(v *TimelineSession, except, now string) {
@@ -816,6 +840,9 @@ func (s *Store) TimelinePatch(id string, request TimelineSessionPatchRequest) (T
 	r := timelineClone(old)
 	v := r.Session
 	now := s.timelineTime()
+	if timelineAdministrativePatch(request) {
+		return s.timelineAdministrativeCommit(r, request, digest)
+	}
 	if request.Title != nil {
 		title, titleErr := validateSessionTitle(*request.Title)
 		if titleErr != nil || title == "" {
@@ -846,6 +873,15 @@ func (s *Store) TimelinePatch(id string, request TimelineSessionPatchRequest) (T
 	}
 	if err = timelineBump(v, now); err != nil {
 		return TimelineOperationResult{}, err
+	}
+	timelineRefreshMaintenance(r, now)
+	if request.Archived != nil {
+		if *request.Archived {
+			r.Maintenance.ArchiveOrigin = timelineStringPointer("manual")
+		} else {
+			r.Maintenance.ArchiveOrigin = nil
+			r.Maintenance.RestoreExempt = v.State == TimelineClosed
+		}
 	}
 	result := timelineResult(r, "session_patch", request.OperationID)
 	return s.timelineCommit(r, "session_patch", request.OperationID, digest, result, false)

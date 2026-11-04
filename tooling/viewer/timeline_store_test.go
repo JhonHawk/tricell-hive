@@ -703,7 +703,11 @@ func TestTimelineRuntimePrivateRecordLimitAndStrictDecoder(t *testing.T) {
 			}
 		})
 	}
-	oversized := append(append([]byte{}, raw...), bytes.Repeat([]byte(" "), timelineMaxRecordBytes-len(raw)+1)...)
+	contentOnly, err := timelineRecordContentBytes(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	oversized := append(append([]byte{}, raw...), bytes.Repeat([]byte(" "), timelineMaxRecordBytes-len(contentOnly)+1)...)
 	var decoded timelineRecord
 	if err = decodeTimelineJSONBounded(oversized, &decoded, timelineMaxRecordBytes); err == nil {
 		t.Fatal("private decoder accepted more than4MiB")

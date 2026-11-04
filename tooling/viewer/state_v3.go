@@ -139,7 +139,7 @@ func validateTimelineInventory(dir string) error {
 	for _, e := range entries {
 		path := filepath.Join(dir, e.Name())
 		if strings.HasSuffix(e.Name(), ".json") && keyPattern.MatchString(strings.TrimSuffix(e.Name(), ".json")) || strings.HasPrefix(e.Name(), ".timeline-write-") {
-			if _, err = readStateFile(path, timelineMaxRecordBytes); err != nil {
+			if _, err = readStateFile(path, timelineMaxRecordBytes+TimelineMaintenanceMaxBytes); err != nil {
 				return err
 			}
 			continue

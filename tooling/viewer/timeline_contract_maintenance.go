@@ -9,7 +9,15 @@ const timelineMaintenancePolicyVersion = 1
 
 // Private maintenance is separately bounded and never consumes publisher receipts.
 // One retained receipt per administrative action permits exact retry, not history.
+type timelineMaintenanceBaseline struct {
+	Version   int64  `json:"version"`
+	UpdatedAt string `json:"updated_at"`
+	Archived  bool   `json:"archived"`
+	Pinned    bool   `json:"pinned"`
+}
+
 type timelineMaintenance struct {
+	ContentBaseline      *timelineMaintenanceBaseline   `json:"content_baseline,omitempty"`
 	PolicyVersion        int                            `json:"policy_version"`
 	EpisodeID            *string                        `json:"episode_id" timeline:"nullable"`
 	ClosedAt             *string                        `json:"closed_at" timeline:"nullable"`
@@ -93,6 +101,18 @@ func validateTimelineMaintenance(r *timelineRecord) error {
 	}
 	if timelineTime(m.LastActivityAt, "last_activity_at") != nil {
 		return bad()
+	}
+	if b := m.ContentBaseline; b != nil {
+		if timelineNumber(b.Version, "version") != nil || timelineTime(b.UpdatedAt, "updated_at") != nil {
+			return bad()
+		}
+		if r.Session != nil {
+			baseline, _ := time.Parse(time.RFC3339Nano, b.UpdatedAt)
+			updated, _ := time.Parse(time.RFC3339Nano, r.Session.UpdatedAt)
+			if baseline.After(updated) || b.Version > r.Session.Version {
+				return bad()
+			}
+		}
 	}
 	if m.EpisodeID != nil && !timelineOpaqueID.MatchString(*m.EpisodeID) {
 		return bad()

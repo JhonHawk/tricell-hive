@@ -105,6 +105,15 @@ func (s *Store) TTL() time.Duration { return s.ttl }
 // Startup validates the complete v3 inventory before cleaning owned incomplete
 // writes and unreferenced blobs.
 func (s *Store) Startup() error {
+	if err := s.startupInventory(); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.timelineMaintainLocked()
+}
+
+func (s *Store) startupInventory() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := ValidateState(filepath.Dir(s.vdir)); err != nil {
