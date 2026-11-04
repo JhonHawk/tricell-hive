@@ -125,6 +125,7 @@ func (f *viewFixture) get(path string, token bool) (int, []byte) {
 	if err != nil {
 		f.t.Fatal(err)
 	}
+	req.Header.Set(viewer.TimelineRevisionHeader, "2")
 	if token {
 		req.Header.Set("X-Hive-Token", info.Token)
 	}
