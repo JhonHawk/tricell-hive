@@ -145,3 +145,7 @@ No install/restart or update of the habitual viewer is a test. A later integrate
 - T1 response-bound correction built: response-only ceiling TimelineMaxBody+16KiB with strictrequestlimitunchanged, bothCLItransports andnavigationfixturesupdated. Red→green exactlegacy2MiBreadback/semantictransport andoverflowtests PASS.
 - T2 builder completed runtime and corruption fix: fullviewer15.392s PASS, focusedmaintenance3.100s PASS, maintenance-race32.508s PASS, callback-race1.390s PASS, vetviewer PASS. Extremefixture retains2MiBpublic/4MiBprivate/508events/1000receipts across archive→restore→replay→restart with blobhashesunchanged. Independentcheckpending.
 - T3 built: tsc/lint/build/verifydist PASS, frontend711tests+3scripts PASS. Nanosecondorder/statebadges had red→green tests; selectedmetadata semanticcontrast fix confirmed byparentaxe4.12.1 audit(no violations;2offscreenincompletes pendingmanualUX). Browserfixture24works/3groups.
+
+- Runtime verification source copy `/var/folders/dg/0d963h2158s10jggj2_k2w_00000gn/T/hive-viewer-runtime-obrk4g43` at2da7bc1d includes T1responsefix80452228, T2runtime51a722be and T3UI2da7bc1d. Reproducible task-owned source, no habitualdata.
+
+- T5 docs built in README/llms/CHANGELOG/siteviewer/deploymentarchitecture; root clarified temporaryUndo notification appliesonlymanualarchive. Childastrocheck0errors/0warnings/0hints, biome14files PASS. Globalguidance34029→34029bytes. Final checks/sourcefingerprints pending integration.

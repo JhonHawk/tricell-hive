@@ -15,8 +15,8 @@ raise the minor or the patch version.
 - `flow-close` takes an inventory of the support material its work left, such
   as research records, working files, evidence or an abandoned change folder,
   proposes an action for each item (commit, archive, promote a conclusion into
-  `docs/`, delete or keep) and asks it right after the viewer close, before
-  archiving and cleanup, applying nothing before the answer. Committed items
+  `docs/`, delete or keep) after the completion report, before archiving and
+  cleanup, applying nothing before the answer. Committed items
   go with the archived change record, or in a support-only commit on a new
   branch, delivered the way the work was; kept items in a worktree move to the
   main checkout before it is removed; paused and held work only list them.
@@ -28,6 +28,11 @@ raise the minor or the patch version.
   left with nothing open.
 
 ### Changed
+
+- Finished viewer works leave the default list automatically after two hours,
+  while pinning and restore keep them visible and content remains under manual
+  retention. The sidebar orders works by last substantive activity. Timeline
+  revision 2 coordinates the CLI, viewer and server while preserving stored work.
 
 - A change folder is committed with the code it plans: on the work's branch
   before the push, moved into the worktree when there is one, or in a
