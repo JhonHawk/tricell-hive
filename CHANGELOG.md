@@ -20,9 +20,19 @@ raise the minor or the patch version.
   go with the archived change record, or in a support-only commit on a new
   branch, delivered the way the work was; kept items in a worktree move to the
   main checkout before it is removed; paused and held work only list them.
+- What a work item leaves open on purpose, such as a post-merge task of its
+  plan or a later phase, is commented on its ticket and kept in one
+  `pending/<change-id>` persistent-memory record titled `Pending:`;
+  `flow-status` lists those records, marking stale ones, along with change
+  folders not committed under `Specs`, and each close soft-deletes a record
+  left with nothing open.
 
 ### Changed
 
+- A change folder is committed with the code it plans: on the work's branch
+  before the push, moved into the worktree when there is one, or in a
+  separate specs repository at the completion point, a `ready` stop
+  included. It no longer stays untracked until `flow-close` archives it.
 - Every flow delegates by one criterion, kept in
   `flow-build/references/delegation.md`: the reviews Hive launches always
   run in a child, briefed with the artifact, the requirements and check

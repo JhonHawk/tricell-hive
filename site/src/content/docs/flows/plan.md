@@ -42,7 +42,7 @@ The change folder is copied from the [templates](https://github.com/JhonHawk/tri
 
 Every criterion is one observable behavior, with the observation that would show it false today. A criterion that is already true, or that only restates your request, is rewritten or dropped. When the plan has a change folder, one independent reviewer checks it before it is ready. The [viewer](/viewer/) session for the work starts here, and a running viewer can show the plan documents, as the [walkthrough skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) describes.
 
-A change folder stays uncommitted while the work runs; [Close](/flows/close/) versions it at the end.
+A change folder stays on disk while the work runs and is committed with the code it plans: on the work's branch before the push when the specs live in the same repository, or in the specs repository when the work reaches its completion point. Tasks still open after the merge do not hold it back; [Close](/flows/close/) records them and archives the folder.
 
 ## How it ends
 
