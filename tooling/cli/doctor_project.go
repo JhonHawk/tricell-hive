@@ -41,6 +41,7 @@ var hiveSettingKeys = []hiveKey{
 	{"Project", true},
 	{"Base branch", true},
 	{"Tracker", true},
+	{"Other trackers", false},
 	{"Specs", true},
 	{"Environments", false},
 	{"Delivery", false},
@@ -49,21 +50,86 @@ var hiveSettingKeys = []hiveKey{
 }
 
 const (
-	hiveFileLimit     = 1 << 20 // AGENTS.md is read up to this many bytes
-	hiveValueRunes    = 200     // longest value shown
-	gitTimeout        = 5 * time.Second
-	gitWaitDelay      = time.Second
-	gitMaxOutput      = 64 << 10
-	outsideGitLine    = "Not inside a Git repository; run hive from a repository."
-	outsideGitLineTwo = "Workspace-level ## Hive sections are not checked."
-	hiveHeading       = "## Hive"
-	hiveGuidanceWant  = "required"
-	completionShape   = "<state> on <ref> · <state> on <ref>"
+	hiveFileLimit      = 1 << 20 // AGENTS.md is read up to this many bytes
+	hiveValueRunes     = 200     // longest value shown
+	gitTimeout         = 5 * time.Second
+	gitWaitDelay       = time.Second
+	gitMaxOutput       = 64 << 10
+	outsideGitLine     = "Not inside a Git repository; run hive from a repository."
+	outsideGitLineTwo  = "Workspace-level ## Hive sections are not checked."
+	hiveHeading        = "## Hive"
+	hiveGuidanceWant   = "required"
+	completionShape    = "<state> on <ref> · <state> on <ref>"
+	otherTrackersShape = "<tool> · <location> · keys <PREFIX>[, <PREFIX>]"
 )
 
 // completionPattern is the shape of a Completion value: a state and a ref for
 // the intermediate point, then the same for the final one.
 var completionPattern = regexp.MustCompile(`^.+ on \S+ · .+ on \S+$`)
+
+// otherTrackerKeys is the last part of one Other trackers entry: `keys` with
+// one or more prefixes, or `key` with exactly one.
+var otherTrackerKeys = regexp.MustCompile(`^(?:keys [A-Z][A-Z0-9]*(?:, [A-Z][A-Z0-9]*)*|key [A-Z][A-Z0-9]*)$`)
+
+// completionPrefix opens a Completion value that applies to the tickets of
+// the key prefixes it lists.
+var completionPrefix = regexp.MustCompile(`^([A-Z][A-Z0-9]*(?:, [A-Z][A-Z0-9]*)*): `)
+
+// otherTrackerFindings checks the value of Other trackers, entry by entry, and
+// returns the finding texts (without the key) with the declared prefixes.
+func otherTrackerFindings(value string) (texts []string, declared map[string]bool) {
+	declared = map[string]bool{}
+	reported := map[string]bool{}
+	for _, entry := range strings.Split(value, "; ") {
+		entry = strings.TrimSpace(entry)
+		parts := strings.Split(entry, " · ")
+		last := strings.TrimSpace(parts[len(parts)-1])
+		if len(parts) < 3 || !otherTrackerKeys.MatchString(last) {
+			texts = append(texts, fmt.Sprintf("expected %q, found %q", otherTrackersShape, shown(entry)))
+			continue
+		}
+		_, list, _ := strings.Cut(last, " ")
+		for _, prefix := range strings.Split(list, ", ") {
+			if declared[prefix] && !reported[prefix] {
+				reported[prefix] = true
+				texts = append(texts, fmt.Sprintf("prefix %s is declared more than once", prefix))
+			}
+			declared[prefix] = true
+		}
+	}
+	return texts, declared
+}
+
+// completionFindings checks each `; `-separated Completion value on its own
+// and returns the finding texts (without the key).
+func completionFindings(value string, declared map[string]bool) (texts []string) {
+	seen := map[string]bool{}
+	reported := map[string]bool{}
+	unprefixed := 0
+	for _, entry := range strings.Split(value, "; ") {
+		entry = strings.TrimSpace(entry)
+		rest := entry
+		if m := completionPrefix.FindStringSubmatch(entry); m != nil {
+			rest = entry[len(m[0]):]
+			for _, prefix := range strings.Split(m[1], ", ") {
+				switch {
+				case seen[prefix] && !reported[prefix]:
+					reported[prefix] = true
+					texts = append(texts, fmt.Sprintf("prefix %s appears more than once", prefix))
+				case !seen[prefix] && !declared[prefix]:
+					texts = append(texts, fmt.Sprintf("prefix %s is not declared in Other trackers", prefix))
+				}
+				seen[prefix] = true
+			}
+		} else if unprefixed++; unprefixed == 2 {
+			texts = append(texts, "at most one value may have no prefix")
+		}
+		if !completionPattern.MatchString(rest) {
+			texts = append(texts, fmt.Sprintf("expected %q, found %q", completionShape, shown(entry)))
+		}
+	}
+	return texts
+}
 
 // projectBlockingMessage is the error hive doctor returns when the Project
 // section has a blocking finding; main prints it with the "hive:" prefix.
@@ -366,6 +432,9 @@ func hiveFindings(items []hiveItem, root string, git gitRunner) []hiveFinding {
 	add := func(blocking bool, key, format string, a ...any) {
 		findings = append(findings, hiveFinding{Text: key + ": " + fmt.Sprintf(format, a...), Blocking: blocking})
 	}
+	// Other trackers comes before Completion in hiveSettingKeys, so its prefixes
+	// are known when Completion is checked.
+	var declaredPrefixes map[string]bool
 	for _, k := range hiveSettingKeys {
 		v, present := values[k.Name]
 		switch {
@@ -398,8 +467,18 @@ func hiveFindings(items []hiveItem, root string, git gitRunner) []hiveFinding {
 				add(true, k.Name, "expected %s, found %q", quotedList(hiveDeliveryValues), shown(v))
 			}
 		case "Completion":
-			if present && !completionPattern.MatchString(v) {
-				add(false, k.Name, "expected %q, found %q", completionShape, shown(v))
+			if present {
+				for _, text := range completionFindings(v, declaredPrefixes) {
+					add(false, k.Name, "%s", text)
+				}
+			}
+		case "Other trackers":
+			if present {
+				var texts []string
+				texts, declaredPrefixes = otherTrackerFindings(v)
+				for _, text := range texts {
+					add(false, k.Name, "%s", text)
+				}
 			}
 		case "Hive guidance":
 			if present && v != hiveGuidanceWant {

@@ -582,3 +582,37 @@ func TestProjectWriteRefusesABaseBranchThatCouldNotBeChecked(t *testing.T) {
 		t.Errorf("doctor view: blocking %q warnings %q, want only a warning", blocking, warnings)
 	}
 }
+
+// Other trackers is written in key order (after Tracker, before Specs) when
+// the section is new, as any new key goes after the last item when the section
+// exists, the rest of the section stays, and a value that does not meet its
+// form is written with a warning that shows the form.
+func TestProjectWriteOtherTrackersGoesAfterTrackerAndWarnsWithItsForm(t *testing.T) {
+	const base = "# T\n\n## Hive\n\n- Project: p\n- Base branch: main\n- Tracker: t\n- Specs: _support/openspec\n- Mystery: stays\n"
+	root := projectRepoWithSpecs(t, base)
+	e, err := prepare(t, root, []hiveItem{{"Other trackers", "Jira · example.atlassian.net"}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := base + "- Other trackers: Jira · example.atlassian.net\n"
+	if string(e.After) != want {
+		t.Fatalf("file:\n%s", e.After)
+	}
+	fresh := mustEdit(t, "# T\n", []hiveItem{{"Specs", "s"}, {"Other trackers", "Jira · example.atlassian.net · keys XYZ"}, {"Tracker", "t"}}, nil)
+	if want := "# T\n\n## Hive\n\n- Tracker: t\n- Other trackers: Jira · example.atlassian.net · keys XYZ\n- Specs: s\n"; fresh != want {
+		t.Fatalf("new section:\n%s", fresh)
+	}
+	joined := strings.Join(e.Warnings, "\n")
+	if !strings.Contains(joined, `Other trackers: expected "<tool> · <location> · keys <PREFIX>[, <PREFIX>]"`) {
+		t.Errorf("warnings %q do not show the form", e.Warnings)
+	}
+	e, err = prepare(t, root, []hiveItem{{"Other trackers", "Jira · example.atlassian.net · keys XYZ"}}, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, w := range e.Warnings {
+		if strings.Contains(w, "Other trackers") {
+			t.Errorf("a valid value warned: %q", w)
+		}
+	}
+}

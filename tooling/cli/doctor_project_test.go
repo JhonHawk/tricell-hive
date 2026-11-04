@@ -267,7 +267,7 @@ func TestHiveSectionUnknownKeyAndOptionalValues(t *testing.T) {
 	mustContain(t, text, "Colour: unknown key")
 	mustNotContain(t, text, "Valid")
 	// The known keys are named once, however many keys are unknown.
-	known := "Known keys: Project, Base branch, Tracker, Specs, Environments, Delivery, Completion, Hive guidance"
+	known := "Known keys: Project, Base branch, Tracker, Other trackers, Specs, Environments, Delivery, Completion, Hive guidance"
 	mustContain(t, text, known)
 	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- Colour: blue\n- Shape: round\n- Specs:", 1))
 	text = projectText(t, root)
@@ -527,7 +527,7 @@ func TestHiveSettingKeysRequiredSet(t *testing.T) {
 	if got := strings.Join(required, ","); got != "Project,Base branch,Tracker,Specs" {
 		t.Fatalf("required keys: %s", got)
 	}
-	for _, name := range []string{"Environments", "Delivery", "Completion", "Hive guidance"} {
+	for _, name := range []string{"Other trackers", "Environments", "Delivery", "Completion", "Hive guidance"} {
 		if !knownHiveKey(name) {
 			t.Errorf("optional key %q is missing", name)
 		}
@@ -655,4 +655,60 @@ func TestDoctorProjectChangeChecksIgnoreAMissingSpecsDirectory(t *testing.T) {
 	text := projectText(t, root)
 	mustContain(t, text, "Specs: _support/openspec is not an existing directory")
 	mustNotContain(t, text, "kebab", "Closes", "archived")
+}
+
+// withLines puts extra `- Key: value` lines into the valid section.
+func withLines(lines ...string) string {
+	return strings.Replace(validHiveSection, "- Specs:", strings.Join(lines, "\n")+"\n- Specs:", 1)
+}
+
+func TestDoctorProjectAcceptsOtherTrackersAndPrefixedCompletion(t *testing.T) {
+	root := projectRepoWithSpecs(t, validHiveSection)
+	for name, lines := range map[string][]string{
+		"one tracker":       {"- Other trackers: Jira · example.atlassian.net · keys XYZ", "- Completion: XYZ: QA on qa · Done on production"},
+		"two trackers":      {"- Other trackers: Jira · example.atlassian.net · keys XYZ, ABC1; Linear · team Example · key QRS", "- Completion: XYZ, ABC1: QA on qa · Done on production; QRS: Merged on main · Done on production"},
+		"primary and other": {"- Other trackers: Jira · example.atlassian.net · keys XYZ", "- Completion: To Deploy on origin/a · Done on origin/b; XYZ: QA on qa · Done on production"},
+		"trackers only":     {"- Other trackers: Jira · example.atlassian.net · keys XYZ"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			writeAgents(t, root, withLines(lines...))
+			sec := collectProject(root, doctorDeps{})
+			text := projectText(t, root)
+			mustContain(t, text, "Valid")
+			mustNotContain(t, text, "unknown key", "Known keys:", "expected")
+			if sec.Blocking {
+				t.Fatalf("must not block:\n%s", text)
+			}
+		})
+	}
+}
+
+func TestDoctorProjectWarnsOnMalformedOtherTrackersAndCompletionValues(t *testing.T) {
+	root := projectRepoWithSpecs(t, validHiveSection)
+	cases := []struct {
+		name  string
+		lines []string
+		want  string
+	}{
+		{"tracker without keys", []string{"- Other trackers: Jira · example.atlassian.net"}, `Other trackers: expected "<tool> · <location> · keys <PREFIX>[, <PREFIX>]", found "Jira · example.atlassian.net"`},
+		{"keys with a lowercase prefix", []string{"- Other trackers: Jira · example.atlassian.net · keys xyz"}, `Other trackers: expected`},
+		{"key with two prefixes", []string{"- Other trackers: Jira · example.atlassian.net · key XYZ, ABC"}, `Other trackers: expected`},
+		{"repeated prefix", []string{"- Other trackers: Jira · example.atlassian.net · keys XYZ; Linear · team Example · keys XYZ"}, `Other trackers: prefix XYZ is declared more than once`},
+		{"undeclared completion prefix", []string{"- Other trackers: Jira · example.atlassian.net · keys XYZ", "- Completion: ABC: QA on qa · Done on production"}, `Completion: prefix ABC is not declared in Other trackers`},
+		{"repeated completion prefix", []string{"- Other trackers: Jira · example.atlassian.net · keys XYZ", "- Completion: XYZ: QA on qa · Done on production; XYZ: QA on a · Done on b"}, `Completion: prefix XYZ appears more than once`},
+		{"malformed value after the separator", []string{"- Other trackers: Jira · example.atlassian.net · keys XYZ", "- Completion: Done on qa · Done on production; XYZ: Done"}, `Completion: expected "<state> on <ref> · <state> on <ref>", found "XYZ: Done"`},
+		{"two values without a prefix", []string{"- Completion: A on a · B on b; C on c · D on d"}, `Completion: at most one value may have no prefix`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			writeAgents(t, root, withLines(c.lines...))
+			sec := collectProject(root, doctorDeps{})
+			text := projectText(t, root)
+			mustContain(t, text, c.want)
+			mustNotContain(t, text, "Valid", "unknown key")
+			if sec.Blocking {
+				t.Fatalf("a finding on these keys must never block:\n%s", text)
+			}
+		})
+	}
 }

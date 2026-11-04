@@ -323,7 +323,7 @@ func clearField(d *appDriver) {
 }
 
 // formRows are the field labels in the order the form shows them.
-var formRows = []string{"Project", "Base branch", "Tracker", "Specs", "Environments", "Delivery", "Completion", "Hive guidance"}
+var formRows = []string{"Project", "Base branch", "Tracker", "Other trackers", "Specs", "Environments", "Delivery", "Completion", "Hive guidance"}
 
 func TestProjectViewFormOpensWithEightFieldsAndSuggestions(t *testing.T) {
 	for _, size := range [][2]int{{80, 24}, {120, 40}} {
@@ -352,7 +352,7 @@ func TestProjectViewFormOpensWithEightFieldsAndSuggestions(t *testing.T) {
 
 func TestProjectViewFormChoiceFieldsCycleAndRequiredFieldsAreChecked(t *testing.T) {
 	_, d, _ := openForm(t, formRepo(t), 80, 24)
-	d.key("down", "down", "down", "down", "down") // Delivery
+	d.key("down", "down", "down", "down", "down", "down") // Delivery
 	d.mustShow("> Delivery        ‹ none ›")
 	d.key("right")
 	d.mustShow("‹ direct-base ›")
@@ -362,7 +362,7 @@ func TestProjectViewFormChoiceFieldsCycleAndRequiredFieldsAreChecked(t *testing.
 	d.mustShow("‹ direct-base ›")
 	d.mustNotShow("automatic", "interactive", "Review", "UI verification")
 
-	d.key("up", "up", "up", "up", "up") // Project
+	d.key("up", "up", "up", "up", "up", "up") // Project
 	clearField(d)
 	d.key("enter")
 	d.mustShow("Project is required")
@@ -377,13 +377,24 @@ func TestProjectViewFormCompletionIsTextWithAPlaceholderFromEnvironments(t *test
 	root := formRepo(t)
 	_, d, _ := openForm(t, root, 120, 40)
 	d.mustShow("Completion", "<state> on <ref> · <state> on <ref>")
-	d.key("down", "down", "down", "down") // Environments
+	d.key("down", "down", "down", "down", "down") // Environments
 	typeText(d, "development → qa → production")
 	d.key("down", "down") // Completion
 	d.mustShow("> Completion", "<state> on origin/development · <state> on origin/production")
 	typeText(d, "To Deploy on origin/development · Done on origin/qa")
 	d.key("enter")
 	d.mustShow("- Completion: To Deploy on origin/development · Done on origin/qa")
+}
+
+func TestProjectViewFormOtherTrackersIsTextWithItsShapeAsHelpAndWritesAfterTracker(t *testing.T) {
+	root := formRepo(t)
+	_, d, _ := openForm(t, root, 120, 40)
+	d.mustShow("Other trackers", "<tool> · <location> · keys <PREFIX>[, <PREFIX>]")
+	d.key("down", "down", "down") // Other trackers
+	d.mustShow("> Other trackers")
+	typeText(d, "Jira · example.atlassian.net · keys XYZ")
+	d.key("enter")
+	d.mustShow("- Other trackers: Jira · example.atlassian.net · keys XYZ")
 }
 
 // A retired key the section still holds gets a keep-or-remove row; removing
@@ -393,7 +404,7 @@ func TestProjectViewFormRemovesARetiredKeyAndKeepsTheRest(t *testing.T) {
 	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs: _support/openspec\n", "- Specs: _support/openspec\n- Review: /code-review\n- UI verification: functional\n", 1))
 	_, d, _ := openForm(t, root, 120, 40)
 	d.mustShow("Review          ‹ /code-review (retired) ›", "UI verification ‹ functional (retired) ›")
-	d.key("down", "down", "down", "down", "down", "down", "down", "down") // Review
+	d.key("down", "down", "down", "down", "down", "down", "down", "down", "down") // Review
 	d.mustShow("> Review")
 	d.key("right")
 	d.mustShow("> Review          ‹ remove ›")
@@ -419,7 +430,7 @@ func TestProjectViewFormKeepsARetiredLineWhoseValueIsRemove(t *testing.T) {
 	d.mustShow("Review          ‹ remove (retired) ›")
 	d.key("enter")
 	d.mustShow("Nothing to change")
-	d.key("down", "down", "down", "down", "down", "down", "down", "down") // Review
+	d.key("down", "down", "down", "down", "down", "down", "down", "down", "down") // Review
 	d.key("right")
 	d.mustShow("> Review          ‹ remove ›")
 	d.mustNotShow("(retired)")
@@ -448,7 +459,7 @@ func TestProjectViewFormMarksARetiredDeliveryAndLetsItBeCleared(t *testing.T) {
 	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs: _support/openspec\n", "- Specs: _support/openspec\n- Delivery: automatic\n", 1))
 	_, d, _ := openForm(t, root, 80, 24)
 	d.mustShow("‹ automatic (retired) ›")
-	d.key("down", "down", "down", "down", "down") // Delivery
+	d.key("down", "down", "down", "down", "down", "down") // Delivery
 	for _, want := range []string{"Delivery        ‹ none ›", "‹ direct-base ›", "‹ automatic (retired) ›"} {
 		d.key("right")
 		d.mustShow(want)
@@ -485,7 +496,7 @@ func TestProjectViewFormConfirmationShowsTheChangeAndTheWarnings(t *testing.T) {
 func TestProjectViewFormApplyWritesWhatTheCommandWrites(t *testing.T) {
 	root := formRepo(t)
 	_, d, v := openForm(t, root, 80, 24)
-	d.key("down", "down", "down", "down", "down", "right") // Delivery: direct-base
+	d.key("down", "down", "down", "down", "down", "down", "right") // Delivery: direct-base
 	d.key("enter")
 	d.mustShow("Write AGENTS.md", "- Delivery: direct-base")
 	d.key("y")
@@ -580,7 +591,7 @@ func TestProjectViewFormKeys(t *testing.T) {
 		t.Fatalf("top view is %T", m.top())
 	}
 	// Backspace on a choice field leaves neither the form nor the view.
-	d.key("down", "down", "down", "down", "down")
+	d.key("down", "down", "down", "down", "down", "down")
 	d.key("backspace")
 	d.mustShow("> Delivery")
 	if m.top() != view(v) {
@@ -643,7 +654,7 @@ func TestProjectViewTextFocusedFollowsTheFocusedField(t *testing.T) {
 	if !v.TextFocused() {
 		t.Fatal("TextFocused is false on a text field")
 	}
-	d.key("down", "down", "down", "down", "down") // Delivery
+	d.key("down", "down", "down", "down", "down", "down") // Delivery
 	if v.TextFocused() {
 		t.Fatal("TextFocused is true on Delivery")
 	}
@@ -685,7 +696,7 @@ func TestProjectViewSaysCreatedOrUpdatedAfterTheWrite(t *testing.T) {
 	d.mustShow("Created AGENTS.md")
 	d.mustNotShow("Updated AGENTS.md")
 	d.key("e")
-	d.key("down", "down", "down", "down", "down", "right") // Delivery
+	d.key("down", "down", "down", "down", "down", "down", "right") // Delivery
 	d.key("enter")
 	d.key("y")
 	d.mustShow("Updated AGENTS.md")
