@@ -250,6 +250,87 @@ func TestTimelineCLIPublicReadbackRejectsForeignAndPrivateResults(t *testing.T) 
 	}
 }
 
+// The response owner exercises both authenticated reading and strict decoding.
+func TestTimelineCLIPublicReadbackAtLegacyContentLimit(t *testing.T) {
+	session, err := viewer.DecodeTimelineSession(timelineCLIFixture(t, "session.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	template := session.Events[0]
+	session.Events = nil
+	session.ValidationCount = 0
+	for n := 0; n < 460; n++ {
+		event := template
+		event.EventID = fmt.Sprintf("boundary-%d", n)
+		event.Sequence = int64(n + 1)
+		event.Version = 1
+		event.Title = strings.Repeat("t", 200)
+		event.Summary = strings.Repeat("s", 3000)
+		session.Events = append(session.Events, event)
+	}
+	sessionRaw, _ := json.Marshal(session)
+	var legacy map[string]json.RawMessage
+	json.Unmarshal(sessionRaw, &legacy)
+	for _, field := range []string{"last_activity_at", "closed_at", "autoarchive_at", "archive_origin"} {
+		delete(legacy, field)
+	}
+	legacyRaw, _ := json.Marshal(legacy)
+	remaining := viewer.TimelineMaxBody - len(legacyRaw)
+	if remaining < 0 {
+		t.Fatal("fixture already exceeds original content budget")
+	}
+	for n := range session.Events {
+		add := min(1000, remaining)
+		session.Events[n].Summary += strings.Repeat("s", add)
+		remaining -= add
+	}
+	if remaining != 0 {
+		t.Fatal("fixture cannot reach original content limit", remaining)
+	}
+	if err = viewer.ValidateTimelineSession(session); err != nil {
+		t.Fatal("invalid boundary fixture", err)
+	}
+	response := viewer.TimelineSessionResponse{SchemaVersion: 3, Mode: "timeline_api", Session: session, ArtifactURLs: map[string]string{}, DocumentURLs: map[string]string{}}
+	raw, _ := json.Marshal(response)
+	if len(raw) <= viewer.TimelineMaxBody || len(raw) > viewer.TimelineMaxBody+(16<<10) {
+		t.Fatal("fixture missed response boundary", len(raw))
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set(viewer.TimelineRevisionHeader, "2")
+		w.Write(raw)
+	}))
+	defer server.Close()
+	info := timelineCLIInfo(t, server)
+	data, err := viewTimelineHTTP(info, "GET", "/api/timeline/sessions/"+session.ViewerSessionID, "", nil, viewer.TimelineMaxBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workData, _, workErr := viewWorkHTTP(info, "GET", "/api/timeline/sessions/"+session.ViewerSessionID, "", nil)
+	if workErr != nil || !bytes.Equal(workData, data) {
+		t.Fatal("publisher rejected bounded session response", workErr)
+	}
+	var out bytes.Buffer
+	if err = viewTimelineDecodeOutput(&out, viewTimelineCommand{operation: "session_get", sessionID: session.ViewerSessionID}, nil, data); err != nil {
+		t.Fatal("valid legacy content plus response projection rejected", err)
+	}
+	oversizedResponse := append(append([]byte{}, raw...), bytes.Repeat([]byte(" "), viewer.TimelineMaxResponseBody-len(raw)+1)...)
+	if _, err = viewer.DecodeTimelineSessionResponse(oversizedResponse); err == nil {
+		t.Fatal("response exceeded fixed headroom")
+	}
+	raw = oversizedResponse
+	if _, err = viewTimelineHTTP(info, "GET", "/api/timeline/sessions/"+session.ViewerSessionID, "", nil, viewer.TimelineMaxBody); err == nil {
+		t.Fatal("low-level transport accepted oversized response")
+	}
+	if _, _, err = viewWorkHTTP(info, "GET", "/api/timeline/sessions/"+session.ViewerSessionID, "", nil); err == nil {
+		t.Fatal("publisher transport accepted oversized response")
+	}
+	// The larger response budget must never change request admission.
+	oversized := append(timelineCLIFixture(t, "create-session.json"), bytes.Repeat([]byte(" "), viewer.TimelineMaxBody)...)
+	if _, err = viewer.DecodeTimelineCreateSession(oversized); err == nil {
+		t.Fatal("oversized request accepted")
+	}
+}
+
 func TestTimelineCLIGitReaderDistinguishesMissingOriginFromFailure(t *testing.T) {
 	if _, err := exec.LookPath("git"); err != nil {
 		t.Skip("git unavailable")

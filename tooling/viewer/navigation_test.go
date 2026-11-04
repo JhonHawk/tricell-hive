@@ -58,6 +58,7 @@ func TestHTTPGroupedNavigationHistoricalNamesRemainOneFallbackGroup(t *testing.T
 	}
 	r := httptest.NewRequest("GET", "http://127.0.0.1:4483/api/index?navigation=grouped", nil)
 	r.Header.Set(tokenHeader, strings.Repeat("z", 32))
+	r.Header.Set(TimelineRevisionHeader, "2")
 	w := httptest.NewRecorder()
 	server.ServeHTTP(w, r)
 	if w.Code != 200 {
@@ -124,6 +125,7 @@ func TestHTTPGroupedNavigationRefreshPreservesPublication(t *testing.T) {
 		t.Helper()
 		r := httptest.NewRequest("GET", "http://127.0.0.1:4483/api/index"+query, nil)
 		r.Header.Set(tokenHeader, strings.Repeat("z", 32))
+		r.Header.Set(TimelineRevisionHeader, "2")
 		w := httptest.NewRecorder()
 		server.ServeHTTP(w, r)
 		if w.Code != 200 {

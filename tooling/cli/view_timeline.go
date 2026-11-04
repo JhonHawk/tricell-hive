@@ -181,7 +181,7 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 	if err != nil {
 		return err
 	}
-	data, err := viewTimelineHTTP(info, command.method, command.path, contentType, body, viewer.TimelineMaxBody)
+	data, err := viewTimelineHTTP(info, command.method, command.path, contentType, body, viewer.TimelineMaxResponseBody)
 	if err != nil {
 		return err
 	}
@@ -446,6 +446,11 @@ func viewTimelineHTTP(info serverInfo, method, path, contentType string, body io
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return nil, fmt.Errorf("viewer request failed (HTTP %d%s); preserve inputs, read current state and retry only with the appropriate original operation ID", response.StatusCode, viewErrorDetail(response.Body))
+	}
+	// Existing timeline readers passing the former public-body bound also need
+	// space for the projection/envelope; smaller diagnostic limits stay unchanged.
+	if limit == viewer.TimelineMaxBody {
+		limit = viewer.TimelineMaxResponseBody
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, int64(limit)+1))
 	if err != nil || len(data) > limit {

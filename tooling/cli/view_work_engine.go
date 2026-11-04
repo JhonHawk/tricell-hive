@@ -237,8 +237,8 @@ func viewWorkHTTP(info serverInfo, method, path, ct string, body []byte) ([]byte
 	if resp.Header.Get(viewer.TimelineRevisionHeader) != "2" {
 		return nil, "reload_required", errors.New("update Hive and reload viewer; preserve original operation inputs")
 	}
-	raw, err := io.ReadAll(io.LimitReader(resp.Body, viewer.TimelineMaxBody+1))
-	if err != nil || len(raw) > viewer.TimelineMaxBody {
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, viewer.TimelineMaxResponseBody+1))
+	if err != nil || len(raw) > viewer.TimelineMaxResponseBody {
 		return nil, "", errors.New("incomplete response")
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

@@ -21,6 +21,9 @@ const TimelineSchemaVersion = 3
 const TimelineContractRevision = 2
 const TimelineRevisionHeader = "X-Hive-Timeline-Revision"
 const TimelineMaintenanceMaxBytes = 16 << 10
+
+// TimelineMaxResponseBody reserves projection/envelope space without enlarging request admission.
+const TimelineMaxResponseBody = TimelineMaxBody + TimelineMaintenanceMaxBytes
 const (
 	TimelineMaxBody                         = 2 << 20
 	TimelineContentBudget                   = 7 << 18
@@ -465,6 +468,12 @@ type TimelineArtifactMetadata struct {
 // fields, nulls and trailing values before any runtime-boundary validation.
 func DecodeTimelineJSON(raw []byte, target any) error {
 	return decodeTimelineJSONBounded(raw, target, TimelineMaxBody)
+}
+
+// Public response decoders allow the fixed projection/envelope headroom. Requests
+// continue to use DecodeTimelineJSON and the unchanged TimelineMaxBody bound.
+func decodeTimelineResponseJSON(raw []byte, target any) error {
+	return decodeTimelineJSONBounded(raw, target, TimelineMaxResponseBody)
 }
 
 // decodeTimelineJSONBounded shares exact-field, duplicate-key and encoding
@@ -1286,7 +1295,7 @@ func timelineEventReferences(session TimelineSession, r TimelineAppendEventReque
 
 func DecodeTimelineSession(raw []byte) (TimelineSession, error) {
 	var s TimelineSession
-	err := DecodeTimelineJSON(raw, &s)
+	err := decodeTimelineResponseJSON(raw, &s)
 	if err == nil {
 		err = ValidateTimelineSession(s)
 	}
@@ -1496,7 +1505,7 @@ func IsSafeTimelineArtifactURL(raw, sessionID string) bool {
 }
 func DecodeTimelineSessionResponse(raw []byte) (TimelineSessionResponse, error) {
 	var r TimelineSessionResponse
-	if err := DecodeTimelineJSON(raw, &r); err != nil {
+	if err := decodeTimelineResponseJSON(raw, &r); err != nil {
 		return r, err
 	}
 	if r.SchemaVersion != 3 || r.Mode != "timeline_api" {
@@ -1528,7 +1537,7 @@ func DecodeTimelineSessionResponse(raw []byte) (TimelineSessionResponse, error) 
 
 func DecodeTimelineIndexEntry(raw []byte) (TimelineIndexEntry, error) {
 	var discriminator map[string]json.RawMessage
-	if err := DecodeTimelineJSON(raw, &discriminator); err != nil {
+	if err := decodeTimelineResponseJSON(raw, &discriminator); err != nil {
 		return nil, err
 	}
 	var mode string
@@ -1538,7 +1547,7 @@ func DecodeTimelineIndexEntry(raw []byte) (TimelineIndexEntry, error) {
 	switch mode {
 	case "timeline_api":
 		var entry TimelineAPIIndexEntry
-		if err := DecodeTimelineJSON(raw, &entry); err != nil {
+		if err := decodeTimelineResponseJSON(raw, &entry); err != nil {
 			return nil, err
 		}
 		if err := validateTimelineIndexEntry(entry); err != nil {
@@ -1762,7 +1771,7 @@ func (r TimelineOperationResult) Validate() error {
 }
 func DecodeTimelineOperationResult(raw []byte) (TimelineOperationResult, error) {
 	var r TimelineOperationResult
-	err := DecodeTimelineJSON(raw, &r)
+	err := decodeTimelineResponseJSON(raw, &r)
 	if err == nil {
 		err = r.Validate()
 	}
@@ -1791,7 +1800,7 @@ func (r TimelineOperationReceipt) Validate() error {
 }
 func DecodeTimelineOperationReceipt(raw []byte) (TimelineOperationReceipt, error) {
 	var r TimelineOperationReceipt
-	err := DecodeTimelineJSON(raw, &r)
+	err := decodeTimelineResponseJSON(raw, &r)
 	if err == nil {
 		err = r.Validate()
 	}
@@ -1968,7 +1977,7 @@ func DecodeTimelineDocumentSnapshot(raw []byte) (TimelineDocumentSnapshotRequest
 }
 func DecodeTimelineDocumentResponse(raw []byte) (TimelineDocumentResponse, error) {
 	var r TimelineDocumentResponse
-	err := DecodeTimelineJSON(raw, &r)
+	err := decodeTimelineResponseJSON(raw, &r)
 	if err != nil {
 		return r, err
 	}

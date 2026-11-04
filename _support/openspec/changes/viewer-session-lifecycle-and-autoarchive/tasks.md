@@ -124,3 +124,24 @@ No install/restart or update of the habitual viewer is a test. A later integrate
 - 2026-11-04 — T4 committed e6e0226b with the five approved plan files. Secret scan gitleaks stdin --redact PASS; main-thread content/link checks PASS. T1 remains in progress, T2/T3 await frozen contract, T5 waits integration. Checkpoint commit e6e0226b.
 
 - 2026-11-04 — T1 built, typed interfaces frozen. Child observed missing-revision POST commit before fix and invalid deadline accepted before strict validation; focused Go viewer/CLI and373frontendtests PASS, tsc/targetedBiome PASS. Main-thread focused Revision/Maintenance/LifecycleProjection/Preflight tests PASS. Raw pnpm wrapper tried dependency handling on the task-owned symlink and failed; no successful install; use existing direct node_modules binaries for subsequent checks. Independent T1 contract verification follows on a committed isolated source copy.
+
+- T1 isolated verification source copy: `/var/folders/dg/0d963h2158s10jggj2_k2w_00000gn/T/hive-viewer-contract-ud_ty9ak`, created from gitarchive5b8de3fd, mode0700; reproducible task-owned temporary, no real viewer state.
+
+- Task resources: isolated binary/state/log home `/var/folders/dg/0d963h2158s10jggj2_k2w_00000gn/T/hive-viewer-build-2x4xbe7b` (mode0700, no server started yet); browser session `hive-viewer-autoarchive-01a1a55e`; retained UI captures `_support/workspace/2026-11-04-viewer-session-lifecycle-and-autoarchive/images/`. Only task-owned processes/state will be started or removed.
+
+## Acceptance evidence ledger
+
+| Criterion | Current evidence | Pending |
+| --- | --- | --- |
+| AC1 | T4 source sequence and content/link tests at e6e0226b | final candidate review |
+| AC2/AC3/AC6/AC8 | T2 building against frozen contract5b8de3fd | deterministic boundary/race/capacity tests + independent check |
+| AC4/AC5 | T3 building against frozen contract5b8de3fd | frontend tests + compiled API/browser + UX |
+| AC7 | T1 focused HTTP/CLI/frontend checks at5b8de3fd | independent T1 check + final integration |
+
+- First UI inspection: task-owned Vite on5198 (PID 11252, execsession50483), own browser session hive-viewer-autoarchive-01a1a55e. Desktop1440×1000 light screenshot and nav audit in workspace evidence. Fixture image routing was corrected by T3 after initial setup failure; browser now reports0failedimages. This is dev/mock-boundary evidence, not compiledserver/CSP proof.
+
+- Verification follow-ups in progress: T1 independent verifier found explicitly corrupt stored derived fields normalized before validation (AC6); T2 owns regression/fix. T2 exact-capacity fixture also required bounded administrative scalar-growth accounting inside the same16KiB allowance, preserving normal content admission. T1 builder owns response-only16KiB read/decode headroom because a legacymax2MiBsession plus projection/envelope exceeded oldresponsebound; request limits unchanged. T3 fixed measured selected-row metadata contrast4.34:1 using semantic foreground; new nav audit saved, offscreen incompletes await manual UX check.
+
+- T1 response-bound correction built: response-only ceiling TimelineMaxBody+16KiB with strictrequestlimitunchanged, bothCLItransports andnavigationfixturesupdated. Red→green exactlegacy2MiBreadback/semantictransport andoverflowtests PASS.
+- T2 builder completed runtime and corruption fix: fullviewer15.392s PASS, focusedmaintenance3.100s PASS, maintenance-race32.508s PASS, callback-race1.390s PASS, vetviewer PASS. Extremefixture retains2MiBpublic/4MiBprivate/508events/1000receipts across archive→restore→replay→restart with blobhashesunchanged. Independentcheckpending.
+- T3 built: tsc/lint/build/verifydist PASS, frontend711tests+3scripts PASS. Nanosecondorder/statebadges had red→green tests; selectedmetadata semanticcontrast fix confirmed byparentaxe4.12.1 audit(no violations;2offscreenincompletes pendingmanualUX). Browserfixture24works/3groups.
