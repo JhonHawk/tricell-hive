@@ -23,7 +23,7 @@ raise the minor or the patch version.
 - What a work item leaves open on purpose, such as a post-merge task of its
   plan or a later phase, is commented on its ticket and kept in one
   `pending/<change-id>` persistent-memory record titled `Pending:`;
-  `flow-status` lists those records, marking stale ones, along with change
+  `flow-status` lists those records, marking those ready to resume, along with change
   folders not committed under `Specs`, and each close soft-deletes a record
   left with nothing open.
 
