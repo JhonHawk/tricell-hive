@@ -319,6 +319,7 @@ func TestTimelineRuntimeHTTPAuthenticationAndStrictInput(t *testing.T) {
 	body, _ := json.Marshal(request)
 	call := func(method, path string, body []byte, token, origin, scope bool) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(method, "http://127.0.0.1:4483"+path, bytes.NewReader(body))
+		r.Header.Set("X-Hive-Timeline-Revision", "2")
 		if token {
 			r.Header.Set(tokenHeader, strings.Repeat("x", 32))
 		}
@@ -327,6 +328,7 @@ func TestTimelineRuntimeHTTPAuthenticationAndStrictInput(t *testing.T) {
 		}
 		if scope {
 			r.Header.Set("X-Hive-Action-Scope", "session")
+			r.Header.Set("X-Hive-Timeline-Revision", "2")
 		}
 		w := httptest.NewRecorder()
 		srv.ServeHTTP(w, r)
@@ -652,7 +654,7 @@ func TestTimelineRuntimePrivateReceiptEnvelopeExceedsPublicBodyLimit(t *testing.
 	if err = DecodeTimelineJSON(private, &decoded); err == nil {
 		t.Fatal("public HTTP decoder accepted a private envelope over2MiB")
 	}
-	if err = decodeTimelineJSONBounded(private, &decoded, timelineMaxRecordBytes); err != nil {
+	if err = decodeTimelineStoredJSON(private, &decoded, timelineMaxRecordBytes); err != nil {
 		t.Fatal("private bounded decoder rejected valid record", err)
 	}
 }
@@ -675,7 +677,37 @@ func TestTimelineRuntimePrivateRecordLimitAndStrictDecoder(t *testing.T) {
 			t.Fatal("private decoder weakened exact/duplicate-field checks")
 		}
 	}
-	oversized := append(append([]byte{}, raw...), bytes.Repeat([]byte(" "), timelineMaxRecordBytes-len(raw)+1)...)
+	// Legacy records omit all derived fields and policy metadata; load conservatively.
+	if reopened, e := Open(Options{StateDir: filepath.Dir(s.Dir())}); e != nil {
+		t.Fatal("legacy record rejected", e)
+	} else if got, e := reopened.TimelineGet(v.ViewerSessionID); e != nil || got.LastActivityAt != got.CreatedAt {
+		t.Fatal("legacy projection missing", e)
+	}
+	for name, metadata := range map[string]string{
+		"unsupported policy": `{"policy_version":2}`, "null metadata": `null`, "unknown metadata": `{"unexpected":true}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			var fields map[string]json.RawMessage
+			json.Unmarshal(raw, &fields)
+			fields["maintenance"] = json.RawMessage(metadata)
+			bad, _ := json.Marshal(fields)
+			if e := os.WriteFile(s.timelineRecordPath(v.ViewerSessionID), bad, 0600); e != nil {
+				t.Fatal(e)
+			}
+			if _, e := Open(Options{StateDir: filepath.Dir(s.Dir())}); e == nil {
+				t.Fatal("corrupt maintenance accepted")
+			}
+			retained, _ := os.ReadFile(s.timelineRecordPath(v.ViewerSessionID))
+			if !bytes.Equal(retained, bad) {
+				t.Fatal("corrupt record changed")
+			}
+		})
+	}
+	contentOnly, err := timelineRecordContentBytes(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	oversized := append(append([]byte{}, raw...), bytes.Repeat([]byte(" "), timelineMaxRecordBytes-len(contentOnly)+1)...)
 	var decoded timelineRecord
 	if err = decodeTimelineJSONBounded(oversized, &decoded, timelineMaxRecordBytes); err == nil {
 		t.Fatal("private decoder accepted more than4MiB")

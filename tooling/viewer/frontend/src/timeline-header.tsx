@@ -50,6 +50,7 @@ import {
 } from "./timeline-contract";
 import { type TimelineLanguage, timelineCopy } from "./timeline-copy";
 import { TimelineParticipants } from "./timeline-participants";
+import { timelineStateVariant } from "./timeline-state";
 import { TimelineSummary } from "./timeline-summary";
 
 export type TimelineHeaderPatch = {
@@ -59,6 +60,7 @@ export type TimelineHeaderPatch = {
 };
 export type TimelineHeaderProps = {
   data: TimelineSessionResponse;
+  disabled?: boolean;
   onUpdate: (
     patch: TimelineHeaderPatch,
     expectedVersion: number,
@@ -103,6 +105,7 @@ function IconAction({
 
 export function TimelineHeader({
   data,
+  disabled = false,
   onUpdate,
   onDelete,
   onRetry,
@@ -114,7 +117,8 @@ export function TimelineHeader({
   const t = timelineCopy(lang);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(session.title);
-  const [pending, setPending] = useState(false);
+  const [saving, setPending] = useState(false);
+  const pending = saving || disabled;
   const [error, setError] = useState<"required" | "save" | null>(null);
   const [deleting, setDeleting] = useState(false);
   const editVersion = useRef(session.version);
@@ -146,8 +150,7 @@ export function TimelineHeader({
   const deliveries = session.deliveries;
   const validations =
     t.validations.charAt(0).toUpperCase() + t.validations.slice(1);
-  // The installed outline variant keeps status text readable on the viewer surface.
-  const statusVariant = "outline";
+  const statusVariant = timelineStateVariant[session.state];
   const update = async (
     patch: TimelineHeaderPatch,
     version = session.version,
@@ -463,6 +466,26 @@ export function TimelineHeader({
           )}
         </div>
       </div>
+      {session.archived && (
+        <Alert variant="default" role="status">
+          <AlertDescription>
+            {session.archive_origin === "automatic"
+              ? t.autoarchived
+              : t.archivedExplanation}
+          </AlertDescription>
+          <AlertAction>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              onClick={() => void update({ archived: false })}
+            >
+              {t.restore}
+            </Button>
+          </AlertAction>
+        </Alert>
+      )}
       {session.reason && <p className="text-sm">{session.reason}</p>}
       {error && !deleting && (
         <Alert variant="destructive">

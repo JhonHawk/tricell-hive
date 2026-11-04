@@ -18,6 +18,12 @@ import (
 
 // TimelineSchemaVersion versions the API contract independently of legacy manifests.
 const TimelineSchemaVersion = 3
+const TimelineContractRevision = 2
+const TimelineRevisionHeader = "X-Hive-Timeline-Revision"
+const TimelineMaintenanceMaxBytes = 16 << 10
+
+// TimelineMaxResponseBody reserves projection/envelope space without enlarging request admission.
+const TimelineMaxResponseBody = TimelineMaxBody + TimelineMaintenanceMaxBytes
 const (
 	TimelineMaxBody                         = 2 << 20
 	TimelineContentBudget                   = 7 << 18
@@ -262,6 +268,11 @@ type TimelineArtifact struct {
 	Theme       string        `json:"theme"`
 }
 type TimelineSession struct {
+	LastActivityAt string  `json:"last_activity_at" stored:"optional"`
+	ClosedAt       *string `json:"closed_at" timeline:"nullable" stored:"optional"`
+	AutoarchiveAt  *string `json:"autoarchive_at" timeline:"nullable" stored:"optional"`
+	ArchiveOrigin  *string `json:"archive_origin" timeline:"nullable" stored:"optional"`
+
 	Deliveries           []TimelineDelivery        `json:"deliveries"`
 	Candidates           []TimelineCandidateRecord `json:"candidates"`
 	Producers            []TimelineProducer        `json:"producers"`
@@ -297,6 +308,11 @@ type TimelineSession struct {
 
 // TimelineAPIIndexEntry is the API v3 work summary.
 type TimelineAPIIndexEntry struct {
+	LastActivityAt string  `json:"last_activity_at" stored:"optional"`
+	ClosedAt       *string `json:"closed_at" timeline:"nullable" stored:"optional"`
+	AutoarchiveAt  *string `json:"autoarchive_at" timeline:"nullable" stored:"optional"`
+	ArchiveOrigin  *string `json:"archive_origin" timeline:"nullable" stored:"optional"`
+
 	CurrentStageEventID *string          `json:"current_stage_event_id" timeline:"nullable"`
 	Mode                string           `json:"mode"`
 	ViewerSessionID     string           `json:"viewer_session_id"`
@@ -454,6 +470,12 @@ func DecodeTimelineJSON(raw []byte, target any) error {
 	return decodeTimelineJSONBounded(raw, target, TimelineMaxBody)
 }
 
+// Public response decoders allow the fixed projection/envelope headroom. Requests
+// continue to use DecodeTimelineJSON and the unchanged TimelineMaxBody bound.
+func decodeTimelineResponseJSON(raw []byte, target any) error {
+	return decodeTimelineJSONBounded(raw, target, TimelineMaxResponseBody)
+}
+
 // decodeTimelineJSONBounded shares exact-field, duplicate-key and encoding
 // validation between HTTP payloads and the larger private receipt envelope.
 func decodeTimelineJSONBounded(raw []byte, target any, maxBytes int) error {
@@ -609,7 +631,7 @@ func timelineJSONValue(dec *json.Decoder, depth int, nullable ...bool) error {
 				return timelineError("body", "duplicate_key")
 			}
 			seen[name] = true
-			if err := timelineJSONValue(dec, depth+1, name == "current_stage_event_id" || name == "work_key"); err != nil {
+			if err := timelineJSONValue(dec, depth+1, contains([]string{"current_stage_event_id", "work_key", "closed_at", "autoarchive_at", "archive_origin", "episode_id", "eligibility_started_at", "automatic_action", "archive_receipt", "restore_receipt", "pin_receipt"}, name)); err != nil {
 				return err
 			}
 		}
@@ -1273,7 +1295,7 @@ func timelineEventReferences(session TimelineSession, r TimelineAppendEventReque
 
 func DecodeTimelineSession(raw []byte) (TimelineSession, error) {
 	var s TimelineSession
-	err := DecodeTimelineJSON(raw, &s)
+	err := decodeTimelineResponseJSON(raw, &s)
 	if err == nil {
 		err = ValidateTimelineSession(s)
 	}
@@ -1292,7 +1314,7 @@ func ValidateTimelineSession(s TimelineSession) error {
 	if err := validateTimelineSummaryHeader(timelineSummaryHeader{
 		ViewerSessionID: s.ViewerSessionID, Source: s.Source, ProjectKey: s.ProjectKey,
 		ProjectName: s.ProjectName, Version: s.Version, Title: s.Title, Summary: s.Summary,
-		State: s.State, CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt,
+		State: s.State, CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt, LastActivityAt: s.LastActivityAt, ClosedAt: s.ClosedAt, AutoarchiveAt: s.AutoarchiveAt, ArchiveOrigin: s.ArchiveOrigin, Archived: s.Archived, Pinned: s.Pinned,
 	}); err != nil {
 		return err
 	}
@@ -1483,7 +1505,7 @@ func IsSafeTimelineArtifactURL(raw, sessionID string) bool {
 }
 func DecodeTimelineSessionResponse(raw []byte) (TimelineSessionResponse, error) {
 	var r TimelineSessionResponse
-	if err := DecodeTimelineJSON(raw, &r); err != nil {
+	if err := decodeTimelineResponseJSON(raw, &r); err != nil {
 		return r, err
 	}
 	if r.SchemaVersion != 3 || r.Mode != "timeline_api" {
@@ -1515,7 +1537,7 @@ func DecodeTimelineSessionResponse(raw []byte) (TimelineSessionResponse, error) 
 
 func DecodeTimelineIndexEntry(raw []byte) (TimelineIndexEntry, error) {
 	var discriminator map[string]json.RawMessage
-	if err := DecodeTimelineJSON(raw, &discriminator); err != nil {
+	if err := decodeTimelineResponseJSON(raw, &discriminator); err != nil {
 		return nil, err
 	}
 	var mode string
@@ -1525,7 +1547,7 @@ func DecodeTimelineIndexEntry(raw []byte) (TimelineIndexEntry, error) {
 	switch mode {
 	case "timeline_api":
 		var entry TimelineAPIIndexEntry
-		if err := DecodeTimelineJSON(raw, &entry); err != nil {
+		if err := decodeTimelineResponseJSON(raw, &entry); err != nil {
 			return nil, err
 		}
 		if err := validateTimelineIndexEntry(entry); err != nil {
@@ -1539,6 +1561,9 @@ func DecodeTimelineIndexEntry(raw []byte) (TimelineIndexEntry, error) {
 
 // timelineSummaryHeader holds the fields a session and its index entry share.
 type timelineSummaryHeader struct {
+	LastActivityAt                                                                 string
+	ClosedAt, AutoarchiveAt, ArchiveOrigin                                         *string
+	Archived, Pinned                                                               bool
 	ViewerSessionID, ProjectKey, ProjectName, Title, Summary, CreatedAt, UpdatedAt string
 	Source                                                                         TimelineSource
 	Version                                                                        int64
@@ -1578,7 +1603,7 @@ func validateTimelineSummaryHeader(h timelineSummaryHeader) error {
 	if err := timelineTime(h.UpdatedAt, "updated_at"); err != nil {
 		return err
 	}
-	return nil
+	return validateTimelineLifecycleProjection(h)
 }
 
 // validateTimelineIndexEntry applies the session rules that a work summary
@@ -1591,7 +1616,7 @@ func validateTimelineIndexEntry(e TimelineAPIIndexEntry) error {
 	if err := validateTimelineSummaryHeader(timelineSummaryHeader{
 		ViewerSessionID: e.ViewerSessionID, Source: e.Source, ProjectKey: e.ProjectKey,
 		ProjectName: e.ProjectName, Version: e.Version, Title: e.Title, Summary: e.Summary,
-		State: e.State, CreatedAt: e.CreatedAt, UpdatedAt: e.UpdatedAt,
+		State: e.State, CreatedAt: e.CreatedAt, UpdatedAt: e.UpdatedAt, LastActivityAt: e.LastActivityAt, ClosedAt: e.ClosedAt, AutoarchiveAt: e.AutoarchiveAt, ArchiveOrigin: e.ArchiveOrigin, Archived: e.Archived, Pinned: e.Pinned,
 	}); err != nil {
 		return err
 	}
@@ -1746,7 +1771,7 @@ func (r TimelineOperationResult) Validate() error {
 }
 func DecodeTimelineOperationResult(raw []byte) (TimelineOperationResult, error) {
 	var r TimelineOperationResult
-	err := DecodeTimelineJSON(raw, &r)
+	err := decodeTimelineResponseJSON(raw, &r)
 	if err == nil {
 		err = r.Validate()
 	}
@@ -1775,7 +1800,7 @@ func (r TimelineOperationReceipt) Validate() error {
 }
 func DecodeTimelineOperationReceipt(raw []byte) (TimelineOperationReceipt, error) {
 	var r TimelineOperationReceipt
-	err := DecodeTimelineJSON(raw, &r)
+	err := decodeTimelineResponseJSON(raw, &r)
 	if err == nil {
 		err = r.Validate()
 	}
@@ -1952,7 +1977,7 @@ func DecodeTimelineDocumentSnapshot(raw []byte) (TimelineDocumentSnapshotRequest
 }
 func DecodeTimelineDocumentResponse(raw []byte) (TimelineDocumentResponse, error) {
 	var r TimelineDocumentResponse
-	err := DecodeTimelineJSON(raw, &r)
+	err := decodeTimelineResponseJSON(raw, &r)
 	if err != nil {
 		return r, err
 	}

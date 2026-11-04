@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"sync"
 	"testing"
+	"time"
 )
 
 func domainCandidate(t *testing.T, s *Store, id, commit string) string {
@@ -34,17 +35,24 @@ func domainDelivery(t *testing.T, s *Store, id string) string {
 }
 func TestTimelineCatalogRuntimeDedupCASReplayAndRestart(t *testing.T) {
 	s, v, _ := newV3Fixture(t)
+	now, _ := time.Parse(time.RFC3339Nano, v.CreatedAt)
+	s.now = func() time.Time { return now }
 	id := v.ViewerSessionID
 	r := TimelineTicketCreateRequest{TimelineNativeOperation: domainBase(t, s, id, "ticket-create", v.ForegroundProducerID), TimelineTicketInput: TimelineTicketInput{ExternalScope: "HTTPS://EXAMPLE.com:443/tracker/", ExternalID: "1", Key: "EX-1", URL: "https://example.com/issue/1"}}
 	first, err := s.TimelineV3Operation(id, "ticket_create", "", &r)
 	if err != nil {
 		t.Fatal(err)
 	}
+	activity := domainCurrent(t, s, id).LastActivityAt
 	for i := 0; i < 4; i++ {
+		now = now.Add(time.Hour)
 		r.TimelineNativeOperation = domainBase(t, s, id, fmt.Sprintf("ticket-repeat-%d", i), v.ForegroundProducerID)
 		out, err := s.TimelineV3Operation(id, "ticket_create", "", &r)
 		if err != nil || out.TicketID != first.TicketID || *out.Created {
 			t.Fatalf("dedup: %+v %v", out, err)
+		}
+		if got := domainCurrent(t, s, id); got.LastActivityAt != activity {
+			t.Fatal("deduplicated catalog creation advanced activity")
 		}
 	}
 	before := domainCurrent(t, s, id)
@@ -76,6 +84,18 @@ func TestTimelineCatalogRuntimeDedupCASReplayAndRestart(t *testing.T) {
 	wg.Wait()
 	if wins != 1 {
 		t.Fatal("CAS winners", wins)
+	}
+	current := domainCurrent(t, s, id)
+	if current.LastActivityAt != now.Format(time.RFC3339Nano) {
+		t.Fatal("real catalog patch did not advance activity")
+	}
+	now = now.Add(time.Hour)
+	same := TimelineTicketPatchRequest{TimelineNativeOperation: domainBase(t, s, id, "same-ticket-key", v.ForegroundProducerID), Key: timelineStringPointer("EX-2")}
+	if _, err = s.TimelineV3Operation(id, "ticket_patch", first.TicketID, &same); err != nil {
+		t.Fatal(err)
+	}
+	if got := domainCurrent(t, s, id); got.LastActivityAt != current.LastActivityAt {
+		t.Fatal("unchanged catalog patch advanced activity")
 	}
 	c := domainCandidate(t, s, id, "abc")
 	d := domainDelivery(t, s, id)

@@ -289,6 +289,7 @@ func TestV3HTTPIndexAndRetiredRoutes(t *testing.T) {
 	}
 	request := func(method, path string, token bool) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(method, "http://127.0.0.1:45555"+path, nil)
+		r.Header.Set(TimelineRevisionHeader, "2")
 		if token {
 			r.Header.Set(tokenHeader, "v2-test-secret-is-not-production")
 		}

@@ -31,7 +31,7 @@ export default defineConfig({
             ?.split("?")[0]
             ?.replace("/assets/app/assets/", "/assets/");
           const evidence = asset?.match(
-            /^\/files\/a{64}\/b{64}\/(profile-light|profile-mobile|chat-light|chat-mobile-before|chat-mobile-after|chat-mobile-dark)\.png$/,
+            /^\/files\/[a-f0-9]{64}\/b{64}\/(profile-light|profile-mobile|chat-light|chat-mobile-before|chat-mobile-after|chat-mobile-dark)\.png$/,
           );
           if (evidence) {
             res.setHeader("Content-Type", "image/png");

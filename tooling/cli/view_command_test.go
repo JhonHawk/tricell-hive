@@ -125,6 +125,7 @@ func (f *viewFixture) get(path string, token bool) (int, []byte) {
 	if err != nil {
 		f.t.Fatal(err)
 	}
+	req.Header.Set(viewer.TimelineRevisionHeader, "2")
 	if token {
 		req.Header.Set("X-Hive-Token", info.Token)
 	}
@@ -855,7 +856,10 @@ func TestViewAccessCodeNeverFollowsRedirect(t *testing.T) {
 
 func TestViewIndexRequiresLeanV3Envelope(t *testing.T) {
 	for _, body := range []string{`{"projects":[]}`, `{"protocol_version":1,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[]}`, `{"protocol_version":3,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[],"projects":[]}`, `{"protocol_version":3,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[]} {}`} {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(body)) }))
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("X-Hive-Timeline-Revision", "2")
+			w.Write([]byte(body))
+		}))
 		_, err := viewIndex(serverInfo{Port: server.Listener.Addr().(*net.TCPAddr).Port, Token: "fixture-token"})
 		server.Close()
 		if err == nil {
@@ -863,6 +867,7 @@ func TestViewIndexRequiresLeanV3Envelope(t *testing.T) {
 		}
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Hive-Timeline-Revision", "2")
 		w.Write([]byte(`{"protocol_version":3,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[]}`))
 	}))
 	defer server.Close()

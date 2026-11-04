@@ -75,6 +75,9 @@ func (s *Server) timelineResponse(v TimelineSession, created *bool) TimelineSess
 	return out
 }
 func (s *Server) timeline(w http.ResponseWriter, r *http.Request) {
+	if !timelineRevisionMatches(w, r) {
+		return
+	}
 	parts := strings.Split(strings.TrimPrefix(r.URL.Path, "/api/timeline/sessions"), "/")
 	if len(parts) == 1 && parts[0] == "" {
 		if !allow(w, r, http.MethodPost) || !s.authorizeSessionWrite(w, r) {
@@ -311,4 +314,16 @@ func timelineMultipart(w http.ResponseWriter, r *http.Request, document bool) ([
 		return nil, nil, timelineFailure("invalid_multipart", 400)
 	}
 	return metadata, content, nil
+}
+
+// Revision is checked before decoding or mutating; capability files bypass this route.
+func timelineRevisionMatches(w http.ResponseWriter, r *http.Request) bool {
+	if values := r.Header.Values(TimelineRevisionHeader); len(values) == 1 && values[0] == "2" {
+		return true
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusConflict)
+	_ = json.NewEncoder(w).Encode(map[string]string{"code": "reload_required", "message": "Update Hive and reload the viewer to continue; preserve inputs and retry the unchanged operation ID."})
+	return false
 }

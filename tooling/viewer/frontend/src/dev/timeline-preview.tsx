@@ -10,9 +10,17 @@ import { TimelineHeader } from "../timeline-header";
 import { completeFixture } from "./timeline-complete-fixture";
 import { loadPreviewDocument } from "./timeline-documents-fixture";
 import { timelineFixture } from "./timeline-fixture";
+import { TimelineNavigationPreview } from "./timeline-navigation-preview";
 import { workFixture } from "./timeline-work-fixture";
 
 export function TimelineDevelopmentPreview() {
+  return new URLSearchParams(location.search).get("state") === "navigation" ? (
+    <TimelineNavigationPreview />
+  ) : (
+    <TimelineSingleDevelopmentPreview />
+  );
+}
+function TimelineSingleDevelopmentPreview() {
   const lang = browserLanguage();
   const query = new URLSearchParams(location.search);
   const scenario = query.get("state");

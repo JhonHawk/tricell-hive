@@ -93,6 +93,10 @@ function fixture(): TimelineSessionResponse {
       pinned: false,
       created_at: stamp,
       updated_at: stamp,
+      last_activity_at: stamp,
+      closed_at: null,
+      autoarchive_at: null,
+      archive_origin: null,
       validation_count: 1,
       work_key: null,
       tickets: [ticket, secondTicket].map((t) => ({

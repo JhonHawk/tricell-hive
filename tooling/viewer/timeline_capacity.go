@@ -1,7 +1,6 @@
 package viewer
 
 import (
-	"encoding/json"
 	"strings"
 )
 
@@ -103,14 +102,14 @@ func timelineProjectedTerminalBytes(r *timelineRecord) error {
 	if len(r.Receipts) > TimelineMaxReceipts || len(r.Session.Events) > TimelineMaxEvents {
 		return timelineFailure("capacity", 413)
 	}
-	public, err := json.Marshal(r.Session)
+	public, err := timelineSessionContentBytes(r.Session)
 	if err != nil {
 		return err
 	}
 	if len(public) > TimelineMaxBody {
 		return timelineFailure("capacity", 413)
 	}
-	private, err := json.Marshal(r)
+	private, err := timelineRecordContentBytes(r)
 	if err != nil {
 		return err
 	}

@@ -68,6 +68,10 @@ export const timelineFixture: TimelineSessionResponse = {
     pinned: false,
     created_at: "2026-10-31T17:20:00-06:00",
     updated_at: "2026-10-31T21:40:00-06:00",
+    last_activity_at: "2026-10-31T21:40:00-06:00",
+    closed_at: null,
+    autoarchive_at: null,
+    archive_origin: null,
     validation_count: 2,
     work_key: null,
     tickets: [

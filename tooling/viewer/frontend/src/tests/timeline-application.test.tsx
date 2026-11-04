@@ -8,7 +8,17 @@ import { ViewerApplication } from "../application";
 import { ViewerController } from "../controller";
 import { loadPreviewDocument } from "../dev/timeline-documents-fixture";
 import { timelineFixture } from "../dev/timeline-fixture";
+import {
+  navigationFixture,
+  navigationIndexEntry,
+} from "../dev/timeline-navigation-fixture";
 
+function revisionResponse(body: BodyInit, init?: ResponseInit) {
+  return new Response(body, {
+    ...init,
+    headers: { "X-Hive-Timeline-Revision": "2" },
+  });
+}
 async function settle() {
   for (let i = 0; i < 60; i++) await Promise.resolve();
 }
@@ -58,7 +68,7 @@ test("real application wires API timeline, documents, conditional title and v2 n
           work_key: _workKey,
           ...entry
         } = data.session;
-        return new Response(
+        return revisionResponse(
           JSON.stringify({
             protocol_version: 3,
             retention: "manual",
@@ -70,7 +80,7 @@ test("real application wires API timeline, documents, conditional title and v2 n
         );
       }
       if (String(path).includes("/documents/"))
-        return new Response(
+        return revisionResponse(
           JSON.stringify(
             await loadPreviewDocument(String(path).split("/").at(-1) as string),
           ),
@@ -80,7 +90,7 @@ test("real application wires API timeline, documents, conditional title and v2 n
         savedVersion = body.expected_version;
         data.session.title = body.title;
         data.session.version++;
-        return new Response(
+        return revisionResponse(
           JSON.stringify({
             schema_version: 3,
             kind: "session_patch",
@@ -91,7 +101,7 @@ test("real application wires API timeline, documents, conditional title and v2 n
           }),
         );
       }
-      return new Response(JSON.stringify(data));
+      return revisionResponse(JSON.stringify(data));
     },
     { getItem: () => "test-token", setItem() {}, removeItem() {} },
   );
@@ -189,7 +199,7 @@ test("pending API deletion exposes recovery outside the removed session header",
           work_key: _workKey,
           ...entry
         } = data.session;
-        return new Response(
+        return revisionResponse(
           JSON.stringify({
             protocol_version: 3,
             retention: "manual",
@@ -207,7 +217,7 @@ test("pending API deletion exposes recovery outside the removed session header",
         bodies.push(body);
         tombstoned = true;
         attempts++;
-        return new Response(
+        return revisionResponse(
           JSON.stringify(
             attempts === 1
               ? { code: "delete_pending", cleanup_pending: true }
@@ -224,7 +234,7 @@ test("pending API deletion exposes recovery outside the removed session header",
           { status: attempts === 1 ? 503 : 200 },
         );
       }
-      return new Response(JSON.stringify(data));
+      return revisionResponse(JSON.stringify(data));
     },
     { getItem: () => "test-token", setItem: () => {}, removeItem: () => {} },
   );
@@ -337,9 +347,9 @@ test("grouped navigation preserves selection, preferences, search and isolated f
       async (path) => {
         if (path === "/api/index?navigation=grouped") {
           indexReads++;
-          return new Response(JSON.stringify(projectIndex()));
+          return revisionResponse(JSON.stringify(projectIndex()));
         }
-        return new Response(
+        return revisionResponse(
           JSON.stringify(
             String(path).endsWith(a.session.viewer_session_id) ? a : b,
           ),
@@ -366,8 +376,40 @@ test("grouped navigation preserves selection, preferences, search and isolated f
   assert.ok(nav()?.textContent?.includes("Workspace"));
   assert.ok(nav()?.textContent?.includes("project-api"));
   assert.ok(rows()[0].title.includes(a.session.source.project_root));
+  assert.equal(
+    rows()[0].querySelector('[data-slot="badge"]')?.textContent,
+    "In progress",
+  );
   await act(async () => {
-    rows()[1].click();
+    rows()[1].focus();
+    await settle();
+  });
+  b.session.last_activity_at = "2026-11-01T22:00:00Z";
+  b.session.updated_at = b.session.last_activity_at;
+  b.session.state = "awaiting_validation";
+  await act(async () => {
+    await controller.refresh();
+    await settle();
+  });
+  assert.equal(rows()[0].dataset.sessionKey, b.session.viewer_session_id);
+  assert.equal(
+    document.activeElement,
+    rows()[0],
+    "reordering preserves focused identity",
+  );
+  assert.equal(
+    rows()[0].querySelector('[data-slot="badge"]')?.textContent,
+    "Awaiting validation",
+  );
+  assert.ok(
+    rows()[0]
+      .querySelector("time")
+      ?.getAttribute("title")
+      ?.includes("Last activity"),
+  );
+
+  await act(async () => {
+    rows()[0].click();
     await settle();
   });
   assert.equal(
@@ -487,7 +529,7 @@ test("archive notifications expire without replay, restore their original work a
       async (path, options) => {
         if (path === "/api/index?navigation=grouped") {
           await delayedIndex;
-          return new Response(
+          return revisionResponse(
             JSON.stringify({
               protocol_version: 3,
               retention: "manual",
@@ -524,13 +566,14 @@ test("archive notifications expire without replay, restore their original work a
             expectedVersion: body.expected_version,
           });
           if (failRestore && body.archived === false)
-            return new Response(JSON.stringify({ code: "unavailable" }), {
+            return revisionResponse(JSON.stringify({ code: "unavailable" }), {
               status: 503,
             });
           assert.equal(body.expected_version, data.session.version);
           data.session.archived = body.archived;
+          data.session.archive_origin = body.archived ? "manual" : null;
           data.session.version++;
-          return new Response(
+          return revisionResponse(
             JSON.stringify({
               schema_version: 3,
               kind: "session_patch",
@@ -541,7 +584,7 @@ test("archive notifications expire without replay, restore their original work a
             }),
           );
         }
-        return new Response(JSON.stringify(data));
+        return revisionResponse(JSON.stringify(data));
       },
       { getItem: () => "test-token", setItem() {}, removeItem() {} },
     ),
@@ -588,7 +631,7 @@ test("archive notifications expire without replay, restore their original work a
   assert.ok(notification()?.textContent?.includes("Undo"));
   assert.equal(
     controller.getSnapshot().selectedId,
-    b.session.viewer_session_id,
+    a.session.viewer_session_id,
   );
   await waitFor(() => notification() === null, 8500);
   assert.ok(
@@ -715,5 +758,219 @@ test("archive notifications expire without replay, restore their original work a
     writes.at(-1)?.id,
     b.session.viewer_session_id,
     "an accepted Undo completes even when its authority refresh crosses expiry",
+  );
+});
+
+test("six visible states, automatic archive retention and Restore remain local to selected work", async (t) => {
+  sessionStorage.clear();
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  t.after(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+    sessionStorage.clear();
+  });
+  const works = navigationFixture();
+  const work = works[0];
+  let mismatch = false;
+  const writes: unknown[] = [];
+  const controller = new ViewerController(
+    new AccessClient(
+      async (path, options) => {
+        if (mismatch)
+          return revisionResponse(JSON.stringify({ code: "reload_required" }), {
+            status: 409,
+          });
+        if (path === "/api/health") return revisionResponse("{}");
+        if (path === "/api/index?navigation=grouped")
+          return revisionResponse(
+            JSON.stringify({
+              protocol_version: 3,
+              retention: "manual",
+              ttl_seconds: 0,
+              repositories: [],
+              errors: [],
+              timeline_sessions: works.map(navigationIndexEntry),
+            }),
+          );
+        const selected =
+          works.find(({ session }) =>
+            String(path).endsWith(session.viewer_session_id),
+          ) ?? work;
+        if (options?.method === "PATCH") {
+          const body = JSON.parse(String(options.body));
+          writes.push(body);
+          selected.session.archived = body.archived;
+          selected.session.archive_origin = body.archived ? "manual" : null;
+          selected.session.version++;
+          return revisionResponse(
+            JSON.stringify({
+              schema_version: 3,
+              kind: "session_patch",
+              viewer_session_id: selected.session.viewer_session_id,
+              operation_id: body.operation_id,
+              session_version: selected.session.version,
+              current_stage_event_id: selected.session.current_stage_event_id,
+            }),
+          );
+        }
+        return revisionResponse(JSON.stringify(selected));
+      },
+      {
+        getItem: (key) => (key === "hive-view-token" ? "test-token" : null),
+        setItem() {},
+        removeItem() {},
+      },
+    ),
+    () => false,
+  );
+  await controller.open(null);
+  await act(async () => {
+    root.render(<ViewerApplication controller={controller} />);
+    await settle();
+  });
+  const rows = () => [
+    ...container.querySelectorAll<HTMLButtonElement>("[data-session-key]"),
+  ];
+  assert.equal(rows().length, 23);
+  for (const label of [
+    "In progress",
+    "In review",
+    "Awaiting validation",
+    "Paused",
+    "Finished",
+    "Failed",
+  ])
+    assert.ok(
+      rows().some(
+        (row) =>
+          row.querySelector('[data-slot="badge"]')?.textContent === label,
+      ),
+      label,
+    );
+  await act(async () => {
+    rows()[0].focus();
+    await settle();
+  });
+  work.session.archived = true;
+  work.session.archive_origin = "automatic";
+  const stage = work.session.events.find(
+    (event) => event.event_id === work.session.current_stage_event_id,
+  );
+  if (stage) {
+    stage.stage_state = "completed";
+    stage.finished_at = stage.updated_at;
+  }
+  work.session.state = "closed";
+  work.session.current_stage_event_id = null;
+  work.session.closed_at = work.session.last_activity_at;
+  work.session.version++;
+  await act(async () => {
+    await controller.refresh();
+    await settle();
+  });
+  assert.equal(
+    controller.getSnapshot().selectedId,
+    work.session.viewer_session_id,
+  );
+  assert.equal(rows().length, 22);
+  assert.equal(
+    document.activeElement?.id,
+    "document",
+    "archival retains keyboard access to the opened work",
+  );
+  assert.equal(controller.getSnapshot().undoArchive, undefined);
+  assert.ok(
+    container
+      .querySelector('[data-slot="timeline-header"]')
+      ?.textContent?.includes(
+        "Automatically archived two hours after completion.",
+      ),
+  );
+  assert.ok(container.querySelector('[aria-label="Session timeline"]'));
+  await click("Restore");
+  assert.equal(rows().length, 23);
+  assert.equal(work.session.archived, false);
+  assert.equal(writes.length, 1);
+  mismatch = true;
+  await act(async () => {
+    await controller.refresh();
+    await settle();
+  });
+  assert.ok(
+    container.textContent?.includes(
+      "Update Hive and reload the viewer to continue.",
+    ),
+  );
+  assert.ok(button("Reload viewer"));
+  assert.equal(button("Archive").disabled, true);
+  await assert.rejects(
+    controller.updateTimelineSession(
+      work.session.viewer_session_id,
+      { archived: true },
+      work.session.version,
+    ),
+  );
+  assert.equal(writes.length, 1, "revision mismatch never replays a mutation");
+});
+
+test("first index revision mismatch replaces cold loading with actionable reload and stops requests", async (t) => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  t.after(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+  });
+  const requests: string[] = [];
+  const controller = new ViewerController(
+    new AccessClient(
+      async (path) => {
+        requests.push(String(path));
+        return revisionResponse(JSON.stringify({ code: "reload_required" }), {
+          status: 409,
+        });
+      },
+      {
+        getItem: (key) => (key === "hive-view-token" ? "test-token" : null),
+        setItem() {},
+        removeItem() {},
+      },
+    ),
+    () => false,
+  );
+  await controller.open(null);
+  await act(async () => {
+    root.render(<ViewerApplication controller={controller} />);
+    await settle();
+  });
+  assert.equal(controller.getSnapshot().index, null);
+  assert.equal(controller.getSnapshot().reloadRequired, true);
+  assert.ok(
+    container.textContent?.includes(
+      "Update Hive and reload the viewer to continue.",
+    ),
+  );
+  assert.ok(button("Reload viewer"));
+  assert.equal(
+    container
+      .querySelector('[data-slot="viewer-canvas"]')
+      ?.getAttribute("aria-busy"),
+    "false",
+  );
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  await act(async () => {
+    t.mock.timers.tick(60_000);
+    await settle();
+  });
+  await controller.refresh();
+  await assert.rejects(
+    controller.updateTimelineSession("a".repeat(64), { pinned: true }, 1),
+  );
+  assert.deepEqual(
+    requests,
+    ["/api/index?navigation=grouped"],
+    "mismatch stops polling and writes without replay",
   );
 });

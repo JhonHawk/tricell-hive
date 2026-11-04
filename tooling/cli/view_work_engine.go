@@ -147,6 +147,9 @@ func (e *viewWorkEngine) executeStep(i *viewWorkIntent, index int) ([]byte, erro
 	}
 	s := &i.Steps[index]
 	if len(s.Response) > 0 {
+		if s.Method == "POST" && s.Path == "/api/timeline/sessions" {
+			return workStoredCreateResponse(s.Response)
+		}
 		return s.Response, nil
 	}
 	if s.Rejection != "" {
@@ -213,11 +216,17 @@ func viewWorkHTTP(info serverInfo, method, path, ct string, body []byte) ([]byte
 	if !strings.HasPrefix(path, "/api/") || strings.ContainsAny(path, "?#\\") {
 		return nil, "", errors.New("invalid route")
 	}
+	if method != http.MethodGet {
+		if _, err := viewTimelineHTTP(info, http.MethodGet, "/api/health", "", nil, viewInfoLimit); err != nil {
+			return nil, "reload_required", err
+		}
+	}
 	req, err := http.NewRequest(method, info.url()+path, bytes.NewReader(body))
 	if err != nil {
 		return nil, "", errors.New("invalid request")
 	}
 	req.Header.Set("X-Hive-Token", info.Token)
+	req.Header.Set(viewer.TimelineRevisionHeader, "2")
 	req.Header.Set("Origin", info.url())
 	req.Header.Set("X-Hive-Action-Scope", "session")
 	req.Header.Set("Content-Type", ct)
@@ -228,8 +237,11 @@ func viewWorkHTTP(info serverInfo, method, path, ct string, body []byte) ([]byte
 		return nil, "", errors.New("uncertain response")
 	}
 	defer resp.Body.Close()
-	raw, err := io.ReadAll(io.LimitReader(resp.Body, viewer.TimelineMaxBody+1))
-	if err != nil || len(raw) > viewer.TimelineMaxBody {
+	if resp.Header.Get(viewer.TimelineRevisionHeader) != "2" {
+		return nil, "reload_required", errors.New("update Hive and reload viewer; preserve original operation inputs")
+	}
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, viewer.TimelineMaxResponseBody+1))
+	if err != nil || len(raw) > viewer.TimelineMaxResponseBody {
 		return nil, "", errors.New("incomplete response")
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

@@ -164,9 +164,8 @@ from authorizing a new publication without resolving its source.
 
 Presentation grouping is separate from that canonical identity. The authenticated
 `GET /api/index?navigation=grouped` response includes a version-1 `navigation`
-projection; the default index retains its closed legacy shape. Older clients do
-not request the extension, and the new frontend accepts an old server's index
-without it. Invalid navigation metadata is discarded with a visible diagnostic
+projection; the default index retains its canonical grouping shape. Matching timeline
+revision 2 is required for both forms. Invalid navigation metadata is discarded with a visible diagnostic
 without weakening the validation of work records.
 
 The projection reads only `.engram/config.json` at each work's original registered
@@ -183,15 +182,25 @@ resolution participates. A root with valid explicit configuration is also
 registrable directly when it is not Git; the existing Git and
 `_support/workspace` resolution paths remain available.
 
-Protocol, schema and storage are3. `viewer/storage.json` positively identifies
+Protocol, schema and storage are 3; the separate timeline contract revision is 2. `viewer/storage.json` positively identifies
 that format; API records live in `viewer/timeline-api-v3/`. Preflight rejects
 old1/provisional2 state, like any name outside the v3 inventory, with
 invalid_storage before mkdir, locking, log creation,
 cleanup, registration or signaling. Unknown/corrupt state is an error, not an
 empty library. There is no older-record reader, scanner, import, preference copy
 or migration. A real cutover uses a separate fresh state directory, preserved
-old data and explicitly coordinated writers. Rebuilding a binary does not
-restart a service or change its state directory.
+old data and explicitly coordinated writers. Within v3, the revision 2 upgrade preserves stored works and publisher journals.
+Before its first maintenance write, retain a private state snapshot as evidence.
+Update the CLI, embedded UI and server together and reload the browser. Index
+and timeline metadata requests and mutations require `X-Hive-Timeline-Revision: 2`;
+a missing or mismatched revision returns `reload_required` before mutation. A
+new client also refuses writes if the server does not acknowledge the revision.
+Pending request bytes and operation IDs remain available for explicit resume.
+Downgrade in place is unsupported if the old reader rejects the new metadata;
+rollback uses a separate restored snapshot, retaining the upgraded state and
+subsequent records for reconciliation. Nothing is automatically deleted or
+replaced. Rebuilding a binary does not restart a service or change its state
+directory; installation and restart require their applicable authorization.
 
 A work has a stable server ID derived from canonical project and its initial
 native identity. Accepted producers join that work under their own Source and
@@ -222,8 +231,13 @@ defines those boundaries.
 
 Browser rename/archive/pin/delete operations remain conditional and same-origin,
 with action-scope checks. Deletion commits a durable work tombstone and resumes
-pending cleanup; it never deletes project sources or native history. Manual
-retention has no age expiry, and the commands take no TTL option.
+pending cleanup; it never deletes project sources or native history. Finished unpinned works are automatically archived for visibility two hours
+after their current closure, with a full window from first evaluation when its
+time cannot be proved. Pinning prevents this; unpinning reuses the original
+deadline. Manual restore exempts the closure episode until reopen and a new
+close. Reopening restores automatic archives but preserves manual archives.
+Other lifecycle states are not automatically archived. Content retention is
+manual, with no age-based deletion or TTL option.
 `status` reports service/work counts without credentials. API readback verifies work, versions,
 references and immutable hashes through the authenticated API.
 
