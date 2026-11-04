@@ -78,7 +78,7 @@ The main thread owns coordination, source adjudication, checks, viewer publicati
 
 ### T5 — Integrate the policy, document the upgrade and verify the candidate
 
-- [ ] Deliver aligned viewer/protocol docs and spec deltas; exercise the compiled CLI, API and browser against isolated persisted state with the full policy and closure procedures.
+- [x] Deliver aligned viewer/protocol docs and spec deltas; exercise the compiled CLI, API and browser against isolated persisted state with the full policy and closure procedures.
 
 **Closes:** AC1–AC8 (cross-boundary observations; T1–T4 retain their own proof)
 
@@ -133,10 +133,14 @@ No install/restart or update of the habitual viewer is a test. A later integrate
 
 | Criterion | Current evidence | Pending |
 | --- | --- | --- |
-| AC1 | T4 source sequence and content/link tests at e6e0226b | final candidate review |
-| AC2/AC3/AC6/AC8 | T2 building against frozen contract5b8de3fd | deterministic boundary/race/capacity tests + independent check |
-| AC4/AC5 | T3 building against frozen contract5b8de3fd | frontend tests + compiled API/browser + UX |
-| AC7 | T1 focused HTTP/CLI/frontend checks at5b8de3fd | independent T1 check + final integration |
+| AC1 | Canonical close/readback sequence and consumer ledger; content/link checks PASS; user D1 adopts the sequence. | No model pilot; static evidence only. |
+| AC2 | Deadline/sweep/startup deterministic tests and independent verifier PASS; real compiled startup archived2eligible synthetic works. | None. |
+| AC3 | Restore/reopen/unpin episode tests and independent verifier PASS; browserRestore persisted afterrestart. | None. |
+| AC4 | Nanosecond/stable-order UItests, admin no-op/domain no-op regressions, visible localdates and real APIadmin checks PASS. | None. |
+| AC5 | Six visible/accessiblerowstates, frontend712tests and desktop/mobile light/dark browser+UX observations. | Two preexistingP3 observations listed below. |
+| AC6 | Conservative migration/corruption checks; independent legacyRestore reproducers PASS; unknownclosure persistedgrace in actualcompiledfixture. | None. |
+| AC7 | Strict CLI/UI/server revision gates, old/missingrevision actual409 beforewrites; original publisherjournalbytes/resume regressions PASS. | Coordinatedinstallation afterintegration only. |
+| AC8 | Independent exact2MiB/4MiB/508events/1000receipts archive/Restore/retry/restart checks, concurrency/race and IOfailure/versionexhaustion regressions PASS. | None. |
 
 - First UI inspection: task-owned Vite on5198 (PID 11252, execsession50483), own browser session hive-viewer-autoarchive-01a1a55e. Desktop1440×1000 light screenshot and nav audit in workspace evidence. Fixture image routing was corrected by T3 after initial setup failure; browser now reports0failedimages. This is dev/mock-boundary evidence, not compiledserver/CSP proof.
 
@@ -155,3 +159,13 @@ No install/restart or update of the habitual viewer is a test. A later integrate
 - Corrected T2 source copy `/var/folders/dg/0d963h2158s10jggj2_k2w_00000gn/T/hive-viewer-runtime-fixed-laz87i_j` at1acd7debddae93bb594958a8c3aeaa0de6485d17 for failed-criterionrecheck. FullGo/vet rerunning after realfixture/environment corrections; codefix committed.
 
 - Build checkpoint: T1/T2/T3/T4/T5 source built in e6e0226b,5b8de3fd,80452228,51a722be,2da7bc1d,37bebfe5,e551aecb,1acd7deb. T2independent recheck on1acd7deb PASS AC2/3/backend4/6/8 incltwoindependentreproducers; T1AC7PASS andcorruptionregressionnowPASS. FullGo./... rerunPASS withtaskdepslinksparked, govet./...PASS, frontend711+3PASS, tsc/lint/bundleverifyPASS; Python23PASS. T3UX and realcompiledflow stillpending underverify. Isolatedmanagerstart5stimeout; foregroundserve becamehealthy on5199(PID82553,execsession62979); nohabitualrestart.
+
+- Final verification round 1: first native review of fc815ef0 identified retained schema-3 journal create responses rejected on reload/resume; maintenance-only failures blocking Startup; domain no-ops advancing activity; cold revision mismatch hidden by loading. Source/reproductions confirmed each. Fixed3a93249d. CLI focused red→green 11.060s; viewer18.302s; affected fullCLI145.944s/viewer43.411s; focused affected race viewer60.041s/CLI30.762s. Native second review fc815ef0..3a93249d and callers returned no actionable findings; it does not cover omissions from the first review.
+- Dark mobile selected active Badge measured4.19:1 at3a93249d. Semantic token-only correction cd26285b and regenerated manifest fe358c5c; final compiled measurement pending. Frontend712tests+3scripts, tsc, Biome81files, build/generate/verify passed; second same-input build byte-identical. Sitecheck0errors/warnings/hints and sitebuild17pages passed. No package installation.
+- Real compiled API/browser:25synthetic records/3projects. Startup archived2eligible overdue records; pin and priorRestore preserved; unknownclosure got persistedgrace. Selectedhidden record stayedreadable withRestore. ActualRestore index16 survivedrestart;24records retained exact events/documents/artifacts/tasks/tickets hashes and lifecycleprojections. Search invitation returned3matchinggroups; Escape restoredfocus to toggle aftertransition; mobile had no horizontaloverflow. CompiledCLI sessionget confirmed restoredclosedrecord archivedfalse/autoarchive_atnull. Rename/pin/unpin preservedlast_activity; old/missingrevision409reload_required preservedexactsession. FinalCSSserver nowservesfe358c5c; habitual4483unchanged.
+- FinalfullGo/vet running onfe358c5c with own dependencylinksparked; priorfullGo/race evidence remains in tasktemporarylogs. UXreview active against finalcompiledbundle; D9publicationdependency remainsunresolved.
+
+- Verification complete at fe358c5c: finalfull go test ./... -count=1 -timeout=10m PASS(allpackages;CLI143.371s/viewer43.635s), go vet ./... PASS. Fullrace earlier inthiswork PASS; finalaffected maintenance/domain/publisherjournal race PASS(viewer60.041s/CLI30.762s). Reused unchanged Python23tests and T4content/instructionchecks; frontendfinaltoken changes retain712+3testevidence because logic/tests/dependencies unchanged; finalBiome81files/build/generate/verify/reproducibilityPASS. Sitecheck/buildPASS. No applicabledevelopment GitHub Actionsjobs (onlymaster-source-branchworkflow).
+- OneUXreview: no new criterionfailure identified; finaldarkBadgecontrast corrected and axe4.12.1 desktop/mobiledark noWCAGviolations. Earlier unaffectedlightcaptures/audits retained. BaseUI3focusguardincompletes manuallychecked; keyboardTrap/Tab/Escapeobserved. PreexistingP3: longtitleslack2lineclamp and sidebarbrand/footeroutside landmarks(bestpractice). No unsolicitedfix/ticket. Rootadjudication treatsP3 as observations ratherthanblockingACfailure; finalreviewersummary retainedwiththischeckpoint.
+- FinalUIevidence published to workd175931f5bfa5078e1c87da68b2ee6c74fcc6148142a4d47e606cf175131e6b6: candidatefe358c5c, evidenceevent-af91d9af0aeac052be454c0f97ab66d7, sessionversion43. Bothstoredimages fetchedthroughauthenticatedlocalroutes and exactbytes/hash/sizeverified. Curatedchecklogs retained in ignoredworkspace/checks, captures inworkspace/images.
+- Publication gate: live origin/development2765624b; #352 stillOPEN/MERGEABLE at8a04118d with63foreigncommits. Owncandidatecontains12commits beyonddependency; no pushes/PR/merge/installperformed. D10mustchoose dependencyPRbase orwaitfor#352integration beforepublication.
