@@ -914,3 +914,63 @@ test("six visible states, automatic archive retention and Restore remain local t
   );
   assert.equal(writes.length, 1, "revision mismatch never replays a mutation");
 });
+
+test("first index revision mismatch replaces cold loading with actionable reload and stops requests", async (t) => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  t.after(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+  });
+  const requests: string[] = [];
+  const controller = new ViewerController(
+    new AccessClient(
+      async (path) => {
+        requests.push(String(path));
+        return revisionResponse(JSON.stringify({ code: "reload_required" }), {
+          status: 409,
+        });
+      },
+      {
+        getItem: (key) => (key === "hive-view-token" ? "test-token" : null),
+        setItem() {},
+        removeItem() {},
+      },
+    ),
+    () => false,
+  );
+  await controller.open(null);
+  await act(async () => {
+    root.render(<ViewerApplication controller={controller} />);
+    await settle();
+  });
+  assert.equal(controller.getSnapshot().index, null);
+  assert.equal(controller.getSnapshot().reloadRequired, true);
+  assert.ok(
+    container.textContent?.includes(
+      "Update Hive and reload the viewer to continue.",
+    ),
+  );
+  assert.ok(button("Reload viewer"));
+  assert.equal(
+    container
+      .querySelector('[data-slot="viewer-canvas"]')
+      ?.getAttribute("aria-busy"),
+    "false",
+  );
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  await act(async () => {
+    t.mock.timers.tick(60_000);
+    await settle();
+  });
+  await controller.refresh();
+  await assert.rejects(
+    controller.updateTimelineSession("a".repeat(64), { pinned: true }, 1),
+  );
+  assert.deepEqual(
+    requests,
+    ["/api/index?navigation=grouped"],
+    "mismatch stops polling and writes without replay",
+  );
+});

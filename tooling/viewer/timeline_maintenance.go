@@ -213,6 +213,9 @@ func timelineCommittedActivity(r, old *timelineRecord, kind TimelineOperationKin
 	if old == nil || old.Session == nil || r.Maintenance == nil || contains([]string{"create_session", "join_request", "producer_accept", "foreground_transfer", "recover_lead", "session_delete"}, string(kind)) {
 		return
 	}
+	if timelineUnchangedDomainContent(r.Session, old.Session, kind) {
+		return
+	}
 	if kind == "session_patch" && r.Session.State == old.Session.State && r.Session.Summary == old.Session.Summary {
 		return
 	}
@@ -271,4 +274,60 @@ func timelineMaintenanceContentBytes(r *timelineRecord) ([]byte, int, error) {
 		return nil, 0, timelineFailure("capacity", 413)
 	}
 	return baseline, growth, nil
+}
+
+// Domain collections contain the accepted work effect. A receipt/private audit,
+// a general modification timestamp and derived counters alone are not activity.
+// Keep every business field, including evidence timestamps and provenance: a new
+// observation, attempt, plan binding or catalog value remains substantive.
+func timelineUnchangedDomainContent(next, previous *TimelineSession, kind TimelineOperationKind) bool {
+	switch kind {
+	case "ticket_create", "ticket_patch", "delivery_create", "delivery_patch", "candidate_create", "task_create", "task_patch", "task_transition", "wait_create", "wait_attempt_start", "wait_observe":
+	default:
+		return false
+	}
+	type content struct {
+		Tickets    []TimelineTicket
+		Deliveries []TimelineDelivery
+		Candidates []TimelineCandidateRecord
+		Tasks      []TimelineTask
+		Waits      []TimelineCIWait
+	}
+	normalize := func(v *TimelineSession) content {
+		tasks := append([]TimelineTask{}, v.Tasks...)
+		for i := range tasks {
+			tasks[i].TaskVersion = 0
+		}
+		waits := append([]TimelineCIWait{}, v.Waits...)
+		for i := range waits {
+			waits[i].WaitVersion = 0
+		}
+		return content{v.Tickets, v.Deliveries, v.Candidates, tasks, waits}
+	}
+	return timelineEqual(normalize(next), normalize(previous))
+}
+
+// Inventory corruption remains fatal, including when it emerges during uncertain
+// write reconciliation. Capacity and physical maintenance failures are retried.
+func timelineMaintenanceCorrupt(err error) bool {
+	if err == nil {
+		return false
+	}
+	if joined, ok := err.(interface{ Unwrap() []error }); ok {
+		for _, child := range joined.Unwrap() {
+			if timelineMaintenanceCorrupt(child) {
+				return true
+			}
+		}
+		return false
+	}
+	if wrapped, ok := err.(interface{ Unwrap() error }); ok {
+		return timelineMaintenanceCorrupt(wrapped.Unwrap())
+	}
+	var failure *TimelineError
+	if errors.As(err, &failure) && (failure.Code == "corrupt_storage" || failure.Code == "invalid_storage") {
+		return true
+	}
+	var contract *TimelineContractError
+	return errors.As(err, &contract)
 }

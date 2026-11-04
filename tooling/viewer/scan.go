@@ -2,6 +2,7 @@ package viewer
 
 import (
 	"context"
+	"errors"
 	"time"
 )
 
@@ -22,7 +23,9 @@ func (s *Store) Run(ctx context.Context, o RunOptions) error {
 		return err
 	}
 	s.mu.Lock()
-	err := s.timelineMaintainLocked()
+	pending := s.timelineStartupMaintenanceError
+	s.timelineStartupMaintenanceError = nil
+	err := errors.Join(pending, s.timelineMaintainLocked())
 	s.mu.Unlock()
 	if err != nil && o.OnError != nil {
 		o.OnError(err)

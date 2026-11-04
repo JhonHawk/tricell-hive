@@ -13,7 +13,9 @@ import {
 export function TimelineNavigationPreview() {
   const [{ controller, works, mismatch }, setPreview] = useState(() => {
     const works = navigationFixture();
-    const mismatch = { value: false };
+    const mismatch = {
+      value: new URLSearchParams(location.search).get("mismatch") === "initial",
+    };
     const restored = new Set<string>();
     const response = (body: unknown, status = 200) =>
       new Response(JSON.stringify(body), {

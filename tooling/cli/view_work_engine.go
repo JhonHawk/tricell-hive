@@ -147,6 +147,9 @@ func (e *viewWorkEngine) executeStep(i *viewWorkIntent, index int) ([]byte, erro
 	}
 	s := &i.Steps[index]
 	if len(s.Response) > 0 {
+		if s.Method == "POST" && s.Path == "/api/timeline/sessions" {
+			return workStoredCreateResponse(s.Response)
+		}
 		return s.Response, nil
 	}
 	if s.Rejection != "" {

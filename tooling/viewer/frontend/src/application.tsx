@@ -276,7 +276,7 @@ export function ViewerApplication({
         state={
           state.access !== "ready"
             ? "ready"
-            : !state.index && !state.indexError
+            : !state.index && !state.indexError && !state.reloadRequired
               ? "loading"
               : "ready"
         }
@@ -287,7 +287,10 @@ export function ViewerApplication({
         panel={panel}
         notices={notices}
         coldLoading={
-          state.access === "ready" && !state.index && !state.indexError
+          state.access === "ready" &&
+          !state.index &&
+          !state.indexError &&
+          !state.reloadRequired
         }
         sessionHeader={
           data && selected ? (

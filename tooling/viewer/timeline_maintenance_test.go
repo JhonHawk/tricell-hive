@@ -315,9 +315,20 @@ func TestTimelineMaintenanceFailureAndVersionExhaustion(t *testing.T) {
 				}
 			}
 			now = now.Add(2 * time.Hour)
-			if err = s.Startup(); err == nil {
-				t.Fatal("failure reported successful maintenance")
+			if err = s.Startup(); err != nil {
+				t.Fatalf("maintenance failure blocked valid startup: %v", err)
 			}
+			ctx, cancel := context.WithCancel(context.Background())
+			reported := false
+			if err = s.Run(ctx, RunOptions{OnError: func(e error) { reported = e != nil; cancel() }}); err != nil {
+				cancel()
+				t.Fatal(err)
+			}
+			cancel()
+			if !reported {
+				t.Fatal("startup maintenance failure was not reported by Run")
+			}
+
 			s.timelineFault = nil
 			if phase != "after_rename" {
 				v, _ = s.TimelineGet(id)
@@ -720,39 +731,53 @@ func TestTimelineMaintenancePreservesExplicitDeletion(t *testing.T) {
 }
 
 func TestTimelineMaintenanceRunReportsFailureAndContinues(t *testing.T) {
-	s, req := newTimelineFixture(t)
-	now := time.Date(2026, 11, 4, 1, 0, 0, 0, time.UTC)
-	s.now = func() time.Time { return now }
-	ids := []string{}
-	for i := range 2 {
-		request := req
-		request.OperationID = fmt.Sprintf("create-%d", i)
-		request.WorkKey = timelineString(fmt.Sprintf("work-%d", i))
-		v := createTimeline(t, s, request)
-		closed := TimelineClosed
-		_, err := s.TimelinePatch(v.ViewerSessionID, TimelineSessionPatchRequest{SchemaVersion: 3, OperationID: "close", Actor: timelineTestActor(s, v.ViewerSessionID), ExpectedVersion: v.Version, State: &closed, Reason: "Completed delivery"})
-		if err != nil {
-			t.Fatal(err)
-		}
-		ids = append(ids, v.ViewerSessionID)
-	}
-	now = now.Add(2 * time.Hour)
-	s.timelineFault = func(at, path string) error {
-		if at == "before_rename" && strings.HasSuffix(path, ids[0]+".json") {
-			return errors.New("injected archive failure")
-		}
-		return nil
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	reported := false
-	err := s.Run(ctx, RunOptions{OnError: func(err error) { reported = err != nil; cancel() }})
-	if err != nil || !reported {
-		t.Fatalf("maintenance callback: reported=%v err=%v", reported, err)
-	}
-	first, _ := s.TimelineGet(ids[0])
-	second, _ := s.TimelineGet(ids[1])
-	if first.Archived || !second.Archived {
-		t.Fatal("failed work hid or prevented safe unrelated maintenance")
+	for _, failure := range []string{"write", "version"} {
+		t.Run(failure, func(t *testing.T) {
+			s, req := newTimelineFixture(t)
+			now := time.Date(2026, 11, 4, 1, 0, 0, 0, time.UTC)
+			s.now = func() time.Time { return now }
+			ids := []string{}
+			for i := range 2 {
+				request := req
+				request.OperationID = fmt.Sprintf("create-%d", i)
+				request.WorkKey = timelineString(fmt.Sprintf("work-%d", i))
+				v := createTimeline(t, s, request)
+				closed := TimelineClosed
+				_, err := s.TimelinePatch(v.ViewerSessionID, TimelineSessionPatchRequest{SchemaVersion: 3, OperationID: "close", Actor: timelineTestActor(s, v.ViewerSessionID), ExpectedVersion: v.Version, State: &closed, Reason: "Completed delivery"})
+				if err != nil {
+					t.Fatal(err)
+				}
+				ids = append(ids, v.ViewerSessionID)
+			}
+			if failure == "version" {
+				r := timelineClone(s.timeline[ids[0]])
+				r.Session.Version = TimelineMaxNumber - 1
+				if err := s.timelineSave(r); err != nil {
+					t.Fatal(err)
+				}
+			}
+			now = now.Add(2 * time.Hour)
+			s.timelineFault = func(at, path string) error {
+				if failure == "write" && at == "before_rename" && strings.HasSuffix(path, ids[0]+".json") {
+					return errors.New("injected archive failure")
+				}
+				return nil
+			}
+			if err := s.Startup(); err != nil {
+				t.Fatalf("maintenance blocked pre-listen startup: %v", err)
+			}
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			reported := false
+			err := s.Run(ctx, RunOptions{OnError: func(err error) { reported = err != nil; cancel() }})
+			if err != nil || !reported {
+				t.Fatalf("maintenance callback: reported=%v err=%v", reported, err)
+			}
+			first, _ := s.TimelineGet(ids[0])
+			second, _ := s.TimelineGet(ids[1])
+			if first.Archived || !second.Archived {
+				t.Fatal("failed work hid or prevented safe unrelated maintenance")
+			}
+		})
 	}
 }

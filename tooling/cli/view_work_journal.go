@@ -428,6 +428,56 @@ func validateWorkJournal(j *viewWorkJournal) error {
 	}
 	return nil
 }
+
+// workStoredCreateResponse adapts only a retained pre-revision-2 schema-3
+// receipt. It returns a validation/use copy; the journal's original bytes remain
+// authoritative. Fresh network responses never pass through this path.
+func workStoredCreateResponse(raw []byte) ([]byte, error) {
+	if _, err := viewer.DecodeTimelineSessionResponse(raw); err == nil {
+		return raw, nil
+	}
+	bad := func() ([]byte, error) { return nil, workStateError("invalid_journal") }
+	var envelope map[string]json.RawMessage
+	// The original public bound and scanner preserve the old receipt's size,
+	// duplicate-key, null, encoding and exact schema-version guarantees.
+	if viewer.DecodeTimelineJSON(raw, &envelope) != nil || string(bytes.TrimSpace(envelope["schema_version"])) != "3" {
+		return bad()
+	}
+	var session map[string]json.RawMessage
+	if json.Unmarshal(envelope["session"], &session) != nil || string(bytes.TrimSpace(session["schema_version"])) != "3" {
+		return bad()
+	}
+	defaults := map[string]json.RawMessage{
+		"last_activity_at": session["created_at"], "closed_at": json.RawMessage("null"), "autoarchive_at": json.RawMessage("null"), "archive_origin": json.RawMessage("null"),
+	}
+	if bytes.Equal(bytes.TrimSpace(session["archived"]), []byte("true")) {
+		defaults["archive_origin"] = json.RawMessage(`"manual"`)
+	}
+	missing := false
+	for field, value := range defaults {
+		if _, present := session[field]; !present {
+			session[field] = value
+			missing = true
+		}
+	}
+	if !missing {
+		return bad()
+	}
+	var err error
+	envelope["session"], err = json.Marshal(session)
+	if err != nil {
+		return bad()
+	}
+	normalized, err := json.Marshal(envelope)
+	if err != nil {
+		return bad()
+	}
+	if _, err = viewer.DecodeTimelineSessionResponse(normalized); err != nil {
+		return bad()
+	}
+	return normalized, nil
+}
+
 func validateWorkStoredStep(i *viewWorkIntent, s viewWorkStep) error {
 	bad := func() error { return workStateError("invalid_journal") }
 	operation := ""
@@ -473,7 +523,11 @@ func validateWorkStoredStep(i *viewWorkIntent, s viewWorkStep) error {
 	}
 	if len(s.Response) > 0 {
 		if operation == "create_session" {
-			r, err := viewer.DecodeTimelineSessionResponse(s.Response)
+			normalized, err := workStoredCreateResponse(s.Response)
+			if err != nil {
+				return bad()
+			}
+			r, err := viewer.DecodeTimelineSessionResponse(normalized)
 			if err != nil || r.Session.ViewerSessionID != i.WorkID || r.Session.Source != i.Source {
 				return bad()
 			}
