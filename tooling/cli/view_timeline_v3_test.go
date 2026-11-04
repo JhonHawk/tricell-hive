@@ -125,6 +125,7 @@ func TestViewTimelineV3CompatibilityRejectsBeforeTransportMutation(t *testing.T)
 	protocol.Store(2)
 	var healthCalls, mutationCalls atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Hive-Timeline-Revision", "2")
 		if r.URL.Path == "/api/health" {
 			healthCalls.Add(1)
 			json.NewEncoder(w).Encode(map[string]any{"pid": os.Getpid(), "state_dir": state, "timeline_protocol_version": protocol.Load()})

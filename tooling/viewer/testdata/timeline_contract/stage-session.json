@@ -173,5 +173,9 @@
   "waits": [],
   "deliveries": [],
   "candidates": [],
-  "work_key": null
+  "work_key": null,
+  "last_activity_at": "2026-10-31T18:20:00-06:00",
+  "closed_at": null,
+  "autoarchive_at": null,
+  "archive_origin": null
 }

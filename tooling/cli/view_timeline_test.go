@@ -135,16 +135,25 @@ func timelineCLIInfo(t *testing.T, server *httptest.Server) serverInfo {
 }
 
 func TestTimelineCLITransportGuardsAndProtocolIdentity(t *testing.T) {
+	var revision atomic.Bool
+	revision.Store(true)
+	var mutations atomic.Int32
 	var protocolVersion atomic.Int32
 	protocolVersion.Store(3)
 	var info serverInfo
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if revision.Load() {
+			w.Header().Set("X-Hive-Timeline-Revision", "2")
+		}
 		if r.Header.Get("X-Hive-Token") != info.Token {
 			t.Error("missing access header")
 		}
 		if r.URL.Path == "/api/health" {
 			fmt.Fprintf(w, `{"pid":123,"state_dir":"/fixture-state","timeline_protocol_version":%d}`, protocolVersion.Load())
 			return
+		}
+		if r.Method == "PATCH" {
+			mutations.Add(1)
 		}
 		if r.Method == "PATCH" && (r.Header.Get("Origin") != info.url() || r.Header.Get("X-Hive-Action-Scope") != "session") {
 			t.Error("missing mutation guards")
@@ -167,6 +176,15 @@ func TestTimelineCLITransportGuardsAndProtocolIdentity(t *testing.T) {
 	if _, err := viewTimelineHTTP(info, "PATCH", "/api/timeline/sessions/test", "application/json", strings.NewReader(`{}`), 1024); err != nil {
 		t.Fatal(err)
 	}
+	revision.Store(false)
+	before := mutations.Load()
+	if _, err := viewTimelineHTTP(info, "PATCH", "/api/timeline/sessions/test", "application/json", strings.NewReader(`{"operation_id":"original"}`), 1024); err == nil || !strings.Contains(err.Error(), "reload_required") || mutations.Load() != before {
+		t.Fatal("old server received a write", err)
+	}
+	if _, code, err := viewWorkHTTP(info, "PATCH", "/api/timeline/sessions/test", "application/json", []byte(`{"operation_id":"original"}`)); err == nil || code != "reload_required" || mutations.Load() != before {
+		t.Fatal("publisher wrote to old server", code, err)
+	}
+	revision.Store(true)
 	if _, err := viewTimelineHTTP(info, "GET", "/api/test?token=forbidden", "", nil, 1024); err == nil {
 		t.Fatal("accepted credential query")
 	}
@@ -180,6 +198,7 @@ func TestTimelineCLIRedirectAndErrorNeverExposeCredentials(t *testing.T) {
 	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { reached++; w.Write([]byte(`{}`)) }))
 	defer target.Close()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Hive-Timeline-Revision", "2")
 		if r.URL.Path == "/api/redirect" {
 			http.Redirect(w, r, target.URL, http.StatusFound)
 			return

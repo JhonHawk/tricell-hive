@@ -32,6 +32,7 @@ func timelineFailure(code string, status int) error {
 }
 
 type timelineRecord struct {
+	Maintenance    *timelineMaintenance   `json:"maintenance,omitempty"`
 	Audit          []timelinePrivateAudit `json:"audit,omitempty"`
 	StorageVersion int                    `json:"storage_version"`
 	ID             string                 `json:"id"`
@@ -111,6 +112,7 @@ func timelineClone(r *timelineRecord) *timelineRecord {
 	raw, _ := json.Marshal(r)
 	var copy timelineRecord
 	_ = json.Unmarshal(raw, &copy)
+	timelineProjectMaintenance(&copy)
 	return &copy
 }
 func (s *Store) timelineTime() string { return s.now().UTC().Format(time.RFC3339Nano) }
@@ -235,12 +237,26 @@ func (s *Store) timelineLoad() error {
 		if !keyPattern.MatchString(id) {
 			return timelineFailure("corrupt_storage", 500)
 		}
-		raw, err := readStateFile(s.timelineRecordPath(id), timelineMaxRecordBytes)
+		raw, err := readStateFile(s.timelineRecordPath(id), timelineMaxRecordBytes+TimelineMaintenanceMaxBytes)
 		if err != nil {
 			return timelineFailure("corrupt_storage", 500)
 		}
+		var storedFields map[string]json.RawMessage
+		if json.Unmarshal(raw, &storedFields) != nil {
+			return timelineFailure("corrupt_storage", 500)
+		}
+		contentSize := len(raw)
+		if metadata, ok := storedFields["maintenance"]; ok {
+			if len(metadata)+len(`,"maintenance":`) > TimelineMaintenanceMaxBytes {
+				return timelineFailure("corrupt_storage", 500)
+			}
+			contentSize -= len(metadata) + len(`,"maintenance":`)
+		}
+		if contentSize > timelineMaxRecordBytes {
+			return timelineFailure("corrupt_storage", 500)
+		}
 		var r timelineRecord
-		if err = decodeTimelineStoredJSON(raw, &r, timelineMaxRecordBytes); err != nil {
+		if err = decodeTimelineStoredJSON(raw, &r, timelineMaxRecordBytes+TimelineMaintenanceMaxBytes); err != nil {
 			return timelineFailure("corrupt_storage", 500)
 		}
 		if r.StorageVersion != timelineStorageVersion || r.ID != id || len(r.Roots) == 0 || r.ProjectKey == "" || timelineSessionKey(r.ProjectKey, r.Source, r.WorkKey) != id {
@@ -265,6 +281,13 @@ func (s *Store) timelineLoad() error {
 			}
 		}
 
+		if err = validateTimelineMaintenance(&r); err != nil {
+			return err
+		}
+		if content, e := timelineRecordContentBytes(&r); e != nil || len(content) > timelineMaxRecordBytes {
+			return timelineFailure("corrupt_storage", 500)
+		}
+		timelineProjectMaintenance(&r)
 		if r.Session != nil {
 			if err = ValidateTimelineSession(*r.Session); err != nil || r.Session.ViewerSessionID != id || r.Session.Source != r.Source || r.Session.ProjectKey != r.ProjectKey {
 				return timelineFailure("corrupt_storage", 500)
@@ -422,7 +445,7 @@ func (s *Store) timelinePublish() {
 			continue
 		}
 		v := r.Session
-		entries = append(entries, TimelineAPIIndexEntry{Mode: "timeline_api", ViewerSessionID: v.ViewerSessionID, ProjectKey: v.ProjectKey, ProjectName: v.ProjectName, Source: v.Source, Version: v.Version, Title: v.Title, Summary: v.Summary, State: v.State, Archived: v.Archived, Pinned: v.Pinned, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt, ValidationCount: v.ValidationCount, Tickets: append([]TimelineTicket{}, v.Tickets...), CurrentStageEventID: v.CurrentStageEventID})
+		entries = append(entries, TimelineAPIIndexEntry{LastActivityAt: v.LastActivityAt, ClosedAt: v.ClosedAt, AutoarchiveAt: v.AutoarchiveAt, ArchiveOrigin: v.ArchiveOrigin, Mode: "timeline_api", ViewerSessionID: v.ViewerSessionID, ProjectKey: v.ProjectKey, ProjectName: v.ProjectName, Source: v.Source, Version: v.Version, Title: v.Title, Summary: v.Summary, State: v.State, Archived: v.Archived, Pinned: v.Pinned, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt, ValidationCount: v.ValidationCount, Tickets: append([]TimelineTicket{}, v.Tickets...), CurrentStageEventID: v.CurrentStageEventID})
 	}
 	sort.Slice(entries, func(i, j int) bool { return entries[i].ViewerSessionID < entries[j].ViewerSessionID })
 	s.viewMu.Lock()
@@ -475,6 +498,10 @@ func (s *Store) timelineGetLocked(id string) (*timelineRecord, error) {
 	return r, nil
 }
 func (s *Store) timelineSave(r *timelineRecord) error {
+	if err := validateTimelineMaintenance(r); err != nil {
+		return err
+	}
+	timelineProjectMaintenance(r)
 	if err := validateTimelinePrivateAudit(r); err != nil {
 		return err
 	}
@@ -487,7 +514,11 @@ func (s *Store) timelineSave(r *timelineRecord) error {
 	if err != nil {
 		return err
 	}
-	if len(raw) > timelineMaxRecordBytes {
+	content, contentErr := timelineRecordContentBytes(r)
+	if contentErr != nil {
+		return contentErr
+	}
+	if len(content) > timelineMaxRecordBytes || len(raw) > timelineMaxRecordBytes+TimelineMaintenanceMaxBytes {
 		return timelineFailure("capacity", 413)
 	}
 	if err = s.timelineEnsureDir(s.timelineDir()); err != nil {
@@ -501,6 +532,7 @@ func (s *Store) timelineSave(r *timelineRecord) error {
 	return nil
 }
 func (s *Store) timelineCommit(r *timelineRecord, kind TimelineOperationKind, op, digest string, result TimelineOperationResult, terminal bool) (TimelineOperationResult, error) {
+	timelineProjectMaintenance(r)
 	if r.Session != nil {
 		if err := ValidateTimelineClosureReserve(*r.Session); err != nil {
 			return result, err
@@ -535,7 +567,7 @@ func (s *Store) timelineCommit(r *timelineRecord, kind TimelineOperationKind, op
 		}
 	}
 	if r.Session != nil {
-		raw, _ := json.Marshal(r.Session)
+		raw, _ := timelineSessionContentBytes(r.Session)
 		budget := TimelineContentBudget
 		if lifecycle {
 			budget = TimelineMaxBody
@@ -549,7 +581,7 @@ func (s *Store) timelineCommit(r *timelineRecord, kind TimelineOperationKind, op
 	}
 	r.Receipts = append(r.Receipts, TimelineOperationReceipt{OperationID: op, RequestSHA256: digest, CompletedAt: s.timelineTime(), Result: result})
 	if !lifecycle {
-		raw, err := json.Marshal(r)
+		raw, err := timelineRecordContentBytes(r)
 		if err != nil {
 			return result, err
 		}
@@ -701,7 +733,7 @@ func (s *Store) TimelineCreate(request TimelineCreateSessionRequest) (TimelineSe
 		copied := *request.WorkKey
 		workKey = &copied
 	}
-	v := TimelineSession{SchemaVersion: 3, ViewerSessionID: id, ProjectKey: key, ProjectName: name, Source: request.Source, Version: 1, WorkKey: workKey, Title: request.Title, Summary: request.Summary, State: TimelineActive, CreatedAt: now, UpdatedAt: now, Tickets: tickets, Deliveries: []TimelineDelivery{}, Candidates: []TimelineCandidateRecord{}, Events: []TimelineEvent{}, Artifacts: []TimelineArtifact{}, Documents: []TimelineDocument{}}
+	v := TimelineSession{SchemaVersion: 3, ViewerSessionID: id, ProjectKey: key, ProjectName: name, Source: request.Source, Version: 1, WorkKey: workKey, Title: request.Title, Summary: request.Summary, State: TimelineActive, CreatedAt: now, UpdatedAt: now, LastActivityAt: now, Tickets: tickets, Deliveries: []TimelineDelivery{}, Candidates: []TimelineCandidateRecord{}, Events: []TimelineEvent{}, Artifacts: []TimelineArtifact{}, Documents: []TimelineDocument{}}
 	v.Producers = []TimelineProducer{{ProducerID: producer, Source: request.Source, JoinedAt: now}}
 	v.ForegroundProducerID = producer
 	v.PendingJoinRequests = []TimelineJoinRequest{}

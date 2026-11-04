@@ -18,18 +18,21 @@ type TimelineLocalizationMetadata struct {
 // Schemas describe exact structural fields from the production Go DTOs. The
 // semantic invariants remain authoritative validator rules, not JSON Schema promises.
 type TimelineProtocolDescription struct {
-	Localization    TimelineLocalizationMetadata `json:"localization"`
-	StorageVersion  int                          `json:"storage_version"`
-	Authority       map[string]string            `json:"authority"`
-	ErrorCodes      []string                     `json:"error_codes"`
-	ProtocolVersion int                          `json:"protocol_version"`
-	SchemaDialect   string                       `json:"schema_dialect"`
-	Capabilities    []string                     `json:"capabilities"`
-	Retention       string                       `json:"retention"`
-	TTLSeconds      int                          `json:"ttl_seconds"`
-	Commands        []TimelineProtocolOperation  `json:"commands"`
-	Limits          map[string]int64             `json:"limits"`
-	Invariants      []string                     `json:"invariants"`
+	ContractRevision   int                          `json:"contract_revision"`
+	RevisionHeader     string                       `json:"revision_header"`
+	AutoarchiveSeconds int                          `json:"autoarchive_seconds"`
+	Localization       TimelineLocalizationMetadata `json:"localization"`
+	StorageVersion     int                          `json:"storage_version"`
+	Authority          map[string]string            `json:"authority"`
+	ErrorCodes         []string                     `json:"error_codes"`
+	ProtocolVersion    int                          `json:"protocol_version"`
+	SchemaDialect      string                       `json:"schema_dialect"`
+	Capabilities       []string                     `json:"capabilities"`
+	Retention          string                       `json:"retention"`
+	TTLSeconds         int                          `json:"ttl_seconds"`
+	Commands           []TimelineProtocolOperation  `json:"commands"`
+	Limits             map[string]int64             `json:"limits"`
+	Invariants         []string                     `json:"invariants"`
 }
 type TimelineProtocolOperation struct {
 	Method       string          `json:"method,omitempty"`
@@ -53,7 +56,7 @@ func TimelineProtocolContract(operation string) (TimelineProtocolDescription, er
 	one := int64(1)
 	source := TimelineSource{ProjectRoot: "/workspace/example", Host: "codex", NativeSessionID: "native-example"}
 	create := TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "create-example", Source: source, Title: "Example", Summary: "Scope", Tickets: []TimelineTicketInput{}, WorkKey: timelineStringPointer("COM-123")}
-	stage := TimelineAppendEventRequest{Actor: actor, SchemaVersion: 3, OperationID: "stage-example", Reason: "Start the plan", Kind: "stage", Title: "", Summary: "Prepare the plan", TicketIDs: []string{}, Stage: "plan", StageState: "in_progress", ExpectedSessionVersion: &one}
+	stage := TimelineAppendEventRequest{Actor: actor, SchemaVersion: 3, OperationID: "stage-example", Reason: "Start plan", Kind: "stage", Title: "", Summary: "Prepare the plan", TicketIDs: []string{}, Stage: "plan", StageState: "in_progress", ExpectedSessionVersion: &one}
 	state := TimelineStageState("completed")
 	patch := TimelineEventPatchRequest{Actor: actor, SchemaVersion: 3, OperationID: "complete-example", Reason: "Plan completed", ExpectedVersion: 1, StageState: &state, ExpectedSessionVersion: &one}
 	mutation := TimelineMutationRequest{Actor: actor, SchemaVersion: 3, OperationID: "delete-example", ExpectedVersion: 1}
@@ -74,7 +77,7 @@ func TimelineProtocolContract(operation string) (TimelineProtocolDescription, er
 	}
 	definitions = append(definitions, timelineV3ProtocolDefinitions(actor)...)
 	definitions = append(definitions, timelineCatalogProtocolDefinitions(actor)...)
-	result := TimelineProtocolDescription{Localization: TimelineLocalizationMetadata{DefaultLanguage: "en", SupportedLanguages: []string{"en", "es"}, ReservedTitleKeys: []string{"start", "research", "plan", "build", "verify", "delivery", "tasks", "ci_wait"}}, StorageVersion: 3, Authority: map[string]string{
+	result := TimelineProtocolDescription{ContractRevision: TimelineContractRevision, RevisionHeader: TimelineRevisionHeader, AutoarchiveSeconds: 7200, Localization: TimelineLocalizationMetadata{DefaultLanguage: "en", SupportedLanguages: []string{"en", "es"}, ReservedTitleKeys: []string{"start", "research", "plan", "build", "verify", "delivery", "tasks", "ci_wait"}}, StorageVersion: 3, Authority: map[string]string{
 		"create_session":  "native source bootstrap; server creates original producer and lead",
 		"join_request":    "same-project native source; no membership until acceptance",
 		"producer_accept": "lead; re-resolve pending Source against work.ProjectKey", "foreground_transfer": "lead to accepted producer", "recover_lead": "local_viewer; pending same-project request; nonterminal work",
@@ -84,10 +87,12 @@ func TimelineProtocolContract(operation string) (TimelineProtocolDescription, er
 		"artifact_add": "accepted producer", "document_add": "accepted producer", "document_snapshot": "accepted producer; explicit stage and chain predecessor",
 		"ticket_create": "lead", "ticket_patch": "lead", "delivery_create": "lead", "delivery_patch": "lead", "candidate_create": "accepted native producer",
 		"task_create": "lead", "task_patch": "lead", "task_transition": "lead or assigned segment producer", "wait_create": "lead or assigned delivery-segment producer; lead only when unbound", "wait_attempt_start": "lead or assigned delivery-segment producer; lead only when unbound", "wait_observe": "lead or assigned delivery-segment producer; lead only when unbound",
-	}, ErrorCodes: []string{"scope_reference_required", "entity_exists", "entity_conflict", "duplicate_plan_order", "unknown_ticket", "unknown_delivery", "unknown_candidate", "duplicate_id", "pull_request_required", "project_identity_unavailable", "duplicate_identity", "segment_assignee_required", "invalid_audit_operation", "invalid_state_transition", "forbidden_for_operation", "server_event_required", "invalid_producer_transition", "unsupported_protocol", "version_conflict", "operation_conflict", "producer_not_accepted", "foreign_project", "lead_required", "forbidden_actor", "immutable_audit", "stage_binding_mismatch", "candidate_mismatch", "current_predecessor_required", "pending_request_required", "unknown_or_mixed_attempt", "superseded_attempt", "wait_aggregate_mismatch", "limit"}, ProtocolVersion: 3, SchemaDialect: "https://json-schema.org/draft/2020-12/schema", Retention: "manual", TTLSeconds: 0, Capabilities: []string{"canonical_registries", "timeline_api", "conditional_mutations", "immutable_evidence", "stage_lifecycle", "document_snapshots", "manual_retention"}, Commands: []TimelineProtocolOperation{}, Limits: map[string]int64{"body_bytes": TimelineMaxBody, "document_bytes": TimelineMaxDocumentBytes, "document_tabs": TimelineMaxDocumentTabs, "documents": TimelineMaxDocuments, "document_snapshots": TimelineMaxDocumentSnapshots, "aggregate_document_bytes": TimelineMaxAggregateDocumentBytes, "events": TimelineMaxEvents, "content_events": TimelineContentEvents, "producers": 16, "pending_join_requests": 16, "tasks": 100, "task_segments": 5, "required_checks": TimelineMaxRequiredChecks, "wait_attempts": TimelineMaxWaitAttempts, "wait_observations": TimelineMaxWaitObservations, "waits": TimelineMaxWaits, "wait_text": TimelineMaxWaitText, "tickets": 100, "deliveries": 100, "candidates": 100, "plan_order": TimelineMaxNumber, "external_id": 256, "identity_url": 4096, "views": TimelineMaxViews}, Invariants: []string{
+	}, ErrorCodes: []string{"reload_required", "scope_reference_required", "entity_exists", "entity_conflict", "duplicate_plan_order", "unknown_ticket", "unknown_delivery", "unknown_candidate", "duplicate_id", "pull_request_required", "project_identity_unavailable", "duplicate_identity", "segment_assignee_required", "invalid_audit_operation", "invalid_state_transition", "forbidden_for_operation", "server_event_required", "invalid_producer_transition", "unsupported_protocol", "version_conflict", "operation_conflict", "producer_not_accepted", "foreign_project", "lead_required", "forbidden_actor", "immutable_audit", "stage_binding_mismatch", "candidate_mismatch", "current_predecessor_required", "pending_request_required", "unknown_or_mixed_attempt", "superseded_attempt", "wait_aggregate_mismatch", "limit"}, ProtocolVersion: 3, SchemaDialect: "https://json-schema.org/draft/2020-12/schema", Retention: "manual", TTLSeconds: 0, Capabilities: []string{"canonical_registries", "timeline_api", "conditional_mutations", "immutable_evidence", "stage_lifecycle", "document_snapshots", "manual_retention"}, Commands: []TimelineProtocolOperation{}, Limits: map[string]int64{"maintenance_bytes": TimelineMaintenanceMaxBytes, "body_bytes": TimelineMaxBody, "document_bytes": TimelineMaxDocumentBytes, "document_tabs": TimelineMaxDocumentTabs, "documents": TimelineMaxDocuments, "document_snapshots": TimelineMaxDocumentSnapshots, "aggregate_document_bytes": TimelineMaxAggregateDocumentBytes, "events": TimelineMaxEvents, "content_events": TimelineContentEvents, "producers": 16, "pending_join_requests": 16, "tasks": 100, "task_segments": 5, "required_checks": TimelineMaxRequiredChecks, "wait_attempts": TimelineMaxWaitAttempts, "wait_observations": TimelineMaxWaitObservations, "waits": TimelineMaxWaits, "wait_text": TimelineMaxWaitText, "tickets": 100, "deliveries": 100, "candidates": 100, "plan_order": TimelineMaxNumber, "external_id": 256, "identity_url": 4096, "views": TimelineMaxViews}, Invariants: []string{
 		"Work-local catalogs use typed natural identities and stable opaque IDs. Ticket/delivery metadata patches preserve immutable publication snapshots. Candidate records are immutable and every publication selects its candidate_id explicitly. No current-candidate pointer exists.",
 		"Registry patches advance every affected task_version and wait_version once in the same durable commit; unrelated changes, no-ops and exact operation replays do not invalidate readers. New entity operations consume content capacity and closure reserves.",
-		"Reject unknown or duplicate keys, null except required current_stage_event_id, trailing JSON and unsafe integer literals; require exact case-sensitive JSON keys.",
+		"Reject unknown or duplicate keys, null except explicitly nullable fields, trailing JSON and unsafe integer literals; require exact case-sensitive JSON keys.",
+		"Timeline contract revision 2 requires X-Hive-Timeline-Revision: 2 on index/timeline requests and all mutations. Clients acknowledge the response revision before any write; mismatches require updating Hive and reloading without replacing pending operation IDs or bytes.",
+		"Closed unpinned work autoarchives after two hours unless manually restored for that closure episode. Archival changes default visibility; retention manual means content is preserved until explicit deletion. Private maintenance is separately bounded to 16 KiB and never prunes public history or native receipts.",
 		"Sources require an absolute project root, canonical supported host and real native session ID. Session identity is server-owned.",
 		"Project identity comes from resolving the actual Source against the trusted registered-root registry to canonical ProjectKey at create/join/accept/recover/load. Distinct alias/worktree roots can share a project; path equality is not project proof. Accepted membership is server-owned; deduplicate (canonical project, host, native session) across alias roots while preserving the first actual Source. No request accepts caller-asserted project proof.",
 		"Fields depend on event/operation/target kind. Production validators enforce closed unions and forbid mixed branches; optional fields must be omitted rather than null.",
@@ -465,9 +470,10 @@ type TimelineProtocolBriefOperation struct {
 	Example   json.RawMessage     `json:"example"`
 }
 type TimelineProtocolBriefDescription struct {
-	ProtocolVersion int                              `json:"protocol_version"`
-	Flow            string                           `json:"flow"`
-	Operations      []TimelineProtocolBriefOperation `json:"operations"`
+	ContractRevision int                              `json:"contract_revision"`
+	ProtocolVersion  int                              `json:"protocol_version"`
+	Flow             string                           `json:"flow"`
+	Operations       []TimelineProtocolBriefOperation `json:"operations"`
 }
 type TimelineProtocolListEntry struct {
 	Operation string   `json:"operation"`
@@ -475,30 +481,33 @@ type TimelineProtocolListEntry struct {
 	Usage     string   `json:"usage"`
 }
 type TimelineProtocolListing struct {
-	ProtocolVersion int                         `json:"protocol_version"`
-	Operations      []TimelineProtocolListEntry `json:"operations"`
+	ContractRevision int                         `json:"contract_revision"`
+	ProtocolVersion  int                         `json:"protocol_version"`
+	Operations       []TimelineProtocolListEntry `json:"operations"`
 }
 
 // TimelineProtocolRulesBlock is the shared part of the contract: everything but
 // the per-operation commands.
 type TimelineProtocolRulesBlock struct {
-	ProtocolVersion int                          `json:"protocol_version"`
-	StorageVersion  int                          `json:"storage_version"`
-	SchemaDialect   string                       `json:"schema_dialect"`
-	Localization    TimelineLocalizationMetadata `json:"localization"`
-	Capabilities    []string                     `json:"capabilities"`
-	Retention       string                       `json:"retention"`
-	TTLSeconds      int                          `json:"ttl_seconds"`
-	Authority       map[string]string            `json:"authority"`
-	ErrorCodes      []string                     `json:"error_codes"`
-	Limits          map[string]int64             `json:"limits"`
-	Invariants      []string                     `json:"invariants"`
+	ContractRevision int                          `json:"contract_revision"`
+	RevisionHeader   string                       `json:"revision_header"`
+	ProtocolVersion  int                          `json:"protocol_version"`
+	StorageVersion   int                          `json:"storage_version"`
+	SchemaDialect    string                       `json:"schema_dialect"`
+	Localization     TimelineLocalizationMetadata `json:"localization"`
+	Capabilities     []string                     `json:"capabilities"`
+	Retention        string                       `json:"retention"`
+	TTLSeconds       int                          `json:"ttl_seconds"`
+	Authority        map[string]string            `json:"authority"`
+	ErrorCodes       []string                     `json:"error_codes"`
+	Limits           map[string]int64             `json:"limits"`
+	Invariants       []string                     `json:"invariants"`
 }
 
 // TimelineProtocolBrief summarizes one flow's operations: usage, input field
 // names, enum values and the example, without output schemas.
 func TimelineProtocolBrief(flow string) (TimelineProtocolBriefDescription, error) {
-	brief := TimelineProtocolBriefDescription{ProtocolVersion: 3, Flow: flow}
+	brief := TimelineProtocolBriefDescription{ContractRevision: TimelineContractRevision, ProtocolVersion: 3, Flow: flow}
 	members, err := timelineFlowMembers(flow)
 	if err != nil {
 		return brief, err
@@ -621,7 +630,7 @@ func timelineCollectEnums(schema map[string]any, path string, out map[string][]s
 
 // TimelineProtocolList names every operation with the flows that use it.
 func TimelineProtocolList() (TimelineProtocolListing, error) {
-	list := TimelineProtocolListing{ProtocolVersion: 3}
+	list := TimelineProtocolListing{ContractRevision: TimelineContractRevision, ProtocolVersion: 3}
 	full, err := TimelineProtocolContract("")
 	if err != nil {
 		return list, err
@@ -644,5 +653,5 @@ func TimelineProtocolRules() (TimelineProtocolRulesBlock, error) {
 	if err != nil {
 		return TimelineProtocolRulesBlock{}, err
 	}
-	return TimelineProtocolRulesBlock{ProtocolVersion: full.ProtocolVersion, StorageVersion: full.StorageVersion, SchemaDialect: full.SchemaDialect, Localization: full.Localization, Capabilities: full.Capabilities, Retention: full.Retention, TTLSeconds: full.TTLSeconds, Authority: full.Authority, ErrorCodes: full.ErrorCodes, Limits: full.Limits, Invariants: full.Invariants}, nil
+	return TimelineProtocolRulesBlock{ContractRevision: full.ContractRevision, RevisionHeader: full.RevisionHeader, ProtocolVersion: full.ProtocolVersion, StorageVersion: full.StorageVersion, SchemaDialect: full.SchemaDialect, Localization: full.Localization, Capabilities: full.Capabilities, Retention: full.Retention, TTLSeconds: full.TTLSeconds, Authority: full.Authority, ErrorCodes: full.ErrorCodes, Limits: full.Limits, Invariants: full.Invariants}, nil
 }

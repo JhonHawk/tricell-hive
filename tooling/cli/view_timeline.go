@@ -417,11 +417,18 @@ func viewTimelineHTTP(info serverInfo, method, path, contentType string, body io
 	if !strings.HasPrefix(path, "/api/") || strings.ContainsAny(path, "?#\\") {
 		return nil, errors.New("invalid local viewer route")
 	}
+	// Probe before constructing/sending a write: old servers may otherwise commit it.
+	if method != http.MethodGet {
+		if _, err := viewTimelineHTTP(info, http.MethodGet, "/api/health", "", nil, viewInfoLimit); err != nil {
+			return nil, err
+		}
+	}
 	req, err := http.NewRequest(method, info.url()+path, body)
 	if err != nil {
 		return nil, errors.New("cannot prepare viewer request")
 	}
 	req.Header.Set("X-Hive-Token", info.Token)
+	req.Header.Set(viewer.TimelineRevisionHeader, "2")
 	if method != http.MethodGet {
 		req.Header.Set("Origin", info.url())
 		req.Header.Set("X-Hive-Action-Scope", "session")
@@ -434,6 +441,9 @@ func viewTimelineHTTP(info serverInfo, method, path, contentType string, body io
 		return nil, errors.New("viewer request outcome is uncertain; preserve inputs and retry the unchanged operation ID")
 	}
 	defer response.Body.Close()
+	if response.Header.Get(viewer.TimelineRevisionHeader) != "2" {
+		return nil, errors.New("reload_required: update Hive and restart/reload the viewer together; preserve inputs and retry the unchanged operation ID")
+	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return nil, fmt.Errorf("viewer request failed (HTTP %d%s); preserve inputs, read current state and retry only with the appropriate original operation ID", response.StatusCode, viewErrorDetail(response.Body))
 	}
@@ -451,7 +461,10 @@ func viewTimelineProtocolReady(info serverInfo, state string) error {
 		PID                     int    `json:"pid"`
 		StateDir                string `json:"state_dir"`
 	}
-	if err != nil || json.Unmarshal(raw, &health) != nil || health.PID != info.PID || filepath.Clean(health.StateDir) != filepath.Clean(state) {
+	if err != nil {
+		return err
+	}
+	if json.Unmarshal(raw, &health) != nil || health.PID != info.PID || filepath.Clean(health.StateDir) != filepath.Clean(state) {
 		return errors.New("cannot confirm viewer health and identity; preserve local inputs and check the running viewer")
 	}
 	if health.TimelineProtocolVersion != viewer.TimelineSchemaVersion {

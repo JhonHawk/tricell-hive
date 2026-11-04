@@ -334,6 +334,7 @@ func TestTimelineDomainHTTPGuardsAndClosedOperationDispatch(t *testing.T) {
 		r.Header.Set(tokenHeader, token)
 		r.Header.Set("Origin", origin)
 		r.Header.Set("X-Hive-Action-Scope", scope)
+		r.Header.Set("X-Hive-Timeline-Revision", "2")
 		w := httptest.NewRecorder()
 		server.ServeHTTP(w, r)
 		return w

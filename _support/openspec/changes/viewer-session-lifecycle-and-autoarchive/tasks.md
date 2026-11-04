@@ -120,3 +120,7 @@ No install/restart or update of the habitual viewer is a test. A later integrate
 - 2026-11-04 — D9 B: user accepted candidate8a04118d as dependency base. Own branch fast-forwarded from2765624b to8a04118d after proving no tracked-path overlap with T1 edits; no history rewrite or change to #352. T4 unblocked. Publication still requires current-base/foreign-commit check.
 
 - 2026-11-04 — T4 implemented by build_t4_closure. Main-thread checks: go test ./tests/content/... PASS (0.498s), management instruction/link/anchor checks PASS; code diff inspected. Canonical phase now1,3,6,7beforefooter; deferred2,4,5. Four files; flow-close15804bytes, global34029→34029(0delta). Commit pending; no modelpilot run.
+
+- 2026-11-04 — T4 committed e6e0226b with the five approved plan files. Secret scan gitleaks stdin --redact PASS; main-thread content/link checks PASS. T1 remains in progress, T2/T3 await frozen contract, T5 waits integration. Checkpoint commit e6e0226b.
+
+- 2026-11-04 — T1 built, typed interfaces frozen. Child observed missing-revision POST commit before fix and invalid deadline accepted before strict validation; focused Go viewer/CLI and373frontendtests PASS, tsc/targetedBiome PASS. Main-thread focused Revision/Maintenance/LifecycleProjection/Preflight tests PASS. Raw pnpm wrapper tried dependency handling on the task-owned symlink and failed; no successful install; use existing direct node_modules binaries for subsequent checks. Independent T1 contract verification follows on a committed isolated source copy.

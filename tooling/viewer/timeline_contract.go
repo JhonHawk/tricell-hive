@@ -18,6 +18,9 @@ import (
 
 // TimelineSchemaVersion versions the API contract independently of legacy manifests.
 const TimelineSchemaVersion = 3
+const TimelineContractRevision = 2
+const TimelineRevisionHeader = "X-Hive-Timeline-Revision"
+const TimelineMaintenanceMaxBytes = 16 << 10
 const (
 	TimelineMaxBody                         = 2 << 20
 	TimelineContentBudget                   = 7 << 18
@@ -262,6 +265,11 @@ type TimelineArtifact struct {
 	Theme       string        `json:"theme"`
 }
 type TimelineSession struct {
+	LastActivityAt string  `json:"last_activity_at" stored:"optional"`
+	ClosedAt       *string `json:"closed_at" timeline:"nullable" stored:"optional"`
+	AutoarchiveAt  *string `json:"autoarchive_at" timeline:"nullable" stored:"optional"`
+	ArchiveOrigin  *string `json:"archive_origin" timeline:"nullable" stored:"optional"`
+
 	Deliveries           []TimelineDelivery        `json:"deliveries"`
 	Candidates           []TimelineCandidateRecord `json:"candidates"`
 	Producers            []TimelineProducer        `json:"producers"`
@@ -297,6 +305,11 @@ type TimelineSession struct {
 
 // TimelineAPIIndexEntry is the API v3 work summary.
 type TimelineAPIIndexEntry struct {
+	LastActivityAt string  `json:"last_activity_at" stored:"optional"`
+	ClosedAt       *string `json:"closed_at" timeline:"nullable" stored:"optional"`
+	AutoarchiveAt  *string `json:"autoarchive_at" timeline:"nullable" stored:"optional"`
+	ArchiveOrigin  *string `json:"archive_origin" timeline:"nullable" stored:"optional"`
+
 	CurrentStageEventID *string          `json:"current_stage_event_id" timeline:"nullable"`
 	Mode                string           `json:"mode"`
 	ViewerSessionID     string           `json:"viewer_session_id"`
@@ -609,7 +622,7 @@ func timelineJSONValue(dec *json.Decoder, depth int, nullable ...bool) error {
 				return timelineError("body", "duplicate_key")
 			}
 			seen[name] = true
-			if err := timelineJSONValue(dec, depth+1, name == "current_stage_event_id" || name == "work_key"); err != nil {
+			if err := timelineJSONValue(dec, depth+1, contains([]string{"current_stage_event_id", "work_key", "closed_at", "autoarchive_at", "archive_origin", "episode_id", "eligibility_started_at", "automatic_action", "archive_receipt", "restore_receipt", "pin_receipt"}, name)); err != nil {
 				return err
 			}
 		}
@@ -1292,7 +1305,7 @@ func ValidateTimelineSession(s TimelineSession) error {
 	if err := validateTimelineSummaryHeader(timelineSummaryHeader{
 		ViewerSessionID: s.ViewerSessionID, Source: s.Source, ProjectKey: s.ProjectKey,
 		ProjectName: s.ProjectName, Version: s.Version, Title: s.Title, Summary: s.Summary,
-		State: s.State, CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt,
+		State: s.State, CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt, LastActivityAt: s.LastActivityAt, ClosedAt: s.ClosedAt, AutoarchiveAt: s.AutoarchiveAt, ArchiveOrigin: s.ArchiveOrigin, Archived: s.Archived, Pinned: s.Pinned,
 	}); err != nil {
 		return err
 	}
@@ -1539,6 +1552,9 @@ func DecodeTimelineIndexEntry(raw []byte) (TimelineIndexEntry, error) {
 
 // timelineSummaryHeader holds the fields a session and its index entry share.
 type timelineSummaryHeader struct {
+	LastActivityAt                                                                 string
+	ClosedAt, AutoarchiveAt, ArchiveOrigin                                         *string
+	Archived, Pinned                                                               bool
 	ViewerSessionID, ProjectKey, ProjectName, Title, Summary, CreatedAt, UpdatedAt string
 	Source                                                                         TimelineSource
 	Version                                                                        int64
@@ -1578,7 +1594,7 @@ func validateTimelineSummaryHeader(h timelineSummaryHeader) error {
 	if err := timelineTime(h.UpdatedAt, "updated_at"); err != nil {
 		return err
 	}
-	return nil
+	return validateTimelineLifecycleProjection(h)
 }
 
 // validateTimelineIndexEntry applies the session rules that a work summary
@@ -1591,7 +1607,7 @@ func validateTimelineIndexEntry(e TimelineAPIIndexEntry) error {
 	if err := validateTimelineSummaryHeader(timelineSummaryHeader{
 		ViewerSessionID: e.ViewerSessionID, Source: e.Source, ProjectKey: e.ProjectKey,
 		ProjectName: e.ProjectName, Version: e.Version, Title: e.Title, Summary: e.Summary,
-		State: e.State, CreatedAt: e.CreatedAt, UpdatedAt: e.UpdatedAt,
+		State: e.State, CreatedAt: e.CreatedAt, UpdatedAt: e.UpdatedAt, LastActivityAt: e.LastActivityAt, ClosedAt: e.ClosedAt, AutoarchiveAt: e.AutoarchiveAt, ArchiveOrigin: e.ArchiveOrigin, Archived: e.Archived, Pinned: e.Pinned,
 	}); err != nil {
 		return err
 	}

@@ -72,6 +72,7 @@ type reqOpts struct {
 
 func (s *srvEnv) do(method, target string, o reqOpts) *httptest.ResponseRecorder {
 	r := httptest.NewRequest(method, target, o.body)
+	r.Header.Set("X-Hive-Timeline-Revision", "2")
 	r.Host = testHost
 	if o.host != "" {
 		r.Host = o.host

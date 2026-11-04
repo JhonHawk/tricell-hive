@@ -2,6 +2,8 @@ import { resolveLanguage } from "./language";
 import type { ViewerSession } from "./shell";
 import {
   parseTimelineIndexEntry,
+  TIMELINE_CONTRACT_REVISION,
+  TIMELINE_REVISION_HEADER,
   type TimelineAPIIndexEntry,
   TimelineContractError,
 } from "./timeline-contract";
@@ -109,11 +111,15 @@ export class AccessClient {
     signal?: AbortSignal,
     responseJSON = method === "GET",
   ) {
+    if (method !== "GET") {
+      await this.request("/api/health", "GET", undefined, signal);
+    }
     const response = await this.fetcher(path, {
       method,
       ...(signal ? { signal } : {}),
       headers: {
         "X-Hive-Token": this.token,
+        [TIMELINE_REVISION_HEADER]: String(TIMELINE_CONTRACT_REVISION),
         ...(method !== "GET" ? { "X-Hive-Action-Scope": "session" } : {}),
         ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
       },
@@ -121,6 +127,12 @@ export class AccessClient {
       cache: "no-store",
       credentials: "same-origin",
     });
+    if (
+      response.headers.get(TIMELINE_REVISION_HEADER) !==
+      String(TIMELINE_CONTRACT_REVISION)
+    ) {
+      throw new HttpError(409, { code: "reload_required" });
+    }
     if (!response.ok) {
       let details = {};
       try {
