@@ -97,24 +97,31 @@ For v3, closure cleanup SHALL confirm the exact committed work/version, state, r
 
 ### Requirement: Hierarchical React viewer navigation
 
-The shell SHALL use the requested navigation projection for a single flat list of works per group and show each explicitly grouped work's original source as secondary metadata. It SHALL preserve the existing components, title/ticket search, visible counts, archive and pin behavior, selection by work ID, keyboard/mobile navigation and accessible full labels. Regrouping SHALL preserve selection and keep its destination visible; expansion preferences SHALL retain a legacy fallback. Declared lifecycle SHALL remain separate from process liveness; local management actions SHALL occur once in the toolbar. There SHALL be no legacy physical-member selection or manifest-renderer branch in v3. Missing, loading, empty, error and unauthenticated states SHALL remain actionable and SHALL NOT create synthetic work or bypass authentication.
+The shell SHALL preserve the existing project/workspace groups, source metadata, title/ticket search, counts, selection, expansion, keyboard/mobile navigation and full accessible labels. Works within each group SHALL be ordered by last substantive native work activity descending with stable ID ties, and show that activity's local date/time. Creation SHALL supply the initial activity timestamp. Administrative rename/pin/archive/restore, reads, unchanged replay and automatic maintenance SHALL NOT advance activity. Public events and private native operation receipts SHALL support truthful reconstruction of older activity without using source mtimes or localized labels as sort keys.
 
-#### Scenario: Select and filter works from a shared group
-- WHEN works from a workspace and a repository share an explicit group
-- THEN each row identifies its origin and opens its own unchanged timeline without a nested repository group.
-- WHEN a title/ticket filter or archive filter changes
-- THEN the group's count matches its visible rows.
+Every row SHALL show its actual active, in_review, awaiting_validation, paused, closed or failed state visibly and accessibly through the installed semantic Badge variants, not color alone. Existing internal timeline ordering SHALL be preserved. Loading, empty, error and authentication states SHALL remain actionable. A selected work archived by maintenance SHALL remain readable in its current view until navigation, with an archived explanation and Restore action, without selecting an arbitrary other work or a persistent application-wide banner.
 
-#### Scenario: Refresh navigation
-- WHEN the user changes selection, expansion or filters and reloads
-- THEN the same work and manual choices remain selected with its scroll context, applying the defined legacy preference fallback.
+#### Scenario: Work resumes in an old session
+- WHEN an older work receives a new substantive publication
+- THEN it precedes less recently active works without moving its internal timeline groups.
+
+#### Scenario: Administrative changes
+- WHEN a work is renamed, fixed, archived, restored or automatically maintained
+- THEN its last-work-activity timestamp and ordering remain unchanged.
 
 ### Requirement: Reversible copy archiving
-The retained archive behavior SHALL apply to a v3 work rather than legacy copies. Authenticated same-origin scoped local-viewer writes SHALL atomically update archived under expected version; archive SHALL not modify content, source identity, lifecycle or pin and SHALL survive restart. Archived works SHALL be hidden by default with the accessible include-archived toggle. Undo SHALL target the originally archived work even after selection changes. No archive SHALL enable TTL deletion.
 
-#### Scenario: Undo elsewhere
-- WHEN archiving hides work A and the user selects B before Undo
-- THEN Undo restores A without changing B.
+Archival SHALL affect visibility only, preserving work content, source identity, lifecycle and pin. Manual archive/restore SHALL remain scoped, authenticated, atomic, version-conditional and persistent. Autoarchive SHALL apply only to explicitly closed, unpinned works at least two hours after their current closure episode and SHALL run at startup and within a 60-second runtime sweep. It SHALL NOT infer completion from inactivity or archive active, paused, review, validation or failed works. Background archival SHALL NOT produce a toast per work; existing temporary Undo for manual archival SHALL remain work-specific.
+
+A manual restore SHALL durably exempt that closure episode. Pin SHALL prevent autoarchive; unpin SHALL reevaluate the original deadline without clearing a restore exemption. Explicit reopen SHALL clear the prior episode/exemption and atomically restore automatically archived work, while preserving a manual archive. A subsequent explicit close SHALL start a new episode and deadline.
+
+#### Scenario: Deadline and restore
+- WHEN a closed eligible work reaches 7,200 seconds and a sweep succeeds
+- THEN it becomes archived without losing content; a subsequent manual restore keeps it visible through later sweeps and restarts until a new closure.
+
+#### Scenario: Concurrent user action
+- WHEN a sweep races a versioned restore, pin or reopen
+- THEN storage serializes them, retains the winning current intent and returns a safe conflict for stale requests rather than overwriting the newer state.
 
 ### Requirement: Explicit walkthrough delivery links
 v3 API delivery events SHALL accept only verified PR/commit links, distinguish candidate metadata from delivery and never infer integration. URLs SHALL be absolute HTTPS with valid ASCII hosts and no credentials, spaces or controls; labels SHALL render as text, destinations SHALL be validated on rendering, and new contexts SHALL use noopener noreferrer. The v3 compact header SHALL expose deduplicated canonical work delivery entities by ID in its accessible delivery popover; no links SHALL be fabricated from candidate text.
@@ -244,11 +251,12 @@ Documents from all five stage types SHALL use one read-only Markdown Sheet, full
 - THEN comparisons and update notices stay separate, including across linked same-type occurrences.
 
 ### Requirement: Manual viewer retention
-API content SHALL NOT be purged due to age. Archive SHALL change visibility only; pin SHALL not be necessary for preservation. The viewer commands SHALL NOT accept an age or TTL option. Explicit deletion and bounded incomplete-staging recovery SHALL remain separate from age retention.
 
-#### Scenario: Inactive session survives
-- WHEN an unpinned archived session ages beyond fourteen days and the server restarts
-- THEN its documents and images remain readable until explicit authorized deletion.
+API content SHALL NOT be purged due to age. Automatic two-hour archival SHALL change visibility only, and pin SHALL remain unnecessary for content preservation. Explicit deletion SHALL remain the only removal of completed work content. No configurable age/TTL deletion option SHALL be introduced.
+
+#### Scenario: Archived content remains available
+- WHEN an automatically archived, unpinned work ages beyond fourteen days and the server restarts
+- THEN its documents and images remain readable until an explicit authorized deletion.
 
 ### Requirement: Self-describing protocol and confirmed-input hygiene
 Offline contract usage/schemas/limits SHALL describe protocol/storage v3 exclusively. New CLI and viewer SHALL require compatible v3 peers for publication. No v1/v2 reader, endpoint, migration or imported evidence reconstruction SHALL be part of the v3 runtime. v3 receipts, immutable blobs and atomic state transitions SHALL remain durable after restart or uncertain commit.
@@ -278,15 +286,16 @@ One canonical publication procedure SHALL own collaboration/native identity, mea
 - THEN the CLI reports `invalid timeline input: invalid_text on reason` and nothing is sent.
 
 ### Requirement: Local viewer management actor
-The v3 actor union SHALL distinguish accepted native_producer from local_viewer. Browser rename, archive/restore, pin/unpin and confirmed deletion SHALL remain available without native identity and SHALL be audited as local viewer actions, not native publication or authenticated human approvals. local_viewer SHALL NOT publish documents, evidence or approval events or operate stage lifecycle. An explicit recover_lead management operation MAY accept a pending same-project join and replace the lead atomically without changing declared stage/work state. Mixed actor branches SHALL fail. Deletion SHALL preserve an auditable receipt/tombstone without retaining or resurrecting deleted content.
 
-#### Scenario: Browser management without native identity
-- WHEN the authenticated local viewer renames, archives or pins a work
-- THEN the action commits with local_viewer provenance and no fabricated producer ID.
+The actor union SHALL keep accepted native_producer separate from local_viewer. Browser rename, archive/restore, pin/unpin and confirmed deletion SHALL remain authenticated, scoped and available without native identity, and SHALL retain actual local_viewer provenance rather than native publication or human-approval claims. Revision-2 archive/restore/pin-only operations MAY use bounded private administrative state/receipt slots instead of adding public local_action events or publication receipts, including on saturated legacy records. Exact retained-slot retry SHALL replay; older stale requests SHALL conflict without mutation. Existing public history and native publication receipts SHALL NOT be pruned. local_viewer SHALL NOT publish content/evidence/approval or change stage lifecycle; explicit recover_lead and confirmed deletion SHALL retain their existing authority and durable tombstone/receipt guarantees. Mixed actor branches SHALL fail.
+
+#### Scenario: Restore at public capacity
+- WHEN autoarchive hides a valid record whose public events or publication receipts are full
+- THEN an authenticated versioned Restore commits its exemption with actual local_viewer provenance, exact retry replays and restart preserves visibility, without deleting history.
 
 #### Scenario: Confirmed browser deletion
 - WHEN the user confirms deletion through the existing scoped browser flow
-- THEN deletion retains its durable operation result for retry without a native actor or content resurrection.
+- THEN deletion retains its durable operation result without native impersonation or content resurrection.
 
 ### Requirement: Shared work producers and lead authority
 Protocol v3 SHALL preserve the original source tuple, its work key and the opaque viewer_session_id as work identity, accepting additional real native producers only by explicit join request and lead acceptance within the same registered project. A request SHALL NOT confer membership. Native lead transfer SHALL be version-conditional to an accepted member. Explicit local recovery SHALL atomically accept a chosen pending same-project request and reassign lead under expected version, durable operation receipt, reason and audit. Recovery SHALL NOT infer process death, stop processes, reopen terminal works, change original source or alter stage/evidence state. The previous lead SHALL remain a collaborator without lead privileges. Creation with the same tuple and work key SHALL remain idempotent. Joining SHALL NOT merge historical works or reassign IDs.
@@ -416,24 +425,27 @@ The viewer SHALL derive a read-only navigation group from an exact registered or
 
 ### Requirement: Compatible opt-in navigation projection
 
-The authenticated index SHALL expose version-1 navigation metadata only when `navigation=grouped` is requested. Legacy requests SHALL preserve the existing response contract and schema/storage versions. The projection SHALL reference each work in that index exactly once, provide stable namespaced grouping keys and original-root origin metadata, and use at most one configuration observation per source root per index. The frontend SHALL accept a legacy index without projection and SHALL fall back to canonical groups with a diagnostic when projection metadata is invalid, without weakening session validation.
+The authenticated revision-2 index SHALL expose version-1 navigation metadata only when navigation=grouped is requested. Requests without that projection SHALL retain the revision-2 canonical grouping shape. The projection SHALL reference each indexed work exactly once, preserve stable namespaced grouping keys and original-root origin metadata, and observe each source-root configuration at most once per index. The revision-2 frontend SHALL fall back to canonical groups with a diagnostic when optional projection metadata is invalid, without weakening session validation. Cross-revision client/server operation SHALL be replaced by the coordinated revision gate; schema/storage version 3 identities SHALL remain unchanged.
+
+#### Scenario: Matching revisions with invalid optional grouping
+- WHEN matching revision-2 clients and server exchange an index with invalid optional navigation metadata
+- THEN the frontend renders canonical groups and a diagnostic without losing or weakening validation of works.
 
 #### Scenario: Mixed client and server generations
-- WHEN an old client requests the index from a new server
-- THEN it receives the legacy shape.
-- WHEN the new client receives a legacy index from an old server
-- THEN it renders the original groups without losing works.
+- WHEN the client and server timeline revisions differ or the required revision is missing
+- THEN timeline/index access requests update or reload and no timeline mutation is accepted.
 
 ### Requirement: On-demand high-level publication
-The manager SHALL provide an additive `hive view work` interface that reads an explicitly bounded local source, freezes selected Markdown bytes and publishes through existing authenticated protocol v3 operations. It SHALL return compact confirmed results without requiring callers to author transport IDs, versions, hashes or request bodies. Existing low-level interfaces and the Markdown renderer SHALL remain compatible. Publication SHALL NOT start/restart a viewer or open a browser.
+
+The manager SHALL provide the existing additive hive view work semantic interface, reading explicitly bounded local sources, freezing selected Markdown and publishing through authenticated protocol v3 operations at matching timeline contract revision 2. It SHALL return compact confirmed results without callers authoring transport IDs, versions, hashes or request bodies. Existing low-level operation meanings, native payload identity and Markdown rendering SHALL be preserved after the coordinated update; operation against unmodified older server revisions SHALL not be promised. Publication SHALL NOT start/restart the viewer or open a browser.
 
 #### Scenario: Publish and revise a plan
-- WHEN the caller publishes a valid plan folder and later publishes its edited contents to the same work
-- THEN the viewer exposes two immutable revisions with the original bytes, and the CLI confirms the respective revision IDs.
+- WHEN a matching-revision caller publishes a valid plan folder and later its edited contents to the same work
+- THEN two immutable revisions retain original bytes and the CLI confirms their revision IDs.
 
 #### Scenario: Equal content and context
 - WHEN current remote content and semantic publication context match the requested set
-- THEN the command returns `unchanged` without remote mutation.
+- THEN the command returns unchanged without remote mutation.
 
 ### Requirement: Explicit work and directory bindings
 The manager SHALL bind canonical source directories to explicit work keys/IDs and actual native producers, without treating cwd, title or content hash as work identity. Distinct works in one native session SHALL remain separate. Listing/showing SHALL use existing read APIs and SHALL NOT create, reopen or mutate works. A changed binding SHALL require explicit bind with a reason, matching project/authority and no pending publication. Closed/deleted works SHALL not reopen through discovery, publication or technical recovery.
@@ -484,8 +496,33 @@ The manager SHALL accept structured task keys, titles, orders and stage segments
 - THEN the correct segment changes without requiring technical version fields, and work B in the same native session remains unaffected.
 
 ### Requirement: Bounded publication interface and compatibility
-Successful mutation responses SHALL fit 4096 UTF-8 bytes and SHALL not include full source documents or credentials. The work list SHALL provide bounded pages and honest missing-binding state. The high-level client SHALL function against the existing v3 server without a new endpoint or server inventory migration. Its compact contract and canonical procedure SHALL preserve publication timing, producer authority, human validation and evidence checks while delegating protocol bookkeeping to the binary.
 
-#### Scenario: Existing server and advanced client
-- WHEN the high-level client and existing low-level commands share an unmodified v3 server
-- THEN both operate on compatible work histories, publisher files remain outside viewer storage, and unsupported advanced operations retain their existing explicit interface.
+Successful mutation responses SHALL fit 4096 UTF-8 bytes without full source documents or credentials. The work list SHALL retain bounded pages and honest missing-binding state. High- and low-level clients SHALL share protocol v3 operation meanings at matching timeline contract revision 2; a coordinated update SHALL replace the prior requirement to operate against an unmodified older server. Publisher files SHALL remain outside viewer storage. The compact contract and canonical procedure SHALL preserve publication timing, producer authority, human validation and evidence checks while the binary owns bookkeeping. Native pending-operation identities/bytes and retained publication receipts SHALL survive the update for explicit resume.
+
+#### Scenario: Coordinated server and clients
+- WHEN high- and low-level clients use the matching upgraded server
+- THEN they operate on preserved work histories, keep publisher journals outside viewer storage and retain explicit interfaces for unsupported advanced operations.
+
+### Requirement: Durable closure-episode maintenance
+
+The store SHALL maintain bounded private policy metadata and truthful system provenance using its existing serialized durable-write/reconciliation path, without fabricating native or local_viewer actors or consuming an unbounded public event/receipt stream. Both automatic archival and its manual reversal SHALL have bounded capacity independent of saturated public event/publication-receipt budgets. At most 16 KiB additional private per-record maintenance capacity SHALL be reserved, inaccessible to content, including for valid legacy records already at former serialized limits. Public derived fields SHALL project canonical metadata rather than independently persist editable copies. Physical write failure or numeric version exhaustion SHALL leave the work visible and report maintenance failure instead of hiding work without safe reversal. Successful archive SHALL bump the optimistic work version once; repeated sweeps SHALL be no-ops. Uncertain persistence SHALL NOT be reported confirmed and SHALL reconcile before further maintenance.
+
+Existing records SHALL recover the current explicit closure time from server-recorded transitions or closure receipts after any reopen. An unprovable time SHALL remain unknown and receive a full two-hour window from the first durably recorded eligibility evaluation; restarts SHALL NOT extend that window. Prior manual restore/pin choices SHALL be honored. Malformed records SHALL fail explicitly without destructive defaulting.
+
+#### Scenario: Unknown old closure date
+- WHEN an existing closed work has no provable closure timestamp
+- THEN closed_at remains null, eligibility starts once on durable initialization, and restarts retain that same deadline.
+
+### Requirement: Coordinated timeline contract revision
+
+The upgraded server, CLI and UI SHALL require timeline contract revision 2 while preserving schema/storage version 3 identities and all existing evidence. Matching revision SHALL be acknowledged before upgraded clients write; old or missing revisions SHALL receive a safe actionable update/reload error before timeline mutations. No simultaneous old-client projection SHALL be required. Bootstrap/authentication and existing file-capability reads SHALL retain their access protections.
+
+The shared session/index projection SHALL expose required last_activity_at, nullable closed_at and autoarchive_at, and nullable archive_origin limited to manual/automatic. Stored-read normalization SHALL accept valid pre-policy records without weakening strict public validation. Contract mismatch SHALL preserve publisher journal inputs, operation identity and stored receipts; it SHALL NOT trigger automatic replay, request replacement or deletion.
+
+#### Scenario: Old tab or CLI
+- WHEN an outdated client attempts a timeline mutation
+- THEN the server requests update/reload before writing, and the pending operation/input remains available for explicit recovery with the upgraded client.
+
+#### Scenario: Upgraded client against old server
+- WHEN the server does not acknowledge the new contract revision
+- THEN the upgraded client refuses mutation before sending a write.
