@@ -461,7 +461,7 @@ var locatableBodyCodes = map[string]bool{"unknown_field": true, "invalid_fields_
 
 // identifierName is an unknown field name safe to echo: it looks like a field
 // of the contract, not like arbitrary received text.
-var identifierName = regexp.MustCompile(`^[a-z][a-z0-9_]{0,39}$`)
+var identifierName = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9_]{0,39}$`)
 
 // decodeViewWorkJSON decodes with the closed decoder of the viewer. When it
 // refuses, it walks the input to find the first field at fault, so the error
@@ -476,6 +476,15 @@ func decodeViewWorkJSON(raw []byte, target any, root string) error {
 	// Only a refusal about the fields can be located. A syntax, size, encoding
 	// or duplicate-key refusal is reported as the viewer states it.
 	locatable := !isContract || contract.Field != "body" || locatableBodyCodes[contract.Code]
+	if locatable && !json.Valid(raw) {
+		// The viewer can refuse a null before it reaches a syntax error or
+		// trailing data; report the syntax, never a located field.
+		var first any
+		if json.NewDecoder(strings.NewReader(string(raw))).Decode(&first) == nil {
+			return faultf("body", "trailing data")
+		}
+		return faultf("body", "invalid json")
+	}
 	if locatable {
 		if path, rule, found := locateJSONFault(raw, reflect.TypeOf(target).Elem(), root); found {
 			return faultf(path, rule)

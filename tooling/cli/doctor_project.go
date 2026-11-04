@@ -115,7 +115,7 @@ func otherTrackerFindings(value string) (texts []string, declared map[string]boo
 	return texts, declared
 }
 
-// completionFindings checks each `; `-separated Completion value on its own
+// completionFindings checks each `;`-separated Completion value on its own
 // and returns the finding texts (without the key).
 func completionFindings(value string, declared map[string]bool) (texts []string) {
 	seen := map[string]bool{}

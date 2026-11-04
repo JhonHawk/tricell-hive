@@ -215,7 +215,11 @@ func TestViewWorkJSONErrorsReviewRound(t *testing.T) {
 		{"assignee bad session", register, `[` + withAssignee(`{"host":"codex","native_session_id":"a b"}`) + `]`, "tasks[0].segments[0].assignee.native_session_id: native id required", ""},
 		{"metadata assignee bad host", update, `{"stage":"build","plan_revision":"revision-one","assignee":{"host":"nowhere","native_session_id":"s1"}}`, "metadata.assignee.host: unsupported host", "invalid native source"},
 		{"unknown name that is not an identifier", register, `[` + strings.Replace(task, `"order":1,`, `"order":1,"LEAKED value!":1,`, 1) + `]`, "tasks[0]: unknown field", "LEAKED"},
-		{"unknown name with a control character", register, `[` + strings.Replace(task, `"order":1,`, `"order":1,"x\u001by":1,`, 1) + `]`, "tasks[0]: unknown field", "x"},
+		{"unknown name with a control character", register, `[` + strings.Replace(task, `"order":1,`, `"order":1,"x\u001by":1,`, 1) + `]`, "tasks[0]: unknown field", "\x1b"},
+		{"truncated after null", register, `[null`, "body: invalid json", "wrong type"},
+		{"trailing data after null", register, `[null] x`, "body: trailing data", "wrong type"},
+		{"metadata truncated after null", update, `{"title":null`, "body: invalid json", "wrong type"},
+		{"camelCase unknown name is named", update, `{"stage":"build","planRevision":"r"}`, "metadata.planRevision: unknown field", ""},
 		{"unknown identifier name is named", register, `[` + strings.Replace(task, `"order":1,`, `"order":1,"extra_field":1,`, 1) + `]`, "tasks[0].extra_field: unknown field", ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

@@ -386,7 +386,7 @@ func TestProjectViewFormCompletionIsTextWithAPlaceholderFromEnvironments(t *test
 	d.mustShow("- Completion: To Deploy on origin/development · Done on origin/qa")
 }
 
-func TestProjectViewFormOtherTrackersIsTextWithItsShapeAsHelpAndWritesAfterTracker(t *testing.T) {
+func TestProjectViewFormOtherTrackersIsTextWithItsShapeAsHelp(t *testing.T) {
 	root := formRepo(t)
 	_, d, _ := openForm(t, root, 120, 40)
 	d.mustShow("Other trackers", "<tool> · <location> · keys <PREFIX>[, <PREFIX>]")
