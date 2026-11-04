@@ -3,7 +3,7 @@ title: Deploy
 description: Promote an integrated change through your environments and check what is actually being served.
 ---
 
-Deploy is a stage of its own, after the change is integrated. One run can carry several tickets and moves them through the environments your repository declares in its `## Hive` section, one at a time and in order.
+Deploy is a stage of its own, after the change is integrated. One run can carry several tickets and moves them through the environments your repository declares in its `## Hive` section, one at a time and in order; each ticket moves in the tracker its key belongs to.
 
 ## When to use
 

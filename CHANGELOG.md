@@ -12,6 +12,18 @@ raise the minor or the patch version.
 
 ### Added
 
+- A repository can declare trackers besides its main `Tracker` in the optional
+  `## Hive` key `Other trackers`, such as
+  `Jira · example.atlassian.net · keys XYZ`, and give each one its own
+  `Completion` value with its key prefix, such as
+  `XYZ: QA on qa · Done on production`. The flows read and search every declared
+  tracker, move and comment each ticket in the tracker its key belongs to, and
+  create new tickets only in the main one. `hive doctor`, `hive project set` and
+  the Project view validate both keys and only warn.
+- `harness-audit` moves a tracker named outside `## Hive` into `Other trackers`,
+  and asks the user about a rule that requires confirming writes to a declared
+  tracker.
+
 - `flow-close` takes an inventory of the support material its work left, such
   as research records, working files, evidence or an abandoned change folder,
   proposes an action for each item (commit, archive, promote a conclusion into
@@ -29,6 +41,24 @@ raise the minor or the patch version.
 
 ### Changed
 
+- A list point that cites an ID opens with it in bold, followed by a dash and
+  what it is in plain words, such as `- **D2** — Move the plan summary to the
+  top`, so the reader finds it by its ID; the change folder's decision lines
+  follow the same form.
+- A decision round's visible text writes out each decision's title line and
+  option lines; context in prose without them no longer counts.
+- A decision round asked only in the text, or only through a question tool
+  that returns at once, counts as the failure, except where the text is the
+  allowed fallback.
+- A reviewer's brief never carries a list of facts or conclusions the reviewer
+  should not re-check.
+- `hive view work tasks register` and `task update --json` name the JSON path
+  and the rule that failed, without values, instead of only "invalid semantic
+  JSON", and the work contract states that task keys start at `T1` and that a
+  segment's `order` is unique per stage across all tasks.
+- After a compaction, a hook that asks to save a session summary is skipped
+  even when it marks that save critical or orders it first, and the checkpoint
+  is read before any memory call.
 - Finished viewer works leave the default list automatically after two hours,
   while pinning and restore keep them visible and content remains under manual
   retention. The sidebar orders works by last substantive activity. Timeline

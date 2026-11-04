@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 )
@@ -124,5 +125,111 @@ func TestViewWorkMutationOutputBound(t *testing.T) {
 	out.Reset()
 	if err := writeViewWorkResult(&out, viewWorkResult{WorkID: strings.Repeat("a", 64), Result: strings.Repeat("x", 4096), SessionVersion: 3}); err == nil || out.Len() != 0 {
 		t.Fatal("oversize success emitted")
+	}
+}
+
+// The error of a rejected --json names the path and the rule, never a value.
+func TestViewWorkJSONErrorsNameThePathAndTheRule(t *testing.T) {
+	id := strings.Repeat("a", 64)
+	source := []string{"--host", "codex", "--native-session-id", "session-one"}
+	task := func(key string, order int, stage string, segOrder int) string {
+		return fmt.Sprintf(`{"key":%q,"title":"Build","summary":"Behavior","order":%d,"segments":[{"stage":%q,"order":%d}]}`, key, order, stage, segOrder)
+	}
+	register := append([]string{"tasks", "register", "--work-id", id, "--plan-revision", "revision-one", "--json", "-"}, source...)
+	update := append([]string{"task", "update", "--work-id", id, "--key", "T1", "--reason", "Update", "--json", "-"}, source...)
+	for _, tc := range []struct {
+		name string
+		args []string
+		raw  string
+		want string
+	}{
+		{"duplicate key", register, "[" + task("T1", 1, "build", 1) + "," + task("T1", 2, "build", 2) + "]", "tasks[1].key: duplicate task key"},
+		{"duplicate plan order", register, "[" + task("T1", 1, "build", 1) + "," + task("T2", 1, "build", 2) + "]", "tasks[1].order: duplicate plan order"},
+		{"segment order repeated across tasks", register, "[" + task("T1", 1, "build", 1) + "," + task("T2", 2, "build", 1) + "]", "tasks[1].segments[0].order: duplicate stage order"},
+		{"T0 key", register, "[" + task("T0", 1, "build", 1) + "]", "tasks[0].key: invalid key"},
+		{"unknown stage", register, "[" + task("T1", 1, "deploy", 1) + "]", "tasks[0].segments[0].stage: invalid stage"},
+		{"zero segment order", register, "[" + task("T1", 1, "build", 0) + "]", "tasks[0].segments[0].order: invalid positive integer"},
+		{"empty list", register, "[]", "tasks: invalid task count"},
+		{"unknown task field", register, `[` + strings.Replace(task("T1", 1, "build", 1), `"order":1,`, `"order":1,"extra":"LEAKED-VALUE",`, 1) + `]`, "tasks[0].extra: unknown field"},
+		{"unknown segment field", register, `[` + strings.Replace(task("T1", 1, "build", 1), `"stage":"build"`, `"stage":"build","extra":"LEAKED-VALUE"`, 1) + `]`, "tasks[0].segments[0].extra: unknown field"},
+		{"missing summary", register, `[` + strings.Replace(task("T1", 1, "build", 1), `"summary":"Behavior",`, "", 1) + `]`, "tasks[0].summary: required field"},
+		{"wrong type", register, `[` + strings.Replace(task("T1", 1, "build", 1), `"order":1`, `"order":"LEAKED-VALUE"`, 1) + `]`, "tasks[0].order: wrong type"},
+		{"null field", register, `[` + strings.Replace(task("T1", 1, "build", 1), `"summary":"Behavior"`, `"summary":null`, 1) + `]`, "tasks[0].summary: null not allowed"},
+		{"second task wrong type", register, "[" + task("T1", 1, "build", 1) + "," + strings.Replace(task("T2", 2, "build", 2), `"order":2`, `"order":true`, 1) + "]", "tasks[1].order: wrong type"},
+		{"duplicate JSON field", register, `[{"key":"T2",` + task("T1", 1, "build", 1)[1:] + `]`, "body: duplicate key"},
+		{"metadata unknown field", update, `{"bogus":"LEAKED-VALUE"}`, "metadata.bogus: unknown field"},
+		{"metadata wrong type", update, `{"title":5}`, "metadata.title: wrong type"},
+		{"metadata invalid stage", update, `{"stage":"deploy","plan_revision":"revision-one"}`, "metadata.stage: invalid stage"},
+		{"metadata order without reference", update, `{"order":2}`, "metadata.order: plan order update requires confirmed plan or decision reference"},
+		{"metadata empty title", update, `{"title":"  "}`, "metadata.title: invalid text"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := parseViewWorkCommand(tc.args, strings.NewReader(tc.raw))
+			if err == nil || !strings.HasPrefix(err.Error(), "invalid_input: invalid semantic JSON: ") || !strings.Contains(err.Error(), tc.want) {
+				t.Fatalf("error %v, want invalid_input naming %q", err, tc.want)
+			}
+			if strings.Contains(err.Error(), "LEAKED-VALUE") {
+				t.Fatalf("the error repeats a received value: %v", err)
+			}
+			if !strings.Contains(err.Error(), "hive view work contract") {
+				t.Fatalf("the error lost the contract suggestion: %v", err)
+			}
+		})
+	}
+}
+
+func TestViewWorkContractDocumentsThePathConventionAndTwoRules(t *testing.T) {
+	for _, want := range []string{"tasks[<i>].<field>", "metadata.<field>", "T0 is rejected", "unique per stage across all tasks"} {
+		if !strings.Contains(viewWorkContract, want) {
+			t.Errorf("contract lacks %q", want)
+		}
+	}
+}
+
+// Review round: syntax errors, null elements, assignee paths and unknown names.
+func TestViewWorkJSONErrorsReviewRound(t *testing.T) {
+	id := strings.Repeat("a", 64)
+	source := []string{"--host", "codex", "--native-session-id", "session-one"}
+	task := `{"key":"T1","title":"Build","summary":"Behavior","order":1,"segments":[{"stage":"build","order":1}]}`
+	register := append([]string{"tasks", "register", "--work-id", id, "--plan-revision", "revision-one", "--json", "-"}, source...)
+	update := append([]string{"task", "update", "--work-id", id, "--key", "T1", "--reason", "Update", "--json", "-"}, source...)
+	withAssignee := func(a string) string {
+		return strings.Replace(task, `"stage":"build"`, `"stage":"build","assignee":`+a, 1)
+	}
+	for _, tc := range []struct {
+		name string
+		args []string
+		raw  string
+		want string
+		not  string
+	}{
+		{"trailing comma", register, `[` + task + `,]`, "body: invalid json", "wrong type"},
+		{"missing comma", register, `[` + task + task + `]`, "body: invalid json", "wrong type"},
+		{"trailing data", register, `[` + task + `] x`, "body: trailing data", "wrong type"},
+		{"truncated", register, `[` + task, "body: invalid json", "wrong type"},
+		{"metadata truncated", update, `{"title":`, "body: invalid json", "wrong type"},
+		{"invalid UTF-8", register, "[" + strings.Replace(task, "Build", "B\xffd", 1) + "]", "body: invalid size or encoding", "tasks["},
+		{"null element", register, `[null]`, "tasks[0]: null not allowed", "required field"},
+		{"null second element", register, `[` + task + `,null]`, "tasks[1]: null not allowed", "required field"},
+		{"assignee bad host", register, `[` + withAssignee(`{"host":"nowhere","native_session_id":"s1"}`) + `]`, "tasks[0].segments[0].assignee.host: unsupported host", "invalid native source"},
+		{"assignee bad session", register, `[` + withAssignee(`{"host":"codex","native_session_id":"a b"}`) + `]`, "tasks[0].segments[0].assignee.native_session_id: native id required", ""},
+		{"metadata assignee bad host", update, `{"stage":"build","plan_revision":"revision-one","assignee":{"host":"nowhere","native_session_id":"s1"}}`, "metadata.assignee.host: unsupported host", "invalid native source"},
+		{"unknown name that is not an identifier", register, `[` + strings.Replace(task, `"order":1,`, `"order":1,"LEAKED value!":1,`, 1) + `]`, "tasks[0]: unknown field", "LEAKED"},
+		{"unknown name with a control character", register, `[` + strings.Replace(task, `"order":1,`, `"order":1,"x\u001by":1,`, 1) + `]`, "tasks[0]: unknown field", "\x1b"},
+		{"truncated after null", register, `[null`, "body: invalid json", "wrong type"},
+		{"trailing data after null", register, `[null] x`, "body: trailing data", "wrong type"},
+		{"metadata truncated after null", update, `{"title":null`, "body: invalid json", "wrong type"},
+		{"camelCase unknown name is named", update, `{"stage":"build","planRevision":"r"}`, "metadata.planRevision: unknown field", ""},
+		{"unknown identifier name is named", register, `[` + strings.Replace(task, `"order":1,`, `"order":1,"extra_field":1,`, 1) + `]`, "tasks[0].extra_field: unknown field", ""},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := parseViewWorkCommand(tc.args, strings.NewReader(tc.raw))
+			if err == nil || !strings.Contains(err.Error(), "invalid semantic JSON: "+tc.want) {
+				t.Fatalf("error %v, want %q", err, tc.want)
+			}
+			if tc.not != "" && strings.Contains(err.Error(), tc.not) {
+				t.Fatalf("error %v must not contain %q", err, tc.not)
+			}
+		})
 	}
 }

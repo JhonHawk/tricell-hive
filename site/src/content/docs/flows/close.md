@@ -23,7 +23,7 @@ At the completion point it updates and reads back the viewer record when there i
 
 ## What it produces
 
-- The ticket moved to the state your project uses for integrated work, and the change record folded into the project's current requirements and archived.
+- The ticket moved to the state your project uses for integrated work, in the tracker its key belongs to, and the change record folded into the project's current requirements and archived.
 - Merged branches and their clean working copies removed, temporary files deleted, the processes stopped, and the containers it started (with their volumes) and the images it built removed. A dump or export it made is listed and removed only if you say so. Resources it created outside your machine, such as storage objects or registry images, are listed with the command that removes each, and removed only if you say so. Anything with uncommitted work or uncertain ownership is kept.
 - The work's support material handled as you answered: what you chose to commit, archive or move into the documentation is committed with the archived change record, or in a commit of their own on a new branch when there is none, delivered the way the work was; what you chose to keep stays where it is, moved out of a temporary working copy into your main checkout before that copy is removed.
 - What the work leaves open on purpose, such as a measurement over later CI runs or a later phase, written as a comment on the ticket and as one `Pending:` record in persistent memory that [Status](/flows/status/) lists. A promotion along your environments is not recorded this way, since the ticket's state already shows it. Each later close updates the records that name its ticket and deletes one with nothing left open.

@@ -619,8 +619,11 @@ func (v *projectView) formView(c viewCtx) string {
 		if f.isText(i) {
 			applyInputStyles(&f.inputs[i], th)
 		}
-		if name == "Completion" {
+		switch name {
+		case "Completion":
 			f.inputs[i].Placeholder = completionPlaceholder(f.value(slices.Index(f.names, "Environments")))
+		case "Other trackers":
+			f.inputs[i].Placeholder = otherTrackersShape
 		}
 		prefix := "  "
 		if i == f.row {
