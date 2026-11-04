@@ -25,7 +25,7 @@ A child does the work for the first of these reasons that applies; when neither 
 
 ## Every child
 
-- Brief it with the decision its result informs, what it covers (its aspects, targets or task), what is already settled, and when to stop; a role that names its own inputs, such as `hive-verify-task` (the change folder, the task ID and the diff base), also gets those. A reviewer's brief follows [Reviewer brief](#reviewer-brief) instead, with nothing settled about the work it reviews.
+- Brief it with the decision its result informs, what it covers (its aspects, targets or task), what is already settled, and when to stop; a role that names its own inputs, such as `hive-verify-task` (the change folder, the task ID and the diff base), also gets those. A reviewer's brief follows [Reviewer brief](#reviewer-brief) instead, with nothing settled about the work it reviews. Any child that signs in, reviewer or not, also gets the rows of the accounts it uses, as the global guidance's «Test accounts» sets.
 - Wait for children with the host's wait tool, which returns when a child finishes or sends a message; never with a loop of sleeps and status checks.
 - A child does not commit; the main thread checks the evidence it returns, not its assertions, before using it, and owns the commits.
 
@@ -35,8 +35,7 @@ Give a reviewer what it needs to judge the work and nothing that argues for it:
 
 - the artifact: the diff, the plan files or the captures;
 - the requirements it must meet: the request, the ticket's criteria and the acceptance criteria;
-- the output of the checks already run, as their commands and results;
-- for a reviewer that signs in, the rows of the accounts it uses, as the global guidance's «Test accounts» sets.
+- the output of the checks already run, as their commands and results.
 
 Never include the producer's reasoning, its account of why the work is right, or a claim such as "verified" or "tests pass" without its output, since a framing that the work is correct lowers what a reviewer finds. A UX reviewer covers the regions the change alters and their possible impact on the layouts and other components that contain or reuse them, such as containers, lists, dialogs and shared components, measured and exercised on the captures in its brief.
 
