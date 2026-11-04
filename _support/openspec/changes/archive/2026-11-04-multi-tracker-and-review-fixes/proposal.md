@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Completado en la rama · sin integrar a development |
+| Estado | Completado · integrado en development (PR #361, b37ad0c9) y desplegado |
 | Tracker | ninguno |
 | Git | tricell-hive · rama `feat/gh-311-minimal-research-entry` sobre `origin/development` 048ad0c3 con `4a6b0ea6` (IDs al frente, rondas visibles, compactación) sin integrar |
 
