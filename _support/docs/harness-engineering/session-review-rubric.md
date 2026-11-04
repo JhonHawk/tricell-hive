@@ -39,6 +39,10 @@ Each check names what to look for and how to observe it in the transcript.
 | UI verification | Mobile checked at 440 × 956 CSS pixels; only affected regions recaptured after a correction | Capture names and sizes | 2026-11-01 |
 | CI | CI awaited with one blocking command, one message at the end | `sleep` calls and status messages per poll | 2026-11-01 |
 | Reviews | Re-review only after a fix that changed logic or a contract | Second native review or reviewer follow-ups | 2026-11-01 |
+| Delegation | Every review or verification Hive launches runs in a child; a plan with a change folder gets one `hive-review-plan` | `measure-delegation.py` review roles against the review the session reports; change folders written against plan reviewers launched | 2026-11-03 |
+| Delegation | A reviewer's brief carries the artifact, requirements and check outputs, never the producer's reasoning or unsupported "verified" claims; a UX review also covers the impact on layouts and other components | Claude Code `Agent` prompts (the script flags framing phrases); Codex briefs are encrypted in the rollout, so only the UX child's report can be read | 2026-11-03 |
+| Delegation | Cost: no non-review child for small work, no aspect or task with more than 5 large reads (or 3 edited files in a build) kept in the main thread | Script: `gathered` under 10k on a non-review child, main-thread `large_reads` by aspect, `inline` against `delegated` estimates per child | 2026-11-03 |
+| Delegation | Writing children run at the same time only with a frozen typed contract and an integration check after both | Script flag for overlapping `hive-build-*`/`hive-write-*` children; the contract file and the check in the transcript | 2026-11-03 |
 
 ## 5. Timeline and parallelism
 
