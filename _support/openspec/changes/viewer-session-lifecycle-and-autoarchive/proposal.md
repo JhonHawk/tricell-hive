@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Verified locally · T1–T5 complete; dependency publication route pending |
+| Status | Verified locally · T1–T5 complete; publishing and integrating authorized |
 | Tracker | None; creating a ticket is outside this plan |
 | Git | tricell-hive; base `development` at observed `2765624b`; prerequisite candidate PR #352 at `8a04118d` |
 | Viewer | Work `d175931f5bfa5078e1c87da68b2ee6c74fcc6148142a4d47e606cf175131e6b6`; native Codex session `01a1a55e-9a93-77e0-9237-dc4758e6e4da` |
@@ -20,6 +20,7 @@
 - How is the built change delivered? Ready: publish the reviewed candidate as a non-draft PR, wait for checks and answer reviews, then leave merging to the user. (D7 B)
 - Which candidate code review runs? Native: Codex /review, in an independent context; the project's Claude Code preference is unavailable as a native mechanism on this host. (D8 A)
 
+- How is the dependency published and integrated? D10 A authorizes a dependent PR on #352, and the user explicitly requests integrating both changes into development. Retarget the viewer PR after #352 merges; do not promote master.
 - May implementation use the still-open prerequisite candidate? Yes: build on `8a04118d`; preserve #352 and resolve its foreign commits before publication if it remains unmerged. (D9 B)
 
 ## Request
