@@ -24,13 +24,14 @@ raise the minor or the patch version.
 ### Changed
 
 - Every flow delegates by one criterion, kept in
-  `flow-build/references/delegation.md`: the reviews Hive launches always run in a child,
-  briefed with the artifact, the requirements and check outputs but never
-  the producer's reasoning; independent work runs in parallel children,
-  and writes only against a frozen typed contract with an integration check
-  after; other work goes to a child only when it is large (more than five
-  large reads, or in a build more than three edited files). `global.md`
-  defines a large read and one list of risky changes (#311).
+  `flow-build/references/delegation.md`: the reviews Hive launches always
+  run in a child, briefed with the artifact, the requirements and check
+  outputs but never the producer's reasoning; other work goes to a child
+  only when it is large (more than five large reads, or in a build more than
+  three edited files). Read-only children run side by side; children that
+  write do so only against a frozen typed contract with an integration check
+  after. `global.md` defines a large read and one list of risky changes
+  (#311).
 - `hive-review-plan` reviews every plan with a change folder, and the UX
   reviewer also covers how the changed regions affect the layouts and
   components around them (#311).
