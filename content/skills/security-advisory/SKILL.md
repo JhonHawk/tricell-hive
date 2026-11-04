@@ -9,14 +9,14 @@ Answer "does this advisory affect us, and where?" with evidence for each reposit
 
 ## Frame the sweep
 
-Before delegating, read [flow-research step 4](../flow-research/SKILL.md). Requests to advisory databases, registries and search engines follow the global rule on requests to third-party services: send advisory IDs and public package names, never the name of a repository, client or private package.
+Before delegating, read [delegation](../flow-build/references/delegation.md). Requests to advisory databases, registries and search engines follow the global rule on requests to third-party services: send advisory IDs and public package names, never the name of a repository, client or private package.
 
 1. **Read each advisory from a primary source**: the vendor's or project's advisory, GHSA, OSV, NVD, or the CISA KEV catalog for exploitation in the wild. Record its ID, product and ecosystem, affected and fixed versions, any mitigation, the conditions it needs (platform, feature, configuration), its severity, and whether it is exploited. Mark a fact you found only in secondary reporting, and say so in any verdict that rests on it.
 2. **Resolve the scope**: the repositories or folders the user names. When the user names none, ask. Reading other projects for this sweep is allowed, as the global rule on changing only the current project sets.
 
 ## Collect the evidence
 
-3. **Inventory each repository.** Delegate the sweep to `hive-research` children as [flow-research step 4](../flow-research/SKILL.md) sets. Give the inventory, yours or each child's, these instructions together with the advisory facts from step 1:
+3. **Inventory each repository.** Delegate the sweep to `hive-research` children as [delegation](../flow-build/references/delegation.md) sets. Give the inventory, yours or each child's, these instructions together with the advisory facts from step 1:
    - For each repository and application, record the current branch, because only the working tree is read.
    - Record the version the lockfile resolves, not the manifest range, with its `path:line`.
    - When the advisory affects a runtime, record its pins: `.nvmrc`, `.node-version`, `engines`, Dockerfile base images, CI and hosting build settings.
