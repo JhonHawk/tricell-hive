@@ -11,7 +11,7 @@ A UI change's `hive-review-ux` child SHALL receive, with the walk's captures, th
 - **GIVEN** a UI change whose error state needs a fixture the brief does not provide
 - **WHEN** the UX reviewer cannot reach that state
 - **THEN** it lists the state as not covered with what blocked it, and its verdict covers the reviewed states
-- **AND** the producer covers that state in its own walk or reports it as not checked, in the validation round or, when the delivery does not stop for validation, in the final report
+- **AND** the producer covers that state in its own walk or reports it as not verified, in the validation round or, when the delivery does not stop for validation, in the final report
 
 #### Scenario: Defect already there
 

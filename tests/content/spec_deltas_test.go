@@ -25,14 +25,22 @@ type deltaBlock struct {
 	Block string
 }
 
-// latestDelta is the most recent archived delta of one requirement. SameDate
-// holds the deltas of other folders closed the same day, whose order the folder
-// names do not fix.
+// latestDelta is the most recent archived delta of one requirement. Candidates
+// holds it and the last delta of each other folder closed the same day, whose
+// order the folder names do not fix; within one folder the last block wins.
 type latestDelta struct {
 	Capability string
 	Folder     string
 	deltaBlock
-	SameDate []deltaBlock
+	Candidates []deltaBlock
+}
+
+// satisfiedBy reports whether a spec block, present or not, agrees with delta b.
+func satisfiedBy(b deltaBlock, current string, present bool) bool {
+	if b.Op == "REMOVED" {
+		return !present
+	}
+	return present && normalizeBlock(current) == normalizeBlock(b.Block)
 }
 
 // closingDate is the date prefix (YYYY-MM-DD) of an archive folder name.
@@ -133,11 +141,16 @@ func collectLatestDeltas(root string) ([]latestDelta, error) {
 		capability := filepath.Base(capDir)
 		folder := filepath.Base(filepath.Dir(filepath.Dir(capDir)))
 		for _, b := range parseDeltaBlocks(string(data)) {
-			d := latestDelta{Capability: capability, Folder: folder, deltaBlock: b}
+			d := latestDelta{Capability: capability, Folder: folder, deltaBlock: b, Candidates: []deltaBlock{b}}
 			key := capability + "/" + b.Name
 			if i, ok := index[key]; ok {
-				if prev := out[i]; closingDate(prev.Folder) == closingDate(folder) {
-					d.SameDate = append(prev.SameDate, prev.deltaBlock)
+				prev := out[i]
+				switch {
+				case prev.Folder == folder:
+					// A later block of the same folder replaces the earlier one.
+					d.Candidates = append(prev.Candidates[:len(prev.Candidates)-1:len(prev.Candidates)-1], b)
+				case closingDate(prev.Folder) == closingDate(folder):
+					d.Candidates = append(append([]deltaBlock{}, prev.Candidates...), b)
 				}
 				out[i] = d
 				continue
@@ -203,7 +216,14 @@ func checkSpecDeltas(root string) ([]string, error) {
 		}
 		where := fmt.Sprintf("%s/specs/%s/spec.md: requirement %q (%s in %s/changes/archive/%s)", openspecDisplay, d.Capability, d.Name, d.Op, openspecDisplay, d.Folder)
 		current, present := blocks[d.Name]
-		if matchesSameDate(d.SameDate, current, present) {
+		matched := false
+		for _, b := range d.Candidates {
+			if satisfiedBy(b, current, present) {
+				matched = true
+				break
+			}
+		}
+		if matched {
 			continue
 		}
 		switch {
@@ -217,23 +237,6 @@ func checkSpecDeltas(root string) ([]string, error) {
 		}
 	}
 	return failures, nil
-}
-
-// matchesSameDate reports whether the current spec block agrees with one of the
-// same-day deltas that the latest folder name may not actually follow.
-func matchesSameDate(sameDate []deltaBlock, current string, present bool) bool {
-	for _, b := range sameDate {
-		if b.Op == "REMOVED" {
-			if !present {
-				return true
-			}
-			continue
-		}
-		if present && normalizeBlock(current) == normalizeBlock(b.Block) {
-			return true
-		}
-	}
-	return false
 }
 
 func writeTreeFile(t *testing.T, root, rel, content string) {
@@ -365,6 +368,27 @@ func TestSpecDeltaSameDateAcceptsEitherDelta(t *testing.T) {
 	// An earlier date still loses to a later one.
 	files["changes/archive/2025-12-31-z/specs/cap/spec.md"] = "## MODIFIED Requirements\n\n### Requirement: Alpha\nThird.\n"
 	wantOneFailure(t, runSpecDeltaCheck(t, files), "Alpha", "2026-01-01-b", "DIFFERS")
+
+	// A same-day REMOVED counts as one of the candidates.
+	removed := map[string]string{
+		"changes/archive/2026-01-01-a/specs/cap/spec.md": "## REMOVED Requirements\n\n### Requirement: Alpha\nRetired.\n",
+		"changes/archive/2026-01-01-b/specs/cap/spec.md": "## MODIFIED Requirements\n\n### Requirement: Alpha\nSecond.\n",
+		"specs/cap/spec.md": specHeader + "### Requirement: Other\nOther.\n",
+	}
+	if got := runSpecDeltaCheck(t, removed); len(got) != 0 {
+		t.Fatalf("spec matching the same-date REMOVED reported: %q", got)
+	}
+	removed["specs/cap/spec.md"] = specHeader + "### Requirement: Alpha\nThird.\n"
+	wantOneFailure(t, runSpecDeltaCheck(t, removed), "Alpha", "2026-01-01-b", "DIFFERS")
+}
+
+// Within one folder the order is fixed, so its last block is the only candidate.
+func TestSpecDeltaSameFolderLastBlockWins(t *testing.T) {
+	got := runSpecDeltaCheck(t, map[string]string{
+		"changes/archive/2026-01-01-a/specs/cap/spec.md": "## REMOVED Requirements\n\n### Requirement: Alpha\nReplaced.\n\n## ADDED Requirements\n\n### Requirement: Alpha\nNew text.\n",
+		"specs/cap/spec.md": specHeader + "### Requirement: Other\nOther.\n",
+	})
+	wantOneFailure(t, got, "Alpha", "ADDED", "2026-01-01-a", "MISSING")
 }
 
 func TestSpecDeltaActiveChangeRequirementIsSkipped(t *testing.T) {

@@ -6,7 +6,7 @@ Cada comprobación `rg` se corre dos veces: sobre `git show 47362771:<path>`, do
 
 ### T1 — Rol `hive-review-ux`: estado no cubierto, seguimiento y veredicto
 
-- [ ] El paso 2 emite el veredicto solo sobre lo introducido, con la condición de «aprobado» y el caso sin estados revisados, y lleva los defectos previos a una lista aparte que no cambia el veredicto. El paso 3 trata el estado inalcanzable como «no cubierto» y el seguimiento como una revisión acotada de un solo mensaje. El paso 4 reporta el veredicto, los hallazgos introducidos, la lista de previos y la de no cubiertos.
+- [x] El paso 2 emite el veredicto solo sobre lo introducido, con la condición de «aprobado» y el caso sin estados revisados, y lleva los defectos previos a una lista aparte que no cambia el veredicto. El paso 3 trata el estado inalcanzable como «no cubierto» y el seguimiento como una revisión acotada de un solo mensaje. El paso 4 reporta el veredicto, los hallazgos introducidos, la lista de previos y la de no cubiertos.
 
 **Closes:** AC2, AC5, AC6
 
@@ -24,7 +24,7 @@ Cada comprobación `rg` se corre dos veces: sobre `git show 47362771:<path>`, do
 
 ### T2 — Brief del revisor UX, relectura en `flow-verify` y no cubiertos en el despliegue
 
-- [ ] El «Reviewer brief» pide los medios para alcanzar cada estado. `flow-verify` paso 3:
+- [x] El «Reviewer brief» pide los medios para alcanzar cada estado. `flow-verify` paso 3:
   - relee una corrección de un hallazgo UX con un seguimiento al mismo hijo, o con un hijo nuevo, y define la condición del hijo nuevo por capacidad;
   - da al hijo nuevo los hallazgos corregidos;
   - cubre o reporta cada «no cubierto», también cuando la entrega no se detiene.
@@ -47,7 +47,7 @@ Cada comprobación `rg` se corre dos veces: sobre `git show 47362771:<path>`, do
 
 ### T3 — Página del sitio, delta de especificación y CHANGELOG
 
-- [ ] `verify.md` describe los tres comportamientos. El delta de `workflow-lifecycle` añade el requisito de la revisión UX en una pasada. `CHANGELOG.md` añade su entrada bajo `[Unreleased]`.
+- [x] `verify.md` describe los tres comportamientos. El delta de `workflow-lifecycle` añade el requisito de la revisión UX en una pasada. `CHANGELOG.md` añade su entrada bajo `[Unreleased]`.
 
 **Closes:** AC7
 
@@ -67,7 +67,7 @@ Cada comprobación `rg` se corre dos veces: sobre `git show 47362771:<path>`, do
 
 ### T4 — Reparar `TestSpecDeltasApplied`, que ya falla en la base
 
-- [ ] El test vuelve a pasar en `development`. Hoy falla desde `bb61f71f` porque dos archivos del 2026-11-04 (`viewer-session-lifecycle-and-autoarchive` y `viewer-local-actions-cli`) modifican «Local viewer management actor». `sort.Strings` (`spec_deltas_test.go:113`) toma como último el que se cerró antes.
+- [x] El test vuelve a pasar en `development`. Hoy falla desde `bb61f71f` porque dos archivos del 2026-11-04 (`viewer-session-lifecycle-and-autoarchive` y `viewer-local-actions-cli`) modifican «Local viewer management actor». `sort.Strings` (`spec_deltas_test.go:113`) toma como último el que se cerró antes.
 
 **Closes:** ninguno: es un defecto que bloquea la verificación de este trabajo.
 
@@ -104,7 +104,18 @@ La entrega es automática (D4 A): no hay parada de validación humana. El mensaj
 
 ## Checkpoint
 
-- Etapa: verify, paso 1.
+- Etapa: verify, paso 3.
+- Primera revisión `/code-review` (high) sobre `b285fbf0`: 10 hallazgos.
+  - Corregidos (8):
+    - destino de los defectos previos sin parada de validación;
+    - el revisor nuevo de una relectura queda acotado;
+    - puntero desactualizado en `deployment-checks.md`;
+    - bloques de una misma carpeta tratados como del mismo día (regresión `TestSpecDeltaSameFolderLastBlockWins`, que falla en `cd6e954a`);
+    - caso REMOVED del mismo día sin test;
+    - candidatos unificados en una sola lista;
+    - «not checked» por «not verified» en el delta;
+    - casillas de tareas.
+  - No se corrigen (2): la tolerancia a deltas del mismo día debilita el chequeo para esos pares, y la causa de fondo es que los nombres de las carpetas archivadas no dan el orden dentro de un día. Era la decisión menor del plan; se reporta en el cierre.
 - Rama: `fix/ux-review-loop` en el worktree `.claude/worktrees/ux-review-loop`.
 - Visor: work `57e0a35a…`, con la etapa build en curso.
-- Siguiente: suite completa, `/code-review` (D5 A), push, PR, CI y merge (D4 A) y, después, `flow-close`.
+- Siguiente: segunda revisión acotada a las correcciones, push, PR, CI y merge (D4 A) y, después, `flow-close`.
