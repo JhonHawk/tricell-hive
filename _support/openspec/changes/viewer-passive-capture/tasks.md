@@ -324,5 +324,5 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 
 - Etapa: build; hechas T0–T5 (T4 `2961800a`, corrección de T5 `bf744a06`); en curso: T6 y la verificación de T4.
 - Visor: trabajo `50457f3803d3122ef9c5294ee314a04b7caa03a46924c73bd3ea949a081b4a30`, etapa build `event-0031e0d2ade9120dcd2f535d5f41f8b3`, tareas registradas con la revisión `revision-69dbb00740f6bd76e426531cdab267a0` (la tarea T0 del plan es la clave `T11` en el visor, que no admite `T0`).
-- Hallazgos abiertos: ninguno (los P2 y P3 de la verificación de T2 están corregidos en `838f897f`, sin una segunda verificación).
+- Hallazgos abiertos: verificación de T4 — F1 (reabrir con el visor caído deja dos trabajos actuales), F2 (la entrada encolada de otra sesión bloquea el trabajo), F3 (un rechazo en el envío deja `pending_operation`), F4 (los locks no se borran), F5 (crecimiento del journal y reserva entre procesos). Se corrigen después de integrar T6, que toca la misma zona. F6 (texto de la spec) corregido.
 - Siguiente: integrar T6, después T7, T8, T9 y T10.
