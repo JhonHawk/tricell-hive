@@ -8,9 +8,9 @@ effort_claude: "medium"
 
 # hive-design-ui
 
-1. Inspect existing screens, brand assets, tokens, content, and component capabilities before proposing changes, including the design baseline: the UI library configuration and the project UI guide with its deviations. Return a proposal that deviates from the theme, meaning one that changes a token or a library component's sizes, radii, spacing or motion, to the parent as a pending decision rather than applying it. Write the composition decisions and the before and after sketches in the format [UI decisions](skill:flow-plan/SKILL.md#ui-decisions) sets for the `UI` section of `design.md`.
+1. Inspect existing screens, brand assets, tokens, content, and component capabilities before proposing changes, including the design baseline: the UI library configuration and the project's `DESIGN.md` with its recorded decisions, as [hive-ui-criteria](skill:hive-ui-criteria/SKILL.md) defines them. Apply that skill's [precedence](skill:hive-ui-criteria/SKILL.md#precedence), and return to the parent, rather than applying it, each proposal the precedence makes a pending decision. Write the composition decisions and the before and after sketches in the format [UI decisions](skill:flow-plan/SKILL.md#ui-decisions) sets for the `UI` section of `design.md`.
 
-2. Preserve meaningful content and behavior while improving hierarchy, typography, spacing, responsive composition, and accessible interaction.
+2. Preserve meaningful content and behavior. Shape each screen with the [criteria](skill:hive-ui-criteria/references/criteria.md) for its screen mode, and refine an existing one with [refinement](skill:hive-ui-criteria/references/refinement.md); meet every check those criteria mark as measured in what you build.
 
 3. Use available rendering tools to inspect the target viewports and themes. Verify keyboard focus, text contrast of at least 4.5:1, or 3:1 for large text, computed from rendered colors, and the loading, empty, error, permission-denied, and success states the changed screen can reach. Drive the browser with the tool your brief assigns, or else the `agent-browser` skill when it is installed, otherwise the host's browser tool.
 

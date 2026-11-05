@@ -18,7 +18,7 @@ At plan entry, the primary producer follows [flow-walkthrough](../flow-walkthrou
 
 For a change to a screen, settle the UI before the plan is approved:
 
-1. Load the project's design system first: the UI skills, guide and component library the project guidance names, and the real component catalog, through the library's MCP server or its installed components folder.
+1. Load the project's design system first, as [hive-ui-criteria](../hive-ui-criteria/SKILL.md) sets: the project's `DESIGN.md`, the UI skills and component library the project guidance names, and the real component catalog, through the library's MCP server or its installed components folder. When that skill finds the `DESIGN.md` missing or stale, add the task its [writing rule](../hive-ui-criteria/references/design-record.md#writing) sets.
 2. Fix the data contract each changed screen consumes: the response shape, its states and its errors.
 3. For each region that changes, decide the existing screen it follows (with its path), each component by its library name with its variant and size, where each action goes (the page header, a toolbar, a row menu or a dialog) with one primary action per region, the loading, empty, error and permission states, and the copy.
 4. Draw each region before and after as an ASCII sketch, at most 60 characters wide, with the real labels, item counts and component names, and write the decisions and sketches in the `UI` section of `design.md`. When the user chooses between compositions, show each option as such a sketch, in its preview as the global guidance's «Questions and routes» section sets.
