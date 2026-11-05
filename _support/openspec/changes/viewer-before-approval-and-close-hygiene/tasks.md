@@ -153,4 +153,14 @@ No hay interfaz que recorrer. La entrega es `automatic` (D3), así que no hay pa
 
 Pasan `go test ./tests/content/...`, la prueba de referencias y `pnpm build`.
 
-Checkpoint: verify · siguiente paso: segunda revisión limitada al diff de las correcciones, luego push, PR y merge.
+2026-11-05 — La segunda revisión, limitada a `03349f19..27c43d5d`, dejó 10 hallazgos locales, corregidos sin otra ronda (commit siguiente, con línea `Unreviewed`):
+- el worktree del propio trabajo ya no queda bloqueado por el proceso de la sesión;
+- un worktree conservado conserva también sus ramas;
+- el reloj de 24 h parte de un registro de cierre pendiente;
+- el barrido exige un merge en la base (`gh pr list --base`);
+- `flow-deploy` sigue decidiendo cuándo pregunta producción;
+- la copia remota se reporta con `git log <headRefOid>..origin/<branch>`;
+- se corrigieron una frase partida en `plan.md`, la referencia a «flow-close step 2» y la FAQ de pausa bajo `hold`;
+- se actualizaron `design.md` y el delta.
+
+Checkpoint: verify · siguiente paso: suite completa, push, PR y merge.

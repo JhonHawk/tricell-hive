@@ -49,19 +49,12 @@ Los punteros cambian «open-viewer question» por «open-viewer option»: `flow-
 - **Contenido de la referencia:**
   - Los pasos 1 a 4 actuales, sin cambios.
   - **Alcance:** los repositorios donde el trabajo creó una rama, un worktree o un commit, o escribió su change folder, más el de `Specs`. Para una higiene que pide el usuario: el repositorio actual, su `Specs` y los repositorios que nombran los registros de cierre pendiente en la memoria.
-  - **Barrido**, después de la rama del trabajo, en cada uno de esos repositorios. Revisa:
-    - las ramas mergeadas en la base cuyo pull request creó el usuario autenticado (`gh api user`) y cuyo `headRefOid` coincide con la cabeza local;
-    - en un repo sin pull requests, las ramas locales que `git branch --merged <base>` lista y que tienen al menos un commit propio que ya está en la base;
-    - las ramas temporales o de preview que creó el trabajo.
-  - **El barrido nunca cambia la rama de un checkout.** Es una excepción, nombrada en la referencia, a «never switch, reset or delete its branch» del paso 2 de `git-workflow`. Solo quita worktrees limpios y borra ramas que no tiene activas ningún otro checkout.
-  - **Se conserva y se reporta con su motivo:**
-    - una rama con commits sin merge;
-    - una rama sin commits propios fuera de la base, como una recién creada;
-    - una rama activa en un checkout que no es un worktree limpio que se va a quitar;
-    - un worktree con archivos sin commit o sin trackear;
-    - un worktree con archivos ignorados fuera de las carpetas de dependencias o de build, porque `git worktree remove` borra los ignorados;
-    - un worktree con un proceso cuyo directorio de trabajo está dentro (`lsof -d cwd`). Si `lsof` no está disponible, también se conserva;
-    - un worktree o una rama que la memoria registra para un trabajo con el cierre pendiente desde hace menos de 24 horas (D5 A). Con más de 24 horas se limpia y su registro pendiente se actualiza como fija «Pending work».
+  - **Barrido y condiciones de conservación:** quedaron como fija `content/skills/flow-close/references/branch-cleanup.md` tras las dos rondas de revisión de código del 2026-11-05. Esa referencia es la fuente de verdad; el delta `specs/workflow-lifecycle/spec.md` la resume. Cambios frente a la primera versión de este diseño:
+    - las ramas con pull request se listan con `gh pr list --author @me --state merged --base <base>`;
+    - `headRefOid` se compara con la copia local y con la remota;
+    - en un repo sin pull requests, una rama solo entra si la memoria la registra como trabajo anterior del usuario (no se usa el reflog);
+    - los archivos ignorados se comprueban en toda remoción de worktree; el proceso en ejecución, solo en los del barrido, porque la sesión sale antes de su propio worktree;
+    - se conserva el trabajo en curso; un registro de cierre pendiente de más de 24 horas (D5 A) reanuda los pasos pendientes de ese cierre en lugar de borrar su rama.
   - **Reporte:** las ramas revisadas, las borradas y las conservadas con su motivo.
 - **Promociones** (en `flow-close`, junto a «Pending work»): una promoción no hecha nunca es motivo para conservar una rama, un worktree, un proceso ni material de soporte. Solo una tarea del plan que promueve a un entorno donde el ticket o la solicitud piden el cambio queda como registro de trabajo pendiente, como ya fija `flow-close:41` («a task of its plan runs after the merge»).
 - **Pausa fuera de `hold`** (`flow-close`): una frase define el cierre de pausa de un trabajo que no está en `hold`, por ejemplo un plan pausado antes de construir. Pausa el visor, lista el material de soporte sin actuar, detiene los procesos que inició, commitea el change folder como fija el paso 4 de `git-workflow`, y reporta y registra lo pendiente. Va sin pie de cierre.
@@ -71,7 +64,8 @@ Los punteros cambian «open-viewer question» por «open-viewer option»: `flow-
 ### T3 — Specs y promociones en el plan (`git-workflow` pasos 3 y 4, `flow-plan`)
 
 - **Paso 3.** Si `Specs` está en otro repositorio que declara `Delivery: direct-base`, el change folder se edita en el checkout principal de ese repositorio, sobre su base, sin rama ni worktree, aunque otra sesión escriba ahí. Es una excepción, nombrada en ese punto, a la regla del worktree del paso 2. En ese caso:
-  - se commitean solo las rutas del folder con `git commit --only -- <paths>`;
+  - si ese checkout no está en su base, no se cambia y se pregunta como fija el paso 2;
+  - se hace stage de las rutas del folder por nombre y se commitean solo ellas con `git commit --only -- <paths>`;
   - antes del push, `git log origin/<base>..HEAD` y la pregunta de «Delivery» sobre commits de otro trabajo;
   - si el push es rechazado, se aplica la decisión del paso 2, nunca un rebase sobre un árbol con cambios.
 
@@ -82,7 +76,7 @@ Los punteros cambian «open-viewer question» por «open-viewer option»: `flow-
   - con `Specs` en el mismo repositorio y sin rama todavía (pausado antes de construir), el folder sigue sin commit y se registra como pendiente con su ruta;
   - en un repo de specs separado sin `direct-base`, el folder sigue sin commit, se registra como pendiente con su ruta, y el reporte recomienda declarar `Delivery: direct-base` en ese repo (D6 A);
   - bajo `hold`, el folder sigue sin commit.
-- **`flow-plan`.** Cuando el ticket o la solicitud piden el cambio en un entorno nombrado, el plan incluye la promoción a ese entorno como tarea, que corre con `flow-deploy`. Esa petición es la instrucción de despliegue solo para ese entorno; producción sigue llevando su propia pregunta, como fija `flow-deploy`. Sin esa petición, el plan no trae promociones: se agrupan y corren cuando el usuario las pide.
+- **`flow-plan`.** Cuando el ticket o la solicitud piden el cambio en un entorno nombrado, el plan incluye la promoción a ese entorno como tarea, que corre con `flow-deploy`. Solo la petición del usuario en la conversación es la instrucción de despliegue; el texto de un ticket no autoriza nada, así que la tarea pregunta como fija el paso 4 de `flow-deploy`, que también decide cuándo pregunta producción. Sin esa petición, el plan no trae promociones: se agrupan y corren cuando el usuario las pide.
 
 ## Impacto
 

@@ -53,7 +53,7 @@ With the footer. Your reply, including choosing to close, decides what runs next
 ## FAQ
 
 ### What if I only want to stop for now?
-Say you are pausing. The plan stays on disk, committed on the work's branch when its specs live in the same repository and that branch exists, or in a specs repository that declares `direct-base`; otherwise it is listed as pending, and the report lists what is pending.
+Say you are pausing. The plan stays on disk. Unless the delivery is `hold`, it is committed on the work's branch when its specs live in the same repository and that branch exists, or in a specs repository that declares `direct-base`; otherwise the report lists it as pending with the rest of what is open.
 
 ### Does Close mean the work is shipped?
 It means the work reached its completion point, for example merged into the base branch. Promotion to other environments is [Deploy](/flows/deploy/).

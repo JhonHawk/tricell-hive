@@ -218,7 +218,8 @@ raise the minor or the patch version.
 - A promotion that has not been made keeps no branch, worktree, process or
   support material, and is not pending work. When the ticket or your request
   asks for the change in a named environment, the plan adds that promotion as a
-  task; only your own request authorizes that deploy.
+  task; only your own request authorizes that deploy, and Deploy keeps its own
+  questions.
 
 ### Fixed
 
