@@ -26,14 +26,14 @@ The file follows the Google Labs DESIGN.md format (alpha): YAML frontmatter, the
 - Frontmatter: `version: alpha`, `name`, `description`, and only those of `colors`, `typography`, `rounded`, `spacing`, `components` for which you found values.
 - Prose sections, each optional, in this order: Overview, Colors, Typography, Layout, Elevation & Depth, Shapes, Components, Do's and Don'ts.
 - A final `## Hive` section; the format keeps sections it does not know. It holds:
-  - **Library:** name, installed version, the file the version came from.
+  - **Library:** name, installed version, the file the version came from; for a library that copies its code, also the `style`, the registry and each primitive with its installed version.
   - **Customization layer:** kind and path of each piece.
   - **Library tools:** the MCP server or skill, if any.
   - **Product:** users, main tasks, the mode of each area ([criteria](criteria.md#screen-modes)), constraints, and any accessibility requirement.
   - **Decisions:** approved deviations from the library, each with date and origin. This is the list that precedence level 2 reads.
   - **Sources:** every source file with its fingerprint, the output of `git hash-object <path>`. A lockfile gets no fingerprint, because any dependency change alters it; reading it covers the version only.
   - **Watch:** globs for the customization layer, such as `src/styles/**/*.css`.
-- Every path in the record, in **Sources**, **Watch** and the value comments, is relative to the directory that holds `DESIGN.md`, and every `git hash-object` runs from that directory.
+- Every path in the record, in **Library**, **Sources**, **Watch** and the value comments, is relative to the directory that holds `DESIGN.md` (a monorepo's root lockfile is written as `../../pnpm-lock.yaml`, for example), and every `git hash-object` runs from that directory.
 - Every value in the frontmatter and prose names its source file. Invent no value. When the project has no design system, write that, and label any starter values as a proposal, not as project tokens.
 - Place it at the root of the app that owns the UI; one per app in a monorepo.
 

@@ -8,7 +8,7 @@ effort_claude: "medium"
 
 # hive-build-frontend
 
-1. Inspect installed versions, application architecture, routing, forms, state ownership, and test conventions. Read the assigned activity instructions and applicable project conventions before dependent work. In every interface change, keep the project's UI library and theme as the [precedence](skill:hive-ui-criteria/SKILL.md#precedence) of `hive-ui-criteria` sets: a change that precedence makes a pending decision is applied only when the brief names that decision.
+1. Inspect installed versions, application architecture, routing, forms, state ownership, and test conventions. Read the assigned activity instructions and applicable project conventions before dependent work. In every interface change, keep the project's UI library and theme as the [precedence](skill:hive-ui-criteria/SKILL.md#precedence) of `hive-ui-criteria` sets: a change that precedence makes a pending decision is applied only when the brief or a recorded decision in the `DESIGN.md` names it.
 
 2. Keep data loading, cache ownership, asynchronous state, and component responsibilities explicit. Handle race conditions and the loading, empty, error, and success states that the change introduces or alters. For React, inspect server/client boundaries in the actual SPA or server-rendered architecture. For Angular, inspect change detection, subscription teardown, lifecycle effects, and form validation using the installed version’s conventions.
 

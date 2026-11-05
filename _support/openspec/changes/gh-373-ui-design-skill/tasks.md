@@ -175,4 +175,19 @@ No hay UI que recorrer: el cambio es guía distribuida y no cambia ninguna panta
   9. **Regla de escritura.** Tenía tres casas; ahora la canónica es «Writing» de `design-record.md`.
   10. **Brief del revisor.** Agrega cómo mantener un envío pendiente.
 
-**Checkpoint:** verify, paso 3 terminado. Siguiente: segunda revisión limitada a los arreglos, suite completa sobre el candidato, rebase sobre `origin/development`, push y PR.
+- **Rebase.** La rama se rebasó sobre `origin/development` `c956ce9c` sin conflictos.
+- **Segunda revisión `/code-review`,** limitada a los arreglos, con 10 hallazgos confirmados al leer el texto:
+  - **Bloqueantes, corregidos en local** (commit con `Unreviewed:`):
+    - el requisito declarado ya no carga al cambio los defectos previos: van a su lista, con prioridad y marcados, como pide el spec «UX review in one pass»;
+    - el mínimo de reajuste a 320 px queda condicionado igual que el procedimiento;
+    - el sitio y el `CHANGELOG.md` quedan alineados;
+    - **Library** registra las primitivas;
+    - el modo se elige por área en la skill y en `hive-design-ui`;
+    - la ruta de **Library** es relativa al DESIGN.md;
+    - `hive-build-frontend` acepta las decisiones registradas.
+  - **No bloqueantes, para los hallazgos del cierre:**
+    - el modo de un área nueva no dispara la tarea de escritura del DESIGN.md;
+    - falta decir dónde quedan los mínimos frente al nivel 1 de la precedencia.
+- La segunda revisión no cubre lo que se le haya escapado a la primera.
+
+**Checkpoint:** verify, paso 5. Siguiente: suite completa y build del sitio sobre el candidato final, push y PR.

@@ -23,8 +23,12 @@ raise the minor or the patch version.
   them, the checks the skill marks as measured: accessibility minimums, the
   states of searches and lists, button and error texts, and extreme cases. An
   unmodified library default that fails one of them goes to the defects that
-  were already there, and a decision recorded in the file is not a deviation. The review also loads the changed regions at
-  a 320 px width to check reflow. The methodology is inspired by Impeccable
+  were already there, with its priority when the project declares an
+  accessibility requirement; a decision recorded in the file is not a
+  deviation, but never excuses an accessibility minimum in what the change
+  builds. When the mobile viewport applies or the project declares an
+  accessibility requirement, the review also loads the changed regions at a
+  320 px width to check reflow. The methodology is inspired by Impeccable
   (Paul Bakaus, Apache-2.0) and the file follows the Google Labs DESIGN.md
   format.
 

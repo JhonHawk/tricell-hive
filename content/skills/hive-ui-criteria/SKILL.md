@@ -10,7 +10,7 @@ Criteria for screens, ranked below the project's own design system. Follow the s
 1. **Find the design record.** Look for `DESIGN.md` at the root of the app that owns the UI, next to its package manifest; in a monorepo, the app whose screens the change touches. When it exists, read it first, then check it for staleness as [design record](references/design-record.md#staleness) sets.
 2. **Detect when the record is missing or stale.** Follow [design record](references/design-record.md#detection): library, installed version, customization layer, library tools. Write or refresh the record only as [design record](references/design-record.md#writing) «Writing» sets; until then, use what you detected without saving it.
 3. **Apply the precedence below** to every design choice.
-4. **Pick a mode for each screen** as [criteria](references/criteria.md#screen-modes) sets. Default to operate in an app with a component library.
+4. **Pick a mode for each area of the app** as [criteria](references/criteria.md#screen-modes) sets; its screens share it. Default to operate in an app with a component library.
 5. **Load what the task needs:**
 
    | Situation | Read |
@@ -35,8 +35,8 @@ Consequences:
 
 - A library default that is below a skill default holds. A 36 px library button is not a deviation from the 44 px guide value.
 - The accessibility floors in criteria sit outside levels 2 to 5: a recorded decision, the customization layer or a library default never excuses a floor failure in what the change builds or customizes.
-- Without a declared accessibility requirement, an element the change reuses without modifying it (an unmodified library default, or a component the project customized earlier) that fails a floor is not a defect of the change. List it among the defects already there, with its reason.
-- With a declared accessibility requirement (level 1), every floor failure the changed regions show is a defect of the change, including unmodified library defaults and earlier customizations.
+- An element the change reuses without modifying it (an unmodified library default, or a component the project customized earlier) that fails a floor is not a defect of the change: list it among the defects already there, with its reason.
+- With a declared accessibility requirement (level 1), such an element is still listed among the defects already there, but with its priority and marked as failing that requirement, so it reaches the user as a finding; the change's verdict still covers only what it introduced.
 - Any change, whether a fix or a design choice, that alters a token, the size, radius, spacing or motion of a library component, or edits an installed component, returns to the user as a pending decision unless the brief or a recorded decision already names it. Do not apply it on your own.
 
 ## Output contract
