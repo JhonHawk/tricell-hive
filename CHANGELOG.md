@@ -62,7 +62,8 @@ raise the minor or the patch version.
   captures.
 - `TestSpecDeltasApplied` accepts the delta of either change when two changes
   archived the same day modify the same requirement, since folder names fix
-  the date but not the order within a day.
+  the date but not the order within a day, and reports a requirement that one
+  archived delta lists twice.
 - A list point that cites an ID opens with it in bold, followed by a dash and
   what it is in plain words, such as `- **D2** — Move the plan summary to the
   top`, so the reader finds it by its ID; the change folder's decision lines
