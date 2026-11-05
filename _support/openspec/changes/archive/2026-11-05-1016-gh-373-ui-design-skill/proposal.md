@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build · plan revisado, pendiente de tu aprobación |
+| Estado | Completed · integrado por PR #379 (6670e799) el 2026-11-05 y desplegado |
 | Tracker | [#373](https://github.com/JhonHawk/tricell-hive/issues/373) · abierto · relacionado con #173 (la revisión de UI empujaba cambios al tema: faltaba la base del sistema de diseño) |
 | Git | JhonHawk/tricell-hive · base `development` en `dd729041` · rama `feat/gh-373-ui-skill` en el worktree `.claude/worktrees/gh-373-ui-skill` |
 
