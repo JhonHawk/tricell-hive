@@ -8,7 +8,9 @@ by path or by a session ID prefix, and prints per session:
 
 - the main thread: model calls, processed input tokens (input + cache reads +
   cache writes per call), cached share, peak context, compactions, and its
-  large reads (tool outputs over 100 lines);
+  large reads (tool outputs over 100 lines). Claude Code writes one transcript
+  line per content block, each repeating the call's usage, so a call is counted
+  once per message ID (before this, Claude Code totals came out about double);
 - each child: role, calls, first and last input, tokens gathered (last - first),
   processed tokens, duration, report size, main-thread calls after it, and the
   inline-versus-delegated estimate (gathered x later calls, against child
@@ -107,6 +109,7 @@ def codex_children(meta):
 def claude_load(path):
     calls, outs, final, compactions, briefs = [], [], "", [], {}
     first = last = None
+    counted = set()  # one transcript line per content block repeats the call's usage
     for raw in open(path, encoding="utf-8"):
         d = json.loads(raw)
         when = d.get("timestamp")
@@ -118,7 +121,10 @@ def claude_load(path):
         if d.get("type") == "assistant":
             u = msg.get("usage") or {}
             total = u.get("input_tokens", 0) + u.get("cache_read_input_tokens", 0) + u.get("cache_creation_input_tokens", 0)
-            if total:
+            call_id = msg.get("id")
+            if total and call_id not in counted:
+                if call_id:
+                    counted.add(call_id)
                 calls.append((when, total, u.get("cache_read_input_tokens", 0)))
             for block in content if isinstance(content, list) else []:
                 if block.get("type") == "text":
