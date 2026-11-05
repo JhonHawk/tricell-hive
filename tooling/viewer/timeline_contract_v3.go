@@ -24,18 +24,20 @@ type TimelineActor struct {
 	Kind       string `json:"kind"`
 	ProducerID string `json:"producer_id,omitempty"`
 	// Origin is the declared provenance of a local_viewer action, browser or cli.
-	// It is not authentication: both use the same token. Empty means browser.
+	// It is not authentication: both use the same token. Empty means browser; only cli is stored.
 	Origin string `json:"origin,omitempty"`
 }
 
 var timelineActorOrigins = []string{"browser", "cli"}
 
-// recorded returns the actor as it is stored: a local_viewer without a declared
-// origin is recorded as browser. Request digests are taken before this call so
-// pre-existing receipts still replay byte for byte.
+// recorded returns the actor as it is stored: origin is kept only when it is
+// cli. A browser action, with origin absent or browser, is stored without one and
+// readers take a missing origin as browser, so records written by the browser stay
+// readable by a binary that predates origin. Request digests are taken before
+// this call so pre-existing receipts still replay byte for byte.
 func (a TimelineActor) recorded() TimelineActor {
-	if a.Kind == "local_viewer" && a.Origin == "" {
-		a.Origin = "browser"
+	if a.Origin != "cli" {
+		a.Origin = ""
 	}
 	return a
 }

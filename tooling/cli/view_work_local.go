@@ -51,6 +51,8 @@ func validateViewWorkLocal(c *viewWorkCommand) error {
 	}
 	switch c.Action {
 	case "rename":
+		// The viewer stores the trimmed title; send and compare that one.
+		c.Title = strings.TrimSpace(c.Title)
 		title := c.Title
 		r := viewer.TimelineSessionPatchRequest{SchemaVersion: 3, OperationID: "validate", Actor: localViewerActor(), ExpectedVersion: 1, Title: &title}
 		if strings.TrimSpace(title) == "" || r.Validate() != nil {
@@ -85,14 +87,14 @@ func executeViewWorkLocal(c viewWorkCommand, w io.Writer) error {
 	if err != nil {
 		return err
 	}
-	info, err := viewTimelineRunning(newViewPaths(state))
+	info, health, err := viewTimelineRunningHealth(newViewPaths(state))
 	if err != nil {
 		return err
 	}
-	l := viewWorkLocal{info: info}
-	if err = l.requireCapability(); err != nil {
+	if err = requireLocalCapability(health); err != nil {
 		return err
 	}
+	l := viewWorkLocal{info: info}
 	result, err := l.run(c)
 	if err != nil {
 		return err
@@ -100,22 +102,13 @@ func executeViewWorkLocal(c viewWorkCommand, w io.Writer) error {
 	return writeViewWorkResult(w, result)
 }
 
-func (l viewWorkLocal) requireCapability() error {
-	raw, err := viewTimelineHTTP(l.info, http.MethodGet, "/api/health", "", nil, viewInfoLimit)
-	if err != nil {
-		return err
-	}
-	var health struct {
-		Capabilities []string `json:"capabilities"`
-	}
-	if json.Unmarshal(raw, &health) == nil {
-		for _, name := range health.Capabilities {
-			if name == localViewerCapability {
-				return nil
-			}
+func requireLocalCapability(health viewTimelineHealth) error {
+	for _, name := range health.Capabilities {
+		if name == localViewerCapability {
+			return nil
 		}
 	}
-	return &viewWorkError{Code: "viewer_update_required", Next: "the running viewer does not announce " + localViewerCapability + "; nothing was sent; update Hive, then restart the viewer with `hive view stop` and `hive view start`"}
+	return &viewWorkError{Code: "viewer_update_required", Next: "the running viewer does not announce " + localViewerCapability + "; nothing was sent; the user updates Hive and restarts the viewer (an agent does not restart it), then retry"}
 }
 
 // read returns the work, or the stable code the viewer gave when it cannot.
@@ -220,10 +213,10 @@ func (l viewWorkLocal) run(c viewWorkCommand) (viewWorkResult, error) {
 		}
 		err = errWorkIncomplete
 	}
-	if !workUncertain(err) {
-		if code == "" {
-			code = "rejected"
-		}
+	if c.Action == "delete" && code == "delete_pending" {
+		return viewWorkResult{}, &viewWorkError{Code: code, Next: "the work is removed from the list but its stored content is not fully cleaned up; the user can finish the cleanup from the browser, and repeating the command is safe"}
+	}
+	if !workUncertain(err) && definitiveWorkRejection(code) {
 		return viewWorkResult{}, &viewWorkError{Code: code, Next: "nothing was changed; read the current state with `hive view work show --work-id " + c.WorkID + "` and retry the command if it still applies"}
 	}
 	return l.settle(c, current.Version, holds, finished)
@@ -238,7 +231,7 @@ func (l viewWorkLocal) settle(c viewWorkCommand, expected int64, holds func(view
 		case err == nil:
 			return viewWorkResult{}, &viewWorkError{Code: "not_applied", Next: "the work still exists at version " + strconv.FormatInt(s.Version, 10) + "; retry the command"}
 		case code == "session_deleted":
-			return finished(expected + 1), nil
+			return viewWorkResult{}, &viewWorkError{Code: "work_gone", Next: "the work no longer exists; whether this request or another removed it cannot be told"}
 		}
 		return viewWorkResult{}, unknown
 	}

@@ -96,7 +96,7 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 		return err
 	}
 	if command.operation == "session_delete" {
-		return errors.New("session deletion is a local-viewer action; when the user asked for it naming the work, use `hive view work delete --work-id ID --confirm ID`, or the authenticated browser confirmation; a native producer cannot delete")
+		return errors.New("session deletion is a local-viewer action, not a native producer one: use `hive view work delete --work-id ID --confirm ID` or the authenticated browser confirmation; it is a critical effect the user is asked about every time (viewer publication guidance «Shared work and authority»)")
 	}
 	fs := flag.NewFlagSet("view timeline", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
@@ -127,7 +127,13 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 			return err
 		}
 		if err = validateViewTimelineInput(command.operation, input); err != nil {
+			if strings.HasPrefix(err.Error(), "local_viewer_actor_forbidden_in_native_cli") {
+				return err
+			}
 			code := viewer.TimelineContractCode(err)
+			if command.operation == "session_patch" && code == "local_viewer_required" {
+				return fmt.Errorf("invalid timeline input: %s; renaming, archiving, restoring, pinning and unpinning a work are `hive view work rename|archive|restore|pin|unpin` commands; run `hive view work contract`", code)
+			}
 			if code == "unsupported_protocol" {
 				return errors.New("unsupported_protocol: protocol v3 is required; update client and viewer together, preserve inputs and use a fresh v3 state directory")
 			}
@@ -189,15 +195,23 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 }
 
 func viewTimelineRunning(paths viewPaths) (serverInfo, error) {
+	info, _, err := viewTimelineRunningHealth(paths)
+	return info, err
+}
+
+// viewTimelineRunningHealth is viewTimelineRunning that also returns the health
+// the readiness check read, so a caller needing a capability reads health once.
+func viewTimelineRunningHealth(paths viewPaths) (serverInfo, viewTimelineHealth, error) {
 	held, lockErr := viewLockHeld(paths)
 	info, infoErr := readServerInfo(paths.info)
 	if lockErr != nil || !held || infoErr != nil || info.PID <= 0 || info.Port < 1 || info.Port > 65535 || len(info.Token) < 16 {
-		return serverInfo{}, errors.New("the viewer is unavailable; start it with `hive view start` and retry the unchanged operation; local inputs were preserved")
+		return serverInfo{}, viewTimelineHealth{}, errors.New("the viewer is unavailable; start it with `hive view start` and retry the unchanged operation; local inputs were preserved")
 	}
-	if err := viewTimelineProtocolReady(info, paths.state); err != nil {
-		return serverInfo{}, err
+	health, err := viewTimelineReadHealth(info, paths.state)
+	if err != nil {
+		return serverInfo{}, viewTimelineHealth{}, err
 	}
-	return info, nil
+	return info, health, nil
 }
 
 func parseViewTimelineCommand(args []string) (viewTimelineCommand, []string, error) {
@@ -459,23 +473,31 @@ func viewTimelineHTTP(info serverInfo, method, path, contentType string, body io
 	return data, nil
 }
 
+type viewTimelineHealth struct {
+	TimelineProtocolVersion int      `json:"timeline_protocol_version"`
+	PID                     int      `json:"pid"`
+	StateDir                string   `json:"state_dir"`
+	Capabilities            []string `json:"capabilities"`
+}
+
 func viewTimelineProtocolReady(info serverInfo, state string) error {
+	_, err := viewTimelineReadHealth(info, state)
+	return err
+}
+
+func viewTimelineReadHealth(info serverInfo, state string) (viewTimelineHealth, error) {
 	raw, err := viewTimelineHTTP(info, http.MethodGet, "/api/health", "", nil, viewInfoLimit)
-	var health struct {
-		TimelineProtocolVersion int    `json:"timeline_protocol_version"`
-		PID                     int    `json:"pid"`
-		StateDir                string `json:"state_dir"`
-	}
+	var health viewTimelineHealth
 	if err != nil {
-		return err
+		return health, err
 	}
 	if json.Unmarshal(raw, &health) != nil || health.PID != info.PID || filepath.Clean(health.StateDir) != filepath.Clean(state) {
-		return errors.New("cannot confirm viewer health and identity; preserve local inputs and check the running viewer")
+		return health, errors.New("cannot confirm viewer health and identity; preserve local inputs and check the running viewer")
 	}
 	if health.TimelineProtocolVersion != viewer.TimelineSchemaVersion {
-		return errors.New("the running viewer lacks protocol v3; update client and viewer together, use a fresh v3 state directory and restart explicitly; preserve inputs and retry the unchanged operation")
+		return health, errors.New("the running viewer lacks protocol v3; update client and viewer together, use a fresh v3 state directory and restart explicitly; preserve inputs and retry the unchanged operation")
 	}
-	return nil
+	return health, nil
 }
 
 // sameWorkKey reports whether the response echoes the key the request gave,

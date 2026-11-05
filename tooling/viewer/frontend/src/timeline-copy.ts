@@ -473,3 +473,10 @@ export function timelineEventTitle(
   const name = timelineCopy(lang).stageNames[event.stage];
   return event.title ? `${name} · ${event.title}` : name;
 }
+
+export function localViewerLabel(
+  actor: { origin?: string },
+  t: { localViewer: string; localViewerCli: string },
+): string {
+  return actor.origin === "cli" ? t.localViewerCli : t.localViewer;
+}

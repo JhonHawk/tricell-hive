@@ -129,14 +129,14 @@ func TestTimelineRenameKeepsDeclaredOriginInPublicEvent(t *testing.T) {
 	if w := e.patch("rename-default", "", `"title":"From the browser"`); w.Code != 200 {
 		t.Fatalf("rename without origin = %d", w.Code)
 	}
-	if got := originOf(t, e.lastEventActor("session_rename")); got != "browser" {
-		t.Fatalf("rename event without origin = %q, want browser", got)
+	if got := originOf(t, e.lastEventActor("session_rename")); got != "" {
+		t.Fatalf("rename event without origin = %q, want it stored absent", got)
 	}
 	if w := e.patch("rename-browser", "browser", `"title":"Explicit browser"`); w.Code != 200 {
 		t.Fatalf("rename origin browser = %d", w.Code)
 	}
-	if got := originOf(t, e.lastEventActor("session_rename")); got != "browser" {
-		t.Fatalf("rename event origin = %q, want browser", got)
+	if got := originOf(t, e.lastEventActor("session_rename")); got != "" {
+		t.Fatalf("rename event with origin browser = %q, want it stored absent", got)
 	}
 }
 
@@ -146,7 +146,7 @@ func TestTimelineAdministrativeReceiptsKeepDeclaredOrigin(t *testing.T) {
 		op, origin, fields, slot, want string
 	}{
 		{"archive-cli", "cli", `"archived":true`, "archive_receipt", "cli"},
-		{"restore-default", "", `"archived":false`, "restore_receipt", "browser"},
+		{"restore-default", "", `"archived":false`, "restore_receipt", ""},
 		{"pin-cli", "cli", `"pinned":true`, "pin_receipt", "cli"},
 	}
 	for _, c := range cases {
@@ -227,8 +227,8 @@ func TestTimelineDeletionWithoutOriginIsRecordedAsBrowser(t *testing.T) {
 	for _, a := range audits {
 		audit := a.(map[string]any)
 		if audit["operation"] == "session_delete" {
-			if got := originOf(t, audit["actor"]); got != "browser" {
-				t.Fatalf("deletion audit origin = %q, want browser", got)
+			if got := originOf(t, audit["actor"]); got != "" {
+				t.Fatalf("deletion audit origin = %q, want it stored absent", got)
 			}
 			return
 		}
