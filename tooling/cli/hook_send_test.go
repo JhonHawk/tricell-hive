@@ -184,6 +184,63 @@ func TestHookEventForAClosedWorkOnlyMovesActivity(t *testing.T) {
 	}
 }
 
+// Defect 3: events queued with the same timestamp keep their emission order.
+func TestHookQueueKeepsEmissionOrderWithinOneTimestamp(t *testing.T) {
+	oldNow := hookNow
+	hookNow = func() time.Time { return time.Date(2031, 1, 1, 0, 0, 0, 0, time.UTC) }
+	t.Cleanup(func() { hookNow = oldNow })
+	state := t.TempDir()
+	event := viewer.TimelineHostEvent{SchemaVersion: viewer.TimelineSchemaVersion, Source: viewer.TimelineSource{ProjectRoot: "/w", Host: "claude-code", NativeSessionID: "cc-1"}, EventType: "activity"}
+	const total = 20
+	for i := 0; i < total; i++ {
+		event.OccurredAt = identityTestStart.Add(time.Duration(i) * time.Second).Format("2006-01-02T15:04:05Z07:00")
+		queueHostEvent(state, event)
+	}
+	dir := filepath.Join(state, "hooks", "queue")
+	names := hostEventQueueNames(dir)
+	if len(names) != total {
+		t.Fatalf("%d queued", len(names))
+	}
+	for i, name := range names {
+		raw, err := os.ReadFile(filepath.Join(dir, name))
+		if err != nil {
+			t.Fatal(err)
+		}
+		want := identityTestStart.Add(time.Duration(i) * time.Second).Format("2006-01-02T15:04:05Z07:00")
+		if !strings.Contains(string(raw), want) {
+			t.Fatalf("file %d is not the event emitted %d-th: %s", i, i, raw)
+		}
+	}
+}
+
+// Defect 4: a local handle is kept only while its open is still queued.
+func TestHookKeepsAHandleOnlyWhileItsOpenIsQueued(t *testing.T) {
+	state := t.TempDir()
+	dir := filepath.Join(state, "publisher", "v1")
+	if err := os.MkdirAll(dir, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	const handle = "2222222222222222222222222222222222222222222222222222222222222222"
+	j := newWorkJournal()
+	source := viewer.TimelineSource{ProjectRoot: "/w", Host: "claude-code", NativeSessionID: "cc-1"}
+	entry := &viewWorkQueued{ID: "op-1", Action: "open", WorkID: handle, Source: source, State: "queued"}
+	entry.Command.Action, entry.Command.Host, entry.Command.NativeSessionID = "open", "claude-code", "cc-1"
+	j.Queue = append(j.Queue, entry)
+	if err := writeWorkJournal(dir, j); err != nil {
+		t.Fatal(err)
+	}
+	if !hasQueuedOpenHandle(state, handle) {
+		t.Fatal("a queued open must keep its handle")
+	}
+	j.Queue[0].State = "rejected"
+	if err := writeWorkJournal(dir, j); err != nil {
+		t.Fatal(err)
+	}
+	if hasQueuedOpenHandle(state, handle) {
+		t.Fatal("a rejected open must not keep its handle")
+	}
+}
+
 func TestHookQueueIsBoundedAndPrivate(t *testing.T) {
 	state := t.TempDir()
 	event := viewer.TimelineHostEvent{SchemaVersion: viewer.TimelineSchemaVersion, Source: viewer.TimelineSource{ProjectRoot: "/w", Host: "claude-code", NativeSessionID: "cc-1"}, EventType: "activity"}

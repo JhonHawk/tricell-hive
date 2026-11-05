@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync/atomic"
 	"time"
 	"tricell-hive/integrations/hostevent"
 	"tricell-hive/tooling/management"
@@ -173,16 +174,6 @@ const (
 	hostSendRetry
 )
 
-// postResolvedHostEvent binds the event to the session's current work and its
-// active stage, whatever its type, when the session has one, and posts it. A
-// rejected binding is retried once without it, so the activity still counts (an
-// event that names no work moves the last activity of every work of the
-// session). Transport failures and server errors are retried later from the
-// queue; any other answer is final.
-func postResolvedHostEvent(state string, info serverInfo, event viewer.TimelineHostEvent) hostSendResult {
-	return postResolvedHostEventWith(state, info, event, nil)
-}
-
 // hostTargetCache remembers, for the length of one hook run or one flush, the
 // current work (and so its active stage) each session resolved to, so a batch of
 // events reads the work once per session instead of once per event. The nil
@@ -218,6 +209,12 @@ func (c *hostTargetCache) resolve(state string, info serverInfo, source viewer.T
 	return hostEventTargetOf(s, ok)
 }
 
+// postResolvedHostEventWith binds the event to the session's current work and its
+// active stage, whatever its type, when the session has one, and posts it. A
+// rejected binding is retried once without it, so the activity still counts (an
+// event that names no work moves the last activity of every work of the
+// session). Transport failures and server errors are retried later from the
+// queue; any other answer is final.
 func postResolvedHostEventWith(state string, info serverInfo, event viewer.TimelineHostEvent, cache *hostTargetCache) hostSendResult {
 	event.WorkID, event.StageEventID = cache.resolve(state, info, event.Source)
 	status, err := postHostEvent(info, event)
@@ -250,9 +247,10 @@ func resolveHostEventWork(state string, info serverInfo, source viewer.TimelineS
 		raw, err := viewTimelineHTTP(info, http.MethodGet, "/api/timeline/sessions/"+id, "", nil, viewer.TimelineMaxBody)
 		if err != nil {
 			var status *viewHTTPStatusError
-			if errors.As(err, &status) && (status.Status == http.StatusGone || status.Status == http.StatusNotFound && !hasQueuedOpenHandle(state, id)) {
-				_ = releaseCurrentWork(state, host, source.NativeSessionID, id)
-				continue
+			if errors.As(err, &status) && (status.Status == http.StatusGone || status.Status == http.StatusNotFound) {
+				if releaseGoneHostWork(state, host, source.NativeSessionID, id, status.Status == http.StatusNotFound) {
+					continue
+				}
 			}
 			candidates++
 			continue
@@ -275,6 +273,22 @@ func resolveHostEventWork(state string, info serverInfo, source viewer.TimelineS
 	return live, true
 }
 
+// releaseGoneHostWork removes a current work the viewer reported gone, under the
+// session lock and so atomically with the check that a 404 handle has no queued
+// open left. It reports whether the work is no longer current.
+func releaseGoneHostWork(state, host, native, id string, keepQueuedHandle bool) bool {
+	released := false
+	err := withSessionLockFile(state, host, native, func() (bool, error) {
+		if keepQueuedHandle && hasQueuedOpenHandle(state, id) {
+			return false, nil
+		}
+		remove, err := releaseCurrentWorkLocked(state, host, native, id)
+		released = err == nil
+		return remove, err
+	})
+	return err == nil && released
+}
+
 // hasQueuedOpenHandle says whether the journal holds a queued open under this
 // local handle. Anything unreadable counts as yes: the handle is kept.
 func hasQueuedOpenHandle(state, handle string) bool {
@@ -283,18 +297,11 @@ func hasQueuedOpenHandle(state, handle string) bool {
 		return true
 	}
 	for _, q := range j.Queue {
-		if q.Action == "open" && q.WorkID == handle {
+		if q.Action == "open" && q.WorkID == handle && q.State != "rejected" {
 			return true
 		}
 	}
 	return false
-}
-
-// resolveHostEventTarget finds the session's one current work and that work's
-// active stage. Several current works, a work still queued locally, a finished
-// work or an unreadable one name nothing.
-func resolveHostEventTarget(state string, info serverInfo, source viewer.TimelineSource) (work, stage string) {
-	return hostEventTargetOf(resolveHostEventWork(state, info, source))
 }
 
 func hostEventTargetOf(s viewer.TimelineSession, ok bool) (work, stage string) {
@@ -334,6 +341,9 @@ func postHostEvent(info serverInfo, event viewer.TimelineHostEvent) (int, error)
 
 // --- host event queue ---
 
+// hostEventSeq numbers the events one run queues.
+var hostEventSeq atomic.Uint64
+
 func hostEventOperation(e viewer.TimelineHostEvent) string { return e.OperationID() }
 
 // queueHostEvent keeps the event until a run finds the viewer up. The same event
@@ -355,7 +365,8 @@ func queueHostEvent(state string, event viewer.TimelineHostEvent) {
 		return
 	}
 	// The name orders the queue; it is not part of the event.
-	name := fmt.Sprintf("%020d%s", hookNow().UnixNano(), suffix)
+	// The per-run sequence keeps events of one timestamp in emission order.
+	name := fmt.Sprintf("%020d-%06d%s", hookNow().UnixNano(), hostEventSeq.Add(1), suffix)
 	if writePrivateWorkFile(dir, filepath.Join(dir, name), raw) != nil {
 		return
 	}
@@ -380,13 +391,9 @@ func hostEventQueueNames(dir string) []string {
 	return names
 }
 
-// flushHostEventQueue sends the queued events oldest first, at most
+// flushHostEventQueueWith sends the queued events oldest first, at most
 // hostEventFlushLimit per run, and stops at the first transient failure. An event
 // the viewer refuses, or a file that is not an event, is dropped.
-func flushHostEventQueue(state string, info serverInfo) {
-	flushHostEventQueueWith(state, info, nil)
-}
-
 func flushHostEventQueueWith(state string, info serverInfo, cache *hostTargetCache) {
 	dir := filepath.Join(state, "hooks", "queue")
 	if checkSafeDir(filepath.Join(state, "hooks")) != nil || checkSafeDir(dir) != nil {

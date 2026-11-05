@@ -156,7 +156,7 @@ func TestHookBindsEveryEventToTheResolvedWorkAndStage(t *testing.T) {
 	source := viewer.TimelineSource{ProjectRoot: h.project, Host: "claude-code", NativeSessionID: hookSyncSession}
 	for _, typ := range []string{"activity", "session_started"} {
 		e := viewer.TimelineHostEvent{SchemaVersion: viewer.TimelineSchemaVersion, Source: source, EventType: typ, OccurredAt: time.Now().UTC().Format(time.RFC3339Nano)}
-		if postResolvedHostEvent(h.f.stateDir, spy, e) != hostSendDone {
+		if postResolvedHostEventWith(h.f.stateDir, spy, e, nil) != hostSendDone {
 			t.Fatal(typ + " was not sent")
 		}
 	}

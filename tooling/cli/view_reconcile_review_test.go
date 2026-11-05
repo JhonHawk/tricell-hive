@@ -8,6 +8,24 @@ import (
 	"tricell-hive/tooling/viewer"
 )
 
+// Defect 2: a task that would be created with no title is skipped, not sent
+// invalid and counted.
+func TestReconcileSkipsACreateWithNoTitleAndCountsOnlySentTasks(t *testing.T) {
+	source := viewer.TimelineSource{ProjectRoot: "/p", Host: "claude-code", NativeSessionID: "s"}
+	at := time.Now().Add(-time.Minute)
+	facts := reconcileFacts{Tasks: []reconcileTask{
+		{ID: "7", State: hostevent.StateNotStarted, At: at},
+		{ID: "8", Title: "Known", State: hostevent.StateNotStarted, At: at},
+	}}
+	events, tasks := reconcileHostEvents(source, facts, time.Time{})
+	if tasks != 1 || len(events) != 1 || events[0].Data.TaskID != "8" {
+		t.Fatalf("%d tasks, events %+v", tasks, events)
+	}
+	if err := events[0].Validate(); err != nil {
+		t.Fatal(err)
+	}
+}
+
 // Finding 4: a line past the scanner's limit (a huge tool result) is skipped, and
 // the tasks after it are still read.
 func TestReadClaudeTasksSkipsOversizedLinesAndContinues(t *testing.T) {

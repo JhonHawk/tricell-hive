@@ -155,7 +155,15 @@ func reconcileHostEvents(source viewer.TimelineSource, facts reconcileFacts, cre
 		case hostevent.StateNotStarted:
 			typ = hostevent.TaskCreated
 		}
-		events = append(events, build(typ, t.At, t))
+		// A create without a title cannot validate: only known tasks get one.
+		if typ == hostevent.TaskCreated && t.Title == "" {
+			continue
+		}
+		e := build(typ, t.At, t)
+		if e.Validate() != nil {
+			continue
+		}
+		events = append(events, e)
 	}
 	if len(events) > reconcileMaxEvents {
 		events = events[len(events)-reconcileMaxEvents:]

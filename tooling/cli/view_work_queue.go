@@ -428,11 +428,26 @@ func (e *viewWorkEngine) flushQueue(c viewWorkCommand) error {
 		}
 		// A rejected open never became a work: its local handle must not stay
 		// current. A work the viewer reports closed or gone is not current either.
-		if q.Action == "open" || code == "session_closed" || code == "work_closed" || code == "session_deleted" {
-			if err = releaseCurrentWork(e.state, c.Host, c.NativeSessionID, q.WorkID); err != nil {
-				return err
-			}
+		if err = e.releaseRejectedWork(q, code, c); err != nil {
+			return err
 		}
+	}
+	return nil
+}
+
+// releaseRejectedWork drops the work a rejected entry named from the session's
+// current works: the local handle of a rejected open, and the real work (which
+// the handle may stand for) once the viewer reports it closed or gone.
+func (e *viewWorkEngine) releaseRejectedWork(q *viewWorkQueued, code string, c viewWorkCommand) error {
+	gone := code == "session_closed" || code == "work_closed" || code == "session_deleted" || code == "not_found"
+	if q.Action != "open" && !gone {
+		return nil
+	}
+	if err := releaseCurrentWork(e.state, c.Host, c.NativeSessionID, q.WorkID); err != nil {
+		return err
+	}
+	if real := e.realID(q.WorkID); gone && real != q.WorkID {
+		return releaseCurrentWork(e.state, c.Host, c.NativeSessionID, real)
 	}
 	return nil
 }
