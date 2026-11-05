@@ -623,13 +623,36 @@ func timelineResult(r *timelineRecord, kind TimelineOperationKind, op string) Ti
 	return TimelineOperationResult{SchemaVersion: 3, OperationID: op, Kind: kind, ViewerSessionID: r.ID, SessionVersion: v.Version, CurrentStageEventID: v.CurrentStageEventID}
 }
 func (s *Store) timelineProject(source TimelineSource) (string, string, string, error) {
-	root, err := canonicalDir(source.ProjectRoot)
-	if err != nil {
-		return "", "", "", timelineFailure("project_unavailable", 409)
-	}
 	registry, err := readRegistry(s.vdir)
 	if err != nil {
 		return "", "", "", timelineFailure("project_unavailable", 409)
+	}
+	c, err := s.timelineLocate(registry, source.ProjectRoot)
+	if err != nil {
+		return "", "", "", err
+	}
+	key, err := s.timelineKeyOf(c)
+	if err != nil {
+		return "", "", "", err
+	}
+	name := s.resolveProject(c.root).name
+	return c.root, key, name, nil
+}
+
+// timelineLocated is a directory resolved to a registered project root, with
+// what Git said about its remote. It holds no store state.
+type timelineLocated struct {
+	root   string
+	remote timelineRemote
+}
+
+// timelineLocate is the unlocked part of the project resolution: the canonical
+// root, the check against a registry the caller read once, and the Git remote
+// lookup. It may spawn Git, so a caller that can avoid s.mu does.
+func (s *Store) timelineLocate(registry Registry, dir string) (timelineLocated, error) {
+	root, err := canonicalDir(dir)
+	if err != nil {
+		return timelineLocated{}, timelineFailure("project_unavailable", 409)
 	}
 	registered := false
 	for _, repo := range registry.Repositories {
@@ -639,18 +662,19 @@ func (s *Store) timelineProject(source TimelineSource) (string, string, string, 
 		}
 	}
 	if !registered {
-		return "", "", "", timelineFailure("project_not_registered", 409)
+		return timelineLocated{}, timelineFailure("project_not_registered", 409)
 	}
-	bound, err := s.timelineBoundKey(root)
+	return timelineLocated{root: root, remote: s.timelineRemoteOf(root)}, nil
+}
+
+// timelineKeyOf is the locked part: the key the stored works already bind, with
+// the remote already read. The caller holds s.mu.
+func (s *Store) timelineKeyOf(c timelineLocated) (string, error) {
+	bound, err := s.timelineBoundKey(c.root)
 	if err != nil {
-		return "", "", "", err
+		return "", err
 	}
-	key, err := timelineProjectKey(root, bound, s.timelineRemoteOf(root))
-	if err != nil {
-		return "", "", "", err
-	}
-	name := s.resolveProject(root).name
-	return root, key, name, nil
+	return timelineProjectKey(c.root, bound, c.remote)
 }
 
 // timelineBoundKey is the project key the stored works that use this root already

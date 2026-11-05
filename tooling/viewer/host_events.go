@@ -62,63 +62,57 @@ func (s *Server) hostEvents(w http.ResponseWriter, r *http.Request) {
 // belongs to: the project root of the directory, or the nearest registered
 // ancestor when the directory is not itself a project root.
 //
-// It runs without the store lock held: it spawns Git (ResolveRoot, the remote)
-// and reads the registry, once for all the candidate directories, and takes the
-// lock only for the short read of the keys the stored works already carry.
-func (s *Store) timelineHostProject(source TimelineSource) (string, error) {
-	var first error
-	candidates := []string{}
+// It is split like TimelineCreate's resolution (timelineLocate, timelineKeyOf).
+// timelineHostCandidates runs without the store lock held: it spawns Git
+// (ResolveRoot, the remote) and reads the registry once for all the candidate
+// directories. timelineHostKey runs under the lock, after the reconcile, and
+// reads the keys the stored works carry at that moment.
+type timelineHostCandidate struct {
+	candidate timelineLocated
+	err       error
+}
+
+func (s *Store) timelineHostCandidates(source TimelineSource) ([]timelineHostCandidate, error) {
+	dirs := []string{}
 	if root, err := ResolveRoot(source.ProjectRoot); err == nil {
-		candidates = append(candidates, root)
+		dirs = append(dirs, root)
 	}
 	for p := filepath.Clean(source.ProjectRoot); ; p = filepath.Dir(p) {
-		candidates = append(candidates, p)
+		dirs = append(dirs, p)
 		if p == filepath.Dir(p) {
 			break
 		}
 	}
-	fail := func(err error) {
-		if first == nil {
-			first = err
-		}
-	}
 	registry, err := readRegistry(s.vdir)
 	if err != nil {
-		return "", timelineFailure("project_unavailable", 409)
+		return nil, timelineFailure("project_unavailable", 409)
 	}
-	for _, dir := range candidates {
-		root, err := canonicalDir(dir)
-		if err != nil {
-			fail(timelineFailure("project_unavailable", 409))
+	out := make([]timelineHostCandidate, 0, len(dirs))
+	for _, dir := range dirs {
+		c, err := s.timelineLocate(registry, dir)
+		out = append(out, timelineHostCandidate{candidate: c, err: err})
+	}
+	return out, nil
+}
+
+// timelineHostKey is the key of the first candidate, nearest first, that
+// resolves. When none does it returns the error of the farthest one. The caller
+// holds s.mu.
+func (s *Store) timelineHostKey(candidates []timelineHostCandidate) (string, error) {
+	var last error
+	for _, c := range candidates {
+		if c.err != nil {
+			last = c.err
 			continue
 		}
-		registered := false
-		for _, repo := range registry.Repositories {
-			registered = registered || repo.Root == root
-		}
-		if !registered {
-			fail(timelineFailure("project_not_registered", 409))
-			continue
-		}
-		s.mu.Lock()
-		bound := ""
-		err = s.timelineReconcile()
-		if err == nil {
-			bound, err = s.timelineBoundKey(root)
-		}
-		s.mu.Unlock()
+		key, err := s.timelineKeyOf(c.candidate)
 		if err != nil {
-			fail(err)
-			continue
-		}
-		key, err := timelineProjectKey(root, bound, s.timelineRemoteOf(root))
-		if err != nil {
-			fail(err)
+			last = err
 			continue
 		}
 		return key, nil
 	}
-	return "", first
+	return "", last
 }
 
 func timelineHostMember(v *TimelineSession, source TimelineSource) bool {
@@ -144,12 +138,18 @@ func (s *Store) TimelineHostEvent(e TimelineHostEvent) (TimelineHostEventResult,
 	}
 	op := e.OperationID()
 	result := TimelineHostEventResult{OperationID: op, Status: hostEventNoWork}
-	// The project is resolved before the store lock is taken (it spawns Git).
-	key, projectErr := s.timelineHostProject(e.Source)
+	// The directories are resolved before the store lock is taken (it spawns Git);
+	// the key the stored works bind is read under the lock, so a bind made in
+	// between is seen.
+	candidates, projectErr := s.timelineHostCandidates(e.Source)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := s.timelineReconcile(); err != nil {
 		return result, err
+	}
+	key := ""
+	if projectErr == nil {
+		key, projectErr = s.timelineHostKey(candidates)
 	}
 	if e.WorkID != "" {
 		old, ok := s.timeline[e.WorkID]
