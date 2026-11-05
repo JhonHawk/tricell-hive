@@ -17,6 +17,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 	"tricell-hive/integrations/hostevent"
@@ -30,37 +31,155 @@ const (
 	hostEventBodyLimit  = 8 << 10
 )
 
-// sendHookEvents reports the events of one hook run. Every valid event is queued
-// first, so a run the host kills at its budget loses nothing; then one sink (one
-// health check) flushes the queues in order, with the events of this run last,
-// and whatever is not sent stays queued. Order matters when the viewer is up: the
-// work's queued semantic declarations first (they may create the work and its
-// stage), then the queued host events.
-func sendHookEvents(opts management.Options, state string, events []viewer.TimelineHostEvent) {
+// hookMinTry is the least budget worth spending on a delivery attempt: with less
+// left, the event is queued instead.
+const hookMinTry = 100 * time.Millisecond
+
+// hookRun is the events of one hook run and how far their delivery got. The
+// budget timer holds it too: when the budget ends, whatever is not confirmed
+// delivered is queued, so a run the host kills loses nothing.
+type hookRun struct {
+	mu       sync.Mutex
+	deadline time.Time
+	state    string
+	events   []viewer.TimelineHostEvent
+	done     int // events[:done] were delivered or queued
+	closed   bool
+}
+
+func newHookRun(deadline time.Time) *hookRun { return &hookRun{deadline: deadline} }
+
+func (r *hookRun) remainingLocked() time.Duration { return r.deadline.Sub(hookClock()) }
+
+// set installs the run's events. On a run the budget timer already closed, the
+// events are queued at once, since nothing will deliver or queue them later; it
+// reports whether the run is still open.
+func (r *hookRun) set(state string, events []viewer.TimelineHostEvent) bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.state, r.events, r.done = state, events, 0
+	if r.closed {
+		r.queueRestLocked()
+		return false
+	}
+	return true
+}
+
+// remaining is the budget left.
+func (r *hookRun) remaining() time.Duration {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.remainingLocked()
+}
+
+// next is the event to deliver now; false when the run is over, closed or has
+// too little budget left (finish queues the rest).
+func (r *hookRun) next() (viewer.TimelineHostEvent, bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.closed || r.done >= len(r.events) || r.remainingLocked() < hookMinTry {
+		return viewer.TimelineHostEvent{}, false
+	}
+	return r.events[r.done], true
+}
+
+// settle records the outcome of the event next returned. A failed delivery
+// queues it and every event after it, so the queue keeps the run's order.
+func (r *hookRun) settle(delivered bool) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.closed || r.done >= len(r.events) {
+		return
+	}
+	if delivered {
+		r.done++
+		return
+	}
+	r.queueRestLocked()
+}
+
+// finish queues what is not delivered and closes the run. It is the budget
+// timer's last act and the normal end of the run. An event in flight when the
+// budget ends is queued too: its outcome is unknown, and replaying it is safe.
+func (r *hookRun) finish() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.closed {
+		return
+	}
+	r.queueRestLocked()
+	r.closed = true
+}
+
+func (r *hookRun) queueRestLocked() {
+	for ; r.done < len(r.events); r.done++ {
+		queueHostEvent(r.state, r.events[r.done])
+	}
+}
+
+// complete says whether every event was delivered with budget left.
+func (r *hookRun) complete() bool {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return !r.closed && r.done >= len(r.events) && r.remainingLocked() >= hookMinTry
+}
+
+// sendHookEvents reports the events of one hook run, in order, through one sink
+// (one health check, each session's work read once). An event goes to the queue
+// only when its delivery fails, the viewer is down or the budget is too short to
+// try; the budget timer queues whatever is still undelivered when the budget
+// ends. The backlog of earlier runs goes first when the queue lock is free; a
+// busy lock means another run is sending it, and this run does not wait. Order
+// matters when the viewer is up: the work's queued semantic declarations first
+// (they may create the work and its stage), then the backlog, then this run's
+// events.
+func sendHookEvents(opts management.Options, state string, events []viewer.TimelineHostEvent, run *hookRun) {
+	var valid []viewer.TimelineHostEvent
 	var sources []viewer.TimelineSource
 	seen := map[string]bool{}
 	started := -1
-	for n, event := range events {
+	for _, event := range events {
 		if event.Validate() != nil {
 			continue
 		}
-		queueHostEvent(state, event)
+		valid = append(valid, event)
 		if key := hostSourceKey(event.Source); !seen[key] {
 			seen[key] = true
 			sources = append(sources, event.Source)
 		}
 		if event.EventType == hostevent.SessionStarted {
-			started = n
+			started = len(valid) - 1
 		}
 	}
-	if len(sources) == 0 {
+	if len(valid) == 0 {
 		return
 	}
-	sink := openHostSink(opts, state, sources...)
-	if started >= 0 && sink.up {
+	if !run.set(state, valid) {
+		return
+	}
+	defer run.finish()
+	sink := newHostSink(opts, state, sources...)
+	// The backlog gets at most half of the budget left now; the rest stays queued
+	// for later runs, so this run's own events always get a direct try.
+	backlogFloor := run.remaining() / 2
+	if !sink.up || !flushHostEventQueueUntil(state, sink.info, sink.targets, func() bool { return run.remaining() >= backlogFloor }) {
+		return // viewer down, or the backlog is older and still waiting: queue behind it
+	}
+	for {
+		event, ok := run.next()
+		if !ok {
+			break
+		}
+		delivered := postResolvedHostEventWith(state, sink.info, event, sink.targets) == hostSendDone
+		run.settle(delivered)
+		if !delivered {
+			return
+		}
+	}
+	if started >= 0 && run.complete() {
 		// A session that starts again (resume, a restart after a crash) may have
 		// done work the hooks missed while the viewer or the hook was away.
-		_, _ = reconcileHostSession(opts, sink, events[started].Source, "", reconcileHookReadLimit)
+		_, _ = reconcileHostSession(opts, sink, valid[started].Source, "", reconcileHookReadLimit)
 	}
 }
 
@@ -104,6 +223,16 @@ type hostSink struct {
 // openHostSink checks the viewer once. With it up, it flushes the semantic queue
 // of each source's current works and then the host event queue.
 func openHostSink(opts management.Options, state string, sources ...viewer.TimelineSource) *hostSink {
+	s := newHostSink(opts, state, sources...)
+	if s.up {
+		flushHostEventQueueWith(state, s.info, s.targets)
+	}
+	return s
+}
+
+// newHostSink checks the viewer once and, with it up, sends the semantic queue of
+// each source's current works. It leaves the host event queue alone.
+func newHostSink(opts management.Options, state string, sources ...viewer.TimelineSource) *hostSink {
 	s := &hostSink{state: state, targets: &hostTargetCache{}}
 	info, health, err := viewTimelineRunningHealth(newViewPaths(state))
 	if err != nil || !containsString(health.Capabilities, "host_events") {
@@ -113,7 +242,6 @@ func openHostSink(opts management.Options, state string, sources ...viewer.Timel
 	for _, source := range sources {
 		flushSemanticQueue(opts, state, source)
 	}
-	flushHostEventQueueWith(state, info, s.targets)
 	return s
 }
 
@@ -393,20 +521,32 @@ func hostEventQueueNames(dir string) []string {
 
 // flushHostEventQueueWith sends the queued events oldest first, at most
 // hostEventFlushLimit per run, and stops at the first transient failure. An event
-// the viewer refuses, or a file that is not an event, is dropped.
-func flushHostEventQueueWith(state string, info serverInfo, cache *hostTargetCache) {
+// the viewer refuses, or a file that is not an event, is dropped. It never waits
+// for the queue lock: a busy lock means another run is sending the backlog, and
+// it reports true, since this run's events need not wait for it. It reports
+// false when older events remain queued after a failure or the per-run limit.
+func flushHostEventQueueWith(state string, info serverInfo, cache *hostTargetCache) bool {
+	return flushHostEventQueueUntil(state, info, cache, nil)
+}
+
+// flushHostEventQueueUntil is flushHostEventQueueWith that also stops, leaving
+// the rest queued and reporting success, when more returns false before an event.
+func flushHostEventQueueUntil(state string, info serverInfo, cache *hostTargetCache, more func() bool) bool {
 	dir := filepath.Join(state, "hooks", "queue")
 	if checkSafeDir(filepath.Join(state, "hooks")) != nil || checkSafeDir(dir) != nil {
-		return
+		return true
 	}
 	l, err := acquirePrivateWorkLock(filepath.Join(state, "hooks", "queue.lock"), false)
 	if err != nil {
-		return // another run is sending the queue
+		return true // another run is sending the queue
 	}
 	defer l.Release()
 	for n, name := range hostEventQueueNames(dir) {
 		if n >= hostEventFlushLimit {
-			return
+			return false
+		}
+		if more != nil && !more() {
+			return true
 		}
 		path := filepath.Join(dir, name)
 		raw, err := readSafeMapFile(path)
@@ -417,8 +557,9 @@ func flushHostEventQueueWith(state string, info serverInfo, cache *hostTargetCac
 		}
 		event.WorkID, event.StageEventID = "", ""
 		if postResolvedHostEventWith(state, info, event, cache) == hostSendRetry {
-			return
+			return false
 		}
 		_ = os.Remove(path)
 	}
+	return true
 }

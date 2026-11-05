@@ -155,6 +155,8 @@ test("the task sheet of a host task is titled by the title alone", async (t) => 
   assert.ok(marker.getAttribute("aria-label")?.startsWith("From host: "));
   assert.equal(marker.hasAttribute("tabindex"), false);
   assert.equal(title.contains(marker), false);
+  // A long title wraps: the badge sits on the title's first line, not centered on the block.
+  assert.ok(marker.classList.contains("self-start"));
 });
 
 test("the task sheet of an agent task shows no host marker", async (t) => {

@@ -79,6 +79,13 @@ function TimelineSingleDevelopmentPreview() {
         ["task-2", "task-3"].includes(x.task_id),
       ))
         task.task_key = `${TIMELINE_HOST_TASK_KEY_PREFIX}native-${task.task_id}`;
+      // A long title wraps in the sheet, to check the host badge against its first line.
+      const longTask = fixture.session.tasks.find(
+        (x) => x.task_id === "task-2",
+      );
+      if (longTask)
+        longTask.title =
+          "Revisar con calma el acceso al entorno de validación, las credenciales de prueba y la configuración de cada servicio antes de la entrega";
     }
     if (scenario === "agent-only") {
       // Agent operations without host events move last activity, never host activity.

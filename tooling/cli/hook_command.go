@@ -37,6 +37,10 @@ const (
 var (
 	hookBudget = hookBudgetDefault
 	hookNow    = time.Now
+	// hookClock and hookAfter are the budget's clock and timer; tests replace
+	// them so the budget is driven by observable events, not by sleeping.
+	hookClock = time.Now
+	hookAfter = time.After
 )
 
 type hookOptions struct{ home, stateDir string }
@@ -71,14 +75,16 @@ func runHook(args []string, stdin io.Reader) {
 	}
 	deps := viewIdentityDepsFn()
 	done := make(chan struct{})
+	run := newHookRun(hookClock().Add(hookBudget))
 	go func() {
 		defer close(done)
 		defer func() { _ = recover() }()
-		processHook(opts, positional[0], positional[1], stdin, deps)
+		processHook(opts, positional[0], positional[1], stdin, deps, run)
 	}()
 	select {
 	case <-done:
-	case <-time.After(hookBudget):
+	case <-hookAfter(hookBudget):
+		run.finish() // the budget ended: what is not delivered stays queued
 	}
 }
 
@@ -138,7 +144,7 @@ func translateHook(host string, in hostevent.Input) []hostevent.Event {
 	return nil
 }
 
-func processHook(opts hookOptions, hint, event string, stdin io.Reader, deps viewIdentityDeps) {
+func processHook(opts hookOptions, hint, event string, stdin io.Reader, deps viewIdentityDeps, run *hookRun) {
 	raw, err := io.ReadAll(io.LimitReader(stdin, hookInputLimit+1))
 	if err != nil || len(raw) > hookInputLimit {
 		return
@@ -176,7 +182,7 @@ func processHook(opts hookOptions, hint, event string, stdin io.Reader, deps vie
 		}
 		built = append(built, buildHostEvent(ev, hostStart))
 	}
-	sendHookEvents(options, state, built)
+	sendHookEvents(options, state, built, run)
 }
 
 // hookOccurredAt is the time the event is reported with. The viewer derives the

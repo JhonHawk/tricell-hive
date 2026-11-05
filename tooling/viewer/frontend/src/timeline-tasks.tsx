@@ -638,6 +638,7 @@ export function HostObservedBadge({
           <Badge
             variant="outline"
             role="img"
+            className="self-start"
             aria-label={`${t.hostObserved}: ${t.hostObservedHint}`}
           />
         }
