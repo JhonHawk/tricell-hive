@@ -34,7 +34,7 @@ Source-byte unions are not actual tokens or evidence of small-model reliability.
 - [flow-plan](content/skills/flow-plan/SKILL.md): settle the how: present approaches, resolve decisions and define contracts, tasks, and acceptance criteria
 - [flow-build](content/skills/flow-build/SKILL.md): implement authorized work and hand over a built candidate
 - [flow-verify](content/skills/flow-verify/SKILL.md): verify the candidate at the level the session's answers and the request set, then integrate it, with a security review only when the user asks
-- [flow-close](content/skills/flow-close/SKILL.md): move the ticket and report at integration, end with a close footer, and clean up task-owned resources on the user's reply, honoring a `Completion` key's later completion point
+- [flow-close](content/skills/flow-close/SKILL.md): move the ticket and report at integration, end with a close footer, and clean up the work's resources and the merged branches and clean worktrees of each repository it touched on the user's reply, commit the change folder at a pause where the specs repository allows it, honoring a `Completion` key's later completion point
 - [flow-deploy](content/skills/flow-deploy/SKILL.md): promote an integrated candidate through the declared environments and verify what is served, moving tickets to the final state a `Completion` key names
 - [git-workflow](content/skills/git-workflow/SKILL.md): prepare authorized Git delivery while preserving unrelated work
 - [hive-ui-criteria](content/skills/hive-ui-criteria/SKILL.md): detect the project's component library, installed version and customization layer, keep them in a verified `DESIGN.md`, and give design, build and review work measurable UI criteria below the project's own design system
