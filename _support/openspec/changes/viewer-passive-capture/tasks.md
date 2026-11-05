@@ -235,7 +235,7 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 
 ### T8 — Guía de `flow-walkthrough` y de los flujos
 
-- [ ] El procedimiento publica una vez por cambio de etapa con `work open`, `work sync`, `work evidence` y `work close`, sin bajo nivel ni banderas de identidad en la vía normal.
+- [x] El procedimiento publica una vez por cambio de etapa con `work open`, `work sync`, `work evidence` y `work close`, sin bajo nivel ni banderas de identidad en la vía normal.
 
 **Closes:** AC10
 
@@ -322,7 +322,7 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 
 ## Checkpoint
 
-- Etapa: build; hechas T0–T6 y su ronda de correcciones (`88f73ea3`); T7 en `249e4ef9` con su remate en curso (informe del CLI, aviso de archivo inválido, status/doctor, recuperación); T8 delegada a `hive-write-docs` por el costo de contexto del hilo principal, que revisa su diff; verificación de T7 en curso.
+- Etapa: build; hechas T0–T6 con correcciones, T7 (`249e4ef9`, remate en curso) y T8 (`10011eb3`); T9 en curso; verificación de T7 en curso.
 - Visor: trabajo `50457f3803d3122ef9c5294ee314a04b7caa03a46924c73bd3ea949a081b4a30`, etapa build `event-0031e0d2ade9120dcd2f535d5f41f8b3`, tareas registradas con la revisión `revision-69dbb00740f6bd76e426531cdab267a0` (la tarea T0 del plan es la clave `T11` en el visor, que no admite `T0`).
 - Hallazgos abiertos: los de T7 en corrección; la de T6 sobre eventos de tareas anteriores a un trabajo creado por un `open` en cola se acepta y está anotada en el diseño.
-- Siguiente: integrar el remate de T7 y T8; después T9 y T10.
+- Siguiente: integrar el remate de T7 y T9; después T10 en esta Mac.
