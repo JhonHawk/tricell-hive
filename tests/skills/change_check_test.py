@@ -162,6 +162,33 @@ class ChangeCheckTest(unittest.TestCase):
             self.assertEqual(result.returncode, 1)
             self.assertIn("no criterion", result.stdout)
 
+    def test_replaced_id_lists_in_ranges_and_markup(self):
+        cases = {
+            "**Replaces:** AC3–AC4": "AC4",
+            "**Replaces:** `D4-A`": "D4-A",
+            "**Replaces:** [**D4-A**](#d4)": "D4-A",
+            "**Replaces:** D4 In the revision": "D4",
+        }
+        for marker, stale in cases.items():
+            proposal = PROPOSAL.replace("**Replaces:** D4-A", marker)
+            tasks = TASKS.replace("**Changes:** commit by D12-A, which replaced D4-A.", f"**Changes:** still {stale} here.")
+            with self.subTest(marker=marker), tempfile.TemporaryDirectory() as tmp:
+                result = self.run_check(self.folder(tmp, proposal=proposal, tasks=tasks))
+                self.assertIn(f"tasks.md:10: {stale}", result.stdout)
+                self.assertNotIn("named by no", result.stdout)
+
+    def test_naming_the_replacement_without_its_letter_exempts_the_line(self):
+        tasks = TASKS.replace("which replaced D4-A", "D12, which replaced D4-A")
+        tasks = tasks.replace("commit by D12-A, ", "commit by ")
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.folder(tmp, tasks=tasks))
+            self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_closes_none_without_criteria_passes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.folder(tmp, proposal="# demo\n", tasks="### T1\n\n**Closes:** none (refactor)\n"))
+            self.assertEqual(result.returncode, 0, result.stdout)
+
     def test_unreadable_folder_exits_2(self):
         with tempfile.TemporaryDirectory() as tmp:
             result = self.run_check(Path(tmp) / "missing")

@@ -17,7 +17,7 @@ Reads proposal.md, tasks.md, design.md and specs/**/*.md and prints one
   proposal.md line that defines the old ID, a line that also names its
   replacement, and the progress section (a `##` heading containing
   "progress", "progreso" or "avance");
-- a proposal.md without `- AC<n>` criteria while tasks.md has **Closes:** lines;
+- a **Closes:** line naming a criterion when proposal.md has no `- AC<n>` bullet;
 - with --archive, each unchecked `- [ ]` box of tasks.md, then their count.
 
 Exit status: 0 when nothing is printed, 1 when something is, 2 when the folder,
@@ -28,9 +28,12 @@ import re
 import sys
 from pathlib import Path
 
-ID = r"[A-Z]{1,3}\d+(?:[- ][A-Z])?"
+ID = r"(?<![A-Za-z0-9])[A-Z]{1,3}\d+(?:[- ][A-Z](?![A-Za-z0-9]))?(?![A-Za-z0-9])"
 ID_TOKEN = re.compile(r"(?<![A-Za-z0-9])([A-Z]{1,3})(\d+)(?:[- ]([A-Z]))?(?![A-Za-z0-9])")
-ID_LIST = re.compile(rf"\s*((?<![A-Za-z0-9]){ID}(?:\s*(?:,|;|/|&|\band\b|\by\b|\be\b)\s*{ID})*)")
+WRAP = r"[`*\[\]]*"
+ID_SEPARATOR = r"\s*(?:,|;|/|&|–|—|-|\band\b|\by\b|\be\b)\s*"
+ID_LIST = re.compile(rf"\s*({WRAP}{ID}{WRAP}(?:{ID_SEPARATOR}{WRAP}{ID}{WRAP})*)")
+AC_RANGE = re.compile(r"AC(\d+)\s*[-–—]\s*(?:AC)?(\d+)")
 
 
 def marker(word):
@@ -88,9 +91,18 @@ def collect_replacements(docs):
             found = REPLACES.search(line)
             if found:
                 before = ID_TOKEN.findall(line[: found.start()])
-                new = id_pattern(*before[0]) if before else None
                 listed = ID_LIST.match(line[found.end():])
-                for prefix, number, letter in ID_TOKEN.findall(listed.group(1) if listed else ""):
+                listed = listed.group(1) if listed else ""
+                ids = ID_TOKEN.findall(listed)
+                for start, end in AC_RANGE.findall(listed):
+                    first, last = sorted((int(start), int(end)))
+                    ids += [("AC", str(k), "") for k in range(first, min(last, first + 999) + 1)]
+                for prefix, number, letter in ids:
+                    new = None
+                    if before:
+                        # The replacement keeps its letter only when it is another option of the same decision.
+                        same = (before[0][0], before[0][1]) == (prefix, number)
+                        new = id_pattern(*before[0]) if same else id_pattern(before[0][0], before[0][1])
                     old.setdefault((prefix, number, letter), {
                         "label": id_label(prefix, number, letter), "where": f"{rel}:{n}", "how": "replaced",
                         "pattern": id_pattern(prefix, number, letter), "new": new,
@@ -135,8 +147,10 @@ def criteria_findings(proposal, tasks, old):
             defined.setdefault(int(match.group(1)), i + 1)
     closes = [(n, m.group(1)) for n, line in enumerate(tasks, 1) if (m := CLOSES.search(line))]
     if not defined:
-        if closes:
-            return ["proposal.md: no criterion is written as a `- AC<n>` bullet, but tasks.md has **Closes:** lines"]
+        named = [(n, AC_REFERENCE.search(text).group(0)) for n, text in closes if AC_REFERENCE.search(text)]
+        if named:
+            n, ac = named[0]
+            return [f"tasks.md:{n}: {ac} in **Closes:**, but proposal.md writes no criterion as a `- AC<n>` bullet"]
         return []
     findings, closed = [], set()
     for n, text in closes:
