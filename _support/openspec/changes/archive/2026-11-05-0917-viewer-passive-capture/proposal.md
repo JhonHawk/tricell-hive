@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Draft · plan escrito, pendiente de revisión y aprobación |
+| Estado | Completed · PR #374 (dd729041) y hallazgos en PR #376 (9a1f3231) fusionados en `development` |
 | Tracker | Sin ticket propio. Resuelve #358 (transiciones de tareas fallan en builds de tres hosts) en la vía semántica; T3 comprueba si el bajo nivel también lo sufre. Relacionado: #356 (reinicio sin perder pestañas, fuera de alcance) |
 | Git | JhonHawk/tricell-hive · base `development` en `d23f9a88` · rama propuesta `feat/viewer-passive-capture` |
 

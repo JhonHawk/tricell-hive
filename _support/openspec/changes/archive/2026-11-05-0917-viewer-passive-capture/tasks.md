@@ -280,7 +280,7 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 
 ### T10 — Verificación del conjunto
 
-- [ ] La suite completa pasa en local, y en esta Mac los hooks instalados se disparan en una sesión real de cada host.
+- [x] La suite completa pasa en local, y en esta Mac los hooks instalados se disparan en una sesión real de cada host.
 
 **Closes:** AC1–AC10
 
@@ -326,7 +326,7 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 
 ## Checkpoint
 
-- Etapa: verify, esperando la validación del usuario. Candidato `db7bbaed`, desplegado en esta Mac (binario, `hive update` desde `f77c8765`, visor en 4483 con 53 trabajos). Copias previas en el scratchpad (`host-config-backup/`).
+- Etapa: cerrado. Integrado en #374 (dd729041); hallazgos H40–H43, H46 y H47 en #376 (9a1f3231); H44 en #375; H45 ignorado.
 - Visor: trabajo `50457f3803d3122ef9c5294ee314a04b7caa03a46924c73bd3ea949a081b4a30`, etapa build `event-0031e0d2ade9120dcd2f535d5f41f8b3`, tareas registradas con la revisión `revision-69dbb00740f6bd76e426531cdab267a0` (la tarea T0 del plan es la clave `T11` en el visor, que no admite `T0`).
 - Hallazgos abiertos (al cierre, no bloquean): latencia cuando el lock de la cola está ocupado; clave de proyecto desfasada entre dos pasos; lógica de proyecto duplicada; escritura a disco de cada evento; arranque del visor de 13 s con 53 trabajos; atribución de Cursor a Claude Code, plausible; base de UX (títulos de fila sin truncar, truncado del registro). Corregidos: 10 de la primera revisión, 5 de la segunda, 5 de UX, nombres de hooks en Codex y H39 (`hive view start`).
-- Siguiente: validación del usuario (D18), después push, PR y merge (D1 B).
+- Siguiente: ninguno; medir el nuevo costo de contexto con sesiones normales (rúbrica).
