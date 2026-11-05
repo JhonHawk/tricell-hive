@@ -553,6 +553,9 @@ func executeViewWork(c viewWorkCommand, w io.Writer) error {
 		// Management commands keep no publisher journal and take no native identity.
 		return executeViewWorkLocal(c, w)
 	}
+	if hostReconcile(c) {
+		return executeHostReconcile(c, w)
+	}
 	e, err := openViewWorkEngineQueueing(c, viewWorkQueueable(c))
 	if err != nil {
 		return err

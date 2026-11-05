@@ -256,7 +256,7 @@ func resolveViewWorkContext(c *viewWorkCommand) error {
 			return workInput("native identity ambiguous: pass --host and --native-session-id")
 		}
 	}
-	if c.WorkID == "" && c.Host != "" && c.NativeSessionID != "" && viewWorkActionNeedsWork(c.Action) {
+	if c.WorkID == "" && c.Host != "" && c.NativeSessionID != "" && viewWorkActionNeedsWork(c.Action) && !hostReconcile(*c) {
 		dir, err := stateDir()
 		if err != nil {
 			return err
@@ -274,4 +274,10 @@ func resolveViewWorkContext(c *viewWorkCommand) error {
 		}
 	}
 	return nil
+}
+
+// hostReconcile is `reconcile` in its host-session form: no pending intent
+// named, so it reads the host's session file instead of archiving a rejection.
+func hostReconcile(c viewWorkCommand) bool {
+	return c.Action == "reconcile" && c.Pending == "" && c.ReconcileAction == ""
 }

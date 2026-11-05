@@ -30,6 +30,7 @@ task update --work-id ID --key KEY --stage STAGE --state STATE --reason TEXT [tr
 task update --work-id ID --key KEY --reason TEXT --json FILE|-
 close --work-id ID --outcome completed|abandoned --reason TEXT (completes the active stage first)
 resume --work-id ID
+reconcile [--session-file FILE] (backfill from the host's session file)
 reconcile --work-id ID --pending ID --action archive-rejected --reason TEXT
 bind --work-id ID --change DIR --reason TEXT
 rename --work-id ID --title TEXT

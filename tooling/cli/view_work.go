@@ -46,6 +46,8 @@ type viewWorkCommand struct {
 	Images, Steps                              []string
 	// QueuedOperation is the operation identity a queued open gives its create.
 	QueuedOperation string
+	// SessionFile names the host session file `reconcile` reads instead of finding it.
+	SessionFile string
 }
 
 // viewWorkSyncTask is one task of a `work sync` declaration. The state is the
@@ -175,7 +177,7 @@ func parseViewWorkCommand(args []string, stdin io.Reader) (viewWorkCommand, erro
 		"task update":    "work-id key stage state reason json block-reason block-owner block-step resume-when resolution review-kind",
 		"close":          "work-id outcome reason",
 		"resume":         "work-id",
-		"reconcile":      "work-id pending action reason",
+		"reconcile":      "work-id pending action reason session-file project",
 		"bind":           "work-id change reason",
 		"rename":         "work-id title",
 		"archive":        "work-id",
@@ -196,6 +198,7 @@ func parseViewWorkCommand(args []string, stdin io.Reader) (viewWorkCommand, erro
 	str["json"] = &jsonFile
 	str["tasks"] = &tasksFile
 	str["close"] = &c.CloseOutcome
+	str["session-file"] = &c.SessionFile
 	str["view-title"] = &c.ViewTitle
 	str["candidate"] = &c.Candidate
 	str["supersedes"] = &c.Supersedes
@@ -426,8 +429,10 @@ func validateViewWorkCommand(c *viewWorkCommand, seen map[string]bool) error {
 			return workInput("limit must be 1..100")
 		}
 	default:
-		if err := required(c.WorkID); err != nil {
-			return err
+		if !hostReconcile(*c) {
+			if err := required(c.WorkID); err != nil {
+				return err
+			}
 		}
 	}
 	switch c.Action {
@@ -491,6 +496,12 @@ func validateViewWorkCommand(c *viewWorkCommand, seen map[string]bool) error {
 			return err
 		}
 	case "reconcile":
+		if hostReconcile(*c) {
+			if c.SessionFile != "" && !filepath.IsAbs(c.SessionFile) {
+				return workInput("session-file must be an absolute path")
+			}
+			return nil
+		}
 		if err := required(c.Pending, c.Reason); err != nil {
 			return err
 		}
