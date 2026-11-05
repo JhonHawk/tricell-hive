@@ -55,7 +55,11 @@ raise the minor or the patch version.
   Verify checks it itself or reports it as not verified. Its verdict judges
   only the defects the change introduced, with the defects already there in a
   separate list. A fix to one of its findings is reread by a follow-up to the
-  same reviewer, limited to what changed, never by a new full UX review.
+  same reviewer, limited to what changed and the layouts that contain it,
+  never by a new full UX review; that reread still runs the accessibility
+  audit and the measured checks, with the longest values. A deployment walk's
+  UX reviewer gets the same brief, with the environment's URLs in place of
+  captures.
 - `TestSpecDeltasApplied` accepts the delta of either change when two changes
   archived the same day modify the same requirement, since folder names fix
   the date but not the order within a day.
