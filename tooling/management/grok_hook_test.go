@@ -283,19 +283,28 @@ func TestGrokHookPlanRejectsATemporaryExecutable(t *testing.T) {
 	}
 }
 
-func TestGrokHookPlanForOtherHostsNeedsNoExecutable(t *testing.T) {
+// Every user-scope install registers `hive hook` for each of its hosts, so it
+// needs the binary; a remove plan never does.
+func TestEveryUserInstallNeedsTheExecutableAndRemoveDoesNot(t *testing.T) {
 	o := setup(t) // codex and claude
-	HiveExecutableBroken := func() (string, error) { return "", errors.New("must not be called") }
-	old := HiveExecutable
-	HiveExecutable = HiveExecutableBroken
-	t.Cleanup(func() { HiveExecutable = old })
 	p := plan(t, "install", o)
-	if p.Executable != "" {
-		t.Fatalf("executable = %q on a plan without Grok", p.Executable)
+	if p.Executable == "" || !strings.Contains(string(encode(p)), `"executable"`) {
+		t.Fatalf("an install for codex and claude must carry the executable, got %q", p.Executable)
 	}
-	if strings.Contains(string(encode(p)), `"executable"`) {
-		t.Fatal("a plan without Grok must not encode the executable field")
+	apply(t, p)
+
+	broken := func() (string, error) { return "", errors.New("must not be called") }
+	old := HiveExecutable
+	HiveExecutable = broken
+	t.Cleanup(func() { HiveExecutable = old })
+	if _, err := BuildPlan("install", o); err == nil || !strings.Contains(err.Error(), "resolve the hive executable") {
+		t.Fatalf("install without a usable binary = %v, want the executable error", err)
 	}
+	rp := plan(t, "remove", o)
+	if rp.Executable != "" {
+		t.Fatalf("a remove plan carries the executable %q", rp.Executable)
+	}
+	apply(t, rp)
 }
 
 // AC7 (apply): a plan edited by hand cannot make the manager write a command
@@ -369,12 +378,14 @@ func TestGrokHookRemovePlanRejectsAnExecutable(t *testing.T) {
 	}
 }
 
-// A plan saved before this field existed has no executable and keeps its ID.
+// A plan without an executable (a remove plan, or one saved before the field
+// existed) keeps its ID across save and load.
 func TestPlanWithoutExecutableKeepsItsID(t *testing.T) {
 	o := setup(t)
-	p := plan(t, "install", o)
+	apply(t, plan(t, "install", o))
+	p := plan(t, "remove", o)
 	if p.Executable != "" {
-		t.Fatal("setup must not include Grok")
+		t.Fatal("a remove plan must not carry the executable")
 	}
 	path := filepath.Join(canonicalTemp(t), "plan.json")
 	if err := SavePlan(path, p); err != nil {

@@ -143,7 +143,7 @@ func TestTimelineCLITransportGuardsAndProtocolIdentity(t *testing.T) {
 	var info serverInfo
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if revision.Load() {
-			w.Header().Set("X-Hive-Timeline-Revision", "2")
+			w.Header().Set("X-Hive-Timeline-Revision", "3")
 		}
 		if r.Header.Get("X-Hive-Token") != info.Token {
 			t.Error("missing access header")
@@ -198,7 +198,7 @@ func TestTimelineCLIRedirectAndErrorNeverExposeCredentials(t *testing.T) {
 	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { reached++; w.Write([]byte(`{}`)) }))
 	defer target.Close()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("X-Hive-Timeline-Revision", "2")
+		w.Header().Set("X-Hive-Timeline-Revision", "3")
 		if r.URL.Path == "/api/redirect" {
 			http.Redirect(w, r, target.URL, http.StatusFound)
 			return
@@ -296,7 +296,7 @@ func TestTimelineCLIPublicReadbackAtLegacyContentLimit(t *testing.T) {
 		t.Fatal("fixture missed response boundary", len(raw))
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set(viewer.TimelineRevisionHeader, "2")
+		w.Header().Set(viewer.TimelineRevisionHeader, viewer.TimelineRevisionValue)
 		w.Write(raw)
 	}))
 	defer server.Close()

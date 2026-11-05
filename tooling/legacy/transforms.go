@@ -7,12 +7,24 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"tricell-hive/integrations/target"
 )
 
 func cleanHooks(path, host string, known []hookRecord) (Edit, bool, error) {
+	// A shared hook file that is linked (dotfile managers) or is not JSON at all
+	// is left alone, not a conflict that fails the whole plan: the manager skips
+	// it too, with a warning, and legacy hooks in it stay where they are. A file
+	// that is JSON but repeats keys or has an unknown shape is still refused.
+	if target.Safe(path) != nil {
+		return Edit{}, false, nil
+	}
 	b, mode, err := read(path)
 	if err != nil || b == nil {
 		return Edit{}, false, err
+	}
+	if !json.Valid(b) {
+		return Edit{}, false, nil
 	}
 	if err = uniqueJSON(b); err != nil {
 		return Edit{}, false, fmt.Errorf("invalid or duplicate hook configuration keys: %s", path)

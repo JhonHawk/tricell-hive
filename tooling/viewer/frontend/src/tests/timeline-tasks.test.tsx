@@ -300,3 +300,54 @@ test("content affordances stay scoped to the task segment while the reader can r
   });
   assert.equal(taskContent(data, "task-1").substantive, false);
 });
+
+test("tasks mirrored from the host carry an outline badge with accessible text; plan tasks do not", async (t) => {
+  const { root, container } = mount(t);
+  const data = workFixture();
+  data.session.tasks[0].task_key = "host:native-1";
+  await act(async () =>
+    root.render(<TimelineContent data={data} lang="es" onRetry={() => {}} />),
+  );
+  const badges = container.querySelectorAll('[data-slot="host-observed"]');
+  assert.equal(badges.length, 1);
+  const badge = badges[0];
+  assert.ok(badge.textContent?.startsWith("Del host"));
+  // Role and name carry the hint; the badge is no Tab stop (the row's title action is).
+  assert.equal(badge.getAttribute("role"), "img");
+  assert.equal(
+    badge.getAttribute("aria-label"),
+    "Del host: Tarea tomada de la lista de tareas del host",
+  );
+  assert.equal(badge.hasAttribute("tabindex"), false);
+  // Keyboard users reach the hint through the title action, which gets the tooltip.
+  const rowAction = badge
+    .closest("[data-task-id]")
+    ?.querySelector('[data-slot="timeline-text-action"]');
+  assert.ok(rowAction);
+  assert.equal(
+    badge.closest("[data-task-id]")?.getAttribute("data-task-id"),
+    data.session.tasks[0].task_id,
+  );
+  // The key is internal: a host task is named by its title alone.
+  const row = badge.closest("[data-task-id]");
+  assert.ok(row);
+  assert.equal(row.textContent?.includes("host:native-1"), false);
+  const title = data.session.tasks[0].title;
+  const action = [...row.querySelectorAll("button")].find((b) =>
+    b.textContent?.includes(title),
+  );
+  assert.ok(action?.getAttribute("aria-label")?.startsWith(`${title}: `));
+  for (const node of row.querySelectorAll("[aria-label]"))
+    assert.equal(
+      node.getAttribute("aria-label")?.includes("host:native"),
+      false,
+    );
+  await act(async () =>
+    root.render(<TimelineContent data={data} lang="en" onRetry={() => {}} />),
+  );
+  assert.ok(
+    container
+      .querySelector('[data-slot="host-observed"]')
+      ?.textContent?.startsWith("From host"),
+  );
+});

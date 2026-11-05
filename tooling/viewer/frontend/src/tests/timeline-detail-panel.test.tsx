@@ -139,6 +139,32 @@ function taskFixture() {
   ];
   return data;
 }
+test("the task sheet of a host task is titled by the title alone", async (t) => {
+  const { root } = mount(t);
+  const data = taskFixture();
+  const task = data.session.tasks.find((x) => x.task_id === "task-2");
+  assert.ok(task);
+  task.task_key = "host:native-2";
+  await act(async () => root.render(<Harness data={data} />));
+  await click("Open blocked task");
+  const title = region('[data-slot="sheet-title"]');
+  assert.equal(title.textContent, task.title);
+  // The sheet carries the same provenance marker, outside the title text.
+  const marker = region('[data-slot="host-observed"]');
+  assert.equal(marker.getAttribute("role"), "img");
+  assert.ok(marker.getAttribute("aria-label")?.startsWith("From host: "));
+  assert.equal(marker.hasAttribute("tabindex"), false);
+  assert.equal(title.contains(marker), false);
+});
+
+test("the task sheet of an agent task shows no host marker", async (t) => {
+  const { root } = mount(t);
+  await act(async () => root.render(<Harness data={taskFixture()} />));
+  await click("Open blocked task");
+  region('[data-slot="sheet-title"]');
+  assert.equal(document.querySelector('[data-slot="host-observed"]'), null);
+});
+
 test("task snapshot focuses unblock instructions and only its own version offers manual refresh", async (t) => {
   const { root } = mount(t);
   let data = taskFixture();

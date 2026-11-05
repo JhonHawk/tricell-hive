@@ -22,7 +22,7 @@ go run ./tooling/cli plan remove --hosts codex --scope user --out /absolute/remo
 go run ./tooling/cli recover --state-dir /absolute/state-directory
 ```
 
-These are interface examples, not authorization to deploy into the user's real configuration. A plan that installs Grok's [read-whole hook](#grok-read-whole-hook) refuses a `go run` binary; build one with `go build -o <path> ./tooling/cli` and run that instead. `plan` without `--out` is a read-only preview. With `--out`, it writes a new private plan file, never the destination files. A symlink ancestor of that file, such as macOS `/var`, is resolved before the write, and `hive apply --plan` resolves the same path; a symlink that remains after resolution is still rejected. `apply` consumes that plan and rejects stale target fingerprints or ownership state. Destination options are not accepted by `apply`: review the destinations bound into the plan instead.
+These are interface examples, not authorization to deploy into the user's real configuration. Every user-scope install registers a hook, plugin or extension that calls the `hive` binary by absolute path ([Grok read-whole hook](#grok-read-whole-hook), [host session hooks](#host-session-hooks)), so a `plan install --scope user` or `install` from a `go run` binary, which is deleted when the command ends, is refused for every host: build one with `go build -o <path> ./tooling/cli` and run that instead. Project-scope plans, `plan remove` and `status` need no stable binary, so the examples above that use them still run with `go run`. `plan` without `--out` is a read-only preview. With `--out`, it writes a new private plan file, never the destination files. A symlink ancestor of that file, such as macOS `/var`, is resolved before the write, and `hive apply --plan` resolves the same path; a symlink that remains after resolution is still rejected. `apply` consumes that plan and rejects stale target fingerprints or ownership state. Destination options are not accepted by `apply`: review the destinations bound into the plan instead.
 
 `--home` explicitly selects a synthetic home and ignores host path and compatibility environment overrides. Use it together with `--state-dir` for temporary-home tests. Without `--home`, host configuration environment variables are respected. `--root` is required for project scope. Existing root prefixes are canonicalized; linked target files or ancestors inside those roots are rejected rather than overwritten.
 
@@ -150,9 +150,44 @@ Client state lives at `<state>/publisher/v1/` (0700 directories, 0600 files),
 outside the server-owned viewer inventory. A separate nonblocking lock protects
 versioned, atomically replaced journals and frozen request bytes. Confirmed history keeps bounded receipt metadata after verified readback; rejected
 intents retain their exact bytes in immutable archive files. Pending inputs have
-no age expiry. No credentials are stored there. There is no watcher, new server endpoint, dependency or storage
-migration. Downgrading the client preserves this journal but cannot resume its
+no age expiry. No credentials are stored there. Locks are per work
+(`publisher/v1/locks/<work-id>.lock`), so commands on different works do not
+block each other; creation and journal migration keep the global lock. Nothing
+watches files, and no dependency or storage migration was added. Downgrading the client preserves this journal but cannot resume its
 pending requests; restore a compatible client to recover them.
+
+The semantic commands `work open|sync|evidence|close` apply one declaration per
+stage change (stage state with reason, missing tasks bound to that stage, task
+states, optional close with readback) and need no change folder. They resolve
+the producer identity without flags from a verified host variable or from the
+process-to-session map the session hook writes (contract in
+[host session events](host-session-events.md#session-map)), and keep each
+session's current work so the work ID may be omitted while exactly one is
+current. With the viewer stopped or silent, `open`, `sync` and `evidence`
+record the semantic input and operation ID in the journal, answer `queued` and
+never start the viewer; the next command on that work, or the next `hive hook`
+run of its session, sends the queue in order, rebuilding the requests on the
+remote state and reporting a declaration that no longer applies under
+`queue.rejected` without overwriting remote state. A queued `open` returns a
+local handle (a hash of project, host, native session and key) that the journal
+maps to the viewer ID once sent.
+
+The viewer also accepts host events: `POST /api/host-events`, authenticated by
+the viewer token without a browser origin and gated by a capability. The hidden
+`hive hook <host> <event>` subcommand, which hosts run, resolves the session's
+current work and active stage, sends one event with an operation ID derived from
+the host event, and otherwise appends it to `<state>/hooks/queue/` (under
+`<state>/hooks/queue.lock`); the next hook run or semantic command with a
+running viewer drains it. Events act as the accepted native producer of the
+session and are stored with provenance `host_observed`, apart from
+`agent_reported` and `server`. Every event moves the work's last host activity
+as maintenance metadata, without invalidating an agent's expected versions.
+Native task-list changes become tasks keyed `host:<native task ID>` (up to 50,
+bound to the active stage) only while the work has no agent-registered task.
+Events never start or complete a stage, change authority, record approvals or
+close a work; a session end only updates activity. The hook prints nothing,
+finishes within 2 s and exits 0 on any error. Which host events exist and what
+each hook payload carries is in [host session events](host-session-events.md).
 
 Registration records project roots in `viewer/registry.json`. Resolution uses
 the verified Git origin when available and the registered path for a workspace
@@ -165,7 +200,7 @@ from authorizing a new publication without resolving its source.
 Presentation grouping is separate from that canonical identity. The authenticated
 `GET /api/index?navigation=grouped` response includes a version-1 `navigation`
 projection; the default index retains its canonical grouping shape. Matching timeline
-revision 2 is required for both forms. Invalid navigation metadata is discarded with a visible diagnostic
+revision 3 is required for both forms. Invalid navigation metadata is discarded with a visible diagnostic
 without weakening the validation of work records.
 
 The projection reads only `.engram/config.json` at each work's original registered
@@ -182,17 +217,17 @@ resolution participates. A root with valid explicit configuration is also
 registrable directly when it is not Git; the existing Git and
 `_support/workspace` resolution paths remain available.
 
-Protocol, schema and storage are 3; the separate timeline contract revision is 2. `viewer/storage.json` positively identifies
+Protocol, schema and storage are 3; the separate timeline contract revision is 3. `viewer/storage.json` positively identifies
 that format; API records live in `viewer/timeline-api-v3/`. Preflight rejects
 old1/provisional2 state, like any name outside the v3 inventory, with
 invalid_storage before mkdir, locking, log creation,
 cleanup, registration or signaling. Unknown/corrupt state is an error, not an
 empty library. There is no older-record reader, scanner, import, preference copy
 or migration. A real cutover uses a separate fresh state directory, preserved
-old data and explicitly coordinated writers. Within v3, the revision 2 upgrade preserves stored works and publisher journals.
+old data and explicitly coordinated writers. Within v3, the revision 3 upgrade (host events) keeps the rule of revision 2: it preserves stored works and publisher journals.
 Before its first maintenance write, retain a private state snapshot as evidence.
 Update the CLI, embedded UI and server together and reload the browser. Index
-and timeline metadata requests and mutations require `X-Hive-Timeline-Revision: 2`;
+and timeline metadata requests and mutations require `X-Hive-Timeline-Revision: 3`;
 a missing or mismatched revision returns `reload_required` before mutation. A
 new client also refuses writes if the server does not acknowledge the revision.
 Pending request bytes and operation IDs remain available for explicit resume.
@@ -364,6 +399,11 @@ code. A party able to replace the plugin is outside the isolation Hive promises;
 the host loads local executable code with its own access, not a Hive sandbox.
 
 Normal install/update never activates the plugin or writes `opencode.json(c)`.
+The one exception is the separate session-event plugin
+(`<OpenCodeHome>/plugins/hive-events.js`, see
+[host session hooks](#host-session-hooks)): it is not this loader, sits in the
+auto-discovered `plugins/` directory and so is active as soon as it is
+installed.
 After explicitly choosing activation, the user adds the absolute
 `<OpenCodeHome>/hive/context-loader` directory path
 to the native `plugins` array in their own OpenCode configuration, preserving
@@ -481,11 +521,13 @@ files in `hooks/`, such as the user's own hooks, are untouched. The binary path 
 resolved when the plan is built and saved in the plan's `executable` field, so
 `apply` regenerates the same bytes; `apply` refuses a plan whose executable is not
 an absolute, clean regular file reached without a symbolic link, and a plan that
-carries an executable without installing the hook. Only user-scope installs that
-include Grok resolve it. A plan that would install the hook from a binary under
-the system temporary directory, `GOTMPDIR`, `GOCACHE` or the Go build cache, such
-as `go run ./tooling/cli`, is refused: build the binary with `go build` first. The pilot
-runner, which uses `go run`, therefore cannot install Grok.
+carries an executable without installing a hook. Every user-scope install that
+includes any host resolves it, because every host now registers a hook (this one
+and the [session hooks](#host-session-hooks)). A plan that would install from a
+binary under the system temporary directory, `GOTMPDIR`, `GOCACHE` or the Go
+build cache, such as `go run ./tooling/cli`, is refused for every host: build the
+binary with `go build` first. The pilot runner, which uses `go run`, therefore
+cannot install any host at user scope.
 
 The hook depends on that binary path. Reinstalling or updating from a binary at
 another path rewrites the command; deleting the package that installed it leaves
@@ -498,6 +540,68 @@ sessions, or reload with `r` in `/hooks`, after installing or removing it.
 Subagent sessions run it too. With `toolset.file_toolset = hashline` the read tool
 is `hashline_read`, which the matcher does not cover. Sources: Grok 1.0.55
 `~/.grok/docs/user-guide/10-hooks.md` and `08-skills.md`, read on 2026-10-13.
+
+### Host session hooks
+
+User-scope installs also let each host report its session to the viewer through
+`hive hook <host> <event>` (see [Walkthrough viewer](#walkthrough-viewer) for the
+endpoint and queue, and [host session events](host-session-events.md) for the
+verified facts per host and version). Every hook is silent, bounded to 2 s, exits
+0 on any error, and carries an explicit 5 s timeout where the file has one. They
+call the `hive` binary that planned the install, so they share the stable
+executable rule of the Grok read-whole hook above.
+
+Whole files Hive owns, as records of kind `hook` (accepted only for their file
+name, folder and host, like the Grok read-whole hook): Grok's second hook file
+`<GrokHome>/hooks/hive-session-events.json` (events `SessionStart`,
+`UserPromptSubmit`, `Stop`, `SessionEnd`, each a program handler with the binary
+as `command` and `hook grok <event>` as `args`, so the path needs no quoting;
+Grok merges every file in `hooks/`, so it sits beside the read-whole file and
+neither knows of the other); OpenCode's `<OpenCodeHome>/plugins/hive-events.js`;
+and Pi's `<PiHome>/extensions/hive-events.ts`. The OpenCode plugin and the Pi
+extension are auto-loaded by their hosts and pass the session ID explicitly,
+because OpenCode plugins run in one shared service. The OpenCode plugin reports
+`session.created`, `session.deleted`, `session.execution.*` and `todowrite`
+results; the Pi extension `session_start`, `agent_settled` and `session_shutdown`.
+
+Shared JSON files, which also hold other tools' entries and, in Claude Code's
+`settings.json`, secrets in `env`, are never records and never parsed and written
+back. `tooling/management/json_hooks.go` is a span editor: it finds the byte spans
+it needs and splices its own entries in or out, so every byte outside them stays
+as it was, and it recognizes as Hive's only a command of the exact form
+`'<hive>' hook <host> <event>`. The files and events:
+
+- Claude Code `<ClaudeHome>/settings.json`: `SessionStart`, `UserPromptSubmit`,
+  `SubagentStart`, `SubagentStop`, `TaskCreated`, `TaskCompleted`, `SessionEnd`.
+- Codex `<CodexHome>/hooks.json`: `SessionStart`, `UserPromptSubmit`,
+  `SubagentStart`, `SessionEnd`. `Stop` and `SubagentStop` are never registered
+  because Codex expects JSON on their stdout.
+- Cursor `<CursorHome>/hooks.json`, `{"version": 1, "hooks": {...}}` with handlers
+  directly under each event: `sessionStart`, `beforeSubmitPrompt`, `stop`,
+  `sessionEnd`. The format is verified in the installed code only; Cursor CLI's
+  use of it is not documented.
+
+The plan carries a fingerprint of each file, not its bytes; the journal carries
+fingerprints and Hive's own entries, and every undo is an entry-level inverse
+computed on the file as it is then, so an edit another tool made elsewhere
+survives. The first edit of an existing file keeps a backup of it as `<file>.hive-backup`. A file
+that is not the expected shape, has a duplicate key, or is larger than 4 MiB makes
+planning fail naming the file; it is never rewritten. A moved binary's old
+entries are recognized from the state and replaced. `plan remove` and uninstall
+delete only Hive's entries, plus the file when Hive created it and nothing else
+remains and the backup it made when the removal left no foreign change (otherwise
+the backup is kept and the report says so). Hive writes no Codex hook trust: Codex skips new or changed hooks until
+the user approves them in `/hooks` (`trusted_hash` is untouched), and the report
+tells the user to do so. Claude Code holds back settings hooks in an untrusted
+folder until the workspace trust dialog is accepted. A hook registered for Claude
+Code may be run by Grok or Cursor, which also read `~/.claude/settings.json`; the
+subcommand detects the host that actually ran it and acts for that host or exits
+silently. Hosts load hooks at session start: restart open sessions.
+
+The facts are documentary or read from installed code, not run in agent sessions
+(see the header of the host session events document). A host whose support is not
+verified against current documentation and the installed version is reported as
+unverified.
 
 ## Preservation and state
 

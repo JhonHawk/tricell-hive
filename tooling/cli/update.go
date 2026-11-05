@@ -111,12 +111,20 @@ func update(args []string, in io.Reader, out io.Writer, interactive bool) error 
 		fmt.Fprintf(out, "Plan saved to %s; run hive apply --plan %s to apply it.\n", f.Out, f.Out)
 		return nil
 	}
+	// The notes are computed before Apply, while the entries are not yet in
+	// place; Apply's result stays a transaction ID.
+	notes, err := management.HostHookNotes(p)
+	if err != nil {
+		return err
+	}
+	notes = append(notes, management.HostHookWarnings(p)...)
 	if unchanged {
 		result, err := (management.Engine{}).Apply(p)
 		if err != nil {
 			return err
 		}
 		reportApplyResult(out, "Hive is already up to date", result)
+		printHookNotes(out, notes)
 		return nil
 	}
 	if !interactive {
@@ -135,7 +143,17 @@ func update(args []string, in io.Reader, out io.Writer, interactive bool) error 
 		return err
 	}
 	reportApplyResult(out, "Hive updated", result)
+	printHookNotes(out, notes)
 	return nil
+}
+
+// printHookNotes prints what the user must still do or know about the hooks.
+func printHookNotes(out io.Writer, notes []string) {
+	for _, n := range notes {
+		for _, line := range wrapText(n, terminalWrapWidth) {
+			fmt.Fprintln(out, line)
+		}
+	}
 }
 
 // detectUpdateOffers asks the adapter which optional capabilities update can

@@ -134,6 +134,11 @@ type State struct {
 	// CodexWaitFloor records the lines Hive wrote into Codex's config.toml, or
 	// is nil when Hive wrote none. Schema stays 6 via omitempty.
 	CodexWaitFloor *CodexWaitFloorRecord `json:"codex_wait_floor,omitempty"`
+	// HostHooks records, per shared JSON hook file (Claude Code's settings.json,
+	// Codex's and Cursor's hooks.json), the entries Hive added to it, keyed by
+	// path. Schema 7: a binary that knows only 6 would drop this field, so a
+	// state that may hold it carries a version it refuses.
+	HostHooks map[string]HostHooksRecord `json:"host_hooks,omitempty"`
 }
 type Fingerprint struct {
 	TreeHash   string `json:"tree_hash,omitempty"`
@@ -206,10 +211,48 @@ type Plan struct {
 	// secrets: only the path, the keys and values Hive means to set, and the
 	// fingerprint of the file the plan was computed from.
 	CodexWaitFloor *CodexWaitFloorStep `json:"codex_wait_floor,omitempty"`
+	// HostHooks are the shared JSON hook files a user-scope install edits, one
+	// per selected host among claude, codex and cursor. They are not file
+	// Changes: other tools keep their entries in those files, so the manager
+	// edits them entry by entry and never stores their bytes.
+	HostHooks []HostHooksStep `json:"host_hooks,omitempty"`
 	// Executable is the absolute path of the hive binary that a user-scope
-	// install of Grok writes into its read-whole hook. Apply regenerates the
-	// hook from it, so it is part of the plan ID. Other plans leave it empty.
+	// install writes into every hook it registers (Grok's read-whole hook and
+	// session events, the shared JSON hook files, the OpenCode plugin and the Pi
+	// extension). Apply regenerates them from it, so it is part of the plan ID.
+	// Other plans leave it empty.
 	Executable string `json:"executable,omitempty"`
+}
+
+// HostHooksStep is the planned edit of one shared JSON hook file: the manager
+// host that owns it, its path, and the fingerprint of the file the plan was
+// computed from.
+type HostHooksStep struct {
+	Host     string      `json:"host"`
+	Path     string      `json:"path"`
+	Expected Fingerprint `json:"expected"`
+	// Skipped is why the manager will not edit the file (invalid JSON, a
+	// symlink, a hard link, a shape it does not know). A skipped step is never
+	// written and never recorded; the caller's notes name it.
+	Skipped string `json:"skipped,omitempty"`
+}
+
+// HostHooksRecord is what Hive owns in a shared JSON hook file after a write:
+// the commands of its entries (so a moved binary's old entries are still
+// recognized) and what it created, so an uninstall restores the file to the
+// shape it had. It never holds the file's bytes.
+type HostHooksRecord struct {
+	Host          string   `json:"host"`
+	Path          string   `json:"path"`
+	Commands      []string `json:"commands"`
+	CreatedFile   bool     `json:"created_file,omitempty"`
+	CreatedHooks  bool     `json:"created_hooks,omitempty"`
+	CreatedEvents []string `json:"created_events,omitempty"`
+	BackupCreated bool     `json:"backup_created,omitempty"`
+	// Interiors holds the whitespace between the brackets of a container that
+	// was empty when Hive filled it ("root", "hooks" or "event:<name>"), so an
+	// uninstall puts the user's `[ ]` back instead of `[]`.
+	Interiors map[string]string `json:"interiors,omitempty"`
 }
 
 // CodexWaitFloorStep is the planned write of the wait floor keys into
@@ -288,6 +331,11 @@ type StatusEntry struct {
 	// Voice is set only on a Kind "voice" row: the voice ID, address and
 	// intensity, e.g. "jarvis (sir, subtle)" (see design.md "status").
 	Voice string `json:"Voice,omitempty"`
+	// Event and Reason are set only on a Kind "hook_entry" row: the event of
+	// one Hive entry in a shared JSON hook file, and, when its Status is
+	// "skipped", why the file cannot be read as a hook file.
+	Event  string `json:"Event,omitempty"`
+	Reason string `json:"Reason,omitempty"`
 }
 
 func hash(b []byte) string { h := sha256.Sum256(b); return hex.EncodeToString(h[:]) }

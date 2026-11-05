@@ -116,7 +116,9 @@ func TestSourceCommitNotRecordedWhenTransactionFailsBeforeCommit(t *testing.T) {
 // ID: existing saved plans stay loadable across this change.
 func TestPlanIDStableWithoutSourceCommit(t *testing.T) {
 	p := Plan{
-		Version: stateVersion,
+		// Pinned at 6, the version the ID below was computed with: the property
+		// under test is the empty SourceCommit, not the schema version.
+		Version: 6,
 		Action:  "install",
 		Config: target.Config{
 			Scope:        "user",

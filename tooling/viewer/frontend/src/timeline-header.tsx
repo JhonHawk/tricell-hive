@@ -48,7 +48,11 @@ import {
   isSafeTimelineURL,
   type TimelineSessionResponse,
 } from "./timeline-contract";
-import { type TimelineLanguage, timelineCopy } from "./timeline-copy";
+import {
+  type TimelineLanguage,
+  timelineAge,
+  timelineCopy,
+} from "./timeline-copy";
 import { TimelineParticipants } from "./timeline-participants";
 import { timelineStateVariant } from "./timeline-state";
 import { TimelineSummary } from "./timeline-summary";
@@ -115,6 +119,20 @@ export function TimelineHeader({
   const { session } = data;
   const titleHintID = useId();
   const t = timelineCopy(lang);
+  const hostActivityAt = session.host_activity_at;
+  // A closed, failed or paused work shows its final state, not a live "active" line.
+  const hostActive =
+    hostActivityAt !== undefined &&
+    (session.state === "active" ||
+      session.state === "in_review" ||
+      session.state === "awaiting_validation");
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!hostActive) return;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, [hostActive]);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(session.title);
   const [saving, setPending] = useState(false);
@@ -283,185 +301,197 @@ export function TimelineHeader({
         <div className="min-w-0 flex-1">
           <TimelineSummary content={session.summary} lines={2} lang={lang} />
         </div>
-        <div
-          className="flex max-w-full flex-wrap items-center justify-end gap-2 self-end lg:shrink-0 lg:self-auto"
-          aria-busy={pending}
-        >
-          <ButtonGroup aria-label={t.states[session.state]}>
-            <ButtonGroupText>
-              <Badge variant={statusVariant}>
-                <Circle aria-hidden className="size-2 fill-current" />
-                {t.states[session.state]}
-              </Badge>
-            </ButtonGroupText>
-          </ButtonGroup>
-          <ButtonGroup aria-label={t.actions}>
-            <Popover>
-              <PopoverTrigger
-                render={
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    aria-label={`${t.tickets}: ${session.tickets.length}`}
-                    title={`${t.tickets}: ${session.tickets.length}`}
-                  />
-                }
-              >
-                <Tickets aria-hidden />
-                {session.tickets.length}
-              </PopoverTrigger>
-              <PopoverContent align="end">
-                <PopoverTitle>{t.tickets}</PopoverTitle>
-                {session.tickets.length ? (
-                  <ul className="flex flex-col gap-2">
-                    {session.tickets.map((ticket) => (
-                      <li
-                        key={ticket.ticket_id}
-                        className="flex min-w-0 flex-col gap-0.5"
-                      >
-                        {isSafeTimelineURL(ticket.url) ? (
-                          <a
-                            className="text-sm underline underline-offset-4 transition-colors hover:text-muted-foreground"
-                            href={ticket.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {ticket.key}
-                          </a>
-                        ) : (
-                          <span className="text-sm">
-                            {ticket.key} · {t.ticketUnavailable}
-                          </span>
-                        )}
-                        {ticket.title && (
-                          <span className="text-xs text-muted-foreground">
-                            {ticket.title}
-                          </span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground">{t.noTickets}</p>
-                )}
-              </PopoverContent>
-            </Popover>
-            <Popover>
-              <PopoverTrigger
-                render={
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    aria-label={`${t.git}: ${deliveries.length}`}
-                    title={`${t.git}: ${deliveries.length}`}
-                  />
-                }
-              >
-                <GitPullRequest aria-hidden />
-                {deliveries.length}
-              </PopoverTrigger>
-              <PopoverContent align="end">
-                <PopoverTitle>{t.git}</PopoverTitle>
-                {deliveries.length ? (
-                  <ul className="flex flex-col gap-2">
-                    {deliveries.map((delivery) => (
-                      <li
-                        key={delivery.delivery_id}
-                        className="flex min-w-0 items-center justify-between gap-2"
-                      >
-                        {isSafeTimelineURL(delivery.url) ? (
-                          <a
-                            className="min-w-0 truncate text-sm underline underline-offset-4 transition-colors hover:text-muted-foreground"
-                            title={delivery.label}
-                            href={delivery.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            {delivery.label}
-                          </a>
-                        ) : (
-                          <span className="text-sm">{delivery.label}</span>
-                        )}
-                        <Badge variant="outline">{t[delivery.status]}</Badge>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    {t.noDeliveries}
-                  </p>
-                )}
-              </PopoverContent>
-            </Popover>
-            {/* A count, not an action: it stays out of the tab order. */}
-            <ButtonGroupText
-              title={`${validations}: ${session.validation_count}`}
-            >
-              <ListChecks aria-hidden />
-              <span className="sr-only">{validations}: </span>
-              {session.validation_count}
-            </ButtonGroupText>
-          </ButtonGroup>
-          <TimelineParticipants
-            data={data}
-            lang={lang}
-            onRetry={onRetry}
-            onRecover={onRecover}
-          />
-          <ButtonGroup aria-label={t.more}>
-            <IconAction
-              label={session.archived ? t.unarchive : t.archive}
-              disabled={pending}
-              onClick={() => void update({ archived: !session.archived })}
-            >
-              {session.archived ? (
-                <ArchiveRestore aria-hidden />
-              ) : (
-                <Archive aria-hidden />
-              )}
-            </IconAction>
-            <DropdownMenu>
-              <DropdownMenuTrigger
-                render={
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon-sm"
-                    aria-label={t.more}
-                    disabled={pending}
-                  />
-                }
-              >
-                <MoreHorizontal aria-hidden />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-max">
-                <DropdownMenuItem
-                  className="whitespace-nowrap"
-                  onClick={() => void update({ pinned: !session.pinned })}
+        <div className="flex max-w-full flex-col items-end gap-1 self-end lg:shrink-0 lg:self-auto">
+          <div
+            className="flex max-w-full flex-wrap items-center justify-end gap-2"
+            aria-busy={pending}
+          >
+            <ButtonGroup aria-label={t.states[session.state]}>
+              <ButtonGroupText>
+                <Badge variant={statusVariant}>
+                  <Circle aria-hidden className="size-2 fill-current" />
+                  {t.states[session.state]}
+                </Badge>
+              </ButtonGroupText>
+            </ButtonGroup>
+            <ButtonGroup aria-label={t.actions}>
+              <Popover>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      aria-label={`${t.tickets}: ${session.tickets.length}`}
+                      title={`${t.tickets}: ${session.tickets.length}`}
+                    />
+                  }
                 >
-                  <Pin aria-hidden />
-                  {session.pinned ? t.unpin : t.pin}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="whitespace-nowrap"
-                  variant="destructive"
-                  onClick={() => {
-                    deleteVersion.current = session.version;
-                    setDeleting(true);
-                    setError(null);
-                  }}
+                  <Tickets aria-hidden />
+                  {session.tickets.length}
+                </PopoverTrigger>
+                <PopoverContent align="end">
+                  <PopoverTitle>{t.tickets}</PopoverTitle>
+                  {session.tickets.length ? (
+                    <ul className="flex flex-col gap-2">
+                      {session.tickets.map((ticket) => (
+                        <li
+                          key={ticket.ticket_id}
+                          className="flex min-w-0 flex-col gap-0.5"
+                        >
+                          {isSafeTimelineURL(ticket.url) ? (
+                            <a
+                              className="text-sm underline underline-offset-4 transition-colors hover:text-muted-foreground"
+                              href={ticket.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {ticket.key}
+                            </a>
+                          ) : (
+                            <span className="text-sm">
+                              {ticket.key} · {t.ticketUnavailable}
+                            </span>
+                          )}
+                          {ticket.title && (
+                            <span className="text-xs text-muted-foreground">
+                              {ticket.title}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {t.noTickets}
+                    </p>
+                  )}
+                </PopoverContent>
+              </Popover>
+              <Popover>
+                <PopoverTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      aria-label={`${t.git}: ${deliveries.length}`}
+                      title={`${t.git}: ${deliveries.length}`}
+                    />
+                  }
                 >
-                  <Trash2 aria-hidden />
-                  {t.remove}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </ButtonGroup>
-          {pending && (
-            <span role="status" className="text-xs text-muted-foreground">
-              {t.saving}
+                  <GitPullRequest aria-hidden />
+                  {deliveries.length}
+                </PopoverTrigger>
+                <PopoverContent align="end">
+                  <PopoverTitle>{t.git}</PopoverTitle>
+                  {deliveries.length ? (
+                    <ul className="flex flex-col gap-2">
+                      {deliveries.map((delivery) => (
+                        <li
+                          key={delivery.delivery_id}
+                          className="flex min-w-0 items-center justify-between gap-2"
+                        >
+                          {isSafeTimelineURL(delivery.url) ? (
+                            <a
+                              className="min-w-0 truncate text-sm underline underline-offset-4 transition-colors hover:text-muted-foreground"
+                              title={delivery.label}
+                              href={delivery.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              {delivery.label}
+                            </a>
+                          ) : (
+                            <span className="text-sm">{delivery.label}</span>
+                          )}
+                          <Badge variant="outline">{t[delivery.status]}</Badge>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {t.noDeliveries}
+                    </p>
+                  )}
+                </PopoverContent>
+              </Popover>
+              {/* A count, not an action: it stays out of the tab order. */}
+              <ButtonGroupText
+                title={`${validations}: ${session.validation_count}`}
+              >
+                <ListChecks aria-hidden />
+                <span className="sr-only">{validations}: </span>
+                {session.validation_count}
+              </ButtonGroupText>
+            </ButtonGroup>
+            <TimelineParticipants
+              data={data}
+              lang={lang}
+              onRetry={onRetry}
+              onRecover={onRecover}
+            />
+            <ButtonGroup aria-label={t.more}>
+              <IconAction
+                label={session.archived ? t.unarchive : t.archive}
+                disabled={pending}
+                onClick={() => void update({ archived: !session.archived })}
+              >
+                {session.archived ? (
+                  <ArchiveRestore aria-hidden />
+                ) : (
+                  <Archive aria-hidden />
+                )}
+              </IconAction>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  render={
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon-sm"
+                      aria-label={t.more}
+                      disabled={pending}
+                    />
+                  }
+                >
+                  <MoreHorizontal aria-hidden />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-max">
+                  <DropdownMenuItem
+                    className="whitespace-nowrap"
+                    onClick={() => void update({ pinned: !session.pinned })}
+                  >
+                    <Pin aria-hidden />
+                    {session.pinned ? t.unpin : t.pin}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    className="whitespace-nowrap"
+                    variant="destructive"
+                    onClick={() => {
+                      deleteVersion.current = session.version;
+                      setDeleting(true);
+                      setError(null);
+                    }}
+                  >
+                    <Trash2 aria-hidden />
+                    {t.remove}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </ButtonGroup>
+            {pending && (
+              <span role="status" className="text-xs text-muted-foreground">
+                {t.saving}
+              </span>
+            )}
+          </div>
+          {hostActive && (
+            <span
+              className="text-xs text-muted-foreground"
+              data-slot="last-activity"
+            >
+              {t.lastActivity(timelineAge(hostActivityAt, now))}
             </span>
           )}
         </div>

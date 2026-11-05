@@ -5,20 +5,20 @@ description: Follow published work, inspect evidence, and manage the local viewe
 
 The local viewer presents a timeline of work published by an agent. A work can have several native producer sessions contributing to it; the viewer groups their published stages, tasks and evidence. A producer's presence in the timeline does not prove that its host is still running. The viewer is separate from the host's native history and from Engram.
 
-The [flow-walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) skill is what publishes stages, documents and captures to the viewer; the viewer shows what has been published to it. Each work gets its own entry: a work tied to a ticket keeps one entry across the flows of that ticket in the same agent session, and a work without a ticket uses its own stable work key. The agent does not open the viewer by itself: at each point with something to review (a plan or a screen to validate) it offers to open it within the question or reply that point already asks, never as a question of its own, and stops offering once you accept. When a build starts, the agent publishes the plan's tasks so **Tasks** follows their progress.
+The [flow-walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) skill is what publishes stages, documents and captures to the viewer; the viewer shows what has been published to it. Each work gets its own entry: a work tied to a ticket keeps one entry across the flows of that ticket in the same agent session, and a work without a ticket uses its own stable work key. The agent does not open the viewer by itself: at each point with something to review (a plan or a screen to validate) it offers to open it within the question or reply that point already asks, never as a question of its own, and stops offering once you accept. The agent declares each stage change once, with its state and reason, and registers a plan's tasks when a build starts so **Tasks** follows their progress. Hive's host hooks add what the host already knows (session start, activity, end and, on some hosts, its task list) without the agent publishing it; see [Host-observed activity](#host-observed-activity).
 
 ## Start and stop
 
 Start the viewer explicitly with `hive view start`, then use `hive view open` to open it. Use `hive view status` to check the service and `hive view stop` to stop it. Retention is manual: stopping the service does not mean the stored timeline has been deleted.
 
-Protocol 3 requires a fresh state directory when coming from an earlier storage format. For the timeline revision 2 update within protocol 3, update the CLI, viewer assets and server together, then reload the viewer. Keep a private backup of viewer state before the upgrade and retain it as evidence; the update preserves stored works and the publisher journal. A revision mismatch blocks timeline writes and asks for an update or reload. The [viewer publication procedure](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/references/viewer-publication.md) describes the producer's publication contract.
+Protocol 3 requires a fresh state directory when coming from an earlier storage format. For the timeline revision 3 update within protocol 3, update the CLI, viewer assets and server together, then reload the viewer. Keep a private backup of viewer state before the upgrade and retain it as evidence; the update preserves stored works and the publisher journal. A revision mismatch blocks timeline writes and asks for an update or reload. The [viewer publication procedure](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/references/viewer-publication.md) describes the producer's publication contract.
 
 ## Publish Markdown on demand
 
 The agent keeps the plan files in their change folder and calls
 `hive view work publish` when a revision is ready to review. The binary scans
 that directory, uploads the original Markdown and verifies the stored copy.
-There is no watcher: editing a file alone does not publish it. An unchanged
+Nothing watches the files: editing one does not publish it (the hooks below report host events, not file edits). An unchanged
 publication returns `unchanged` without adding remote history.
 
 Each work has a stable key and returned ID. Revising ticket 10 reuses its ID;
@@ -38,15 +38,69 @@ The agent separately registers structured tasks and sends short task/stage
 updates. Editing a Markdown checkbox never changes live task progress. Snapshot
 status is not approval, and finishing a task does not close the work.
 
-If a response is lost, `work resume` recovers the exact pending request using
-its saved bytes; later source edits do not alter that retry. A confirmed conflict
-requires explicit reconciliation before a fresh publication. The local journal
-is retained outside the viewer's storage, under `publisher/v1/`; deleting it is
-not a recovery procedure. No command starts or restarts the viewer.
+### One declaration per stage change
 
-Run `hive view work contract` for complete commands and required native-source
-fields. Advanced membership, evidence and CI operations retain the existing
-`hive view contract` interface.
+For a work without a change folder (a build with no plan) the agent needs three
+commands, each answering in one short reply: `hive view work open`, `sync` and
+`close`, plus `evidence` when it has captures. `sync` is one declaration per
+stage change: it starts or updates the stage with its state and reason, registers
+the tasks the work lacks and moves their states. Repeating a declaration answers
+`unchanged`. The agent passes no host or session identity: the `hive` binary
+resolves the real native session from the host's session variable or from the map
+the session hook wrote, and rejects the command, writing nothing, when it cannot
+tell. Run `hive view work contract` for the exact commands.
+
+### While the viewer is stopped
+
+The agent never starts the viewer. When it is stopped, `open`, `sync` and
+`evidence` answer `queued`: the declaration is stored locally and sent, in
+order, by the next command on that work or the next hook run of its session once
+the viewer is running. A declaration that no longer applies, for example a stage
+another producer already completed, is reported as rejected and does not
+overwrite what the viewer holds. Commands on different works do not block each
+other.
+
+## Host-observed activity
+
+When Hive is installed at user scope, each host reports its own session events to
+the viewer through the silent `hive hook` command, so the agent does not publish
+them. The viewer stores them as **host-observed**, apart from what the agent
+publishes, and shows **From host** (**Del host** in Spanish) on them.
+
+- **Last host activity.** Every event moves the work's last host activity, which
+  is separate from its last substantive activity. A session end only updates it:
+  it does not close, pause or fail the work, and is not proof the process died.
+- **Tasks.** On a host that reports its native task list (Claude Code, and
+  OpenCode through its `todowrite` list), a work whose tasks the agent has not
+  registered shows those tasks as host-observed, up to 50. Once the agent
+  registers any task for the work, the host's list only updates last activity.
+- **Limits.** Host events never start or complete a stage, give a reason, record
+  an approval or validation, or close the work. Stages, reasons, documents,
+  captures and validations stay with the agent.
+- **Queue.** With the viewer stopped, hook events wait in a local queue and are
+  sent, with a reconciliation from the host's session files, by the next hook run
+  or semantic command once it is running. Hooks print nothing and always exit
+  successfully, so a failing viewer never disturbs the host.
+
+What each host registers and its known limits:
+
+| Host | What Hive installs | Limits |
+| --- | --- | --- |
+| Claude Code | Entries that call `hive hook` in `~/.claude/settings.json` (session start and end, prompts, subagents, native task created and completed). | Claude Code holds settings hooks in an untrusted folder until you accept its workspace trust. |
+| Codex | Entries in `~/.codex/hooks.json` (session start and end, prompts, subagent start). | Hive never writes Codex's trust: approve the hook once from `/hooks`, and until then Codex skips it. No native task events. |
+| Grok Build | A second hook file, `~/.grok/hooks/hive-session-events.json`. | Restart open sessions after installing. No native task events. |
+| Cursor CLI | Entries in `~/.cursor/hooks.json`. | Verified only in the installed code; Cursor CLI's use of that file is not documented. No native task events. |
+| OpenCode | An event plugin, `hive-events.js`, in `~/.config/opencode/plugins/`. | It runs in a shared background service and passes the session explicitly. The optional context loader stays inactive. |
+| Pi | An extension, `hive-events.ts`, in `~/.pi/agent/extensions/`. | No native task events. |
+
+The hooks call the installed `hive` binary, so install from a built binary, not
+`go run`. The facts above were read from documentation and installed code, not
+from running agent sessions; the
+[verification record](https://github.com/JhonHawk/tricell-hive/blob/master/_support/docs/architecture/host-session-events.md)
+marks each one. If a hook is not installed, not approved or not yet running, the
+agent can pass the host and session identity explicitly, as
+[host session identity](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/references/host-session-identity.md)
+describes.
 
 ## Interface language
 

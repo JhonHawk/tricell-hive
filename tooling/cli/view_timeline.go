@@ -194,6 +194,17 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 	return viewTimelineDecodeOutput(w, command, input, data)
 }
 
+var (
+	errViewStopped   = errors.New("the viewer is unavailable")
+	errViewTransport = errors.New("viewer request outcome is uncertain")
+)
+
+// viewerUnavailable reports a viewer that is stopped or does not answer, as
+// opposed to one that answers incompatibly or wrongly.
+func viewerUnavailable(err error) bool {
+	return errors.Is(err, errViewStopped) || errors.Is(err, errViewTransport)
+}
+
 func viewTimelineRunning(paths viewPaths) (serverInfo, error) {
 	info, _, err := viewTimelineRunningHealth(paths)
 	return info, err
@@ -205,7 +216,7 @@ func viewTimelineRunningHealth(paths viewPaths) (serverInfo, viewTimelineHealth,
 	held, lockErr := viewLockHeld(paths)
 	info, infoErr := readServerInfo(paths.info)
 	if lockErr != nil || !held || infoErr != nil || info.PID <= 0 || info.Port < 1 || info.Port > 65535 || len(info.Token) < 16 {
-		return serverInfo{}, viewTimelineHealth{}, errors.New("the viewer is unavailable; start it with `hive view start` and retry the unchanged operation; local inputs were preserved")
+		return serverInfo{}, viewTimelineHealth{}, fmt.Errorf("%w; start it with `hive view start` and retry the unchanged operation; local inputs were preserved", errViewStopped)
 	}
 	health, err := viewTimelineReadHealth(info, paths.state)
 	if err != nil {
@@ -431,6 +442,16 @@ func viewTimelineReadFile(name string, limit int64) ([]byte, error) {
 }
 
 // Redirects and transport/body diagnostics must not reveal the access token.
+// viewHTTPStatusError is the viewer's non-2xx answer to a timeline request.
+type viewHTTPStatusError struct {
+	Status int
+	Detail string
+}
+
+func (e *viewHTTPStatusError) Error() string {
+	return fmt.Sprintf("viewer request failed (HTTP %d%s); preserve inputs, read current state and retry only with the appropriate original operation ID", e.Status, e.Detail)
+}
+
 func viewTimelineHTTP(info serverInfo, method, path, contentType string, body io.Reader, limit int) ([]byte, error) {
 	if !strings.HasPrefix(path, "/api/") || strings.ContainsAny(path, "?#\\") {
 		return nil, errors.New("invalid local viewer route")
@@ -446,7 +467,7 @@ func viewTimelineHTTP(info serverInfo, method, path, contentType string, body io
 		return nil, errors.New("cannot prepare viewer request")
 	}
 	req.Header.Set("X-Hive-Token", info.Token)
-	req.Header.Set(viewer.TimelineRevisionHeader, "2")
+	req.Header.Set(viewer.TimelineRevisionHeader, viewer.TimelineRevisionValue)
 	if method != http.MethodGet {
 		req.Header.Set("Origin", info.url())
 		req.Header.Set("X-Hive-Action-Scope", "session")
@@ -456,14 +477,14 @@ func viewTimelineHTTP(info serverInfo, method, path, contentType string, body io
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	response, err := client.Do(req)
 	if err != nil {
-		return nil, errors.New("viewer request outcome is uncertain; preserve inputs and retry the unchanged operation ID")
+		return nil, fmt.Errorf("%w; preserve inputs and retry the unchanged operation ID", errViewTransport)
 	}
 	defer response.Body.Close()
-	if response.Header.Get(viewer.TimelineRevisionHeader) != "2" {
+	if response.Header.Get(viewer.TimelineRevisionHeader) != viewer.TimelineRevisionValue {
 		return nil, errors.New("reload_required: update Hive and restart/reload the viewer together; preserve inputs and retry the unchanged operation ID")
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return nil, fmt.Errorf("viewer request failed (HTTP %d%s); preserve inputs, read current state and retry only with the appropriate original operation ID", response.StatusCode, viewErrorDetail(response.Body))
+		return nil, &viewHTTPStatusError{Status: response.StatusCode, Detail: viewErrorDetail(response.Body)}
 	}
 	// Existing timeline readers passing the former public-body bound also need
 	// space for the projection/envelope; smaller diagnostic limits stay unchanged.

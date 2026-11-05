@@ -3,6 +3,7 @@ import type {
   TimelineEventKind,
   TimelineState,
 } from "./timeline-contract";
+import { TIMELINE_HOST_TASK_KEY_PREFIX } from "./timeline-contract-v3";
 
 export type TimelineLanguage = "es" | "en";
 export function timelineCopy(lang: TimelineLanguage = "en") {
@@ -100,6 +101,9 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         unconfirmed: "Sin confirmar",
         viewChecks: "Ver checks",
         unblock: "Ver cómo desbloquear",
+        hostObserved: "Del host",
+        hostObservedHint: "Tarea tomada de la lista de tareas del host",
+        lastActivity: (age: string) => `Activo hace ${age}`,
         taskStates: {
           not_started: "No iniciada",
           in_progress: "En curso",
@@ -321,6 +325,9 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         unconfirmed: "Unconfirmed",
         viewChecks: "View checks",
         unblock: "See how to unblock",
+        hostObserved: "From host",
+        hostObservedHint: "Task taken from the host's task list",
+        lastActivity: (age: string) => `Active ${age} ago`,
         taskStates: {
           not_started: "Not started",
           in_progress: "In progress",
@@ -449,6 +456,39 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         } satisfies Record<TimelineEventKind, string>,
       };
 }
+/** Compact elapsed time such as "3 min", "2 h" or "1 d"; never below 1 min. */
+export function timelineAge(value: string, now: number): string {
+  const ms = now - new Date(value).getTime();
+  const minutes = Math.max(
+    1,
+    Math.floor((Number.isFinite(ms) ? ms : 0) / 60000),
+  );
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return hours < 24 ? `${hours} h` : `${Math.floor(hours / 24)} d`;
+}
+
+/** A host task keeps its provenance in the key, so its title is shown without it. */
+export function isHostTask(task: { task_key: string }): boolean {
+  return task.task_key.startsWith(TIMELINE_HOST_TASK_KEY_PREFIX);
+}
+
+/** The task as a row names it: its key and title, or only the title for a host task. */
+export function timelineTaskLabel(task: {
+  task_key: string;
+  title: string;
+}): string {
+  return isHostTask(task) ? task.title : `${task.task_key} — ${task.title}`;
+}
+
+/** The task as a state indicator names it: its key, or the title for a host task. */
+export function timelineTaskName(task: {
+  task_key: string;
+  title: string;
+}): string {
+  return isHostTask(task) ? task.title : task.task_key;
+}
+
 export function timelineDate(
   value: string,
   lang: TimelineLanguage,

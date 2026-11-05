@@ -22,28 +22,37 @@ type FileLock struct{ f *os.File }
 // lock is free (the cross-process guard of viewer/lock); without it a held
 // lock returns ErrLocked at once (viewer/server.lock, "is a server running").
 func AcquireLock(path string, wait bool) (*FileLock, error) {
-	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0o600)
-	if err != nil {
-		return nil, err
-	}
-	how := syscall.LOCK_EX
-	if !wait {
-		how |= syscall.LOCK_NB
-	}
 	for {
-		err = syscall.Flock(int(f.Fd()), how)
-		if err != syscall.EINTR {
-			break
+		f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0o600)
+		if err != nil {
+			return nil, err
 		}
-	}
-	if err != nil {
+		how := syscall.LOCK_EX
+		if !wait {
+			how |= syscall.LOCK_NB
+		}
+		for {
+			err = syscall.Flock(int(f.Fd()), how)
+			if err != syscall.EINTR {
+				break
+			}
+		}
+		if err != nil {
+			f.Close()
+			if !wait && (err == syscall.EWOULDBLOCK || err == syscall.EAGAIN) {
+				return nil, ErrLocked
+			}
+			return nil, fmt.Errorf("lock %s: %w", path, err)
+		}
+		// The holder of a lock may remove its file. A lock taken on a file that
+		// is no longer at the path would exclude nobody, so open the path again.
+		held, herr := f.Stat()
+		onDisk, derr := os.Stat(path)
+		if herr == nil && derr == nil && os.SameFile(held, onDisk) {
+			return &FileLock{f: f}, nil
+		}
 		f.Close()
-		if !wait && (err == syscall.EWOULDBLOCK || err == syscall.EAGAIN) {
-			return nil, ErrLocked
-		}
-		return nil, fmt.Errorf("lock %s: %w", path, err)
 	}
-	return &FileLock{f: f}, nil
 }
 
 // Release drops the lock. It is safe to call more than once.

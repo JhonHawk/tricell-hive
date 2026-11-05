@@ -16,7 +16,7 @@ by the repository. Publishing a package is separate from building it.
 
 The entrypoint verifies the package platform and binary checksum before invoking
 the bundled manager. The manager verifies the complete package inventory before
-planning. A source checkout remains usable through `go run ./tooling/cli install`.
+planning. A source checkout installs through a built binary (`go build -o <path> ./tooling/cli`, then `<path> install`): every user-scope install registers session hooks that run that binary, so a temporary `go run` binary is refused.
 The package installer never falls back to compiling or downloading missing files.
 `hive --version` prints the product version of the running manager; a checkout
 without `VERSION` or a release label is reported as a development build.

@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -18,8 +19,12 @@ import (
 
 // TimelineSchemaVersion versions the API contract independently of legacy manifests.
 const TimelineSchemaVersion = 3
-const TimelineContractRevision = 2
+const TimelineContractRevision = 3
 const TimelineRevisionHeader = "X-Hive-Timeline-Revision"
+
+// TimelineRevisionValue is the value of TimelineRevisionHeader that every request and response carries.
+var TimelineRevisionValue = strconv.Itoa(TimelineContractRevision)
+
 const TimelineMaintenanceMaxBytes = 16 << 10
 
 // TimelineMaxResponseBody reserves projection/envelope space without enlarging request admission.
@@ -268,7 +273,9 @@ type TimelineArtifact struct {
 	Theme       string        `json:"theme"`
 }
 type TimelineSession struct {
-	LastActivityAt string  `json:"last_activity_at" stored:"optional"`
+	LastActivityAt string `json:"last_activity_at" stored:"optional"`
+	// HostActivityAt is the time of the work's last host event; absent until one arrives.
+	HostActivityAt string  `json:"host_activity_at,omitempty" stored:"optional"`
 	ClosedAt       *string `json:"closed_at" timeline:"nullable" stored:"optional"`
 	AutoarchiveAt  *string `json:"autoarchive_at" timeline:"nullable" stored:"optional"`
 	ArchiveOrigin  *string `json:"archive_origin" timeline:"nullable" stored:"optional"`
@@ -308,7 +315,9 @@ type TimelineSession struct {
 
 // TimelineAPIIndexEntry is the API v3 work summary.
 type TimelineAPIIndexEntry struct {
-	LastActivityAt string  `json:"last_activity_at" stored:"optional"`
+	LastActivityAt string `json:"last_activity_at" stored:"optional"`
+	// HostActivityAt is the time of the work's last host event; absent until one arrives.
+	HostActivityAt string  `json:"host_activity_at,omitempty" stored:"optional"`
 	ClosedAt       *string `json:"closed_at" timeline:"nullable" stored:"optional"`
 	AutoarchiveAt  *string `json:"autoarchive_at" timeline:"nullable" stored:"optional"`
 	ArchiveOrigin  *string `json:"archive_origin" timeline:"nullable" stored:"optional"`
@@ -1314,7 +1323,7 @@ func ValidateTimelineSession(s TimelineSession) error {
 	if err := validateTimelineSummaryHeader(timelineSummaryHeader{
 		ViewerSessionID: s.ViewerSessionID, Source: s.Source, ProjectKey: s.ProjectKey,
 		ProjectName: s.ProjectName, Version: s.Version, Title: s.Title, Summary: s.Summary,
-		State: s.State, CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt, LastActivityAt: s.LastActivityAt, ClosedAt: s.ClosedAt, AutoarchiveAt: s.AutoarchiveAt, ArchiveOrigin: s.ArchiveOrigin, Archived: s.Archived, Pinned: s.Pinned,
+		State: s.State, CreatedAt: s.CreatedAt, UpdatedAt: s.UpdatedAt, LastActivityAt: s.LastActivityAt, HostActivityAt: s.HostActivityAt, ClosedAt: s.ClosedAt, AutoarchiveAt: s.AutoarchiveAt, ArchiveOrigin: s.ArchiveOrigin, Archived: s.Archived, Pinned: s.Pinned,
 	}); err != nil {
 		return err
 	}
@@ -1377,7 +1386,7 @@ func ValidateTimelineSession(s TimelineSession) error {
 		if err := timelineNumber(e.Version, "events.version"); err != nil {
 			return err
 		}
-		if e.Origin != "agent_reported" && e.Origin != "server" {
+		if e.Origin != "agent_reported" && e.Origin != "server" && e.Origin != TimelineHostEventOrigin {
 			return timelineError("events.origin", "invalid_origin")
 		}
 		if err := timelineTime(e.CreatedAt, "events.created_at"); err != nil {
@@ -1561,6 +1570,7 @@ func DecodeTimelineIndexEntry(raw []byte) (TimelineIndexEntry, error) {
 
 // timelineSummaryHeader holds the fields a session and its index entry share.
 type timelineSummaryHeader struct {
+	HostActivityAt                                                                 string
 	LastActivityAt                                                                 string
 	ClosedAt, AutoarchiveAt, ArchiveOrigin                                         *string
 	Archived, Pinned                                                               bool
@@ -1616,7 +1626,7 @@ func validateTimelineIndexEntry(e TimelineAPIIndexEntry) error {
 	if err := validateTimelineSummaryHeader(timelineSummaryHeader{
 		ViewerSessionID: e.ViewerSessionID, Source: e.Source, ProjectKey: e.ProjectKey,
 		ProjectName: e.ProjectName, Version: e.Version, Title: e.Title, Summary: e.Summary,
-		State: e.State, CreatedAt: e.CreatedAt, UpdatedAt: e.UpdatedAt, LastActivityAt: e.LastActivityAt, ClosedAt: e.ClosedAt, AutoarchiveAt: e.AutoarchiveAt, ArchiveOrigin: e.ArchiveOrigin, Archived: e.Archived, Pinned: e.Pinned,
+		State: e.State, CreatedAt: e.CreatedAt, UpdatedAt: e.UpdatedAt, LastActivityAt: e.LastActivityAt, HostActivityAt: e.HostActivityAt, ClosedAt: e.ClosedAt, AutoarchiveAt: e.AutoarchiveAt, ArchiveOrigin: e.ArchiveOrigin, Archived: e.Archived, Pinned: e.Pinned,
 	}); err != nil {
 		return err
 	}

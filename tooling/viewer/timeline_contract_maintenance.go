@@ -29,6 +29,16 @@ type timelineMaintenance struct {
 	ArchiveReceipt       *timelineAdministrativeReceipt `json:"archive_receipt" timeline:"nullable"`
 	RestoreReceipt       *timelineAdministrativeReceipt `json:"restore_receipt" timeline:"nullable"`
 	PinReceipt           *timelineAdministrativeReceipt `json:"pin_receipt" timeline:"nullable"`
+	// HostOperations remembers the latest host-event operation IDs so a resend applies
+	// once. It is kept apart from the agent's operation receipts.
+	HostOperations []string `json:"host_operations,omitempty"`
+	// HostActivityAt is the server time of the last host event; only host events set
+	// it, so agent operations that move LastActivityAt never read as host activity.
+	HostActivityAt string `json:"host_activity_at,omitempty"`
+	// HostTaskTimes holds, per mirrored task (native task ID), the host time of the
+	// last host event applied to it as Unix nanoseconds, so a replayed or late event
+	// older than that never moves the task backwards.
+	HostTaskTimes map[string]int64 `json:"host_task_times,omitempty"`
 }
 type timelineAutomaticAction struct {
 	EpisodeID        string `json:"episode_id"`
@@ -53,6 +63,15 @@ func validateTimelineLifecycleProjection(h timelineSummaryHeader) error {
 	updated, _ := time.Parse(time.RFC3339Nano, h.UpdatedAt)
 	if last.After(updated) {
 		return timelineError("last_activity_at", "server_time_mismatch")
+	}
+	if h.HostActivityAt != "" {
+		if err := timelineTime(h.HostActivityAt, "host_activity_at"); err != nil {
+			return err
+		}
+		host, _ := time.Parse(time.RFC3339Nano, h.HostActivityAt)
+		if host.After(updated) {
+			return timelineError("host_activity_at", "server_time_mismatch")
+		}
 	}
 	for _, f := range []struct {
 		name  string
@@ -112,6 +131,22 @@ func validateTimelineMaintenance(r *timelineRecord) error {
 			if baseline.After(updated) || b.Version > r.Session.Version {
 				return bad()
 			}
+		}
+	}
+	if len(m.HostOperations) > timelineMaxHostOperations {
+		return bad()
+	}
+	for _, op := range m.HostOperations {
+		if !timelineOperationID.MatchString(op) {
+			return bad()
+		}
+	}
+	if m.HostActivityAt != "" && timelineTime(m.HostActivityAt, "host_activity_at") != nil || len(m.HostTaskTimes) > TimelineMaxHostTasks {
+		return bad()
+	}
+	for id, at := range m.HostTaskTimes {
+		if !timelineHostNativeID.MatchString(id) || at <= 0 {
+			return bad()
 		}
 	}
 	if m.EpisodeID != nil && !timelineOpaqueID.MatchString(*m.EpisodeID) {
@@ -176,6 +211,7 @@ func timelineProjectMaintenance(r *timelineRecord) {
 	}
 	v := r.Session
 	v.LastActivityAt = v.CreatedAt
+	v.HostActivityAt = ""
 	v.ClosedAt = nil
 	v.AutoarchiveAt = nil
 	v.ArchiveOrigin = nil
@@ -187,6 +223,7 @@ func timelineProjectMaintenance(r *timelineRecord) {
 		return
 	}
 	v.LastActivityAt = m.LastActivityAt
+	v.HostActivityAt = m.HostActivityAt
 	v.ClosedAt = m.ClosedAt
 	v.ArchiveOrigin = m.ArchiveOrigin
 	if v.State == TimelineClosed && !v.Archived && !v.Pinned && !m.RestoreExempt {
@@ -212,7 +249,7 @@ func timelineSessionContentBytes(v *TimelineSession) ([]byte, error) {
 	if err = json.Unmarshal(raw, &fields); err != nil {
 		return nil, err
 	}
-	for _, key := range []string{"last_activity_at", "closed_at", "autoarchive_at", "archive_origin"} {
+	for _, key := range []string{"last_activity_at", "host_activity_at", "closed_at", "autoarchive_at", "archive_origin"} {
 		delete(fields, key)
 	}
 	return json.Marshal(fields)

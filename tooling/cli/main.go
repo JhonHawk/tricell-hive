@@ -77,6 +77,9 @@ func run(args []string) error {
 		return runView(rest, os.Stdout, realViewDeps())
 	case "tui":
 		return runInterfaceCommand(rest)
+	case "hook":
+		runHook(rest, os.Stdin)
+		return nil
 	case "grok-hook":
 		runGrokHook(rest, os.Stdin, os.Stdout, readhook.ReadWhole)
 		return nil

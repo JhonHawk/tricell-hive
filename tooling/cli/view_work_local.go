@@ -246,7 +246,7 @@ func (l viewWorkLocal) send(method, path string, body []byte) ([]byte, int, stri
 		return nil, 0, "", errors.New("invalid request")
 	}
 	req.Header.Set("X-Hive-Token", l.info.Token)
-	req.Header.Set(viewer.TimelineRevisionHeader, "2")
+	req.Header.Set(viewer.TimelineRevisionHeader, viewer.TimelineRevisionValue)
 	req.Header.Set("Origin", l.info.url())
 	req.Header.Set("X-Hive-Action-Scope", "session")
 	req.Header.Set("Content-Type", "application/json")
@@ -271,7 +271,7 @@ func (l viewWorkLocal) send(method, path string, body []byte) ([]byte, int, stri
 		}
 		return nil, resp.StatusCode, failure.Code, errors.New("request rejected")
 	}
-	if resp.Header.Get(viewer.TimelineRevisionHeader) != "2" {
+	if resp.Header.Get(viewer.TimelineRevisionHeader) != viewer.TimelineRevisionValue {
 		return nil, resp.StatusCode, "", errWorkIncomplete
 	}
 	return raw, resp.StatusCode, "", nil

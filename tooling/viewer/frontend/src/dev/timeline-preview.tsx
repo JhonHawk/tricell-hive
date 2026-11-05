@@ -5,6 +5,7 @@ import { browserLanguage } from "../language";
 import { ViewerShell } from "../shell";
 import { TimelineContent } from "../timeline-content";
 import type { TimelineSessionResponse } from "../timeline-contract";
+import { TIMELINE_HOST_TASK_KEY_PREFIX } from "../timeline-contract-v3";
 import { timelineDate } from "../timeline-copy";
 import { TimelineHeader } from "../timeline-header";
 import { completeFixture } from "./timeline-complete-fixture";
@@ -26,21 +27,65 @@ function TimelineSingleDevelopmentPreview() {
   const scenario = query.get("state");
   const dark = query.get("theme") !== "light";
   const [data, setData] = useState<TimelineSessionResponse>(() => {
-    const fixture = ["complete", "canonical-changed", "context"].includes(
-      scenario ?? "",
-    )
+    const fixture = [
+      "complete",
+      "canonical-changed",
+      "context",
+      "host-detail",
+    ].includes(scenario ?? "")
       ? completeFixture()
-      : ["cam", "volume", "future", "recovery-conflict"].includes(
-            scenario ?? "",
-          )
+      : [
+            "cam",
+            "host",
+            "closed-host",
+            "mixed",
+            "volume",
+            "future",
+            "recovery-conflict",
+          ].includes(scenario ?? "")
         ? workFixture(scenario ?? "cam")
-        : structuredClone(timelineFixture);
+        : scenario === "agent-only"
+          ? workFixture("cam")
+          : structuredClone(timelineFixture);
     if (scenario === "context") {
       const stage = fixture.session.events.find(
         (event) => event.stage === "research",
       );
       if (stage) stage.title = "Contexto literal · customer note";
       fixture.session.events[0].title = "Investigación";
+    }
+    if (
+      scenario === "host" ||
+      scenario === "closed-host" ||
+      scenario === "mixed"
+    ) {
+      // "mixed" keeps most tasks from the agent so host rows sit among plan rows.
+      fixture.session.tasks
+        .slice(0, scenario === "mixed" ? 2 : 3)
+        .forEach((task, i) => {
+          task.task_key = `${TIMELINE_HOST_TASK_KEY_PREFIX}native-${i + 1}`;
+        });
+      fixture.session.last_activity_at = new Date(
+        Date.now() - 3 * 60000,
+      ).toISOString();
+      fixture.session.updated_at = fixture.session.last_activity_at;
+      fixture.session.host_activity_at = fixture.session.last_activity_at;
+      // A closed work keeps its host activity in the data but shows only its final state.
+      if (scenario === "closed-host") fixture.session.state = "closed";
+    }
+    if (scenario === "host-detail") {
+      // Complete fixture with a host task that has substantive detail, for its sheet.
+      for (const task of fixture.session.tasks.filter((x) =>
+        ["task-2", "task-3"].includes(x.task_id),
+      ))
+        task.task_key = `${TIMELINE_HOST_TASK_KEY_PREFIX}native-${task.task_id}`;
+    }
+    if (scenario === "agent-only") {
+      // Agent operations without host events move last activity, never host activity.
+      fixture.session.last_activity_at = new Date(
+        Date.now() - 3 * 60000,
+      ).toISOString();
+      fixture.session.updated_at = fixture.session.last_activity_at;
     }
     if (scenario === "long-summary")
       fixture.session.summary =
@@ -191,7 +236,9 @@ function TimelineSingleDevelopmentPreview() {
       <TimelineContent
         data={data}
         defaultExpandedTaskIDs={
-          ["complete", "canonical-changed", "context"].includes(scenario ?? "")
+          ["complete", "canonical-changed", "context", "host-detail"].includes(
+            scenario ?? "",
+          )
             ? ["task-2", "task-3", "task-4", "task-7"]
             : undefined
         }

@@ -61,6 +61,19 @@ func TestOpenCodeContextLoaderOfflinePackage(t *testing.T) {
 			t.Fatalf("offline package contains a second editorial or generated plugin resource: %s", name)
 		}
 	}
+	// The plan registers `hive hook`, and the manager refuses the temporary path
+	// of a test binary: use the checked-in stand-in the management tests use.
+	standIn, err := filepath.EvalSymlinks("../management/testdata/hive-test-executable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	standIn, err = filepath.Abs(standIn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	previous := management.HiveExecutable
+	management.HiveExecutable = func() (string, error) { return standIn, nil }
+	t.Cleanup(func() { management.HiveExecutable = previous })
 	// Prepare only in a fictional home; never execute the packaged installer.
 	p, err := management.BuildPlan("install", management.Options{Scope: "user", Home: filepath.Join(t.TempDir(), "home"), Source: root, Hosts: []string{"opencode"}})
 	if err != nil {

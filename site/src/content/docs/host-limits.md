@@ -29,6 +29,11 @@ verified.
 - **Hive can only count sessions on some CLIs.** After an update it reports how
   many open Claude Code and Grok sessions to restart. It cannot see Codex, Pi or
   Cursor sessions, so restart those yourself.
+- **Host hooks load when a session starts.** The hooks that report a session to
+  the [viewer](/viewer/#host-observed-activity) are read at session start, so
+  restart open sessions after installing them. Codex also skips them until you
+  approve them in `/hooks`, and Cursor CLI's use of its hooks file is verified
+  only in the installed code.
 
 ## Claude Code
 

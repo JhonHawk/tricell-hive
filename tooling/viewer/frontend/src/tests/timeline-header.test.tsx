@@ -229,3 +229,63 @@ test("show more appears only when the summary is actually clipped", async () => 
     await unmount();
   });
 });
+
+test("the activity line comes only from host_activity_at, never from last_activity_at", async () => {
+  const data = structuredClone(timelineFixture);
+  const session = data.session;
+  // Agent-only activity moves last_activity_at past every event but is no host activity.
+  session.last_activity_at = new Date(Date.now() - 3 * 60000).toISOString();
+  session.updated_at = session.last_activity_at;
+  const quiet = await mount(header(data, "es"));
+  assert.equal(
+    quiet.container.querySelector('[data-slot="last-activity"]'),
+    null,
+  );
+  await quiet.unmount();
+
+  session.host_activity_at = new Date(Date.now() - 3 * 60000).toISOString();
+  const es = await mount(header(data, "es"));
+  const text = es.container.querySelector('[data-slot="last-activity"]');
+  assert.equal(text?.textContent, "Activo hace 3 min");
+  assert.ok(text?.classList.contains("text-xs"));
+  assert.ok(text?.classList.contains("text-muted-foreground"));
+  await es.unmount();
+  const en = await mount(header(data, "en"));
+  assert.equal(
+    en.container.querySelector('[data-slot="last-activity"]')?.textContent,
+    "Active 3 min ago",
+  );
+  await en.unmount();
+});
+
+test("the activity line sits under the status group and only while the work is live", async () => {
+  const data = structuredClone(timelineFixture);
+  const session = data.session;
+  session.host_activity_at = new Date(Date.now() - 3 * 60000).toISOString();
+  session.state = "active";
+  const live = await mount(header(data, "es"));
+  const line = live.container.querySelector('[data-slot="last-activity"]');
+  assert.ok(line);
+  // A sibling of the status row, so it never joins the row that squeezes the summary.
+  const status = live.container.querySelector("[aria-busy]");
+  assert.ok(status);
+  assert.equal(status.contains(line), false);
+  assert.equal(status.parentElement, line.parentElement);
+  await live.unmount();
+  for (const state of ["in_review", "awaiting_validation"] as const) {
+    session.state = state;
+    const view = await mount(header(data, "es"));
+    assert.ok(view.container.querySelector('[data-slot="last-activity"]'));
+    await view.unmount();
+  }
+  for (const state of ["closed", "failed", "paused"] as const) {
+    session.state = state;
+    const view = await mount(header(data, "es"));
+    assert.equal(
+      view.container.querySelector('[data-slot="last-activity"]'),
+      null,
+      state,
+    );
+    await view.unmount();
+  }
+});

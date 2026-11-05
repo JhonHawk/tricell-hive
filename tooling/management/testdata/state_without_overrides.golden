@@ -204,7 +204,7 @@
       ]
     }
   },
-  "version": 6,
+  "version": 7,
   "records": {
     "<root>/home/.agents/skills/workspace-conventions/SKILL.md": {
       "target": {
@@ -722,7 +722,7 @@
     "artifact_id": "6e235692808329893719dbc0d49f3954f4a1359845cf49b7c525f924fcbde1d9",
     "release_id": "d2dd664cfe7b4229b11a4e29296247ced7880160ab39f3e16db7debaf8278257"
   },
-  "version": 6,
+  "version": 7,
   "action": "install",
   "config": {
     "scope": "user",

@@ -5,6 +5,7 @@ import { act } from "react";
 import { createRoot } from "react-dom/client";
 import { completeFixture } from "../dev/timeline-complete-fixture";
 import { TimelineContent } from "../timeline-content";
+import { TIMELINE_HOST_TASK_KEY_PREFIX } from "../timeline-contract-v3";
 import {
   TimelineTaskRegistry,
   workTaskRegistry,
@@ -103,6 +104,65 @@ test("toolbar opens the canonical task registry and a single origin marker never
     await settle();
   });
   assert.equal(JSON.stringify(data.session.events), events);
+});
+
+test("registry rows of host tasks show only the title and the host badge", async (t) => {
+  const data = completeFixture();
+  const host = data.session.tasks[0];
+  host.task_key = `${TIMELINE_HOST_TASK_KEY_PREFIX}native-1`;
+  const plan = data.session.tasks[1];
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  t.after(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+  });
+  await act(async () =>
+    root.render(
+      <TimelineTaskRegistry
+        session={data.session}
+        lang="es"
+        onRetry={() => {}}
+      />,
+    ),
+  );
+  await click("Tareas", container);
+  const popover = document.querySelector('[data-slot="popover-content"]');
+  assert.ok(popover);
+  const row = popover.querySelector(
+    `[data-registry-task-id="${host.task_id}"]`,
+  );
+  assert.ok(row);
+  assert.equal(row.querySelector("p")?.textContent, host.title);
+  assert.equal(row.querySelector("p")?.getAttribute("title"), host.title);
+  assert.equal(row.textContent?.includes("host:native"), false);
+  assert.equal(
+    row
+      .querySelector("[aria-label]")
+      ?.getAttribute("aria-label")
+      ?.startsWith(`${host.title}: `),
+    true,
+  );
+  const badge = row.querySelector('[data-slot="host-observed"]');
+  // Compact marker: an icon with the badge's name, no visible text that would truncate titles.
+  assert.ok(badge);
+  assert.equal(badge.textContent, "");
+  assert.equal(badge.querySelector("svg")?.getAttribute("aria-hidden"), "true");
+  assert.equal(badge.getAttribute("role"), "img");
+  assert.equal(
+    badge.getAttribute("aria-label"),
+    "Del host: Tarea tomada de la lista de tareas del host",
+  );
+  assert.equal(badge.hasAttribute("tabindex"), false);
+  const planRow = popover.querySelector(
+    `[data-registry-task-id="${plan.task_id}"]`,
+  );
+  assert.equal(
+    planRow?.querySelector("p")?.textContent,
+    `${plan.task_key} — ${plan.title}`,
+  );
+  assert.equal(planRow?.querySelector('[data-slot="host-observed"]'), null);
 });
 
 test("empty task registry exposes refresh instead of a fabricated zero progress", async (t) => {

@@ -19,7 +19,7 @@ Hive's flows are not a one-way line. Work loops back when a check fails, when a 
 
 Around them:
 
-- The [viewer](/viewer/) shows the stages, documents and captures of a work from Plan or Build on, and the [flow-walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) skill publishes to it and presents a built interface for your validation.
+- The [viewer](/viewer/) shows the stages, documents and captures of a work from Plan or Build on, and the [flow-walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) skill publishes to it, once per stage change, and presents a built interface for your validation. Hive's host hooks add the session's activity, and the host's task list where it has one, as [host-observed activity](/viewer/#host-observed-activity).
 - [Unattended delegation](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md) lets work continue while you are away, within the objective and answers you already gave, and stops at anything irreversible.
 - [Security review](/flows/security/) is a review you ask for, plus the advisory check.
 

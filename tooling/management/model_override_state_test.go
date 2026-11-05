@@ -50,11 +50,21 @@ func TestModelOverrideStateWithoutOverridesIsUnchanged(t *testing.T) {
 	// The Grok hook holds the checkout path of the test executable and the
 	// temporary home, which no normalization can make stable, so the golden
 	// file leaves it out. grok_hook_test.go covers it.
-	hookDir := filepath.Dir(grokHookPath(o))
-	delete(stored.Records, grokHookPath(o))
+	// The same holds for every generated hook file (Grok's two, OpenCode's
+	// plugin, Pi's extension) and for the entries in the shared JSON hook files.
+	hookDirs := map[string]bool{}
+	hookPaths := map[string]bool{}
+	for path, r := range stored.Records {
+		if r.Target.Kind == "hook" {
+			hookPaths[path] = true
+			hookDirs[filepath.Dir(path)] = true
+			delete(stored.Records, path)
+		}
+	}
+	stored.HostHooks = nil
 	var dirs []string
 	for _, dir := range stored.CreatedDirs {
-		if dir != hookDir {
+		if !hookDirs[dir] {
 			dirs = append(dirs, dir)
 		}
 	}
@@ -62,7 +72,7 @@ func TestModelOverrideStateWithoutOverridesIsUnchanged(t *testing.T) {
 	for key, receipt := range stored.Installations {
 		var resources []InstalledResource
 		for _, res := range receipt.Resources {
-			if res.Path != grokHookPath(o) {
+			if !hookPaths[res.Path] {
 				resources = append(resources, res)
 			}
 		}
@@ -73,6 +83,7 @@ func TestModelOverrideStateWithoutOverridesIsUnchanged(t *testing.T) {
 	planned := p
 	planned.ID = ""
 	planned.Executable = ""
+	planned.HostHooks = nil
 	planned.Changes = nil
 	for _, ch := range p.Changes {
 		if ch.Target.Kind != "hook" {

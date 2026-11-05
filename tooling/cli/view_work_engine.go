@@ -20,11 +20,27 @@ import (
 )
 
 type viewWorkEngine struct {
+	state   string
 	dir     string
 	info    serverInfo
 	journal *viewWorkJournal
 	lock    *viewer.FileLock
+	// scope is the lock identity of the work the command acts on: a work ID or
+	// queue handle, "" for the global lock or noWorkScope for none.
+	scope string
+	// up is whether the viewer answered when the engine opened.
+	up bool
+	// base marks the journal elements as they were read, so a save sends only
+	// this process's changes.
+	base        map[string][]byte
+	report      viewWorkQueueReport
+	rejectedIDs []string
+	// ended is set when the command closed the work it acted on.
+	ended bool
 }
+
+// noWorkScope is the scope of a read-only command, which takes no lock.
+const noWorkScope = "-"
 
 func canonicalWorkDir(path string) (string, error) {
 	p, err := filepath.Abs(path)
@@ -41,51 +57,131 @@ func canonicalWorkDir(path string) (string, error) {
 	}
 	return p, nil
 }
-func openViewWorkEngine(c viewWorkCommand) (*viewWorkEngine, error) {
-	_, state, err := management.NormalizeOptions(c.Options)
+
+// workPublisherDir creates and checks the publisher directory. Every component
+// is checked before descending; publisher state never shares the server-owned
+// viewer inventory or its long-lived lock.
+func workPublisherDir(c viewWorkCommand) (state, dir string, err error) {
+	_, state, err = management.NormalizeOptions(c.Options)
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 	state, err = filepath.Abs(state)
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
-	// Every component is checked before descending; publisher state never shares
-	// the server-owned viewer inventory or its long-lived lock.
-	dir := state
+	dir = state
 	for _, part := range []string{"publisher", "v1"} {
 		dir = filepath.Join(dir, part)
 		if err = os.Mkdir(dir, 0700); err != nil && !os.IsExist(err) {
-			return nil, err
+			return "", "", err
 		}
 		st, e := os.Lstat(dir)
 		if e != nil || !st.IsDir() || st.Mode()&os.ModeSymlink != 0 || st.Mode().Perm()&0077 != 0 {
-			return nil, workStateError("unsafe_publisher_directory")
+			return "", "", workStateError("unsafe_publisher_directory")
 		}
 	}
-	lock, err := lockWorkPublisher(dir)
+	return state, dir, nil
+}
+
+// workLockScope names the lock a command takes: the lock of the one work it
+// acts on (its queue handle when it has one), or of the work it creates, whose
+// identity is the key in its session. A command that reads takes none.
+func workLockScope(c viewWorkCommand, j *viewWorkJournal) string {
+	switch c.Action {
+	case "list", "show":
+		return noWorkScope
+	}
+	if c.WorkID != "" {
+		return workScopeOf(j, c.WorkID)
+	}
+	if (c.Action == "open" || c.Action == "publish") && c.Key != "" && c.Project != "" {
+		if project, err := canonicalWorkDir(c.Project); err == nil {
+			return queuedWorkHandle(project, c.Host, c.NativeSessionID, c.Key)
+		}
+	}
+	return ""
+}
+
+// openViewWorkEngine opens the engine for a command that needs the viewer.
+func openViewWorkEngine(c viewWorkCommand) (*viewWorkEngine, error) {
+	return openViewWorkEngineQueueing(c, false)
+}
+
+// openViewWorkEngineQueueing also opens when the viewer is stopped or does not
+// answer, when the command may be queued instead.
+func openViewWorkEngineQueueing(c viewWorkCommand, queueing bool) (*viewWorkEngine, error) {
+	state, dir, err := workPublisherDir(c)
 	if err != nil {
 		return nil, err
 	}
-	e := &viewWorkEngine{dir: dir, lock: lock}
-	e.journal, err = readWorkJournal(dir)
-	if err != nil {
+	e := &viewWorkEngine{state: state, dir: dir}
+	var peek *viewWorkJournal
+	if err = withWorkJournalLock(dir, func() (err error) { peek, err = readWorkJournal(dir); return }); err != nil {
+		return nil, err
+	}
+	e.scope = workLockScope(c, peek)
+	if e.scope != noWorkScope {
+		if e.lock, err = lockWorkScope(dir, e.scope); err != nil {
+			return nil, err
+		}
+	}
+	viewWorkCheckpoint("locked")
+	if err = e.load(); err != nil {
 		e.Close()
 		return nil, err
 	}
 	e.info, err = viewTimelineRunning(newViewPaths(state))
-	if err != nil {
+	switch {
+	case err == nil:
+		e.up = true
+	case queueing && viewerUnavailable(err):
+	default:
 		e.Close()
 		return nil, err
 	}
 	return e, nil
+}
+
+// load reads the journal and marks its elements.
+func (e *viewWorkEngine) load() error {
+	return withWorkJournalLock(e.dir, func() (err error) {
+		if e.journal, err = readWorkJournal(e.dir); err == nil {
+			e.base = workJournalElements(e.journal)
+		}
+		return
+	})
 }
 func (e *viewWorkEngine) Close() {
 	if e.lock != nil {
 		e.lock.Release()
 	}
 }
-func (e *viewWorkEngine) save() error { return writeWorkJournal(e.dir, e.journal) }
+
+// save writes this process's changes onto the journal as it is on disk now.
+func (e *viewWorkEngine) save() error { return e.saveWith(nil) }
+
+// saveWith first lets check refuse the journal as it would be written, merged
+// onto the one on disk now, so an admission limit holds across processes.
+func (e *viewWorkEngine) saveWith(check func(merged *viewWorkJournal) error) error {
+	return withWorkJournalLock(e.dir, func() error {
+		disk, err := readWorkJournalChecked(e.dir, false)
+		if err != nil {
+			return err
+		}
+		merged := mergeWorkJournal(disk, e.journal, e.base)
+		if check != nil {
+			if err = check(merged); err != nil {
+				return err
+			}
+		}
+		if err = writeWorkJournal(e.dir, merged); err != nil {
+			return err
+		}
+		e.base = workJournalElements(e.journal)
+		return nil
+	})
+}
 func (e *viewWorkEngine) session(id string) (viewer.TimelineSession, error) {
 	if !viewTimelineSessionID.MatchString(id) {
 		return viewer.TimelineSession{}, workInput("work_id")
@@ -129,7 +225,23 @@ func (e *viewWorkEngine) prepareIntent(action, id string, source viewer.Timeline
 	}
 	i := &viewWorkIntent{ID: workID("pending-"), Action: action, WorkID: id, Source: source, State: "prepared", Context: raw, Steps: []viewWorkStep{}}
 	e.journal.Pending = append(e.journal.Pending, i)
-	if err = e.save(); err != nil {
+	err = e.saveWith(func(merged *viewWorkJournal) error {
+		others := *merged
+		others.Pending = nil
+		for _, p := range merged.Pending {
+			if p.ID != i.ID {
+				others.Pending = append(others.Pending, p)
+			}
+		}
+		return others.admitWorkIntent()
+	})
+	if err != nil {
+		for n, p := range e.journal.Pending {
+			if p.ID == i.ID {
+				e.journal.Pending = append(e.journal.Pending[:n], e.journal.Pending[n+1:]...)
+				break
+			}
+		}
 		return nil, err
 	}
 	return i, nil
@@ -174,6 +286,7 @@ func (e *viewWorkEngine) executeStep(i *viewWorkIntent, index int) ([]byte, erro
 		}
 		return nil, &viewWorkError{Code: code, Pending: i.ID, Next: "preserve inputs; run hive view work resume with the same native source"}
 	}
+	viewWorkCheckpoint("sent")
 	// Validate before recording a successful receipt. A malformed success may
 	// have committed remotely, and must therefore retain exact replay data.
 	if s.Method == "POST" && s.Path == "/api/timeline/sessions" {
@@ -226,7 +339,7 @@ func viewWorkHTTP(info serverInfo, method, path, ct string, body []byte) ([]byte
 		return nil, "", errors.New("invalid request")
 	}
 	req.Header.Set("X-Hive-Token", info.Token)
-	req.Header.Set(viewer.TimelineRevisionHeader, "2")
+	req.Header.Set(viewer.TimelineRevisionHeader, viewer.TimelineRevisionValue)
 	req.Header.Set("Origin", info.url())
 	req.Header.Set("X-Hive-Action-Scope", "session")
 	req.Header.Set("Content-Type", ct)
@@ -237,7 +350,7 @@ func viewWorkHTTP(info serverInfo, method, path, ct string, body []byte) ([]byte
 		return nil, "", errWorkUncertain
 	}
 	defer resp.Body.Close()
-	if resp.Header.Get(viewer.TimelineRevisionHeader) != "2" {
+	if resp.Header.Get(viewer.TimelineRevisionHeader) != viewer.TimelineRevisionValue {
 		return nil, "reload_required", errors.New("update Hive and reload viewer; preserve original operation inputs")
 	}
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, viewer.TimelineMaxResponseBody+1))
@@ -268,6 +381,10 @@ func (e *viewWorkEngine) binding(id, host, native string) *viewWorkBinding {
 func (e *viewWorkEngine) bind(c viewWorkCommand, s viewer.TimelineSession, explicit bool) error {
 	if _, err := e.actor(s, c); err != nil {
 		return err
+	}
+	if c.Change == "" && !explicit {
+		// A work without a change folder has no directory to bind.
+		return nil
 	}
 	change, err := canonicalWorkDir(c.Change)
 	if err != nil {
@@ -341,14 +458,17 @@ func (e *viewWorkEngine) open(c viewWorkCommand) (viewer.TimelineSession, error)
 	if err != nil {
 		return viewer.TimelineSession{}, err
 	}
-	change, err := canonicalWorkDir(c.Change)
-	if err != nil {
-		return viewer.TimelineSession{}, err
+	change := ""
+	if c.Change != "" {
+		change, err = canonicalWorkDir(c.Change)
+		if err != nil {
+			return viewer.TimelineSession{}, err
+		}
 	}
 	c.Project, c.Change = project, change
 	source := viewer.TimelineSource{ProjectRoot: project, Host: viewer.TimelineHost(c.Host), NativeSessionID: c.NativeSessionID}
 	for _, b := range e.journal.Bindings {
-		if b.Source == source && b.Change == change {
+		if change != "" && b.Source == source && b.Change == change {
 			if b.Key != c.Key {
 				return viewer.TimelineSession{}, workStateError("binding_mismatch")
 			}
@@ -371,7 +491,7 @@ func (e *viewWorkEngine) open(c viewWorkCommand) (viewer.TimelineSession, error)
 		if json.Unmarshal(i.Context, &original) != nil {
 			return viewer.TimelineSession{}, workStateError("invalid_journal")
 		}
-		if original.Binding.Change == change && original.Binding.Key != c.Key {
+		if change != "" && original.Binding.Change == change && original.Binding.Key != c.Key {
 			return viewer.TimelineSession{}, workStateError("binding_mismatch")
 		}
 		if original.Binding.Change == change && original.Binding.Key == c.Key {
@@ -395,11 +515,17 @@ func (e *viewWorkEngine) open(c viewWorkCommand) (viewer.TimelineSession, error)
 		}
 	}
 	// Validate the root relationship before any network mutation.
-	rel, err := filepath.Rel(project, change)
-	if err != nil || rel == ".." || strings.HasPrefix(rel, "../") {
-		return viewer.TimelineSession{}, workInput("change must be within project")
+	if change != "" {
+		rel, err := filepath.Rel(project, change)
+		if err != nil || rel == ".." || strings.HasPrefix(rel, "../") {
+			return viewer.TimelineSession{}, workInput("change must be within project")
+		}
 	}
-	req := viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: workID("op-"), Source: source, WorkKey: &c.Key, Title: c.Title, Summary: c.Summary, Tickets: []viewer.TimelineTicketInput{}}
+	operation := c.QueuedOperation
+	if operation == "" {
+		operation = workID("op-")
+	}
+	req := viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: operation, Source: source, WorkKey: &c.Key, Title: c.Title, Summary: c.Summary, Tickets: []viewer.TimelineTicketInput{}}
 	raw, err := json.Marshal(req)
 	if err != nil {
 		return viewer.TimelineSession{}, err
@@ -455,26 +581,166 @@ func executeViewWork(c viewWorkCommand, w io.Writer) error {
 		// Management commands keep no publisher journal and take no native identity.
 		return executeViewWorkLocal(c, w)
 	}
-	e, err := openViewWorkEngine(c)
+	if hostReconcile(c) {
+		return executeHostReconcile(c, w)
+	}
+	e, err := openViewWorkEngineQueueing(c, viewWorkQueueable(c))
 	if err != nil {
 		return err
 	}
 	defer e.Close()
+	if !e.up {
+		return e.queue(c, w)
+	}
+	if viewWorkQueueFlushes(c.Action) {
+		if err = e.flushQueue(c); err != nil {
+			// The viewer went away while the queue was sent: this declaration
+			// queues behind it, in order.
+			if _, probe := viewTimelineRunning(newViewPaths(e.state)); viewWorkQueueable(c) && viewerUnavailable(probe) {
+				return e.queue(c, w)
+			}
+			return e.failed(c, err)
+		}
+	}
+	if c.WorkID != "" {
+		c.WorkID = e.realID(c.WorkID)
+	}
+	if err = e.dispatch(c, w); err != nil {
+		return e.failed(c, err)
+	}
+	if err = e.ackQueue(); err != nil {
+		return err
+	}
+	e.pruneAliases()
+	if e.ended {
+		e.retire(c)
+	}
+	return nil
+}
+
+// failed reports to the failing command the queued declarations it found
+// rejected, since it has no result to carry them, and retires the lock of a
+// work that is over.
+func (e *viewWorkEngine) failed(c viewWorkCommand, err error) error {
+	if len(e.report.Rejected) > 0 {
+		var parts []string
+		for _, r := range e.report.Rejected {
+			parts = append(parts, r.Action+" "+r.Reason+" "+r.ID)
+		}
+		note := "queued declarations rejected: " + strings.Join(parts, ", ")
+		var ve *viewWorkError
+		if errors.As(err, &ve) {
+			copied := *ve
+			copied.Next = strings.TrimSpace(copied.Next + " (" + note + ")")
+			err = &copied
+		} else {
+			err = fmt.Errorf("%w (%s)", err, note)
+		}
+		e.ackQueue()
+	}
+	var ve *viewWorkError
+	if errors.As(err, &ve) {
+		switch ve.Code {
+		case "work_closed", "session_closed", "session_deleted", "not_found":
+			e.retire(c)
+		}
+	}
+	return err
+}
+
+// retire drops the lock file of a work that is closed or deleted, once no
+// process holds it.
+func (e *viewWorkEngine) retire(c viewWorkCommand) {
+	if e.scope == "" || e.scope == noWorkScope {
+		return
+	}
+	scopes := []string{e.scope, c.WorkID}
+	e.Close()
+	for _, scope := range scopes {
+		removeIdleWorkLock(e.dir, scope)
+	}
+}
+
+func (e *viewWorkEngine) dispatch(c viewWorkCommand, w io.Writer) error {
+	if (c.Action == "open" || c.Action == "publish") && c.WorkID == "" {
+		// The viewer rejects work from a root it does not know, so creating work
+		// registers its root. A directory that is not a repository stays the
+		// viewer's rejection to give.
+		if root, err := canonicalWorkDir(c.Project); err == nil {
+			if _, err = viewer.RegisterRepository(e.state, root); err != nil && !errors.Is(err, viewer.ErrNotGitRepository) {
+				return err
+			}
+		}
+	}
 	switch c.Action {
 	case "publish":
-		return e.publish(c, w)
-	case "stage", "tasks register", "task update", "close":
+		if c.WorkID != "" {
+			return e.publish(c, w)
+		}
+		// The creation form fixes the session's current work; its result names it.
+		var out bytes.Buffer
+		if err := e.publish(c, &out); err != nil {
+			return err
+		}
+		var r viewWorkResult
+		if json.Unmarshal(out.Bytes(), &r) == nil && r.WorkID != "" {
+			if err := addCurrentWork(e.state, c.Host, c.NativeSessionID, r.WorkID); err != nil {
+				return err
+			}
+		}
+		_, err := w.Write(out.Bytes())
+		return err
+	case "stage", "tasks register", "task update":
 		r, err := e.lifecycle(c)
 		if err != nil {
 			return err
 		}
+		r.Queue = e.queueReport()
 		return writeViewWorkResult(w, r)
+	case "close":
+		r, err := e.closeWork(c)
+		if err != nil {
+			return err
+		}
+		if err = releaseCurrentWork(e.state, c.Host, c.NativeSessionID, c.WorkID); err != nil {
+			return err
+		}
+		e.ended = true
+		r.Queue = e.queueReport()
+		return writeViewWorkResult(w, r)
+	case "sync":
+		r, err := e.sync(c)
+		if err != nil {
+			return err
+		}
+		if r.State == "closed" {
+			if err = releaseCurrentWork(e.state, c.Host, c.NativeSessionID, c.WorkID); err != nil {
+				return err
+			}
+			e.ended = true
+		}
+		r.Queue = e.queueReport()
+		return writeViewWorkBoundedJSON(w, r)
+	case "evidence":
+		r, err := e.evidence(c)
+		if err != nil {
+			return err
+		}
+		r.Queue = e.queueReport()
+		capViewWorkEvidenceResult(&r)
+		return writeViewWorkBoundedJSON(w, r)
 	case "open":
 		s, err := e.open(c)
 		if err != nil {
 			return err
 		}
-		return writeViewWorkResult(w, viewWorkResult{WorkID: s.ViewerSessionID, Result: "opened", SessionVersion: s.Version})
+		if err = addCurrentWork(e.state, c.Host, c.NativeSessionID, s.ViewerSessionID); err != nil {
+			return err
+		}
+		if err = e.noteHandle(c, s.ViewerSessionID); err != nil {
+			return err
+		}
+		return writeViewWorkResult(w, viewWorkResult{WorkID: s.ViewerSessionID, Result: "opened", SessionVersion: s.Version, Queue: e.queueReport()})
 	case "list":
 		return e.list(c, w)
 	case "show":
@@ -546,6 +812,12 @@ func (e *viewWorkEngine) recover(c viewWorkCommand, w io.Writer) error {
 		}
 		if c.Action == "resume" && i.Action == "publish" {
 			return e.resumePublish(c, i, w)
+		}
+		if c.Action == "resume" && i.Action == "evidence" {
+			if err := e.resumeEvidenceIntent(i); err != nil {
+				return err
+			}
+			return writeViewWorkResult(w, viewWorkResult{WorkID: i.WorkID, Result: "resumed", SessionVersion: observed.Version})
 		}
 		if c.Action == "resume" && i.Action != "open" {
 			r, err := e.resumeLifecycle(i)

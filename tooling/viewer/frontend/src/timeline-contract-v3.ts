@@ -309,7 +309,68 @@ export type TimelineWaitObserveRequest = {
   summary: string;
   observed_at: string;
 };
+export type TimelineHostEventType =
+  | "session_started"
+  | "activity"
+  | "session_ended"
+  | "task_created"
+  | "task_updated"
+  | "task_completed"
+  | "subagent_started"
+  | "subagent_stopped";
+export type TimelineHostEventData = {
+  task_id?: string;
+  title?: string;
+  state?: "not_started" | "in_progress" | "completed";
+  agent_id?: string;
+  /** The host's turn ID of an event that is not a task event; it only keeps two events distinct. */
+  turn_id?: string;
+};
+/** Body of POST /api/host-events, reported by the local hive hook. */
+export type TimelineHostEvent = {
+  schema_version: 3;
+  source: TimelineSource;
+  event_type: TimelineHostEventType;
+  occurred_at: string;
+  work_id?: string;
+  stage_event_id?: string;
+  data: TimelineHostEventData;
+};
+export const TIMELINE_HOST_TASK_KEY_PREFIX = "host:";
+export const TIMELINE_MAX_HOST_TASKS = 50;
+const hostEventTypes: TimelineHostEventType[] = [
+  "session_started",
+  "activity",
+  "session_ended",
+  "task_created",
+  "task_updated",
+  "task_completed",
+  "subagent_started",
+  "subagent_stopped",
+];
+const hostTaskStates = ["not_started", "in_progress", "completed"];
+const hostNativeID = /^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$/;
+// A stored task also admits the key of a task reflected from a host's native task
+// list, which only the server creates; an agent request keeps the T<n> key.
+const storedTaskKey =
+  /^(T[1-9][0-9]{0,126}|host:[A-Za-z0-9][A-Za-z0-9._-]{0,99})$/;
 const shapes: Record<string, Array<[string, string, boolean]>> = {
+  TimelineHostEvent: [
+    ["schema_version", "int", false],
+    ["source", "TimelineSource", false],
+    ["event_type", "string", false],
+    ["occurred_at", "string", false],
+    ["work_id", "string", true],
+    ["stage_event_id", "string", true],
+    ["data", "TimelineHostEventData", false],
+  ],
+  TimelineHostEventData: [
+    ["task_id", "string", true],
+    ["title", "string", true],
+    ["state", "string", true],
+    ["agent_id", "string", true],
+    ["turn_id", "string", true],
+  ],
   TimelineActor: [
     ["kind", "string", false],
     ["producer_id", "string", true],
@@ -824,6 +885,58 @@ const operationShapes: Record<keyof TimelineV3RequestMap, string> = {
   wait_attempt_start: "TimelineWaitAttemptStartRequest",
   wait_observe: "TimelineWaitObserveRequest",
 };
+export function parseTimelineHostEvent(value: unknown): TimelineHostEvent {
+  const v = record(value);
+  if (v.schema_version !== 3) fail("schema_version", "unsupported_protocol");
+  shape("TimelineHostEvent", v);
+  if (!hostEventTypes.includes(v.event_type as TimelineHostEventType))
+    fail("event_type", "unsupported_event_type");
+  time(v.occurred_at, "occurred_at");
+  if (
+    v.work_id !== undefined &&
+    (typeof v.work_id !== "string" || !/^[0-9a-f]{64}$/.test(v.work_id))
+  )
+    fail("work_id", "invalid_id");
+  if (v.stage_event_id !== undefined) {
+    if (v.work_id === undefined) fail("stage_event_id", "work_id_required");
+    id(v.stage_event_id, "stage_event_id");
+  }
+  const d = v.data as TimelineHostEventData;
+  const type = v.event_type as string;
+  const task = type.startsWith("task_");
+  const subagent = type.startsWith("subagent_");
+  if (
+    (!task &&
+      (d.task_id !== undefined ||
+        d.title !== undefined ||
+        d.state !== undefined)) ||
+    (!subagent && d.agent_id !== undefined)
+  )
+    fail("data", "unexpected_field");
+  if (task) {
+    if (typeof d.task_id !== "string" || !hostNativeID.test(d.task_id))
+      fail("data.task_id", "invalid_id");
+    if (d.title !== undefined || type === "task_created")
+      text(d.title, "data.title", 120, type === "task_created");
+    if (
+      d.state !== undefined &&
+      (!hostTaskStates.includes(d.state) ||
+        (type === "task_completed" && d.state !== "completed"))
+    )
+      fail("data.state", "invalid_state");
+  }
+  if (
+    subagent &&
+    (typeof d.agent_id !== "string" || !hostNativeID.test(d.agent_id))
+  )
+    fail("data.agent_id", "invalid_id");
+  if (
+    d.turn_id !== undefined &&
+    (task || typeof d.turn_id !== "string" || !hostNativeID.test(d.turn_id))
+  )
+    fail("data.turn_id", "invalid_id");
+  return v as unknown as TimelineHostEvent;
+}
 export function isTimelineV3Operation(
   kind: string,
 ): kind is keyof TimelineV3RequestMap {
@@ -1115,6 +1228,7 @@ export function validateTimelineAuthority(
       "document_add",
       "document_snapshot",
       "task_transition",
+      "host_event",
       "wait_create",
       "wait_attempt_start",
       "wait_observe",
@@ -1422,7 +1536,7 @@ export function validateTimelineV3Graph(s: TimelineSession): void {
     if (
       ids.has(t.task_id) ||
       keys.has(t.task_key) ||
-      !/^T[1-9][0-9]{0,126}$/.test(t.task_key)
+      !storedTaskKey.test(t.task_key)
     )
       fail("tasks", "invalid_identity_or_segments");
     ids.add(t.task_id);

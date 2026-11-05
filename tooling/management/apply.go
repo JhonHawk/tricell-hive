@@ -37,6 +37,9 @@ type journal struct {
 	// CodexLines is the wait floor edit of Codex's config.toml, journaled by
 	// lines (fingerprints and owned lines), never by the file's bytes.
 	CodexLines *linesEntry `json:",omitempty"`
+	// HostHooks are the edits of the shared JSON hook files, journaled by
+	// fingerprints and Hive's own entries, never by the files' bytes.
+	HostHooks []*hostHooksEntry `json:",omitempty"`
 }
 
 func journalHash(j journal) string { j.Integrity = ""; return hash(encode(j)) }
@@ -214,6 +217,7 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 	next.Voice = state.Voice
 	next.PiSubagentsSource = state.PiSubagentsSource
 	next.CodexWaitFloor = copyWaitFloorRecord(state.CodexWaitFloor)
+	next.HostHooks = copyHostHooks(state.HostHooks)
 	if state.VoiceSpans != nil {
 		next.VoiceSpans = map[string]VoiceSpan{}
 		for k, v := range state.VoiceSpans {
@@ -311,6 +315,12 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 		return journal{}, State{}, nil, false, err
 	}
 	if j.CodexLines != nil && !j.CodexLines.Skip {
+		changed = true
+	}
+	if err := prepareHostHooks(p, state, &next, &j); err != nil {
+		return journal{}, State{}, nil, false, err
+	}
+	if hostHooksChanged(state, next, j) {
 		changed = true
 	}
 	if !changed {
@@ -431,6 +441,9 @@ func (e Engine) commitTransaction(p Plan, j *journal, state State, next *State, 
 		return err
 	}
 	if err := applyCodexLines(j, jp, e.fail); err != nil {
+		return err
+	}
+	if err := applyHostHooks(j, jp, e.fail); err != nil {
 		return err
 	}
 	if p.Release != nil {
@@ -732,6 +745,11 @@ func (e Engine) Apply(p Plan) (string, error) {
 			warning = strings.TrimPrefix(warning+"; "+n, "; ")
 		}
 	}
+	for _, le := range j.HostHooks {
+		for _, n := range le.Notes {
+			warning = strings.TrimPrefix(warning+"; "+n, "; ")
+		}
+	}
 	id, err := finishApply(p, j.ID, next)
 	if err != nil {
 		if warning != "" {
@@ -787,7 +805,7 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	if err = decodeFile(jp, &j); err != nil {
 		return "", err
 	}
-	if (j.Version != 1 && j.Version != 2 && j.Version != 3 && j.Version != 4 && j.Version != 5 && j.Version != stateVersion) || j.Version != j.Plan.Version || j.ID != p.ID || j.Plan.StateDir != dir || j.Integrity != journalHash(j) || j.Plan.ID != planID(j.Plan) {
+	if (j.Version != 1 && j.Version != 2 && j.Version != 3 && j.Version != 4 && j.Version != 5 && j.Version != 6 && j.Version != stateVersion) || j.Version != j.Plan.Version || j.ID != p.ID || j.Plan.StateDir != dir || j.Integrity != journalHash(j) || j.Plan.ID != planID(j.Plan) {
 		return "", fmt.Errorf("invalid transaction")
 	}
 	removeOrphanWrites(dir, j)
@@ -898,6 +916,9 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	// Only now, once Recover is going ahead: it must not undo the lines of an
 	// operation it then refuses to recover.
 	if err := undoCodexInstall(j); err != nil {
+		return "", err
+	}
+	if err := undoHostHooksInstall(j); err != nil {
 		return "", err
 	}
 	for i := len(j.Entries) - 1; i >= 0; i-- {

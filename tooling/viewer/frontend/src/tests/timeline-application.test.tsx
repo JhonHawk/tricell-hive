@@ -16,7 +16,7 @@ import {
 function revisionResponse(body: BodyInit, init?: ResponseInit) {
   return new Response(body, {
     ...init,
-    headers: { "X-Hive-Timeline-Revision": "2" },
+    headers: { "X-Hive-Timeline-Revision": "3" },
   });
 }
 async function settle() {
@@ -972,5 +972,80 @@ test("first index revision mismatch replaces cold loading with actionable reload
     requests,
     ["/api/index?navigation=grouped"],
     "mismatch stops polling and writes without replay",
+  );
+});
+
+test("a work is read again when the index shows later activity although its version did not grow", async () => {
+  const work = structuredClone(timelineFixture);
+  const id = work.session.viewer_session_id;
+  let reads = 0;
+  let indexed = { ...work.session };
+  const controller = new ViewerController(
+    new AccessClient(
+      async (path) => {
+        if (String(path).startsWith("/api/index")) {
+          const {
+            schema_version: _s,
+            events: _e,
+            artifacts: _a,
+            documents: _d,
+            producers: _p,
+            foreground_producer_id: _lead,
+            pending_join_requests: _j,
+            tasks: _t,
+            waits: _w,
+            deliveries: _deliveries,
+            candidates: _c,
+            work_key: _work,
+            ...entry
+          } = indexed;
+          return revisionResponse(
+            JSON.stringify({
+              protocol_version: 3,
+              retention: "manual",
+              ttl_seconds: 0,
+              repositories: [],
+              errors: [],
+              timeline_sessions: [{ mode: "timeline_api", ...entry }],
+              navigation: { version: 1, entries: [] },
+            }),
+          );
+        }
+        reads++;
+        return revisionResponse(JSON.stringify({ ...work, session: indexed }));
+      },
+      { getItem: () => "test-token", setItem() {}, removeItem() {} },
+    ),
+    () => false,
+  );
+  await controller.open(null);
+  await settle();
+  assert.equal(controller.getSnapshot().selectedId, id);
+  assert.equal(reads, 1);
+  await controller.refresh();
+  await settle();
+  assert.equal(reads, 1, "an unchanged index does not read the work again");
+  const later = new Date(Date.parse(indexed.updated_at) + 60000).toISOString();
+  indexed = { ...indexed, last_activity_at: later, updated_at: later };
+  await controller.refresh();
+  await settle();
+  assert.equal(reads, 2, "later activity with the same version reads again");
+  assert.equal(
+    controller.getSnapshot().timeline?.data?.session.last_activity_at,
+    later,
+  );
+  const host = new Date(Date.parse(later) + 60000).toISOString();
+  indexed = {
+    ...indexed,
+    host_activity_at: host,
+    last_activity_at: host,
+    updated_at: host,
+  };
+  await controller.refresh();
+  await settle();
+  assert.equal(reads, 3, "host activity shown by the index reads again");
+  assert.equal(
+    controller.getSnapshot().timeline?.data?.session.host_activity_at,
+    host,
   );
 });

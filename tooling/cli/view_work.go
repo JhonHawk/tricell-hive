@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"reflect"
 	"regexp"
@@ -36,6 +37,29 @@ type viewWorkCommand struct {
 	Resolution, ReviewKind                       string
 	Tasks                                        []viewWorkTaskInput
 	Metadata                                     *viewWorkTaskMetadata
+	// sync: the declared tasks and the outcome that closes the work.
+	SyncTasks    []viewWorkSyncTask
+	CloseOutcome string
+	// evidence: one view with its captures and candidate.
+	ViewTitle, Candidate, Supersedes, Expected string
+	Viewport, Theme, Branch, Base              string
+	Images, Steps                              []string
+	// QueuedOperation is the operation identity a queued open gives its create.
+	QueuedOperation string
+	// SessionFile names the host session file `reconcile` reads instead of finding it.
+	SessionFile string
+}
+
+// viewWorkSyncTask is one task of a `work sync` declaration. The state is the
+// state of its segment in the declared stage; the block and the resolution are
+// the same inputs `task update` takes for a blocked task.
+type viewWorkSyncTask struct {
+	Key        string                `json:"key"`
+	Title      string                `json:"title"`
+	Summary    string                `json:"summary,omitempty"`
+	State      string                `json:"state,omitempty"`
+	Block      *viewer.TimelineBlock `json:"block,omitempty"`
+	Resolution string                `json:"resolution,omitempty"`
 }
 
 type viewWorkSource struct {
@@ -75,6 +99,9 @@ type viewWorkResult struct {
 	StageID        string `json:"stage_id,omitempty"`
 	DocumentCount  *int   `json:"document_count,omitempty"`
 	ChangedCount   *int   `json:"changed_count,omitempty"`
+	// State is the work's state read back after a close.
+	State string               `json:"state,omitempty"`
+	Queue *viewWorkQueueReport `json:"queue,omitempty"`
 }
 
 type viewWorkError struct{ Code, Field, Pending, Next string }
@@ -140,6 +167,8 @@ func parseViewWorkCommand(args []string, stdin io.Reader) (viewWorkCommand, erro
 	}
 	allowed := map[string]string{
 		"open":           "project change work-id key title summary",
+		"sync":           "work-id stage state reason summary previous-stage tasks close",
+		"evidence":       "work-id stage reason view-title image step expected candidate supersedes viewport theme branch base",
 		"publish":        "project change work-id key title summary stage reason document-key status document explicit-documents",
 		"list":           "project include-archived limit cursor",
 		"show":           "work-id",
@@ -148,7 +177,7 @@ func parseViewWorkCommand(args []string, stdin io.Reader) (viewWorkCommand, erro
 		"task update":    "work-id key stage state reason json block-reason block-owner block-step resume-when resolution review-kind",
 		"close":          "work-id outcome reason",
 		"resume":         "work-id",
-		"reconcile":      "work-id pending action reason",
+		"reconcile":      "work-id pending action reason session-file project",
 		"bind":           "work-id change reason",
 		"rename":         "work-id title",
 		"archive":        "work-id",
@@ -165,8 +194,19 @@ func parseViewWorkCommand(args []string, stdin io.Reader) (viewWorkCommand, erro
 	fs := flag.NewFlagSet("view work "+c.Action, flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
 	str := map[string]*string{"project": &c.Project, "change": &c.Change, "work-id": &c.WorkID, "key": &c.Key, "title": &c.Title, "summary": &c.Summary, "host": &c.Host, "native-session-id": &c.NativeSessionID, "stage": &c.Stage, "state": &c.State, "reason": &c.Reason, "previous-stage": &c.PreviousStage, "document-key": &c.DocumentKey, "status": &c.Status, "outcome": &c.Outcome, "pending": &c.Pending, "action": &c.ReconcileAction, "plan-revision": &c.PlanRevision, "cursor": &c.Cursor, "resolution": &c.Resolution, "review-kind": &c.ReviewKind, "request-id": &c.RequestID, "confirm": &c.Confirm}
-	var jsonFile, blockReason, blockOwner, resumeWhen string
+	var jsonFile, blockReason, blockOwner, resumeWhen, tasksFile string
 	str["json"] = &jsonFile
+	str["tasks"] = &tasksFile
+	str["close"] = &c.CloseOutcome
+	str["session-file"] = &c.SessionFile
+	str["view-title"] = &c.ViewTitle
+	str["candidate"] = &c.Candidate
+	str["supersedes"] = &c.Supersedes
+	str["expected"] = &c.Expected
+	str["viewport"] = &c.Viewport
+	str["theme"] = &c.Theme
+	str["branch"] = &c.Branch
+	str["base"] = &c.Base
 	str["block-reason"] = &blockReason
 	str["block-owner"] = &blockOwner
 	str["resume-when"] = &resumeWhen
@@ -187,6 +227,10 @@ func parseViewWorkCommand(args []string, stdin io.Reader) (viewWorkCommand, erro
 			fs.Var(&docs, name, "")
 		case "block-step":
 			fs.Var(&steps, name, "")
+		case "image":
+			fs.Var((*viewWorkStrings)(&c.Images), name, "")
+		case "step":
+			fs.Var((*viewWorkStrings)(&c.Steps), name, "")
 		default:
 			fs.StringVar(str[name], name, "", "")
 		}
@@ -216,19 +260,41 @@ func parseViewWorkCommand(args []string, stdin io.Reader) (viewWorkCommand, erro
 		}
 	}
 	for name, n := range counts {
-		if n > 1 && name != "document" && name != "block-step" {
+		if n > 1 && name != "document" && name != "block-step" && name != "image" && name != "step" {
 			return c, workInput("duplicate flag")
 		}
 	}
 	if seen["json"] && jsonFile == "" {
 		return c, workInput("json input path required")
 	}
+	if seen["tasks"] && tasksFile == "" {
+		return c, workInput("tasks input path required")
+	}
 	c.Documents = docs
 	if blockReason != "" || blockOwner != "" || resumeWhen != "" || len(steps) > 0 {
 		c.Block = &viewer.TimelineBlock{Reason: blockReason, Owner: blockOwner, ResumeWhen: resumeWhen, Steps: steps}
 	}
+	if err := resolveViewWorkContext(&c); err != nil {
+		return c, err
+	}
 	if err := validateViewWorkCommand(&c, seen); err != nil {
 		return c, err
+	}
+	if tasksFile != "" {
+		raw, err := viewTimelineReadInput(tasksFile, stdin, viewer.TimelineMaxBody)
+		if err != nil {
+			return c, workInput("cannot read bounded JSON input")
+		}
+		if err = decodeViewWorkJSON(raw, &c.SyncTasks, "tasks"); err == nil {
+			err = validateViewWorkSyncTasks(c.SyncTasks)
+		}
+		if err != nil {
+			var fault *viewWorkFault
+			if errors.As(err, &fault) {
+				return c, workInput("invalid semantic JSON: " + fault.Error())
+			}
+			return c, workInput("invalid semantic JSON")
+		}
 	}
 	if jsonFile != "" {
 		raw, err := viewTimelineReadInput(jsonFile, stdin, viewer.TimelineMaxBody)
@@ -281,6 +347,15 @@ func validateViewWorkCommand(c *viewWorkCommand, seen map[string]bool) error {
 			return workInput("invalid native source")
 		}
 	}
+	if c.Action == "open" && c.WorkID == "" && c.Project == "" {
+		// A work without a change folder is named by its key alone: the project
+		// is the repository the command runs in.
+		p, err := defaultViewWorkProject()
+		if err != nil {
+			return workInput("project: run inside the repository or pass --project")
+		}
+		c.Project = p
+	}
 	if c.Project != "" {
 		p, err := filepath.Abs(c.Project)
 		if err != nil {
@@ -293,8 +368,10 @@ func validateViewWorkCommand(c *viewWorkCommand, seen map[string]bool) error {
 	}
 	switch c.Action {
 	case "open", "publish":
-		if err := required(c.Change); err != nil {
-			return err
+		if c.Action == "publish" || c.WorkID != "" {
+			if err := required(c.Change); err != nil {
+				return err
+			}
 		}
 		if c.WorkID != "" {
 			if seen["key"] || seen["title"] || seen["summary"] {
@@ -352,33 +429,37 @@ func validateViewWorkCommand(c *viewWorkCommand, seen map[string]bool) error {
 			return workInput("limit must be 1..100")
 		}
 	default:
-		if err := required(c.WorkID); err != nil {
-			return err
+		if !hostReconcile(*c) {
+			if err := required(c.WorkID); err != nil {
+				return err
+			}
 		}
 	}
 	switch c.Action {
 	case "stage":
-		if err := required(c.Stage, c.State, c.Reason); err != nil {
+		if err := validateViewWorkStageDeclaration(c); err != nil {
 			return err
 		}
-		state := viewer.TimelineStageState(c.State)
-		n := int64(1)
-		r := viewer.TimelineEventPatchRequest{SchemaVersion: 3, OperationID: "validate", Actor: viewer.TimelineActor{Kind: "native_producer", ProducerID: "validate"}, ExpectedVersion: 1, ExpectedSessionVersion: &n, StageState: &state, Reason: c.Reason}
-		if c.Summary != "" {
-			r.Summary = &c.Summary
+	case "sync":
+		if err := validateViewWorkStageDeclaration(c); err != nil {
+			return err
 		}
-		if !validWorkStage(c.Stage) || r.Validate() != nil {
-			return workInput("invalid stage transition")
+		if c.CloseOutcome != "" && c.CloseOutcome != "completed" && c.CloseOutcome != "abandoned" {
+			return workInput("close outcome must be completed or abandoned")
 		}
-		if c.PreviousStage != "" && !viewTimelineObjectID.MatchString(c.PreviousStage) {
-			return workInput("invalid previous-stage")
+	case "evidence":
+		if err := required(c.Stage, c.ViewTitle); err != nil {
+			return err
 		}
+		if !validWorkStage(c.Stage) {
+			return workInput("invalid stage")
+		}
+		return validateViewWorkEvidence(c)
 	case "tasks register":
-		if err := required(c.PlanRevision); err != nil {
-			return err
-		}
-		if !seen["json"] || !viewTimelineObjectID.MatchString(c.PlanRevision) {
-			return workInput("registration requires json and confirmed plan-revision")
+		// The revision is required for a work with a change folder; the engine
+		// knows whether it has one, and rejects its absence there.
+		if !seen["json"] || c.PlanRevision != "" && !viewTimelineObjectID.MatchString(c.PlanRevision) {
+			return workInput("registration requires json and, for a work with a change folder, a confirmed plan-revision")
 		}
 	case "task update":
 		if err := required(c.Key, c.Reason); err != nil {
@@ -415,6 +496,12 @@ func validateViewWorkCommand(c *viewWorkCommand, seen map[string]bool) error {
 			return err
 		}
 	case "reconcile":
+		if hostReconcile(*c) {
+			if c.SessionFile != "" && !filepath.IsAbs(c.SessionFile) {
+				return workInput("session-file must be an absolute path")
+			}
+			return nil
+		}
 		if err := required(c.Pending, c.Reason); err != nil {
 			return err
 		}
@@ -426,6 +513,41 @@ func validateViewWorkCommand(c *viewWorkCommand, seen map[string]bool) error {
 		return workInput("invalid reason")
 	}
 	return nil
+}
+
+// validateViewWorkStageDeclaration checks the stage, state and reason that
+// `stage` and `sync` take, with the validator the viewer applies to a stage
+// transition.
+func validateViewWorkStageDeclaration(c *viewWorkCommand) error {
+	if strings.TrimSpace(c.Stage) == "" || strings.TrimSpace(c.State) == "" || strings.TrimSpace(c.Reason) == "" {
+		return workInput("required semantic field missing")
+	}
+	state := viewer.TimelineStageState(c.State)
+	n := int64(1)
+	r := viewer.TimelineEventPatchRequest{SchemaVersion: 3, OperationID: "validate", Actor: viewer.TimelineActor{Kind: "native_producer", ProducerID: "validate"}, ExpectedVersion: 1, ExpectedSessionVersion: &n, StageState: &state, Reason: c.Reason}
+	if c.Summary != "" {
+		r.Summary = &c.Summary
+	}
+	if !validWorkStage(c.Stage) || r.Validate() != nil {
+		return workInput("invalid stage transition")
+	}
+	if c.PreviousStage != "" && !viewTimelineObjectID.MatchString(c.PreviousStage) {
+		return workInput("invalid previous-stage")
+	}
+	return nil
+}
+
+// defaultViewWorkProject is the repository the command runs in, or the current
+// directory when it is not inside one.
+func defaultViewWorkProject() (string, error) {
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	if top, err := newGitRunner()(wd, "rev-parse", "--show-toplevel"); err == nil && strings.TrimSpace(top) != "" {
+		return strings.TrimSpace(top), nil
+	}
+	return wd, nil
 }
 
 func workValidationOperation(reason string) viewer.TimelineNativeOperation {

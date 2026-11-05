@@ -32,7 +32,10 @@ import (
 // it and injects the readers that need cli helpers.
 
 const (
-	viewStartTimeout = 5 * time.Second
+	// viewStartTimeout bounds how long start waits for its own server to
+	// answer. Startup reads every stored work, so a viewer with dozens of works
+	// can take several seconds; a shorter bound killed a healthy server.
+	viewStartTimeout = 60 * time.Second
 	viewHealthLimit  = 2 * time.Second
 	viewPollStep     = 50 * time.Millisecond
 	viewInfoLimit    = 64 << 10
@@ -600,7 +603,7 @@ func viewIndex(info serverInfo) (viewIndexSnapshot, error) {
 		return v, err
 	}
 	req.Header.Set("X-Hive-Token", info.Token)
-	req.Header.Set(viewer.TimelineRevisionHeader, "2")
+	req.Header.Set(viewer.TimelineRevisionHeader, viewer.TimelineRevisionValue)
 	client := *viewClient
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	resp, err := client.Do(req)
@@ -611,8 +614,8 @@ func viewIndex(info serverInfo) (viewIndexSnapshot, error) {
 	if resp.StatusCode != http.StatusOK {
 		return v, fmt.Errorf("index answered %d", resp.StatusCode)
 	}
-	if resp.Header.Get(viewer.TimelineRevisionHeader) != "2" {
-		return v, errors.New("reload_required: update client and viewer together for protocol v3 revision 2; preserve inputs")
+	if resp.Header.Get(viewer.TimelineRevisionHeader) != viewer.TimelineRevisionValue {
+		return v, fmt.Errorf("reload_required: update client and viewer together for protocol v3 revision %s; preserve inputs", viewer.TimelineRevisionValue)
 	}
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, (64<<20)+1))
 	if err != nil || len(raw) > 64<<20 {

@@ -17,7 +17,7 @@ Fix the date parsing bug and add a test that would have caught it.
 
 ## What it does
 
-Task progress is published separately through semantic task and stage commands. The binary resolves technical IDs and versions; the agent still supplies the actual state, reason, ownership and blocking information. Editing the published plan checklist does not update live tasks. See the [viewer publication model](/viewer/#publish-markdown-on-demand).
+Task progress is published separately: one declaration per stage change carries the stage state, its reason and the task states. The binary resolves technical IDs, versions and the session identity; the agent still supplies the actual state, reason, ownership and blocking information. Editing the published plan checklist does not update live tasks. In a build with no plan, tasks that the host's native list already reports (Claude Code, OpenCode) appear in the viewer marked as from the host, without the agent registering them; with the viewer stopped, the declaration is queued and sent later. See the [viewer publication model](/viewer/#one-declaration-per-stage-change) and [host-observed activity](/viewer/#host-observed-activity).
 
 - Checks the plan's prerequisites and asks you for any that are missing, while it starts the tasks that do not need them.
 - Moves the tracked ticket to in progress, except for a one-off operation that leaves nothing in the repository, whose ticket moves only if you ask, and works on a branch when your delivery answer makes commits.

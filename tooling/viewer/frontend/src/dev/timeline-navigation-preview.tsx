@@ -20,7 +20,7 @@ export function TimelineNavigationPreview() {
     const response = (body: unknown, status = 200) =>
       new Response(JSON.stringify(body), {
         status,
-        headers: { "X-Hive-Timeline-Revision": "2" },
+        headers: { "X-Hive-Timeline-Revision": "3" },
       });
     const controller = new ViewerController(
       new AccessClient(

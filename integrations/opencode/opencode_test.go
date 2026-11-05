@@ -15,8 +15,12 @@ func TestResolveOpenCodeUserTargets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(targets) != 2 || targets[0].Path != filepath.Join(c.OpenCodeHome, "AGENTS.md") || targets[1].Path != filepath.Join(home, ".agents", "skills", "workspace-conventions", "SKILL.md") {
+	if len(targets) != 3 || targets[0].Path != filepath.Join(c.OpenCodeHome, "AGENTS.md") || targets[1].Path != filepath.Join(home, ".agents", "skills", "workspace-conventions", "SKILL.md") {
 		t.Fatalf("unexpected OpenCode targets: %#v", targets)
+	}
+	// The event plugin follows; the context loader needs its source and is absent.
+	if ev := targets[2]; ev.Kind != "hook" || ev.Source != EventPluginSource || ev.Path != filepath.Join(c.OpenCodeHome, "plugins", "hive-events.js") || ev.Host != "opencode" {
+		t.Fatalf("unexpected event plugin target: %#v", ev)
 	}
 }
 

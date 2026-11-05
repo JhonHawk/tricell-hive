@@ -389,8 +389,17 @@ func runOnboardingWizard(o management.Options, dry bool, terminal installTermina
 			fmt.Fprintln(out, "Cancelled. No changes applied.")
 			return nil
 		}
+		notes, notesErr := management.HostHookNotes(p)
+		if notesErr != nil {
+			return notesErr
+		}
+		notes = append(notes, management.HostHookWarnings(p)...)
 		result, err := applyInstallOnboarding(p, preview, adapter)
-		return finalizeInstallResult(out, result, err, explicitStateDir, stateDir, false)
+		if ferr := finalizeInstallResult(out, result, err, explicitStateDir, stateDir, false); ferr != nil {
+			return ferr
+		}
+		printHookNotes(out, notes)
+		return nil
 	}
 }
 
@@ -858,6 +867,10 @@ func showInstallSummary(out io.Writer, p management.Plan, preview onboardingPrev
 	for _, ch := range p.Legacy {
 		destinations[ch.Path] = true
 	}
+	// The shared JSON hook files are steps, not Changes: list them too.
+	for _, path := range management.HostHookPaths(p) {
+		destinations[path] = true
+	}
 	var paths []string
 	for path := range destinations {
 		paths = append(paths, path)
@@ -869,6 +882,11 @@ func showInstallSummary(out io.Writer, p management.Plan, preview onboardingPrev
 	}
 	for _, path := range shown {
 		fmt.Fprintf(out, "  %s\n", path)
+	}
+	for _, st := range p.HostHooks {
+		if st.Skipped != "" {
+			fmt.Fprintf(out, "Warning: %s hooks will be skipped in %s (%s).\n", st.Host, st.Path, st.Skipped)
+		}
 	}
 	if !dry && mentionDryRunFlag {
 		fmt.Fprintln(out, "Use --dry-run to see the full file list before applying.")
