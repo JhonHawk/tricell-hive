@@ -70,7 +70,22 @@ Las operaciones de bajo nivel siguen funcionando sin cambios (D6 A), y el contra
 - envía el evento con un tiempo límite de 2 s;
 - si el visor está caído, deja el evento en la cola de eventos de host.
 
-No imprime nada y siempre sale con 0. Sigue el patrón de `grok_hook.go`. Cada traductor de carga vive en su `integrations/<host>/`. Cada campo que se usa sale de T0; lo que T0 no verifique queda marcado como no verificado.
+No imprime nada y siempre sale con 0. Sigue el patrón de `grok_hook.go`. Cada traductor de carga vive en su `integrations/<host>/`.
+
+**Correcciones de T0** (fuentes en `_support/docs/architecture/host-session-events.md`):
+- **El host real se detecta siempre por la carga y el entorno.** Grok y Cursor CLI también ejecutan los hooks de `~/.claude/settings.json`, así que el argumento `<host>` es solo una pista.
+- **Tareas nativas por host:**
+  - Claude Code: `TaskCreated` y `TaskCompleted`.
+  - OpenCode: el hook del plugin sobre la herramienta `todowrite`, con un ID derivado del contenido. En 2.2.5 no existe `todo.updated`.
+  - Codex, Grok, Pi y Cursor: no tienen.
+- **OpenCode y Pi** pasan el ID de sesión de forma explícita desde el plugin o la extensión. En OpenCode el mapa pid no sirve porque todas las sesiones comparten el servicio.
+- **Cursor** registra el mapa también en `beforeSubmitPrompt`, porque `sessionStart` no se dispara al reanudar.
+- **Codex:**
+  - no se registran `Stop` ni `SubagentStop`, que esperan JSON en la salida;
+  - un evento con `agent_id` es de un subagente y no cambia la sesión principal;
+  - `CODEX_THREAD_ID` queda sin usar mientras no se verifique.
+- **Claude Code:** `SessionEnd` lleva `timeout` explícito, y los subagentes con `agent_type` vacío se ignoran.
+- **Fuentes de identidad en el shell** (solo el shell del agente, no los `!` del usuario): `CLAUDE_CODE_SESSION_ID`, `PI_SESSION_ID`, `OPENCODE_SESSION_ID` y `CURSOR_CONVERSATION_ID`. En Grok no hay ninguna, y su identidad sale del mapa pid.
 
 Las cargas que entiende por host son:
 - **Claude Code:** `session_id`, `transcript_path`, `cwd`, `CLAUDE_PROJECT_DIR`, y para tareas `task_id` y `task_subject` de TaskCreated y TaskCompleted.

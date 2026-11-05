@@ -10,7 +10,7 @@ Base `development` en `d23f9a88`, rama `feat/viewer-passive-capture`, un solo pu
 
 ### T0 — Comprobación por host, contra la documentación y la versión instalada
 
-- [ ] Un registro por host de cada afirmación que usa el diseño, marcando qué está documentado, qué observado y qué inferido, con la URL o ruta, la fecha y la versión.
+- [x] Un registro por host de cada afirmación que usa el diseño, marcando qué está documentado, qué observado y qué inferido, con la URL o ruta, la fecha y la versión.
 
 **Closes:** AC2, AC3, AC8 (condición previa)
 
@@ -310,4 +310,13 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 
 ## Estado de revisión y progreso
 
+2026-11-04 — T0 hecha: `_support/docs/architecture/host-session-events.md`; diseño corregido (detección del host real, tareas solo en Claude Code y OpenCode `todowrite`, identidad explícita en OpenCode y Pi, sin `Stop`/`SubagentStop` en Codex). Sin ejecutar sesiones: `CODEX_THREAD_ID`, `CURSOR_CONVERSATION_ID` y los hooks en `codex exec` quedan sin verificar.
+
 2026-11-04 — Plan escrito. Revisión `hive-review-plan`: 4 P1, 9 P2 y 6 P3, aplicados (decisiones D12 A, D13 A y D14 B).
+
+## Checkpoint
+
+- Etapa: build, T0 hecha, T1 en curso. Rama `feat/viewer-passive-capture` desde `b183ac01`; último commit `b94c449d` (plan).
+- Visor: trabajo `50457f3803d3122ef9c5294ee314a04b7caa03a46924c73bd3ea949a081b4a30`, etapa build `event-0031e0d2ade9120dcd2f535d5f41f8b3`, tareas registradas con la revisión `revision-69dbb00740f6bd76e426531cdab267a0` (la tarea T0 del plan es la clave `T11` en el visor, que no admite `T0`).
+- Hallazgos abiertos: ninguno.
+- Siguiente: T1 con `hive-build-backend`; después `hive-verify-task`.
