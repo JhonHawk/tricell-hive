@@ -36,7 +36,9 @@ type archivedBlock struct {
 }
 
 // latestDelta is the delta of one requirement in the last archive folder in
-// name order, with the blocks of the earlier folders that touch it, in order.
+// name order. Earlier keeps the blocks of the earlier folders that have no
+// known order against it nor against any folder that came after them, since
+// any of those may hold the actual latest delta.
 type latestDelta struct {
 	Capability string
 	archivedBlock
@@ -219,7 +221,13 @@ func collectLatestDeltas(root string) ([]latestDelta, error) {
 			}
 			key := capability + "/" + b.Name
 			if i, ok := index[key]; ok {
-				out[i].Earlier = append(out[i].Earlier, out[i].archivedBlock)
+				var kept []archivedBlock
+				for _, e := range append(out[i].Earlier, out[i].archivedBlock) {
+					if unordered(e.Folder, folder) {
+						kept = append(kept, e)
+					}
+				}
+				out[i].Earlier = kept
 				out[i].archivedBlock = ab
 				continue
 			}
@@ -290,14 +298,12 @@ func checkSpecDeltas(root string) ([]string, error) {
 		}
 		where := fmt.Sprintf("%s/specs/%s/spec.md: requirement %q (%s in %s/changes/archive/%s)", openspecDisplay, d.Capability, d.Name, d.Op, openspecDisplay, d.Folder)
 		current, present := blocks[d.Name]
-		// An earlier folder with no known order against the last one may hold
-		// the actual latest delta.
 		matched := satisfiedBy(d.deltaBlock, current, present)
 		for _, e := range d.Earlier {
 			if matched {
 				break
 			}
-			if e.Duplicate == "" && unordered(e.Folder, d.Folder) && satisfiedBy(e.deltaBlock, current, present) {
+			if e.Duplicate == "" && satisfiedBy(e.deltaBlock, current, present) {
 				matched = true
 			}
 		}
@@ -448,6 +454,19 @@ func TestSpecDeltaSameDateOrdersByTime(t *testing.T) {
 		"specs/cap/spec.md": specHeader + "### Requirement: Alpha\nFirst.\n",
 	}
 	wantOneFailure(t, runSpecDeltaCheck(t, apart), "Alpha", "2026-01-03-0100-b", "DIFFERS")
+	// A folder known to come after the spec's delta rules it out, even when a
+	// later folder without a time follows.
+	between := map[string]string{
+		"changes/archive/2026-01-01-1200-e/specs/cap/spec.md": "## MODIFIED Requirements\n\n### Requirement: Alpha\nE.\n",
+		"changes/archive/2026-01-01-1300-m/specs/cap/spec.md": "## MODIFIED Requirements\n\n### Requirement: Alpha\nM.\n",
+		"changes/archive/2026-01-01-l/specs/cap/spec.md":      "## MODIFIED Requirements\n\n### Requirement: Alpha\nL.\n",
+		"specs/cap/spec.md": specHeader + "### Requirement: Alpha\nE.\n",
+	}
+	wantOneFailure(t, runSpecDeltaCheck(t, between), "Alpha", "2026-01-01-l", "DIFFERS")
+	between["specs/cap/spec.md"] = specHeader + "### Requirement: Alpha\nM.\n"
+	if got := runSpecDeltaCheck(t, between); len(got) != 0 {
+		t.Fatalf("spec matching a delta unordered against the last folder reported: %q", got)
+	}
 }
 
 // Folders with no known order between them, the first named and the last in

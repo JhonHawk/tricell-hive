@@ -21,15 +21,15 @@ La fecha y la hora van en UTC (D8 A), para que el orden no dependa de la zona ho
   - el mismo día, cuando las dos tienen la misma hora;
   - una sin hora (fecha local del formato anterior) y otra con hora a un día o menos, como en el paso a UTC.
 
-  En los demás casos manda el orden del nombre. El test guarda los bloques de todas las carpetas anteriores de cada requisito y acepta los que no tienen orden conocido frente a la última, de modo que una carpeta intercalada no los oculta.
+  En los demás casos manda el orden del nombre. El test conserva, por requisito, los bloques de las carpetas anteriores que no tienen orden conocido frente a ninguna de las que llegaron después, y descarta los demás al recolectar. Una carpeta que se sabe posterior descarta un delta antiguo aunque después llegue otra sin hora.
 - Cualquier carpeta que ordene después supera a un duplicado, también una del mismo día sin hora.
 
-**Duplicados (H29–H36).** Una pasada aparte, `duplicateRequirements`, devuelve por carpeta los requisitos que su delta lista más de una vez, con sus operaciones (H34).
-- La recolección salta esos bloques (H29 y H32).
+**Duplicados (H29–H36).** Una pasada aparte, `duplicateOps`, devuelve por carpeta los requisitos que su delta lista más de una vez, con sus operaciones (H34).
+- Esos bloques quedan con su aviso de duplicado y no entran en ninguna comparación (H29 y H32).
 - `checkSpecDeltas` reporta el duplicado solo cuando la carpeta que lo tiene es la del delta más reciente de ese requisito (H31). En ese caso no compara la especificación, porque el resultado es ambiguo.
 - El comentario de `checkSpecDeltas` describe los dos tipos de mensaje (H33).
 - El bucle de coincidencias se escribe con una condición simple (H35) y la lista de fallos parte de la de duplicados sin copiarla (H36).
-- Los subtests prueban que una carpeta posterior se compara después de un duplicado, con una especificación que la contradice: dos fallos esperados (H30).
+- Los subtests prueban que una carpeta posterior se compara después de un duplicado, con una especificación que la contradice: un solo fallo, el `DIFFERS` de esa carpeta, sin el duplicado (H30).
 
 ## Impact
 

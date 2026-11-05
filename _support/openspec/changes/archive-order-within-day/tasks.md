@@ -99,4 +99,10 @@ La zona horaria se resolvió con D8 A (UTC).
 - Etapa: verify.
 - Rama: `fix/archive-order-within-day` en el worktree `.claude/worktrees/archive-order-within-day`.
 - Visor: work `05a290ef…`.
-- Siguiente: `go test ./...`, `/code-review` (D5 A), push, PR, merge (D4 A), refresco local (cambia `content/`) y `flow-close`.
+- Primera revisión `/code-review` (high) sobre `1f128ed3`: 9 hallazgos.
+  - Corregidos en `43e9866a`: transición de fecha local a UTC, alternativas con todo el historial, texto del CHANGELOG, `artifact-layout.md:35` y el bucle.
+  - Van al cierre: `doctor` no exige la hora; un duplicado superado por una carpeta sin orden; un ID de 4 dígitos que se lee como hora; dos archivos en el mismo minuto.
+- Segunda revisión, limitada a `1f128ed3..43e9866a`: 9 hallazgos.
+  - Bloquea uno, arreglado en local con `Unreviewed:`: se aceptaba un delta superado por una carpeta posterior conocida. Ahora se descartan al recolectar y hay un caso negativo, que falla en `43e9866a`. Con él se corrigió el texto del diseño.
+  - Van al cierre: la ventana de un día ignora hora y dirección; el duplicado de una carpeta anterior sin orden no se reporta; el escenario del delta y el texto del proposal para la ventana entre días; los nombres de los tests.
+- Siguiente: push, PR, merge (D4 A), refresco local (cambia `content/`) y `flow-close`.
