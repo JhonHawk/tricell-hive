@@ -119,8 +119,8 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 
 ### T4 — Cola semántica y lock por trabajo
 
-- [ ] Con el visor parado, `work open`, `work sync` y `work evidence` responden `queued`, y la siguiente orden con el visor activo los envía en orden, construidos sobre el estado actual.
-- [ ] Dos trabajos publican a la vez.
+- [x] Con el visor parado, `work open`, `work sync` y `work evidence` responden `queued`, y la siguiente orden con el visor activo los envía en orden, construidos sobre el estado actual.
+- [x] Dos trabajos publican a la vez.
 
 **Closes:** AC5, AC6
 
@@ -322,7 +322,7 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 
 ## Checkpoint
 
-- Etapa: build; hechas T0, T1 (`49a9af6c`), T2 (`56fbb304`, corrección `838f897f`), T3 (`498dff6f`) y T5 (`4c927550` servidor, `1eaf15d4` interfaz); en curso: T4 y las verificaciones de T3 y T5.
+- Etapa: build; hechas T0–T5 (T4 `2961800a`, corrección de T5 `bf744a06`); en curso: T6 y la verificación de T4.
 - Visor: trabajo `50457f3803d3122ef9c5294ee314a04b7caa03a46924c73bd3ea949a081b4a30`, etapa build `event-0031e0d2ade9120dcd2f535d5f41f8b3`, tareas registradas con la revisión `revision-69dbb00740f6bd76e426531cdab267a0` (la tarea T0 del plan es la clave `T11` en el visor, que no admite `T0`).
 - Hallazgos abiertos: ninguno (los P2 y P3 de la verificación de T2 están corregidos en `838f897f`, sin una segunda verificación).
-- Siguiente: integrar T4, después T6, T7, T8, T9 y T10.
+- Siguiente: integrar T6, después T7, T8, T9 y T10.
