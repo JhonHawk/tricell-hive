@@ -322,7 +322,7 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 
 ## Checkpoint
 
-- Etapa: build; hechas T0–T6 (T6 `73cceef7`); en curso: T7, la corrección de T4/T6 (F1–F5, `changed_at` al terminar, hora de la actividad, gofmt) y la verificación de T6.
+- Etapa: build; hechas T0–T6 y su ronda de correcciones (`88f73ea3`); T7 en `249e4ef9` con su remate en curso (informe del CLI, aviso de archivo inválido, status/doctor, recuperación); T8 delegada a `hive-write-docs` por el costo de contexto del hilo principal, que revisa su diff; verificación de T7 en curso.
 - Visor: trabajo `50457f3803d3122ef9c5294ee314a04b7caa03a46924c73bd3ea949a081b4a30`, etapa build `event-0031e0d2ade9120dcd2f535d5f41f8b3`, tareas registradas con la revisión `revision-69dbb00740f6bd76e426531cdab267a0` (la tarea T0 del plan es la clave `T11` en el visor, que no admite `T0`).
-- Hallazgos abiertos: verificación de T4 — F1 (reabrir con el visor caído deja dos trabajos actuales), F2 (la entrada encolada de otra sesión bloquea el trabajo), F3 (un rechazo en el envío deja `pending_operation`), F4 (los locks no se borran), F5 (crecimiento del journal y reserva entre procesos). Se corrigen después de integrar T6, que toca la misma zona. F6 (texto de la spec) corregido.
-- Siguiente: integrar T7 y la corrección; después T8, T9 y T10.
+- Hallazgos abiertos: los de T7 en corrección; la de T6 sobre eventos de tareas anteriores a un trabajo creado por un `open` en cola se acepta y está anotada en el diseño.
+- Siguiente: integrar el remate de T7 y T8; después T9 y T10.
