@@ -29,6 +29,9 @@ type timelineMaintenance struct {
 	ArchiveReceipt       *timelineAdministrativeReceipt `json:"archive_receipt" timeline:"nullable"`
 	RestoreReceipt       *timelineAdministrativeReceipt `json:"restore_receipt" timeline:"nullable"`
 	PinReceipt           *timelineAdministrativeReceipt `json:"pin_receipt" timeline:"nullable"`
+	// HostOperations remembers the latest host-event operation IDs so a resend applies
+	// once. It is kept apart from the agent's operation receipts.
+	HostOperations []string `json:"host_operations,omitempty"`
 }
 type timelineAutomaticAction struct {
 	EpisodeID        string `json:"episode_id"`
@@ -112,6 +115,14 @@ func validateTimelineMaintenance(r *timelineRecord) error {
 			if baseline.After(updated) || b.Version > r.Session.Version {
 				return bad()
 			}
+		}
+	}
+	if len(m.HostOperations) > timelineMaxHostOperations {
+		return bad()
+	}
+	for _, op := range m.HostOperations {
+		if !timelineOperationID.MatchString(op) {
+			return bad()
 		}
 	}
 	if m.EpisodeID != nil && !timelineOpaqueID.MatchString(*m.EpisodeID) {

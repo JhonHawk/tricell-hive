@@ -163,6 +163,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.exchangeAccessCode(w, r)
 	case p == "/api/health":
 		s.health(w, r)
+	case p == "/api/host-events":
+		s.hostEvents(w, r)
 	case p == "/api/index":
 		s.index(w, r)
 	case p == "/api/timeline/sessions" || strings.HasPrefix(p, "/api/timeline/sessions/"):
@@ -275,7 +277,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		// Capabilities lets the CLI tell a viewer that accepts the declared
 		// local_viewer origin from an older one before it sends anything.
 		Capabilities []string `json:"capabilities"`
-	}{s.pid, filepath.Dir(s.store.Dir()), s.version, s.store.TTL().String(), "manual", TimelineSchemaVersion, s.revision, s.modified, []string{"local_actions_cli"}})
+	}{s.pid, filepath.Dir(s.store.Dir()), s.version, s.store.TTL().String(), "manual", TimelineSchemaVersion, s.revision, s.modified, []string{"local_actions_cli", "host_events"}})
 }
 
 type indexView struct {

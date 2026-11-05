@@ -266,8 +266,8 @@ func TestHealthAnnouncesLocalActionsCLICapability(t *testing.T) {
 	if err := json.Unmarshal(w.Body.Bytes(), &h); err != nil {
 		t.Fatal(err)
 	}
-	if len(h.Capabilities) != 1 || h.Capabilities[0] != "local_actions_cli" {
-		t.Fatalf("capabilities = %v, want [local_actions_cli]", h.Capabilities)
+	if len(h.Capabilities) != 2 || h.Capabilities[0] != "local_actions_cli" || h.Capabilities[1] != "host_events" {
+		t.Fatalf("capabilities = %v, want [local_actions_cli host_events]", h.Capabilities)
 	}
 }
 
