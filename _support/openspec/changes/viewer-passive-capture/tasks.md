@@ -177,8 +177,8 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 
 ### T6 — `hive hook` y conciliación
 
-- [ ] `hive hook <host> <evento>` registra el mapa pid, resuelve el trabajo actual y su etapa, envía o encola el evento, no imprime nada y sale con 0.
-- [ ] `hive view work reconcile` recupera la última actividad y, cuando corresponde, las tareas nativas desde los archivos de sesión.
+- [x] `hive hook <host> <evento>` registra el mapa pid, resuelve el trabajo actual y su etapa, envía o encola el evento, no imprime nada y sale con 0.
+- [x] `hive view work reconcile` recupera la última actividad y, cuando corresponde, las tareas nativas desde los archivos de sesión.
 
 **Closes:** AC3, AC4
 
@@ -322,7 +322,7 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 
 ## Checkpoint
 
-- Etapa: build; hechas T0–T5 (T4 `2961800a`, corrección de T5 `bf744a06`); en curso: T6 y la verificación de T4.
+- Etapa: build; hechas T0–T6 (T6 `73cceef7`); en curso: T7, la corrección de T4/T6 (F1–F5, `changed_at` al terminar, hora de la actividad, gofmt) y la verificación de T6.
 - Visor: trabajo `50457f3803d3122ef9c5294ee314a04b7caa03a46924c73bd3ea949a081b4a30`, etapa build `event-0031e0d2ade9120dcd2f535d5f41f8b3`, tareas registradas con la revisión `revision-69dbb00740f6bd76e426531cdab267a0` (la tarea T0 del plan es la clave `T11` en el visor, que no admite `T0`).
 - Hallazgos abiertos: verificación de T4 — F1 (reabrir con el visor caído deja dos trabajos actuales), F2 (la entrada encolada de otra sesión bloquea el trabajo), F3 (un rechazo en el envío deja `pending_operation`), F4 (los locks no se borran), F5 (crecimiento del journal y reserva entre procesos). Se corrigen después de integrar T6, que toca la misma zona. F6 (texto de la spec) corregido.
-- Siguiente: integrar T6, después T7, T8, T9 y T10.
+- Siguiente: integrar T7 y la corrección; después T8, T9 y T10.
