@@ -25,14 +25,16 @@ type deltaBlock struct {
 	Block string
 }
 
-// latestDelta is the most recent archived delta of one requirement. Candidates
-// holds it and the last delta of each other folder closed the same day, whose
-// order the folder names do not fix; within one folder the last block wins.
+// latestDelta is the most recent archived delta of one requirement. SameDay
+// holds the deltas of the other folders closed the same day, whose order the
+// folder names do not fix. Duplicate marks a requirement its folder lists more
+// than once, which OpenSpec rejects, so no block of that folder is the latest.
 type latestDelta struct {
 	Capability string
 	Folder     string
 	deltaBlock
-	Candidates []deltaBlock
+	SameDay   []deltaBlock
+	Duplicate bool
 }
 
 // satisfiedBy reports whether a spec block, present or not, agrees with delta b.
@@ -141,16 +143,16 @@ func collectLatestDeltas(root string) ([]latestDelta, error) {
 		capability := filepath.Base(capDir)
 		folder := filepath.Base(filepath.Dir(filepath.Dir(capDir)))
 		for _, b := range parseDeltaBlocks(string(data)) {
-			d := latestDelta{Capability: capability, Folder: folder, deltaBlock: b, Candidates: []deltaBlock{b}}
+			d := latestDelta{Capability: capability, Folder: folder, deltaBlock: b}
 			key := capability + "/" + b.Name
 			if i, ok := index[key]; ok {
 				prev := out[i]
-				switch {
-				case prev.Folder == folder:
-					// A later block of the same folder replaces the earlier one.
-					d.Candidates = append(prev.Candidates[:len(prev.Candidates)-1:len(prev.Candidates)-1], b)
-				case closingDate(prev.Folder) == closingDate(folder):
-					d.Candidates = append(append([]deltaBlock{}, prev.Candidates...), b)
+				if prev.Folder == folder {
+					out[i].Duplicate = true
+					continue
+				}
+				if closingDate(prev.Folder) == closingDate(folder) {
+					d.SameDay = append(append([]deltaBlock{}, prev.SameDay...), prev.deltaBlock)
 				}
 				out[i] = d
 				continue
@@ -215,9 +217,13 @@ func checkSpecDeltas(root string) ([]string, error) {
 			specs[d.Capability] = blocks
 		}
 		where := fmt.Sprintf("%s/specs/%s/spec.md: requirement %q (%s in %s/changes/archive/%s)", openspecDisplay, d.Capability, d.Name, d.Op, openspecDisplay, d.Folder)
+		if d.Duplicate {
+			failures = append(failures, where+": listed twice in that delta")
+			continue
+		}
 		current, present := blocks[d.Name]
 		matched := false
-		for _, b := range d.Candidates {
+		for _, b := range append([]deltaBlock{d.deltaBlock}, d.SameDay...) {
 			if satisfiedBy(b, current, present) {
 				matched = true
 				break
@@ -382,13 +388,20 @@ func TestSpecDeltaSameDateAcceptsEitherDelta(t *testing.T) {
 	wantOneFailure(t, runSpecDeltaCheck(t, removed), "Alpha", "2026-01-01-b", "DIFFERS")
 }
 
-// Within one folder the order is fixed, so its last block is the only candidate.
-func TestSpecDeltaSameFolderLastBlockWins(t *testing.T) {
-	got := runSpecDeltaCheck(t, map[string]string{
-		"changes/archive/2026-01-01-a/specs/cap/spec.md": "## REMOVED Requirements\n\n### Requirement: Alpha\nReplaced.\n\n## ADDED Requirements\n\n### Requirement: Alpha\nNew text.\n",
-		"specs/cap/spec.md": specHeader + "### Requirement: Other\nOther.\n",
-	})
-	wantOneFailure(t, got, "Alpha", "ADDED", "2026-01-01-a", "MISSING")
+// OpenSpec applies a delta's sections in a fixed order and rejects a
+// requirement listed twice, so a repeat within one folder is reported as such,
+// whatever the spec says, in either file order.
+func TestSpecDeltaSameFolderDuplicateFails(t *testing.T) {
+	for _, delta := range []string{
+		"## REMOVED Requirements\n\n### Requirement: Alpha\nReplaced.\n\n## ADDED Requirements\n\n### Requirement: Alpha\nNew text.\n",
+		"## ADDED Requirements\n\n### Requirement: Alpha\nNew text.\n\n## REMOVED Requirements\n\n### Requirement: Alpha\nReplaced.\n",
+	} {
+		got := runSpecDeltaCheck(t, map[string]string{
+			"changes/archive/2026-01-01-a/specs/cap/spec.md": delta,
+			"specs/cap/spec.md": specHeader + "### Requirement: Alpha\nNew text.\n",
+		})
+		wantOneFailure(t, got, "Alpha", "2026-01-01-a", "listed twice")
+	}
 }
 
 func TestSpecDeltaActiveChangeRequirementIsSkipped(t *testing.T) {
