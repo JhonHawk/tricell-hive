@@ -1,0 +1,60 @@
+# ui-criteria delta
+
+## ADDED Requirements
+
+### Requirement: Component library detection and precedence
+
+The `hive-ui-criteria` skill SHALL identify, for any component library, the library the changed screens import, its installed version from the lockfile or the installed package rather than the manifest range, its customization layer with the path of each piece, and the library's MCP server or skill when installed, and SHALL read that version's documentation before stating an API or token. Its decisions SHALL follow this precedence: an accessibility requirement the project or the ticket declares, then recorded project decisions, then the customization layer, then the library defaults, then the skill's defaults. Its accessibility floors SHALL apply to what the change builds or customizes, and to everything when an accessibility requirement is declared. An unmodified library default that fails a floor SHALL NOT be a defect of the change: it SHALL be listed among the defects already there with its reason, and a fix that alters a token or an installed component SHALL return as a pending decision.
+
+#### Scenario: Manifest range differs from the installed version
+- **GIVEN** a project whose manifest declares `^2.4.0` for its component library and whose lockfile resolves `2.8.5`
+- **WHEN** the skill detects the library
+- **THEN** it records `2.8.5` with the lockfile path as its source
+
+#### Scenario: A library default meets a skill default
+- **GIVEN** a library whose default button is 36 px high and the skill's default touch target of 44 px
+- **WHEN** a screen is designed or reviewed
+- **THEN** the library default holds and is not reported as a deviation
+
+### Requirement: Design record
+
+The design record SHALL be a `DESIGN.md` at the root of the app that owns the UI, one per app in a monorepo, in the Google Labs DESIGN.md format plus a `## Hive` section holding the library, its installed version, the customization layer, the library tools, the product record, the recorded decisions and each source file with its fingerprint. Every recorded value SHALL name its source file, and no value SHALL be invented. The record SHALL be stale when the installed version differs, a source fingerprint changed or its file is gone, or a new customization piece appears; a stale record SHALL be named with what changed and SHALL NOT be used silently. The record SHALL be written or refreshed only through a task of a UI change's plan or at the user's request, and SHALL NOT be overwritten without showing the change.
+
+#### Scenario: Missing record in a UI plan
+- **GIVEN** a plan for a change to a screen in a project with no `DESIGN.md`
+- **WHEN** the plan settles its UI decisions
+- **THEN** the plan includes a task that writes the record, delivered with the change
+
+#### Scenario: Theme file changed after the record
+- **GIVEN** a `DESIGN.md` whose recorded fingerprint of the theme file no longer matches that file
+- **WHEN** the skill reads the record
+- **THEN** it names the changed file, proposes the refresh, and does not use the stale tokens silently
+
+#### Scenario: No design system
+- **GIVEN** a project with no tokens, theme or component library
+- **WHEN** the skill writes the record
+- **THEN** it states that no design system exists and labels any proposed starter values as a proposal, not as project tokens
+
+### Requirement: Measured UI criteria in review
+
+The UX review SHALL report as a P0–P3 defect, only when the reviewed change introduced it, each check the skill marks as measured: the accessibility floors and the measurable checks of collections, copy and extremes. Each floor SHALL name the standard that sets it, with its conformance level. An unmodified library default and a recorded decision SHALL follow the precedence of the detection requirement, and the screen mode and refinement guidance SHALL NOT be judged as defects.
+
+#### Scenario: Filters without a reset
+- **GIVEN** a change that adds filters to a list with no control to reset them
+- **WHEN** the UX review checks the list
+- **THEN** it reports the missing reset as a defect with its priority
+
+#### Scenario: Library default control border
+- **GIVEN** a control whose border contrast is the library default
+- **WHEN** the UX review checks non-text contrast
+- **THEN** it does not report the border as a defect
+
+#### Scenario: Library default focus ring below the floor
+- **GIVEN** a project with no declared accessibility requirement and an unmodified library focus ring whose contrast is below 3:1
+- **WHEN** the UX review checks the changed region
+- **THEN** it lists the focus ring among the defects already there with its reason, does not fail the change's verdict, and a fix that edits the theme or the installed component returns as a pending decision
+
+#### Scenario: Declared accessibility requirement
+- **GIVEN** a project whose `DESIGN.md` declares a WCAG 2.2 AA requirement and the same library focus ring
+- **WHEN** the UX review checks the changed region
+- **THEN** it reports the focus ring as a defect with its priority
