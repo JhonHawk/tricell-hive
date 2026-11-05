@@ -49,6 +49,16 @@ raise the minor or the patch version.
 
 ### Changed
 
+- The UX reviewer works in one pass. Its brief gives how to reach each state
+  it must check (loading, empty, error, the longest values) or says which
+  cannot be reached; a state it cannot reach is listed as not covered, and
+  Verify checks it itself or reports it as not verified. Its verdict judges
+  only the defects the change introduced, with the defects already there in a
+  separate list. A fix to one of its findings is reread by a follow-up to the
+  same reviewer, limited to what changed, never by a new full UX review.
+- `TestSpecDeltasApplied` accepts the delta of either change when two changes
+  archived the same day modify the same requirement, since folder names fix
+  the date but not the order within a day.
 - A list point that cites an ID opens with it in bold, followed by a dash and
   what it is in plain words, such as `- **D2** — Move the plan summary to the
   top`, so the reader finds it by its ID; the change folder's decision lines
