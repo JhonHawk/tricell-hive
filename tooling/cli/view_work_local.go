@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"io"
@@ -34,10 +35,6 @@ var (
 	errWorkUncertain  = errors.New("uncertain response")
 	errWorkIncomplete = errors.New("incomplete response")
 )
-
-func workUncertain(err error) bool {
-	return errors.Is(err, errWorkUncertain) || errors.Is(err, errWorkIncomplete)
-}
 
 func localViewerActor() viewer.TimelineActor {
 	return viewer.TimelineActor{Kind: "local_viewer", Origin: "cli"}
@@ -195,31 +192,89 @@ func (l viewWorkLocal) run(c viewWorkCommand) (viewWorkResult, error) {
 	if err != nil {
 		return viewWorkResult{}, workInput("invalid management request")
 	}
-	response, code, err := viewWorkHTTP(l.info, method, path, "application/json", raw)
 	finished := func(version int64) viewWorkResult {
 		return viewWorkResult{WorkID: c.WorkID, Result: viewWorkLocalResults[c.Action], SessionVersion: version}
 	}
-	if err == nil {
-		r, decodeErr := viewer.DecodeTimelineOperationResult(response)
-		wantKind := viewer.TimelineOperationKind("session_patch")
-		switch c.Action {
-		case "recover":
-			wantKind = "recover_lead"
-		case "delete":
-			wantKind = "session_delete"
-		}
-		if decodeErr == nil && r.OperationID == operationID && r.ViewerSessionID == c.WorkID && r.Kind == wantKind && r.SessionVersion > current.Version {
-			return finished(r.SessionVersion), nil
-		}
-		err = errWorkIncomplete
+	wantKind := viewer.TimelineOperationKind("session_patch")
+	switch c.Action {
+	case "recover":
+		wantKind = "recover_lead"
+	case "delete":
+		wantKind = "session_delete"
 	}
-	if c.Action == "delete" && code == "delete_pending" {
-		return viewWorkResult{}, &viewWorkError{Code: code, Next: "the work is removed from the list but its stored content is not fully cleaned up; the user can finish the cleanup from the browser, and repeating the command is safe"}
+	answered := func(raw []byte) (int64, bool) {
+		r, err := viewer.DecodeTimelineOperationResult(raw)
+		if err == nil && r.OperationID == operationID && r.ViewerSessionID == c.WorkID && r.Kind == wantKind && r.SessionVersion > current.Version {
+			return r.SessionVersion, true
+		}
+		return 0, false
 	}
-	if !workUncertain(err) && definitiveWorkRejection(code) {
-		return viewWorkResult{}, &viewWorkError{Code: code, Next: "nothing was changed; read the current state with `hive view work show --work-id " + c.WorkID + "` and retry the command if it still applies"}
+	rejected := func(code string) error {
+		return &viewWorkError{Code: code, Next: "nothing was changed; read the current state with `hive view work show --work-id " + c.WorkID + "` and retry the command if it still applies"}
+	}
+	pending := &viewWorkError{Code: "delete_pending", Next: "the deletion committed and its file cleanup is pending; this command cannot finish it"}
+	// The first attempt and, when its outcome is uncertain, one replay of the
+	// exact same bytes and operation ID: the viewer answers a committed request
+	// with its stored receipt and applies a lost one once.
+	sawPending := false
+	for attempt := 0; attempt < 2; attempt++ {
+		response, status, code, err := l.send(method, path, raw)
+		if err == nil {
+			if version, ok := answered(response); ok {
+				return finished(version), nil
+			}
+			continue
+		}
+		switch {
+		case c.Action == "delete" && code == "delete_pending":
+			sawPending = true
+		case status >= 400 && status < 500 && code != "" && code != "session_deleted":
+			return viewWorkResult{}, rejected(code)
+		}
+	}
+	if sawPending {
+		return viewWorkResult{}, pending
 	}
 	return l.settle(c, current.Version, holds, finished)
+}
+
+// send writes without a preflight: the health read at startup already confirmed
+// the viewer. It returns the status and the machine code of a rejection.
+func (l viewWorkLocal) send(method, path string, body []byte) ([]byte, int, string, error) {
+	req, err := http.NewRequest(method, l.info.url()+path, bytes.NewReader(body))
+	if err != nil {
+		return nil, 0, "", errors.New("invalid request")
+	}
+	req.Header.Set("X-Hive-Token", l.info.Token)
+	req.Header.Set(viewer.TimelineRevisionHeader, "2")
+	req.Header.Set("Origin", l.info.url())
+	req.Header.Set("X-Hive-Action-Scope", "session")
+	req.Header.Set("Content-Type", "application/json")
+	client := *viewClient
+	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, 0, "", errWorkUncertain
+	}
+	defer resp.Body.Close()
+	raw, err := io.ReadAll(io.LimitReader(resp.Body, viewer.TimelineMaxResponseBody+1))
+	if err != nil || len(raw) > viewer.TimelineMaxResponseBody {
+		return nil, resp.StatusCode, "", errWorkIncomplete
+	}
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		var failure struct {
+			Code string `json:"code"`
+		}
+		json.Unmarshal(raw, &failure)
+		if !viewTimelineObjectID.MatchString(failure.Code) {
+			failure.Code = ""
+		}
+		return nil, resp.StatusCode, failure.Code, errors.New("request rejected")
+	}
+	if resp.Header.Get(viewer.TimelineRevisionHeader) != "2" {
+		return nil, resp.StatusCode, "", errWorkIncomplete
+	}
+	return raw, resp.StatusCode, "", nil
 }
 
 // settle answers an uncertain outcome by re-reading the work.

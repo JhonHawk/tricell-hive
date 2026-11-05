@@ -127,7 +127,7 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 			return err
 		}
 		if err = validateViewTimelineInput(command.operation, input); err != nil {
-			if strings.HasPrefix(err.Error(), "local_viewer_actor_forbidden_in_native_cli") {
+			if errors.Is(err, errLocalViewerActorForbidden) {
 				return err
 			}
 			code := viewer.TimelineContractCode(err)
@@ -343,12 +343,16 @@ func parseViewTimelineCommand(args []string) (viewTimelineCommand, []string, err
 	return c, args[2+positionals:], nil
 }
 
+// errLocalViewerActorForbidden refuses the local_viewer actor in a native command
+// and points to the commands that act as it.
+var errLocalViewerActorForbidden = errors.New("local_viewer_actor_forbidden_in_native_cli: the management actions are `hive view work rename|archive|restore|pin|unpin|recover|delete` commands; run `hive view work contract`")
+
 func validateViewTimelineInput(operation string, raw []byte) error {
 	var identity struct {
 		Actor viewer.TimelineActor `json:"actor"`
 	}
 	if json.Unmarshal(raw, &identity) == nil && identity.Actor.Kind == "local_viewer" {
-		return errors.New("local_viewer_actor_forbidden_in_native_cli: rename, archive, restore, pin, unpin, recover and delete are `hive view work` commands; run `hive view work contract`")
+		return errLocalViewerActorForbidden
 	}
 	switch operation {
 	case "ticket_create", "ticket_patch", "delivery_create", "delivery_patch", "candidate_create", "join_request", "producer_accept", "foreground_transfer", "task_create", "task_patch", "task_transition", "wait_create", "wait_attempt_start", "wait_observe":
@@ -478,11 +482,6 @@ type viewTimelineHealth struct {
 	PID                     int      `json:"pid"`
 	StateDir                string   `json:"state_dir"`
 	Capabilities            []string `json:"capabilities"`
-}
-
-func viewTimelineProtocolReady(info serverInfo, state string) error {
-	_, err := viewTimelineReadHealth(info, state)
-	return err
 }
 
 func viewTimelineReadHealth(info serverInfo, state string) (viewTimelineHealth, error) {

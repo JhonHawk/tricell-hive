@@ -326,7 +326,7 @@ func TestViewSessionUpdatePointsToWorkCommands(t *testing.T) {
 	} {
 		var out bytes.Buffer
 		err := runViewTimeline([]string{"session", "update", id, "--json", "-", "--state-dir", filepath.Join(t.TempDir(), "missing")}, &out, strings.NewReader(body))
-		if err == nil || !strings.Contains(err.Error(), "hive view work rename|archive|restore|pin|unpin") && !strings.Contains(err.Error(), "hive view work") || out.Len() != 0 {
+		if err == nil || !strings.Contains(err.Error(), "`hive view work rename|archive|restore|pin|unpin") || out.Len() != 0 {
 			t.Fatalf("%s: no pointer to the work commands: %v", name, err)
 		}
 	}

@@ -99,7 +99,13 @@ func newWorkPublishFixture(t *testing.T) *workPublishFixture {
 		}
 		// "before" drops a local action unseen; "after" lets it commit and drops
 		// the response.
-		if mode := f.dropLocal.Load().(string); mode != "" && (r.Method == "PATCH" || r.Method == "DELETE" || strings.HasSuffix(r.URL.Path, "/recover-lead")) && f.dropLocal.CompareAndSwap(mode, "") {
+		if mode := f.dropLocal.Load().(string); mode != "" && (r.Method == "PATCH" || r.Method == "DELETE" || strings.HasSuffix(r.URL.Path, "/recover-lead")) && (mode == "before-always" || mode == "after-always" || f.dropLocal.CompareAndSwap(mode, "")) {
+			if mode == "reject" {
+				w.Header().Set(viewer.TimelineRevisionHeader, "2")
+				w.WriteHeader(400)
+				json.NewEncoder(w).Encode(map[string]string{"code": "invalid_text"})
+				return
+			}
 			if mode == "503" || mode == "pending" {
 				// The action commits, then the viewer answers a non-definitive failure.
 				f.handler.ServeHTTP(httptest.NewRecorder(), r)
@@ -112,7 +118,7 @@ func newWorkPublishFixture(t *testing.T) *workPublishFixture {
 				json.NewEncoder(w).Encode(map[string]string{"code": code})
 				return
 			}
-			if mode == "after" {
+			if mode == "after" || mode == "after-always" {
 				f.handler.ServeHTTP(httptest.NewRecorder(), r)
 			}
 			if conn, _, err := w.(http.Hijacker).Hijack(); err == nil {

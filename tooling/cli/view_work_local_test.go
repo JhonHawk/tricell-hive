@@ -194,35 +194,52 @@ func TestWorkLocalOlderViewerReceivesNothing(t *testing.T) {
 	}
 }
 
-func TestWorkLocalUncertainResponseRereadsTheWork(t *testing.T) {
+func TestWorkLocalUncertainResponseReplaysTheSameRequest(t *testing.T) {
 	f := newWorkPublishFixture(t)
 	work := f.publishWork(t)
 
+	// Response lost after commit: the replay returns the stored receipt.
 	f.dropLocal.Store("after")
 	r, _, err := f.local("rename", "--work-id", work.WorkID, "--title", "Committed, response lost")
-	if err != nil || r.Result != "renamed" || f.observe(t, work.WorkID).Title != "Committed, response lost" {
-		t.Fatalf("lost response after commit not confirmed by readback: %+v %v", r, err)
+	if err != nil || r.Result != "renamed" || r.SessionVersion != f.observe(t, work.WorkID).Version {
+		t.Fatalf("lost response after commit not settled by replay: %+v %v", r, err)
 	}
 
+	// Request lost before the viewer saw it: the replay applies it once.
 	f.dropLocal.Store("before")
+	r, _, err = f.local("rename", "--work-id", work.WorkID, "--title", "Arrived on replay")
+	if err != nil || f.observe(t, work.WorkID).Title != "Arrived on replay" {
+		t.Fatalf("lost request not applied by the replay: %+v %v", r, err)
+	}
+
+	// Both attempts lost before arriving: re-read, nothing changed.
+	f.dropLocal.Store("before-always")
 	version := f.observe(t, work.WorkID).Version
 	_, out, err := f.local("rename", "--work-id", work.WorkID, "--title", "Never arrived")
+	f.dropLocal.Store("")
 	if err == nil || out != "" || !strings.Contains(err.Error(), "not_applied") {
 		t.Fatalf("lost request reported as applied: %q %v", out, err)
 	}
-	if s := f.observe(t, work.WorkID); s.Title != "Committed, response lost" || s.Version != version {
-		t.Fatal("work changed although the request never arrived")
+	if s := f.observe(t, work.WorkID); s.Title != "Arrived on replay" || s.Version != version {
+		t.Fatal("work changed although no request arrived")
 	}
 
-	// A lost delete response whose re-read says 410 proves the work is gone, not
-	// that this request removed it: no result and no invented version.
+	// A delete whose response is lost is answered by the stored receipt.
 	f.dropLocal.Store("after")
-	_, out, err = f.local("delete", "--work-id", work.WorkID, "--confirm", work.WorkID)
-	if err == nil || out != "" || !strings.Contains(err.Error(), "work_gone") || strings.Contains(err.Error(), "session_version") {
-		t.Fatalf("lost delete response attributed or reported as success: %q %v", out, err)
+	r, _, err = f.local("delete", "--work-id", work.WorkID, "--confirm", work.WorkID)
+	if err != nil || r.Result != "deleted" || r.SessionVersion < 1 {
+		t.Fatalf("lost delete response not settled by replay: %+v %v", r, err)
 	}
-	if _, _, err = f.read(work.WorkID); err == nil {
-		t.Fatal("work still exists")
+}
+
+func TestWorkLocalUnansweredDeleteReportsGoneWithoutAttribution(t *testing.T) {
+	f := newWorkPublishFixture(t)
+	work := f.publishWork(t)
+	f.dropLocal.Store("after-always")
+	_, out, err := f.local("delete", "--work-id", work.WorkID, "--confirm", work.WorkID)
+	f.dropLocal.Store("")
+	if err == nil || out != "" || !strings.Contains(err.Error(), "work_gone") || strings.Contains(err.Error(), "session_version") {
+		t.Fatalf("unanswered delete attributed or reported as success: %q %v", out, err)
 	}
 }
 
@@ -230,18 +247,34 @@ func (f *workPublishFixture) read(id string) (viewer.TimelineSession, string, er
 	return viewWorkLocal{info: f.info}.read(id)
 }
 
-func TestWorkLocalNonDefinitiveFailureRereadsInsteadOfClaimingNothingChanged(t *testing.T) {
+func TestWorkLocalNonDefinitiveFailureReplaysInsteadOfClaimingNothingChanged(t *testing.T) {
 	f := newWorkPublishFixture(t)
 	work := f.publishWork(t)
 	f.dropLocal.Store("503")
 	r, _, err := f.local("rename", "--work-id", work.WorkID, "--title", "Committed, then 503")
 	if err != nil || r.Result != "renamed" || f.observe(t, work.WorkID).Title != "Committed, then 503" {
-		t.Fatalf("503 outcome_unknown after commit was not settled by readback: %+v %v", r, err)
+		t.Fatalf("503 outcome_unknown after commit not settled: %+v %v", r, err)
 	}
+	// delete_pending: the replay finishes the cleanup and returns the receipt.
 	f.dropLocal.Store("pending")
-	_, out, err := f.local("delete", "--work-id", work.WorkID, "--confirm", work.WorkID)
-	if err == nil || out != "" || !strings.Contains(err.Error(), "delete_pending") || !strings.Contains(err.Error(), "browser") || strings.Contains(err.Error(), "nothing was changed") {
-		t.Fatalf("delete_pending not reported as unfinished cleanup: %q %v", out, err)
+	r, _, err = f.local("delete", "--work-id", work.WorkID, "--confirm", work.WorkID)
+	if err != nil || r.Result != "deleted" || r.SessionVersion < 1 {
+		t.Fatalf("delete_pending not settled by replay: %+v %v", r, err)
+	}
+}
+
+func TestWorkLocalDefinitiveRejectionShowsTheViewerCode(t *testing.T) {
+	f := newWorkPublishFixture(t)
+	work := f.publishWork(t)
+	// Any 4xx with a contract code is definitive, whether or not the code is one
+	// the publisher journal lists.
+	f.dropLocal.Store("reject")
+	_, out, err := f.local("rename", "--work-id", work.WorkID, "--title", "Conflicting")
+	if err == nil || out != "" || !strings.Contains(err.Error(), "invalid_text") || !strings.Contains(err.Error(), "nothing was changed") {
+		t.Fatalf("4xx contract code not shown as a definitive rejection: %q %v", out, err)
+	}
+	if f.observe(t, work.WorkID).Title != "Plan export" {
+		t.Fatal("rejected request changed the work")
 	}
 }
 
@@ -262,8 +295,7 @@ func TestWorkLocalReadsHealthOncePerCommand(t *testing.T) {
 	f := newWorkPublishFixture(t)
 	work := f.publishWork(t)
 	before := f.healthReads.Load()
-	// A recovery of a request that is not pending stops before any write.
-	if _, _, err := f.local("recover", "--work-id", work.WorkID, "--request-id", "request-one", "--reason", "No such request"); err == nil || !strings.Contains(err.Error(), "request_not_pending") {
+	if _, _, err := f.local("rename", "--work-id", work.WorkID, "--title", "One health read"); err != nil {
 		t.Fatal(err)
 	}
 	if reads := f.healthReads.Load() - before; reads != 1 {
@@ -318,6 +350,9 @@ func TestWorkLocalContractDescribesTheCommands(t *testing.T) {
 	}
 	if !strings.Contains(text, "«Shared work and authority»") || strings.Contains(text, "Run them only when") {
 		t.Fatal("contract restates the agent rule instead of pointing to its home")
+	}
+	if !strings.Contains(text, "work_gone and delete_pending are errors with a non-zero exit") {
+		t.Fatal("contract does not say work_gone and delete_pending are errors")
 	}
 	if strings.Contains(text, "All mutations require --host") {
 		t.Fatal("contract still says every mutation needs a native producer")
