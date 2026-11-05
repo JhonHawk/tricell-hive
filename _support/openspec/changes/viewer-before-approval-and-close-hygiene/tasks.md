@@ -68,7 +68,7 @@ El hilo principal revisa cada resultado contra `design.md` y hace los commits.
 
 ### T3 — Specs en el repo `direct-base`, commit al pausar, ancla y promociones en el plan
 
-- [ ] `git-workflow` manda editar los specs `direct-base` sin rama ni worktree, commitear el change folder al pausar y enlazar la referencia nueva. `flow-plan` agrega la promoción como tarea cuando el ticket o la solicitud piden el cambio en un entorno.
+- [x] `git-workflow` manda editar los specs `direct-base` sin rama ni worktree, commitear el change folder al pausar y enlazar la referencia nueva. `flow-plan` agrega la promoción como tarea cuando el ticket o la solicitud piden el cambio en un entorno.
 
 **Closes:** AC5, AC6, AC7
 
@@ -136,4 +136,6 @@ No hay interfaz que recorrer. La entrega es `automatic` (D3), así que no hay pa
 2026-11-05 — T2 hecho en `e667cd96`: `flow-close/SKILL.md` queda en 15 626 bytes y `global.md` pasa de 35 640 a 35 810 bytes. Pasan `go test ./tests/content/...` y `go test ./tooling/management/ -run Reference`.
 2026-11-05 — T1 hecho (commit siguiente): lo escribió un hijo `hive-write-docs`. El hilo principal corrigió la excepción para que nombre solo las dos reglas que cambian. El patrón de verificación con `rg` se amplió a `never the first|same ID|without the open|never carries`. Pasa `go test ./tests/content/...`.
 
-Checkpoint: build · siguiente paso T3 en el hilo principal, después T4 en un hijo.
+2026-11-05 — T3 hecho (commit siguiente): `git-workflow` queda en 14 278 bytes y `flow-plan` en 8 423. `rg "#branch-cleanup"` no encuentra nada. Pasan `go test ./tests/content/...` y `go test ./tooling/management/ -run Reference`.
+
+Checkpoint: build · siguiente paso T4 en un hijo `hive-write-docs`.
