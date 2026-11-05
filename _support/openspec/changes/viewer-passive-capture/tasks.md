@@ -194,6 +194,7 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 - Límite de 1 MiB en la entrada y 2 s de tiempo límite.
 - Cola de eventos del host cuando el visor está caído.
 - Nunca deduce la muerte del proceso.
+- `occurred_at` sale del host o de un dato estable del evento, nunca de la hora del hook: el ID de operación del evento se deriva de su contenido, y una hora nueva haría que un reenvío se aplicara dos veces.
 
 **Verification:** `go test ./tooling/cli/... ./integrations/...` con estos casos, sin salida en stdout:
 - entrada inválida;

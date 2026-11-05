@@ -612,7 +612,7 @@ func viewIndex(info serverInfo) (viewIndexSnapshot, error) {
 		return v, fmt.Errorf("index answered %d", resp.StatusCode)
 	}
 	if resp.Header.Get(viewer.TimelineRevisionHeader) != viewer.TimelineRevisionValue {
-		return v, errors.New("reload_required: update client and viewer together for protocol v3 revision 2; preserve inputs")
+		return v, fmt.Errorf("reload_required: update client and viewer together for protocol v3 revision %s; preserve inputs", viewer.TimelineRevisionValue)
 	}
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, (64<<20)+1))
 	if err != nil || len(raw) > 64<<20 {
