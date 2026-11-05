@@ -12,6 +12,19 @@ raise the minor or the patch version.
 
 ### Added
 
+- A change folder is now checked for coherence. `flow-plan` ships
+  `scripts/check_change.py`, which reports acceptance criteria no task closes,
+  `Closes:` lines naming criteria that do not exist, mentions of a decision or
+  criterion that a `Replaces:` or `Retired:` marker superseded, and, with
+  `--archive`, unchecked task boxes. The plan runs it before its review, a new
+  «Revise a plan in progress» procedure updates every place a revision touches
+  and has the plan reviewer look once more when a criterion or the delta
+  changed, Build ticks each finished task's boxes, and Close runs the check
+  before archiving, asking before it archives a folder with unchecked boxes
+  (an unattended close leaves it pending). An audit of the archive found 5 of 14
+  changes revised mid-work with a stale proposal, design or tasks, and 9 of 134
+  archived changes with unchecked boxes.
+
 - A `hive-ui-criteria` skill gives design, build and review work criteria for
   screens that never override the project's own design system. It detects the
   component library, its installed version (from the lockfile, not the manifest

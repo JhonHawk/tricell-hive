@@ -23,7 +23,7 @@ End the summary with the next-step block that the global guidance's «Questions 
 - Recommend building unless something blocks it, and say in the block that typing the build command approves the criteria shown, by their IDs with a gloss, such as "approves AC1–AC4 (export, permissions and audit)": `/flow-build <change folder>` in the host's syntax, or, for a plan kept in the conversation, `/flow-build` with the ticket key or a short description of the work.
 - Recommend stopping with the plan ready only for a named blocker, such as an open decision, an unmet prerequisite or the user's statement not to implement now, and say which; that the user asked for a plan is not a blocker.
 
-A correction to a criterion or a sketch is not approval: revise the plan, show the revised criteria or sketch, and end with the build route again.
+A correction to a criterion or a sketch is not approval: [revise the plan](../SKILL.md#revise-a-plan-in-progress), show the revised criteria or sketch, and end with the build route again.
 
 When execution is already explicitly authorized, show the summary the same way and continue to `flow-build`.
 
