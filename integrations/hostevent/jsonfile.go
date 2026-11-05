@@ -18,12 +18,18 @@ type JSONHookFile struct {
 	// RootVersion is the "version" a file created by Hive starts with, or 0 for
 	// none (Cursor's hooks.json needs `"version": 1`).
 	RootVersion int
+	// StatusMessages maps an event to the "statusMessage" its entry carries, the
+	// name Codex's /hooks screen shows. An event without a text, or a nil map,
+	// writes no field: Claude Code's settings.json is also read by Grok, which
+	// records a load error for it, and Cursor's file has no such field.
+	StatusMessages map[string]string
 }
 
 type groupHandler struct {
-	Type    string `json:"type"`
-	Command string `json:"command"`
-	Timeout int    `json:"timeout"`
+	Type          string `json:"type"`
+	Command       string `json:"command"`
+	Timeout       int    `json:"timeout"`
+	StatusMessage string `json:"statusMessage,omitempty"`
 }
 
 type group struct {
@@ -42,7 +48,7 @@ func (f JSONHookFile) Entry(executable, event string) any {
 	if f.Flat {
 		return flatHandler{Command: command, Timeout: HookTimeoutSeconds}
 	}
-	return group{Hooks: []groupHandler{{Type: "command", Command: command, Timeout: HookTimeoutSeconds}}}
+	return group{Hooks: []groupHandler{{Type: "command", Command: command, Timeout: HookTimeoutSeconds, StatusMessage: f.StatusMessages[event]}}}
 }
 
 // Commands returns the commands of an entry as the file holds them: the one
