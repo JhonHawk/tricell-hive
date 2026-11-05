@@ -270,6 +270,10 @@ func (e *viewWorkEngine) bind(c viewWorkCommand, s viewer.TimelineSession, expli
 	if _, err := e.actor(s, c); err != nil {
 		return err
 	}
+	if c.Change == "" && !explicit {
+		// A work without a change folder has no directory to bind.
+		return nil
+	}
 	change, err := canonicalWorkDir(c.Change)
 	if err != nil {
 		return err
@@ -342,14 +346,17 @@ func (e *viewWorkEngine) open(c viewWorkCommand) (viewer.TimelineSession, error)
 	if err != nil {
 		return viewer.TimelineSession{}, err
 	}
-	change, err := canonicalWorkDir(c.Change)
-	if err != nil {
-		return viewer.TimelineSession{}, err
+	change := ""
+	if c.Change != "" {
+		change, err = canonicalWorkDir(c.Change)
+		if err != nil {
+			return viewer.TimelineSession{}, err
+		}
 	}
 	c.Project, c.Change = project, change
 	source := viewer.TimelineSource{ProjectRoot: project, Host: viewer.TimelineHost(c.Host), NativeSessionID: c.NativeSessionID}
 	for _, b := range e.journal.Bindings {
-		if b.Source == source && b.Change == change {
+		if change != "" && b.Source == source && b.Change == change {
 			if b.Key != c.Key {
 				return viewer.TimelineSession{}, workStateError("binding_mismatch")
 			}
@@ -372,7 +379,7 @@ func (e *viewWorkEngine) open(c viewWorkCommand) (viewer.TimelineSession, error)
 		if json.Unmarshal(i.Context, &original) != nil {
 			return viewer.TimelineSession{}, workStateError("invalid_journal")
 		}
-		if original.Binding.Change == change && original.Binding.Key != c.Key {
+		if change != "" && original.Binding.Change == change && original.Binding.Key != c.Key {
 			return viewer.TimelineSession{}, workStateError("binding_mismatch")
 		}
 		if original.Binding.Change == change && original.Binding.Key == c.Key {
@@ -396,9 +403,11 @@ func (e *viewWorkEngine) open(c viewWorkCommand) (viewer.TimelineSession, error)
 		}
 	}
 	// Validate the root relationship before any network mutation.
-	rel, err := filepath.Rel(project, change)
-	if err != nil || rel == ".." || strings.HasPrefix(rel, "../") {
-		return viewer.TimelineSession{}, workInput("change must be within project")
+	if change != "" {
+		rel, err := filepath.Rel(project, change)
+		if err != nil || rel == ".." || strings.HasPrefix(rel, "../") {
+			return viewer.TimelineSession{}, workInput("change must be within project")
+		}
 	}
 	req := viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: workID("op-"), Source: source, WorkKey: &c.Key, Title: c.Title, Summary: c.Summary, Tickets: []viewer.TimelineTicketInput{}}
 	raw, err := json.Marshal(req)
@@ -489,17 +498,38 @@ func executeViewWork(c viewWorkCommand, w io.Writer) error {
 		}
 		_, err := w.Write(out.Bytes())
 		return err
-	case "stage", "tasks register", "task update", "close":
+	case "stage", "tasks register", "task update":
 		r, err := e.lifecycle(c)
 		if err != nil {
 			return err
 		}
-		if c.Action == "close" {
+		return writeViewWorkResult(w, r)
+	case "close":
+		r, err := e.closeWork(c)
+		if err != nil {
+			return err
+		}
+		if err = releaseCurrentWork(e.state, c.Host, c.NativeSessionID, c.WorkID); err != nil {
+			return err
+		}
+		return writeViewWorkResult(w, r)
+	case "sync":
+		r, err := e.sync(c)
+		if err != nil {
+			return err
+		}
+		if r.State == "closed" {
 			if err = releaseCurrentWork(e.state, c.Host, c.NativeSessionID, c.WorkID); err != nil {
 				return err
 			}
 		}
-		return writeViewWorkResult(w, r)
+		return writeViewWorkBoundedJSON(w, r)
+	case "evidence":
+		r, err := e.evidence(c)
+		if err != nil {
+			return err
+		}
+		return writeViewWorkBoundedJSON(w, r)
 	case "open":
 		s, err := e.open(c)
 		if err != nil {

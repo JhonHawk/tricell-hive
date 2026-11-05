@@ -103,7 +103,9 @@ func (e *viewWorkEngine) lifecycle(c viewWorkCommand) (viewWorkResult, error) {
 		if err := validateViewWorkTasks(c.Tasks); err != nil {
 			return viewWorkResult{}, err
 		}
-		if !workLifecyclePlan(s, c.PlanRevision) {
+		// A work without a change folder or a published plan has no revision to
+		// confirm; any other registers against a confirmed one.
+		if (c.PlanRevision != "" || e.workHasPlan(s)) && !workLifecyclePlan(s, c.PlanRevision) {
 			return viewWorkResult{}, workStateError("confirmed_plan_revision_required")
 		}
 		if c.Reason == "" {

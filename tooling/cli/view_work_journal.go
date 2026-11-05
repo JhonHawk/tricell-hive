@@ -619,12 +619,15 @@ func validateWorkIntentContext(i *viewWorkIntent) error {
 	switch i.Action {
 	case "open":
 		var c viewWorkOpenContext
-		if json.Unmarshal(i.Context, &c) != nil || c.Binding.Source != i.Source || c.Binding.Project != i.Source.ProjectRoot || !validWorkStoredPath(c.Binding.Change) {
+		if json.Unmarshal(i.Context, &c) != nil || c.Binding.Source != i.Source || c.Binding.Project != i.Source.ProjectRoot || c.Binding.Change != "" && !validWorkStoredPath(c.Binding.Change) {
 			return invalid()
 		}
-		rel, err := filepath.Rel(c.Binding.Project, c.Binding.Change)
-		if err != nil || rel == ".." || strings.HasPrefix(rel, "../") {
-			return invalid()
+		if c.Binding.Change != "" {
+			// An empty change is a work without a change folder.
+			rel, err := filepath.Rel(c.Binding.Project, c.Binding.Change)
+			if err != nil || rel == ".." || strings.HasPrefix(rel, "../") {
+				return invalid()
+			}
 		}
 		r, err := viewer.DecodeTimelineCreateSession(c.Request)
 		if err != nil || r.Source != i.Source || r.WorkKey == nil || *r.WorkKey != c.Binding.Key {

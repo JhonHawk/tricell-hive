@@ -189,7 +189,7 @@ func releaseCurrentWork(state, host, native, work string) error {
 // publish create when it is omitted and never reuse the current work.
 func viewWorkActionNeedsWork(action string) bool {
 	switch action {
-	case "stage", "tasks register", "task update", "close", "resume", "reconcile", "bind", "show":
+	case "stage", "sync", "evidence", "tasks register", "task update", "close", "resume", "reconcile", "bind", "show":
 		return true
 	}
 	return false
