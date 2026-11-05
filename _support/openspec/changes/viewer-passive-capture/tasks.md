@@ -314,6 +314,8 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 
 2026-11-04 — T1 hecha en `49a9af6c` (revisión 3, `host_observed`, bundle regenerado). Verificación de T2: AC2 cumplido; dos P2 y P3 en corrección.
 
+2026-11-05 — Codex verificado en real tras aprobar los hooks (identidad por mapa pid). Suite completa con `-race -timeout 40m` en verde. Segunda revisión: cinco locales corregidos en `79bd5e75`; UX: cinco corregidos en `f77c8765`; Codex: hooks con nombre en `885897b2`; H39 corregido en `db7bbaed` y comprobado con `hive view start` (13 s).
+
 2026-11-05 — Prueba real en esta Mac con sesiones cortas: Claude Code (haiku; identidad por variable, tarea nativa `host:1` completada, `host_activity_at`), Grok (identidad por mapa pid), Pi (`PI_SESSION_ID`), Cursor (mapa pid desde `beforeSubmitPrompt`) y OpenCode (`OPENCODE_SESSION_ID`, `todowrite` como tarea del host completada); todos abren, declaran la etapa y cierran con 3 órdenes. Lanzadas desde el shell de Claude Code, Grok y Pi se rechazaron como identidad ambigua (correcto: host anidado); se repitieron sin la variable heredada.
 
 2026-11-04 — T2 hecha en `56fbb304`. Comprobación real en Claude Code: `work stage` sin banderas resuelve la identidad (`unchanged`); sin la variable, se rechaza. El mapa pid aún no se ha probado con `ps` real (lo escribe T6).
@@ -324,7 +326,7 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 
 ## Checkpoint
 
-- Etapa: verify. Candidato `5de53335`, desplegado en esta Mac (binario y `hive update`, visor reiniciado en 4483 con la revisión 3). Copias previas en el scratchpad de la sesión (`host-config-backup/`).
+- Etapa: verify, esperando la validación del usuario. Candidato `db7bbaed`, desplegado en esta Mac (binario, `hive update` desde `f77c8765`, visor en 4483 con 53 trabajos). Copias previas en el scratchpad (`host-config-backup/`).
 - Visor: trabajo `50457f3803d3122ef9c5294ee314a04b7caa03a46924c73bd3ea949a081b4a30`, etapa build `event-0031e0d2ade9120dcd2f535d5f41f8b3`, tareas registradas con la revisión `revision-69dbb00740f6bd76e426531cdab267a0` (la tarea T0 del plan es la clave `T11` en el visor, que no admite `T0`).
-- Hallazgos abiertos: segunda revisión — cinco locales en corrección; cuatro no bloqueantes (latencia con el lock de la cola ocupado, clave de proyecto desfasada, lógica duplicada, rendimiento) van al cierre; Cursor atribuido a Claude Code, plausible sin confirmar. H39: `hive view start` se rinde a los 5 s en el primer arranque.
-- Siguiente: prueba de Codex (el usuario aprueba el hook en `/hooks`), revisión UX, integrar la corrección local, parada de validación.
+- Hallazgos abiertos (al cierre, no bloquean): latencia cuando el lock de la cola está ocupado; clave de proyecto desfasada entre dos pasos; lógica de proyecto duplicada; escritura a disco de cada evento; arranque del visor de 13 s con 53 trabajos; atribución de Cursor a Claude Code, plausible; base de UX (títulos de fila sin truncar, truncado del registro). Corregidos: 10 de la primera revisión, 5 de la segunda, 5 de UX, nombres de hooks en Codex y H39 (`hive view start`).
+- Siguiente: validación del usuario (D18), después push, PR y merge (D1 B).
