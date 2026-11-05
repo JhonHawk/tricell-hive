@@ -49,10 +49,27 @@ type hookRun struct {
 
 func newHookRun(deadline time.Time) *hookRun { return &hookRun{deadline: deadline} }
 
-func (r *hookRun) set(state string, events []viewer.TimelineHostEvent) {
+func (r *hookRun) remainingLocked() time.Duration { return r.deadline.Sub(hookClock()) }
+
+// set installs the run's events. On a run the budget timer already closed, the
+// events are queued at once, since nothing will deliver or queue them later; it
+// reports whether the run is still open.
+func (r *hookRun) set(state string, events []viewer.TimelineHostEvent) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	r.state, r.events, r.done = state, events, 0
+	if r.closed {
+		r.queueRestLocked()
+		return false
+	}
+	return true
+}
+
+// remaining is the budget left.
+func (r *hookRun) remaining() time.Duration {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.remainingLocked()
 }
 
 // next is the event to deliver now; false when the run is over, closed or has
@@ -60,7 +77,7 @@ func (r *hookRun) set(state string, events []viewer.TimelineHostEvent) {
 func (r *hookRun) next() (viewer.TimelineHostEvent, bool) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	if r.closed || r.done >= len(r.events) || time.Until(r.deadline) < hookMinTry {
+	if r.closed || r.done >= len(r.events) || r.remainingLocked() < hookMinTry {
 		return viewer.TimelineHostEvent{}, false
 	}
 	return r.events[r.done], true
@@ -104,7 +121,7 @@ func (r *hookRun) queueRestLocked() {
 func (r *hookRun) complete() bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	return !r.closed && r.done >= len(r.events) && time.Until(r.deadline) >= hookMinTry
+	return !r.closed && r.done >= len(r.events) && r.remainingLocked() >= hookMinTry
 }
 
 // sendHookEvents reports the events of one hook run, in order, through one sink
@@ -137,10 +154,15 @@ func sendHookEvents(opts management.Options, state string, events []viewer.Timel
 	if len(valid) == 0 {
 		return
 	}
-	run.set(state, valid)
+	if !run.set(state, valid) {
+		return
+	}
 	defer run.finish()
 	sink := newHostSink(opts, state, sources...)
-	if !sink.up || !flushHostEventQueueWith(state, sink.info, sink.targets) {
+	// The backlog gets at most half of the budget left now; the rest stays queued
+	// for later runs, so this run's own events always get a direct try.
+	backlogFloor := run.remaining() / 2
+	if !sink.up || !flushHostEventQueueUntil(state, sink.info, sink.targets, func() bool { return run.remaining() >= backlogFloor }) {
 		return // viewer down, or the backlog is older and still waiting: queue behind it
 	}
 	for {
@@ -504,6 +526,12 @@ func hostEventQueueNames(dir string) []string {
 // it reports true, since this run's events need not wait for it. It reports
 // false when older events remain queued after a failure or the per-run limit.
 func flushHostEventQueueWith(state string, info serverInfo, cache *hostTargetCache) bool {
+	return flushHostEventQueueUntil(state, info, cache, nil)
+}
+
+// flushHostEventQueueUntil is flushHostEventQueueWith that also stops, leaving
+// the rest queued and reporting success, when more returns false before an event.
+func flushHostEventQueueUntil(state string, info serverInfo, cache *hostTargetCache, more func() bool) bool {
 	dir := filepath.Join(state, "hooks", "queue")
 	if checkSafeDir(filepath.Join(state, "hooks")) != nil || checkSafeDir(dir) != nil {
 		return true
@@ -516,6 +544,9 @@ func flushHostEventQueueWith(state string, info serverInfo, cache *hostTargetCac
 	for n, name := range hostEventQueueNames(dir) {
 		if n >= hostEventFlushLimit {
 			return false
+		}
+		if more != nil && !more() {
+			return true
 		}
 		path := filepath.Join(dir, name)
 		raw, err := readSafeMapFile(path)

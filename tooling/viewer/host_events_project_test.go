@@ -29,12 +29,11 @@ func TestHostEventSeesAWorkBoundBetweenResolvingAndTheLock(t *testing.T) {
 		if creating {
 			return "git@github.com:acme/other.git", nil
 		}
-		// Git fails for every read of the event, which runs outside the lock. A
-		// concurrent create binds the root to its remote during the last read: the
-		// event's directory is both its project root and the first ancestor, so
-		// that is the second read.
+		// Git fails for the event's read, which runs outside the lock. A concurrent
+		// create binds the root to its remote while that read is in flight, that is
+		// after the directory was located and before the event takes the lock.
 		reads++
-		if reads == 2 && !created {
+		if reads == 1 && !created {
 			created, creating = true, true
 			h.clock = h.clock.Add(-time.Minute)
 			work = createTimeline(t, h.store, create)
@@ -56,10 +55,26 @@ func TestHostEventSeesAWorkBoundBetweenResolvingAndTheLock(t *testing.T) {
 	}
 }
 
-// The error of a directory that resolves to no project is the one of the
-// farthest candidate, not the nearest: a directory that does not exist under an
-// unregistered one ends at "not registered", as before.
-func TestHostEventErrorWhenNoCandidateResolvesIsTheFarthestOne(t *testing.T) {
+// The directory is both the project root and the first ancestor, and it is the
+// first candidate that resolves: Git is asked about it once per event.
+func TestHostEventAsksGitOnceForAResolvedRoot(t *testing.T) {
+	h := newHostEventHarness(t)
+	reads := 0
+	h.store.remote = func(string) (string, error) {
+		reads++
+		return "", errors.New("git unavailable")
+	}
+	h.advance()
+	h.mustSend(h.eventFrom(h.source, "activity", TimelineHostEventData{}, "", ""))
+	if reads != 1 {
+		t.Fatalf("git ran %d times for one event, want 1", reads)
+	}
+}
+
+// When no candidate resolves, the error is the nearest candidate's: it is the
+// most specific cause. A directory that does not exist is "project_unavailable",
+// even though the unregistered ancestors above it are "project_not_registered".
+func TestHostEventErrorWhenNoCandidateResolvesIsTheNearestOne(t *testing.T) {
 	h := newHostEventHarness(t)
 	id := h.work.ViewerSessionID
 	stageID := h.stage("build")
@@ -71,5 +86,5 @@ func TestHostEventErrorWhenNoCandidateResolvesIsTheFarthestOne(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = h.store.TimelineHostEvent(event)
-	requireTimelineCode(t, err, "project_not_registered")
+	requireTimelineCode(t, err, "project_unavailable")
 }

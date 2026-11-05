@@ -74,11 +74,18 @@ type timelineHostCandidate struct {
 
 func (s *Store) timelineHostCandidates(source TimelineSource) ([]timelineHostCandidate, error) {
 	dirs := []string{}
+	seen := map[string]bool{}
+	add := func(dir string) {
+		if !seen[dir] {
+			seen[dir] = true
+			dirs = append(dirs, dir)
+		}
+	}
 	if root, err := ResolveRoot(source.ProjectRoot); err == nil {
-		dirs = append(dirs, root)
+		add(root)
 	}
 	for p := filepath.Clean(source.ProjectRoot); ; p = filepath.Dir(p) {
-		dirs = append(dirs, p)
+		add(p)
 		if p == filepath.Dir(p) {
 			break
 		}
@@ -91,28 +98,31 @@ func (s *Store) timelineHostCandidates(source TimelineSource) ([]timelineHostCan
 	for _, dir := range dirs {
 		c, err := s.timelineLocate(registry, dir)
 		out = append(out, timelineHostCandidate{candidate: c, err: err})
+		if err == nil {
+			break // the nearest registered directory decides; farther ones are not located
+		}
 	}
 	return out, nil
 }
 
 // timelineHostKey is the key of the first candidate, nearest first, that
-// resolves. When none does it returns the error of the farthest one. The caller
-// holds s.mu.
+// resolves. When none does it returns the error of the nearest one, the most
+// specific cause. The caller holds s.mu.
 func (s *Store) timelineHostKey(candidates []timelineHostCandidate) (string, error) {
-	var last error
+	var first error
 	for _, c := range candidates {
-		if c.err != nil {
-			last = c.err
-			continue
+		err := c.err
+		if err == nil {
+			var key string
+			if key, err = s.timelineKeyOf(c.candidate); err == nil {
+				return key, nil
+			}
 		}
-		key, err := s.timelineKeyOf(c.candidate)
-		if err != nil {
-			last = err
-			continue
+		if first == nil {
+			first = err
 		}
-		return key, nil
 	}
-	return "", last
+	return "", first
 }
 
 func timelineHostMember(v *TimelineSession, source TimelineSource) bool {

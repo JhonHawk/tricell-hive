@@ -13,6 +13,7 @@ import (
 	"sync"
 	"testing"
 	"time"
+	"tricell-hive/tooling/management"
 	"tricell-hive/tooling/viewer"
 )
 
@@ -144,27 +145,51 @@ func TestHookQueuesWithoutTryingWhenTheBudgetIsTooShort(t *testing.T) {
 	}
 }
 
+// fakeBudget replaces the budget's clock and timer. The clock moves only when
+// the test advances it; the timer fires only when the test fires it.
+type fakeBudget struct {
+	mu   sync.Mutex
+	now  time.Time
+	fire chan time.Time
+	once sync.Once
+}
+
+func withFakeBudget(t *testing.T, budget time.Duration) *fakeBudget {
+	t.Helper()
+	f := &fakeBudget{now: time.Now(), fire: make(chan time.Time, 1)}
+	oldClock, oldAfter, oldBudget := hookClock, hookAfter, hookBudget
+	hookClock = func() time.Time { f.mu.Lock(); defer f.mu.Unlock(); return f.now }
+	hookAfter = func(time.Duration) <-chan time.Time { return f.fire }
+	hookBudget = budget
+	t.Cleanup(func() { hookClock, hookAfter, hookBudget = oldClock, oldAfter, oldBudget })
+	return f
+}
+
+func (f *fakeBudget) advance(d time.Duration) { f.mu.Lock(); f.now = f.now.Add(d); f.mu.Unlock() }
+
+// expire ends the budget: the timer fires, once.
+func (f *fakeBudget) expire() { f.once.Do(func() { f.fire <- f.now }) }
+
 // The budget ends while the second event hangs: the first was delivered, and the
 // second and third stay queued, in order.
 func TestHookBudgetEndedMidRunLeavesTheUndeliveredEventsQueued(t *testing.T) {
 	h := newHookFixture(t)
 	h.openBuild("budget-mid-run")
+	budget := withFakeBudget(t, time.Minute)
 	release := make(chan struct{})
 	probe := h.probeViewer(func(n int) {
 		if n >= 2 {
+			budget.expire() // the second event is in flight: the budget ends now
 			select {
 			case <-release:
 			case <-time.After(5 * time.Second):
 			}
 		}
 	})
-	oldBudget := hookBudget
-	hookBudget = 600 * time.Millisecond
-	t.Cleanup(func() { hookBudget = oldBudget })
 	h.runTodos()
 	got := h.queued()
 	close(release)
-	time.Sleep(500 * time.Millisecond) // let the abandoned run drain before the state is removed
+	time.Sleep(200 * time.Millisecond) // let the abandoned run drain before the state is removed
 	if len(got) != 2 {
 		t.Fatalf("%d events queued, want the 2 undelivered: %v", len(got), got)
 	}
@@ -173,5 +198,63 @@ func TestHookBudgetEndedMidRunLeavesTheUndeliveredEventsQueued(t *testing.T) {
 	}
 	if got[0] >= got[1] {
 		t.Fatalf("queue not in emission order: %v", got)
+	}
+}
+
+func (h *hookFixture) queueOldEvent(i int) {
+	queueHostEvent(h.f.stateDir, viewer.TimelineHostEvent{
+		SchemaVersion: viewer.TimelineSchemaVersion,
+		Source:        viewer.TimelineSource{ProjectRoot: h.project, Host: "opencode", NativeSessionID: "oc-review-1"},
+		EventType:     "task_created",
+		OccurredAt:    h.at,
+		Data:          viewer.TimelineHostEventData{TaskID: fmt.Sprintf("old-%d", i), Title: fmt.Sprintf("Old%d", i)},
+	})
+}
+
+// A large backlog must not starve the run's own events: the backlog flush stops
+// once half the budget is spent, leaves the rest queued, and the live events
+// still get their direct try.
+func TestHookBacklogFlushLeavesBudgetForTheRunsOwnEvents(t *testing.T) {
+	h := newHookFixture(t)
+	h.openBuild("backlog-budget")
+	budget := withFakeBudget(t, 10*time.Second)
+	for i := 0; i < 10; i++ {
+		h.queueOldEvent(i)
+	}
+	if len(h.queued()) != 10 {
+		t.Fatalf("setup queued %d", len(h.queued()))
+	}
+	probe := h.probeViewer(func(int) { budget.advance(time.Second) }) // each POST costs 1 s of the 10 s budget
+	h.runTodos()
+	arrived := probe.arrived()
+	if len(arrived) < 3 || fmt.Sprint(arrived[len(arrived)-3:]) != "[First Second Third]" {
+		t.Fatalf("the run's own events did not all get a direct try: %v", arrived)
+	}
+	if left := h.queued(); len(left) == 0 {
+		t.Fatalf("the whole backlog was flushed ahead of the live events: %v", arrived)
+	}
+}
+
+// The budget timer can finish the run before its events are installed: they are
+// queued at once instead of being installed on a closed run and lost.
+func TestHookEventsSetOnAClosedRunAreQueued(t *testing.T) {
+	h := newHookFixture(t)
+	h.openBuild("closed-run")
+	probe := h.probeViewer(nil)
+	run := newHookRun(time.Now().Add(time.Minute))
+	run.finish()
+	events := []viewer.TimelineHostEvent{{
+		SchemaVersion: viewer.TimelineSchemaVersion,
+		Source:        viewer.TimelineSource{ProjectRoot: h.project, Host: "opencode", NativeSessionID: "oc-review-1"},
+		EventType:     "task_created",
+		OccurredAt:    h.at,
+		Data:          viewer.TimelineHostEventData{TaskID: "late", Title: "Late"},
+	}}
+	sendHookEvents(management.Options{}, h.f.stateDir, events, run)
+	if got := h.queued(); len(got) != 1 {
+		t.Fatalf("%d events queued, want the 1 set on the closed run", len(got))
+	}
+	if got := probe.arrived(); len(got) != 0 {
+		t.Fatalf("a closed run posted %v", got)
 	}
 }
