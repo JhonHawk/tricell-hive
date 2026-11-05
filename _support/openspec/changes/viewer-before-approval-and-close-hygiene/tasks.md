@@ -15,7 +15,7 @@ El hilo principal revisa cada resultado contra `design.md` y hace los commits.
 
 ### T1 — La opción de abrir el visor
 
-- [ ] La oferta del visor es una opción dentro de la pregunta de aprobación. Al elegirla, se abre el visor y se vuelve a hacer la misma pregunta con el mismo ID y sin esa opción.
+- [x] La oferta del visor es una opción dentro de la pregunta de aprobación. Al elegirla, se abre el visor y se vuelve a hacer la misma pregunta con el mismo ID y sin esa opción.
 
 **Closes:** AC1, AC2
 
@@ -42,7 +42,7 @@ El hilo principal revisa cada resultado contra `design.md` y hace los commits.
 
 ### T2 — Limpieza del cierre: referencia, barrido, autorización, pausa y promociones
 
-- [ ] La limpieza de ramas vive en una referencia, recorre los repositorios que tocó el trabajo y barre con seguridad las ramas propias ya mergeadas. `global.md` lo autoriza, el cierre de pausa queda definido fuera de `hold`, y una promoción no hecha no retiene nada.
+- [x] La limpieza de ramas vive en una referencia, recorre los repositorios que tocó el trabajo y barre con seguridad las ramas propias ya mergeadas. `global.md` lo autoriza, el cierre de pausa queda definido fuera de `hold`, y una promoción no hecha no retiene nada.
 
 **Closes:** AC3, AC4, AC6, AC7
 
@@ -132,3 +132,8 @@ No hay interfaz que recorrer. La entrega es `automatic` (D3), así que no hay pa
 ## Estado de revisión y avance
 
 2026-11-05 — Plan escrito. La revisión de `hive-review-plan` dejó 13 hallazgos. Se aplicaron H3 a H13 y la parte de H1 que no necesita decisión. D5 A y D6 A resolvieron H1 y H2.
+2026-11-05 — Base real del build: `origin/development` en `c011214e`, porque llegó #380 mientras se planeaba; no toca ningún archivo del plan.
+2026-11-05 — T2 hecho en `e667cd96`: `flow-close/SKILL.md` queda en 15 626 bytes y `global.md` pasa de 35 640 a 35 810 bytes. Pasan `go test ./tests/content/...` y `go test ./tooling/management/ -run Reference`.
+2026-11-05 — T1 hecho (commit siguiente): lo escribió un hijo `hive-write-docs`. El hilo principal corrigió la excepción para que nombre solo las dos reglas que cambian. El patrón de verificación con `rg` se amplió a `never the first|same ID|without the open|never carries`. Pasa `go test ./tests/content/...`.
+
+Checkpoint: build · siguiente paso T3 en el hilo principal, después T4 en un hijo.
