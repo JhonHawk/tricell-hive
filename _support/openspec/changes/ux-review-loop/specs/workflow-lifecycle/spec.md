@@ -18,6 +18,7 @@ A UI change's `hive-review-ux` child SHALL receive, with the walk's captures, th
 - **GIVEN** a reviewed region with a P3 defect that the base branch already shows
 - **WHEN** the reviewer finds no defect the change introduced
 - **THEN** the verdict is passed and the P3 defect appears in the list of defects already there, with its priority
+- **AND** the defect reaches the user in the validation round or, when the delivery does not stop for validation, in the close's findings
 
 #### Scenario: No state could be reviewed
 

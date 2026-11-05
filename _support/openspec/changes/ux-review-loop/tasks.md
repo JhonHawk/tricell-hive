@@ -67,7 +67,7 @@ Cada comprobación `rg` se corre dos veces: sobre `git show 47362771:<path>`, do
 
 ### T4 — Reparar `TestSpecDeltasApplied`, que ya falla en la base
 
-- [x] El test vuelve a pasar en `development`. Hoy falla desde `bb61f71f` porque dos archivos del 2026-11-04 (`viewer-session-lifecycle-and-autoarchive` y `viewer-local-actions-cli`) modifican «Local viewer management actor». `sort.Strings` (`spec_deltas_test.go:113`) toma como último el que se cerró antes.
+- [x] El test vuelve a pasar en `development`. Hoy falla desde `bb61f71f` porque dos archivos del 2026-11-04 (`viewer-session-lifecycle-and-autoarchive` y `viewer-local-actions-cli`) modifican «Local viewer management actor». `sort.Strings` en `collectLatestDeltas` toma como último el que se cerró antes.
 
 **Closes:** ninguno: es un defecto que bloquea la verificación de este trabajo.
 
@@ -116,6 +116,14 @@ La entrega es automática (D4 A): no hay parada de validación humana. El mensaj
     - «not checked» por «not verified» en el delta;
     - casillas de tareas.
   - No se corrigen (2): la tolerancia a deltas del mismo día debilita el chequeo para esos pares, y la causa de fondo es que los nombres de las carpetas archivadas no dan el orden dentro de un día. Era la decisión menor del plan; se reporta en el cierre.
+- Segunda revisión, acotada a `b285fbf0..de23aae9`: 10 hallazgos.
+  - Bloquea uno: el nuevo destino de los defectos previos contradecía flow-close «Findings» y recomendaba «arreglar ahora» en un despliegue. Se corrigió en local con un puntero a flow-close (commit `Unreviewed:`), y con él la página del sitio y el delta. También se actualizó la bitácora.
+  - No bloquean y van a los hallazgos del cierre:
+    - el brief del revisor UX en el despliegue no apunta al «Reviewer brief»;
+    - una relectura acotada no dice si corre la auditoría del paso 2;
+    - el hijo nuevo no sabe que los hallazgos vienen en su brief;
+    - «last block wins» sigue el orden del archivo y no el orden de secciones de OpenSpec (comportamiento previo, sin regresión);
+    - el bloque ganador se guarda dos veces en `latestDelta`.
 - Rama: `fix/ux-review-loop` en el worktree `.claude/worktrees/ux-review-loop`.
-- Visor: work `57e0a35a…`, con la etapa build en curso.
-- Siguiente: segunda revisión acotada a las correcciones, push, PR, CI y merge (D4 A) y, después, `flow-close`.
+- Visor: work `57e0a35a…`, con la etapa verify en curso.
+- Siguiente: push, PR, CI y merge (D4 A) y, después, `flow-close`.
