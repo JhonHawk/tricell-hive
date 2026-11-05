@@ -12,6 +12,23 @@ raise the minor or the patch version.
 
 ### Added
 
+- The viewer takes fewer publication commands per session. The agent declares
+  each stage change once with `hive view work sync` (state, reason and task
+  states in one call; a build without a plan takes `open`, `sync`, `evidence`,
+  `close`), passes no host or session identity because the binary resolves it,
+  and gets `queued` instead of a failure while the viewer is stopped; the next
+  command or hook run sends the queue in order. A user-scope install registers a
+  silent `hive hook` in each host (Claude Code `settings.json`, Codex
+  `hooks.json`, Cursor `hooks.json`, a second Grok hook file, an OpenCode event
+  plugin and a Pi extension) that reports session start, activity, end and, in
+  Claude Code and OpenCode, the native task list to a new `POST /api/host-events`
+  endpoint, shown as from the host, with the work's last host activity. Hive
+  edits the shared JSON files entry by entry with a backup and writes no Codex
+  trust: approve the hook in `/hooks`. Timeline revision 3 needs the CLI, viewer
+  and server updated together and the viewer reloaded. Every user-scope install
+  now needs a built `hive` binary, not `go run`. Cursor's hooks are verified
+  only in the installed code.
+
 - Every action the viewer's browser offers has a command: `hive view work
   rename`, `archive`, `restore`, `pin`, `unpin`, `recover` (reassign the lead to
   a pending join request, with a reason) and `delete` (with `--confirm` set to

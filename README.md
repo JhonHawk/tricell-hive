@@ -137,13 +137,17 @@ GitHub's automatic **Source code** archives are not packages; use the
 From the checkout root, with **Go 1.27.0 or later** as declared in [go.mod](go.mod):
 
 ```sh
+# Build a binary at a stable path: a user-scope install writes that path into
+# the host hooks, and a `go run` binary is deleted when the command ends, so the
+# manager refuses it.
+go build -o ~/.local/bin/hive ./tooling/cli
 # Preview the destinations, then install with terminal confirmation.
-go run ./tooling/cli install --hosts codex --dry-run
-go run ./tooling/cli install --hosts codex
+~/.local/bin/hive install --hosts codex --dry-run
+~/.local/bin/hive install --hosts codex
 ```
 
 Replace `codex` with your host, or a comma-separated selection such as
-`codex,claude`. The installer shows destinations and where it keeps recovery
+`codex,claude`, and the output path with a directory on your `PATH`. The installer shows destinations and where it keeps recovery
 journals before requiring affirmative confirmation. The first build needs access to the
 Go modules unless they are already cached.
 
@@ -205,7 +209,7 @@ not prove that a particular session loaded the content or followed it.
 | --- | --- | --- |
 | Claude Code | User and project | Native instructions, skills, and rendered roles. A project's `CLAUDE.md` must import `@AGENTS.md`. |
 | Codex | User and project | Native instructions, shared skills, and rendered roles. |
-| Grok Build | User | Claude instruction compatibility must be enabled, or the install reports a conflict. Role selection varies by version. Hive adds a `read_file` hook, `~/.grok/hooks/hive-read-whole-references.json`, so skill references are read whole; it runs the `hive` binary that installed it, so restart Grok sessions after installing. |
+| Grok Build | User | Claude instruction compatibility must be enabled, or the install reports a conflict. Role selection varies by version. Hive adds a `read_file` hook, `~/.grok/hooks/hive-read-whole-references.json`, so skill references are read whole; it runs the `hive` binary that installed it, so restart Grok sessions after installing. A second file, `hive-session-events.json`, reports session events to the viewer. |
 | Pi | User | Delegated roles need pi-subagents (installed through npm as described above). Roles run on the session's model by default; set others with `hive models set`. Honors `PI_CODING_AGENT_DIR`. |
 | OpenCode V2 | User | Needs your own model providers. Roles run on the session's model and effort by default; set others with `hive models set`. |
 | Cursor CLI | User | Loads no global instruction file; each repository needs a pointer line (below). Cursor CLI 2026.10.22 loads no user-level subagents, only those in the repository's `.cursor/agents`, `.claude/agents` and `.grok/agents`, so Hive's user-level roles run as generic agents that receive the role's instructions. |
@@ -246,12 +250,13 @@ Hive supplies no model runtime or universal permission sandbox.
 The commands below call `hive`. After a one-line installation it is
 `~/.local/share/hive/packages/hive-<version>-<os>-<arch>/bin/hive`; after a
 package installation, the extracted `bin/hive`; in a source checkout, use
-`go run ./tooling/cli`. Copy or link it into a directory on your `PATH` to type
-`hive` directly.
+`go run ./tooling/cli` for read-only commands; `install` and `update` need a
+built binary at a stable path (`go build -o <path> ./tooling/cli`). Copy or link
+it into a directory on your `PATH` to type `hive` directly.
 
 **Update.** One-line users run the same command again; each version adds its
 own folder under `~/.local/share/hive/packages/`, and older ones can be deleted
-once you no longer need them for recovery and Grok's hook no longer points to
+once you no longer need them for recovery and no host hook (Grok's, or the session-event hooks) points to
 them: run `hive update` or `hive install` from the newer binary first. Package users run the
 newer package's `./install.sh`. Source users
 pull, rebuild the binary when `tooling/` or `integrations/` changed, then preview
@@ -436,9 +441,34 @@ Everything the browser manages also has a command: `hive view work rename`,
 join request, with a reason) and `delete` (with `--confirm` set to the work ID).
 They act as the local viewer, not as a producer, and an agent runs them only
 when you ask for that action on a named work.
-The agent still declares task progress and stage changes through the task and
-stage commands. There is no background watcher, and editing a checklist does not
-change live task status. Source files stay in the repository.
+The agent declares each stage change once with `hive view work sync` (state,
+reason and task states in one call) and, for a build without a plan, needs only
+`open`, `sync`, `evidence` and `close`; it passes no host or session identity,
+because the binary resolves it. With the viewer stopped these commands answer
+`queued` and the next command or hook run sends them in order. Nothing watches
+your files, and editing a checklist does not change live task status. Source
+files stay in the repository.
+
+#### Host hooks
+
+A user-scope install also registers a silent `hive hook` command in each host,
+which reports the session's start, activity and end, and where the host has one
+its native task list, to the viewer. The viewer shows them as *From host*, apart
+from what the agent publishes, and they never start or complete a stage, approve
+anything or close a work.
+
+| Host | Registered in | Notes |
+| --- | --- | --- |
+| Claude Code | `~/.claude/settings.json` | Includes native task created/completed. Held back in a folder you have not trusted. |
+| Codex | `~/.codex/hooks.json` | Hive does not write Codex's trust: approve the hook once in `/hooks`. |
+| Grok Build | `~/.grok/hooks/hive-session-events.json` | Restart open sessions. |
+| Cursor CLI | `~/.cursor/hooks.json` | Verified only in the installed code. |
+| OpenCode V2 | `~/.config/opencode/plugins/hive-events.js` | Event plugin; the context loader stays inactive. |
+| Pi | `~/.pi/agent/extensions/hive-events.ts` | Extension, auto-loaded. |
+
+Hive edits the shared JSON files entry by entry, keeps a backup of each, leaves
+other tools' hooks byte-identical and removes only its own on uninstall. Hosts
+read hooks at session start, so restart open sessions after installing.
 
 The server keeps running until you stop it. The agent registers the project and
 publishes through the versioned API. `hive view contract` prints the offline
@@ -473,7 +503,7 @@ remain unavailable; a modified source does not recreate a deleted work.
 Protocol3 requires a fresh state directory. Earlier state formats are not
 imported or migrated, and a directory holding them fails to start. Preserve the
 old state and coordinate writers before an explicitly authorized cutover. Within
-protocol 3, timeline revision 2 requires a coordinated CLI, viewer and server
+protocol 3, timeline revision 3 requires a coordinated CLI, viewer and server
 update and a viewer reload. Before upgrading, retain a private state backup;
 stored works and publisher journals are preserved. Mismatched clients cannot
 write until updated. Publication goes only through the running service: an incompatible or stopped
