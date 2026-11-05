@@ -107,6 +107,7 @@ def codex_children(meta):
 def claude_load(path):
     calls, outs, final, compactions, briefs = [], [], "", [], {}
     first = last = None
+    counted = set()  # one transcript line per content block repeats the call's usage
     for raw in open(path, encoding="utf-8"):
         d = json.loads(raw)
         when = d.get("timestamp")
@@ -118,7 +119,9 @@ def claude_load(path):
         if d.get("type") == "assistant":
             u = msg.get("usage") or {}
             total = u.get("input_tokens", 0) + u.get("cache_read_input_tokens", 0) + u.get("cache_creation_input_tokens", 0)
-            if total:
+            call_id = msg.get("id")
+            if total and (call_id is None or call_id not in counted):
+                counted.add(call_id)
                 calls.append((when, total, u.get("cache_read_input_tokens", 0)))
             for block in content if isinstance(content, list) else []:
                 if block.get("type") == "text":
