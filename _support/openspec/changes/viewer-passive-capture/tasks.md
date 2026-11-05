@@ -91,8 +91,8 @@ Solo se usan las variables que T0 verifique.
 
 ### T3 — `work` sin plan, `work sync`, `work evidence` y cierre que completa la etapa
 
-- [ ] Un build sin plan se publica con `work open`, `work sync` y `work sync --close`, que lee el trabajo al cerrar.
-- [ ] Las capturas, con su candidato y una vista que sustituye a otra, se publican con un solo `work evidence`.
+- [x] Un build sin plan se publica con `work open`, `work sync` y `work sync --close`, que lee el trabajo al cerrar.
+- [x] Las capturas, con su candidato y una vista que sustituye a otra, se publican con un solo `work evidence`.
 
 **Closes:** AC1, AC7
 
@@ -148,8 +148,8 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 
 ### T5 — Servidor: eventos del host y última actividad; frontend con procedencia
 
-- [ ] `POST /api/host-events` actualiza la última actividad como metadato y, en un trabajo sin tareas registradas, refleja las tareas nativas como `host_observed` hasta 50.
-- [ ] La interfaz distingue esa procedencia.
+- [x] `POST /api/host-events` actualiza la última actividad como metadato y, en un trabajo sin tareas registradas, refleja las tareas nativas como `host_observed` hasta 50.
+- [x] La interfaz distingue esa procedencia.
 
 **Closes:** AC4, AC9
 
@@ -322,7 +322,7 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 
 ## Checkpoint
 
-- Etapa: build; T0, T1 (`49a9af6c`) y T2 (`56fbb304`, corrección `838f897f`) hechas; servidor de T5 en `4c927550`; en curso: T3 e interfaz de T5.
+- Etapa: build; hechas T0, T1 (`49a9af6c`), T2 (`56fbb304`, corrección `838f897f`), T3 (`498dff6f`) y T5 (`4c927550` servidor, `1eaf15d4` interfaz); en curso: T4 y las verificaciones de T3 y T5.
 - Visor: trabajo `50457f3803d3122ef9c5294ee314a04b7caa03a46924c73bd3ea949a081b4a30`, etapa build `event-0031e0d2ade9120dcd2f535d5f41f8b3`, tareas registradas con la revisión `revision-69dbb00740f6bd76e426531cdab267a0` (la tarea T0 del plan es la clave `T11` en el visor, que no admite `T0`).
 - Hallazgos abiertos: ninguno (los P2 y P3 de la verificación de T2 están corregidos en `838f897f`, sin una segunda verificación).
-- Siguiente: integrar T1 y T3 desde sus worktrees, verificar con `hive-verify-task` y seguir con T4.
+- Siguiente: integrar T4, después T6, T7, T8, T9 y T10.
