@@ -11,7 +11,7 @@ import (
 	"tricell-hive/tooling/version"
 )
 
-const stateVersion = 6
+const stateVersion = 7
 
 // hexDigest64 matches a lowercase SHA-256 hex digest; validateProduct
 // checks both a product's artifact and release ID against it.

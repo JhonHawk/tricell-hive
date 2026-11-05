@@ -252,9 +252,22 @@ func TestInstallRegistersAllSixHostsAndUninstallLeavesForeignHooksByteIdentical(
 	// Uninstall removes only Hive's entries and files.
 	apply(t, plan(t, "remove", o))
 	assertForeignIntact(t, originals)
-	for _, path := range []string{hp.grokEvents, hp.opencode, hp.pi, hp.claude + ".hive-backup", hp.codex + ".hive-backup", hp.cursor + ".hive-backup"} {
+	for _, path := range []string{hp.grokEvents, hp.opencode, hp.pi} {
 		absent(t, path)
 	}
+	// The backups outlive the uninstall (still private); a later install
+	// overwrites them with the file as it is then.
+	for path, body := range map[string]string{hp.claude: thirdPartySettings, hp.codex: foreignCodexHooks, hp.cursor: foreignCursorHooks} {
+		if get(t, path+".hive-backup") != body || wfMode(t, path+".hive-backup") != 0600 {
+			t.Fatalf("the backup of %s was not kept after the uninstall", path)
+		}
+	}
+	put(t, hp.claude, strings.Replace(get(t, hp.claude), `"model": "opus"`, `"model": "sonnet"`, 1))
+	apply(t, plan(t, "install", o))
+	if want := strings.Replace(thirdPartySettings, `"model": "opus"`, `"model": "sonnet"`, 1); get(t, hp.claude+".hive-backup") != want {
+		t.Fatal("a later install must overwrite the kept backup")
+	}
+	apply(t, plan(t, "remove", o))
 	if s := stateFor(t, o); len(s.HostHooks) != 0 || len(s.Records) != 0 {
 		t.Fatalf("state after uninstall: %d host hook records, %d records", len(s.HostHooks), len(s.Records))
 	}
@@ -333,9 +346,9 @@ func TestCollisionsFailClosedAndWriteNothing(t *testing.T) {
 		"unowned grok file":      func(t *testing.T, hp hookPaths) { put(t, hp.grokEvents, "{}\n") },
 		"unowned opencode file":  func(t *testing.T, hp hookPaths) { put(t, hp.opencode, "// mine\n") },
 		"unowned pi file":        func(t *testing.T, hp hookPaths) { put(t, hp.pi, "// mine\n") },
-		"invalid claude JSON":    func(t *testing.T, hp hookPaths) { put(t, hp.claude, `{"hooks": `) },
 		"codex hooks not object": func(t *testing.T, hp hookPaths) { put(t, hp.codex, `{"hooks": []}`) },
-		"cursor event not array": func(t *testing.T, hp hookPaths) { put(t, hp.cursor, `{"version":1,"hooks":{"stop":{}}}`) },
+		// A shared JSON hook file Hive's editor cannot read (Cursor's here) is
+		// skipped, not a collision: see host_hooks_skip_test.go.
 	}
 	for name, prepare := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -522,7 +535,9 @@ func TestInterruptedRemoveIsRecoverableAndRerunnable(t *testing.T) {
 	}
 	apply(t, plan(t, "remove", o))
 	assertForeignIntact(t, originals)
-	absent(t, hp.claude+".hive-backup")
+	if get(t, hp.claude+".hive-backup") != thirdPartySettings {
+		t.Fatal("the backup must outlive the uninstall")
+	}
 	if len(stateFor(t, o).HostHooks) != 0 {
 		t.Fatal("record left after the second remove")
 	}

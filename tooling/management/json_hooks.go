@@ -302,6 +302,20 @@ func renderArray(items []string, indent string, st jsonStyle, multi bool) string
 // insertChildren returns the edit that appends texts to a container, each as a
 // finished child (an element, or a `"key": value` member).
 func insertChildren(v *jsonValue, l layout, texts []string) textEdit {
+	return insertChildrenNoting(v, l, texts, nil, "", nil)
+}
+
+// insertChildrenNoting is insertChildren that also records, when the container
+// had no children, the whitespace between its brackets, under key in delta.
+func insertChildrenNoting(v *jsonValue, l layout, texts []string, src []byte, key string, delta *HostHooksRecord) textEdit {
+	if delta != nil && len(texts) > 0 && lastChildEnd(v) < 0 {
+		if w := string(src[v.start+1 : v.end-1]); w != "" {
+			if delta.Interiors == nil {
+				delta.Interiors = map[string]string{}
+			}
+			delta.Interiors[key] = w
+		}
+	}
 	if len(texts) == 0 {
 		return textEdit{}
 	}
@@ -318,14 +332,18 @@ func insertChildren(v *jsonValue, l layout, texts []string) textEdit {
 // removeChildren returns the edits that delete the marked children of a
 // container, with their commas and the whitespace that led to them, so the
 // neighbours keep their own formatting. spans are the children's [start, end).
-func removeChildren(v *jsonValue, spans [][2]int, remove []bool) []textEdit {
+//
+// When every child goes, empty is the text between the brackets afterwards: the
+// whitespace the container had before Hive filled it, so the user's `[ ]` is not
+// rewritten as `[]`.
+func removeChildren(v *jsonValue, spans [][2]int, remove []bool, empty string) []textEdit {
 	n := len(spans)
 	all := n > 0
 	for _, r := range remove {
 		all = all && r
 	}
 	if all {
-		return []textEdit{{start: v.start + 1, end: v.end - 1}}
+		return []textEdit{{start: v.start + 1, end: v.end - 1, text: empty}}
 	}
 	var edits []textEdit
 	for i := 0; i < n; {
@@ -376,6 +394,9 @@ type hookEditResult struct {
 	Changed bool
 	// Delta is what this edit created or wrote, for undoing exactly it.
 	Delta HostHooksRecord
+	// Replaced holds, per event, the text of Hive's previous entries that the
+	// edit rewrote or dropped (a moved binary), so recovery can put them back.
+	Replaced map[string][]string
 }
 
 // ownEntries returns the indexes of the elements of an event array that are
@@ -464,7 +485,7 @@ func editJSONHooks(cur []byte, exists bool, f hostevent.JSONHookFile, executable
 			members = append(members, marshalText("version", "", "", false)+colon+fmt.Sprint(f.RootVersion))
 		}
 		members = append(members, marshalText("hooks", "", "", false)+colon+renderObject(pairs, hooksIndent, st, rootLay.multi))
-		edits = append(edits, insertChildren(root, rootLay, members))
+		edits = append(edits, insertChildrenNoting(root, rootLay, members, src, "root", &res.Delta))
 		res.Delta.CreatedHooks = true
 	case hooksM.val.kind != '{':
 		return res, refuse("\"hooks\" is not an object")
@@ -496,7 +517,7 @@ func editJSONHooks(cur []byte, exists bool, f hostevent.JSONHookFile, executable
 			own := ownEntries(src, arr, f, event, recorded)
 			if len(own) == 0 {
 				item := marshalText(want, arrLay.indent, st.unit, arrLay.multi)
-				edits = append(edits, insertChildren(arr, arrLay, []string{item}))
+				edits = append(edits, insertChildrenNoting(arr, arrLay, []string{item}, src, "event:"+event, &res.Delta))
 				continue
 			}
 			var current any
@@ -504,19 +525,28 @@ func editJSONHooks(cur []byte, exists bool, f hostevent.JSONHookFile, executable
 			_ = json.Unmarshal(src[e.start:e.end], &current)
 			var wantAny any
 			_ = json.Unmarshal([]byte(marshalText(want, "", "", false)), &wantAny)
-			if !reflect.DeepEqual(current, wantAny) {
+			rewritten := !reflect.DeepEqual(current, wantAny)
+			if rewritten {
 				edits = append(edits, textEdit{start: e.start, end: e.end, text: marshalText(want, arrLay.indent, st.unit, arrLay.multi)})
+			}
+			if rewritten || len(own) > 1 {
+				if res.Replaced == nil {
+					res.Replaced = map[string][]string{}
+				}
+				for _, i := range own {
+					res.Replaced[event] = append(res.Replaced[event], string(src[arr.elems[i].start:arr.elems[i].end]))
+				}
 			}
 			if len(own) > 1 {
 				drop := make([]bool, len(arr.elems))
 				for _, i := range own[1:] {
 					drop[i] = true
 				}
-				edits = append(edits, removeChildren(arr, elemSpans(arr), drop)...)
+				edits = append(edits, removeChildren(arr, elemSpans(arr), drop, "")...)
 			}
 		}
 		if len(newPairs) > 0 {
-			edits = append(edits, insertChildren(hooks, hooksLay, newPairs))
+			edits = append(edits, insertChildrenNoting(hooks, hooksLay, newPairs, src, "hooks", &res.Delta))
 		}
 	}
 	if len(edits) == 0 {
@@ -536,6 +566,11 @@ func editJSONHooks(cur []byte, exists bool, f hostevent.JSONHookFile, executable
 	return res, nil
 }
 
+// undoJSONHooks removes Hive's entries recorded in rec, restoring none.
+func undoJSONHooks(cur []byte, f hostevent.JSONHookFile, rec HostHooksRecord) hookUndoResult {
+	return undoJSONHooksRestoring(cur, f, rec, nil)
+}
+
 // hookUndoResult is what an uninstall edit did.
 type hookUndoResult struct {
 	Data       []byte
@@ -548,7 +583,11 @@ type hookUndoResult struct {
 
 // undoJSONHooks removes Hive's entries recorded in rec from the file as it is
 // now. It never fails on a file it cannot read: it leaves it and says why.
-func undoJSONHooks(cur []byte, f hostevent.JSONHookFile, rec HostHooksRecord) hookUndoResult {
+//
+// restore, when not nil, names per event the previous entries of Hive's that an
+// interrupted install replaced: the undo puts them back where Hive's entry now
+// is instead of leaving the event without one.
+func undoJSONHooksRestoring(cur []byte, f hostevent.JSONHookFile, rec HostHooksRecord, restore map[string][]string) hookUndoResult {
 	res := hookUndoResult{Data: cur}
 	root, err := parseJSONSpans(cur)
 	if err != nil {
@@ -596,6 +635,20 @@ func undoJSONHooks(cur []byte, f hostevent.JSONHookFile, rec HostHooksRecord) ho
 			continue
 		}
 		res.Removed += len(own)
+		if prev := restore[m.key]; len(prev) > 0 {
+			// First own entry becomes the previous entries; the others go.
+			lay := containerLayout(cur, m.val, "", jsonStyle{})
+			first := m.val.elems[own[0]]
+			edits = append(edits, textEdit{start: first.start, end: first.end, text: strings.Join(prev, ","+lay.sep)})
+			if len(own) > 1 {
+				drop := make([]bool, len(m.val.elems))
+				for _, i := range own[1:] {
+					drop[i] = true
+				}
+				edits = append(edits, removeChildren(m.val, elemSpans(m.val), drop, "")...)
+			}
+			continue
+		}
 		if len(own) == len(m.val.elems) && created[m.key] {
 			dropMember[mi] = true
 			continue
@@ -604,7 +657,7 @@ func undoJSONHooks(cur []byte, f hostevent.JSONHookFile, rec HostHooksRecord) ho
 		for _, i := range own {
 			drop[i] = true
 		}
-		edits = append(edits, removeChildren(m.val, elemSpans(m.val), drop)...)
+		edits = append(edits, removeChildren(m.val, elemSpans(m.val), drop, rec.Interiors["event:"+m.key])...)
 	}
 	allDropped := len(hooks.members) > 0
 	for _, d := range dropMember {
@@ -630,10 +683,10 @@ func undoJSONHooks(cur []byte, f hostevent.JSONHookFile, rec HostHooksRecord) ho
 			return res
 		}
 		edits = nil
-		edits = append(edits, removeChildren(root, memberSpans(root), rootDrop)...)
+		edits = append(edits, removeChildren(root, memberSpans(root), rootDrop, rec.Interiors["root"])...)
 		// Nothing else in "hooks" can have changed: every member was dropped.
 	default:
-		edits = append(edits, removeChildren(hooks, memberSpans(hooks), dropMember)...)
+		edits = append(edits, removeChildren(hooks, memberSpans(hooks), dropMember, rec.Interiors["hooks"])...)
 		// removeChildren turns "all members dropped" into an empty object.
 	}
 	if len(edits) == 0 {

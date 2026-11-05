@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"strings"
 
 	"tricell-hive/integrations/claude"
 	"tricell-hive/integrations/codex"
@@ -37,6 +38,14 @@ func hostHookSpec(host string, c target.Config) (hostevent.JSONHookFile, bool) {
 	return hostevent.JSONHookFile{}, false
 }
 
+// skipReason is the cause of a skip without the file's path, which the note
+// names on its own.
+func skipReason(err error, path string) string {
+	r := strings.ReplaceAll(err.Error(), path, "the file")
+	r = strings.TrimPrefix(r, "the file: ")
+	return strings.TrimSuffix(strings.TrimSpace(r), ": the file")
+}
+
 const maxHookFileBytes = 4 << 20
 
 // readHookFile reads a shared hook file after the file-system checks every
@@ -61,8 +70,9 @@ func priorHostHooks(state State, path string) *HostHooksRecord {
 }
 
 // planHostHooks adds a step for each selected host that has a shared hook file.
-// It fails closed, naming the file and the cause, when a file cannot be edited
-// safely, so a plan never promises an edit apply would refuse.
+// A file that cannot be edited safely (unreadable, a link, invalid JSON, a shape
+// the editor does not know) becomes a skipped step: it is never rewritten, the
+// rest of the install goes on, and HostHookNotes names the file and the cause.
 func planHostHooks(p *Plan, state State) error {
 	if p.Action != "install" || p.Config.Scope != "user" {
 		return nil
@@ -73,11 +83,12 @@ func planHostHooks(p *Plan, state State) error {
 			continue
 		}
 		cur, err := readHookFile(spec.Path)
-		if err != nil {
-			return fmt.Errorf("%s hooks: %w", h, err)
+		if err == nil {
+			_, err = editJSONHooks(cur.Data, cur.Exists, spec, p.Executable, priorHostHooks(state, spec.Path))
 		}
-		if _, err = editJSONHooks(cur.Data, cur.Exists, spec, p.Executable, priorHostHooks(state, spec.Path)); err != nil {
-			return fmt.Errorf("%s hooks: %s: %w; fix the file or add the Hive hooks by hand", h, spec.Path, err)
+		if err != nil {
+			p.HostHooks = append(p.HostHooks, HostHooksStep{Host: h, Path: spec.Path, Skipped: skipReason(err, spec.Path)})
+			continue
 		}
 		p.HostHooks = append(p.HostHooks, HostHooksStep{Host: h, Path: spec.Path, Expected: finger(cur)})
 	}
@@ -133,6 +144,10 @@ type hostHooksEntry struct {
 	// Known are the commands the state recorded before an install, so a moved
 	// binary's old entries are still replaced.
 	Known []string `json:",omitempty"`
+	// Restore holds, per event, Hive's own previous entries that this install
+	// replaced or dropped, so recovery puts them back instead of leaving the
+	// event without any. They are Hive's entries only, never other tools'.
+	Restore map[string][]string `json:",omitempty"`
 	// BackupWanted is true when this entry creates the file's backup.
 	BackupWanted bool `json:",omitempty"`
 	// Pending is set before the first write of the entry and Done after the
@@ -146,6 +161,15 @@ type hostHooksEntry struct {
 func copyHostHooksRecord(r HostHooksRecord) HostHooksRecord {
 	r.Commands = append([]string(nil), r.Commands...)
 	r.CreatedEvents = append([]string(nil), r.CreatedEvents...)
+	if len(r.Interiors) == 0 {
+		r.Interiors = nil
+	} else {
+		m := make(map[string]string, len(r.Interiors))
+		for k, v := range r.Interiors {
+			m[k] = v
+		}
+		r.Interiors = m
+	}
 	return r
 }
 
@@ -171,6 +195,14 @@ func mergeHostHooks(prior *HostHooksRecord, delta HostHooksRecord, host string) 
 		out.CreatedHooks = out.CreatedHooks || prior.CreatedHooks
 		out.BackupCreated = out.BackupCreated || prior.BackupCreated
 		out.CreatedEvents = append(out.CreatedEvents, prior.CreatedEvents...)
+		for k, v := range prior.Interiors {
+			if _, ok := out.Interiors[k]; !ok {
+				if out.Interiors == nil {
+					out.Interiors = map[string]string{}
+				}
+				out.Interiors[k] = v
+			}
+		}
 	}
 	sort.Strings(out.CreatedEvents)
 	var uniq []string
@@ -226,6 +258,10 @@ func HostHookPaths(p Plan) []string {
 func HostHookNotes(p Plan) ([]string, error) {
 	var notes []string
 	for _, st := range p.HostHooks {
+		if st.Skipped != "" {
+			notes = append(notes, skipNote(st))
+			continue
+		}
 		spec, ok := hostHookSpec(st.Host, p.Config)
 		if !ok {
 			return nil, fmt.Errorf("invalid host hooks step")
@@ -255,6 +291,10 @@ func HostHookNotes(p Plan) ([]string, error) {
 	return notes, nil
 }
 
+func skipNote(st HostHooksStep) string {
+	return fmt.Sprintf("%s hooks: skipped %s, which Hive cannot edit safely (%s). Hive left it as it is and registered no %s hooks there. Fix the file and run hive update again, or add the hooks by hand.", st.Host, st.Path, st.Skipped, st.Host)
+}
+
 // prepareHostHooks builds the journal entries and the next state records for
 // the plan's steps, or for the removal of what the state records.
 func prepareHostHooks(p Plan, state State, next *State, j *journal) error {
@@ -265,6 +305,9 @@ func prepareHostHooks(p Plan, state State, next *State, j *journal) error {
 	switch {
 	case p.Action == "install":
 		for _, st := range p.HostHooks {
+			if st.Skipped != "" {
+				continue
+			}
 			spec, ok := hostHookSpec(st.Host, p.Config)
 			if !ok {
 				return fmt.Errorf("invalid host hooks step")
@@ -287,15 +330,12 @@ func prepareHostHooks(p Plan, state State, next *State, j *journal) error {
 				if !cur.Exists {
 					mode = 0600
 				}
-				backup, err := read(codexBackupPath(st.Path))
-				if err != nil {
-					return err
-				}
 				le := &hostHooksEntry{
 					Host: st.Host, Path: st.Path, Before: finger(cur),
 					After:        finger(snapshot{Exists: true, Data: res.Data, Mode: mode}),
 					Record:       res.Delta,
-					BackupWanted: cur.Exists && !backup.Exists,
+					BackupWanted: cur.Exists && prior == nil,
+					Restore:      res.Replaced,
 				}
 				le.Record.Host = st.Host
 				if prior != nil {
@@ -345,6 +385,9 @@ func hostHooksUnchanged(p Plan, s State) (bool, error) {
 		return true, nil
 	}
 	for _, st := range p.HostHooks {
+		if st.Skipped != "" {
+			continue
+		}
 		spec, ok := hostHookSpec(st.Host, p.Config)
 		if !ok {
 			return false, fmt.Errorf("invalid host hooks step")
@@ -415,10 +458,10 @@ func installHostHooksEntry(j *journal, jp string, le *hostHooksEntry, fail func(
 	}
 	if le.BackupWanted {
 		bk := codexBackupPath(le.Path)
-		if old, err := read(bk); err != nil {
+		// A backup kept by an earlier uninstall is overwritten: this one is the
+		// file as it is before this registration.
+		if _, err := read(bk); err != nil {
 			return err
-		} else if old.Exists {
-			return fmt.Errorf("concurrent change: %s", bk)
 		}
 		if err = write(bk, snapshot{Exists: true, Data: cur.Data, Mode: 0600}); err != nil {
 			return err
@@ -474,14 +517,15 @@ func removeHostHooksEntry(j *journal, jp string, le *hostHooksEntry, fail func(s
 	spec.Path = le.Path
 	cur, err := readHookFile(le.Path)
 	if err != nil {
-		return err
+		// A link, a hard link or a file too large to edit: the same no-op and
+		// warning as a file that is not valid JSON.
+		cur = snapshot{}
+		le.Notes = append(le.Notes, fmt.Sprintf("%s hooks: left %s as it is, because %s. Remove the Hive entries by hand.", le.Host, le.Path, skipReason(err, le.Path)))
 	}
-	clean := true
 	if cur.Exists {
 		res := undoJSONHooks(cur.Data, spec, le.Record)
 		switch {
 		case res.Skipped != "":
-			clean = false
 			le.Notes = append(le.Notes, fmt.Sprintf("%s hooks: left %s as it is, because %s. Remove the Hive entries by hand.", le.Host, le.Path, res.Skipped))
 		case res.DeleteFile:
 			err = write(le.Path, snapshot{})
@@ -497,16 +541,8 @@ func removeHostHooksEntry(j *journal, jp string, le *hostHooksEntry, fail func(s
 			return err
 		}
 	}
-	bk := codexBackupPath(le.Path)
-	if le.Record.BackupCreated {
-		if clean {
-			if err = write(bk, snapshot{}); err != nil {
-				return err
-			}
-		} else if b, err := read(bk); err == nil && b.Exists {
-			le.Notes = append(le.Notes, fmt.Sprintf("%s hooks: kept %s", le.Host, filepath.Base(bk)))
-		}
-	}
+	// The backup stays after an uninstall (private, 0600): it is the file as it
+	// was before Hive's first edit. A later fresh install overwrites it.
 	le.Pending, le.Done = false, true
 	return saveJournal(jp, *j)
 }
@@ -532,7 +568,7 @@ func undoHostHooksInstall(j journal) error {
 		if cur.Exists && finger(cur) != le.Before {
 			rec := le.Record
 			rec.Commands = append(append([]string(nil), le.Known...), rec.Commands...)
-			res := undoJSONHooks(cur.Data, spec, rec)
+			res := undoJSONHooksRestoring(cur.Data, spec, rec, le.Restore)
 			clean = res.Skipped == ""
 			switch {
 			case res.DeleteFile:

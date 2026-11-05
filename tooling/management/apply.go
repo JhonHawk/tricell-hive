@@ -805,7 +805,7 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	if err = decodeFile(jp, &j); err != nil {
 		return "", err
 	}
-	if (j.Version != 1 && j.Version != 2 && j.Version != 3 && j.Version != 4 && j.Version != 5 && j.Version != stateVersion) || j.Version != j.Plan.Version || j.ID != p.ID || j.Plan.StateDir != dir || j.Integrity != journalHash(j) || j.Plan.ID != planID(j.Plan) {
+	if (j.Version != 1 && j.Version != 2 && j.Version != 3 && j.Version != 4 && j.Version != 5 && j.Version != 6 && j.Version != stateVersion) || j.Version != j.Plan.Version || j.ID != p.ID || j.Plan.StateDir != dir || j.Integrity != journalHash(j) || j.Plan.ID != planID(j.Plan) {
 		return "", fmt.Errorf("invalid transaction")
 	}
 	removeOrphanWrites(dir, j)

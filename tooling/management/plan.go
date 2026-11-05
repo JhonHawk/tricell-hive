@@ -1180,6 +1180,7 @@ func Status(o Options) ([]StatusEntry, error) {
 		}
 		out = append(out, en)
 	}
+	out = append(out, hostHookRows(c, h, state, pending.Exists)...)
 	sort.Slice(out, func(i, j int) bool {
 		if out[i].Path != out[j].Path {
 			return out[i].Path < out[j].Path
@@ -1191,7 +1192,10 @@ func Status(o Options) ([]StatusEntry, error) {
 		if out[i].Kind != out[j].Kind {
 			return out[i].Kind < out[j].Kind
 		}
-		return out[i].Host < out[j].Host
+		if out[i].Host != out[j].Host {
+			return out[i].Host < out[j].Host
+		}
+		return out[i].Event < out[j].Event
 	})
 	return out, nil
 }

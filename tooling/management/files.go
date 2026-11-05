@@ -188,7 +188,7 @@ func readState(dir string) (State, string, error) {
 		if err = json.Unmarshal(s.Data, &state); err != nil {
 			return state, "", err
 		}
-		if (state.Version != 1 && state.Version != 2 && state.Version != 3 && state.Version != 4 && state.Version != 5 && state.Version != stateVersion) || state.Records == nil {
+		if (state.Version != 1 && state.Version != 2 && state.Version != 3 && state.Version != 4 && state.Version != 5 && state.Version != 6 && state.Version != stateVersion) || state.Records == nil {
 			return state, "", fmt.Errorf("unsupported state")
 		}
 		if err = validateProductState(state); err != nil {

@@ -237,6 +237,33 @@ func TestConsumerVersionIsIndependentOfSharedRecordProvenance(t *testing.T) {
 	}
 }
 
+// An older binary refuses a state version it does not know, so a state that
+// records host hooks must carry a version newer than 6, which dropped them.
+func TestStateWithHostHooksIsNewerThanVersion6AndV6Migrates(t *testing.T) {
+	o, hp, _ := hooksSetup(t)
+	apply(t, plan(t, "install", o))
+	st := stateFor(t, o)
+	if st.Version <= 6 || len(st.HostHooks) == 0 {
+		t.Fatalf("state version %d with %d host hook records", st.Version, len(st.HostHooks))
+	}
+	old := st
+	old.Version = 6
+	put(t, filepath.Join(o.StateDir, "state.json"), string(encode(old)))
+	before := get(t, filepath.Join(o.StateDir, "state.json"))
+	next := plan(t, "install", o)
+	if get(t, filepath.Join(o.StateDir, "state.json")) != before {
+		t.Fatal("planning migrated state")
+	}
+	apply(t, next)
+	got := stateFor(t, o)
+	if got.Version != stateVersion || len(got.HostHooks) != len(st.HostHooks) {
+		t.Fatalf("migrated state: version %d, %d host hook records", got.Version, len(got.HostHooks))
+	}
+	if len(hiveCommands(t, hp.claude, "claude")) != 7 {
+		t.Fatal("the migration changed the hook entries")
+	}
+}
+
 func TestV5StateIsNotMigratedDuringPlanning(t *testing.T) {
 	o := setup(t)
 	p := plan(t, "install", o)

@@ -42,13 +42,14 @@ func ParseCommand(command string) (executable, word, event string, ok bool) {
 
 // IsHiveCommand reports whether command is a hook command of Hive for the host
 // word and event: either exactly one of the commands the manager recorded, or
-// the registered shape with an absolute path to a binary whose name starts with
-// "hive" (so a moved or rebuilt binary is still recognized and replaced, and a
-// foreign hook that merely mentions "hook" never is).
+// the registered shape with an absolute path to a binary named exactly "hive"
+// (so a moved binary is still recognized and replaced, and a lookalike such as
+// hivectl or a foreign hook that merely mentions "hook" never is; a binary under
+// another name is recognized only through the recorded commands).
 func IsHiveCommand(command, word, event string, recorded map[string]bool) bool {
 	if recorded[command] {
 		return true
 	}
 	exe, w, e, ok := ParseCommand(command)
-	return ok && w == word && e == event && strings.HasPrefix(filepath.Base(exe), "hive")
+	return ok && w == word && e == event && filepath.Base(exe) == "hive"
 }

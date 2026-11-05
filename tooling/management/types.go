@@ -136,7 +136,8 @@ type State struct {
 	CodexWaitFloor *CodexWaitFloorRecord `json:"codex_wait_floor,omitempty"`
 	// HostHooks records, per shared JSON hook file (Claude Code's settings.json,
 	// Codex's and Cursor's hooks.json), the entries Hive added to it, keyed by
-	// path. Schema stays 6 via omitempty.
+	// path. Schema 7: a binary that knows only 6 would drop this field, so a
+	// state that may hold it carries a version it refuses.
 	HostHooks map[string]HostHooksRecord `json:"host_hooks,omitempty"`
 }
 type Fingerprint struct {
@@ -230,6 +231,10 @@ type HostHooksStep struct {
 	Host     string      `json:"host"`
 	Path     string      `json:"path"`
 	Expected Fingerprint `json:"expected"`
+	// Skipped is why the manager will not edit the file (invalid JSON, a
+	// symlink, a hard link, a shape it does not know). A skipped step is never
+	// written and never recorded; the caller's notes name it.
+	Skipped string `json:"skipped,omitempty"`
 }
 
 // HostHooksRecord is what Hive owns in a shared JSON hook file after a write:
@@ -244,6 +249,10 @@ type HostHooksRecord struct {
 	CreatedHooks  bool     `json:"created_hooks,omitempty"`
 	CreatedEvents []string `json:"created_events,omitempty"`
 	BackupCreated bool     `json:"backup_created,omitempty"`
+	// Interiors holds the whitespace between the brackets of a container that
+	// was empty when Hive filled it ("root", "hooks" or "event:<name>"), so an
+	// uninstall puts the user's `[ ]` back instead of `[]`.
+	Interiors map[string]string `json:"interiors,omitempty"`
 }
 
 // CodexWaitFloorStep is the planned write of the wait floor keys into
@@ -322,6 +331,11 @@ type StatusEntry struct {
 	// Voice is set only on a Kind "voice" row: the voice ID, address and
 	// intensity, e.g. "jarvis (sir, subtle)" (see design.md "status").
 	Voice string `json:"Voice,omitempty"`
+	// Event and Reason are set only on a Kind "hook_entry" row: the event of
+	// one Hive entry in a shared JSON hook file, and, when its Status is
+	// "skipped", why the file cannot be read as a hook file.
+	Event  string `json:"Event,omitempty"`
+	Reason string `json:"Reason,omitempty"`
 }
 
 func hash(b []byte) string { h := sha256.Sum256(b); return hex.EncodeToString(h[:]) }

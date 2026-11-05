@@ -198,15 +198,23 @@ func TestMovedBinaryIsReplacedInPlaceNotDuplicated(t *testing.T) {
 
 func TestRoundTripKeepsEveryFormattingStyle(t *testing.T) {
 	cases := map[string]string{
-		"tabs":          "{\n\t\"hooks\": {\n\t\t\"Stop\": [\n\t\t\t{ \"hooks\": [ { \"type\": \"command\", \"command\": \"x\" } ] }\n\t\t]\n\t}\n}\n",
-		"four spaces":   "{\n    \"a\": 1,\n    \"hooks\": {\n        \"SessionStart\": []\n    }\n}\n",
-		"compact":       `{"a":1,"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"x"}]}]}}`,
-		"crlf":          "{\r\n  \"a\": 1,\r\n  \"hooks\": {\r\n    \"Stop\": []\r\n  }\r\n}\r\n",
-		"no hooks":      "{\n  \"model\": \"opus\"\n}\n",
-		"empty object":  "{}",
-		"no newline":    "{\n  \"model\": \"opus\"\n}",
-		"empty hooks":   "{\n  \"hooks\": {}\n}\n",
-		"trailing text": "{\n  \"hooks\": {\n    \"SessionStart\": [\n      {\n        \"hooks\": []\n      }\n    ]\n  }\n}\n\n",
+		"tabs":         "{\n\t\"hooks\": {\n\t\t\"Stop\": [\n\t\t\t{ \"hooks\": [ { \"type\": \"command\", \"command\": \"x\" } ] }\n\t\t]\n\t}\n}\n",
+		"four spaces":  "{\n    \"a\": 1,\n    \"hooks\": {\n        \"SessionStart\": []\n    }\n}\n",
+		"compact":      `{"a":1,"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"x"}]}]}}`,
+		"crlf":         "{\r\n  \"a\": 1,\r\n  \"hooks\": {\r\n    \"Stop\": []\r\n  }\r\n}\r\n",
+		"no hooks":     "{\n  \"model\": \"opus\"\n}\n",
+		"empty object": "{}",
+		"no newline":   "{\n  \"model\": \"opus\"\n}",
+		"empty hooks":  "{\n  \"hooks\": {}\n}\n",
+		// Whitespace inside a container that is empty before Hive's entries
+		// and empty again after they go is the user's, and stays.
+		"empty array with a space": "{\n  \"hooks\": {\n    \"SessionStart\": [ ]\n  }\n}\n",
+		"empty array over lines":   "{\n  \"hooks\": {\n    \"SessionStart\": [\n    ]\n  }\n}\n",
+		"empty hooks with a space": "{\n  \"hooks\": { }\n}\n",
+		"empty hooks over lines":   "{\n  \"hooks\": {\n  }\n}\n",
+		"empty root with a space":  "{ }",
+		"empty root over lines":    "{\n\n}\n",
+		"trailing text":            "{\n  \"hooks\": {\n    \"SessionStart\": [\n      {\n        \"hooks\": []\n      }\n    ]\n  }\n}\n\n",
 	}
 	for name, in := range cases {
 		t.Run(name, func(t *testing.T) {
@@ -313,6 +321,8 @@ func TestForeignLookalikesAreNeverTouched(t *testing.T) {
     "SessionStart": [
       { "hooks": [ { "type": "command", "command": "'/usr/local/bin/other' hook claude SessionStart" } ] },
       { "hooks": [ { "type": "command", "command": "hive-wrapper hook claude SessionStart" } ] },
+      { "hooks": [ { "type": "command", "command": "'/opt/hivemind/bin/hivectl' hook claude SessionStart" } ] },
+      { "hooks": [ { "type": "command", "command": "'/opt/hive/bin/hive-tool' hook claude SessionStart" } ] },
       { "hooks": [ { "type": "command", "command": "'/opt/hive/bin/hive' hook claude SessionStart" }, { "type": "command", "command": "echo shared group" } ] }
     ]
   }

@@ -464,7 +464,25 @@ func installationSection(o management.Options, st doctorState) doctorSection {
 	var problems []*problem
 	index := map[[2]string]*problem{}
 	drift := false
+	var hookProblems []*hookProblem
+	hookIndex := map[[3]string]*hookProblem{}
 	for _, e := range st.entries {
+		if e.Kind == "hook_entry" {
+			// One entry of Hive's in a shared JSON hook file: only a missing
+			// entry or a skipped file is a problem to show.
+			if e.Status != "missing" && e.Status != "skipped" {
+				continue
+			}
+			key := [3]string{e.Host, e.Path, e.Status}
+			hp := hookIndex[key]
+			if hp == nil {
+				hp = &hookProblem{host: e.Host, path: e.Path, status: e.Status, reason: e.Reason}
+				hookIndex[key] = hp
+				hookProblems = append(hookProblems, hp)
+			}
+			hp.events = append(hp.events, e.Event)
+			continue
+		}
 		switch e.Status {
 		case "installed", "retained_shared", "not_installed":
 			continue
@@ -502,6 +520,9 @@ func installationSection(o management.Options, st doctorState) doctorSection {
 			fmt.Sprintf("%s  %s  %s", sanitizeLine(p.status), strings.Join(hosts, ", "), phrase),
 			"  "+sanitizeLine(p.path))
 	}
+	for _, hp := range hookProblems {
+		sec.Lines = append(sec.Lines, hp.lines()...)
+	}
 	if drift {
 		sec.Lines = append(sec.Lines, driftRepairText)
 	}
@@ -513,6 +534,27 @@ func installationSection(o management.Options, st doctorState) doctorSection {
 		sec.Lines = []string{"No problems found"}
 	}
 	return sec
+}
+
+// hookProblem groups the hook entry rows of one host and file that are missing,
+// or the one reason the file is skipped.
+type hookProblem struct {
+	host, path, status, reason string
+	events                     []string
+}
+
+func (hp *hookProblem) lines() []string {
+	var head string
+	if hp.status == "skipped" {
+		head = fmt.Sprintf("hooks  %s  skipped, Hive cannot edit this hook file and registered no hooks there (%s); fix the file and run hive update", sanitizeLine(hp.host), sanitizeLine(hp.reason))
+	} else {
+		events := make([]string, len(hp.events))
+		for i, e := range hp.events {
+			events[i] = sanitizeLine(e)
+		}
+		head = fmt.Sprintf("hooks  %s  missing Hive hook entries: %s; run hive update", sanitizeLine(hp.host), strings.Join(events, ", "))
+	}
+	return []string{head, "  " + sanitizeLine(hp.path)}
 }
 
 // recoverCommand names hive recover, with --state-dir unless the state
