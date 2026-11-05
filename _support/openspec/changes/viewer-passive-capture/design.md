@@ -165,4 +165,8 @@ Resumen…        [● Activo] [⋯]          Resumen…  Activo hace 3 min [●
 
 ## Recuperación
 
-Revertir el PR y ejecutar `hive update` quita los hooks, el plugin y la extensión, y vuelve al contrato anterior tras recargar el visor. Los eventos del host ya guardados quedan en el historial de los trabajos y no se borran. Las copias de seguridad de `settings.json` y `hooks.json` permiten restaurarlos a mano.
+Antes de revertir, quitar los hooks con el binario de este cambio: `hive plan remove`, o `hive update` desde `development` con el binario nuevo. Un binario anterior no entiende el estado nuevo: el gestor sube la versión del esquema de estado, así que el binario viejo se niega con su error de «actualiza Hive» en vez de perder las entradas. Después ya se puede revertir el PR, reconstruir el binario anterior y recargar el visor en el contrato anterior.
+
+Hay dos cosas que no se deshacen:
+- los eventos del host ya guardados se quedan en el historial de los trabajos;
+- las copias `.hive-backup` de `settings.json` y `hooks.json` se conservan con modo 0600 para restaurarlos a mano, y la siguiente instalación las sobrescribe.
