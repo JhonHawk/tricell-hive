@@ -80,6 +80,7 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         noTasks: "Sin tareas publicadas",
         activity: "Actividad",
         localViewer: "Visor local",
+        localViewerCli: "Visor local · CLI",
         producerUnavailable: "Productor no disponible",
         sessions: "Sesiones",
         lead: "Conductor",
@@ -300,6 +301,7 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         noTasks: "No tasks published",
         activity: "Activity",
         localViewer: "Local viewer",
+        localViewerCli: "Local viewer · CLI",
         producerUnavailable: "Producer unavailable",
         sessions: "Sessions",
         lead: "Lead",
@@ -470,4 +472,11 @@ export function timelineEventTitle(
   if (event.kind !== "stage" || !event.stage) return event.title;
   const name = timelineCopy(lang).stageNames[event.stage];
   return event.title ? `${name} · ${event.title}` : name;
+}
+
+export function localViewerLabel(
+  actor: { origin?: string },
+  t: { localViewer: string; localViewerCli: string },
+): string {
+  return actor.origin === "cli" ? t.localViewerCli : t.localViewer;
 }

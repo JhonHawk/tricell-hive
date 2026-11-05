@@ -234,7 +234,7 @@ func viewWorkHTTP(info serverInfo, method, path, ct string, body []byte) ([]byte
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	resp, err := client.Do(req)
 	if err != nil {
-		return nil, "", errors.New("uncertain response")
+		return nil, "", errWorkUncertain
 	}
 	defer resp.Body.Close()
 	if resp.Header.Get(viewer.TimelineRevisionHeader) != "2" {
@@ -242,7 +242,7 @@ func viewWorkHTTP(info serverInfo, method, path, ct string, body []byte) ([]byte
 	}
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, viewer.TimelineMaxResponseBody+1))
 	if err != nil || len(raw) > viewer.TimelineMaxResponseBody {
-		return nil, "", errors.New("incomplete response")
+		return nil, "", errWorkIncomplete
 	}
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		var failure struct {
@@ -451,6 +451,10 @@ func (e *viewWorkEngine) completeOpen(c viewWorkCommand, i *viewWorkIntent) (vie
 	return r.Session, err
 }
 func executeViewWork(c viewWorkCommand, w io.Writer) error {
+	if isViewWorkLocal(c.Action) {
+		// Management commands keep no publisher journal and take no native identity.
+		return executeViewWorkLocal(c, w)
+	}
 	e, err := openViewWorkEngine(c)
 	if err != nil {
 		return err

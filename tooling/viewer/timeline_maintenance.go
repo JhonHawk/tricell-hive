@@ -194,7 +194,7 @@ func (s *Store) timelineAdministrativeCommit(r *timelineRecord, request Timeline
 		return TimelineOperationResult{}, err
 	}
 	result := timelineResult(r, "session_patch", request.OperationID)
-	receipt := &timelineAdministrativeReceipt{Actor: request.Actor, OperationID: request.OperationID, RequestSHA256: digest, ExpectedVersion: request.ExpectedVersion, CommittedVersion: r.Session.Version, CompletedAt: now, Result: result}
+	receipt := &timelineAdministrativeReceipt{Actor: request.Actor.recorded(), OperationID: request.OperationID, RequestSHA256: digest, ExpectedVersion: request.ExpectedVersion, CommittedVersion: r.Session.Version, CompletedAt: now, Result: result}
 	if request.Archived != nil {
 		if *request.Archived {
 			r.Maintenance.ArchiveReceipt = receipt

@@ -431,6 +431,11 @@ scans the selected directory, uploads the bytes and returns a compact work/revis
 receipt. `hive view work contract` describes the semantic commands. A stable key
 and retained work ID keep two change folders separate within one native session;
 `work list` lists them. Repeating unchanged content makes no remote write.
+Everything the browser manages also has a command: `hive view work rename`,
+`archive`, `restore`, `pin`, `unpin`, `recover` (reassign the lead to a pending
+join request, with a reason) and `delete` (with `--confirm` set to the work ID).
+They act as the local viewer, not as a producer, and an agent runs them only
+when you ask for that action on a named work.
 The agent still declares task progress and stage changes through the task and
 stage commands. There is no background watcher, and editing a checklist does not
 change live task status. Source files stay in the repository.

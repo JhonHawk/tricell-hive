@@ -46,6 +46,7 @@ import {
   type TimelineWaitState,
 } from "./timeline-contract-v3";
 import {
+  localViewerLabel,
   type TimelineLanguage,
   timelineCopy,
   timelineDate,
@@ -649,7 +650,7 @@ export function useTimelinePanel({
                           ? event.actor.producer_id
                           : ""),
                     )?.source.native_session_id
-                  : t.localViewer}{" "}
+                  : localViewerLabel(event.actor, t)}{" "}
                 · {timelineDate(event.created_at, lang)}
               </p>
             </section>

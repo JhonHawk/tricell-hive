@@ -12,6 +12,14 @@ raise the minor or the patch version.
 
 ### Added
 
+- Every action the viewer's browser offers has a command: `hive view work
+  rename`, `archive`, `restore`, `pin`, `unpin`, `recover` (reassign the lead to
+  a pending join request, with a reason) and `delete` (with `--confirm` set to
+  the work ID). They act as the local viewer with a declared `origin: cli`, kept
+  in the action's audit, check the viewer's `local_actions_cli` capability before
+  sending, and an agent runs them only when the user asks for that action on a
+  named work; deleting is asked every time.
+
 - A repository can declare trackers besides its main `Tracker` in the optional
   `## Hive` key `Other trackers`, such as
   `Jira · example.atlassian.net · keys XYZ`, and give each one its own

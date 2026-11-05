@@ -88,12 +88,19 @@ func TestViewTimelineV3RejectsCompleteV1Write(t *testing.T) {
 func TestViewTimelineV3NativeDeletionPointsToBrowser(t *testing.T) {
 	var out bytes.Buffer
 	err := runViewTimeline([]string{"session", "delete", strings.Repeat("a", 64), "--json", "-", "--state-dir", filepath.Join(t.TempDir(), "missing")}, &out, strings.NewReader(`{"schema_version":3}`))
-	if err == nil || !strings.Contains(err.Error(), "authenticated browser") || out.Len() != 0 {
-		t.Fatal("native deletion did not preserve browser-only boundary", err)
+	if err == nil || !strings.Contains(err.Error(), "authenticated browser") || !strings.Contains(err.Error(), "hive view work delete") || !strings.Contains(err.Error(), "critical effect") || strings.Contains(err.Error(), "when the user asked") || out.Len() != 0 {
+		t.Fatal("native deletion did not point to the confirmed commands", err)
 	}
 }
 
-func TestViewTimelineV3OfflineDeletionUsageIsBrowserOnly(t *testing.T) {
+func TestViewTimelineLocalViewerActorErrorPointsToWorkCommands(t *testing.T) {
+	err := validateViewTimelineInput("session_patch", []byte(`{"actor":{"kind":"local_viewer"}}`))
+	if err == nil || !strings.Contains(err.Error(), "local_viewer_actor_forbidden_in_native_cli") || !strings.Contains(err.Error(), "hive view work") {
+		t.Fatal("local_viewer refusal does not point to the management commands", err)
+	}
+}
+
+func TestViewTimelineV3OfflineDeletionUsagePointsToWorkDelete(t *testing.T) {
 	var out bytes.Buffer
 	if err := runViewTimeline([]string{"contract", "--operation", "session_delete"}, &out, nil); err != nil {
 		t.Fatal(err)
@@ -102,8 +109,8 @@ func TestViewTimelineV3OfflineDeletionUsageIsBrowserOnly(t *testing.T) {
 	if err := json.Unmarshal(out.Bytes(), &contract); err != nil {
 		t.Fatal(err)
 	}
-	if len(contract.Commands) != 1 || strings.Contains(contract.Commands[0].Usage, "hive view session delete") || !strings.Contains(contract.Commands[0].Usage, "Local viewer only") {
-		t.Fatal("offline catalog advertised unsupported native deletion")
+	if len(contract.Commands) != 1 || strings.Contains(contract.Commands[0].Usage, "hive view session delete") || !strings.Contains(contract.Commands[0].Usage, "hive view work delete --work-id <id> --confirm <id>") || !strings.Contains(contract.Commands[0].Usage, "local_viewer") {
+		t.Fatal("offline catalog advertised native deletion instead of the confirmed work command")
 	}
 }
 
@@ -307,5 +314,20 @@ func TestViewContractReportsRealBuildErrorsNotUnknownFlow(t *testing.T) {
 	out.Reset()
 	if err := runViewTimeline([]string{"contract", "--for", "local"}, &out, nil); err != nil || !strings.Contains(out.String(), `"session_delete"`) {
 		t.Fatalf("local flow: %v", err)
+	}
+}
+
+// The pointer must reach the user through the real command, not only the validator.
+func TestViewSessionUpdatePointsToWorkCommands(t *testing.T) {
+	id := strings.Repeat("a", 64)
+	for name, body := range map[string]string{
+		"local_viewer actor":  `{"schema_version":3,"operation_id":"op-1","expected_version":1,"actor":{"kind":"local_viewer"},"title":"New"}`,
+		"native actor, title": `{"schema_version":3,"operation_id":"op-1","expected_version":1,"actor":{"kind":"native_producer","producer_id":"producer-1"},"title":"New"}`,
+	} {
+		var out bytes.Buffer
+		err := runViewTimeline([]string{"session", "update", id, "--json", "-", "--state-dir", filepath.Join(t.TempDir(), "missing")}, &out, strings.NewReader(body))
+		if err == nil || !strings.Contains(err.Error(), "`hive view work rename|archive|restore|pin|unpin") || out.Len() != 0 {
+			t.Fatalf("%s: no pointer to the work commands: %v", name, err)
+		}
 	}
 }

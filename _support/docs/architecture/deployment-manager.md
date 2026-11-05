@@ -205,9 +205,17 @@ directory; installation and restart require their applicable authorization.
 A work has a stable server ID derived from canonical project and its initial
 native identity. Accepted producers join that work under their own Source and
 producer IDs; lead/foreground transfers do not replace its identity. Native
-provenance is not cryptographic proof of a process. Typed browser management and
-explicit lead recovery use local_viewer; publication requires an accepted native
-producer and the operation's lead/assignment rules. No browser task executor,
+provenance is not cryptographic proof of a process. Typed management (rename, archive/restore, pin/unpin, delete) and explicit
+lead recovery use local_viewer, from the browser or from `hive view work
+rename|archive|restore|pin|unpin|recover|delete`, which declare `origin: cli`;
+the origin is declared provenance, kept in the event, administrative receipt or
+private deletion audit. The CLI checks the `local_actions_cli` capability of
+`/api/health` before sending; after an uncertain response it resends the same
+request once, which the viewer answers from its stored receipt, and only then
+re-reads the work.
+A record stored with `origin` does not load in an older binary, so rolling back
+after using these commands needs the state backup. Publication requires an
+accepted native producer and the operation's lead/assignment rules. No browser task executor,
 provider fetch, CI rerun or automatic merge is exposed.
 
 Transactions run under the store lock against a cloned record. Version checks,

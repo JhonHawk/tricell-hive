@@ -64,7 +64,7 @@ func TimelineProtocolContract(operation string) (TimelineProtocolDescription, er
 		{"create_session", "hive view session create --json <file|->", TimelineCreateSessionRequest{}, TimelineSessionResponse{}, create},
 		{"session_get", "hive view session get <session-id>", nil, TimelineSessionResponse{}, map[string]any{}},
 		{"session_patch", "hive view session update <session-id> --json <file|->", TimelineSessionPatchRequest{}, TimelineOperationResult{}, TimelineSessionPatchRequest{Actor: actor, SchemaVersion: 3, OperationID: "update-example", ExpectedVersion: 1, Summary: timelineStringPointer("Updated summary")}},
-		{"session_delete", "Local viewer only: DELETE /api/timeline/sessions/<session-id>", TimelineMutationRequest{}, TimelineOperationResult{}, TimelineMutationRequest{SchemaVersion: 3, OperationID: "delete-example", ExpectedVersion: 1, Actor: TimelineActor{Kind: "local_viewer"}}},
+		{"session_delete", "hive view work delete --work-id <id> --confirm <id> (local_viewer; or DELETE /api/timeline/sessions/<session-id>)", TimelineMutationRequest{}, TimelineOperationResult{}, TimelineMutationRequest{SchemaVersion: 3, OperationID: "delete-example", ExpectedVersion: 1, Actor: TimelineActor{Kind: "local_viewer"}}},
 		{"append_event", "hive view event add <session-id> --json <file|->", TimelineAppendEventRequest{}, TimelineOperationResult{}, TimelineAppendEventRequest{Actor: actor, SchemaVersion: 3, OperationID: "request-example", Kind: "request", Title: "Request", Summary: "Initial scope", TicketIDs: []string{}}},
 		{"event_patch", "hive view event update <session-id> <event-id> --json <file|->", TimelineEventPatchRequest{}, TimelineOperationResult{}, TimelineEventPatchRequest{Actor: actor, SchemaVersion: 3, OperationID: "copy-example", ExpectedVersion: 1, Title: timelineStringPointer("Corrected title")}},
 		{"event_withdraw", "hive view event withdraw <session-id> <event-id> --json <file|->", TimelineMutationRequest{}, TimelineOperationResult{}, mutation},
@@ -174,7 +174,7 @@ func timelineProtocolSchema(t reflect.Type) map[string]any {
 		if t == reflect.TypeOf(TimelineActor{}) {
 			return map[string]any{"oneOf": []any{
 				map[string]any{"type": "object", "properties": map[string]any{"kind": map[string]any{"const": "native_producer"}, "producer_id": map[string]any{"type": "string", "pattern": timelineOpaqueID.String()}}, "required": []string{"kind", "producer_id"}, "additionalProperties": false},
-				map[string]any{"type": "object", "properties": map[string]any{"kind": map[string]any{"const": "local_viewer"}}, "required": []string{"kind"}, "additionalProperties": false},
+				map[string]any{"type": "object", "properties": map[string]any{"kind": map[string]any{"const": "local_viewer"}, "origin": map[string]any{"enum": []string{"browser", "cli"}}}, "required": []string{"kind"}, "additionalProperties": false},
 			}}
 		}
 		properties := map[string]any{}
@@ -542,6 +542,7 @@ func TimelineProtocolBrief(flow string) (TimelineProtocolBriefDescription, error
 			// Native producers never act as local_viewer (the native validator
 			// rejects it), so only the local flow spends bytes on actor.kind.
 			delete(enums, "actor.kind")
+			delete(enums, "actor.origin")
 		}
 		if len(enums) > 0 {
 			item.Enums = enums

@@ -20,7 +20,12 @@ import {
 } from "./timeline-contract";
 export type TimelineActor =
   | { kind: "native_producer"; producer_id: string }
-  | { kind: "local_viewer"; producer_id?: never };
+  | {
+      kind: "local_viewer";
+      producer_id?: never;
+      origin?: TimelineLocalOrigin;
+    };
+export type TimelineLocalOrigin = "browser" | "cli";
 export type TimelineProducer = {
   producer_id: string;
   source: TimelineSource;
@@ -308,6 +313,7 @@ const shapes: Record<string, Array<[string, string, boolean]>> = {
   TimelineActor: [
     ["kind", "string", false],
     ["producer_id", "string", true],
+    ["origin", "string", true],
   ],
   TimelineProducer: [
     ["producer_id", "string", false],
@@ -663,11 +669,21 @@ export function validateTimelineActor(
   native = false,
 ): asserts value is TimelineActor {
   const v = record(value);
-  if (Object.keys(v).some((k) => !["kind", "producer_id"].includes(k)))
+  if (
+    Object.keys(v).some((k) => !["kind", "producer_id", "origin"].includes(k))
+  )
     fail("actor", "unknown_field");
-  if (v.kind === "native_producer") id(v.producer_id, "actor.producer_id");
-  else if (v.kind !== "local_viewer" || Object.hasOwn(v, "producer_id"))
+  if (v.kind === "native_producer") {
+    id(v.producer_id, "actor.producer_id");
+    if (Object.hasOwn(v, "origin")) fail("actor", "invalid_actor");
+  } else if (v.kind !== "local_viewer" || Object.hasOwn(v, "producer_id"))
     fail("actor", "invalid_actor");
+  else if (
+    Object.hasOwn(v, "origin") &&
+    v.origin !== "browser" &&
+    v.origin !== "cli"
+  )
+    fail("actor.origin", "invalid_origin");
   if (native && v.kind !== "native_producer")
     fail("actor", "native_producer_required");
 }

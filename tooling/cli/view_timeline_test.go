@@ -162,15 +162,15 @@ func TestTimelineCLITransportGuardsAndProtocolIdentity(t *testing.T) {
 	}))
 	defer server.Close()
 	info = timelineCLIInfo(t, server)
-	if err := viewTimelineProtocolReady(info, "/fixture-state"); err != nil {
+	if _, err := viewTimelineReadHealth(info, "/fixture-state"); err != nil {
 		t.Fatal(err)
 	}
 	protocolVersion.Store(1)
-	if err := viewTimelineProtocolReady(info, "/fixture-state"); err == nil {
+	if _, err := viewTimelineReadHealth(info, "/fixture-state"); err == nil {
 		t.Fatal("accepted obsolete v1 server")
 	}
 	protocolVersion.Store(3)
-	if err := viewTimelineProtocolReady(info, "/different-state"); err == nil {
+	if _, err := viewTimelineReadHealth(info, "/different-state"); err == nil {
 		t.Fatal("accepted wrong server identity")
 	}
 	if _, err := viewTimelineHTTP(info, "PATCH", "/api/timeline/sessions/test", "application/json", strings.NewReader(`{}`), 1024); err != nil {

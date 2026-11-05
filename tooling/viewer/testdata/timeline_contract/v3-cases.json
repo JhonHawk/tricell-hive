@@ -448,6 +448,54 @@
     "json": "{\"kind\":\"local_viewer\"}"
   },
   {
+    "name": "authority session_rename local_viewer origin cli",
+    "action": "authority",
+    "kind": "session_rename",
+    "object_id": "",
+    "valid": true,
+    "json": "{\"kind\":\"local_viewer\",\"origin\":\"cli\"}"
+  },
+  {
+    "name": "authority session_delete local_viewer origin browser",
+    "action": "authority",
+    "kind": "session_delete",
+    "object_id": "",
+    "valid": true,
+    "json": "{\"kind\":\"local_viewer\",\"origin\":\"browser\"}"
+  },
+  {
+    "name": "authority recover_lead local_viewer origin cli",
+    "action": "authority",
+    "kind": "recover_lead",
+    "object_id": "",
+    "valid": true,
+    "json": "{\"kind\":\"local_viewer\",\"origin\":\"cli\"}"
+  },
+  {
+    "name": "authority session_delete local_viewer unknown origin",
+    "action": "authority",
+    "kind": "session_delete",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"kind\":\"local_viewer\",\"origin\":\"robot\"}"
+  },
+  {
+    "name": "authority append_event local_viewer origin cli",
+    "action": "authority",
+    "kind": "append_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"kind\":\"local_viewer\",\"origin\":\"cli\"}"
+  },
+  {
+    "name": "authority stage_start native_producer origin cli",
+    "action": "authority",
+    "kind": "stage_start",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"kind\":\"native_producer\",\"producer_id\":\"producer-original\",\"origin\":\"cli\"}"
+  },
+  {
     "name": "authority append_event local_viewer",
     "action": "authority",
     "kind": "append_event",

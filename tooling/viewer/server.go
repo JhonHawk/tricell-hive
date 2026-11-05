@@ -272,7 +272,10 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		ProtocolVersion int    `json:"timeline_protocol_version"`
 		Revision        string `json:"revision"`
 		Modified        bool   `json:"modified"`
-	}{s.pid, filepath.Dir(s.store.Dir()), s.version, s.store.TTL().String(), "manual", TimelineSchemaVersion, s.revision, s.modified})
+		// Capabilities lets the CLI tell a viewer that accepts the declared
+		// local_viewer origin from an older one before it sends anything.
+		Capabilities []string `json:"capabilities"`
+	}{s.pid, filepath.Dir(s.store.Dir()), s.version, s.store.TTL().String(), "manual", TimelineSchemaVersion, s.revision, s.modified, []string{"local_actions_cli"}})
 }
 
 type indexView struct {
