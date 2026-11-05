@@ -37,6 +37,7 @@ Source-byte unions are not actual tokens or evidence of small-model reliability.
 - [flow-close](content/skills/flow-close/SKILL.md): move the ticket and report at integration, end with a close footer, and clean up task-owned resources on the user's reply, honoring a `Completion` key's later completion point
 - [flow-deploy](content/skills/flow-deploy/SKILL.md): promote an integrated candidate through the declared environments and verify what is served, moving tickets to the final state a `Completion` key names
 - [git-workflow](content/skills/git-workflow/SKILL.md): prepare authorized Git delivery while preserving unrelated work
+- [hive-ui-criteria](content/skills/hive-ui-criteria/SKILL.md): detect the project's component library, installed version and customization layer, keep them in a verified `DESIGN.md`, and give design, build and review work measurable UI criteria below the project's own design system
 - [flow-walkthrough](content/skills/flow-walkthrough/SKILL.md): publish session milestones and evidence to the viewer, and present a built interface for validation
 - [flow-report](content/skills/flow-report/SKILL.md): a designed HTML report, comparison, explainer or deck
 - [starlight-docs-site](content/skills/starlight-docs-site/SKILL.md): scaffold, extend or audit a documentation site

@@ -12,6 +12,22 @@ raise the minor or the patch version.
 
 ### Added
 
+- A `hive-ui-criteria` skill gives design, build and review work criteria for
+  screens that never override the project's own design system. It detects the
+  component library, its installed version (from the lockfile, not the manifest
+  range) and its customization layer in any project, and keeps them in a
+  `DESIGN.md` at the root of the app that owns the UI. The plan loads it in its
+  UI decisions and, when the file is missing or out of date, adds a task that
+  writes or refreshes it; outside a plan it is written only when you ask. The
+  UX review reads the file and reports as defects, when the change introduced
+  them, the checks the skill marks as measured: accessibility minimums, the
+  states of searches and lists, button and error texts, and extreme cases. An
+  unmodified library default that fails one of them goes to the defects that
+  were already there, and a decision recorded in the file is not a deviation. The review also loads the changed regions at
+  a 320 px width to check reflow. The methodology is inspired by Impeccable
+  (Paul Bakaus, Apache-2.0) and the file follows the Google Labs DESIGN.md
+  format.
+
 - The viewer takes fewer publication commands per session. The agent declares
   each stage change once with `hive view work sync` (state, reason and task
   states in one call; a build without a plan takes `open`, `sync`, `evidence`,

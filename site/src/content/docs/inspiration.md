@@ -25,6 +25,19 @@ and a software development methodology.
 [Skills For Real Engineers](https://github.com/mattpocock/skills) offers agent
 skills for engineering work organized around an issue tracker.
 
+## Impeccable
+
+[Impeccable](https://github.com/pbakaus/impeccable) by Paul Bakaus (Apache-2.0)
+inspired the methodology of Hive's UI criteria skill: screen modes, product and
+design records, accessibility minimums and refinement passes. No file or passage
+is redistributed.
+
+## DESIGN.md
+
+The [DESIGN.md format](https://github.com/google-labs-code/design.md) from Google
+Labs (Apache-2.0) is the format of the design record that the UI criteria skill
+keeps for a project.
+
 ## Site foundations
 
 The documentation site uses [Starlight](https://starlight.astro.build/) and the
