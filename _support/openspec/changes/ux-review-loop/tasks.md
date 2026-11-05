@@ -118,9 +118,9 @@ La entrega es automática (D4 A): no hay parada de validación humana. El mensaj
   - No se corrigen (2): la tolerancia a deltas del mismo día debilita el chequeo para esos pares, y la causa de fondo es que los nombres de las carpetas archivadas no dan el orden dentro de un día. Era la decisión menor del plan; se reporta en el cierre.
 - Segunda revisión, acotada a `b285fbf0..de23aae9`: 10 hallazgos.
   - Bloquea uno: el nuevo destino de los defectos previos contradecía flow-close «Findings» y recomendaba «arreglar ahora» en un despliegue. Se corrigió en local con un puntero a flow-close (commit `Unreviewed:`), y con él la página del sitio y el delta. También se actualizó la bitácora.
-  - No bloquean y van a los hallazgos del cierre:
-    - el brief del revisor UX en el despliegue no apunta al «Reviewer brief»;
-    - una relectura acotada no dice si corre la auditoría del paso 2;
+  - No bloquean. El usuario eligió corregir dos en `fix/ux-review-findings` (2026-11-04); los demás van a los hallazgos del cierre:
+    - el brief del revisor UX en el despliegue no apunta al «Reviewer brief» (corregido);
+    - una relectura acotada no dice si corre la auditoría del paso 2 (corregido);
     - el hijo nuevo no sabe que los hallazgos vienen en su brief;
     - «last block wins» sigue el orden del archivo y no el orden de secciones de OpenSpec (comportamiento previo, sin regresión);
     - el bloque ganador se guarda dos veces en `latestDelta`.
