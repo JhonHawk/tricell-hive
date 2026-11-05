@@ -60,10 +60,12 @@ raise the minor or the patch version.
   audit and the measured checks, with the longest values. A deployment walk's
   UX reviewer gets the same brief, with the environment's URLs in place of
   captures.
-- `TestSpecDeltasApplied` accepts the delta of either change when two changes
-  archived the same day modify the same requirement, since folder names fix
-  the date but not the order within a day, and reports a requirement that one
-  archived delta lists twice.
+- An archived change folder is named `YYYY-MM-DD-HHMM-<change-id>` with the UTC
+  date and time of the archive, so `TestSpecDeltasApplied` requires the later
+  of two changes archived the same day; it accepts either delta only when a
+  same-day folder has no time or both share it. The two archives of
+  2026-11-04 carry their times. A requirement one archived delta lists twice is
+  reported while that folder holds the latest delta of it.
 - A list point that cites an ID opens with it in bold, followed by a dash and
   what it is in plain words, such as `- **D2** — Move the plan summary to the
   top`, so the reader finds it by its ID; the change folder's decision lines
