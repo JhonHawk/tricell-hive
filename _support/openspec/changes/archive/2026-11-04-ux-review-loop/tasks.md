@@ -127,3 +127,10 @@ La entrega es automática (D4 A): no hay parada de validación humana. El mensaj
 - Rama: `fix/ux-review-loop` en el worktree `.claude/worktrees/ux-review-loop`.
 - Visor: work `57e0a35a…`, con la etapa verify en curso.
 - Siguiente: push, PR, CI y merge (D4 A) y, después, `flow-close`.
+
+2026-11-04 — Cierre:
+- integrado con el PR #366 (`93b73a73`);
+- hallazgos corregidos en el PR #367 (`fd8074a2`, H20 y H21) y en el PR #368 (`1dd67c3b`, H22–H24);
+- H26–H28 ignorados por decisión del usuario;
+- H25 y H29–H36 pasan a otro plan;
+- el delta se fusionó en `specs/workflow-lifecycle/spec.md` y la carpeta pasó a `archive/2026-11-04-ux-review-loop`.

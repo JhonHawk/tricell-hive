@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | En build |
+| Estado | Completado · integrado en development (PR #366, #367 y #368) |
 | Tracker | Ninguno |
 | Git | tricell-hive · base `development` en `47362771` · rama propuesta `fix/ux-review-loop` |
 
