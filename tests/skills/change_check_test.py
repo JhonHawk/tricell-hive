@@ -118,6 +118,50 @@ class ChangeCheckTest(unittest.TestCase):
             self.assertIn("tasks.md:6: unchecked box: Export file written", archive.stdout)
             self.assertIn("1 unchecked box", archive.stdout.splitlines()[-1])
 
+    def test_a_changed_option_letter_is_a_replacement(self):
+        proposal = PROPOSAL.replace("- **D12 A** — Commit each task when reported. **Replaces:** D4-A", "- **D4 B** — Commit each task when reported. **Replaces:** D4-A")
+        tasks = TASKS.replace("**Changes:** commit by D12-A, which replaced D4-A.", "**Changes:** commit per D4-A; D4-B is current.")
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.folder(tmp, proposal=proposal, tasks=tasks))
+            self.assertEqual(result.returncode, 0, result.stdout)
+            tasks = TASKS.replace("**Changes:** commit by D12-A, which replaced D4-A.", "**Changes:** commit per D4-A.")
+            result = self.run_check(self.folder(tmp, proposal=proposal, tasks=tasks))
+            self.assertIn("tasks.md:10: D4-A", result.stdout)
+
+    def test_only_the_proposal_definition_keeps_an_old_id(self):
+        tasks = TASKS.replace("**Changes:** commit by D12-A, which replaced D4-A.", "- AC2 — check the retired thing still")
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.folder(tmp, tasks=tasks))
+            self.assertIn("tasks.md:10: AC2", result.stdout)
+
+    def test_prose_after_the_replaced_ids_is_not_replaced(self):
+        proposal = PROPOSAL.replace("**Replaces:** D4-A", "**Replaces:** D4-A (asked again after T1)")
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.folder(tmp, proposal=proposal))
+            self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_markers_with_the_colon_outside_the_bold(self):
+        proposal = PROPOSAL.replace("**Replaces:**", "**Replaces**:")
+        tasks = TASKS.replace("**Closes:** AC1, AC3–AC4", "**Closes**: AC4–AC3, AC1").replace(
+            "**Changes:** commit by D12-A, which replaced D4-A.", "**Changes:** commit per D4-A.")
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.folder(tmp, proposal=proposal, tasks=tasks))
+            self.assertEqual(result.stdout.splitlines(), [
+                "tasks.md:10: D4-A was replaced (proposal.md:6) but is still named here"])
+
+    def test_criteria_are_defined_outside_the_progress_section_only(self):
+        proposal = PROPOSAL + "- AC9 verified in the browser\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.folder(tmp, proposal=proposal))
+            self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_closes_lines_without_criteria_bullets_are_reported(self):
+        proposal = "# demo\n\n| AC1 | export |\n"
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.folder(tmp, proposal=proposal))
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("no criterion", result.stdout)
+
     def test_unreadable_folder_exits_2(self):
         with tempfile.TemporaryDirectory() as tmp:
             result = self.run_check(Path(tmp) / "missing")

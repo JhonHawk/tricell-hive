@@ -156,7 +156,7 @@ A revision of a written plan that has a change folder SHALL edit in the same pas
 - **THEN** one `hive-review-plan` child reviews the revised folder, and a gap that survives the round goes to the user as a decision
 
 ### Requirement: Archive confirms unchecked tasks
-Before moving a change folder to the archive, the close SHALL run the coherence check with `--archive` and fix each coherence line it prints; when the check lists unchecked task boxes, the close SHALL show their count and ask whether to archive anyway before moving the folder, and a close under unattended delegation SHALL leave the folder unarchived and record it as pending.
+Before merging a change folder's deltas into the specs and moving it to the archive, the close SHALL run the coherence check with `--archive` and fix each coherence line it prints; when the check lists unchecked task boxes, the close SHALL show their count and ask whether to archive anyway before moving the folder, and a close under unattended delegation SHALL leave the folder unarchived and record it as pending.
 
 #### Scenario: Unchecked boxes remain at archive
 - **GIVEN** an integrated change folder whose `tasks.md` holds unchecked boxes

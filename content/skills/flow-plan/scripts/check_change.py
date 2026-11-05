@@ -6,14 +6,18 @@ Usage: python3 check_change.py <change-folder> [--archive]
 Reads proposal.md, tasks.md, design.md and specs/**/*.md and prints one
 `<file>:<line>: <finding>` line per problem:
 
-- a criterion defined in proposal.md that no **Closes:** line of tasks.md names
-  (ranges such as AC3–AC5 count), unless it is retired or replaced;
+- a criterion defined in proposal.md, outside its progress section, that no
+  **Closes:** line of tasks.md names (ranges such as AC3–AC5 count, in either
+  order), unless it is retired or replaced; markers may be written `**Closes:**`,
+  `**Closes**:` or `Closes:`;
 - a **Closes:** line that names a criterion proposal.md does not define;
-- a mention of an ID that a **Replaces:** marker replaced, or of a criterion a
-  **Retired:** marker retired, outside the lines that may keep it: the marker
-  lines, the line that defines the old ID, a line that also names its
+- a mention of an ID listed right after a **Replaces:** marker (D4-A names
+  that option only, D4 any option), or of a criterion a **Retired:** marker
+  retired, outside the lines that may keep it: the marker lines, the
+  proposal.md line that defines the old ID, a line that also names its
   replacement, and the progress section (a `##` heading containing
   "progress", "progreso" or "avance");
+- a proposal.md without `- AC<n>` criteria while tasks.md has **Closes:** lines;
 - with --archive, each unchecked `- [ ]` box of tasks.md, then their count.
 
 Exit status: 0 when nothing is printed, 1 when something is, 2 when the folder,
@@ -24,11 +28,20 @@ import re
 import sys
 from pathlib import Path
 
+ID = r"[A-Z]{1,3}\d+(?:[- ][A-Z])?"
 ID_TOKEN = re.compile(r"(?<![A-Za-z0-9])([A-Z]{1,3})(\d+)(?:[- ]([A-Z]))?(?![A-Za-z0-9])")
-REPLACES = re.compile(r"\*{0,2}Replaces:\*{0,2}")
-RETIRED = re.compile(r"\*{0,2}Retired:\*{0,2}")
+ID_LIST = re.compile(rf"\s*((?<![A-Za-z0-9]){ID}(?:\s*(?:,|;|/|&|\band\b|\by\b|\be\b)\s*{ID})*)")
+
+
+def marker(word):
+    """Match `**Word:**`, `**Word**:` and `Word:`."""
+    return re.compile(rf"\*{{0,2}}{word}(?::\*{{0,2}}|\*{{0,2}}:)")
+
+
+REPLACES = marker("Replaces")
+RETIRED = marker("Retired")
+CLOSES = re.compile(marker("Closes").pattern + r"(.*)$")
 AC_DEFINITION = re.compile(r"^\s*[-*]\s+\**AC(\d+)\b")
-CLOSES = re.compile(r"\*{0,2}Closes:\*{0,2}:?(.*)$")
 AC_REFERENCE = re.compile(r"AC(\d+)(?:\s*[-–—]\s*(?:AC)?(\d+))?")
 UNCHECKED = re.compile(r"^\s*[-*]\s+\[ \]\s*(.*)$")
 PROGRESS_HEADING = re.compile(r"^##\s.*(progress|progreso|avance)", re.IGNORECASE)
@@ -39,7 +52,10 @@ def id_label(prefix, number, letter):
     return f"{prefix}{number}" + (f"-{letter}" if letter else "")
 
 
-def id_pattern(prefix, number):
+def id_pattern(prefix, number, letter=""):
+    """An ID with an option letter matches only that option; a bare ID matches any."""
+    if letter:
+        return re.compile(rf"(?<![A-Za-z0-9]){prefix}{number}[- ]?{letter}(?![A-Za-z0-9])")
     return re.compile(rf"(?<![A-Za-z0-9]){prefix}{number}(?![0-9])")
 
 
@@ -65,20 +81,30 @@ def exempt_progress(lines):
 
 
 def collect_replacements(docs):
-    """Map each replaced or retired ID to (where, replacing ID pattern or None)."""
+    """Map each replaced or retired ID to its label, origin, patterns and kind."""
     old = {}
     for rel, lines in docs.items():
         for n, line in enumerate(lines, 1):
-            marker = REPLACES.search(line)
-            if marker:
-                before = ID_TOKEN.findall(line[: marker.start()])
-                new = id_pattern(before[0][0], before[0][1]) if before else None
-                for prefix, number, letter in ID_TOKEN.findall(line[marker.end():]):
-                    old.setdefault((prefix, number), (id_label(prefix, number, letter), f"{rel}:{n}", new, "replaced"))
+            found = REPLACES.search(line)
+            if found:
+                before = ID_TOKEN.findall(line[: found.start()])
+                new = id_pattern(*before[0]) if before else None
+                listed = ID_LIST.match(line[found.end():])
+                for prefix, number, letter in ID_TOKEN.findall(listed.group(1) if listed else ""):
+                    old.setdefault((prefix, number, letter), {
+                        "label": id_label(prefix, number, letter), "where": f"{rel}:{n}", "how": "replaced",
+                        "pattern": id_pattern(prefix, number, letter), "new": new,
+                        "definition": re.compile(rf"^\s*[-*]\s+\**{prefix}{number}(?![0-9])"),
+                    })
             if RETIRED.search(line):
                 match = AC_DEFINITION.match(line)
                 if match:
-                    old.setdefault(("AC", match.group(1)), (f"AC{match.group(1)}", f"{rel}:{n}", None, "retired"))
+                    number = match.group(1)
+                    old.setdefault(("AC", number, ""), {
+                        "label": f"AC{number}", "where": f"{rel}:{n}", "how": "retired",
+                        "pattern": id_pattern("AC", number), "new": None,
+                        "definition": re.compile(rf"^\s*[-*]\s+\**AC{number}(?![0-9])"),
+                    })
     return old
 
 
@@ -89,38 +115,38 @@ def stale_mentions(docs, old):
         for i, line in enumerate(lines):
             if i in progress or REPLACES.search(line) or RETIRED.search(line):
                 continue
-            for (prefix, number), (label, where, new, how) in old.items():
-                pattern = id_pattern(prefix, number)
-                if not pattern.search(line):
+            for item in old.values():
+                if not item["pattern"].search(line):
                     continue
-                if re.match(rf"^\s*[-*]\s+\**{prefix}{number}(?![0-9])", line):
-                    continue  # the line that defines the old ID keeps it
-                if new is not None and new.search(line):
+                if rel == "proposal.md" and item["definition"].match(line):
+                    continue  # the proposal line that defines the old ID keeps it
+                if item["new"] is not None and item["new"].search(line):
                     continue  # the line names the replacement too
-                findings.append(f"{rel}:{i + 1}: {label} was {how} ({where}) but is still named here")
+                findings.append(f"{rel}:{i + 1}: {item['label']} was {item['how']} ({item['where']}) but is still named here")
     return findings
 
 
 def criteria_findings(proposal, tasks, old):
+    progress = exempt_progress(proposal)
     defined = {}
-    for n, line in enumerate(proposal, 1):
+    for i, line in enumerate(proposal):
         match = AC_DEFINITION.match(line)
-        if match:
-            defined.setdefault(int(match.group(1)), n)
+        if match and i not in progress:
+            defined.setdefault(int(match.group(1)), i + 1)
+    closes = [(n, m.group(1)) for n, line in enumerate(tasks, 1) if (m := CLOSES.search(line))]
     if not defined:
+        if closes:
+            return ["proposal.md: no criterion is written as a `- AC<n>` bullet, but tasks.md has **Closes:** lines"]
         return []
     findings, closed = [], set()
-    for n, line in enumerate(tasks, 1):
-        match = CLOSES.search(line)
-        if not match:
-            continue
-        for start, end in AC_REFERENCE.findall(match.group(1)):
-            first, last = int(start), int(end or start)
-            for named in {first, last}:
+    for n, text in closes:
+        for start, end in AC_REFERENCE.findall(text):
+            first, last = sorted((int(start), int(end or start)))
+            for named in sorted({first, last}):
                 if named not in defined:
                     findings.append(f"tasks.md:{n}: AC{named} in **Closes:** is not defined in proposal.md")
             closed.update(range(first, min(last, first + 999) + 1))
-    gone = {int(number) for prefix, number in old if prefix == "AC"}
+    gone = {int(number) for prefix, number, _ in old if prefix == "AC"}
     for number, n in sorted(defined.items()):
         if number not in closed and number not in gone:
             findings.append(f"proposal.md:{n}: AC{number} is named by no **Closes:** line in tasks.md")
