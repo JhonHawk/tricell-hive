@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "sourceDigest": "9953d614d3a191146ab416a277c1c786b6d2c0155c54410e8590e64513df4279",
+  "sourceDigest": "df534ba8f4826fb44117903c2071e7a2306e91509757f7d7579dae2369c6710c",
   "entrypoint": "index.html",
   "files": [
     {
@@ -9,13 +9,13 @@
       "mime": "text/css; charset=utf-8"
     },
     {
-      "path": "assets/index-_6eKPPbI.js",
-      "sha256": "10f55a0e03f2b2d778770b35535ebedbfca8eb7ae143de72c1edc34b7a0d707e",
+      "path": "assets/index-DQ7AEFrW.js",
+      "sha256": "39e1daef822dda91aa91b693de5c2f0bfe71bbb16649e28b102305b1d4fe4fc8",
       "mime": "text/javascript; charset=utf-8"
     },
     {
       "path": "index.html",
-      "sha256": "dd36d60f819faa583b37fb8223be2eb0abe867df7573eb092796102bdbf359a0",
+      "sha256": "5cc732ce3bf5a9e83e5b7fca3c0233012bd7a6d029dec48b607e5e1dc9b24f57",
       "mime": "text/html; charset=utf-8"
     }
   ]

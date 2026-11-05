@@ -163,6 +163,46 @@ test("registry rows of host tasks show only the title and the host badge", async
     `${plan.task_key} — ${plan.title}`,
   );
   assert.equal(planRow?.querySelector('[data-slot="host-observed"]'), null);
+  const legend = popover.querySelector("[data-registry-host-legend]");
+  assert.ok(legend);
+  assert.equal(
+    legend.textContent,
+    "Del host: tomada de la lista de tareas del host",
+  );
+  assert.equal(
+    legend.querySelector("svg")?.getAttribute("aria-hidden"),
+    "true",
+  );
+  assert.equal(
+    legend.classList.contains("text-xs") &&
+      legend.classList.contains("text-muted-foreground"),
+    true,
+  );
+});
+
+test("the host legend is absent when the registry lists no host task", async (t) => {
+  const data = completeFixture();
+  const container = document.createElement("div");
+  document.body.append(container);
+  const root = createRoot(container);
+  t.after(async () => {
+    await act(async () => root.unmount());
+    container.remove();
+  });
+  await act(async () =>
+    root.render(
+      <TimelineTaskRegistry
+        session={data.session}
+        lang="es"
+        onRetry={() => {}}
+      />,
+    ),
+  );
+  await click("Tareas", container);
+  const popover = document.querySelector('[data-slot="popover-content"]');
+  assert.ok(popover);
+  assert.ok(popover.querySelector("[data-registry-task-id]"));
+  assert.equal(popover.querySelector("[data-registry-host-legend]"), null);
 });
 
 test("empty task registry exposes refresh instead of a fabricated zero progress", async (t) => {

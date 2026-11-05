@@ -103,6 +103,7 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         unblock: "Ver cómo desbloquear",
         hostObserved: "Del host",
         hostObservedHint: "Tarea tomada de la lista de tareas del host",
+        hostObservedLegend: "Del host: tomada de la lista de tareas del host",
         lastActivity: (age: string) => `Activo hace ${age}`,
         taskStates: {
           not_started: "No iniciada",
@@ -327,6 +328,7 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         unblock: "See how to unblock",
         hostObserved: "From host",
         hostObservedHint: "Task taken from the host's task list",
+        hostObservedLegend: "From host: taken from the host's task list",
         lastActivity: (age: string) => `Active ${age} ago`,
         taskStates: {
           not_started: "Not started",
