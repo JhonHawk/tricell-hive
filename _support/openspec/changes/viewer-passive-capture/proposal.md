@@ -62,6 +62,11 @@ Cuando el cambio esté hecho:
 - AC9 — El visor muestra la última actividad del host por trabajo y distingue lo observado del host de lo publicado por el agente, sin cerrar ni pausar trabajos por inactividad · falso hoy porque no existe la procedencia del host.
 - AC10 — El procedimiento de `flow-walkthrough` publica una vez por cambio de etapa con las órdenes nuevas, sin operaciones de bajo nivel ni banderas de identidad, y cada archivo queda bajo el límite de 16.000 bytes · falso hoy porque `viewer-publication.md:7-9` exige contrato, identidad y operaciones de bajo nivel para un build sin plan.
 
+**#358 comprobado en T3** (tests `TestWorkCharacterizationLowLevelTransitionFailsUnbound` y `TestWorkCharacterizationTaskUpdateByAssigneeNeedsLeadBinding`):
+- `work task update` del líder vincula el segmento a la etapa activa antes de la transición, así que no da `stage_binding_mismatch`.
+- La transición de bajo nivel sobre un segmento sin vincular sí lo da, y se mantiene así (D6 A).
+- Un asignado que no es líder recibe `lead_required` mientras el líder no haya vinculado el segmento.
+
 ## Prerrequisitos
 
 - [x] Archivar `gh-311-minimal-research-entry`: archivada en el PR #370 (`d23f9a88`), con su delta incorporado a la spec base · lo necesitaba: T1 y T8.
