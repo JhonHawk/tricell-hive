@@ -131,7 +131,7 @@ v3 API delivery events SHALL accept only verified PR/commit links, distinguish c
 - THEN validation rejects it and no unsafe browser link is created.
 
 ### Requirement: Viewer-first walkthrough publication
-Substantive publication SHALL use only the compatible v3 API and confirmed readback. A missing executable or a stopped/incompatible viewer SHALL preserve inputs and report publication unavailable without starting a daemon or producing any other format. Previously generated HTML pages and user-selected artifact units SHALL not be deleted or rewritten by the removal of the renderer. The agent SHALL NOT open the viewer on its own: at each stop where the viewer holds something for the user to review (a plan at its approval stop, a research report, a UI walkthrough, including the build's first rendered view) it SHALL ask whether to open it, until the user accepts once in the conversation; after acceptance it SHALL open the work once and not ask again unless the user asks.
+Substantive publication SHALL use only the compatible v3 API and confirmed readback. A missing executable or a stopped/incompatible viewer SHALL preserve inputs and report publication unavailable without starting a daemon or producing any other format. Previously generated HTML pages and user-selected artifact units SHALL not be deleted or rewritten by the removal of the renderer. Research SHALL NOT publish to the viewer; a work's viewer session SHALL start at its first plan or build flow that was explicitly invoked (its command typed, its route accepted, or research continuing into build at the user's request), created with a summary of about one paragraph on what the work is about. The agent SHALL NOT open the viewer on its own: at each stop where the viewer holds something for the user to review (a plan at its approval stop, a UI walkthrough, including the build's first rendered view) it SHALL offer to open it inside what that stop already asks (one more question of the stop's round, or a reply line of its waiting line or next-step block), never as a question with its own decision ID or its own question-tool call, until the user accepts once in the conversation; after acceptance it SHALL open the work once and not ask again unless the user asks.
 
 #### Scenario: Binary present, server incompatible
 - WHEN publication finds a v1 server
@@ -139,7 +139,12 @@ Substantive publication SHALL use only the compatible v3 API and confirmed readb
 
 #### Scenario: User declines
 - WHEN the user declines to open the viewer at a review stop
-- THEN the viewer stays closed and the question is asked again at the next review stop.
+- THEN the viewer stays closed and the offer is repeated at the next review stop.
+
+#### Scenario: Research report
+- WHEN a research report ends, with or without a route to plan or build
+- THEN nothing is published to the viewer and no open-viewer offer is made
+- AND the first plan or build flow of that work creates its viewer session with a one-paragraph summary.
 
 ### Requirement: Fixed session toolbar
 The selected v3 work title and management actions SHALL stay visible outside its scrolling timeline/document canvas. The header SHALL show the title with its edit action on its first row, and the work summary, clamped to two lines with an expand control, beside a right-aligned toolbar on its second row; it SHALL NOT show the project name or the creation date. The toolbar SHALL hold the state, the validation count and the ticket, delivery and participant counters, and the archive and more actions. Deep-linked stage/event headings SHALL remain visible below the toolbar. Keyboard actions, unbroken long names through bounded local scrolling, narrow layouts without page overflow (the toolbar wrapping below the summary) and print omission of management controls SHALL remain supported.
