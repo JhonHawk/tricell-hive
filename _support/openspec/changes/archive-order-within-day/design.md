@@ -16,7 +16,12 @@ La fecha y la hora van en UTC (D8 A), para que el orden no dependa de la zona ho
 
 **Orden en el test.**
 - `sort.Strings` ya ordena `2026-11-04-1403-…` antes que `2026-11-04-2003-…`.
-- Para dos carpetas del mismo día, `SameDay` acumula alternativas cuando alguna de las dos no tiene hora o las dos tienen la misma, porque entonces el orden no se conoce. Si las dos tienen horas distintas, la posterior sustituye a la anterior, como entre días distintos.
+- Dos carpetas no tienen orden conocido, y entonces la especificación puede coincidir con cualquiera de las dos, en tres casos:
+  - el mismo día, cuando a alguna le falta la hora;
+  - el mismo día, cuando las dos tienen la misma hora;
+  - una sin hora (fecha local del formato anterior) y otra con hora a un día o menos, como en el paso a UTC.
+
+  En los demás casos manda el orden del nombre. El test guarda los bloques de todas las carpetas anteriores de cada requisito y acepta los que no tienen orden conocido frente a la última, de modo que una carpeta intercalada no los oculta.
 - Cualquier carpeta que ordene después supera a un duplicado, también una del mismo día sin hora.
 
 **Duplicados (H29–H36).** Una pasada aparte, `duplicateRequirements`, devuelve por carpeta los requisitos que su delta lista más de una vez, con sus operaciones (H34).

@@ -62,10 +62,13 @@ raise the minor or the patch version.
   captures.
 - An archived change folder is named `YYYY-MM-DD-HHMM-<change-id>` with the UTC
   date and time of the archive, so `TestSpecDeltasApplied` requires the later
-  of two changes archived the same day; it accepts either delta only when a
-  same-day folder has no time or both share it. The two archives of
-  2026-11-04 carry their times. A requirement one archived delta lists twice is
-  reported while that folder holds the latest delta of it.
+  of two changes archived the same day. It accepts either delta only when
+  their order is unknown: same day with a folder without a time or the same
+  time, or an older name without a time and a timed one a day apart. The two
+  archives that both modify «Local viewer management actor» carry their UTC
+  times (`2026-11-04-2003-…` and `2026-11-05-0203-…`); other archives keep
+  their names. A requirement one archived delta lists twice is reported while
+  that folder holds the latest delta of it.
 - A list point that cites an ID opens with it in bold, followed by a dash and
   what it is in plain words, such as `- **D2** — Move the plan summary to the
   top`, so the reader finds it by its ID; the change folder's decision lines

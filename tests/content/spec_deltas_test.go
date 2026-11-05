@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 )
 
 // openspecRoot is the repository's OpenSpec home, relative to this package.
@@ -25,17 +26,21 @@ type deltaBlock struct {
 	Block string
 }
 
-// latestDelta is the most recent archived delta of one requirement. SameDay
-// holds the deltas of earlier folders of the same day whose order against it
-// is unknown: one of the two has no time, or both have the same time.
+// archivedBlock is one requirement's first block in one archive folder.
 // Duplicate is the report for a folder that lists the requirement more than
-// once; such a delta takes part in no comparison.
+// once; such a block takes part in no comparison.
+type archivedBlock struct {
+	Folder string
+	deltaBlock
+	Duplicate string
+}
+
+// latestDelta is the delta of one requirement in the last archive folder in
+// name order, with the blocks of the earlier folders that touch it, in order.
 type latestDelta struct {
 	Capability string
-	Folder     string
-	deltaBlock
-	SameDay   []deltaBlock
-	Duplicate string
+	archivedBlock
+	Earlier []archivedBlock
 }
 
 // archiveTime is the HHMM segment of an archive folder named
@@ -56,14 +61,25 @@ func archiveTime(folder string) string {
 	return hhmm
 }
 
-// unorderedSameDay reports whether two archive folders of one day have no
-// known order between them.
-func unorderedSameDay(a, b string) bool {
-	if closingDate(a) != closingDate(b) {
-		return false
-	}
+// unordered reports whether two archive folders have no known order between
+// them: both have no time and the same date, both have the same date and time,
+// or one has no time and their dates are at most a day apart, since a name
+// without a time carries the local date of the convention before UTC times.
+func unordered(a, b string) bool {
 	ta, tb := archiveTime(a), archiveTime(b)
-	return ta == "" || tb == "" || ta == tb
+	switch {
+	case ta != "" && tb != "":
+		return closingDate(a) == closingDate(b) && ta == tb
+	case ta == "" && tb == "":
+		return closingDate(a) == closingDate(b)
+	}
+	da, errA := time.Parse("2006-01-02", closingDate(a))
+	db, errB := time.Parse("2006-01-02", closingDate(b))
+	if errA != nil || errB != nil {
+		return closingDate(a) == closingDate(b)
+	}
+	gap := da.Sub(db)
+	return gap <= 24*time.Hour && gap >= -24*time.Hour
 }
 
 // duplicateOps returns, for each requirement the blocks of one delta file list
@@ -170,9 +186,9 @@ func normalizeBlock(s string) string {
 
 // collectLatestDeltas walks changes/archive/*/specs/*/spec.md under root in
 // folder-name order, which follows the closing date and then the time when the
-// name carries one, and keeps, per capability and requirement, the delta of the
-// last folder. A requirement its folder lists more than once keeps the folder's
-// first block with its Duplicate report, and no block of it reaches SameDay.
+// name carries one, and keeps, per capability and requirement, the block of the
+// last folder and those of the earlier ones. A requirement its folder lists
+// more than once keeps the folder's first block with its Duplicate report.
 func collectLatestDeltas(root string) ([]latestDelta, error) {
 	paths, err := filepath.Glob(filepath.Join(root, "changes", "archive", "*", "specs", "*", "spec.md"))
 	if err != nil {
@@ -197,24 +213,18 @@ func collectLatestDeltas(root string) ([]latestDelta, error) {
 				continue
 			}
 			seen[b.Name] = true
-			d := latestDelta{Capability: capability, Folder: folder, deltaBlock: b}
+			ab := archivedBlock{Folder: folder, deltaBlock: b}
 			if ops, ok := dups[b.Name]; ok {
-				d.Duplicate = fmt.Sprintf("%s/changes/archive/%s/specs/%s/spec.md: requirement %q listed %d times (%s)", openspecDisplay, folder, capability, b.Name, len(ops), strings.Join(ops, ", "))
+				ab.Duplicate = fmt.Sprintf("%s/changes/archive/%s/specs/%s/spec.md: requirement %q listed %d times (%s)", openspecDisplay, folder, capability, b.Name, len(ops), strings.Join(ops, ", "))
 			}
 			key := capability + "/" + b.Name
 			if i, ok := index[key]; ok {
-				prev := out[i]
-				if unorderedSameDay(prev.Folder, folder) {
-					d.SameDay = append([]deltaBlock{}, prev.SameDay...)
-					if prev.Duplicate == "" {
-						d.SameDay = append(d.SameDay, prev.deltaBlock)
-					}
-				}
-				out[i] = d
+				out[i].Earlier = append(out[i].Earlier, out[i].archivedBlock)
+				out[i].archivedBlock = ab
 				continue
 			}
 			index[key] = len(out)
-			out = append(out, d)
+			out = append(out, latestDelta{Capability: capability, archivedBlock: ab})
 		}
 	}
 	return out, nil
@@ -280,9 +290,14 @@ func checkSpecDeltas(root string) ([]string, error) {
 		}
 		where := fmt.Sprintf("%s/specs/%s/spec.md: requirement %q (%s in %s/changes/archive/%s)", openspecDisplay, d.Capability, d.Name, d.Op, openspecDisplay, d.Folder)
 		current, present := blocks[d.Name]
+		// An earlier folder with no known order against the last one may hold
+		// the actual latest delta.
 		matched := satisfiedBy(d.deltaBlock, current, present)
-		for _, b := range d.SameDay {
-			if !matched && satisfiedBy(b, current, present) {
+		for _, e := range d.Earlier {
+			if matched {
+				break
+			}
+			if e.Duplicate == "" && unordered(e.Folder, d.Folder) && satisfiedBy(e.deltaBlock, current, present) {
 				matched = true
 			}
 		}
@@ -426,20 +441,39 @@ func TestSpecDeltaSameDateOrdersByTime(t *testing.T) {
 	if got := runSpecDeltaCheck(t, files); len(got) != 0 {
 		t.Fatalf("spec matching the later timed delta reported: %q", got)
 	}
+	// A name without a time is ordered against a timed one two days apart.
+	apart := map[string]string{
+		"changes/archive/2026-01-01-a/specs/cap/spec.md":      "## MODIFIED Requirements\n\n### Requirement: Alpha\nFirst.\n",
+		"changes/archive/2026-01-03-0100-b/specs/cap/spec.md": "## MODIFIED Requirements\n\n### Requirement: Alpha\nSecond.\n",
+		"specs/cap/spec.md": specHeader + "### Requirement: Alpha\nFirst.\n",
+	}
+	wantOneFailure(t, runSpecDeltaCheck(t, apart), "Alpha", "2026-01-03-0100-b", "DIFFERS")
 }
 
-// Two folders of one day where either has no time, or both have the same
-// time, do not fix their order, so the spec may match the delta of either one.
+// Folders with no known order between them, the first named and the last in
+// name order, let the spec match the delta of the first: same day where either
+// has no time or both share it, or a name without a time (local date) and a
+// timed one a day apart, as at the switch to UTC times. Folders in between do
+// not hide that.
 func TestSpecDeltaSameDateAcceptsEitherDelta(t *testing.T) {
 	// "2575" is not a valid HHMM, so that name has no time.
-	for _, names := range [][2]string{{"2026-01-01-1403-a", "2026-01-01-b"}, {"2026-01-01-1200-a", "2026-01-01-1200-b"}, {"2026-01-01-2003-a", "2026-01-01-2575-b"}} {
-		files := map[string]string{
-			"changes/archive/" + names[0] + "/specs/cap/spec.md": "## MODIFIED Requirements\n\n### Requirement: Alpha\nFirst.\n",
-			"changes/archive/" + names[1] + "/specs/cap/spec.md": "## MODIFIED Requirements\n\n### Requirement: Alpha\nSecond.\n",
-			"specs/cap/spec.md": specHeader + "### Requirement: Alpha\nFirst.\n",
+	for _, names := range [][]string{
+		{"2026-01-01-1403-a", "2026-01-01-b"},
+		{"2026-01-01-1200-a", "2026-01-01-1200-b"},
+		{"2026-01-01-2003-a", "2026-01-01-2575-b"},
+		{"2026-01-01-a", "2026-01-02-0100-b"},
+		{"2026-01-01-0abc-w", "2026-01-01-1200-x", "2026-01-01-1300-y"},
+	} {
+		files := map[string]string{"specs/cap/spec.md": specHeader + "### Requirement: Alpha\nFirst.\n"}
+		for i, name := range names {
+			text := "Later " + name + "."
+			if i == 0 {
+				text = "First."
+			}
+			files["changes/archive/"+name+"/specs/cap/spec.md"] = "## MODIFIED Requirements\n\n### Requirement: Alpha\n" + text + "\n"
 		}
 		if got := runSpecDeltaCheck(t, files); len(got) != 0 {
-			t.Fatalf("%v: spec matching an unordered same-day delta reported: %q", names, got)
+			t.Fatalf("%v: spec matching an unordered delta reported: %q", names, got)
 		}
 	}
 
