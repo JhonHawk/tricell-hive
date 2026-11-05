@@ -32,7 +32,10 @@ import (
 // it and injects the readers that need cli helpers.
 
 const (
-	viewStartTimeout = 5 * time.Second
+	// viewStartTimeout bounds how long start waits for its own server to
+	// answer. Startup reads every stored work, so a viewer with dozens of works
+	// can take several seconds; a shorter bound killed a healthy server.
+	viewStartTimeout = 60 * time.Second
 	viewHealthLimit  = 2 * time.Second
 	viewPollStep     = 50 * time.Millisecond
 	viewInfoLimit    = 64 << 10
