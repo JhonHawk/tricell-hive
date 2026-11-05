@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Borrador · en revisión del plan |
+| Estado | Completado · integrado en development (PR #363, 1995e9ce) y desplegado |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` 192697cb · rama propuesta `feat/viewer-local-actions-cli` |
 
