@@ -227,7 +227,7 @@ func viewWorkHTTP(info serverInfo, method, path, ct string, body []byte) ([]byte
 		return nil, "", errors.New("invalid request")
 	}
 	req.Header.Set("X-Hive-Token", info.Token)
-	req.Header.Set(viewer.TimelineRevisionHeader, "2")
+	req.Header.Set(viewer.TimelineRevisionHeader, viewer.TimelineRevisionValue)
 	req.Header.Set("Origin", info.url())
 	req.Header.Set("X-Hive-Action-Scope", "session")
 	req.Header.Set("Content-Type", ct)
@@ -238,7 +238,7 @@ func viewWorkHTTP(info serverInfo, method, path, ct string, body []byte) ([]byte
 		return nil, "", errWorkUncertain
 	}
 	defer resp.Body.Close()
-	if resp.Header.Get(viewer.TimelineRevisionHeader) != "2" {
+	if resp.Header.Get(viewer.TimelineRevisionHeader) != viewer.TimelineRevisionValue {
 		return nil, "reload_required", errors.New("update Hive and reload viewer; preserve original operation inputs")
 	}
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, viewer.TimelineMaxResponseBody+1))

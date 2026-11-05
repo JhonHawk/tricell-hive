@@ -16,7 +16,7 @@ import {
 function revisionResponse(body: BodyInit, init?: ResponseInit) {
   return new Response(body, {
     ...init,
-    headers: { "X-Hive-Timeline-Revision": "2" },
+    headers: { "X-Hive-Timeline-Revision": "3" },
   });
 }
 async function settle() {

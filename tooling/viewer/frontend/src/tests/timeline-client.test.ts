@@ -24,7 +24,7 @@ const stamp = "2026-10-31T21:00:00Z";
 const response = (data: unknown, status = 200) =>
   new Response(JSON.stringify(data), {
     status,
-    headers: { "X-Hive-Timeline-Revision": "2" },
+    headers: { "X-Hive-Timeline-Revision": "3" },
   });
 async function settle() {
   for (let i = 0; i < 60; i++) await Promise.resolve();

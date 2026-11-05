@@ -4,9 +4,11 @@ import test from "node:test";
 import { timelineCandidateByID } from "../timeline-catalog";
 import {
   aggregateTimelineTaskState,
+  parseTimelineHostEvent,
   parseTimelineJSON,
   parseTimelineSession,
   parseTimelineV3Request,
+  TIMELINE_CONTRACT_REVISION,
   type TimelineActor,
   type TimelineCIWait,
   TimelineContractError,
@@ -295,3 +297,68 @@ test("lifecycle capacity always retains room to finish foreground and close", as
   s.state = "closed";
   assert.doesNotThrow(() => validateTimelineClosureReserve(s));
 });
+
+test("timeline contract revision is 3 and host events are a host_observed origin", () => {
+  assert.equal(TIMELINE_CONTRACT_REVISION, 3);
+  const s = session();
+  for (const e of s.events) (e as { origin: string }).origin = "host_observed";
+  assert.doesNotThrow(() => parseTimelineSession(structuredClone(s)));
+  (s.events[0] as { origin: string }).origin = "hook";
+  assert.throws(
+    () => parseTimelineSession(structuredClone(s)),
+    TimelineContractError,
+  );
+});
+
+test("a stored task may carry a host task key but an agent request may not", () => {
+  const s = session();
+  s.tasks[0].task_key = "host:7";
+  assert.doesNotThrow(() => parseTimelineSession(structuredClone(s)));
+  s.tasks[0].task_key = `host:${"a".repeat(101)}`;
+  assert.throws(
+    () => parseTimelineSession(structuredClone(s)),
+    TimelineContractError,
+  );
+  s.tasks[0].task_key = "host:";
+  assert.throws(
+    () => parseTimelineSession(structuredClone(s)),
+    TimelineContractError,
+  );
+  const create = {
+    schema_version: 3,
+    operation_id: "op-one",
+    actor: { kind: "native_producer", producer_id: "producer-original" },
+    expected_session_version: 5,
+    reason: "Explicit authorized change",
+    plan_order: 2,
+    task_key: "host:7",
+    title: "Mine",
+    summary: "",
+    segments: [{ planned_stage: "build", order: 1 }],
+  };
+  assert.throws(
+    () => parseTimelineV3Request("task_create", create),
+    TimelineContractError,
+  );
+});
+
+const hostEventCases = JSON.parse(
+  fixture("host-event-cases.json"),
+) as typeof cases;
+for (const c of hostEventCases)
+  test(`timeline host event shared: ${c.name}`, () => {
+    const check = () => {
+      const value = parseTimelineJSON(c.json);
+      if (c.action === "shape") parseTimelineHostEvent(value);
+      else if (c.action === "authority")
+        validateTimelineAuthority(
+          session(),
+          c.kind,
+          value as TimelineActor,
+          "",
+        );
+      else assert.fail("unknown fixture action");
+    };
+    if (c.valid) assert.doesNotThrow(check);
+    else assert.throws(check, TimelineContractError);
+  });

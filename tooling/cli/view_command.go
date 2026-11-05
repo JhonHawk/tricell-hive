@@ -600,7 +600,7 @@ func viewIndex(info serverInfo) (viewIndexSnapshot, error) {
 		return v, err
 	}
 	req.Header.Set("X-Hive-Token", info.Token)
-	req.Header.Set(viewer.TimelineRevisionHeader, "2")
+	req.Header.Set(viewer.TimelineRevisionHeader, viewer.TimelineRevisionValue)
 	client := *viewClient
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	resp, err := client.Do(req)
@@ -611,7 +611,7 @@ func viewIndex(info serverInfo) (viewIndexSnapshot, error) {
 	if resp.StatusCode != http.StatusOK {
 		return v, fmt.Errorf("index answered %d", resp.StatusCode)
 	}
-	if resp.Header.Get(viewer.TimelineRevisionHeader) != "2" {
+	if resp.Header.Get(viewer.TimelineRevisionHeader) != viewer.TimelineRevisionValue {
 		return v, errors.New("reload_required: update client and viewer together for protocol v3 revision 2; preserve inputs")
 	}
 	raw, err := io.ReadAll(io.LimitReader(resp.Body, (64<<20)+1))

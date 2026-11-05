@@ -446,7 +446,7 @@ func viewTimelineHTTP(info serverInfo, method, path, contentType string, body io
 		return nil, errors.New("cannot prepare viewer request")
 	}
 	req.Header.Set("X-Hive-Token", info.Token)
-	req.Header.Set(viewer.TimelineRevisionHeader, "2")
+	req.Header.Set(viewer.TimelineRevisionHeader, viewer.TimelineRevisionValue)
 	if method != http.MethodGet {
 		req.Header.Set("Origin", info.url())
 		req.Header.Set("X-Hive-Action-Scope", "session")
@@ -459,7 +459,7 @@ func viewTimelineHTTP(info serverInfo, method, path, contentType string, body io
 		return nil, errors.New("viewer request outcome is uncertain; preserve inputs and retry the unchanged operation ID")
 	}
 	defer response.Body.Close()
-	if response.Header.Get(viewer.TimelineRevisionHeader) != "2" {
+	if response.Header.Get(viewer.TimelineRevisionHeader) != viewer.TimelineRevisionValue {
 		return nil, errors.New("reload_required: update Hive and restart/reload the viewer together; preserve inputs and retry the unchanged operation ID")
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {

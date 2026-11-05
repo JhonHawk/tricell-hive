@@ -4,7 +4,7 @@ import { AccessClient, takeCode, validateIndex } from "../api";
 
 const response = (data: unknown) =>
   new Response(JSON.stringify(data), {
-    headers: { "X-Hive-Timeline-Revision": "2" },
+    headers: { "X-Hive-Timeline-Revision": "3" },
   });
 test("opening code is removed synchronously and exchange is reused with unavailable storage", async () => {
   const location = {

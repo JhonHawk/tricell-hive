@@ -319,7 +319,7 @@ func TestTimelineRuntimeHTTPAuthenticationAndStrictInput(t *testing.T) {
 	body, _ := json.Marshal(request)
 	call := func(method, path string, body []byte, token, origin, scope bool) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(method, "http://127.0.0.1:4483"+path, bytes.NewReader(body))
-		r.Header.Set("X-Hive-Timeline-Revision", "2")
+		r.Header.Set("X-Hive-Timeline-Revision", "3")
 		if token {
 			r.Header.Set(tokenHeader, strings.Repeat("x", 32))
 		}
@@ -328,7 +328,7 @@ func TestTimelineRuntimeHTTPAuthenticationAndStrictInput(t *testing.T) {
 		}
 		if scope {
 			r.Header.Set("X-Hive-Action-Scope", "session")
-			r.Header.Set("X-Hive-Timeline-Revision", "2")
+			r.Header.Set("X-Hive-Timeline-Revision", "3")
 		}
 		w := httptest.NewRecorder()
 		srv.ServeHTTP(w, r)

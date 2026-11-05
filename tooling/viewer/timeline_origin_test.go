@@ -37,7 +37,7 @@ func (e *originEnv) call(method, suffix, body string) *httptest.ResponseRecorder
 	r.Header.Set(tokenHeader, strings.Repeat("z", 32))
 	r.Header.Set("Origin", "http://127.0.0.1:4483")
 	r.Header.Set("X-Hive-Action-Scope", "session")
-	r.Header.Set("X-Hive-Timeline-Revision", "2")
+	r.Header.Set("X-Hive-Timeline-Revision", "3")
 	r.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
 	e.server.ServeHTTP(w, r)
@@ -237,8 +237,8 @@ func TestTimelineDeletionWithoutOriginIsRecordedAsBrowser(t *testing.T) {
 }
 
 func TestOriginDoesNotChangeAuthorityOrRevision(t *testing.T) {
-	if TimelineContractRevision != 2 {
-		t.Fatalf("contract revision = %d, want 2", TimelineContractRevision)
+	if TimelineContractRevision != 3 {
+		t.Fatalf("contract revision = %d, want 3", TimelineContractRevision)
 	}
 	e := newOriginEnv(t)
 	// A local_viewer still cannot publish content, whatever its origin.

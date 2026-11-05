@@ -318,7 +318,7 @@ func timelineMultipart(w http.ResponseWriter, r *http.Request, document bool) ([
 
 // Revision is checked before decoding or mutating; capability files bypass this route.
 func timelineRevisionMatches(w http.ResponseWriter, r *http.Request) bool {
-	if values := r.Header.Values(TimelineRevisionHeader); len(values) == 1 && values[0] == "2" {
+	if values := r.Header.Values(TimelineRevisionHeader); len(values) == 1 && values[0] == TimelineRevisionValue {
 		return true
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")

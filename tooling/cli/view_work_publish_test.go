@@ -101,7 +101,7 @@ func newWorkPublishFixture(t *testing.T) *workPublishFixture {
 		// the response.
 		if mode := f.dropLocal.Load().(string); mode != "" && (r.Method == "PATCH" || r.Method == "DELETE" || strings.HasSuffix(r.URL.Path, "/recover-lead")) && (mode == "before-always" || mode == "after-always" || f.dropLocal.CompareAndSwap(mode, "")) {
 			if mode == "reject" {
-				w.Header().Set(viewer.TimelineRevisionHeader, "2")
+				w.Header().Set(viewer.TimelineRevisionHeader, viewer.TimelineRevisionValue)
 				w.WriteHeader(400)
 				json.NewEncoder(w).Encode(map[string]string{"code": "invalid_text"})
 				return
@@ -113,7 +113,7 @@ func newWorkPublishFixture(t *testing.T) *workPublishFixture {
 				if mode == "pending" {
 					code = "delete_pending"
 				}
-				w.Header().Set(viewer.TimelineRevisionHeader, "2")
+				w.Header().Set(viewer.TimelineRevisionHeader, viewer.TimelineRevisionValue)
 				w.WriteHeader(503)
 				json.NewEncoder(w).Encode(map[string]string{"code": code})
 				return

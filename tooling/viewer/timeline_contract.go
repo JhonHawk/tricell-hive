@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 	"unicode"
@@ -18,8 +19,11 @@ import (
 
 // TimelineSchemaVersion versions the API contract independently of legacy manifests.
 const TimelineSchemaVersion = 3
-const TimelineContractRevision = 2
+const TimelineContractRevision = 3
 const TimelineRevisionHeader = "X-Hive-Timeline-Revision"
+
+// TimelineRevisionValue is the value of TimelineRevisionHeader that every request and response carries.
+var TimelineRevisionValue = strconv.Itoa(TimelineContractRevision)
 const TimelineMaintenanceMaxBytes = 16 << 10
 
 // TimelineMaxResponseBody reserves projection/envelope space without enlarging request admission.
@@ -1377,7 +1381,7 @@ func ValidateTimelineSession(s TimelineSession) error {
 		if err := timelineNumber(e.Version, "events.version"); err != nil {
 			return err
 		}
-		if e.Origin != "agent_reported" && e.Origin != "server" {
+		if e.Origin != "agent_reported" && e.Origin != "server" && e.Origin != TimelineHostEventOrigin {
 			return timelineError("events.origin", "invalid_origin")
 		}
 		if err := timelineTime(e.CreatedAt, "events.created_at"); err != nil {

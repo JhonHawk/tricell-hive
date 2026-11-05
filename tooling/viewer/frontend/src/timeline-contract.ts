@@ -1,4 +1,4 @@
-export const TIMELINE_CONTRACT_REVISION = 2;
+export const TIMELINE_CONTRACT_REVISION = 3;
 export const TIMELINE_REVISION_HEADER = "X-Hive-Timeline-Revision";
 
 import {
@@ -243,7 +243,7 @@ export type TimelineEvent = {
   summary: string;
   created_at: string;
   updated_at: string;
-  origin: "agent_reported" | "server";
+  origin: "agent_reported" | "server" | "host_observed";
   ticket_refs: TimelineTicketRef[];
   withdrawn?: boolean;
   candidate_id?: string;
@@ -1417,7 +1417,11 @@ export function parseTimelineSession(value: unknown): TimelineSession {
     integer(e.version, "events.version");
     timestamp(e.created_at, "events.created_at");
     timestamp(e.updated_at, "events.updated_at");
-    if (e.origin !== "agent_reported" && e.origin !== "server")
+    if (
+      e.origin !== "agent_reported" &&
+      e.origin !== "server" &&
+      e.origin !== "host_observed"
+    )
       fail("events.origin", "invalid_origin");
     if (e.withdrawn !== undefined && typeof e.withdrawn !== "boolean")
       fail("events.withdrawn");
