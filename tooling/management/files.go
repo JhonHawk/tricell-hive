@@ -72,6 +72,9 @@ func removeOrphanWrites(stateDir string, j journal) {
 	if j.CodexLines != nil {
 		dirs[filepath.Dir(j.CodexLines.Path)] = true
 	}
+	for _, le := range j.HostHooks {
+		dirs[filepath.Dir(le.Path)] = true
+	}
 	for dir := range dirs {
 		matches, _ := filepath.Glob(filepath.Join(dir, ".hive-write-*"))
 		for _, m := range matches {

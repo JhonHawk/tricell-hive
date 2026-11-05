@@ -296,5 +296,7 @@ func Resolve(c target.Config, sources ...string) ([]target.Target, error) {
 	// The hook is generated, so it does not depend on the release's sources.
 	hook := base[0]
 	hook.Kind, hook.Source, hook.Path = "hook", ReadHookSource, ReadHookPath(c.GrokHome)
-	return append(out, hook), nil
+	events := base[0]
+	events.Kind, events.Source, events.Path = "hook", SessionEventsSource, SessionEventsPath(c.GrokHome)
+	return append(out, hook, events), nil
 }

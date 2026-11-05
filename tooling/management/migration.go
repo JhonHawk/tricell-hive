@@ -149,6 +149,9 @@ func PlanUnchanged(p Plan) (bool, error) {
 	if p.Action == "remove" && hostsIncludePi(p.Hosts) && s.PiSubagentsSource != "" {
 		return false, nil
 	}
+	if unchanged, err := hostHooksUnchanged(p, s); err != nil || !unchanged {
+		return false, err
+	}
 	if unchanged, err := codexLinesUnchanged(p, s); err != nil || !unchanged {
 		return false, err
 	}

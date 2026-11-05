@@ -15,8 +15,11 @@ func TestResolvePiUserTargets(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(targets) != 2 || targets[0].Path != filepath.Join(c.PiHome, "AGENTS.md") || targets[1].Path != filepath.Join(home, ".agents", "skills", "workspace-conventions", "SKILL.md") {
+	if len(targets) != 3 || targets[0].Path != filepath.Join(c.PiHome, "AGENTS.md") || targets[1].Path != filepath.Join(home, ".agents", "skills", "workspace-conventions", "SKILL.md") {
 		t.Fatalf("unexpected Pi targets: %#v", targets)
+	}
+	if ev := targets[2]; ev.Kind != "hook" || ev.Source != EventExtensionSource || ev.Path != filepath.Join(c.PiHome, "extensions", "hive-events.ts") || ev.Host != "pi" {
+		t.Fatalf("unexpected event extension target: %#v", ev)
 	}
 }
 

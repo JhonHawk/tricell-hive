@@ -40,6 +40,7 @@ func Resolve(c target.Config, sources ...string) ([]target.Target, error) {
 	dir := filepath.Join(c.OpenCodeHome, "agents")
 	out := target.ExpandSkills(base, sources)
 	out = target.ExpandAgents(out, sources, dir, ".md", base[0])
+	out = append(out, EventPluginTarget(c, base[0]))
 	for _, source := range sources {
 		if source != ContextLoaderSource {
 			continue
