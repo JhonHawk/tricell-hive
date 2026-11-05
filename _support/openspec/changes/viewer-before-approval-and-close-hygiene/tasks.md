@@ -92,7 +92,7 @@ El hilo principal revisa cada resultado contra `design.md` y hace los commits.
 
 ### T4 — README, llms.txt, sitio y CHANGELOG
 
-- [ ] El README, `llms.txt`, el sitio y el CHANGELOG describen los cambios, y los deltas coinciden con el texto final.
+- [x] El README, `llms.txt`, el sitio y el CHANGELOG describen los cambios, y los deltas coinciden con el texto final.
 
 **Closes:** AC8
 
@@ -138,4 +138,6 @@ No hay interfaz que recorrer. La entrega es `automatic` (D3), así que no hay pa
 
 2026-11-05 — T3 hecho (commit siguiente): `git-workflow` queda en 14 278 bytes y `flow-plan` en 8 423. `rg "#branch-cleanup"` no encuentra nada. Pasan `go test ./tests/content/...` y `go test ./tooling/management/ -run Reference`.
 
-Checkpoint: build · siguiente paso T4 en un hijo `hive-write-docs`.
+2026-11-05 — T4 hecho (commit siguiente): lo escribió un hijo `hive-write-docs`. El hilo principal corrigió dos frases: la parada del plan ofrece el visor como respuesta, no como opción, y el README dice «your earlier merged branches». El delta de workflow-lifecycle coincide con el texto. Pasan `go test ./tests/content/...` y `pnpm build` (17 páginas). Pasa `go test ./...` completo sobre `7dcc1f35`.
+
+Checkpoint: build terminado · siguiente paso: flow-verify con `/code-review` y entrega automatic.

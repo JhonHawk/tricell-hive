@@ -202,6 +202,30 @@ raise the minor or the patch version.
   requires the `source-branch` check, which fails for a pull request from any
   other branch. Only the repository admin can bypass it, by merging a pull
   request.
+- Close and hygiene clean up more than the work's own branch. In each
+  repository the work touched, its specs repository included, they also remove
+  the earlier branches you authored that are already merged, with their clean
+  worktrees, and keep with a reason any branch with unmerged or no commits of
+  its own, any worktree with uncommitted files or a running process, and any
+  work whose close has been pending for less than 24 hours. They never switch a
+  checkout's branch. The global guidance authorizes this deletion.
+- A pause outside `hold` commits the plan's change folder: pushed to the base
+  of a specs repository that declares `Delivery: direct-base`, or on the work's
+  branch when the specs live in its repository. Otherwise the folder stays
+  pending, and the report recommends declaring `direct-base`. A `direct-base`
+  specs repository is edited in its main checkout, with no branch or worktree.
+- A promotion that has not been made keeps no branch, worktree, process or
+  support material, and is not pending work. When the ticket or your request
+  asks for the change in a named environment, the plan adds that promotion as a
+  task.
+
+### Fixed
+
+- The viewer is offered before you decide, not after. When a UI validation or
+  a build's first view asks through a question card, "Open the viewer" is an
+  option of that stop's own question, never first and never recommended;
+  choosing it opens the viewer and asks the same question again with the same
+  ID. A plan's approval stop keeps its reply line.
 
 ## [0.8.0] - 2026-11-03
 
