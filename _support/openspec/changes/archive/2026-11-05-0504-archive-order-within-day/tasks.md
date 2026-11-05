@@ -105,4 +105,6 @@ La zona horaria se resolvió con D8 A (UTC).
 - Segunda revisión, limitada a `1f128ed3..43e9866a`: 9 hallazgos.
   - Bloquea uno, arreglado en local con `Unreviewed:`: se aceptaba un delta superado por una carpeta posterior conocida. Ahora se descartan al recolectar y hay un caso negativo, que falla en `43e9866a`. Con él se corrigió el texto del diseño.
   - Van al cierre: la ventana de un día ignora hora y dirección; el duplicado de una carpeta anterior sin orden no se reporta; el escenario del delta y el texto del proposal para la ventana entre días; los nombres de los tests.
-- Siguiente: push, PR, merge (D4 A), refresco local (cambia `content/`) y `flow-close`.
+- Integrado con el PR #371 (`8b4d1eee`) y desplegado.
+
+2026-11-04 — Cierre: el delta se fusionó en `specs/workflow-lifecycle/spec.md` y la carpeta se movió al archivo con su nombre UTC, el primero con el formato nuevo. Los hallazgos H49–H57 quedan listados en el reporte de cierre.

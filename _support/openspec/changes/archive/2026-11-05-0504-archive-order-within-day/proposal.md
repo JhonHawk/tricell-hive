@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | En build |
+| Estado | Completado · integrado en development (PR #371) |
 | Tracker | Ninguno |
 | Git | tricell-hive · base `development` en `94ed2264` · rama propuesta `fix/archive-order-within-day` |
 
