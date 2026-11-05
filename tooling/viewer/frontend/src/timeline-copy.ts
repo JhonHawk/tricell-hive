@@ -100,6 +100,9 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         unconfirmed: "Sin confirmar",
         viewChecks: "Ver checks",
         unblock: "Ver cómo desbloquear",
+        hostObserved: "Del host",
+        hostObservedHint: "Tarea tomada de la lista de tareas del host",
+        lastActivity: (age: string) => `Activo hace ${age}`,
         taskStates: {
           not_started: "No iniciada",
           in_progress: "En curso",
@@ -321,6 +324,9 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         unconfirmed: "Unconfirmed",
         viewChecks: "View checks",
         unblock: "See how to unblock",
+        hostObserved: "From host",
+        hostObservedHint: "Task taken from the host's task list",
+        lastActivity: (age: string) => `Active ${age} ago`,
         taskStates: {
           not_started: "Not started",
           in_progress: "In progress",
@@ -449,6 +455,37 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         } satisfies Record<TimelineEventKind, string>,
       };
 }
+/** Compact elapsed time such as "3 min", "2 h" or "1 d"; never below 1 min. */
+export function timelineAge(value: string, now: number): string {
+  const ms = now - new Date(value).getTime();
+  const minutes = Math.max(
+    1,
+    Math.floor((Number.isFinite(ms) ? ms : 0) / 60000),
+  );
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return hours < 24 ? `${hours} h` : `${Math.floor(hours / 24)} d`;
+}
+
+/**
+ * Host activity is not flagged by the server, so it is inferred: the session's
+ * last activity is newer than every event the agent published.
+ */
+export function hasHostActivity(session: {
+  last_activity_at: string;
+  created_at: string;
+  events: { created_at: string; updated_at: string; origin: string }[];
+}): boolean {
+  const latest = session.events.reduce(
+    (max, e) =>
+      e.origin === "host_observed"
+        ? max
+        : Math.max(max, Date.parse(e.created_at), Date.parse(e.updated_at)),
+    Date.parse(session.created_at),
+  );
+  return Date.parse(session.last_activity_at) > latest;
+}
+
 export function timelineDate(
   value: string,
   lang: TimelineLanguage,

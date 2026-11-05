@@ -300,3 +300,31 @@ test("content affordances stay scoped to the task segment while the reader can r
   });
   assert.equal(taskContent(data, "task-1").substantive, false);
 });
+
+test("tasks mirrored from the host carry an outline badge with accessible text; plan tasks do not", async (t) => {
+  const { root, container } = mount(t);
+  const data = workFixture();
+  data.session.tasks[0].task_key = "host:native-1";
+  await act(async () =>
+    root.render(<TimelineContent data={data} lang="es" onRetry={() => {}} />),
+  );
+  const badges = container.querySelectorAll('[data-slot="host-observed"]');
+  assert.equal(badges.length, 1);
+  const badge = badges[0];
+  assert.ok(badge.textContent?.startsWith("Del host"));
+  assert.ok(
+    badge.textContent?.includes("Tarea tomada de la lista de tareas del host"),
+  );
+  assert.equal(
+    badge.closest("[data-task-id]")?.getAttribute("data-task-id"),
+    data.session.tasks[0].task_id,
+  );
+  await act(async () =>
+    root.render(<TimelineContent data={data} lang="en" onRetry={() => {}} />),
+  );
+  assert.ok(
+    container
+      .querySelector('[data-slot="host-observed"]')
+      ?.textContent?.startsWith("From host"),
+  );
+});

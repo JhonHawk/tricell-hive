@@ -12,6 +12,7 @@ import {
   Pause,
 } from "lucide-react";
 import { type ComponentProps, type ReactNode, useId, useState } from "react";
+import { Badge } from "@/components/reui/badge";
 import {
   Timeline,
   TimelineContent,
@@ -373,6 +374,18 @@ export function TimelineTaskRow({
               {task.task_key} — {task.title}
             </TimelineTextAction>
           </TimelineTitle>
+          {task.task_key.startsWith("host:") && (
+            <Tooltip>
+              <TooltipTrigger
+                render={<Badge variant="outline" tabIndex={0} />}
+                data-slot="host-observed"
+              >
+                {t.hostObserved}
+                <span className="sr-only">: {t.hostObservedHint}</span>
+              </TooltipTrigger>
+              <TooltipContent>{t.hostObservedHint}</TooltipContent>
+            </Tooltip>
+          )}
           <CollapsibleTrigger
             render={
               <Button

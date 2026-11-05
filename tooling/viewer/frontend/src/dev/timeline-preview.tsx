@@ -30,7 +30,7 @@ function TimelineSingleDevelopmentPreview() {
       scenario ?? "",
     )
       ? completeFixture()
-      : ["cam", "volume", "future", "recovery-conflict"].includes(
+      : ["cam", "host", "volume", "future", "recovery-conflict"].includes(
             scenario ?? "",
           )
         ? workFixture(scenario ?? "cam")
@@ -41,6 +41,15 @@ function TimelineSingleDevelopmentPreview() {
       );
       if (stage) stage.title = "Contexto literal · customer note";
       fixture.session.events[0].title = "Investigación";
+    }
+    if (scenario === "host") {
+      fixture.session.tasks.slice(0, 3).forEach((task, i) => {
+        task.task_key = `host:native-${i + 1}`;
+      });
+      fixture.session.last_activity_at = new Date(
+        Date.now() - 3 * 60000,
+      ).toISOString();
+      fixture.session.updated_at = fixture.session.last_activity_at;
     }
     if (scenario === "long-summary")
       fixture.session.summary =

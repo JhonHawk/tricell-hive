@@ -229,3 +229,36 @@ test("show more appears only when the summary is actually clipped", async () => 
     await unmount();
   });
 });
+
+test("last activity shows only when it is newer than the last agent event", async () => {
+  const data = structuredClone(timelineFixture);
+  const session = data.session;
+  const latest = Math.max(
+    Date.parse(session.created_at),
+    ...session.events.flatMap((e) => [
+      Date.parse(e.created_at),
+      Date.parse(e.updated_at),
+    ]),
+  );
+  session.last_activity_at = new Date(latest).toISOString();
+  const quiet = await mount(header(data, "es"));
+  assert.equal(
+    quiet.container.querySelector('[data-slot="last-activity"]'),
+    null,
+  );
+  await quiet.unmount();
+
+  session.last_activity_at = new Date(Date.now() - 3 * 60000).toISOString();
+  const es = await mount(header(data, "es"));
+  const text = es.container.querySelector('[data-slot="last-activity"]');
+  assert.equal(text?.textContent, "Activo hace 3 min");
+  assert.ok(text?.classList.contains("text-xs"));
+  assert.ok(text?.classList.contains("text-muted-foreground"));
+  await es.unmount();
+  const en = await mount(header(data, "en"));
+  assert.equal(
+    en.container.querySelector('[data-slot="last-activity"]')?.textContent,
+    "Active 3 min ago",
+  );
+  await en.unmount();
+});

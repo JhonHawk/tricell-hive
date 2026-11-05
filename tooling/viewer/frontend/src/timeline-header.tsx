@@ -48,7 +48,12 @@ import {
   isSafeTimelineURL,
   type TimelineSessionResponse,
 } from "./timeline-contract";
-import { type TimelineLanguage, timelineCopy } from "./timeline-copy";
+import {
+  hasHostActivity,
+  type TimelineLanguage,
+  timelineAge,
+  timelineCopy,
+} from "./timeline-copy";
 import { TimelineParticipants } from "./timeline-participants";
 import { timelineStateVariant } from "./timeline-state";
 import { TimelineSummary } from "./timeline-summary";
@@ -115,6 +120,14 @@ export function TimelineHeader({
   const { session } = data;
   const titleHintID = useId();
   const t = timelineCopy(lang);
+  const hostActive = hasHostActivity(session);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!hostActive) return;
+    setNow(Date.now());
+    const timer = setInterval(() => setNow(Date.now()), 60000);
+    return () => clearInterval(timer);
+  }, [hostActive]);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(session.title);
   const [saving, setPending] = useState(false);
@@ -287,6 +300,14 @@ export function TimelineHeader({
           className="flex max-w-full flex-wrap items-center justify-end gap-2 self-end lg:shrink-0 lg:self-auto"
           aria-busy={pending}
         >
+          {hostActive && (
+            <span
+              className="text-xs text-muted-foreground"
+              data-slot="last-activity"
+            >
+              {t.lastActivity(timelineAge(session.last_activity_at, now))}
+            </span>
+          )}
           <ButtonGroup aria-label={t.states[session.state]}>
             <ButtonGroupText>
               <Badge variant={statusVariant}>

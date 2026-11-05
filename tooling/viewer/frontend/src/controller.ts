@@ -62,6 +62,13 @@ function activityTime(value: string): bigint {
   const fraction = (value.match(/\.(\d+)/)?.[1] ?? "").padEnd(9, "0");
   return BigInt(Date.parse(value)) * 1_000_000n + BigInt(fraction.slice(3, 9));
 }
+// Mirrored host tasks and activity do not bump a work's version, so a read is also
+// stale when the index shows a later activity or update time than the cached work.
+function freshness(value: { last_activity_at: string; updated_at: string }) {
+  const a = activityTime(value.last_activity_at);
+  const u = activityTime(value.updated_at);
+  return a > u ? a : u;
+}
 export class ViewerController {
   private state: ViewerState = { ...initial };
   private listeners = new Set<() => void>();
@@ -72,6 +79,7 @@ export class ViewerController {
   private active = false;
   private timelineRequest: object | undefined;
   private timelineRequestedVersion = 0;
+  private timelineRequestedFreshness = 0n;
   private timelineTask: Promise<void> | undefined;
   private timelineMutation:
     | { key: string; body: Record<string, unknown> }
@@ -267,9 +275,12 @@ export class ViewerController {
     if (
       !cached ||
       cached.state === "error" ||
-      (entry.version > (cached.data?.session.version ?? 0) &&
+      ((entry.version > (cached.data?.session.version ?? 0) ||
+        (cached.data !== null &&
+          freshness(entry) > freshness(cached.data.session))) &&
         (cached.state !== "loading" ||
-          entry.version > this.timelineRequestedVersion))
+          entry.version > this.timelineRequestedVersion ||
+          freshness(entry) > this.timelineRequestedFreshness))
     )
       this.timelineTask = this.loadTimeline(entry);
   }
@@ -360,6 +371,7 @@ export class ViewerController {
     const id = entry.viewer_session_id;
     this.timelineRequest = request;
     this.timelineRequestedVersion = entry.version;
+    this.timelineRequestedFreshness = freshness(entry);
     const previous =
       this.state.timeline?.id === id ? this.state.timeline.data : null;
     this.update({ timeline: { id, state: "loading", data: previous } });
