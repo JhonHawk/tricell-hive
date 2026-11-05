@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | In review · PR #352 |
+| Estado | Completed · PR #352 fusionado en `development` (12dbca13, 2026-11-04) |
 | Tracker | [#311](https://github.com/JhonHawk/tricell-hive/issues/311) · abierto · lo absorbe este cambio |
 | Git | tricell-hive · base `development` en `15863834` al planear; `b35d7544` tras integrar `development` dos veces · rama propuesta `feat/gh-311-minimal-research-entry` |
 
