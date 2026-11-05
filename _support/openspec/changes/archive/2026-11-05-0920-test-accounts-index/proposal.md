@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Borrador · plan escrito, falta la revisión del plan y la aprobación |
+| Estado | Completed · entregado en el PR #352 (fusionado en `development`); archivado en el cierre de seguimiento del 2026-11-05 |
 | Tracker | Sin ticket. Retoma la intención de #284 (cerrado; su regla se eliminó en `7a37381b`) |
 | Git | `JhonHawk/tricell-hive`, base `development` en `2765624b` (origin, 2026-11-04). Por decisión del usuario (2026-11-04), el cambio va en la rama actual `feat/gh-311-minimal-research-entry` (HEAD `ee1ebf07`), que tiene el PR #352 abierto y 48 commits de gh-311 |
 

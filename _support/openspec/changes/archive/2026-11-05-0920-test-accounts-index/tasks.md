@@ -132,3 +132,4 @@ Merge de `development` (`4f63e2e5`), con 2 conflictos contra #357 resueltos: se 
 Push 2026-11-04T07:56:51Z. El PR #352 no tiene checks y nadie lo revisó después del push. `mergeStateStatus` está en CLEAN y la base está al día.
 
 Checkpoint: entrega `ready` en su parada · PR #352 abierto · siguiente: flow-close.
+- 2026-11-05 · Cierre de seguimiento desde la sesión Claude Code `5ff8bac1`: el PR #352 ya estaba fusionado y el trabajo del visor `30f31d93` cerrado; delta incorporado a `specs/test-accounts/spec.md` y carpeta archivada. La carpeta había entrado sin archivar en `development` por error en el commit `28972f66` (#377).
