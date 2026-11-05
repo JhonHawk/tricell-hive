@@ -322,7 +322,7 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 
 ## Checkpoint
 
-- Etapa: build; T0, T1 (`49a9af6c`) y T2 (`56fbb304`) hechas; en curso: T3, servidor de T5, corrección de T2 (anidado, pid reutilizado, endurecimiento) y verificación de T1.
+- Etapa: build; T0, T1 (`49a9af6c`) y T2 (`56fbb304`, corrección `838f897f`) hechas; servidor de T5 en `4c927550`; en curso: T3 e interfaz de T5.
 - Visor: trabajo `50457f3803d3122ef9c5294ee314a04b7caa03a46924c73bd3ea949a081b4a30`, etapa build `event-0031e0d2ade9120dcd2f535d5f41f8b3`, tareas registradas con la revisión `revision-69dbb00740f6bd76e426531cdab267a0` (la tarea T0 del plan es la clave `T11` en el visor, que no admite `T0`).
-- Hallazgos abiertos: verificación de T2 — dos P2 (host anidado hereda la variable; pid reutilizado) y P3 de endurecimiento, en corrección.
+- Hallazgos abiertos: ninguno (los P2 y P3 de la verificación de T2 están corregidos en `838f897f`, sin una segunda verificación).
 - Siguiente: integrar T1 y T3 desde sus worktrees, verificar con `hive-verify-task` y seguir con T4.
