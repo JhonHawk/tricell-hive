@@ -40,11 +40,15 @@ The change folder is copied from the [templates](https://github.com/JhonHawk/tri
 - `tasks.md`: small tasks, each saying which criteria it closes, what it depends on and how to check it.
 - `design.md` and spec deltas, only when the change has design decisions or alters a behavior, contract, permission or stored data.
 
-Every criterion is one observable behavior, with the observation that would show it false today. A criterion that is already true, or that only restates your request, is rewritten or dropped. When the plan has a change folder, one independent reviewer checks it before it is ready. The [viewer](/viewer/) session for the work starts here, and a running viewer can show the plan documents, as the [walkthrough skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) describes.
+Every criterion is one observable behavior, with the observation that would show it false today. A criterion that is already true, or that only restates your request, is rewritten or dropped. When the plan has a change folder, the agent first runs the [coherence check](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/scripts/check_change.py), which reports criteria no task closes and `Closes:` lines naming criteria that do not exist, and then one independent reviewer checks the folder before it is ready. The [viewer](/viewer/) session for the work starts here, and a running viewer can show the plan documents, as the [walkthrough skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) describes.
 
 When the ticket or your request asks for the change in a named environment, the plan includes the promotion to that environment as a task run through [Deploy](/flows/deploy/). Only your own request in the conversation counts as the instruction to deploy there; when only the ticket asks for it, the task asks you first, as Deploy does. Otherwise the plan has no promotion task, and promotions are grouped and run when you ask.
 
 A change folder stays on disk while the work runs and is committed with the code it plans: on the work's branch before the push when the specs live in the same repository, or in the specs repository when the work reaches its completion point. When that repository declares `Delivery: direct-base`, the folder is edited in its main checkout, with no branch or worktree, and a paused plan is committed there. Tasks still open after the merge do not hold it back; [Close](/flows/close/) records them and archives the folder.
+
+## Revising a plan in progress
+
+When a written plan changes during planning or the build, the agent updates in one pass every place the change folder states the change: proposal, design, the tasks' text, `Closes:` and verification, and the spec delta. It marks the new item with `Replaces:`, or a dropped criterion with `Retired:`, reopens the tasks the revision invalidates, and runs the check until it is clean. When a criterion or the delta changed, the plan reviewer (`hive-review-plan`) reviews it once more, one round per revision. The revision is recorded in the progress section and the agent tells you in one line. The steps are in the [flow-plan skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/SKILL.md).
 
 ## How it ends
 
