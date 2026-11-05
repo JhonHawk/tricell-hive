@@ -32,19 +32,7 @@ const (
 // the work's queued semantic declarations first (they may create the work and
 // its stage), then the queued host events, then this one.
 func sendHookEvent(opts management.Options, state string, ev hostevent.Event, hostStart time.Time) {
-	cwd := ev.Cwd
-	if !filepath.IsAbs(cwd) {
-		if wd, err := os.Getwd(); err == nil {
-			cwd = wd
-		}
-	}
-	event := viewer.TimelineHostEvent{
-		SchemaVersion: viewer.TimelineSchemaVersion,
-		Source:        viewer.TimelineSource{ProjectRoot: cwd, Host: viewer.TimelineHost(ev.Host), NativeSessionID: ev.SessionID},
-		EventType:     ev.Type,
-		OccurredAt:    hookOccurredAt(ev, hostStart).Format(time.RFC3339Nano),
-		Data:          viewer.TimelineHostEventData{TaskID: ev.TaskID, Title: ev.Title, State: ev.State, AgentID: ev.AgentID},
-	}
+	event := buildHostEvent(ev, hostStart)
 	if event.Validate() != nil {
 		return
 	}
@@ -54,6 +42,28 @@ func sendHookEvent(opts management.Options, state string, ev hostevent.Event, ho
 		// A session that starts again (resume, a restart after a crash) may have
 		// done work the hooks missed while the viewer or the hook was away.
 		_, _ = reconcileHostSession(opts, sink, event.Source, "", reconcileHookReadLimit)
+	}
+}
+
+// buildHostEvent is the viewer's event for a translated one. An activity-only
+// event carries the host's turn ID when there is one, so each is distinct.
+func buildHostEvent(ev hostevent.Event, hostStart time.Time) viewer.TimelineHostEvent {
+	cwd := ev.Cwd
+	if !filepath.IsAbs(cwd) {
+		if wd, err := os.Getwd(); err == nil {
+			cwd = wd
+		}
+	}
+	data := viewer.TimelineHostEventData{TaskID: ev.TaskID, Title: ev.Title, State: ev.State, AgentID: ev.AgentID}
+	if !strings.HasPrefix(ev.Type, "task_") {
+		data.TurnID = ev.Turn
+	}
+	return viewer.TimelineHostEvent{
+		SchemaVersion: viewer.TimelineSchemaVersion,
+		Source:        viewer.TimelineSource{ProjectRoot: cwd, Host: viewer.TimelineHost(ev.Host), NativeSessionID: ev.SessionID},
+		EventType:     ev.Type,
+		OccurredAt:    hookOccurredAt(ev, hostStart).Format(time.RFC3339Nano),
+		Data:          data,
 	}
 }
 
@@ -137,15 +147,13 @@ const (
 )
 
 // postResolvedHostEvent binds the event to the session's current work and its
-// active stage and posts it. Only a task event needs the binding; any other
-// event names no work, so the viewer moves the last activity of every work of the
-// session. A rejected binding is retried once without it, so the activity still
-// counts. Transport failures and server errors are retried later from the queue;
-// any other answer is final.
+// active stage, whatever its type, when the session has one, and posts it. A
+// rejected binding is retried once without it, so the activity still counts (an
+// event that names no work moves the last activity of every work of the
+// session). Transport failures and server errors are retried later from the
+// queue; any other answer is final.
 func postResolvedHostEvent(state string, info serverInfo, event viewer.TimelineHostEvent) hostSendResult {
-	if strings.HasPrefix(event.EventType, "task_") {
-		event.WorkID, event.StageEventID = resolveHostEventTarget(state, info, event.Source)
-	}
+	event.WorkID, event.StageEventID = resolveHostEventTarget(state, info, event.Source)
 	status, err := postHostEvent(info, event)
 	if err != nil || status >= 500 {
 		return hostSendRetry
@@ -160,27 +168,35 @@ func postResolvedHostEvent(state string, info serverInfo, event viewer.TimelineH
 	return hostSendDone
 }
 
+// resolveHostEventWork reads the session's one current work from the viewer.
+func resolveHostEventWork(state string, info serverInfo, source viewer.TimelineSource) (viewer.TimelineSession, bool) {
+	ids, err := readCurrentWorks(state, string(source.Host), source.NativeSessionID)
+	if err != nil || len(ids) != 1 {
+		return viewer.TimelineSession{}, false
+	}
+	raw, err := viewTimelineHTTP(info, http.MethodGet, "/api/timeline/sessions/"+ids[0], "", nil, viewer.TimelineMaxBody)
+	if err != nil {
+		return viewer.TimelineSession{}, false
+	}
+	r, err := viewer.DecodeTimelineSessionResponse(raw)
+	if err != nil || r.Session.ViewerSessionID != ids[0] {
+		return viewer.TimelineSession{}, false
+	}
+	return r.Session, true
+}
+
 // resolveHostEventTarget finds the session's one current work and that work's
 // active stage. Several current works, a work still queued locally, a finished
 // work or an unreadable one name nothing.
 func resolveHostEventTarget(state string, info serverInfo, source viewer.TimelineSource) (work, stage string) {
-	ids, err := readCurrentWorks(state, string(source.Host), source.NativeSessionID)
-	if err != nil || len(ids) != 1 {
+	s, ok := resolveHostEventWork(state, info, source)
+	if !ok {
 		return "", ""
 	}
-	raw, err := viewTimelineHTTP(info, http.MethodGet, "/api/timeline/sessions/"+ids[0], "", nil, viewer.TimelineMaxBody)
-	if err != nil {
-		return "", ""
-	}
-	r, err := viewer.DecodeTimelineSessionResponse(raw)
-	if err != nil || r.Session.ViewerSessionID != ids[0] {
-		return "", ""
-	}
-	s := r.Session
 	if s.State == viewer.TimelineClosed || s.State == viewer.TimelineFailed || s.CurrentStageEventID == nil {
-		return ids[0], ""
+		return s.ViewerSessionID, ""
 	}
-	return ids[0], *s.CurrentStageEventID
+	return s.ViewerSessionID, *s.CurrentStageEventID
 }
 
 // postHostEvent calls POST /api/host-events. The route takes the local token and

@@ -28,6 +28,15 @@ type queueCLI struct {
 	t       *testing.T
 	f       *viewFixture
 	project string
+	// native is the native session ID; empty is queueNative.
+	native string
+}
+
+// as returns the same fixture driven by another native session of the host.
+func (q *queueCLI) as(native string) *queueCLI {
+	other := *q
+	other.native = native
+	return &other
 }
 
 func newQueueCLI(t *testing.T) *queueCLI {
@@ -36,7 +45,11 @@ func newQueueCLI(t *testing.T) *queueCLI {
 }
 
 func (q *queueCLI) args(args ...string) []string {
-	return append(append([]string{}, args...), "--host", queueHost, "--native-session-id", queueNative, "--state-dir", q.f.stateDir)
+	native := q.native
+	if native == "" {
+		native = queueNative
+	}
+	return append(append([]string{}, args...), "--host", queueHost, "--native-session-id", native, "--state-dir", q.f.stateDir)
 }
 
 func (q *queueCLI) run(stdin string, args ...string) (string, error) {
@@ -365,6 +378,12 @@ func TestWorkQueuePreQueueJournalWithPendingIntentStillResumes(t *testing.T) {
 	q.killed([]string{"HIVE_TEST_QUEUE_KILL_AT=1"}, "stage", "--work-id", opened.WorkID, "--stage", "build", "--state", "in_progress", "--reason", "Start")
 
 	dir := filepath.Join(q.f.stateDir, "publisher", "v1")
+	// A journal from before the queue holds no alias; a real open now records one.
+	old := q.journal()
+	old.Aliases = nil
+	if err := writeWorkJournal(dir, old); err != nil {
+		t.Fatal(err)
+	}
 	raw, err := os.ReadFile(filepath.Join(dir, "journal.json"))
 	if err != nil || bytes.Contains(raw, []byte(`"queue"`)) || bytes.Contains(raw, []byte(`"aliases"`)) {
 		t.Fatalf("not a pre-queue journal: %v", err)

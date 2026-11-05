@@ -15,6 +15,9 @@ type hookFixture struct {
 	*syncCLI
 	work  string
 	stage string
+	// at is the host time of every payload: ahead of the viewer's clock, so a
+	// task event is never older than a work created while the test runs.
+	at string
 }
 
 const hookSyncSession = "sync-session-one" // the session newSyncCLI resolves
@@ -22,7 +25,7 @@ const hookSyncSession = "sync-session-one" // the session newSyncCLI resolves
 func newHookFixture(t *testing.T) *hookFixture {
 	s := newSyncCLI(t)
 	withHookHost(t, "claude", map[string]string{"CLAUDE_CODE_SESSION_ID": hookSyncSession})
-	return &hookFixture{syncCLI: s}
+	return &hookFixture{syncCLI: s, at: time.Now().Add(time.Minute).UTC().Format(time.RFC3339Nano)}
 }
 
 func (h *hookFixture) openBuild(key string) {
@@ -39,7 +42,7 @@ func (h *hookFixture) hook(event, payload string) {
 }
 
 func (h *hookFixture) payload(extra string) string {
-	return `{"session_id":"` + hookSyncSession + `","cwd":"` + h.project + `"` + extra + `}`
+	return `{"session_id":"` + hookSyncSession + `","cwd":"` + h.project + `","timestamp":"` + h.at + `"` + extra + `}`
 }
 
 func (h *hookFixture) task(key string) *viewer.TimelineTask {

@@ -105,6 +105,22 @@ func lockWorkScope(dir, scope string) (*viewer.FileLock, error) {
 	return acquirePrivateWorkLock(path, false)
 }
 
+// removeIdleWorkLock removes the lock file of a work when no process holds it.
+// It takes the lock first, so a held lock file is never removed; a process
+// that opened the file meanwhile retries on the new one (viewer.AcquireLock).
+func removeIdleWorkLock(dir, scope string) {
+	if scope == "" || scope == noWorkScope || !viewTimelineSessionID.MatchString(scope) {
+		return
+	}
+	path := filepath.Join(dir, "locks", scope+".lock")
+	l, err := acquirePrivateWorkLock(path, false)
+	if err != nil {
+		return
+	}
+	os.Remove(path)
+	l.Release()
+}
+
 func acquirePrivateWorkLock(path string, wait bool) (*viewer.FileLock, error) {
 	if err := safeWorkFile(path); err != nil && !os.IsNotExist(err) {
 		return nil, err

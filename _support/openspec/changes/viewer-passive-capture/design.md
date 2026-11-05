@@ -67,6 +67,7 @@ Las operaciones de bajo nivel siguen funcionando sin cambios (D6 A), y el contra
 - **Efectos:**
   - **Actividad:** actualiza `last_activity_at` de los trabajos de esa sesión como metadato de mantenimiento, no como evento del historial. No consume el tope de 508 eventos ni invalida las versiones que espera el agente.
   - **Tareas nativas (D13 A):** solo se reflejan cuando el trabajo no tiene tareas registradas por el agente. Se guardan con la clave `host:<id-nativo-de-tarea>`, asignadas al productor de la sesión, vinculadas a la etapa activa y con un tope de 50. Si el trabajo tiene tareas del plan, solo suman actividad.
+  - **Antigüedad:** un evento de tarea con fecha anterior a la creación del trabajo se ignora. Esto incluye los de un trabajo creado por un `open` en cola, que nace al enviarse la cola.
   - **Límites:** ningún evento del host inicia, completa o cierra una etapa, cambia la autoridad, ni cierra o pausa un trabajo. `session_ended` solo marca la última actividad.
 - **Contrato:** pasa a la revisión 3 (`TimelineContractRevision`), con el origen `host_observed` y su reflejo en `timeline-contract*.ts`.
 - **Frontend:** las tareas y eventos `host_observed` muestran su procedencia («observado del host»), y el trabajo muestra la última actividad.

@@ -20,6 +20,7 @@ func HookEvents(in hostevent.Input) []hostevent.Event {
 		Cwd:            hostevent.Str(p, "cwd"),
 		TranscriptPath: hostevent.Str(p, "transcript_path"),
 		OccurredAt:     hostevent.When(p, "timestamp", "occurred_at"),
+		Turn:           hostevent.Turn(p, "prompt_id", "turn_id"),
 	}
 	if base.Cwd == "" {
 		base.Cwd = in.Env("CLAUDE_PROJECT_DIR")

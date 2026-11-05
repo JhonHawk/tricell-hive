@@ -153,9 +153,6 @@ func (e *viewWorkEngine) queueSource(c viewWorkCommand) (viewer.TimelineSource, 
 
 // queue records a declaration the viewer cannot take now.
 func (e *viewWorkEngine) queue(c viewWorkCommand, w io.Writer) error {
-	if len(e.journal.Queue) >= viewWorkQueueLimit {
-		return &viewWorkError{Code: "publisher_capacity", Next: "start the viewer with `hive view start` so the queue is sent"}
-	}
 	entry := &viewWorkQueued{ID: workID("op-"), Action: c.Action, State: "queued"}
 	stored := c
 	stored.Options = management.Options{}
@@ -165,6 +162,10 @@ func (e *viewWorkEngine) queue(c viewWorkCommand, w io.Writer) error {
 		if err != nil {
 			return err
 		}
+		handle := queuedWorkHandle(project, c.Host, c.NativeSessionID, c.Key)
+		if done, err := e.reopenKnown(c, project, handle, w); done {
+			return err
+		}
 		if c.Change != "" {
 			if stored.Change, err = canonicalWorkDir(c.Change); err != nil {
 				return err
@@ -172,7 +173,7 @@ func (e *viewWorkEngine) queue(c viewWorkCommand, w io.Writer) error {
 		}
 		stored.Project = project
 		entry.Source = viewer.TimelineSource{ProjectRoot: project, Host: viewer.TimelineHost(c.Host), NativeSessionID: c.NativeSessionID}
-		entry.WorkID = queuedWorkHandle(project, c.Host, c.NativeSessionID, c.Key)
+		entry.WorkID = handle
 		stored.QueuedOperation = entry.ID
 	default:
 		source, err := e.queueSource(c)
@@ -181,6 +182,9 @@ func (e *viewWorkEngine) queue(c viewWorkCommand, w io.Writer) error {
 		}
 		entry.Source, entry.WorkID = source, c.WorkID
 		stored.WorkID = c.WorkID
+		if e.queuedFor(entry.WorkID, e.journal) >= viewWorkQueueLimit {
+			return viewWorkQueueFull()
+		}
 		if c.Action == "evidence" {
 			if entry.Frozen, stored.Images, err = e.freezeImages(entry.ID, c); err != nil {
 				return err
@@ -189,22 +193,121 @@ func (e *viewWorkEngine) queue(c viewWorkCommand, w io.Writer) error {
 	}
 	entry.Command = stored
 	e.journal.Queue = append(e.journal.Queue, entry)
-	if err := e.save(); err != nil {
+	// The limit is checked on the journal as it is on disk now, under its lock.
+	if err := e.saveWith(func(m *viewWorkJournal) error {
+		if e.queuedFor(entry.WorkID, m) > viewWorkQueueLimit {
+			return viewWorkQueueFull()
+		}
+		return nil
+	}); err != nil {
+		e.removeQueued(entry.ID)
 		e.dropFrozen(entry)
 		return err
 	}
-	position := 0
-	for _, q := range e.journal.Queue {
-		if e.scopeOf(q.WorkID) == e.scopeOf(entry.WorkID) {
-			position++
-		}
-	}
+	position := e.queuedFor(entry.WorkID, e.journal)
 	if c.Action == "open" {
 		if err := addCurrentWork(e.state, c.Host, c.NativeSessionID, entry.WorkID); err != nil {
 			return err
 		}
 	}
 	return writeViewWorkBoundedJSON(w, viewWorkQueuedResult{WorkID: entry.WorkID, Result: "queued", OperationID: entry.ID, Position: position})
+}
+
+func viewWorkQueueFull() error {
+	return &viewWorkError{Code: "publisher_capacity", Next: "start the viewer with `hive view start` so the queue is sent"}
+}
+
+// queuedFor counts the entries queued for one work, whichever name they use.
+func (e *viewWorkEngine) queuedFor(id string, j *viewWorkJournal) int {
+	scope, n := workScopeOf(j, id), 0
+	for _, q := range j.Queue {
+		if workScopeOf(j, q.WorkID) == scope {
+			n++
+		}
+	}
+	return n
+}
+
+// reopenKnown answers an open whose key already names a work of this session,
+// queued or opened, instead of queueing a second open for it.
+func (e *viewWorkEngine) reopenKnown(c viewWorkCommand, project, handle string, w io.Writer) (bool, error) {
+	for _, q := range e.journal.Queue {
+		if q.Action == "open" && q.WorkID == handle {
+			return true, writeViewWorkBoundedJSON(w, viewWorkQueuedResult{WorkID: handle, Result: "queued", OperationID: q.ID, Position: e.queuedFor(handle, e.journal)})
+		}
+	}
+	real := ""
+	for _, a := range e.journal.Aliases {
+		if a.Alias == handle {
+			real = a.WorkID
+		}
+	}
+	if real == "" {
+		for _, b := range e.journal.Bindings {
+			if b.Key == c.Key && b.Project == project && string(b.Source.Host) == c.Host && b.Source.NativeSessionID == c.NativeSessionID {
+				real = b.WorkID
+			}
+		}
+	}
+	if real == "" {
+		return false, nil
+	}
+	if err := addCurrentWork(e.state, c.Host, c.NativeSessionID, real); err != nil {
+		return true, err
+	}
+	return true, writeViewWorkBoundedJSON(w, viewWorkResult{WorkID: real, Result: "opened"})
+}
+
+// noteHandle remembers which work a key opened in this session, so that the
+// key resolves to it while the viewer is unavailable.
+func (e *viewWorkEngine) noteHandle(c viewWorkCommand, real string) error {
+	project, err := canonicalWorkDir(c.Project)
+	if err != nil || c.Key == "" || c.Host == "" {
+		return nil
+	}
+	handle := queuedWorkHandle(project, c.Host, c.NativeSessionID, c.Key)
+	if handle == real {
+		return nil
+	}
+	for _, a := range e.journal.Aliases {
+		if a.Alias == handle {
+			return nil
+		}
+	}
+	e.journal.Aliases = append(e.journal.Aliases, viewWorkAlias{Alias: handle, WorkID: real})
+	return e.save()
+}
+
+// pruneAliases forgets the handle of the engine's work once no queue entry and
+// no session's current work refers to the handle or to the work it names.
+func (e *viewWorkEngine) pruneAliases() {
+	if e.scope == "" || e.scope == noWorkScope {
+		return
+	}
+	refs, err := currentWorkRefs(e.state)
+	if err != nil {
+		return
+	}
+	kept := make([]viewWorkAlias, 0, len(e.journal.Aliases))
+	for _, a := range e.journal.Aliases {
+		if a.Alias == e.scope && !refs[a.Alias] && !refs[a.WorkID] && !e.hasQueueEntryFor(a.Alias) {
+			continue
+		}
+		kept = append(kept, a)
+	}
+	if len(kept) != len(e.journal.Aliases) {
+		e.journal.Aliases = kept
+		e.save()
+	}
+}
+
+func (e *viewWorkEngine) hasQueueEntryFor(handle string) bool {
+	for _, q := range e.journal.Queue {
+		if q.WorkID == handle {
+			return true
+		}
+	}
+	return false
 }
 
 // freezeImages copies the captures into the publisher folder so that their
@@ -253,6 +356,14 @@ func (e *viewWorkEngine) removeQueued(id string) {
 // viewWorkLocalRejection: a declaration refused because what it declares no
 // longer applies, as opposed to a failure that may succeed when retried.
 func viewWorkRejectionCode(err error) (string, bool) {
+	var contract *viewer.TimelineContractError
+	if errors.As(err, &contract) {
+		// The viewer's own authority rule, applied before anything is sent.
+		if contract.Field == "actor" && (contract.Code == "lead_required" || contract.Code == "producer_not_accepted") {
+			return contract.Code, true
+		}
+		return "", false
+	}
 	var ve *viewWorkError
 	if !errors.As(err, &ve) {
 		return "", false
@@ -263,7 +374,9 @@ func viewWorkRejectionCode(err error) (string, bool) {
 	switch ve.Code {
 	case "session_closed", "stage_start_required", "explicit_stage_predecessor_required", "previous_stage_only_for_reentry",
 		"stage_active", "active_stage_required", "task_not_found", "task_segment_not_found", "stage_not_started",
-		"supersedes_view_not_found", "confirmed_plan_revision_required", "task_metadata_conflict", "stage_already_terminal", "binding_mismatch":
+		"supersedes_view_not_found", "confirmed_plan_revision_required", "task_metadata_conflict", "stage_already_terminal", "binding_mismatch",
+		// Authority: this session may not act on the work, whatever it declared.
+		"accepted_producer_required":
 		return ve.Code, true
 	}
 	return "", false
@@ -278,6 +391,10 @@ func (e *viewWorkEngine) flushQueue(c viewWorkCommand) error {
 	}
 	for _, q := range append([]*viewWorkQueued{}, e.journal.Queue...) {
 		if e.scopeOf(q.WorkID) != e.scope {
+			continue
+		}
+		// Each session sends, and hears about, only the declarations it queued.
+		if string(q.Source.Host) != c.Host || q.Source.NativeSessionID != c.NativeSessionID {
 			continue
 		}
 		if q.State == "rejected" {
@@ -299,6 +416,10 @@ func (e *viewWorkEngine) flushQueue(c viewWorkCommand) error {
 			return err
 		}
 		q.State, q.Reason = "rejected", code
+		var failure *viewWorkError
+		if errors.As(err, &failure) && failure.Pending != "" {
+			e.archiveFlushRejection(failure.Pending, q, code)
+		}
 		e.dropFrozen(q)
 		q.Frozen = nil
 		e.noteRejected(q)
@@ -307,6 +428,19 @@ func (e *viewWorkEngine) flushQueue(c viewWorkCommand) error {
 		}
 	}
 	return nil
+}
+
+// archiveFlushRejection archives the intent a queued declaration left behind
+// when the viewer definitively rejected it, as `reconcile --action
+// archive-rejected` would, so later lifecycle calls are not blocked. An intent
+// with any unknown outcome stays pending.
+func (e *viewWorkEngine) archiveFlushRejection(id string, q *viewWorkQueued, code string) {
+	for _, i := range e.journal.Pending {
+		if i.ID == id && i.State == "rejected_conflict" {
+			e.journal.archiveRejected(id, "queued declaration "+q.ID+" rejected: "+code)
+			return
+		}
+	}
 }
 
 func (e *viewWorkEngine) hasQueuedOpen(handle string) bool {

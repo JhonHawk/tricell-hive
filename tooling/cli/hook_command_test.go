@@ -361,7 +361,7 @@ func TestHookOccurredAtIsStableAcrossRuns(t *testing.T) {
 }
 
 func TestHookOccurredAtFallsBackToHostStartThenEpoch(t *testing.T) {
-	ev := hostevent.Event{}
+	ev := hostevent.Event{Type: hostevent.TaskCreated}
 	if got := hookOccurredAt(ev, time.Time{}); !got.Equal(time.Unix(0, 0)) {
 		t.Fatalf("got %v", got)
 	}
@@ -402,6 +402,22 @@ func TestHookMapEndOfASupersededSessionDoesNotMoveChangedAt(t *testing.T) {
 	d.apply(hostevent.Event{SessionID: "old", Map: hostevent.MapEnd}, identityTestStart.Add(2*time.Second))
 	if d.ChangedAt != moved || d.liveCount() != 1 {
 		t.Fatalf("%+v", d)
+	}
+}
+
+func TestHookMapEndWhileAnotherSessionIsLiveDoesNotMoveChangedAt(t *testing.T) {
+	t0 := identityTestStart
+	d := &hookMapDoc{Host: "codex", PID: 800}
+	d.apply(hostevent.Event{SessionID: "a", Map: hostevent.MapStart}, t0)
+	d.apply(hostevent.Event{SessionID: "b", Map: hostevent.MapStart}, t0.Add(time.Minute))
+	changed := d.ChangedAt
+	d.apply(hostevent.Event{SessionID: "b", Map: hostevent.MapEnd}, t0.Add(2*time.Minute))
+	if d.ChangedAt != changed || d.liveCount() != 1 || !d.live(d.Sessions[0]) {
+		t.Fatalf("ending one of two live sessions must keep the other live and changed_at: %+v", d)
+	}
+	d.apply(hostevent.Event{SessionID: "a", Map: hostevent.MapEnd}, t0.Add(3*time.Minute))
+	if d.ChangedAt == changed || d.liveCount() != 0 {
+		t.Fatalf("the end of the last live session moves changed_at: %+v", d)
 	}
 }
 

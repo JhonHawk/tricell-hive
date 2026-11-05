@@ -72,6 +72,10 @@ type Event struct {
 	TaskID, Title  string
 	State          string
 	AgentID        string
+	// Turn is the host's own ID of the prompt or turn an activity belongs to,
+	// when the payload carries one. It keeps two activity events of a host
+	// that stamps no time distinct; a task event does not use it.
+	Turn string
 }
 
 // Input is a hook invocation as the translator sees it: the event name the hook
@@ -176,6 +180,17 @@ func FromUnix(f float64) time.Time {
 }
 
 var nativeID = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$`)
+
+// Turn reads the host's prompt or turn ID under any of keys; empty when the
+// payload has none or it is not an ID the viewer accepts.
+func Turn(m map[string]any, keys ...string) string {
+	for _, k := range keys {
+		if id := ID(m[k]); ValidNativeID(id) {
+			return id
+		}
+	}
+	return ""
+}
 
 // ValidNativeID is the shape the viewer accepts for a task or agent ID.
 func ValidNativeID(id string) bool { return nativeID.MatchString(id) }

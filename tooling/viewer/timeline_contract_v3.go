@@ -2015,6 +2015,9 @@ type TimelineHostEventData struct {
 	Title   string `json:"title,omitempty"`
 	State   string `json:"state,omitempty"`
 	AgentID string `json:"agent_id,omitempty"`
+	// TurnID is the host's ID of the prompt or turn an event that is not a task
+	// event belongs to; it only keeps the operation IDs of two events distinct.
+	TurnID string `json:"turn_id,omitempty"`
 }
 
 // TimelineHostEvent is the body of POST /api/host-events. WorkID and
@@ -2093,6 +2096,9 @@ func (e TimelineHostEvent) Validate() error {
 	}
 	if subagent && !timelineHostNativeID.MatchString(d.AgentID) {
 		return timelineError("data.agent_id", "invalid_id")
+	}
+	if d.TurnID != "" && (task || !timelineHostNativeID.MatchString(d.TurnID)) {
+		return timelineError("data.turn_id", "invalid_id")
 	}
 	return nil
 }

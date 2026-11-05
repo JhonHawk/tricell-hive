@@ -28,6 +28,7 @@ func HookEvents(in hostevent.Input) []hostevent.Event {
 		Cwd:            hostevent.Str(p, "cwd", "workspaceRoot", "workspace_root"),
 		TranscriptPath: hostevent.Str(p, "transcriptPath", "transcript_path"),
 		OccurredAt:     hostevent.When(p, "timestamp", "occurredAt", "occurred_at"),
+		Turn:           hostevent.Turn(p, "promptId", "prompt_id"),
 	}
 	if base.SessionID == "" {
 		return nil

@@ -31,7 +31,7 @@ const (
 	hookInputLimit = 1 << 20
 	// hookBudget bounds the whole run. Hosts kill a slow hook, and a Claude Code
 	// SessionEnd hook may have 1.5 s: whatever is unfinished stays in the queues.
-	hookBudgetDefault = 5 * time.Second
+	hookBudgetDefault = 2 * time.Second
 )
 
 var (
@@ -114,7 +114,7 @@ func detectHookHost(hint string, payload map[string]any, getenv func(string) str
 	switch {
 	case grok.IsHookPayload(payload, getenv):
 		return grok.HookHost
-	case cursor.IsHookPayload(payload):
+	case cursor.IsHook(payload, getenv):
 		return cursor.HookHost
 	}
 	return host
@@ -177,12 +177,15 @@ func processHook(opts hookOptions, hint, event string, stdin io.Reader, deps vie
 	}
 }
 
-// hookOccurredAt is the time the event is reported with. It comes from the host
-// or a stable datum of the event, never from the hook's clock: the viewer
-// derives the operation ID from the event's content, and a time that changed
-// from one run to the next would make a resend apply twice. In order: the host's
-// own timestamp, the modification time of the host's transcript, the start time
-// of the host process, then the Unix epoch.
+// hookOccurredAt is the time the event is reported with. The viewer derives the
+// operation ID from the event's content, and stamps last activity with this
+// time. A task event is reported with a time that is stable across runs and
+// never the hook's clock: the host's own timestamp, the modification time of the
+// host's transcript, the start time of the host process, then the Unix epoch. An
+// activity-only event (a prompt, a stop, a subagent, a session start or end) has
+// no such need, since applying activity twice only moves it forward: it takes
+// the host's timestamp, then the transcript's, then the hook's clock, so the
+// activity counts as it happens whatever the host reports.
 func hookOccurredAt(ev hostevent.Event, hostStart time.Time) time.Time {
 	if !ev.OccurredAt.IsZero() {
 		return ev.OccurredAt.UTC()
@@ -191,6 +194,9 @@ func hookOccurredAt(ev hostevent.Event, hostStart time.Time) time.Time {
 		if st, err := os.Stat(ev.TranscriptPath); err == nil && st.Mode().IsRegular() {
 			return st.ModTime().UTC()
 		}
+	}
+	if !strings.HasPrefix(ev.Type, "task_") {
+		return hookNow().UTC()
 	}
 	if !hostStart.IsZero() {
 		return hostStart.UTC()

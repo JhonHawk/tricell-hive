@@ -36,14 +36,7 @@ const (
 	reconcileHookReadLimit = 4 << 20
 	reconcileTailBytes     = 256 << 10
 	reconcileMaxEvents     = 120
-	// reconcileFreshness is how recent the last activity must be for the viewer
-	// to record it: the viewer stamps activity with its own clock, so an older
-	// activity would be recorded as if it were now.
-	reconcileFreshness = 2 * time.Minute
 )
-
-// reconcileNow is the clock the freshness gate reads; it never reaches an event.
-var reconcileNow = time.Now
 
 var reconcileSessionID = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$`)
 
@@ -57,6 +50,9 @@ type viewWorkReconcileResult struct {
 	Sent           int    `json:"sent,omitempty"`
 	Queued         int    `json:"queued,omitempty"`
 	Note           string `json:"note,omitempty"`
+	// Partial is set when the session file was larger than the read limit and
+	// only its last part was read.
+	Partial bool `json:"partial,omitempty"`
 }
 
 // executeHostReconcile runs `hive view work reconcile` without --pending: the
@@ -104,6 +100,18 @@ func reconcileHostSession(opts management.Options, sink *hostSink, source viewer
 	if err != nil {
 		return r, workStateError("session_file_unreadable")
 	}
+	if facts.Partial {
+		r.Partial = true
+		r.Note = fmt.Sprintf("the session file is larger than %d MiB: only its last %d MiB were read", limit>>20, limit>>20)
+	}
+	// Native tasks from before the current work was created belong to earlier
+	// work in the same session; the viewer ignores them too.
+	var created time.Time
+	if sink.up {
+		if work, ok := resolveHostEventWork(sink.state, sink.info, source); ok {
+			created, _ = time.Parse(time.RFC3339Nano, work.CreatedAt)
+		}
+	}
 	var events []viewer.TimelineHostEvent
 	build := func(typ string, at time.Time, task reconcileTask) viewer.TimelineHostEvent {
 		if task.ID != "" && task.Title == "" && typ != hostevent.TaskCompleted {
@@ -116,6 +124,9 @@ func reconcileHostSession(opts management.Options, sink *hostSink, source viewer
 		}
 	}
 	for _, t := range facts.Tasks {
+		if t.At.Before(created) {
+			continue
+		}
 		typ := hostevent.TaskUpdated
 		switch t.State {
 		case hostevent.StateCompleted:
@@ -131,12 +142,9 @@ func reconcileHostSession(opts management.Options, sink *hostSink, source viewer
 	r.Tasks = len(events)
 	if !facts.LastActivity.IsZero() {
 		r.LastActivityAt = facts.LastActivity.UTC().Format(time.RFC3339)
-		if reconcileNow().Sub(facts.LastActivity) <= reconcileFreshness {
-			events = append(events, build(hostevent.Activity, facts.LastActivity, reconcileTask{}))
-			r.ActivitySent = true
-		} else {
-			r.Note = "last activity is older than the viewer's clock can record; the viewer stamps activity when it receives it"
-		}
+		// The viewer stamps activity with the event's own time, clamped to its clock.
+		events = append(events, build(hostevent.Activity, facts.LastActivity, reconcileTask{}))
+		r.ActivitySent = true
 	}
 	for _, e := range events {
 		if e.Validate() != nil {
@@ -200,6 +208,8 @@ type reconcileTask struct {
 type reconcileFacts struct {
 	LastActivity time.Time
 	Tasks        []reconcileTask
+	// Partial: the file was larger than the limit and only its tail was read.
+	Partial bool
 }
 
 // openSessionFile opens without following links and checks the descriptor.
@@ -240,8 +250,23 @@ func readHostSessionFile(host, path string, limit int64) (reconcileFacts, error)
 			}
 		}
 	}
-	if host == "claude-code" && st.Size() <= limit {
-		facts.Tasks, err = readClaudeTasks(io.NewSectionReader(f, 0, st.Size()))
+	if host == "claude-code" {
+		start := int64(0)
+		if st.Size() > limit {
+			// A larger transcript is read from its last limit bytes, from the
+			// first whole line on.
+			start = st.Size() - limit
+			facts.Partial = true
+		}
+		var in io.Reader = io.NewSectionReader(f, start, st.Size()-start)
+		if start > 0 {
+			br := bufio.NewReaderSize(in, 1<<20)
+			if _, rerr := br.ReadBytes('\n'); rerr != nil {
+				return facts, nil
+			}
+			in = br
+		}
+		facts.Tasks, err = readClaudeTasks(in)
 	}
 	return facts, err
 }

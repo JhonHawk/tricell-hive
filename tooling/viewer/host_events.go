@@ -102,7 +102,7 @@ func timelineTerminal(v *TimelineSession) bool {
 
 // TimelineHostEvent applies one validated host event. With a work ID it acts as
 // the accepted native producer of that work, in the project the work belongs to;
-// every event also moves the last activity of the other works of its session.
+// every event also moves the last activity of the other works of its session to the event's own time, clamped to the server's clock.
 func (s *Store) TimelineHostEvent(e TimelineHostEvent) (TimelineHostEventResult, error) {
 	if err := e.Validate(); err != nil {
 		return TimelineHostEventResult{}, err
@@ -180,8 +180,16 @@ func (s *Store) timelineHostApply(old *timelineRecord, e TimelineHostEvent, op, 
 	now := s.timelineTime()
 	timelineRefreshMaintenance(r, now)
 	m, v := r.Maintenance, r.Session
-	m.LastActivityAt = timelineLater(m.LastActivityAt, now)
-	m.HostActivityAt = timelineLater(m.HostActivityAt, now)
+	// The host's own time stamps the activity, so a reconcile can backfill what
+	// happened earlier; it never moves ahead of the server's clock or backwards.
+	activity := now
+	if occurred, err := time.Parse(time.RFC3339Nano, e.OccurredAt); err == nil {
+		if nowAt, _ := time.Parse(time.RFC3339Nano, now); occurred.Before(nowAt) {
+			activity = occurred.UTC().Format(time.RFC3339Nano)
+		}
+	}
+	m.LastActivityAt = timelineLater(m.LastActivityAt, activity)
+	m.HostActivityAt = timelineLater(m.HostActivityAt, activity)
 	v.UpdatedAt = timelineLater(v.UpdatedAt, now)
 	status := hostEventApplied
 	task := strings.HasPrefix(e.EventType, "task_")
@@ -190,6 +198,9 @@ func (s *Store) timelineHostApply(old *timelineRecord, e TimelineHostEvent, op, 
 		status = hostEventActivityOnly
 	case named && e.StageEventID != "" && (v.CurrentStageEventID == nil || e.StageEventID != *v.CurrentStageEventID):
 		// The stage the event names is no longer active: nothing is mirrored.
+		status = hostEventActivityOnly
+	case named && task && hostTaskBeforeWork(e, v):
+		// A native task from before this work existed belongs to earlier work.
 		status = hostEventActivityOnly
 	case named && task && v.CurrentStageEventID != nil && e.StageEventID == *v.CurrentStageEventID:
 		occurred, _ := time.Parse(time.RFC3339Nano, e.OccurredAt)
@@ -223,6 +234,14 @@ func (s *Store) timelineHostApply(old *timelineRecord, e TimelineHostEvent, op, 
 		return "", err
 	}
 	return status, nil
+}
+
+// hostTaskBeforeWork says whether a task event happened before the work was
+// created, by the host's own time.
+func hostTaskBeforeWork(e TimelineHostEvent, v *TimelineSession) bool {
+	occurred, err1 := time.Parse(time.RFC3339Nano, e.OccurredAt)
+	created, err2 := time.Parse(time.RFC3339Nano, v.CreatedAt)
+	return err1 == nil && err2 == nil && occurred.Before(created)
 }
 
 func hostTaskMirrored(v *TimelineSession, nativeTaskID string) bool {

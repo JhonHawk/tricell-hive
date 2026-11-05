@@ -51,13 +51,13 @@ func TestReconcileBackfillsNativeTasksAndActivityFromAClaudeTranscript(t *testin
 	home := t.TempDir()
 	claudeTranscript(t, home, hookSyncSession,
 		`{"type":"cost-state","totalCostUSD":0.1}`,
-		toolUse(ts(-50*time.Second), "toolu_1", "TaskCreate", `{"subject":"Write the tests","description":"d","activeForm":"Writing"}`),
-		toolResult(ts(-49*time.Second), "toolu_1", "Task #1 created successfully: Write the tests"),
-		toolUse(ts(-40*time.Second), "toolu_2", "TaskCreate", `{"subject":"Ship it"}`),
-		toolResult(ts(-39*time.Second), "toolu_2", "Task #2 created successfully: Ship it"),
-		toolUse(ts(-30*time.Second), "toolu_3", "TaskUpdate", `{"taskId":"1","status":"in_progress"}`),
-		toolUse(ts(-20*time.Second), "toolu_4", "TaskUpdate", `{"taskId":"1","status":"completed"}`),
-		toolUse(ts(-10*time.Second), "toolu_5", "TaskUpdate", `{"taskId":"2","status":"deleted"}`),
+		toolUse(ts(time.Second), "toolu_1", "TaskCreate", `{"subject":"Write the tests","description":"d","activeForm":"Writing"}`),
+		toolResult(ts(2*time.Second), "toolu_1", "Task #1 created successfully: Write the tests"),
+		toolUse(ts(3*time.Second), "toolu_2", "TaskCreate", `{"subject":"Ship it"}`),
+		toolResult(ts(4*time.Second), "toolu_2", "Task #2 created successfully: Ship it"),
+		toolUse(ts(5*time.Second), "toolu_3", "TaskUpdate", `{"taskId":"1","status":"in_progress"}`),
+		toolUse(ts(6*time.Second), "toolu_4", "TaskUpdate", `{"taskId":"1","status":"completed"}`),
+		toolUse(ts(7*time.Second), "toolu_5", "TaskUpdate", `{"taskId":"2","status":"deleted"}`),
 		`{"type":"cost-state","totalCostUSD":0.2}`)
 
 	out := h.must("", "reconcile", "--home", home, "--project", h.project)
@@ -82,14 +82,14 @@ func TestReconcileBackfillsNativeTasksAndActivityFromAClaudeTranscript(t *testin
 	}
 }
 
-func TestReconcileDoesNotRecordOldActivityAsNow(t *testing.T) {
+func TestReconcileSendsOldActivityWithItsOwnTime(t *testing.T) {
 	h := newHookFixture(t)
 	h.openBuild("old-activity")
 	home := t.TempDir()
 	claudeTranscript(t, home, hookSyncSession, toolUse(ts(-3*time.Hour), "toolu_1", "TaskUpdate", `{"taskId":"9","status":"completed"}`))
 	r := reconcileResult(t, h.must("", "reconcile", "--home", home, "--project", h.project))
-	if r.ActivitySent || r.LastActivityAt == "" || r.Note == "" {
-		t.Fatalf("an old activity must be reported, not recorded as now: %+v", r)
+	if !r.ActivitySent || r.LastActivityAt == "" || r.Note != "" {
+		t.Fatalf("an old activity is sent whatever its age, with its own time: %+v", r)
 	}
 	if strings.Contains(strings.ToLower(r.Note+r.Result), "ended") || strings.Contains(strings.ToLower(r.Note), "dead") {
 		t.Fatalf("reconcile never infers a process death: %+v", r)
@@ -101,8 +101,8 @@ func TestReconcileQueuesWhenTheViewerIsDown(t *testing.T) {
 	h.openBuild("down")
 	home := t.TempDir()
 	claudeTranscript(t, home, hookSyncSession,
-		toolUse(ts(-20*time.Second), "toolu_1", "TaskCreate", `{"subject":"Later"}`),
-		toolResult(ts(-19*time.Second), "toolu_1", "Task #4 created successfully: Later"))
+		toolUse(ts(time.Second), "toolu_1", "TaskCreate", `{"subject":"Later"}`),
+		toolResult(ts(2*time.Second), "toolu_1", "Task #4 created successfully: Later"))
 	h.f.mustView("stop")
 	r := reconcileResult(t, h.must("", "reconcile", "--home", home, "--project", h.project))
 	if r.Sent != 0 || r.Queued != r.Tasks+1 || len(h.queued()) != r.Queued {

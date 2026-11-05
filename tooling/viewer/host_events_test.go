@@ -665,8 +665,8 @@ func TestHostTaskEventOlderThanTheLastAppliedOneNeverRegressesATask(t *testing.T
 	if task.State != "completed" || task.Segments[0].State != "completed" || task.TaskVersion != 3 || after.Version != settled.Version {
 		t.Fatalf("late event regressed the task: %+v", task)
 	}
-	if after.LastActivityAt != h.clock.Format(time.RFC3339Nano) {
-		t.Fatalf("late event did not move activity: %s", after.LastActivityAt)
+	if after.LastActivityAt != settled.LastActivityAt {
+		t.Fatalf("a late event moved activity: %s -> %s", settled.LastActivityAt, after.LastActivityAt)
 	}
 	// The record survives a restart.
 	h.store.mu.Lock()

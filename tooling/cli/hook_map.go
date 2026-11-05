@@ -32,8 +32,13 @@ func hookUsesMap(host string) bool {
 // hostProcessMatches says whether a process is the host CLI: its command name
 // is the host's, or it is an interpreter running the host's script.
 func hostProcessMatches(host, comm, args string) bool {
-	if hostOfProcessName(comm) == host {
-		return true
+	return processHost(comm, args) == host
+}
+
+// processHost is the host CLI a process is, or "" when it is none.
+func processHost(comm, args string) string {
+	if h := hostOfProcessName(comm); h != "" {
+		return h
 	}
 	switch filepath.Base(strings.TrimSpace(comm)) {
 	case "node", "bun", "deno":
@@ -41,12 +46,12 @@ func hostProcessMatches(host, comm, args string) bool {
 		for i := 1; i < len(fields) && i <= 3; i++ {
 			name := filepath.Base(fields[i])
 			name = strings.TrimSuffix(name, filepath.Ext(name))
-			if hostOfProcessName(name) == host {
-				return true
+			if h := hostOfProcessName(name); h != "" {
+				return h
 			}
 		}
 	}
-	return false
+	return ""
 }
 
 // findHostProcess walks up from the hook to the nearest ancestor that is the
@@ -66,11 +71,16 @@ func findHostProcess(deps viewIdentityDeps, host string) (int, bool) {
 		if base := filepath.Base(strings.TrimSpace(comm)); base == "node" || base == "bun" || base == "deno" {
 			args, _ = hookProcessArgs(pid)
 		}
-		if hostProcessMatches(host, comm, args) {
+		switch processHost(comm, args) {
+		case "":
+			return false, nil
+		case host:
 			found = pid
-			return true, nil
 		}
-		return false, nil
+		// The nearest host CLI is the one that ran the hook: a hook registered
+		// for another host and run by this one (Grok and Cursor run Claude
+		// Code's hooks) writes no map, and never one on a process further up.
+		return true, nil
 	})
 	return found, found != 0
 }
@@ -120,7 +130,7 @@ func (d *hookMapDoc) liveCount() int {
 
 // apply records one event at time now and reports whether the document changed.
 // changed_at moves only when a session replaces another in the process: a
-// session that starts with Replaces, or the end of the session that was live. A
+// session that starts with Replaces, or the end of the last live session. A
 // session starting alongside the others leaves it, so two live sessions stay
 // detectable as ambiguous; ending a session that an earlier replacement had
 // already superseded leaves it too, so the order of /clear's end and start
@@ -153,7 +163,7 @@ func (d *hookMapDoc) apply(ev hostevent.Event, now time.Time) bool {
 		}
 		wasLive := d.live(d.Sessions[i])
 		d.Sessions[i].EndedAt = ts
-		if wasLive {
+		if wasLive && d.liveCount() == 0 {
 			d.ChangedAt = ts
 		}
 		return true

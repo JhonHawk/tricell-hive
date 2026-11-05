@@ -156,6 +156,13 @@ func addCurrentWork(state, host, native, work string) error {
 // file between processes: the per-work locks do not, since one session's
 // several works share that file.
 func withSessionLock(state, host, native string, fn func() error) error {
+	return withSessionLockFile(state, host, native, func() (bool, error) { return false, fn() })
+}
+
+// withSessionLockFile also removes the lock file when fn reports that the
+// session has no current work left; the lock is still held then, so a held lock
+// file is never removed.
+func withSessionLockFile(state, host, native string, fn func() (remove bool, err error)) error {
 	_, dir, err := workPublisherDir(viewWorkCommand{Options: management.Options{Scope: "user", StateDir: state}})
 	if err != nil {
 		return err
@@ -164,12 +171,40 @@ func withSessionLock(state, host, native string, fn func() error) error {
 		return err
 	}
 	sum := sha256.Sum256([]byte(host + "\x00" + native))
-	l, err := acquirePrivateWorkLock(filepath.Join(dir, "locks", "session-"+hex.EncodeToString(sum[:])+".lock"), true)
+	path := filepath.Join(dir, "locks", "session-"+hex.EncodeToString(sum[:])+".lock")
+	l, err := acquirePrivateWorkLock(path, true)
 	if err != nil {
 		return err
 	}
 	defer l.Release()
-	return fn()
+	remove, err := fn()
+	if remove && err == nil {
+		os.Remove(path)
+	}
+	return err
+}
+
+// currentWorkRefs lists every work ID that any session's current-work file names.
+func currentWorkRefs(state string) (map[string]bool, error) {
+	files, err := filepath.Glob(filepath.Join(state, "publisher", "v1", "current", "*", "*.json"))
+	if err != nil {
+		return nil, err
+	}
+	refs := map[string]bool{}
+	for _, file := range files {
+		raw, err := readPrivateWorkFile(file)
+		if err != nil {
+			return nil, err
+		}
+		var doc viewCurrentWorks
+		if json.Unmarshal(raw, &doc) != nil {
+			return nil, workStateError("invalid_current_work")
+		}
+		for _, id := range doc.WorkIDs {
+			refs[id] = true
+		}
+	}
+	return refs, nil
 }
 
 func addCurrentWorkLocked(state, host, native, work string) error {
@@ -189,15 +224,16 @@ func addCurrentWorkLocked(state, host, native, work string) error {
 	return writeCurrentWorks(state, host, native, ids)
 }
 
-// releaseCurrentWork removes work from the session's open works.
+// releaseCurrentWork removes work from the session's open works. A session left
+// with none loses its current-work file and its lock file.
 func releaseCurrentWork(state, host, native, work string) error {
-	return withSessionLock(state, host, native, func() error { return releaseCurrentWorkLocked(state, host, native, work) })
+	return withSessionLockFile(state, host, native, func() (bool, error) { return releaseCurrentWorkLocked(state, host, native, work) })
 }
 
-func releaseCurrentWorkLocked(state, host, native, work string) error {
+func releaseCurrentWorkLocked(state, host, native, work string) (bool, error) {
 	ids, err := readCurrentWorks(state, host, native)
 	if err != nil {
-		return err
+		return false, err
 	}
 	kept := make([]string, 0, len(ids))
 	for _, id := range ids {
@@ -206,9 +242,19 @@ func releaseCurrentWorkLocked(state, host, native, work string) error {
 		}
 	}
 	if len(kept) == len(ids) {
-		return nil
+		return len(kept) == 0, nil
 	}
-	return writeCurrentWorks(state, host, native, kept)
+	if len(kept) == 0 {
+		path, err := currentWorkPath(state, host, native)
+		if err != nil {
+			return false, err
+		}
+		if err = os.Remove(path); err != nil && !os.IsNotExist(err) {
+			return false, err
+		}
+		return true, nil
+	}
+	return false, writeCurrentWorks(state, host, native, kept)
 }
 
 // viewWorkActionNeedsWork lists the semantic actions that act on an existing

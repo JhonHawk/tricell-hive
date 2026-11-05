@@ -35,6 +35,8 @@ type viewWorkEngine struct {
 	base        map[string][]byte
 	report      viewWorkQueueReport
 	rejectedIDs []string
+	// ended is set when the command closed the work it acted on.
+	ended bool
 }
 
 // noWorkScope is the scope of a read-only command, which takes no lock.
@@ -157,13 +159,23 @@ func (e *viewWorkEngine) Close() {
 }
 
 // save writes this process's changes onto the journal as it is on disk now.
-func (e *viewWorkEngine) save() error {
+func (e *viewWorkEngine) save() error { return e.saveWith(nil) }
+
+// saveWith first lets check refuse the journal as it would be written, merged
+// onto the one on disk now, so an admission limit holds across processes.
+func (e *viewWorkEngine) saveWith(check func(merged *viewWorkJournal) error) error {
 	return withWorkJournalLock(e.dir, func() error {
 		disk, err := readWorkJournalChecked(e.dir, false)
 		if err != nil {
 			return err
 		}
-		if err = writeWorkJournal(e.dir, mergeWorkJournal(disk, e.journal, e.base)); err != nil {
+		merged := mergeWorkJournal(disk, e.journal, e.base)
+		if check != nil {
+			if err = check(merged); err != nil {
+				return err
+			}
+		}
+		if err = writeWorkJournal(e.dir, merged); err != nil {
 			return err
 		}
 		e.base = workJournalElements(e.journal)
@@ -213,7 +225,23 @@ func (e *viewWorkEngine) prepareIntent(action, id string, source viewer.Timeline
 	}
 	i := &viewWorkIntent{ID: workID("pending-"), Action: action, WorkID: id, Source: source, State: "prepared", Context: raw, Steps: []viewWorkStep{}}
 	e.journal.Pending = append(e.journal.Pending, i)
-	if err = e.save(); err != nil {
+	err = e.saveWith(func(merged *viewWorkJournal) error {
+		others := *merged
+		others.Pending = nil
+		for _, p := range merged.Pending {
+			if p.ID != i.ID {
+				others.Pending = append(others.Pending, p)
+			}
+		}
+		return others.admitWorkIntent()
+	})
+	if err != nil {
+		for n, p := range e.journal.Pending {
+			if p.ID == i.ID {
+				e.journal.Pending = append(e.journal.Pending[:n], e.journal.Pending[n+1:]...)
+				break
+			}
+		}
 		return nil, err
 	}
 	return i, nil
@@ -571,16 +599,66 @@ func executeViewWork(c viewWorkCommand, w io.Writer) error {
 			if _, probe := viewTimelineRunning(newViewPaths(e.state)); viewWorkQueueable(c) && viewerUnavailable(probe) {
 				return e.queue(c, w)
 			}
-			return err
+			return e.failed(c, err)
 		}
 	}
 	if c.WorkID != "" {
 		c.WorkID = e.realID(c.WorkID)
 	}
 	if err = e.dispatch(c, w); err != nil {
+		return e.failed(c, err)
+	}
+	if err = e.ackQueue(); err != nil {
 		return err
 	}
-	return e.ackQueue()
+	e.pruneAliases()
+	if e.ended {
+		e.retire(c)
+	}
+	return nil
+}
+
+// failed reports to the failing command the queued declarations it found
+// rejected, since it has no result to carry them, and retires the lock of a
+// work that is over.
+func (e *viewWorkEngine) failed(c viewWorkCommand, err error) error {
+	if len(e.report.Rejected) > 0 {
+		var parts []string
+		for _, r := range e.report.Rejected {
+			parts = append(parts, r.Action+" "+r.Reason+" "+r.ID)
+		}
+		note := "queued declarations rejected: " + strings.Join(parts, ", ")
+		var ve *viewWorkError
+		if errors.As(err, &ve) {
+			copied := *ve
+			copied.Next = strings.TrimSpace(copied.Next + " (" + note + ")")
+			err = &copied
+		} else {
+			err = fmt.Errorf("%w (%s)", err, note)
+		}
+		e.ackQueue()
+	}
+	var ve *viewWorkError
+	if errors.As(err, &ve) {
+		switch ve.Code {
+		case "work_closed", "session_closed", "session_deleted", "not_found":
+			e.retire(c)
+		}
+	}
+	return err
+}
+
+// retire drops the lock file of a work that is closed or deleted, once no
+// process holds it.
+func (e *viewWorkEngine) retire(c viewWorkCommand) {
+	if e.scope == "" || e.scope == noWorkScope {
+		return
+	}
+	scopes := []string{e.scope, c.WorkID}
+	e.Close()
+	for _, scope := range scopes {
+		removeIdleWorkLock(e.dir, scope)
+	}
 }
 
 func (e *viewWorkEngine) dispatch(c viewWorkCommand, w io.Writer) error {
@@ -627,6 +705,7 @@ func (e *viewWorkEngine) dispatch(c viewWorkCommand, w io.Writer) error {
 		if err = releaseCurrentWork(e.state, c.Host, c.NativeSessionID, c.WorkID); err != nil {
 			return err
 		}
+		e.ended = true
 		r.Queue = e.queueReport()
 		return writeViewWorkResult(w, r)
 	case "sync":
@@ -638,6 +717,7 @@ func (e *viewWorkEngine) dispatch(c viewWorkCommand, w io.Writer) error {
 			if err = releaseCurrentWork(e.state, c.Host, c.NativeSessionID, c.WorkID); err != nil {
 				return err
 			}
+			e.ended = true
 		}
 		r.Queue = e.queueReport()
 		return writeViewWorkBoundedJSON(w, r)
@@ -655,6 +735,9 @@ func (e *viewWorkEngine) dispatch(c viewWorkCommand, w io.Writer) error {
 			return err
 		}
 		if err = addCurrentWork(e.state, c.Host, c.NativeSessionID, s.ViewerSessionID); err != nil {
+			return err
+		}
+		if err = e.noteHandle(c, s.ViewerSessionID); err != nil {
 			return err
 		}
 		return writeViewWorkResult(w, viewWorkResult{WorkID: s.ViewerSessionID, Result: "opened", SessionVersion: s.Version, Queue: e.queueReport()})
