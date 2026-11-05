@@ -205,9 +205,10 @@ raise the minor or the patch version.
 - Close and hygiene clean up more than the work's own branch. In each
   repository the work touched, its specs repository included, they also remove
   the earlier branches you authored that are already merged, with their clean
-  worktrees, and keep with a reason any branch with unmerged or no commits of
-  its own, any worktree with uncommitted files or a running process, and any
-  work whose close has been pending for less than 24 hours. They never switch a
+  worktrees, and keep with a reason any branch with unmerged commits or used
+  by another checkout, any worktree with uncommitted, untracked or ignored
+  files or a running process, and any work still in progress or whose close
+  has been pending for less than 24 hours; an older pending close is resumed. They never switch a
   checkout's branch. The global guidance authorizes this deletion.
 - A pause outside `hold` commits the plan's change folder: pushed to the base
   of a specs repository that declares `Delivery: direct-base`, or on the work's
@@ -217,7 +218,7 @@ raise the minor or the patch version.
 - A promotion that has not been made keeps no branch, worktree, process or
   support material, and is not pending work. When the ticket or your request
   asks for the change in a named environment, the plan adds that promotion as a
-  task.
+  task; only your own request authorizes that deploy.
 
 ### Fixed
 

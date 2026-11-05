@@ -140,4 +140,17 @@ No hay interfaz que recorrer. La entrega es `automatic` (D3), así que no hay pa
 
 2026-11-05 — T4 hecho (commit siguiente): lo escribió un hijo `hive-write-docs`. El hilo principal corrigió dos frases: la parada del plan ofrece el visor como respuesta, no como opción, y el README dice «your earlier merged branches». El delta de workflow-lifecycle coincide con el texto. Pasan `go test ./tests/content/...` y `pnpm build` (17 páginas). Pasa `go test ./...` completo sobre `7dcc1f35`.
 
-Checkpoint: build terminado · siguiente paso: flow-verify con `/code-review` y entrega automatic.
+2026-11-05 — Verify: `/code-review` sobre `03349f19` dejó 10 hallazgos, todos confirmados al leer el código (dos reproducidos por el revisor). Se corrigieron en una ronda (commit siguiente):
+- una ticket ya no autoriza un despliegue: solo la petición del usuario lo hace;
+- el barrido en un repo sin PRs usa la memoria en lugar del reflog;
+- `headRefOid` se compara con la copia local y con la remota;
+- se conservan el trabajo en curso y los cierres pendientes de menos de 24 h, y un cierre pendiente más antiguo se reanuda en lugar de borrarse;
+- un checkout de specs que no está en su base no se cambia;
+- se hace stage de las rutas por nombre antes de `--only`;
+- las condiciones de conservación aplican también al worktree del propio trabajo;
+- la excepción del visor nombra tres reglas y escribe la opción en el texto;
+- se corrigieron las FAQ del sitio.
+
+Pasan `go test ./tests/content/...`, la prueba de referencias y `pnpm build`.
+
+Checkpoint: verify · siguiente paso: segunda revisión limitada al diff de las correcciones, luego push, PR y merge.
