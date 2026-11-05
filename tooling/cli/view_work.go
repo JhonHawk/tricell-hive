@@ -227,6 +227,9 @@ func parseViewWorkCommand(args []string, stdin io.Reader) (viewWorkCommand, erro
 	if blockReason != "" || blockOwner != "" || resumeWhen != "" || len(steps) > 0 {
 		c.Block = &viewer.TimelineBlock{Reason: blockReason, Owner: blockOwner, ResumeWhen: resumeWhen, Steps: steps}
 	}
+	if err := resolveViewWorkContext(&c); err != nil {
+		return c, err
+	}
 	if err := validateViewWorkCommand(&c, seen); err != nil {
 		return c, err
 	}

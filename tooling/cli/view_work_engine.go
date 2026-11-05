@@ -20,6 +20,7 @@ import (
 )
 
 type viewWorkEngine struct {
+	state   string
 	dir     string
 	info    serverInfo
 	journal *viewWorkJournal
@@ -67,7 +68,7 @@ func openViewWorkEngine(c viewWorkCommand) (*viewWorkEngine, error) {
 	if err != nil {
 		return nil, err
 	}
-	e := &viewWorkEngine{dir: dir, lock: lock}
+	e := &viewWorkEngine{state: state, dir: dir, lock: lock}
 	e.journal, err = readWorkJournal(dir)
 	if err != nil {
 		e.Close()
@@ -460,18 +461,51 @@ func executeViewWork(c viewWorkCommand, w io.Writer) error {
 		return err
 	}
 	defer e.Close()
+	if (c.Action == "open" || c.Action == "publish") && c.WorkID == "" {
+		// The viewer rejects work from a root it does not know, so creating work
+		// registers its root. A directory that is not a repository stays the
+		// viewer's rejection to give.
+		if root, err := canonicalWorkDir(c.Project); err == nil {
+			if _, err = viewer.RegisterRepository(e.state, root); err != nil && !errors.Is(err, viewer.ErrNotGitRepository) {
+				return err
+			}
+		}
+	}
 	switch c.Action {
 	case "publish":
-		return e.publish(c, w)
+		if c.WorkID != "" {
+			return e.publish(c, w)
+		}
+		// The creation form fixes the session's current work; its result names it.
+		var out bytes.Buffer
+		if err := e.publish(c, &out); err != nil {
+			return err
+		}
+		var r viewWorkResult
+		if json.Unmarshal(out.Bytes(), &r) == nil && r.WorkID != "" {
+			if err := addCurrentWork(e.state, c.Host, c.NativeSessionID, r.WorkID); err != nil {
+				return err
+			}
+		}
+		_, err := w.Write(out.Bytes())
+		return err
 	case "stage", "tasks register", "task update", "close":
 		r, err := e.lifecycle(c)
 		if err != nil {
 			return err
 		}
+		if c.Action == "close" {
+			if err = releaseCurrentWork(e.state, c.Host, c.NativeSessionID, c.WorkID); err != nil {
+				return err
+			}
+		}
 		return writeViewWorkResult(w, r)
 	case "open":
 		s, err := e.open(c)
 		if err != nil {
+			return err
+		}
+		if err = addCurrentWork(e.state, c.Host, c.NativeSessionID, s.ViewerSessionID); err != nil {
 			return err
 		}
 		return writeViewWorkResult(w, viewWorkResult{WorkID: s.ViewerSessionID, Result: "opened", SessionVersion: s.Version})
