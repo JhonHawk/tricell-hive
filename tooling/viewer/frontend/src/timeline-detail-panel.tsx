@@ -46,6 +46,7 @@ import {
   type TimelineWaitState,
 } from "./timeline-contract-v3";
 import {
+  isHostTask,
   localViewerLabel,
   type TimelineLanguage,
   timelineCopy,
@@ -72,6 +73,7 @@ import {
   TimelineTicketLinks,
 } from "./timeline-references";
 import {
+  HostObservedBadge,
   type TimelineDetailOpener,
   timelineStateColor,
 } from "./timeline-tasks";
@@ -1125,6 +1127,7 @@ export function useTimelinePanel({
                   />
                 )}
                 <SheetTitle className="min-w-0 break-words">{title}</SheetTitle>
+                {task && isHostTask(task) && <HostObservedBadge t={t} />}
               </div>
               <SheetClose
                 render={

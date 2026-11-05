@@ -257,3 +257,35 @@ test("the activity line comes only from host_activity_at, never from last_activi
   );
   await en.unmount();
 });
+
+test("the activity line sits under the status group and only while the work is live", async () => {
+  const data = structuredClone(timelineFixture);
+  const session = data.session;
+  session.host_activity_at = new Date(Date.now() - 3 * 60000).toISOString();
+  session.state = "active";
+  const live = await mount(header(data, "es"));
+  const line = live.container.querySelector('[data-slot="last-activity"]');
+  assert.ok(line);
+  // A sibling of the status row, so it never joins the row that squeezes the summary.
+  const status = live.container.querySelector("[aria-busy]");
+  assert.ok(status);
+  assert.equal(status.contains(line), false);
+  assert.equal(status.parentElement, line.parentElement);
+  await live.unmount();
+  for (const state of ["in_review", "awaiting_validation"] as const) {
+    session.state = state;
+    const view = await mount(header(data, "es"));
+    assert.ok(view.container.querySelector('[data-slot="last-activity"]'));
+    await view.unmount();
+  }
+  for (const state of ["closed", "failed", "paused"] as const) {
+    session.state = state;
+    const view = await mount(header(data, "es"));
+    assert.equal(
+      view.container.querySelector('[data-slot="last-activity"]'),
+      null,
+      state,
+    );
+    await view.unmount();
+  }
+});

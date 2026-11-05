@@ -23,7 +23,7 @@ import {
 } from "./timeline-copy";
 import { taskProgress } from "./timeline-grouping";
 import {
-  HostObservedBadge,
+  HostObservedMarker,
   TimelineStateIcon,
   timelineStateColor,
 } from "./timeline-tasks";
@@ -134,7 +134,10 @@ export function TimelineTaskRegistry({
                         className="size-4 motion-reduce:animate-none"
                       />
                     </TooltipTrigger>
-                    <TooltipContent>{t.taskStates[task.state]}</TooltipContent>
+                    <TooltipContent>
+                      {t.taskStates[task.state]}
+                      {isHostTask(task) && ` · ${t.hostObservedHint}`}
+                    </TooltipContent>
                   </Tooltip>
                   <p
                     className="min-w-0 flex-1 truncate text-sm"
@@ -142,7 +145,7 @@ export function TimelineTaskRegistry({
                   >
                     {timelineTaskLabel(task)}
                   </p>
-                  {isHostTask(task) && <HostObservedBadge t={t} />}
+                  {isHostTask(task) && <HostObservedMarker t={t} />}
                   {total > 0 && (
                     <span
                       data-task-segment-progress

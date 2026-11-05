@@ -10,6 +10,7 @@ import {
   Images,
   MessageSquare,
   Pause,
+  Terminal,
 } from "lucide-react";
 import { type ComponentProps, type ReactNode, useId, useState } from "react";
 import { Badge } from "@/components/reui/badge";
@@ -340,6 +341,23 @@ export function TimelineTaskRow({
       projection.events.some((e) => e.event_id === targetEventID),
   );
   const t = timelineCopy(lang);
+  const titleActionProps: ComponentProps<typeof ButtonPrimitive> = {
+    "aria-label": `${timelineTaskLabel(task)}: ${t.taskStates[segment.state]}`,
+    "aria-expanded": hasDetail ? undefined : expanded,
+    "aria-controls": hasDetail ? undefined : disclosureID,
+    onClick: (e) =>
+      hasDetail
+        ? onOpen?.(
+            {
+              kind: "task",
+              taskID: task.task_id,
+              segmentID: segment.segment_id,
+            },
+            e.currentTarget,
+          )
+        : setExpanded((value) => !value),
+  };
+  const titleAction = <TimelineTextAction {...titleActionProps} />;
   return (
     <Collapsible open={expanded} onOpenChange={setExpanded}>
       <TimelineItem
@@ -360,25 +378,21 @@ export function TimelineTaskRow({
         />
         <TimelineHeader className="flex min-w-0 items-start gap-2">
           <TimelineTitle className="min-w-0 flex-1">
-            <TimelineTextAction
-              aria-label={`${timelineTaskLabel(task)}: ${t.taskStates[segment.state]}`}
-              aria-expanded={hasDetail ? undefined : expanded}
-              aria-controls={hasDetail ? undefined : disclosureID}
-              onClick={(e) =>
-                hasDetail
-                  ? onOpen?.(
-                      {
-                        kind: "task",
-                        taskID: task.task_id,
-                        segmentID: segment.segment_id,
-                      },
-                      e.currentTarget,
-                    )
-                  : setExpanded((value) => !value)
-              }
-            >
-              {timelineTaskLabel(task)}
-            </TimelineTextAction>
+            {isHostTask(task) ? (
+              <Tooltip>
+                <TooltipTrigger
+                  render={titleAction}
+                  data-slot="timeline-text-action"
+                >
+                  {timelineTaskLabel(task)}
+                </TooltipTrigger>
+                <TooltipContent>{t.hostObservedHint}</TooltipContent>
+              </Tooltip>
+            ) : (
+              <TimelineTextAction {...titleActionProps}>
+                {timelineTaskLabel(task)}
+              </TimelineTextAction>
+            )}
           </TimelineTitle>
           {isHostTask(task) && <HostObservedBadge t={t} />}
           <CollapsibleTrigger
@@ -608,7 +622,10 @@ export function TimelineTaskRow({
   );
 }
 
-/** Marks a task taken from the host's task list; the same badge in rows and registry. */
+/**
+ * Marks a task taken from the host's task list. Not focusable, so rows add no Tab
+ * stop; keyboard users reach the same hint through the row's title action.
+ */
 export function HostObservedBadge({
   t,
 }: {
@@ -617,11 +634,41 @@ export function HostObservedBadge({
   return (
     <Tooltip>
       <TooltipTrigger
-        render={<Badge variant="outline" tabIndex={0} />}
+        render={
+          <Badge
+            variant="outline"
+            role="img"
+            aria-label={`${t.hostObserved}: ${t.hostObservedHint}`}
+          />
+        }
         data-slot="host-observed"
       >
         {t.hostObserved}
-        <span className="sr-only">: {t.hostObservedHint}</span>
+      </TooltipTrigger>
+      <TooltipContent>{t.hostObservedHint}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+/** Compact form of the host marker for narrow lists: an icon with the same name and tooltip. */
+export function HostObservedMarker({
+  t,
+}: {
+  t: ReturnType<typeof timelineCopy>;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <span
+            role="img"
+            aria-label={`${t.hostObserved}: ${t.hostObservedHint}`}
+            className="inline-flex shrink-0 text-muted-foreground"
+          />
+        }
+        data-slot="host-observed"
+      >
+        <Terminal aria-hidden className="size-4" />
       </TooltipTrigger>
       <TooltipContent>{t.hostObservedHint}</TooltipContent>
     </Tooltip>

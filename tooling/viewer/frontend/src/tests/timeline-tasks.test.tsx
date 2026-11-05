@@ -312,9 +312,18 @@ test("tasks mirrored from the host carry an outline badge with accessible text; 
   assert.equal(badges.length, 1);
   const badge = badges[0];
   assert.ok(badge.textContent?.startsWith("Del host"));
-  assert.ok(
-    badge.textContent?.includes("Tarea tomada de la lista de tareas del host"),
+  // Role and name carry the hint; the badge is no Tab stop (the row's title action is).
+  assert.equal(badge.getAttribute("role"), "img");
+  assert.equal(
+    badge.getAttribute("aria-label"),
+    "Del host: Tarea tomada de la lista de tareas del host",
   );
+  assert.equal(badge.hasAttribute("tabindex"), false);
+  // Keyboard users reach the hint through the title action, which gets the tooltip.
+  const rowAction = badge
+    .closest("[data-task-id]")
+    ?.querySelector('[data-slot="timeline-text-action"]');
+  assert.ok(rowAction);
   assert.equal(
     badge.closest("[data-task-id]")?.getAttribute("data-task-id"),
     data.session.tasks[0].task_id,

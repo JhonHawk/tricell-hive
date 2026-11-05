@@ -145,7 +145,16 @@ test("registry rows of host tasks show only the title and the host badge", async
     true,
   );
   const badge = row.querySelector('[data-slot="host-observed"]');
-  assert.ok(badge?.textContent?.startsWith("Del host"));
+  // Compact marker: an icon with the badge's name, no visible text that would truncate titles.
+  assert.ok(badge);
+  assert.equal(badge.textContent, "");
+  assert.equal(badge.querySelector("svg")?.getAttribute("aria-hidden"), "true");
+  assert.equal(badge.getAttribute("role"), "img");
+  assert.equal(
+    badge.getAttribute("aria-label"),
+    "Del host: Tarea tomada de la lista de tareas del host",
+  );
+  assert.equal(badge.hasAttribute("tabindex"), false);
   const planRow = popover.querySelector(
     `[data-registry-task-id="${plan.task_id}"]`,
   );

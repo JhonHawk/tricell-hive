@@ -138,7 +138,7 @@ Antes                              Después
 ✓ Correr typecheck      ⌄          ✓ Correr typecheck     [Del host] ⌄
 ```
 
-**Cabecera.** La última actividad va en `text-xs text-muted-foreground`, antes del `Badge` de estado y en el mismo grupo `flex gap-2`. Solo aparece cuando hay actividad del host. En móvil (390 px) baja con el resto del grupo, que ya usa `flex-wrap`.
+**Cabecera.** La última actividad va en `text-xs text-muted-foreground`, en una línea propia bajo la fila de estado, para no quitarle ancho al resumen entre 1.024 y 1.180 px (revisión UX). Solo aparece cuando hay actividad del host y el trabajo está activo, en revisión o esperando validación. En el registro de tareas, la marca es un icono con el mismo nombre accesible y el mismo tooltip; la hoja de detalle muestra la marca junto al título.
 
 ```
 Antes                                   Después
