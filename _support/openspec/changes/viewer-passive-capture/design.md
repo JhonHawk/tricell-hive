@@ -91,7 +91,7 @@ Las cargas que entiende por host son:
 - **Claude Code:** `session_id`, `transcript_path`, `cwd`, `CLAUDE_PROJECT_DIR`, y para tareas `task_id` y `task_subject` de TaskCreated y TaskCompleted.
 - **Codex:** `session_id` y `cwd` de los hooks SessionStart, UserPromptSubmit, SubagentStart, SubagentStop y SessionEnd.
 - **Grok:** `sessionId`, `cwd` y `workspaceRoot`.
-- **OpenCode:** el plugin envía `session.*` y `todo.updated` al binario.
+- **OpenCode:** el plugin envía `session.created`, `session.deleted` y `session.execution.*`, y los cambios de `todowrite`, con el ID de sesión explícito.
 - **Pi:** la extensión envía `session_start`, `agent_settled` y `session_shutdown`.
 - **Cursor:** `conversation_id` y `workspace_roots`.
 
