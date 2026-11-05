@@ -23,14 +23,32 @@ const (
 type TimelineActor struct {
 	Kind       string `json:"kind"`
 	ProducerID string `json:"producer_id,omitempty"`
+	// Origin is the declared provenance of a local_viewer action, browser or cli.
+	// It is not authentication: both use the same token. Empty means browser.
+	Origin string `json:"origin,omitempty"`
+}
+
+var timelineActorOrigins = []string{"browser", "cli"}
+
+// recorded returns the actor as it is stored: a local_viewer without a declared
+// origin is recorded as browser. Request digests are taken before this call so
+// pre-existing receipts still replay byte for byte.
+func (a TimelineActor) recorded() TimelineActor {
+	if a.Kind == "local_viewer" && a.Origin == "" {
+		a.Origin = "browser"
+	}
+	return a
 }
 
 func (a TimelineActor) Validate() error {
 	switch a.Kind {
 	case "native_producer":
+		if a.Origin != "" {
+			return timelineError("actor", "invalid_actor")
+		}
 		return timelineID(a.ProducerID, "actor.producer_id")
 	case "local_viewer":
-		if a.ProducerID == "" {
+		if a.ProducerID == "" && (a.Origin == "" || contains(timelineActorOrigins, a.Origin)) {
 			return nil
 		}
 	}
@@ -1441,7 +1459,7 @@ func timelineV3ProtocolDefinitions(actor TimelineActor) []timelineProtocolDefini
 		{"join_request", "hive view producer request <session-id> --json <file|->", TimelineJoinRequestInput{}, TimelineOperationResult{}, TimelineJoinRequestInput{SchemaVersion: 3, OperationID: "join-example", Source: TimelineSource{ProjectRoot: "/workspace/example", Host: "claude-code", NativeSessionID: "real-native-session"}, ExpectedSessionVersion: 1, Reason: "Authorized collaboration"}},
 		{"producer_accept", "hive view producer accept <session-id> --json <file|->", TimelineProducerAcceptRequest{}, TimelineOperationResult{}, TimelineProducerAcceptRequest{TimelineNativeOperation: base, RequestID: "request-example"}},
 		{"foreground_transfer", "hive view producer transfer <session-id> --json <file|->", TimelineForegroundTransferRequest{}, TimelineOperationResult{}, TimelineForegroundTransferRequest{TimelineNativeOperation: base, TargetProducerID: "producer-next"}},
-		{"recover_lead", "Local viewer only: recover_lead", TimelineRecoverLeadRequest{}, TimelineOperationResult{}, TimelineRecoverLeadRequest{TimelineNativeOperation: recovery, RequestID: "request-example"}},
+		{"recover_lead", "hive view work recover --work-id <id> --request-id <id> --reason <text> (local_viewer; or POST /api/timeline/sessions/<session-id>/recover-lead)", TimelineRecoverLeadRequest{}, TimelineOperationResult{}, TimelineRecoverLeadRequest{TimelineNativeOperation: recovery, RequestID: "request-example"}},
 		{"task_create", "hive view task create <session-id> --json <file|->", TimelineTaskCreateRequest{}, TimelineOperationResult{}, TimelineTaskCreateRequest{TimelineNativeOperation: base, PlanOrder: 1, TaskKey: "T1", Title: "Implement contract", Summary: "Freeze typed boundaries", Segments: []TimelineTaskSegmentInput{{PlannedStage: "build", Order: 1}}}},
 		{"task_patch", "hive view task update <session-id> <task-id> --json <file|->", TimelineTaskPatchRequest{}, TimelineOperationResult{}, TimelineTaskPatchRequest{TimelineNativeOperation: base, ExpectedTaskVersion: 1, Title: timelineStringPointer("Updated task")}},
 		{"task_transition", "hive view task transition <session-id> <task-id> --json <file|->", TimelineTaskTransitionRequest{}, TimelineOperationResult{}, TimelineTaskTransitionRequest{TimelineNativeOperation: base, ExpectedTaskVersion: 1, SegmentID: "segment-example", State: "in_progress"}},

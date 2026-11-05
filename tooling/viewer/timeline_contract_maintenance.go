@@ -152,7 +152,7 @@ func validateTimelineMaintenance(r *timelineRecord) error {
 		if receipt == nil {
 			continue
 		}
-		if receipt.Actor.Kind != "local_viewer" || receipt.Actor.ProducerID != "" || !timelineOperationID.MatchString(receipt.OperationID) || !timelineSHA256.MatchString(receipt.RequestSHA256) || timelineTime(receipt.CompletedAt, "completed_at") != nil || timelineNumber(receipt.ExpectedVersion, "expected_version") != nil || timelineNumber(receipt.CommittedVersion, "committed_version") != nil || receipt.CommittedVersion != receipt.ExpectedVersion+1 || receipt.Result.Validate() != nil || receipt.Result.Kind != "session_patch" || receipt.Result.OperationID != receipt.OperationID || receipt.Result.SessionVersion != receipt.CommittedVersion || receipt.Result.ViewerSessionID != r.ID || seen[receipt.OperationID] {
+		if receipt.Actor.Kind != "local_viewer" || receipt.Actor.ProducerID != "" || receipt.Actor.Validate() != nil || !timelineOperationID.MatchString(receipt.OperationID) || !timelineSHA256.MatchString(receipt.RequestSHA256) || timelineTime(receipt.CompletedAt, "completed_at") != nil || timelineNumber(receipt.ExpectedVersion, "expected_version") != nil || timelineNumber(receipt.CommittedVersion, "committed_version") != nil || receipt.CommittedVersion != receipt.ExpectedVersion+1 || receipt.Result.Validate() != nil || receipt.Result.Kind != "session_patch" || receipt.Result.OperationID != receipt.OperationID || receipt.Result.SessionVersion != receipt.CommittedVersion || receipt.Result.ViewerSessionID != r.ID || seen[receipt.OperationID] {
 			return bad()
 		}
 		if r.Session != nil {

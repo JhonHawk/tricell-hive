@@ -36,6 +36,10 @@ func (s *Store) timelineAudit(r *timelineRecord, kind TimelineOperationKind, op,
 			}
 		}
 	}
+	if actor != nil {
+		recorded := actor.recorded()
+		actor = &recorded
+	}
 	r.Audit = append(r.Audit, timelinePrivateAudit{AuditID: id, Operation: kind, OperationID: op, ObjectID: object, Actor: actor, Source: source, Reason: reason, ReceivedAt: s.timelineTime()})
 	return nil
 }
@@ -52,7 +56,7 @@ func (s *Store) timelineAuditEvent(v *TimelineSession, kind TimelineEventKind, a
 	if len(title) > 200 {
 		title = title[:200]
 	}
-	v.Events = append(v.Events, TimelineEvent{EventID: id, Sequence: int64(len(v.Events) + 1), Version: 1, Kind: kind, Actor: actor, StageEventID: stage, TaskID: task, SegmentID: segment, Title: string(title), Summary: a.Reason, CreatedAt: now, UpdatedAt: now, Origin: "server", TicketRefs: []TimelineTicketRef{}, Audit: &a})
+	v.Events = append(v.Events, TimelineEvent{EventID: id, Sequence: int64(len(v.Events) + 1), Version: 1, Kind: kind, Actor: actor.recorded(), StageEventID: stage, TaskID: task, SegmentID: segment, Title: string(title), Summary: a.Reason, CreatedAt: now, UpdatedAt: now, Origin: "server", TicketRefs: []TimelineTicketRef{}, Audit: &a})
 	return nil
 }
 func timelineBumpTask(v *TimelineSession, ids ...string) error {
