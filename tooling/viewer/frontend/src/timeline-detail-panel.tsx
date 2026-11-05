@@ -649,7 +649,9 @@ export function useTimelinePanel({
                           ? event.actor.producer_id
                           : ""),
                     )?.source.native_session_id
-                  : t.localViewer}{" "}
+                  : event.actor.origin === "cli"
+                    ? t.localViewerCli
+                    : t.localViewer}{" "}
                 · {timelineDate(event.created_at, lang)}
               </p>
             </section>

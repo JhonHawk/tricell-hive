@@ -123,6 +123,25 @@ test("actor union rejects mixed branches", () => {
   assert.throws(() => validateTimelineActor({ kind: "native_producer" }));
 });
 
+test("local_viewer actor accepts only a declared origin", () => {
+  for (const origin of ["browser", "cli"])
+    assert.doesNotThrow(() =>
+      validateTimelineActor({ kind: "local_viewer", origin }),
+    );
+  assert.doesNotThrow(() => validateTimelineActor({ kind: "local_viewer" }));
+  for (const origin of ["robot", "", null, 1])
+    assert.throws(() =>
+      validateTimelineActor({ kind: "local_viewer", origin }),
+    );
+  assert.throws(() =>
+    validateTimelineActor({
+      kind: "native_producer",
+      producer_id: "producer-original",
+      origin: "cli",
+    }),
+  );
+});
+
 test("canonical project validation preserves actual first source and alias roots", () => {
   const s = session(),
     before = structuredClone(s);
