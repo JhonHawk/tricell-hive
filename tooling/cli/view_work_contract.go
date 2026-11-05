@@ -8,7 +8,7 @@ import (
 
 const viewWorkContract = `hive view work — semantic publisher over protocol v3
 
-All mutations require --host HOST --native-session-id ID, verified from the native session. Accepted hosts: claude-code, codex, grok, pi, opencode, cursor. These identify the actual producer; accepted membership is required for an existing work. No command starts/restarts the viewer or opens a browser. --home and --state-dir select existing manager state.
+Publication and lifecycle commands require --host HOST --native-session-id ID, verified from the native session; the management commands rename, archive, restore, pin, unpin, recover and delete take neither. Accepted hosts: claude-code, codex, grok, pi, opencode, cursor. These identify the actual producer; accepted membership is required for an existing work. No command starts/restarts the viewer or opens a browser. --home and --state-dir select existing manager state.
 
 open --project ROOT --change DIR --key KEY --title TEXT --summary TEXT
 open --work-id ID --change DIR
@@ -24,6 +24,13 @@ close --work-id ID --outcome completed|abandoned --reason TEXT
 resume --work-id ID
 reconcile --work-id ID --pending ID --action archive-rejected --reason TEXT
 bind --work-id ID --change DIR --reason TEXT
+rename --work-id ID --title TEXT
+archive --work-id ID
+restore --work-id ID
+pin --work-id ID
+unpin --work-id ID
+recover --work-id ID --request-id ID --reason TEXT
+delete --work-id ID --confirm ID
 contract
 
 Creation fields and --work-id are exclusive. --project is mandatory on first binding; later roots come from the binding. Canonical change paths are bound to explicit keys, never cwd/title/content-derived identity. bind explicitly replaces a directory within the same project after pending work resolves. show/list are reads and never create/reopen work. list defaults to 20 items, reports unknown bindings as null, and returns an opaque next cursor.
@@ -39,6 +46,8 @@ Optional segment assignee: {"host":"codex","native_session_id":"verified-native-
 Task keys use T followed by a positive integer from 1 (for example T1; T0 is rejected). A segment order is unique per stage across all tasks of the batch, not within each task, and a task holds at most one segment per stage. A rejected --json names the field and the rule, never a value: tasks[<i>].<field> for the list of tasks register and metadata.<field> for task update --json, with segments[<j>] inside a task (for example tasks[1].key: duplicate task key). Task STATE: not_started|in_progress|in_review|blocked|completed, with existing v3 transition rules. blocked requires --block-reason TEXT --block-owner TEXT --block-step TEXT (repeatable, 1..10) --resume-when TEXT. Leaving blocked requires --resolution TEXT. Optional --review-kind human|agent is valid only for in_review. Metadata --json is exclusive with transition fields; accepts title, summary, order, stage, segment_order, assignee, withdrawn, plan_revision, decision_reference. Segment edits require stage; metadata needs a confirmed plan_revision or decision_reference when v3 requires it. No Markdown status inference, approval, membership creation or CI synthesis.
 
 close --outcome completed maps to v3 closure reason completed, and abandoned maps to abandoned; --reason becomes the honest closure result/reason. Active-stage/authority checks still apply. Review/CI waits are distinct; use in_review rather than claiming completion. resume recovers technical pending requests and never reopens work. reconcile archives only a definitively rejected exact pending intent after all unknown outcomes resolve; it retains bytes/receipts/rejection evidence locally and never overwrites remote content.
+
+Management commands do what the viewer's browser actions do, as the local_viewer actor with origin cli (declared provenance, not authentication: the browser and the CLI use the same local token). Run them only when the user asked for the action naming the work; delete is a critical effect the user is asked about each time. They need a viewer that announces local_actions_cli in /api/health; an older viewer receives nothing and the command asks to update and restart it. rename sets the title; archive and restore hide or show the work; pin and unpin keep it first in the list. recover accepts the pending same-project request named by --request-id (the new session asks first with hive view producer request) and makes it lead in one commit, with --reason in the audit; it never infers that the previous lead ended, never reopens a closed work, and the new lead then completes the active stage and closes the work with the lifecycle commands. delete sends nothing unless --confirm equals --work-id. Results are the success JSON below with result renamed|archived|restored|pinned|unpinned|recovered|deleted. They keep no publisher journal: after an uncertain response they re-read the work and report whether the action holds, or not_applied / outcome_unknown, and the version each request expects keeps a retry from applying twice.
 
 Success mutation JSON <=4096 UTF-8 bytes: work_id, result, session_version, relevant revision_id/task_id/stage_id; publish adds document_count/changed_count. Success requires confirmed readback. unchanged means no remote mutation. Errors carry a stable code, safe field/path, pending ID when present and next action. No credentials or document bodies in stdout/errors. Journal: <state>/publisher/v1/, outside viewer inventory, 0700 directories/0600 files. Unknown outcomes retain exact bytes and operation identity; resume unchanged, never replace pending intent. Unavailable runtime/client: upgrade Hive; never substitute an agent-generated helper. Low-level hive view contract and its advanced operations remain available.
 `

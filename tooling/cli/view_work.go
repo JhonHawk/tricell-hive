@@ -21,6 +21,7 @@ type viewWorkCommand struct {
 	Action                                       string
 	Options                                      management.Options
 	Project, Change, WorkID, Key, Title, Summary string
+	RequestID, Confirm                           string
 	Host, NativeSessionID                        string
 	Stage, State, Reason, PreviousStage          string
 	DocumentKey, Status                          string
@@ -149,6 +150,13 @@ func parseViewWorkCommand(args []string, stdin io.Reader) (viewWorkCommand, erro
 		"resume":         "work-id",
 		"reconcile":      "work-id pending action reason",
 		"bind":           "work-id change reason",
+		"rename":         "work-id title",
+		"archive":        "work-id",
+		"restore":        "work-id",
+		"pin":            "work-id",
+		"unpin":          "work-id",
+		"recover":        "work-id request-id reason",
+		"delete":         "work-id confirm",
 	}
 	flags, ok := allowed[c.Action]
 	if !ok {
@@ -156,14 +164,18 @@ func parseViewWorkCommand(args []string, stdin io.Reader) (viewWorkCommand, erro
 	}
 	fs := flag.NewFlagSet("view work "+c.Action, flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
-	str := map[string]*string{"project": &c.Project, "change": &c.Change, "work-id": &c.WorkID, "key": &c.Key, "title": &c.Title, "summary": &c.Summary, "host": &c.Host, "native-session-id": &c.NativeSessionID, "stage": &c.Stage, "state": &c.State, "reason": &c.Reason, "previous-stage": &c.PreviousStage, "document-key": &c.DocumentKey, "status": &c.Status, "outcome": &c.Outcome, "pending": &c.Pending, "action": &c.ReconcileAction, "plan-revision": &c.PlanRevision, "cursor": &c.Cursor, "resolution": &c.Resolution, "review-kind": &c.ReviewKind}
+	str := map[string]*string{"project": &c.Project, "change": &c.Change, "work-id": &c.WorkID, "key": &c.Key, "title": &c.Title, "summary": &c.Summary, "host": &c.Host, "native-session-id": &c.NativeSessionID, "stage": &c.Stage, "state": &c.State, "reason": &c.Reason, "previous-stage": &c.PreviousStage, "document-key": &c.DocumentKey, "status": &c.Status, "outcome": &c.Outcome, "pending": &c.Pending, "action": &c.ReconcileAction, "plan-revision": &c.PlanRevision, "cursor": &c.Cursor, "resolution": &c.Resolution, "review-kind": &c.ReviewKind, "request-id": &c.RequestID, "confirm": &c.Confirm}
 	var jsonFile, blockReason, blockOwner, resumeWhen string
 	str["json"] = &jsonFile
 	str["block-reason"] = &blockReason
 	str["block-owner"] = &blockOwner
 	str["resume-when"] = &resumeWhen
 	var docs, steps viewWorkStrings
-	for _, name := range strings.Fields(flags + " host native-session-id") {
+	if !isViewWorkLocal(c.Action) {
+		// Management commands act as the local viewer, never as a native producer.
+		flags += " host native-session-id"
+	}
+	for _, name := range strings.Fields(flags) {
 		switch name {
 		case "include-archived":
 			fs.BoolVar(&c.IncludeArchived, name, false, "")
@@ -254,6 +266,12 @@ func validateViewWorkCommand(c *viewWorkCommand, seen map[string]bool) error {
 			}
 		}
 		return nil
+	}
+	if isViewWorkLocal(c.Action) {
+		if c.WorkID != "" && !viewTimelineSessionID.MatchString(c.WorkID) {
+			return workInput("invalid work-id")
+		}
+		return validateViewWorkLocal(c)
 	}
 	if c.Action != "list" && c.Action != "show" || c.Host != "" || c.NativeSessionID != "" {
 		if err := required(c.Host, c.NativeSessionID); err != nil {

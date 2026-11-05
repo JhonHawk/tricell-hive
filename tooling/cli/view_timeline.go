@@ -96,7 +96,7 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 		return err
 	}
 	if command.operation == "session_delete" {
-		return errors.New("session deletion is a local-viewer action; use the authenticated browser confirmation instead of the native CLI")
+		return errors.New("session deletion is a local-viewer action; when the user asked for it naming the work, use `hive view work delete --work-id ID --confirm ID`, or the authenticated browser confirmation; a native producer cannot delete")
 	}
 	fs := flag.NewFlagSet("view timeline", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
@@ -334,7 +334,7 @@ func validateViewTimelineInput(operation string, raw []byte) error {
 		Actor viewer.TimelineActor `json:"actor"`
 	}
 	if json.Unmarshal(raw, &identity) == nil && identity.Actor.Kind == "local_viewer" {
-		return errors.New("local_viewer_actor_forbidden_in_native_cli")
+		return errors.New("local_viewer_actor_forbidden_in_native_cli: rename, archive, restore, pin, unpin, recover and delete are `hive view work` commands; run `hive view work contract`")
 	}
 	switch operation {
 	case "ticket_create", "ticket_patch", "delivery_create", "delivery_patch", "candidate_create", "join_request", "producer_accept", "foreground_transfer", "task_create", "task_patch", "task_transition", "wait_create", "wait_attempt_start", "wait_observe":

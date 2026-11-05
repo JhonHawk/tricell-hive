@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -27,6 +28,12 @@ type workPublishFixture struct {
 	mutations           atomic.Int32
 	server              *httptest.Server
 	handler             *viewer.Server
+	// Local management actions: bodies of the writes received, a switch that hides
+	// the local_actions_cli capability, and a one-shot loss of the response.
+	bodyMu         sync.Mutex
+	bodies         map[string][]byte
+	hideCapability atomic.Bool
+	dropLocal      atomic.Value
 }
 
 func newWorkPublishFixture(t *testing.T) *workPublishFixture {
@@ -61,9 +68,41 @@ func newWorkPublishFixture(t *testing.T) *workPublishFixture {
 	}
 	f.store = store
 	f.dropPath.Store("")
+	f.dropLocal.Store("")
+	f.bodies = map[string][]byte{}
 	f.server.Config.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != "GET" {
 			f.mutations.Add(1)
+			raw, _ := io.ReadAll(r.Body)
+			r.Body = io.NopCloser(bytes.NewReader(raw))
+			f.bodyMu.Lock()
+			f.bodies[r.Method+" "+r.URL.Path] = raw
+			f.bodyMu.Unlock()
+		}
+		if r.URL.Path == "/api/health" && f.hideCapability.Load() {
+			recorder := httptest.NewRecorder()
+			f.handler.ServeHTTP(recorder, r)
+			var health map[string]any
+			json.Unmarshal(recorder.Body.Bytes(), &health)
+			delete(health, "capabilities")
+			for key, values := range recorder.Header() {
+				for _, value := range values {
+					w.Header().Add(key, value)
+				}
+			}
+			json.NewEncoder(w).Encode(health)
+			return
+		}
+		// "before" drops a local action unseen; "after" lets it commit and drops
+		// the response.
+		if mode := f.dropLocal.Load().(string); mode != "" && (r.Method == "PATCH" || r.Method == "DELETE" || strings.HasSuffix(r.URL.Path, "/recover-lead")) && f.dropLocal.CompareAndSwap(mode, "") {
+			if mode == "after" {
+				f.handler.ServeHTTP(httptest.NewRecorder(), r)
+			}
+			if conn, _, err := w.(http.Hijacker).Hijack(); err == nil {
+				conn.Close()
+			}
+			return
 		}
 		if strings.HasSuffix(r.URL.Path, "/document-snapshots") {
 			f.hookMu.Lock()
