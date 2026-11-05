@@ -52,7 +52,8 @@ Las operaciones de bajo nivel siguen funcionando sin cambios (D6 A), y el contra
 - **Lock por trabajo:** `publisher/v1/locks/<work-id>.lock` reemplaza al lock global en las órdenes que afectan a un solo trabajo. La creación y la migración del journal siguen usando el lock global.
 - **Cola semántica (D12 A):** si el visor no está en marcha o no responde, `work open`, `work sync` y `work evidence` guardan su entrada semántica y su ID de operación en el journal con el estado `queued`, y responden `queued`. Una imagen se copia a la carpeta del publicador para que sus bytes no cambien.
   - La siguiente orden `work`, o el siguiente `hive hook`, con el visor en marcha procesa la cola en orden: construye las peticiones sobre el estado actual y las registra con sus bytes exactos antes de transmitirlas, como cualquier intención.
-  - Un `open` en cola funciona porque el ID del visor se deriva de la clave del trabajo.
+  - Un `open` en cola devuelve un identificador local: un hash del proyecto, el host, la sesión nativa y la clave. El ID real del visor no se puede derivar sin el servidor, porque también usa la identidad del proyecto en el servidor. Al enviarse, el journal asocia el identificador local con el ID real y reescribe el archivo de trabajo actual.
+  - Los locks son por trabajo, incluida la creación (con el identificador local). Las imágenes de `evidence` se congelan con un máximo de 8 MiB por imagen, por el límite del journal.
   - Lo que ya no aplique (una etapa completada por otro, un trabajo cerrado) se informa como rechazado con su motivo y no sobrescribe nada.
 
   Las entradas en cola sobreviven al proceso y no caducan.

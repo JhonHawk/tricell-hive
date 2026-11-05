@@ -44,6 +44,8 @@ type viewWorkCommand struct {
 	ViewTitle, Candidate, Supersedes, Expected string
 	Viewport, Theme, Branch, Base              string
 	Images, Steps                              []string
+	// QueuedOperation is the operation identity a queued open gives its create.
+	QueuedOperation string
 }
 
 // viewWorkSyncTask is one task of a `work sync` declaration. The state is the
@@ -96,7 +98,8 @@ type viewWorkResult struct {
 	DocumentCount  *int   `json:"document_count,omitempty"`
 	ChangedCount   *int   `json:"changed_count,omitempty"`
 	// State is the work's state read back after a close.
-	State string `json:"state,omitempty"`
+	State string               `json:"state,omitempty"`
+	Queue *viewWorkQueueReport `json:"queue,omitempty"`
 }
 
 type viewWorkError struct{ Code, Field, Pending, Next string }

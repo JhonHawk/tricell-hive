@@ -370,10 +370,12 @@ func TestCurrentWorkNeverLetsANativeIDReachThePath(t *testing.T) {
 			t.Fatalf("%q did not round-trip: %v %v", native, ids, err)
 		}
 	}
-	// Everything stayed inside current/codex.
+	// Everything stayed inside current/codex, except the session locks, which are
+	// named by a hash of the identity.
 	var outside []string
+	locks := filepath.Join(state, "publisher", "v1", "locks") + string(filepath.Separator)
 	filepath.Walk(state, func(p string, info os.FileInfo, err error) error {
-		if err == nil && !info.IsDir() && !strings.HasPrefix(p, filepath.Join(state, "publisher", "v1", "current", "codex")+string(filepath.Separator)) {
+		if err == nil && !info.IsDir() && !strings.HasPrefix(p, locks+"session-") && !strings.HasPrefix(p, filepath.Join(state, "publisher", "v1", "current", "codex")+string(filepath.Separator)) {
 			outside = append(outside, p)
 		}
 		return nil

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -23,7 +24,9 @@ import (
 // against the viewer's state, so repeating a command that was interrupted reuses
 // what already arrived and repeating a finished one changes nothing.
 
-const viewWorkEvidenceImageLimit = 20 << 20
+// The limit keeps one upload, base64 encoded in the journal, inside the room
+// the journal reserves for an intent.
+const viewWorkEvidenceImageLimit = 8 << 20
 
 var (
 	viewWorkDefaultStep     = "Open the captured screen"
@@ -45,6 +48,19 @@ type viewWorkEvidenceResult struct {
 	EvidenceID     string   `json:"evidence_id,omitempty"`
 	ViewIDs        []string `json:"view_ids,omitempty"`
 	ArtifactIDs    []string `json:"artifact_ids,omitempty"`
+	// ArtifactsOmitted counts the capture IDs that do not fit the bounded reply.
+	ArtifactsOmitted int                  `json:"artifacts_omitted,omitempty"`
+	Queue            *viewWorkQueueReport `json:"queue,omitempty"`
+}
+
+// capViewWorkEvidenceResult lists the artifact IDs that fit the bounded
+// mutation output and counts the rest, so a published evidence never fails on
+// its own reply.
+func capViewWorkEvidenceResult(r *viewWorkEvidenceResult) {
+	for len(r.ArtifactIDs) > 0 && !fitsViewWorkOutput(*r) {
+		r.ArtifactIDs = r.ArtifactIDs[:len(r.ArtifactIDs)-1]
+		r.ArtifactsOmitted++
+	}
 }
 
 // splitViewWorkImage separates FILE from :caption. A path that exists whole is
@@ -120,19 +136,37 @@ func viewWorkEvidenceEvent(c viewWorkCommand, candidateID string, actor viewer.T
 
 type viewWorkSupersedes struct{ EventID, EvidenceID, ViewID string }
 
-func (e *viewWorkEngine) evidenceStep(step, method, path, contentType string, body []byte) (viewer.TimelineOperationResult, error) {
-	raw, code, err := viewWorkHTTP(e.info, method, path, contentType, body)
+// evidenceStep sends one request of the evidence as a journal intent: its exact
+// bytes are recorded before they leave the process, so an interrupted step is
+// replayed unchanged by the next evidence command or by `work resume`.
+func (e *viewWorkEngine) evidenceStep(c viewWorkCommand, source viewer.TimelineSource, step, method, path, contentType string, body []byte) (viewer.TimelineOperationResult, error) {
+	next := "run the same command again: it reuses what already arrived"
+	context := viewWorkLifecycleContext{Command: viewWorkCommand{Action: "evidence", Host: c.Host, NativeSessionID: c.NativeSessionID, WorkID: c.WorkID}}
+	i, err := e.prepareIntent("evidence", c.WorkID, source, context)
 	if err != nil {
-		if code == "" {
-			code = "outcome_unknown"
+		return viewer.TimelineOperationResult{}, err
+	}
+	if _, err = e.appendStep(i, method, path, contentType, body); err != nil {
+		return viewer.TimelineOperationResult{}, err
+	}
+	raw, err := e.executeStep(i, 0)
+	if err != nil {
+		var failure *viewWorkError
+		if errors.As(err, &failure) {
+			named := *failure
+			named.Field = step
+			if named.Next == "" {
+				named.Next = next
+			}
+			return viewer.TimelineOperationResult{}, &named
 		}
-		return viewer.TimelineOperationResult{}, &viewWorkError{Code: code, Field: step, Next: "run the same command again: it reuses what already arrived"}
+		return viewer.TimelineOperationResult{}, err
 	}
 	r, err := viewer.DecodeTimelineOperationResult(raw)
 	if err != nil {
-		return r, &viewWorkError{Code: "outcome_unknown", Field: step, Next: "run the same command again: it reuses what already arrived"}
+		return r, &viewWorkError{Code: "outcome_unknown", Field: step, Next: next}
 	}
-	return r, nil
+	return r, e.finishIntent(i)
 }
 
 func readViewWorkImages(c viewWorkCommand) ([]viewWorkEvidenceImage, error) {
@@ -167,6 +201,12 @@ func (e *viewWorkEngine) evidence(c viewWorkCommand) (viewWorkEvidenceResult, er
 	}
 	actor, err := e.actor(s, c)
 	if err != nil {
+		return viewWorkEvidenceResult{}, err
+	}
+	if err = e.resumeEvidenceIntents(c, workLifecycleSource(s, actor)); err != nil {
+		return viewWorkEvidenceResult{}, err
+	}
+	if s, err = e.session(c.WorkID); err != nil {
 		return viewWorkEvidenceResult{}, err
 	}
 	if s.State == viewer.TimelineClosed || s.State == viewer.TimelineFailed {
@@ -244,7 +284,7 @@ func (e *viewWorkEngine) evidence(c viewWorkCommand) (viewWorkEvidenceResult, er
 			if err != nil {
 				return viewWorkEvidenceResult{}, workStateError("upload_unavailable")
 			}
-			uploaded, err := e.evidenceStep("upload "+filepath.Base(image.Path), "POST", basePath+"/artifacts", writer.FormDataContentType(), buffer.Bytes())
+			uploaded, err := e.evidenceStep(c, workLifecycleSource(s, actor), "upload "+filepath.Base(image.Path), "POST", basePath+"/artifacts", writer.FormDataContentType(), buffer.Bytes())
 			if err != nil {
 				return viewWorkEvidenceResult{}, err
 			}
@@ -267,7 +307,7 @@ func (e *viewWorkEngine) evidence(c viewWorkCommand) (viewWorkEvidenceResult, er
 	if err != nil {
 		return viewWorkEvidenceResult{}, err
 	}
-	receipt, err := e.evidenceStep("event", "POST", basePath+"/events", "application/json", raw)
+	receipt, err := e.evidenceStep(c, workLifecycleSource(s, actor), "event", "POST", basePath+"/events", "application/json", raw)
 	if err != nil {
 		return viewWorkEvidenceResult{}, err
 	}
@@ -336,7 +376,7 @@ func (e *viewWorkEngine) evidenceCreateCandidate(s viewer.TimelineSession, actor
 	if err != nil {
 		return viewer.TimelineOperationResult{}, err
 	}
-	return e.evidenceStep("candidate", method, path, "application/json", body)
+	return e.evidenceStep(c, workLifecycleSource(s, actor), "candidate", method, path, "application/json", body)
 }
 
 // evidencePublished finds a validation or iteration event of the candidate
@@ -369,4 +409,24 @@ func evidencePublished(s viewer.TimelineSession, c viewWorkCommand, candidateID 
 		}
 	}
 	return viewWorkEvidenceResult{}, false
+}
+
+// resumeEvidenceIntents replays the interrupted steps of this producer's earlier
+// evidence for the work before a new one is built.
+func (e *viewWorkEngine) resumeEvidenceIntents(c viewWorkCommand, source viewer.TimelineSource) error {
+	for _, i := range append([]*viewWorkIntent{}, e.journal.Pending...) {
+		if i.WorkID != c.WorkID || i.Action != "evidence" {
+			continue
+		}
+		if i.Source != source {
+			return &viewWorkError{Code: "pending_operation", Pending: i.ID, Next: "run hive view work resume with the original native source"}
+		}
+		if i.State == "rejected_conflict" {
+			return &viewWorkError{Code: "pending_operation", Pending: i.ID, Next: "inspect and reconcile the rejected intent"}
+		}
+		if err := e.resumeEvidenceIntent(i); err != nil {
+			return err
+		}
+	}
+	return nil
 }

@@ -144,12 +144,35 @@ func writeCurrentWorks(state, host, native string, ids []string) error {
 	return writePrivateWorkFile(dir, path, raw)
 }
 
-// addCurrentWork records work as open in the session. Callers hold the
-// publisher lock, which serializes this read-modify-write.
+// addCurrentWork records work as open in the session, under the session lock.
 func addCurrentWork(state, host, native, work string) error {
 	if !viewTimelineSessionID.MatchString(work) {
 		return workInput("work-id")
 	}
+	return withSessionLock(state, host, native, func() error { return addCurrentWorkLocked(state, host, native, work) })
+}
+
+// withSessionLock serializes the read-modify-write of a session's current-work
+// file between processes: the per-work locks do not, since one session's
+// several works share that file.
+func withSessionLock(state, host, native string, fn func() error) error {
+	_, dir, err := workPublisherDir(viewWorkCommand{Options: management.Options{Scope: "user", StateDir: state}})
+	if err != nil {
+		return err
+	}
+	if err = ensureWorkSubdir(dir, "locks"); err != nil {
+		return err
+	}
+	sum := sha256.Sum256([]byte(host + "\x00" + native))
+	l, err := acquirePrivateWorkLock(filepath.Join(dir, "locks", "session-"+hex.EncodeToString(sum[:])+".lock"), true)
+	if err != nil {
+		return err
+	}
+	defer l.Release()
+	return fn()
+}
+
+func addCurrentWorkLocked(state, host, native, work string) error {
 	ids, err := readCurrentWorks(state, host, native)
 	if err != nil {
 		return err
@@ -168,6 +191,10 @@ func addCurrentWork(state, host, native, work string) error {
 
 // releaseCurrentWork removes work from the session's open works.
 func releaseCurrentWork(state, host, native, work string) error {
+	return withSessionLock(state, host, native, func() error { return releaseCurrentWorkLocked(state, host, native, work) })
+}
+
+func releaseCurrentWorkLocked(state, host, native, work string) error {
 	ids, err := readCurrentWorks(state, host, native)
 	if err != nil {
 		return err

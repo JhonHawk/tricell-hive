@@ -53,6 +53,10 @@ type viewWorkJournal struct {
 	Bindings      []viewWorkBinding `json:"bindings"`
 	Pending       []*viewWorkIntent `json:"pending"`
 	History       []*viewWorkIntent `json:"history"`
+	// Queue and Aliases hold the semantic declarations made while the viewer
+	// was unavailable; a journal written before them has neither.
+	Queue   []*viewWorkQueued `json:"queue,omitempty"`
+	Aliases []viewWorkAlias   `json:"aliases,omitempty"`
 }
 
 func newWorkJournal() *viewWorkJournal {
@@ -78,18 +82,69 @@ func safeWorkFile(path string) error {
 	}
 	return nil
 }
+
+// lockWorkPublisher takes the global publisher lock, kept for commands that act
+// on no single work and for migrating the journal.
 func lockWorkPublisher(dir string) (*viewer.FileLock, error) {
+	return lockWorkScope(dir, "")
+}
+
+// lockWorkScope takes the lock of one work, or the global lock for an empty
+// scope. It never waits: a held lock is `busy`.
+func lockWorkScope(dir, scope string) (*viewer.FileLock, error) {
 	path := filepath.Join(dir, "publisher.lock")
+	if scope != "" {
+		if !viewTimelineSessionID.MatchString(scope) {
+			return nil, workStateError("invalid_lock_scope")
+		}
+		if err := ensureWorkSubdir(dir, "locks"); err != nil {
+			return nil, err
+		}
+		path = filepath.Join(dir, "locks", scope+".lock")
+	}
+	return acquirePrivateWorkLock(path, false)
+}
+
+func acquirePrivateWorkLock(path string, wait bool) (*viewer.FileLock, error) {
 	if err := safeWorkFile(path); err != nil && !os.IsNotExist(err) {
 		return nil, err
 	}
-	l, err := viewer.AcquireLock(path, false)
+	l, err := viewer.AcquireLock(path, wait)
 	if errors.Is(err, viewer.ErrLocked) {
 		return nil, workStateError("busy")
 	}
 	return l, err
 }
+
+func ensureWorkSubdir(dir, name string) error {
+	sub := filepath.Join(dir, name)
+	if err := os.Mkdir(sub, 0700); err != nil && !os.IsExist(err) {
+		return err
+	}
+	st, err := os.Lstat(sub)
+	if err != nil || !st.IsDir() || st.Mode()&os.ModeSymlink != 0 || st.Mode().Perm()&0077 != 0 {
+		return workStateError("unsafe_publisher_directory")
+	}
+	return nil
+}
+
+// withWorkJournalLock serializes the short read-merge-write of the journal
+// between processes working on different works.
+func withWorkJournalLock(dir string, fn func() error) error {
+	l, err := acquirePrivateWorkLock(filepath.Join(dir, "journal.lock"), true)
+	if err != nil {
+		return err
+	}
+	defer l.Release()
+	return fn()
+}
 func readWorkJournal(dir string) (*viewWorkJournal, error) {
+	return readWorkJournalChecked(dir, true)
+}
+
+// readWorkJournalChecked reads the journal; a save re-reads it only to merge,
+// and leaves its validation to the load that opened the engine.
+func readWorkJournalChecked(dir string, validate bool) (*viewWorkJournal, error) {
 	path := filepath.Join(dir, "journal.json")
 	if err := safeWorkFile(path); os.IsNotExist(err) {
 		return newWorkJournal(), nil
@@ -125,8 +180,10 @@ func readWorkJournal(dir string) (*viewWorkJournal, error) {
 			j.History[n] = &full
 		}
 	}
-	if err := validateWorkJournal(j); err != nil {
-		return nil, err
+	if validate {
+		if err := validateWorkJournal(j); err != nil {
+			return nil, err
+		}
 	}
 	return j, nil
 }
@@ -362,7 +419,7 @@ func validateWorkSource(source viewer.TimelineSource) bool {
 }
 func validWorkAction(action string) bool {
 	switch action {
-	case "open", "publish", "stage", "tasks register", "task update", "close":
+	case "open", "publish", "stage", "tasks register", "task update", "close", "evidence":
 		return true
 	}
 	return false
@@ -396,6 +453,9 @@ func validateWorkJournal(j *viewWorkJournal) error {
 				return bad()
 			}
 		}
+	}
+	if err := validateWorkQueue(j); err != nil {
+		return err
 	}
 	ids := map[string]bool{}
 	for setIndex, set := range [][]*viewWorkIntent{j.Pending, j.History} {
@@ -496,11 +556,15 @@ func validateWorkStoredStep(i *viewWorkIntent, s viewWorkStep) error {
 			operation = "session_patch"
 		case tail == "/events" && s.Method == "POST":
 			operation = "stage_start"
-			if i.Action == "close" {
+			if i.Action == "close" || i.Action == "evidence" {
 				operation = "append_event"
 			}
 		case tail == "/documents" && s.Method == "POST":
 			operation = "document_add"
+		case tail == "/artifacts" && s.Method == "POST" && i.Action == "evidence":
+			operation = "artifact_add"
+		case tail == "/candidates" && s.Method == "POST" && i.Action == "evidence":
+			operation = "candidate_create"
 		case tail == "/tasks" && s.Method == "POST":
 			operation = "task_create"
 		case len(parts) == 2 && viewTimelineObjectID.MatchString(parts[1]) && s.Method == "PATCH" && parts[0] == "events":
@@ -546,7 +610,7 @@ func validateWorkStoredStep(i *viewWorkIntent, s viewWorkStep) error {
 	}
 	input := s.Body
 	if media, params, err := mime.ParseMediaType(s.ContentType); err == nil && media == "multipart/form-data" {
-		if operation != "document_add" {
+		if operation != "document_add" && operation != "artifact_add" {
 			return bad()
 		}
 		reader := multipart.NewReader(bytes.NewReader(input), params["boundary"])
@@ -574,7 +638,7 @@ func validateWorkStoredStep(i *viewWorkIntent, s viewWorkStep) error {
 	}
 	if operation == "append_event" {
 		r, err := viewer.DecodeTimelineAppendEvent(input)
-		if err != nil || r.Kind != "closure" {
+		if err != nil || i.Action == "close" && r.Kind != "closure" || i.Action == "evidence" && r.Kind != "validation" && r.Kind != "iteration" {
 			return bad()
 		}
 	}

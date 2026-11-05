@@ -194,6 +194,17 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 	return viewTimelineDecodeOutput(w, command, input, data)
 }
 
+var (
+	errViewStopped   = errors.New("the viewer is unavailable")
+	errViewTransport = errors.New("viewer request outcome is uncertain")
+)
+
+// viewerUnavailable reports a viewer that is stopped or does not answer, as
+// opposed to one that answers incompatibly or wrongly.
+func viewerUnavailable(err error) bool {
+	return errors.Is(err, errViewStopped) || errors.Is(err, errViewTransport)
+}
+
 func viewTimelineRunning(paths viewPaths) (serverInfo, error) {
 	info, _, err := viewTimelineRunningHealth(paths)
 	return info, err
@@ -205,7 +216,7 @@ func viewTimelineRunningHealth(paths viewPaths) (serverInfo, viewTimelineHealth,
 	held, lockErr := viewLockHeld(paths)
 	info, infoErr := readServerInfo(paths.info)
 	if lockErr != nil || !held || infoErr != nil || info.PID <= 0 || info.Port < 1 || info.Port > 65535 || len(info.Token) < 16 {
-		return serverInfo{}, viewTimelineHealth{}, errors.New("the viewer is unavailable; start it with `hive view start` and retry the unchanged operation; local inputs were preserved")
+		return serverInfo{}, viewTimelineHealth{}, fmt.Errorf("%w; start it with `hive view start` and retry the unchanged operation; local inputs were preserved", errViewStopped)
 	}
 	health, err := viewTimelineReadHealth(info, paths.state)
 	if err != nil {
@@ -456,7 +467,7 @@ func viewTimelineHTTP(info serverInfo, method, path, contentType string, body io
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	response, err := client.Do(req)
 	if err != nil {
-		return nil, errors.New("viewer request outcome is uncertain; preserve inputs and retry the unchanged operation ID")
+		return nil, fmt.Errorf("%w; preserve inputs and retry the unchanged operation ID", errViewTransport)
 	}
 	defer response.Body.Close()
 	if response.Header.Get(viewer.TimelineRevisionHeader) != viewer.TimelineRevisionValue {

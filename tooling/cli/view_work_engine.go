@@ -25,7 +25,20 @@ type viewWorkEngine struct {
 	info    serverInfo
 	journal *viewWorkJournal
 	lock    *viewer.FileLock
+	// scope is the lock identity of the work the command acts on: a work ID or
+	// queue handle, "" for the global lock or noWorkScope for none.
+	scope string
+	// up is whether the viewer answered when the engine opened.
+	up bool
+	// base marks the journal elements as they were read, so a save sends only
+	// this process's changes.
+	base        map[string][]byte
+	report      viewWorkQueueReport
+	rejectedIDs []string
 }
+
+// noWorkScope is the scope of a read-only command, which takes no lock.
+const noWorkScope = "-"
 
 func canonicalWorkDir(path string) (string, error) {
 	p, err := filepath.Abs(path)
@@ -42,51 +55,121 @@ func canonicalWorkDir(path string) (string, error) {
 	}
 	return p, nil
 }
-func openViewWorkEngine(c viewWorkCommand) (*viewWorkEngine, error) {
-	_, state, err := management.NormalizeOptions(c.Options)
+
+// workPublisherDir creates and checks the publisher directory. Every component
+// is checked before descending; publisher state never shares the server-owned
+// viewer inventory or its long-lived lock.
+func workPublisherDir(c viewWorkCommand) (state, dir string, err error) {
+	_, state, err = management.NormalizeOptions(c.Options)
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
 	state, err = filepath.Abs(state)
 	if err != nil {
-		return nil, err
+		return "", "", err
 	}
-	// Every component is checked before descending; publisher state never shares
-	// the server-owned viewer inventory or its long-lived lock.
-	dir := state
+	dir = state
 	for _, part := range []string{"publisher", "v1"} {
 		dir = filepath.Join(dir, part)
 		if err = os.Mkdir(dir, 0700); err != nil && !os.IsExist(err) {
-			return nil, err
+			return "", "", err
 		}
 		st, e := os.Lstat(dir)
 		if e != nil || !st.IsDir() || st.Mode()&os.ModeSymlink != 0 || st.Mode().Perm()&0077 != 0 {
-			return nil, workStateError("unsafe_publisher_directory")
+			return "", "", workStateError("unsafe_publisher_directory")
 		}
 	}
-	lock, err := lockWorkPublisher(dir)
+	return state, dir, nil
+}
+
+// workLockScope names the lock a command takes: the lock of the one work it
+// acts on (its queue handle when it has one), or of the work it creates, whose
+// identity is the key in its session. A command that reads takes none.
+func workLockScope(c viewWorkCommand, j *viewWorkJournal) string {
+	switch c.Action {
+	case "list", "show":
+		return noWorkScope
+	}
+	if c.WorkID != "" {
+		return workScopeOf(j, c.WorkID)
+	}
+	if (c.Action == "open" || c.Action == "publish") && c.Key != "" && c.Project != "" {
+		if project, err := canonicalWorkDir(c.Project); err == nil {
+			return queuedWorkHandle(project, c.Host, c.NativeSessionID, c.Key)
+		}
+	}
+	return ""
+}
+
+// openViewWorkEngine opens the engine for a command that needs the viewer.
+func openViewWorkEngine(c viewWorkCommand) (*viewWorkEngine, error) {
+	return openViewWorkEngineQueueing(c, false)
+}
+
+// openViewWorkEngineQueueing also opens when the viewer is stopped or does not
+// answer, when the command may be queued instead.
+func openViewWorkEngineQueueing(c viewWorkCommand, queueing bool) (*viewWorkEngine, error) {
+	state, dir, err := workPublisherDir(c)
 	if err != nil {
 		return nil, err
 	}
-	e := &viewWorkEngine{state: state, dir: dir, lock: lock}
-	e.journal, err = readWorkJournal(dir)
-	if err != nil {
+	e := &viewWorkEngine{state: state, dir: dir}
+	var peek *viewWorkJournal
+	if err = withWorkJournalLock(dir, func() (err error) { peek, err = readWorkJournal(dir); return }); err != nil {
+		return nil, err
+	}
+	e.scope = workLockScope(c, peek)
+	if e.scope != noWorkScope {
+		if e.lock, err = lockWorkScope(dir, e.scope); err != nil {
+			return nil, err
+		}
+	}
+	viewWorkCheckpoint("locked")
+	if err = e.load(); err != nil {
 		e.Close()
 		return nil, err
 	}
 	e.info, err = viewTimelineRunning(newViewPaths(state))
-	if err != nil {
+	switch {
+	case err == nil:
+		e.up = true
+	case queueing && viewerUnavailable(err):
+	default:
 		e.Close()
 		return nil, err
 	}
 	return e, nil
+}
+
+// load reads the journal and marks its elements.
+func (e *viewWorkEngine) load() error {
+	return withWorkJournalLock(e.dir, func() (err error) {
+		if e.journal, err = readWorkJournal(e.dir); err == nil {
+			e.base = workJournalElements(e.journal)
+		}
+		return
+	})
 }
 func (e *viewWorkEngine) Close() {
 	if e.lock != nil {
 		e.lock.Release()
 	}
 }
-func (e *viewWorkEngine) save() error { return writeWorkJournal(e.dir, e.journal) }
+
+// save writes this process's changes onto the journal as it is on disk now.
+func (e *viewWorkEngine) save() error {
+	return withWorkJournalLock(e.dir, func() error {
+		disk, err := readWorkJournalChecked(e.dir, false)
+		if err != nil {
+			return err
+		}
+		if err = writeWorkJournal(e.dir, mergeWorkJournal(disk, e.journal, e.base)); err != nil {
+			return err
+		}
+		e.base = workJournalElements(e.journal)
+		return nil
+	})
+}
 func (e *viewWorkEngine) session(id string) (viewer.TimelineSession, error) {
 	if !viewTimelineSessionID.MatchString(id) {
 		return viewer.TimelineSession{}, workInput("work_id")
@@ -175,6 +258,7 @@ func (e *viewWorkEngine) executeStep(i *viewWorkIntent, index int) ([]byte, erro
 		}
 		return nil, &viewWorkError{Code: code, Pending: i.ID, Next: "preserve inputs; run hive view work resume with the same native source"}
 	}
+	viewWorkCheckpoint("sent")
 	// Validate before recording a successful receipt. A malformed success may
 	// have committed remotely, and must therefore retain exact replay data.
 	if s.Method == "POST" && s.Path == "/api/timeline/sessions" {
@@ -409,7 +493,11 @@ func (e *viewWorkEngine) open(c viewWorkCommand) (viewer.TimelineSession, error)
 			return viewer.TimelineSession{}, workInput("change must be within project")
 		}
 	}
-	req := viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: workID("op-"), Source: source, WorkKey: &c.Key, Title: c.Title, Summary: c.Summary, Tickets: []viewer.TimelineTicketInput{}}
+	operation := c.QueuedOperation
+	if operation == "" {
+		operation = workID("op-")
+	}
+	req := viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: operation, Source: source, WorkKey: &c.Key, Title: c.Title, Summary: c.Summary, Tickets: []viewer.TimelineTicketInput{}}
 	raw, err := json.Marshal(req)
 	if err != nil {
 		return viewer.TimelineSession{}, err
@@ -465,11 +553,34 @@ func executeViewWork(c viewWorkCommand, w io.Writer) error {
 		// Management commands keep no publisher journal and take no native identity.
 		return executeViewWorkLocal(c, w)
 	}
-	e, err := openViewWorkEngine(c)
+	e, err := openViewWorkEngineQueueing(c, viewWorkQueueable(c))
 	if err != nil {
 		return err
 	}
 	defer e.Close()
+	if !e.up {
+		return e.queue(c, w)
+	}
+	if viewWorkQueueFlushes(c.Action) {
+		if err = e.flushQueue(c); err != nil {
+			// The viewer went away while the queue was sent: this declaration
+			// queues behind it, in order.
+			if _, probe := viewTimelineRunning(newViewPaths(e.state)); viewWorkQueueable(c) && viewerUnavailable(probe) {
+				return e.queue(c, w)
+			}
+			return err
+		}
+	}
+	if c.WorkID != "" {
+		c.WorkID = e.realID(c.WorkID)
+	}
+	if err = e.dispatch(c, w); err != nil {
+		return err
+	}
+	return e.ackQueue()
+}
+
+func (e *viewWorkEngine) dispatch(c viewWorkCommand, w io.Writer) error {
 	if (c.Action == "open" || c.Action == "publish") && c.WorkID == "" {
 		// The viewer rejects work from a root it does not know, so creating work
 		// registers its root. A directory that is not a repository stays the
@@ -503,6 +614,7 @@ func executeViewWork(c viewWorkCommand, w io.Writer) error {
 		if err != nil {
 			return err
 		}
+		r.Queue = e.queueReport()
 		return writeViewWorkResult(w, r)
 	case "close":
 		r, err := e.closeWork(c)
@@ -512,6 +624,7 @@ func executeViewWork(c viewWorkCommand, w io.Writer) error {
 		if err = releaseCurrentWork(e.state, c.Host, c.NativeSessionID, c.WorkID); err != nil {
 			return err
 		}
+		r.Queue = e.queueReport()
 		return writeViewWorkResult(w, r)
 	case "sync":
 		r, err := e.sync(c)
@@ -523,12 +636,15 @@ func executeViewWork(c viewWorkCommand, w io.Writer) error {
 				return err
 			}
 		}
+		r.Queue = e.queueReport()
 		return writeViewWorkBoundedJSON(w, r)
 	case "evidence":
 		r, err := e.evidence(c)
 		if err != nil {
 			return err
 		}
+		r.Queue = e.queueReport()
+		capViewWorkEvidenceResult(&r)
 		return writeViewWorkBoundedJSON(w, r)
 	case "open":
 		s, err := e.open(c)
@@ -538,7 +654,7 @@ func executeViewWork(c viewWorkCommand, w io.Writer) error {
 		if err = addCurrentWork(e.state, c.Host, c.NativeSessionID, s.ViewerSessionID); err != nil {
 			return err
 		}
-		return writeViewWorkResult(w, viewWorkResult{WorkID: s.ViewerSessionID, Result: "opened", SessionVersion: s.Version})
+		return writeViewWorkResult(w, viewWorkResult{WorkID: s.ViewerSessionID, Result: "opened", SessionVersion: s.Version, Queue: e.queueReport()})
 	case "list":
 		return e.list(c, w)
 	case "show":
@@ -610,6 +726,12 @@ func (e *viewWorkEngine) recover(c viewWorkCommand, w io.Writer) error {
 		}
 		if c.Action == "resume" && i.Action == "publish" {
 			return e.resumePublish(c, i, w)
+		}
+		if c.Action == "resume" && i.Action == "evidence" {
+			if err := e.resumeEvidenceIntent(i); err != nil {
+				return err
+			}
+			return writeViewWorkResult(w, viewWorkResult{WorkID: i.WorkID, Result: "resumed", SessionVersion: observed.Version})
 		}
 		if c.Action == "resume" && i.Action != "open" {
 			r, err := e.resumeLifecycle(i)

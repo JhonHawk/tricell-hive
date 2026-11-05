@@ -28,6 +28,7 @@ type viewWorkSyncResult struct {
 	State          string                    `json:"state,omitempty"`
 	Tasks          []viewWorkSyncTaskReceipt `json:"tasks,omitempty"`
 	TasksOmitted   int                       `json:"tasks_omitted,omitempty"`
+	Queue          *viewWorkQueueReport      `json:"queue,omitempty"`
 }
 
 var viewWorkSyncTaskStates = map[string]bool{"": true, "not_started": true, "in_progress": true, "in_review": true, "blocked": true, "completed": true}
@@ -172,8 +173,13 @@ func (e *viewWorkEngine) sync(c viewWorkCommand) (viewWorkSyncResult, error) {
 		}
 		stage.PreviousStage = ""
 	}
-	if err = apply(e.lifecycle(stage)); err != nil {
-		return viewWorkSyncResult{}, err
+	// Ending the stage waits for the task states: a task moves only in an
+	// active stage.
+	ending := c.State == "completed" || c.State == "failed"
+	if !ending {
+		if err = apply(e.lifecycle(stage)); err != nil {
+			return viewWorkSyncResult{}, err
+		}
 	}
 	if len(c.SyncTasks) > 0 {
 		if s, err = e.session(c.WorkID); err != nil {
@@ -217,6 +223,11 @@ func (e *viewWorkEngine) sync(c viewWorkCommand) (viewWorkSyncResult, error) {
 				return viewWorkSyncResult{}, err
 			}
 			from = next
+		}
+	}
+	if ending {
+		if err = apply(e.lifecycle(stage)); err != nil {
+			return viewWorkSyncResult{}, err
 		}
 	}
 	if c.CloseOutcome != "" {
