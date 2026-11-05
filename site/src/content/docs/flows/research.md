@@ -51,7 +51,7 @@ The answer comes in the conversation: what was concluded, the evidence, and what
 - If you asked for a change whose how leaves you no decision and can be finished from your request and the `git diff`, it continues into Build in the same turn.
 - Otherwise it ends with the command to start [Plan](/flows/plan/) and the reason, because the how has a decision for you or the work could not be resumed from the request and the diff.
 
-Whenever it ends with the command to start Plan or Build, one line before it estimates the scope: about how many files and which areas the work touches, and which stages and checks it will pass through, such as the plan, per-task verification, reviews, CI and promotion. You can narrow it in your reply before choosing.
+Whenever it ends with the command to start Plan or Build, or continues into Build, one line estimates the scope: about how many files and which areas the work touches, and which stages and checks it will pass through, such as the plan, per-task verification, a review, CI, and a promotion only when you asked for one. You can narrow it in your reply; the agent then gives the revised line and the same ending again.
 
 Your reply starts only the flow it names. No flow needs a ticket. A single action that needs no flow, such as opening a ticket for work that will be done later or by someone else, is asked directly ("Do you want me to create the ticket?") instead of being sent through a flow command.
 
