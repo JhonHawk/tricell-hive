@@ -252,7 +252,7 @@ func (s *Store) timelineLoad() error {
 			if json.Unmarshal(data, &sessionFields) != nil {
 				return timelineFailure("corrupt_storage", 500)
 			}
-			for _, key := range []string{"last_activity_at", "closed_at", "autoarchive_at", "archive_origin"} {
+			for _, key := range []string{"last_activity_at", "host_activity_at", "closed_at", "autoarchive_at", "archive_origin"} {
 				if _, exists := sessionFields[key]; exists {
 					return timelineFailure("corrupt_storage", 500)
 				}
@@ -455,7 +455,7 @@ func (s *Store) timelinePublish() {
 			continue
 		}
 		v := r.Session
-		entries = append(entries, TimelineAPIIndexEntry{LastActivityAt: v.LastActivityAt, ClosedAt: v.ClosedAt, AutoarchiveAt: v.AutoarchiveAt, ArchiveOrigin: v.ArchiveOrigin, Mode: "timeline_api", ViewerSessionID: v.ViewerSessionID, ProjectKey: v.ProjectKey, ProjectName: v.ProjectName, Source: v.Source, Version: v.Version, Title: v.Title, Summary: v.Summary, State: v.State, Archived: v.Archived, Pinned: v.Pinned, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt, ValidationCount: v.ValidationCount, Tickets: append([]TimelineTicket{}, v.Tickets...), CurrentStageEventID: v.CurrentStageEventID})
+		entries = append(entries, TimelineAPIIndexEntry{LastActivityAt: v.LastActivityAt, HostActivityAt: v.HostActivityAt, ClosedAt: v.ClosedAt, AutoarchiveAt: v.AutoarchiveAt, ArchiveOrigin: v.ArchiveOrigin, Mode: "timeline_api", ViewerSessionID: v.ViewerSessionID, ProjectKey: v.ProjectKey, ProjectName: v.ProjectName, Source: v.Source, Version: v.Version, Title: v.Title, Summary: v.Summary, State: v.State, Archived: v.Archived, Pinned: v.Pinned, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt, ValidationCount: v.ValidationCount, Tickets: append([]TimelineTicket{}, v.Tickets...), CurrentStageEventID: v.CurrentStageEventID})
 	}
 	sort.Slice(entries, func(i, j int) bool { return entries[i].ViewerSessionID < entries[j].ViewerSessionID })
 	s.viewMu.Lock()

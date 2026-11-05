@@ -5,6 +5,7 @@ import { browserLanguage } from "../language";
 import { ViewerShell } from "../shell";
 import { TimelineContent } from "../timeline-content";
 import type { TimelineSessionResponse } from "../timeline-contract";
+import { TIMELINE_HOST_TASK_KEY_PREFIX } from "../timeline-contract-v3";
 import { timelineDate } from "../timeline-copy";
 import { TimelineHeader } from "../timeline-header";
 import { completeFixture } from "./timeline-complete-fixture";
@@ -34,7 +35,9 @@ function TimelineSingleDevelopmentPreview() {
             scenario ?? "",
           )
         ? workFixture(scenario ?? "cam")
-        : structuredClone(timelineFixture);
+        : scenario === "agent-only"
+          ? workFixture("cam")
+          : structuredClone(timelineFixture);
     if (scenario === "context") {
       const stage = fixture.session.events.find(
         (event) => event.stage === "research",
@@ -44,8 +47,16 @@ function TimelineSingleDevelopmentPreview() {
     }
     if (scenario === "host") {
       fixture.session.tasks.slice(0, 3).forEach((task, i) => {
-        task.task_key = `host:native-${i + 1}`;
+        task.task_key = `${TIMELINE_HOST_TASK_KEY_PREFIX}native-${i + 1}`;
       });
+      fixture.session.last_activity_at = new Date(
+        Date.now() - 3 * 60000,
+      ).toISOString();
+      fixture.session.updated_at = fixture.session.last_activity_at;
+      fixture.session.host_activity_at = fixture.session.last_activity_at;
+    }
+    if (scenario === "agent-only") {
+      // Agent operations without host events move last activity, never host activity.
       fixture.session.last_activity_at = new Date(
         Date.now() - 3 * 60000,
       ).toISOString();

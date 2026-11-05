@@ -51,6 +51,7 @@ import {
   timelineCopy,
   timelineDate,
   timelineEventTitle,
+  timelineTaskLabel,
 } from "./timeline-copy";
 import {
   compareRevisionTabs,
@@ -1079,7 +1080,9 @@ export function useTimelinePanel({
     panel?.kind === "document"
       ? revision && timelineEventTitle(revision.event, lang)
       : panel?.kind === "task"
-        ? `${task?.task_key ?? ""} — ${task?.title ?? t.unavailableDetail}`
+        ? task
+          ? timelineTaskLabel(task)
+          : t.unavailableDetail
         : panel?.kind === "wait"
           ? t.ciTitle
           : panel?.kind === "images"

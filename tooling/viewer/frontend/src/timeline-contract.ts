@@ -297,6 +297,8 @@ export type TimelineSession = {
   created_at: string;
   updated_at: string;
   last_activity_at: string;
+  /** Time of the last host event of the work; absent until one arrives. */
+  host_activity_at?: string;
   closed_at: string | null;
   autoarchive_at: string | null;
   archive_origin: "manual" | "automatic" | null;
@@ -755,6 +757,14 @@ function summaryHeader(obj: ObjectValue) {
     serverTime(obj.updated_at as string)
   )
     fail("last_activity_at", "server_time_mismatch");
+  if (obj.host_activity_at !== undefined) {
+    timestamp(obj.host_activity_at, "host_activity_at");
+    if (
+      serverTime(obj.host_activity_at as string) >
+      serverTime(obj.updated_at as string)
+    )
+      fail("host_activity_at", "server_time_mismatch");
+  }
   for (const key of ["closed_at", "autoarchive_at"])
     if (obj[key] !== null) timestamp(obj[key], key);
   if (
@@ -1328,7 +1338,7 @@ export function parseTimelineSession(value: unknown): TimelineSession {
       "documents",
       "current_stage_event_id",
     ],
-    ["reason"],
+    ["reason", "host_activity_at"],
   );
   if (obj.schema_version !== 3) fail("schema_version", "unsupported_protocol");
   summaryHeader(obj);
@@ -1624,28 +1634,32 @@ export function parseTimelineIndexEntry(value: unknown): TimelineIndexEntry {
     fail("body", "object_required");
   if ((value as ObjectValue).mode !== "timeline_api")
     fail("mode", "unsupported_mode");
-  const entry = object(value, [
-    "mode",
-    "viewer_session_id",
-    "project_key",
-    "project_name",
-    "source",
-    "version",
-    "title",
-    "summary",
-    "state",
-    "archived",
-    "pinned",
-    "created_at",
-    "updated_at",
-    "last_activity_at",
-    "closed_at",
-    "autoarchive_at",
-    "archive_origin",
-    "validation_count",
-    "tickets",
-    "current_stage_event_id",
-  ]);
+  const entry = object(
+    value,
+    [
+      "mode",
+      "viewer_session_id",
+      "project_key",
+      "project_name",
+      "source",
+      "version",
+      "title",
+      "summary",
+      "state",
+      "archived",
+      "pinned",
+      "created_at",
+      "updated_at",
+      "last_activity_at",
+      "closed_at",
+      "autoarchive_at",
+      "archive_origin",
+      "validation_count",
+      "tickets",
+      "current_stage_event_id",
+    ],
+    ["host_activity_at"],
+  );
   // The order matches the Go validator, so an entry with several faults
   // reports the same first code in both languages.
   if (

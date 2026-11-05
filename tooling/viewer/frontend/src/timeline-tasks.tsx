@@ -40,7 +40,13 @@ import {
   type TimelineSessionResponse,
 } from "./timeline-contract";
 import type { TimelineCIWait, TimelineTaskState } from "./timeline-contract-v3";
-import { type TimelineLanguage, timelineCopy } from "./timeline-copy";
+import {
+  isHostTask,
+  type TimelineLanguage,
+  timelineCopy,
+  timelineTaskLabel,
+  timelineTaskName,
+} from "./timeline-copy";
 import type { TimelineTaskProjection } from "./timeline-grouping";
 import { TimelineSummary } from "./timeline-summary";
 export type TimelineDetailTarget =
@@ -350,12 +356,12 @@ export function TimelineTaskRow({
         )}
         <TaskIndicator
           state={segment.state}
-          label={`${task.task_key}: ${t.taskStates[segment.state]}`}
+          label={`${timelineTaskName(task)}: ${t.taskStates[segment.state]}`}
         />
         <TimelineHeader className="flex min-w-0 items-start gap-2">
           <TimelineTitle className="min-w-0 flex-1">
             <TimelineTextAction
-              aria-label={`${task.task_key} — ${task.title}: ${t.taskStates[segment.state]}`}
+              aria-label={`${timelineTaskLabel(task)}: ${t.taskStates[segment.state]}`}
               aria-expanded={hasDetail ? undefined : expanded}
               aria-controls={hasDetail ? undefined : disclosureID}
               onClick={(e) =>
@@ -371,28 +377,17 @@ export function TimelineTaskRow({
                   : setExpanded((value) => !value)
               }
             >
-              {task.task_key} — {task.title}
+              {timelineTaskLabel(task)}
             </TimelineTextAction>
           </TimelineTitle>
-          {task.task_key.startsWith("host:") && (
-            <Tooltip>
-              <TooltipTrigger
-                render={<Badge variant="outline" tabIndex={0} />}
-                data-slot="host-observed"
-              >
-                {t.hostObserved}
-                <span className="sr-only">: {t.hostObservedHint}</span>
-              </TooltipTrigger>
-              <TooltipContent>{t.hostObservedHint}</TooltipContent>
-            </Tooltip>
-          )}
+          {isHostTask(task) && <HostObservedBadge t={t} />}
           <CollapsibleTrigger
             render={
               <Button
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                aria-label={`${expanded ? t.collapse : t.expand} ${task.task_key}`}
+                aria-label={`${expanded ? t.collapse : t.expand} ${timelineTaskName(task)}`}
               />
             }
           >
@@ -610,5 +605,25 @@ export function TimelineTaskRow({
         </CollapsibleContent>
       </TimelineItem>
     </Collapsible>
+  );
+}
+
+/** Marks a task taken from the host's task list; the same badge in rows and registry. */
+export function HostObservedBadge({
+  t,
+}: {
+  t: ReturnType<typeof timelineCopy>;
+}) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={<Badge variant="outline" tabIndex={0} />}
+        data-slot="host-observed"
+      >
+        {t.hostObserved}
+        <span className="sr-only">: {t.hostObservedHint}</span>
+      </TooltipTrigger>
+      <TooltipContent>{t.hostObservedHint}</TooltipContent>
+    </Tooltip>
   );
 }

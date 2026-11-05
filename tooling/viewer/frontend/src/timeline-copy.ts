@@ -3,6 +3,7 @@ import type {
   TimelineEventKind,
   TimelineState,
 } from "./timeline-contract";
+import { TIMELINE_HOST_TASK_KEY_PREFIX } from "./timeline-contract-v3";
 
 export type TimelineLanguage = "es" | "en";
 export function timelineCopy(lang: TimelineLanguage = "en") {
@@ -467,23 +468,25 @@ export function timelineAge(value: string, now: number): string {
   return hours < 24 ? `${hours} h` : `${Math.floor(hours / 24)} d`;
 }
 
-/**
- * Host activity is not flagged by the server, so it is inferred: the session's
- * last activity is newer than every event the agent published.
- */
-export function hasHostActivity(session: {
-  last_activity_at: string;
-  created_at: string;
-  events: { created_at: string; updated_at: string; origin: string }[];
-}): boolean {
-  const latest = session.events.reduce(
-    (max, e) =>
-      e.origin === "host_observed"
-        ? max
-        : Math.max(max, Date.parse(e.created_at), Date.parse(e.updated_at)),
-    Date.parse(session.created_at),
-  );
-  return Date.parse(session.last_activity_at) > latest;
+/** A host task keeps its provenance in the key, so its title is shown without it. */
+export function isHostTask(task: { task_key: string }): boolean {
+  return task.task_key.startsWith(TIMELINE_HOST_TASK_KEY_PREFIX);
+}
+
+/** The task as a row names it: its key and title, or only the title for a host task. */
+export function timelineTaskLabel(task: {
+  task_key: string;
+  title: string;
+}): string {
+  return isHostTask(task) ? task.title : `${task.task_key} — ${task.title}`;
+}
+
+/** The task as a state indicator names it: its key, or the title for a host task. */
+export function timelineTaskName(task: {
+  task_key: string;
+  title: string;
+}): string {
+  return isHostTask(task) ? task.title : task.task_key;
 }
 
 export function timelineDate(

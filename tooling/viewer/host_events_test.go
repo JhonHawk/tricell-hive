@@ -537,3 +537,150 @@ func TestHostEventReceiptsAreKeptApartFromAgentReceipts(t *testing.T) {
 	}
 	h.store.mu.Unlock()
 }
+
+func TestHostActivityAtIsSetOnlyByHostEvents(t *testing.T) {
+	h := newHostEventHarness(t)
+	id := h.work.ViewerSessionID
+	if h.current().HostActivityAt != "" {
+		t.Fatalf("a new work has host activity %q", h.current().HostActivityAt)
+	}
+	// Agent operations move last activity, never host activity.
+	h.advance()
+	stageID := h.stage("build")
+	agent := h.current()
+	if agent.HostActivityAt != "" || agent.LastActivityAt == h.work.LastActivityAt {
+		t.Fatalf("agent operation: host %q last %s", agent.HostActivityAt, agent.LastActivityAt)
+	}
+	h.advance()
+	h.mustSend(h.event("activity", TimelineHostEventData{}, id, stageID))
+	hostAt := h.clock.Format(time.RFC3339Nano)
+	after := h.current()
+	if after.HostActivityAt != hostAt || after.LastActivityAt != hostAt {
+		t.Fatalf("host event: host %q last %s, want %s", after.HostActivityAt, after.LastActivityAt, hostAt)
+	}
+	found := false
+	for _, entry := range h.store.TimelineIndex() {
+		if entry.ViewerSessionID == id {
+			found = true
+			if entry.HostActivityAt != hostAt {
+				t.Fatalf("index host activity %q", entry.HostActivityAt)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("work missing from the index")
+	}
+	// A later agent operation moves last activity and leaves host activity as it was.
+	h.advance()
+	v := h.current()
+	create := TimelineTaskCreateRequest{TimelineNativeOperation: domainBase(t, h.store, id, "task-after-host", v.ForegroundProducerID), TaskKey: "T1", PlanOrder: 1, Title: "Agent task", Summary: "", Segments: []TimelineTaskSegmentInput{{PlannedStage: "build", Order: 1}}}
+	if _, err := h.store.TimelineV3Operation(id, "task_create", "", &create); err != nil {
+		t.Fatal(err)
+	}
+	later := h.current()
+	if later.HostActivityAt != hostAt || later.LastActivityAt != h.clock.Format(time.RFC3339Nano) {
+		t.Fatalf("agent operation: host %q last %s", later.HostActivityAt, later.LastActivityAt)
+	}
+	// It survives a restart.
+	h.store.mu.Lock()
+	h.store.timeline = map[string]*timelineRecord{}
+	err := h.store.timelineLoad()
+	h.store.mu.Unlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if reloaded := h.current(); reloaded.HostActivityAt != hostAt {
+		t.Fatalf("after restart %q", reloaded.HostActivityAt)
+	}
+	if err := ValidateTimelineSession(h.current()); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestHostEventNamingAStageThatIsNoLongerActiveOnlyMovesActivity(t *testing.T) {
+	h := newHostEventHarness(t)
+	id := h.work.ViewerSessionID
+	oldStage := h.stage("build")
+	now := h.current()
+	var stageEvent TimelineEvent
+	for _, event := range now.Events {
+		if event.EventID == oldStage {
+			stageEvent = event
+		}
+	}
+	actor := TimelineActor{Kind: "native_producer", ProducerID: now.ForegroundProducerID}
+	if _, err := h.store.TimelinePatchEvent(id, oldStage, TimelineEventPatchRequest{Actor: actor, Reason: "Finish the stage", SchemaVersion: 3, OperationID: "end-build", ExpectedVersion: stageEvent.Version, ExpectedSessionVersion: timelineInt(now.Version), StageState: timelineState("completed")}); err != nil {
+		t.Fatal(err)
+	}
+	activeStage := h.stage("verify")
+	before := h.current()
+	h.advance()
+	result := h.mustSend(h.event("task_created", hostTask("9", "Late task"), id, oldStage))
+	if result.Status != "activity_only" {
+		t.Fatalf("status %q", result.Status)
+	}
+	after := h.current()
+	if len(after.Tasks) != 0 || after.Version != before.Version || len(after.Events) != len(before.Events) || after.CurrentStageEventID == nil || *after.CurrentStageEventID != activeStage {
+		t.Fatalf("stale stage changed content: %+v", after)
+	}
+	hostAt := h.clock.Format(time.RFC3339Nano)
+	if after.LastActivityAt != hostAt || after.HostActivityAt != hostAt {
+		t.Fatalf("activity not recorded: last %s host %s", after.LastActivityAt, after.HostActivityAt)
+	}
+	// A foreign work and a non-producer are still rejected whole.
+	if code, _ := h.send(h.event("activity", TimelineHostEventData{}, strings.Repeat("2", 64), oldStage)); code == 200 {
+		t.Fatal("foreign work accepted")
+	}
+	stranger := h.source
+	stranger.NativeSessionID = "not-a-producer"
+	if code, _ := h.send(h.eventFrom(stranger, "activity", TimelineHostEventData{}, id, oldStage)); code == 200 {
+		t.Fatal("non-producer accepted")
+	}
+}
+
+func TestHostTaskEventOlderThanTheLastAppliedOneNeverRegressesATask(t *testing.T) {
+	h := newHostEventHarness(t)
+	id := h.work.ViewerSessionID
+	stageID := h.stage("build")
+	h.advance()
+	h.mustSend(h.event("task_created", hostTask("4", "Settled"), id, stageID))
+	h.advance()
+	progress := h.event("task_updated", TimelineHostEventData{TaskID: "4", Title: "Settled", State: "in_progress"}, id, stageID)
+	h.mustSend(progress)
+	h.advance()
+	h.mustSend(h.event("task_completed", TimelineHostEventData{TaskID: "4"}, id, stageID))
+	// More operations than the replay memory keeps push the older event out of it.
+	for i := 0; i < timelineMaxHostOperations+1; i++ {
+		h.advance()
+		h.mustSend(h.event("activity", TimelineHostEventData{}, id, stageID))
+	}
+	settled := h.current()
+	h.advance()
+	result := h.mustSend(progress)
+	if result.Status != "activity_only" {
+		t.Fatalf("late event status %q", result.Status)
+	}
+	after := h.current()
+	task, _ := hostTaskByKey(after, "host:4")
+	if task.State != "completed" || task.Segments[0].State != "completed" || task.TaskVersion != 3 || after.Version != settled.Version {
+		t.Fatalf("late event regressed the task: %+v", task)
+	}
+	if after.LastActivityAt != h.clock.Format(time.RFC3339Nano) {
+		t.Fatalf("late event did not move activity: %s", after.LastActivityAt)
+	}
+	// The record survives a restart.
+	h.store.mu.Lock()
+	h.store.timeline = map[string]*timelineRecord{}
+	err := h.store.timelineLoad()
+	h.store.mu.Unlock()
+	if err != nil {
+		t.Fatal(err)
+	}
+	h.advance()
+	if again := h.mustSend(progress); again.Status != "activity_only" && again.Status != "replayed" {
+		t.Fatalf("after restart %+v", again)
+	}
+	if task, _ = hostTaskByKey(h.current(), "host:4"); task.State != "completed" {
+		t.Fatalf("after restart: %+v", task)
+	}
+}

@@ -14,9 +14,19 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { TimelineSession } from "./timeline-contract";
-import { type TimelineLanguage, timelineCopy } from "./timeline-copy";
+import {
+  isHostTask,
+  type TimelineLanguage,
+  timelineCopy,
+  timelineTaskLabel,
+  timelineTaskName,
+} from "./timeline-copy";
 import { taskProgress } from "./timeline-grouping";
-import { TimelineStateIcon, timelineStateColor } from "./timeline-tasks";
+import {
+  HostObservedBadge,
+  TimelineStateIcon,
+  timelineStateColor,
+} from "./timeline-tasks";
 
 /** This read-only projection retains the canonical registry objects and IDs. */
 export function workTaskRegistry(session: TimelineSession) {
@@ -111,7 +121,7 @@ export function TimelineTaskRegistry({
                       render={
                         <span
                           role="img"
-                          aria-label={`${task.task_key}: ${t.taskStates[task.state]}`}
+                          aria-label={`${timelineTaskName(task)}: ${t.taskStates[task.state]}`}
                           // biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard focus exposes the read-only state tooltip.
                           tabIndex={0}
                           className={`inline-flex shrink-0 ${timelineStateColor(task.state)}`}
@@ -128,10 +138,11 @@ export function TimelineTaskRegistry({
                   </Tooltip>
                   <p
                     className="min-w-0 flex-1 truncate text-sm"
-                    title={`${task.task_key} — ${task.title}`}
+                    title={timelineTaskLabel(task)}
                   >
-                    {task.task_key} — {task.title}
+                    {timelineTaskLabel(task)}
                   </p>
+                  {isHostTask(task) && <HostObservedBadge t={t} />}
                   {total > 0 && (
                     <span
                       data-task-segment-progress

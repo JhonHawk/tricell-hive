@@ -1034,4 +1034,18 @@ test("a work is read again when the index shows later activity although its vers
     controller.getSnapshot().timeline?.data?.session.last_activity_at,
     later,
   );
+  const host = new Date(Date.parse(later) + 60000).toISOString();
+  indexed = {
+    ...indexed,
+    host_activity_at: host,
+    last_activity_at: host,
+    updated_at: host,
+  };
+  await controller.refresh();
+  await settle();
+  assert.equal(reads, 3, "host activity shown by the index reads again");
+  assert.equal(
+    controller.getSnapshot().timeline?.data?.session.host_activity_at,
+    host,
+  );
 });

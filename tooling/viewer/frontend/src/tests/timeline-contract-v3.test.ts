@@ -298,6 +298,26 @@ test("lifecycle capacity always retains room to finish foreground and close", as
   assert.doesNotThrow(() => validateTimelineClosureReserve(s));
 });
 
+test("host_activity_at is an optional timestamp that never follows the update time", () => {
+  const s = session();
+  assert.equal(s.host_activity_at, undefined);
+  assert.doesNotThrow(() => parseTimelineSession(structuredClone(s)));
+  const withHost = structuredClone(s);
+  withHost.host_activity_at = withHost.updated_at;
+  assert.doesNotThrow(() => parseTimelineSession(structuredClone(withHost)));
+  withHost.host_activity_at = "yesterday";
+  assert.throws(
+    () => parseTimelineSession(structuredClone(withHost)),
+    TimelineContractError,
+  );
+  withHost.host_activity_at = "2099-01-01T00:00:00Z";
+  assert.throws(
+    () => parseTimelineSession(structuredClone(withHost)),
+    (e: unknown) =>
+      e instanceof TimelineContractError && e.code === "server_time_mismatch",
+  );
+});
+
 test("timeline contract revision is 3 and host events are a host_observed origin", () => {
   assert.equal(TIMELINE_CONTRACT_REVISION, 3);
   const s = session();

@@ -64,10 +64,15 @@ function activityTime(value: string): bigint {
 }
 // Mirrored host tasks and activity do not bump a work's version, so a read is also
 // stale when the index shows a later activity or update time than the cached work.
-function freshness(value: { last_activity_at: string; updated_at: string }) {
+function freshness(value: {
+  last_activity_at: string;
+  host_activity_at?: string;
+  updated_at: string;
+}) {
   const a = activityTime(value.last_activity_at);
+  const h = value.host_activity_at ? activityTime(value.host_activity_at) : 0n;
   const u = activityTime(value.updated_at);
-  return a > u ? a : u;
+  return [a, h, u].reduce((max, v) => (v > max ? v : max));
 }
 export class ViewerController {
   private state: ViewerState = { ...initial };

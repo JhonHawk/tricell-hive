@@ -237,3 +237,41 @@ func TestTimelineHostObservedOrigin(t *testing.T) {
 		t.Fatalf("unknown origin accepted or wrong code: %v", err)
 	}
 }
+
+func TestTimelineHostActivityAtIsOptionalAndValidated(t *testing.T) {
+	s, err := DecodeTimelineSession(timelineFixture(t, "v3-session.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.HostActivityAt != "" {
+		t.Fatalf("fixture carries host activity %q", s.HostActivityAt)
+	}
+	raw, err := json.Marshal(s)
+	if err != nil || strings.Contains(string(raw), "host_activity_at") {
+		t.Fatalf("absent host activity is serialized: %v", err)
+	}
+	s.HostActivityAt = s.UpdatedAt
+	if err := ValidateTimelineSession(s); err != nil {
+		t.Fatalf("host activity at the update time: %v", err)
+	}
+	s.HostActivityAt = "yesterday"
+	if err := ValidateTimelineSession(s); err == nil {
+		t.Fatal("malformed host activity accepted")
+	}
+	s.HostActivityAt = "2099-01-01T00:00:00Z"
+	if err := ValidateTimelineSession(s); TimelineContractCode(err) != "server_time_mismatch" {
+		t.Fatalf("host activity after the update time: %v", err)
+	}
+	decoded, err := DecodeTimelineIndexEntry(timelineFixture(t, "api-index-entry.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	entry, ok := decoded.(TimelineAPIIndexEntry)
+	if !ok {
+		t.Fatalf("fixture decoded as %T", decoded)
+	}
+	entry.HostActivityAt = "2099-01-01T00:00:00Z"
+	if err := validateTimelineIndexEntry(entry); TimelineContractCode(err) != "server_time_mismatch" {
+		t.Fatalf("index entry host activity after the update time: %v", err)
+	}
+}

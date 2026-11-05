@@ -319,6 +319,20 @@ test("tasks mirrored from the host carry an outline badge with accessible text; 
     badge.closest("[data-task-id]")?.getAttribute("data-task-id"),
     data.session.tasks[0].task_id,
   );
+  // The key is internal: a host task is named by its title alone.
+  const row = badge.closest("[data-task-id]");
+  assert.ok(row);
+  assert.equal(row.textContent?.includes("host:native-1"), false);
+  const title = data.session.tasks[0].title;
+  const action = [...row.querySelectorAll("button")].find((b) =>
+    b.textContent?.includes(title),
+  );
+  assert.ok(action?.getAttribute("aria-label")?.startsWith(`${title}: `));
+  for (const node of row.querySelectorAll("[aria-label]"))
+    assert.equal(
+      node.getAttribute("aria-label")?.includes("host:native"),
+      false,
+    );
   await act(async () =>
     root.render(<TimelineContent data={data} lang="en" onRetry={() => {}} />),
   );

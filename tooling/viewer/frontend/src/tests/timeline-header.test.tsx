@@ -230,17 +230,12 @@ test("show more appears only when the summary is actually clipped", async () => 
   });
 });
 
-test("last activity shows only when it is newer than the last agent event", async () => {
+test("the activity line comes only from host_activity_at, never from last_activity_at", async () => {
   const data = structuredClone(timelineFixture);
   const session = data.session;
-  const latest = Math.max(
-    Date.parse(session.created_at),
-    ...session.events.flatMap((e) => [
-      Date.parse(e.created_at),
-      Date.parse(e.updated_at),
-    ]),
-  );
-  session.last_activity_at = new Date(latest).toISOString();
+  // Agent-only activity moves last_activity_at past every event but is no host activity.
+  session.last_activity_at = new Date(Date.now() - 3 * 60000).toISOString();
+  session.updated_at = session.last_activity_at;
   const quiet = await mount(header(data, "es"));
   assert.equal(
     quiet.container.querySelector('[data-slot="last-activity"]'),
@@ -248,7 +243,7 @@ test("last activity shows only when it is newer than the last agent event", asyn
   );
   await quiet.unmount();
 
-  session.last_activity_at = new Date(Date.now() - 3 * 60000).toISOString();
+  session.host_activity_at = new Date(Date.now() - 3 * 60000).toISOString();
   const es = await mount(header(data, "es"));
   const text = es.container.querySelector('[data-slot="last-activity"]');
   assert.equal(text?.textContent, "Activo hace 3 min");

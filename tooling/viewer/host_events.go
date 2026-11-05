@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"time"
 )
 
 // Host events are facts a coding host reports through the local hive hook. They
@@ -129,8 +130,9 @@ func (s *Store) TimelineHostEvent(e TimelineHostEvent) (TimelineHostEventResult,
 			return result, timelineFailure("foreign_project", 409)
 		}
 		checked := e
-		if timelineTerminal(old.Session) {
-			// A finished work has no active stage to bind to; only its activity moves.
+		if timelineTerminal(old.Session) || e.StageEventID != "" && (old.Session.CurrentStageEventID == nil || *old.Session.CurrentStageEventID != e.StageEventID) {
+			// A finished work, or a stage that is no longer active, has nothing to bind
+			// to: the event still proves host activity, so only its activity moves.
 			checked.StageEventID = ""
 		}
 		actor, err := ValidateTimelineHostEventSession(*old.Session, checked)
@@ -179,17 +181,37 @@ func (s *Store) timelineHostApply(old *timelineRecord, e TimelineHostEvent, op, 
 	timelineRefreshMaintenance(r, now)
 	m, v := r.Maintenance, r.Session
 	m.LastActivityAt = timelineLater(m.LastActivityAt, now)
+	m.HostActivityAt = timelineLater(m.HostActivityAt, now)
 	v.UpdatedAt = timelineLater(v.UpdatedAt, now)
 	status := hostEventApplied
-	if timelineTerminal(v) {
+	task := strings.HasPrefix(e.EventType, "task_")
+	switch {
+	case timelineTerminal(v):
 		status = hostEventActivityOnly
-	} else if named && strings.HasPrefix(e.EventType, "task_") && v.CurrentStageEventID != nil && e.StageEventID == *v.CurrentStageEventID {
+	case named && e.StageEventID != "" && (v.CurrentStageEventID == nil || e.StageEventID != *v.CurrentStageEventID):
+		// The stage the event names is no longer active: nothing is mirrored.
+		status = hostEventActivityOnly
+	case named && task && v.CurrentStageEventID != nil && e.StageEventID == *v.CurrentStageEventID:
+		occurred, _ := time.Parse(time.RFC3339Nano, e.OccurredAt)
+		at := occurred.UnixNano()
+		if last, seen := m.HostTaskTimes[e.Data.TaskID]; seen && at < last {
+			// A replay or a late event older than the last one applied to this task
+			// never moves it backwards.
+			status = hostEventActivityOnly
+			break
+		}
 		changed, err := timelineMirrorHostTask(v, e, producerID)
 		if err != nil {
 			return "", err
 		}
 		if changed {
 			m.ContentBaseline = nil
+		}
+		if hostTaskMirrored(v, e.Data.TaskID) {
+			if m.HostTaskTimes == nil {
+				m.HostTaskTimes = map[string]int64{}
+			}
+			m.HostTaskTimes[e.Data.TaskID] = max(at, m.HostTaskTimes[e.Data.TaskID])
 		}
 	}
 	m.HostOperations = append(m.HostOperations, op)
@@ -201,6 +223,16 @@ func (s *Store) timelineHostApply(old *timelineRecord, e TimelineHostEvent, op, 
 		return "", err
 	}
 	return status, nil
+}
+
+func hostTaskMirrored(v *TimelineSession, nativeTaskID string) bool {
+	key := TimelineHostTaskKey(nativeTaskID)
+	for _, t := range v.Tasks {
+		if t.TaskKey == key {
+			return true
+		}
+	}
+	return false
 }
 
 // timelineMirrorHostTask reflects one native task event as a host:<id> task bound

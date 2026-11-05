@@ -49,7 +49,6 @@ import {
   type TimelineSessionResponse,
 } from "./timeline-contract";
 import {
-  hasHostActivity,
   type TimelineLanguage,
   timelineAge,
   timelineCopy,
@@ -120,7 +119,8 @@ export function TimelineHeader({
   const { session } = data;
   const titleHintID = useId();
   const t = timelineCopy(lang);
-  const hostActive = hasHostActivity(session);
+  const hostActivityAt = session.host_activity_at;
+  const hostActive = hostActivityAt !== undefined;
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!hostActive) return;
@@ -305,7 +305,7 @@ export function TimelineHeader({
               className="text-xs text-muted-foreground"
               data-slot="last-activity"
             >
-              {t.lastActivity(timelineAge(session.last_activity_at, now))}
+              {t.lastActivity(timelineAge(hostActivityAt, now))}
             </span>
           )}
           <ButtonGroup aria-label={t.states[session.state]}>
