@@ -30,8 +30,13 @@ func emptyIdentityDeps() viewIdentityDeps {
 		getenv:    func(string) string { return "" },
 		selfPID:   1000,
 		parentPID: func(int) (int, error) { return 0, errors.New("no parent") },
+		// Every process started at identityTestStart unless a test says otherwise.
+		processStart: func(int) (time.Time, error) { return identityTestStart, nil },
+		processName:  func(int) (string, error) { return "", errors.New("no name") },
 	}
 }
+
+var identityTestStart = time.Date(2026, 11, 4, 8, 0, 0, 0, time.UTC)
 
 // withIdentityDeps installs deps for one test; env names are the only
 // variables the resolver can see.
@@ -78,8 +83,9 @@ func writePidMap(t *testing.T, state, host string, pid int, changed time.Time, s
 		Host      string  `json:"host"`
 		PID       int     `json:"pid"`
 		ChangedAt string  `json:"changed_at"`
+		Started   string  `json:"process_started_at"`
 		Sessions  []entry `json:"sessions"`
-	}{Host: host, PID: pid, ChangedAt: changed.UTC().Format(time.RFC3339Nano)}
+	}{Host: host, PID: pid, ChangedAt: changed.UTC().Format(time.RFC3339Nano), Started: identityTestStart.Format(time.RFC3339)}
 	for _, s := range sessions {
 		e := entry{SessionID: s.ID, StartedAt: s.Started.UTC().Format(time.RFC3339Nano)}
 		if s.Ended != nil {
@@ -108,7 +114,6 @@ func TestResolveViewIdentityFromHostVariables(t *testing.T) {
 		{"CLAUDE_CODE_SESSION_ID", "claude-code"},
 		{"PI_SESSION_ID", "pi"},
 		{"OPENCODE_SESSION_ID", "opencode"},
-		{"CURSOR_CONVERSATION_ID", "cursor"},
 	} {
 		t.Run(tc.host, func(t *testing.T) {
 			withIdentityDeps(t, map[string]string{tc.env: "native-" + tc.host})
@@ -229,7 +234,7 @@ func TestResolveViewIdentityWithoutSourceIsMissing(t *testing.T) {
 func TestResolveViewIdentityVariableWinsOverMap(t *testing.T) {
 	state := t.TempDir()
 	withIdentityDeps(t, map[string]string{"CLAUDE_CODE_SESSION_ID": "from-env"}, 1000, 800)
-	writePidMap(t, state, "codex", 800, time.Now().Add(-time.Hour), pidMapSession{ID: "from-map", Started: time.Now()})
+	writePidMap(t, state, "claude-code", 800, time.Now().Add(-time.Hour), pidMapSession{ID: "from-map", Started: time.Now()})
 	id, err := resolveViewIdentity(viewIdentityDepsFn(), state)
 	if err != nil || id.NativeSessionID != "from-env" {
 		t.Fatalf("got %+v, %v", id, err)

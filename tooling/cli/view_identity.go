@@ -8,27 +8,26 @@ package main
 //  1. explicit flags (handled by the caller; this file is never reached);
 //  2. the session variable the host exposes to its agent's shell, only the ones
 //     in host-session-events.md marked usable: CLAUDE_CODE_SESSION_ID,
-//     PI_SESSION_ID, OPENCODE_SESSION_ID and CURSOR_CONVERSATION_ID. Codex's
-//     CODEX_THREAD_ID is unverified and is deliberately not read;
+//     PI_SESSION_ID and OPENCODE_SESSION_ID, and only when no nearer host
+//     process or session map belongs to another host (a nested host inherits the
+//     outer variable). Codex's CODEX_THREAD_ID and Cursor's
+//     CURSOR_CONVERSATION_ID are unverified and deliberately not read;
 //  3. the process-to-session map <state>/hooks/sessions/<pid>.json written by
 //     the host's session-start hook (this file only reads it), looked up on the
-//     nearest process ancestor that has one.
+//     nearest process ancestor that has one. The format and writer rules are
+//     the «Session map» section of host-session-events.md.
 //
 // A source that exists but cannot name exactly one live session is a rejection,
 // never a guess; the caller falls back to the explicit flags.
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"regexp"
-	"strconv"
-	"strings"
 	"time"
 	"tricell-hive/tooling/management"
 	"tricell-hive/tooling/viewer"
@@ -50,124 +49,10 @@ type viewIdentityDeps struct {
 	getenv    func(string) string
 	selfPID   int
 	parentPID func(int) (int, error)
-}
-
-var viewIdentityDepsFn = func() viewIdentityDeps {
-	return viewIdentityDeps{getenv: os.Getenv, selfPID: os.Getpid(), parentPID: psParentPID}
-}
-
-// psParentPID asks ps for the parent of pid; it works on macOS and Linux.
-func psParentPID(pid int) (int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	out, err := exec.CommandContext(ctx, "ps", "-o", "ppid=", "-p", strconv.Itoa(pid)).Output()
-	if err != nil {
-		return 0, err
-	}
-	return strconv.Atoi(strings.TrimSpace(string(out)))
-}
-
-// viewIdentityVariables are the shell variables verified for each host, in a
-// fixed order.
-var viewIdentityVariables = []struct{ env, host string }{
-	{"CLAUDE_CODE_SESSION_ID", "claude-code"},
-	{"PI_SESSION_ID", "pi"},
-	{"OPENCODE_SESSION_ID", "opencode"},
-	{"CURSOR_CONVERSATION_ID", "cursor"},
-}
-
-const (
-	viewIdentityAncestryLimit = 32
-	viewPidMapSessionCap      = 64
-)
-
-func resolveViewIdentity(deps viewIdentityDeps, state string) (viewIdentity, error) {
-	var found []viewIdentity
-	for _, v := range viewIdentityVariables {
-		value := deps.getenv(v.env)
-		if value != "" && validateViewWorkSource(viewWorkSource{Host: viewer.TimelineHost(v.host), NativeSessionID: value}) == nil {
-			found = append(found, viewIdentity{Host: v.host, NativeSessionID: value})
-		}
-	}
-	if len(found) == 1 {
-		return found[0], nil
-	}
-	if len(found) > 1 {
-		// Nested hosts inherit each other's variables; nothing says which is nearest.
-		return viewIdentity{}, errViewIdentityAmbiguous
-	}
-	seen := map[int]bool{}
-	pid := deps.selfPID
-	for n := 0; n < viewIdentityAncestryLimit && !seen[pid]; n++ {
-		seen[pid] = true
-		parent, err := deps.parentPID(pid)
-		if err != nil || parent <= 1 {
-			break
-		}
-		pid = parent
-		path := filepath.Join(state, "hooks", "sessions", strconv.Itoa(pid)+".json")
-		if _, err := os.Lstat(path); err != nil {
-			if os.IsNotExist(err) {
-				continue
-			}
-			return viewIdentity{}, errViewIdentityAmbiguous
-		}
-		return resolvePidMap(path, pid)
-	}
-	return viewIdentity{}, errViewIdentityMissing
-}
-
-// resolvePidMap decides the identity of one process-to-session map. Layout:
-//
-//	{"host": "<host>", "pid": N, "changed_at": "<RFC 3339>",
-//	 "sessions": [{"session_id": "...", "started_at": "<RFC 3339>", "ended_at": "<RFC 3339, optional>"}]}
-//
-// changed_at is the last time the hook saw this process change session
-// (start, clear, end). A session is live when it has not ended and did not
-// start before that change; exactly one live session resolves.
-func resolvePidMap(path string, pid int) (viewIdentity, error) {
-	raw, err := readSessionFile(path)
-	if err != nil {
-		return viewIdentity{}, errViewIdentityAmbiguous
-	}
-	var doc struct {
-		Host      string   `json:"host"`
-		PID       *float64 `json:"pid"`
-		ChangedAt string   `json:"changed_at"`
-		Sessions  []struct {
-			SessionID string `json:"session_id"`
-			StartedAt string `json:"started_at"`
-			EndedAt   string `json:"ended_at"`
-		} `json:"sessions"`
-	}
-	if json.Unmarshal(raw, &doc) != nil || doc.PID == nil || wholePID(*doc.PID) != pid || len(doc.Sessions) > viewPidMapSessionCap {
-		return viewIdentity{}, errViewIdentityAmbiguous
-	}
-	changed, err := time.Parse(time.RFC3339Nano, doc.ChangedAt)
-	if err != nil {
-		return viewIdentity{}, errViewIdentityAmbiguous
-	}
-	var live []viewIdentity
-	for _, s := range doc.Sessions {
-		started, err := time.Parse(time.RFC3339Nano, s.StartedAt)
-		if err != nil || validateViewWorkSource(viewWorkSource{Host: viewer.TimelineHost(doc.Host), NativeSessionID: s.SessionID}) != nil {
-			return viewIdentity{}, errViewIdentityAmbiguous
-		}
-		if s.EndedAt != "" {
-			if _, err := time.Parse(time.RFC3339Nano, s.EndedAt); err != nil {
-				return viewIdentity{}, errViewIdentityAmbiguous
-			}
-			continue
-		}
-		if started.Before(changed) {
-			continue
-		}
-		live = append(live, viewIdentity{Host: doc.Host, NativeSessionID: s.SessionID})
-	}
-	if len(live) != 1 {
-		return viewIdentity{}, errViewIdentityAmbiguous
-	}
-	return live[0], nil
+	// processStart is the start time of a live process; processName its
+	// command name (only the base name is used).
+	processStart func(int) (time.Time, error)
+	processName  func(int) (string, error)
 }
 
 // --- current work ---
@@ -196,11 +81,29 @@ func currentWorkPath(state, host, native string) (string, error) {
 
 var viewCurrentFileName = regexp.MustCompile(`^[a-z0-9][a-z0-9_-]{0,127}$`) // lower case only: names must not collide on case-insensitive file systems
 
+// checkCurrentWorkDirs applies the safe-folder check to current/ and
+// current/<host>/ before a current-work file is read or written; a missing
+// folder returns the not-exist error.
+func checkCurrentWorkDirs(file string) error {
+	hostDir := filepath.Dir(file)
+	for _, d := range []string{filepath.Dir(hostDir), hostDir} {
+		if err := checkSafeDir(d); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // readCurrentWorks returns the open works of a native session; a missing file
 // is none.
 func readCurrentWorks(state, host, native string) ([]string, error) {
 	path, err := currentWorkPath(state, host, native)
 	if err != nil {
+		return nil, err
+	}
+	if err = checkCurrentWorkDirs(path); os.IsNotExist(err) {
+		return nil, nil
+	} else if err != nil {
 		return nil, err
 	}
 	raw, err := readPrivateWorkFile(path)
@@ -229,6 +132,9 @@ func writeCurrentWorks(state, host, native string, ids []string) error {
 	}
 	dir := filepath.Dir(path)
 	if err = os.MkdirAll(dir, 0700); err != nil {
+		return err
+	}
+	if err = checkCurrentWorkDirs(path); err != nil {
 		return err
 	}
 	raw, err := json.Marshal(viewCurrentWorks{WorkIDs: ids})

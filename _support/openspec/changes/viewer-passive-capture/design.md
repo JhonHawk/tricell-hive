@@ -24,9 +24,11 @@ Trabajo actual: `<state>/publisher/v1/current/<host>/<native-id>.json` guarda el
 
 Registro del proyecto: `work open` registra la raíz si falta, en lugar de fallar con `project_identity_unavailable`.
 
-**Formato del mapa pid** (fijado en T2; T6 lo escribe tal cual): `<state>/hooks/sessions/<pid>.json` = `{"host", "pid", "changed_at" (RFC 3339), "sessions": [{"session_id", "started_at", "ended_at"?}]}`.
+**Formato del mapa pid** (fijado en T2; T6 lo escribe tal cual): `<state>/hooks/sessions/<pid>.json` = `{"host", "pid", "process_started_at", "changed_at" (RFC 3339), "sessions": [{"session_id", "started_at", "ended_at"?}]}`. Las reglas completas de quien lo escribe están en `_support/docs/architecture/host-session-events.md` («Session map»).
 - Una sesión está viva si no tiene `ended_at` y su `started_at` es igual o posterior a `changed_at`.
-- El hook actualiza `changed_at` en cada inicio, `/clear` y fin.
+- `changed_at` es el primer inicio y solo se mueve cuando una sesión sustituye a otra (`/clear`, reanudar otra sesión o fin). Una segunda sesión en paralelo no lo mueve, así que dos sesiones vivas siguen detectándose como ambiguas.
+- `process_started_at` se compara con la hora de inicio real del proceso; si no coincide, el pid se reutilizó y el mapa no cuenta.
+- Si la variable encontrada es de un host distinto al del ancestro más cercano (con mapa, o con el nombre de proceso de una CLI de host), la identidad se rechaza como ambigua.
 - Si hay más de una variable de host, la identidad se rechaza como ambigua, porque un host anidado hereda las variables del de fuera.
 - Un ID de sesión que no sea seguro como nombre de archivo se guarda en el archivo de trabajo actual con la clave `sha256-<hex>`.
 
@@ -91,7 +93,7 @@ No imprime nada y siempre sale con 0. Sigue el patrón de `grok_hook.go`. Cada t
   - un evento con `agent_id` es de un subagente y no cambia la sesión principal;
   - `CODEX_THREAD_ID` queda sin usar mientras no se verifique.
 - **Claude Code:** `SessionEnd` lleva `timeout` explícito, y los subagentes con `agent_type` vacío se ignoran.
-- **Fuentes de identidad en el shell** (solo el shell del agente, no los `!` del usuario): `CLAUDE_CODE_SESSION_ID`, `PI_SESSION_ID`, `OPENCODE_SESSION_ID` y `CURSOR_CONVERSATION_ID`. En Grok no hay ninguna, y su identidad sale del mapa pid.
+- **Fuentes de identidad en el shell** (solo el shell del agente, no los `!` del usuario): `CLAUDE_CODE_SESSION_ID`, `PI_SESSION_ID` y `OPENCODE_SESSION_ID`. `CURSOR_CONVERSATION_ID` no se usa, porque no está verificado que coincida con el `conversation_id` del hook. Cursor y Grok resuelven por el mapa pid.
 
 Las cargas que entiende por host son:
 - **Claude Code:** `session_id`, `transcript_path`, `cwd`, `CLAUDE_PROJECT_DIR`, y para tareas `task_id` y `task_subject` de TaskCreated y TaskCompleted.

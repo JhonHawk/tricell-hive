@@ -20,3 +20,26 @@ Verified 2026-11-04 for the `viewer-passive-capture` change (task T0). Each fact
 - **Identity by process.** OpenCode plugins run in one shared service, so a process-ancestry map cannot tell its sessions apart: the plugin passes the session ID explicitly. Cursor `sessionStart` does not fire when a chat resumes (code), so the map also needs `beforeSubmitPrompt`. Grok and Codex subagents share the parent's process.
 - **Filtering.** Claude Code `SubagentStart`/`SubagentStop` also fire for internal agents with an empty `agent_type` (doc).
 - **Shell-tool variables** reach only the agent's own shell tool, not commands the user types with `!` (doc for Pi, code for the others).
+
+## Session map
+
+Contract between the hook that writes the process-to-session map (T6) and the resolver that reads it (`tooling/cli/view_identity*.go`, T2). A change to one side changes this section.
+
+**Location.** `<state>/hooks/sessions/<pid>.json`, where `<pid>` is the host CLI's own process, never the hook's `sh -c` wrapper or its short-lived children: name the file after the nearest ancestor of the hook whose process is the host (for Claude Code the `claude` process, for Codex `codex`, and so on). A hook that cannot tell which ancestor is the host writes nothing. The resolver walks up from its own process and uses the nearest ancestor that has a map, so the file must sit on a process that is an ancestor of the agent's shell.
+
+**Schema.**
+
+```json
+{"host": "claude-code", "pid": 4242, "process_started_at": "2026-11-04T08:00:00Z", "changed_at": "2026-11-04T08:00:00Z",
+ "sessions": [{"session_id": "...", "started_at": "2026-11-04T08:00:00Z", "ended_at": "2026-11-04T09:00:00Z"}]}
+```
+
+- `host` is the canonical host name the viewer uses: `claude-code`, `codex`, `grok`, `opencode`, `pi` or `cursor`. `pid` must equal the file name. All times are RFC 3339.
+- `process_started_at` is the start time of the host process, read once by the writer (`ps -o lstart=` or equivalent). The reader compares it with the live process's start time and treats a difference of more than 2 s as no map, so a pid reused after a crash (a crashed host never writes `ended_at`) does not resolve a dead session. A map without this field is rejected.
+- A session is live when it has no `ended_at` and `started_at >= changed_at`. Exactly one live session resolves; none or several is ambiguous and the command is rejected.
+- `changed_at` is set to the first session's `started_at` when the file is created and moves only when a session **replaces** another in the same process: `/clear`, resume into another session, or a session end. The replacing session's `started_at` equals the new `changed_at`. It does not move when a second session starts alongside the first (a Codex subagent thread, several OpenCode sessions), so two live sessions stay detectable as ambiguous.
+- `ended_at` is written on end; the writer never infers it from the process dying.
+
+**Caps and modes.** At most 64 entries in `sessions` (the writer drops the oldest ended entries first) and at most 1 MiB per file. Files are written atomically (temporary file in the same folder, then rename) at mode `0600`; `hooks/` and `hooks/sessions/` are `0700`. The reader rejects, as ambiguous, a map file or either folder that is a symlink, is not owned by the current user or is group- or world-writable, and opens the file with no-follow semantics. The same check applies to `publisher/v1/current/` and `current/<host>/` before any current-work file is read or written.
+
+**Variables versus the map.** A host variable (`CLAUDE_CODE_SESSION_ID`, `PI_SESSION_ID`, `OPENCODE_SESSION_ID`) is accepted only if the nearest ancestor that has a valid map, or that is a known host CLI process (`claude`, `codex`, `grok`, `opencode`, `pi`, `cursor-agent`), belongs to the same host; otherwise a nested host that inherited the outer variable would publish as the outer session. Cursor has no variable source: `CURSOR_CONVERSATION_ID` equality with the hook's `conversation_id` is unverified, so Cursor resolves through the map.

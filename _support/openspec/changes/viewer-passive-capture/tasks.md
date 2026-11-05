@@ -191,6 +191,7 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 **Test approach:** tdd con cargas de ejemplo por host tomadas de T0, sin datos privados
 
 **Changes:**
+- El mapa pid se escribe tal como fija «Session map» en `_support/docs/architecture/host-session-events.md` (pid del proceso del host, `process_started_at`, reglas de `changed_at`, topes y modos).
 - Límite de 1 MiB en la entrada y 2 s de tiempo límite.
 - Cola de eventos del host cuando el visor está caído.
 - Nunca deduce la muerte del proceso.
