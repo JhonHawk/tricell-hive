@@ -261,7 +261,7 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 
 ### T9 — Documentación
 
-- [ ] La documentación describe las órdenes nuevas, la cola, los hooks por host y sus límites.
+- [x] La documentación describe las órdenes nuevas, la cola, los hooks por host y sus límites.
 
 **Closes:** AC8, AC10 (documentación)
 
@@ -322,7 +322,7 @@ Las operaciones de bajo nivel no cambian. La tarea comprueba si el fallo de #358
 
 ## Checkpoint
 
-- Etapa: build; hechas T0–T6 con correcciones, T7 (`249e4ef9`, remate en curso) y T8 (`10011eb3`); T9 en curso; verificación de T7 en curso.
+- Etapa: build; hechas T0–T6 con correcciones, T8 (`10011eb3`) y T9 (`18c408c7`); T7 (`249e4ef9`) con remate y correcciones de su verificación en curso.
 - Visor: trabajo `50457f3803d3122ef9c5294ee314a04b7caa03a46924c73bd3ea949a081b4a30`, etapa build `event-0031e0d2ade9120dcd2f535d5f41f8b3`, tareas registradas con la revisión `revision-69dbb00740f6bd76e426531cdab267a0` (la tarea T0 del plan es la clave `T11` en el visor, que no admite `T0`).
 - Hallazgos abiertos: los de T7 en corrección; la de T6 sobre eventos de tareas anteriores a un trabajo creado por un `open` en cola se acepta y está anotada en el diseño.
-- Siguiente: integrar el remate de T7 y T9; después T10 en esta Mac.
+- Siguiente: integrar el remate de T7; después T10 en esta Mac (incluye el build del sitio, que T9 no pudo correr sin `site/node_modules`).
