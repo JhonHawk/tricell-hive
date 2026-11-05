@@ -84,7 +84,7 @@ Base: `development` 192697cb, rama `feat/viewer-local-actions-cli`. T1 fija el c
 
 ### T6 — Verificación del conjunto
 
-- [ ] Suite completa, integración CLI–UI, verificación independiente y revisión.
+- [x] Suite completa, integración CLI–UI, verificación independiente y revisión.
 
 **Closes:** AC1–AC7
 
@@ -109,3 +109,5 @@ Entrega automática (D15 B): push, PR, merge y despliegue. Al integrar, el binar
 2026-11-04 — plan escrito; revisión independiente: 14 hallazgos aplicados; D17 A, D18 A y D19 A resueltos por el usuario.
 - Checkpoint: plan listo; visor work `8e54541d9af61f82d08d5ad73e90cdb09dc928d5e89f66a75c262b61c9bf9ce4`, snapshot `revision-c9afb937c9b71a6dbb28365b16208bbd`. Siguiente: `/flow-build` (T1, luego T2 y T3 en paralelo, T4 y T5 en el hilo principal).
 - 2026-11-04 · T1 7fd390da, T4 127ef419, T3 a3029783, T2 4d1b42bc. Prueba real con el binario candidato sobre un visor aislado (puerto 4597, estado temporal, detenido y borrado): las cinco acciones, recover con cierre posterior, delete sin y con --confirm, auditoría con origin cli.
+- 2026-11-04 · Verificación de T1–T2 (hive-verify-task): AC1, AC2, AC3, AC4 y AC7 cumplidos; falla de AC6 (puntero de session update) corregida. Primera /code-review: 9 hallazgos corregidos en 8477df1e. Segunda /code-review: 10 hallazgos; corregidos los de lógica y 4 menores en e8adb890 (`Unreviewed:`); queda abierto (P3) que el modo pending del fixture no crea un DeletePending real. Suite completa y frontend pasan.
+- Checkpoint: candidato listo; siguiente: push, PR, merge y despliegue (D15 B).

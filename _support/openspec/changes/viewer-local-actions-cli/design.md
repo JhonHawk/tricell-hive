@@ -21,7 +21,7 @@ Las cinco acciones son todas las que hoy solo hace el navegador: el servidor exp
 
 ## Reintento (D19 A)
 
-Sin diario: tras una respuesta incierta, el comando relee el trabajo y dice si la acción quedó. La versión esperada hace fallar un reintento de renombrar, archivar o reasignar, y un trabajo borrado responde 410, así que nada se aplica dos veces. La spec exime a estos comandos del diario de publicación.
+Sin diario: tras una respuesta incierta, el comando reenvía una vez la misma solicitud, que el visor responde con su recibo guardado, y solo si eso también es incierto relee el trabajo y dice si la acción quedó. La versión esperada hace fallar un reintento de renombrar, archivar o reasignar, y un trabajo borrado responde 410, así que nada se aplica dos veces. La spec exime a estos comandos del diario de publicación.
 
 ## Comandos
 
