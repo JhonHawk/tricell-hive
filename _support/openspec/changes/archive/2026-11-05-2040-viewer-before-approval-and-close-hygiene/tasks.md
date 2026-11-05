@@ -163,4 +163,4 @@ Pasan `go test ./tests/content/...`, la prueba de referencias y `pnpm build`.
 - se corrigieron una frase partida en `plan.md`, la referencia a «flow-close step 2» y la FAQ de pausa bajo `hold`;
 - se actualizaron `design.md` y el delta.
 
-Checkpoint: verify · siguiente paso: suite completa, push, PR y merge.
+2026-11-05 — Integrado: PR #381, merge `7ee0fbbc`, instalación local actualizada a `7ee0fbbc`. Cierre: deltas aplicados a `walkthrough-viewer` y `workflow-lifecycle`, y change folder archivado.

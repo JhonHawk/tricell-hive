@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build · plan revisado, pendiente de tu aprobación |
+| Estado | Completed · entregado en el PR #381 (merge en `development` como `7ee0fbbc`); archivado al cerrar el 2026-11-05 |
 | Tracker | ninguno: el trabajo nace de la revisión de sesiones del 2026-11-05 |
 | Git | JhonHawk/tricell-hive · base `development` en `6670e799` · rama propuesta `fix/viewer-before-approval-and-close-hygiene` en el worktree `.claude/worktrees/viewer-close-hygiene` |
 
