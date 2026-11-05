@@ -141,3 +141,29 @@ A promotion that has not been made SHALL NOT be a reason to keep a branch, workt
 #### Scenario: A ticket that asks for an environment
 - **WHEN** the ticket asks for the change in a named environment
 - **THEN** the plan includes the promotion to that environment as a task
+
+### Requirement: Plan revisions keep the change folder coherent
+A revision of a written plan that has a change folder SHALL edit in the same pass every artifact that states what changed, mark a replaced decision or criterion with `**Replaces:** <old IDs>` and a dropped criterion with `**Retired:** <reason>` without deleting the old line, reopen each completed task the revision invalidates, and run the coherence check until it exits 0 before work continues; a revision that changes a criterion or the delta SHALL get one `hive-review-plan` round.
+
+#### Scenario: A task still names a replaced decision
+- **GIVEN** a change folder whose revision replaced a decision and marked the new one with `**Replaces:**`
+- **WHEN** the coherence check runs and a task still names the replaced decision
+- **THEN** the check prints that task's file and line and exits 1, and the revision is not complete until it exits 0
+
+#### Scenario: A revision changes a criterion
+- **GIVEN** a change folder whose plan was already reviewed
+- **WHEN** a revision changes a criterion or the delta
+- **THEN** one `hive-review-plan` child reviews the revised folder, and a gap that survives the round goes to the user as a decision
+
+### Requirement: Archive confirms unchecked tasks
+Before moving a change folder to the archive, the close SHALL run the coherence check with `--archive` and fix each coherence line it prints; when the check lists unchecked task boxes, the close SHALL show their count and ask whether to archive anyway before moving the folder, and a close under unattended delegation SHALL leave the folder unarchived and record it as pending.
+
+#### Scenario: Unchecked boxes remain at archive
+- **GIVEN** an integrated change folder whose `tasks.md` holds unchecked boxes
+- **WHEN** the close runs the check with `--archive`
+- **THEN** the close shows the number of unchecked boxes and asks before archiving, and the folder moves only on the user's answer
+
+#### Scenario: An unattended close with unchecked boxes
+- **GIVEN** a close running under unattended delegation and a folder with unchecked boxes
+- **WHEN** the check lists them
+- **THEN** the folder stays unarchived and is recorded as pending
