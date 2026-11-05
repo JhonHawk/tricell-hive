@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"tricell-hive/tooling/viewer"
 )
 
@@ -124,6 +125,9 @@ func (e *viewWorkEngine) workHasPlan(s viewer.TimelineSession) bool {
 func (e *viewWorkEngine) syncMissingTasks(s viewer.TimelineSession, c viewWorkCommand) []viewWorkTaskInput {
 	var planOrder, segmentOrder int64
 	for _, t := range s.Tasks {
+		if strings.HasPrefix(t.TaskKey, viewer.TimelineHostTaskKeyPrefix) {
+			continue // mirrored from the host: ordered apart, from 1,000,000
+		}
 		planOrder = max(planOrder, t.PlanOrder)
 		for _, seg := range t.Segments {
 			if string(seg.PlannedStage) == c.Stage {

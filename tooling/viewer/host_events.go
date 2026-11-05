@@ -61,8 +61,12 @@ func (s *Server) hostEvents(w http.ResponseWriter, r *http.Request) {
 // timelineHostProject resolves the registered project an event's directory
 // belongs to: the project root of the directory, or the nearest registered
 // ancestor when the directory is not itself a project root.
+//
+// It runs without the store lock held: it spawns Git (ResolveRoot, the remote)
+// and reads the registry, once for all the candidate directories, and takes the
+// lock only for the short read of the keys the stored works already carry.
 func (s *Store) timelineHostProject(source TimelineSource) (string, error) {
-	var last error
+	var first error
 	candidates := []string{}
 	if root, err := ResolveRoot(source.ProjectRoot); err == nil {
 		candidates = append(candidates, root)
@@ -73,18 +77,48 @@ func (s *Store) timelineHostProject(source TimelineSource) (string, error) {
 			break
 		}
 	}
-	for _, dir := range candidates {
-		probe := source
-		probe.ProjectRoot = dir
-		_, key, _, err := s.timelineProject(probe)
-		if err == nil {
-			return key, nil
-		}
-		if last == nil {
-			last = err
+	fail := func(err error) {
+		if first == nil {
+			first = err
 		}
 	}
-	return "", last
+	registry, err := readRegistry(s.vdir)
+	if err != nil {
+		return "", timelineFailure("project_unavailable", 409)
+	}
+	for _, dir := range candidates {
+		root, err := canonicalDir(dir)
+		if err != nil {
+			fail(timelineFailure("project_unavailable", 409))
+			continue
+		}
+		registered := false
+		for _, repo := range registry.Repositories {
+			registered = registered || repo.Root == root
+		}
+		if !registered {
+			fail(timelineFailure("project_not_registered", 409))
+			continue
+		}
+		s.mu.Lock()
+		bound := ""
+		err = s.timelineReconcile()
+		if err == nil {
+			bound, err = s.timelineBoundKey(root)
+		}
+		s.mu.Unlock()
+		if err != nil {
+			fail(err)
+			continue
+		}
+		key, err := timelineProjectKey(root, bound, s.timelineRemoteOf(root))
+		if err != nil {
+			fail(err)
+			continue
+		}
+		return key, nil
+	}
+	return "", first
 }
 
 func timelineHostMember(v *TimelineSession, source TimelineSource) bool {
@@ -102,19 +136,21 @@ func timelineTerminal(v *TimelineSession) bool {
 
 // TimelineHostEvent applies one validated host event. With a work ID it acts as
 // the accepted native producer of that work, in the project the work belongs to;
-// every event also moves the last activity of the other works of its session to the event's own time, clamped to the server's clock.
+// every event also moves the last activity of the other open, unarchived works of
+// its session to the event's own time, clamped to the server's clock.
 func (s *Store) TimelineHostEvent(e TimelineHostEvent) (TimelineHostEventResult, error) {
 	if err := e.Validate(); err != nil {
 		return TimelineHostEventResult{}, err
 	}
 	op := e.OperationID()
 	result := TimelineHostEventResult{OperationID: op, Status: hostEventNoWork}
+	// The project is resolved before the store lock is taken (it spawns Git).
+	key, projectErr := s.timelineHostProject(e.Source)
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := s.timelineReconcile(); err != nil {
 		return result, err
 	}
-	key, projectErr := s.timelineHostProject(e.Source)
 	if e.WorkID != "" {
 		old, ok := s.timeline[e.WorkID]
 		if !ok {
@@ -155,7 +191,9 @@ func (s *Store) TimelineHostEvent(e TimelineHostEvent) (TimelineHostEventResult,
 	sort.Strings(ids)
 	for _, id := range ids {
 		old := s.timeline[id]
-		if id == e.WorkID || old.Session == nil || old.DeletePending || old.ProjectKey != key || !timelineHostMember(old.Session, e.Source) {
+		// Only open, unarchived works take an unnamed event: a finished or archived
+		// work is rewritten only when it is named as the session's current one.
+		if id == e.WorkID || old.Session == nil || old.DeletePending || old.ProjectKey != key || timelineTerminal(old.Session) || old.Session.Archived || !timelineHostMember(old.Session, e.Source) {
 			continue
 		}
 		status, err := s.timelineHostApply(old, e, op, "", false)
@@ -255,13 +293,15 @@ func hostTaskMirrored(v *TimelineSession, nativeTaskID string) bool {
 }
 
 // timelineMirrorHostTask reflects one native task event as a host:<id> task bound
-// to the active stage, only while every task of the work is itself a mirrored
-// one and up to TimelineMaxHostTasks of them.
+// to the active stage. A task is added only while every task of the work is
+// itself a mirrored one and up to TimelineMaxHostTasks of them; one already
+// mirrored keeps following the host after the agent registers tasks.
 func timelineMirrorHostTask(v *TimelineSession, e TimelineHostEvent, producerID string) (bool, error) {
+	// Once the agent registers tasks, the host tasks already mirrored keep
+	// following the host's state, but no new one is added.
+	agentTasks := false
 	for _, t := range v.Tasks {
-		if !strings.HasPrefix(t.TaskKey, TimelineHostTaskKeyPrefix) {
-			return false, nil
-		}
+		agentTasks = agentTasks || !strings.HasPrefix(t.TaskKey, TimelineHostTaskKeyPrefix)
 	}
 	var stage *TimelineEvent
 	for i := range v.Events {
@@ -311,7 +351,7 @@ func timelineMirrorHostTask(v *TimelineSession, e TimelineHostEvent, producerID 
 		t.State = AggregateTimelineTaskState(t.Segments)
 		return true, nil
 	}
-	if len(v.Tasks) >= TimelineMaxHostTasks || len(v.Tasks) >= TimelineMaxTasks {
+	if agentTasks || len(v.Tasks) >= TimelineMaxHostTasks || len(v.Tasks) >= TimelineMaxTasks {
 		return false, nil
 	}
 	state := "not_started"

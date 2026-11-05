@@ -114,7 +114,7 @@ func detectHookHost(hint string, payload map[string]any, getenv func(string) str
 	switch {
 	case grok.IsHookPayload(payload, getenv):
 		return grok.HookHost
-	case cursor.IsHook(payload, getenv):
+	case cursor.IsHookPayload(payload):
 		return cursor.HookHost
 	}
 	return host
@@ -160,6 +160,7 @@ func processHook(opts hookOptions, hint, event string, stdin io.Reader, deps vie
 	if abs, err := filepath.Abs(state); err == nil {
 		state = abs
 	}
+	var built []viewer.TimelineHostEvent
 	for n, ev := range events {
 		if validateViewWorkSource(viewWorkSource{Host: viewer.TimelineHost(ev.Host), NativeSessionID: ev.SessionID}) != nil {
 			continue
@@ -173,8 +174,9 @@ func processHook(opts hookOptions, hint, event string, stdin io.Reader, deps vie
 				hostStart, _ = deps.processStart(pid)
 			}
 		}
-		sendHookEvent(options, state, ev, hostStart)
+		built = append(built, buildHostEvent(ev, hostStart))
 	}
+	sendHookEvents(options, state, built)
 }
 
 // hookOccurredAt is the time the event is reported with. The viewer derives the

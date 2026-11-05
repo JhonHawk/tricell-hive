@@ -66,7 +66,9 @@ Las operaciones de bajo nivel siguen funcionando sin cambios (D6 A), y el contra
 - **Trabajo y etapa:** `hive hook` los resuelve desde el archivo de trabajo actual de esa sesión y los envía. Sin trabajo actual o sin etapa activa, el evento solo mueve la última actividad.
 - **Efectos:**
   - **Actividad:** actualiza `last_activity_at` de los trabajos de esa sesión como metadato de mantenimiento, no como evento del historial. No consume el tope de 508 eventos ni invalida las versiones que espera el agente.
-  - **Tareas nativas (D13 A):** solo se reflejan cuando el trabajo no tiene tareas registradas por el agente. Se guardan con la clave `host:<id-nativo-de-tarea>`, asignadas al productor de la sesión, vinculadas a la etapa activa y con un tope de 50. Si el trabajo tiene tareas del plan, solo suman actividad.
+  - **Tareas nativas (D13 A):** solo se reflejan cuando el trabajo no tiene tareas registradas por el agente. Se guardan con la clave `host:<id-nativo-de-tarea>`, asignadas al productor de la sesión, vinculadas a la etapa activa y con un tope de 50. Si el trabajo tiene tareas del plan, no se añade ninguna tarea del host: solo suman actividad. **Las ya reflejadas cuando el agente empieza a declarar tareas** siguen actualizando su estado y su título desde el host, pero no se añaden más; el agente numera sus tareas y segmentos ignorando las `host:`, cuyo orden parte de 1.000.000 aparte. Un evento de tarea sin título (una actualización cuyo alta el informante no vio) es válido, y el reflejo conserva el título que ya tiene; solo el alta exige título.
+  - **Trabajos que reciben un evento sin trabajo nombrado:** solo los abiertos y no archivados de esa sesión. Uno cerrado o archivado se toca únicamente cuando se nombra como el trabajo actual, y entonces solo mueve su actividad. El proyecto del evento se resuelve (Git, registro) fuera del lock del almacén.
+  - **Trabajos actuales que el visor da por cerrados, borrados o inexistentes:** `hive hook` los suelta del archivo de trabajo actual al resolverlos (un identificador local de un `open` en cola se conserva), y un `open` en cola que el visor rechaza al enviarse suelta su identificador local.
   - **Antigüedad:** un evento de tarea con fecha anterior a la creación del trabajo se ignora. Esto incluye los de un trabajo creado por un `open` en cola, que nace al enviarse la cola.
   - **Límites:** ningún evento del host inicia, completa o cierra una etapa, cambia la autoridad, ni cierra o pausa un trabajo. `session_ended` solo marca la última actividad.
 - **Contrato:** pasa a la revisión 3 (`TimelineContractRevision`), con el origen `host_observed` y su reflejo en `timeline-contract*.ts`.
@@ -77,8 +79,8 @@ Las operaciones de bajo nivel siguen funcionando sin cambios (D6 A), y el contra
 `hive hook <host> <evento>` lee el JSON por stdin con un límite de 1 MiB. Hace lo siguiente:
 - convierte los campos de cada host, en snake_case o en camelCase;
 - en el inicio, escribe el mapa pid → sesión;
-- envía el evento con un tiempo límite de 2 s;
-- si el visor está caído, deja el evento en la cola de eventos de host.
+- guarda primero en la cola de eventos de host todos los eventos traducidos y después los envía con un solo contacto al visor (una comprobación de salud, una lectura del trabajo y de su etapa por sesión), dentro de un tiempo límite de 2 s;
+- lo que no alcanza a enviar, o el visor caído, queda en esa cola.
 
 No imprime nada y siempre sale con 0. Sigue el patrón de `grok_hook.go`. Cada traductor de carga vive en su `integrations/<host>/`.
 
@@ -89,7 +91,7 @@ No imprime nada y siempre sale con 0. Sigue el patrón de `grok_hook.go`. Cada t
   - OpenCode: el hook del plugin sobre la herramienta `todowrite`, con un ID derivado del contenido. En 2.2.5 no existe `todo.updated`.
   - Codex, Grok, Pi y Cursor: no tienen.
 - **OpenCode y Pi** pasan el ID de sesión de forma explícita desde el plugin o la extensión. En OpenCode el mapa pid no sirve porque todas las sesiones comparten el servicio.
-- **Cursor** registra el mapa también en `beforeSubmitPrompt`, porque `sessionStart` no se dispara al reanudar.
+- **Cursor** se detecta solo por campos de la carga (`cursor_version`, `generation_id`, `workspace_roots`, `conversation_id` sin `session_id`), nunca por variables heredadas del entorno, y registra el mapa también en `beforeSubmitPrompt`, porque `sessionStart` no se dispara al reanudar.
 - **Codex:**
   - no se registran `Stop` ni `SubagentStop`, que esperan JSON en la salida;
   - un evento con `agent_id` es de un subagente y no cambia la sesión principal;

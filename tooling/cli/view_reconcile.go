@@ -108,15 +108,36 @@ func reconcileHostSession(opts management.Options, sink *hostSink, source viewer
 	// work in the same session; the viewer ignores them too.
 	var created time.Time
 	if sink.up {
-		if work, ok := resolveHostEventWork(sink.state, sink.info, source); ok {
+		if work, ok := sink.targets.work(sink.state, sink.info, source); ok {
 			created, _ = time.Parse(time.RFC3339Nano, work.CreatedAt)
 		}
 	}
-	var events []viewer.TimelineHostEvent
-	build := func(typ string, at time.Time, task reconcileTask) viewer.TimelineHostEvent {
-		if task.ID != "" && task.Title == "" && typ != hostevent.TaskCompleted {
-			task.Title = "Task " + task.ID
+	events, tasks := reconcileHostEvents(source, facts, created)
+	r.Tasks = tasks
+	if !facts.LastActivity.IsZero() {
+		r.LastActivityAt = facts.LastActivity.UTC().Format(time.RFC3339)
+		r.ActivitySent = true
+	}
+	for _, e := range events {
+		if e.Validate() != nil {
+			continue
 		}
+		if sink.deliver(e) {
+			r.Sent++
+		} else {
+			r.Queued++
+		}
+	}
+	return r, nil
+}
+
+// reconcileHostEvents is the host events a session file's facts become: its
+// native tasks after the current work was created (the last reconcileMaxEvents)
+// and then one activity event. A task whose title the file does not give (an
+// update whose create the read window did not hold) is sent without one, so the
+// viewer keeps the title it has instead of a placeholder replacing it.
+func reconcileHostEvents(source viewer.TimelineSource, facts reconcileFacts, created time.Time) (events []viewer.TimelineHostEvent, tasks int) {
+	build := func(typ string, at time.Time, task reconcileTask) viewer.TimelineHostEvent {
 		return viewer.TimelineHostEvent{
 			SchemaVersion: viewer.TimelineSchemaVersion, Source: source, EventType: typ,
 			OccurredAt: at.UTC().Format(time.RFC3339Nano),
@@ -139,24 +160,12 @@ func reconcileHostSession(opts management.Options, sink *hostSink, source viewer
 	if len(events) > reconcileMaxEvents {
 		events = events[len(events)-reconcileMaxEvents:]
 	}
-	r.Tasks = len(events)
+	tasks = len(events)
 	if !facts.LastActivity.IsZero() {
-		r.LastActivityAt = facts.LastActivity.UTC().Format(time.RFC3339)
 		// The viewer stamps activity with the event's own time, clamped to its clock.
 		events = append(events, build(hostevent.Activity, facts.LastActivity, reconcileTask{}))
-		r.ActivitySent = true
 	}
-	for _, e := range events {
-		if e.Validate() != nil {
-			continue
-		}
-		if sink.deliver(e) {
-			r.Sent++
-		} else {
-			r.Queued++
-		}
-	}
-	return r, nil
+	return events, tasks
 }
 
 // --- locating the file ---
@@ -295,11 +304,16 @@ func readClaudeTasks(r io.Reader) ([]reconcileTask, error) {
 	pending := map[string]string{} // tool_use id -> subject
 	titles := map[string]string{}
 	var out []reconcileTask
-	sc := bufio.NewScanner(r)
-	sc.Buffer(make([]byte, 0, 1<<20), 4<<20)
-	for sc.Scan() {
-		raw := sc.Bytes()
-		if !bytes.Contains(raw, []byte("Task")) {
+	lines := newBoundedLines(r, reconcileLineLimit)
+	for {
+		raw, err := lines.next()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, err
+		}
+		if raw == nil || !bytes.Contains(raw, []byte("Task")) {
 			continue
 		}
 		line.Message.Content, line.Timestamp = nil, ""
@@ -349,11 +363,54 @@ func readClaudeTasks(r io.Reader) ([]reconcileTask, error) {
 			}
 		}
 	}
-	if err := sc.Err(); err != nil && err != bufio.ErrTooLong {
-		return nil, err
-	}
 	sort.SliceStable(out, func(i, j int) bool { return out[i].At.Before(out[j].At) })
 	return out, nil
+}
+
+// reconcileLineLimit bounds one transcript line; a longer one (a huge tool result)
+// is skipped, not read.
+const reconcileLineLimit = 4 << 20
+
+// boundedLines reads lines up to a limit. A line over it is read through and
+// dropped, and the next call returns the line after it.
+type boundedLines struct {
+	br    *bufio.Reader
+	limit int
+	buf   []byte
+}
+
+func newBoundedLines(r io.Reader, limit int) *boundedLines {
+	return &boundedLines{br: bufio.NewReaderSize(r, 1<<20), limit: limit}
+}
+
+// next returns the next line, nil for a skipped one, and io.EOF at the end. The
+// slice is valid until the next call.
+func (l *boundedLines) next() ([]byte, error) {
+	l.buf = l.buf[:0]
+	tooLong := false
+	for {
+		part, isPrefix, err := l.br.ReadLine()
+		if err != nil {
+			if err == io.EOF && (tooLong || len(l.buf) > 0) {
+				break
+			}
+			return nil, err
+		}
+		if !tooLong {
+			if len(l.buf)+len(part) > l.limit {
+				tooLong, l.buf = true, l.buf[:0]
+			} else {
+				l.buf = append(l.buf, part...)
+			}
+		}
+		if !isPrefix {
+			break
+		}
+	}
+	if tooLong {
+		return nil, nil
+	}
+	return l.buf, nil
 }
 
 func toolResultText(raw json.RawMessage) string {

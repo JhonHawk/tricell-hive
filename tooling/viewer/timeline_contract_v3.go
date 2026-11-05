@@ -2087,7 +2087,9 @@ func (e TimelineHostEvent) Validate() error {
 		if !timelineHostNativeID.MatchString(d.TaskID) {
 			return timelineError("data.task_id", "invalid_id")
 		}
-		if err := timelineText(d.Title, "data.title", 120, e.EventType != "task_completed"); err != nil {
+		// Only a create must name the task: an update or a completion may not know
+		// the title (the reporter saw no create), and then the mirror keeps the one it has.
+		if err := timelineText(d.Title, "data.title", 120, e.EventType == "task_created"); err != nil {
 			return err
 		}
 		if d.State != "" && !contains(timelineHostTaskStates, d.State) || e.EventType == "task_completed" && d.State != "" && d.State != "completed" {

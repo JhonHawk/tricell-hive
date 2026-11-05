@@ -9,6 +9,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -28,21 +29,42 @@ const (
 	hostEventBodyLimit  = 8 << 10
 )
 
-// sendHookEvent sends one translated event. Order matters when the viewer is up:
-// the work's queued semantic declarations first (they may create the work and
-// its stage), then the queued host events, then this one.
-func sendHookEvent(opts management.Options, state string, ev hostevent.Event, hostStart time.Time) {
-	event := buildHostEvent(ev, hostStart)
-	if event.Validate() != nil {
+// sendHookEvents reports the events of one hook run. Every valid event is queued
+// first, so a run the host kills at its budget loses nothing; then one sink (one
+// health check) flushes the queues in order, with the events of this run last,
+// and whatever is not sent stays queued. Order matters when the viewer is up: the
+// work's queued semantic declarations first (they may create the work and its
+// stage), then the queued host events.
+func sendHookEvents(opts management.Options, state string, events []viewer.TimelineHostEvent) {
+	var sources []viewer.TimelineSource
+	seen := map[string]bool{}
+	started := -1
+	for n, event := range events {
+		if event.Validate() != nil {
+			continue
+		}
+		queueHostEvent(state, event)
+		if key := hostSourceKey(event.Source); !seen[key] {
+			seen[key] = true
+			sources = append(sources, event.Source)
+		}
+		if event.EventType == hostevent.SessionStarted {
+			started = n
+		}
+	}
+	if len(sources) == 0 {
 		return
 	}
-	sink := openHostSink(opts, state, event.Source)
-	sink.deliver(event)
-	if ev.Type == hostevent.SessionStarted && sink.up {
+	sink := openHostSink(opts, state, sources...)
+	if started >= 0 && sink.up {
 		// A session that starts again (resume, a restart after a crash) may have
 		// done work the hooks missed while the viewer or the hook was away.
-		_, _ = reconcileHostSession(opts, sink, event.Source, "", reconcileHookReadLimit)
+		_, _ = reconcileHostSession(opts, sink, events[started].Source, "", reconcileHookReadLimit)
 	}
+}
+
+func hostSourceKey(s viewer.TimelineSource) string {
+	return string(s.Host) + "\x00" + s.NativeSessionID
 }
 
 // buildHostEvent is the viewer's event for a translated one. An activity-only
@@ -72,26 +94,31 @@ func buildHostEvent(ev hostevent.Event, hostStart time.Time) viewer.TimelineHost
 // semantic declarations first (they may create the work and its stage), then the
 // queued host events.
 type hostSink struct {
-	state string
-	info  serverInfo
-	up    bool
+	state   string
+	info    serverInfo
+	up      bool
+	targets *hostTargetCache
 }
 
-func openHostSink(opts management.Options, state string, source viewer.TimelineSource) *hostSink {
-	s := &hostSink{state: state}
+// openHostSink checks the viewer once. With it up, it flushes the semantic queue
+// of each source's current works and then the host event queue.
+func openHostSink(opts management.Options, state string, sources ...viewer.TimelineSource) *hostSink {
+	s := &hostSink{state: state, targets: &hostTargetCache{}}
 	info, health, err := viewTimelineRunningHealth(newViewPaths(state))
 	if err != nil || !containsString(health.Capabilities, "host_events") {
 		return s
 	}
 	s.info, s.up = info, true
-	flushSemanticQueue(opts, state, source)
-	flushHostEventQueue(state, info)
+	for _, source := range sources {
+		flushSemanticQueue(opts, state, source)
+	}
+	flushHostEventQueueWith(state, info, s.targets)
 	return s
 }
 
 // deliver reports whether the event was sent; otherwise it waits in the queue.
 func (s *hostSink) deliver(event viewer.TimelineHostEvent) bool {
-	if s.up && postResolvedHostEvent(s.state, s.info, event) == hostSendDone {
+	if s.up && postResolvedHostEventWith(s.state, s.info, event, s.targets) == hostSendDone {
 		return true
 	}
 	queueHostEvent(s.state, event)
@@ -153,7 +180,46 @@ const (
 // session). Transport failures and server errors are retried later from the
 // queue; any other answer is final.
 func postResolvedHostEvent(state string, info serverInfo, event viewer.TimelineHostEvent) hostSendResult {
-	event.WorkID, event.StageEventID = resolveHostEventTarget(state, info, event.Source)
+	return postResolvedHostEventWith(state, info, event, nil)
+}
+
+// hostTargetCache remembers, for the length of one hook run or one flush, the
+// current work (and so its active stage) each session resolved to, so a batch of
+// events reads the work once per session instead of once per event. The nil
+// cache resolves every time.
+type hostTargetCache struct {
+	byID map[string]hostTarget
+}
+
+type hostTarget struct {
+	session viewer.TimelineSession
+	ok      bool
+}
+
+// work reads the session's current work once per cache.
+func (c *hostTargetCache) work(state string, info serverInfo, source viewer.TimelineSource) (viewer.TimelineSession, bool) {
+	if c == nil {
+		return resolveHostEventWork(state, info, source)
+	}
+	key := hostSourceKey(source)
+	if t, ok := c.byID[key]; ok {
+		return t.session, t.ok
+	}
+	s, ok := resolveHostEventWork(state, info, source)
+	if c.byID == nil {
+		c.byID = map[string]hostTarget{}
+	}
+	c.byID[key] = hostTarget{s, ok}
+	return s, ok
+}
+
+func (c *hostTargetCache) resolve(state string, info serverInfo, source viewer.TimelineSource) (work, stage string) {
+	s, ok := c.work(state, info, source)
+	return hostEventTargetOf(s, ok)
+}
+
+func postResolvedHostEventWith(state string, info serverInfo, event viewer.TimelineHostEvent, cache *hostTargetCache) hostSendResult {
+	event.WorkID, event.StageEventID = cache.resolve(state, info, event.Source)
 	status, err := postHostEvent(info, event)
 	if err != nil || status >= 500 {
 		return hostSendRetry
@@ -169,27 +235,69 @@ func postResolvedHostEvent(state string, info serverInfo, event viewer.TimelineH
 }
 
 // resolveHostEventWork reads the session's one current work from the viewer.
+// Current works the viewer reports closed, failed, deleted or not found are
+// released on the way, so they stop making the session's current work ambiguous;
+// a local handle of a queued open is kept, since the viewer cannot know it yet.
 func resolveHostEventWork(state string, info serverInfo, source viewer.TimelineSource) (viewer.TimelineSession, bool) {
-	ids, err := readCurrentWorks(state, string(source.Host), source.NativeSessionID)
-	if err != nil || len(ids) != 1 {
+	host := string(source.Host)
+	ids, err := readCurrentWorks(state, host, source.NativeSessionID)
+	if err != nil || len(ids) == 0 {
 		return viewer.TimelineSession{}, false
 	}
-	raw, err := viewTimelineHTTP(info, http.MethodGet, "/api/timeline/sessions/"+ids[0], "", nil, viewer.TimelineMaxBody)
+	var live viewer.TimelineSession
+	candidates := 0 // works that are open or whose state could not be read
+	for _, id := range ids {
+		raw, err := viewTimelineHTTP(info, http.MethodGet, "/api/timeline/sessions/"+id, "", nil, viewer.TimelineMaxBody)
+		if err != nil {
+			var status *viewHTTPStatusError
+			if errors.As(err, &status) && (status.Status == http.StatusGone || status.Status == http.StatusNotFound && !hasQueuedOpenHandle(state, id)) {
+				_ = releaseCurrentWork(state, host, source.NativeSessionID, id)
+				continue
+			}
+			candidates++
+			continue
+		}
+		r, err := viewer.DecodeTimelineSessionResponse(raw)
+		if err != nil || r.Session.ViewerSessionID != id {
+			candidates++
+			continue
+		}
+		if r.Session.State == viewer.TimelineClosed || r.Session.State == viewer.TimelineFailed {
+			_ = releaseCurrentWork(state, host, source.NativeSessionID, id)
+			continue
+		}
+		live = r.Session
+		candidates++
+	}
+	if candidates != 1 || live.ViewerSessionID == "" {
+		return viewer.TimelineSession{}, false
+	}
+	return live, true
+}
+
+// hasQueuedOpenHandle says whether the journal holds a queued open under this
+// local handle. Anything unreadable counts as yes: the handle is kept.
+func hasQueuedOpenHandle(state, handle string) bool {
+	j, err := readWorkJournal(filepath.Join(state, "publisher", "v1"))
 	if err != nil {
-		return viewer.TimelineSession{}, false
+		return true
 	}
-	r, err := viewer.DecodeTimelineSessionResponse(raw)
-	if err != nil || r.Session.ViewerSessionID != ids[0] {
-		return viewer.TimelineSession{}, false
+	for _, q := range j.Queue {
+		if q.Action == "open" && q.WorkID == handle {
+			return true
+		}
 	}
-	return r.Session, true
+	return false
 }
 
 // resolveHostEventTarget finds the session's one current work and that work's
 // active stage. Several current works, a work still queued locally, a finished
 // work or an unreadable one name nothing.
 func resolveHostEventTarget(state string, info serverInfo, source viewer.TimelineSource) (work, stage string) {
-	s, ok := resolveHostEventWork(state, info, source)
+	return hostEventTargetOf(resolveHostEventWork(state, info, source))
+}
+
+func hostEventTargetOf(s viewer.TimelineSession, ok bool) (work, stage string) {
 	if !ok {
 		return "", ""
 	}
@@ -276,6 +384,10 @@ func hostEventQueueNames(dir string) []string {
 // hostEventFlushLimit per run, and stops at the first transient failure. An event
 // the viewer refuses, or a file that is not an event, is dropped.
 func flushHostEventQueue(state string, info serverInfo) {
+	flushHostEventQueueWith(state, info, nil)
+}
+
+func flushHostEventQueueWith(state string, info serverInfo, cache *hostTargetCache) {
 	dir := filepath.Join(state, "hooks", "queue")
 	if checkSafeDir(filepath.Join(state, "hooks")) != nil || checkSafeDir(dir) != nil {
 		return
@@ -297,7 +409,7 @@ func flushHostEventQueue(state string, info serverInfo) {
 			continue
 		}
 		event.WorkID, event.StageEventID = "", ""
-		if postResolvedHostEvent(state, info, event) == hostSendRetry {
+		if postResolvedHostEventWith(state, info, event, cache) == hostSendRetry {
 			return
 		}
 		_ = os.Remove(path)

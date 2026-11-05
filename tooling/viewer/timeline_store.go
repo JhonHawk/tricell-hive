@@ -641,33 +641,68 @@ func (s *Store) timelineProject(source TimelineSource) (string, string, string, 
 	if !registered {
 		return "", "", "", timelineFailure("project_not_registered", 409)
 	}
+	bound, err := s.timelineBoundKey(root)
+	if err != nil {
+		return "", "", "", err
+	}
+	key, err := timelineProjectKey(root, bound, s.timelineRemoteOf(root))
+	if err != nil {
+		return "", "", "", err
+	}
+	name := s.resolveProject(root).name
+	return root, key, name, nil
+}
+
+// timelineBoundKey is the project key the stored works that use this root already
+// carry. It reads the store's records, so the caller holds s.mu.
+func (s *Store) timelineBoundKey(root string) (string, error) {
 	bound := ""
 	for _, record := range s.timeline {
 		for _, alias := range record.Roots {
 			if alias == root {
 				if bound != "" && bound != record.ProjectKey {
-					return "", "", "", timelineFailure("project_identity_changed", 409)
+					return "", timelineFailure("project_identity_changed", 409)
 				}
 				bound = record.ProjectKey
 			}
 		}
 	}
+	return bound, nil
+}
+
+// timelineRemote is what Git said about a root's remote. It touches no store
+// state, so it may run outside s.mu.
+type timelineRemote struct {
+	asked bool
+	raw   string
+	err   error
+}
+
+func (s *Store) timelineRemoteOf(root string) timelineRemote {
+	if s.remote == nil {
+		return timelineRemote{}
+	}
+	if _, gitErr := os.Lstat(filepath.Join(root, ".git")); gitErr != nil {
+		return timelineRemote{}
+	}
+	raw, err := s.remote(root)
+	return timelineRemote{asked: true, raw: raw, err: err}
+}
+
+func timelineProjectKey(root, bound string, remote timelineRemote) (string, error) {
 	key := root
 	resolved := false
-	if s.remote != nil {
-		if _, gitErr := os.Lstat(filepath.Join(root, ".git")); gitErr == nil {
-			raw, remoteErr := s.remote(root)
-			resolved = remoteErr == nil
-			if remoteErr != nil {
-				if bound == "" {
-					return "", "", "", timelineFailure("project_identity_unavailable", 409)
-				}
-				key = bound
-			} else if raw != "" {
-				key = NormalizeRemote(raw)
-				if key == "" {
-					return "", "", "", timelineFailure("project_identity_unavailable", 409)
-				}
+	if remote.asked {
+		resolved = remote.err == nil
+		if remote.err != nil {
+			if bound == "" {
+				return "", timelineFailure("project_identity_unavailable", 409)
+			}
+			key = bound
+		} else if remote.raw != "" {
+			key = NormalizeRemote(remote.raw)
+			if key == "" {
+				return "", timelineFailure("project_identity_unavailable", 409)
 			}
 		}
 	}
@@ -675,10 +710,9 @@ func (s *Store) timelineProject(source TimelineSource) (string, string, string, 
 		key = bound
 	}
 	if bound != "" && bound != key {
-		return "", "", "", timelineFailure("project_identity_changed", 409)
+		return "", timelineFailure("project_identity_changed", 409)
 	}
-	name := s.resolveProject(root).name
-	return root, key, name, nil
+	return key, nil
 }
 
 // TimelineCreate gets or creates exactly one registered native tuple.

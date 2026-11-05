@@ -442,6 +442,16 @@ func viewTimelineReadFile(name string, limit int64) ([]byte, error) {
 }
 
 // Redirects and transport/body diagnostics must not reveal the access token.
+// viewHTTPStatusError is the viewer's non-2xx answer to a timeline request.
+type viewHTTPStatusError struct {
+	Status int
+	Detail string
+}
+
+func (e *viewHTTPStatusError) Error() string {
+	return fmt.Sprintf("viewer request failed (HTTP %d%s); preserve inputs, read current state and retry only with the appropriate original operation ID", e.Status, e.Detail)
+}
+
 func viewTimelineHTTP(info serverInfo, method, path, contentType string, body io.Reader, limit int) ([]byte, error) {
 	if !strings.HasPrefix(path, "/api/") || strings.ContainsAny(path, "?#\\") {
 		return nil, errors.New("invalid local viewer route")
@@ -474,7 +484,7 @@ func viewTimelineHTTP(info serverInfo, method, path, contentType string, body io
 		return nil, errors.New("reload_required: update Hive and restart/reload the viewer together; preserve inputs and retry the unchanged operation ID")
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return nil, fmt.Errorf("viewer request failed (HTTP %d%s); preserve inputs, read current state and retry only with the appropriate original operation ID", response.StatusCode, viewErrorDetail(response.Body))
+		return nil, &viewHTTPStatusError{Status: response.StatusCode, Detail: viewErrorDetail(response.Body)}
 	}
 	// Existing timeline readers passing the former public-body bound also need
 	// space for the projection/envelope; smaller diagnostic limits stay unchanged.

@@ -24,6 +24,8 @@ type hostEventHarness struct {
 	work   TimelineSession
 	source TimelineSource
 	clock  time.Time
+	// request is the request that created work, for creating more of the session.
+	request TimelineCreateSessionRequest
 }
 
 func newHostEventHarness(t *testing.T) *hostEventHarness {
@@ -33,6 +35,7 @@ func newHostEventHarness(t *testing.T) *hostEventHarness {
 	s.now = func() time.Time { return h.clock }
 	h.work = createTimeline(t, s, request)
 	h.source = request.Source
+	h.request = request
 	server, err := NewServer(ServerOptions{Store: s, Port: 4483, Token: strings.Repeat("h", 32)})
 	if err != nil {
 		t.Fatal(err)

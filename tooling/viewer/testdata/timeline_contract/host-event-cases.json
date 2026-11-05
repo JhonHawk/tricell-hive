@@ -256,6 +256,38 @@
     "json": "{\"kind\":\"native_producer\",\"producer_id\":\"producer-stranger\"}"
   },
   {
+    "name": "activity with turn id",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": true,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"activity\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"turn_id\":\"prompt-1\"}}"
+  },
+  {
+    "name": "task_updated without title",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": true,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"task_updated\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"task_id\":\"7\",\"state\":\"in_progress\"}}"
+  },
+  {
+    "name": "task with turn id",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"task_created\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"task_id\":\"7\",\"title\":\"Run typecheck\",\"turn_id\":\"prompt-1\"}}"
+  },
+  {
+    "name": "turn id with spaces",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"activity\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"turn_id\":\"has space\"}}"
+  },
+  {
     "name": "authority local viewer",
     "action": "authority",
     "kind": "host_event",

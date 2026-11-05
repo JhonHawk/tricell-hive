@@ -426,6 +426,13 @@ func (e *viewWorkEngine) flushQueue(c viewWorkCommand) error {
 		if err = e.save(); err != nil {
 			return err
 		}
+		// A rejected open never became a work: its local handle must not stay
+		// current. A work the viewer reports closed or gone is not current either.
+		if q.Action == "open" || code == "session_closed" || code == "work_closed" || code == "session_deleted" {
+			if err = releaseCurrentWork(e.state, c.Host, c.NativeSessionID, q.WorkID); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }

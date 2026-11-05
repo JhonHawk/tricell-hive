@@ -323,6 +323,8 @@ export type TimelineHostEventData = {
   title?: string;
   state?: "not_started" | "in_progress" | "completed";
   agent_id?: string;
+  /** The host's turn ID of an event that is not a task event; it only keeps two events distinct. */
+  turn_id?: string;
 };
 /** Body of POST /api/host-events, reported by the local hive hook. */
 export type TimelineHostEvent = {
@@ -367,6 +369,7 @@ const shapes: Record<string, Array<[string, string, boolean]>> = {
     ["title", "string", true],
     ["state", "string", true],
     ["agent_id", "string", true],
+    ["turn_id", "string", true],
   ],
   TimelineActor: [
     ["kind", "string", false],
@@ -913,8 +916,8 @@ export function parseTimelineHostEvent(value: unknown): TimelineHostEvent {
   if (task) {
     if (typeof d.task_id !== "string" || !hostNativeID.test(d.task_id))
       fail("data.task_id", "invalid_id");
-    if (d.title !== undefined || type !== "task_completed")
-      text(d.title, "data.title", 120, type !== "task_completed");
+    if (d.title !== undefined || type === "task_created")
+      text(d.title, "data.title", 120, type === "task_created");
     if (
       d.state !== undefined &&
       (!hostTaskStates.includes(d.state) ||
@@ -927,6 +930,11 @@ export function parseTimelineHostEvent(value: unknown): TimelineHostEvent {
     (typeof d.agent_id !== "string" || !hostNativeID.test(d.agent_id))
   )
     fail("data.agent_id", "invalid_id");
+  if (
+    d.turn_id !== undefined &&
+    (task || typeof d.turn_id !== "string" || !hostNativeID.test(d.turn_id))
+  )
+    fail("data.turn_id", "invalid_id");
   return v as unknown as TimelineHostEvent;
 }
 export function isTimelineV3Operation(
