@@ -83,6 +83,10 @@ raise the minor or the patch version.
   `flow-status` lists those records, marking those ready to resume, along with change
   folders not committed under `Specs`, and each close soft-deletes a record
   left with nothing open.
+- Research that ends with the route to Plan or Build first states the scope in
+  one line: about how many files and which areas, and the stages and checks the
+  work will pass through, so the user can narrow it before choosing. The plan
+  summary recounts that line and says what changed since research.
 
 ### Changed
 

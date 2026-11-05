@@ -22,6 +22,8 @@ Research settles what the work is; `flow-plan` settles how. It publishes nothing
    - When the user asked for a change, not whether or how to make one, and its how leaves no decision for them and could be finished from the request and `git diff` alone, continue into `flow-build` in the same turn.
    - Otherwise, end with the route to `flow-plan` and its reason.
 
+   When this step ends with a route to `flow-plan` or `flow-build`, write one line with the scope as estimated from the reads, before the next-step block: about how many files and which areas, and the stages and checks the work will pass through, such as plan, per-task verification, reviews, CI and promotion, so the user can narrow it before choosing, such as "Scope: ~42 files (contracts, runtime, tests, manual) · plan + per-task verification + native review + UX review · delivery: PR, CI and promotion to QA".
+
    Creating a ticket is a single action, offered as a reply or asked, never part of a route. The user's reply authorizes only the flow it names, or the single action it answers.
 
 ## Assess a chosen ticket
