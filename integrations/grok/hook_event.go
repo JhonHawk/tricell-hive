@@ -46,7 +46,7 @@ func HookEvents(in hostevent.Input) []hostevent.Event {
 		if norm != "subagentstart" {
 			return nil
 		}
-		e, ok := base.Subagent(hostevent.SubagentStarted, hostevent.ID(p["subagentId"]))
+		e, ok := base.Subagent(hostevent.SubagentStarted, hostevent.Str(p, "subagentId", "subagent_id"))
 		if !ok {
 			return nil
 		}

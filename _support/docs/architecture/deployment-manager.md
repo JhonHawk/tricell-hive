@@ -590,7 +590,7 @@ executable rule of the Grok read-whole hook above.
 Whole files Hive owns, as records of kind `hook` (accepted only for their file
 name, folder and host, like the Grok read-whole hook): Grok's second hook file
 `<GrokHome>/hooks/hive-session-events.json` (events `SessionStart`,
-`UserPromptSubmit`, `Stop`, `SessionEnd`, each a program handler with the binary
+`UserPromptSubmit`, `SubagentStart`, `Stop`, `SessionEnd`, each a program handler with the binary
 as `command` and `hook grok <event>` as `args`, so the path needs no quoting;
 Grok merges every file in `hooks/`, so it sits beside the read-whole file and
 neither knows of the other); OpenCode's `<OpenCodeHome>/plugins/hive-events.js`;

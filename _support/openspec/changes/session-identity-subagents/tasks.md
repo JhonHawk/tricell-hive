@@ -161,4 +161,20 @@ No hay superficie de UI. Hay dos comprobaciones humanas opcionales, que no bloqu
 - Codex 0.167.0, `codex exec -s workspace-write`. Primera corrida lanzada desde Claude Code: «ambiguous» correcto, porque había dos variables y el sandbox no deja ejecutar `ps` (`seatbelt_base_policy.sbpl:16`: process-info solo same-sandbox), así que no hay ascendencia visible. Segunda corrida sin la variable heredada: el hilo `01a1af8c…` abre la work a su nombre (AC3).
 - Sandbox local (`sandbox-exec`): la base da «required semantic field missing» con `CODEX_SESSION_ID`; el candidato resuelve. Probable causa del aviso `watch/viewer-identity-unresolved-skips-publication` (Codex, 2026-11-04).
 
-**Checkpoint:** verify · revisión `/code-review` sobre `23dd9d37` en curso · siguiente: adjudicar hallazgos, push, PR y merge (D3 A).
+2026-11-06 — Revisión `/code-review` sobre `23dd9d37`: 9 hallazgos.
+- Corregidos en esta ronda:
+  - **H12** — Bloqueante. En la vuelta al mapa no se comprobaba de dónde venían las variables: un host interno no reconocido publicaba como la sesión del mapa del host externo. Ahora la regla de origen aplica a las dos ramas.
+  - **H13** — `hostsAbove` solo corre cuando hay otras variables y se detiene al encontrarlas.
+  - **H14** — El mapa del host más cercano ya no se carga dos veces.
+  - **H15** — `deployment-manager.md` lista `SubagentStart`.
+  - **H16** — `subagentId` también se lee como `subagent_id`.
+- A los hallazgos del cierre:
+  - **H17** — Codex sin `CODEX_SESSION_ID` (antes de 0.167) sigue resolviendo por el mapa al último hilo. Ya pasaba en la base.
+  - **H18** — Una variable de Codex heredada y vencida, por ejemplo en un servidor de tmux, se acepta sin ascendencia. Es el mismo riesgo que ya tienen las otras variables.
+- Reportado sin corregir:
+  - **H19** — Plausible, sin confirmar: un hook de compatibilidad sin `GROK_HOOK_EVENT` mandaría los eventos del hijo al traductor de Claude Code. En la sonda, `$GROK_HOOK_EVENT` estuvo definido en todos los eventos.
+- Sin acción:
+  - **H20** — Grok no reporta `subagent_stopped`; es lo que se decidió en D1 A.
+- Pruebas: los dos casos nuevos de H12 fallaron antes del arreglo. El caso snake_case de H16 se escribió después del cambio, así que no se vio fallar.
+
+**Checkpoint:** verify · ronda de correcciones hecha · siguiente: segunda revisión limitada al diff de las correcciones, suite completa, push, PR y merge (D3 A).

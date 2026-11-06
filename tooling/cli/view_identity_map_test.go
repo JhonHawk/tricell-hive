@@ -68,8 +68,14 @@ func TestResolveViewIdentityNestedHostNeverUsesTheOuterVariable(t *testing.T) {
 		err   error
 	}{
 		{"nearest map is another host", func(t *testing.T, state string) {
+			withProcessNames(t, map[int]string{600: "claude"})
 			writePidMap(t, state, "cursor", 800, now.Add(-time.Hour), pidMapSession{ID: "inner", Started: now.Add(-time.Minute)})
 		}, viewIdentity{Host: "cursor", NativeSessionID: "inner"}, nil},
+		// Nothing above cursor explains CLAUDE_CODE_SESSION_ID: it may belong to
+		// an inner host the walk did not recognize, so the map decides nothing.
+		{"origin of the variable not found above", func(t *testing.T, state string) {
+			writePidMap(t, state, "cursor", 800, now.Add(-time.Hour), pidMapSession{ID: "inner", Started: now.Add(-time.Minute)})
+		}, viewIdentity{}, errViewIdentityAmbiguous},
 		{"nearest host process has no map yet", func(t *testing.T, state string) {
 			withProcessNames(t, map[int]string{800: "/usr/local/bin/cursor-agent", 600: "claude"})
 			writePidMap(t, state, "claude-code", 600, now.Add(-time.Hour), pidMapSession{ID: "outer", Started: now.Add(-time.Minute)})
@@ -97,6 +103,13 @@ func TestResolveViewIdentityVariablesStayAmbiguousWhenTheirOriginIsUnknown(t *te
 		// claude explains PI_SESSION_ID, so it may belong to an inner host.
 		{"inner host not recognized", func(t *testing.T, state string) {
 			withProcessNames(t, map[int]string{800: "node", 600: "claude"})
+		}},
+		// Pi (unrecognized node) was started from a Grok shell: Grok is the
+		// nearest recognized host and has no variable, but nothing explains
+		// PI_SESSION_ID, so Grok's map must not speak for it.
+		{"unrecognized inner host under a host without a variable", func(t *testing.T, state string) {
+			withProcessNames(t, map[int]string{800: "node", 600: "grok"})
+			writePidMap(t, state, "grok", 600, now.Add(-time.Hour), pidMapSession{ID: "gk", Started: now.Add(-time.Minute)})
 		}},
 		// A map that cannot be trusted at the nearest ancestor decides nothing.
 		{"untrusted nearest map", func(t *testing.T, state string) {

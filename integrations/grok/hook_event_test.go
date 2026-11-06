@@ -56,6 +56,11 @@ func TestSubagentStartIsSubagentActivityOfTheParent(t *testing.T) {
 	if len(got) != 1 || got[0].Type != hostevent.SubagentStarted || got[0].SessionID != grokParent || got[0].AgentID != grokChild || got[0].Map != hostevent.MapNone {
 		t.Fatalf("got %+v", got)
 	}
+	// The snake_case spelling, as for every other key the translator reads.
+	snake := translate("SubagentStart", `{"session_id":"`+grokParent+`","subagent_id":"`+grokChild+`","subagent_type":"explore"}`, map[string]string{"GROK_HOOK_EVENT": "subagent_start"})
+	if len(snake) != 1 || snake[0].SessionID != grokParent || snake[0].AgentID != grokChild {
+		t.Fatalf("snake_case: got %+v", snake)
+	}
 }
 
 func TestEventsOfTheSubagentsOwnSessionAreDropped(t *testing.T) {

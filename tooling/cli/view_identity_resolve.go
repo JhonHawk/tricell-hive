@@ -151,54 +151,56 @@ func resolveViewIdentity(deps viewIdentityDeps, state string) (viewIdentity, err
 
 // chooseVariable picks among the host variables of this shell by the nearest
 // evidence of a host above it, a session map or a host CLI process: hosts
-// started from another agent's shell inherit the outer agent's variable. The
-// nearest host's own variable wins when every other variable's host is found
-// further up; otherwise one may come from an unrecognized inner host and the
-// result is ambiguous. When the nearest host has none among them, the
-// inherited ones are ignored and only that host's own map, on that process,
-// applies. With no host evidence, a single variable is used and several are
-// ambiguous.
+// started from another agent's shell inherit the outer agent's variable. Every
+// variable that is not the nearest host's must come from a host found further
+// up; otherwise it may belong to an inner host the walk did not recognize, and
+// the result is ambiguous. Then the nearest host's own variable wins, and when
+// it has none among them, only that host's own map, on that process, applies.
+// With no host evidence, a single variable is used and several are ambiguous.
 func chooseVariable(deps viewIdentityDeps, state string, found []viewIdentity) (viewIdentity, error) {
-	host, pid, err := nearestHost(deps, state)
+	near, err := nearestHost(deps, state)
 	if err != nil {
 		return viewIdentity{}, err
 	}
-	if host == "" {
+	if near.host == "" {
 		if len(found) == 1 {
 			return found[0], nil
 		}
 		return viewIdentity{}, errViewIdentityAmbiguous
 	}
+	var others []string
 	for _, id := range found {
-		if id.Host != host {
-			continue
+		if id.Host != near.host {
+			others = append(others, id.Host)
 		}
-		// Every other variable must come from a host further up; one whose host
-		// is not there may belong to an inner host this walk did not recognize.
-		above := hostsAbove(deps, state, pid)
-		for _, other := range found {
-			if other.Host != host && !above[other.Host] {
-				return viewIdentity{}, errViewIdentityAmbiguous
-			}
-		}
-		return id, nil
 	}
-	doc, present, err := loadPidMap(deps, state, pid)
-	if err != nil {
+	if len(others) > 0 && !hostsAbove(deps, state, near.pid, others) {
 		return viewIdentity{}, errViewIdentityAmbiguous
 	}
-	if !present {
+	for _, id := range found {
+		if id.Host == near.host {
+			return id, nil
+		}
+	}
+	if near.doc == nil {
 		return viewIdentity{}, errViewIdentityMissing
 	}
-	return doc.liveIdentity()
+	return near.doc.liveIdentity()
 }
 
-// nearestHost names the host of the nearest ancestor that has a session map or
-// is a host CLI, and that ancestor's pid; "" when no ancestor is either. A map
-// that cannot be trusted, or a process whose map and name disagree, is
-// ambiguous.
-func nearestHost(deps viewIdentityDeps, state string) (string, int, error) {
-	host, at := "", 0
+// nearestEvidence is the nearest ancestor that has a session map or is a host
+// CLI: its host, its pid and its map when it has one. host is "" when no
+// ancestor is either.
+type nearestEvidence struct {
+	host string
+	pid  int
+	doc  *pidMapDoc
+}
+
+// nearestHost finds the nearest evidence of a host. A map that cannot be
+// trusted, or a process whose map and name disagree, is ambiguous.
+func nearestHost(deps viewIdentityDeps, state string) (nearestEvidence, error) {
+	var near nearestEvidence
 	verdict := error(nil)
 	err := walkViewAncestors(deps, func(pid int) (bool, error) {
 		doc, present, err := loadPidMap(deps, state, pid)
@@ -207,41 +209,45 @@ func nearestHost(deps viewIdentityDeps, state string) (string, int, error) {
 			return true, nil
 		}
 		if present {
-			host, at = doc.Host, pid
+			near = nearestEvidence{host: doc.Host, pid: pid, doc: doc}
 		}
 		if h := hostOfProcess(deps, pid); h != "" {
-			if host != "" && h != host {
+			if near.host != "" && h != near.host {
 				verdict = errViewIdentityAmbiguous
 			}
-			host, at = h, pid
+			near.host, near.pid = h, pid
 		}
-		return host != "", nil
+		return near.host != "", nil
 	})
 	if err == nil {
 		err = verdict
 	}
 	if err != nil {
-		return "", 0, err
+		return nearestEvidence{}, err
 	}
-	return host, at, nil
+	return near, nil
 }
 
-// hostsAbove names the hosts of the ancestors of pid, by session map or host
-// CLI process; a map that cannot be read names nothing.
-func hostsAbove(deps viewIdentityDeps, state string, pid int) map[string]bool {
-	hosts := map[string]bool{}
+// hostsAbove reports whether every host in need is found among the ancestors
+// of pid, by session map or host CLI process, and stops as soon as it is; a map
+// that cannot be read names nothing.
+func hostsAbove(deps viewIdentityDeps, state string, pid int, need []string) bool {
+	missing := map[string]bool{}
+	for _, h := range need {
+		missing[h] = true
+	}
 	from := deps
 	from.selfPID = pid
 	_ = walkViewAncestors(from, func(p int) (bool, error) {
 		if doc, present, err := loadPidMap(deps, state, p); err == nil && present {
-			hosts[doc.Host] = true
+			delete(missing, doc.Host)
 		}
 		if h := hostOfProcess(deps, p); h != "" {
-			hosts[h] = true
+			delete(missing, h)
 		}
-		return false, nil
+		return len(missing) == 0, nil
 	})
-	return hosts
+	return len(missing) == 0
 }
 
 // hostOfProcess is the host CLI a process is, recognized as the map writer
