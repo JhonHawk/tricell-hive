@@ -22,7 +22,7 @@ Base: `development` @ `fbf3922e` (plan escrito sobre `084728fa`); rama `fix/view
 
 ### T2 — Pista del CLI con los tipos que aceptan el campo
 
-- [ ] El rechazo local de `hive view event add` agrega qué tipos aceptan el campo rechazado.
+- [x] El rechazo local de `hive view event add` agrega qué tipos aceptan el campo rechazado.
 
 **Closes:** AC3
 
@@ -87,10 +87,11 @@ Base: `development` @ `fbf3922e` (plan escrito sobre `084728fa`); rama `fix/view
 
 2026-11-05 — plan escrito y revisado por `hive-review-plan`.
 2026-11-05 — T1 hecha: tabla `timelineKindFields`, rechazos con el campo real y prueba de deriva (dos mutaciones atrapadas); `go test ./tooling/viewer/` pasa. Línea base de briefs (bytes): research 6466, plan 6462, build 9023, verify 8727, delivery 9999, close 1497, collab 1624, local 1180.
+2026-11-05 — T2 hecha: `viewTimelineKindHint` en el rechazo local; la prueba falló sin la pista y pasa con ella; el binario candidato imprime `forbidden_for_kind on expected_session_version; only kind stage accepts it` sin crear estado; `go test ./tooling/cli/ -run 'Timeline'` pasa.
 
 ## Checkpoint
 
-- Etapa: build · paso 2 · siguiente: T2 (pista local de `event add`).
+- Etapa: build · paso 2 · siguiente: T3 (condiciones por tipo en el esquema); verificación de T1 en curso.
 - Worktree `.claude/worktrees/viewer-timeline-kind-errors`, rama `fix/viewer-timeline-kind-errors` desde `fbf3922e`.
 - Visor: work `viewer-timeline-kind-errors`, etapa build en curso.
 - Hallazgos abiertos: ninguno.

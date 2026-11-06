@@ -139,7 +139,7 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 			}
 			var field *viewer.TimelineContractError
 			if errors.As(err, &field) && field.Field != "" {
-				return fmt.Errorf("invalid timeline input: %s on %s", code, field.Field)
+				return fmt.Errorf("invalid timeline input: %s on %s%s", code, field.Field, viewTimelineKindHint(command.operation, code, field.Field))
 			}
 			return fmt.Errorf("invalid timeline input: %s", code)
 		}
@@ -597,6 +597,23 @@ func viewTimelineOutput(w io.Writer, value any) error {
 // viewErrorTokenPattern bounds what a failed response may echo: only the
 // server's own error code and field names, never arbitrary text.
 var viewErrorTokenPattern = regexp.MustCompile(`^[a-z][a-z0-9_.]{0,63}$`)
+
+// viewTimelineKindHint tells which event kinds accept a field that an event
+// operation rejected with forbidden_for_kind, from the viewer's one table of
+// kind-dependent fields, so a producer can fix the request in one retry.
+func viewTimelineKindHint(operation, code, field string) string {
+	if code != "forbidden_for_kind" || !contains([]string{"append_event", "event_patch", "stage_update"}, operation) {
+		return ""
+	}
+	kinds, ok := viewer.TimelineEventFieldKinds(field)
+	if !ok || len(kinds) == 0 {
+		return ""
+	}
+	if len(kinds) == 1 {
+		return "; only kind " + kinds[0] + " accepts it"
+	}
+	return "; only kinds " + strings.Join(kinds, ", ") + " accept it"
+}
 
 // viewErrorDetail names the server's error code, and its field when present,
 // so a caller can tell why a request was rejected.
