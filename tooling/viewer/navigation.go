@@ -123,13 +123,20 @@ func groupedNavigation(sessions []TimelineAPIIndexEntry, registry Registry) *Nav
 	type observation struct {
 		config      explicitProject
 		kind, label string
+		missing     bool
 	}
 	roots := map[string]observation{}
 	fallbackNames := map[string]string{}
+	projectNames := map[string]string{}
+	conflictingNames := map[string]bool{}
+	retired := map[string]bool{}
 	for _, session := range sessions {
 		root := session.Source.ProjectRoot
+		missing := false
 		if canonical, err := canonicalDir(root); err == nil {
 			root = canonical
+		} else {
+			missing = errors.Is(err, os.ErrNotExist)
 		}
 		observed, ok := roots[root]
 		if !ok {
@@ -142,7 +149,15 @@ func groupedNavigation(sessions []TimelineAPIIndexEntry, registry Registry) *Nav
 			} else if info, err := os.Lstat(filepath.Join(root, ".git")); err == nil && (info.IsDir() || info.Mode().IsRegular()) {
 				observed.kind = "repository"
 			}
+			observed.missing = missing && registered[root]
 			roots[root] = observed
+		}
+		retired[session.ViewerSessionID] = observed.missing
+		if observed.config.status == "valid" {
+			if name, exists := projectNames[session.ProjectKey]; exists && name != observed.config.name {
+				conflictingNames[session.ProjectKey] = true
+			}
+			projectNames[session.ProjectKey] = observed.config.name
 		}
 		entry := NavigationEntry{ViewerSessionID: session.ViewerSessionID, GroupKey: navigationKey("project", session.ProjectKey), GroupName: session.ProjectName, OriginKind: observed.kind, OriginLabel: observed.label, ConfigStatus: observed.config.status}
 		if observed.config.status == "valid" {
@@ -160,6 +175,18 @@ func groupedNavigation(sessions []TimelineAPIIndexEntry, registry Registry) *Nav
 			entry.GroupName = name
 		}
 		navigation.Entries = append(navigation.Entries, entry)
+	}
+	// A removed registered source may share presentation with an available
+	// source of the exact stored project identity. Never infer identity from
+	// equal display names, and never pick between conflicting declarations.
+	for i, session := range sessions {
+		entry := &navigation.Entries[i]
+		name, exists := projectNames[session.ProjectKey]
+		if retired[session.ViewerSessionID] && entry.ConfigStatus == "unavailable" && exists && !conflictingNames[session.ProjectKey] {
+			entry.GroupKey = navigationKey("explicit", name)
+			entry.GroupName = name
+			entry.ConfigStatus = "valid"
+		}
 	}
 	return navigation
 }
