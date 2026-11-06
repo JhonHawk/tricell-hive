@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Verify · Listo para validación humana antes del push |
+| Estado | Completado · Listo para validación humana antes del push |
 | Tracker | Sin ticket; no se ha solicitado crearlo |
 | Git | tricell-hive · development · e2a633e49f9ae59654bd272c574b460696ad3dae · feat/release-self-update · worktree .claude/worktrees/release-self-update |
 | Visor | work key `release-self-update` · work ID `059ebc7c344c592434939d3a5e3c91bacb647beea3cb541a67006c554319365a` |

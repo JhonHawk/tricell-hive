@@ -132,7 +132,7 @@ Entrega D2 A: tras checks y revisión, presentar el flujo terminal y esperar val
 
 ## Checkpoint
 
-Verify · ready for human validation; T1–T6 verified. Source commit f6d8cf915590d8f85572a66785bb5c1e696f9e68 on feat/release-self-update; integrated base a67feac4. D1 A, D2 A, D3 A, D4 A in force. Next action: D5 human validation before push/PR/merge. Public release/promotion are not authorized. No child agents or task test processes remain running.
+Completion point reached · T1–T6 verified; human validation D5 A accepted. PR386 merged into development as f3297684b37cf379fcb7f0217e54ca2d0bc24e1e on 2026-11-06 UTC. Source tested f6d8cf915590d8f85572a66785bb5c1e696f9e68; published candidate83b4c63009543fe27ddbf9cb9da234bb6b17b97a; base a67feac4. D1 A, D2 A, D3 A, D4 A remain recorded. No public release or master promotion. No child agents or task test processes remain running. User chose close (A). Support retained locally, spec delta merged and change archived by the close delivery. Branch/worktree cleanup follows verified archive integration.
 
 All21 package results in the final go test -race -timeout=18m ./... log are ok; exact package set matches go list ./..., no failure/race markers. CLI605.134s, management272.560s. Original executor exit status was lost in daemon restart, but native kqueue observed Go process18627 exit and all21 package results were validated; no duplicate run was started. Full normal suite passed; post-fix normal CLI190.606s; latest vet, Python57 tests, Astro17pages and both offline Linux crossbuilds passed. See validation.md for evidence and limits.
 
@@ -185,3 +185,13 @@ Recursos adicionales del root: site/node_modules es un symlink propio hacia node
 2026-11-05 — T6 verificador independiente confirma AC1–AC14 en owners (CLI10.893s, distribución2.327s, gestión race10.952s, source/TUI race4.488s, preservación1.087s, routing.277s), sin otra brecha. Su lectura no cubre H12 posterior; lo cubre regresión local. Normal CLI de root tras H9/H10 PASS190.606s; H11/H12 se incluyen en full race final pendiente. Fuentes ahora congeladas.
 
 2026-11-05 — ✓ T6 verificado · final full-race21/21 paquetes ok, sin FAIL/race markers; Go18627 terminó observado por kqueue tras reinicio del daemon. CLI605.134s, gestión272.560s, distribución42.911s, viewer126.199s. CrossbuildLinuxARM64/AMD64 exit0, ELF estáticos verificados; no ejecución Linux. Fuentesf6d8cf91 sin cambios. Se cierra registro para validación humana, no publicación.
+
+2026-11-06 UTC — Delivery and completion: D5 A accepted. Pushed83b4c630, PR386 opened against current development a67feac4. No checks configured, no review requests/comments, no postmerge workflow. PR merged with merge commit f3297684; remote ancestry verified. Own branch fast-forwarded to that integrated commit without changing main checkout.
+
+Maintainer refresh: marker exists in main checkout. Previous binary9a1f3231 was marked dirty; saved exact copy at _support/workspace/2026-11-05-release-self-update/hive-before-local-refresh. Named ten missing manager commits before building. Rebuilt ~/.local/bin/hive from clean f3297684; go version -m confirms vcs.revision and vcs.modified=false. Help commands and synthetic-home bare-dev dry-run exercised; bare dev correctly rejects before an update. No real installation/content application or viewer restart.
+
+Viewer closed confirmed, session_version80. Retained readback and receipt: _support/workspace/2026-11-05-release-self-update/viewer-close.json and viewer-closed-state.json. Do not close it again during hygiene. No queued operation.
+
+H13 P3 — Postmerge smoke found main.go:101 general help still says update requires Git and a checkout, omitting --version; subcommand help exposes --version and real release behavior is tested. Copy inconsistency only, not a failing acceptance flow; no fix made after the approved delivery. Offer a focused correction at the close footer; no ticket created.
+
+Deferred close steps2/4/5: support decision for _support/workspace/2026-11-05-release-self-update (unique images/transcripts/test/review evidence and pre-refresh binary must be preserved), delta merge/archive on a new branch, then cleanup of merged own branch/worktree and task temporaries. Task-created PR body /var/folders/dg/0d963h2158s10jggj2_k2w_00000gn/T/hive-release-self-update-pr-tbdgikxy.md and pointer /private/tmp/hive-release-self-update-pr-body-path are reproducible. No account index used or changed. Main checkout's unrelated session folders and branch remain untouched.
