@@ -176,7 +176,7 @@ func TestWorkSyncMovesARegisteredTaskByKeyAndState(t *testing.T) {
 	}
 	before := work.Version
 	_, err := s.run(`[{"key":"T1","state":"completed"},{"key":"T4","state":"in_progress"}]`, "sync", "--stage", "build", "--state", "in_progress", "--reason", "New task", "--tasks", "-")
-	if err == nil || !strings.Contains(err.Error(), "tasks[1].title: required field") {
+	if err == nil || !strings.Contains(err.Error(), "task_title_required") {
 		t.Fatalf("a new task without a title: %v", err)
 	}
 	if after := s.session(open.WorkID); after.Version != before || len(after.Tasks) != 3 {

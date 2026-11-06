@@ -50,11 +50,11 @@ func validateViewWorkSyncTasks(tasks []viewWorkSyncTask) error {
 			return faultf(path+".key", "duplicate task key")
 		}
 		seen[t.Key] = true
-		check := t
-		if check.Title == "" {
-			check.Title = t.Key // validates the key and the other fields only
+		title, summary := t.Title, syncTaskSummary(t)
+		if title == "" { // a registered task named by key: check the other fields
+			title, summary = "Registered task", "Registered task"
 		}
-		r := viewer.TimelineTaskCreateRequest{TimelineNativeOperation: workValidationOperation("Declare tasks"), PlanOrder: int64(i + 1), TaskKey: check.Key, Title: check.Title, Summary: syncTaskSummary(check), Segments: []viewer.TimelineTaskSegmentInput{{PlannedStage: "build", Order: int64(i + 1)}}}
+		r := viewer.TimelineTaskCreateRequest{TimelineNativeOperation: workValidationOperation("Declare tasks"), PlanOrder: int64(i + 1), TaskKey: t.Key, Title: title, Summary: summary, Segments: []viewer.TimelineTaskSegmentInput{{PlannedStage: "build", Order: int64(i + 1)}}}
 		if err := viewer.ValidateTimelineV3Operation(&r); err != nil {
 			return viewerFault(err, path, map[string]string{"task_key": "key", "plan_order": "order"})
 		}
@@ -162,10 +162,13 @@ func (e *viewWorkEngine) sync(c viewWorkCommand) (viewWorkSyncResult, error) {
 		// The declaration already ended the work: repeating it changes nothing.
 		return e.syncReceipt(c, s, false)
 	}
-	// A task sync has to create needs its title; reject before any write.
-	for i, t := range c.SyncTasks {
+	// A task sync has to create needs its title. Whether the key is registered
+	// depends on the work when the declaration is sent, so this is a state
+	// rejection, which a queued declaration reports and leaves the queue with,
+	// and it comes before any write.
+	for _, t := range c.SyncTasks {
 		if t.Title == "" && workLifecycleTask(s, t.Key) == nil {
-			return viewWorkSyncResult{}, workInput(fmt.Sprintf("invalid semantic JSON: tasks[%d].title: required field", i))
+			return viewWorkSyncResult{}, workStateError("task_title_required")
 		}
 	}
 	changed := false

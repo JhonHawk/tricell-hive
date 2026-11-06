@@ -373,7 +373,7 @@ func viewWorkRejectionCode(err error) (string, bool) {
 	}
 	switch ve.Code {
 	case "session_closed", "stage_start_required", "explicit_stage_predecessor_required", "previous_stage_only_for_reentry",
-		"stage_active", "active_stage_required", "task_not_found", "task_segment_not_found", "stage_not_started",
+		"stage_active", "active_stage_required", "task_not_found", "task_segment_not_found", "task_title_required", "stage_not_started",
 		"supersedes_view_not_found", "confirmed_plan_revision_required", "task_metadata_conflict", "stage_already_terminal", "binding_mismatch",
 		// Authority: this session may not act on the work, whatever it declared.
 		"accepted_producer_required":
