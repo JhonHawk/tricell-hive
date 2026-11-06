@@ -12,6 +12,16 @@ raise the minor or the patch version.
 
 ### Added
 
+- Close now merges a change folder's deltas into the specs with a script,
+  `flow-close/scripts/apply_deltas.py`, instead of by hand. It previews each
+  operation and the archive target by default and writes only with `--apply`,
+  which also marks the proposal completed and moves the folder to the archive.
+  It refuses, writing nothing, a MODIFIED requirement the spec lacks, an ADDED
+  one already present with other text, a requirement listed twice, and an
+  existing archive target; a scenario a change drops is listed in the report,
+  not blocked. Replaying two real archived changes reproduced their specs
+  exactly.
+
 - A change folder is now checked for coherence. `flow-plan` ships
   `scripts/check_change.py`, which reports acceptance criteria no task closes,
   `Closes:` lines naming criteria that do not exist, mentions of a decision or
