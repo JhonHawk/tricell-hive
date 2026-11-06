@@ -25,8 +25,9 @@ func SessionEventsPath(grokHome string) string {
 }
 
 // sessionEventNames are the Grok events registered. Stop is passive for the
-// hook, which prints nothing.
-var sessionEventNames = []string{"SessionStart", "UserPromptSubmit", "Stop", "SessionEnd"}
+// hook, which prints nothing. SubagentStart reports a subagent as activity of
+// its parent even when Grok does not also run Claude Code's hooks.
+var sessionEventNames = []string{"SessionStart", "UserPromptSubmit", "SubagentStart", "Stop", "SessionEnd"}
 
 type programHandler struct {
 	Type    string   `json:"type"`
