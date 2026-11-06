@@ -95,10 +95,13 @@ Base: `development` @ `fbf3922e` (plan escrito sobre `084728fa`); rama `fix/view
 2026-11-05 — T3 verificada (AC4 se cumple). Observación: el esquema completo sigue rechazando `stage: ""` y `stage_state: ""` en tipos que no son de etapa, por los `enum` que ya existían; el validador los acepta. Es anterior a este cambio y queda fuera de él.
 2026-11-05 — T4 verificada (AC6 se cumple). Por su observación, la prueba negativa compara el mensaje completo (`07927080`).
 2026-11-05 — CI: el único workflow (`master-source-branch.yml`) solo valida la rama de origen de los PR a `master`; no hay job de pruebas para `development`. En local, sobre `07927080`, con árbol limpio: `go vet ./...` sin hallazgos; `go test ./...` pasa en todos los paquetes (`tooling/cli` 209 s, `tooling/viewer` en caché del commit de T3 y verde en la corrida de T4). No se tocó el frontend ni sus pruebas.
+2026-11-05 — Verify sobre `f272fe4a`. Camino real con el binario candidato contra el visor en marcha, sin mutación (versión de la sesión 28 antes y después): AC1 y AC3 (`event add` rechazado localmente con la pista), AC4 (13 ramas `allOf` en `--operation append_event`). AC6 por el visor real del fixture de pruebas; contra el visor en marcha, un `event update` sobre un evento de servidor devolvió `immutable_audit` sin pista, como corresponde. `go test -count=1 ./tooling/cli/` pasa (224 s).
+2026-11-05 — `/code-review` (medium): 9 hallazgos. #1 confirmado y reproducido (un `kind` desconocido con `target_stage_event_id` daba `forbidden_for_kind` en vez de `unsupported_kind`), corregido en `f46f4659` con su prueba de regresión. #9 (registros en español) refutado: los registros archivados recientes están en español y la plantilla de flow-plan pide el idioma de la sesión. #2–#8 no bloquean y pasan a los hallazgos del cierre. Segunda revisión, limitada al arreglo, en curso.
 
 ## Checkpoint
 
-- Etapa: verify · siguiente: flow-verify sobre `07927080` (revisión `/code-review`, entrega automática).
+- Etapa: verify · paso 3 · siguiente: segunda revisión limitada a `f46f4659`, luego push, PR, CI y merge (entrega automática).
+- Hallazgos para el cierre: #2 la pista falta en `stage start`; #3 y #4 `ResolveTimelineStageEventID` repite el conjunto de tipos y solo revisa `target_stage_event_id`; #5 el esquema comparte los slices de la tabla sin copiarlos; #6 el comentario de la tabla exagera; #7 `viewErrorDetail` ya sin llamadores en producción; #8 la lista de tipos solo de servidor duplicada en la prueba; tensión entre `AGENTS.md` y la plantilla de flow-plan sobre el idioma de los registros de cambio.
 - Worktree `.claude/worktrees/viewer-timeline-kind-errors`, rama `fix/viewer-timeline-kind-errors` desde `fbf3922e`.
 - Visor: work `viewer-timeline-kind-errors`, etapa build en curso.
 - Hallazgos abiertos: ninguno.
