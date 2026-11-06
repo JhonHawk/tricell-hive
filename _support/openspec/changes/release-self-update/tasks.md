@@ -58,7 +58,7 @@ Base: development e2a633e49f9ae59654bd272c574b460696ad3dae. Rama de implementaci
 
 ### T4 — Migrar instalaciones al comando estable
 
-- [ ] Instalación online y offline de paquete compatible registran el enlace propio; migración repetida y desinstalación preservan material ajeno.
+- [x] Instalación online y offline de paquete compatible registran el enlace propio; migración repetida y desinstalación preservan material ajeno.
 
 **Closes:** AC1, AC6
 
@@ -159,3 +159,5 @@ Root worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claud
 Recursos adicionales del root: site/node_modules es un symlink propio hacia node_modules ya existente del checkout principal, para ejecutar Astro sin instalar dependencias; preservar el destino y retirar sólo el enlace propio al cierre. Astro check sesión66161 en curso.
 
 2026-11-05 — ✓ T3 verificado (commit de esta tarea). Main matriz de gestión PASS2.281s; verificador independiente race gestión10.976s, routing1.408s, preservación1.144s y CLI4.168s PASS, sin defecto concreto. AC5/7/8/9/10/13/14 del checkpoint cumplen; AC1 integrado se cubre con el owner T6 ampliado (productor PASS8.269s) y se reejecutará en suite final. No se acredita durabilidad ante power-loss físico, sino fsync de implementación y recuperación lógica inyectada.
+
+2026-11-05 — ✓ T4 verificado · helpers853b7c9a y commit del instalador en esta tarea. Verificador T4 probó binario real/migración/idempotencia/retirada de enlace alterado y paquetes conservados; main TestInstallPackage PASS.620s y sh -n PASS. Main E2E H3 cerrado con6.977s PASS. El owner T6 añade migración legacy→paquete1.0.0→update1.2.3 con dos hosts y PATH sin Git/Go.
