@@ -1,6 +1,6 @@
 # Retain navigation grouping after a worktree is removed
 
-Status: Implemented; verified candidate awaiting interactive acceptance.
+Status: Completed
 
 ## Problem and scope
 
