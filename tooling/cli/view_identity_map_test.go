@@ -87,6 +87,39 @@ func TestResolveViewIdentityNestedHostNeverUsesTheOuterVariable(t *testing.T) {
 	}
 }
 
+func TestResolveViewIdentityVariablesStayAmbiguousWhenTheirOriginIsUnknown(t *testing.T) {
+	now := time.Now()
+	for _, c := range []struct {
+		name  string
+		setup func(t *testing.T, state string)
+	}{
+		// Pi runs under node, but its command line cannot be read: nothing above
+		// claude explains PI_SESSION_ID, so it may belong to an inner host.
+		{"inner host not recognized", func(t *testing.T, state string) {
+			withProcessNames(t, map[int]string{800: "node", 600: "claude"})
+		}},
+		// A map that cannot be trusted at the nearest ancestor decides nothing.
+		{"untrusted nearest map", func(t *testing.T, state string) {
+			path := writePidMap(t, state, "claude-code", 800, now.Add(-time.Hour), pidMapSession{ID: "cc", Started: now.Add(-time.Minute)})
+			if err := os.Chmod(path, 0666); err != nil {
+				t.Fatal(err)
+			}
+		}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			state := t.TempDir()
+			withIdentityDeps(t, map[string]string{"PI_SESSION_ID": "pi-1", "CLAUDE_CODE_SESSION_ID": "cc"}, 1000, 900, 800, 700, 600)
+			oldArgs := hookProcessArgs
+			hookProcessArgs = func(int) (string, error) { return "", errors.New("unreadable") }
+			t.Cleanup(func() { hookProcessArgs = oldArgs })
+			c.setup(t, state)
+			if id, err := resolveViewIdentity(viewIdentityDepsFn(), state); !errors.Is(err, errViewIdentityAmbiguous) {
+				t.Fatalf("got %+v, %v; want ambiguous", id, err)
+			}
+		})
+	}
+}
+
 func TestResolveViewIdentityCodexThreadUsesItsVariableInASharedDaemon(t *testing.T) {
 	state := t.TempDir()
 	now := time.Now()

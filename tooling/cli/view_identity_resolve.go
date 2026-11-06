@@ -152,7 +152,9 @@ func resolveViewIdentity(deps viewIdentityDeps, state string) (viewIdentity, err
 // chooseVariable picks among the host variables of this shell by the nearest
 // evidence of a host above it, a session map or a host CLI process: hosts
 // started from another agent's shell inherit the outer agent's variable. The
-// nearest host's own variable wins. When that host has none among them, the
+// nearest host's own variable wins when every other variable's host is found
+// further up; otherwise one may come from an unrecognized inner host and the
+// result is ambiguous. When the nearest host has none among them, the
 // inherited ones are ignored and only that host's own map, on that process,
 // applies. With no host evidence, a single variable is used and several are
 // ambiguous.
@@ -168,9 +170,18 @@ func chooseVariable(deps viewIdentityDeps, state string, found []viewIdentity) (
 		return viewIdentity{}, errViewIdentityAmbiguous
 	}
 	for _, id := range found {
-		if id.Host == host {
-			return id, nil
+		if id.Host != host {
+			continue
 		}
+		// Every other variable must come from a host further up; one whose host
+		// is not there may belong to an inner host this walk did not recognize.
+		above := hostsAbove(deps, state, pid)
+		for _, other := range found {
+			if other.Host != host && !above[other.Host] {
+				return viewIdentity{}, errViewIdentityAmbiguous
+			}
+		}
+		return id, nil
 	}
 	doc, present, err := loadPidMap(deps, state, pid)
 	if err != nil {
@@ -213,6 +224,24 @@ func nearestHost(deps viewIdentityDeps, state string) (string, int, error) {
 		return "", 0, err
 	}
 	return host, at, nil
+}
+
+// hostsAbove names the hosts of the ancestors of pid, by session map or host
+// CLI process; a map that cannot be read names nothing.
+func hostsAbove(deps viewIdentityDeps, state string, pid int) map[string]bool {
+	hosts := map[string]bool{}
+	from := deps
+	from.selfPID = pid
+	_ = walkViewAncestors(from, func(p int) (bool, error) {
+		if doc, present, err := loadPidMap(deps, state, p); err == nil && present {
+			hosts[doc.Host] = true
+		}
+		if h := hostOfProcess(deps, p); h != "" {
+			hosts[h] = true
+		}
+		return false, nil
+	})
+	return hosts
 }
 
 // hostOfProcess is the host CLI a process is, recognized as the map writer

@@ -152,4 +152,7 @@ No hay superficie de UI. Hay dos comprobaciones humanas opcionales, que no bloqu
 
 2026-11-06 — T5 hecha (ver commit `docs(identity)`). Comportamiento revisado en: `content/guidance/global.md` (no menciona la resolución), skills y referencias de `content/` (solo `host-session-identity.md` cambia; `viewer-publication.md` sigue correcta), `site/src/content/docs/viewer.md:49` (correcta), `_support/docs/architecture/deployment-manager.md:198` (correcta), `host-session-events.md` (actualizado) y `tests/pilot/` (ningún detector depende de esto). `check_change.py` terminó en 0 y `go test ./tests/content/...` pasó.
 
-**Checkpoint:** build · tareas hechas; verificación `hive-verify-task` de T1 y T3 en curso · siguiente: CI local y entrega a flow-verify.
+2026-11-06 — Verificación `hive-verify-task`: T1 cumple AC2; T3 cumple AC3, AC4 y AC6. Observación de T3 corregida en el mismo task: con dos variables y un host interno no reconocido (Pi bajo `node` con la línea de comandos ilegible), ganaba la variable del host externo. Ahora esa variable solo se usa si el host de cada otra variable aparece más arriba; si no, el resultado es «ambiguous». Se agregaron tests para ese caso y para un mapa no confiable en la ruta con variables (falló el primero antes del arreglo). Spec delta y `host-session-events.md` actualizados.
+2026-11-06 — Suite completa en `370699ef`: `go vet ./...` sin salida y `go test ./...` sin fallos. El único workflow de CI (`master-source-branch.yml`) controla la rama de origen de `master` y no corre tests.
+
+**Checkpoint:** build terminado · siguiente: suite completa sobre el commit del arreglo y entrega a flow-verify.
