@@ -541,6 +541,7 @@ func TestTimelineProtocolAppendEventSchemaDoesNotAliasKindTable(t *testing.T) {
 		t.Fatal(err)
 	}
 	before := TimelineEventKindFields()
+	edited := 0
 	for _, c := range contract.Commands[0].InputSchema["allOf"].([]any) {
 		cond, _ := c.(map[string]any)["if"].(map[string]any)
 		props, _ := cond["properties"].(map[string]any)
@@ -550,7 +551,11 @@ func TestTimelineProtocolAppendEventSchemaDoesNotAliasKindTable(t *testing.T) {
 			for i := range kinds {
 				kinds[i] = "edited"
 			}
+			edited++
 		}
+	}
+	if edited != len(before) {
+		t.Fatalf("edited %d kind conditions, the table has %d rows", edited, len(before))
 	}
 	after := TimelineEventKindFields()
 	for i := range before {
