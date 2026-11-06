@@ -55,7 +55,7 @@ type viewWorkCommand struct {
 // the same inputs `task update` takes for a blocked task.
 type viewWorkSyncTask struct {
 	Key        string                `json:"key"`
-	Title      string                `json:"title"`
+	Title      string                `json:"title,omitempty"` // only a task sync creates needs it
 	Summary    string                `json:"summary,omitempty"`
 	State      string                `json:"state,omitempty"`
 	Block      *viewer.TimelineBlock `json:"block,omitempty"`

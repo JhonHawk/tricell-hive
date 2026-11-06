@@ -159,6 +159,31 @@ func TestWorkSyncAddsTasksLaterAndWalksThroughStates(t *testing.T) {
 	}
 }
 
+// A registered task moves with its key and state alone, as the publication
+// reference tells agents; only a task sync has to create needs a title, and a
+// declaration that would create one without it writes nothing.
+func TestWorkSyncMovesARegisteredTaskByKeyAndState(t *testing.T) {
+	s := newSyncCLI(t)
+	open := decodeSync(t, s.must("", "open", "--project", s.project, "--key", "by-key", "--title", "By key", "--summary", "State updates name the task by key"))
+	s.must(syncThreeTasks, "sync", "--stage", "build", "--state", "in_progress", "--reason", "Start", "--tasks", "-")
+	r := decodeSync(t, s.must(`[{"key":"T1","state":"completed"},{"key":"T2","state":"in_progress"}]`, "sync", "--stage", "build", "--state", "in_progress", "--reason", "Progress", "--tasks", "-"))
+	if r.Result != "updated" || len(r.Tasks) != 2 || r.Tasks[0].State != "completed" || r.Tasks[1].State != "in_progress" {
+		t.Fatalf("%+v", r)
+	}
+	work := s.session(open.WorkID)
+	if got := workLifecycleTask(work, "T1"); got == nil || got.Title != "Parse the input" || got.Segments[0].State != "completed" {
+		t.Fatalf("T1 %+v", got)
+	}
+	before := work.Version
+	_, err := s.run(`[{"key":"T1","state":"completed"},{"key":"T4","state":"in_progress"}]`, "sync", "--stage", "build", "--state", "in_progress", "--reason", "New task", "--tasks", "-")
+	if err == nil || !strings.Contains(err.Error(), "tasks[1].title: required field") {
+		t.Fatalf("a new task without a title: %v", err)
+	}
+	if after := s.session(open.WorkID); after.Version != before || len(after.Tasks) != 3 {
+		t.Fatalf("the rejected declaration wrote: version %d -> %d, %d tasks", before, after.Version, len(after.Tasks))
+	}
+}
+
 func TestWorkSyncRejectsInvalidDeclarationsOffline(t *testing.T) {
 	id := strings.Repeat("a", 64)
 	base := []string{"sync", "--work-id", id, "--host", "codex", "--native-session-id", "s1", "--stage", "build", "--state", "in_progress", "--reason", "Sync", "--tasks", "-"}
@@ -169,7 +194,7 @@ func TestWorkSyncRejectsInvalidDeclarationsOffline(t *testing.T) {
 		{"state", `[{"key":"T1","title":"A","state":"done"}]`, "tasks[0].state: unsupported state"},
 		{"blocked without block", `[{"key":"T1","title":"A","state":"blocked"}]`, "tasks[0]"},
 		{"unknown field", `[{"key":"T1","title":"A","order":1}]`, "tasks[0].order: unknown field"},
-		{"missing title", `[{"key":"T1"}]`, "tasks[0].title"},
+		{"empty title", `[{"key":"T1","title":" "}]`, "tasks[0].title"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := parseViewWorkCommand(base, strings.NewReader(tc.raw))
