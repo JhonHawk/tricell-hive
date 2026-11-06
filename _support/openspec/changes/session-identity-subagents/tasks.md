@@ -6,7 +6,7 @@ Orden: T4 → T1 → T2 → T3 → T5.
 
 ### T1 — Grok: eventos de subagente con el patrón Codex
 
-- [ ] `SubagentStart` produce `subagent_started` con la sesión padre y el `subagentId`, y Hive lo registra en el hook propio de Grok; todo otro evento con `subagentType` no produce eventos; los eventos sin `subagentType` se traducen como hoy.
+- [x] `SubagentStart` produce `subagent_started` con la sesión padre y el `subagentId`, y Hive lo registra en el hook propio de Grok; todo otro evento con `subagentType` no produce eventos; los eventos sin `subagentType` se traducen como hoy.
 
 **Closes:** AC2
 
@@ -30,7 +30,7 @@ Orden: T4 → T1 → T2 → T3 → T5.
 
 ### T2 — Regresión de punta a punta del mapa con un subagente de Grok
 
-- [ ] La secuencia real de hooks de un subagente de Grok deja a la sesión principal como única viva del mapa, y el resolver devuelve su identidad durante y después del subagente, por el hook de Grok y por la ruta de compatibilidad de Claude Code.
+- [x] La secuencia real de hooks de un subagente de Grok deja a la sesión principal como única viva del mapa, y el resolver devuelve su identidad durante y después del subagente, por el hook de Grok y por la ruta de compatibilidad de Claude Code.
 
 **Closes:** AC1
 
@@ -54,7 +54,7 @@ Orden: T4 → T1 → T2 → T3 → T5.
 
 ### T3 — Codex: `CODEX_SESSION_ID`, selección entre variables y vuelta al mapa
 
-- [ ] Una shell de Codex resuelve por `CODEX_SESSION_ID`. Con varias variables, gana la del host del proceso más cercano, reconocido también cuando corre bajo un intérprete (`node`, `bun`, `deno`). Un host más cercano sin variable entre las presentes resuelve por su propio mapa. `CODEX_THREAD_ID` sigue sin ser fuente.
+- [x] Una shell de Codex resuelve por `CODEX_SESSION_ID`. Con varias variables, gana la del host del proceso más cercano, reconocido también cuando corre bajo un intérprete (`node`, `bun`, `deno`). Un host más cercano sin variable entre las presentes resuelve por su propio mapa. `CODEX_THREAD_ID` sigue sin ser fuente.
 
 **Closes:** AC3, AC4, AC6
 
@@ -146,4 +146,8 @@ No hay superficie de UI. Hay dos comprobaciones humanas opcionales, que no bloqu
 2026-11-05 — Revisión `hive-review-plan` aplicada (ver `proposal.md`).
 2026-11-06 — T4 hecha, sin commit propio porque no cambia el repositorio. Codex CLI 0.167.0 ejecutó `codex exec --json -s read-only` en un fixture desechable a las 06:00Z. `printenv CODEX_SESSION_ID`, el `thread_id` de `thread.started` y el `session_id` del mapa `hooks/sessions/10901.json` dieron el mismo valor: `01a1af71-85ed-72b1-bd93-713a1ccb12d0`. Queda sin verificar en un hilo del daemon `app-server` (comprobación humana opcional).
 
-**Checkpoint:** build · T1 en curso · último commit de la base `da54bfec` · sin hallazgos abiertos · siguiente: T1 en TDD.
+2026-11-06 — T1 hecha en `704c0f30`: traductor de Grok y `SubagentStart` en el hook registrado. Los tests nuevos fallaron antes del cambio.
+2026-11-06 — T2 hecha en `29a4a6ea`: regresión por las rutas `grok` y `claude`. Falla con el `hook_event.go` de la base (restaurado temporalmente con `git show`, sin stash).
+2026-11-06 — T3 hecha en `73ced80a`. Se cambió `TestResolveViewIdentityRejectsNestedHostThatInheritsTheOuterVariable` (ahora `…NestedHostNeverUsesTheOuterVariable`) porque AC6 cambia el resultado esperado: de «ambiguous» a resolver por el mapa propio, o «missing» si no hay mapa. Sigue comprobando que nunca se publica como la sesión externa. `findHostProcess` reutiliza `hostOfProcess`.
+
+**Checkpoint:** build · T5 en curso y verificación `hive-verify-task` de T1 y T3 en curso · último commit `73ced80a` · sin hallazgos abiertos · siguiente: T5, después CI local.
