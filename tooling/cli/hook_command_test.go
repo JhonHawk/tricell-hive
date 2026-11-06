@@ -217,6 +217,46 @@ func TestHookDetectsTheRealHostFromPayloadAndEnvironment(t *testing.T) {
 	}
 }
 
+// A Grok subagent runs in the parent's process under its own sessionId; the
+// payloads follow what Grok 1.0.77 sent for one subagent (probe of 2026-11-06).
+// Through Hive's own Grok hook or through Claude Code's hooks that Grok also
+// runs, the parent stays the process's only live session and keeps resolving.
+func TestHookGrokSubagentNeverDisplacesTheParent(t *testing.T) {
+	const parent, child = "gk-parent", "gk-child"
+	steps := []struct{ native, grokEvent, claudeEvent, payload string }{
+		{"session_start", "SessionStart", "SessionStart", `{"sessionId":"` + parent + `","session_id":"` + parent + `","cwd":"/w","source":"new"}`},
+		{"user_prompt_submit", "UserPromptSubmit", "UserPromptSubmit", `{"sessionId":"` + parent + `","session_id":"` + parent + `","cwd":"/w","promptId":"p-1"}`},
+		{"subagent_start", "SubagentStart", "SubagentStart", `{"sessionId":"` + parent + `","session_id":"` + parent + `","cwd":"/w","subagentId":"` + child + `","subagentType":"general-purpose"}`},
+		{"user_prompt_submit", "UserPromptSubmit", "UserPromptSubmit", `{"sessionId":"` + child + `","session_id":"` + child + `","cwd":"/w","promptId":"c-1","subagentType":"general-purpose"}`},
+		{"subagent_stop", "SubagentStop", "SubagentStop", `{"sessionId":"` + child + `","session_id":"` + child + `","cwd":"/w","subagentId":"` + child + `","subagentType":"general-purpose"}`},
+		{"session_end", "SessionEnd", "SessionEnd", `{"sessionId":"` + child + `","session_id":"` + child + `","cwd":"/w","reason":"shutdown","subagentType":"general-purpose"}`},
+	}
+	for _, hint := range []string{"grok", "claude"} {
+		t.Run(hint, func(t *testing.T) {
+			env := map[string]string{}
+			withHookHost(t, "grok", env)
+			state := t.TempDir()
+			for _, s := range steps {
+				env["GROK_HOOK_EVENT"] = s.native
+				event := s.grokEvent
+				if hint == "claude" {
+					event = s.claudeEvent
+				}
+				mustHook(t, state, s.payload, hint, event)
+				for _, m := range mapSessions(t, state).Sessions {
+					if m.SessionID == child {
+						t.Fatalf("after %s the map holds the subagent: %+v", s.native, mapSessions(t, state))
+					}
+				}
+				delete(env, "GROK_HOOK_EVENT")
+				if id, err := resolvedSession(t, state); err != nil || id.Host != "grok" || id.NativeSessionID != parent {
+					t.Fatalf("after %s the shell resolves %+v, %v; want the parent", s.native, id, err)
+				}
+			}
+		})
+	}
+}
+
 func TestHookOpenCodeAndPiNameTheirSessionAndWriteNoMap(t *testing.T) {
 	for _, c := range []struct{ process, hint, event, payload string }{
 		{"opencode", "opencode", "session.created", `{"session_id":"ses_1","directory":"/w","occurred_at":"2026-11-04T10:00:00Z"}`},
