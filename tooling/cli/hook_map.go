@@ -63,15 +63,7 @@ func findHostProcess(deps viewIdentityDeps, host string) (int, bool) {
 		if deps.processName == nil {
 			return true, nil
 		}
-		comm, err := deps.processName(pid)
-		if err != nil {
-			return false, nil
-		}
-		args := ""
-		if base := filepath.Base(strings.TrimSpace(comm)); base == "node" || base == "bun" || base == "deno" {
-			args, _ = hookProcessArgs(pid)
-		}
-		switch processHost(comm, args) {
+		switch hostOfProcess(deps, pid) {
 		case "":
 			return false, nil
 		case host:

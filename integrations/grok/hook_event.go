@@ -17,9 +17,13 @@ func IsHookPayload(payload map[string]any, getenv func(string) string) bool {
 
 // HookEvents translates one Grok hook payload (camelCase JSON on stdin:
 // sessionId, cwd, workspaceRoot) per _support/docs/architecture/host-session-events.md.
-// Grok subagents share the parent's process and session, and Grok has no native
-// task events, so a task or subagent event is plain activity. The snake_case
-// keys are read too, for a payload shaped like Claude Code's.
+// A Grok subagent runs in the parent's process under its own sessionId, and
+// every event that fires inside it carries subagentType. Such an event never
+// changes the map or reports another session: the parent's SubagentStart, which
+// carries the parent's sessionId and names the child in subagentId, becomes
+// subagent activity of the parent, and every other subagent event is dropped.
+// Grok has no native task events, so a task event is plain activity. The
+// snake_case keys are read too, for a payload shaped like Claude Code's.
 func HookEvents(in hostevent.Input) []hostevent.Event {
 	p := in.Payload
 	base := hostevent.Event{
@@ -37,5 +41,19 @@ func HookEvents(in hostevent.Input) []hostevent.Event {
 	if native := in.Env("GROK_HOOK_EVENT"); native != "" {
 		event = native
 	}
-	return []hostevent.Event{hostevent.Generic(base, hostevent.Normalize(event), true)}
+	norm := hostevent.Normalize(event)
+	if hostevent.Str(p, "subagentType", "subagent_type") != "" {
+		if norm != "subagentstart" {
+			return nil
+		}
+		e, ok := base.Subagent(hostevent.SubagentStarted, hostevent.Str(p, "subagentId", "subagent_id"))
+		if !ok {
+			return nil
+		}
+		return []hostevent.Event{e}
+	}
+	if norm == "subagentstart" || norm == "subagentstop" {
+		return nil
+	}
+	return []hostevent.Event{hostevent.Generic(base, norm, true)}
 }

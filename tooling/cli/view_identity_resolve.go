@@ -65,12 +65,15 @@ func parsePsLstart(s string) (time.Time, error) {
 }
 
 // viewIdentityVariables are the shell variables verified for each host, in a
-// fixed order. Cursor has none: its conversation ID equals the hook's only by
-// inference, so it resolves through the session map.
+// fixed order. Codex's is the root session ID its shell tools receive
+// (codex-rs/core/src/exec_env.rs inject_session_env, observed equal to the
+// hook's session_id on 0.167.0); CODEX_THREAD_ID names a subagent's own thread
+// and is not one. Cursor and Grok have none and resolve through the session map.
 var viewIdentityVariables = []struct{ env, host string }{
 	{"CLAUDE_CODE_SESSION_ID", "claude-code"},
 	{"PI_SESSION_ID", "pi"},
 	{"OPENCODE_SESSION_ID", "opencode"},
+	{"CODEX_SESSION_ID", "codex"},
 }
 
 // viewHostProcessNames maps the base name of a host CLI's process to its
@@ -123,12 +126,8 @@ func resolveViewIdentity(deps viewIdentityDeps, state string) (viewIdentity, err
 			found = append(found, viewIdentity{Host: v.host, NativeSessionID: value})
 		}
 	}
-	if len(found) == 1 {
-		return confirmVariableHost(deps, state, found[0])
-	}
-	if len(found) > 1 {
-		// Nested hosts inherit each other's variables; nothing says which is nearest.
-		return viewIdentity{}, errViewIdentityAmbiguous
+	if len(found) > 0 {
+		return chooseVariable(deps, state, found)
 	}
 	var result viewIdentity
 	var resultErr = errViewIdentityMissing
@@ -150,44 +149,122 @@ func resolveViewIdentity(deps viewIdentityDeps, state string) (viewIdentity, err
 	return result, resultErr
 }
 
-// confirmVariableHost accepts a host variable only when the nearest evidence
-// of a host above this process, a session map or a known host CLI process, is
-// that variable's own host: a host without its own variable, started from
-// another agent's shell, inherits the outer agent's.
-func confirmVariableHost(deps viewIdentityDeps, state string, id viewIdentity) (viewIdentity, error) {
+// chooseVariable picks among the host variables of this shell by the nearest
+// evidence of a host above it, a session map or a host CLI process: hosts
+// started from another agent's shell inherit the outer agent's variable. Every
+// variable that is not the nearest host's must come from a host found further
+// up; otherwise it may belong to an inner host the walk did not recognize, and
+// the result is ambiguous. Then the nearest host's own variable wins, and when
+// it has none among them, only that host's own map, on that process, applies.
+// With no host evidence, a single variable is used and several are ambiguous.
+func chooseVariable(deps viewIdentityDeps, state string, found []viewIdentity) (viewIdentity, error) {
+	near, err := nearestHost(deps, state)
+	if err != nil {
+		return viewIdentity{}, err
+	}
+	if near.host == "" {
+		if len(found) == 1 {
+			return found[0], nil
+		}
+		return viewIdentity{}, errViewIdentityAmbiguous
+	}
+	var others []string
+	for _, id := range found {
+		if id.Host != near.host {
+			others = append(others, id.Host)
+		}
+	}
+	if len(others) > 0 && !hostsAbove(deps, state, near.pid, others) {
+		return viewIdentity{}, errViewIdentityAmbiguous
+	}
+	for _, id := range found {
+		if id.Host == near.host {
+			return id, nil
+		}
+	}
+	if near.doc == nil {
+		return viewIdentity{}, errViewIdentityMissing
+	}
+	return near.doc.liveIdentity()
+}
+
+// nearestEvidence is the nearest ancestor that has a session map or is a host
+// CLI: its host, its pid and its map when it has one. host is "" when no
+// ancestor is either.
+type nearestEvidence struct {
+	host string
+	pid  int
+	doc  *pidMapDoc
+}
+
+// nearestHost finds the nearest evidence of a host. A map that cannot be
+// trusted, or a process whose map and name disagree, is ambiguous.
+func nearestHost(deps viewIdentityDeps, state string) (nearestEvidence, error) {
+	var near nearestEvidence
 	verdict := error(nil)
 	err := walkViewAncestors(deps, func(pid int) (bool, error) {
-		decided := false
 		doc, present, err := loadPidMap(deps, state, pid)
 		if err != nil {
 			verdict = errViewIdentityAmbiguous
 			return true, nil
 		}
 		if present {
-			decided = true
-			if doc.Host != id.Host {
+			near = nearestEvidence{host: doc.Host, pid: pid, doc: doc}
+		}
+		if h := hostOfProcess(deps, pid); h != "" {
+			if near.host != "" && h != near.host {
 				verdict = errViewIdentityAmbiguous
 			}
+			near.host, near.pid = h, pid
 		}
-		if deps.processName != nil {
-			if name, err := deps.processName(pid); err == nil {
-				if h := hostOfProcessName(name); h != "" {
-					decided = true
-					if h != id.Host {
-						verdict = errViewIdentityAmbiguous
-					}
-				}
-			}
-		}
-		return decided, nil
+		return near.host != "", nil
 	})
+	if err == nil {
+		err = verdict
+	}
 	if err != nil {
-		return viewIdentity{}, err
+		return nearestEvidence{}, err
 	}
-	if verdict != nil {
-		return viewIdentity{}, verdict
+	return near, nil
+}
+
+// hostsAbove reports whether every host in need is found among the ancestors
+// of pid, by session map or host CLI process, and stops as soon as it is; a map
+// that cannot be read names nothing.
+func hostsAbove(deps viewIdentityDeps, state string, pid int, need []string) bool {
+	missing := map[string]bool{}
+	for _, h := range need {
+		missing[h] = true
 	}
-	return id, nil
+	from := deps
+	from.selfPID = pid
+	_ = walkViewAncestors(from, func(p int) (bool, error) {
+		if doc, present, err := loadPidMap(deps, state, p); err == nil && present {
+			delete(missing, doc.Host)
+		}
+		if h := hostOfProcess(deps, p); h != "" {
+			delete(missing, h)
+		}
+		return len(missing) == 0, nil
+	})
+	return len(missing) == 0
+}
+
+// hostOfProcess is the host CLI a process is, recognized as the map writer
+// recognizes it: by its command name, or by its script under an interpreter.
+func hostOfProcess(deps viewIdentityDeps, pid int) string {
+	if deps.processName == nil {
+		return ""
+	}
+	comm, err := deps.processName(pid)
+	if err != nil {
+		return ""
+	}
+	args := ""
+	if base := filepath.Base(strings.TrimSpace(comm)); base == "node" || base == "bun" || base == "deno" {
+		args, _ = hookProcessArgs(pid)
+	}
+	return processHost(comm, args)
 }
 
 type pidMapSessionEntry struct {
