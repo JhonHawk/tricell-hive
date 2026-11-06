@@ -103,7 +103,7 @@ Orden: T4 → T1 → T2 → T3 → T5.
 
 ### T5 — Spec y referencias de identidad
 
-- [ ] El delta del spec, `host-session-identity.md` y `host-session-events.md` describen la variable de Codex, la selección entre variables, la vuelta al mapa y los subagentes de Grok.
+- [x] El delta del spec, `host-session-identity.md` y `host-session-events.md` describen la variable de Codex, la selección entre variables, la vuelta al mapa y los subagentes de Grok.
 
 **Closes:** AC5
 
@@ -150,4 +150,6 @@ No hay superficie de UI. Hay dos comprobaciones humanas opcionales, que no bloqu
 2026-11-06 — T2 hecha en `29a4a6ea`: regresión por las rutas `grok` y `claude`. Falla con el `hook_event.go` de la base (restaurado temporalmente con `git show`, sin stash).
 2026-11-06 — T3 hecha en `73ced80a`. Se cambió `TestResolveViewIdentityRejectsNestedHostThatInheritsTheOuterVariable` (ahora `…NestedHostNeverUsesTheOuterVariable`) porque AC6 cambia el resultado esperado: de «ambiguous» a resolver por el mapa propio, o «missing» si no hay mapa. Sigue comprobando que nunca se publica como la sesión externa. `findHostProcess` reutiliza `hostOfProcess`.
 
-**Checkpoint:** build · T5 en curso y verificación `hive-verify-task` de T1 y T3 en curso · último commit `73ced80a` · sin hallazgos abiertos · siguiente: T5, después CI local.
+2026-11-06 — T5 hecha (ver commit `docs(identity)`). Comportamiento revisado en: `content/guidance/global.md` (no menciona la resolución), skills y referencias de `content/` (solo `host-session-identity.md` cambia; `viewer-publication.md` sigue correcta), `site/src/content/docs/viewer.md:49` (correcta), `_support/docs/architecture/deployment-manager.md:198` (correcta), `host-session-events.md` (actualizado) y `tests/pilot/` (ningún detector depende de esto). `check_change.py` terminó en 0 y `go test ./tests/content/...` pasó.
+
+**Checkpoint:** build · tareas hechas; verificación `hive-verify-task` de T1 y T3 en curso · siguiente: CI local y entrega a flow-verify.
