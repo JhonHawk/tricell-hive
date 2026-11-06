@@ -79,22 +79,33 @@ func workLifecyclePlan(s viewer.TimelineSession, id string) bool {
 	return false
 }
 
+// lifecycleGate is what every lifecycle operation checks before it writes: the
+// session's authority on the work, a closed work, and a pending intent of the
+// work. It returns the actor the operation writes as.
+func (e *viewWorkEngine) lifecycleGate(s viewer.TimelineSession, c viewWorkCommand) (viewer.TimelineActor, error) {
+	actor, err := e.actor(s, c)
+	if err != nil {
+		return viewer.TimelineActor{}, err
+	}
+	if s.State == viewer.TimelineClosed || s.State == "failed" {
+		return viewer.TimelineActor{}, workStateError("session_closed")
+	}
+	for _, pending := range e.journal.Pending {
+		if pending.WorkID == c.WorkID {
+			return viewer.TimelineActor{}, &viewWorkError{Code: "pending_operation", Pending: pending.ID, Next: "resume the original intent before another lifecycle operation"}
+		}
+	}
+	return actor, nil
+}
+
 func (e *viewWorkEngine) lifecycle(c viewWorkCommand) (viewWorkResult, error) {
 	s, err := e.session(c.WorkID)
 	if err != nil {
 		return viewWorkResult{}, err
 	}
-	actor, err := e.actor(s, c)
+	actor, err := e.lifecycleGate(s, c)
 	if err != nil {
 		return viewWorkResult{}, err
-	}
-	if s.State == viewer.TimelineClosed || s.State == "failed" {
-		return viewWorkResult{}, workStateError("session_closed")
-	}
-	for _, pending := range e.journal.Pending {
-		if pending.WorkID == c.WorkID {
-			return viewWorkResult{}, &viewWorkError{Code: "pending_operation", Pending: pending.ID, Next: "resume the original intent before another lifecycle operation"}
-		}
 	}
 	var bindings []viewWorkLifecycleBinding
 	// Prevalidate the entire batch, including remote collisions and accepted

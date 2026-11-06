@@ -290,7 +290,10 @@ func resolveViewWorkContext(c *viewWorkCommand) error {
 		}
 		return state, nil
 	}
-	if c.Host == "" && c.NativeSessionID == "" && c.Action != "list" && c.Action != "show" {
+	// list reads by project and show by work ID; show without --work-id needs the
+	// session's identity to find its current work.
+	needsIdentity := c.Action != "list" && (c.Action != "show" || c.WorkID == "")
+	if c.Host == "" && c.NativeSessionID == "" && needsIdentity {
 		dir, err := stateDir()
 		if err != nil {
 			return err
@@ -301,6 +304,8 @@ func resolveViewWorkContext(c *viewWorkCommand) error {
 			c.Host, c.NativeSessionID = id.Host, id.NativeSessionID
 		case errors.Is(err, errViewIdentityAmbiguous):
 			return workInput("native identity ambiguous: pass --host and --native-session-id")
+		case errors.Is(err, errViewIdentityMissing):
+			return workInput("native identity missing: pass --host and --native-session-id")
 		}
 	}
 	if c.WorkID == "" && c.Host != "" && c.NativeSessionID != "" && viewWorkActionNeedsWork(c.Action) && !hostReconcile(*c) {
@@ -314,6 +319,7 @@ func resolveViewWorkContext(c *viewWorkCommand) error {
 		}
 		switch len(ids) {
 		case 0:
+			return workInput("work-id required: this session has no open work")
 		case 1:
 			c.WorkID = ids[0]
 		default:

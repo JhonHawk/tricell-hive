@@ -184,27 +184,27 @@ func TestWorkQueueStoppedViewerThenRunningCreatesWorkAndStageOnce(t *testing.T) 
 	}
 }
 
-// A queued sync that names a task the work lacks, without the title needed to
-// create it, is rejected when it is sent and leaves the queue, so it never
-// blocks the commands that follow.
-func TestWorkQueueRejectsANewTaskWithoutATitle(t *testing.T) {
+// While the viewer is stopped, a sync naming without a title a task this
+// journal never saw registered fails at once, so the declaration is fixed
+// instead of being lost when the queue is sent; a task the journal knows moves
+// by key and state.
+func TestWorkQueueRejectsAnUnknownTaskWithoutATitleWhenQueued(t *testing.T) {
 	q := newQueueCLI(t)
 	q.open("untitled")
-	started := decodeSync(t, q.must("", "sync", "--stage", "build", "--state", "in_progress", "--reason", "Start"))
+	q.must(`[{"key":"T1","title":"Known task"}]`, "sync", "--stage", "build", "--state", "in_progress", "--reason", "Start", "--tasks", "-")
 	q.f.mustView("stop")
-	decodeQueued(t, q.must(`[{"key":"T9","state":"in_progress"}]`, "sync", "--stage", "build", "--state", "in_progress", "--reason", "Untitled", "--tasks", "-"))
+	before := len(q.journal().Queue)
+	if _, err := q.run(`[{"key":"T9","state":"in_progress"}]`, "sync", "--stage", "build", "--state", "completed", "--reason", "Untitled", "--tasks", "-", "--close", "completed"); err == nil || !strings.Contains(err.Error(), "tasks[0].title: required field") {
+		t.Fatalf("an unknown untitled task was accepted: %v", err)
+	}
+	if got := len(q.journal().Queue); got != before {
+		t.Fatalf("queue %d -> %d", before, got)
+	}
+	decodeQueued(t, q.must(`[{"key":"T1","state":"completed"}]`, "sync", "--stage", "build", "--state", "in_progress", "--reason", "Known", "--tasks", "-"))
 	q.f.mustView("start")
-
-	next := decodeSync(t, q.must("", "sync", "--stage", "build", "--state", "in_review", "--reason", "Review"))
-	if next.Queue == nil || next.Queue.Sent != 0 || len(next.Queue.Rejected) != 1 || next.Queue.Rejected[0].Reason != "task_title_required" {
-		t.Fatalf("next sync: %+v", next)
-	}
-	if work := q.session(started.WorkID); len(work.Tasks) != 0 || workLifecycleStage(work, "build").StageState != "in_review" {
-		t.Fatalf("work %+v", work)
-	}
-	again := decodeSync(t, q.must("", "sync", "--stage", "build", "--state", "in_progress", "--reason", "Back"))
-	if again.Queue != nil && len(again.Queue.Rejected) != 0 {
-		t.Fatalf("the rejected declaration came back: %+v", again.Queue)
+	sent := decodeSync(t, q.must("", "sync", "--stage", "build", "--state", "in_review", "--reason", "Review"))
+	if sent.Queue == nil || sent.Queue.Sent != 1 || len(sent.Queue.Rejected) != 0 {
+		t.Fatalf("queue: %+v", sent.Queue)
 	}
 }
 

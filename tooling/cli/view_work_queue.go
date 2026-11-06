@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -185,6 +186,9 @@ func (e *viewWorkEngine) queue(c viewWorkCommand, w io.Writer) error {
 		if e.queuedFor(entry.WorkID, e.journal) >= viewWorkQueueLimit {
 			return viewWorkQueueFull()
 		}
+		if err := untitledUnknownTask(e.journal, c); err != nil {
+			return err
+		}
 		if c.Action == "evidence" {
 			if entry.Frozen, stored.Images, err = e.freezeImages(entry.ID, c); err != nil {
 				return err
@@ -211,6 +215,63 @@ func (e *viewWorkEngine) queue(c viewWorkCommand, w io.Writer) error {
 		}
 	}
 	return writeViewWorkBoundedJSON(w, viewWorkQueuedResult{WorkID: entry.WorkID, Result: "queued", OperationID: entry.ID, Position: position})
+}
+
+// untitledUnknownTask rejects, while the viewer cannot say which tasks exist, a
+// queued sync that names without a title a task this journal never saw
+// registered for the work: sent later, the whole declaration would be rejected
+// with it. A task another session registered asks for a title it does not
+// need, which is harmless, since a title is used only to create a task.
+func untitledUnknownTask(j *viewWorkJournal, c viewWorkCommand) error {
+	if c.Action != "sync" {
+		return nil
+	}
+	var known map[string]bool
+	for i, t := range c.SyncTasks {
+		if t.Title != "" {
+			continue
+		}
+		if known == nil {
+			known = knownTaskKeys(j, c.WorkID)
+		}
+		if !known[t.Key] {
+			return workInput("invalid semantic JSON: " + faultf(fmt.Sprintf("tasks[%d].title", i), "required field").Error())
+		}
+	}
+	return nil
+}
+
+// knownTaskKeys lists the task keys this journal saw registered for a work:
+// its recorded and pending intents, and its queued declarations that create
+// tasks.
+func knownTaskKeys(j *viewWorkJournal, workID string) map[string]bool {
+	scope, keys := workScopeOf(j, workID), map[string]bool{}
+	add := func(c viewWorkCommand) {
+		for _, t := range c.Tasks {
+			keys[t.Key] = true
+		}
+		for _, t := range c.SyncTasks {
+			if t.Title != "" {
+				keys[t.Key] = true
+			}
+		}
+	}
+	for _, intents := range [][]*viewWorkIntent{j.History, j.Pending} {
+		for _, i := range intents {
+			var context struct {
+				Command viewWorkCommand `json:"command"`
+			}
+			if workScopeOf(j, i.WorkID) == scope && json.Unmarshal(i.Context, &context) == nil {
+				add(context.Command)
+			}
+		}
+	}
+	for _, q := range j.Queue {
+		if workScopeOf(j, q.WorkID) == scope {
+			add(q.Command)
+		}
+	}
+	return keys
 }
 
 func viewWorkQueueFull() error {
