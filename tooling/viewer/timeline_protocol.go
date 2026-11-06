@@ -375,7 +375,7 @@ func timelineProtocolSchema(t reflect.Type) map[string]any {
 					then = map[string]any{"properties": map[string]any{row.Field: map[string]any{"maxLength": 0}}}
 				}
 				conditions = append(conditions, map[string]any{
-					"if":   map[string]any{"properties": map[string]any{"kind": map[string]any{"not": map[string]any{"enum": row.Kinds}}}, "required": []string{"kind"}},
+					"if":   map[string]any{"properties": map[string]any{"kind": map[string]any{"not": map[string]any{"enum": append([]string(nil), row.Kinds...)}}}, "required": []string{"kind"}},
 					"then": then,
 				})
 			}

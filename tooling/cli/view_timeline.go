@@ -607,7 +607,7 @@ var viewErrorTokenPattern = regexp.MustCompile(`^[a-z][a-z0-9_.]{0,63}$`)
 // operation rejected with forbidden_for_kind, from the viewer's one table of
 // kind-dependent fields, so a producer can fix the request in one retry.
 func viewTimelineKindHint(operation, code, field string) string {
-	if code != "forbidden_for_kind" || !contains([]string{"append_event", "event_patch", "stage_update"}, operation) {
+	if code != "forbidden_for_kind" || !contains([]string{"append_event", "stage_start", "event_patch", "stage_update"}, operation) {
 		return ""
 	}
 	kinds, ok := viewer.TimelineEventFieldKinds(field)

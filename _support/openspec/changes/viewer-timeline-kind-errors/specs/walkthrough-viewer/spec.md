@@ -1,7 +1,7 @@
 ## ADDED Requirements
 
 ### Requirement: Kind-dependent event fields
-The event fields that only some event kinds accept SHALL be defined once, as a table from each field to the kinds that accept it, and the append-event validator, the CLI rejection message and the `append_event` input schema SHALL follow that table. A rejection of such a field SHALL name that field, never a neighboring one. When `hive view event add`, `hive view event update` or `hive view stage update` rejects one with `forbidden_for_kind`, whether by local validation or by the viewer's response, the CLI message SHALL add the kinds that accept it. The full `append_event` operation contract SHALL declare, for each such field, the kinds that accept it; the per-flow briefs SHALL NOT grow because of it.
+The event fields that only some event kinds accept SHALL be defined once, as a table from each field to the kinds that accept it, and the append-event validator, the CLI rejection message and the `append_event` input schema SHALL follow that table. A rejection of such a field SHALL name that field, never a neighboring one. When `hive view event add`, `hive view stage start`, `hive view event update` or `hive view stage update` rejects one with `forbidden_for_kind`, whether by local validation or by the viewer's response, the CLI message SHALL add the kinds that accept it. The full `append_event` operation contract SHALL declare, for each such field, the kinds that accept it; the per-flow briefs SHALL NOT grow because of it.
 
 #### Scenario: Session version on a validation event
 - WHEN a producer runs `hive view event add` with `kind: validation` and an `expected_session_version`

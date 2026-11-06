@@ -533,3 +533,34 @@ func TestTimelineProtocolAppendEventSchemaDeclaresKindFields(t *testing.T) {
 		}
 	}
 }
+
+// Editing a returned contract must not change the validator's kind table.
+func TestTimelineProtocolAppendEventSchemaDoesNotAliasKindTable(t *testing.T) {
+	contract, err := TimelineProtocolContract("append_event")
+	if err != nil {
+		t.Fatal(err)
+	}
+	before := TimelineEventKindFields()
+	edited := 0
+	for _, c := range contract.Commands[0].InputSchema["allOf"].([]any) {
+		cond, _ := c.(map[string]any)["if"].(map[string]any)
+		props, _ := cond["properties"].(map[string]any)
+		kind, _ := props["kind"].(map[string]any)
+		not, _ := kind["not"].(map[string]any)
+		if kinds, ok := not["enum"].([]string); ok {
+			for i := range kinds {
+				kinds[i] = "edited"
+			}
+			edited++
+		}
+	}
+	if edited != len(before) {
+		t.Fatalf("edited %d kind conditions, the table has %d rows", edited, len(before))
+	}
+	after := TimelineEventKindFields()
+	for i := range before {
+		if strings.Join(before[i].Kinds, ",") != strings.Join(after[i].Kinds, ",") {
+			t.Fatalf("editing the schema changed the table row %s: %v", before[i].Field, after[i].Kinds)
+		}
+	}
+}
