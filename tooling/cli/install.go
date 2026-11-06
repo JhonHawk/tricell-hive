@@ -422,17 +422,6 @@ func runOnboardingWizard(o management.Options, dry bool, terminal installTermina
 			return nil
 		}
 		p, unchanged, preview := chosen.plan, chosen.unchanged, chosen.preview
-		if imported != nil && !p.PackageInstall {
-			o.CodexWaitFloor = p.CodexWaitFloor != nil
-			p, err = buildPlan(o, false)
-			if err != nil {
-				return err
-			}
-			unchanged, err = management.PlanUnchanged(p)
-			if err != nil {
-				return err
-			}
-		}
 		showInstallSummary(out, p, preview, dry, unchanged, true)
 		if imported != nil {
 			fmt.Fprintf(out, "Stable Hive command: %s -> %s\n", command.Path, imported.Binding.TargetExecutable.Path)

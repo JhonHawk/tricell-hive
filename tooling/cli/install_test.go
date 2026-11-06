@@ -822,8 +822,14 @@ func installPackageFixture(t *testing.T, protocol bool) string {
 }
 
 func TestInstallPackageMigratesStableCommandAndPreservesSourceRoute(t *testing.T) {
-	for _, packaged := range []bool{false, true} {
-		t.Run(fmt.Sprintf("package-%v", packaged), func(t *testing.T) {
+	for _, tc := range []struct {
+		name                string
+		packaged, waitFloor bool
+	}{
+		{"source", false, false}, {"package", true, false}, {"package-default-wait-floor", true, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			packaged := tc.packaged
 			home, _ := filepath.EvalSymlinks(t.TempDir())
 			source := minimalTestSource(t)
 			if packaged {
@@ -839,10 +845,30 @@ func TestInstallPackageMigratesStableCommandAndPreservesSourceRoute(t *testing.T
 			}
 			args := []string{"--home", home, "--hosts", "codex", "--source", source, "--state-dir", filepath.Join(home, "state")}
 			command := filepath.Join(home, ".local", "bin", "hive")
+			factory := onboardingAdapterFactory(coreOnlyAdapterFactory)
+			input := "yes\n"
+			if tc.waitFloor {
+				// Online/offline package installers run from temporary extraction paths.
+				// The manifest-bound package executable must survive capability rebuilds.
+				original := management.HiveExecutable
+				management.HiveExecutable = func() (string, error) { return filepath.Join(source, "bin", "hive"), nil }
+				t.Cleanup(func() { management.HiveExecutable = original })
+				factory = func(onboardingInput) (onboardingAdapter, error) { return newFloorAdapter(false), nil }
+				input = "\nyes\n" // Accept the native default selection, then consent once.
+			}
 			for i := 0; i < 2; i++ {
 				var out bytes.Buffer
-				if err := installWithAdapterFactory(args, strings.NewReader("yes\n"), &out, true, coreOnlyAdapterFactory); err != nil {
+				if err := installWithAdapterFactory(args, strings.NewReader(input), &out, true, factory); err != nil {
 					t.Fatalf("install %d: %v\n%s", i, err, out.String())
+				}
+				if tc.waitFloor {
+					config, err := os.ReadFile(filepath.Join(home, ".codex", "config.toml"))
+					if err != nil || !strings.Contains(string(config), "min_wait_timeout_ms = 300000") || !strings.Contains(string(config), "default_wait_timeout_ms = 600000") {
+						t.Fatalf("wait floor was not installed: %s, %v", config, err)
+					}
+					if strings.Count(out.String(), "Apply these changes?") != 1 {
+						t.Fatalf("expected one combined consent: %s", out.String())
+					}
 				}
 				if packaged {
 					want := filepath.Join(home, ".local", "share", "hive", "packages", "hive-1.2.3-"+runtime.GOOS+"-"+runtime.GOARCH, "bin", "hive")

@@ -63,7 +63,15 @@ func planWithWaitFloor(o management.Options, p management.Plan, unchanged bool, 
 		return p, unchanged, nil
 	}
 	o.CodexWaitFloor = true
-	rebuilt, err := management.BuildPlan("install", o)
+	var rebuilt management.Plan
+	var err error
+	if p.PackageInstall && p.UpdatePackage != nil {
+		// A package capability choice retains its manifest-bound final executable;
+		// the running installer itself may live in a disposable extraction.
+		rebuilt, err = management.BuildPackageInstallPreview(o, *p.UpdatePackage)
+	} else {
+		rebuilt, err = management.BuildPlan("install", o)
+	}
 	if err != nil {
 		return p, unchanged, err
 	}
