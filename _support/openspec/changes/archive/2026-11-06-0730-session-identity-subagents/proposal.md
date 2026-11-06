@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Borrador · plan en revisión |
+| Estado | Completado · PR #398, merge 6b70dca2; H21 in PR #399, merge efa81bec |
 | Tracker | ninguno (trabajo sin ticket); seguimiento de Cursor propuesto aparte |
 | Git | `JhonHawk/tricell-hive`, base `development` en `da54bfec` (origin); rama propuesta `fix/session-identity-subagents` |
 
