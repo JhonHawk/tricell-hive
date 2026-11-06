@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Merge a change folder's spec deltas into the specs and archive the folder.
 
-Usage: python3 apply_deltas.py <change-folder> --specs <Specs> [--apply]
+Usage: python3 apply_deltas.py <change-folder> --specs <Specs> [--detail TEXT] [--apply]
 
 Without --apply it prints what it would do and changes nothing. With --apply it
 merges every delta, marks proposal.md completed and moves the folder to
@@ -16,7 +16,10 @@ place and lists each scenario it drops, ADDED appends at the end of
 capability gets `# <capability>`, `## Purpose` and `## Requirements`.
 Headings inside fenced code are text; another `##` section of a delta is
 listed as not applied. The first Status (or Estado) value of proposal.md
-starts with Completed (or Completado), keeping its details.
+becomes Completed (or Completado), followed by ` · TEXT` when --detail gives
+one line of TEXT, such as where the work was integrated; its previous details
+are dropped, since they describe an earlier phase. Both runs print the new
+value as `status: ...`.
 Refused, with nothing written: a MODIFIED requirement the spec lacks, an ADDED
 one the spec holds with other text, a requirement listed twice in one delta or
 in the spec, a new capability without ADDED or with MODIFIED, a delta without
@@ -41,7 +44,6 @@ SCENARIO = re.compile(r"^#### Scenario:\s*(.+?)\s*$")
 FENCE_OPEN = re.compile(r"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})")  # a backtick info string holds no backtick
 STATUS = re.compile(r"^(\s*\|\s*(?:\*\*)?(Status|Estado)(?:\*\*)?\s*\|)((?:\\\||[^|\n])*)(\|.*)$", re.M)
 TABLE_SEPARATOR = re.compile(r"^\s*\|[\s:|-]+\|\s*$")
-BARE_PHASE = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúñÑ-]+(?: [A-Za-zÁÉÍÓÚáéíóúñÑ-]+){0,3}$")
 STATUS_FIELD = re.compile(r"^(\s*(?:\*\*)?(Status|Estado)(?:\*\*)?\s*:(?:\*\*)?)(.*)()$", re.M)
 
 
@@ -232,8 +234,11 @@ def merge(capability, delta_text, spec_text, change_id, report):
     return text
 
 
-def mark_completed(text):
-    """Replace the phase that starts the first Status or Estado value, keeping its details."""
+def mark_completed(text, detail=None):
+    """Replace the first Status or Estado value with the completed phase and the given detail.
+
+    Return the new text and the new value.
+    """
     lines = text.split("\n")
     def is_header(match):
         row = text.count("\n", 0, match.start())
@@ -241,22 +246,36 @@ def mark_completed(text):
     found = sorted((m for pattern in (STATUS, STATUS_FIELD) for m in pattern.finditer(text) if not is_header(m)), key=lambda m: m.start())
     if found:
         match = found[0]
-        phase = "Completado" if match.group(2) == "Estado" else "Completed"
-        old = match.group(3).strip()
-        if " · " in old:
-            value = " · ".join([phase] + [d.strip() for d in old.split(" · ")[1:] if d.strip()])
-        elif not old or BARE_PHASE.match(old):
-            value = phase
-        else:
-            value = f"{phase} · {old}"
+        value = "Completado" if match.group(2) == "Estado" else "Completed"
+        if detail:
+            value += " · " + (re.sub(r"(?<!\\)\|", r"\\|", detail) if match.re is STATUS else detail)
         closing = f" {match.group(4)}" if match.group(4) else ""
-        return text[: match.start()] + f"{match.group(1)} {value}{closing}" + text[match.end():]
+        return text[: match.start()] + f"{match.group(1)} {value}{closing}" + text[match.end():], value
     raise Refused("proposal.md has no Status or Estado field to mark completed")
+
+
+def take_detail(args):
+    """Remove `--detail TEXT` from args and return TEXT, None when absent, or raise ValueError."""
+    if "--detail" not in args:
+        return None
+    index = args.index("--detail")
+    if index + 1 >= len(args) or "--detail" in args[index + 1:]:
+        raise ValueError("--detail takes one value, given once")
+    detail = args.pop(index + 1).strip()
+    args.pop(index)
+    if not detail or "\n" in detail or "\r" in detail:
+        raise ValueError("--detail takes one non-empty line")
+    return detail
 
 
 def main(argv):
     apply = "--apply" in argv
     args = [a for a in argv if a != "--apply"]
+    try:
+        detail = take_detail(args)
+    except ValueError as error:
+        print(f"apply_deltas: {error}", file=sys.stderr)
+        return 2
     if len(args) != 3 or args[1] != "--specs":
         print(__doc__.strip().splitlines()[2], file=sys.stderr)
         return 2
@@ -282,7 +301,7 @@ def main(argv):
         if target.exists():
             raise Refused(f"archive target {target} already exists")
         proposal_old = proposal.read_text(encoding="utf-8")
-        proposal_new = mark_completed(proposal_old)
+        proposal_new, status = mark_completed(proposal_old, detail)
     except Refused as refused:
         print(f"refused: {refused}")
         return 1
@@ -291,6 +310,7 @@ def main(argv):
         return 2
     for line in report:
         print(line)
+    print(f"status: {status}")
     print(f"archive: {target}")
     if not apply:
         return 0
