@@ -235,6 +235,15 @@ func (e *viewWorkEngine) evidence(c viewWorkCommand) (viewWorkEvidenceResult, er
 	if err != nil {
 		return viewWorkEvidenceResult{}, err
 	}
+	// The store deduplicates bytes and preserves the first immutable capture.
+	// Refuse contradictory labels before any upload or candidate creation.
+	for _, image := range images {
+		for _, artifact := range s.Artifacts {
+			if artifact.SHA256 == image.SHA && (artifact.Viewport != c.Viewport || artifact.Theme != c.Theme || artifact.MediaType != image.Media) {
+				return viewWorkEvidenceResult{}, &viewWorkError{Code: "capture_metadata_conflict", Field: "image", Next: "use the capture's original viewport and theme, or provide a new capture"}
+			}
+		}
+	}
 	// The same view already published for this candidate: nothing to do.
 	if r, ok := evidencePublished(s, c, candidateID, images, supersedes); ok {
 		r.SessionVersion = s.Version
@@ -297,6 +306,11 @@ func (e *viewWorkEngine) evidence(c viewWorkCommand) (viewWorkEvidenceResult, er
 		return viewWorkEvidenceResult{}, err
 	}
 	request := viewWorkEvidenceEvent(c, candidateID, actor, refs, supersedes)
+	stage := workLifecycleStage(s, c.Stage)
+	if stage == nil {
+		return viewWorkEvidenceResult{}, workStateError("stage_not_started")
+	}
+	request.TargetStageEventID = stage.EventID
 	if err = request.Validate(); err == nil {
 		err = viewer.ValidateTimelineEventReferences(s, request)
 	}
@@ -385,12 +399,16 @@ func evidencePublished(s viewer.TimelineSession, c viewWorkCommand, candidateID 
 	if candidateID == "" {
 		return viewWorkEvidenceResult{}, false
 	}
-	sums := map[string]string{}
+	stage := workLifecycleStage(s, c.Stage)
+	if stage == nil {
+		return viewWorkEvidenceResult{}, false
+	}
+	artifactsByID := map[string]viewer.TimelineArtifact{}
 	for _, a := range s.Artifacts {
-		sums[a.ArtifactID] = a.SHA256
+		artifactsByID[a.ArtifactID] = a
 	}
 	for _, event := range slices.Backward(s.Events) {
-		if event.Withdrawn || event.CandidateID != candidateID || event.Kind != "validation" && event.Kind != "iteration" {
+		if event.Withdrawn || event.StageEventID != stage.EventID || event.CandidateID != candidateID || event.Kind != "validation" && event.Kind != "iteration" {
 			continue
 		}
 		for _, v := range event.Views {
@@ -400,7 +418,8 @@ func evidencePublished(s viewer.TimelineSession, c viewWorkCommand, candidateID 
 			same := true
 			var artifacts []string
 			for n, ref := range v.ImageRefs {
-				same = same && sums[ref.ArtifactID] == images[n].SHA
+				artifact, exists := artifactsByID[ref.ArtifactID]
+				same = same && exists && artifact.SHA256 == images[n].SHA && artifact.Viewport == c.Viewport && artifact.Theme == c.Theme
 				artifacts = append(artifacts, ref.ArtifactID)
 			}
 			if same {

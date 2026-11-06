@@ -12,6 +12,12 @@ raise the minor or the patch version.
 
 ## [0.9.0] - 2026-11-05
 
+### Fixed
+
+- Evidence publication respects its explicitly requested stage and preserves
+  immutable capture metadata by rejecting contradictory viewport/theme labels
+  when identical image bytes are reused.
+
 ### Migration
 
 - Users of 0.8.0 and earlier must run the new installer once. It registers
