@@ -54,7 +54,7 @@ func renderGeneratedHook(t target.Target, p Plan) ([]byte, error) {
 	if !ok || p.Config.Scope != "user" || t.Path != g.Path(p.Config) {
 		return nil, fmt.Errorf("invalid %s hook resource", t.Host)
 	}
-	if err := checkHookExecutable(p.Executable); err != nil {
+	if err := checkPlanExecutable(p); err != nil {
 		return nil, err
 	}
 	switch t.Source {

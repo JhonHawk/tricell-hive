@@ -486,6 +486,9 @@ func buildPlan(action string, o Options, adjust func(*Plan, State) error) (Plan,
 	if err != nil {
 		return p, err
 	}
+	if err := checkUpdatePending(dir); err != nil {
+		return p, err
+	}
 	if err := checkOnboarding(dir); err != nil {
 		return p, err
 	}
@@ -499,11 +502,21 @@ func buildPlan(action string, o Options, adjust func(*Plan, State) error) (Plan,
 		return p, err
 	}
 	p = Plan{Version: stateVersion, Action: action, Config: c, Hosts: hosts, StateDir: dir, StateHash: sh}
+	if o.updatePackage != nil {
+		p.ReleaseUpdate = !o.packageInstall
+		p.PackageInstall = o.packageInstall
+		p.UpdatePackage = o.updatePackage
+		p.previewUpdate = !o.packageInstall || o.packagePreview
+		p.Executable = o.updatePackage.TargetExecutable.Path
+	}
 	if hookExecutableNeeded(action, c.Scope, hosts) {
-		if p.Executable, err = HiveExecutable(); err != nil {
+		if p.Executable == "" {
+			p.Executable, err = HiveExecutable()
+		}
+		if err != nil {
 			return p, fmt.Errorf("resolve the hive executable: %w", err)
 		}
-		if err = checkHookExecutable(p.Executable); err != nil {
+		if err = checkPlanExecutable(p); err != nil {
 			return p, err
 		}
 	}
@@ -625,6 +638,10 @@ func buildPlan(action string, o Options, adjust func(*Plan, State) error) (Plan,
 }
 
 func planPiPackage(p *Plan) error {
+	if p.ReleaseUpdate {
+		p.PiPackage = nil
+		return releasePiPreflight(*p)
+	}
 	if p.Action != "install" || p.Config.Scope != "user" {
 		return nil
 	}
@@ -850,6 +867,20 @@ func BindSourceCommit(plan Plan, commit string) (Plan, error) {
 }
 
 func validatePlan(p Plan, state State) error {
+	if p.ReleaseUpdate {
+		if p.Action != "install" || p.Config.Scope != "user" || p.UpdatePackage == nil || p.PiPackage != nil || p.CodexWaitFloor != nil {
+			return fmt.Errorf("invalid release update core plan; repair providers separately with hive install")
+		}
+		if err := releasePiPreflight(p); err != nil {
+			return err
+		}
+	} else if p.PackageInstall {
+		if p.Action != "install" || p.Config.Scope != "user" || p.UpdatePackage == nil {
+			return fmt.Errorf("invalid package install core plan")
+		}
+	} else if p.UpdatePackage != nil {
+		return fmt.Errorf("unexpected update package")
+	}
 	// Plans saved before Cursor support omit cursor_home and still hash correctly.
 	if p.Version != stateVersion || p.ID != planID(p) || p.Config.CursorHome == "" {
 		return fmt.Errorf("invalid or legacy plan; regenerate with the current manager")
@@ -880,7 +911,7 @@ func validatePlan(p Plan, state State) error {
 		}
 	}
 	if hookExecutableNeeded(p.Action, p.Config.Scope, p.Hosts) {
-		if err = checkHookExecutable(p.Executable); err != nil {
+		if err = checkPlanExecutable(p); err != nil {
 			return err
 		}
 	} else if p.Executable != "" {
@@ -1068,8 +1099,19 @@ func Status(o Options) ([]StatusEntry, error) {
 	if err != nil {
 		return nil, err
 	}
+	update, err := PendingUpdate(dir)
+	if err != nil {
+		return nil, err
+	}
+	var out []StatusEntry
+	if update != nil {
+		out = append(out, StatusEntry{Kind: "update", Path: update.Plan.Command.Path, Status: "recovery_required", ProductVersion: update.Plan.Package.Artifact.ProductVersion, Reason: "recover with " + update.Plan.Package.TargetExecutable.Path + " recover --state-dir " + dir})
+	}
 	state, _, err := readState(dir)
 	if err != nil {
+		if update != nil {
+			return out, nil
+		}
 		return nil, err
 	}
 	ts, err := resolve(c, h, stateSources(state)...)
@@ -1084,8 +1126,7 @@ func Status(o Options) ([]StatusEntry, error) {
 	if err != nil {
 		return nil, err
 	}
-	pending.Exists = pending.Exists || optionalPending
-	var out []StatusEntry
+	pending.Exists = pending.Exists || optionalPending || update != nil
 	versionCache := map[string][2]string{}
 	seen := map[string]bool{}
 	for _, t := range ts {

@@ -7,7 +7,8 @@
 #
 # It resolves a Hive release, downloads the package for this platform and its
 # checksum from GitHub Releases, verifies both, keeps the package in a stable
-# folder, and hands control to the package's own install.sh, which keeps asking
+# folder for legacy packages, or lets a protocol-aware installer retain it,
+# and hands control to the package's own install.sh, which keeps asking
 # which hosts to install and for confirmation. Only --version and --help are
 # handled here; every other argument is forwarded to install.sh unchanged.
 #
@@ -30,8 +31,8 @@ max_checksum_bytes=256
 
 usage() {
   printf '%s\n' 'Usage: get-hive.sh [--version X.Y.Z[-PRERELEASE]] [--dry-run] [install.sh options]'
-  printf '%s\n' 'Downloads and verifies a Hive release package, keeps it under the data folder'
-  printf '%s\n' '(XDG_DATA_HOME or ~/.local/share, then hive/packages), and runs its install.sh.'
+  printf '%s\n' 'Downloads and verifies a Hive release package; its installer confirms installation'
+  printf '%s\n' 'under the data folder (XDG_DATA_HOME or ~/.local/share, then hive/packages).'
   printf '%s\n' 'Without --dry-run a terminal is required; a preview uses it when available. Other arguments go to install.sh.'
 }
 
@@ -428,6 +429,32 @@ main() {
   sha256_of "$dl_dir/$archive" || fail 'could not compute the package checksum'
   [ "$digest" = "$expected" ] || fail 'the package checksum did not match; nothing was installed'
   check_listing "$dl_dir/$archive" "$label" "$dl_dir/names.txt" "$dl_dir/verbose.txt" || fail 'the package archive is not safe to extract; nothing was installed'
+
+  # Protocol-aware installers own immutable retention and command activation.
+  # Keep their verified input disposable until their combined confirmation;
+  # never replace a package an active command or pending journal may reference.
+  managed_package=0
+  while IFS= read -r entry; do
+    if [ "$entry" = "$label/update-bootstrap.json" ]; then managed_package=1; fi
+  done < "$dl_dir/names.txt"
+  if [ "$managed_package" -eq 1 ]; then
+    mkdir "$dl_dir/package" || fail 'could not create a private package folder'
+    tar -xzf "$dl_dir/$archive" -C "$dl_dir/package" || fail 'could not extract the package'
+    check_extracted "$dl_dir/package" "$label" || fail 'the package has an unexpected layout'
+    package=$dl_dir/package/$label
+    say 'Starting the verified package installer; it will confirm the integrations and stable command together.'
+    umask "$saved_umask"
+    if [ "$have_tty" -eq 0 ]; then
+      HIVE_INSTALL_TEMPORARY_SOURCE=1 "$package/install.sh" "$@"
+    else
+      HIVE_INSTALL_TEMPORARY_SOURCE=1 "$package/install.sh" "$@" < "$tty_device"
+    fi
+    installer_status=$?
+    if [ "$installer_status" -ne 0 ]; then
+      printf '%s\n' 'get-hive: temporary inputs will be removed. Download and extract the complete package, then run ./install.sh for a manual installation.' >&2
+    fi
+    exit "$installer_status"
+  fi
 
   install_package
 

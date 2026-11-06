@@ -33,5 +33,5 @@ func HostHookWarnings(p Plan) []string {
 	}
 	// Names, not paths: the folder is what the user recognizes, and a long
 	// absolute path cannot be wrapped in a terminal.
-	return []string{fmt.Sprintf("Hooks: the registered hive executable lives inside the git checkout %q, so every hook stops working if that checkout or worktree is removed. Build the binary outside it and run hive update again.", filepath.Base(root))}
+	return []string{fmt.Sprintf("Hooks: the registered hive executable lives inside the git checkout %q, so every hook stops working if that checkout or worktree is removed. Build the binary outside it and run hive update --source . from this checkout again.", filepath.Base(root))}
 }

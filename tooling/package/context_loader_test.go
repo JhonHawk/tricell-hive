@@ -56,6 +56,20 @@ func TestOpenCodeContextLoaderOfflinePackage(t *testing.T) {
 	if manifest.Version != 2 {
 		t.Fatal("new package must use manifest 2")
 	}
+	bootstrapData, err := os.ReadFile(filepath.Join(root, distribution.UpdateBootstrapName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.UpdateProtocol != distribution.UpdateProtocolVersion || manifest.Files[distribution.UpdateBootstrapName] != distribution.Digest(bootstrapData) {
+		t.Fatal("offline package has no inventory-bound update protocol marker")
+	}
+	var bootstrap distribution.UpdateBootstrap
+	if err := distribution.DecodeUpdateMessage(bytes.NewReader(bootstrapData), &bootstrap); err != nil {
+		t.Fatal(err)
+	}
+	if bootstrap.ProductVersion != manifest.ProductVersion || bootstrap.SourceID != manifest.SourceID || bootstrap.ExecutableSHA256 != manifest.Files["bin/hive"] {
+		t.Fatal("offline bootstrap does not identify its packaged executable")
+	}
 	for name := range manifest.Files {
 		if strings.Contains(name, "context-loader") && name != source {
 			t.Fatalf("offline package contains a second editorial or generated plugin resource: %s", name)

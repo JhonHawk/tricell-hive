@@ -49,6 +49,11 @@ func run(args []string) error {
 	}
 	cmd, rest := args[0], args[1:]
 	switch cmd {
+	case "__hive-update-v1":
+		if len(rest) != 0 {
+			return fmt.Errorf("internal update accepts no arguments")
+		}
+		return runReleaseExecutor(os.Stdin, os.Stdout)
 	case "setup":
 		return runSetup(rest)
 	case "install":
@@ -288,6 +293,13 @@ func runApply(args []string) error {
 	if planFile == "" {
 		return fmt.Errorf("apply requires --plan")
 	}
+	data, err := os.ReadFile(planFile)
+	if err != nil {
+		return err
+	}
+	if routed, err := routeSavedUpdate(data, os.Stdout, os.Stderr); routed {
+		return err
+	}
 	p, err := management.LoadPlan(planFile)
 	if err != nil {
 		return err
@@ -353,6 +365,9 @@ func runRecover(args []string) error {
 	// pending onboarding could ever be reconciled from a second
 	// terminal.
 	o.Scope = "user"
+	if routed, err := routePendingUpdate(o.StateDir, os.Stdout, os.Stderr); routed {
+		return err
+	}
 	// RecoverOnboarding (reached through recoverWithAdapterFactory) is
 	// the one recovery path (M5): when no onboarding journal is pending
 	// it falls back to the core Engine.Recover itself, so this command

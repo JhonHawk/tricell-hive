@@ -86,10 +86,11 @@ curl -fsSL https://hive.tricell.tech/install.sh | sh
 It asks which hosts to install and confirms before it writes.
 
 - **Preview first:** append `-s -- --dry-run`. No host changes; the package is
-  still downloaded.
+  still downloaded; behavior depends on the selected package version.
 - **Pick a release or hosts:** append `-s -- --version 0.8.0 --hosts claude,codex`.
-- **Afterwards:** `hive` is not added to your `PATH`. It lives at
-  `~/.local/share/hive/packages/hive-<version>-<os>-<arch>/bin/hive`.
+- **Afterwards:** packages with the new update protocol register
+  `~/.local/bin/hive` as the stable command. The installer does not edit `PATH`
+  or overwrite an unowned file there. Older packages print their versioned path.
 - **Requirements:** `curl`, `tar`, and `shasum` or `sha256sum`.
 
 The [installer contract](_support/docs/architecture/installer.md#one-line-installation)
@@ -112,9 +113,9 @@ cd hive-<version>-<os>-<arch>
 ```
 
 `install.sh` asks which hosts to install and confirms before it writes. It does
-not put `hive` on your `PATH`: run later commands with the extracted `bin/hive`
-(for example `./bin/hive status ...`), or copy that file to a directory on your
-`PATH`.
+not edit `PATH`. A package with the new update protocol retains its verified
+package and registers `~/.local/bin/hive`; an unowned destination is a conflict.
+Older packages use the extracted `bin/hive`.
 
 On macOS, Gatekeeper may block a binary downloaded through a browser (a
 possibility, not verified here). Either download with `curl` or `gh release
@@ -140,13 +141,14 @@ From the checkout root, with **Go 1.27.0 or later** as declared in [go.mod](go.m
 # Build a binary at a stable path: a user-scope install writes that path into
 # the host hooks, and a `go run` binary is deleted when the command ends, so the
 # manager refuses it.
-go build -o ~/.local/bin/hive ./tooling/cli
+go build -o ~/bin/hive ./tooling/cli
 # Preview the destinations, then install with terminal confirmation.
-~/.local/bin/hive install --hosts codex --dry-run
-~/.local/bin/hive install --hosts codex
+~/bin/hive install --hosts codex --dry-run
+~/bin/hive install --hosts codex
 ```
 
-Replace `codex` with your host, or a comma-separated selection such as
+Create `~/bin` first if needed, and choose a path that does not overwrite an
+existing command. Replace `codex` with your host, or a comma-separated selection such as
 `codex,claude`, and the output path with a directory on your `PATH`. The installer shows destinations and where it keeps recovery
 journals before requiring affirmative confirmation. The first build needs access to the
 Go modules unless they are already cached.
@@ -171,7 +173,7 @@ default_mode_request_user_input`, Codex's own command, so Codex asks its
 decisions through a card that waits in Default mode (uncheck it, or type `none`,
 to skip it; `codex features disable default_mode_request_user_input` turns it
 off). The Codex wait floor (`codex-wait-floor`) is the fourth: an interactive
-install or `hive update` with the Codex host offers it, selected by default, while
+install or a committed-source `hive update` with the Codex host offers it, selected by default, while
 the setting is not applied and Codex is 0.164 or later (a dry run offers
 nothing, an applied setting is not offered again, and nothing is offered at project scope). After you consent, Hive
 itself writes `min_wait_timeout_ms = 300000` and
@@ -247,28 +249,47 @@ Hive supplies no model runtime or universal permission sandbox.
 
 ## Update, verify, recover, and uninstall
 
-The commands below call `hive`. After a one-line installation it is
-`~/.local/share/hive/packages/hive-<version>-<os>-<arch>/bin/hive`; after a
-package installation, the extracted `bin/hive`; in a source checkout, use
-`go run ./tooling/cli` for read-only commands; `install` and `update` need a
-built binary at a stable path (`go build -o <path> ./tooling/cli`). Copy or link
-it into a directory on your `PATH` to type `hive` directly.
+The release-update behavior below is the candidate in this checkout. It requires
+an updated installer and compatible release packages; the observed public 0.8.0
+package does not yet provide it. Publication is separate from this change.
 
-**Update.** One-line users run the same command again; each version adds its
-own folder under `~/.local/share/hive/packages/`, and older ones can be deleted
-once you no longer need them for recovery and no host hook (Grok's, or the session-event hooks) points to
-them: run `hive update` or `hive install` from the newer binary first. Package users run the
-newer package's `./install.sh`. Source users
-pull, rebuild the binary when `tooling/` or `integrations/` changed, then preview
-and apply. `hive update` deploys the committed `HEAD`, never uncommitted edits,
-and does not replace the binary:
+**Update.** Run the new installer once to migrate an existing package installation.
+It registers `~/.local/bin/hive` without editing `PATH` or overwriting an unowned
+file. Use that path explicitly if it is not on your `PATH`. Thereafter:
 
 ```sh
-git pull
-go build -o ~/bin/hive ./tooling/cli   # if tooling/ or integrations/ changed; use your hive path
 hive update --dry-run
 hive update
+hive update --version X.Y.Z   # exact compatible version, including an explicit downgrade
+hive update --out /absolute/update-plan.json
+hive apply --plan /absolute/update-plan.json
 ```
+
+The default selects a compatible stable release without an implicit downgrade;
+`--version` selects an exact compatible version. The preview uses disposable
+inputs and changes neither the installation nor persistent package storage. A
+saved plan retains the verified target and applies offline without resolving the
+release again; stale state, destinations or bytes are refused. Packages are
+retained by version. A release update does not run optional providers; if Pi's
+pi-subagents declaration needs repair, it stops and points to a separate
+`hive install`. Start new CLI sessions after updating; a running viewer is not
+restarted automatically.
+
+For development, select a Git checkout explicitly. The update uses committed
+content only and does not replace the manager; rebuild it separately when needed.
+A `dev` binary refuses a bare `hive update`.
+
+```sh
+hive update --source . --dry-run
+hive update --source .
+hive update --rev <commit>  # uses the current checkout
+```
+
+`--version` cannot be combined with `--source` or `--rev`. If an update is
+interrupted, follow its `hive recover` instruction: before the core commits,
+recovery restores incomplete core writes and keeps the previous command; after
+commit, it completes activation using the retained target, without network.
+It does not undo committed integrations.
 
 **Verify.** `status` checks managed files, `doctor` reports CLI and installation
 diagnostics, and `models` reports effective role configuration. Installed files,
