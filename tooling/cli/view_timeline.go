@@ -189,7 +189,7 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 	}
 	data, err := viewTimelineHTTP(info, command.method, command.path, contentType, body, viewer.TimelineMaxResponseBody)
 	if err != nil {
-		return err
+		return viewTimelineWithKindHint(command.operation, err)
 	}
 	return viewTimelineDecodeOutput(w, command, input, data)
 }
@@ -446,6 +446,10 @@ func viewTimelineReadFile(name string, limit int64) ([]byte, error) {
 type viewHTTPStatusError struct {
 	Status int
 	Detail string
+	// Code and Field are the server's safe error code and field, kept so a
+	// caller that knows the operation can add guidance to Detail.
+	Code  string
+	Field string
 }
 
 func (e *viewHTTPStatusError) Error() string {
@@ -484,7 +488,8 @@ func viewTimelineHTTP(info serverInfo, method, path, contentType string, body io
 		return nil, errors.New("reload_required: update Hive and restart/reload the viewer together; preserve inputs and retry the unchanged operation ID")
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return nil, &viewHTTPStatusError{Status: response.StatusCode, Detail: viewErrorDetail(response.Body)}
+		code, field := viewErrorFailure(response.Body)
+		return nil, &viewHTTPStatusError{Status: response.StatusCode, Detail: viewErrorDetailOf(code, field), Code: code, Field: field}
 	}
 	// Existing timeline readers passing the former public-body bound also need
 	// space for the projection/envelope; smaller diagnostic limits stay unchanged.
@@ -618,16 +623,49 @@ func viewTimelineKindHint(operation, code, field string) string {
 // viewErrorDetail names the server's error code, and its field when present,
 // so a caller can tell why a request was rejected.
 func viewErrorDetail(body io.Reader) string {
+	return viewErrorDetailOf(viewErrorFailure(body))
+}
+
+// viewErrorFailure reads the server's error code and field, returning only
+// values that are safe tokens; an unsafe code empties both.
+func viewErrorFailure(body io.Reader) (string, string) {
 	var failure struct {
 		Code  string `json:"code"`
 		Field string `json:"field"`
 	}
 	data, err := io.ReadAll(io.LimitReader(body, 1024))
 	if err != nil || json.Unmarshal(data, &failure) != nil || !viewErrorTokenPattern.MatchString(failure.Code) {
+		return "", ""
+	}
+	if !viewErrorTokenPattern.MatchString(failure.Field) {
+		return failure.Code, ""
+	}
+	return failure.Code, failure.Field
+}
+
+func viewErrorDetailOf(code, field string) string {
+	switch {
+	case code == "":
 		return ""
+	case field == "":
+		return ": " + code
+	default:
+		return ": " + code + " on " + field
 	}
-	if viewErrorTokenPattern.MatchString(failure.Field) {
-		return ": " + failure.Code + " on " + failure.Field
+}
+
+// viewTimelineWithKindHint adds to a viewer rejection of an event operation the
+// kinds that accept the rejected field, as the local validation does.
+func viewTimelineWithKindHint(operation string, err error) error {
+	var status *viewHTTPStatusError
+	if !errors.As(err, &status) {
+		return err
 	}
-	return ": " + failure.Code
+	hint := viewTimelineKindHint(operation, status.Code, status.Field)
+	if hint == "" {
+		return err
+	}
+	hinted := *status
+	hinted.Detail += hint
+	return &hinted
 }

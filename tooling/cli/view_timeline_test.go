@@ -501,3 +501,59 @@ func TestTimelineCLICreateReadbackChecksTheWorkKey(t *testing.T) {
 		}
 	}
 }
+
+// A forbidden_for_kind the viewer returns for an event operation carries the
+// kinds that accept the field, inside the request failure and before its
+// recovery advice.
+func TestTimelineCLIViewerRejectionNamesTheKindsThatAcceptAField(t *testing.T) {
+	f := newViewFixture(t)
+	repo, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := exec.Command("git", "-C", repo, "init", "-q").Run(); err != nil {
+		t.Fatal(err)
+	}
+	f.mustView("register", "--dir", repo)
+	f.mustView("start")
+	input := filepath.Join(t.TempDir(), "request.json")
+	write := func(body any) {
+		t.Helper()
+		raw, err := json.Marshal(body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(input, raw, 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write(viewer.TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "hint-create", Source: viewer.TimelineSource{ProjectRoot: repo, Host: "codex", NativeSessionID: "fixture-native"}, Title: "Hint fixture", Summary: "Server rejection hint", Tickets: []viewer.TimelineTicketInput{}})
+	session, err := viewer.DecodeTimelineSessionResponse([]byte(f.mustView("session", "create", "--json", input)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	sid := session.Session.ViewerSessionID
+	actor := viewer.TimelineActor{Kind: "native_producer", ProducerID: session.Session.ForegroundProducerID}
+	write(viewer.TimelineAppendEventRequest{Actor: actor, SchemaVersion: 3, OperationID: "hint-request", Kind: "request", Title: "Request", Summary: "Initial scope", TicketIDs: []string{}})
+	added, err := viewer.DecodeTimelineOperationResult([]byte(f.mustView("event", "add", sid, "--json", input)))
+	if err != nil {
+		t.Fatal(err)
+	}
+	state := viewer.TimelineStageState("completed")
+	write(viewer.TimelineEventPatchRequest{Actor: actor, SchemaVersion: 3, OperationID: "hint-patch", ExpectedVersion: 1, StageState: &state, ExpectedSessionVersion: &added.SessionVersion, Reason: "Close it"})
+	_, err = f.view("event", "update", sid, added.EventID, "--json", input)
+	if err == nil || !strings.Contains(err.Error(), "(HTTP 400: forbidden_for_kind on stage_state; only kind stage accepts it); preserve inputs") {
+		t.Fatalf("got %v", err)
+	}
+}
+
+func TestTimelineCLIViewerRejectionHintOnlyForEventOperations(t *testing.T) {
+	rejection := &viewHTTPStatusError{Status: 400, Detail: ": forbidden_for_kind on stage_state", Code: "forbidden_for_kind", Field: "stage_state"}
+	if got := viewTimelineWithKindHint("session_patch", rejection).Error(); strings.Contains(got, "accepts it") {
+		t.Fatalf("hint on a non-event operation: %s", got)
+	}
+	other := &viewHTTPStatusError{Status: 409, Detail: ": version_conflict", Code: "version_conflict"}
+	if got := viewTimelineWithKindHint("event_patch", other).Error(); strings.Contains(got, "accepts it") {
+		t.Fatalf("hint on another code: %s", got)
+	}
+}
