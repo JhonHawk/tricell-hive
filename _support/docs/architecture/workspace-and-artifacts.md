@@ -6,6 +6,8 @@ This document explains the artifact policy in [the shared global guidance](../..
 
 A workspace is a declared project context containing related repositories, not every directory above a Git root. Resolve it from the user's task and established project instructions or documentation. Git can identify a repository or worktree root, but does not establish which sibling repositories form a project. If shared scope is unclear, resolve that ambiguity before writing outside the known repository.
 
+When the code a request changes lies outside the session's project, read the global guidance's «Scope and authorization» rule on changing only the current project before planning or editing there: a request that names only a ticket does not tell whether the user knows where its code lives.
+
 | Work shape | Default support home | Example |
 |---|---|---|
 | Standalone repository | `<repo>/_support/` | A backend investigation specific to that repository |
