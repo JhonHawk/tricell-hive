@@ -128,7 +128,7 @@ class ApplyDeltasTest(unittest.TestCase):
         self.assertFalse(self.change.exists())
         [target] = self.archived()
         self.assertRegex(target.name, r"^\d{4}-\d{2}-\d{2}-\d{4}-demo$")
-        self.assertIn("| Status | Completed |", (target / "proposal.md").read_text())
+        self.assertIn("| Status | Completed · candidate verified |", (target / "proposal.md").read_text())
 
     def test_new_capability_gets_the_spec_skeleton(self):
         write(self.change / "specs/fresh/spec.md", "## ADDED Requirements\n\n### Requirement: One\nOne SHALL exist.\n")
@@ -189,6 +189,73 @@ class ApplyDeltasTest(unittest.TestCase):
         result = self.run_script("--apply")
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertEqual((self.specs / "specs/cap/spec.md").read_text(), textwrap.dedent(SPEC).lstrip())
+
+    def test_lossy_or_unknown_structure_is_refused(self):
+        cases = {
+            "other ### heading in a block": (DELTA.replace("Alpha SHALL exist now.", "Alpha SHALL exist now.\n\n    ### Notes\n    A note."), "### Notes"),
+            "RENAMED section": (DELTA + "\n    ## RENAMED Requirements\n\n    - FROM: `### Requirement: Gamma`\n    - TO: `### Requirement: Zeta`\n", "RENAMED"),
+            "case variant": (DELTA.replace("## ADDED Requirements", "## Added requirements"), "Added requirements"),
+        }
+        for label, (delta, expected) in cases.items():
+            with self.subTest(label):
+                write(self.change / "specs/cap/spec.md", delta)
+                before = self.snapshot()
+                result = self.run_script("--apply")
+                self.assertEqual(result.returncode, 1, result.stdout)
+                self.assertIn(expected, result.stdout)
+                self.assertEqual(self.snapshot(), before)
+
+    def test_other_sections_are_listed_not_applied(self):
+        write(self.change / "specs/cap/spec.md", DELTA + "\n    ## Operational constraint\n\n    Text.\n")
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn('cap: section "## Operational constraint" is not applied', result.stdout)
+
+    def test_repeated_requirement_in_the_spec_is_refused(self):
+        write(self.specs / "specs/cap/spec.md", SPEC + "\n    ### Requirement: Gamma\n    Gamma again.\n")
+        before = self.snapshot()
+        result = self.run_script("--apply")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn('"Gamma"', result.stdout)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_new_capability_with_only_removed_is_refused(self):
+        write(self.change / "specs/typo/spec.md", "## REMOVED Requirements\n\n### Requirement: Q\nGone.\n")
+        before = self.snapshot()
+        result = self.run_script("--apply")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("typo", result.stdout)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_proposal_without_status_is_refused(self):
+        write(self.change / "proposal.md", "# demo\n\nNo status here.\n")
+        before = self.snapshot()
+        result = self.run_script("--apply")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("Status", result.stdout)
+        self.assertEqual(self.snapshot(), before)
+
+    def test_spanish_status_keeps_its_details(self):
+        write(self.change / "proposal.md", "# demo\n\n| Campo | Valor |\n| --- | --- |\n| Estado | En build · integrado por el PR #9 |\n")
+        result = self.run_script("--apply")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        [target] = self.archived()
+        self.assertIn("| Estado | Completado · integrado por el PR #9 |", (target / "proposal.md").read_text())
+
+    def test_folder_outside_the_specs_changes_is_refused(self):
+        other = Path(self.tmp.name) / "elsewhere"
+        other.mkdir()
+        result = subprocess.run([sys.executable, "-B", str(SCRIPT), str(self.change), "--specs", str(other), "--apply"], text=True, capture_output=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("changes", result.stdout)
+        self.assertFalse((other / "specs").exists())
+
+    def test_nested_fences_keep_headings_as_text(self):
+        nested = "## ADDED Requirements\n\n### Requirement: Delta\nDelta SHALL exist.\n\n````markdown\n```js\n### Requirement: Fake\n```\n````\n"
+        write(self.change / "specs/cap/spec.md", nested)
+        result = self.run_script()
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertNotIn("Fake", result.stdout)
 
     def test_missing_proposal_exits_2(self):
         (self.change / "proposal.md").unlink()

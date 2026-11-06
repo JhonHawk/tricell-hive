@@ -14,11 +14,16 @@ requirement (an absent one is a no-op), MODIFIED replaces the whole block in
 place and lists each scenario it drops, ADDED appends at the end of
 `## Requirements` (one identical to the current block is a no-op). A new
 capability gets `# <capability>`, `## Purpose` and `## Requirements`.
-Headings inside fenced code are text. Refused, with nothing written: a MODIFIED
-requirement the spec lacks, an ADDED one the spec holds with other text, a
-requirement listed twice in one delta, a MODIFIED in a new capability, a delta
-without operations, a spec without `## Requirements`, an existing archive
-target.
+Headings inside fenced code are text; another `##` section of a delta is
+listed as not applied. The first Status (or Estado) value of proposal.md
+starts with Completed (or Completado), keeping its details.
+Refused, with nothing written: a MODIFIED requirement the spec lacks, an ADDED
+one the spec holds with other text, a requirement listed twice in one delta or
+in the spec, a new capability without ADDED or with MODIFIED, a delta without
+operations, a `## ... Requirements` or RENAMED section other than the three, a
+non-requirement `###` heading among requirements, a spec without
+`## Requirements`, a proposal without Status, a folder outside
+<Specs>/changes/, an existing archive target.
 
 Exit status: 0 done or previewed, 1 refused, 2 the folder, its proposal.md or
 <Specs> cannot be read.
@@ -33,9 +38,9 @@ from pathlib import Path
 OPERATIONS = ("ADDED", "MODIFIED", "REMOVED")
 REQUIREMENT = re.compile(r"^### Requirement:\s*(.+?)\s*$")
 SCENARIO = re.compile(r"^#### Scenario:\s*(.+?)\s*$")
-FENCE = re.compile(r"^\s*(```|~~~)")
-STATUS = re.compile(r"^(\s*\|\s*(?:\*\*)?(?:Status|Estado)(?:\*\*)?\s*\|)([^|\n]*)(\|.*)$", re.M)
-STATUS_FIELD = re.compile(r"^(\s*(?:\*\*)?(?:Status|Estado)(?:\*\*)?\s*:(?:\*\*)?)(.*)$", re.M)
+FENCE_OPEN = re.compile(r"^ {0,3}(`{3,}|~{3,})")
+STATUS = re.compile(r"^(\s*\|\s*(?:\*\*)?(Status|Estado)(?:\*\*)?\s*\|)([^|\n]*)(\|.*)$", re.M)
+STATUS_FIELD = re.compile(r"^(\s*(?:\*\*)?(Status|Estado)(?:\*\*)?\s*:(?:\*\*)?)(.*)()$", re.M)
 
 
 class Refused(Exception):
@@ -44,14 +49,18 @@ class Refused(Exception):
 
 def unfenced(lines):
     """Yield (index, line, inside_fence) so headings in code stay text."""
-    fence = None
+    fence = None  # the opening run of backticks or tildes
     for i, line in enumerate(lines):
-        match = FENCE.match(line)
-        inside = fence is not None
-        if match:
-            fence = None if fence == match.group(1) else (fence or match.group(1))
-            inside = True
-        yield i, line, inside
+        if fence is None:
+            match = FENCE_OPEN.match(line)
+            if match:
+                fence = match.group(1)
+            yield i, line, fence is not None
+            continue
+        stripped = line.strip()
+        if stripped and set(stripped) == {fence[0]} and len(stripped) >= len(fence) and len(line) - len(line.lstrip(" ")) <= 3:
+            fence = None  # a closing fence: the same character, at least as long, nothing else
+        yield i, line, True
 
 
 def normalize(text):
@@ -63,17 +72,23 @@ def scenarios(block):
 
 
 def parse_delta(text):
-    """Return {op: [(name, block)]} and the delta's `## Purpose` body."""
-    ops, purpose, op, current = {o: [] for o in OPERATIONS}, [], None, None
+    """Return {op: [(name, block)]}, the `## Purpose` body and the other sections."""
+    ops, purpose, others, op, current = {o: [] for o in OPERATIONS}, [], [], None, None
     in_purpose = False
     for _, line, inside in unfenced(text.split("\n")):
         if not inside and line.startswith("## "):
             title = line[3:].strip()
             op = next((o for o in OPERATIONS if title == f"{o} Requirements"), None)
+            if op is None and title != "Purpose":
+                if "requirement" in title.lower() or title.upper().startswith("RENAMED"):
+                    raise Refused(f'section "## {title}" is not ADDED, MODIFIED or REMOVED Requirements')
+                others.append(title)
             in_purpose, current = title == "Purpose", None
             continue
         if not inside and line.startswith("### "):
             match = REQUIREMENT.match(line)
+            if op and not match:
+                raise Refused(f'"{line.strip()}" inside {op} Requirements is not a requirement heading')
             current = [match.group(1), [line]] if match and op else None
             if current:
                 ops[op].append(current)
@@ -83,7 +98,7 @@ def parse_delta(text):
         elif in_purpose:
             purpose.append(line)
     blocks = {o: [(name, "\n".join(lines).rstrip()) for name, lines in items] for o, items in ops.items()}
-    return blocks, "\n".join(purpose).strip()
+    return blocks, "\n".join(purpose).strip(), others
 
 
 def parse_spec(text):
@@ -104,6 +119,10 @@ def parse_spec(text):
     body, blocks, head_extra = lines[start + 1 : end], [], []
     for _, line, inside in unfenced(body):
         match = None if inside else REQUIREMENT.match(line)
+        if not inside and not match and line.startswith("### "):
+            raise Refused(f'has "{line.strip()}" among its requirements')
+        if match and any(name == match.group(1) for name, _ in blocks):
+            raise Refused(f'lists "{match.group(1)}" twice')
         if match:
             blocks.append([match.group(1), [line]])
         elif blocks:
@@ -122,7 +141,12 @@ def render(head, blocks, tail):
 
 def merge(capability, delta_text, spec_text, change_id, report):
     """Return the new spec text, or None when nothing changes."""
-    ops, purpose = parse_delta(delta_text)
+    try:
+        ops, purpose, others = parse_delta(delta_text)
+    except Refused as refused:
+        raise Refused(f"{capability}: {refused}") from None
+    for title in others:
+        report.append(f'{capability}: section "## {title}" is not applied')
     if not any(ops.values()):
         raise Refused(f"{capability}: delta has no operations")
     seen = {}
@@ -132,8 +156,8 @@ def merge(capability, delta_text, spec_text, change_id, report):
                 raise Refused(f'{capability}: "{name}" is listed in {seen[name]} and {op}')
             seen[name] = op
     if spec_text is None:
-        if ops["MODIFIED"]:
-            raise Refused(f"{capability}: new capability has MODIFIED requirements; only ADDED can create it")
+        if ops["MODIFIED"] or not ops["ADDED"]:
+            raise Refused(f"{capability}: specs/{capability}/spec.md does not exist; only ADDED requirements can create it")
         for name, _ in ops["REMOVED"]:
             report.append(f'{capability}: REMOVED "{name}" is absent (no-op)')
         purpose = purpose or f"TBD: created by archiving {change_id}; update the purpose."
@@ -182,11 +206,16 @@ def merge(capability, delta_text, spec_text, change_id, report):
 
 
 def mark_completed(text):
-    for pattern, build in ((STATUS, lambda m: f"{m.group(1)} Completed {m.group(3)}"), (STATUS_FIELD, lambda m: f"{m.group(1)} Completed")):
+    """Replace the phase that starts the first Status or Estado value, keeping its details."""
+    for pattern in (STATUS, STATUS_FIELD):
         match = pattern.search(text)
         if match:
-            return text[: match.start()] + build(match) + text[match.end():]
-    return text
+            phase = "Completado" if match.group(2) == "Estado" else "Completed"
+            details = match.group(3).split(" · ")[1:]
+            value = " · ".join([phase] + [d.strip() for d in details if d.strip()])
+            closing = f" {match.group(4)}" if match.group(4) else ""
+            return text[: match.start()] + f"{match.group(1)} {value}{closing}" + text[match.end():]
+    raise Refused("proposal.md has no Status or Estado field to mark completed")
 
 
 def main(argv):
@@ -200,6 +229,9 @@ def main(argv):
     if not proposal.is_file() or not specs.is_dir():
         print(f"apply_deltas: {proposal if not proposal.is_file() else specs}: not found", file=sys.stderr)
         return 2
+    if folder.resolve().parent != (specs / "changes").resolve():
+        print(f"refused: {folder} is not a change folder under {specs / 'changes'}")
+        return 1
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%d-%H%M")
     target = specs / "changes" / "archive" / f"{stamp}-{folder.name}"
     report, writes = [], {}
@@ -213,6 +245,8 @@ def main(argv):
                 writes[main_spec] = (old, new)
         if target.exists():
             raise Refused(f"archive target {target} already exists")
+        proposal_old = proposal.read_text(encoding="utf-8")
+        proposal_new = mark_completed(proposal_old)
     except Refused as refused:
         print(f"refused: {refused}")
         return 1
@@ -224,25 +258,48 @@ def main(argv):
     print(f"archive: {target}")
     if not apply:
         return 0
-    proposal_old = proposal.read_text(encoding="utf-8")
-    done = []
+    done, created = [], []
     try:
         for path, (_, new) in writes.items():
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(new, encoding="utf-8")
+            if not path.parent.exists():
+                created.append(path.parent)
+                path.parent.mkdir(parents=True)
+            replace(path, new)
             done.append(path)
-        proposal.write_text(mark_completed(proposal_old), encoding="utf-8")
-        target.parent.mkdir(parents=True, exist_ok=True)
+        replace(proposal, proposal_new)
+        done.append(proposal)
+        if not target.parent.exists():
+            created.append(target.parent)
+            target.parent.mkdir(parents=True)
         os.rename(folder, target)
     except OSError as error:
-        for path in done:
-            old = writes[path][0]
-            path.unlink() if old is None else path.write_text(old, encoding="utf-8")
-        if proposal.exists():
-            proposal.write_text(proposal_old, encoding="utf-8")
-        print(f"apply_deltas: {error}; restored the specs", file=sys.stderr)
+        failed = []
+        for path in reversed(done):
+            old = proposal_old if path == proposal else writes[path][0]
+            try:
+                path.unlink() if old is None else replace(path, old)
+            except OSError:
+                failed.append(str(path))
+        for directory in reversed(created):
+            try:
+                directory.rmdir()
+            except OSError:
+                pass
+        state = f"could not restore {', '.join(failed)}" if failed else "restored every file"
+        print(f"apply_deltas: {error}; {state}", file=sys.stderr)
         return 2
     return 0
+
+
+def replace(path, text):
+    """Write through a temporary file so a failed write leaves the old file whole."""
+    temporary = path.with_name(f".{path.name}.apply-deltas")
+    try:
+        temporary.write_text(text, encoding="utf-8")
+        os.replace(temporary, path)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
 
 
 if __name__ == "__main__":
