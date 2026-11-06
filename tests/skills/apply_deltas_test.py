@@ -128,7 +128,7 @@ class ApplyDeltasTest(unittest.TestCase):
         self.assertFalse(self.change.exists())
         [target] = self.archived()
         self.assertRegex(target.name, r"^\d{4}-\d{2}-\d{2}-\d{4}-demo$")
-        self.assertIn("| Status | Completed · candidate verified |", (target / "proposal.md").read_text())
+        self.assertIn("| Status | Completed |", (target / "proposal.md").read_text())
 
     def test_new_capability_gets_the_spec_skeleton(self):
         write(self.change / "specs/fresh/spec.md", "## ADDED Requirements\n\n### Requirement: One\nOne SHALL exist.\n")
@@ -235,12 +235,26 @@ class ApplyDeltasTest(unittest.TestCase):
         self.assertIn("Status", result.stdout)
         self.assertEqual(self.snapshot(), before)
 
-    def test_spanish_status_keeps_its_details(self):
-        write(self.change / "proposal.md", "# demo\n\n| Campo | Valor |\n| --- | --- |\n| Estado | En build · integrado por el PR #9 |\n")
-        result = self.run_script("--apply")
+    def test_status_detail_replaces_the_stale_one(self):
+        write(self.change / "proposal.md", "# demo\n\n| Campo | Valor |\n| --- | --- |\n| Estado | Verify · Listo para validación humana antes del push |\n")
+        preview = self.run_script("--detail", "integrado en development (PR #9 | abc1234)")
+        self.assertEqual(preview.returncode, 0, preview.stdout)
+        self.assertIn("status: Completado · integrado en development (PR #9 \\| abc1234)", preview.stdout)
+        result = self.run_script("--detail", "integrado en development (PR #9 | abc1234)", "--apply")
         self.assertEqual(result.returncode, 0, result.stdout)
         [target] = self.archived()
-        self.assertIn("| Estado | Completado · integrado por el PR #9 |", (target / "proposal.md").read_text())
+        proposal = (target / "proposal.md").read_text()
+        self.assertIn("| Estado | Completado · integrado en development (PR #9 \\| abc1234) |", proposal)
+        self.assertNotIn("Listo para validación", proposal)
+
+    def test_bad_detail_is_a_usage_error(self):
+        for args in (["--detail"], ["--detail", " "], ["--detail", "--apply"], ["--detail", "two\nlines"], ["--detail", "a", "--detail", "b"]):
+            with self.subTest(args):
+                before = self.snapshot()
+                result = self.run_script(*args, "--apply")
+                self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                self.assertIn("--detail", result.stderr)
+                self.assertEqual(self.snapshot(), before)
 
     def test_folder_outside_the_specs_changes_is_refused(self):
         other = Path(self.tmp.name) / "elsewhere"
@@ -281,8 +295,8 @@ class ApplyDeltasTest(unittest.TestCase):
 
     def test_status_forms(self):
         cases = {
-            "| Status | In build \\| x · y |\n": "| Status | Completed · y |",
-            "Status: In build — verified by PR #9\n": "Status: Completed · In build — verified by PR #9",
+            "| Status | In build \\| x · y |\n": "| Status | Completed |",
+            "Status: In build — verified by PR #9\n": "Status: Completed\n",
             "Status: In build\n\n| Status | Ticket |\n| --- | --- |\n| Draft | #1 |\n": "Status: Completed\n\n| Status | Ticket |",
         }
         for proposal, expected in cases.items():
