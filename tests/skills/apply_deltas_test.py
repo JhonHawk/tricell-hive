@@ -257,6 +257,43 @@ class ApplyDeltasTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertNotIn("Fake", result.stdout)
 
+    def test_second_review_regressions(self):
+        cases = {
+            "unclosed fence in the spec": ("spec", SPEC + "\n    ```\n\n    ## Notes\n\n    Keep me.\n", None, 1, "fence"),
+            "inline code at a line start": ("delta", None, DELTA.replace("Delta SHALL exist.", "Delta SHALL exist.\n\n    ```x``` starts a line\n\n    ### Requirement: Epsilon\n    Epsilon SHALL exist."), 0, 'ADDED "Epsilon"'),
+            "purpose of an existing capability": ("delta", None, "## Purpose\n\nNew purpose.\n\n" + textwrap.dedent(DELTA), 0, 'section "## Purpose" is not applied'),
+            "level-1 appendix": ("delta", None, textwrap.dedent(DELTA) + "\n# Appendix\n\nstuff\n", 0, 'section "# Appendix" is not applied'),
+        }
+        for label, (kind, spec, delta, code, expected) in cases.items():
+            with self.subTest(label):
+                self.tearDown()
+                self.setUp()
+                if spec is not None:
+                    write(self.specs / "specs/cap/spec.md", spec)
+                if delta is not None:
+                    write(self.change / "specs/cap/spec.md", delta)
+                result = self.run_script()
+                self.assertEqual(result.returncode, code, result.stdout)
+                self.assertIn(expected, result.stdout)
+                if label == "level-1 appendix":
+                    self.assertEqual(self.run_script("--apply").returncode, 0)
+                    self.assertNotIn("stuff", (self.specs / "specs/cap/spec.md").read_text())
+
+    def test_status_forms(self):
+        cases = {
+            "| Status | In build \\| x · y |\n": "| Status | Completed · y |",
+            "Status: In build — verified by PR #9\n": "Status: Completed · In build — verified by PR #9",
+            "Status: In build\n\n| Status | Ticket |\n| --- | --- |\n| Draft | #1 |\n": "Status: Completed\n\n| Status | Ticket |",
+        }
+        for proposal, expected in cases.items():
+            with self.subTest(proposal):
+                self.tearDown()
+                self.setUp()
+                write(self.change / "proposal.md", "# demo\n\n" + proposal)
+                self.assertEqual(self.run_script("--apply").returncode, 0)
+                [target] = self.archived()
+                self.assertIn(expected, (target / "proposal.md").read_text())
+
     def test_missing_proposal_exits_2(self):
         (self.change / "proposal.md").unlink()
         result = self.run_script()

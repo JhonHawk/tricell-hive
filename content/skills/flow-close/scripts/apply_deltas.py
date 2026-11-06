@@ -38,8 +38,10 @@ from pathlib import Path
 OPERATIONS = ("ADDED", "MODIFIED", "REMOVED")
 REQUIREMENT = re.compile(r"^### Requirement:\s*(.+?)\s*$")
 SCENARIO = re.compile(r"^#### Scenario:\s*(.+?)\s*$")
-FENCE_OPEN = re.compile(r"^ {0,3}(`{3,}|~{3,})")
-STATUS = re.compile(r"^(\s*\|\s*(?:\*\*)?(Status|Estado)(?:\*\*)?\s*\|)([^|\n]*)(\|.*)$", re.M)
+FENCE_OPEN = re.compile(r"^ {0,3}(`{3,}(?=[^`]*$)|~{3,})")  # a backtick info string holds no backtick
+STATUS = re.compile(r"^(\s*\|\s*(?:\*\*)?(Status|Estado)(?:\*\*)?\s*\|)((?:\\\||[^|\n])*)(\|.*)$", re.M)
+TABLE_SEPARATOR = re.compile(r"^\s*\|[\s:|-]+\|\s*$")
+BARE_PHASE = re.compile(r"^[A-Za-zÁÉÍÓÚáéíóúñÑ-]+(?: [A-Za-zÁÉÍÓÚáéíóúñÑ-]+){0,3}$")
 STATUS_FIELD = re.compile(r"^(\s*(?:\*\*)?(Status|Estado)(?:\*\*)?\s*:(?:\*\*)?)(.*)()$", re.M)
 
 
@@ -47,20 +49,31 @@ class Refused(Exception):
     pass
 
 
-def unfenced(lines):
-    """Yield (index, line, inside_fence) so headings in code stay text."""
-    fence = None  # the opening run of backticks or tildes
-    for i, line in enumerate(lines):
+def fence_flags(lines):
+    """Return, per line, whether it belongs to a fence, and whether a fence is left open."""
+    flags, fence = [], None  # fence: the opening run of backticks or tildes
+    for line in lines:
         if fence is None:
             match = FENCE_OPEN.match(line)
-            if match:
-                fence = match.group(1)
-            yield i, line, fence is not None
+            fence = match.group(1) if match else None
+            flags.append(fence is not None)
             continue
         stripped = line.strip()
         if stripped and set(stripped) == {fence[0]} and len(stripped) >= len(fence) and len(line) - len(line.lstrip(" ")) <= 3:
             fence = None  # a closing fence: the same character, at least as long, nothing else
-        yield i, line, True
+        flags.append(True)
+    return flags, fence is not None
+
+
+def unfenced(lines):
+    """Yield (index, line, inside_fence) so headings in code stay text."""
+    flags, _ = fence_flags(lines)
+    for i, line in enumerate(lines):
+        yield i, line, flags[i]
+
+
+def fence_left_open(lines):
+    return fence_flags(lines)[1]
 
 
 def normalize(text):
@@ -74,15 +87,25 @@ def scenarios(block):
 def parse_delta(text):
     """Return {op: [(name, block)]}, the `## Purpose` body and the other sections."""
     ops, purpose, others, op, current = {o: [] for o in OPERATIONS}, [], [], None, None
-    in_purpose = False
-    for _, line, inside in unfenced(text.split("\n")):
+    in_purpose = seen_op = False
+    lines = text.split("\n")
+    if fence_left_open(lines):
+        raise Refused("has a code fence that is never closed")
+    for _, line, inside in unfenced(lines):
+        if not inside and line.startswith("# "):
+            if seen_op:
+                others.append(f"# {line[2:].strip()}")
+            op = current = None
+            in_purpose = False
+            continue
         if not inside and line.startswith("## "):
             title = line[3:].strip()
             op = next((o for o in OPERATIONS if title == f"{o} Requirements"), None)
+            seen_op = seen_op or op is not None
             if op is None and title != "Purpose":
                 if "requirement" in title.lower() or title.upper().startswith("RENAMED"):
                     raise Refused(f'section "## {title}" is not ADDED, MODIFIED or REMOVED Requirements')
-                others.append(title)
+                others.append(f"## {title}")
             in_purpose, current = title == "Purpose", None
             continue
         if not inside and line.startswith("### "):
@@ -104,6 +127,8 @@ def parse_delta(text):
 def parse_spec(text):
     """Split a spec into (head, [(name, block)], tail) around `## Requirements`."""
     lines = text.split("\n")
+    if fence_left_open(lines):
+        raise Refused("has a code fence that is never closed")
     start = end = None
     for i, line, inside in unfenced(lines):
         if inside or not line.startswith("## "):
@@ -145,8 +170,10 @@ def merge(capability, delta_text, spec_text, change_id, report):
         ops, purpose, others = parse_delta(delta_text)
     except Refused as refused:
         raise Refused(f"{capability}: {refused}") from None
+    if spec_text is not None and purpose:
+        others = ["## Purpose"] + others
     for title in others:
-        report.append(f'{capability}: section "## {title}" is not applied')
+        report.append(f'{capability}: section "{title}" is not applied')
     if not any(ops.values()):
         raise Refused(f"{capability}: delta has no operations")
     seen = {}
@@ -207,14 +234,23 @@ def merge(capability, delta_text, spec_text, change_id, report):
 
 def mark_completed(text):
     """Replace the phase that starts the first Status or Estado value, keeping its details."""
-    for pattern in (STATUS, STATUS_FIELD):
-        match = pattern.search(text)
-        if match:
-            phase = "Completado" if match.group(2) == "Estado" else "Completed"
-            details = match.group(3).split(" · ")[1:]
-            value = " · ".join([phase] + [d.strip() for d in details if d.strip()])
-            closing = f" {match.group(4)}" if match.group(4) else ""
-            return text[: match.start()] + f"{match.group(1)} {value}{closing}" + text[match.end():]
+    lines = text.split("\n")
+    def is_header(match):
+        row = text.count("\n", 0, match.start())
+        return match.re is STATUS and row + 1 < len(lines) and TABLE_SEPARATOR.match(lines[row + 1])
+    found = sorted((m for pattern in (STATUS, STATUS_FIELD) for m in pattern.finditer(text) if not is_header(m)), key=lambda m: m.start())
+    if found:
+        match = found[0]
+        phase = "Completado" if match.group(2) == "Estado" else "Completed"
+        old = match.group(3).strip()
+        if " · " in old:
+            value = " · ".join([phase] + [d.strip() for d in old.split(" · ")[1:] if d.strip()])
+        elif not old or BARE_PHASE.match(old):
+            value = phase
+        else:
+            value = f"{phase} · {old}"
+        closing = f" {match.group(4)}" if match.group(4) else ""
+        return text[: match.start()] + f"{match.group(1)} {value}{closing}" + text[match.end():]
     raise Refused("proposal.md has no Status or Estado field to mark completed")
 
 
