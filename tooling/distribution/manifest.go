@@ -16,6 +16,7 @@ import (
 const ManifestName = "release.json"
 
 type Manifest struct {
+	UpdateProtocol int               `json:"update_protocol,omitempty"`
 	Version        int               `json:"version"`
 	Platform       string            `json:"platform"`
 	SourceID       string            `json:"source_id"`
