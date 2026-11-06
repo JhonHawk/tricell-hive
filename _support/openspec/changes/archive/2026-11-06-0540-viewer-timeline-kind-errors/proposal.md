@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Draft · plan escrito, en revisión |
+| Estado | Completado · PR #395 (abcbcdc9), PR #396 (0635dcff) |
 | Tracker | ninguno: la investigación no encontró un ticket que lo cubra (búsqueda en GitHub Issues, 2026-11-05) |
 | Git | tricell-hive · `development` @ `fbf3922e` (plan escrito sobre `084728fa`) · rama propuesta `fix/viewer-timeline-kind-errors` |
 
