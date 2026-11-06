@@ -237,6 +237,26 @@ func TestViewStageStartWithoutReasonNamesTheField(t *testing.T) {
 	}
 }
 
+func TestViewTimelineEventAddNamesTheKindsThatAcceptAField(t *testing.T) {
+	cases := []struct{ field, value, want string }{
+		{"expected_session_version", `47`, "invalid timeline input: forbidden_for_kind on expected_session_version; only kind stage accepts it"},
+		{"delivery_ids", `["delivery-1"]`, "invalid timeline input: forbidden_for_kind on delivery_ids; only kind delivery accepts it"},
+		{"source_reference", `"Reported in chat"`, "invalid timeline input: forbidden_for_kind on source_reference; only kinds changes_reported, approval_reported accept it"},
+	}
+	for _, c := range cases {
+		input := `{"actor":{"kind":"native_producer","producer_id":"producer-example"},"schema_version":3,"operation_id":"validation-example","kind":"validation","title":"Check","summary":"Checked","ticket_ids":[],"views":[{"title":"V","ticket_ids":[],"steps":["Open"],"expected_result":"Shown","image_refs":[{"artifact_id":"artifact-1","caption":"c"}]}],"` + c.field + `":` + c.value + `}`
+		state := filepath.Join(t.TempDir(), "missing")
+		var out bytes.Buffer
+		err := runViewTimeline([]string{"event", "add", strings.Repeat("a", 64), "--json", "-", "--state-dir", state}, &out, strings.NewReader(input))
+		if err == nil || err.Error() != c.want || out.Len() != 0 {
+			t.Fatalf("%s: got %v", c.field, err)
+		}
+		if _, statErr := os.Stat(state); !os.IsNotExist(statErr) {
+			t.Fatalf("%s: rejected input reached viewer state", c.field)
+		}
+	}
+}
+
 // Operations whose example the native CLI validator rejects by design, or that
 // have no input, so the brief check cannot run on them. Any other skipped
 // operation fails the test.

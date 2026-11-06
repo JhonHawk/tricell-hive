@@ -342,10 +342,18 @@ func validateTimelineAppendV3(r TimelineAppendEventRequest) error {
 	if contains([]string{"state_transition", "producer_joined", "foreground_transferred", "task_state_transition", "local_action"}, string(r.Kind)) {
 		return timelineError("kind", "server_only")
 	}
-	if r.Kind == "stage" || r.Kind == "closure" {
-		if r.TargetStageEventID != "" || r.TaskID != "" || r.SegmentID != "" {
-			return timelineError("target_stage_event_id", "forbidden_for_kind")
+	if contains(timelineEventKinds, string(r.Kind)) && !contains(timelineStageTargetKinds, string(r.Kind)) {
+		// Stages, closure and work-level events carry no stage target. The
+		// server's stage-target resolution rejects target_stage_event_id on
+		// the same kinds, and a task or segment needs that target. An unknown
+		// kind is left to the kind check, which names it.
+		for _, f := range []struct{ name, value string }{{"target_stage_event_id", r.TargetStageEventID}, {"task_id", r.TaskID}, {"segment_id", r.SegmentID}} {
+			if f.value != "" {
+				return timelineError(f.name, "forbidden_for_kind")
+			}
 		}
+	}
+	if r.Kind == "stage" || r.Kind == "closure" {
 		if err := timelineReason(r.Reason); err != nil {
 			return err
 		}

@@ -67,6 +67,57 @@ var timelineViewports = []string{"desktop", "mobile"}
 var timelineThemes = []string{"light", "dark", "unspecified"}
 var timelineImageMediaTypes = []string{"image/png", "image/jpeg", "image/webp"}
 var timelineEventKinds = []string{"request", "work_started", "stage", "validation", "changes_reported", "iteration", "approval_reported", "delivery", "closure", "review", "state_transition", "producer_joined", "foreground_transferred", "task_state_transition", "local_action"}
+
+// TimelineKindField names an append-event field that only some event kinds
+// accept and those kinds. Every other kind rejects it with forbidden_for_kind
+// on that field.
+type TimelineKindField struct {
+	Field string
+	Kinds []string
+}
+
+// timelineKindFields is the one definition of the kind-dependent append-event
+// fields: the validator's rejections, the CLI's hint and the append_event
+// input schema all follow it, and a contract test pins it to the validator.
+var timelineKindFields = []TimelineKindField{
+	{"stage", []string{"stage"}},
+	{"stage_state", []string{"stage"}},
+	{"expected_session_version", []string{"stage"}},
+	{"views", []string{"validation", "iteration"}},
+	{"target", []string{"changes_reported", "approval_reported"}},
+	{"source_reference", []string{"changes_reported", "approval_reported"}},
+	{"delivery_ids", []string{"delivery"}},
+	{"closure", []string{"closure"}},
+	{"review_status", []string{"review"}},
+	{"target_stage_event_id", timelineStageTargetKinds},
+	{"task_id", timelineStageTargetKinds},
+	{"segment_id", timelineStageTargetKinds},
+}
+
+// timelineStageTargetKinds are the kinds an event may bind to a stage or a
+// task segment; stages, closure and work-level events carry no stage target.
+var timelineStageTargetKinds = []string{"validation", "changes_reported", "iteration", "approval_reported", "delivery", "review"}
+
+// TimelineEventKindFields returns a copy of the kind-dependent field table.
+func TimelineEventKindFields() []TimelineKindField {
+	out := make([]TimelineKindField, len(timelineKindFields))
+	for i, row := range timelineKindFields {
+		out[i] = TimelineKindField{Field: row.Field, Kinds: append([]string(nil), row.Kinds...)}
+	}
+	return out
+}
+
+// TimelineEventFieldKinds returns the kinds that accept a kind-dependent
+// append-event field, and false for a field outside the table.
+func TimelineEventFieldKinds(field string) ([]string, bool) {
+	for _, row := range timelineKindFields {
+		if row.Field == field {
+			return append([]string(nil), row.Kinds...), true
+		}
+	}
+	return nil, false
+}
+
 var timelineOpaqueID = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$`)
 var timelineOperationID = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$`)
 var timelineSHA256 = regexp.MustCompile(`^[0-9a-f]{64}$`)
@@ -1137,8 +1188,12 @@ func (r TimelineAppendEventRequest) validate(stageContext bool) error {
 		if err := timelineNumber(*r.ExpectedSessionVersion, "expected_session_version"); err != nil {
 			return err
 		}
-	} else if r.Stage != "" || r.StageState != "" || r.ExpectedSessionVersion != nil {
+	} else if r.Stage != "" {
 		return timelineError("stage", "forbidden_for_kind")
+	} else if r.StageState != "" {
+		return timelineError("stage_state", "forbidden_for_kind")
+	} else if r.ExpectedSessionVersion != nil {
+		return timelineError("expected_session_version", "forbidden_for_kind")
 	}
 	evidence := r.Kind == "validation" || r.Kind == "iteration"
 	decision := r.Kind == "changes_reported" || r.Kind == "approval_reported"
@@ -1176,8 +1231,10 @@ func (r TimelineAppendEventRequest) validate(stageContext bool) error {
 		if err := timelineText(r.SourceReference, "source_reference", 1000, true); err != nil {
 			return err
 		}
-	} else if r.Target != nil || r.SourceReference != "" {
+	} else if r.Target != nil {
 		return timelineError("target", "forbidden_for_kind")
+	} else if r.SourceReference != "" {
+		return timelineError("source_reference", "forbidden_for_kind")
 	}
 	if r.Kind == "delivery" {
 		if e := timelineIDs(r.DeliveryIDs, "delivery_ids", true); e != nil {
@@ -2088,8 +2145,13 @@ func validateTimelineR3Session(s TimelineSession) error {
 			}
 		}
 		if e.Kind != "stage" {
-			if e.Stage != "" || e.StageState != "" || e.StartedAt != "" || e.FinishedAt != "" || e.DocumentSnapshots != nil {
-				return timelineError("stage", "forbidden_for_kind")
+			for _, f := range []struct {
+				name    string
+				present bool
+			}{{"stage", e.Stage != ""}, {"stage_state", e.StageState != ""}, {"started_at", e.StartedAt != ""}, {"finished_at", e.FinishedAt != ""}, {"document_snapshots", e.DocumentSnapshots != nil}} {
+				if f.present {
+					return timelineError(f.name, "forbidden_for_kind")
+				}
 			}
 			continue
 		}

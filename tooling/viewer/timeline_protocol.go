@@ -363,6 +363,24 @@ func timelineProtocolSchema(t reflect.Type) map[string]any {
 				"else": map[string]any{"properties": map[string]any{"title": map[string]any{"minLength": 1}}},
 			}}
 		}
+		if t == reflect.TypeOf(TimelineAppendEventRequest{}) {
+			// One branch per kind-dependent field: kinds outside the table's row
+			// may not carry it. Values stay inside if/then/not so the per-flow
+			// briefs, which collect enums from allOf branches, do not grow.
+			conditions := result["allOf"].([]any)
+			for _, row := range timelineKindFields {
+				then := map[string]any{"not": map[string]any{"required": []string{row.Field}}}
+				if field, _ := properties[row.Field].(map[string]any); field["type"] == "string" {
+					// The validator ignores an empty string, so only a nonempty one is forbidden.
+					then = map[string]any{"properties": map[string]any{row.Field: map[string]any{"maxLength": 0}}}
+				}
+				conditions = append(conditions, map[string]any{
+					"if":   map[string]any{"properties": map[string]any{"kind": map[string]any{"not": map[string]any{"enum": row.Kinds}}}, "required": []string{"kind"}},
+					"then": then,
+				})
+			}
+			result["allOf"] = conditions
+		}
 		return result
 	case reflect.Slice, reflect.Array:
 		return map[string]any{"type": "array", "items": timelineProtocolSchema(t.Elem())}
