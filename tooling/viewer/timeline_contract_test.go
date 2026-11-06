@@ -615,3 +615,16 @@ func TestTimelineContractStoredNonStageEventNamesLifecycleField(t *testing.T) {
 		})
 	}
 }
+
+// A mistyped or missing kind is reported as such, not as a field its stage
+// target would be forbidden on.
+func TestTimelineContractUnknownKindWithStageTargetNamesTheKind(t *testing.T) {
+	for _, kind := range []string{"valdation", ""} {
+		r := timelineKindBase(t, "validation")
+		r.Kind = TimelineEventKind(kind)
+		r.TargetStageEventID = "event-1"
+		if field, code := timelineContractErrorOf(r.Validate()); field != "kind" || code != "unsupported_kind" {
+			t.Errorf("kind %q: got %s on %s", kind, code, field)
+		}
+	}
+}
