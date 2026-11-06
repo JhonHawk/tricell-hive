@@ -306,6 +306,8 @@ func resolveViewWorkContext(c *viewWorkCommand) error {
 			return workInput("native identity ambiguous: pass --host and --native-session-id")
 		case errors.Is(err, errViewIdentityMissing):
 			return workInput("native identity missing: pass --host and --native-session-id")
+		default:
+			return workInput("native identity unresolved: pass --host and --native-session-id")
 		}
 	}
 	if c.WorkID == "" && c.Host != "" && c.NativeSessionID != "" && viewWorkActionNeedsWork(c.Action) && !hostReconcile(*c) {

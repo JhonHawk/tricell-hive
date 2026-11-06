@@ -235,15 +235,22 @@ func untitledUnknownTask(j *viewWorkJournal, c viewWorkCommand) error {
 			known = knownTaskKeys(j, c.WorkID)
 		}
 		if !known[t.Key] {
-			return workInput("invalid semantic JSON: " + faultf(fmt.Sprintf("tasks[%d].title", i), "required field").Error())
+			return viewWorkTaskTitleRequired(fmt.Sprintf("tasks[%d].title", i))
 		}
 	}
 	return nil
 }
 
-// knownTaskKeys lists the task keys this journal saw registered for a work:
-// its recorded and pending intents, and its queued declarations that create
-// tasks.
+// viewWorkTaskTitleRequired is the rejection of a task sync would have to
+// create without its title, whether it is found while queuing or when sent.
+func viewWorkTaskTitleRequired(field string) error {
+	return &viewWorkError{Code: "task_title_required", Field: field, Next: "add the task's title: sync creates a task the work does not have"}
+}
+
+// knownTaskKeys lists the task keys this journal saw registered for a work: its
+// confirmed intents, and its queued declarations that create tasks. A pending
+// or rejected intent may not have registered anything, and a key it names
+// counted as known could be rejected when the queue is sent.
 func knownTaskKeys(j *viewWorkJournal, workID string) map[string]bool {
 	scope, keys := workScopeOf(j, workID), map[string]bool{}
 	add := func(c viewWorkCommand) {
@@ -256,14 +263,12 @@ func knownTaskKeys(j *viewWorkJournal, workID string) map[string]bool {
 			}
 		}
 	}
-	for _, intents := range [][]*viewWorkIntent{j.History, j.Pending} {
-		for _, i := range intents {
-			var context struct {
-				Command viewWorkCommand `json:"command"`
-			}
-			if workScopeOf(j, i.WorkID) == scope && json.Unmarshal(i.Context, &context) == nil {
-				add(context.Command)
-			}
+	for _, i := range j.History {
+		var context struct {
+			Command viewWorkCommand `json:"command"`
+		}
+		if i.State == "confirmed" && workScopeOf(j, i.WorkID) == scope && json.Unmarshal(i.Context, &context) == nil {
+			add(context.Command)
 		}
 	}
 	for _, q := range j.Queue {

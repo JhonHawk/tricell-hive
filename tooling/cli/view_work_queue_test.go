@@ -194,7 +194,7 @@ func TestWorkQueueRejectsAnUnknownTaskWithoutATitleWhenQueued(t *testing.T) {
 	q.must(`[{"key":"T1","title":"Known task"}]`, "sync", "--stage", "build", "--state", "in_progress", "--reason", "Start", "--tasks", "-")
 	q.f.mustView("stop")
 	before := len(q.journal().Queue)
-	if _, err := q.run(`[{"key":"T9","state":"in_progress"}]`, "sync", "--stage", "build", "--state", "completed", "--reason", "Untitled", "--tasks", "-", "--close", "completed"); err == nil || !strings.Contains(err.Error(), "tasks[0].title: required field") {
+	if _, err := q.run(`[{"key":"T9","state":"in_progress"}]`, "sync", "--stage", "build", "--state", "completed", "--reason", "Untitled", "--tasks", "-", "--close", "completed"); err == nil || !strings.Contains(err.Error(), "task_title_required") || !strings.Contains(err.Error(), "tasks[0].title") {
 		t.Fatalf("an unknown untitled task was accepted: %v", err)
 	}
 	if got := len(q.journal().Queue); got != before {
@@ -205,6 +205,46 @@ func TestWorkQueueRejectsAnUnknownTaskWithoutATitleWhenQueued(t *testing.T) {
 	sent := decodeSync(t, q.must("", "sync", "--stage", "build", "--state", "in_review", "--reason", "Review"))
 	if sent.Queue == nil || sent.Queue.Sent != 1 || len(sent.Queue.Rejected) != 0 {
 		t.Fatalf("queue: %+v", sent.Queue)
+	}
+}
+
+// When the journal believed a task registered that the work lacks, the queued
+// sync is rejected when sent, reported, and leaves the queue without blocking
+// the commands that follow.
+func TestWorkQueueSendTimeTitleRejectionLeavesTheQueue(t *testing.T) {
+	q := newQueueCLI(t)
+	opened := decodeSync(t, q.open("believed"))
+	q.must("", "sync", "--stage", "build", "--state", "in_progress", "--reason", "Start")
+	dir := filepath.Join(q.f.stateDir, "publisher", "v1")
+	j := q.journal()
+	// The journal believes T9 registered, as after a remote removal: a copy of
+	// the confirmed stage intent that names a registration instead.
+	var believed viewWorkIntent
+	for _, i := range j.History {
+		if i.WorkID == opened.WorkID && i.State == "confirmed" {
+			believed = *i
+		}
+	}
+	if believed.ID == "" {
+		t.Fatal("no confirmed intent to copy")
+	}
+	believed.ID = workID("intent-")
+	believed.Context, _ = json.Marshal(struct {
+		Command viewWorkCommand `json:"command"`
+	}{viewWorkCommand{Action: "tasks register", WorkID: opened.WorkID, Tasks: []viewWorkTaskInput{{Key: "T9", Title: "Gone"}}}})
+	j.History = append(j.History, &believed)
+	if err := writeWorkJournal(dir, j); err != nil {
+		t.Fatal(err)
+	}
+	q.f.mustView("stop")
+	decodeQueued(t, q.must(`[{"key":"T9","state":"in_progress"}]`, "sync", "--stage", "build", "--state", "in_progress", "--reason", "Believed", "--tasks", "-"))
+	q.f.mustView("start")
+	next := decodeSync(t, q.must("", "sync", "--stage", "build", "--state", "in_review", "--reason", "Review"))
+	if next.Queue == nil || next.Queue.Sent != 0 || len(next.Queue.Rejected) != 1 || next.Queue.Rejected[0].Reason != "task_title_required" {
+		t.Fatalf("next sync: %+v", next)
+	}
+	if again := decodeSync(t, q.must("", "sync", "--stage", "build", "--state", "in_progress", "--reason", "Back")); again.Queue != nil && len(again.Queue.Rejected) != 0 {
+		t.Fatalf("the rejected declaration came back: %+v", again.Queue)
 	}
 }
 

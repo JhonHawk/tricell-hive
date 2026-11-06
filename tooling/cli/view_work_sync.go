@@ -171,9 +171,9 @@ func (e *viewWorkEngine) sync(c viewWorkCommand) (viewWorkSyncResult, error) {
 	// depends on the work when the declaration is sent, so this is a state
 	// rejection, which a queued declaration reports and leaves the queue with,
 	// and it comes before any write.
-	for _, t := range c.SyncTasks {
+	for i, t := range c.SyncTasks {
 		if t.Title == "" && workLifecycleTask(s, t.Key) == nil {
-			return viewWorkSyncResult{}, workStateError("task_title_required")
+			return viewWorkSyncResult{}, viewWorkTaskTitleRequired(fmt.Sprintf("tasks[%d].title", i))
 		}
 	}
 	changed := false
