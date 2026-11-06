@@ -109,7 +109,7 @@ func runReleaseExecutor(in io.Reader, out io.Writer) error {
 	return distribution.WriteUpdateMessage(out, response)
 }
 
-func routeSavedUpdate(data []byte) (bool, error) {
+func routeSavedUpdate(data []byte, out, notices io.Writer) (bool, error) {
 	if !management.IsUpdatePlan(data) {
 		return false, nil
 	}
@@ -120,15 +120,25 @@ func routeSavedUpdate(data []byte) (bool, error) {
 	if p.Installation {
 		return true, fmt.Errorf("package installation must be confirmed through hive install")
 	}
+	notes, err := releaseUpdateHookNotes(p)
+	if err != nil {
+		return true, err
+	}
 	payload, _ := json.Marshal(management.UpdateApplyPayload{Plan: p})
 	q := distribution.UpdateRequest{Protocol: p.Protocol, OperationID: p.OperationID, Action: distribution.UpdateApply, ProductVersion: p.Package.Artifact.ProductVersion, Payload: payload}
 	r, err := management.RouteUpdate(q, p)
 	if err != nil {
 		return true, err
 	}
-	return true, output(r)
+	if err := writeReleaseCLIResponse(out, r); err != nil {
+		return true, err
+	}
+	if r.Status == distribution.UpdateActivated {
+		printHookNotes(notices, notes)
+	}
+	return true, nil
 }
-func routePendingUpdate(dir string) (bool, error) {
+func routePendingUpdate(dir string, out, notices io.Writer) (bool, error) {
 	j, err := management.PendingUpdate(dir)
 	if err != nil {
 		return true, err
@@ -142,5 +152,18 @@ func routePendingUpdate(dir string) (bool, error) {
 	if err != nil {
 		return true, err
 	}
-	return true, output(r)
+	if err := writeReleaseCLIResponse(out, r); err != nil {
+		return true, err
+	}
+	if r.Status == distribution.UpdateActivated || r.Status == distribution.UpdateRecovered {
+		printHookNotes(notices, releaseUpdateHookReminder(j.Plan))
+	}
+	return true, nil
+}
+
+// Keep the command's structured stdout independent of actionable stderr notes.
+func writeReleaseCLIResponse(out io.Writer, r distribution.UpdateResponse) error {
+	enc := json.NewEncoder(out)
+	enc.SetIndent("", "  ")
+	return enc.Encode(r)
 }

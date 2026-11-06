@@ -297,7 +297,7 @@ func runApply(args []string) error {
 	if err != nil {
 		return err
 	}
-	if routed, err := routeSavedUpdate(data); routed {
+	if routed, err := routeSavedUpdate(data, os.Stdout, os.Stderr); routed {
 		return err
 	}
 	p, err := management.LoadPlan(planFile)
@@ -365,7 +365,7 @@ func runRecover(args []string) error {
 	// pending onboarding could ever be reconciled from a second
 	// terminal.
 	o.Scope = "user"
-	if routed, err := routePendingUpdate(o.StateDir); routed {
+	if routed, err := routePendingUpdate(o.StateDir, os.Stdout, os.Stderr); routed {
 		return err
 	}
 	// RecoverOnboarding (reached through recoverWithAdapterFactory) is

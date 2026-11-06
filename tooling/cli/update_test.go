@@ -660,3 +660,15 @@ func TestUpdatePendingRecoveryCommandQuotesPaths(t *testing.T) {
 		t.Fatalf("recovery command is not runnable:\n%s\nwant %s", got, want)
 	}
 }
+
+func TestReleaseUpdateHookNotesKeepFutureCoreOpaque(t *testing.T) {
+	_, schema := management.UpdateStateVersions()
+	for _, stateVersion := range []int{schema + 1, schema} {
+		t.Run(fmt.Sprintf("state-%d", stateVersion), func(t *testing.T) {
+			notes, err := releaseUpdateHookNotes(management.UpdatePlan{CoreStateVersion: stateVersion, CorePlan: json.RawMessage(`{"future_schema":{"unknown":"payload"}}`), Hosts: []string{"codex"}})
+			if err != nil || !strings.Contains(strings.Join(notes, "\n"), "/hooks") || !strings.Contains(strings.Join(notes, "\n"), "if prompted") {
+				t.Fatalf("future executor lost actionable approval reminder: %v %v", notes, err)
+			}
+		})
+	}
+}

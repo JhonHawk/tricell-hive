@@ -619,6 +619,12 @@ func applyPreparedRelease(r *releasePreparation, out io.Writer) error {
 		fmt.Fprintf(out, "Hive is already up to date (%s).\n", r.target.ProductVersion)
 		return nil
 	}
+	// Capture notes while hooks still contain the before-state. The frozen
+	// core plan supplies the exact destinations and executor being activated.
+	notes, err := releaseUpdateHookNotes(r.plan)
+	if err != nil {
+		return err
+	}
 	if err := r.packageFiles.Retain(); err != nil {
 		return err
 	}
@@ -635,7 +641,39 @@ func applyPreparedRelease(r *releasePreparation, out io.Writer) error {
 		return fmt.Errorf("core committed; command activation is pending; run %s", releaseRecoveryCommand(r.plan))
 	}
 	fmt.Fprintf(out, "Hive updated (%s → %s).\nOpen new CLI sessions.\n", version.Current, r.target.ProductVersion)
+	printHookNotes(out, notes)
 	reportUpdateViewer(out, r.plan.StateDir, r.plan.Package.Artifact.ProductVersion)
+	return nil
+}
+
+// Future executors own their core schema. A cohort-based reminder keeps the
+// approval action available without interpreting that schema in this launcher.
+func releaseUpdateHookNotes(p management.UpdatePlan) ([]string, error) {
+	_, schema := management.UpdateStateVersions()
+	if p.CoreStateVersion != schema {
+		return releaseUpdateHookReminder(p), nil
+	}
+	var core management.Plan
+	if err := distribution.DecodeUpdateMessage(bytes.NewReader(p.CorePlan), &core); err != nil {
+		// A target can extend its plan without changing the state schema.
+		// Optional local notes must not prevent its verified executor running.
+		return releaseUpdateHookReminder(p), nil
+	}
+	notes, err := management.HostHookNotes(core)
+	if err != nil {
+		return nil, err
+	}
+	return append(notes, management.HostHookWarnings(core)...), nil
+}
+
+// Recovery may observe committed hooks, so it cannot infer prior approval
+// requirements by inspecting their after-state. Keep this advice conditional.
+func releaseUpdateHookReminder(p management.UpdatePlan) []string {
+	for _, host := range p.Hosts {
+		if host == "codex" {
+			return []string{"Codex hooks: after opening a new session, check /hooks and approve the changed Hive command if prompted."}
+		}
+	}
 	return nil
 }
 

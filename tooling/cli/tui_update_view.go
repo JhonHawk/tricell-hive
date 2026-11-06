@@ -532,7 +532,12 @@ func recoverReleaseViewCmd(v *updateView, j management.UpdateJournal) tea.Cmd {
 		if err == nil && r.Status != distribution.UpdateActivated && r.Status != distribution.UpdateRecovered {
 			err = fmt.Errorf("core committed; command activation is still pending; retry recovery with %s", releaseRecoveryCommand(j.Plan))
 		}
-		return updateAppliedMsg{owned: owned{v}, flow: flow, text: fmt.Sprintf("Release update recovery: %s.", r.Status), err: err}
+		var text bytes.Buffer
+		fmt.Fprintf(&text, "Release update recovery: %s.\n", r.Status)
+		if err == nil {
+			printHookNotes(&text, releaseUpdateHookReminder(j.Plan))
+		}
+		return updateAppliedMsg{owned: owned{v}, flow: flow, text: strings.TrimSpace(text.String()), err: err}
 	}
 }
 

@@ -212,6 +212,50 @@ func TestReleaseUpdateCLI(t *testing.T) {
 		}
 	})
 
+	t.Run("terminal applied success", func(t *testing.T) {
+		fresh := newUpdateEnv(t)
+		installDirect(t, fresh.home, fresh.stateDir, e.repo, []string{"codex"})
+		cfg := appConfig{Options: management.Options{Scope: "user", Home: fresh.home, StateDir: fresh.stateDir}, ExplicitStateDir: true, Deps: defaultInstallDependencies(coreOnlyAdapterFactory), NoColor: true}
+		normalized, _, err := management.NormalizeOptions(cfg.Options)
+		if err != nil || !normalized.Synthetic {
+			t.Fatalf("explicit home fixture is not synthetic: %v", err)
+		}
+		http.DefaultTransport = releaseTransport
+		v := newUpdateView(cfg)
+		root := newAppModel(cfg)
+		root.width = 80
+		root.height = 24
+		root.statusLoading = false
+		root.push(v)
+		d := newAppDriver(t, root)
+		cmd := v.resolve()
+		if screen := d.screen(); !strings.Contains(screen, "Checking release") {
+			t.Fatalf("no preparing state: %s", screen)
+		} else {
+			t.Logf("preparing 80x24:\n%s", screen)
+		}
+		d.run(cmd)
+		if _, ok := root.top().(*confirmView); !ok {
+			t.Fatalf("no release confirmation: %s", d.screen())
+		}
+		d.hold = true
+		d.key("enter")
+		if !root.writing || root.writeTarget != v || len(d.held) == 0 {
+			t.Fatal("confirmation did not enter the protected write path")
+		}
+		d.hold = false
+		d.release()
+		if root.writing || root.top() != v {
+			t.Fatalf("apply did not return to Update: %s", d.screen())
+		}
+		screen := d.screen()
+		if !strings.Contains(screen, "Hive updated (1.0.0 → 1.2.3)") || !strings.Contains(screen, "/hooks") || !strings.Contains(screen, "approve") {
+			t.Fatalf("rendered success lost hook guidance: %s", screen)
+		}
+		assertFits(t, d, 80, 24)
+		t.Logf("applied success 80x24:\n%s", screen)
+	})
+
 	for _, kind := range []string{"keyboard", "SIGINT", "QuitMsg"} {
 		t.Run("quit confirmed preview/"+kind, func(t *testing.T) {
 			cfg := appConfig{Options: management.Options{Scope: "user", Home: e.home, StateDir: e.stateDir}}
@@ -257,52 +301,75 @@ func TestReleaseUpdateCLI(t *testing.T) {
 			}
 		})
 	}
-	t.Run("pending recovery view", func(t *testing.T) {
-		prepared, err := prepareReleaseUpdate(updateFlags{Home: e.home, StateDir: e.stateDir})
-		if err != nil {
-			t.Fatal(err)
-		}
-		defer prepared.packageFiles.Cleanup()
-		if err = prepared.packageFiles.Retain(); err != nil {
-			t.Fatal(err)
-		}
-		journal, err := management.SealUpdateJournal(management.UpdateJournal{Version: 1, Plan: prepared.plan, Phase: management.UpdatePrepared, CoreJournalPath: filepath.Join(e.stateDir, "transactions", prepared.plan.CoreTransactionID+".json")})
-		if err != nil {
-			t.Fatal(err)
-		}
-		data, _ := json.Marshal(journal)
-		putCharacterization(t, filepath.Join(e.stateDir, "update", "pending.json"), string(data))
-		http.DefaultTransport = updateHTTPBoundary(func(*http.Request) (*http.Response, error) {
-			t.Error("recovery view used network")
-			return nil, fmt.Errorf("offline")
+	for _, surface := range []string{"terminal", "command"} {
+		t.Run("pending recovery/"+surface, func(t *testing.T) {
+			prepared, err := prepareReleaseUpdate(updateFlags{Home: e.home, StateDir: e.stateDir})
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer prepared.packageFiles.Cleanup()
+			if err = prepared.packageFiles.Retain(); err != nil {
+				t.Fatal(err)
+			}
+			journal, err := management.SealUpdateJournal(management.UpdateJournal{Version: 1, Plan: prepared.plan, Phase: management.UpdatePrepared, CoreJournalPath: filepath.Join(e.stateDir, "transactions", prepared.plan.CoreTransactionID+".json")})
+			if err != nil {
+				t.Fatal(err)
+			}
+			data, _ := json.Marshal(journal)
+			putCharacterization(t, filepath.Join(e.stateDir, "update", "pending.json"), string(data))
+			defer func() { http.DefaultTransport = releaseTransport }()
+			http.DefaultTransport = updateHTTPBoundary(func(*http.Request) (*http.Response, error) {
+				t.Error("recovery view used network")
+				return nil, fmt.Errorf("offline")
+			})
+			if surface == "command" {
+				var output, notes bytes.Buffer
+				if handled, err := routePendingUpdate(e.stateDir, &output, &notes); !handled || err != nil {
+					t.Fatalf("command recovery: %v %v", handled, err)
+				}
+				if !strings.Contains(notes.String(), "/hooks") || !strings.Contains(notes.String(), "if prompted") {
+					t.Fatalf("command recovery omitted conditional hook guidance: %s", notes.String())
+				}
+				if !json.Valid(output.Bytes()) {
+					t.Fatalf("recovery notes polluted structured output: %s", output.String())
+				}
+				if pending, err := management.PendingUpdate(e.stateDir); err != nil || pending != nil {
+					t.Fatalf("recovery left pending: %+v %v", pending, err)
+				}
+				http.DefaultTransport = releaseTransport
+				return
+			}
+			v := newUpdateView(appConfig{Options: management.Options{Scope: "user", Home: e.home, StateDir: e.stateDir}})
+			cmd := v.resolve()
+			v.onPlanned(cmd().(updatePlannedMsg))
+			if v.pendingRelease == nil {
+				t.Fatalf("no actionable recovery: %s", v.message)
+			}
+			th := newAppTheme(false, true)
+			v.Resize(80, 20)
+			screen := v.View(viewCtx{Theme: &th, Width: 80, Height: 20})
+			if !strings.Contains(screen, "Enter recovers offline") {
+				t.Fatal(screen)
+			}
+			t.Logf("pending 80x24:\n%s", screen)
+			cmd, act := v.onKey(keyMsg(t, "enter"))
+			if cmd == nil || !act.write {
+				t.Fatal("recovery did not use protected write path")
+			}
+			msg := cmd().(updateAppliedMsg)
+			v.onApplied(msg)
+			if msg.err != nil {
+				t.Fatalf("offline recovery: %v", msg.err)
+			}
+			if !strings.Contains(msg.text, "/hooks") || !strings.Contains(msg.text, "if prompted") {
+				t.Fatalf("recovery omitted conditional hook guidance: %s", msg.text)
+			}
+			if pending, err := management.PendingUpdate(e.stateDir); err != nil || pending != nil {
+				t.Fatalf("recovery left pending: %+v %v", pending, err)
+			}
+			http.DefaultTransport = releaseTransport
 		})
-		v := newUpdateView(appConfig{Options: management.Options{Scope: "user", Home: e.home, StateDir: e.stateDir}})
-		cmd := v.resolve()
-		v.onPlanned(cmd().(updatePlannedMsg))
-		if v.pendingRelease == nil {
-			t.Fatalf("no actionable recovery: %s", v.message)
-		}
-		th := newAppTheme(false, true)
-		v.Resize(80, 20)
-		screen := v.View(viewCtx{Theme: &th, Width: 80, Height: 20})
-		if !strings.Contains(screen, "Enter recovers offline") {
-			t.Fatal(screen)
-		}
-		t.Logf("pending 80x24:\n%s", screen)
-		cmd, act := v.onKey(keyMsg(t, "enter"))
-		if cmd == nil || !act.write {
-			t.Fatal("recovery did not use protected write path")
-		}
-		msg := cmd().(updateAppliedMsg)
-		v.onApplied(msg)
-		if msg.err != nil {
-			t.Fatalf("offline recovery: %v", msg.err)
-		}
-		if pending, err := management.PendingUpdate(e.stateDir); err != nil || pending != nil {
-			t.Fatalf("recovery left pending: %+v %v", pending, err)
-		}
-		http.DefaultTransport = releaseTransport
-	})
+	}
 	planFile := filepath.Join(filepath.Dir(e.repo), "frozen.json")
 	out.Reset()
 	if err = update(append(base, "--out", planFile), strings.NewReader(""), &out, false); err != nil {
@@ -319,9 +386,26 @@ func TestReleaseUpdateCLI(t *testing.T) {
 		t.Error("saved plan used network")
 		return nil, fmt.Errorf("offline")
 	})
-	if handled, err := routeSavedUpdate(data); !handled || err != nil {
+
+	var savedOutput, savedNotes bytes.Buffer
+	if handled, err := routeSavedUpdate(data, &savedOutput, &savedNotes); !handled || err != nil {
 		t.Fatalf("offline apply: %v %v", handled, err)
 	}
+	if !strings.Contains(savedNotes.String(), "/hooks") {
+		t.Fatalf("offline apply omitted hook guidance: %s", savedNotes.String())
+	}
+	if !json.Valid(savedOutput.Bytes()) {
+		t.Fatalf("notes polluted structured output: %s", savedOutput.String())
+	}
+	savedOutput.Reset()
+	savedNotes.Reset()
+	if handled, err := routeSavedUpdate(data, &savedOutput, &savedNotes); !handled || err != nil {
+		t.Fatalf("repeated saved plan: %v %v", handled, err)
+	}
+	if savedNotes.Len() != 0 {
+		t.Fatalf("unchanged saved plan repeated approval: %s", savedNotes.String())
+	}
+
 	link, err := os.Readlink(filepath.Join(e.home, ".local", "bin", "hive"))
 	if err != nil || link != filepath.Join(store, label, "bin", "hive") {
 		t.Fatalf("activation: %s %v", link, err)
@@ -330,6 +414,42 @@ func TestReleaseUpdateCLI(t *testing.T) {
 		t.Fatalf("content: %s %v", b, err)
 	}
 
+	t.Run("post-commit recovery guidance", func(t *testing.T) {
+		p, err := management.ReadUpdatePlan(bytes.NewReader(data))
+		if err != nil {
+			t.Fatal(err)
+		}
+		// The child really committed above. Recreate its parent completion window
+		// with those durable child bytes still present and integrations already new.
+		for _, surface := range []string{"command", "terminal"} {
+			journal, err := management.SealUpdateJournal(management.UpdateJournal{Version: 1, Plan: p, Phase: management.UpdateActivationPending, CoreJournalPath: filepath.Join(p.StateDir, "transactions", p.CoreTransactionID+".json")})
+			if err != nil {
+				t.Fatal(err)
+			}
+			raw, _ := json.Marshal(journal)
+			putCharacterization(t, filepath.Join(p.StateDir, "update", "pending.json"), string(raw))
+			var notes bytes.Buffer
+			if surface == "command" {
+				var structured bytes.Buffer
+				if handled, err := routePendingUpdate(p.StateDir, &structured, &notes); !handled || err != nil {
+					t.Fatalf("post-commit command recovery: %v %v", handled, err)
+				}
+				if !json.Valid(structured.Bytes()) {
+					t.Fatalf("recovery stdout changed: %s", structured.String())
+				}
+			} else {
+				v := newUpdateView(appConfig{Options: management.Options{Scope: "user", Home: e.home, StateDir: e.stateDir}})
+				msg := recoverReleaseViewCmd(v, journal)().(updateAppliedMsg)
+				if msg.err != nil {
+					t.Fatalf("post-commit terminal recovery: %v", msg.err)
+				}
+				notes.WriteString(msg.text)
+			}
+			if !strings.Contains(notes.String(), "/hooks") || !strings.Contains(notes.String(), "if prompted") {
+				t.Fatalf("%s lost approval guidance after hooks committed: %s", surface, notes.String())
+			}
+		}
+	})
 	t.Run("confirmed complete update", func(t *testing.T) {
 		fresh := newUpdateEnv(t)
 		hosts := []string{"codex", "claude"}
@@ -372,6 +492,9 @@ func TestReleaseUpdateCLI(t *testing.T) {
 		if strings.Count(result.String(), "Apply this complete update") != 1 || !strings.Contains(result.String(), "Hive updated (1.0.0 → 1.2.3)") {
 			t.Fatalf("wrong confirmation/result: %s", result.String())
 		}
+		if !strings.Contains(result.String(), "/hooks") || !strings.Contains(result.String(), "approve") {
+			t.Fatalf("Codex update omitted hook reapproval: %s", result.String())
+		}
 		checkVersion("1.2.3")
 		if body, err := os.ReadFile(fresh.sharedSkillPath()); err != nil || !strings.Contains(string(body), "New release.") {
 			t.Fatalf("updated content: %q %v", body, err)
@@ -411,6 +534,9 @@ func TestReleaseUpdateCLI(t *testing.T) {
 	}
 	if fmt.Sprint(stateBeforeNoop) != fmt.Sprint(collectFiles(t, e.stateDir)) {
 		t.Fatal("no-op wrote state or a redundant migration")
+	}
+	if strings.Contains(out.String(), "/hooks") {
+		t.Fatalf("unchanged update repeated hook approval: %s", out.String())
 	}
 	if !strings.Contains(out.String(), "already up to date") || strings.Contains(out.String(), "Apply this complete") {
 		t.Fatalf("no-op unexpectedly confirmed or migrated: %s", out.String())
