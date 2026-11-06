@@ -518,6 +518,28 @@ func TestUpdateViewReleaseStates(t *testing.T) {
 	t.Cleanup(func() { version.Current = previous })
 	home, state := newHostsTestHome(t)
 	cfg := appConfig{Options: management.Options{Home: home, StateDir: state}}
+	t.Run("backward focus order", func(t *testing.T) {
+		v := newUpdateView(cfg)
+		v.Resize(80, 20)
+		th := newAppTheme(false, true)
+		ctx := viewCtx{Theme: &th, Width: 80, Height: 20}
+		v.onKey(keyMsg(t, "left")) // Release mode to Source, with Mode focused.
+		v.onKey(keyMsg(t, "tab"))
+		for _, field := range []string{"Mode", "Revision", "Source"} {
+			v.onKey(keyMsg(t, "shift+tab"))
+			if screen := stripANSI(v.View(ctx)); !strings.Contains(screen, "> "+field) {
+				t.Fatalf("backward navigation should focus %s:\n%s", field, screen)
+			}
+		}
+		v.onKey(keyMsg(t, "up"))
+		v.onKey(keyMsg(t, "right"))
+		for _, field := range []string{"Version", "Mode"} {
+			v.onKey(keyMsg(t, "shift+tab"))
+			if screen := stripANSI(v.View(ctx)); !strings.Contains(screen, "> "+field) {
+				t.Fatalf("release backward navigation should focus %s:\n%s", field, screen)
+			}
+		}
+	})
 	for _, width := range []int{80, 40} {
 		t.Run(fmt.Sprint(width), func(t *testing.T) {
 			v := newUpdateView(cfg)

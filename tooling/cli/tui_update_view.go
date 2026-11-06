@@ -225,12 +225,12 @@ func (v *updateView) onKey(msg tea.KeyPressMsg) (tea.Cmd, action) {
 		return v.setFocus(1), action{nav: navNone}
 	case "shift+tab":
 		if v.focus == -1 {
-			return v.setFocus(0), action{nav: navNone}
+			if v.releaseMode {
+				return v.setFocus(0), action{nav: navNone}
+			}
+			return v.setFocus(1), action{nav: navNone}
 		}
-		if v.releaseMode || v.focus == 1 {
-			return v.setFocus(-1), action{nav: navNone}
-		}
-		return v.setFocus(1), action{nav: navNone}
+		return v.setFocus(v.focus - 1), action{nav: navNone}
 	case "enter":
 		if v.pendingRelease != nil {
 			return recoverReleaseViewCmd(v, *v.pendingRelease), action{nav: navNone, write: true, result: v}
