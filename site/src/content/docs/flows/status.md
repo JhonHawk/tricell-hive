@@ -23,7 +23,8 @@ Nothing. The report is never replaced by a question card, and the flow is read-o
 ## What it reads
 
 - The tickets in every non-terminal state, as short summaries.
-- Unfinished local work: the current branch, uncommitted changes, branches not yet merged, worktrees and open pull requests.
+- Unfinished local work: the current branch, uncommitted changes, branches not yet merged, worktrees, open pull requests, and change folders with work outside Git in the specs repository, even when it is a separate one: a folder never committed, or uncommitted edits to one, in any checkout or worktree.
+- The work left open on purpose: the `Pending:` records [Close](/flows/close/) keeps in persistent memory, each marked ready to resume when everything that unblocks it is resolved. Status never deletes a record; a close does.
 
 ## What the report holds
 
@@ -31,7 +32,7 @@ One block, in this order:
 
 1. A summary line: open tickets, how many wait for each promotion, how many are in progress.
 2. The tickets grouped by product module or by relation, never as a flat list.
-3. The unfinished local work, each item with the action it needs.
+3. The unfinished local work and the work left open on purpose, each item with the action it needs.
 4. Numbered recommendations, ordered by priority: production bugs, then security or data integrity, then promotion blockers, then debt. A ticket another session has in progress is never recommended.
 
 ## How it ends

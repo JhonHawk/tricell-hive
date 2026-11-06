@@ -55,7 +55,7 @@ test("work A/B scroll restores independently and polling append never jumps or s
     async (path) =>
       new Response(
         JSON.stringify(
-          path === "/api/index"
+          path === "/api/index?navigation=grouped"
             ? {
                 protocol_version: 3,
                 retention: "manual",
@@ -68,6 +68,7 @@ test("work A/B scroll restores independently and polling append never jumps or s
                 String(path).endsWith(d.session.viewer_session_id),
               ),
         ),
+        { headers: { "X-Hive-Timeline-Revision": "3" } },
       ),
     { getItem: () => "test-token", setItem() {}, removeItem() {} },
   );

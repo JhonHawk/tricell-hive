@@ -46,7 +46,7 @@ Use it to investigate an uncertain request, plan a consequential change, or carr
 an understood task through implementation and verification—with clear boundaries
 between what was requested, what was authorized, and what was demonstrated.
 
-> **Version 0.8.0 · a narrower test rule and a test-audit skill, a ready delivery mode, and brief viewer contracts per flow**
+> **Version 0.9.0 · complete release updates, stable command migration, and recoverable offline plans**
 > Each release sets [VERSION](VERSION) to its product version; between releases,
 > `development` carries `dev`. Packages for macOS Apple
 > Silicon and Linux arm64/amd64 are published on
@@ -86,10 +86,11 @@ curl -fsSL https://hive.tricell.tech/install.sh | sh
 It asks which hosts to install and confirms before it writes.
 
 - **Preview first:** append `-s -- --dry-run`. No host changes; the package is
-  still downloaded.
-- **Pick a release or hosts:** append `-s -- --version 0.8.0 --hosts claude,codex`.
-- **Afterwards:** `hive` is not added to your `PATH`. It lives at
-  `~/.local/share/hive/packages/hive-<version>-<os>-<arch>/bin/hive`.
+  still downloaded; behavior depends on the selected package version.
+- **Pick a release or hosts:** append `-s -- --version 0.9.0 --hosts claude,codex`.
+- **Afterwards:** packages with the new update protocol register
+  `~/.local/bin/hive` as the stable command. The installer does not edit `PATH`
+  or overwrite an unowned file there. Older packages print their versioned path.
 - **Requirements:** `curl`, `tar`, and `shasum` or `sha256sum`.
 
 The [installer contract](_support/docs/architecture/installer.md#one-line-installation)
@@ -112,9 +113,9 @@ cd hive-<version>-<os>-<arch>
 ```
 
 `install.sh` asks which hosts to install and confirms before it writes. It does
-not put `hive` on your `PATH`: run later commands with the extracted `bin/hive`
-(for example `./bin/hive status ...`), or copy that file to a directory on your
-`PATH`.
+not edit `PATH`. A package with the new update protocol retains its verified
+package and registers `~/.local/bin/hive`; an unowned destination is a conflict.
+Older packages use the extracted `bin/hive`.
 
 On macOS, Gatekeeper may block a binary downloaded through a browser (a
 possibility, not verified here). Either download with `curl` or `gh release
@@ -137,13 +138,18 @@ GitHub's automatic **Source code** archives are not packages; use the
 From the checkout root, with **Go 1.27.0 or later** as declared in [go.mod](go.mod):
 
 ```sh
+# Build a binary at a stable path: a user-scope install writes that path into
+# the host hooks, and a `go run` binary is deleted when the command ends, so the
+# manager refuses it.
+go build -o ~/bin/hive ./tooling/cli
 # Preview the destinations, then install with terminal confirmation.
-go run ./tooling/cli install --hosts codex --dry-run
-go run ./tooling/cli install --hosts codex
+~/bin/hive install --hosts codex --dry-run
+~/bin/hive install --hosts codex
 ```
 
-Replace `codex` with your host, or a comma-separated selection such as
-`codex,claude`. The installer shows destinations and where it keeps recovery
+Create `~/bin` first if needed, and choose a path that does not overwrite an
+existing command. Replace `codex` with your host, or a comma-separated selection such as
+`codex,claude`, and the output path with a directory on your `PATH`. The installer shows destinations and where it keeps recovery
 journals before requiring affirmative confirmation. The first build needs access to the
 Go modules unless they are already cached.
 
@@ -167,7 +173,7 @@ default_mode_request_user_input`, Codex's own command, so Codex asks its
 decisions through a card that waits in Default mode (uncheck it, or type `none`,
 to skip it; `codex features disable default_mode_request_user_input` turns it
 off). The Codex wait floor (`codex-wait-floor`) is the fourth: an interactive
-install or `hive update` with the Codex host offers it, selected by default, while
+install or a committed-source `hive update` with the Codex host offers it, selected by default, while
 the setting is not applied and Codex is 0.164 or later (a dry run offers
 nothing, an applied setting is not offered again, and nothing is offered at project scope). After you consent, Hive
 itself writes `min_wait_timeout_ms = 300000` and
@@ -205,7 +211,7 @@ not prove that a particular session loaded the content or followed it.
 | --- | --- | --- |
 | Claude Code | User and project | Native instructions, skills, and rendered roles. A project's `CLAUDE.md` must import `@AGENTS.md`. |
 | Codex | User and project | Native instructions, shared skills, and rendered roles. |
-| Grok Build | User | Claude instruction compatibility must be enabled, or the install reports a conflict. Role selection varies by version. Hive adds a `read_file` hook, `~/.grok/hooks/hive-read-whole-references.json`, so skill references are read whole; it runs the `hive` binary that installed it, so restart Grok sessions after installing. |
+| Grok Build | User | Claude instruction compatibility must be enabled, or the install reports a conflict. Role selection varies by version. Hive adds a `read_file` hook, `~/.grok/hooks/hive-read-whole-references.json`, so skill references are read whole; it runs the `hive` binary that installed it, so restart Grok sessions after installing. A second file, `hive-session-events.json`, reports session events to the viewer. |
 | Pi | User | Delegated roles need pi-subagents (installed through npm as described above). Roles run on the session's model by default; set others with `hive models set`. Honors `PI_CODING_AGENT_DIR`. |
 | OpenCode V2 | User | Needs your own model providers. Roles run on the session's model and effort by default; set others with `hive models set`. |
 | Cursor CLI | User | Loads no global instruction file; each repository needs a pointer line (below). Cursor CLI 2026.10.22 loads no user-level subagents, only those in the repository's `.cursor/agents`, `.claude/agents` and `.grok/agents`, so Hive's user-level roles run as generic agents that receive the role's instructions. |
@@ -243,27 +249,50 @@ Hive supplies no model runtime or universal permission sandbox.
 
 ## Update, verify, recover, and uninstall
 
-The commands below call `hive`. After a one-line installation it is
-`~/.local/share/hive/packages/hive-<version>-<os>-<arch>/bin/hive`; after a
-package installation, the extracted `bin/hive`; in a source checkout, use
-`go run ./tooling/cli`. Copy or link it into a directory on your `PATH` to type
-`hive` directly.
+Release 0.9.0 introduces complete release updates. Users of 0.8.0 and earlier
+must run the 0.9.0-or-newer installer once; their old `hive update` cannot
+replace its own binary. No uninstall is required.
 
-**Update.** One-line users run the same command again; each version adds its
-own folder under `~/.local/share/hive/packages/`, and older ones can be deleted
-once you no longer need them for recovery and Grok's hook no longer points to
-them: run `hive update` or `hive install` from the newer binary first. Package users run the
-newer package's `./install.sh`. Source users
-pull, rebuild the binary when `tooling/` or `integrations/` changed, then preview
-and apply. `hive update` deploys the committed `HEAD`, never uncommitted edits,
-and does not replace the binary:
+**Update.** Run the new installer once to migrate an existing package installation.
+It registers `~/.local/bin/hive` without editing `PATH` or overwriting an unowned
+file. Use that path explicitly if it is not on your `PATH`, and remove or update
+any shell alias that still selects an old versioned binary. If an unowned file
+already occupies the stable path, the installer stops: preserve it and resolve
+the collision before retrying. Thereafter:
 
 ```sh
-git pull
-go build -o ~/bin/hive ./tooling/cli   # if tooling/ or integrations/ changed; use your hive path
 hive update --dry-run
 hive update
+hive update --version X.Y.Z   # exact compatible version, including an explicit downgrade
+hive update --out /absolute/update-plan.json
+hive apply --plan /absolute/update-plan.json
 ```
+
+The default selects a compatible stable release without an implicit downgrade;
+`--version` selects an exact compatible version. The preview uses disposable
+inputs and changes neither the installation nor persistent package storage. A
+saved plan retains the verified target and applies offline without resolving the
+release again; stale state, destinations or bytes are refused. Packages are
+retained by version. A release update does not run optional providers; if Pi's
+pi-subagents declaration needs repair, it stops and points to a separate
+`hive install`. Start new CLI sessions after updating; a running viewer is not
+restarted automatically.
+
+For development, select a Git checkout explicitly. The update uses committed
+content only and does not replace the manager; rebuild it separately when needed.
+A `dev` binary refuses a bare `hive update`.
+
+```sh
+hive update --source . --dry-run
+hive update --source .
+hive update --rev <commit>  # uses the current checkout
+```
+
+`--version` cannot be combined with `--source` or `--rev`. If an update is
+interrupted, follow its `hive recover` instruction: before the core commits,
+recovery restores incomplete core writes and keeps the previous command; after
+commit, it completes activation using the retained target, without network.
+It does not undo committed integrations.
 
 **Verify.** `status` checks managed files, `doctor` reports CLI and installation
 diagnostics, and `models` reports effective role configuration. Installed files,
@@ -308,19 +337,21 @@ sequence for every task. Authorization and preservation apply throughout.
 Start each flow by typing its command, such as `/flow-status` or `/flow-plan COM-833`
 (`$flow-plan` in Codex, `/skill:flow-plan` in Pi, `@flow-plan` in OpenCode). A typed
 command loads the skill whole for that flow, which the host's automatic selection does
-not guarantee; each flow ends by naming the command for the next one.
+not guarantee. A request to do work does not need a command: it enters Research, which
+continues into Build in the same turn when the request is complete. Where a flow needs
+your go-ahead for the next one, it ends by naming that command.
 
 ```mermaid
 flowchart TD
     Entry{"What is needed?"}
     Entry -->|Status or what's next| Status["flow-status"]
-    Entry -->|A question or a ticket| Research["flow-research"]
-    Entry -->|A multi-step change| Plan["flow-plan"]
-    Entry -->|A small authorized change| Build
+    Entry -->|Any request to do work, a question or a ticket| Research["flow-research"]
+    Entry -.->|You ask for a plan| Plan["flow-plan"]
 
     Status -->|User picks a ticket| Research
-    Research -->|Larger work| Plan
-    Research -->|Small change| Build
+    Research -->|The how has a decision for you| Plan
+    Research -->|The how is settled| Build
+    Research -->|An analysis| Findings["Findings, no flow recommended"]
     Plan --> Build["flow-build<br/><small>tasks · first rendered view (flow-walkthrough)</small>"]
     Build --> Verify["flow-verify<br/><small>suite · UX review · code review · validation (flow-walkthrough)</small>"]
     Build -->|Mechanical change| Close
@@ -346,21 +377,30 @@ lists where each flow loops.
 
 - Status ([skill](content/skills/flow-status/SKILL.md)) reports the backlog grouped by
   module and the unfinished local work, and recommends what to take next. It is read-only.
-- [Research](https://hive.tricell.tech/flows/research/) ([skill](content/skills/flow-research/SKILL.md)) turns uncertainty into a supported
-  answer, and assesses a ticket you pick before work starts: impact, complexity,
-  readiness and dependencies. It does not authorize implementation.
-- [Plan](https://hive.tricell.tech/flows/plan/) ([skill](content/skills/flow-plan/SKILL.md)) resolves consequential decisions and
-  defines contracts, verifiable tasks, and acceptance criteria when needed.
+- [Research](https://hive.tricell.tech/flows/research/) ([skill](content/skills/flow-research/SKILL.md)) is the entry for every
+  request to do work: it settles what you need, reading before it asks and asking one
+  open question at a time. A complete request is checked and done, or continues into
+  Build in the same turn; Plan comes only when the how has a decision for you or the work
+  cannot be finished from your request and the `git diff`. It also turns uncertainty into
+  a supported answer and assesses a ticket you pick. An analysis ends at its findings
+  with no flow recommended. It does not publish to the viewer.
+- [Plan](https://hive.tricell.tech/flows/plan/) ([skill](content/skills/flow-plan/SKILL.md)) settles the how: it presents two or
+  three approaches before the tasks, resolves the decisions that are yours, and
+  defines contracts, verifiable tasks, and acceptance criteria.
 - [Build](https://hive.tricell.tech/flows/build/) ([skill](content/skills/flow-build/SKILL.md)) reconciles current state and
   implements authorized work. It ends at a built candidate and hands it to Verify.
 - [Verify](https://hive.tricell.tech/flows/verify/) ([skill](content/skills/flow-verify/SKILL.md)) checks the candidate at a level
   your delivery, review and UI answers and your request set: affected tests, runtime and UI
   checks, the full suite and the dedicated review, a security review only when you
   ask for it, and your validation through a walkthrough, and then integrates it.
-- [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) reconciles the completion record and
-  cleans up task-owned temporary resources while preserving unfinished work. It
-  runs at integration, also when a project declares a later completion point in
-  its `Completion` key.
+- [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) moves the ticket and reports at
+  integration, also when a project declares a later completion point in its
+  `Completion` key, then ends with a footer that recommends closing and lists replies
+  from the context, such as resolving a finding. The record archive and the cleanup run on
+  your reply, when you start other work or when the session ends: the work's resources,
+  plus your earlier merged branches and their clean worktrees in each repository the work
+  touched. A pause commits the change folder where the specs repository allows it, and a
+  promotion not yet made keeps nothing. Unfinished work is preserved.
 - [Deploy](https://hive.tricell.tech/flows/deploy/) ([skill](content/skills/flow-deploy/SKILL.md)) is a separate stage after
   integration: it promotes through the declared environments and checks what is
   served. It never holds a close open: when a project declares a later
@@ -417,6 +457,45 @@ hive view status     # service status without its access token
 hive view stop
 ```
 
+Publish retained Markdown on demand with `hive view work publish`: the binary
+scans the selected directory, uploads the bytes and returns a compact work/revision
+receipt. `hive view work contract` describes the semantic commands. A stable key
+and retained work ID keep two change folders separate within one native session;
+`work list` lists them. Repeating unchanged content makes no remote write.
+Everything the browser manages also has a command: `hive view work rename`,
+`archive`, `restore`, `pin`, `unpin`, `recover` (reassign the lead to a pending
+join request, with a reason) and `delete` (with `--confirm` set to the work ID).
+They act as the local viewer, not as a producer, and an agent runs them only
+when you ask for that action on a named work.
+The agent declares each stage change once with `hive view work sync` (state,
+reason and task states in one call) and, for a build without a plan, needs only
+`open`, `sync`, `evidence` and `close`; it passes no host or session identity,
+because the binary resolves it. With the viewer stopped these commands answer
+`queued` and the next command or hook run sends them in order. Nothing watches
+your files, and editing a checklist does not change live task status. Source
+files stay in the repository.
+
+#### Host hooks
+
+A user-scope install also registers a silent `hive hook` command in each host,
+which reports the session's start, activity and end, and where the host has one
+its native task list, to the viewer. The viewer shows them as *From host*, apart
+from what the agent publishes, and they never start or complete a stage, approve
+anything or close a work.
+
+| Host | Registered in | Notes |
+| --- | --- | --- |
+| Claude Code | `~/.claude/settings.json` | Includes native task created/completed. Held back in a folder you have not trusted. |
+| Codex | `~/.codex/hooks.json` | Hive does not write Codex's trust: approve the hook once in `/hooks`. |
+| Grok Build | `~/.grok/hooks/hive-session-events.json` | Restart open sessions. |
+| Cursor CLI | `~/.cursor/hooks.json` | Verified only in the installed code. |
+| OpenCode V2 | `~/.config/opencode/plugins/hive-events.js` | Event plugin; the context loader stays inactive. |
+| Pi | `~/.pi/agent/extensions/hive-events.ts` | Extension, auto-loaded. |
+
+Hive edits the shared JSON files entry by entry, keeps a backup of each, leaves
+other tools' hooks byte-identical and removes only its own on uninstall. Hosts
+read hooks at session start, so restart open sessions after installing.
+
 The server keeps running until you stop it. The agent registers the project and
 publishes through the versioned API. `hive view contract` prints the offline
 commands, schemas, limits and examples as compact JSON; `--for FLOW` prints one
@@ -439,15 +518,21 @@ Git deliveries have canonical IDs: a metadata correction updates current links
 while keeping the original publication context.
 
 Browser rename, archive, pin and confirmed deletion manage the work; they do
-not execute agent tasks or approve a plan. Retention is manual, without age
-expiry. Deletion removes stored
+not execute agent tasks or approve a plan. Finished, unpinned work is
+automatically archived from the default list two hours after closure; restoring
+it exempts that closure, and pinning prevents automatic archival. Archival
+changes visibility only. Content retention is manual, without age-based deletion
+or a TTL option. Deletion removes stored
 viewer data, not project sources or native conversations. Deleted work identities
 remain unavailable; a modified source does not recreate a deleted work.
 
 Protocol3 requires a fresh state directory. Earlier state formats are not
 imported or migrated, and a directory holding them fails to start. Preserve the
-old state and coordinate writers before an explicitly authorized cutover.
-Publication goes only through the running service: an incompatible or stopped
+old state and coordinate writers before an explicitly authorized cutover. Within
+protocol 3, timeline revision 3 requires a coordinated CLI, viewer and server
+update and a viewer reload. Before upgrading, retain a private state backup;
+stored works and publisher journals are preserved. Mismatched clients cannot
+write until updated. Publication goes only through the running service: an incompatible or stopped
 service, or a missing binary, leaves the work unpublished and reported.
 
 `hive view open` exchanges a short-lived, one-use URL-fragment code before data

@@ -2,10 +2,12 @@ package main
 
 import (
 	"bufio"
+	"crypto/rand"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"reflect"
@@ -324,6 +326,54 @@ func runOnboardingWizard(o management.Options, dry bool, terminal installTermina
 	stateDir := o.StateDir
 	explicitHosts := len(o.Hosts) > 0
 
+	// Only protocol-aware complete packages adopt the stable release command.
+	// Source checkouts and older offline distributions keep their current route.
+	var imported *distribution.PreparedRelease
+	var command management.UpdateCommand
+	manifest, manifestErr := distribution.ReadManifest(o.Source)
+	if manifestErr != nil && !os.IsNotExist(manifestErr) {
+		return manifestErr
+	}
+	if manifestErr == nil && manifest.UpdateProtocol != 0 {
+		if manifest.UpdateProtocol != distribution.UpdateProtocolVersion {
+			return fmt.Errorf("unsupported update protocol; install this version manually")
+		}
+		root, err := target.Canonical(o.Source)
+		if err != nil {
+			return err
+		}
+		store, err := management.ReleasePackageStore(o.Home)
+		if err != nil {
+			return err
+		}
+		_, maximum := management.UpdateStateVersions()
+		imported, err = distribution.PrepareLocalRelease(root, store, maximum)
+		if err != nil {
+			return err
+		}
+		defer imported.Cleanup()
+		path, err := management.ManagedCommandPath(o.Home)
+		if err != nil {
+			return err
+		}
+		command, err = management.InspectUpdateCommand(path, stateDir)
+		if err != nil {
+			if os.Getenv("HIVE_INSTALL_TEMPORARY_SOURCE") == "1" {
+				return fmt.Errorf("%w; download and extract the complete package, then run ./install.sh for a manual installation", err)
+			}
+			return fmt.Errorf("%w; verified package executable: %s", err, imported.Binding.PreparationExecutor.Path)
+		}
+	}
+	buildPlan := func(options management.Options, final bool) (management.Plan, error) {
+		if imported == nil {
+			return management.BuildPlan("install", options)
+		}
+		if final {
+			return management.BuildPackageInstallPlan(options, imported.Binding)
+		}
+		return management.BuildPackageInstallPreview(options, imported.Binding)
+	}
+
 	for {
 		if !explicitHosts {
 			candidates, err := dependencies.DiscoverHosts(o)
@@ -351,7 +401,7 @@ func runOnboardingWizard(o management.Options, dry bool, terminal installTermina
 		}
 		o.Hosts = expanded
 
-		p, err := management.BuildPlan("install", o)
+		p, err := buildPlan(o, false)
 		if err != nil {
 			return err
 		}
@@ -373,6 +423,10 @@ func runOnboardingWizard(o management.Options, dry bool, terminal installTermina
 		}
 		p, unchanged, preview := chosen.plan, chosen.unchanged, chosen.preview
 		showInstallSummary(out, p, preview, dry, unchanged, true)
+		if imported != nil {
+			fmt.Fprintf(out, "Stable Hive command: %s -> %s\n", command.Path, imported.Binding.TargetExecutable.Path)
+			fmt.Fprintf(out, "PATH is unchanged. Add %s to PATH if needed, or run %s directly.\n", filepath.Dir(command.Path), command.Path)
+		}
 		if dry {
 			fmt.Fprintln(out, "Preview: installation was not changed.")
 			return nil
@@ -389,8 +443,41 @@ func runOnboardingWizard(o management.Options, dry bool, terminal installTermina
 			fmt.Fprintln(out, "Cancelled. No changes applied.")
 			return nil
 		}
-		result, err := applyInstallOnboarding(p, preview, adapter)
-		return finalizeInstallResult(out, result, err, explicitStateDir, stateDir, false)
+		notes, notesErr := management.HostHookNotes(p)
+		if notesErr != nil {
+			return notesErr
+		}
+		notes = append(notes, management.HostHookWarnings(p)...)
+		var result management.OnboardingResult
+		if imported == nil {
+			result, err = applyInstallOnboarding(p, preview, adapter)
+		} else {
+			// Retain only after the one combined core/command consent.
+			// The parent coordinator owns the durable core/activation boundary.
+			if err = imported.Retain(); err != nil {
+				return err
+			}
+			o.CodexWaitFloor = p.CodexWaitFloor != nil
+			// Freeze the consented preview, including its state/destination
+			// fingerprints. Replanning here would adopt concurrent edits.
+			parent, prepareErr := management.PreparePackageInstallation(p, imported.Binding, command, rand.Text())
+			if prepareErr != nil {
+				return prepareErr
+			}
+			_, err = (management.Engine{}).ApplyReleaseUpdate(parent)
+			result = management.OnboardingResult{ID: parent.CoreTransactionID, Phase: "completed"}
+			if err == nil && len(preview.Steps) > 0 {
+				p, err = buildPlan(o, true)
+				if err == nil {
+					result, err = (management.Engine{}).OnboardPackageProviders(p, preview.Steps, adapter.Runner())
+				}
+			}
+		}
+		if ferr := finalizeInstallResult(out, result, err, explicitStateDir, stateDir, false); ferr != nil {
+			return ferr
+		}
+		printHookNotes(out, notes)
+		return nil
 	}
 }
 
@@ -858,6 +945,10 @@ func showInstallSummary(out io.Writer, p management.Plan, preview onboardingPrev
 	for _, ch := range p.Legacy {
 		destinations[ch.Path] = true
 	}
+	// The shared JSON hook files are steps, not Changes: list them too.
+	for _, path := range management.HostHookPaths(p) {
+		destinations[path] = true
+	}
 	var paths []string
 	for path := range destinations {
 		paths = append(paths, path)
@@ -869,6 +960,11 @@ func showInstallSummary(out io.Writer, p management.Plan, preview onboardingPrev
 	}
 	for _, path := range shown {
 		fmt.Fprintf(out, "  %s\n", path)
+	}
+	for _, st := range p.HostHooks {
+		if st.Skipped != "" {
+			fmt.Fprintf(out, "Warning: %s hooks will be skipped in %s (%s).\n", st.Host, st.Path, st.Skipped)
+		}
 	}
 	if !dry && mentionDryRunFlag {
 		fmt.Fprintln(out, "Use --dry-run to see the full file list before applying.")

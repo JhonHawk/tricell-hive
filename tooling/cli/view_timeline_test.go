@@ -135,16 +135,25 @@ func timelineCLIInfo(t *testing.T, server *httptest.Server) serverInfo {
 }
 
 func TestTimelineCLITransportGuardsAndProtocolIdentity(t *testing.T) {
+	var revision atomic.Bool
+	revision.Store(true)
+	var mutations atomic.Int32
 	var protocolVersion atomic.Int32
 	protocolVersion.Store(3)
 	var info serverInfo
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if revision.Load() {
+			w.Header().Set("X-Hive-Timeline-Revision", "3")
+		}
 		if r.Header.Get("X-Hive-Token") != info.Token {
 			t.Error("missing access header")
 		}
 		if r.URL.Path == "/api/health" {
 			fmt.Fprintf(w, `{"pid":123,"state_dir":"/fixture-state","timeline_protocol_version":%d}`, protocolVersion.Load())
 			return
+		}
+		if r.Method == "PATCH" {
+			mutations.Add(1)
 		}
 		if r.Method == "PATCH" && (r.Header.Get("Origin") != info.url() || r.Header.Get("X-Hive-Action-Scope") != "session") {
 			t.Error("missing mutation guards")
@@ -153,20 +162,29 @@ func TestTimelineCLITransportGuardsAndProtocolIdentity(t *testing.T) {
 	}))
 	defer server.Close()
 	info = timelineCLIInfo(t, server)
-	if err := viewTimelineProtocolReady(info, "/fixture-state"); err != nil {
+	if _, err := viewTimelineReadHealth(info, "/fixture-state"); err != nil {
 		t.Fatal(err)
 	}
 	protocolVersion.Store(1)
-	if err := viewTimelineProtocolReady(info, "/fixture-state"); err == nil {
+	if _, err := viewTimelineReadHealth(info, "/fixture-state"); err == nil {
 		t.Fatal("accepted obsolete v1 server")
 	}
 	protocolVersion.Store(3)
-	if err := viewTimelineProtocolReady(info, "/different-state"); err == nil {
+	if _, err := viewTimelineReadHealth(info, "/different-state"); err == nil {
 		t.Fatal("accepted wrong server identity")
 	}
 	if _, err := viewTimelineHTTP(info, "PATCH", "/api/timeline/sessions/test", "application/json", strings.NewReader(`{}`), 1024); err != nil {
 		t.Fatal(err)
 	}
+	revision.Store(false)
+	before := mutations.Load()
+	if _, err := viewTimelineHTTP(info, "PATCH", "/api/timeline/sessions/test", "application/json", strings.NewReader(`{"operation_id":"original"}`), 1024); err == nil || !strings.Contains(err.Error(), "reload_required") || mutations.Load() != before {
+		t.Fatal("old server received a write", err)
+	}
+	if _, code, err := viewWorkHTTP(info, "PATCH", "/api/timeline/sessions/test", "application/json", []byte(`{"operation_id":"original"}`)); err == nil || code != "reload_required" || mutations.Load() != before {
+		t.Fatal("publisher wrote to old server", code, err)
+	}
+	revision.Store(true)
 	if _, err := viewTimelineHTTP(info, "GET", "/api/test?token=forbidden", "", nil, 1024); err == nil {
 		t.Fatal("accepted credential query")
 	}
@@ -180,6 +198,7 @@ func TestTimelineCLIRedirectAndErrorNeverExposeCredentials(t *testing.T) {
 	target := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { reached++; w.Write([]byte(`{}`)) }))
 	defer target.Close()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Hive-Timeline-Revision", "3")
 		if r.URL.Path == "/api/redirect" {
 			http.Redirect(w, r, target.URL, http.StatusFound)
 			return
@@ -228,6 +247,87 @@ func TestTimelineCLIPublicReadbackRejectsForeignAndPrivateResults(t *testing.T) 
 	command = viewTimelineCommand{operation: "document_get", sessionID: response.Document.SessionID, objectID: response.Document.DocumentID}
 	if err := viewTimelineDecodeOutput(&out, command, nil, doc); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// The response owner exercises both authenticated reading and strict decoding.
+func TestTimelineCLIPublicReadbackAtLegacyContentLimit(t *testing.T) {
+	session, err := viewer.DecodeTimelineSession(timelineCLIFixture(t, "session.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	template := session.Events[0]
+	session.Events = nil
+	session.ValidationCount = 0
+	for n := 0; n < 460; n++ {
+		event := template
+		event.EventID = fmt.Sprintf("boundary-%d", n)
+		event.Sequence = int64(n + 1)
+		event.Version = 1
+		event.Title = strings.Repeat("t", 200)
+		event.Summary = strings.Repeat("s", 3000)
+		session.Events = append(session.Events, event)
+	}
+	sessionRaw, _ := json.Marshal(session)
+	var legacy map[string]json.RawMessage
+	json.Unmarshal(sessionRaw, &legacy)
+	for _, field := range []string{"last_activity_at", "closed_at", "autoarchive_at", "archive_origin"} {
+		delete(legacy, field)
+	}
+	legacyRaw, _ := json.Marshal(legacy)
+	remaining := viewer.TimelineMaxBody - len(legacyRaw)
+	if remaining < 0 {
+		t.Fatal("fixture already exceeds original content budget")
+	}
+	for n := range session.Events {
+		add := min(1000, remaining)
+		session.Events[n].Summary += strings.Repeat("s", add)
+		remaining -= add
+	}
+	if remaining != 0 {
+		t.Fatal("fixture cannot reach original content limit", remaining)
+	}
+	if err = viewer.ValidateTimelineSession(session); err != nil {
+		t.Fatal("invalid boundary fixture", err)
+	}
+	response := viewer.TimelineSessionResponse{SchemaVersion: 3, Mode: "timeline_api", Session: session, ArtifactURLs: map[string]string{}, DocumentURLs: map[string]string{}}
+	raw, _ := json.Marshal(response)
+	if len(raw) <= viewer.TimelineMaxBody || len(raw) > viewer.TimelineMaxBody+(16<<10) {
+		t.Fatal("fixture missed response boundary", len(raw))
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set(viewer.TimelineRevisionHeader, viewer.TimelineRevisionValue)
+		w.Write(raw)
+	}))
+	defer server.Close()
+	info := timelineCLIInfo(t, server)
+	data, err := viewTimelineHTTP(info, "GET", "/api/timeline/sessions/"+session.ViewerSessionID, "", nil, viewer.TimelineMaxBody)
+	if err != nil {
+		t.Fatal(err)
+	}
+	workData, _, workErr := viewWorkHTTP(info, "GET", "/api/timeline/sessions/"+session.ViewerSessionID, "", nil)
+	if workErr != nil || !bytes.Equal(workData, data) {
+		t.Fatal("publisher rejected bounded session response", workErr)
+	}
+	var out bytes.Buffer
+	if err = viewTimelineDecodeOutput(&out, viewTimelineCommand{operation: "session_get", sessionID: session.ViewerSessionID}, nil, data); err != nil {
+		t.Fatal("valid legacy content plus response projection rejected", err)
+	}
+	oversizedResponse := append(append([]byte{}, raw...), bytes.Repeat([]byte(" "), viewer.TimelineMaxResponseBody-len(raw)+1)...)
+	if _, err = viewer.DecodeTimelineSessionResponse(oversizedResponse); err == nil {
+		t.Fatal("response exceeded fixed headroom")
+	}
+	raw = oversizedResponse
+	if _, err = viewTimelineHTTP(info, "GET", "/api/timeline/sessions/"+session.ViewerSessionID, "", nil, viewer.TimelineMaxBody); err == nil {
+		t.Fatal("low-level transport accepted oversized response")
+	}
+	if _, _, err = viewWorkHTTP(info, "GET", "/api/timeline/sessions/"+session.ViewerSessionID, "", nil); err == nil {
+		t.Fatal("publisher transport accepted oversized response")
+	}
+	// The larger response budget must never change request admission.
+	oversized := append(timelineCLIFixture(t, "create-session.json"), bytes.Repeat([]byte(" "), viewer.TimelineMaxBody)...)
+	if _, err = viewer.DecodeTimelineCreateSession(oversized); err == nil {
+		t.Fatal("oversized request accepted")
 	}
 }
 

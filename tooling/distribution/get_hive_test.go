@@ -702,13 +702,28 @@ func TestGetHiveFullPath(t *testing.T) {
 
 func TestGetHivePropagatesInstallerExitCode(t *testing.T) {
 	ghEachShell(t, func(t *testing.T, shell string) {
-		e := newGhEnv(t)
-		res := e.run(ghRun{shell: shell, script: e.script(e.tty), args: nil, env: []string{"HIVE_TEST_EXIT=7"}})
-		if res.code != 7 {
-			t.Fatalf("exit %d, want 7\nstderr:\n%s", res.code, res.stderr)
-		}
-		if _, ran := e.recordText(); !ran {
-			t.Fatal("install.sh did not run")
+		for _, managed := range []bool{false, true} {
+			t.Run(fmt.Sprintf("managed-%v", managed), func(t *testing.T) {
+				e := newGhEnv(t)
+				if managed {
+					entries := ghGoodEntries(e.label)
+					entries = append(entries, ghEntry{name: e.label + "/update-bootstrap.json", typ: tar.TypeReg, body: "{}", mode: 0644})
+					e.setArchive(entries)
+				}
+				res := e.run(ghRun{shell: shell, script: e.script(e.tty), env: []string{"HIVE_TEST_EXIT=7"}})
+				if res.code != 7 {
+					t.Fatalf("exit %d, want 7\nstderr:\n%s", res.code, res.stderr)
+				}
+				if managed && !strings.Contains(res.stderr, "Download and extract the complete package, then run ./install.sh") {
+					t.Fatal("missing durable manual route: " + res.stderr)
+				}
+				if _, ran := e.recordText(); !ran {
+					t.Fatal("install.sh did not run")
+				}
+				if names := ghNames(t, e.tmp); len(names) != 0 {
+					t.Fatalf("temporary inputs remain: %v", names)
+				}
+			})
 		}
 	})
 }
@@ -1657,6 +1672,35 @@ func TestGetHiveKeepsTheNewPackageWhenInterruptedRightAfterTheSecondMove(t *test
 				}
 				if names := ghNames(t, e.tmp); len(names) != 0 {
 					t.Errorf("TMPDIR holds %v", names)
+				}
+			})
+		}
+	})
+}
+
+func TestGetHiveManagedPackageDelegatesRetentionToInstaller(t *testing.T) {
+	ghEachShell(t, func(t *testing.T, shell string) {
+		for _, dry := range []bool{false, true} {
+			t.Run(fmt.Sprintf("dry-%v", dry), func(t *testing.T) {
+				e := newGhEnv(t)
+				before := e.seedPrevious()
+				entries := ghGoodEntries(e.label)
+				entries = append(entries, ghEntry{name: e.label + "/update-bootstrap.json", typ: tar.TypeReg, body: "{}", mode: 0644})
+				e.setArchive(entries)
+				args := []string{"--version", ghVersion, "--hosts", "codex"}
+				if dry {
+					args = append(args, "--dry-run")
+				}
+				res := e.run(ghRun{shell: shell, script: e.script(e.tty), args: args})
+				if res.code != 0 {
+					t.Fatalf("exit %d: %s", res.code, res.stderr)
+				}
+				ghEqualTrees(t, ghSnapshot(t, e.packagesDir()), before, "managed package store before installer consent")
+				if _, ran := e.recordText(); !ran {
+					t.Fatal("package installer was not run")
+				}
+				if names := ghNames(t, e.tmp); len(names) != 0 {
+					t.Fatalf("temporary inputs remain: %v", names)
 				}
 			})
 		}

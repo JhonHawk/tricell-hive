@@ -36,5 +36,6 @@ func Resolve(c target.Config, sources ...string) ([]target.Target, error) {
 	}
 	dir := filepath.Join(c.PiHome, "agents")
 	out := target.ExpandSkills(base, sources)
-	return target.ExpandAgents(out, sources, dir, ".md", base[0]), nil
+	out = target.ExpandAgents(out, sources, dir, ".md", base[0])
+	return append(out, EventExtensionTarget(c, base[0])), nil
 }

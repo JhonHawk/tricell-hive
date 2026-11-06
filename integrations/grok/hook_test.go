@@ -109,13 +109,18 @@ func TestResolveAlwaysEmitsTheReadHookTarget(t *testing.T) {
 				hooks = append(hooks, tg)
 			}
 		}
-		if len(hooks) != 1 {
-			t.Fatalf("sources %v: %d hook targets, want 1", sources, len(hooks))
+		if len(hooks) != 2 {
+			t.Fatalf("sources %v: %d hook targets, want 2", sources, len(hooks))
 		}
 		h := hooks[0]
 		if h.Path != filepath.Join(home, ".grok", "hooks", "hive-read-whole-references.json") ||
 			h.Source != ReadHookSource || h.Host != "grok" || h.Scope != "user" || h.Context != home {
 			t.Fatalf("hook target = %+v", h)
+		}
+		e := hooks[1]
+		if e.Path != filepath.Join(home, ".grok", "hooks", "hive-session-events.json") ||
+			e.Source != SessionEventsSource || e.Host != "grok" || e.Scope != "user" || e.Context != home {
+			t.Fatalf("session events target = %+v", e)
 		}
 	}
 }

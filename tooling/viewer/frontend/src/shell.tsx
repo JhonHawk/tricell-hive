@@ -58,24 +58,31 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { optionalStorage, save, stored } from "./api";
+import { type NavigationEntry, optionalStorage, save, stored } from "./api";
 import { browserLanguage } from "./language";
 import { messages as t } from "./messages";
+import type { TimelineState } from "./timeline-contract";
+import { timelineCopy } from "./timeline-copy";
+import { timelineStateVariant } from "./timeline-state";
 export type ViewerSession = {
   id: string;
   project: string;
   projectKey?: string;
+  navigation?: NavigationEntry;
+  sourceRoot?: string;
   ticket: string;
   title: string;
   localTitle?: boolean;
   createdAt: string;
+  lastActivityAt?: string;
   pinned?: boolean;
   archived?: boolean;
-  status?: "in_progress" | "closed" | "unknown";
+  status?: TimelineState | "in_progress" | "unknown";
 };
 export type ViewerShellProps = {
   sessions: ViewerSession[];
   selectedId?: string;
+  selectedSession?: ViewerSession;
   state: "ready" | "loading" | "empty" | "error";
   onSelect?: (id: string) => void;
   onRetry: () => void;
@@ -86,6 +93,7 @@ export type ViewerShellProps = {
   sessionHeader?: ReactNode;
   notices?: ReactNode;
   coldLoading?: boolean;
+  groupingWarning?: boolean;
 };
 const spanish = browserLanguage() === "es";
 const copy = spanish
@@ -94,6 +102,10 @@ const copy = spanish
       library: "Biblioteca de recorridos",
       description: "Evidencia y validación de los cambios de tu proyecto.",
       projects: "Proyectos",
+      groupingError: "No se pudo leer la agrupación",
+      groupingFallback: "Se muestran los proyectos originales.",
+      workspace: "Workspace",
+      unavailable: "Origen no disponible",
       showArchived: "Mostrar archivados",
       hideArchived: "Ocultar archivados",
       archive: "Archivar sesión",
@@ -133,6 +145,10 @@ const copy = spanish
       library: "Walkthrough library",
       description: "Evidence and validation for your project changes.",
       projects: "Projects",
+      groupingError: "Could not read project grouping",
+      groupingFallback: "Showing the original projects.",
+      workspace: "Workspace",
+      unavailable: "Source unavailable",
       showArchived: "Show archived",
       hideArchived: "Hide archived",
       archive: "Archive session",
@@ -228,6 +244,18 @@ function sessionDisplayTitle(session: ViewerSession) {
   const match = remainder.match(/^\s*(?:[·:|–—]|-(?=\s))\s+(.+)$/);
   return match?.[1].trim() || session.title;
 }
+function sessionGroupKey(session: ViewerSession) {
+  return session.navigation?.group_key ?? session.projectKey ?? session.project;
+}
+function sessionOrigin(session: ViewerSession) {
+  const navigation = session.navigation;
+  if (!navigation) return "";
+  return navigation.origin_kind === "workspace"
+    ? copy.workspace
+    : navigation.origin_kind === "unavailable"
+      ? copy.unavailable
+      : navigation.origin_label;
+}
 function SessionNavigationButton({
   session,
   selectedId,
@@ -238,11 +266,19 @@ function SessionNavigationButton({
   onSelect?: (id: string) => void;
 }) {
   const { setOpenMobile, isMobile } = useSidebar();
-  return (
+  const showOrigin =
+    session.navigation?.config_status === "valid" &&
+    session.navigation.group_key.startsWith("explicit:");
+  const state = session.status === "in_progress" ? "active" : session.status;
+  const stateLabel =
+    state && state !== "unknown"
+      ? timelineCopy(spanish ? "es" : "en").states[state]
+      : copy.sessionStatus.unknown;
+  const button = (
     <button
       type="button"
       data-session-key={session.id}
-      title={`${session.title} — ${copy.sessionStatus[session.status ?? "unknown"]}. ${copy.statusDescription}`}
+      title={`${session.title}${showOrigin && session.navigation ? ` — ${sessionOrigin(session)}: ${session.sourceRoot ?? session.navigation.origin_label}` : ""} — ${stateLabel}. ${copy.statusDescription}`}
       className="session-navigation-link flex w-full min-w-0 items-start gap-2 text-left text-sm text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-2 focus-visible:outline-sidebar-ring"
       aria-current={selectedId === session.id ? "page" : undefined}
       onClick={() => {
@@ -256,13 +292,6 @@ function SessionNavigationButton({
           );
       }}
     >
-      {
-        <span
-          aria-hidden="true"
-          data-session-status={session.status ?? "unknown"}
-          className="session-status-dot mt-1.5 size-1.5 shrink-0 rounded-full"
-        />
-      }
       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <div className="flex min-w-0 items-start gap-2">
           <span className="session-navigation-title min-w-0 flex-1 font-normal">
@@ -270,17 +299,56 @@ function SessionNavigationButton({
           </span>
           {session.pinned && <Pin aria-hidden className="size-3 shrink-0" />}
         </div>
-        <div className="flex min-w-0 items-center gap-1 text-xs text-muted-foreground">
-          <span className="truncate">{session.ticket}</span>
-          <span aria-hidden="true">·</span>
-          <span className="shrink-0 tabular-nums">{session.createdAt}</span>
-          <span className="sr-only">
-            {copy.sessionStatus[session.status ?? "unknown"]}.{" "}
-            {copy.statusDescription}
-          </span>
+        <div
+          className={`flex min-w-0 flex-wrap items-center gap-1 text-xs ${selectedId === session.id ? "text-foreground" : "text-muted-foreground"}`}
+        >
+          <Badge
+            variant={
+              state && state !== "unknown"
+                ? timelineStateVariant[state]
+                : "secondary"
+            }
+          >
+            {stateLabel}
+          </Badge>
+          <time
+            dateTime={session.lastActivityAt}
+            title={`${spanish ? "Última actividad" : "Last activity"}: ${session.lastActivityAt ?? session.createdAt}`}
+            className="tabular-nums"
+          >
+            <span aria-hidden="true">{session.createdAt}</span>
+            <span className="sr-only">
+              {spanish ? "Última actividad" : "Last activity"}:{" "}
+              {session.lastActivityAt ?? session.createdAt}
+            </span>
+          </time>
+        </div>
+        <div
+          className={`flex min-w-0 flex-wrap items-center gap-1 text-xs ${selectedId === session.id ? "text-foreground" : "text-muted-foreground"}`}
+        >
+          {showOrigin && session.navigation && (
+            <>
+              <span className="min-w-0 truncate">{sessionOrigin(session)}</span>
+              <span className="sr-only">
+                {session.navigation.origin_label} · {session.sourceRoot}
+              </span>
+              <span aria-hidden="true">·</span>
+            </>
+          )}
+          <span className="min-w-0 truncate">{session.ticket}</span>
         </div>
       </div>
     </button>
+  );
+  return showOrigin ? (
+    <Tooltip>
+      <TooltipTrigger render={button} />
+      <TooltipContent>
+        {session.navigation?.origin_label} · {session.sourceRoot}
+      </TooltipContent>
+    </Tooltip>
+  ) : (
+    button
   );
 }
 function Navigation({
@@ -293,6 +361,7 @@ function Navigation({
   onShowArchivedChange,
   preferences,
   onProjectOpenChange,
+  groupingWarning,
 }: Pick<
   ViewerShellProps,
   | "sessions"
@@ -302,6 +371,7 @@ function Navigation({
   | "onRetry"
   | "showArchived"
   | "onShowArchivedChange"
+  | "groupingWarning"
 > & {
   preferences: NavigationPreferences;
   onProjectOpenChange: (key: string, open: boolean) => void;
@@ -316,22 +386,22 @@ function Navigation({
       .includes(query.trim().toLocaleLowerCase());
   const normal = sessions.filter(matches);
   useLayoutEffect(() => {
-    if (
-      focusKey.current &&
-      sessions.some((session) => session.id === focusKey.current) &&
-      document.activeElement === document.body
-    ) {
+    if (focusKey.current && document.activeElement === document.body) {
+      const retained = sessions.some(
+        (session) => session.id === focusKey.current,
+      );
       const target = [
         ...(navigationRef.current?.querySelectorAll<HTMLElement>(
           "[data-session-key]",
         ) ?? []),
       ].find((node) => node.dataset.sessionKey === focusKey.current);
-      target?.focus({ preventScroll: true });
+      // A removed archived row hands focus to its retained readable context.
+      (retained ? target : document.getElementById("document"))?.focus({
+        preventScroll: true,
+      });
     }
   }, [sessions]);
-  const projects = [
-    ...new Set(normal.map((session) => session.projectKey ?? session.project)),
-  ];
+  const projects = [...new Set(normal.map(sessionGroupKey))];
   return (
     <div
       ref={navigationRef}
@@ -387,6 +457,24 @@ function Navigation({
                 </div>
               )}
             </div>
+            {groupingWarning && (
+              <div className="p-2">
+                <Alert variant="warning">
+                  <AlertTitle>{copy.groupingError}</AlertTitle>
+                  <AlertDescription>{copy.groupingFallback}</AlertDescription>
+                  <AlertAction>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={onRetry}
+                    >
+                      {t.retry}
+                    </Button>
+                  </AlertAction>
+                </Alert>
+              </div>
+            )}
             {state === "loading" ? (
               <div
                 role="status"
@@ -421,17 +509,24 @@ function Navigation({
               <SidebarMenu>
                 {projects.map((projectKey) => {
                   const projectSessions = normal.filter(
-                    (session) =>
-                      (session.projectKey ?? session.project) === projectKey,
+                    (session) => sessionGroupKey(session) === projectKey,
                   );
-                  const project = projectSessions[0].project;
+                  const project =
+                    projectSessions[0].navigation?.group_name ??
+                    projectSessions[0].project;
                   return (
                     <Collapsible
                       key={projectKey}
                       open={
                         (query ? true : preferences.projects[projectKey]) ??
-                        projectSessions.some(
-                          (session) => session.status === "in_progress",
+                        projectSessions.some((session) =>
+                          [
+                            "active",
+                            "in_review",
+                            "awaiting_validation",
+                            "paused",
+                            "in_progress",
+                          ].includes(session.status ?? "unknown"),
                         )
                       }
                       onOpenChange={(open) =>
@@ -483,6 +578,7 @@ function Navigation({
 }
 export function ViewerShell({
   sessions,
+  selectedSession,
   selectedId,
   state,
   onSelect,
@@ -494,9 +590,51 @@ export function ViewerShell({
   sessionHeader,
   notices,
   coldLoading = false,
+  groupingWarning = false,
 }: ViewerShellProps) {
-  const selected = sessions.find((session) => session.id === selectedId);
+  const selected =
+    sessions.find((session) => session.id === selectedId) ?? selectedSession;
   const [preferences, setPreferences] = useState(readNavigationPreferences);
+  const previousDestination = useRef<{ id?: string; key?: string }>({});
+  useLayoutEffect(() => {
+    const destination = selected ? sessionGroupKey(selected) : undefined;
+    const moved =
+      previousDestination.current.id === selectedId &&
+      previousDestination.current.key !== undefined &&
+      previousDestination.current.key !== destination;
+    previousDestination.current = { id: selectedId, key: destination };
+    setPreferences((previous) => {
+      const projects = { ...previous.projects };
+      let changed = false;
+      for (const session of sessions) {
+        const key = sessionGroupKey(session);
+        if (projects[key] !== undefined || !session.navigation) continue;
+        const members = sessions.filter(
+          (item) => sessionGroupKey(item) === key,
+        );
+        projects[key] =
+          members.some(
+            (item) =>
+              previous.projects[item.projectKey ?? item.project] ??
+              [
+                "active",
+                "in_review",
+                "awaiting_validation",
+                "paused",
+                "in_progress",
+              ].includes(item.status ?? "unknown"),
+          ) ||
+          (key.startsWith("explicit:") &&
+            members.some((item) => item.id === selectedId));
+        changed = true;
+      }
+      if (moved && destination && projects[destination] !== true) {
+        projects[destination] = true;
+        changed = true;
+      }
+      return changed ? { ...previous, projects } : previous;
+    });
+  }, [sessions, selectedId, selected]);
   useEffect(() => {
     save(optionalStorage(), NAVIGATION_KEY, JSON.stringify(preferences));
   }, [preferences]);
@@ -543,6 +681,7 @@ export function ViewerShell({
             onRetry={onRetry}
             showArchived={showArchived}
             onShowArchivedChange={onShowArchivedChange}
+            groupingWarning={groupingWarning}
             preferences={preferences}
             onProjectOpenChange={(key, open) =>
               setPreferences((previous) => ({

@@ -39,6 +39,7 @@ func timelineLocalStatus(t *testing.T, f *viewFixture, method, path string, valu
 	request.Header.Set("X-Hive-Token", info.Token)
 	request.Header.Set("Origin", info.url())
 	request.Header.Set("X-Hive-Action-Scope", "session")
+	request.Header.Set("X-Hive-Timeline-Revision", "3")
 	response, err := http.DefaultClient.Do(request)
 	if err != nil {
 		t.Fatal("local viewer request failed")
@@ -453,6 +454,7 @@ func TestTimelineCLIV3LocalRecoveryHTTPConcurrencyAndRestart(t *testing.T) {
 			request.Header.Set("X-Hive-Token", info.Token)
 			request.Header.Set("Origin", info.url())
 			request.Header.Set("X-Hive-Action-Scope", "session")
+			request.Header.Set("X-Hive-Timeline-Revision", "3")
 			response, err := http.DefaultClient.Do(request)
 			if err != nil {
 				results <- outcome{status: 0}

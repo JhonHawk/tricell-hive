@@ -46,10 +46,13 @@ import {
   type TimelineWaitState,
 } from "./timeline-contract-v3";
 import {
+  isHostTask,
+  localViewerLabel,
   type TimelineLanguage,
   timelineCopy,
   timelineDate,
   timelineEventTitle,
+  timelineTaskLabel,
 } from "./timeline-copy";
 import {
   compareRevisionTabs,
@@ -70,6 +73,7 @@ import {
   TimelineTicketLinks,
 } from "./timeline-references";
 import {
+  HostObservedBadge,
   type TimelineDetailOpener,
   timelineStateColor,
 } from "./timeline-tasks";
@@ -649,7 +653,7 @@ export function useTimelinePanel({
                           ? event.actor.producer_id
                           : ""),
                     )?.source.native_session_id
-                  : t.localViewer}{" "}
+                  : localViewerLabel(event.actor, t)}{" "}
                 · {timelineDate(event.created_at, lang)}
               </p>
             </section>
@@ -1078,7 +1082,9 @@ export function useTimelinePanel({
     panel?.kind === "document"
       ? revision && timelineEventTitle(revision.event, lang)
       : panel?.kind === "task"
-        ? `${task?.task_key ?? ""} — ${task?.title ?? t.unavailableDetail}`
+        ? task
+          ? timelineTaskLabel(task)
+          : t.unavailableDetail
         : panel?.kind === "wait"
           ? t.ciTitle
           : panel?.kind === "images"
@@ -1113,7 +1119,7 @@ export function useTimelinePanel({
         >
           <SheetHeader className="shrink-0">
             <div className="flex min-w-0 items-start justify-between gap-2">
-              <div className="flex min-w-0 items-center gap-2">
+              <div className="flex min-w-0 items-start gap-2">
                 {task && (
                   <StateSymbol
                     state={selectedTaskState ?? task.state}
@@ -1121,6 +1127,7 @@ export function useTimelinePanel({
                   />
                 )}
                 <SheetTitle className="min-w-0 break-words">{title}</SheetTitle>
+                {task && isHostTask(task) && <HostObservedBadge t={t} />}
               </div>
               <SheetClose
                 render={

@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 	"tricell-hive/tooling/distribution"
+	"tricell-hive/tooling/management"
 	"tricell-hive/tooling/version"
 )
 
@@ -139,11 +140,20 @@ func run(args []string) error {
 		if err := os.WriteFile(filepath.Join(dir, "README-install.txt"), []byte("Hive — offline installation without Go\n\nClose your CLI sessions and run ./install.sh in a terminal.\nUse ./install.sh --dry-run to inspect changes. The installer asks for confirmation.\nOpen new CLI sessions after installation. Keep this package for recovery.\nTo update, download a new complete package and run the same command.\nGitHub automatic Source code archives do not include binaries.\n"), 0644); err != nil {
 			return err
 		}
+		minimum, maximum := management.UpdateStateVersions()
+		bootstrap := distribution.UpdateBootstrap{Protocol: distribution.UpdateProtocolVersion, ProductVersion: productVersion, Platform: p, SourceID: sourceID, ExecutableSHA256: distribution.Digest(b), ManifestVersion: 2, MinStateVersion: minimum, MaxStateVersion: maximum}
+		bootstrapData, err := json.MarshalIndent(bootstrap, "", "  ")
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(filepath.Join(dir, distribution.UpdateBootstrapName), append(bootstrapData, '\n'), 0644); err != nil {
+			return err
+		}
 		files, err := distribution.Files(dir)
 		if err != nil {
 			return err
 		}
-		manifest := distribution.Manifest{Version: 2, Platform: p, SourceID: sourceID, ProductVersion: productVersion, Files: files}
+		manifest := distribution.Manifest{Version: 2, UpdateProtocol: distribution.UpdateProtocolVersion, Platform: p, SourceID: sourceID, ProductVersion: productVersion, Files: files}
 		metadata, err := json.MarshalIndent(manifest, "", "  ")
 		if err != nil {
 			return err

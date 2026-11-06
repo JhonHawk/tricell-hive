@@ -22,22 +22,58 @@ go run ./tooling/cli plan remove --hosts codex --scope user --out /absolute/remo
 go run ./tooling/cli recover --state-dir /absolute/state-directory
 ```
 
-These are interface examples, not authorization to deploy into the user's real configuration. A plan that installs Grok's [read-whole hook](#grok-read-whole-hook) refuses a `go run` binary; build one with `go build -o <path> ./tooling/cli` and run that instead. `plan` without `--out` is a read-only preview. With `--out`, it writes a new private plan file, never the destination files. A symlink ancestor of that file, such as macOS `/var`, is resolved before the write, and `hive apply --plan` resolves the same path; a symlink that remains after resolution is still rejected. `apply` consumes that plan and rejects stale target fingerprints or ownership state. Destination options are not accepted by `apply`: review the destinations bound into the plan instead.
+These are interface examples, not authorization to deploy into the user's real configuration. Every user-scope install registers a hook, plugin or extension that calls the `hive` binary by absolute path ([Grok read-whole hook](#grok-read-whole-hook), [host session hooks](#host-session-hooks)), so a `plan install --scope user` or `install` from a `go run` binary, which is deleted when the command ends, is refused for every host: build one with `go build -o <path> ./tooling/cli` and run that instead. Project-scope plans, `plan remove` and `status` need no stable binary, so the examples above that use them still run with `go run`. `plan` without `--out` is a read-only preview. With `--out`, it writes a new private plan file, never the destination files. A symlink ancestor of that file, such as macOS `/var`, is resolved before the write, and `hive apply --plan` resolves the same path; a symlink that remains after resolution is still rejected. `apply` consumes that plan and rejects stale target fingerprints or ownership state. Destination options are not accepted by `apply`: review the destinations bound into the plan instead.
 
 `--home` explicitly selects a synthetic home and ignores host path and compatibility environment overrides. Use it together with `--state-dir` for temporary-home tests. Without `--home`, host configuration environment variables are respected. `--root` is required for project scope. Existing root prefixes are canonicalized; linked target files or ancestors inside those roots are rejected rather than overwritten.
 
 The default source is the current directory; `--source` selects another checkout with the same content layout. `plan install --release <hash>` selects a retained installed snapshot instead, allowing an explicitly planned downgrade. The current binary validates that snapshot's agent sources, so a release whose roles use a retired frontmatter field, such as `claude_effort` before it became `effort`, fails with `unsupported agent field`; plan that downgrade with the manager from the commit that produced the release. Installed releases still update, report status, uninstall, and recover, because those operations do not re-render the old sources. A plan freezes its source bytes; later source edits do not silently alter it.
 
+### Complete release update and committed-source update
+
+The release updater described here is the candidate in this checkout. A future
+publication of the updated installer and compatible packages is required; the
+observed public 0.8.0 package does not implement this protocol. Run the new
+installer once to migrate a package installation. It retains verified packages
+and registers `~/.local/bin/hive` without editing PATH or adopting an unowned
+command. A checkout install does not adopt that command.
+
+```sh
+hive update [--version X.Y.Z] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]
+hive apply --plan /absolute/update-plan.json
+hive update --source . [--rev HEAD] [--dry-run] [--out FILE]
+```
+
+Bare update resolves a compatible stable release, never implicitly downgrading;
+`--version` selects an exact compatible version and makes a downgrade explicit.
+The verified package supplies both manager and registered integrations. A `dev`
+binary refuses bare update; `--source` or `--rev` chooses the Git route, and
+neither may be combined with `--version`. Preview and cancellation discard
+temporary inputs without persistent package or installation changes. Without a
+terminal, a release update requires `--dry-run` or `--out` before downloading.
+`--out` retains the verified target and a private parent plan; apply uses those
+pinned bytes and fingerprints offline and rejects stale state or destinations.
+
+The parent journal is independent of the core schema and binds its transaction
+to the retained target executor. Before the core commit, recovery restores
+incomplete core writes and leaves the prior command selected. After commit it
+preserves the integrations and completes activation offline, even if the old
+launcher cannot decode a newer core schema. Changed package or command bytes
+are conflicts. A pending update blocks competing aware mutators; historical
+binaries lacking the protocol must not mutate it. Release update does not run
+optional providers. If Pi's pi-subagents declaration is missing or needs repair,
+it stops before core writes and directs a separate `hive install`. A running
+viewer is reported when its revision differs; it is not restarted automatically.
+
 ### Update from a commit and list releases
 
 ```sh
-go run ./tooling/cli update [--rev HEAD] [--source .] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]
+hive update --source . [--rev HEAD] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]
 go run ./tooling/cli releases [--home DIR] [--state-dir DIR]
 ```
 
-`hive update` deploys the content of one commit, never uncommitted edits in the checkout. It resolves `--rev` (default `HEAD`) with `git rev-parse` in `--source` (default `.`), with the variables `git rev-parse --local-env-vars` lists removed from Git's environment, archives that commit by its full hash, extracts it into a private temporary directory, and plans an install for every host already registered in user scope. The plan freezes the extracted bytes, so the temporary directory is removed on every return path as soon as the plan is built, before the summary and the confirmation prompt; only a process killed by a signal during extraction or planning may leave a `.hive-extract-*` directory in the system temporary directory. A revision starting with `-` is rejected before Git runs. The command needs Git and a Git checkout of Hive; the offline package does not, and installs through `install.sh`. `export-ignore` or `export-subst` attributes change the archived content, as with any `git archive`: those in the selected commit, and also local ones in `.git/info/attributes` or the file named by `core.attributesFile`, which are not part of the commit.
+Explicit source update deploys the content of one commit, never uncommitted edits in the checkout. It resolves `--rev` (default `HEAD`) with `git rev-parse` in `--source` (default `.`), with the variables `git rev-parse --local-env-vars` lists removed from Git's environment, archives that commit by its full hash, extracts it into a private temporary directory, and plans an install for every host already registered in user scope. The plan freezes the extracted bytes, so the temporary directory is removed on every return path as soon as the plan is built, before the summary and the confirmation prompt; only a process killed by a signal during extraction or planning may leave a `.hive-extract-*` directory in the system temporary directory. A revision starting with `-` is rejected before Git runs. The command needs Git and a Git checkout of Hive; the offline package does not, and installs through `install.sh`. `export-ignore` or `export-subst` attributes change the archived content, as with any `git archive`: those in the selected commit, and also local ones in `.git/info/attributes` or the file named by `core.attributesFile`, which are not part of the commit.
 
-In a terminal, `update` shows the summary with the commit and asks for confirmation. When nothing changes, `--out FILE` still saves the plan, and applying it records the commit; without `--out`, `update` applies it without asking, which only records the commit, also without a terminal. When the plan changes files and there is no terminal, it fails unless `--dry-run` previews the change or `--out FILE` saves a plan for `hive apply --plan FILE`. In an interactive session, `update` also offers the Codex wait floor (`codex-wait-floor`, selected by default) while Codex's `config.toml` lacks it and Codex is 0.164 or later (a dry run offers nothing, an applied setting is not offered again, and nothing is offered at project scope); a plan that writes that file always asks for confirmation, even when the Hive content is unchanged. `hive plan remove` for the codex host undoes it. See the [installer contract](installer.md). To return to an older commit, run `update --rev <commit>`; the current binary must still validate that commit's sources.
+In a terminal, `update` shows the summary with the commit and asks for confirmation. When nothing changes, `--out FILE` still saves the plan, and applying it records the commit; without `--out`, `update` applies it without asking, which only records the commit, also without a terminal. When the plan changes files and there is no terminal, it fails unless `--dry-run` previews the change or `--out FILE` saves a plan for `hive apply --plan FILE`. In an interactive source update, `update` also offers the Codex wait floor (`codex-wait-floor`, selected by default) while Codex's `config.toml` lacks it and Codex is 0.164 or later (a dry run offers nothing, an applied setting is not offered again, and nothing is offered at project scope); a plan that writes that file always asks for confirmation, even when the Hive content is unchanged. `hive plan remove` for the codex host undoes it. See the [installer contract](installer.md). To return to an older commit, run `update --rev <commit>`; the current binary must still validate that commit's sources.
 
 
 Applying a plan built by `update` records its source commit in `releases/<id>.commits.json`, also when the plan changes no file, because different commits often produce the same release. The release snapshot and its ID do not change. If writing the record fails after the core committed, the result carries a warning and the installation stands. Recovering an already committed journal leaves that release without the commit. Releases installed before this record existed list no commits.
@@ -73,7 +109,7 @@ go run ./tooling/cli models [--home DIR] [--state-dir DIR]
 - **Installation** lists every `status` row other than `installed`, `retained_shared`, and `not_installed`, with a plain phrase and its path, or `No problems found`. Hosts that share one managed file, such as a skill under `~/.agents/skills`, are grouped into one row per status and path that names them all, as in `drift  claude, codex, cursor, grok, opencode, pi  The installed file was changed or cannot be read` followed by the path once, in the order the rows first appear. When a row is `drift`, one line says what to do in either case: a file or block that was edited, or whose permissions changed, makes `install`, `update`, and `plan remove` refuse, so the user undoes the change or fixes its permissions; one that was deleted is put back by `hive install` or `hive update`. Then the user opens Diagnostics again, or runs `hive doctor`, to check. With a pending operation it shows one line naming `hive recover` instead of the `recovery_required` rows, because `status` then marks every row that way; the line adds `--state-dir DIR` unless that directory is the real user home's default, since `hive recover` has no `--home`.
 - **Sessions** covers the registered hosts. When Claude Code or Grok is registered, its first line answers whether to restart anything for the hosts Hive checked, such as `2 open Claude Code or Grok sessions should be restarted` or `No open Claude Code or Grok session needs a restart`, and names a host it could not check, as in `No open Claude Code session needs a restart; Grok could not be checked.` When Codex, Pi, or Cursor is registered, the next line says `Hive cannot see Codex, Pi or Cursor sessions; restart them after each update.`, naming only the registered ones. Each host's line then reads, for example, `claude: 3 open sessions, 1 to restart`. It reads Claude Code's `sessions/*.json` under `CLAUDE_CONFIG_DIR` or `~/.claude` and Grok's `active_sessions.json` under `GROK_HOME` or `~/.grok`. It counts only sessions whose process is alive and marks one `started before the installed release; restart it` when it started before the installed release's snapshot was last written. It shows only the process ID, working directory, and start time. A missing session directory or file means no open sessions; a file larger than 1 MiB, unreadable, not a regular file, or in an unknown format, or more than 500 Claude Code session files, makes that host `Session check unavailable` without failing the other sections. OpenCode gets a note that it applies `AGENTS.md` instruction changes on the next message and that role or skill changes need a new session.
 - **Integrations** shows Engram, Context7, pi-subagents, `agent-browser`, CodeGraph, only when Pi is a registered host a `Pi codemode` row, and only when Codex is a registered host (or the registration read fails) a `Codex question card` row and a `Codex wait floor` row: the local evidence (the program on `PATH` or the skill file, with its path), the status in the last onboarding record, the official source, and a concrete next step for its case. The Hive-suggested commands are Context7's `npx ctx7@latest setup --cli`, which may ask the user to sign in, and `hive install` for `agent-browser` when it is absent or has no browser, whose record shows the worst status of its onboarding steps; for the others it points to the Source line above, since Hive does not install them. The `agent-browser` check reads `PATH` and files only; the CodeGraph check only looks `codegraph` up on `PATH`, never runs it, and its next step points to CodeGraph's own `codegraph install` and to indexing a repository only by the user's decision. The `Pi codemode` row is built from constants, whether or not codemode is on (`not checked`), and its next step names the `"defaultTools": ["+codemode"]` line for Pi's own `settings.json` and Pi's `/reload`; Pi turns codemode on by itself with MCP servers of `codemode` exposure. Registration is read from Hive's own state (a failed read still shows the row), never from Pi's configuration. Apart from the `Codex wait floor` row, described below, it executes no integration program and reads no host or provider configuration, so pi-subagents shows only its onboarding status and `Pi codemode` none. The `Codex question card` row is built the same way: `not checked`, the catalog source, the status of its `codex-question-card-*` onboarding steps, and a next step naming `codex features enable default_mode_request_user_input`, `codex features disable …` and `codex features list`; it never reads Codex's `config.toml`. The `Codex wait floor` row is the exception: it reads that file and reports whether the two `min_wait_timeout_ms` and `default_wait_timeout_ms` keys under `[features.multi_agent_v2]` are set, whether Hive's state records that it wrote them, and whether `config.toml.hive-backup` exists. It runs `codex --version` only to warn when the table exists with a Codex older than 0.164. The view reserves room for eight rows at 80x24.
-- **Project** validates the `## Hive` section of `AGENTS.md` at the root of the Git repository that contains `--project`, or the current directory: missing or duplicated section, missing or empty required values (`Project`, `Base branch`, `Tracker`, `Specs`), a `Specs` path that is not a directory, a `Base branch` that is neither a local branch nor on `origin`, unknown keys, a `Delivery` value other than `direct-base`, or a `Hive guidance` value other than `required`. The retired keys `Review` and `UI verification`, and `Delivery: automatic` or `interactive`, warn without blocking (`<Key>: retired; Hive asks it each session, and the old value only informs the recommended option — remove it with hive project set --unset <Key> or run harness-audit`, with `Delivery: <value> is retired; …` naming the retired value) and are not unknown keys; `Completion` is a known key and warns when it lacks the shape `<state> on <ref> · <state> on <ref>`. The blocking findings, which fail the command, are a missing or empty required value, a `Base branch` name that Git rejects, an invalid `Delivery` or `Hive guidance`, a duplicated section, and an `AGENTS.md` that is not a regular file, cannot be read, or exceeds 1 MiB. A `Base branch` that could not be checked because `git` failed to run is a warning for the doctor, but `hive project set` refuses to write it. The retired keys named in `retiredHiveKeys` must match the "Retired keys:" line of `project-settings.md`, which a test checks. A `--project` directory that does not exist, or is not a directory, is reported as `Directory not found` or `Not a directory` without running `git`. It runs read-only `git` queries with Git's local environment variables removed. A section in a workspace `AGENTS.md` outside a repository is not checked.
+- **Project** validates the `## Hive` section of `AGENTS.md` at the root of the Git repository that contains `--project`, or the current directory: missing or duplicated section, missing or empty required values (`Project`, `Base branch`, `Tracker`, `Specs`), a `Specs` path that is not a directory, a `Base branch` that is neither a local branch nor on `origin`, unknown keys, a `Delivery` value other than `direct-base`, or a `Hive guidance` value other than `required`. The retired keys `Review` and `UI verification`, and `Delivery: automatic` or `interactive`, warn without blocking (`<Key>: retired; Hive asks it each session, and the old value only informs the recommended option — remove it with hive project set --unset <Key> or run harness-audit`, with `Delivery: <value> is retired; …` naming the retired value) and are not unknown keys; `Other trackers` is a known key and warns when a tracker lacks `keys <PREFIX>` or a prefix repeats; `Completion` is a known key and warns when one of its values separated by `;` lacks the shape `<state> on <ref> · <state> on <ref>`. The blocking findings, which fail the command, are a missing or empty required value, a `Base branch` name that Git rejects, an invalid `Delivery` or `Hive guidance`, a duplicated section, and an `AGENTS.md` that is not a regular file, cannot be read, or exceeds 1 MiB. A `Base branch` that could not be checked because `git` failed to run is a warning for the doctor, but `hive project set` refuses to write it. The retired keys named in `retiredHiveKeys` must match the "Retired keys:" line of `project-settings.md`, which a test checks. A `--project` directory that does not exist, or is not a directory, is reported as `Directory not found` or `Not a directory` without running `git`. It runs read-only `git` queries with Git's local environment variables removed. A section in a workspace `AGENTS.md` outside a repository is not checked.
   It also warns, without blocking, about each active change folder under `Specs` whose `proposal.md` defines an `AC<n>` that no `**Closes:**` line in `tasks.md` names (ranges such as `AC11–AC15` count), about a change folder that is not English kebab-case, and about an archived change that does not match `YYYY-MM-DD-<kebab-case>`.
 
 With `--home`, as elsewhere, host environment overrides are ignored, no program is looked up on `PATH` or executed (neither the host binaries nor `engram`, `agent-browser`, `codegraph` and `codex`), and sessions are read under that home; the Project check still finds and runs `git` in `--project` or the current directory. Text read from outside the manager (versions, paths, session directories, `AGENTS.md` values) has control characters and escape sequences removed before it is shown.
@@ -107,7 +143,7 @@ go run ./tooling/cli project set [--project DIR] --set 'Key: value'... [--unset 
 
 `project set` creates or edits the `## Hive` section of `AGENTS.md` at the root of the Git repository that contains `--project`, or the current directory. It replaces only the given `- Key:` lines, appends new keys after the last item in the order of the known keys, and keeps every other line, the file's line endings, and its permissions. Without a section it appends one at the end of the file; without `AGENTS.md` it creates the file, mode `0644`, with only the section. `--unset` accepts optional keys only, and is how a retired key is removed. The summary shows the path, the section's lines before and after, warnings, and `AGENTS.md has uncommitted changes` when Git lists the file as changed; a terminal is required to confirm, and without one only `--dry-run` runs.
 
-It refuses, writing nothing: a duplicated section, an `AGENTS.md` that is a symbolic link, not a regular file, or larger than 1 MiB, a directory outside a Git repository, a missing or empty required value, a value with a line break or with characters that would be removed when shown (also an existing value in a key the request does not touch), an unknown key in `--set`, a retired key (`Review`, `UI verification`) or retired `Delivery` value (`automatic`, `interactive`) in `--set`, named as retired and checked before the unknown ones, a `Delivery` other than `direct-base`, a `Hive guidance` other than `required`, a base branch name Git rejects, and a file that changed after the preview. A base branch or `Specs` path that does not exist yet, a `Completion` without the `<state> on <ref> · <state> on <ref>` shape, an unknown key already in the file, and a retired key already in the file (which is preserved unless unset) are warnings. When the root holds a `CLAUDE.md` that does not import `@AGENTS.md`, the summary warns that Claude Code reads `CLAUDE.md` instead of `AGENTS.md` by default; `CLAUDE.md` is never changed. Only that root `CLAUDE.md` is checked, not `.claude/CLAUDE.md`, `CLAUDE.local.md`, or one in a parent directory.
+It refuses, writing nothing: a duplicated section, an `AGENTS.md` that is a symbolic link, not a regular file, or larger than 1 MiB, a directory outside a Git repository, a missing or empty required value, a value with a line break or with characters that would be removed when shown (also an existing value in a key the request does not touch), an unknown key in `--set`, a retired key (`Review`, `UI verification`) or retired `Delivery` value (`automatic`, `interactive`) in `--set`, named as retired and checked before the unknown ones, a `Delivery` other than `direct-base`, a `Hive guidance` other than `required`, a base branch name Git rejects, and a file that changed after the preview. A base branch or `Specs` path that does not exist yet, an `Other trackers` value without `keys <PREFIX>` or with a repeated prefix, a `Completion` value without the `<state> on <ref> · <state> on <ref>` shape or with an undeclared prefix, an unknown key already in the file, and a retired key already in the file (which is preserved unless unset) are warnings. When the root holds a `CLAUDE.md` that does not import `@AGENTS.md`, the summary warns that Claude Code reads `CLAUDE.md` instead of `AGENTS.md` by default; `CLAUDE.md` is never changed. Only that root `CLAUDE.md` is checked, not `.claude/CLAUDE.md`, `CLAUDE.local.md`, or one in a parent directory.
 
 The write is atomic: a temporary file in the same directory renamed over the old one, or linked into place for a new file so a file created meanwhile is never replaced. It does not enter Hive's transaction journal or `hive recover`, since the file belongs to the project; Git is its recovery. An edit made between the second read and the rename can still be lost, and a hard link to the file is detached.
 
@@ -136,6 +172,59 @@ session; without it, each creation's operation ID starts a new work, and the
 response returns the given key or null. Sessions created before work keys keep
 their IDs.
 
+The additive `hive view work` publisher owns on-demand directory scanning and
+semantic task/stage updates over the existing v3 API. Its offline `work contract`
+is the command reference. `open` binds explicit project/change/source/key to the
+returned work ID; `publish` freezes bounded Markdown before writes, compares the
+current remote chain for no-op, uploads missing content and verifies the snapshot.
+`list`/`show` read observed state; `bind` explicitly moves a local source binding.
+`resume` replays exact pending wire requests, and `reconcile archive-rejected`
+retains definite rejection evidence before freeing an intent for a fresh explicit
+publication. Unknown outcomes cannot be discarded. Neither command reopens work.
+
+Client state lives at `<state>/publisher/v1/` (0700 directories, 0600 files),
+outside the server-owned viewer inventory. A separate nonblocking lock protects
+versioned, atomically replaced journals and frozen request bytes. Confirmed history keeps bounded receipt metadata after verified readback; rejected
+intents retain their exact bytes in immutable archive files. Pending inputs have
+no age expiry. No credentials are stored there. Locks are per work
+(`publisher/v1/locks/<work-id>.lock`), so commands on different works do not
+block each other; creation and journal migration keep the global lock. Nothing
+watches files, and no dependency or storage migration was added. Downgrading the client preserves this journal but cannot resume its
+pending requests; restore a compatible client to recover them.
+
+The semantic commands `work open|sync|evidence|close` apply one declaration per
+stage change (stage state with reason, missing tasks bound to that stage, task
+states, optional close with readback) and need no change folder. They resolve
+the producer identity without flags from a verified host variable or from the
+process-to-session map the session hook writes (contract in
+[host session events](host-session-events.md#session-map)), and keep each
+session's current work so the work ID may be omitted while exactly one is
+current. With the viewer stopped or silent, `open`, `sync` and `evidence`
+record the semantic input and operation ID in the journal, answer `queued` and
+never start the viewer; the next command on that work, or the next `hive hook`
+run of its session, sends the queue in order, rebuilding the requests on the
+remote state and reporting a declaration that no longer applies under
+`queue.rejected` without overwriting remote state. A queued `open` returns a
+local handle (a hash of project, host, native session and key) that the journal
+maps to the viewer ID once sent.
+
+The viewer also accepts host events: `POST /api/host-events`, authenticated by
+the viewer token without a browser origin and gated by a capability. The hidden
+`hive hook <host> <event>` subcommand, which hosts run, resolves the session's
+current work and active stage, sends one event with an operation ID derived from
+the host event, and otherwise appends it to `<state>/hooks/queue/` (under
+`<state>/hooks/queue.lock`); the next hook run or semantic command with a
+running viewer drains it. Events act as the accepted native producer of the
+session and are stored with provenance `host_observed`, apart from
+`agent_reported` and `server`. Every event moves the work's last host activity
+as maintenance metadata, without invalidating an agent's expected versions.
+Native task-list changes become tasks keyed `host:<native task ID>` (up to 50,
+bound to the active stage) only while the work has no agent-registered task.
+Events never start or complete a stage, change authority, record approvals or
+close a work; a session end only updates activity. The hook prints nothing,
+finishes within 2 s and exits 0 on any error. Which host events exist and what
+each hook payload carries is in [host session events](host-session-events.md).
+
 Registration records project roots in `viewer/registry.json`. Resolution uses
 the verified Git origin when available and the registered path for a workspace
 or verified missing origin. Transient resolution failure is not a new identity.
@@ -144,22 +233,60 @@ session ID; durable canonical project bindings allow registered aliases while
 rejecting contradictory membership. An unavailable historical root is different
 from authorizing a new publication without resolving its source.
 
-Protocol, schema and storage are3. `viewer/storage.json` positively identifies
+Presentation grouping is separate from that canonical identity. The authenticated
+`GET /api/index?navigation=grouped` response includes a version-1 `navigation`
+projection; the default index retains its canonical grouping shape. Matching timeline
+revision 3 is required for both forms. Invalid navigation metadata is discarded with a visible diagnostic
+without weakening the validation of work records.
+
+The projection reads only `.engram/config.json` at each work's original registered
+source root, once per distinct root per request. Equal explicit `project_name`
+strings after outer-whitespace trimming share a group; case remains significant.
+The reader accepts a regular file up to 64 KiB without following configuration
+links, requires one JSON object and a nonempty name of at most 200 Unicode
+characters without control characters or path separators, and never prints file
+content. Missing configuration retains canonical-project groups; invalid or
+unavailable configuration also exposes a recoverable navigation diagnostic.
+Changing a configuration changes the next projection, not persisted works or
+producer eligibility. No ancestor search, child scan, Engram process or alias
+resolution participates. A root with valid explicit configuration is also
+registrable directly when it is not Git; the existing Git and
+`_support/workspace` resolution paths remain available.
+
+Protocol, schema and storage are 3; the separate timeline contract revision is 3. `viewer/storage.json` positively identifies
 that format; API records live in `viewer/timeline-api-v3/`. Preflight rejects
 old1/provisional2 state, like any name outside the v3 inventory, with
 invalid_storage before mkdir, locking, log creation,
 cleanup, registration or signaling. Unknown/corrupt state is an error, not an
 empty library. There is no older-record reader, scanner, import, preference copy
 or migration. A real cutover uses a separate fresh state directory, preserved
-old data and explicitly coordinated writers. Rebuilding a binary does not
-restart a service or change its state directory.
+old data and explicitly coordinated writers. Within v3, the revision 3 upgrade (host events) keeps the rule of revision 2: it preserves stored works and publisher journals.
+Before its first maintenance write, retain a private state snapshot as evidence.
+Update the CLI, embedded UI and server together and reload the browser. Index
+and timeline metadata requests and mutations require `X-Hive-Timeline-Revision: 3`;
+a missing or mismatched revision returns `reload_required` before mutation. A
+new client also refuses writes if the server does not acknowledge the revision.
+Pending request bytes and operation IDs remain available for explicit resume.
+Downgrade in place is unsupported if the old reader rejects the new metadata;
+rollback uses a separate restored snapshot, retaining the upgraded state and
+subsequent records for reconciliation. Nothing is automatically deleted or
+replaced. Rebuilding a binary does not restart a service or change its state
+directory; installation and restart require their applicable authorization.
 
 A work has a stable server ID derived from canonical project and its initial
 native identity. Accepted producers join that work under their own Source and
 producer IDs; lead/foreground transfers do not replace its identity. Native
-provenance is not cryptographic proof of a process. Typed browser management and
-explicit lead recovery use local_viewer; publication requires an accepted native
-producer and the operation's lead/assignment rules. No browser task executor,
+provenance is not cryptographic proof of a process. Typed management (rename, archive/restore, pin/unpin, delete) and explicit
+lead recovery use local_viewer, from the browser or from `hive view work
+rename|archive|restore|pin|unpin|recover|delete`, which declare `origin: cli`;
+the origin is declared provenance, kept in the event, administrative receipt or
+private deletion audit. The CLI checks the `local_actions_cli` capability of
+`/api/health` before sending; after an uncertain response it resends the same
+request once, which the viewer answers from its stored receipt, and only then
+re-reads the work.
+A record stored with `origin` does not load in an older binary, so rolling back
+after using these commands needs the state backup. Publication requires an
+accepted native producer and the operation's lead/assignment rules. No browser task executor,
 provider fetch, CI rerun or automatic merge is exposed.
 
 Transactions run under the store lock against a cloned record. Version checks,
@@ -183,8 +310,13 @@ defines those boundaries.
 
 Browser rename/archive/pin/delete operations remain conditional and same-origin,
 with action-scope checks. Deletion commits a durable work tombstone and resumes
-pending cleanup; it never deletes project sources or native history. Manual
-retention has no age expiry, and the commands take no TTL option.
+pending cleanup; it never deletes project sources or native history. Finished unpinned works are automatically archived for visibility two hours
+after their current closure, with a full window from first evaluation when its
+time cannot be proved. Pinning prevents this; unpinning reuses the original
+deadline. Manual restore exempts the closure episode until reopen and a new
+close. Reopening restores automatic archives but preserves manual archives.
+Other lifecycle states are not automatically archived. Content retention is
+manual, with no age-based deletion or TTL option.
 `status` reports service/work counts without credentials. API readback verifies work, versions,
 references and immutable hashes through the authenticated API.
 
@@ -230,7 +362,7 @@ Keys:
 Each view reuses the plans and summaries of its command, so it writes the same files and state:
 
 - **CLIs** lists each detected, registered, or legacy host with a checkbox (checked means active), its release, the Hive version (the column header shortens to `Hive` when long names leave no room; the CLI's own version is in Diagnostics), and drift. Space changes the desired set and `a` applies it. Removals are previewed, confirmed, and applied first; additions are then planned on the resulting state, with the package verification, required-host notice, optional capabilities, summary, and confirmation of `hive install`. When both happen, the summaries are labeled step 1 and step 2, and stopping at step 2 keeps the removal. When a row reads `editor only`, one line under the table, set apart by a blank line, explains it: `editor only: the Cursor editor is installed, but not its CLI (cursor-agent). Hive can still install Cursor's files.`; without such a row the line is not shown. Checking a host with a legacy installation migrates it. Under a synthetic `--home`, where no executable is ever detected, the view lists every supported CLI and shows the unregistered ones as `not detected`, so a removed host can be installed again from the view. When the scan for legacy installations fails, the view still lists every host with its release and drift, and shows a note under the rows, or under `No CLI hosts were detected or registered` when there are none. For a file that differs from what Hive expects at a path it once used, which may be a file Hive installed or the user's own, the note reads `<path> differs from what Hive expects there. Undo the change, restore it from a backup, or move your own file elsewhere before installing or updating. Removing may also be refused if Hive installed that file.`. The scan reports that case as a `*legacy.ModifiedFileError` carrying the path, which the view finds with `errors.As`; the text installer, `hive plan install` and `hive update` refuse with its message, `<path> differs from what Hive expects there; undo the change, restore it from a backup, or move your own file elsewhere`, and write nothing. It does not point to Diagnostics, which lists only files Hive currently manages. Any other scan failure reads `Hive could not check for a legacy installation, so installing or updating may be refused. The Detail line says why.` For any other scan failure, the raw error goes on a `Detail:` line that gives way to a result or error shown below it; a changed file needs none, since its error says the same as the note. While that lasts, a host with a legacy installation may not be labeled. For a file at a legacy path, installing and updating are refused with the command's own message, writing nothing, until the file is restored (the view starts the refusal it shows with `Nothing was changed. `); removing is refused, with its own message, only when the file is one Hive currently manages. `u` opens Uninstall all, which removes every registered host; its confirmation starts on Cancel and does not accept `y`.
-- **Update** edits the source (`.`) and revision (`HEAD`) in place and shows the `hive update` summary. When the revision changes nothing, it records the source commit without asking, as `hive update` does.
+- **Update** offers Release and Source modes. Release shows current and target versions and uses the same preparation, confirmation and recovery as the command; Source edits the source (`.`) and revision (`HEAD`). An unchanged source update records the commit without asking.
 - **Releases** lists retained releases, newest first, with the installed one marked. `/` filters by text and Esc clears the filter. Choosing a release returns to it through `plan install --release` for the registered hosts.
 - **Voice** shows the active voice as rows (voice, address, name when the address is `name`, and intensity) changed in place with the arrows, then previews `hive voice set` or `off`. With Off, only the voice row shows.
 
@@ -243,7 +375,7 @@ The four diagnostic views show what `hive doctor` and `hive models` print (see [
 
   The list comes from the host's own command the first time a panel of that host opens in the session, and is kept for the session; a failure is retried on the next open. The commands are fixed: `codex debug models` (models with `visibility` `list`), `opencode models` (retried once when it prints nothing, which was observed with OpenCode 2.0.21), `pi --list-models`, `grok models` (its session line is dropped), and `cursor-agent models`; Claude Code has no listing command, so its list is the aliases `fable`, `opus`, `sonnet`, and `haiku`. Each runs as the binary found on `PATH`, without a shell, with the user's environment (the host needs it to authenticate), in `os.TempDir()` so it never loads a repository's configuration or plugins, with stdin from `/dev/null`, in its own session so it cannot take the terminal, with an 8-second limit after which its whole process group is killed, and with standard output capped at 8 MiB, beyond which the list is an error rather than a partial list; standard error is discarded. Ids outside the characters `models set` accepts are not offered. With `--home` no host command runs and the list offers only `release default`, the effective model, and `Other…`. `hive models`, `hive doctor`, and browsing the Models view without opening a panel never run them. The hosts' own caches, telemetry, and network calls are outside Hive's control, and the hosts' internal model caches (`~/.codex/models_cache.json`, `~/.cache/opencode/models.json`) are not read. The text command still accepts any valid id, since a host can accept ids it does not list.
 - **Integrations** lists five to eight integrations (Pi codemode with Pi registered, the Codex question card and the Codex wait floor with Codex registered) with a `>` cursor moved by ↑↓, and the selected one's detail below.
-- **Project** shows the checked `AGENTS.md` path and `Valid` or the findings, with the values read. Inside a repository, `e` opens a form with the eight known keys, required ones first (`Project`, `Base branch`, `Tracker`, `Specs`, `Environments`, `Delivery`, `Completion`, `Hive guidance`): each holds the section's current value or, for a missing required text value, a suggestion marked `suggested` (the repository name and `GitHub Issues · <owner>/<repo>` from a `github.com` `origin`, read without its credentials; the branch `origin/HEAD` points to; `_support/openspec` when it exists). `Delivery` (none or `direct-base`) and `Hive guidance` are chosen with ←→; `Completion` is text, with a placeholder deduced from the `Environments` value. A legacy `Delivery` value shows marked `(retired)` and can be moved to none. Each retired key the section holds adds a row after the eight, choosing between its value marked `(retired)` and `remove`, which unsets it. Enter with an empty required value names it; otherwise it previews `hive project set` with the changed keys. Cancelling keeps what was typed, a write error shows in the form, and a successful write closes the form and checks the section again. While the root `CLAUDE.md` does not import `@AGENTS.md`, the view keeps that warning under the result; `hive doctor` does not report it, since it checks only the section. Esc closes the form only.
+- **Project** shows the checked `AGENTS.md` path and `Valid` or the findings, with the values read. Inside a repository, `e` opens a form with the nine known keys, in this order (`Project`, `Base branch`, `Tracker`, `Other trackers`, `Specs`, `Environments`, `Delivery`, `Completion`, `Hive guidance`): each holds the section's current value or, for a missing required text value, a suggestion marked `suggested` (the repository name and `GitHub Issues · <owner>/<repo>` from a `github.com` `origin`, read without its credentials; the branch `origin/HEAD` points to; `_support/openspec` when it exists). `Delivery` (none or `direct-base`) and `Hive guidance` are chosen with ←→; `Completion` is text, with a placeholder deduced from the `Environments` value; `Other trackers` is text, with its shape as placeholder. A legacy `Delivery` value shows marked `(retired)` and can be moved to none. Each retired key the section holds adds a row after the nine, choosing between its value marked `(retired)` and `remove`, which unsets it. Enter with an empty required value names it; otherwise it previews `hive project set` with the changed keys. Cancelling keeps what was typed, a write error shows in the form, and a successful write closes the form and checks the section again. While the root `CLAUDE.md` does not import `@AGENTS.md`, the view keeps that warning under the result; `hive doctor` does not report it, since it checks only the section. Esc closes the form only.
 
 In the scrolling views (Diagnostics, Project, the Integrations detail) a line that does not fit continues under its own indent plus two spaces. A path or other token wider than the line breaks after a `/`, keeping the slash at the end of the line, and breaks hard only when a segment has no slash and still does not fit; a token that fits moves whole to the next line, never splitting at a hyphen. The notes and errors of the other views, and the scrolling summaries and error dialogs, wrap the same way.
 
@@ -303,6 +435,11 @@ code. A party able to replace the plugin is outside the isolation Hive promises;
 the host loads local executable code with its own access, not a Hive sandbox.
 
 Normal install/update never activates the plugin or writes `opencode.json(c)`.
+The one exception is the separate session-event plugin
+(`<OpenCodeHome>/plugins/hive-events.js`, see
+[host session hooks](#host-session-hooks)): it is not this loader, sits in the
+auto-discovered `plugins/` directory and so is active as soon as it is
+installed.
 After explicitly choosing activation, the user adds the absolute
 `<OpenCodeHome>/hive/context-loader` directory path
 to the native `plugins` array in their own OpenCode configuration, preserving
@@ -420,11 +557,13 @@ files in `hooks/`, such as the user's own hooks, are untouched. The binary path 
 resolved when the plan is built and saved in the plan's `executable` field, so
 `apply` regenerates the same bytes; `apply` refuses a plan whose executable is not
 an absolute, clean regular file reached without a symbolic link, and a plan that
-carries an executable without installing the hook. Only user-scope installs that
-include Grok resolve it. A plan that would install the hook from a binary under
-the system temporary directory, `GOTMPDIR`, `GOCACHE` or the Go build cache, such
-as `go run ./tooling/cli`, is refused: build the binary with `go build` first. The pilot
-runner, which uses `go run`, therefore cannot install Grok.
+carries an executable without installing a hook. Every user-scope install that
+includes any host resolves it, because every host now registers a hook (this one
+and the [session hooks](#host-session-hooks)). A plan that would install from a
+binary under the system temporary directory, `GOTMPDIR`, `GOCACHE` or the Go
+build cache, such as `go run ./tooling/cli`, is refused for every host: build the
+binary with `go build` first. The pilot runner, which uses `go run`, therefore
+cannot install any host at user scope.
 
 The hook depends on that binary path. Reinstalling or updating from a binary at
 another path rewrites the command; deleting the package that installed it leaves
@@ -437,6 +576,68 @@ sessions, or reload with `r` in `/hooks`, after installing or removing it.
 Subagent sessions run it too. With `toolset.file_toolset = hashline` the read tool
 is `hashline_read`, which the matcher does not cover. Sources: Grok 1.0.55
 `~/.grok/docs/user-guide/10-hooks.md` and `08-skills.md`, read on 2026-10-13.
+
+### Host session hooks
+
+User-scope installs also let each host report its session to the viewer through
+`hive hook <host> <event>` (see [Walkthrough viewer](#walkthrough-viewer) for the
+endpoint and queue, and [host session events](host-session-events.md) for the
+verified facts per host and version). Every hook is silent, bounded to 2 s, exits
+0 on any error, and carries an explicit 5 s timeout where the file has one. They
+call the `hive` binary that planned the install, so they share the stable
+executable rule of the Grok read-whole hook above.
+
+Whole files Hive owns, as records of kind `hook` (accepted only for their file
+name, folder and host, like the Grok read-whole hook): Grok's second hook file
+`<GrokHome>/hooks/hive-session-events.json` (events `SessionStart`,
+`UserPromptSubmit`, `Stop`, `SessionEnd`, each a program handler with the binary
+as `command` and `hook grok <event>` as `args`, so the path needs no quoting;
+Grok merges every file in `hooks/`, so it sits beside the read-whole file and
+neither knows of the other); OpenCode's `<OpenCodeHome>/plugins/hive-events.js`;
+and Pi's `<PiHome>/extensions/hive-events.ts`. The OpenCode plugin and the Pi
+extension are auto-loaded by their hosts and pass the session ID explicitly,
+because OpenCode plugins run in one shared service. The OpenCode plugin reports
+`session.created`, `session.deleted`, `session.execution.*` and `todowrite`
+results; the Pi extension `session_start`, `agent_settled` and `session_shutdown`.
+
+Shared JSON files, which also hold other tools' entries and, in Claude Code's
+`settings.json`, secrets in `env`, are never records and never parsed and written
+back. `tooling/management/json_hooks.go` is a span editor: it finds the byte spans
+it needs and splices its own entries in or out, so every byte outside them stays
+as it was, and it recognizes as Hive's only a command of the exact form
+`'<hive>' hook <host> <event>`. The files and events:
+
+- Claude Code `<ClaudeHome>/settings.json`: `SessionStart`, `UserPromptSubmit`,
+  `SubagentStart`, `SubagentStop`, `TaskCreated`, `TaskCompleted`, `SessionEnd`.
+- Codex `<CodexHome>/hooks.json`: `SessionStart`, `UserPromptSubmit`,
+  `SubagentStart`, `SessionEnd`. `Stop` and `SubagentStop` are never registered
+  because Codex expects JSON on their stdout.
+- Cursor `<CursorHome>/hooks.json`, `{"version": 1, "hooks": {...}}` with handlers
+  directly under each event: `sessionStart`, `beforeSubmitPrompt`, `stop`,
+  `sessionEnd`. The format is verified in the installed code only; Cursor CLI's
+  use of it is not documented.
+
+The plan carries a fingerprint of each file, not its bytes; the journal carries
+fingerprints and Hive's own entries, and every undo is an entry-level inverse
+computed on the file as it is then, so an edit another tool made elsewhere
+survives. The first edit of an existing file keeps a backup of it as `<file>.hive-backup`. A file
+that is not the expected shape, has a duplicate key, or is larger than 4 MiB makes
+planning fail naming the file; it is never rewritten. A moved binary's old
+entries are recognized from the state and replaced. `plan remove` and uninstall
+delete only Hive's entries, plus the file when Hive created it and nothing else
+remains and the backup it made when the removal left no foreign change (otherwise
+the backup is kept and the report says so). Hive writes no Codex hook trust: Codex skips new or changed hooks until
+the user approves them in `/hooks` (`trusted_hash` is untouched), and the report
+tells the user to do so. Claude Code holds back settings hooks in an untrusted
+folder until the workspace trust dialog is accepted. A hook registered for Claude
+Code may be run by Grok or Cursor, which also read `~/.claude/settings.json`; the
+subcommand detects the host that actually ran it and acts for that host or exits
+silently. Hosts load hooks at session start: restart open sessions.
+
+The facts are documentary or read from installed code, not run in agent sessions
+(see the header of the host session events document). A host whose support is not
+verified against current documentation and the installed version is reported as
+unverified.
 
 ## Preservation and state
 
@@ -460,7 +661,7 @@ require explicit selection. The state home contains:
 - `lock`: process lock, released by the operating system on exit.
 - `viewer/`: the local viewer registry, server record and log, locks, index, legacy copies (`sessions/<key>/`), and API-owned session records and blobs (`timeline-api-v1/`); it is outside `state.json` and its transactions.
 
-New state directories use mode 0700; state files, plans, transaction journals, and backup copies such as `config.toml.hive-backup` use 0600. Unknown schemas or malformed state fail rather than trigger automatic rebuilding. Release history is retained and never pruned, and the manager stores no credentials. After each operation commits, the manager keeps the 10 most recent transaction journals in the `committed` or `recovered` phase and deletes older ones; it never deletes the journal `pending.json` names, the core journal a pending onboarding references, a journal in another phase, or one whose leading `Version`, `ID` and `Phase` keys it does not recognize, and it deletes none when it cannot read those pending files. A pruning failure is a warning on the result, never a failed operation. No command restores a finished transaction; `recover` only completes or undoes the pending one. State, operation plans, and new core transaction journals use schema v6. The product-version receipts and version index are separate from historical content release IDs; v6 preserves their hashing. Optional onboarding uses a separate versioned parent journal and does not roll back a committed core on provider failure. It adds verified legacy retirement and scoped migration receipts to v4's source payload modes, renderer/profile identity, and shared consumer ownership. Existing v1-v5 state migrates transactionally when an operation is applied; planning alone does not rewrite it. Retained legacy releases preserve their original payload hashes. Pending v1-v5 transactions remain recoverable with their original checksum semantics. Saved plans before v6 must be regenerated before applying new operations. Plans saved before Cursor support was added also fail to apply (`invalid root`) and must be regenerated.
+New state directories use mode 0700; state files, plans, transaction journals, and backup copies such as `config.toml.hive-backup` use 0600. Unknown schemas or malformed state fail rather than trigger automatic rebuilding. Release history is retained and never pruned, and the manager stores no credentials. After each operation commits, the manager keeps the 10 most recent transaction journals in the `committed` or `recovered` phase and deletes older ones; it never deletes the journal `pending.json` names, the core journal a pending onboarding references, a journal in another phase, or one whose leading `Version`, `ID` and `Phase` keys it does not recognize, and it deletes none when it cannot read those pending files. A pruning failure is a warning on the result, never a failed operation. No command restores a finished transaction; `recover` only completes or undoes the pending one. State, operation plans, and new core transaction journals use schema v7. The product-version receipts and version index are separate from historical content release IDs; v6 preserves their hashing. Optional onboarding uses a separate versioned parent journal and does not roll back a committed core on provider failure. It adds verified legacy retirement and scoped migration receipts to v4's source payload modes, renderer/profile identity, and shared consumer ownership. Existing v1-v6 state migrates transactionally when an operation is applied; planning alone does not rewrite it. Retained legacy releases preserve their original payload hashes. Pending v1-v6 transactions remain recoverable with their original checksum semantics. Saved core plans before v7 must be regenerated before applying new operations. Plans saved before Cursor support was added also fail to apply (`invalid root`) and must be regenerated.
 
 ## Failure handling
 
@@ -472,7 +673,7 @@ Only directories confirmed created by Hive are cleanup candidates, and only empt
 
 ## Verification
 
-The repository has no CI: verification runs locally, once on the final candidate of a change.
+The repository runs no tests in CI: verification runs locally, once on the final candidate of a change. Its only GitHub workflow checks the source branch of pull requests to `master` ([CONTRIBUTING.md](../../../CONTRIBUTING.md#branches-and-commits)).
 
 ```sh
 go vet ./...
@@ -497,7 +698,7 @@ A legacy snapshot with no product receipt retains its hash and is not relabeled.
 
 Published version labels cannot be rebound to a different artifact in the local
 version index. Development builds use `dev`: between releases, `VERSION` on
-`development` reads `dev`, so `hive update` can deploy each merge, and each
+`development` reads `dev`, so `hive update --source .` can deploy each merge, and each
 release commit sets its number. This local check does not certify a
 remote release channel or authorize public distribution. Source-code visibility
 and package publication remain independent decisions.

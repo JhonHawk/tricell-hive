@@ -96,7 +96,7 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 		return err
 	}
 	if command.operation == "session_delete" {
-		return errors.New("session deletion is a local-viewer action; use the authenticated browser confirmation instead of the native CLI")
+		return errors.New("session deletion is a local-viewer action, not a native producer one: use `hive view work delete --work-id ID --confirm ID` or the authenticated browser confirmation; it is a critical effect the user is asked about every time (viewer publication guidance «Shared work and authority»)")
 	}
 	fs := flag.NewFlagSet("view timeline", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)
@@ -127,7 +127,13 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 			return err
 		}
 		if err = validateViewTimelineInput(command.operation, input); err != nil {
+			if errors.Is(err, errLocalViewerActorForbidden) {
+				return err
+			}
 			code := viewer.TimelineContractCode(err)
+			if command.operation == "session_patch" && code == "local_viewer_required" {
+				return fmt.Errorf("invalid timeline input: %s; renaming, archiving, restoring, pinning and unpinning a work are `hive view work rename|archive|restore|pin|unpin` commands; run `hive view work contract`", code)
+			}
 			if code == "unsupported_protocol" {
 				return errors.New("unsupported_protocol: protocol v3 is required; update client and viewer together, preserve inputs and use a fresh v3 state directory")
 			}
@@ -181,23 +187,42 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 	if err != nil {
 		return err
 	}
-	data, err := viewTimelineHTTP(info, command.method, command.path, contentType, body, viewer.TimelineMaxBody)
+	data, err := viewTimelineHTTP(info, command.method, command.path, contentType, body, viewer.TimelineMaxResponseBody)
 	if err != nil {
 		return err
 	}
 	return viewTimelineDecodeOutput(w, command, input, data)
 }
 
+var (
+	errViewStopped   = errors.New("the viewer is unavailable")
+	errViewTransport = errors.New("viewer request outcome is uncertain")
+)
+
+// viewerUnavailable reports a viewer that is stopped or does not answer, as
+// opposed to one that answers incompatibly or wrongly.
+func viewerUnavailable(err error) bool {
+	return errors.Is(err, errViewStopped) || errors.Is(err, errViewTransport)
+}
+
 func viewTimelineRunning(paths viewPaths) (serverInfo, error) {
+	info, _, err := viewTimelineRunningHealth(paths)
+	return info, err
+}
+
+// viewTimelineRunningHealth is viewTimelineRunning that also returns the health
+// the readiness check read, so a caller needing a capability reads health once.
+func viewTimelineRunningHealth(paths viewPaths) (serverInfo, viewTimelineHealth, error) {
 	held, lockErr := viewLockHeld(paths)
 	info, infoErr := readServerInfo(paths.info)
 	if lockErr != nil || !held || infoErr != nil || info.PID <= 0 || info.Port < 1 || info.Port > 65535 || len(info.Token) < 16 {
-		return serverInfo{}, errors.New("the viewer is unavailable; start it with `hive view start` and retry the unchanged operation; local inputs were preserved")
+		return serverInfo{}, viewTimelineHealth{}, fmt.Errorf("%w; start it with `hive view start` and retry the unchanged operation; local inputs were preserved", errViewStopped)
 	}
-	if err := viewTimelineProtocolReady(info, paths.state); err != nil {
-		return serverInfo{}, err
+	health, err := viewTimelineReadHealth(info, paths.state)
+	if err != nil {
+		return serverInfo{}, viewTimelineHealth{}, err
 	}
-	return info, nil
+	return info, health, nil
 }
 
 func parseViewTimelineCommand(args []string) (viewTimelineCommand, []string, error) {
@@ -329,12 +354,16 @@ func parseViewTimelineCommand(args []string) (viewTimelineCommand, []string, err
 	return c, args[2+positionals:], nil
 }
 
+// errLocalViewerActorForbidden refuses the local_viewer actor in a native command
+// and points to the commands that act as it.
+var errLocalViewerActorForbidden = errors.New("local_viewer_actor_forbidden_in_native_cli: the management actions are `hive view work rename|archive|restore|pin|unpin|recover|delete` commands; run `hive view work contract`")
+
 func validateViewTimelineInput(operation string, raw []byte) error {
 	var identity struct {
 		Actor viewer.TimelineActor `json:"actor"`
 	}
 	if json.Unmarshal(raw, &identity) == nil && identity.Actor.Kind == "local_viewer" {
-		return errors.New("local_viewer_actor_forbidden_in_native_cli")
+		return errLocalViewerActorForbidden
 	}
 	switch operation {
 	case "ticket_create", "ticket_patch", "delivery_create", "delivery_patch", "candidate_create", "join_request", "producer_accept", "foreground_transfer", "task_create", "task_patch", "task_transition", "wait_create", "wait_attempt_start", "wait_observe":
@@ -413,15 +442,32 @@ func viewTimelineReadFile(name string, limit int64) ([]byte, error) {
 }
 
 // Redirects and transport/body diagnostics must not reveal the access token.
+// viewHTTPStatusError is the viewer's non-2xx answer to a timeline request.
+type viewHTTPStatusError struct {
+	Status int
+	Detail string
+}
+
+func (e *viewHTTPStatusError) Error() string {
+	return fmt.Sprintf("viewer request failed (HTTP %d%s); preserve inputs, read current state and retry only with the appropriate original operation ID", e.Status, e.Detail)
+}
+
 func viewTimelineHTTP(info serverInfo, method, path, contentType string, body io.Reader, limit int) ([]byte, error) {
 	if !strings.HasPrefix(path, "/api/") || strings.ContainsAny(path, "?#\\") {
 		return nil, errors.New("invalid local viewer route")
+	}
+	// Probe before constructing/sending a write: old servers may otherwise commit it.
+	if method != http.MethodGet {
+		if _, err := viewTimelineHTTP(info, http.MethodGet, "/api/health", "", nil, viewInfoLimit); err != nil {
+			return nil, err
+		}
 	}
 	req, err := http.NewRequest(method, info.url()+path, body)
 	if err != nil {
 		return nil, errors.New("cannot prepare viewer request")
 	}
 	req.Header.Set("X-Hive-Token", info.Token)
+	req.Header.Set(viewer.TimelineRevisionHeader, viewer.TimelineRevisionValue)
 	if method != http.MethodGet {
 		req.Header.Set("Origin", info.url())
 		req.Header.Set("X-Hive-Action-Scope", "session")
@@ -431,11 +477,19 @@ func viewTimelineHTTP(info serverInfo, method, path, contentType string, body io
 	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
 	response, err := client.Do(req)
 	if err != nil {
-		return nil, errors.New("viewer request outcome is uncertain; preserve inputs and retry the unchanged operation ID")
+		return nil, fmt.Errorf("%w; preserve inputs and retry the unchanged operation ID", errViewTransport)
 	}
 	defer response.Body.Close()
+	if response.Header.Get(viewer.TimelineRevisionHeader) != viewer.TimelineRevisionValue {
+		return nil, errors.New("reload_required: update Hive and restart/reload the viewer together; preserve inputs and retry the unchanged operation ID")
+	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		return nil, fmt.Errorf("viewer request failed (HTTP %d%s); preserve inputs, read current state and retry only with the appropriate original operation ID", response.StatusCode, viewErrorDetail(response.Body))
+		return nil, &viewHTTPStatusError{Status: response.StatusCode, Detail: viewErrorDetail(response.Body)}
+	}
+	// Existing timeline readers passing the former public-body bound also need
+	// space for the projection/envelope; smaller diagnostic limits stay unchanged.
+	if limit == viewer.TimelineMaxBody {
+		limit = viewer.TimelineMaxResponseBody
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, int64(limit)+1))
 	if err != nil || len(data) > limit {
@@ -444,20 +498,26 @@ func viewTimelineHTTP(info serverInfo, method, path, contentType string, body io
 	return data, nil
 }
 
-func viewTimelineProtocolReady(info serverInfo, state string) error {
+type viewTimelineHealth struct {
+	TimelineProtocolVersion int      `json:"timeline_protocol_version"`
+	PID                     int      `json:"pid"`
+	StateDir                string   `json:"state_dir"`
+	Capabilities            []string `json:"capabilities"`
+}
+
+func viewTimelineReadHealth(info serverInfo, state string) (viewTimelineHealth, error) {
 	raw, err := viewTimelineHTTP(info, http.MethodGet, "/api/health", "", nil, viewInfoLimit)
-	var health struct {
-		TimelineProtocolVersion int    `json:"timeline_protocol_version"`
-		PID                     int    `json:"pid"`
-		StateDir                string `json:"state_dir"`
+	var health viewTimelineHealth
+	if err != nil {
+		return health, err
 	}
-	if err != nil || json.Unmarshal(raw, &health) != nil || health.PID != info.PID || filepath.Clean(health.StateDir) != filepath.Clean(state) {
-		return errors.New("cannot confirm viewer health and identity; preserve local inputs and check the running viewer")
+	if json.Unmarshal(raw, &health) != nil || health.PID != info.PID || filepath.Clean(health.StateDir) != filepath.Clean(state) {
+		return health, errors.New("cannot confirm viewer health and identity; preserve local inputs and check the running viewer")
 	}
 	if health.TimelineProtocolVersion != viewer.TimelineSchemaVersion {
-		return errors.New("the running viewer lacks protocol v3; update client and viewer together, use a fresh v3 state directory and restart explicitly; preserve inputs and retry the unchanged operation")
+		return health, errors.New("the running viewer lacks protocol v3; update client and viewer together, use a fresh v3 state directory and restart explicitly; preserve inputs and retry the unchanged operation")
 	}
-	return nil
+	return health, nil
 }
 
 // sameWorkKey reports whether the response echoes the key the request gave,

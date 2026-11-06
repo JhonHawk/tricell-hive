@@ -58,6 +58,8 @@ type Store struct {
 	// Lock order: mu, then the flock on viewer/lock (registry only).
 	mu         sync.Mutex
 	removeTree func(string) error
+	// mu also guards the first startup maintenance error until Run reports it.
+	timelineStartupMaintenanceError error
 
 	// viewMu guards the published timeline index.
 	viewMu            sync.RWMutex
@@ -105,6 +107,24 @@ func (s *Store) TTL() time.Duration { return s.ttl }
 // Startup validates the complete v3 inventory before cleaning owned incomplete
 // writes and unreferenced blobs.
 func (s *Store) Startup() error {
+	if err := s.startupInventory(); err != nil {
+		return err
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	err := s.timelineMaintainLocked()
+	if timelineMaintenanceCorrupt(err) {
+		return err
+	}
+	// Serving valid records must not depend on successful visibility maintenance.
+	// Run reports this first attempt even if its retry subsequently succeeds.
+	if err != nil {
+		s.timelineStartupMaintenanceError = err
+	}
+	return nil
+}
+
+func (s *Store) startupInventory() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if err := ValidateState(filepath.Dir(s.vdir)); err != nil {

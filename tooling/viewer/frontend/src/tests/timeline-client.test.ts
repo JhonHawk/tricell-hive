@@ -22,7 +22,10 @@ const sid = "a".repeat(64),
   other = "b".repeat(64);
 const stamp = "2026-10-31T21:00:00Z";
 const response = (data: unknown, status = 200) =>
-  new Response(JSON.stringify(data), { status });
+  new Response(JSON.stringify(data), {
+    status,
+    headers: { "X-Hive-Timeline-Revision": "3" },
+  });
 async function settle() {
   for (let i = 0; i < 60; i++) await Promise.resolve();
 }
@@ -65,6 +68,10 @@ function fixture(id = sid): TimelineSessionResponse {
       pinned: false,
       created_at: stamp,
       updated_at: stamp,
+      last_activity_at: stamp,
+      closed_at: null,
+      autoarchive_at: null,
+      archive_origin: null,
       validation_count: 0,
       work_key: null,
       tickets: [],
@@ -168,7 +175,7 @@ test("opening target validates opaque IDs, takes precedence, and remains in the 
   const { controller } = setup(
     async (path) =>
       response(
-        path === "/api/index"
+        path === "/api/index?navigation=grouped"
           ? index(a, b)
           : String(path).endsWith(sid)
             ? a
@@ -245,14 +252,81 @@ test("an unreadable index entry is skipped, keeps its last copy, and duplicates 
   assert.equal(validateIndex(clean), clean);
 });
 
+test("optional navigation is validated apart from strict session entries", () => {
+  const base = index(fixture(), fixture(other));
+  const entries = [sid, other].map((id) => ({
+    viewer_session_id: id,
+    group_key: `explicit:${"c".repeat(64)}`,
+    group_name: "Example workspace",
+    origin_kind: "repository",
+    origin_label: "project-api",
+    config_status: "valid",
+  }));
+  const navigation = { version: 1, entries };
+  const valid = validateIndex({ ...base, navigation } as never);
+  assert.deepEqual(valid.navigation, navigation);
+  assert.equal(valid.navigation_warning, undefined);
+  for (const invalid of [
+    { version: 2, entries },
+    { version: 1, entries: [null, entries[1]] },
+    {
+      version: 1,
+      entries: [{ ...entries[0], group_name: "bad\u0085name" }, entries[1]],
+    },
+    {
+      version: 1,
+      entries: [{ ...entries[0], config_status: "unknown" }, entries[1]],
+    },
+    {
+      version: 1,
+      entries: [{ ...entries[0], group_key: "invented" }, entries[1]],
+    },
+    { version: 1, entries: [entries[0], entries[0]] },
+    { version: 1, entries: [entries[0]] },
+    {
+      version: 1,
+      entries: [
+        ...entries,
+        { ...entries[0], viewer_session_id: "d".repeat(64) },
+      ],
+    },
+    {
+      version: 1,
+      entries: [{ ...entries[0], origin_kind: "unknown" }, entries[1]],
+    },
+    {
+      version: 1,
+      entries: [{ ...entries[0], group_name: "x".repeat(201) }, entries[1]],
+    },
+  ]) {
+    const result = validateIndex({ ...base, navigation: invalid } as never);
+    assert.deepEqual(result.timeline_sessions, base.timeline_sessions);
+    assert.equal(result.navigation, undefined);
+    assert.equal(result.navigation_warning, true);
+  }
+  const badSession = validateIndex({
+    ...base,
+    timeline_sessions: [
+      { ...base.timeline_sessions[0], invented: true },
+      base.timeline_sessions[1],
+    ],
+    navigation,
+  } as never);
+  assert.equal(badSession.timeline_sessions.length, 1);
+  assert.equal(badSession.skipped_sessions?.[0].code, "unknown_field");
+  assert.equal(badSession.navigation, undefined);
+  assert.equal(badSession.navigation_warning, true);
+});
+
 test("missing and invalid destinations do not select another session; explicit archived target does not change preference", async () => {
   const a = fixture();
   a.session.archived = true;
+  a.session.archive_origin = "manual";
   const b = fixture(other);
   const { controller, writes } = setup(
     async (path) =>
       response(
-        path === "/api/index"
+        path === "/api/index?navigation=grouped"
           ? index(a, b)
           : String(path).endsWith(sid)
             ? a
@@ -291,7 +365,7 @@ test("late API session reads cannot replace a newer selection; polling failures 
   let offline = false;
   const { controller } = setup(async (path) => {
     if (offline) throw new TypeError("offline");
-    if (path === "/api/index") return response(index(a, b));
+    if (path === "/api/index?navigation=grouped") return response(index(a, b));
     if (String(path).endsWith(sid))
       return new Promise<Response>((resolve) => {
         release = resolve;
@@ -334,7 +408,7 @@ test("conditional API mutations read JSON receipts, refresh authority and reuse 
   const headers: Headers[] = [];
   const { controller } = setup(async (path, options) => {
     headers.push(new Headers(options?.headers));
-    if (path === "/api/index") return response(index(a));
+    if (path === "/api/index?navigation=grouped") return response(index(a));
     if (options?.method === "PATCH") {
       const body = JSON.parse(String(options.body));
       operations.push(body.operation_id);
@@ -380,7 +454,7 @@ test("a stale API write refreshes without replay or silently overwriting newer d
   const a = fixture();
   let patches = 0;
   const { controller } = setup(async (path, options) => {
-    if (path === "/api/index") return response(index(a));
+    if (path === "/api/index?navigation=grouped") return response(index(a));
     if (options?.method === "PATCH") {
       patches++;
       a.session.version = 2;
@@ -409,7 +483,7 @@ test("document reads use authenticated JSON and async hash validation; forbidden
   const paths: string[] = [];
   const { controller, client } = setup(async (path) => {
     paths.push(String(path));
-    if (path === "/api/index") return response(index(data));
+    if (path === "/api/index?navigation=grouped") return response(index(data));
     if (String(path).includes("/documents/")) {
       if (forbidden) return response({}, 403);
       const result = await loadPreviewDocument("document_proposal");
@@ -443,7 +517,7 @@ test("API pin, archive, restore and delete use versioned session mutations and p
     b = fixture(other);
   let deleted = false;
   const { controller } = setup(async (path, options) => {
-    if (path === "/api/index")
+    if (path === "/api/index?navigation=grouped")
       return response(index(...(deleted ? [b] : [a, b])));
     if (options?.method === "PATCH" || options?.method === "DELETE") {
       const body = JSON.parse(String(options.body));
@@ -452,7 +526,10 @@ test("API pin, archive, restore and delete use versioned session mutations and p
       if (options.method === "DELETE") deleted = true;
       else {
         if (body.pinned !== undefined) a.session.pinned = body.pinned;
-        if (body.archived !== undefined) a.session.archived = body.archived;
+        if (body.archived !== undefined) {
+          a.session.archived = body.archived;
+          a.session.archive_origin = body.archived ? "manual" : null;
+        }
       }
       return response({
         schema_version: 3,
@@ -472,7 +549,7 @@ test("API pin, archive, restore and delete use versioned session mutations and p
   assert.equal(controller.getSnapshot().timeline?.data?.session.pinned, true);
   await controller.updateTimelineSession(sid, { archived: true }, 2);
   await settle();
-  assert.equal(controller.getSnapshot().selectedId, other);
+  assert.equal(controller.getSnapshot().selectedId, sid);
   assert.equal(controller.getSnapshot().showArchived, false);
   controller.setShowArchived(true);
   controller.select(sid);
@@ -499,7 +576,7 @@ test("unchanged polls reuse an outstanding API read while a newer version supers
   const pending: ((value: Response) => void)[] = [];
   let reads = 0;
   const { controller } = setup(async (path) => {
-    if (path === "/api/index") return response(index(a));
+    if (path === "/api/index?navigation=grouped") return response(index(a));
     reads++;
     return reads === 1
       ? response(a)
@@ -526,12 +603,27 @@ test("unchanged polls reuse an outstanding API read while a newer version supers
 test("pending deletion remains retryable with its original operation after tombstoning removes the index entry", async () => {
   const a = fixture(),
     b = fixture(other);
+  b.session.title = "Archive a different work";
   let tombstoned = false;
   let attempts = 0;
   const bodies: unknown[] = [];
   const { controller } = setup(async (path, options) => {
-    if (path === "/api/index")
+    if (path === "/api/index?navigation=grouped")
       return response(index(...(tombstoned ? [b] : [a, b])));
+    if (options?.method === "PATCH") {
+      const body = JSON.parse(String(options.body));
+      b.session.archived = body.archived;
+      b.session.archive_origin = body.archived ? "manual" : null;
+      b.session.version++;
+      return response({
+        schema_version: 3,
+        kind: "session_patch",
+        operation_id: body.operation_id,
+        viewer_session_id: other,
+        session_version: b.session.version,
+        current_stage_event_id: null,
+      });
+    }
     if (options?.method === "DELETE") {
       const body = JSON.parse(String(options.body));
       bodies.push(body);
@@ -563,6 +655,16 @@ test("pending deletion remains retryable with its original operation after tombs
     title: a.session.title,
     expectedVersion: 1,
   });
+  await controller.updateTimelineSession(
+    other,
+    { archived: true },
+    b.session.version,
+  );
+  assert.equal(
+    controller.getSnapshot().undoArchive?.title,
+    b.session.title,
+    "an unrelated pending deletion cannot supply the archived work title",
+  );
   await assert.rejects(controller.retryTimelineDelete());
   assert.equal(controller.getSnapshot().pendingTimelineDelete?.id, sid);
   await controller.retryTimelineDelete();
@@ -577,7 +679,7 @@ test("pending deletion recovery is cleared when access changes", async () => {
   let tombstoned = false;
   let deletes = 0;
   const { controller } = setup(async (path, options) => {
-    if (path === "/api/index")
+    if (path === "/api/index?navigation=grouped")
       return response(index(...(tombstoned ? [] : [a])));
     if (options?.method === "DELETE") {
       deletes++;
@@ -607,7 +709,7 @@ test("definitive delete rejection clears recovery and permits deleting another s
         firstDelete = true;
       const deletedIDs: string[] = [];
       const { controller } = setup(async (path, options) => {
-        if (path === "/api/index")
+        if (path === "/api/index?navigation=grouped")
           return response(index(...(aGone ? [] : [a]), ...(bGone ? [] : [b])));
         if (options?.method === "DELETE") {
           const id = String(path).split("/").at(-1) as string;
@@ -674,7 +776,8 @@ test("local recovery sends the explicit request and conditional version, and nev
   const controller = new ViewerController(
     new AccessClient(
       async (path, options) => {
-        if (path === "/api/index") return response(index(data));
+        if (path === "/api/index?navigation=grouped")
+          return response(index(data));
         if (options?.method === "POST") {
           calls.push({
             path: String(path),
@@ -718,7 +821,8 @@ test("archive Undo reads fresh authority for original work after selection and v
   const controller = new ViewerController(
     new AccessClient(
       async (path, options) => {
-        if (path === "/api/index") return response(index(a, b));
+        if (path === "/api/index?navigation=grouped")
+          return response(index(a, b));
         const data = String(path).endsWith(sid) ? a : b;
         if (options?.method === "PATCH") {
           const body = JSON.parse(String(options.body));
@@ -726,6 +830,7 @@ test("archive Undo reads fresh authority for original work after selection and v
           if (body.expected_version !== data.session.version)
             return response({ code: "version_conflict" }, 409);
           data.session.archived = body.archived;
+          data.session.archive_origin = body.archived ? "manual" : null;
           data.session.version++;
           return response({
             schema_version: 3,
@@ -745,11 +850,97 @@ test("archive Undo reads fresh authority for original work after selection and v
   await controller.open(null);
   await settle();
   await controller.updateTimelineSession(sid, { archived: true }, 1);
-  assert.equal(controller.getSnapshot().selectedId, other);
+  assert.equal(controller.getSnapshot().selectedId, sid);
+  controller.select(other);
   a.session.version++;
   await controller.undoArchive();
   assert.equal(writes[1].id, sid);
   assert.equal(writes[1].body.expected_version, 3);
   assert.equal(a.session.archived, false);
+  assert.equal(controller.getSnapshot().selectedId, other);
+  await controller.updateTimelineSession(
+    sid,
+    { archived: true },
+    a.session.version,
+  );
+  const oldUndo = controller.getSnapshot().undoArchive;
+  await controller.updateTimelineSession(
+    other,
+    { archived: true },
+    b.session.version,
+  );
+  const newUndo = controller.getSnapshot().undoArchive;
+  assert.ok(oldUndo);
+  assert.ok(newUndo);
+  controller.clearUndo(oldUndo);
+  assert.equal(
+    controller.getSnapshot().undoArchive,
+    newUndo,
+    "late expiry cannot clear a newer archive",
+  );
+  const beforeStaleClick = writes.length;
+  await controller.undoArchive(oldUndo);
+  assert.equal(
+    writes.length,
+    beforeStaleClick,
+    "a stale action cannot restore the newer archive",
+  );
+  assert.equal(b.session.archived, true);
+  await controller.undoArchive(newUndo);
+  assert.equal(b.session.archived, false);
+  assert.equal(a.session.archived, true);
+});
+
+test("navigation orders substantive timestamps with stable ID ties and retains a selected automatic archive until navigation", async () => {
+  const a = fixture(),
+    b = fixture(other),
+    c = fixture("c".repeat(64));
+  a.session.created_at = "2026-10-30T21:00:00Z";
+  b.session.last_activity_at = "2026-10-31T20:00:00Z";
+  c.session.last_activity_at = a.session.last_activity_at;
+  const { controller } = setup(async (path) =>
+    response(
+      path === "/api/index?navigation=grouped"
+        ? index(c, b, a)
+        : String(path).endsWith(sid)
+          ? a
+          : b,
+    ),
+  );
+  await controller.open(null);
+  await settle();
+  assert.deepEqual(
+    controller.getSnapshot().timelineSessions.map((s) => s.viewer_session_id),
+    [sid, c.session.viewer_session_id, other],
+  );
+  assert.equal(
+    mapTimelineIndex(entry(a), "en").createdAt,
+    mapTimelineIndex(entry(c), "en").createdAt,
+  );
+  c.session.last_activity_at = "2026-10-31T21:00:00.000000001Z";
+  c.session.updated_at = c.session.last_activity_at;
+  await controller.refresh();
+  assert.deepEqual(
+    controller.getSnapshot().timelineSessions.map((s) => s.viewer_session_id),
+    [c.session.viewer_session_id, sid, other],
+    "server nanoseconds must not collapse into an ID tie",
+  );
+  a.session.state = "closed";
+  a.session.closed_at = stamp;
+  a.session.archived = true;
+  a.session.archive_origin = "automatic";
+  a.session.version++;
+  await controller.refresh();
+  await settle();
+  assert.equal(controller.getSnapshot().selectedId, sid);
+  assert.equal(
+    controller.getSnapshot().timeline?.data?.session.archive_origin,
+    "automatic",
+  );
+  assert.equal(controller.getSnapshot().timelineSessions.length, 2);
+  assert.equal(controller.getSnapshot().undoArchive, undefined);
+  controller.select(other);
+  await settle();
+  await controller.refresh();
   assert.equal(controller.getSnapshot().selectedId, other);
 });

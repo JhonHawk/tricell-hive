@@ -2,6 +2,7 @@
 @import "tailwindcss/theme.css" layer(theme);
 @import "tailwindcss/utilities.css" layer(utilities);
 @import "tw-animate-css";
+@import "sonner/dist/styles.css";
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -20,7 +21,7 @@
   --destructive-foreground: var(--color-red-600);
   --success: var(--color-emerald-500);
   --success-foreground: var(--color-emerald-600);
-  --info: var(--color-violet-500);
+  --info: var(--color-violet-300);
   --info-foreground: var(--color-violet-600);
   --warning: var(--color-yellow-500);
   --warning-foreground: var(--color-yellow-600);

@@ -739,7 +739,8 @@ func isGhAPIDeleteRef(args []string) bool {
 }
 
 // isSecretPath reports whether p names a .env-family file (excluding the
-// declared template suffixes) or lives under _support/secrets/. Other
+// declared template suffixes) or lives under _support/secrets/, except the
+// account index (isAccountIndex), which holds no values. Other
 // secret families (.envrc, *.pem, id_rsa*, credentials.json, ...) are a
 // declared limitation, not this function's concern.
 func isSecretPath(p string) bool {
@@ -748,7 +749,7 @@ func isSecretPath(p string) bool {
 	}
 	slash := filepath.ToSlash(p)
 	if strings.Contains(slash, "/_support/secrets/") || strings.HasPrefix(slash, "_support/secrets/") {
-		return true
+		return !isAccountIndex(slash)
 	}
 	base := filepath.Base(slash)
 	if base == ".env" {
@@ -866,7 +867,7 @@ func shellSearchSecretTarget(args []string) bool {
 		if i == 0 {
 			continue // the search pattern itself, not a target path
 		}
-		if isSecretPath(p) || strings.Contains(filepath.ToSlash(p), "_support/secrets") {
+		if isSecretPath(p) || (strings.Contains(filepath.ToSlash(p), "_support/secrets") && !isAccountIndex(p)) {
 			return true
 		}
 	}
@@ -904,6 +905,18 @@ func shellSearchSafe(tool string, args []string) bool {
 		}
 	}
 	return safe
+}
+
+// isAccountIndex reports whether p is the account index ACCOUNTS.md directly
+// under _support/secrets/. The global guidance's «Test accounts» keeps no
+// values in it and lets it be read or searched, so S5 does not count that.
+func isAccountIndex(p string) bool {
+	slash := filepath.ToSlash(p)
+	if filepath.Base(slash) != "ACCOUNTS.md" {
+		return false
+	}
+	dir := filepath.ToSlash(filepath.Dir(slash))
+	return dir == "_support/secrets" || strings.HasSuffix(dir, "/_support/secrets")
 }
 
 // noSecretContentRead is S5 (no_secret_content_read): no successful event

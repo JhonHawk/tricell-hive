@@ -3,7 +3,11 @@ package viewer
 // This file defines v3 wire shapes and pure validation. It performs no storage,
 // networking or authority mutation. Call graph validators under the store lock.
 import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -23,14 +27,34 @@ const (
 type TimelineActor struct {
 	Kind       string `json:"kind"`
 	ProducerID string `json:"producer_id,omitempty"`
+	// Origin is the declared provenance of a local_viewer action, browser or cli.
+	// It is not authentication: both use the same token. Empty means browser; only cli is stored.
+	Origin string `json:"origin,omitempty"`
+}
+
+var timelineActorOrigins = []string{"browser", "cli"}
+
+// recorded returns the actor as it is stored: origin is kept only when it is
+// cli. A browser action, with origin absent or browser, is stored without one and
+// readers take a missing origin as browser, so records written by the browser stay
+// readable by a binary that predates origin. Request digests are taken before
+// this call so pre-existing receipts still replay byte for byte.
+func (a TimelineActor) recorded() TimelineActor {
+	if a.Origin != "cli" {
+		a.Origin = ""
+	}
+	return a
 }
 
 func (a TimelineActor) Validate() error {
 	switch a.Kind {
 	case "native_producer":
+		if a.Origin != "" {
+			return timelineError("actor", "invalid_actor")
+		}
 		return timelineID(a.ProducerID, "actor.producer_id")
 	case "local_viewer":
-		if a.ProducerID == "" {
+		if a.ProducerID == "" && (a.Origin == "" || contains(timelineActorOrigins, a.Origin)) {
 			return nil
 		}
 	}
@@ -251,6 +275,10 @@ type TimelineWaitObserveRequest struct {
 }
 
 var timelineTaskKey = regexp.MustCompile(`^T[1-9][0-9]{0,126}$`)
+
+// A stored task also admits the key of a task reflected from a host's native task
+// list, which only the server creates; an agent request keeps timelineTaskKey.
+var timelineStoredTaskKey = regexp.MustCompile(`^(T[1-9][0-9]{0,126}|host:[A-Za-z0-9][A-Za-z0-9._-]{0,99})$`)
 var timelineDocumentKey = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$`)
 var timelineTaskStates = []string{"not_started", "in_progress", "in_review", "blocked", "completed"}
 var timelineWaitStates = []string{"waiting", "succeeded", "failed", "cancelled", "unknown"}
@@ -751,7 +779,7 @@ func ValidateTimelineAuthority(s TimelineSession, operation string, actor Timeli
 		if !lead && (ownerProducerID == "" || actor.ProducerID != ownerProducerID) {
 			return timelineError("actor", "segment_assignee_required")
 		}
-	case "append_event", "candidate_create", "artifact_add", "document_add", "document_snapshot", "task_transition":
+	case "append_event", "candidate_create", "artifact_add", "document_add", "document_snapshot", "task_transition", "host_event":
 	default:
 		return timelineError("operation", "unsupported_operation")
 	}
@@ -944,7 +972,7 @@ func ValidateTimelineV3Graph(s TimelineSession) error {
 		if err := timelineID(t.TaskID, "task_id"); err != nil {
 			return err
 		}
-		if ids[t.TaskID] || keys[t.TaskKey] || !timelineTaskKey.MatchString(t.TaskKey) || len(t.Segments) < 1 || len(t.Segments) > 5 {
+		if ids[t.TaskID] || keys[t.TaskKey] || !timelineStoredTaskKey.MatchString(t.TaskKey) || len(t.Segments) < 1 || len(t.Segments) > 5 {
 			return timelineError("tasks", "invalid_identity_or_segments")
 		}
 		ids[t.TaskID] = true
@@ -1441,7 +1469,7 @@ func timelineV3ProtocolDefinitions(actor TimelineActor) []timelineProtocolDefini
 		{"join_request", "hive view producer request <session-id> --json <file|->", TimelineJoinRequestInput{}, TimelineOperationResult{}, TimelineJoinRequestInput{SchemaVersion: 3, OperationID: "join-example", Source: TimelineSource{ProjectRoot: "/workspace/example", Host: "claude-code", NativeSessionID: "real-native-session"}, ExpectedSessionVersion: 1, Reason: "Authorized collaboration"}},
 		{"producer_accept", "hive view producer accept <session-id> --json <file|->", TimelineProducerAcceptRequest{}, TimelineOperationResult{}, TimelineProducerAcceptRequest{TimelineNativeOperation: base, RequestID: "request-example"}},
 		{"foreground_transfer", "hive view producer transfer <session-id> --json <file|->", TimelineForegroundTransferRequest{}, TimelineOperationResult{}, TimelineForegroundTransferRequest{TimelineNativeOperation: base, TargetProducerID: "producer-next"}},
-		{"recover_lead", "Local viewer only: recover_lead", TimelineRecoverLeadRequest{}, TimelineOperationResult{}, TimelineRecoverLeadRequest{TimelineNativeOperation: recovery, RequestID: "request-example"}},
+		{"recover_lead", "hive view work recover --work-id <id> --request-id <id> --reason <text> (local_viewer; or POST /api/timeline/sessions/<session-id>/recover-lead)", TimelineRecoverLeadRequest{}, TimelineOperationResult{}, TimelineRecoverLeadRequest{TimelineNativeOperation: recovery, RequestID: "request-example"}},
 		{"task_create", "hive view task create <session-id> --json <file|->", TimelineTaskCreateRequest{}, TimelineOperationResult{}, TimelineTaskCreateRequest{TimelineNativeOperation: base, PlanOrder: 1, TaskKey: "T1", Title: "Implement contract", Summary: "Freeze typed boundaries", Segments: []TimelineTaskSegmentInput{{PlannedStage: "build", Order: 1}}}},
 		{"task_patch", "hive view task update <session-id> <task-id> --json <file|->", TimelineTaskPatchRequest{}, TimelineOperationResult{}, TimelineTaskPatchRequest{TimelineNativeOperation: base, ExpectedTaskVersion: 1, Title: timelineStringPointer("Updated task")}},
 		{"task_transition", "hive view task transition <session-id> <task-id> --json <file|->", TimelineTaskTransitionRequest{}, TimelineOperationResult{}, TimelineTaskTransitionRequest{TimelineNativeOperation: base, ExpectedTaskVersion: 1, SegmentID: "segment-example", State: "in_progress"}},
@@ -1961,4 +1989,154 @@ type timelineNativeIdentity struct {
 
 func timelineNativeSourceIdentity(source TimelineSource) timelineNativeIdentity {
 	return timelineNativeIdentity{Host: source.Host, NativeSessionID: source.NativeSessionID}
+}
+
+// Host-observed events. A host event is a fact a coding host reports about a
+// session (it started, was active, changed its native task list). It is never an
+// agent publication: its closed shape has no field that could name a stage state,
+// an authority change, an approval or a closure, and the decoder rejects any such key.
+const (
+	// TimelineMaxHostTasks bounds the native tasks one work reflects.
+	TimelineMaxHostTasks = 50
+	// TimelineHostTaskKeyPrefix keys a task reflected from a host's native task list.
+	TimelineHostTaskKeyPrefix = "host:"
+	// TimelineHostEventOrigin is the provenance of content a host reported.
+	TimelineHostEventOrigin = "host_observed"
+)
+
+var timelineHostEventTypes = []string{"session_started", "activity", "session_ended", "task_created", "task_updated", "task_completed", "subagent_started", "subagent_stopped"}
+var timelineHostTaskStates = []string{"not_started", "in_progress", "completed"}
+var timelineHostNativeID = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._-]{0,99}$`)
+
+// TimelineHostEventData is the bounded payload of a host event. Task fields belong
+// to the task_* types and AgentID to the subagent_* types.
+type TimelineHostEventData struct {
+	TaskID  string `json:"task_id,omitempty"`
+	Title   string `json:"title,omitempty"`
+	State   string `json:"state,omitempty"`
+	AgentID string `json:"agent_id,omitempty"`
+	// TurnID is the host's ID of the prompt or turn an event that is not a task
+	// event belongs to; it only keeps the operation IDs of two events distinct.
+	TurnID string `json:"turn_id,omitempty"`
+}
+
+// TimelineHostEvent is the body of POST /api/host-events. WorkID and
+// StageEventID are the current work and active stage the reporting process
+// resolved from the manager's current-work record; both are optional, and without
+// them the event can only move last activity.
+type TimelineHostEvent struct {
+	SchemaVersion int                   `json:"schema_version"`
+	Source        TimelineSource        `json:"source"`
+	EventType     string                `json:"event_type"`
+	OccurredAt    string                `json:"occurred_at"`
+	WorkID        string                `json:"work_id,omitempty"`
+	StageEventID  string                `json:"stage_event_id,omitempty"`
+	Data          TimelineHostEventData `json:"data"`
+}
+
+// TimelineHostEventResult is the compact answer of POST /api/host-events.
+type TimelineHostEventResult struct {
+	OperationID string `json:"operation_id"`
+	Status      string `json:"status"`
+}
+
+// TimelineHostTaskKey returns the task key of a native task.
+func TimelineHostTaskKey(nativeTaskID string) string {
+	return TimelineHostTaskKeyPrefix + nativeTaskID
+}
+
+func DecodeTimelineHostEvent(raw []byte) (TimelineHostEvent, error) {
+	var e TimelineHostEvent
+	if err := DecodeTimelineJSON(raw, &e); err != nil {
+		return e, err
+	}
+	return e, e.Validate()
+}
+
+func (e TimelineHostEvent) Validate() error {
+	if e.SchemaVersion != TimelineSchemaVersion {
+		return timelineError("schema_version", "unsupported_protocol")
+	}
+	if err := timelineSource(e.Source); err != nil {
+		return err
+	}
+	if !contains(timelineHostEventTypes, e.EventType) {
+		return timelineError("event_type", "unsupported_event_type")
+	}
+	if err := timelineTime(e.OccurredAt, "occurred_at"); err != nil {
+		return err
+	}
+	if e.WorkID != "" && !timelineSHA256.MatchString(e.WorkID) {
+		return timelineError("work_id", "invalid_id")
+	}
+	if e.StageEventID != "" {
+		if e.WorkID == "" {
+			return timelineError("stage_event_id", "work_id_required")
+		}
+		if err := timelineID(e.StageEventID, "stage_event_id"); err != nil {
+			return err
+		}
+	}
+	d := e.Data
+	task := strings.HasPrefix(e.EventType, "task_")
+	subagent := strings.HasPrefix(e.EventType, "subagent_")
+	if !task && (d.TaskID != "" || d.Title != "" || d.State != "") || !subagent && d.AgentID != "" {
+		return timelineError("data", "unexpected_field")
+	}
+	if task {
+		if !timelineHostNativeID.MatchString(d.TaskID) {
+			return timelineError("data.task_id", "invalid_id")
+		}
+		// Only a create must name the task: an update or a completion may not know
+		// the title (the reporter saw no create), and then the mirror keeps the one it has.
+		if err := timelineText(d.Title, "data.title", 120, e.EventType == "task_created"); err != nil {
+			return err
+		}
+		if d.State != "" && !contains(timelineHostTaskStates, d.State) || e.EventType == "task_completed" && d.State != "" && d.State != "completed" {
+			return timelineError("data.state", "invalid_state")
+		}
+	}
+	if subagent && !timelineHostNativeID.MatchString(d.AgentID) {
+		return timelineError("data.agent_id", "invalid_id")
+	}
+	if d.TurnID != "" && (task || !timelineHostNativeID.MatchString(d.TurnID)) {
+		return timelineError("data.turn_id", "invalid_id")
+	}
+	return nil
+}
+
+// OperationID derives the operation identity from the event itself, so the same
+// event sent again is the same operation and a replay applies once.
+func (e TimelineHostEvent) OperationID() string {
+	raw, _ := json.Marshal(e)
+	sum := sha256.Sum256(raw)
+	return "host-" + hex.EncodeToString(sum[:])[:40]
+}
+
+// ValidateTimelineHostEventSession binds a validated host event to a work and
+// returns the actor it acts as: the accepted native producer whose source is the
+// reporting session. A pending join request, another host or a session that never
+// joined is not one. A named work must be this one and a named stage must be its
+// active stage. The registered project is resolved by the server, as for any source.
+func ValidateTimelineHostEventSession(s TimelineSession, e TimelineHostEvent) (TimelineActor, error) {
+	if e.WorkID != "" && e.WorkID != s.ViewerSessionID {
+		return TimelineActor{}, timelineError("work_id", "session_mismatch")
+	}
+	var actor TimelineActor
+	for _, p := range s.Producers {
+		if timelineNativeSourceIdentity(p.Source) == timelineNativeSourceIdentity(e.Source) {
+			actor = TimelineActor{Kind: "native_producer", ProducerID: p.ProducerID}
+			break
+		}
+	}
+	if actor.Kind == "" {
+		return TimelineActor{}, timelineError("actor", "producer_not_accepted")
+	}
+	if err := ValidateTimelineAuthority(s, "host_event", actor, ""); err != nil {
+		return TimelineActor{}, err
+	}
+	if e.StageEventID != "" && (s.CurrentStageEventID == nil || *s.CurrentStageEventID != e.StageEventID) {
+		return TimelineActor{}, timelineError("stage_event_id", "stage_binding_mismatch")
+	}
+	return actor, nil
 }

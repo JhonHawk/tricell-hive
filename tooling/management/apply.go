@@ -37,6 +37,9 @@ type journal struct {
 	// CodexLines is the wait floor edit of Codex's config.toml, journaled by
 	// lines (fingerprints and owned lines), never by the file's bytes.
 	CodexLines *linesEntry `json:",omitempty"`
+	// HostHooks are the edits of the shared JSON hook files, journaled by
+	// fingerprints and Hive's own entries, never by the files' bytes.
+	HostHooks []*hostHooksEntry `json:",omitempty"`
 }
 
 func journalHash(j journal) string { j.Integrity = ""; return hash(encode(j)) }
@@ -75,6 +78,9 @@ func (e Engine) fail(stage string) error {
 // it exactly once; the nested core transaction Onboard starts trusts this
 // result instead of repeating the checks (see Engine.nested).
 func preflight(p Plan) (State, func(), error) {
+	if err := checkUpdatePending(p.StateDir); err != nil {
+		return State{}, nil, err
+	}
 	if err := checkOnboarding(p.StateDir); err != nil {
 		return State{}, nil, err
 	}
@@ -214,6 +220,7 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 	next.Voice = state.Voice
 	next.PiSubagentsSource = state.PiSubagentsSource
 	next.CodexWaitFloor = copyWaitFloorRecord(state.CodexWaitFloor)
+	next.HostHooks = copyHostHooks(state.HostHooks)
 	if state.VoiceSpans != nil {
 		next.VoiceSpans = map[string]VoiceSpan{}
 		for k, v := range state.VoiceSpans {
@@ -221,7 +228,7 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 		}
 	}
 	j := journal{Version: stateVersion, Phase: "prepared", Plan: p, BeforeState: beforeState}
-	changed := state.Version != stateVersion || p.Migration != nil || len(p.Legacy) > 0
+	changed := p.PackageInstall || p.ReleaseUpdate || state.Version != stateVersion || p.Migration != nil || len(p.Legacy) > 0
 	j.Entries, err = prepareEntries(p, state)
 	if err != nil {
 		return journal{}, State{}, nil, false, err
@@ -311,6 +318,12 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 		return journal{}, State{}, nil, false, err
 	}
 	if j.CodexLines != nil && !j.CodexLines.Skip {
+		changed = true
+	}
+	if err := prepareHostHooks(p, state, &next, &j); err != nil {
+		return journal{}, State{}, nil, false, err
+	}
+	if hostHooksChanged(state, next, j) {
 		changed = true
 	}
 	if !changed {
@@ -433,6 +446,9 @@ func (e Engine) commitTransaction(p Plan, j *journal, state State, next *State, 
 	if err := applyCodexLines(j, jp, e.fail); err != nil {
 		return err
 	}
+	if err := applyHostHooks(j, jp, e.fail); err != nil {
+		return err
+	}
 	if p.Release != nil {
 		path := filepath.Join(p.StateDir, "releases", p.Release.ID+".json")
 		if old, err := read(path); err != nil {
@@ -453,6 +469,14 @@ func (e Engine) commitTransaction(p Plan, j *journal, state State, next *State, 
 	j.Phase = "committed"
 	if err := saveJournal(jp, *j); err != nil {
 		return err
+	}
+	if finalUserRemoval(p, *next) {
+		if err := e.fail("command-remove-pending"); err != nil {
+			return err
+		}
+		if err := removeManagedCommandWithFail(p.StateDir, e.fail); err != nil {
+			return err
+		}
 	}
 	return os.Remove(pp)
 }
@@ -567,6 +591,11 @@ func pruneJournals(stateDir, own string) string {
 		protected[ob.CoreID] = true
 	} else if !os.IsNotExist(err) {
 		return fmt.Sprintf("warning: pruning transaction journals skipped: %v", err)
+	}
+	if up, err := PendingUpdate(stateDir); err != nil {
+		return fmt.Sprintf("warning: pruning skipped: %v", err)
+	} else if up != nil {
+		protected[up.Plan.CoreTransactionID] = true
 	}
 	dir := filepath.Join(stateDir, "transactions")
 	entries, err := os.ReadDir(dir)
@@ -692,6 +721,9 @@ func recordSourceCommit(p Plan) string {
 	return ""
 }
 func (e Engine) Apply(p Plan) (string, error) {
+	if (p.ReleaseUpdate || p.PackageInstall) && !e.nested {
+		return "", fmt.Errorf("release update core requires its parent coordinator")
+	}
 	state := e.presetState
 	if !e.nested {
 		var (
@@ -729,6 +761,11 @@ func (e Engine) Apply(p Plan) (string, error) {
 	warning := recordSourceCommit(p)
 	if j.CodexLines != nil {
 		for _, n := range j.CodexLines.Notes {
+			warning = strings.TrimPrefix(warning+"; "+n, "; ")
+		}
+	}
+	for _, le := range j.HostHooks {
+		for _, n := range le.Notes {
 			warning = strings.TrimPrefix(warning+"; "+n, "; ")
 		}
 	}
@@ -787,12 +824,23 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	if err = decodeFile(jp, &j); err != nil {
 		return "", err
 	}
-	if (j.Version != 1 && j.Version != 2 && j.Version != 3 && j.Version != 4 && j.Version != 5 && j.Version != stateVersion) || j.Version != j.Plan.Version || j.ID != p.ID || j.Plan.StateDir != dir || j.Integrity != journalHash(j) || j.Plan.ID != planID(j.Plan) {
+	if (j.Version != 1 && j.Version != 2 && j.Version != 3 && j.Version != 4 && j.Version != 5 && j.Version != 6 && j.Version != stateVersion) || j.Version != j.Plan.Version || j.ID != p.ID || j.Plan.StateDir != dir || j.Integrity != journalHash(j) || j.Plan.ID != planID(j.Plan) {
 		return "", fmt.Errorf("invalid transaction")
 	}
 	removeOrphanWrites(dir, j)
 	// Rollback restores Hive's own bytes from the journal.
 	if j.Phase == "committed" || j.Phase == "recovered" {
+		if j.Phase == "committed" && j.Plan.Action == "remove" {
+			var after State
+			if err := json.Unmarshal(j.AfterState.Data, &after); err != nil {
+				return "", err
+			}
+			if finalUserRemoval(j.Plan, after) {
+				if err := removeManagedCommandWithFail(dir, e.fail); err != nil {
+					return "", err
+				}
+			}
+		}
 		return j.Phase, os.Remove(pp)
 	}
 	if j.PackageDone || j.PackagePending {
@@ -898,6 +946,9 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	// Only now, once Recover is going ahead: it must not undo the lines of an
 	// operation it then refuses to recover.
 	if err := undoCodexInstall(j); err != nil {
+		return "", err
+	}
+	if err := undoHostHooksInstall(j); err != nil {
 		return "", err
 	}
 	for i := len(j.Entries) - 1; i >= 0; i-- {

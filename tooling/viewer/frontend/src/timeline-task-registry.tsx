@@ -1,4 +1,4 @@
-import { ClipboardList } from "lucide-react";
+import { ClipboardList, Terminal } from "lucide-react";
 import { Alert, AlertAction, AlertDescription } from "@/components/reui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,9 +14,19 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { TimelineSession } from "./timeline-contract";
-import { type TimelineLanguage, timelineCopy } from "./timeline-copy";
+import {
+  isHostTask,
+  type TimelineLanguage,
+  timelineCopy,
+  timelineTaskLabel,
+  timelineTaskName,
+} from "./timeline-copy";
 import { taskProgress } from "./timeline-grouping";
-import { TimelineStateIcon, timelineStateColor } from "./timeline-tasks";
+import {
+  HostObservedMarker,
+  TimelineStateIcon,
+  timelineStateColor,
+} from "./timeline-tasks";
 
 /** This read-only projection retains the canonical registry objects and IDs. */
 export function workTaskRegistry(session: TimelineSession) {
@@ -93,59 +103,74 @@ export function TimelineTaskRegistry({
             <Skeleton className="h-8 w-full" />
           </div>
         ) : registry.length ? (
-          <section
-            aria-label={t.taskRegistry}
-            // biome-ignore lint/a11y/noNoninteractiveTabindex: The bounded registry is a keyboard-scrollable reading region.
-            tabIndex={0}
-            className="min-h-0 overflow-auto"
-          >
-            <ul className="flex flex-col gap-4 py-1">
-              {registry.map(({ task, completed, total }) => (
-                <li
-                  key={task.task_id}
-                  data-registry-task-id={task.task_id}
-                  className="flex min-w-0 items-center gap-2"
-                >
-                  <Tooltip>
-                    <TooltipTrigger
-                      render={
-                        <span
-                          role="img"
-                          aria-label={`${task.task_key}: ${t.taskStates[task.state]}`}
-                          // biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard focus exposes the read-only state tooltip.
-                          tabIndex={0}
-                          className={`inline-flex shrink-0 ${timelineStateColor(task.state)}`}
-                        />
-                      }
-                    >
-                      <TimelineStateIcon
-                        state={task.state}
-                        aria-hidden
-                        className="size-4 motion-reduce:animate-none"
-                      />
-                    </TooltipTrigger>
-                    <TooltipContent>{t.taskStates[task.state]}</TooltipContent>
-                  </Tooltip>
-                  <p
-                    className="min-w-0 flex-1 truncate text-sm"
-                    title={`${task.task_key} — ${task.title}`}
+          <>
+            <section
+              aria-label={t.taskRegistry}
+              // biome-ignore lint/a11y/noNoninteractiveTabindex: The bounded registry is a keyboard-scrollable reading region.
+              tabIndex={0}
+              className="min-h-0 overflow-auto"
+            >
+              <ul className="flex flex-col gap-4 py-1">
+                {registry.map(({ task, completed, total }) => (
+                  <li
+                    key={task.task_id}
+                    data-registry-task-id={task.task_id}
+                    className="flex min-w-0 items-center gap-2"
                   >
-                    {task.task_key} — {task.title}
-                  </p>
-                  {total > 0 && (
-                    <span
-                      data-task-segment-progress
-                      title={`${completed}/${total} ${t.segmentProgress}`}
-                      className="shrink-0 text-xs text-muted-foreground tabular-nums"
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <span
+                            role="img"
+                            aria-label={`${timelineTaskName(task)}: ${t.taskStates[task.state]}`}
+                            // biome-ignore lint/a11y/noNoninteractiveTabindex: Keyboard focus exposes the read-only state tooltip.
+                            tabIndex={0}
+                            className={`inline-flex shrink-0 ${timelineStateColor(task.state)}`}
+                          />
+                        }
+                      >
+                        <TimelineStateIcon
+                          state={task.state}
+                          aria-hidden
+                          className="size-4 motion-reduce:animate-none"
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {t.taskStates[task.state]}
+                        {isHostTask(task) && ` · ${t.hostObservedHint}`}
+                      </TooltipContent>
+                    </Tooltip>
+                    <p
+                      className="min-w-0 flex-1 truncate text-sm"
+                      title={timelineTaskLabel(task)}
                     >
-                      {completed}/{total}
-                      <span className="sr-only"> {t.segmentProgress}</span>
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ul>
-          </section>
+                      {timelineTaskLabel(task)}
+                    </p>
+                    {isHostTask(task) && <HostObservedMarker t={t} />}
+                    {total > 0 && (
+                      <span
+                        data-task-segment-progress
+                        title={`${completed}/${total} ${t.segmentProgress}`}
+                        className="shrink-0 text-xs text-muted-foreground tabular-nums"
+                      >
+                        {completed}/{total}
+                        <span className="sr-only"> {t.segmentProgress}</span>
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+            {registry.some(({ task }) => isHostTask(task)) && (
+              <p
+                data-registry-host-legend
+                className="flex items-center gap-2 text-xs text-muted-foreground"
+              >
+                <Terminal aria-hidden className="size-4 shrink-0" />
+                {t.hostObservedLegend}
+              </p>
+            )}
+          </>
         ) : (
           <div role="status" className="flex flex-col items-start gap-3">
             <p className="text-sm text-muted-foreground">{t.noTasks}</p>

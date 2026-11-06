@@ -49,6 +49,11 @@ func run(args []string) error {
 	}
 	cmd, rest := args[0], args[1:]
 	switch cmd {
+	case "__hive-update-v1":
+		if len(rest) != 0 {
+			return fmt.Errorf("internal update accepts no arguments")
+		}
+		return runReleaseExecutor(os.Stdin, os.Stdout)
 	case "setup":
 		return runSetup(rest)
 	case "install":
@@ -77,6 +82,9 @@ func run(args []string) error {
 		return runView(rest, os.Stdout, realViewDeps())
 	case "tui":
 		return runInterfaceCommand(rest)
+	case "hook":
+		runHook(rest, os.Stdin)
+		return nil
 	case "grok-hook":
 		runGrokHook(rest, os.Stdin, os.Stdout, readhook.ReadWhole)
 		return nil
@@ -90,7 +98,7 @@ func printHelp() {
 	fmt.Println("hive install [--hosts codex,claude,grok,pi,opencode,cursor] [--dry-run]  (interactive installer)")
 	fmt.Println("hive setup [--home DIR]  (read-only optional Context7 guidance)")
 	fmt.Println("hive plan install|remove --hosts codex,claude,grok,pi,opencode,cursor --scope user [--out FILE]\nhive plan install|remove --hosts codex,claude --scope project --root DIR [--out FILE]\nhive apply --plan FILE\nhive status --hosts codex,claude,grok,pi,opencode,cursor --scope user\nhive recover [--state-dir DIR]")
-	fmt.Println("hive update [--rev REV] [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]  (update from a Git commit; needs Git and a checkout, unlike install.sh)\nhive releases [--home DIR] [--state-dir DIR]  (list retained release snapshots)")
+	fmt.Println("hive update [--version X.Y.Z | --source DIR [--rev REV]] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]  (update the binary and integrations from a release; explicit source updates require Git)\nhive releases [--home DIR] [--state-dir DIR]  (list retained release snapshots)")
 	fmt.Println("hive voice list [--source DIR]  (print each voice's ID and description)\nhive voice set ID [--address sir|name|none] [--name NAME] [--intensity subtle|marked] [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]\nhive voice off [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]")
 	fmt.Println("hive doctor [--home DIR] [--state-dir DIR] [--project DIR]  (read-only diagnostics: CLIs, installation, sessions, integrations, project)\nhive models [--home DIR] [--state-dir DIR]  (read-only effective model and effort per role)")
 	fmt.Println("hive models set --host H (--role R | --group G) [--model M] [--effort E] [--home DIR] [--state-dir DIR] [--dry-run | --out FILE]\nhive models reset --host H ((--role R | --group G) [--only model|effort] | --all) [--home DIR] [--state-dir DIR] [--dry-run | --out FILE]  (override a role's or a group's model or effort; reset returns to the release's values)")
@@ -285,6 +293,13 @@ func runApply(args []string) error {
 	if planFile == "" {
 		return fmt.Errorf("apply requires --plan")
 	}
+	data, err := os.ReadFile(planFile)
+	if err != nil {
+		return err
+	}
+	if routed, err := routeSavedUpdate(data, os.Stdout, os.Stderr); routed {
+		return err
+	}
 	p, err := management.LoadPlan(planFile)
 	if err != nil {
 		return err
@@ -350,6 +365,9 @@ func runRecover(args []string) error {
 	// pending onboarding could ever be reconciled from a second
 	// terminal.
 	o.Scope = "user"
+	if routed, err := routePendingUpdate(o.StateDir, os.Stdout, os.Stderr); routed {
+		return err
+	}
 	// RecoverOnboarding (reached through recoverWithAdapterFactory) is
 	// the one recovery path (M5): when no onboarding journal is pending
 	// it falls back to the core Engine.Recover itself, so this command

@@ -10,6 +10,19 @@ export default defineConfig({
     react(),
     tailwindcss(),
     {
+      name: "viewer-sonner-external-css",
+      enforce: "pre",
+      transform(code, id) {
+        if (!id.replaceAll("\\", "/").endsWith("/sonner/dist/index.mjs"))
+          return;
+        // Sonner also injects its CSS; the viewer CSP requires the bundled stylesheet.
+        const externalCSS = code.replace(/^__insertCSS\(.+\);$/m, "");
+        if (externalCSS === code)
+          throw new Error("Sonner CSS injection changed");
+        return { code: externalCSS, map: null };
+      },
+    },
+    {
       name: "viewer-development-assets",
       apply: "serve",
       configureServer(server) {
@@ -18,7 +31,7 @@ export default defineConfig({
             ?.split("?")[0]
             ?.replace("/assets/app/assets/", "/assets/");
           const evidence = asset?.match(
-            /^\/files\/a{64}\/b{64}\/(profile-light|profile-mobile|chat-light|chat-mobile-before|chat-mobile-after|chat-mobile-dark)\.png$/,
+            /^\/files\/[a-f0-9]{64}\/b{64}\/(profile-light|profile-mobile|chat-light|chat-mobile-before|chat-mobile-after|chat-mobile-dark)\.png$/,
           );
           if (evidence) {
             res.setHeader("Content-Type", "image/png");
@@ -45,6 +58,7 @@ export default defineConfig({
       },
     },
   ],
+  optimizeDeps: { exclude: ["sonner"] },
   resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
   build: {
     outDir: "../static/app",

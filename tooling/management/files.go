@@ -72,6 +72,9 @@ func removeOrphanWrites(stateDir string, j journal) {
 	if j.CodexLines != nil {
 		dirs[filepath.Dir(j.CodexLines.Path)] = true
 	}
+	for _, le := range j.HostHooks {
+		dirs[filepath.Dir(le.Path)] = true
+	}
 	for dir := range dirs {
 		matches, _ := filepath.Glob(filepath.Join(dir, ".hive-write-*"))
 		for _, m := range matches {
@@ -185,7 +188,7 @@ func readState(dir string) (State, string, error) {
 		if err = json.Unmarshal(s.Data, &state); err != nil {
 			return state, "", err
 		}
-		if (state.Version != 1 && state.Version != 2 && state.Version != 3 && state.Version != 4 && state.Version != 5 && state.Version != stateVersion) || state.Records == nil {
+		if (state.Version != 1 && state.Version != 2 && state.Version != 3 && state.Version != 4 && state.Version != 5 && state.Version != 6 && state.Version != stateVersion) || state.Records == nil {
 			return state, "", fmt.Errorf("unsupported state")
 		}
 		if err = validateProductState(state); err != nil {
@@ -198,13 +201,24 @@ func readState(dir string) (State, string, error) {
 	return state, hash(s.Data), nil
 }
 func lock(dir string) (func(), error) {
+	unlock, err := updateLocks(dir)
+	if err != nil {
+		return nil, err
+	}
+	if err = checkUpdatePending(dir); err != nil {
+		unlock()
+		return nil, err
+	}
+	return unlock, nil
+}
+func lockNamed(dir, name string) (func(), error) {
 	if err := target.Safe(dir); err != nil {
 		return nil, err
 	}
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return nil, err
 	}
-	path := filepath.Join(dir, "lock")
+	path := filepath.Join(dir, name)
 	if err := target.Safe(path); err != nil {
 		return nil, err
 	}

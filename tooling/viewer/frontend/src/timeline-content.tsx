@@ -65,6 +65,7 @@ import {
   type TimelineView,
 } from "./timeline-contract";
 import {
+  localViewerLabel,
   type TimelineLanguage,
   timelineCopy,
   timelineDate,
@@ -559,7 +560,7 @@ export function TimelineContent({
               )}
             <span title={producer?.source.native_session_id}>
               {event.actor.kind === "local_viewer"
-                ? t.localViewer
+                ? localViewerLabel(event.actor, t)
                 : producer
                   ? `${producer.source.host} · ${producer.source.native_session_id.slice(0, 8)}`
                   : t.producerUnavailable}

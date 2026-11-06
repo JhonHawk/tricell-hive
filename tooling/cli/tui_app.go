@@ -81,6 +81,10 @@ type revealer interface {
 
 // spinnerNeeder is implemented by a view that is loading or planning and
 // wants the spinner frames to keep ticking.
+// quitCleaner transfers disposable asynchronous work to the root at shutdown.
+// Its command finishes cancellation and cleanup before the terminal exits.
+type quitCleaner interface{ QuitCleanup() tea.Cmd }
+
 type spinnerNeeder interface {
 	NeedsSpinner() bool
 }
@@ -112,6 +116,8 @@ type view interface {
 
 // Messages the root handles itself.
 type (
+	appQuitRequestedMsg struct{}
+	appQuitReadyMsg     struct{}
 	// pushViewMsg pushes a view, as an asynchronous result would.
 	pushViewMsg struct{ v view }
 	// statusLoadedMsg carries the status line the header shows. seq lets a
@@ -168,6 +174,8 @@ type appModel struct {
 	statusLoading bool
 	statusSeq     int
 	writing       bool
+	quitting      bool
+	quitReady     bool
 	// writeTarget receives the running write's result; nil means the top view.
 	writeTarget view
 }
@@ -265,7 +273,7 @@ func (m *appModel) push(v view) tea.Cmd {
 func (m *appModel) apply(cmd tea.Cmd, act action) tea.Cmd {
 	var cmds []tea.Cmd
 	if act.nav == navQuit {
-		return tea.Quit
+		return m.requestQuit()
 	}
 	pops := act.pops
 	if act.nav == navPop {
@@ -324,7 +332,17 @@ func (m *appModel) forward(msg tea.Msg) tea.Cmd {
 }
 
 func (m *appModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	if m.quitting {
+		if _, ready := msg.(appQuitReadyMsg); !ready {
+			return m, nil
+		}
+	}
 	switch msg := msg.(type) {
+	case appQuitRequestedMsg:
+		return m, m.requestQuit()
+	case appQuitReadyMsg:
+		m.quitReady = true
+		return m, tea.Quit
 	case tea.WindowSizeMsg:
 		m.width, m.height = msg.Width, msg.Height
 		m.resizeViews()
@@ -409,7 +427,7 @@ func (m *appModel) handleKey(msg tea.KeyPressMsg) tea.Cmd {
 		return nil
 	}
 	if msg.String() == "ctrl+c" {
-		return tea.Quit
+		return m.requestQuit()
 	}
 	if m.tooSmall() {
 		return nil
@@ -529,15 +547,54 @@ func (m *appModel) View() tea.View {
 // (archived heading "Aplicación")): while the root marks a write in progress it
 // drops InterruptMsg (an external SIGINT) and QuitMsg, so nothing cuts an apply
 // short. A SIGKILL still can; the operation stays pending and is offered for
-// recovery on the next open.
+// recovery on the next open. Outside a write, disposable view work is cancelled
+// and joined before a requested quit reaches Bubble Tea.
 func appFilter(m tea.Model, msg tea.Msg) tea.Msg {
-	if am, ok := m.(*appModel); ok && am.writing {
+	if am, ok := m.(*appModel); ok {
 		switch msg.(type) {
 		case tea.InterruptMsg, tea.QuitMsg:
-			return nil
+			if am.writing {
+				return nil
+			}
+			if am.quitReady {
+				return msg
+			}
+			if am.quitting {
+				return nil
+			}
+			for _, v := range am.stack {
+				if _, ok := v.(quitCleaner); ok {
+					return appQuitRequestedMsg{}
+				}
+			}
 		}
 	}
 	return msg
+}
+
+func (m *appModel) requestQuit() tea.Cmd {
+	if m.writing || m.quitting {
+		return nil
+	}
+	var cleanup []tea.Cmd
+	for _, v := range m.stack {
+		if owner, ok := v.(quitCleaner); ok {
+			if cmd := owner.QuitCleanup(); cmd != nil {
+				cleanup = append(cleanup, cmd)
+			}
+		}
+	}
+	if len(cleanup) == 0 {
+		m.quitReady = true
+		return tea.Quit
+	}
+	m.quitting = true
+	return func() tea.Msg {
+		for _, cmd := range cleanup {
+			cmd()
+		}
+		return appQuitReadyMsg{}
+	}
 }
 
 // newAppProgram builds the program without running it. Tests add options such

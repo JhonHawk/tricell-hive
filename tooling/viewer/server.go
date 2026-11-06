@@ -135,6 +135,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h := w.Header()
 	h.Set("Content-Security-Policy", contentSecurityPolicy)
 	h.Set("X-Content-Type-Options", "nosniff")
+	h.Set(TimelineRevisionHeader, TimelineRevisionValue)
 	h.Set("Referrer-Policy", "no-referrer")
 	h.Set("Cross-Origin-Resource-Policy", "same-origin")
 	if !s.hostAllowed(r.Host) {
@@ -162,6 +163,8 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		s.exchangeAccessCode(w, r)
 	case p == "/api/health":
 		s.health(w, r)
+	case p == "/api/host-events":
+		s.hostEvents(w, r)
 	case p == "/api/index":
 		s.index(w, r)
 	case p == "/api/timeline/sessions" || strings.HasPrefix(p, "/api/timeline/sessions/"):
@@ -271,10 +274,14 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		ProtocolVersion int    `json:"timeline_protocol_version"`
 		Revision        string `json:"revision"`
 		Modified        bool   `json:"modified"`
-	}{s.pid, filepath.Dir(s.store.Dir()), s.version, s.store.TTL().String(), "manual", TimelineSchemaVersion, s.revision, s.modified})
+		// Capabilities lets the CLI tell a viewer that accepts the declared
+		// local_viewer origin from an older one before it sends anything.
+		Capabilities []string `json:"capabilities"`
+	}{s.pid, filepath.Dir(s.store.Dir()), s.version, s.store.TTL().String(), "manual", TimelineSchemaVersion, s.revision, s.modified, []string{"local_actions_cli", "host_events"}})
 }
 
 type indexView struct {
+	Navigation       *Navigation             `json:"navigation,omitempty"`
 	TimelineSessions []TimelineAPIIndexEntry `json:"timeline_sessions"`
 	ProtocolVersion  int                     `json:"protocol_version"`
 	Retention        string                  `json:"retention"`
@@ -294,6 +301,9 @@ func (s *Server) fileCap(key string) string {
 }
 
 func (s *Server) index(w http.ResponseWriter, r *http.Request) {
+	if !timelineRevisionMatches(w, r) {
+		return
+	}
 	if !allow(w, r, http.MethodGet) || !s.authorize(w, r, false) {
 		return
 	}
@@ -302,7 +312,11 @@ func (s *Server) index(w http.ResponseWriter, r *http.Request) {
 		timelineHTTPError(w, err)
 		return
 	}
-	writeJSON(w, indexView{TimelineSessions: s.store.TimelineIndex(), ProtocolVersion: 3, Retention: "manual", Repositories: repositoryStatuses(reg), Errors: []IngestError{}})
+	view := indexView{TimelineSessions: s.store.TimelineIndex(), ProtocolVersion: 3, Retention: "manual", Repositories: repositoryStatuses(reg), Errors: []IngestError{}}
+	if r.URL.Query().Get("navigation") == "grouped" {
+		view.Navigation = groupedNavigation(view.TimelineSessions, reg)
+	}
+	writeJSON(w, view)
 }
 
 // file serves /files/<key>/<cap>/<path> from a stored copy. The Store validates the

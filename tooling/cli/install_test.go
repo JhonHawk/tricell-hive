@@ -3,12 +3,15 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
+	"tricell-hive/tooling/distribution"
 	"tricell-hive/tooling/management"
 )
 
@@ -298,29 +301,37 @@ func TestInstallRecoversOnboardingBeforeCorePending(t *testing.T) {
 }
 
 func TestInstallPreviewsExactProviderBeforeConfirmation(t *testing.T) {
-	home := t.TempDir()
-	adapter := &testOnboardingAdapter{
-		offers: []providerOffer{{ID: "context7", Name: "Context7", Source: "official fixture", Effects: []string{"installs the CLI"}}},
-		runner: testExternalRunner{},
-	}
-	dependencies := defaultInstallDependencies(coreOnlyAdapterFactory)
-	dependencies.AdapterFactory = func(input onboardingInput) (onboardingAdapter, error) {
-		if input.DryRun || len(input.Options.Hosts) != 1 || input.Options.Hosts[0] != "codex" {
-			t.Fatal("adapter factory did not receive selected install context")
-		}
-		return adapter, nil
-	}
-	var out bytes.Buffer
-	if err := installWithDependencies(installArgs(t, home), strings.NewReader("1\n0.5.11\ny\n"), &out, true, dependencies); err != nil {
-		t.Fatal(err)
-	}
-	if len(adapter.requests) != 1 || adapter.requests[0] != (providerRequest{ID: "context7", Version: "0.5.11"}) {
-		t.Fatalf("provider request = %#v", adapter.requests)
-	}
-	selected := strings.Index(out.String(), "Select optional capabilities")
-	confirmed := strings.Index(out.String(), "Apply these changes?")
-	if selected < 0 || confirmed < 0 || selected > confirmed || !strings.Contains(out.String(), "Optional capability: context7 0.5.11 from official fixture") {
-		t.Fatal(out.String())
+	for _, packaged := range []bool{false, true} {
+		t.Run(fmt.Sprintf("package-%v", packaged), func(t *testing.T) {
+			home := t.TempDir()
+			adapter := &testOnboardingAdapter{
+				offers: []providerOffer{{ID: "context7", Name: "Context7", Source: "official fixture", Effects: []string{"installs the CLI"}}},
+				runner: testExternalRunner{},
+			}
+			dependencies := defaultInstallDependencies(coreOnlyAdapterFactory)
+			dependencies.AdapterFactory = func(input onboardingInput) (onboardingAdapter, error) {
+				if input.DryRun || len(input.Options.Hosts) != 1 || input.Options.Hosts[0] != "codex" {
+					t.Fatal("adapter factory did not receive selected install context")
+				}
+				return adapter, nil
+			}
+			var out bytes.Buffer
+			args := installArgs(t, home)
+			if packaged {
+				args = []string{"--home", home, "--hosts", "codex", "--source", installPackageFixture(t, true)}
+			}
+			if err := installWithDependencies(args, strings.NewReader("1\n0.5.11\ny\n"), &out, true, dependencies); err != nil {
+				t.Fatal(err)
+			}
+			if len(adapter.requests) != 1 || adapter.requests[0] != (providerRequest{ID: "context7", Version: "0.5.11"}) {
+				t.Fatalf("provider request = %#v", adapter.requests)
+			}
+			selected := strings.Index(out.String(), "Select optional capabilities")
+			confirmed := strings.Index(out.String(), "Apply these changes?")
+			if selected < 0 || confirmed < 0 || selected > confirmed || !strings.Contains(out.String(), "Optional capability: context7 0.5.11 from official fixture") {
+				t.Fatal(out.String())
+			}
+		})
 	}
 }
 
@@ -332,41 +343,48 @@ func TestInstallPreviewsExactProviderBeforeConfirmation(t *testing.T) {
 // external-provider lookup would also observe current state, right after the
 // plan is built and before the summary/confirmation are shown.
 func TestInstallRefusesStalePlanChangedBeforeConfirmation(t *testing.T) {
-	home := t.TempDir()
-	stateDir := filepath.Join(home, "state")
-	source := minimalTestSource(t)
-	mutated := false
-	dependencies := defaultInstallDependencies(coreOnlyAdapterFactory)
-	dependencies.AdapterFactory = func(input onboardingInput) (onboardingAdapter, error) {
-		if !mutated {
-			mutated = true
-			// An unrelated concurrent change to the same shared state
-			// (installing a different host) must invalidate the plan this
-			// wizard iteration already captured.
-			other := management.Options{Scope: "user", Home: home, StateDir: stateDir, Source: source, Hosts: []string{"claude"}}
-			op, err := management.BuildPlan("install", other)
-			if err != nil {
-				t.Fatal(err)
+	for _, packaged := range []bool{false, true} {
+		t.Run(fmt.Sprintf("package-%v", packaged), func(t *testing.T) {
+			home := t.TempDir()
+			stateDir := filepath.Join(home, "state")
+			source := minimalTestSource(t)
+			if packaged {
+				source = installPackageFixture(t, true)
 			}
-			if _, err := (management.Engine{}).Apply(op); err != nil {
-				t.Fatal(err)
+			mutated := false
+			dependencies := defaultInstallDependencies(coreOnlyAdapterFactory)
+			dependencies.AdapterFactory = func(input onboardingInput) (onboardingAdapter, error) {
+				if !mutated {
+					mutated = true
+					// An unrelated concurrent change to the same shared state
+					// (installing a different host) must invalidate the plan this
+					// wizard iteration already captured.
+					other := management.Options{Scope: "user", Home: home, StateDir: stateDir, Source: source, Hosts: []string{"claude"}}
+					op, err := management.BuildPlan("install", other)
+					if err != nil {
+						t.Fatal(err)
+					}
+					if _, err := (management.Engine{}).Apply(op); err != nil {
+						t.Fatal(err)
+					}
+				}
+				return coreOnlyAdapterFactory(input)
 			}
-		}
-		return coreOnlyAdapterFactory(input)
-	}
-	args := []string{"--home", home, "--hosts", "codex", "--source", source, "--state-dir", stateDir}
-	var out bytes.Buffer
-	if err := installWithDependencies(args, strings.NewReader("y\n"), &out, true, dependencies); err == nil {
-		t.Fatal("expected refusal to apply a plan made stale by a concurrent change")
-	}
-	if !mutated {
-		t.Fatal("mutation hook never ran; test did not exercise staleness")
-	}
-	if _, statErr := os.Stat(filepath.Join(home, ".codex", "AGENTS.md")); !os.IsNotExist(statErr) {
-		t.Fatalf("stale plan still wrote codex destinations: %v", statErr)
-	}
-	if _, statErr := os.Stat(filepath.Join(home, ".claude", "CLAUDE.md")); statErr != nil {
-		t.Fatalf("unrelated concurrent installation did not apply: %v", statErr)
+			args := []string{"--home", home, "--hosts", "codex", "--source", source, "--state-dir", stateDir}
+			var out bytes.Buffer
+			if err := installWithDependencies(args, strings.NewReader("y\n"), &out, true, dependencies); err == nil {
+				t.Fatal("expected refusal to apply a plan made stale by a concurrent change")
+			}
+			if !mutated {
+				t.Fatal("mutation hook never ran; test did not exercise staleness")
+			}
+			if _, statErr := os.Stat(filepath.Join(home, ".codex", "AGENTS.md")); !os.IsNotExist(statErr) {
+				t.Fatalf("stale plan still wrote codex destinations: %v", statErr)
+			}
+			if _, statErr := os.Stat(filepath.Join(home, ".claude", "CLAUDE.md")); statErr != nil {
+				t.Fatalf("unrelated concurrent installation did not apply: %v", statErr)
+			}
+		})
 	}
 }
 
@@ -376,6 +394,7 @@ func TestInstallRefusesStalePlanChangedBeforeConfirmation(t *testing.T) {
 // *ProductIdentity for such a checkout, identifying a development build. It
 // copies only those two directories of the minimal source, which also carries
 // VERSION, so the copy stays free of product identity.
+
 func developmentSourceArgs(t *testing.T, home string) []string {
 	t.Helper()
 	repo := minimalTestSource(t)
@@ -758,5 +777,165 @@ func TestInstallOfflinePendingRecoveryPointsToInstallScript(t *testing.T) {
 	}
 	if !strings.Contains(out.String(), "run ./install.sh again") {
 		t.Fatalf("offline pending recovery lost its ./install.sh instruction: %s", out.String())
+	}
+}
+
+// installPackageFixture is a complete local distribution with a protocol-bound
+// executable. Installation never executes this fixture program.
+func installPackageFixture(t *testing.T, protocol bool) string {
+	t.Helper()
+	root := copyMinimalSource(t)
+	write := func(name string, data []byte, mode os.FileMode) {
+		path := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, data, mode); err != nil {
+			t.Fatal(err)
+		}
+	}
+	executable := []byte("#!/bin/sh\nexit 0\n")
+	write("bin/hive", executable, 0700)
+	write("bin/hive.sha256", []byte(distribution.Digest(executable)+"\n"), 0600)
+	write("platform", []byte(runtime.GOOS+"/"+runtime.GOARCH+"\n"), 0600)
+	for _, name := range []string{"install.sh", "LICENSE", "THIRD_PARTY_NOTICES.md"} {
+		write(name, []byte("fixture"), 0600)
+	}
+	files, err := distribution.Files(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	manifest := distribution.Manifest{Version: 1, ProductVersion: "1.2.3", Platform: runtime.GOOS + "/" + runtime.GOARCH, SourceID: strings.Repeat("a", 64), Files: files}
+	if !protocol {
+		manifest.ProductVersion = ""
+	}
+	if protocol {
+		manifest.UpdateProtocol = distribution.UpdateProtocolVersion
+		boot := distribution.UpdateBootstrap{Protocol: 1, ProductVersion: manifest.ProductVersion, Platform: manifest.Platform, SourceID: manifest.SourceID, ExecutableSHA256: files["bin/hive"], ManifestVersion: 1, MinStateVersion: 1, MaxStateVersion: 7}
+		data, _ := json.Marshal(boot)
+		write(distribution.UpdateBootstrapName, data, 0600)
+		manifest.Files[distribution.UpdateBootstrapName] = distribution.Digest(data)
+	}
+	data, _ := json.Marshal(manifest)
+	write(distribution.ManifestName, data, 0600)
+	return root
+}
+
+func TestInstallPackageMigratesStableCommandAndPreservesSourceRoute(t *testing.T) {
+	for _, tc := range []struct {
+		name                string
+		packaged, waitFloor bool
+	}{
+		{"source", false, false}, {"package", true, false}, {"package-default-wait-floor", true, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			packaged := tc.packaged
+			home, _ := filepath.EvalSymlinks(t.TempDir())
+			source := minimalTestSource(t)
+			if packaged {
+				legacy := installPackageFixture(t, false)
+				args := []string{"--home", home, "--hosts", "codex", "--source", legacy, "--state-dir", filepath.Join(home, "state")}
+				if err := installWithAdapterFactory(args, strings.NewReader("yes\n"), io.Discard, true, coreOnlyAdapterFactory); err != nil {
+					t.Fatal(err)
+				}
+				if _, err := os.Lstat(filepath.Join(home, ".local", "bin", "hive")); !os.IsNotExist(err) {
+					t.Fatal("legacy package adopted release command")
+				}
+				source = installPackageFixture(t, true)
+			}
+			args := []string{"--home", home, "--hosts", "codex", "--source", source, "--state-dir", filepath.Join(home, "state")}
+			command := filepath.Join(home, ".local", "bin", "hive")
+			factory := onboardingAdapterFactory(coreOnlyAdapterFactory)
+			input := "yes\n"
+			if tc.waitFloor {
+				// Online/offline package installers run from temporary extraction paths.
+				// The manifest-bound package executable must survive capability rebuilds.
+				original := management.HiveExecutable
+				management.HiveExecutable = func() (string, error) { return filepath.Join(source, "bin", "hive"), nil }
+				t.Cleanup(func() { management.HiveExecutable = original })
+				factory = func(onboardingInput) (onboardingAdapter, error) { return newFloorAdapter(false), nil }
+				input = "\nyes\n" // Accept the native default selection, then consent once.
+			}
+			for i := 0; i < 2; i++ {
+				var out bytes.Buffer
+				if err := installWithAdapterFactory(args, strings.NewReader(input), &out, true, factory); err != nil {
+					t.Fatalf("install %d: %v\n%s", i, err, out.String())
+				}
+				if tc.waitFloor {
+					config, err := os.ReadFile(filepath.Join(home, ".codex", "config.toml"))
+					if err != nil || !strings.Contains(string(config), "min_wait_timeout_ms = 300000") || !strings.Contains(string(config), "default_wait_timeout_ms = 600000") {
+						t.Fatalf("wait floor was not installed: %s, %v", config, err)
+					}
+					if strings.Count(out.String(), "Apply these changes?") != 1 {
+						t.Fatalf("expected one combined consent: %s", out.String())
+					}
+				}
+				if packaged {
+					want := filepath.Join(home, ".local", "share", "hive", "packages", "hive-1.2.3-"+runtime.GOOS+"-"+runtime.GOARCH, "bin", "hive")
+					got, err := os.Readlink(command)
+					if err != nil || got != want {
+						t.Fatalf("command %q %v, want %q", got, err, want)
+					}
+					if !strings.Contains(out.String(), command) || !strings.Contains(out.String(), "PATH") {
+						t.Fatalf("missing command/PATH instructions: %s", out.String())
+					}
+				} else if _, err := os.Lstat(command); !os.IsNotExist(err) {
+					t.Fatalf("source installation adopted command: %v", err)
+				}
+			}
+			for _, name := range []string{".profile", ".zshrc", ".bashrc"} {
+				if _, err := os.Lstat(filepath.Join(home, name)); !os.IsNotExist(err) {
+					t.Fatal("changed shell profile")
+				}
+			}
+		})
+	}
+}
+
+func TestInstallPackagePreviewCancelAndCommandConflict(t *testing.T) {
+	for _, mode := range []string{"preview", "cancel", "foreign-file", "foreign-link", "linked-bin", "foreign-online"} {
+		t.Run(mode, func(t *testing.T) {
+			home, _ := filepath.EvalSymlinks(t.TempDir())
+			source := installPackageFixture(t, true)
+			args := []string{"--home", home, "--hosts", "codex", "--source", source, "--state-dir", filepath.Join(home, "state")}
+			command := filepath.Join(home, ".local", "bin", "hive")
+			input := "no\n"
+			if mode == "preview" {
+				args = append(args, "--dry-run")
+			}
+			if strings.HasPrefix(mode, "foreign") {
+				os.MkdirAll(filepath.Dir(command), 0700)
+				if mode == "foreign-online" {
+					t.Setenv("HIVE_INSTALL_TEMPORARY_SOURCE", "1")
+				}
+				if mode == "foreign-file" || mode == "foreign-online" {
+					os.WriteFile(command, []byte("foreign"), 0700)
+				} else {
+					os.Symlink(source, command)
+				}
+			}
+			if mode == "linked-bin" {
+				os.MkdirAll(filepath.Join(home, ".local"), 0700)
+				os.Symlink(t.TempDir(), filepath.Dir(command))
+			}
+			var out bytes.Buffer
+			err := installWithAdapterFactory(args, strings.NewReader(input), &out, true, coreOnlyAdapterFactory)
+			conflict := strings.HasPrefix(mode, "foreign") || mode == "linked-bin"
+			if (err != nil) != conflict {
+				t.Fatalf("error %v; conflict %v: %s", err, conflict, out.String())
+			}
+			if mode == "foreign-online" && (strings.Contains(err.Error(), source) || !strings.Contains(err.Error(), "run ./install.sh")) {
+				t.Fatalf("online conflict advertises temporary path: %v", err)
+			}
+			if mode == "foreign-file" && !strings.Contains(err.Error(), filepath.Join(source, "bin", "hive")) {
+				t.Fatalf("offline conflict lacks usable package path: %v", err)
+			}
+			if _, err := os.Stat(filepath.Join(home, "state")); !os.IsNotExist(err) {
+				t.Fatal("changed installation state")
+			}
+			if _, err := os.Stat(filepath.Join(home, ".local", "share", "hive", "packages")); !os.IsNotExist(err) {
+				t.Fatal("retained package before consent")
+			}
+		})
 	}
 }

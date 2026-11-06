@@ -33,3 +33,10 @@ Verification is read-only. It rejects stale source digests, altered asset hashes
 The access client, controller and polling loop validate protocol3 `timeline_sessions` directly; API records are never converted into legacy manifests or file bases. Explicit `session_id` and optional `event_id` URL targets take precedence over remembered selection, and invalid or unavailable targets remain visible errors. An archived target is temporarily accessible without changing the archive preference.
 
 API metadata mutations use operation IDs and conditional versions. Documents load through the authenticated client and verify immutable UTF-8 bytes, size and SHA-256 before rendering read-only Markdown/GFM. HTML and embedded images are disabled, and links use the existing strict HTTPS validator. The stage feed uses the installed ReUI components and a centered fluid `max-w-2xl` container. The development timeline preview remains synthetic; it does not establish API persistence or production authentication.
+
+
+## Navigation lifecycle preview
+
+`?preview&state=navigation&theme=light` (or `theme=dark`) uses 24 illustrative works across three existing-style project groups, with six lifecycle states, long titles and last substantive activity dates. It uses the real application/controller against a development-only typed API boundary. The development toolbar can simulate automatic archival of the selected work or a revision mismatch; ordinary archive, Restore, title and pin controls use conditional fixture writes. Existing evidence files are served by Vite as real image requests. This preview does not prove backend persistence or archive scheduling.
+
+Navigation sorts numeric `last_activity_at` descending, with work ID ties, independently of timeline event order. State uses the same semantic Badge catalog as the header. An archived selected work remains readable until navigation, outside the default navigation count; Restore remains inline. Automatic archive does not create Undo notifications; manual archive retains its temporary Undo. Revision mismatch stops mutation and polling and presents update/reload instructions without replaying operations.

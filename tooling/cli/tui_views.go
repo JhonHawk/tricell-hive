@@ -267,7 +267,7 @@ type menuItem struct {
 // views of #46).
 var mainMenuItems = []menuItem{
 	{"CLIs", "Install, remove and check CLI hosts", func(cfg appConfig) view { return newHostsView(cfg) }},
-	{"Update", "Update Hive from a Git commit", func(cfg appConfig) view { return newUpdateView(cfg) }},
+	{"Update", "Update releases or committed source", func(cfg appConfig) view { return newUpdateView(cfg) }},
 	{"Releases", "Go back to a retained release", func(cfg appConfig) view { return newReleasesView(cfg) }},
 	{"Voice", "Choose the assistant voice", func(cfg appConfig) view { return newVoiceView(cfg) }},
 	{"Diagnostics", "Check CLI versions, the installation and open sessions", func(cfg appConfig) view { return newDoctorView(cfg) }},

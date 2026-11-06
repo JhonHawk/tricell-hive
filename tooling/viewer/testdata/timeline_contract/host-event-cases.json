@@ -1,0 +1,298 @@
+[
+  {
+    "name": "session_started without work",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": true,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"session_started\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{}}"
+  },
+  {
+    "name": "activity with work and stage",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": true,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"activity\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{},\"work_id\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"stage_event_id\":\"stage-build\"}"
+  },
+  {
+    "name": "task_created with state",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": true,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"task_created\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"task_id\":\"7\",\"title\":\"Run typecheck\",\"state\":\"in_progress\"},\"work_id\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"stage_event_id\":\"stage-build\"}"
+  },
+  {
+    "name": "task_completed by id",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": true,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"task_completed\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"task_id\":\"7\",\"state\":\"completed\"},\"work_id\":\"1111111111111111111111111111111111111111111111111111111111111111\",\"stage_event_id\":\"stage-build\"}"
+  },
+  {
+    "name": "task_updated renames",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": true,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"task_updated\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"task_id\":\"a.b-c_1\",\"title\":\"Renamed\"}}"
+  },
+  {
+    "name": "subagent_started with agent",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": true,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"subagent_started\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"agent_id\":\"agent-1\"}}"
+  },
+  {
+    "name": "unknown event type",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"stage_completed\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{}}"
+  },
+  {
+    "name": "closure event type",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"closure\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{}}"
+  },
+  {
+    "name": "data tries a stage state",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"activity\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"stage_state\":\"completed\"}}"
+  },
+  {
+    "name": "data tries a closure",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"activity\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"closure\":{\"reason\":\"completed\"}}}"
+  },
+  {
+    "name": "data tries an authority change",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"activity\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"foreground_producer_id\":\"producer-other\"}}"
+  },
+  {
+    "name": "top level tries a work state",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"activity\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{},\"state\":\"closed\"}"
+  },
+  {
+    "name": "top level tries an actor",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"activity\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{},\"actor\":{\"kind\":\"native_producer\",\"producer_id\":\"producer-original\"}}"
+  },
+  {
+    "name": "blocked task state",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"task_updated\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"task_id\":\"7\",\"title\":\"x\",\"state\":\"blocked\"}}"
+  },
+  {
+    "name": "completed event with another state",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"task_completed\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"task_id\":\"7\",\"state\":\"in_progress\"}}"
+  },
+  {
+    "name": "stage without work",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"activity\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{},\"stage_event_id\":\"stage-build\"}"
+  },
+  {
+    "name": "task_created without id",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"task_created\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"title\":\"x\"}}"
+  },
+  {
+    "name": "task_created without title",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"task_created\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"task_id\":\"7\"}}"
+  },
+  {
+    "name": "activity carrying a task",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"activity\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"task_id\":\"7\"}}"
+  },
+  {
+    "name": "subagent without agent",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"subagent_stopped\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{}}"
+  },
+  {
+    "name": "task id with spaces",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"task_created\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"task_id\":\"a b\",\"title\":\"x\"}}"
+  },
+  {
+    "name": "task title too long",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"task_created\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"task_id\":\"7\",\"title\":\"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx\"}}"
+  },
+  {
+    "name": "relative project root",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"relative\",\"host\":\"claude-code\",\"native_session_id\":\"n\"},\"event_type\":\"activity\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{}}"
+  },
+  {
+    "name": "unsupported host",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/p\",\"host\":\"vim\",\"native_session_id\":\"n\"},\"event_type\":\"activity\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{}}"
+  },
+  {
+    "name": "empty native session",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/p\",\"host\":\"codex\",\"native_session_id\":\"\"},\"event_type\":\"activity\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{}}"
+  },
+  {
+    "name": "schema version 2",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":2,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"activity\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{}}"
+  },
+  {
+    "name": "bad timestamp",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"activity\",\"occurred_at\":\"yesterday\",\"data\":{}}"
+  },
+  {
+    "name": "bad work id",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"activity\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{},\"work_id\":\"short\"}"
+  },
+  {
+    "name": "missing data",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"activity\",\"occurred_at\":\"2026-11-04T10:00:00Z\"}"
+  },
+  {
+    "name": "authority accepted producer",
+    "action": "authority",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": true,
+    "json": "{\"kind\":\"native_producer\",\"producer_id\":\"producer-other\"}"
+  },
+  {
+    "name": "authority non lead producer",
+    "action": "authority",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": true,
+    "json": "{\"kind\":\"native_producer\",\"producer_id\":\"producer-unassigned\"}"
+  },
+  {
+    "name": "authority unknown producer",
+    "action": "authority",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"kind\":\"native_producer\",\"producer_id\":\"producer-stranger\"}"
+  },
+  {
+    "name": "activity with turn id",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": true,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"activity\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"turn_id\":\"prompt-1\"}}"
+  },
+  {
+    "name": "task_updated without title",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": true,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"task_updated\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"task_id\":\"7\",\"state\":\"in_progress\"}}"
+  },
+  {
+    "name": "task with turn id",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"task_created\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"task_id\":\"7\",\"title\":\"Run typecheck\",\"turn_id\":\"prompt-1\"}}"
+  },
+  {
+    "name": "turn id with spaces",
+    "action": "shape",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"schema_version\":3,\"source\":{\"project_root\":\"/fixture/project\",\"host\":\"claude-code\",\"native_session_id\":\"native-session-alpha\"},\"event_type\":\"activity\",\"occurred_at\":\"2026-11-04T10:00:00Z\",\"data\":{\"turn_id\":\"has space\"}}"
+  },
+  {
+    "name": "authority local viewer",
+    "action": "authority",
+    "kind": "host_event",
+    "object_id": "",
+    "valid": false,
+    "json": "{\"kind\":\"local_viewer\"}"
+  }
+]

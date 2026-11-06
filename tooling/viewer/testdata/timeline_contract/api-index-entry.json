@@ -35,5 +35,9 @@
       "external_id": "COM-2"
     }
   ],
-  "mode": "timeline_api"
+  "mode": "timeline_api",
+  "last_activity_at": "2026-10-31T18:20:00-06:00",
+  "closed_at": null,
+  "autoarchive_at": null,
+  "archive_origin": null
 }

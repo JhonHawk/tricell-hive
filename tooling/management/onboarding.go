@@ -73,6 +73,9 @@ const (
 // by name to answer that question. It is read-only and does not create
 // the state directory.
 func Pending(stateDir string) (PendingKind, error) {
+	if err := checkUpdatePending(stateDir); err != nil {
+		return PendingNone, err
+	}
 	onboarding, err := OnboardingPending(stateDir)
 	if err != nil {
 		return PendingNone, err
@@ -382,6 +385,12 @@ func (e Engine) runProviders(j onboardingJournal, runner ExternalRunner) (onboar
 }
 
 func (e Engine) Onboard(p Plan, steps []ExternalStep, runner ExternalRunner) (OnboardingResult, error) {
+	return e.onboard(p, steps, runner, false)
+}
+func (e Engine) onboard(p Plan, steps []ExternalStep, runner ExternalRunner, packageProviders bool) (OnboardingResult, error) {
+	if p.ReleaseUpdate || (p.PackageInstall && !packageProviders) {
+		return OnboardingResult{}, fmt.Errorf("release update cannot onboard providers; use its parent coordinator")
+	}
 	if len(steps) == 0 {
 		id, err := e.Apply(p)
 		return OnboardingResult{ID: id, Phase: "completed"}, err
@@ -394,6 +403,11 @@ func (e Engine) Onboard(p Plan, steps []ExternalStep, runner ExternalRunner) (On
 		return OnboardingResult{}, err
 	}
 	defer unlock()
+	if packageProviders {
+		if err := packageProvidersPreflight(p, state); err != nil {
+			return OnboardingResult{}, err
+		}
+	}
 	j, err := beginOnboarding(p, steps)
 	if err != nil {
 		return j.OnboardingResult, err

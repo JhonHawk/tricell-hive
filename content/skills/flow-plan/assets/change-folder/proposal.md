@@ -10,10 +10,10 @@
 
 ## Decisions
 
-<!-- One line per decision the user took, under its date: the question in plain words, the answer and what it changes, and the decision ID last, in parentheses, such as "- Who links each event to its stage? The server; the agent no longer declares it. (D62 B)". Readers outside the conversation do not know the IDs: no line here or in any other section relies on an ID alone. -->
+<!-- One line per decision the user took, under its date: the decision ID and letter in bold, a dash, the question in plain words, and the answer and what it changes, such as "- **D62 B** — Who links each event to its stage? The server; the agent no longer declares it.". Readers outside the conversation do not know the IDs: no line here or in any other section relies on an ID alone. -->
 
 <date>
-- <question?> <answer and what it changes>. (<D<n> letter>)
+- **<D<n> letter>** — <question?> <answer and what it changes>.
 
 ## Request
 
@@ -26,6 +26,8 @@
 ## Scope and acceptance
 
 <What is in scope and what is out of it.>
+
+<!-- Format reminder, rule in flow-plan «Revise a plan in progress»: a revision marks the new decision or criterion with `**Replaces:** <old IDs>` on its line, and a dropped criterion keeps its line with `**Retired:** <reason>`. Both markers stay in English, whatever the session language. Delete this comment. -->
 
 - AC1 — <one observable behavior> · false today because <the observation that shows it>
 - AC2 — <…>

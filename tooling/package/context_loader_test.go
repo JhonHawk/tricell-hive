@@ -56,11 +56,38 @@ func TestOpenCodeContextLoaderOfflinePackage(t *testing.T) {
 	if manifest.Version != 2 {
 		t.Fatal("new package must use manifest 2")
 	}
+	bootstrapData, err := os.ReadFile(filepath.Join(root, distribution.UpdateBootstrapName))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.UpdateProtocol != distribution.UpdateProtocolVersion || manifest.Files[distribution.UpdateBootstrapName] != distribution.Digest(bootstrapData) {
+		t.Fatal("offline package has no inventory-bound update protocol marker")
+	}
+	var bootstrap distribution.UpdateBootstrap
+	if err := distribution.DecodeUpdateMessage(bytes.NewReader(bootstrapData), &bootstrap); err != nil {
+		t.Fatal(err)
+	}
+	if bootstrap.ProductVersion != manifest.ProductVersion || bootstrap.SourceID != manifest.SourceID || bootstrap.ExecutableSHA256 != manifest.Files["bin/hive"] {
+		t.Fatal("offline bootstrap does not identify its packaged executable")
+	}
 	for name := range manifest.Files {
 		if strings.Contains(name, "context-loader") && name != source {
 			t.Fatalf("offline package contains a second editorial or generated plugin resource: %s", name)
 		}
 	}
+	// The plan registers `hive hook`, and the manager refuses the temporary path
+	// of a test binary: use the checked-in stand-in the management tests use.
+	standIn, err := filepath.EvalSymlinks("../management/testdata/hive-test-executable")
+	if err != nil {
+		t.Fatal(err)
+	}
+	standIn, err = filepath.Abs(standIn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	previous := management.HiveExecutable
+	management.HiveExecutable = func() (string, error) { return standIn, nil }
+	t.Cleanup(func() { management.HiveExecutable = previous })
 	// Prepare only in a fictional home; never execute the packaged installer.
 	p, err := management.BuildPlan("install", management.Options{Scope: "user", Home: filepath.Join(t.TempDir(), "home"), Source: root, Hosts: []string{"opencode"}})
 	if err != nil {

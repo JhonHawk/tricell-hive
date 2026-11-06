@@ -125,6 +125,7 @@ func (f *viewFixture) get(path string, token bool) (int, []byte) {
 	if err != nil {
 		f.t.Fatal(err)
 	}
+	req.Header.Set(viewer.TimelineRevisionHeader, viewer.TimelineRevisionValue)
 	if token {
 		req.Header.Set("X-Hive-Token", info.Token)
 	}
@@ -226,6 +227,43 @@ func TestViewRegisterIsIdempotentAndRejectsNonGit(t *testing.T) {
 	}
 	if _, err := f.view("register", "--dir", plain); err == nil || !strings.Contains(err.Error(), "Git") {
 		t.Fatalf("register outside Git error = %v", err)
+	}
+	if err := os.Mkdir(filepath.Join(plain, ".engram"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	config := filepath.Join(plain, ".engram", "config.json")
+	if err := os.WriteFile(config, []byte(`{"project_name":"Explicit workspace"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if out := f.mustView("register", "--dir", plain); !strings.Contains(out, plain) {
+		t.Fatalf("explicit workspace output: %q", out)
+	}
+	before, err := os.ReadFile(reg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if out := f.mustView("register", "--dir", plain); !strings.Contains(out, "Already registered") {
+		t.Fatalf("repeat explicit registration: %q", out)
+	}
+	after, err := os.ReadFile(reg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("repeat explicit registration rewrote registry")
+	}
+	if err := os.WriteFile(config, []byte(`{"project_name":false}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := f.view("register", "--dir", plain); err == nil || !strings.Contains(err.Error(), ".engram/config.json") {
+		t.Fatalf("invalid explicit registration: %v", err)
+	}
+	after, err = os.ReadFile(reg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatal("invalid registration removed existing root")
 	}
 }
 
@@ -818,7 +856,10 @@ func TestViewAccessCodeNeverFollowsRedirect(t *testing.T) {
 
 func TestViewIndexRequiresLeanV3Envelope(t *testing.T) {
 	for _, body := range []string{`{"projects":[]}`, `{"protocol_version":1,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[]}`, `{"protocol_version":3,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[],"projects":[]}`, `{"protocol_version":3,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[]} {}`} {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { w.Write([]byte(body)) }))
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("X-Hive-Timeline-Revision", "3")
+			w.Write([]byte(body))
+		}))
 		_, err := viewIndex(serverInfo{Port: server.Listener.Addr().(*net.TCPAddr).Port, Token: "fixture-token"})
 		server.Close()
 		if err == nil {
@@ -826,6 +867,7 @@ func TestViewIndexRequiresLeanV3Envelope(t *testing.T) {
 		}
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Hive-Timeline-Revision", "3")
 		w.Write([]byte(`{"protocol_version":3,"retention":"manual","ttl_seconds":0,"timeline_sessions":[],"repositories":[],"errors":[]}`))
 	}))
 	defer server.Close()

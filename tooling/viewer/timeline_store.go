@@ -32,6 +32,7 @@ func timelineFailure(code string, status int) error {
 }
 
 type timelineRecord struct {
+	Maintenance    *timelineMaintenance   `json:"maintenance,omitempty"`
 	Audit          []timelinePrivateAudit `json:"audit,omitempty"`
 	StorageVersion int                    `json:"storage_version"`
 	ID             string                 `json:"id"`
@@ -111,6 +112,7 @@ func timelineClone(r *timelineRecord) *timelineRecord {
 	raw, _ := json.Marshal(r)
 	var copy timelineRecord
 	_ = json.Unmarshal(raw, &copy)
+	timelineProjectMaintenance(&copy)
 	return &copy
 }
 func (s *Store) timelineTime() string { return s.now().UTC().Format(time.RFC3339Nano) }
@@ -235,12 +237,36 @@ func (s *Store) timelineLoad() error {
 		if !keyPattern.MatchString(id) {
 			return timelineFailure("corrupt_storage", 500)
 		}
-		raw, err := readStateFile(s.timelineRecordPath(id), timelineMaxRecordBytes)
+		raw, err := readStateFile(s.timelineRecordPath(id), timelineMaxRecordBytes+TimelineMaintenanceMaxBytes)
 		if err != nil {
 			return timelineFailure("corrupt_storage", 500)
 		}
+		var storedFields map[string]json.RawMessage
+		if json.Unmarshal(raw, &storedFields) != nil {
+			return timelineFailure("corrupt_storage", 500)
+		}
+		// Derived projections have never been a stored encoding. Reject their
+		// explicit presence before projection can hide corrupt supplied values.
+		var sessionFields map[string]json.RawMessage
+		if data, exists := storedFields["session"]; exists {
+			if json.Unmarshal(data, &sessionFields) != nil {
+				return timelineFailure("corrupt_storage", 500)
+			}
+			for _, key := range []string{"last_activity_at", "host_activity_at", "closed_at", "autoarchive_at", "archive_origin"} {
+				if _, exists := sessionFields[key]; exists {
+					return timelineFailure("corrupt_storage", 500)
+				}
+			}
+		}
+		contentSize := len(raw)
+		if metadata, ok := storedFields["maintenance"]; ok {
+			if len(metadata)+len(`,"maintenance":`) > TimelineMaintenanceMaxBytes {
+				return timelineFailure("corrupt_storage", 500)
+			}
+			contentSize -= len(metadata) + len(`,"maintenance":`)
+		}
 		var r timelineRecord
-		if err = decodeTimelineStoredJSON(raw, &r, timelineMaxRecordBytes); err != nil {
+		if err = decodeTimelineStoredJSON(raw, &r, timelineMaxRecordBytes+TimelineMaintenanceMaxBytes); err != nil {
 			return timelineFailure("corrupt_storage", 500)
 		}
 		if r.StorageVersion != timelineStorageVersion || r.ID != id || len(r.Roots) == 0 || r.ProjectKey == "" || timelineSessionKey(r.ProjectKey, r.Source, r.WorkKey) != id {
@@ -265,6 +291,13 @@ func (s *Store) timelineLoad() error {
 			}
 		}
 
+		if err = validateTimelineMaintenance(&r); err != nil {
+			return err
+		}
+		if content, growth, e := timelineMaintenanceContentBytes(&r); e != nil || len(content) > timelineMaxRecordBytes || contentSize > timelineMaxRecordBytes+growth {
+			return timelineFailure("corrupt_storage", 500)
+		}
+		timelineProjectMaintenance(&r)
 		if r.Session != nil {
 			if err = ValidateTimelineSession(*r.Session); err != nil || r.Session.ViewerSessionID != id || r.Session.Source != r.Source || r.Session.ProjectKey != r.ProjectKey {
 				return timelineFailure("corrupt_storage", 500)
@@ -422,7 +455,7 @@ func (s *Store) timelinePublish() {
 			continue
 		}
 		v := r.Session
-		entries = append(entries, TimelineAPIIndexEntry{Mode: "timeline_api", ViewerSessionID: v.ViewerSessionID, ProjectKey: v.ProjectKey, ProjectName: v.ProjectName, Source: v.Source, Version: v.Version, Title: v.Title, Summary: v.Summary, State: v.State, Archived: v.Archived, Pinned: v.Pinned, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt, ValidationCount: v.ValidationCount, Tickets: append([]TimelineTicket{}, v.Tickets...), CurrentStageEventID: v.CurrentStageEventID})
+		entries = append(entries, TimelineAPIIndexEntry{LastActivityAt: v.LastActivityAt, HostActivityAt: v.HostActivityAt, ClosedAt: v.ClosedAt, AutoarchiveAt: v.AutoarchiveAt, ArchiveOrigin: v.ArchiveOrigin, Mode: "timeline_api", ViewerSessionID: v.ViewerSessionID, ProjectKey: v.ProjectKey, ProjectName: v.ProjectName, Source: v.Source, Version: v.Version, Title: v.Title, Summary: v.Summary, State: v.State, Archived: v.Archived, Pinned: v.Pinned, CreatedAt: v.CreatedAt, UpdatedAt: v.UpdatedAt, ValidationCount: v.ValidationCount, Tickets: append([]TimelineTicket{}, v.Tickets...), CurrentStageEventID: v.CurrentStageEventID})
 	}
 	sort.Slice(entries, func(i, j int) bool { return entries[i].ViewerSessionID < entries[j].ViewerSessionID })
 	s.viewMu.Lock()
@@ -445,6 +478,16 @@ func (s *Store) TimelineIndex() []TimelineAPIIndexEntry {
 	return result
 }
 func (s *Store) timelineReplay(r *timelineRecord, op, digest string) (TimelineOperationResult, bool, error) {
+	if r.Maintenance != nil {
+		for _, receipt := range []*timelineAdministrativeReceipt{r.Maintenance.ArchiveReceipt, r.Maintenance.RestoreReceipt, r.Maintenance.PinReceipt} {
+			if receipt != nil && receipt.OperationID == op {
+				if receipt.RequestSHA256 != digest {
+					return TimelineOperationResult{}, true, timelineFailure("operation_conflict", 409)
+				}
+				return receipt.Result, true, nil
+			}
+		}
+	}
 	for _, receipt := range r.Receipts {
 		if receipt.OperationID == op {
 			if err := ValidateTimelineOperationRetry(receipt, op, digest); err != nil {
@@ -475,6 +518,10 @@ func (s *Store) timelineGetLocked(id string) (*timelineRecord, error) {
 	return r, nil
 }
 func (s *Store) timelineSave(r *timelineRecord) error {
+	if err := validateTimelineMaintenance(r); err != nil {
+		return err
+	}
+	timelineProjectMaintenance(r)
 	if err := validateTimelinePrivateAudit(r); err != nil {
 		return err
 	}
@@ -487,7 +534,11 @@ func (s *Store) timelineSave(r *timelineRecord) error {
 	if err != nil {
 		return err
 	}
-	if len(raw) > timelineMaxRecordBytes {
+	content, _, contentErr := timelineMaintenanceContentBytes(r)
+	if contentErr != nil {
+		return contentErr
+	}
+	if len(content) > timelineMaxRecordBytes || len(raw) > timelineMaxRecordBytes+TimelineMaintenanceMaxBytes {
 		return timelineFailure("capacity", 413)
 	}
 	if err = s.timelineEnsureDir(s.timelineDir()); err != nil {
@@ -501,6 +552,11 @@ func (s *Store) timelineSave(r *timelineRecord) error {
 	return nil
 }
 func (s *Store) timelineCommit(r *timelineRecord, kind TimelineOperationKind, op, digest string, result TimelineOperationResult, terminal bool) (TimelineOperationResult, error) {
+	timelineRefreshMaintenance(r, s.timelineTime())
+	timelineCommittedActivity(r, s.timeline[r.ID], kind)
+	if r.Maintenance != nil {
+		r.Maintenance.ContentBaseline = nil
+	}
 	if r.Session != nil {
 		if err := ValidateTimelineClosureReserve(*r.Session); err != nil {
 			return result, err
@@ -535,7 +591,7 @@ func (s *Store) timelineCommit(r *timelineRecord, kind TimelineOperationKind, op
 		}
 	}
 	if r.Session != nil {
-		raw, _ := json.Marshal(r.Session)
+		raw, _ := timelineSessionContentBytes(r.Session)
 		budget := TimelineContentBudget
 		if lifecycle {
 			budget = TimelineMaxBody
@@ -549,7 +605,7 @@ func (s *Store) timelineCommit(r *timelineRecord, kind TimelineOperationKind, op
 	}
 	r.Receipts = append(r.Receipts, TimelineOperationReceipt{OperationID: op, RequestSHA256: digest, CompletedAt: s.timelineTime(), Result: result})
 	if !lifecycle {
-		raw, err := json.Marshal(r)
+		raw, err := timelineRecordContentBytes(r)
 		if err != nil {
 			return result, err
 		}
@@ -567,13 +623,36 @@ func timelineResult(r *timelineRecord, kind TimelineOperationKind, op string) Ti
 	return TimelineOperationResult{SchemaVersion: 3, OperationID: op, Kind: kind, ViewerSessionID: r.ID, SessionVersion: v.Version, CurrentStageEventID: v.CurrentStageEventID}
 }
 func (s *Store) timelineProject(source TimelineSource) (string, string, string, error) {
-	root, err := canonicalDir(source.ProjectRoot)
-	if err != nil {
-		return "", "", "", timelineFailure("project_unavailable", 409)
-	}
 	registry, err := readRegistry(s.vdir)
 	if err != nil {
 		return "", "", "", timelineFailure("project_unavailable", 409)
+	}
+	c, err := s.timelineLocate(registry, source.ProjectRoot)
+	if err != nil {
+		return "", "", "", err
+	}
+	key, err := s.timelineKeyOf(c)
+	if err != nil {
+		return "", "", "", err
+	}
+	name := s.resolveProject(c.root).name
+	return c.root, key, name, nil
+}
+
+// timelineLocated is a directory resolved to a registered project root, with
+// what Git said about its remote. It holds no store state.
+type timelineLocated struct {
+	root   string
+	remote timelineRemote
+}
+
+// timelineLocate is the unlocked part of the project resolution: the canonical
+// root, the check against a registry the caller read once, and the Git remote
+// lookup. It may spawn Git, so a caller that can avoid s.mu does.
+func (s *Store) timelineLocate(registry Registry, dir string) (timelineLocated, error) {
+	root, err := canonicalDir(dir)
+	if err != nil {
+		return timelineLocated{}, timelineFailure("project_unavailable", 409)
 	}
 	registered := false
 	for _, repo := range registry.Repositories {
@@ -583,35 +662,71 @@ func (s *Store) timelineProject(source TimelineSource) (string, string, string, 
 		}
 	}
 	if !registered {
-		return "", "", "", timelineFailure("project_not_registered", 409)
+		return timelineLocated{}, timelineFailure("project_not_registered", 409)
 	}
+	return timelineLocated{root: root, remote: s.timelineRemoteOf(root)}, nil
+}
+
+// timelineKeyOf is the locked part: the key the stored works already bind, with
+// the remote already read. The caller holds s.mu.
+func (s *Store) timelineKeyOf(c timelineLocated) (string, error) {
+	bound, err := s.timelineBoundKey(c.root)
+	if err != nil {
+		return "", err
+	}
+	return timelineProjectKey(c.root, bound, c.remote)
+}
+
+// timelineBoundKey is the project key the stored works that use this root already
+// carry. It reads the store's records, so the caller holds s.mu.
+func (s *Store) timelineBoundKey(root string) (string, error) {
 	bound := ""
 	for _, record := range s.timeline {
 		for _, alias := range record.Roots {
 			if alias == root {
 				if bound != "" && bound != record.ProjectKey {
-					return "", "", "", timelineFailure("project_identity_changed", 409)
+					return "", timelineFailure("project_identity_changed", 409)
 				}
 				bound = record.ProjectKey
 			}
 		}
 	}
+	return bound, nil
+}
+
+// timelineRemote is what Git said about a root's remote. It touches no store
+// state, so it may run outside s.mu.
+type timelineRemote struct {
+	asked bool
+	raw   string
+	err   error
+}
+
+func (s *Store) timelineRemoteOf(root string) timelineRemote {
+	if s.remote == nil {
+		return timelineRemote{}
+	}
+	if _, gitErr := os.Lstat(filepath.Join(root, ".git")); gitErr != nil {
+		return timelineRemote{}
+	}
+	raw, err := s.remote(root)
+	return timelineRemote{asked: true, raw: raw, err: err}
+}
+
+func timelineProjectKey(root, bound string, remote timelineRemote) (string, error) {
 	key := root
 	resolved := false
-	if s.remote != nil {
-		if _, gitErr := os.Lstat(filepath.Join(root, ".git")); gitErr == nil {
-			raw, remoteErr := s.remote(root)
-			resolved = remoteErr == nil
-			if remoteErr != nil {
-				if bound == "" {
-					return "", "", "", timelineFailure("project_identity_unavailable", 409)
-				}
-				key = bound
-			} else if raw != "" {
-				key = NormalizeRemote(raw)
-				if key == "" {
-					return "", "", "", timelineFailure("project_identity_unavailable", 409)
-				}
+	if remote.asked {
+		resolved = remote.err == nil
+		if remote.err != nil {
+			if bound == "" {
+				return "", timelineFailure("project_identity_unavailable", 409)
+			}
+			key = bound
+		} else if remote.raw != "" {
+			key = NormalizeRemote(remote.raw)
+			if key == "" {
+				return "", timelineFailure("project_identity_unavailable", 409)
 			}
 		}
 	}
@@ -619,10 +734,9 @@ func (s *Store) timelineProject(source TimelineSource) (string, string, string, 
 		key = bound
 	}
 	if bound != "" && bound != key {
-		return "", "", "", timelineFailure("project_identity_changed", 409)
+		return "", timelineFailure("project_identity_changed", 409)
 	}
-	name := s.resolveProject(root).name
-	return root, key, name, nil
+	return key, nil
 }
 
 // TimelineCreate gets or creates exactly one registered native tuple.
@@ -701,7 +815,7 @@ func (s *Store) TimelineCreate(request TimelineCreateSessionRequest) (TimelineSe
 		copied := *request.WorkKey
 		workKey = &copied
 	}
-	v := TimelineSession{SchemaVersion: 3, ViewerSessionID: id, ProjectKey: key, ProjectName: name, Source: request.Source, Version: 1, WorkKey: workKey, Title: request.Title, Summary: request.Summary, State: TimelineActive, CreatedAt: now, UpdatedAt: now, Tickets: tickets, Deliveries: []TimelineDelivery{}, Candidates: []TimelineCandidateRecord{}, Events: []TimelineEvent{}, Artifacts: []TimelineArtifact{}, Documents: []TimelineDocument{}}
+	v := TimelineSession{SchemaVersion: 3, ViewerSessionID: id, ProjectKey: key, ProjectName: name, Source: request.Source, Version: 1, WorkKey: workKey, Title: request.Title, Summary: request.Summary, State: TimelineActive, CreatedAt: now, UpdatedAt: now, LastActivityAt: now, Tickets: tickets, Deliveries: []TimelineDelivery{}, Candidates: []TimelineCandidateRecord{}, Events: []TimelineEvent{}, Artifacts: []TimelineArtifact{}, Documents: []TimelineDocument{}}
 	v.Producers = []TimelineProducer{{ProducerID: producer, Source: request.Source, JoinedAt: now}}
 	v.ForegroundProducerID = producer
 	v.PendingJoinRequests = []TimelineJoinRequest{}
@@ -742,7 +856,7 @@ func timelineBump(v *TimelineSession, now string) error {
 		return timelineFailure("capacity", 413)
 	}
 	v.Version++
-	v.UpdatedAt = now
+	v.UpdatedAt = timelineLater(v.UpdatedAt, now)
 	return nil
 }
 func timelinePauseForeground(v *TimelineSession, except, now string) {
@@ -784,6 +898,9 @@ func (s *Store) TimelinePatch(id string, request TimelineSessionPatchRequest) (T
 	r := timelineClone(old)
 	v := r.Session
 	now := s.timelineTime()
+	if timelineAdministrativePatch(request) {
+		return s.timelineAdministrativeCommit(r, request, digest)
+	}
 	if request.Title != nil {
 		title, titleErr := validateSessionTitle(*request.Title)
 		if titleErr != nil || title == "" {
@@ -814,6 +931,15 @@ func (s *Store) TimelinePatch(id string, request TimelineSessionPatchRequest) (T
 	}
 	if err = timelineBump(v, now); err != nil {
 		return TimelineOperationResult{}, err
+	}
+	timelineRefreshMaintenance(r, now)
+	if request.Archived != nil {
+		if *request.Archived {
+			r.Maintenance.ArchiveOrigin = timelineStringPointer("manual")
+		} else {
+			r.Maintenance.ArchiveOrigin = nil
+			r.Maintenance.RestoreExempt = v.State == TimelineClosed
+		}
 	}
 	result := timelineResult(r, "session_patch", request.OperationID)
 	return s.timelineCommit(r, "session_patch", request.OperationID, digest, result, false)

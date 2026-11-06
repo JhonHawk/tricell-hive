@@ -3,6 +3,7 @@ import type {
   TimelineEventKind,
   TimelineState,
 } from "./timeline-contract";
+import { TIMELINE_HOST_TASK_KEY_PREFIX } from "./timeline-contract-v3";
 
 export type TimelineLanguage = "es" | "en";
 export function timelineCopy(lang: TimelineLanguage = "en") {
@@ -80,6 +81,7 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         noTasks: "Sin tareas publicadas",
         activity: "Actividad",
         localViewer: "Visor local",
+        localViewerCli: "Visor local · CLI",
         producerUnavailable: "Productor no disponible",
         sessions: "Sesiones",
         lead: "Conductor",
@@ -99,6 +101,10 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         unconfirmed: "Sin confirmar",
         viewChecks: "Ver checks",
         unblock: "Ver cómo desbloquear",
+        hostObserved: "Del host",
+        hostObservedHint: "Tarea tomada de la lista de tareas del host",
+        hostObservedLegend: "Del host: tomada de la lista de tareas del host",
+        lastActivity: (age: string) => `Activo hace ${age}`,
         taskStates: {
           not_started: "No iniciada",
           in_progress: "En curso",
@@ -197,13 +203,18 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         local: "Local",
         ticketUnavailable: "Enlace no disponible",
         edited: "Texto actualizado",
+        autoarchived:
+          "Archivada automáticamente dos horas después de finalizar.",
+        archivedExplanation:
+          "Esta sesión está archivada. Puedes seguir leyendo o restaurarla.",
+        restore: "Restaurar",
         states: {
-          in_review: "Revisión",
-          failed: "Fallido",
+          in_review: "En revisión",
+          failed: "Fallida",
           active: "En curso",
-          awaiting_validation: "Validación",
-          paused: "Pausado",
-          closed: "Finalizado",
+          awaiting_validation: "Esperando validación",
+          paused: "Pausada",
+          closed: "Finalizada",
         } satisfies Record<TimelineState, string>,
         kinds: {
           review: "Revisión",
@@ -295,6 +306,7 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         noTasks: "No tasks published",
         activity: "Activity",
         localViewer: "Local viewer",
+        localViewerCli: "Local viewer · CLI",
         producerUnavailable: "Producer unavailable",
         sessions: "Sessions",
         lead: "Lead",
@@ -314,10 +326,14 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         unconfirmed: "Unconfirmed",
         viewChecks: "View checks",
         unblock: "See how to unblock",
+        hostObserved: "From host",
+        hostObservedHint: "Task taken from the host's task list",
+        hostObservedLegend: "From host: taken from the host's task list",
+        lastActivity: (age: string) => `Active ${age} ago`,
         taskStates: {
           not_started: "Not started",
           in_progress: "In progress",
-          in_review: "Review",
+          in_review: "In review",
           blocked: "Blocked",
           completed: "Completed",
         },
@@ -346,8 +362,8 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
           delivery: "View delivery",
         },
         stageStates: {
-          in_review: "Review",
-          awaiting_validation: "Validation",
+          in_review: "In review",
+          awaiting_validation: "Awaiting validation",
           in_progress: "In progress",
           completed: "Completed",
           paused: "Paused",
@@ -411,11 +427,15 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         local: "Local",
         ticketUnavailable: "Link unavailable",
         edited: "Copy updated",
+        autoarchived: "Automatically archived two hours after completion.",
+        archivedExplanation:
+          "This session is archived. You can keep reading or restore it.",
+        restore: "Restore",
         states: {
-          in_review: "Review",
+          in_review: "In review",
           failed: "Failed",
           active: "In progress",
-          awaiting_validation: "Validation",
+          awaiting_validation: "Awaiting validation",
           paused: "Paused",
           closed: "Finished",
         } satisfies Record<TimelineState, string>,
@@ -438,6 +458,39 @@ export function timelineCopy(lang: TimelineLanguage = "en") {
         } satisfies Record<TimelineEventKind, string>,
       };
 }
+/** Compact elapsed time such as "3 min", "2 h" or "1 d"; never below 1 min. */
+export function timelineAge(value: string, now: number): string {
+  const ms = now - new Date(value).getTime();
+  const minutes = Math.max(
+    1,
+    Math.floor((Number.isFinite(ms) ? ms : 0) / 60000),
+  );
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  return hours < 24 ? `${hours} h` : `${Math.floor(hours / 24)} d`;
+}
+
+/** A host task keeps its provenance in the key, so its title is shown without it. */
+export function isHostTask(task: { task_key: string }): boolean {
+  return task.task_key.startsWith(TIMELINE_HOST_TASK_KEY_PREFIX);
+}
+
+/** The task as a row names it: its key and title, or only the title for a host task. */
+export function timelineTaskLabel(task: {
+  task_key: string;
+  title: string;
+}): string {
+  return isHostTask(task) ? task.title : `${task.task_key} — ${task.title}`;
+}
+
+/** The task as a state indicator names it: its key, or the title for a host task. */
+export function timelineTaskName(task: {
+  task_key: string;
+  title: string;
+}): string {
+  return isHostTask(task) ? task.title : task.task_key;
+}
+
 export function timelineDate(
   value: string,
   lang: TimelineLanguage,
@@ -461,4 +514,11 @@ export function timelineEventTitle(
   if (event.kind !== "stage" || !event.stage) return event.title;
   const name = timelineCopy(lang).stageNames[event.stage];
   return event.title ? `${name} · ${event.title}` : name;
+}
+
+export function localViewerLabel(
+  actor: { origin?: string },
+  t: { localViewer: string; localViewerCli: string },
+): string {
+  return actor.origin === "cli" ? t.localViewerCli : t.localViewer;
 }

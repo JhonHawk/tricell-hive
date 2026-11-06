@@ -16,7 +16,7 @@ by the repository. Publishing a package is separate from building it.
 
 The entrypoint verifies the package platform and binary checksum before invoking
 the bundled manager. The manager verifies the complete package inventory before
-planning. A source checkout remains usable through `go run ./tooling/cli install`.
+planning. A source checkout installs through a built binary (`go build -o <path> ./tooling/cli`, then `<path> install`): every user-scope install registers session hooks that run that binary, so a temporary `go run` binary is refused.
 The package installer never falls back to compiling or downloading missing files.
 `hive --version` prints the product version of the running manager; a checkout
 without `VERSION` or a release label is reported as a development build.
@@ -44,23 +44,24 @@ any download. `--help` prints its usage. It:
    script and no environment variable or argument changes it.
 3. Verifies the checksum and rejects archive entries outside the package's
    single root directory or of a type other than directory or regular file.
-4. Keeps the package in `${XDG_DATA_HOME:-$HOME/.local/share}/hive/packages/hive-<version>-<os>-<arch>/`
-   (a relative `XDG_DATA_HOME` is ignored). A previous copy of the same package
-   is touched only after the new one is extracted and checked: it is moved
-   aside, the new one is moved in, and the old copy is deleted, or restored if
-   the move fails or the script is interrupted. Packages of other versions stay
-   until the user deletes them. It does not change `PATH`; it prints the path of
-   `bin/hive`.
-5. Runs that package's `install.sh` with every argument except `--version`, reading from the
-   terminal. Without `--dry-run` it requires a controlling terminal and stops
-   before any download when there is none. With `--dry-run` it uses the terminal
-   when one is available, so hosts can be chosen in the preview; without one,
-   pass `--hosts`. `--dry-run` previews the installation without changing any
-   host, but the package is still downloaded and kept as in step 4. Flags may be
-   written as `--flag`, `-flag`, or `--flag=value`, as `hive install` accepts.
+4. For a package with the update bootstrap, extracts to a private temporary
+   directory and invokes its installer. On confirmation the manager verifies and
+   retains the package by version, then registers `~/.local/bin/hive` without
+   editing `PATH` or adopting an unowned destination. An offline package uses
+   the same local import: its source kind is `directory`, with no invented
+   archive digest. Existing retained packages are verified before reuse.
+5. Passes every argument except `--version` to the installer. Without
+   `--dry-run` it requires a controlling terminal before downloading. A preview
+   of a bootstrap-enabled package removes its temporary inputs and changes no
+   host or persistent package store. Older packages without the bootstrap use
+   the legacy path, which keeps the downloaded package even for a preview.
+   Flags may be written as `--flag`, `-flag`, or `--flag=value`.
 
 Its whole body runs from a function called on its last line, so a truncated
-download executes nothing. To update, run the same command again. The script is
+download executes nothing. Existing installations need this updated installer once to
+migrate; subsequent complete updates use `hive update` with compatible packages.
+Release 0.9.0 introduces the protocol and compatible installer; 0.8.0 and
+earlier installations must migrate once. The script is
 not part of the package, and the package installation itself remains
 network-free. The checksum has the limit described below.
 
@@ -145,7 +146,7 @@ default_mode_request_user_input` turns it off, and Hive never reverts it.
 
 The Codex wait floor (`codex-wait-floor`) is the one capability where Hive
 writes a host configuration file itself, with no external command. It is offered
-by `install` and by `hive update`, only in an interactive session and only while
+by `install` and by committed-source `hive update`, only in an interactive session and only while
 Codex's `config.toml` does not already hold the setting (an applied file skips
 the offer without a version probe, also in a dry run; a dry run with the setting not applied offers nothing, and neither does a project-scope install). Otherwise one probe of
 `codex --version` must report 0.164.0 or later, the first release with the
@@ -172,11 +173,14 @@ lines again. `hive doctor` shows a `Codex wait floor` row with the file's state
 and whether the backup exists. Limitation: an older Hive binary that rewrites
 Hive's state drops the record, and then `plan remove` leaves the lines in place.
 
-A further case is Pi: when the Pi host is selected in a user-scope install and Pi's
+For install and committed-source update, a further case is Pi: when the Pi host is selected in a user-scope install and Pi's
 `settings.json` is missing or does not list pi-subagents, Hive itself runs
 `pi install npm:pi-subagents` (the `pi` executable must be on `PATH`),
 which downloads that package from npm. A settings file that already lists
 pi-subagents makes Hive skip the step, and a conflicting entry stops the plan.
+Release update instead blocks before core writes or command activation if that
+declaration is missing or needs repair, preserves settings, and directs the user
+to a separate `hive install`; it does not run Pi or other optional providers.
 Package installation is therefore network-free except for this step and the consented `agent-browser` steps; the Codex question card step runs a local program only, and the Codex wait floor runs none. The core is
 installed first; the installer then lists each selected capability with its
 reason and next action and exits non-zero, so a manual capability is never

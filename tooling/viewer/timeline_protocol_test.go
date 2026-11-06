@@ -12,7 +12,7 @@ func TestTimelineProtocolOfflineExamplesUseProductionDecoders(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if contract.ProtocolVersion != 3 || contract.Retention != "manual" || contract.TTLSeconds != 0 || len(contract.Commands) != 28 {
+	if contract.ContractRevision != 3 || contract.RevisionHeader != "X-Hive-Timeline-Revision" || contract.AutoarchiveSeconds != 7200 || contract.ProtocolVersion != 3 || contract.Retention != "manual" || contract.TTLSeconds != 0 || len(contract.Commands) != 28 {
 		t.Fatal("invalid contract metadata")
 	}
 	for _, command := range contract.Commands {

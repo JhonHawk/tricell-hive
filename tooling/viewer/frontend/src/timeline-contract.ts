@@ -1,3 +1,6 @@
+export const TIMELINE_CONTRACT_REVISION = 3;
+export const TIMELINE_REVISION_HEADER = "X-Hive-Timeline-Revision";
+
 import {
   isTimelineCatalogOperation,
   parseTimelineCatalogRequest,
@@ -240,7 +243,7 @@ export type TimelineEvent = {
   summary: string;
   created_at: string;
   updated_at: string;
-  origin: "agent_reported" | "server";
+  origin: "agent_reported" | "server" | "host_observed";
   ticket_refs: TimelineTicketRef[];
   withdrawn?: boolean;
   candidate_id?: string;
@@ -293,6 +296,12 @@ export type TimelineSession = {
   pinned: boolean;
   created_at: string;
   updated_at: string;
+  last_activity_at: string;
+  /** Time of the last host event of the work; absent until one arrives. */
+  host_activity_at?: string;
+  closed_at: string | null;
+  autoarchive_at: string | null;
+  archive_origin: "manual" | "automatic" | null;
   validation_count: number;
   tickets: TimelineTicket[];
   work_key: string | null;
@@ -569,7 +578,12 @@ function object(
   for (const [key, item] of Object.entries(obj))
     if (
       item === null &&
-      key !== "current_stage_event_id" &&
+      ![
+        "current_stage_event_id",
+        "closed_at",
+        "autoarchive_at",
+        "archive_origin",
+      ].includes(key) &&
       !(key === "work_key" && required.includes(key))
     )
       fail(field, "null_not_allowed");
@@ -711,6 +725,14 @@ const source = validateTimelineSource;
 export function timelineTicketIdentity(ref: { ticket_id: string }): string {
   return ref.ticket_id;
 }
+// Preserve nanosecond ordering even though JavaScript Date truncates to milliseconds.
+function serverTime(value: string): bigint {
+  const fraction = /\.(\d+)(?:Z|[+-]\d{2}:\d{2})$/.exec(value)?.[1] ?? "";
+  return (
+    BigInt(Date.parse(value)) * 1000000n +
+    BigInt(fraction.padEnd(9, "0").slice(3))
+  );
+}
 /** Checks the header fields a session and its index entry share. */
 function summaryHeader(obj: ObjectValue) {
   if (
@@ -729,6 +751,49 @@ function summaryHeader(obj: ObjectValue) {
     if (typeof obj[field] !== "boolean") fail(field);
   timestamp(obj.created_at, "created_at");
   timestamp(obj.updated_at, "updated_at");
+  timestamp(obj.last_activity_at, "last_activity_at");
+  if (
+    serverTime(obj.last_activity_at as string) >
+    serverTime(obj.updated_at as string)
+  )
+    fail("last_activity_at", "server_time_mismatch");
+  if (obj.host_activity_at !== undefined) {
+    timestamp(obj.host_activity_at, "host_activity_at");
+    if (
+      serverTime(obj.host_activity_at as string) >
+      serverTime(obj.updated_at as string)
+    )
+      fail("host_activity_at", "server_time_mismatch");
+  }
+  for (const key of ["closed_at", "autoarchive_at"])
+    if (obj[key] !== null) timestamp(obj[key], key);
+  if (
+    obj.closed_at !== null &&
+    (obj.state !== "closed" ||
+      serverTime(obj.closed_at as string) >
+        serverTime(obj.updated_at as string))
+  )
+    fail("closed_at", "server_time_mismatch");
+  if (
+    obj.autoarchive_at !== null &&
+    obj.closed_at !== null &&
+    serverTime(obj.autoarchive_at as string) !==
+      serverTime(obj.closed_at as string) + 7200000000000n
+  )
+    fail("autoarchive_at", "server_time_mismatch");
+  if (
+    obj.autoarchive_at !== null &&
+    (obj.state !== "closed" || obj.archived || obj.pinned)
+  )
+    fail("autoarchive_at", "ineligible_state");
+  if (
+    obj.archive_origin !== null &&
+    (!obj.archived ||
+      !["manual", "automatic"].includes(obj.archive_origin as string))
+  )
+    fail("archive_origin", "invalid_origin");
+  if (obj.archived && obj.archive_origin === null)
+    fail("archive_origin", "required");
 }
 function tickets(value: unknown, full = false, bootstrap = false) {
   // A full ticket list over the limit gets the Go validator's code; event
@@ -1261,6 +1326,10 @@ export function parseTimelineSession(value: unknown): TimelineSession {
       "pinned",
       "created_at",
       "updated_at",
+      "last_activity_at",
+      "closed_at",
+      "autoarchive_at",
+      "archive_origin",
       "validation_count",
       "tickets",
       "work_key",
@@ -1269,7 +1338,7 @@ export function parseTimelineSession(value: unknown): TimelineSession {
       "documents",
       "current_stage_event_id",
     ],
-    ["reason"],
+    ["reason", "host_activity_at"],
   );
   if (obj.schema_version !== 3) fail("schema_version", "unsupported_protocol");
   summaryHeader(obj);
@@ -1358,7 +1427,11 @@ export function parseTimelineSession(value: unknown): TimelineSession {
     integer(e.version, "events.version");
     timestamp(e.created_at, "events.created_at");
     timestamp(e.updated_at, "events.updated_at");
-    if (e.origin !== "agent_reported" && e.origin !== "server")
+    if (
+      e.origin !== "agent_reported" &&
+      e.origin !== "server" &&
+      e.origin !== "host_observed"
+    )
       fail("events.origin", "invalid_origin");
     if (e.withdrawn !== undefined && typeof e.withdrawn !== "boolean")
       fail("events.withdrawn");
@@ -1484,7 +1557,13 @@ export function parseTimelineJSON(raw: string): unknown {
         if (raw[index++] !== ":") fail("body", "invalid_json");
         visit(
           depth + 1,
-          key === "current_stage_event_id" || key === "work_key",
+          [
+            "current_stage_event_id",
+            "work_key",
+            "closed_at",
+            "autoarchive_at",
+            "archive_origin",
+          ].includes(key),
         );
         space();
         const end = raw[index++];
@@ -1555,24 +1634,32 @@ export function parseTimelineIndexEntry(value: unknown): TimelineIndexEntry {
     fail("body", "object_required");
   if ((value as ObjectValue).mode !== "timeline_api")
     fail("mode", "unsupported_mode");
-  const entry = object(value, [
-    "mode",
-    "viewer_session_id",
-    "project_key",
-    "project_name",
-    "source",
-    "version",
-    "title",
-    "summary",
-    "state",
-    "archived",
-    "pinned",
-    "created_at",
-    "updated_at",
-    "validation_count",
-    "tickets",
-    "current_stage_event_id",
-  ]);
+  const entry = object(
+    value,
+    [
+      "mode",
+      "viewer_session_id",
+      "project_key",
+      "project_name",
+      "source",
+      "version",
+      "title",
+      "summary",
+      "state",
+      "archived",
+      "pinned",
+      "created_at",
+      "updated_at",
+      "last_activity_at",
+      "closed_at",
+      "autoarchive_at",
+      "archive_origin",
+      "validation_count",
+      "tickets",
+      "current_stage_event_id",
+    ],
+    ["host_activity_at"],
+  );
   // The order matches the Go validator, so an entry with several faults
   // reports the same first code in both languages.
   if (

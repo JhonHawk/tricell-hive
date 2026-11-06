@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -14,6 +15,7 @@ import (
 
 	"tricell-hive/integrations/target"
 	"tricell-hive/tooling/management"
+	"tricell-hive/tooling/version"
 )
 
 // Tests of the Update view (T9). They drive the full application and compare
@@ -506,4 +508,108 @@ func TestInputViewMarksEachCutOnlyWhereTextExists(t *testing.T) {
 			t.Fatalf("a short value shows an ellipsis: %q", plain)
 		}
 	})
+}
+
+// The release view uses the existing terminal layout at both supported widths.
+// These captures exercise rendered states without any real release download.
+func TestUpdateViewReleaseStates(t *testing.T) {
+	previous := version.Current
+	version.Current = "1.0.0"
+	t.Cleanup(func() { version.Current = previous })
+	home, state := newHostsTestHome(t)
+	cfg := appConfig{Options: management.Options{Home: home, StateDir: state}}
+	t.Run("backward focus order", func(t *testing.T) {
+		v := newUpdateView(cfg)
+		v.Resize(80, 20)
+		th := newAppTheme(false, true)
+		ctx := viewCtx{Theme: &th, Width: 80, Height: 20}
+		v.onKey(keyMsg(t, "left")) // Release mode to Source, with Mode focused.
+		v.onKey(keyMsg(t, "tab"))
+		for _, field := range []string{"Mode", "Revision", "Source"} {
+			v.onKey(keyMsg(t, "shift+tab"))
+			if screen := stripANSI(v.View(ctx)); !strings.Contains(screen, "> "+field) {
+				t.Fatalf("backward navigation should focus %s:\n%s", field, screen)
+			}
+		}
+		v.onKey(keyMsg(t, "up"))
+		v.onKey(keyMsg(t, "right"))
+		for _, field := range []string{"Version", "Mode"} {
+			v.onKey(keyMsg(t, "shift+tab"))
+			if screen := stripANSI(v.View(ctx)); !strings.Contains(screen, "> "+field) {
+				t.Fatalf("release backward navigation should focus %s:\n%s", field, screen)
+			}
+		}
+	})
+	for _, width := range []int{80, 40} {
+		t.Run(fmt.Sprint(width), func(t *testing.T) {
+			v := newUpdateView(cfg)
+			v.Resize(width, 20)
+			th := newAppTheme(false, true)
+			c := viewCtx{Theme: &th, Width: width, Height: 20, Spinner: "/"}
+			check := func(state string, contains ...string) {
+				t.Helper()
+				screen := v.View(c)
+				for _, value := range contains {
+					if !strings.Contains(screen, value) {
+						t.Fatalf("%s lacks %q:\n%s", state, value, screen)
+					}
+				}
+				for _, line := range strings.Split(screen, "\n") {
+					if lipgloss.Width(line) > width {
+						t.Fatalf("%s exceeds width: %q", state, line)
+					}
+				}
+				t.Logf("%s %dx24:\n%s", state, width, screen)
+			}
+			check("release", "Mode", "Release", "Version", "latest stable", "Current: 1.0.0")
+			cmd := v.resolve()
+			check("preparing", "Checking release")
+			msg := cmd().(updatePlannedMsg)
+			v.onPlanned(msg)
+			check("no hosts", "run hive install first")
+			v.onKey(keyMsg(t, "left"))
+			check("source", "Mode", "Source", "Revision", "HEAD")
+			v.onKey(keyMsg(t, "right"))
+			check("release retry", "Release", "Version")
+		})
+	}
+}
+
+func TestUpdateViewReleaseNetworkRetryAndCancel(t *testing.T) {
+	previousVersion, previousTransport := version.Current, http.DefaultTransport
+	t.Cleanup(func() { version.Current = previousVersion; http.DefaultTransport = previousTransport })
+	version.Current = "1.0.0"
+	e := newUpdateEnv(t)
+	writeUpdateCatalog(t, e.repo, skillBody("Installed.\n"))
+	installDirect(t, e.home, e.stateDir, e.repo, []string{"codex"})
+	requests := 0
+	http.DefaultTransport = updateHTTPBoundary(func(*http.Request) (*http.Response, error) { requests++; return nil, fmt.Errorf("network unavailable") })
+	v := newUpdateView(appConfig{Options: management.Options{Scope: "user", Home: e.home, StateDir: e.stateDir}})
+	for range 2 {
+		cmd := v.resolve()
+		v.onPlanned(cmd().(updatePlannedMsg))
+		if !strings.Contains(v.message, "network unavailable") || v.planning != "" {
+			t.Fatalf("network failure has no retry: %s", v.message)
+		}
+	}
+	if requests != 2 {
+		t.Fatalf("retry requests: %d", requests)
+	}
+	http.DefaultTransport = updateHTTPBoundary(func(r *http.Request) (*http.Response, error) { <-r.Context().Done(); return nil, r.Context().Err() })
+	cmd := v.resolve()
+	_, act := v.onKey(keyMsg(t, "esc"))
+	if act.nav != navNone {
+		t.Fatal("cancel left view before disposal")
+	}
+	v.onPlanned(cmd().(updatePlannedMsg))
+	if v.message != "Cancelled. No changes applied." || v.cancelPreparation != nil {
+		t.Fatalf("cancel: %s", v.message)
+	}
+	store, err := management.ReleasePackageStore(e.home)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = os.Stat(store); !os.IsNotExist(err) {
+		t.Fatalf("failed preparation wrote package storage: %v", err)
+	}
 }

@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { AccessClient, takeCode, validateIndex } from "../api";
 
-const response = (data: unknown) => new Response(JSON.stringify(data));
+const response = (data: unknown) =>
+  new Response(JSON.stringify(data), {
+    headers: { "X-Hive-Timeline-Revision": "3" },
+  });
 test("opening code is removed synchronously and exchange is reused with unavailable storage", async () => {
   const location = {
     hash: "#code=one-use&token=ignored",
@@ -61,4 +64,28 @@ test("the index validator accepts only protocol 3 with manual retention", () => 
     { ...valid, ttl_seconds: 86400 },
   ])
     assert.throws(() => validateIndex(value as never));
+});
+
+test("direct writes require server revision acknowledgment and preserve the request", async () => {
+  const methods: string[] = [];
+  const access = new AccessClient(async (_path, options) => {
+    methods.push(options?.method ?? "GET");
+    return new Response("{}");
+  });
+  const body = {
+    schema_version: 3,
+    operation_id: "original-operation",
+    expected_version: 1,
+  };
+  const before = JSON.stringify(body);
+  await assert.rejects(
+    access.request("/api/timeline/sessions/example", "PATCH", body),
+    (error: unknown) =>
+      typeof error === "object" &&
+      error !== null &&
+      "details" in error &&
+      (error.details as { code: string }).code === "reload_required",
+  );
+  assert.deepEqual(methods, ["GET"]);
+  assert.equal(JSON.stringify(body), before);
 });

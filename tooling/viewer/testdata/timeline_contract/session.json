@@ -148,7 +148,7 @@
           "image_refs": [
             {
               "artifact_id": "artifact_profile",
-              "caption": "1280px \u00b7 light"
+              "caption": "1280px · light"
             }
           ],
           "view_id": "view_profile"
@@ -179,7 +179,7 @@
           "image_refs": [
             {
               "artifact_id": "artifact_chat",
-              "caption": "390px \u00b7 dark",
+              "caption": "390px · dark",
               "alt": "Chat search with compact filter"
             }
           ],
@@ -246,7 +246,7 @@
           "image_refs": [
             {
               "artifact_id": "artifact_chat_refined",
-              "caption": "390px \u00b7 dark \u00b7 refined"
+              "caption": "390px · dark · refined"
             }
           ],
           "view_id": "view_chat",
@@ -430,5 +430,9 @@
       "base": "development"
     }
   ],
-  "work_key": null
+  "work_key": null,
+  "last_activity_at": "2026-10-31T18:20:00-06:00",
+  "closed_at": null,
+  "autoarchive_at": null,
+  "archive_origin": null
 }

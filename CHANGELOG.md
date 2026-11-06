@@ -10,6 +10,277 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-05
+
+### Fixed
+
+- Evidence publication respects its explicitly requested stage and preserves
+  immutable capture metadata by rejecting contradictory viewport/theme labels
+  when identical image bytes are reused.
+
+### Migration
+
+- Users of 0.8.0 and earlier must run the new installer once. It registers
+  `~/.local/bin/hive` without editing PATH or overwriting an unowned command.
+  Update old aliases or invoke that path directly. Afterwards `hive update`
+  updates the binary and registered integrations together. Start new host
+  sessions after updating; a running viewer is not restarted automatically.
+
+### Added
+
+- Release installations can migrate once with the updated installer
+  and then use `hive update` to update the manager and registered integrations
+  together. `--version` selects an exact compatible version, `--dry-run` leaves
+  no persistent package, and `--out` saves a plan for offline application.
+  Packages and a stable `~/.local/bin/hive` command support recovery across the
+  core commit boundary; source updates remain explicit and do not replace the
+  manager. Available in compatible 0.9.0-or-newer packages.
+
+- Close now merges a change folder's deltas into the specs with a script,
+  `flow-close/scripts/apply_deltas.py`, instead of by hand. It previews each
+  operation and the archive target by default and writes only with `--apply`,
+  which also marks the proposal completed and moves the folder to the archive.
+  It refuses, writing nothing, a MODIFIED requirement the spec lacks, an ADDED
+  one already present with other text, a requirement listed twice, and an
+  existing archive target; a scenario a change drops is listed in the report,
+  not blocked. Replaying two real archived changes reproduced their specs
+  exactly.
+
+- A change folder is now checked for coherence. `flow-plan` ships
+  `scripts/check_change.py`, which reports acceptance criteria no task closes,
+  `Closes:` lines naming criteria that do not exist, mentions of a decision or
+  criterion that a `Replaces:` or `Retired:` marker superseded, and, with
+  `--archive`, unchecked task boxes. The plan runs it before its review, a new
+  «Revise a plan in progress» procedure updates every place a revision touches
+  and has the plan reviewer look once more when a criterion or the delta
+  changed, Build ticks each finished task's boxes, and Close runs the check
+  before archiving, asking before it archives a folder with unchecked boxes
+  (an unattended close leaves it pending). An audit of the archive found 5 of 14
+  changes revised mid-work with a stale proposal, design or tasks, and 9 of 134
+  archived changes with unchecked boxes.
+
+- A `hive-ui-criteria` skill gives design, build and review work criteria for
+  screens that never override the project's own design system. It detects the
+  component library, its installed version (from the lockfile, not the manifest
+  range) and its customization layer in any project, and keeps them in a
+  `DESIGN.md` at the root of the app that owns the UI. The plan loads it in its
+  UI decisions and, when the file is missing or out of date, adds a task that
+  writes or refreshes it; outside a plan it is written only when you ask. The
+  UX review reads the file and reports as defects, when the change introduced
+  them, the checks the skill marks as measured: accessibility minimums, the
+  states of searches and lists, button and error texts, and extreme cases. An
+  unmodified library default that fails one of them goes to the defects that
+  were already there, with its priority when the project declares an
+  accessibility requirement; a decision recorded in the file is not a
+  deviation, but never excuses an accessibility minimum in what the change
+  builds. When the mobile viewport applies or the project declares an
+  accessibility requirement, the review also loads the changed regions at a
+  320 px width to check reflow. The methodology is inspired by Impeccable
+  (Paul Bakaus, Apache-2.0) and the file follows the Google Labs DESIGN.md
+  format.
+
+- The viewer takes fewer publication commands per session. The agent declares
+  each stage change once with `hive view work sync` (state, reason and task
+  states in one call; a build without a plan takes `open`, `sync`, `evidence`,
+  `close`), passes no host or session identity because the binary resolves it,
+  and gets `queued` instead of a failure while the viewer is stopped; the next
+  command or hook run sends the queue in order. A user-scope install registers a
+  silent `hive hook` in each host (Claude Code `settings.json`, Codex
+  `hooks.json`, Cursor `hooks.json`, a second Grok hook file, an OpenCode event
+  plugin and a Pi extension) that reports session start, activity, end and, in
+  Claude Code and OpenCode, the native task list to a new `POST /api/host-events`
+  endpoint, shown as from the host, with the work's last host activity. Hive
+  edits the shared JSON files entry by entry with a backup and writes no Codex
+  trust: approve the hook in `/hooks`. Timeline revision 3 needs the CLI, viewer
+  and server updated together and the viewer reloaded. Every user-scope install
+  now needs a built `hive` binary, not `go run`. Cursor's hooks are verified
+  only in the installed code.
+
+- Every action the viewer's browser offers has a command: `hive view work
+  rename`, `archive`, `restore`, `pin`, `unpin`, `recover` (reassign the lead to
+  a pending join request, with a reason) and `delete` (with `--confirm` set to
+  the work ID). They act as the local viewer with a declared `origin: cli`, kept
+  in the action's audit, check the viewer's `local_actions_cli` capability before
+  sending, and an agent runs them only when the user asks for that action on a
+  named work; deleting is asked every time.
+
+- A repository can declare trackers besides its main `Tracker` in the optional
+  `## Hive` key `Other trackers`, such as
+  `Jira · example.atlassian.net · keys XYZ`, and give each one its own
+  `Completion` value with its key prefix, such as
+  `XYZ: QA on qa · Done on production`. The flows read and search every declared
+  tracker, move and comment each ticket in the tracker its key belongs to, and
+  create new tickets only in the main one. `hive doctor`, `hive project set` and
+  the Project view validate both keys and only warn.
+- `harness-audit` moves a tracker named outside `## Hive` into `Other trackers`,
+  and asks the user about a rule that requires confirming writes to a declared
+  tracker.
+
+- `flow-close` takes an inventory of the support material its work left, such
+  as research records, working files, evidence or an abandoned change folder,
+  proposes an action for each item (commit, archive, promote a conclusion into
+  `docs/`, delete or keep) after the completion report, before archiving and
+  cleanup, applying nothing before the answer. Committed items
+  go with the archived change record, or in a support-only commit on a new
+  branch, delivered the way the work was; kept items in a worktree move to the
+  main checkout before it is removed; paused and held work only list them.
+- What a work item leaves open on purpose, such as a post-merge task of its
+  plan or a later phase, is commented on its ticket and kept in one
+  `pending/<change-id>` persistent-memory record titled `Pending:`;
+  `flow-status` lists those records, marking those ready to resume, along with change
+  folders not committed under `Specs`, and each close soft-deletes a record
+  left with nothing open.
+- Research that ends with the route to Plan or Build, or continues into Build,
+  states the estimated scope in one line: about how many files and which areas,
+  and the stages and checks the work will pass through, so the user can narrow
+  it before choosing. The plan summary recounts the files and areas and says
+  what changed since research when the count moved by more than a quarter.
+
+### Changed
+
+- The UX reviewer works in one pass. Its brief gives how to reach each state
+  it must check (loading, empty, error, the longest values) or says which
+  cannot be reached; a state it cannot reach is listed as not covered, and
+  Verify checks it itself or reports it as not verified. Its verdict judges
+  only the defects the change introduced, with the defects already there in a
+  separate list. A fix to one of its findings is reread by a follow-up to the
+  same reviewer, limited to what changed and the layouts that contain it,
+  never by a new full UX review; that reread still runs the accessibility
+  audit and the measured checks, with the longest values. A deployment walk's
+  UX reviewer gets the same brief, with the environment's URLs in place of
+  captures.
+- An archived change folder is named `YYYY-MM-DD-HHMM-<change-id>` with the UTC
+  date and time of the archive, so `TestSpecDeltasApplied` requires the later
+  of two changes archived the same day. It accepts either delta only when
+  their order is unknown: same day with a folder without a time or the same
+  time, or an older name without a time and a timed one a day apart. The two
+  archives that both modify «Local viewer management actor» carry their UTC
+  times (`2026-11-04-2003-…` and `2026-11-05-0203-…`); other archives keep
+  their names. A requirement one archived delta lists twice is reported while
+  that folder holds the latest delta of it.
+- A list point that cites an ID opens with it in bold, followed by a dash and
+  what it is in plain words, such as `- **D2** — Move the plan summary to the
+  top`, so the reader finds it by its ID; the change folder's decision lines
+  follow the same form.
+- A decision round's visible text writes out each decision's title line and
+  option lines; context in prose without them no longer counts.
+- A decision round asked only in the text, or only through a question tool
+  that returns at once, counts as the failure, except where the text is the
+  allowed fallback.
+- A reviewer's brief never carries a list of facts or conclusions the reviewer
+  should not re-check.
+- `hive view work tasks register` and `task update --json` name the JSON path
+  and the rule that failed, without values, instead of only "invalid semantic
+  JSON", and the work contract states that task keys start at `T1` and that a
+  segment's `order` is unique per stage across all tasks.
+- After a compaction, a hook that asks to save a session summary is skipped
+  even when it marks that save critical or orders it first, and the checkpoint
+  is read before any memory call.
+- Finished viewer works leave the default list automatically after two hours,
+  while pinning and restore keep them visible and content remains under manual
+  retention. The sidebar orders works by last substantive activity. Timeline
+  revision 2 coordinates the CLI, viewer and server while preserving stored work.
+
+- A change folder is committed with the code it plans: on the work's branch
+  before the push, moved into the worktree when there is one, or in a
+  separate specs repository at the completion point, a `ready` stop
+  included. It no longer stays untracked until `flow-close` archives it.
+- Every flow delegates by one criterion, kept in
+  `flow-build/references/delegation.md`: the reviews Hive launches always
+  run in a child, briefed with the artifact, the requirements and check
+  outputs but never the producer's reasoning; other work goes to a child
+  only when it is large (more than five large reads, or in a build more than
+  three edited files). Read-only children run side by side; children that
+  write do so only against a frozen typed contract with an integration check
+  after. `global.md` defines a large read and one list of risky changes
+  (#311).
+- `hive-review-plan` reviews every plan with a change folder, and the UX
+  reviewer also covers how the changed regions affect the layouts and
+  components around them (#311).
+- After a deployment, the served-build check runs in the main thread unless
+  it is large (#311).
+- A card that closed after a timeout still counts as a waiting question tool,
+  so the next round goes through a card again instead of only in text (#311).
+- A maintainer viewer restart reports that open viewer tabs lost access, since
+  the restart issues a new token, and offers the reply *open the viewer*,
+  which runs `hive view open`.
+- The offer to open the viewer never goes as a question of its own: it joins
+  the round its stop already asks, or a reply line of the message's waiting
+  line or next-step block, with no decision ID or question card of its own
+  (#311).
+- Build hands its check evidence to Verify, which reuses passing results only
+  while the inputs they cover remain unchanged and reruns missing or invalidated
+  checks. The real-path walk and required independent verification remain.
+  Code findings use an available, authorized local reproduction or conclusive
+  source evidence, including when adjudicating a native review's output.
+- Every request to do work now enters `flow-research`, which settles what the
+  user needs before any how: it reads before asking, asks one open question
+  per message in the text, checks a complete request for blockers and does it
+  or continues into `flow-build` in the same turn, and sends to `flow-plan`
+  only when the how has a decision for the user or the work cannot be finished
+  from the request and the `git diff`. An analysis ends at its findings with
+  no flow recommended. `flow-research` no longer publishes to the viewer,
+  which starts its session at plan or build with a one-paragraph summary;
+  `flow-plan` presents two or three approaches before the tasks; and after
+  integration `flow-close` moves the ticket, reports and ends with a footer
+  recommending to close plus replies from the context, running the archive and
+  cleanup on the user's reply, when other work starts or when the session ends.
+  A polite request phrased as a question that names the action and its target,
+  such as "can you add this user to the repository?", counts as a request for
+  that change; "can we…?" and "how would we…?" stay questions (#311).
+- Archiving a viewer work shows a temporary toast naming that work with Undo,
+  replacing the persistent banner that could appear above another active work.
+- `flow-close` never stops the viewer service or closes the viewer the user
+  has open: closing a work's viewer session changes only its record. No agent
+  quits, restarts or kills a program other sessions or projects may use, such
+  as Docker Desktop or a local database server, even when it hangs: it reports
+  a blocker for the user to restart it. Starting or stopping a container the
+  task did not start needs the user's confirmation, and the processes a task
+  started are stopped by their process ID, never by a name or pattern that can
+  match another session's processes.
+- `flow-research` writes the aspects of a question, their sources and which go
+  to a child in its message before the first read, counts its first reads
+  toward the delegation limit, delegates each aspect that needs more than five
+  large reads (a whole document or more than 100 lines; filtered queries stay
+  in the main thread), does not reread what a child covers, and hands over the
+  rest of an aspect when its sixth large read in the main thread still has no
+  answer (#311).
+- Viewer navigation groups registered source roots with the same explicit
+  `.engram/config.json` project name, keeping each work's original source visible
+  and its identity, history and collaboration permissions unchanged. Configured
+  non-Git workspaces can be registered directly.
+- GitHub now enforces that `master` receives changes only by promotion from
+  `development`: a ruleset blocks direct pushes, force pushes and deletion, and
+  requires the `source-branch` check, which fails for a pull request from any
+  other branch. Only the repository admin can bypass it, by merging a pull
+  request.
+- Close and hygiene clean up more than the work's own branch. In each
+  repository the work touched, its specs repository included, they also remove
+  the earlier branches you authored that are already merged, with their clean
+  worktrees, and keep with a reason any branch with unmerged commits or used
+  by another checkout, any worktree with uncommitted, untracked or ignored
+  files or a running process, and any work still in progress or whose close
+  has been pending for less than 24 hours; an older pending close is resumed. They never switch a
+  checkout's branch. The global guidance authorizes this deletion.
+- A pause outside `hold` commits the plan's change folder: pushed to the base
+  of a specs repository that declares `Delivery: direct-base`, or on the work's
+  branch when the specs live in its repository. Otherwise the folder stays
+  pending, and the report recommends declaring `direct-base`. A `direct-base`
+  specs repository is edited in its main checkout, with no branch or worktree.
+- A promotion that has not been made keeps no branch, worktree, process or
+  support material, and is not pending work. When the ticket or your request
+  asks for the change in a named environment, the plan adds that promotion as a
+  task; only your own request authorizes that deploy, and Deploy keeps its own
+  questions.
+
+### Fixed
+
+- The viewer is offered before you decide, not after. When a UI validation or
+  a build's first view asks through a question card, "Open the viewer" is an
+  option of that stop's own question, never first and never recommended;
+  choosing it opens the viewer and asks the same question again with the same
+  ID. A plan's approval stop keeps its reply line.
+
 ## [0.8.0] - 2026-11-03
 
 ### Added

@@ -25,6 +25,7 @@ func TestTimelineHTTPMultipartReadbackAndScope(t *testing.T) {
 		r.Header.Set(tokenHeader, strings.Repeat("z", 32))
 		r.Header.Set("Origin", "http://127.0.0.1:4483")
 		r.Header.Set("X-Hive-Action-Scope", "session")
+		r.Header.Set("X-Hive-Timeline-Revision", "3")
 		if ct != "" {
 			r.Header.Set("Content-Type", ct)
 		}
@@ -99,6 +100,7 @@ func TestTimelineHTTPMultipartReadbackAndScope(t *testing.T) {
 	r = httptest.NewRequest("POST", "http://127.0.0.1:4483/api/timeline/sessions", strings.NewReader("{}"))
 	r.Header.Set(tokenHeader, strings.Repeat("z", 32))
 	r.Header.Set("Origin", "https://foreign.example")
+	r.Header.Set("X-Hive-Timeline-Revision", "3")
 	out = httptest.NewRecorder()
 	server.ServeHTTP(out, r)
 	if out.Code != 403 {
@@ -136,6 +138,7 @@ func TestTimelineHTTPRejectsOversizedAndDuplicateMultipart(t *testing.T) {
 			r.Header.Set(tokenHeader, strings.Repeat("z", 32))
 			r.Header.Set("Origin", "http://127.0.0.1:4483")
 			r.Header.Set("X-Hive-Action-Scope", "session")
+			r.Header.Set("X-Hive-Timeline-Revision", "3")
 			w := httptest.NewRecorder()
 			server.ServeHTTP(w, r)
 			if w.Code < 400 {
@@ -148,3 +151,26 @@ func TestTimelineHTTPRejectsOversizedAndDuplicateMultipart(t *testing.T) {
 type zeroReader struct{}
 
 func (*zeroReader) Read(p []byte) (int, error) { clear(p); return len(p), nil }
+
+func TestTimelineHTTPRevisionMismatchPreservesStore(t *testing.T) {
+	store, request := newTimelineFixture(t)
+	server, err := NewServer(ServerOptions{Store: store, Port: 4483, Token: strings.Repeat("z", 32)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := json.Marshal(request)
+	for _, revision := range []string{"", "1", "02", "2"} {
+		r := httptest.NewRequest("POST", "http://127.0.0.1:4483/api/timeline/sessions", bytes.NewReader(raw))
+		r.Header.Set(tokenHeader, strings.Repeat("z", 32))
+		r.Header.Set("Origin", "http://127.0.0.1:4483")
+		r.Header.Set("X-Hive-Action-Scope", "session")
+		r.Header.Set("X-Hive-Timeline-Revision", "3")
+		r.Header.Set("Content-Type", "application/json")
+		r.Header.Set("X-Hive-Timeline-Revision", revision)
+		w := httptest.NewRecorder()
+		server.ServeHTTP(w, r)
+		if w.Code != 409 || !strings.Contains(w.Body.String(), "reload_required") || len(store.TimelineIndex()) != 0 {
+			t.Fatalf("revision %q: status %d body %s, records %d", revision, w.Code, w.Body.String(), len(store.TimelineIndex()))
+		}
+	}
+}

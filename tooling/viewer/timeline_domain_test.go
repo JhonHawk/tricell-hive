@@ -10,6 +10,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 )
 
 func TestTimelineDomainJoinRequestDoesNotGrantAuthority(t *testing.T) {
@@ -204,6 +205,8 @@ func TestTimelineDomainRecoveryConcurrencyAndProvenance(t *testing.T) {
 
 func TestTimelineDomainCIApplicableAttemptAndTaskSnapshots(t *testing.T) {
 	s, v, _ := newV3Fixture(t)
+	now, _ := time.Parse(time.RFC3339Nano, v.CreatedAt)
+	s.now = func() time.Time { return now }
 	id := v.ViewerSessionID
 	candidateID := domainCandidate(t, s, id, "abc")
 	deliveryID := domainDelivery(t, s, id)
@@ -249,8 +252,22 @@ func TestTimelineDomainCIApplicableAttemptAndTaskSnapshots(t *testing.T) {
 	if w.State != "succeeded" {
 		t.Fatal(w.State)
 	}
+	activity := current.LastActivityAt
+	now = now.Add(time.Hour)
+	observe("duplicate-first-success", first.AttemptID, "one", "succeeded")
+	if got := domainCurrent(t, s, id); got.LastActivityAt != activity {
+		t.Error("identical CI observation advanced activity")
+	}
+	now = now.Add(time.Hour)
 	second := attempt("attempt-two", "two")
+	if got := domainCurrent(t, s, id); got.LastActivityAt != now.Format(time.RFC3339Nano) {
+		t.Fatal("new CI attempt did not advance activity")
+	}
+	now = now.Add(time.Hour)
 	observe("second-waiting", second.AttemptID, "two", "waiting")
+	if got := domainCurrent(t, s, id); got.LastActivityAt != now.Format(time.RFC3339Nano) {
+		t.Fatal("new CI observation did not advance activity")
+	}
 	observe("late-first-success", first.AttemptID, "one", "succeeded")
 	current = domainCurrent(t, s, id)
 	w, _ = timelineFindWait(current, waitID)
@@ -334,6 +351,7 @@ func TestTimelineDomainHTTPGuardsAndClosedOperationDispatch(t *testing.T) {
 		r.Header.Set(tokenHeader, token)
 		r.Header.Set("Origin", origin)
 		r.Header.Set("X-Hive-Action-Scope", scope)
+		r.Header.Set("X-Hive-Timeline-Revision", "3")
 		w := httptest.NewRecorder()
 		server.ServeHTTP(w, r)
 		return w
@@ -492,6 +510,8 @@ func TestTimelineDomainTaskReentryPreservesHistoricalEvidenceAndDocuments(t *tes
 
 func TestTimelineDomainTaskBlockResolutionAndNoop(t *testing.T) {
 	s, v, _ := newV3Fixture(t)
+	now, _ := time.Parse(time.RFC3339Nano, v.CreatedAt)
+	s.now = func() time.Time { return now }
 	id := v.ViewerSessionID
 	stage := domainStage(t, s, id, "verify")
 	task := domainTask(t, s, id)
@@ -520,6 +540,8 @@ func TestTimelineDomainTaskBlockResolutionAndNoop(t *testing.T) {
 	if last.Audit == nil || last.Audit.Block == nil || last.Audit.Block.Steps[0] != block.Steps[0] || last.Audit.Resolution != request.Resolution {
 		t.Fatal("resolution lost unblock history")
 	}
+	activity := current.LastActivityAt
+	now = now.Add(time.Hour)
 	eventCount := len(current.Events)
 	request.TimelineNativeOperation = domainBase(t, s, id, "noop-state", v.ForegroundProducerID)
 	request.ExpectedTaskVersion = resolved.TaskVersion
@@ -532,14 +554,30 @@ func TestTimelineDomainTaskBlockResolutionAndNoop(t *testing.T) {
 	if len(current.Events) != eventCount {
 		t.Fatal("no-op manufactured transition")
 	}
+	if current.LastActivityAt != activity {
+		t.Error("unchanged task state advanced activity")
+	}
 	currentTask, _ := timelineFindTask(current, task.TaskID)
 	sameOrder := currentTask.Segments[0].Order
-	same := TimelineTaskPatchRequest{TimelineNativeOperation: domainBase(t, s, id, "same-assignment", v.ForegroundProducerID), ExpectedTaskVersion: currentTask.TaskVersion, SegmentID: segment, AssignedProducerID: currentTask.Segments[0].AssignedProducerID, Order: &sameOrder}
+	same := TimelineTaskPatchRequest{TimelineNativeOperation: domainBase(t, s, id, "same-assignment", v.ForegroundProducerID), ExpectedTaskVersion: currentTask.TaskVersion, Title: &currentTask.Title, SegmentID: segment, AssignedProducerID: currentTask.Segments[0].AssignedProducerID, Order: &sameOrder}
+	now = now.Add(time.Hour)
 	sameResult, err := s.TimelineV3Operation(id, "task_patch", task.TaskID, &same)
 	if err != nil || sameResult.TaskVersion != currentTask.TaskVersion {
 		t.Fatal("no-op assignment required a new scope decision", err)
 	}
 
+	if got := domainCurrent(t, s, id); got.LastActivityAt != activity {
+		t.Error("unchanged task patch advanced activity")
+	}
+	now = now.Add(time.Hour)
+	title := "Updated work title"
+	changed := TimelineTaskPatchRequest{TimelineNativeOperation: domainBase(t, s, id, "real-task-change", v.ForegroundProducerID), ExpectedTaskVersion: sameResult.TaskVersion, Title: &title}
+	if _, err = s.TimelineV3Operation(id, "task_patch", task.TaskID, &changed); err != nil {
+		t.Fatal(err)
+	}
+	if got := domainCurrent(t, s, id); got.LastActivityAt != now.Format(time.RFC3339Nano) {
+		t.Fatal("real task content change did not advance activity")
+	}
 }
 
 func TestTimelineDomainTransferConcurrentWinnersAndChangedRetry(t *testing.T) {
