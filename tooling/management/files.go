@@ -201,13 +201,24 @@ func readState(dir string) (State, string, error) {
 	return state, hash(s.Data), nil
 }
 func lock(dir string) (func(), error) {
+	unlock, err := updateLocks(dir)
+	if err != nil {
+		return nil, err
+	}
+	if err = checkUpdatePending(dir); err != nil {
+		unlock()
+		return nil, err
+	}
+	return unlock, nil
+}
+func lockNamed(dir, name string) (func(), error) {
 	if err := target.Safe(dir); err != nil {
 		return nil, err
 	}
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return nil, err
 	}
-	path := filepath.Join(dir, "lock")
+	path := filepath.Join(dir, name)
 	if err := target.Safe(path); err != nil {
 		return nil, err
 	}

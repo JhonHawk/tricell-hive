@@ -78,6 +78,9 @@ func (e Engine) fail(stage string) error {
 // it exactly once; the nested core transaction Onboard starts trusts this
 // result instead of repeating the checks (see Engine.nested).
 func preflight(p Plan) (State, func(), error) {
+	if err := checkUpdatePending(p.StateDir); err != nil {
+		return State{}, nil, err
+	}
 	if err := checkOnboarding(p.StateDir); err != nil {
 		return State{}, nil, err
 	}
@@ -225,7 +228,7 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 		}
 	}
 	j := journal{Version: stateVersion, Phase: "prepared", Plan: p, BeforeState: beforeState}
-	changed := state.Version != stateVersion || p.Migration != nil || len(p.Legacy) > 0
+	changed := p.PackageInstall || p.ReleaseUpdate || state.Version != stateVersion || p.Migration != nil || len(p.Legacy) > 0
 	j.Entries, err = prepareEntries(p, state)
 	if err != nil {
 		return journal{}, State{}, nil, false, err
@@ -467,6 +470,14 @@ func (e Engine) commitTransaction(p Plan, j *journal, state State, next *State, 
 	if err := saveJournal(jp, *j); err != nil {
 		return err
 	}
+	if finalUserRemoval(p, *next) {
+		if err := e.fail("command-remove-pending"); err != nil {
+			return err
+		}
+		if err := removeManagedCommandWithFail(p.StateDir, e.fail); err != nil {
+			return err
+		}
+	}
 	return os.Remove(pp)
 }
 
@@ -580,6 +591,11 @@ func pruneJournals(stateDir, own string) string {
 		protected[ob.CoreID] = true
 	} else if !os.IsNotExist(err) {
 		return fmt.Sprintf("warning: pruning transaction journals skipped: %v", err)
+	}
+	if up, err := PendingUpdate(stateDir); err != nil {
+		return fmt.Sprintf("warning: pruning skipped: %v", err)
+	} else if up != nil {
+		protected[up.Plan.CoreTransactionID] = true
 	}
 	dir := filepath.Join(stateDir, "transactions")
 	entries, err := os.ReadDir(dir)
@@ -705,6 +721,9 @@ func recordSourceCommit(p Plan) string {
 	return ""
 }
 func (e Engine) Apply(p Plan) (string, error) {
+	if (p.ReleaseUpdate || p.PackageInstall) && !e.nested {
+		return "", fmt.Errorf("release update core requires its parent coordinator")
+	}
 	state := e.presetState
 	if !e.nested {
 		var (
@@ -811,6 +830,17 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	removeOrphanWrites(dir, j)
 	// Rollback restores Hive's own bytes from the journal.
 	if j.Phase == "committed" || j.Phase == "recovered" {
+		if j.Phase == "committed" && j.Plan.Action == "remove" {
+			var after State
+			if err := json.Unmarshal(j.AfterState.Data, &after); err != nil {
+				return "", err
+			}
+			if finalUserRemoval(j.Plan, after) {
+				if err := removeManagedCommandWithFail(dir, e.fail); err != nil {
+					return "", err
+				}
+			}
+		}
 		return j.Phase, os.Remove(pp)
 	}
 	if j.PackageDone || j.PackagePending {

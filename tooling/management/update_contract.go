@@ -30,6 +30,7 @@ type UpdateCommand struct {
 // reserved before the first mutation. Neither a process exit nor this envelope
 // alone proves the child's commit.
 type UpdatePlan struct {
+	Installation      bool                              `json:"installation,omitempty"`
 	ID                string                            `json:"id"`
 	Kind              string                            `json:"kind"`
 	Version           int                               `json:"version"`
@@ -215,9 +216,10 @@ func ReadUpdateJournal(r io.Reader) (UpdateJournal, error) {
 // Action payloads share the fixed envelope and remain opaque to old launchers.
 // Prepare includes the desired final destination even when it does not exist.
 type UpdatePreparePayload struct {
-	Package  distribution.UpdatePackageBinding `json:"package"`
-	Home     string                            `json:"home"`
-	StateDir string                            `json:"state_dir"`
+	NativeHome bool                              `json:"native_home,omitempty"`
+	Package    distribution.UpdatePackageBinding `json:"package"`
+	Home       string                            `json:"home"`
+	StateDir   string                            `json:"state_dir"`
 }
 type UpdateApplyPayload struct {
 	Plan UpdatePlan `json:"plan"`

@@ -12,6 +12,7 @@ import (
 	"sort"
 	"tricell-hive/integrations/agents"
 	"tricell-hive/integrations/target"
+	"tricell-hive/tooling/distribution"
 	"tricell-hive/tooling/legacy"
 )
 
@@ -163,6 +164,11 @@ type Change struct {
 	Gone bool `json:"gone,omitempty"`
 }
 type Plan struct {
+	PackageInstall bool                               `json:"package_install,omitempty"`
+	ReleaseUpdate  bool                               `json:"release_update,omitempty"`
+	UpdatePackage  *distribution.UpdatePackageBinding `json:"update_package,omitempty"`
+	previewUpdate  bool
+
 	Product *ProductIdentity `json:"product,omitempty"`
 	// LegacyInstaller is written only by the retired hive bootstrap; read and
 	// ignored. It stays at this position so old plan IDs still verify.
@@ -318,6 +324,10 @@ type commitLogEntry struct {
 	AppliedAt string `json:"applied_at"`
 }
 type Options struct {
+	packageInstall bool
+	packagePreview bool
+	updatePackage  *distribution.UpdatePackageBinding
+
 	Scope, Home, Root, StateDir, Source, ReleaseID string
 	Hosts                                          []string
 	// CodexWaitFloor asks an install plan to set the wait floor in Codex's

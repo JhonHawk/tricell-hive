@@ -40,7 +40,7 @@ Base: development e2a633e49f9ae59654bd272c574b460696ad3dae. Rama de implementaci
 
 ### T3 — Coordinar core, activación y recuperación
 
-- [ ] Aplicación y recuperación completas preservan el límite de commit y bloquean mutaciones competidoras.
+- [x] Aplicación y recuperación completas preservan el límite de commit y bloquean mutaciones competidoras.
 
 **Closes:** AC1, AC5, AC7, AC8, AC9, AC10, AC13, AC14
 
@@ -151,3 +151,11 @@ Build · T1/T2 verificados; T3/T4/T5 en curso sobre contratos fijados. Base real
 Root worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/release-self-update; explicit tool cwd required. Commits T1 2ed68355, T2 50c80ce9. Root-owned exec sessions34173/56492/69754/51808 finished; no root product process. Agents active: /root/build_t3_coordinator (management core + cli main/release_executor), /root/build_t4_migration (install.go/get-hive + paths and distribution local import/mode fix), /root/build_t5_cli (update.go/TUI/owner tests). Never edit their owned files while active. T4/T3 coordinate exact consented preview freeze and verified prepared-vs-retained package; T5 tests real local go-built executor. T3/T4 full management/CLI suites in flight. H3 mode preservation owner regression green; root E2E green rerun pending source integration. Next: collect child outputs, rerun relevant checks, independent hive-verify-task per completed task; commit named paths only; T6 docs after APIs settle. Final flow-verify with native Codex review, terminal walkthrough/UX review and human validation BEFORE push (D2 A). No public release/promotion/global changes. Viewer work_id059ebc7c344c592434939d3a5e3c91bacb647beea3cb541a67006c554319365a, stage build; plan revision revision-abe5e6e279d81c5febf6d34671ac72ef.
 
 2026-11-05 — H4 confirmado por lectura del root: tui_app.handleKey devolvía tea.Quit para Ctrl-C antes de informar al Update view; appFilter sólo protegía writes, por lo que preparación/confirmación podían abandonar temporales sin cleanup. T5 amplía ownership a tui_app.go/tui_test.go para cubrir Ctrl-C, SIGINT/QuitMsg y confirmación, manteniendo bloqueo durante writes; pruebas de regresión antes del fix. No cambia AC4 ni el alcance del resultado.
+
+2026-11-05 — Helpers T4/importación local y fix H3 en commit853b7c9a. Main E2E TestReleaseUpdateCLI PASS6.977s; H3 cerrado. Main TestLocalRelease PASS.250s, paths/command helper tests PASS.491s, TestInstallPackage PASS.620s. Verificación independiente T4 PASS (CLI1.452s, distribución1.618s, gestión.486s), incluido probe de binario local real sin Go en PATH; instalador pendiente de commit tras T3.
+
+2026-11-05 — Verificador T5: owners PASS29.153s, H4 regresión cancelación confirmada; AC12 pendiente por H5 (SourceID comparado con VCS Revision) y H6 (comandos de recuperación sin shellQuote en rutas macOS). T5 corrige usando identidades compatibles y quoting existente, con regresiones. T3 normal suite PASS99.178s/292.214s; race gestión299.984s PASS pero CLI timeout480s en prueba existente del visor, sin race report. Final suite race pendiente de una ejecución acotada y sin escritores concurrentes.
+
+Recursos adicionales del root: site/node_modules es un symlink propio hacia node_modules ya existente del checkout principal, para ejecutar Astro sin instalar dependencias; preservar el destino y retirar sólo el enlace propio al cierre. Astro check sesión66161 en curso.
+
+2026-11-05 — ✓ T3 verificado (commit de esta tarea). Main matriz de gestión PASS2.281s; verificador independiente race gestión10.976s, routing1.408s, preservación1.144s y CLI4.168s PASS, sin defecto concreto. AC5/7/8/9/10/13/14 del checkpoint cumplen; AC1 integrado se cubre con el owner T6 ampliado (productor PASS8.269s) y se reejecutará en suite final. No se acredita durabilidad ante power-loss físico, sino fsync de implementación y recuperación lógica inyectada.
