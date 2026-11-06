@@ -114,6 +114,7 @@ func TestResolveViewIdentityFromHostVariables(t *testing.T) {
 		{"CLAUDE_CODE_SESSION_ID", "claude-code"},
 		{"PI_SESSION_ID", "pi"},
 		{"OPENCODE_SESSION_ID", "opencode"},
+		{"CODEX_SESSION_ID", "codex"},
 	} {
 		t.Run(tc.host, func(t *testing.T) {
 			withIdentityDeps(t, map[string]string{tc.env: "native-" + tc.host})

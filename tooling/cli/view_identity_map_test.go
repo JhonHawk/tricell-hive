@@ -56,24 +56,91 @@ func withProcessStart(t *testing.T, start func(int) time.Time) {
 	}
 }
 
-func TestResolveViewIdentityRejectsNestedHostThatInheritsTheOuterVariable(t *testing.T) {
+func TestResolveViewIdentityNestedHostNeverUsesTheOuterVariable(t *testing.T) {
 	now := time.Now()
-	// Codex (800) started from Claude Code's shell inherits CLAUDE_CODE_SESSION_ID.
-	// self 1000 -> shell 900 -> codex 800 -> claude's shell 700 -> claude 600
-	for name, setup := range map[string]func(t *testing.T, state string){
-		"nearest map is another host": func(t *testing.T, state string) {
-			writePidMap(t, state, "codex", 800, now.Add(-time.Hour), pidMapSession{ID: "inner", Started: now.Add(-time.Minute)})
-		},
-		"nearest host process is another host": func(t *testing.T, state string) {
-			withProcessNames(t, map[int]string{800: "/usr/local/bin/codex", 600: "claude"})
-		},
+	// Cursor (800) started from Claude Code's shell inherits CLAUDE_CODE_SESSION_ID
+	// and has no variable of its own, so it resolves through its own map.
+	// self 1000 -> shell 900 -> cursor 800 -> claude's shell 700 -> claude 600
+	for _, c := range []struct {
+		name  string
+		setup func(t *testing.T, state string)
+		want  viewIdentity
+		err   error
+	}{
+		{"nearest map is another host", func(t *testing.T, state string) {
+			writePidMap(t, state, "cursor", 800, now.Add(-time.Hour), pidMapSession{ID: "inner", Started: now.Add(-time.Minute)})
+		}, viewIdentity{Host: "cursor", NativeSessionID: "inner"}, nil},
+		{"nearest host process has no map yet", func(t *testing.T, state string) {
+			withProcessNames(t, map[int]string{800: "/usr/local/bin/cursor-agent", 600: "claude"})
+			writePidMap(t, state, "claude-code", 600, now.Add(-time.Hour), pidMapSession{ID: "outer", Started: now.Add(-time.Minute)})
+		}, viewIdentity{}, errViewIdentityMissing},
 	} {
-		t.Run(name, func(t *testing.T) {
+		t.Run(c.name, func(t *testing.T) {
 			state := t.TempDir()
 			withIdentityDeps(t, map[string]string{"CLAUDE_CODE_SESSION_ID": "outer"}, 1000, 900, 800, 700, 600)
-			setup(t, state)
-			if id, err := resolveViewIdentity(viewIdentityDepsFn(), state); !errors.Is(err, errViewIdentityAmbiguous) {
-				t.Fatalf("a nested host must not publish as the outer session, got %+v, %v", id, err)
+			c.setup(t, state)
+			id, err := resolveViewIdentity(viewIdentityDepsFn(), state)
+			if id != c.want || !errors.Is(err, c.err) {
+				t.Fatalf("a nested host must not publish as the outer session: got %+v, %v; want %+v, %v", id, err, c.want, c.err)
+			}
+		})
+	}
+}
+
+func TestResolveViewIdentityCodexThreadUsesItsVariableInASharedDaemon(t *testing.T) {
+	state := t.TempDir()
+	now := time.Now()
+	// The app-server (800) runs two threads; thread-b prompted last, so the map
+	// names it, but this shell belongs to thread-a.
+	withIdentityDeps(t, map[string]string{"CODEX_SESSION_ID": "thread-a"}, 1000, 900, 800)
+	withProcessNames(t, map[int]string{800: "/Users/u/.codex/packages/app-server-daemon/releases/0.167.0/bin/codex"})
+	writePidMap(t, state, "codex", 800, now.Add(-time.Minute), pidMapSession{ID: "thread-b", Started: now.Add(-time.Minute)})
+	id, err := resolveViewIdentity(viewIdentityDepsFn(), state)
+	if err != nil || id.Host != "codex" || id.NativeSessionID != "thread-a" {
+		t.Fatalf("got %+v, %v", id, err)
+	}
+}
+
+func TestResolveViewIdentityNearestHostChoosesAmongVariables(t *testing.T) {
+	now := time.Now()
+	for _, c := range []struct {
+		name  string
+		env   map[string]string
+		names map[int]string
+		args  map[int]string
+		maps  func(t *testing.T, state string)
+		want  viewIdentity
+	}{
+		{"claude started from a codex shell",
+			map[string]string{"CLAUDE_CODE_SESSION_ID": "cc", "CODEX_SESSION_ID": "cx"},
+			map[int]string{800: "claude", 600: "codex"}, nil, nil,
+			viewIdentity{Host: "claude-code", NativeSessionID: "cc"}},
+		{"pi under node started from a claude shell",
+			map[string]string{"PI_SESSION_ID": "pi-1", "CLAUDE_CODE_SESSION_ID": "cc"},
+			map[int]string{800: "node", 600: "claude"}, map[int]string{800: "node /Users/u/.local/lib/pi/dist/bin/pi.js"}, nil,
+			viewIdentity{Host: "pi", NativeSessionID: "pi-1"}},
+		{"grok started from a codex shell",
+			map[string]string{"CODEX_SESSION_ID": "cx"},
+			map[int]string{800: "grok", 600: "codex"}, nil,
+			func(t *testing.T, state string) {
+				writePidMap(t, state, "grok", 800, now.Add(-time.Hour), pidMapSession{ID: "gk", Started: now.Add(-time.Minute)})
+			},
+			viewIdentity{Host: "grok", NativeSessionID: "gk"}},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			state := t.TempDir()
+			// self 1000 -> shell 900 -> inner host 800 -> outer shell 700 -> outer host 600
+			withIdentityDeps(t, c.env, 1000, 900, 800, 700, 600)
+			withProcessNames(t, c.names)
+			oldArgs := hookProcessArgs
+			hookProcessArgs = func(pid int) (string, error) { return c.args[pid], nil }
+			t.Cleanup(func() { hookProcessArgs = oldArgs })
+			if c.maps != nil {
+				c.maps(t, state)
+			}
+			id, err := resolveViewIdentity(viewIdentityDepsFn(), state)
+			if err != nil || id != c.want {
+				t.Fatalf("got %+v, %v; want %+v", id, err, c.want)
 			}
 		})
 	}

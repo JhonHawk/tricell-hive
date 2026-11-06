@@ -8,10 +8,11 @@ package main
 //  1. explicit flags (handled by the caller; this file is never reached);
 //  2. the session variable the host exposes to its agent's shell, only the ones
 //     in host-session-events.md marked usable: CLAUDE_CODE_SESSION_ID,
-//     PI_SESSION_ID and OPENCODE_SESSION_ID, and only when no nearer host
-//     process or session map belongs to another host (a nested host inherits the
-//     outer variable). Codex's CODEX_THREAD_ID and Cursor's
-//     CURSOR_CONVERSATION_ID are unverified and deliberately not read;
+//     PI_SESSION_ID, OPENCODE_SESSION_ID and CODEX_SESSION_ID. A nested host
+//     inherits the outer variable, so the variable of the nearest host process
+//     or session map wins; when that host has none among them, only its own map
+//     applies. Codex's CODEX_THREAD_ID (a subagent's own thread) and Cursor's
+//     CURSOR_CONVERSATION_ID are deliberately not read;
 //  3. the process-to-session map <state>/hooks/sessions/<pid>.json written by
 //     the host's session-start hook (this file only reads it), looked up on the
 //     nearest process ancestor that has one. The format and writer rules are

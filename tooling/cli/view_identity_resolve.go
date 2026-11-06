@@ -65,12 +65,15 @@ func parsePsLstart(s string) (time.Time, error) {
 }
 
 // viewIdentityVariables are the shell variables verified for each host, in a
-// fixed order. Cursor has none: its conversation ID equals the hook's only by
-// inference, so it resolves through the session map.
+// fixed order. Codex's is the root session ID its shell tools receive
+// (codex-rs/core/src/exec_env.rs inject_session_env, observed equal to the
+// hook's session_id on 0.167.0); CODEX_THREAD_ID names a subagent's own thread
+// and is not one. Cursor and Grok have none and resolve through the session map.
 var viewIdentityVariables = []struct{ env, host string }{
 	{"CLAUDE_CODE_SESSION_ID", "claude-code"},
 	{"PI_SESSION_ID", "pi"},
 	{"OPENCODE_SESSION_ID", "opencode"},
+	{"CODEX_SESSION_ID", "codex"},
 }
 
 // viewHostProcessNames maps the base name of a host CLI's process to its
@@ -123,12 +126,8 @@ func resolveViewIdentity(deps viewIdentityDeps, state string) (viewIdentity, err
 			found = append(found, viewIdentity{Host: v.host, NativeSessionID: value})
 		}
 	}
-	if len(found) == 1 {
-		return confirmVariableHost(deps, state, found[0])
-	}
-	if len(found) > 1 {
-		// Nested hosts inherit each other's variables; nothing says which is nearest.
-		return viewIdentity{}, errViewIdentityAmbiguous
+	if len(found) > 0 {
+		return chooseVariable(deps, state, found)
 	}
 	var result viewIdentity
 	var resultErr = errViewIdentityMissing
@@ -150,44 +149,87 @@ func resolveViewIdentity(deps viewIdentityDeps, state string) (viewIdentity, err
 	return result, resultErr
 }
 
-// confirmVariableHost accepts a host variable only when the nearest evidence
-// of a host above this process, a session map or a known host CLI process, is
-// that variable's own host: a host without its own variable, started from
-// another agent's shell, inherits the outer agent's.
-func confirmVariableHost(deps viewIdentityDeps, state string, id viewIdentity) (viewIdentity, error) {
+// chooseVariable picks among the host variables of this shell by the nearest
+// evidence of a host above it, a session map or a host CLI process: hosts
+// started from another agent's shell inherit the outer agent's variable. The
+// nearest host's own variable wins. When that host has none among them, the
+// inherited ones are ignored and only that host's own map, on that process,
+// applies. With no host evidence, a single variable is used and several are
+// ambiguous.
+func chooseVariable(deps viewIdentityDeps, state string, found []viewIdentity) (viewIdentity, error) {
+	host, pid, err := nearestHost(deps, state)
+	if err != nil {
+		return viewIdentity{}, err
+	}
+	if host == "" {
+		if len(found) == 1 {
+			return found[0], nil
+		}
+		return viewIdentity{}, errViewIdentityAmbiguous
+	}
+	for _, id := range found {
+		if id.Host == host {
+			return id, nil
+		}
+	}
+	doc, present, err := loadPidMap(deps, state, pid)
+	if err != nil {
+		return viewIdentity{}, errViewIdentityAmbiguous
+	}
+	if !present {
+		return viewIdentity{}, errViewIdentityMissing
+	}
+	return doc.liveIdentity()
+}
+
+// nearestHost names the host of the nearest ancestor that has a session map or
+// is a host CLI, and that ancestor's pid; "" when no ancestor is either. A map
+// that cannot be trusted, or a process whose map and name disagree, is
+// ambiguous.
+func nearestHost(deps viewIdentityDeps, state string) (string, int, error) {
+	host, at := "", 0
 	verdict := error(nil)
 	err := walkViewAncestors(deps, func(pid int) (bool, error) {
-		decided := false
 		doc, present, err := loadPidMap(deps, state, pid)
 		if err != nil {
 			verdict = errViewIdentityAmbiguous
 			return true, nil
 		}
 		if present {
-			decided = true
-			if doc.Host != id.Host {
+			host, at = doc.Host, pid
+		}
+		if h := hostOfProcess(deps, pid); h != "" {
+			if host != "" && h != host {
 				verdict = errViewIdentityAmbiguous
 			}
+			host, at = h, pid
 		}
-		if deps.processName != nil {
-			if name, err := deps.processName(pid); err == nil {
-				if h := hostOfProcessName(name); h != "" {
-					decided = true
-					if h != id.Host {
-						verdict = errViewIdentityAmbiguous
-					}
-				}
-			}
-		}
-		return decided, nil
+		return host != "", nil
 	})
+	if err == nil {
+		err = verdict
+	}
 	if err != nil {
-		return viewIdentity{}, err
+		return "", 0, err
 	}
-	if verdict != nil {
-		return viewIdentity{}, verdict
+	return host, at, nil
+}
+
+// hostOfProcess is the host CLI a process is, recognized as the map writer
+// recognizes it: by its command name, or by its script under an interpreter.
+func hostOfProcess(deps viewIdentityDeps, pid int) string {
+	if deps.processName == nil {
+		return ""
 	}
-	return id, nil
+	comm, err := deps.processName(pid)
+	if err != nil {
+		return ""
+	}
+	args := ""
+	if base := filepath.Base(strings.TrimSpace(comm)); base == "node" || base == "bun" || base == "deno" {
+		args, _ = hookProcessArgs(pid)
+	}
+	return processHost(comm, args)
 }
 
 type pidMapSessionEntry struct {
