@@ -115,7 +115,7 @@ func TestWorkSyncBuildWithoutPlanInThreeCommands(t *testing.T) {
 		}
 	}
 	// The work is no longer current: a command without --work-id has none to act on.
-	if _, err := s.run("", "close", "--outcome", "completed", "--reason", "Again"); err == nil || !strings.Contains(err.Error(), "required semantic field missing") {
+	if _, err := s.run("", "close", "--outcome", "completed", "--reason", "Again"); err == nil || !strings.Contains(err.Error(), "work-id required: this session has no open work") {
 		t.Fatalf("a closed work stayed current: %v", err)
 	}
 }
@@ -181,6 +181,29 @@ func TestWorkSyncMovesARegisteredTaskByKeyAndState(t *testing.T) {
 	}
 	if after := s.session(open.WorkID); after.Version != before || len(after.Tasks) != 3 {
 		t.Fatalf("the rejected declaration wrote: version %d -> %d, %d tasks", before, after.Version, len(after.Tasks))
+	}
+}
+
+// A sync on a closed work reports the closed work, not the title a task it
+// names lacks, so the agent fixes the real condition first.
+func TestWorkSyncOnAClosedWorkReportsItBeforeAMissingTitle(t *testing.T) {
+	s := newSyncCLI(t)
+	open := decodeSync(t, s.must("", "open", "--project", s.project, "--key", "closed-first", "--title", "Closed first", "--summary", "Error order"))
+	s.must("", "sync", "--stage", "build", "--state", "in_progress", "--reason", "Start", "--close", "completed")
+	_, err := s.run(`[{"key":"T5","state":"in_progress"}]`, "sync", "--work-id", open.WorkID, "--stage", "build", "--state", "in_progress", "--reason", "Late", "--previous-stage", "build", "--tasks", "-")
+	if err == nil || !strings.Contains(err.Error(), "session_closed") {
+		t.Fatalf("got %v, want session_closed", err)
+	}
+}
+
+// show acts on the session's current work when --work-id is omitted, as the
+// publication reference says.
+func TestWorkShowUsesTheCurrentWork(t *testing.T) {
+	s := newSyncCLI(t)
+	open := decodeSync(t, s.must("", "open", "--project", s.project, "--key", "show-current", "--title", "Show current", "--summary", "No work ID"))
+	out := s.must("", "show")
+	if !strings.Contains(out, open.WorkID) {
+		t.Fatalf("show without --work-id: %.200s", out)
 	}
 }
 

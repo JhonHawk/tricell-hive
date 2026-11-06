@@ -162,13 +162,18 @@ func (e *viewWorkEngine) sync(c viewWorkCommand) (viewWorkSyncResult, error) {
 		// The declaration already ended the work: repeating it changes nothing.
 		return e.syncReceipt(c, s, false)
 	}
+	// The conditions every lifecycle operation checks come first, so a closed
+	// work or a pending intent is reported as such and not as a missing title.
+	if _, err := e.lifecycleGate(s, c); err != nil {
+		return viewWorkSyncResult{}, err
+	}
 	// A task sync has to create needs its title. Whether the key is registered
 	// depends on the work when the declaration is sent, so this is a state
 	// rejection, which a queued declaration reports and leaves the queue with,
 	// and it comes before any write.
-	for _, t := range c.SyncTasks {
+	for i, t := range c.SyncTasks {
 		if t.Title == "" && workLifecycleTask(s, t.Key) == nil {
-			return viewWorkSyncResult{}, workStateError("task_title_required")
+			return viewWorkSyncResult{}, viewWorkTaskTitleRequired(fmt.Sprintf("tasks[%d].title", i))
 		}
 	}
 	changed := false

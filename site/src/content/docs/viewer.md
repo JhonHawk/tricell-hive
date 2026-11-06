@@ -57,8 +57,10 @@ The agent never starts the viewer. When it is stopped, `open`, `sync` and
 order, by the next command on that work or the next hook run of its session once
 the viewer is running. A declaration that no longer applies, for example a stage
 another producer already completed, is reported as rejected and does not
-overwrite what the viewer holds. Commands on different works do not block each
-other.
+overwrite what the viewer holds. A `sync` that names, without a title, a task
+the local record never saw registered is refused at once instead of being
+queued, since creating that task needs its title. Commands on different works
+do not block each other.
 
 ## Host-observed activity
 

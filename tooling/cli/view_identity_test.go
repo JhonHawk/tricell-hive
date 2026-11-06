@@ -279,8 +279,8 @@ func TestParseViewWorkCommandExplicitFlagsWinOverEveryOtherSource(t *testing.T) 
 func TestParseViewWorkCommandWithoutSourceStaysRejected(t *testing.T) {
 	_, err := parseViewWorkCommand([]string{"stage", "--state-dir", t.TempDir(), "--work-id", workA, "--stage", "build", "--state", "in_progress", "--reason", "Start build"}, strings.NewReader(""))
 	var we *viewWorkError
-	if !errors.As(err, &we) || we.Code != "invalid_input" || we.Field != "required semantic field missing" {
-		t.Fatalf("no source must be rejected as today, got %v", err)
+	if !errors.As(err, &we) || we.Code != "invalid_input" || we.Field != "native identity missing: pass --host and --native-session-id" {
+		t.Fatalf("no source must be rejected and name the flags, got %v", err)
 	}
 }
 

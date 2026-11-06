@@ -23,7 +23,7 @@ open --project ROOT --change DIR --key KEY --title TEXT --summary TEXT | open --
 publish --work-id ID --change DIR --stage STAGE [--document-key KEY] [--status draft|complete]
 publish --project ROOT --change DIR --key KEY --title TEXT --summary TEXT --stage STAGE --reason TEXT [publication options]
 list --project ROOT [--host HOST --native-session-id ID] [--include-archived] [--limit 1..100] [--cursor OPAQUE]
-show --work-id ID
+show [--work-id ID]
 stage --work-id ID --stage STAGE --state STATE --reason TEXT [--summary TEXT] [--previous-stage OCCURRENCE]
 tasks register --work-id ID [--plan-revision CONFIRMED_REVISION] --json FILE|- [--reason TEXT] (revision optional without a change folder or plan)
 task update --work-id ID --key KEY --stage STAGE --state STATE --reason TEXT [transition options]
