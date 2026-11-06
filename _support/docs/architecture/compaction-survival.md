@@ -62,7 +62,8 @@ Collected on 2026-11-02 from documentation, source and local transcripts of the 
 - Each flow skill keeps its binding steps in the first ~60 lines and stays under 8 KB, for Cursor's partial reads and Codex's explicit cut.
 - References are read at a fixed moment, such as `plan-handoff.md` before the build route; a rule that only lives in a reference holds only while that read is in context.
 - A native task list is a live view, not the record: only Claude Code and Grok are shown to re-inject it after a compaction; Codex and OpenCode do not, Pi has none and Cursor is unmeasured. A plan kept in the conversation keeps its checkpoint in a file in the host's temporary location, as `flow-build` sets, because the conversation itself is summarized at compaction.
-- A flow boundary names the command for the next flow in the host's syntax (`/flow-x`, `$flow-x`, `/skill:flow-x`, `@flow-x`), so each flow starts with its skill loaded whole.
+- A flow boundary names the command for the next flow in the host's syntax (`/flow-x`, `$flow-x`, `/skill:flow-x`, `@flow-x`), so each flow starts with its skill loaded whole. Research continuing into build and build continuing into verify cross the boundary in the same turn; the agent then reads the next skill whole before its first step.
+- A compaction summary is the model's own paraphrase, and it can harden an inference into a constraint: Grok session `01a1b012` (2026-11-06) carried "a production build of the three apps needs confirmation first", which no rule states, through two compactions. The global guidance's «Persistent memory» makes a restriction without a named source an inference to check before it stops work or adds a question.
 
 ## Sources
 

@@ -7,7 +7,7 @@ Verify is the step between a built change and a finished one. [Build](/flows/bui
 
 ## When it starts
 
-Verify starts when a candidate exists: commits, or the working tree when your delivery answer is to hold. You can also start it on a change that is already built. Without a candidate, it says what is missing and returns the work to Build.
+Verify starts when a candidate exists: commits, or the working tree when your delivery answer is to hold. It follows Build in the same turn, with no command to type, unless you asked to stop after Build or to skip Verify. You can also start it on a change that is already built. Without a candidate, it says what is missing and returns the work to Build.
 
 ```text wrap
 Verify the change on this branch and integrate it if everything passes.
