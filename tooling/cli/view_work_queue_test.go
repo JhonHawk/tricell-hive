@@ -184,8 +184,6 @@ func TestWorkQueueStoppedViewerThenRunningCreatesWorkAndStageOnce(t *testing.T) 
 	}
 }
 
-// A declaration that no longer applies is reported rejected, not applied, and
-// the stage keeps the state another producer gave it.
 // A queued sync that names a task the work lacks, without the title needed to
 // create it, is rejected when it is sent and leaves the queue, so it never
 // blocks the commands that follow.
@@ -210,6 +208,8 @@ func TestWorkQueueRejectsANewTaskWithoutATitle(t *testing.T) {
 	}
 }
 
+// A declaration that no longer applies is reported rejected, not applied, and
+// the stage keeps the state another producer gave it.
 func TestWorkQueueRejectsADeclarationTheStageMovedPast(t *testing.T) {
 	q := newQueueCLI(t)
 	q.open("moved-on")
