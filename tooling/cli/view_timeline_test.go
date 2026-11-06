@@ -548,12 +548,15 @@ func TestTimelineCLIViewerRejectionNamesTheKindsThatAcceptAField(t *testing.T) {
 }
 
 func TestTimelineCLIViewerRejectionHintOnlyForEventOperations(t *testing.T) {
-	rejection := &viewHTTPStatusError{Status: 400, Detail: ": forbidden_for_kind on stage_state", Code: "forbidden_for_kind", Field: "stage_state"}
-	if got := viewTimelineWithKindHint("session_patch", rejection).Error(); strings.Contains(got, "accepts it") {
-		t.Fatalf("hint on a non-event operation: %s", got)
-	}
-	other := &viewHTTPStatusError{Status: 409, Detail: ": version_conflict", Code: "version_conflict"}
-	if got := viewTimelineWithKindHint("event_patch", other).Error(); strings.Contains(got, "accepts it") {
-		t.Fatalf("hint on another code: %s", got)
+	for _, c := range []struct {
+		operation string
+		err       *viewHTTPStatusError
+	}{
+		{"session_patch", &viewHTTPStatusError{Status: 400, Detail: ": forbidden_for_kind on stage_state", Code: "forbidden_for_kind", Field: "stage_state"}},
+		{"event_patch", &viewHTTPStatusError{Status: 409, Detail: ": version_conflict on stage_state", Code: "version_conflict", Field: "stage_state"}},
+	} {
+		if got, want := viewTimelineWithKindHint(c.operation, c.err).Error(), c.err.Error(); got != want {
+			t.Errorf("%s %s: message changed to %q", c.operation, c.err.Code, got)
+		}
 	}
 }
