@@ -4,7 +4,7 @@ Base: development e2a633e49f9ae59654bd272c574b460696ad3dae. Rama de implementaci
 
 ### T1 — Fijar los contratos de actualización entre versiones
 
-- [ ] Contratos tipados, formato padre y marcador de protocolo definidos y ejercitados con dos ejecutores de prueba.
+- [x] Contratos tipados, formato padre y marcador de protocolo definidos y ejercitados con dos ejecutores de prueba.
 
 **Closes:** AC2, AC5, AC9, AC13
 
@@ -22,7 +22,7 @@ Base: development e2a633e49f9ae59654bd272c574b460696ad3dae. Rama de implementaci
 
 ### T2 — Preparar releases verificadas y planes offline
 
-- [ ] Resolución, descarga, preview y retención del paquete/plan funcionan con transporte local simulado.
+- [x] Resolución, descarga, preview y retención del paquete/plan funcionan con transporte local simulado.
 
 **Closes:** AC2, AC3, AC4, AC5, AC13
 
@@ -80,7 +80,7 @@ Base: development e2a633e49f9ae59654bd272c574b460696ad3dae. Rama de implementaci
 
 **Closes:** AC1, AC2, AC4, AC5, AC11, AC12
 
-**Depends on:** T3 (coordinador), T4 (instalación migrable).
+**Depends on:** T3 (contrato tipado del coordinador). La migración T4 se integra y se comprueba junto con T5 en T6; no es necesaria para empezar los inputs y el flujo compartido.
 
 **Locations:** tooling/cli/update.go, tui_update_view.go, main.go, dispatch de apply/recover/doctor y pruebas.
 
@@ -132,6 +132,12 @@ Entrega D2 A: tras checks y revisión, presentar el flujo terminal y esperar val
 
 ## Checkpoint
 
-Build · T1 en verificación de contratos; T2 en curso en archivos separados. Base real: origin/development e2a633e4; los commits ajenos cb9b3ffb/2f39491b del checkout principal no se incluyen. User aprobó AC1–AC14 al invocar flow-build. D1 A, D2 A, D3 A y D4 A vigentes. Último commit: base e2a633e4. Próximo paso: contratos T1, checks del productor y verificación independiente antes de marcar la tarea. Recursos: worktree propio; ningún proceso de producto ni paquete de prueba todavía.
+Build · T1/T2 verificados; T3/T4/T5 en curso sobre contratos fijados. Base real: origin/development e2a633e4; los commits ajenos cb9b3ffb/2f39491b del checkout principal no se incluyen. User aprobó AC1–AC14 al invocar flow-build. D1 A, D2 A, D3 A y D4 A vigentes. Último commit: 2ed68355 (T1). Próximo paso: terminar T2, ejecutar checks y verificar su checkpoint antes de marcarlo. Recursos: worktree propio; ningún proceso de producto ni paquete de prueba todavía.
 
 2026-11-05 — T1 productor: protocolo, bootstrap y envelope implementados; suite del productor distribution 31.7s, management 40.6s, CLI 218.3s, package 3.3s. Verificador independiente: pruebas focalizadas offline PASS (.794s/.363s/2.039s), sin defecto funcional demostrado; pide ampliar apply/recover y validación semántica antes de Freeze. Corrección de cobertura en los dos tests propietarios; T2 inició en archivos nuevos sin solapar. AC2/AC5/AC9/AC13 completos siguen abiertos para T2/T3/T5; verificar T1 no los cierra prematuramente.
+
+2026-11-05 — ✓ T1 verificado · commit 2ed68355. Main suite distribution35.294s, management60.596s, CLI212.929s, package4.782s PASS; cobertura reforzada comprobada por main y verificador independiente offline (distribution.764s, management.132s). T1 cumple su entregable contractual; AC2/AC5/AC9/AC13 end-to-end siguen abiertos hasta las tareas siguientes. Sin cambios de instalación.
+
+2026-11-05 — Ajuste de dependencia de T5: el contrato tipado T3 ya está disponible y permite implementar CLI/TUI sin esperar la migración T4; su integración end-to-end permanece en T6. No cambia criterios ni delta. T2 terminó productor y está en verificación independiente; T3/T5 editan módulos distintos.
+
+2026-11-05 — ✓ T2 verificado (commit de esta tarea). Productor: distribution/package31.220s/3.445s PASS, race TestRelease3.231s PASS, vet PASS. Main TestRelease1.624s PASS; verificador independiente TestRelease1.615s/package2.807s PASS sin defecto demostrado. Se amplió el owner de resolución para exigir deadline activo de máximo dos minutos y se renombró el caso de cancelación para no confundirlo con vencimiento. T2 completa distribución/preparación; los planes completos y hooks finales siguen en T3/T5.
