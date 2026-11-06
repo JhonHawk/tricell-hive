@@ -55,7 +55,7 @@ Report the whole work item in one message, each part only when it has content:
 - **Repaired:** the local environment repairs made, such as reinstalled dependencies or seeded data.
 - **Support material:** each item with its path and the action applied, or listed as pending, as [Support material](#support-material) sets.
 - **Findings:** the defects not fixed, as [Findings](#findings) sets.
-- **Next:** what remains, with who owns it, and what comes next, such as the merge left to the user and the review bots still pending.
+- **Next:** what remains, with who owns it, and what comes next, such as the merge left to the user and review bots or base CI still pending.
 
 When the user asks to keep or share this report, or it exceeds what fits on one screen, offer a `flow-report` page as one reply of the close footer.
 
