@@ -98,7 +98,21 @@ func TestHTTPGroupedNavigationRefreshPreservesPublication(t *testing.T) {
 	request.Source.ProjectRoot = alias
 	first := createTimeline(t, s, request)
 	other := newRepo(t)
+	survivor := newRepo(t)
+	conflict := newRepo(t)
+	s.remote = func(root string) (string, error) {
+		if root == other || root == survivor || root == conflict {
+			return "https://example.com/team/repo.git", nil
+		}
+		return "", nil
+	}
 	if _, err := RegisterRepository(filepath.Dir(s.Dir()), other); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := RegisterRepository(filepath.Dir(s.Dir()), survivor); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := RegisterRepository(filepath.Dir(s.Dir()), conflict); err != nil {
 		t.Fatal(err)
 	}
 	request.Source.ProjectRoot, request.Source.NativeSessionID, request.OperationID = other, "other", "other"
@@ -147,6 +161,7 @@ func TestHTTPGroupedNavigationRefreshPreservesPublication(t *testing.T) {
 		Label  string `json:"origin_label"`
 		Status string `json:"config_status"`
 	}
+	expectedEntries := 2
 	decode := func() []entry {
 		t.Helper()
 		out := get("?navigation=grouped")
@@ -165,7 +180,7 @@ func TestHTTPGroupedNavigationRefreshPreservesPublication(t *testing.T) {
 		if err := json.Unmarshal(raw, &projection); err != nil {
 			t.Fatal(err)
 		}
-		if projection.Version != 1 || len(projection.Entries) != 2 {
+		if projection.Version != 1 || len(projection.Entries) != expectedEntries {
 			t.Fatalf("projection: %s", raw)
 		}
 		var sessions []TimelineAPIIndexEntry
@@ -264,6 +279,47 @@ func TestHTTPGroupedNavigationRefreshPreservesPublication(t *testing.T) {
 	}
 	if !reflect.DeepEqual(get("")["timeline_sessions"], legacy["timeline_sessions"]) {
 		t.Fatal("legacy identity changed")
+	}
+	// A retired worktree can resolve presentation through a live registered
+	// source of the same persisted project identity, without relabeling history.
+	writeGroupingConfig(t, survivor, `{"project_name":"Recovered project"}`)
+	request.Source.ProjectRoot, request.Source.NativeSessionID, request.OperationID = survivor, "survivor", "survivor"
+	request.WorkKey = timelineString("survivor")
+	live := createTimeline(t, s, request)
+	if live.ProjectKey != second.ProjectKey {
+		t.Fatal("fixture must retain the worktree project identity")
+	}
+	expectedEntries = 3
+	retained := stateManifest(t, filepath.Dir(s.Dir()))
+	var liveEntry, retiredEntry entry
+	for _, e := range decode() {
+		if e.ID == live.ViewerSessionID {
+			liveEntry = e
+		}
+		if e.ID == second.ViewerSessionID {
+			retiredEntry = e
+		}
+	}
+	if retiredEntry.Key != liveEntry.Key || retiredEntry.Name != "Recovered project" || retiredEntry.Status != "valid" || retiredEntry.Kind != "unavailable" {
+		t.Fatalf("retired source lost presentation group: %+v; live %+v", retiredEntry, liveEntry)
+	}
+	if !reflect.DeepEqual(retained, stateManifest(t, filepath.Dir(s.Dir()))) {
+		t.Fatal("resolving a retired source rewrote history")
+	}
+	// Conflicting declarations for the same identity must keep the diagnostic.
+	writeGroupingConfig(t, conflict, `{"project_name":"Different declaration"}`)
+	request.Source.ProjectRoot, request.Source.NativeSessionID, request.OperationID = conflict, "conflict", "conflict"
+	request.WorkKey = timelineString("conflict")
+	createTimeline(t, s, request)
+	expectedEntries = 4
+	retained = stateManifest(t, filepath.Dir(s.Dir()))
+	for _, e := range decode() {
+		if e.ID == second.ViewerSessionID && (e.Status != "unavailable" || !strings.HasPrefix(e.Key, "project:")) {
+			t.Fatalf("ambiguous declarations silently selected: %+v", e)
+		}
+	}
+	if !reflect.DeepEqual(retained, stateManifest(t, filepath.Dir(s.Dir()))) {
+		t.Fatal("ambiguous lookup changed history")
 	}
 	read, err := s.TimelineDocument(first.ViewerSessionID, document.DocumentID)
 	if err != nil || read.Content != string(content) {

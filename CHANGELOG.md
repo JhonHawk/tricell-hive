@@ -10,6 +10,13 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Fixed
+
+- Removed worktrees retain their navigation group when an available registered
+  source of the same stored project identity supplies one unambiguous explicit
+  name. Historical sources and records remain unchanged; missing or conflicting
+  witnesses keep the fallback and diagnostic.
+
 ## [0.9.0] - 2026-11-05
 
 ### Fixed
