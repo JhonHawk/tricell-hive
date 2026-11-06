@@ -36,7 +36,9 @@ var viewWorkSyncTaskStates = map[string]bool{"": true, "not_started": true, "in_
 
 // validateViewWorkSyncTasks checks a declared task list with the validators the
 // viewer applies to a task creation and a task transition, so a rejected input
-// names its field and rule, never a value.
+// names its field and rule, never a value. A task without a title names a task
+// already registered by its key and state; whether it exists is known only
+// against the work, where sync rejects one it would have to create.
 func validateViewWorkSyncTasks(tasks []viewWorkSyncTask) error {
 	if len(tasks) == 0 || len(tasks) > viewer.TimelineMaxTasks {
 		return faultf("tasks", "invalid task count")
@@ -48,7 +50,11 @@ func validateViewWorkSyncTasks(tasks []viewWorkSyncTask) error {
 			return faultf(path+".key", "duplicate task key")
 		}
 		seen[t.Key] = true
-		r := viewer.TimelineTaskCreateRequest{TimelineNativeOperation: workValidationOperation("Declare tasks"), PlanOrder: int64(i + 1), TaskKey: t.Key, Title: t.Title, Summary: syncTaskSummary(t), Segments: []viewer.TimelineTaskSegmentInput{{PlannedStage: "build", Order: int64(i + 1)}}}
+		title, summary := t.Title, syncTaskSummary(t)
+		if title == "" { // a registered task named by key: check the other fields
+			title, summary = "Registered task", "Registered task"
+		}
+		r := viewer.TimelineTaskCreateRequest{TimelineNativeOperation: workValidationOperation("Declare tasks"), PlanOrder: int64(i + 1), TaskKey: t.Key, Title: title, Summary: summary, Segments: []viewer.TimelineTaskSegmentInput{{PlannedStage: "build", Order: int64(i + 1)}}}
 		if err := viewer.ValidateTimelineV3Operation(&r); err != nil {
 			return viewerFault(err, path, map[string]string{"task_key": "key", "plan_order": "order"})
 		}
@@ -155,6 +161,15 @@ func (e *viewWorkEngine) sync(c viewWorkCommand) (viewWorkSyncResult, error) {
 	if s.State == viewer.TimelineClosed && c.CloseOutcome != "" {
 		// The declaration already ended the work: repeating it changes nothing.
 		return e.syncReceipt(c, s, false)
+	}
+	// A task sync has to create needs its title. Whether the key is registered
+	// depends on the work when the declaration is sent, so this is a state
+	// rejection, which a queued declaration reports and leaves the queue with,
+	// and it comes before any write.
+	for _, t := range c.SyncTasks {
+		if t.Title == "" && workLifecycleTask(s, t.Key) == nil {
+			return viewWorkSyncResult{}, workStateError("task_title_required")
+		}
 	}
 	changed := false
 	apply := func(r viewWorkResult, err error) error {

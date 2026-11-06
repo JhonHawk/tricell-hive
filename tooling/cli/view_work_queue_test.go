@@ -184,6 +184,30 @@ func TestWorkQueueStoppedViewerThenRunningCreatesWorkAndStageOnce(t *testing.T) 
 	}
 }
 
+// A queued sync that names a task the work lacks, without the title needed to
+// create it, is rejected when it is sent and leaves the queue, so it never
+// blocks the commands that follow.
+func TestWorkQueueRejectsANewTaskWithoutATitle(t *testing.T) {
+	q := newQueueCLI(t)
+	q.open("untitled")
+	started := decodeSync(t, q.must("", "sync", "--stage", "build", "--state", "in_progress", "--reason", "Start"))
+	q.f.mustView("stop")
+	decodeQueued(t, q.must(`[{"key":"T9","state":"in_progress"}]`, "sync", "--stage", "build", "--state", "in_progress", "--reason", "Untitled", "--tasks", "-"))
+	q.f.mustView("start")
+
+	next := decodeSync(t, q.must("", "sync", "--stage", "build", "--state", "in_review", "--reason", "Review"))
+	if next.Queue == nil || next.Queue.Sent != 0 || len(next.Queue.Rejected) != 1 || next.Queue.Rejected[0].Reason != "task_title_required" {
+		t.Fatalf("next sync: %+v", next)
+	}
+	if work := q.session(started.WorkID); len(work.Tasks) != 0 || workLifecycleStage(work, "build").StageState != "in_review" {
+		t.Fatalf("work %+v", work)
+	}
+	again := decodeSync(t, q.must("", "sync", "--stage", "build", "--state", "in_progress", "--reason", "Back"))
+	if again.Queue != nil && len(again.Queue.Rejected) != 0 {
+		t.Fatalf("the rejected declaration came back: %+v", again.Queue)
+	}
+}
+
 // A declaration that no longer applies is reported rejected, not applied, and
 // the stage keeps the state another producer gave it.
 func TestWorkQueueRejectsADeclarationTheStageMovedPast(t *testing.T) {
