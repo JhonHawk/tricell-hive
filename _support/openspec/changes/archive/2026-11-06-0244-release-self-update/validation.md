@@ -1,6 +1,6 @@
 # Validación de la actualización completa de Hive
 
-Estado: candidato listo para validación humana; rama local `feat/release-self-update`.
+Estado: D5 A validó el candidato. PR #386 integrado en `development` como `f3297684`; cierre del visor confirmado. Archivo del cambio e higiene pendientes del cierre elegido por el usuario.
 Código probado: `f6d8cf915590d8f85572a66785bb5c1e696f9e68`, base integrada `a67feac4`.
 
 La migración inicial usa el instalador compatible y deja un comando estable. Después `hive update` actualiza binario e integraciones, sin Git ni Go. Se conservan selección exacta de versión, preview, plan offline, modo source explícito y recuperación según el límite del commit. La publicación de una release no forma parte de esta validación.
@@ -57,3 +57,7 @@ Los verificadores independientes de tareas confirmaron esos contratos en sus own
 En el visor están los campos Source/Release, la protección del builddev, tamaño mínimo y los renders de preparación, confirmación, éxito y recuperación. Los primeros proceden de PTY real con dos hosts sintéticos; los segundos del árbol TUI integrado con ejecutor real y HTTP simulado.
 
 Revisar el selector Mode, las versiones/destinos antes de Apply y la instrucción de `/hooks` al terminar. La elección humana pendiente decide si seguir con push, PR y merge a development (D2 A), o ajustar el flujo. Una release pública y la promoción a master requieren otra instrucción.
+
+## Entrega observada
+
+PR #386 fusionado el 2026-11-06 UTC. No checks remotos configurados ni revisores/comentarios pendientes al leerlos; ningún workflow postmerge. El manager local se reconstruyó desde f3297684 (vcs.modified=false), preservando el ejecutable previo. No se aplicó contenido real ni se reinició el visor. H13 P3: la ayuda general conserva la descripción Git anterior; la ayuda del subcomando ya enumera --version. Se ofrece corregir ese copy aparte del cierre.
