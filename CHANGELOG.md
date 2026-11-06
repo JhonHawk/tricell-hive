@@ -14,8 +14,8 @@ raise the minor or the patch version.
 
 - Verify reads each check's result from its exit status, keeping it with
   the filtering command or a saved output file, and a round of fixes reruns the
-  edited packages' tests and each failing check after each fix, and the
-  affected checks once, after the round's last fix.
+  edited packages' tests, each failing test and each failing non-test check
+  after each fix, and the affected checks once, after the round's last fix.
 - After a merge or a push to the base, the wait for its CI runs in the
   background while the close proceeds, on hosts that report a background
   command's exit; the close leaves it running and its report names it.
