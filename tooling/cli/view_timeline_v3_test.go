@@ -257,6 +257,15 @@ func TestViewTimelineEventAddNamesTheKindsThatAcceptAField(t *testing.T) {
 	}
 }
 
+func TestViewTimelineStageStartNamesTheKindsThatAcceptAField(t *testing.T) {
+	input := `{"actor":{"kind":"native_producer","producer_id":"producer-example"},"schema_version":3,"operation_id":"stage-example","kind":"stage","title":"","summary":"Prepare","ticket_ids":[],"stage":"plan","stage_state":"in_progress","expected_session_version":1,"reason":"Start","delivery_ids":["delivery-1"]}`
+	var out bytes.Buffer
+	err := runViewTimeline([]string{"stage", "start", strings.Repeat("a", 64), "--json", "-", "--state-dir", filepath.Join(t.TempDir(), "missing")}, &out, strings.NewReader(input))
+	if want := "invalid timeline input: forbidden_for_kind on delivery_ids; only kind delivery accepts it"; err == nil || err.Error() != want {
+		t.Fatalf("got %v", err)
+	}
+}
+
 // Operations whose example the native CLI validator rejects by design, or that
 // have no input, so the brief check cannot run on them. Any other skipped
 // operation fails the test.
