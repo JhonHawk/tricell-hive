@@ -10,15 +10,31 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-05
+
+### Fixed
+
+- Evidence publication respects its explicitly requested stage and preserves
+  immutable capture metadata by rejecting contradictory viewport/theme labels
+  when identical image bytes are reused.
+
+### Migration
+
+- Users of 0.8.0 and earlier must run the new installer once. It registers
+  `~/.local/bin/hive` without editing PATH or overwriting an unowned command.
+  Update old aliases or invoke that path directly. Afterwards `hive update`
+  updates the binary and registered integrations together. Start new host
+  sessions after updating; a running viewer is not restarted automatically.
+
 ### Added
 
-- Candidate release installations can migrate once with the updated installer
+- Release installations can migrate once with the updated installer
   and then use `hive update` to update the manager and registered integrations
   together. `--version` selects an exact compatible version, `--dry-run` leaves
   no persistent package, and `--out` saves a plan for offline application.
   Packages and a stable `~/.local/bin/hive` command support recovery across the
   core commit boundary; source updates remain explicit and do not replace the
-  manager. This requires a future release and installer publication.
+  manager. Available in compatible 0.9.0-or-newer packages.
 
 - Close now merges a change folder's deltas into the specs with a script,
   `flow-close/scripts/apply_deltas.py`, instead of by hand. It previews each

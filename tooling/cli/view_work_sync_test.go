@@ -296,6 +296,8 @@ func TestWorkEvidencePublishesCapturesCandidateAndSupersedingView(t *testing.T) 
 	fixed := testPNG(t, dir, "chat-fixed.png", color.RGBA{B: 200, A: 255})
 	open := decodeSync(t, s.must("", "open", "--project", s.project, "--key", "evidence", "--title", "Evidence", "--summary", "Captures for validation"))
 	s.must("", "sync", "--stage", "verify", "--state", "awaiting_validation", "--reason", "Ready for validation")
+	// Evidence explicitly targets verify while build owns the foreground.
+	s.must("", "sync", "--stage", "build", "--state", "in_progress", "--reason", "Parallel build")
 
 	// Without a candidate there is nothing to attach the captures to.
 	if _, err := s.run("", "evidence", "--stage", "verify", "--view-title", "Chat", "--image", chat); err == nil || !strings.Contains(err.Error(), "candidate_required") {
@@ -324,6 +326,9 @@ func TestWorkEvidencePublishesCapturesCandidateAndSupersedingView(t *testing.T) 
 			event = e
 		}
 	}
+	if event.StageEventID != workLifecycleStage(work, "verify").EventID {
+		t.Fatalf("evidence attached to wrong stage: %+v", event)
+	}
 	if event.Kind != "validation" || len(event.Views) != 1 || len(event.Views[0].ImageRefs) != 2 || event.Views[0].ImageRefs[0].Caption != "Profile" || event.Views[0].ImageRefs[1].Caption != "chat" {
 		t.Fatalf("event %+v", event)
 	}
@@ -332,6 +337,15 @@ func TestWorkEvidencePublishesCapturesCandidateAndSupersedingView(t *testing.T) 
 	again := decodeEvidence(t, s.must("", "evidence", "--stage", "verify", "--view-title", "Chat", "--image", profile+":Profile", "--image", chat, "--candidate", "abc123", "--viewport", "mobile", "--theme", "dark"))
 	if again.Result != "unchanged" || again.EventID != first.EventID || s.session(open.WorkID).Version != work.Version {
 		t.Fatalf("repeat: %+v", again)
+	}
+
+	// The store preserves the first capture metadata for identical bytes.
+	beforeMetadata := s.session(open.WorkID).Version
+	if _, err := s.run("", "evidence", "--stage", "verify", "--view-title", "Chat", "--image", profile+":Profile", "--image", chat, "--candidate", "abc123", "--viewport", "desktop", "--theme", "light"); err == nil || !strings.Contains(err.Error(), "capture_metadata_conflict") {
+		t.Fatalf("contradictory metadata: %v", err)
+	}
+	if s.session(open.WorkID).Version != beforeMetadata {
+		t.Fatal("metadata conflict changed the stored work")
 	}
 
 	// A corrected capture of the Chat view, on a new candidate, supersedes it.

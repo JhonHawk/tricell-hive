@@ -46,7 +46,7 @@ Use it to investigate an uncertain request, plan a consequential change, or carr
 an understood task through implementation and verification—with clear boundaries
 between what was requested, what was authorized, and what was demonstrated.
 
-> **Version 0.8.0 · a narrower test rule and a test-audit skill, a ready delivery mode, and brief viewer contracts per flow**
+> **Version 0.9.0 · complete release updates, stable command migration, and recoverable offline plans**
 > Each release sets [VERSION](VERSION) to its product version; between releases,
 > `development` carries `dev`. Packages for macOS Apple
 > Silicon and Linux arm64/amd64 are published on
@@ -87,7 +87,7 @@ It asks which hosts to install and confirms before it writes.
 
 - **Preview first:** append `-s -- --dry-run`. No host changes; the package is
   still downloaded; behavior depends on the selected package version.
-- **Pick a release or hosts:** append `-s -- --version 0.8.0 --hosts claude,codex`.
+- **Pick a release or hosts:** append `-s -- --version 0.9.0 --hosts claude,codex`.
 - **Afterwards:** packages with the new update protocol register
   `~/.local/bin/hive` as the stable command. The installer does not edit `PATH`
   or overwrite an unowned file there. Older packages print their versioned path.
@@ -249,13 +249,16 @@ Hive supplies no model runtime or universal permission sandbox.
 
 ## Update, verify, recover, and uninstall
 
-The release-update behavior below is the candidate in this checkout. It requires
-an updated installer and compatible release packages; the observed public 0.8.0
-package does not yet provide it. Publication is separate from this change.
+Release 0.9.0 introduces complete release updates. Users of 0.8.0 and earlier
+must run the 0.9.0-or-newer installer once; their old `hive update` cannot
+replace its own binary. No uninstall is required.
 
 **Update.** Run the new installer once to migrate an existing package installation.
 It registers `~/.local/bin/hive` without editing `PATH` or overwriting an unowned
-file. Use that path explicitly if it is not on your `PATH`. Thereafter:
+file. Use that path explicitly if it is not on your `PATH`, and remove or update
+any shell alias that still selects an old versioned binary. If an unowned file
+already occupies the stable path, the installer stops: preserve it and resolve
+the collision before retrying. Thereafter:
 
 ```sh
 hive update --dry-run

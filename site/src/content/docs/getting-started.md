@@ -22,8 +22,9 @@ curl -fsSL https://hive.tricell.tech/install.sh | sh -s -- --dry-run
 ```
 
 The preview downloads the package but makes no host changes. Start a new CLI
-session after installation. The release updater in the current candidate requires
-a new installer and compatible packages that have not yet been published. Once
+session after installation. Users of 0.8.0 and earlier must run the installer
+once to migrate to 0.9.0 or newer; the old updater cannot replace its binary.
+Use `~/.local/bin/hive` if PATH or an alias still selects an old binary. Once
 migrated, use `hive update` to preview and confirm a stable release; use
 `hive update --dry-run` for a preview. Existing public packages can be updated
 with the installer. For requirements, other installation routes, and recovery, see the
