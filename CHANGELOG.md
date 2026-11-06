@@ -12,6 +12,14 @@ raise the minor or the patch version.
 
 ### Added
 
+- Candidate release installations can migrate once with the updated installer
+  and then use `hive update` to update the manager and registered integrations
+  together. `--version` selects an exact compatible version, `--dry-run` leaves
+  no persistent package, and `--out` saves a plan for offline application.
+  Packages and a stable `~/.local/bin/hive` command support recovery across the
+  core commit boundary; source updates remain explicit and do not replace the
+  manager. This requires a future release and installer publication.
+
 - A change folder is now checked for coherence. `flow-plan` ships
   `scripts/check_change.py`, which reports acceptance criteria no task closes,
   `Closes:` lines naming criteria that do not exist, mentions of a decision or

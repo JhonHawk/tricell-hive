@@ -22,8 +22,11 @@ curl -fsSL https://hive.tricell.tech/install.sh | sh -s -- --dry-run
 ```
 
 The preview downloads the package but makes no host changes. Start a new CLI
-session after installation. Run the installation command again when you want to
-update. For requirements, other installation routes, and recovery, see the
+session after installation. The release updater in the current candidate requires
+a new installer and compatible packages that have not yet been published. Once
+migrated, use `hive update` to preview and confirm a stable release; use
+`hive update --dry-run` for a preview. Existing public packages can be updated
+with the installer. For requirements, other installation routes, and recovery, see the
 [repository's installation guide](https://github.com/JhonHawk/tricell-hive#get-started).
 
 ## Give the session context
