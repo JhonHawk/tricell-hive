@@ -12,6 +12,8 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- Viewer status labels render a single Badge without a second bordered container.
+
 - Verify reads each check's result from its exit status, keeping it with
   the filtering command or a saved output file, and a round of fixes reruns the
   edited packages' tests, each failing test and each failing non-test check
