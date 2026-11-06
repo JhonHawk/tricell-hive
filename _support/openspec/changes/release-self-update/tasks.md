@@ -94,7 +94,7 @@ Base: development e2a633e49f9ae59654bd272c574b460696ad3dae. Rama de implementaci
 
 ### T6 — Alinear documentación y verificar el candidato completo
 
-- [ ] Documentación, delta y suite reflejan el nuevo contrato y su límite de disponibilidad pública.
+- [x] Documentación, delta y suite reflejan el nuevo contrato y su límite de disponibilidad pública.
 
 **Closes:** AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC8, AC9, AC10, AC11, AC12, AC13, AC14
 
@@ -132,7 +132,15 @@ Entrega D2 A: tras checks y revisión, presentar el flujo terminal y esperar val
 
 ## Checkpoint
 
-Build · T1–T5 verificados; T6 en verificación final y documentación lista. Base real: origin/development e2a633e4; los commits ajenos cb9b3ffb/2f39491b del checkout principal no se incluyen. User aprobó AC1–AC14 al invocar flow-build. D1 A, D2 A, D3 A y D4 A vigentes. Último commit: 50c80ce9 (T2); T1: 2ed68355. Próximo paso: terminar T3/T4/T5, comprobar la integración y verificar cada checkpoint. T3 es dueño de management/main/release_executor; T4 install/scripts/release_paths; T5 update/TUI. T2 verificado en 50c80ce9. Recursos: worktree propio; ningún proceso de producto ni paquete de prueba todavía.
+Verify · ready for human validation; T1–T6 verified. Source commit f6d8cf915590d8f85572a66785bb5c1e696f9e68 on feat/release-self-update; integrated base a67feac4. D1 A, D2 A, D3 A, D4 A in force. Next action: D5 human validation before push/PR/merge. Public release/promotion are not authorized. No child agents or task test processes remain running.
+
+All21 package results in the final go test -race -timeout=18m ./... log are ok; exact package set matches go list ./..., no failure/race markers. CLI605.134s, management272.560s. Original executor exit status was lost in daemon restart, but native kqueue observed Go process18627 exit and all21 package results were validated; no duplicate run was started. Full normal suite passed; post-fix normal CLI190.606s; latest vet, Python57 tests, Astro17pages and both offline Linux crossbuilds passed. See validation.md for evidence and limits.
+
+Native review and its one follow-up completed. H9/H10 fixed; H11 red→green plus independent UX follow-up approved. H12 local forward-compatibility fallback red.327s→green.269s is marked Unreviewed in97c86edc; no third native review was run. Code since full-race source f6d8cf91 is unchanged; only the change record is being finalized.
+
+Viewer: work059ebc7c344c592434939d3a5e3c91bacb647beea3cb541a67006c554319365a, confirmed evidence version52, actual candidate candidate-c438769fb761b51d0913e27e362bd20b (source f6d8cf91). The confirmation/result evidence was superseded once to correct an incorrectly typed commit reference; current reference is verified with git rev-parse HEAD. No pending publisher intent. Plan revision revision-abe5e6e279d81c5febf6d34671ac72ef. Do not restart/open viewer without the applicable user request.
+
+Retained task resources: worktree, workspace candidate binary/images/transcripts/test logs and Linux binaries; synthetic home /private/tmp/hive-update-pty-home.UuVTEu; task-owned site/node_modules symlink to the main checkout's existing dependencies (remove only the symlink at close); private native review logs /private/tmp/hive-release-update-review.dL1772 and /private/tmp/hive-release-update-fixes-review.FfpNue. All root execution sessions are completed, including watcher31397 and crossbuilds19894/5212. Runtime session identity01a1adfa-af47-7760-a76b-d3349bd0e0fa.
 
 2026-11-05 — T1 productor: protocolo, bootstrap y envelope implementados; suite del productor distribution 31.7s, management 40.6s, CLI 218.3s, package 3.3s. Verificador independiente: pruebas focalizadas offline PASS (.794s/.363s/2.039s), sin defecto funcional demostrado; pide ampliar apply/recover y validación semántica antes de Freeze. Corrección de cobertura en los dos tests propietarios; T2 inició en archivos nuevos sin solapar. AC2/AC5/AC9/AC13 completos siguen abiertos para T2/T3/T5; verificar T1 no los cierra prematuramente.
 
@@ -146,9 +154,9 @@ Build · T1–T5 verificados; T6 en verificación final y documentación lista. 
 
 2026-11-05 — H3 confirmado en integración por main: `go test ./tooling/cli -run '^TestReleaseUpdateCLI$' -count=1 -timeout=180s` FAIL3.272s, `offline apply: true target executor refused update: core payload is not bound to the retained package`. Retain copiaba con0600|exec y cambiaba modos originales, parte del Release ID. T4, dueño actual de release_package.go, corrige preservación exacta de permisos y añade regresión propietaria; T5 conserva el E2E. No se relaja validación de identidad.
 
-## Live build handoff
+## Historical build handoff (superseded)
 
-Root worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/release-self-update; explicit tool cwd required. Commits T1 2ed68355, T2 50c80ce9. Root-owned exec sessions34173/56492/69754/51808 finished; no root product process. Agents active: /root/build_t3_coordinator (management core + cli main/release_executor), /root/build_t4_migration (install.go/get-hive + paths and distribution local import/mode fix), /root/build_t5_cli (update.go/TUI/owner tests). Never edit their owned files while active. T4/T3 coordinate exact consented preview freeze and verified prepared-vs-retained package; T5 tests real local go-built executor. T3/T4 full management/CLI suites in flight. H3 mode preservation owner regression green; root E2E green rerun pending source integration. Next: collect child outputs, rerun relevant checks, independent hive-verify-task per completed task; commit named paths only; T6 docs after APIs settle. Final flow-verify with native Codex review, terminal walkthrough/UX review and human validation BEFORE push (D2 A). No public release/promotion/global changes. Viewer work_id059ebc7c344c592434939d3a5e3c91bacb647beea3cb541a67006c554319365a, stage build; plan revision revision-abe5e6e279d81c5febf6d34671ac72ef.
+The earlier T1/T2 handoff is superseded by the current Checkpoint above. All implementation and verification children have finished; their findings and results remain in the chronological progress below.
 
 2026-11-05 — H4 confirmado por lectura del root: tui_app.handleKey devolvía tea.Quit para Ctrl-C antes de informar al Update view; appFilter sólo protegía writes, por lo que preparación/confirmación podían abandonar temporales sin cleanup. T5 amplía ownership a tui_app.go/tui_test.go para cubrir Ctrl-C, SIGINT/QuitMsg y confirmación, manteniendo bloqueo durante writes; pruebas de regresión antes del fix. No cambia AC4 ni el alcance del resultado.
 
@@ -175,3 +183,5 @@ Recursos adicionales del root: site/node_modules es un symlink propio hacia node
 2026-11-05 — H9/H10 corregidos en ronda1: main E2E+instalador PASS10.868s, helper/source owners PASS. Native follow-up terminó e identificó H12 P2: mismo esquema de estado no garantiza mismos campos del core, decoder local de notas bloqueaba un payload futuro válido. Root amplió owner existente, red.327s (unknown field future_schema), fallback a recordatorio no autoritativo y green.269s; no tercera revisión, commit llevará Unreviewed por fix local tras el follow-up único. H11 UX Shift+Tab: red.338s, green.279s y follow-up PTY aprobado Source→Mode→Revision→Source / Release Mode↔Version, exit0.
 
 2026-11-05 — T6 verificador independiente confirma AC1–AC14 en owners (CLI10.893s, distribución2.327s, gestión race10.952s, source/TUI race4.488s, preservación1.087s, routing.277s), sin otra brecha. Su lectura no cubre H12 posterior; lo cubre regresión local. Normal CLI de root tras H9/H10 PASS190.606s; H11/H12 se incluyen en full race final pendiente. Fuentes ahora congeladas.
+
+2026-11-05 — ✓ T6 verificado · final full-race21/21 paquetes ok, sin FAIL/race markers; Go18627 terminó observado por kqueue tras reinicio del daemon. CLI605.134s, gestión272.560s, distribución42.911s, viewer126.199s. CrossbuildLinuxARM64/AMD64 exit0, ELF estáticos verificados; no ejecución Linux. Fuentesf6d8cf91 sin cambios. Se cierra registro para validación humana, no publicación.

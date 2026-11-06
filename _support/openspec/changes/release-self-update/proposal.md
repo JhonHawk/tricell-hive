@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Build · T1 en curso |
+| Estado | Verify · Listo para validación humana antes del push |
 | Tracker | Sin ticket; no se ha solicitado crearlo |
 | Git | tricell-hive · development · e2a633e49f9ae59654bd272c574b460696ad3dae · feat/release-self-update · worktree .claude/worktrees/release-self-update |
 | Visor | work key `release-self-update` · work ID `059ebc7c344c592434939d3a5e3c91bacb647beea3cb541a67006c554319365a` |
@@ -24,7 +24,7 @@
 >
 > «podemos implementar la función verdad?»
 
-El usuario aceptó primero preparar una propuesta y después preparar este plan. No hay criterios de un ticket ni autorización de implementación, release o promoción.
+El usuario aceptó primero preparar una propuesta y después preparar este plan. No hay criterios de un ticket. La implementación quedó autorizada al invocar flow-build; release pública y promoción siguen fuera del alcance.
 
 ## Objetivo
 
@@ -77,3 +77,5 @@ La disponibilidad pública exige posteriormente una release con este protocolo y
 2026-11-05 — La revisión independiente de la revisión 2 no encontró gaps materiales. El checker de coherencia pasa sin salida. Sólo se han escrito los cuatro documentos de este cambio; no hay implementación ni checks de producto. Próximo paso: aprobación de AC1–AC14 y entrada explícita a flow-build.
 
 2026-11-05 — Usuario inició flow-build y aprobó AC1–AC14. Se trasladó la carpeta al worktree aislado feat/release-self-update desde origin/development e2a633e4, excluyendo commits ajenos del checkout principal.
+
+2026-11-05 — T1–T6 implementados y verificados. Candidato de código f6d8cf91; base integrada a67feac4. Pendiente D5: aceptación humana del flujo antes del push, conforme D2 A. Revisión nativa ejecutada con un follow-up; H12 local posterior lleva Unreviewed y regresión verde.
