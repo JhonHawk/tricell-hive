@@ -60,8 +60,8 @@ any download. `--help` prints its usage. It:
 Its whole body runs from a function called on its last line, so a truncated
 download executes nothing. Existing installations need this updated installer once to
 migrate; subsequent complete updates use `hive update` with compatible packages.
-The candidate protocol and installer require separate publication; the observed
-public 0.8.0 package does not have them. The script is
+Release 0.9.0 introduces the protocol and compatible installer; 0.8.0 and
+earlier installations must migrate once. The script is
 not part of the package, and the package installation itself remains
 network-free. The checksum has the limit described below.
 
