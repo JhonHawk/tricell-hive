@@ -263,7 +263,7 @@ def take_detail(args):
         raise ValueError("--detail takes one value, given once")
     detail = args.pop(index + 1).strip()
     args.pop(index)
-    if not detail or "\n" in detail or "\r" in detail:
+    if not detail or detail.startswith("--") or "\n" in detail or "\r" in detail:
         raise ValueError("--detail takes one non-empty line")
     return detail
 

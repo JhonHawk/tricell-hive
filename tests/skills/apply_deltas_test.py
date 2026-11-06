@@ -248,7 +248,7 @@ class ApplyDeltasTest(unittest.TestCase):
         self.assertNotIn("Listo para validación", proposal)
 
     def test_bad_detail_is_a_usage_error(self):
-        for args in (["--detail"], ["--detail", " "], ["--detail", "two\nlines"], ["--detail", "a", "--detail", "b"]):
+        for args in (["--detail"], ["--detail", " "], ["--detail", "--apply"], ["--detail", "two\nlines"], ["--detail", "a", "--detail", "b"]):
             with self.subTest(args):
                 before = self.snapshot()
                 result = self.run_script(*args, "--apply")
