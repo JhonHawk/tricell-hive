@@ -167,3 +167,21 @@ Before merging a change folder's deltas into the specs and moving it to the arch
 - **GIVEN** a close running under unattended delegation and a folder with unchecked boxes
 - **WHEN** the check lists them
 - **THEN** the folder stays unarchived and is recorded as pending
+
+### Requirement: Deltas merge deterministically at archive
+The close SHALL preview the merge of a change folder's deltas with `apply_deltas.py` before applying it, and SHALL apply it with `--apply`, which merges every delta into its capability spec, marks `proposal.md` completed and moves the folder to the archive. The merge SHALL refuse and write nothing when a MODIFIED requirement is missing from the spec, an ADDED requirement is already present with other text, a delta lists a requirement twice, a delta modifies a new capability, a delta has no operations, a spec has no `## Requirements` section, or the archive target exists. A scenario that a MODIFIED requirement drops SHALL be listed in the preview and named in the close report, and SHALL NOT block the merge.
+
+#### Scenario: A modified requirement the spec lacks
+- **GIVEN** a delta that modifies a requirement the capability spec does not contain
+- **WHEN** the close runs the merge script
+- **THEN** it refuses with exit 1 and the specs and the change folder stay unchanged
+
+#### Scenario: Preview before applying
+- **GIVEN** an integrated change folder with valid deltas
+- **WHEN** the close runs the script without `--apply`
+- **THEN** it prints each operation per capability and the archive target, and writes nothing
+
+#### Scenario: A modified requirement drops a scenario
+- **GIVEN** a delta whose MODIFIED requirement omits a scenario the spec has
+- **WHEN** the close previews and applies the merge
+- **THEN** the preview lists the dropped scenario, the merge proceeds, and the close report names it
