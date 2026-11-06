@@ -494,28 +494,8 @@ func timelineContractErrorOf(err error) (string, string) {
 // Every kind-dependent field is accepted by exactly the kinds the table names
 // and otherwise rejected with forbidden_for_kind on that same field.
 func TestTimelineKindFieldsMatchValidator(t *testing.T) {
-	one := int64(1)
-	fixture, err := DecodeTimelineAppendEvent(timelineFixture(t, "append-validation.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	set := map[string]func(*TimelineAppendEventRequest){
-		"stage":                    func(r *TimelineAppendEventRequest) { r.Stage = "build" },
-		"stage_state":              func(r *TimelineAppendEventRequest) { r.StageState = "in_progress" },
-		"expected_session_version": func(r *TimelineAppendEventRequest) { r.ExpectedSessionVersion = &one },
-		"views":                    func(r *TimelineAppendEventRequest) { r.Views = fixture.Views },
-		"target": func(r *TimelineAppendEventRequest) {
-			r.Target = &TimelineDecisionTarget{Kind: "evidence", EventID: "event-1", EvidenceID: "evidence-1"}
-		},
-		"source_reference":      func(r *TimelineAppendEventRequest) { r.SourceReference = "Reported in chat" },
-		"delivery_ids":          func(r *TimelineAppendEventRequest) { r.DeliveryIDs = []string{"delivery-1"} },
-		"closure":               func(r *TimelineAppendEventRequest) { r.Closure = &TimelineClosure{Reason: "completed", Result: "Done"} },
-		"review_status":         func(r *TimelineAppendEventRequest) { r.ReviewStatus = "in_progress" },
-		"target_stage_event_id": func(r *TimelineAppendEventRequest) { r.TargetStageEventID = "event-1" },
-		"task_id":               func(r *TimelineAppendEventRequest) { r.TaskID = "task-1" },
-		"segment_id":            func(r *TimelineAppendEventRequest) { r.SegmentID = "segment-1" },
-	}
-	kinds := []string{"request", "work_started", "stage", "validation", "changes_reported", "iteration", "approval_reported", "delivery", "closure", "review"}
+	set := timelineKindSetters(t)
+	kinds := timelineKindsWithBase
 	rows := TimelineEventKindFields()
 	if len(rows) != len(set) {
 		t.Fatalf("table has %d fields, the test sets %d", len(rows), len(set))
@@ -534,6 +514,44 @@ func TestTimelineKindFieldsMatchValidator(t *testing.T) {
 				t.Errorf("%s on kind %s: allowed by table %v, validator returned %s on %s", row.Field, kind, allowed, code, field)
 			}
 		}
+	}
+}
+
+// timelineKindsWithBase are the event kinds a native producer may publish:
+// every kind except those only the server writes.
+var timelineKindsWithBase = func() []string {
+	var kinds []string
+	for _, kind := range timelineEventKinds {
+		if !contains([]string{"state_transition", "producer_joined", "foreground_transferred", "task_state_transition", "local_action"}, kind) {
+			kinds = append(kinds, kind)
+		}
+	}
+	return kinds
+}()
+
+// timelineKindSetters sets one kind-dependent field to a valid nonempty value.
+func timelineKindSetters(t *testing.T) map[string]func(*TimelineAppendEventRequest) {
+	t.Helper()
+	one := int64(1)
+	fixture, err := DecodeTimelineAppendEvent(timelineFixture(t, "append-validation.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return map[string]func(*TimelineAppendEventRequest){
+		"stage":                    func(r *TimelineAppendEventRequest) { r.Stage = "build" },
+		"stage_state":              func(r *TimelineAppendEventRequest) { r.StageState = "in_progress" },
+		"expected_session_version": func(r *TimelineAppendEventRequest) { r.ExpectedSessionVersion = &one },
+		"views":                    func(r *TimelineAppendEventRequest) { r.Views = fixture.Views },
+		"target": func(r *TimelineAppendEventRequest) {
+			r.Target = &TimelineDecisionTarget{Kind: "evidence", EventID: "event-1", EvidenceID: "evidence-1"}
+		},
+		"source_reference":      func(r *TimelineAppendEventRequest) { r.SourceReference = "Reported in chat" },
+		"delivery_ids":          func(r *TimelineAppendEventRequest) { r.DeliveryIDs = []string{"delivery-1"} },
+		"closure":               func(r *TimelineAppendEventRequest) { r.Closure = &TimelineClosure{Reason: "completed", Result: "Done"} },
+		"review_status":         func(r *TimelineAppendEventRequest) { r.ReviewStatus = "in_progress" },
+		"target_stage_event_id": func(r *TimelineAppendEventRequest) { r.TargetStageEventID = "event-1" },
+		"task_id":               func(r *TimelineAppendEventRequest) { r.TaskID = "task-1" },
+		"segment_id":            func(r *TimelineAppendEventRequest) { r.SegmentID = "segment-1" },
 	}
 }
 

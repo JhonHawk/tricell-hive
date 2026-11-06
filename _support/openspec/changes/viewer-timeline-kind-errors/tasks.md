@@ -58,7 +58,7 @@ Base: `development` @ `fbf3922e` (plan escrito sobre `084728fa`); rama `fix/view
 
 ### T3 — Condiciones por tipo en el esquema de append_event
 
-- [ ] `hive view contract --operation append_event` declara, por cada fila de la tabla, que los otros tipos no aceptan el campo, y los briefs no cambian.
+- [x] `hive view contract --operation append_event` declara, por cada fila de la tabla, que los otros tipos no aceptan el campo, y los briefs no cambian.
 
 **Closes:** AC4
 
@@ -88,10 +88,13 @@ Base: `development` @ `fbf3922e` (plan escrito sobre `084728fa`); rama `fix/view
 2026-11-05 — plan escrito y revisado por `hive-review-plan`.
 2026-11-05 — T1 hecha: tabla `timelineKindFields`, rechazos con el campo real y prueba de deriva (dos mutaciones atrapadas); `go test ./tooling/viewer/` pasa. Línea base de briefs (bytes): research 6466, plan 6462, build 9023, verify 8727, delivery 9999, close 1497, collab 1624, local 1180.
 2026-11-05 — T2 hecha: `viewTimelineKindHint` en el rechazo local; la prueba falló sin la pista y pasa con ella; el binario candidato imprime `forbidden_for_kind on expected_session_version; only kind stage accepts it` sin crear estado; `go test ./tooling/cli/ -run 'Timeline'` pasa.
+2026-11-05 — T1 verificada por `hive-verify-task`: AC1, AC2 y AC5 se cumplen; por su sugerencia, la prueba de deriva recorre todos los tipos publicables de `timelineEventKinds` en vez de una lista fija.
+2026-11-05 — T2 verificada por `hive-verify-task`: AC3 se cumple.
+2026-11-05 — T3 hecha: 12 condiciones por tipo en `allOf` de `append_event`; la prueba compara esquema y validador en toda la matriz de campos × tipos, más los textos vacíos; una mutación (`maxLength` → `minLength`) da 47 discrepancias; los bytes de los briefs de los ocho flujos coinciden con la línea base.
 
 ## Checkpoint
 
-- Etapa: build · paso 2 · siguiente: T3 (condiciones por tipo en el esquema); verificación de T1 en curso.
+- Etapa: build · paso 2 · siguiente: T4 (pista en los rechazos del visor); verificación de T3 en curso.
 - Worktree `.claude/worktrees/viewer-timeline-kind-errors`, rama `fix/viewer-timeline-kind-errors` desde `fbf3922e`.
 - Visor: work `viewer-timeline-kind-errors`, etapa build en curso.
 - Hallazgos abiertos: ninguno.

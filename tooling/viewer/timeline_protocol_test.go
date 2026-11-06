@@ -463,3 +463,73 @@ func TestTimelineProtocolEventPatchBriefStatesReasonCondition(t *testing.T) {
 	}
 	t.Fatal("event_patch missing")
 }
+
+// timelineSchemaKindViolation evaluates the kind conditions of an input schema
+// against a request: an "if kind is not one of these" branch whose "then"
+// forbids a field (not required, or a string of length 0).
+func timelineSchemaKindViolation(schema map[string]any, request map[string]any) string {
+	conditions, _ := schema["allOf"].([]any)
+	kind, _ := request["kind"].(string)
+	for _, c := range conditions {
+		branch, _ := c.(map[string]any)
+		cond, _ := branch["if"].(map[string]any)
+		props, _ := cond["properties"].(map[string]any)
+		kindSchema, _ := props["kind"].(map[string]any)
+		not, _ := kindSchema["not"].(map[string]any)
+		accepting, ok := not["enum"].([]string)
+		if !ok || contains(accepting, kind) {
+			continue
+		}
+		then, _ := branch["then"].(map[string]any)
+		if forbid, ok := then["not"].(map[string]any); ok {
+			for _, field := range forbid["required"].([]string) {
+				if _, present := request[field]; present {
+					return field
+				}
+			}
+		}
+		if fields, ok := then["properties"].(map[string]any); ok {
+			for field, rule := range fields {
+				value, present := request[field].(string)
+				if present && rule.(map[string]any)["maxLength"] == 0 && value != "" {
+					return field
+				}
+			}
+		}
+	}
+	return ""
+}
+
+func TestTimelineProtocolAppendEventSchemaDeclaresKindFields(t *testing.T) {
+	contract, err := TimelineProtocolContract("append_event")
+	if err != nil {
+		t.Fatal(err)
+	}
+	schema := contract.Commands[0].InputSchema
+	set := timelineKindSetters(t)
+	for _, row := range TimelineEventKindFields() {
+		for _, kind := range timelineKindsWithBase {
+			r := timelineKindBase(t, kind)
+			set[row.Field](&r)
+			raw, err := json.Marshal(r)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var request map[string]any
+			if err := json.Unmarshal(raw, &request); err != nil {
+				t.Fatal(err)
+			}
+			field, code := timelineContractErrorOf(r.Validate())
+			validatorRejects := field == row.Field && code == "forbidden_for_kind"
+			if schemaRejects := timelineSchemaKindViolation(schema, request) == row.Field; schemaRejects != validatorRejects {
+				t.Errorf("%s on kind %s: schema rejects %v, validator rejects %v", row.Field, kind, schemaRejects, validatorRejects)
+			}
+		}
+	}
+	// The validator accepts these fields empty on any kind; so must the schema.
+	for _, field := range []string{"source_reference", "review_status", "target_stage_event_id", "task_id", "segment_id"} {
+		if got := timelineSchemaKindViolation(schema, map[string]any{"kind": "request", field: ""}); got != "" {
+			t.Errorf("schema rejects empty %s", got)
+		}
+	}
+}
