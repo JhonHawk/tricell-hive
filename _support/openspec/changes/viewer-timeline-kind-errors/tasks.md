@@ -92,10 +92,13 @@ Base: `development` @ `fbf3922e` (plan escrito sobre `084728fa`); rama `fix/view
 2026-11-05 — T2 verificada por `hive-verify-task`: AC3 se cumple.
 2026-11-05 — T3 hecha: 12 condiciones por tipo en `allOf` de `append_event`; la prueba compara esquema y validador en toda la matriz de campos × tipos, más los textos vacíos; una mutación (`maxLength` → `minLength`) da 47 discrepancias; los bytes de los briefs de los ocho flujos coinciden con la línea base.
 2026-11-05 — T4 hecha: `viewHTTPStatusError` guarda código y campo, y `runViewTimeline` agrega la pista para las operaciones de eventos. La prueba contra un visor real del fixture (`event update` con `stage_state` en un evento `request`) falla sin el cableado y pasa con él; `go test ./tooling/cli/ -run 'Timeline|ViewErrorDetail'` pasa.
+2026-11-05 — T3 verificada (AC4 se cumple). Observación: el esquema completo sigue rechazando `stage: ""` y `stage_state: ""` en tipos que no son de etapa, por los `enum` que ya existían; el validador los acepta. Es anterior a este cambio y queda fuera de él.
+2026-11-05 — T4 verificada (AC6 se cumple). Por su observación, la prueba negativa compara el mensaje completo (`07927080`).
+2026-11-05 — CI: el único workflow (`master-source-branch.yml`) solo valida la rama de origen de los PR a `master`; no hay job de pruebas para `development`. En local, sobre `07927080`, con árbol limpio: `go vet ./...` sin hallazgos; `go test ./...` pasa en todos los paquetes (`tooling/cli` 209 s, `tooling/viewer` en caché del commit de T3 y verde en la corrida de T4). No se tocó el frontend ni sus pruebas.
 
 ## Checkpoint
 
-- Etapa: build · paso 5 · siguiente: reproducir el CI local y pasar a flow-verify; verificaciones de T3 y T4 en curso.
+- Etapa: verify · siguiente: flow-verify sobre `07927080` (revisión `/code-review`, entrega automática).
 - Worktree `.claude/worktrees/viewer-timeline-kind-errors`, rama `fix/viewer-timeline-kind-errors` desde `fbf3922e`.
 - Visor: work `viewer-timeline-kind-errors`, etapa build en curso.
 - Hallazgos abiertos: ninguno.
