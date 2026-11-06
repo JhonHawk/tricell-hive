@@ -64,7 +64,7 @@ Base: development e2a633e49f9ae59654bd272c574b460696ad3dae. Rama de implementaci
 
 **Depends on:** T3 (recibo, coordinador y activación).
 
-**Locations:** get-hive.sh, install.sh si se necesita, tooling/cli/install.go, tooling/management (install/remove del recibo), tooling/distribution y tooling/package tests.
+**Locations:** get-hive.sh, install.sh si se necesita, tooling/cli/install.go, tooling/management/release_paths.go y recibo de comando, tooling/distribution/release_package.go y update_protocol.go (importación local/origen de artefacto) y tests propietarios.
 
 **Execution:** hive-build-backend, por los módulos compartidos con T3.
 
@@ -132,7 +132,7 @@ Entrega D2 A: tras checks y revisión, presentar el flujo terminal y esperar val
 
 ## Checkpoint
 
-Build · T1/T2 verificados; T3/T4/T5 en curso sobre contratos fijados. Base real: origin/development e2a633e4; los commits ajenos cb9b3ffb/2f39491b del checkout principal no se incluyen. User aprobó AC1–AC14 al invocar flow-build. D1 A, D2 A, D3 A y D4 A vigentes. Último commit: 2ed68355 (T1). Próximo paso: terminar T2, ejecutar checks y verificar su checkpoint antes de marcarlo. Recursos: worktree propio; ningún proceso de producto ni paquete de prueba todavía.
+Build · T1/T2 verificados; T3/T4/T5 en curso sobre contratos fijados. Base real: origin/development e2a633e4; los commits ajenos cb9b3ffb/2f39491b del checkout principal no se incluyen. User aprobó AC1–AC14 al invocar flow-build. D1 A, D2 A, D3 A y D4 A vigentes. Último commit: 50c80ce9 (T2); T1: 2ed68355. Próximo paso: terminar T3/T4/T5, comprobar la integración y verificar cada checkpoint. T3 es dueño de management/main/release_executor; T4 install/scripts/release_paths; T5 update/TUI. T2 verificado en 50c80ce9. Recursos: worktree propio; ningún proceso de producto ni paquete de prueba todavía.
 
 2026-11-05 — T1 productor: protocolo, bootstrap y envelope implementados; suite del productor distribution 31.7s, management 40.6s, CLI 218.3s, package 3.3s. Verificador independiente: pruebas focalizadas offline PASS (.794s/.363s/2.039s), sin defecto funcional demostrado; pide ampliar apply/recover y validación semántica antes de Freeze. Corrección de cobertura en los dos tests propietarios; T2 inició en archivos nuevos sin solapar. AC2/AC5/AC9/AC13 completos siguen abiertos para T2/T3/T5; verificar T1 no los cierra prematuramente.
 
@@ -141,3 +141,13 @@ Build · T1/T2 verificados; T3/T4/T5 en curso sobre contratos fijados. Base real
 2026-11-05 — Ajuste de dependencia de T5: el contrato tipado T3 ya está disponible y permite implementar CLI/TUI sin esperar la migración T4; su integración end-to-end permanece en T6. No cambia criterios ni delta. T2 terminó productor y está en verificación independiente; T3/T5 editan módulos distintos.
 
 2026-11-05 — ✓ T2 verificado (commit de esta tarea). Productor: distribution/package31.220s/3.445s PASS, race TestRelease3.231s PASS, vet PASS. Main TestRelease1.624s PASS; verificador independiente TestRelease1.615s/package2.807s PASS sin defecto demostrado. Se amplió el owner de resolución para exigir deadline activo de máximo dos minutos y se renombró el caso de cancelación para no confundirlo con vencimiento. T2 completa distribución/preparación; los planes completos y hooks finales siguen en T3/T5.
+
+2026-11-05 — T4 reutiliza la retención de T2 para importación offline mediante PrepareLocalRelease. El descriptor distingue archive/directory para no inventar un checksum de archivo que el instalador local no conserva. Se amplía ownership de T4 a release_package/update_protocol y sus tests; T3/T5 informados y sin solapamiento. Sin cambio de criterios ni delta.
+
+2026-11-05 — H3 confirmado en integración por main: `go test ./tooling/cli -run '^TestReleaseUpdateCLI$' -count=1 -timeout=180s` FAIL3.272s, `offline apply: true target executor refused update: core payload is not bound to the retained package`. Retain copiaba con0600|exec y cambiaba modos originales, parte del Release ID. T4, dueño actual de release_package.go, corrige preservación exacta de permisos y añade regresión propietaria; T5 conserva el E2E. No se relaja validación de identidad.
+
+## Live build handoff
+
+Root worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/release-self-update; explicit tool cwd required. Commits T1 2ed68355, T2 50c80ce9. Root-owned exec sessions34173/56492/69754/51808 finished; no root product process. Agents active: /root/build_t3_coordinator (management core + cli main/release_executor), /root/build_t4_migration (install.go/get-hive + paths and distribution local import/mode fix), /root/build_t5_cli (update.go/TUI/owner tests). Never edit their owned files while active. T4/T3 coordinate exact consented preview freeze and verified prepared-vs-retained package; T5 tests real local go-built executor. T3/T4 full management/CLI suites in flight. H3 mode preservation owner regression green; root E2E green rerun pending source integration. Next: collect child outputs, rerun relevant checks, independent hive-verify-task per completed task; commit named paths only; T6 docs after APIs settle. Final flow-verify with native Codex review, terminal walkthrough/UX review and human validation BEFORE push (D2 A). No public release/promotion/global changes. Viewer work_id059ebc7c344c592434939d3a5e3c91bacb647beea3cb541a67006c554319365a, stage build; plan revision revision-abe5e6e279d81c5febf6d34671ac72ef.
+
+2026-11-05 — H4 confirmado por lectura del root: tui_app.handleKey devolvía tea.Quit para Ctrl-C antes de informar al Update view; appFilter sólo protegía writes, por lo que preparación/confirmación podían abandonar temporales sin cleanup. T5 amplía ownership a tui_app.go/tui_test.go para cubrir Ctrl-C, SIGINT/QuitMsg y confirmación, manteniendo bloqueo durante writes; pruebas de regresión antes del fix. No cambia AC4 ni el alcance del resultado.

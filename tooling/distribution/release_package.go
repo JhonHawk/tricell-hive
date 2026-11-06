@@ -206,13 +206,73 @@ func verifyReleaseDirectory(root, product, platform, archiveDigest string, state
 	return UpdateArtifact{ProductVersion: product, Platform: platform, Label: filepath.Base(root), ArchiveSHA256: archiveDigest, ManifestSHA256: Digest(data), SourceID: m.SourceID, Bootstrap: bootstrap}, nil
 }
 
-// VerifyRetainedPackage authenticates the pinned bytes without network access.
-// It deliberately does not require the now-disposable preparation path.
+// PrepareLocalRelease verifies a complete offline package without taking
+// ownership of the caller's directory. Retain copies and rechecks its pinned
+// bytes; Cleanup never removes the imported source.
+func PrepareLocalRelease(root, store string, stateVersion int) (*PreparedRelease, error) {
+	if err := checkCanonicalAncestors(root); err != nil {
+		return nil, err
+	}
+	if err := checkCanonicalAncestors(store); err != nil {
+		return nil, err
+	}
+	m, err := ReadManifest(root)
+	if err != nil {
+		return nil, err
+	}
+	artifact, err := verifyReleaseDirectory(root, m.ProductVersion, m.Platform, "", stateVersion)
+	if err != nil {
+		return nil, err
+	}
+	artifact.SourceKind = "directory"
+	// An offline extraction may be renamed by its owner; its immutable store
+	// label comes from verified product/platform identity rather than that name.
+	artifact.Label = "hive-" + m.ProductVersion + "-" + strings.ReplaceAll(m.Platform, "/", "-")
+	final := filepath.Join(store, artifact.Label)
+	b := UpdatePackageBinding{Artifact: artifact, PreparationDirectory: root, PackageDirectory: final,
+		PreparationExecutor: ExecutorIdentity{Path: filepath.Join(root, "bin", "hive"), SHA256: artifact.Bootstrap.ExecutableSHA256},
+		TargetExecutable:    ExecutorIdentity{Path: filepath.Join(final, "bin", "hive"), SHA256: artifact.Bootstrap.ExecutableSHA256}}
+	if err := b.Validate(stateVersion); err != nil {
+		return nil, err
+	}
+	return &PreparedRelease{Binding: b, stateVersion: stateVersion}, nil
+}
+
+func verifiedBoundDirectory(root string, artifact UpdateArtifact, stateVersion int) (UpdateArtifact, error) {
+	got, err := verifyReleaseDirectory(root, artifact.ProductVersion, artifact.Platform, artifact.ArchiveSHA256, stateVersion)
+	if err == nil && artifact.SourceKind == "archive" {
+		got.SourceKind = "archive"
+	}
+	if err == nil && artifact.SourceKind == "directory" {
+		got.SourceKind = "directory"
+		got.Label = "hive-" + got.ProductVersion + "-" + strings.ReplaceAll(got.Platform, "/", "-")
+	}
+	return got, err
+}
+
+// VerifyPreparedPackage checks the preparation bytes against the original
+// frozen binding; its directory may have been renamed during offline extraction.
+func VerifyPreparedPackage(binding UpdatePackageBinding, stateVersion int) error {
+	if err := binding.Validate(stateVersion); err != nil {
+		return err
+	}
+	got, err := verifiedBoundDirectory(binding.PreparationDirectory, binding.Artifact, stateVersion)
+	if err != nil {
+		return err
+	}
+	if got != binding.Artifact {
+		return fmt.Errorf("prepared package differs from frozen artifact")
+	}
+	return nil
+}
+
+// VerifyRetainedPackage authenticates pinned bytes without network access.
+// It does not require the now-disposable preparation path.
 func VerifyRetainedPackage(binding UpdatePackageBinding, stateVersion int) error {
 	if err := binding.Validate(stateVersion); err != nil {
 		return err
 	}
-	got, err := verifyReleaseDirectory(binding.PackageDirectory, binding.Artifact.ProductVersion, binding.Artifact.Platform, binding.Artifact.ArchiveSHA256, stateVersion)
+	got, err := verifiedBoundDirectory(binding.PackageDirectory, binding.Artifact, stateVersion)
 	if err != nil {
 		return err
 	}
@@ -230,7 +290,7 @@ func (p *PreparedRelease) Retain() error {
 	if err := b.Validate(p.stateVersion); err != nil {
 		return err
 	}
-	got, err := verifyReleaseDirectory(b.PreparationDirectory, b.Artifact.ProductVersion, b.Artifact.Platform, b.Artifact.ArchiveSHA256, p.stateVersion)
+	got, err := verifiedBoundDirectory(b.PreparationDirectory, b.Artifact, p.stateVersion)
 	if err != nil {
 		return err
 	}
@@ -298,11 +358,14 @@ func (p *PreparedRelease) Retain() error {
 			return err
 		}
 		defer source.Close()
-		out, err := os.OpenFile(dest, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600|info.Mode().Perm()&0111)
+		out, err := os.OpenFile(dest, os.O_CREATE|os.O_EXCL|os.O_WRONLY, info.Mode().Perm())
 		if err != nil {
 			return err
 		}
-		_, copyErr := io.Copy(out, source)
+		copyErr := out.Chmod(info.Mode().Perm())
+		if copyErr == nil {
+			_, copyErr = io.Copy(out, source)
+		}
 		if copyErr == nil {
 			copyErr = out.Sync()
 		}

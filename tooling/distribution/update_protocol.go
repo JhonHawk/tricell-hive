@@ -98,9 +98,11 @@ type ExecutorIdentity struct {
 	SHA256 string `json:"sha256"`
 }
 
-// UpdateArtifact freezes the remote artifact independently of its content ID
-// and exact manifest bytes. No URL or command in this structure is executable.
+// UpdateArtifact freezes verified package provenance independently of its
+// content ID and exact manifest bytes. No field grants execution authority.
 type UpdateArtifact struct {
+	// SourceKind is empty for downloaded archives and directory for verified local imports.
+	SourceKind     string          `json:"source_kind,omitempty"`
 	ProductVersion string          `json:"product_version"`
 	Platform       string          `json:"platform"`
 	Label          string          `json:"label"`
@@ -129,7 +131,19 @@ func (b UpdatePackageBinding) Validate(stateVersion int) error {
 	if err := a.Bootstrap.Validate(a.ProductVersion, a.Platform, stateVersion); err != nil {
 		return err
 	}
-	if !ValidSHA256(a.ArchiveSHA256) || !ValidSHA256(a.ManifestSHA256) || a.SourceID != a.Bootstrap.SourceID || a.Label == "" || a.Label == "." || strings.ContainsAny(a.Label, "/\\") {
+	switch a.SourceKind {
+	case "", "archive":
+		if !ValidSHA256(a.ArchiveSHA256) {
+			return fmt.Errorf("invalid frozen archive digest")
+		}
+	case "directory":
+		if a.ArchiveSHA256 != "" {
+			return fmt.Errorf("directory import cannot claim an archive digest")
+		}
+	default:
+		return fmt.Errorf("unsupported package source kind")
+	}
+	if !ValidSHA256(a.ManifestSHA256) || a.SourceID != a.Bootstrap.SourceID || a.Label == "" || a.Label == "." || strings.ContainsAny(a.Label, "/\\") {
 		return fmt.Errorf("invalid frozen update artifact")
 	}
 	if !canonicalAbsolute(b.PreparationDirectory) || !canonicalAbsolute(b.PackageDirectory) || filepath.Base(b.PackageDirectory) != a.Label {

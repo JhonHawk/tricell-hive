@@ -445,3 +445,81 @@ func TestReleaseRetainedVerificationBoundsChangedFiles(t *testing.T) {
 		t.Fatalf("changed oversized file was not bounded before hashing: %v", err)
 	}
 }
+
+func TestLocalReleaseImportRetainsWithoutOwningSource(t *testing.T) {
+	target, archive := releaseArchiveFixture(t)
+	parent, _ := filepath.EvalSymlinks(t.TempDir())
+	source, err := Extract(archive, parent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	store := filepath.Join(parent, "store")
+	p, err := PrepareLocalRelease(source, store, 7)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if p.Binding.Artifact.SourceKind != "directory" || p.Binding.Artifact.ArchiveSHA256 != "" {
+		t.Fatal("local directory claimed archive identity")
+	}
+	if p.Binding.PackageDirectory != filepath.Join(store, target.Label) {
+		t.Fatal(p.Binding.PackageDirectory)
+	}
+	if _, err := os.Stat(store); !os.IsNotExist(err) {
+		t.Fatal("preparation wrote store")
+	}
+	if err := p.Retain(); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Retain(); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Cleanup(); err != nil {
+		t.Fatal(err)
+	}
+	if err := VerifyIfPackaged(source); err != nil {
+		t.Fatalf("cleanup removed source: %v", err)
+	}
+	if err := VerifyRetainedPackage(p.Binding, 7); err != nil {
+		t.Fatal(err)
+	}
+	// Directory imports cannot weaken archive bindings or invent source kinds.
+	for _, kind := range []string{"", "archive", "other"} {
+		b := p.Binding
+		b.Artifact.SourceKind = kind
+		if err := b.Validate(7); err == nil {
+			t.Fatalf("accepted missing archive digest for %q", kind)
+		}
+	}
+	if err := os.WriteFile(filepath.Join(source, "LICENSE"), []byte("changed"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Retain(); err == nil {
+		t.Fatal("accepted changed source")
+	}
+}
+
+func TestLocalReleaseRetentionPreservesPayloadPermissions(t *testing.T) {
+	_, archive := releaseArchiveFixture(t)
+	parent, _ := filepath.EvalSymlinks(t.TempDir())
+	source, err := Extract(archive, parent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chmod(filepath.Join(source, "LICENSE"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	p, err := PrepareLocalRelease(source, filepath.Join(parent, "store"), 7)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := p.Retain(); err != nil {
+		t.Fatal(err)
+	}
+	for _, name := range []string{"LICENSE", "bin/hive"} {
+		before, _ := os.Stat(filepath.Join(source, name))
+		after, _ := os.Stat(filepath.Join(p.Binding.PackageDirectory, name))
+		if before.Mode().Perm() != after.Mode().Perm() {
+			t.Fatalf("%s changed mode: %v -> %v", name, before.Mode().Perm(), after.Mode().Perm())
+		}
+	}
+}
