@@ -12,6 +12,13 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- Verify reads each check's result from its exit status, keeping it with
+  `pipefail` or a saved output file when the output is filtered, and a round of
+  fixes reruns the edited package's tests and the failing test before running
+  the full suite once, after the round's last fix.
+- After a merge, the wait for the base branch's CI runs in the background while
+  the close proceeds, on hosts that report a background command's exit.
+
 - Removed worktrees retain their navigation group when an available registered
   source of the same stored project identity supplies one unambiguous explicit
   name. Historical sources and records remain unchanged; missing or conflicting
