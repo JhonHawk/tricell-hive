@@ -1,8 +1,5 @@
-// hive update refreshes an installed Hive from a Git commit of this checkout
-// (default HEAD), without requiring an operator to run `git archive`, `plan
-// install` and `apply` by hand. Its contract is documented in
-// _support/docs/architecture/deployment-manager.md ("Update from a commit
-// and list releases").
+// hive update refreshes executable and content from a verified release, or
+// content alone from an explicitly selected committed source.
 package main
 
 import (
@@ -10,22 +7,29 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"context"
+	"crypto/rand"
+	"encoding/hex"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"tricell-hive/integrations/target"
 	"tricell-hive/tooling/distribution"
 	"tricell-hive/tooling/management"
 	"tricell-hive/tooling/providers"
+	"tricell-hive/tooling/version"
 )
 
 type updateFlags struct {
-	Rev, Source, Home, StateDir, Out string
-	DryRun                           bool
+	Rev, Source, Home, StateDir, Out, Version string
+	SourceMode                                bool
+	DryRun                                    bool
 	// WaitFloor asks the plan to set the Codex wait floor. It is not a command
 	// flag: update sets it after the operator accepts the offer.
 	WaitFloor bool
@@ -42,6 +46,7 @@ var updateAdapterFactory = func(f updateFlags, interactive bool, codexHome strin
 func parseUpdateFlags(args []string) (updateFlags, error) {
 	f := updateFlags{Rev: "HEAD", Source: "."}
 	fs := flag.NewFlagSet("update", flag.ContinueOnError)
+	fs.StringVar(&f.Version, "version", "", "exact published product version")
 	fs.StringVar(&f.Rev, "rev", f.Rev, "commit-ish to update from")
 	fs.StringVar(&f.Source, "source", f.Source, "Git checkout to update from")
 	fs.StringVar(&f.Home, "home", "", "explicit synthetic home; ignores host environment paths")
@@ -53,6 +58,24 @@ func parseUpdateFlags(args []string) (updateFlags, error) {
 	}
 	if fs.NArg() != 0 {
 		return f, fmt.Errorf("unexpected positional arguments")
+	}
+	var selectedVersion bool
+	fs.Visit(func(v *flag.Flag) {
+		if v.Name == "source" || v.Name == "rev" {
+			f.SourceMode = true
+		}
+		if v.Name == "version" {
+			selectedVersion = true
+		}
+	})
+	if selectedVersion && f.SourceMode {
+		return f, fmt.Errorf("--version conflicts with --source and --rev")
+	}
+	if selectedVersion && (f.Version == "" || f.Version == "dev" || !version.Valid(f.Version)) {
+		return f, fmt.Errorf("invalid --version")
+	}
+	if f.SourceMode && (f.Source == "" || f.Rev == "" || strings.HasPrefix(f.Rev, "-")) {
+		return f, fmt.Errorf("invalid --source or --rev")
 	}
 	return f, nil
 }
@@ -67,6 +90,9 @@ func update(args []string, in io.Reader, out io.Writer, interactive bool) error 
 			return nil
 		}
 		return err
+	}
+	if !f.SourceMode {
+		return updateRelease(f, in, out, interactive)
 	}
 	terminal := installTerminal{reader: bufio.NewReader(in), out: out, interactive: interactive}
 	p, sourceLine, unchanged, err := planUpdate(f)
@@ -144,6 +170,7 @@ func update(args []string, in io.Reader, out io.Writer, interactive bool) error 
 	}
 	reportApplyResult(out, "Hive updated", result)
 	printHookNotes(out, notes)
+	reportUpdateViewer(out, p.StateDir, p.SourceCommit)
 	return nil
 }
 
@@ -467,4 +494,225 @@ func adaptGitArchive(raw []byte) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
+}
+
+// releasePreparation owns disposable verified bytes. Only confirmation or --out
+// retains them; dry-run, cancellation and errors dispose of the preparation.
+type pendingReleaseUpdateError struct{ journal management.UpdateJournal }
+
+func (e *pendingReleaseUpdateError) Error() string {
+	return "pending release update: run " + releaseRecoveryCommand(e.journal.Plan)
+}
+
+type releasePreparation struct {
+	packageFiles *distribution.PreparedRelease
+	plan         management.UpdatePlan
+	target       distribution.ReleaseTarget
+	unchanged    bool
+}
+
+func prepareReleaseUpdate(f updateFlags) (*releasePreparation, error) {
+	return prepareReleaseUpdateContext(context.Background(), f)
+}
+
+func prepareReleaseUpdateContext(ctx context.Context, f updateFlags) (*releasePreparation, error) {
+	if version.Current == "dev" {
+		return nil, fmt.Errorf("development build: use hive update --source <checkout> (or --rev REV)")
+	}
+	cfg, state, err := management.NormalizeOptions(management.Options{Scope: "user", Home: f.Home, StateDir: f.StateDir})
+	if err != nil {
+		return nil, err
+	}
+	if pending, err := management.PendingUpdate(state); err != nil {
+		return nil, err
+	} else if pending != nil {
+		return nil, &pendingReleaseUpdateError{journal: *pending}
+	}
+	hosts, err := management.RegisteredHosts(management.Options{Scope: "user", Home: f.Home, StateDir: f.StateDir})
+	if err != nil {
+		return nil, err
+	}
+	if len(hosts) == 0 {
+		return nil, fmt.Errorf("no CLI hosts are registered with Hive for this home; run hive install first")
+	}
+	client := distribution.ReleaseClient{}
+	targetRelease, err := client.Resolve(ctx, version.Current, f.Version, runtime.GOOS+"/"+runtime.GOARCH)
+	if err != nil {
+		return nil, err
+	}
+	store, err := management.ReleasePackageStore(f.Home)
+	if err != nil {
+		return nil, err
+	}
+	_, schema := management.UpdateStateVersions()
+	files, err := client.Prepare(ctx, targetRelease, store, schema)
+	if err != nil {
+		return nil, err
+	}
+	success := false
+	defer func() {
+		if !success {
+			_ = files.Cleanup()
+		}
+	}()
+	var nonce [16]byte
+	if _, err = rand.Read(nonce[:]); err != nil {
+		return nil, err
+	}
+	payload, err := json.Marshal(management.UpdatePreparePayload{Package: files.Binding, Home: cfg.Home, StateDir: state, NativeHome: !cfg.Synthetic})
+	if err != nil {
+		return nil, err
+	}
+	q := distribution.UpdateRequest{Protocol: distribution.UpdateProtocolVersion, OperationID: hex.EncodeToString(nonce[:]), Action: distribution.UpdatePrepare, ProductVersion: targetRelease.ProductVersion, Payload: payload}
+	response, err := distribution.InvokeUpdate(ctx, files.Binding.PreparationExecutor, q)
+	if err != nil {
+		return nil, err
+	}
+	var result management.UpdateResultPayload
+	if err = distribution.DecodeUpdateMessage(bytes.NewReader(response.Payload), &result); err != nil {
+		return nil, err
+	}
+	if result.Plan == nil {
+		return nil, fmt.Errorf("target executor returned no update plan")
+	}
+	p := *result.Plan
+	if err = p.Validate(); err != nil {
+		return nil, err
+	}
+	if p.OperationID != q.OperationID || p.Package != files.Binding || p.StateDir != state {
+		return nil, fmt.Errorf("target executor changed update binding")
+	}
+	// A known-schema core can prove an actual no-op. Never decode a future
+	// schema just to optimize: that plan still routes to its target executor.
+	unchanged := false
+	if p.CoreStateVersion == schema && version.Current == targetRelease.ProductVersion && p.Command.Expected.Exists && p.Command.Expected.LinkTarget == p.Package.TargetExecutable.Path {
+		var core management.Plan
+		if json.Unmarshal(p.CorePlan, &core) == nil {
+			unchanged, _ = management.PlanUnchanged(core)
+		}
+	}
+	success = true
+	return &releasePreparation{packageFiles: files, plan: p, target: targetRelease, unchanged: unchanged}, nil
+}
+
+func releaseUpdateSummary(out io.Writer, r *releasePreparation) {
+	fmt.Fprintf(out, "Release: %s → %s\n", version.Current, r.target.ProductVersion)
+	if r.target.Downgrade {
+		fmt.Fprintln(out, "Explicit downgrade selected.")
+	}
+	fmt.Fprintf(out, "Hosts: %s\nPackage: %s\nCommand: %s → %s\n", strings.Join(r.plan.Hosts, ", "), r.plan.Package.PackageDirectory, r.plan.Command.Path, r.plan.Package.TargetExecutable.Path)
+	_, schema := management.UpdateStateVersions()
+	if r.plan.CoreStateVersion == schema {
+		var core management.Plan
+		if json.Unmarshal(r.plan.CorePlan, &core) == nil {
+			showInstallSummary(out, core, onboardingPreview{}, false, r.unchanged, false)
+		}
+	}
+	fmt.Fprintf(out, "Frozen core plan: %s (%d destinations)\n", r.plan.CorePlanID, len(r.plan.Destinations))
+	for _, d := range r.plan.Destinations {
+		fmt.Fprintln(out, "  "+d.Path)
+	}
+}
+
+func applyPreparedRelease(r *releasePreparation, out io.Writer) error {
+	if r.unchanged {
+		fmt.Fprintf(out, "Hive is already up to date (%s).\n", r.target.ProductVersion)
+		return nil
+	}
+	if err := r.packageFiles.Retain(); err != nil {
+		return err
+	}
+	payload, err := json.Marshal(management.UpdateApplyPayload{Plan: r.plan})
+	if err != nil {
+		return err
+	}
+	q := distribution.UpdateRequest{Protocol: r.plan.Protocol, OperationID: r.plan.OperationID, Action: distribution.UpdateApply, ProductVersion: r.target.ProductVersion, Payload: payload}
+	response, err := management.RouteUpdate(q, r.plan)
+	if err != nil {
+		return fmt.Errorf("complete update did not finish: %w; inspect hive doctor and recover with %s", err, releaseRecoveryCommand(r.plan))
+	}
+	if response.Status != distribution.UpdateActivated {
+		return fmt.Errorf("core committed; command activation is pending; run %s", releaseRecoveryCommand(r.plan))
+	}
+	fmt.Fprintf(out, "Hive updated (%s → %s).\nOpen new CLI sessions.\n", version.Current, r.target.ProductVersion)
+	reportUpdateViewer(out, r.plan.StateDir, r.plan.Package.Artifact.ProductVersion)
+	return nil
+}
+
+func releaseRecoveryCommand(p management.UpdatePlan) string {
+	return shellQuote(p.Package.TargetExecutable.Path) + " recover --state-dir " + shellQuote(p.StateDir)
+}
+
+// targetIdentity is a product version for a release, or the resolved VCS
+// commit for source update. Package inventory digests are not VCS revisions.
+func reportUpdateViewer(out io.Writer, state, targetIdentity string) {
+	info, running, err := viewRunning(newViewPaths(state))
+	if err != nil || !running {
+		return
+	}
+	known := false
+	if version.Valid(targetIdentity) && targetIdentity != "dev" {
+		known = version.Valid(info.Version) && info.Version != "dev" && !info.Modified
+		if known && info.Version == targetIdentity {
+			return
+		}
+	} else if targetIdentity != "" && targetIdentity != "dev" && targetIdentity != "unknown" {
+		known = info.Revision != "" && info.Revision != "unknown" && !info.Modified
+		if known && info.Revision == targetIdentity {
+			return
+		}
+	}
+	if info.Version == "" {
+		info.Version = "unknown"
+	}
+	if info.Revision == "" {
+		info.Revision = "unknown"
+	}
+	if !known {
+		fmt.Fprintf(out, "The viewer is running version %s, revision %s; cannot compare this runtime identity with the update. Restart it separately if needed.\n", info.Version, info.Revision)
+		return
+	}
+	fmt.Fprintf(out, "The viewer is still running version %s, revision %s; restart it separately to load the update.\n", info.Version, info.Revision)
+}
+
+func updateRelease(f updateFlags, in io.Reader, out io.Writer, interactive bool) error {
+	if version.Current == "dev" {
+		return fmt.Errorf("development build: use hive update --source <checkout> (or --rev REV)")
+	}
+	if !interactive && !f.DryRun && f.Out == "" {
+		return fmt.Errorf("an interactive terminal is required to confirm; use --dry-run to preview or --out FILE to save a plan for hive apply")
+	}
+	r, err := prepareReleaseUpdate(f)
+	if err != nil {
+		return err
+	}
+	defer r.packageFiles.Cleanup()
+	releaseUpdateSummary(out, r)
+	if f.DryRun {
+		fmt.Fprintln(out, "Preview: installation and package storage were not changed.")
+		return nil
+	}
+	if f.Out != "" {
+		if err = r.packageFiles.Retain(); err != nil {
+			return err
+		}
+		if err = management.SaveUpdatePlan(f.Out, r.plan); err != nil {
+			return err
+		}
+		fmt.Fprintf(out, "Complete update plan saved to %s; run hive apply --plan %s (offline).\n", f.Out, f.Out)
+		return nil
+	}
+	if r.unchanged {
+		return applyPreparedRelease(r, out)
+	}
+	terminal := installTerminal{reader: bufio.NewReader(in), out: out, interactive: interactive}
+	decision, err := terminal.Confirm("Apply this complete update (core and command)?", false)
+	if err != nil {
+		return err
+	}
+	if decision != installApply {
+		fmt.Fprintln(out, "Cancelled. No changes applied.")
+		return nil
+	}
+	return applyPreparedRelease(r, out)
 }

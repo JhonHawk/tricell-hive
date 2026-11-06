@@ -76,7 +76,7 @@ Base: development e2a633e49f9ae59654bd272c574b460696ad3dae. Rama de implementaci
 
 ### T5 — Conectar CLI y TUI al coordinador
 
-- [ ] Los dos puntos de entrada muestran el destino correcto, confirman una vez y comparten errores y recuperación.
+- [x] Los dos puntos de entrada muestran el destino correcto, confirman una vez y comparten errores y recuperación.
 
 **Closes:** AC1, AC2, AC4, AC5, AC11, AC12
 
@@ -132,7 +132,7 @@ Entrega D2 A: tras checks y revisión, presentar el flujo terminal y esperar val
 
 ## Checkpoint
 
-Build · T1/T2 verificados; T3/T4/T5 en curso sobre contratos fijados. Base real: origin/development e2a633e4; los commits ajenos cb9b3ffb/2f39491b del checkout principal no se incluyen. User aprobó AC1–AC14 al invocar flow-build. D1 A, D2 A, D3 A y D4 A vigentes. Último commit: 50c80ce9 (T2); T1: 2ed68355. Próximo paso: terminar T3/T4/T5, comprobar la integración y verificar cada checkpoint. T3 es dueño de management/main/release_executor; T4 install/scripts/release_paths; T5 update/TUI. T2 verificado en 50c80ce9. Recursos: worktree propio; ningún proceso de producto ni paquete de prueba todavía.
+Build · T1–T5 verificados; T6 en verificación final y documentación lista. Base real: origin/development e2a633e4; los commits ajenos cb9b3ffb/2f39491b del checkout principal no se incluyen. User aprobó AC1–AC14 al invocar flow-build. D1 A, D2 A, D3 A y D4 A vigentes. Último commit: 50c80ce9 (T2); T1: 2ed68355. Próximo paso: terminar T3/T4/T5, comprobar la integración y verificar cada checkpoint. T3 es dueño de management/main/release_executor; T4 install/scripts/release_paths; T5 update/TUI. T2 verificado en 50c80ce9. Recursos: worktree propio; ningún proceso de producto ni paquete de prueba todavía.
 
 2026-11-05 — T1 productor: protocolo, bootstrap y envelope implementados; suite del productor distribution 31.7s, management 40.6s, CLI 218.3s, package 3.3s. Verificador independiente: pruebas focalizadas offline PASS (.794s/.363s/2.039s), sin defecto funcional demostrado; pide ampliar apply/recover y validación semántica antes de Freeze. Corrección de cobertura en los dos tests propietarios; T2 inició en archivos nuevos sin solapar. AC2/AC5/AC9/AC13 completos siguen abiertos para T2/T3/T5; verificar T1 no los cierra prematuramente.
 
@@ -161,3 +161,5 @@ Recursos adicionales del root: site/node_modules es un symlink propio hacia node
 2026-11-05 — ✓ T3 verificado (commit de esta tarea). Main matriz de gestión PASS2.281s; verificador independiente race gestión10.976s, routing1.408s, preservación1.144s y CLI4.168s PASS, sin defecto concreto. AC5/7/8/9/10/13/14 del checkpoint cumplen; AC1 integrado se cubre con el owner T6 ampliado (productor PASS8.269s) y se reejecutará en suite final. No se acredita durabilidad ante power-loss físico, sino fsync de implementación y recuperación lógica inyectada.
 
 2026-11-05 — ✓ T4 verificado · helpers853b7c9a y commit del instalador en esta tarea. Verificador T4 probó binario real/migración/idempotencia/retirada de enlace alterado y paquetes conservados; main TestInstallPackage PASS.620s y sh -n PASS. Main E2E H3 cerrado con6.977s PASS. El owner T6 añade migración legacy→paquete1.0.0→update1.2.3 con dos hosts y PATH sin Git/Go.
+
+2026-11-05 — ✓ T5 verificado (commit de esta tarea). Verificador owners29.153s PASS; H5/H6 corregidos red→green y follow-up.247s PASS, AC12 cumplido. Main identidad/quoting.254s PASS; programa PTY real80x24 recorre Source/Release, dev guard y resize40x24, Ctrl-C exit0; capturas workspace/images y transcript retenidos. Falta UX independiente y aceptación humana del candidato; no se atribuye validez a capturas previas a una corrección visible.

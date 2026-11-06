@@ -2,8 +2,10 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -14,6 +16,7 @@ import (
 	"tricell-hive/integrations/target"
 	"tricell-hive/tooling/distribution"
 	"tricell-hive/tooling/management"
+	"tricell-hive/tooling/viewer"
 )
 
 // requireGit skips the test when Git is not available, since these tests
@@ -573,5 +576,87 @@ func TestUpdateRemovesExtractionBeforeConfirmation(t *testing.T) {
 	}
 	if len(probe.leftover) != 0 {
 		t.Fatalf("extraction directories still present at the prompt: %v", probe.leftover)
+	}
+}
+
+func TestUpdateModeSelectors(t *testing.T) {
+	for _, tc := range []struct {
+		args   []string
+		source bool
+		rev    string
+	}{{nil, false, "HEAD"}, {[]string{"--source", "."}, true, "HEAD"}, {[]string{"--rev", "v1"}, true, "v1"}} {
+		f, err := parseUpdateFlags(tc.args)
+		if err != nil || f.SourceMode != tc.source || f.Source != "." || f.Rev != tc.rev {
+			t.Fatalf("selector %v: %+v %v", tc.args, f, err)
+		}
+	}
+
+	for _, args := range [][]string{{"--version", "1.2.3", "--source", "."}, {"--version", "1.2.3", "--rev", "HEAD"}, {"--version", ""}, {"--source", ""}} {
+		if _, err := parseUpdateFlags(args); err == nil {
+			t.Errorf("accepted incompatible or empty selectors: %v", args)
+		}
+	}
+	var out bytes.Buffer
+	if err := update(nil, strings.NewReader(""), &out, false); err == nil || !strings.Contains(err.Error(), "--source") {
+		t.Fatalf("bare development update: %v", err)
+	}
+}
+
+func TestUpdateViewerIdentityNotice(t *testing.T) {
+	state, err := target.Canonical(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	paths := newViewPaths(state)
+	if err = os.MkdirAll(paths.dir, 0700); err != nil {
+		t.Fatal(err)
+	}
+	lock, err := viewer.AcquireLock(paths.lock, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer lock.Release()
+	previous := viewClient.Transport
+	t.Cleanup(func() { viewClient.Transport = previous })
+	viewClient.Transport = updateHTTPBoundary(func(r *http.Request) (*http.Response, error) {
+		body, _ := json.Marshal(map[string]any{"pid": os.Getpid(), "state_dir": state})
+		return &http.Response{StatusCode: 200, Body: io.NopCloser(bytes.NewReader(body)), Header: make(http.Header), Request: r}, nil
+	})
+	for _, tc := range []struct {
+		name, product, revision, target, want string
+		modified                              bool
+	}{
+		{"already current release", "1.2.3", "unknown", "1.2.3", "", false},
+		{"different release", "1.0.0", "unknown", "1.2.3", "restart it separately", false},
+		{"development identity", "dev", "unknown", "1.2.3", "cannot compare", false},
+		{"missing identity", "", "", "1.2.3", "cannot compare", false},
+		{"current source commit", "dev", strings.Repeat("a", 40), strings.Repeat("a", 40), "", false},
+		{"different source commit", "dev", strings.Repeat("b", 40), strings.Repeat("a", 40), "restart it separately", false},
+		{"unknown source commit", "dev", "unknown", strings.Repeat("a", 40), "cannot compare", false},
+		{"modified release runtime", "1.2.3", "unknown", "1.2.3", "cannot compare", true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			info := serverInfo{PID: os.Getpid(), Port: 12345, Token: "synthetic-update-viewer-token", StateDir: state, Version: tc.product, Revision: tc.revision, Modified: tc.modified}
+			if err := writeServerInfo(paths, info); err != nil {
+				t.Fatal(err)
+			}
+			var out bytes.Buffer
+			reportUpdateViewer(&out, state, tc.target)
+			if tc.want == "" {
+				if out.Len() != 0 {
+					t.Fatalf("current release incorrectly needs restart: %s", out.String())
+				}
+			} else if !strings.Contains(out.String(), tc.want) {
+				t.Fatalf("identity notice: %s", out.String())
+			}
+		})
+	}
+}
+
+func TestUpdatePendingRecoveryCommandQuotesPaths(t *testing.T) {
+	e := pendingReleaseUpdateError{journal: management.UpdateJournal{Plan: management.UpdatePlan{StateDir: "/Users/test/Library/Application Support/owner's hive", Package: distribution.UpdatePackageBinding{TargetExecutable: distribution.ExecutorIdentity{Path: "/Users/test/owner's release/bin/hive"}}}}}
+	want := `'/Users/test/owner'\''s release/bin/hive' recover --state-dir '/Users/test/Library/Application Support/owner'\''s hive'`
+	if got := e.Error(); !strings.Contains(got, want) {
+		t.Fatalf("recovery command is not runnable:\n%s\nwant %s", got, want)
 	}
 }

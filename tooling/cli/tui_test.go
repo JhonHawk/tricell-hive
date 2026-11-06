@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -15,6 +16,7 @@ import (
 	"syscall"
 	"testing"
 	"time"
+	"tricell-hive/tooling/version"
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
@@ -1602,6 +1604,87 @@ func TestRecoveryPhrasesQuoteThePathForTheShell(t *testing.T) {
 			}
 			if got, want := recoveryPhraseFor(true, true, tc.path), "run hive recover --state-dir "+tc.quoted; got != want {
 				t.Errorf("recoveryPhraseFor = %q, want %q", got, want)
+			}
+		})
+	}
+}
+
+// Quit must cancel a live release request and wait for its worker before the
+// terminal exits. Only the HTTPS transport is replaced; the root and view run
+// in the real Bubble Tea program.
+func TestAppQuitCancelsReleasePreparation(t *testing.T) {
+	oldVersion, oldTransport := version.Current, http.DefaultTransport
+	t.Cleanup(func() { version.Current = oldVersion; http.DefaultTransport = oldTransport })
+	version.Current = "1.0.0"
+	for _, kind := range []string{"keyboard", "SIGINT", "QuitMsg"} {
+		t.Run(kind, func(t *testing.T) {
+			e := newUpdateEnv(t)
+			writeUpdateCatalog(t, e.repo, skillBody("Installed.\n"))
+			installDirect(t, e.home, e.stateDir, e.repo, []string{"codex"})
+			started, cancelled, release := make(chan struct{}), make(chan struct{}), make(chan struct{})
+			var releaseOnce sync.Once
+			unblock := func() { releaseOnce.Do(func() { close(release) }) }
+			defer unblock()
+			http.DefaultTransport = updateHTTPBoundary(func(r *http.Request) (*http.Response, error) {
+				close(started)
+				select {
+				case <-r.Context().Done():
+					close(cancelled)
+					<-release
+					return nil, r.Context().Err()
+				case <-release:
+					return nil, fmt.Errorf("test cleanup")
+				}
+			})
+			cfg := testAppConfig(t)
+			cfg.Options.Home = e.home
+			cfg.Options.StateDir = e.stateDir
+			write, out, p, done := startProgram(t, cfg)
+			waitFor(t, "menu", func() bool { return strings.Contains(stripANSI(out.String()), "Quit") })
+			p.Send(pushViewMsg{v: newUpdateView(cfg)})
+			waitFor(t, "release view", func() bool { return strings.Contains(stripANSI(out.String()), "latest stable") })
+			write("\r")
+			select {
+			case <-started:
+			case <-time.After(10 * time.Second):
+				t.Fatal("release request did not start")
+			}
+			switch kind {
+			case "keyboard":
+				write("\x03")
+			case "SIGINT":
+				p.Send(tea.InterruptMsg{})
+			case "QuitMsg":
+				p.Send(tea.QuitMsg{})
+			}
+
+			select {
+			case <-cancelled:
+			case <-time.After(10 * time.Second):
+				t.Fatal("quit did not cancel the release worker")
+			}
+
+			waitFor(t, "cancelling preparation", func() bool { return strings.Contains(stripANSI(out.String()), "Cancelling preparation") })
+			t.Logf("%s terminal cancellation: %s", kind, "Cancelling preparation… (worker joined before exit)")
+			select {
+			case err := <-done:
+				t.Fatalf("terminal exited before its worker finished: %v", err)
+			default:
+			}
+			// Late apply keys and repeated shutdown signals cannot start work while
+			// cancellation waits for the external boundary to return.
+			p.Send(keyMsg(t, "enter"))
+			p.Send(tea.QuitMsg{})
+			unblock()
+			if err := waitExit(t, done); err != nil {
+				t.Fatalf("quit: %v", err)
+			}
+			store, err := management.ReleasePackageStore(e.home)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err = os.Stat(store); !os.IsNotExist(err) {
+				t.Fatalf("quit retained package storage: %v", err)
 			}
 		})
 	}
