@@ -49,6 +49,14 @@ These rules hold in every mode, including unattended delegation.
 - A child does not read or write the index: it uses the rows and secret sources its brief gives, never a value, and reports each account it created, found stale or needed and did not get; the main thread updates the index.
 - At a work item's close, copy the index's rows, without values, to persistent memory under `accounts/index`; this is the close write «Persistent memory» allows.
 
+## Local instructions
+
+- At session start and again after a compaction, read `HIVE.local.md` when it exists at the root of the repository that holds the working directory or of the declared workspace that holds it; in a worktree, read and write the main checkout's file. It holds facts agents verified on this machine. Each entry is a claim dated when last verified: check it before reporting it as current, and it never outranks the task, the user or the project guidance.
+- Record a fact there when it names something of this machine, account or environment, such as a path, a port in use, an installed tool, its version or its absence, a cloud profile, region or host, a local patch or workaround, or the command order that worked here, and it worked in this session (its command exited 0 or its result was observed): add or update its entry with that date, in the repository's file when it concerns one repository and in the workspace's file when it concerns several or the whole machine. When an entry fails, mark it stale with the date and cause before trying another way. A fact that holds for every clone, such as a test command or a CI job, does not go there: name it once, in the final report of the work item that verified it, as a candidate for the repository's tracked guidance.
+- Write no secret value: name the file in the secret location that holds it, and point to `ACCOUNTS.md` for accounts. Keep the file at or under 100 lines by removing only entries marked stale; when none remain, report its size and remove nothing.
+- This rule authorizes, in any flow, read-only ones included, writing the file and, before its first write inside a Git repository when Git does not ignore it, adding `HIVE.local.md` to `$(git rev-parse --git-common-dir)/info/exclude`. It is the one support file kept at the root rather than in the support home.
+- A child reads the file and does not write it: it reports each fact it verified or found stale, and the main thread updates the file.
+
 ## Evidence
 
 - Recalled memory and prior summaries are claims about past state: verify current state before presenting it, or say it is unverified.
