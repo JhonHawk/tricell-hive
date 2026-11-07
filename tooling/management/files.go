@@ -72,6 +72,9 @@ func removeOrphanWrites(stateDir string, j journal) {
 	if j.CodexLines != nil {
 		dirs[filepath.Dir(j.CodexLines.Path)] = true
 	}
+	if j.PiConfig != nil {
+		dirs[filepath.Dir(j.PiConfig.Path)] = true
+	}
 	for _, le := range j.HostHooks {
 		dirs[filepath.Dir(le.Path)] = true
 	}

@@ -62,6 +62,9 @@ func TestModelOverrideStateWithoutOverridesIsUnchanged(t *testing.T) {
 		}
 	}
 	stored.HostHooks = nil
+	// The Pi subagent activation is covered by its own tests; the golden pins the
+	// encoding of everything else.
+	stored.PiSubagentConfig = nil
 	var dirs []string
 	for _, dir := range stored.CreatedDirs {
 		if !hookDirs[dir] {
@@ -84,6 +87,7 @@ func TestModelOverrideStateWithoutOverridesIsUnchanged(t *testing.T) {
 	planned.ID = ""
 	planned.Executable = ""
 	planned.HostHooks = nil
+	planned.PiSubagentConfig = nil
 	planned.Changes = nil
 	for _, ch := range p.Changes {
 		if ch.Target.Kind != "hook" {

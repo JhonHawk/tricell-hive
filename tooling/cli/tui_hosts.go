@@ -65,6 +65,12 @@ func showRemoveSummary(out io.Writer, p management.Plan) {
 	}
 	sort.Strings(removed)
 	sort.Strings(kept)
+	for _, h := range p.Hosts {
+		if h == "pi" {
+			fmt.Fprintln(out, "Pi subagent activation: if Hive wrote toolActivation, it is removed only")
+			fmt.Fprintln(out, "  while it still reads \"eager\"; anything left in place is reported.")
+		}
+	}
 	fmt.Fprintf(out, "Files to remove: %d\n", len(removed))
 	for _, path := range installRoots(removed, p.Config) {
 		fmt.Fprintf(out, "  %s\n", path)

@@ -187,10 +187,13 @@ Hive wrote that still have their values, then the backup after a clean revert;
 if Codex's file is one Hive cannot edit safely, the offer becomes a manual step
 instead. The minimum applies to Codex's v2 multi-agent runtime; v1 is not
 verified. An older Hive binary that rewrites Hive's state loses the record of
-the write, and then `plan remove` leaves the lines in place. The wait floor is
-the only step where Hive writes a host configuration file itself; pi-subagents
-and the question card run the host's own command, and `agent-browser` runs
-Homebrew or npm. Selecting a manual capability leaves the installed core intact but returns a non-zero exit status
+the write, and then `plan remove` leaves the lines in place. Hive writes a host
+configuration file itself in two steps: the wait floor, and, when you install
+for Pi, `"toolActivation": "eager"` in pi-subagents'
+`extensions/subagent/config.json` when that key is missing, so Pi can start
+helper roles from a session's first request; it keeps a value you set and
+`plan remove` takes back only its own. pi-subagents' package and the question
+card run the host's own command, and `agent-browser` runs Homebrew or npm. Selecting a manual capability leaves the installed core intact but returns a non-zero exit status
 to signal unfinished setup.
 `hive setup` reports local discovery without installing tools; discovery does not
 establish authentication, service access, or host loading.

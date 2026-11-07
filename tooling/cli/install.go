@@ -966,6 +966,9 @@ func showInstallSummary(out io.Writer, p management.Plan, preview onboardingPrev
 			fmt.Fprintf(out, "Warning: %s hooks will be skipped in %s (%s).\n", st.Host, st.Path, st.Skipped)
 		}
 	}
+	for _, line := range piConfigSummaryLines(p.PiSubagentConfig) {
+		fmt.Fprintln(out, line)
+	}
 	if !dry && mentionDryRunFlag {
 		fmt.Fprintln(out, "Use --dry-run to see the full file list before applying.")
 	}
@@ -1170,4 +1173,39 @@ func confirmInstall(terminal installTerminal, prompt string, allowBack bool) (in
 		}
 	}
 	return installCancelled, nil
+}
+
+// piConfigSummaryLines describes the pi-subagents toolActivation step in the
+// install summary: what Hive writes, or why it writes nothing. It never shows
+// other text from the file.
+func piConfigSummaryLines(st *management.PiSubagentConfigStep) []string {
+	if st == nil {
+		return nil
+	}
+	const name = "Pi subagent activation"
+	switch st.Status {
+	case management.PiConfigWrite:
+		return []string{
+			fmt.Sprintf("%s: set %q to %s in", name, st.Key, st.Value),
+			"  " + st.Path,
+			"  Restart open Pi sessions so they start with the subagent tool active.",
+		}
+	case management.PiConfigApplied:
+		return []string{fmt.Sprintf("%s: already set by Hive (%s).", name, st.Value)}
+	case management.PiConfigUserSet:
+		return []string{fmt.Sprintf("%s: left as you set it (%s).", name, st.Value)}
+	case management.PiConfigManual:
+		return []string{
+			fmt.Sprintf("%s: manual step; Hive does not edit the file:", name),
+			"  " + st.Detail + ".",
+			fmt.Sprintf("  To activate it, set %q: %s in", st.Key, st.Value),
+			"  " + st.Path,
+		}
+	case management.PiConfigOtherHome:
+		return []string{
+			fmt.Sprintf("%s: not written; Hive's record is for", name),
+			"  " + st.Detail,
+		}
+	}
+	return nil
 }

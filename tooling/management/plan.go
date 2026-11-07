@@ -627,6 +627,9 @@ func buildPlan(action string, o Options, adjust func(*Plan, State) error) (Plan,
 	if err := planPiPackage(&p); err != nil {
 		return p, err
 	}
+	if err := planPiSubagentConfig(&p, state); err != nil {
+		return p, err
+	}
 	if err := planCodexWaitFloor(&p, o, state); err != nil {
 		return p, err
 	}
@@ -868,7 +871,7 @@ func BindSourceCommit(plan Plan, commit string) (Plan, error) {
 
 func validatePlan(p Plan, state State) error {
 	if p.ReleaseUpdate {
-		if p.Action != "install" || p.Config.Scope != "user" || p.UpdatePackage == nil || p.PiPackage != nil || p.CodexWaitFloor != nil {
+		if p.Action != "install" || p.Config.Scope != "user" || p.UpdatePackage == nil || p.PiPackage != nil || p.CodexWaitFloor != nil || p.PiSubagentConfig != nil {
 			return fmt.Errorf("invalid release update core plan; repair providers separately with hive install")
 		}
 		if err := releasePiPreflight(p); err != nil {
@@ -946,6 +949,9 @@ func validatePlan(p Plan, state State) error {
 		return err
 	}
 	if err := validateCodexWaitFloor(p); err != nil {
+		return err
+	}
+	if err := validatePiSubagentConfig(p); err != nil {
 		return err
 	}
 	if err := validateHostHooks(p); err != nil {

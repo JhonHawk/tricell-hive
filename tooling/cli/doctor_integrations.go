@@ -3,9 +3,10 @@
 // can see locally, what the last onboarding record says, and where the
 // official instructions are. It only reads. It never runs an integration
 // program (a program is only looked up in PATH, and a browser is looked for
-// by file existence) and reads a host's configuration only for the Codex wait
-// floor, the one setting Hive writes there: whether Pi has pi-subagents, or a
-// host loads a skill, is not something Hive checks.
+// by file existence) and reads a host's configuration only for the two
+// settings Hive writes there, the Codex wait floor and the pi-subagents
+// toolActivation key: whether Pi has pi-subagents, or a host loads a skill, is
+// not something Hive checks.
 package main
 
 import (
@@ -19,6 +20,7 @@ import (
 	"time"
 
 	"tricell-hive/integrations/codex"
+	pihost "tricell-hive/integrations/pi"
 	"tricell-hive/tooling/management"
 	"tricell-hive/tooling/providers"
 )
@@ -94,7 +96,7 @@ func (r integrationRow) summaryLine() string {
 }
 
 func integrationColumns(name, found, record string) string {
-	return fmt.Sprintf("%-20s%-14s%s", name, found, record)
+	return fmt.Sprintf("%-24s%-14s%s", name, found, record)
 }
 
 // collectIntegrations builds the Integrations section. deps may or may not be
@@ -140,7 +142,7 @@ func collectIntegrationRows(o management.Options, deps doctorDeps) (rows []integ
 	ctx7.Found, ctx7.Evidence = context7Evidence(deps, homeErr)
 
 	pi := integrationRow{ID: string(providers.PiSubagents), Name: "pi-subagents", Found: "not checked",
-		Evidence: []string{"Not checked: finding it would mean reading Pi's configuration, which Hive does not do."}}
+		Evidence: []string{"Not checked: finding it would mean reading Pi's settings.json, which Hive does not do."}}
 
 	browser := integrationRow{ID: "agent-browser", Name: "agent-browser", Source: agentBrowserSource}
 	browser.Found, browser.Evidence = agentBrowserEvidence(deps, synthetic, skillRoots, homeErr)
@@ -163,11 +165,12 @@ func collectIntegrationRows(o management.Options, deps doctorDeps) (rows []integ
 	if hostsErr != nil || slices.Contains(hosts, "pi") {
 		rows = append(rows, integrationRow{
 			ID: "pi-codemode", Name: "Pi codemode", Found: "not checked",
-			Evidence:     []string{"Not checked: finding it would mean reading Pi's configuration, which Hive does not do."},
+			Evidence:     []string{"Not checked: finding it would mean reading Pi's settings.json, which Hive does not do."},
 			Record:       recordNotTracked,
 			RecordDetail: "Not part of onboarding: Hive does not configure Pi's tools.",
 			Source:       piCodemodeSource,
 		})
+		rows = append(rows, piSubagentActivationRow(o))
 	}
 	rows = append(rows, browser, graph)
 	// The Codex question card row is built like the Pi codemode row: constants
@@ -242,7 +245,9 @@ func nextStep(r integrationRow) string {
 	case string(providers.Engram):
 		step = engramNextStep(r.Found)
 	case string(providers.PiSubagents):
-		step = "Hive cannot check it without reading Pi's configuration, which it does not do. If you use Pi, install it with Pi's own package manager; see Source above for the official instructions."
+		step = "Hive cannot check it without reading Pi's settings.json, which it does not do. If you use Pi, install it with Pi's own package manager; see Source above for the official instructions."
+	case piSubagentActivationID:
+		step = piSubagentActivationNextStep(r.Found)
 	case "pi-codemode":
 		step = `Pi turns codemode on by itself when an MCP server uses codemode exposure, its default. To keep it on in every session, add "defaultTools": ["+codemode"] to Pi's settings.json (by default ~/.pi/agent/settings.json) and run /reload in Pi, or ask Pi to enable codemode; see Source above.`
 	case string(providers.CodeGraph):
@@ -620,4 +625,91 @@ func waitFloorNextStep(found string, hiveWrote bool) string {
 		return "Hive could not read Codex's configuration; check the folder and its permissions."
 	}
 	return "Optional, and needs Codex 0.164 or later. Run hive install or hive update and accept the Codex wait floor offer."
+}
+
+const piSubagentActivationID = "pi-subagent-activation"
+
+// piSubagentActivationRow reads pi-subagents' config.json and Hive's record of
+// the toolActivation key it wrote there. It is the one read of Pi's
+// configuration: it reports the key's state and never repeats other text from
+// the file.
+func piSubagentActivationRow(o management.Options) integrationRow {
+	row := integrationRow{
+		ID: piSubagentActivationID, Name: "Pi subagent activation",
+		Record:       recordNotTracked,
+		RecordDetail: "Not part of onboarding: Hive writes it with the install plan, at hive install or hive update.",
+		Source:       "pi-subagents docs/configuration.md (toolActivation)",
+	}
+	cfg, _, err := management.NormalizeOptions(o)
+	if err != nil {
+		row.Found = "not checked"
+		row.Evidence = []string{"Not checked: " + sanitizeLine(err.Error())}
+		return row
+	}
+	path := filepath.Join(cfg.PiHome, pihost.SubagentConfigRel)
+	record, recordErr := management.StoredPiSubagentConfig(o)
+	otherPath := record != nil && record.Path != path
+	if otherPath {
+		record = nil
+	}
+	exists, checkErr := pihost.CheckSubagentConfigTarget(cfg.PiHome)
+	var refusal *pihost.SubagentConfigRefusal
+	status, value := pihost.ConfigAbsent, ""
+	switch {
+	case errors.As(checkErr, &refusal):
+		row.Found = "not read"
+		row.Evidence = append(row.Evidence, "Hive will not read or edit pi-subagents' config.json: "+sanitizeLine(refusal.Cause)+".")
+	case checkErr != nil:
+		row.Found = "not checked"
+		row.Evidence = append(row.Evidence, "Not checked: pi-subagents' config.json could not be inspected.")
+	default:
+		var data []byte
+		if exists {
+			data, err = os.ReadFile(path)
+		}
+		if err != nil {
+			row.Found = "not checked"
+			row.Evidence = append(row.Evidence, "Not checked: pi-subagents' config.json could not be read.")
+			break
+		}
+		status, value = pihost.ClassifySubagentConfig(data, exists)
+	}
+	if row.Found == "" {
+		switch {
+		case status == pihost.ConfigUnsupported:
+			row.Found = "not read"
+			row.Evidence = append(row.Evidence, "pi-subagents' config.json is not a JSON object with unique keys; Hive does not edit it.")
+		case status == pihost.KeyPresent && pihost.IsEagerValue(value) && recordErr != nil:
+			row.Found = "not checked"
+			row.Evidence = append(row.Evidence, "toolActivation is set, but Hive's state could not be read to tell whether Hive wrote it.")
+		case status == pihost.KeyPresent && pihost.IsEagerValue(value) && record != nil:
+			row.Found, row.HiveWrote = "eager", true
+			row.Evidence = append(row.Evidence, "toolActivation is \"eager\", written by Hive in "+sanitizeLine(path)+".")
+		case status == pihost.KeyPresent:
+			row.Found = "set by you"
+			row.Evidence = append(row.Evidence, "toolActivation is "+sanitizeLine(management.ShownPiValue(value))+", set outside Hive; Hive leaves it.")
+		default:
+			row.Found = "not set"
+			row.Evidence = append(row.Evidence, "toolActivation is not set, so pi-subagents may expose the subagent tool only after the next prompt.")
+		}
+	}
+	switch {
+	case otherPath:
+		row.Evidence = append(row.Evidence, "Hive's record is for another path (Pi's home changed since it wrote there); hive plan remove will skip it.")
+	case recordErr != nil:
+		row.Evidence = append(row.Evidence, "Written by Hive: unknown (Hive's state could not be read).")
+	}
+	return row
+}
+
+func piSubagentActivationNextStep(found string) string {
+	switch found {
+	case "not set":
+		return "Run hive install or hive update, which sets \"toolActivation\": \"eager\", then restart Pi."
+	case "not read":
+		return "Set \"toolActivation\": \"eager\" in pi-subagents' config.json yourself, then restart Pi; see Source above."
+	case "not checked":
+		return "Run hive doctor again once Hive's state and the Pi home can be read."
+	}
+	return "Nothing to do."
 }

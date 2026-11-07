@@ -79,7 +79,10 @@ verified.
   full options in the message and you answer in text.
 - Helper roles need the `pi-subagents` package. Hive declares it with
   `pi install npm:pi-subagents` when you install for Pi, and leaves an existing
-  pin alone.
+  pin alone. It also sets `"toolActivation": "eager"` in
+  `extensions/subagent/config.json` when you have not set it, so helper roles
+  can start in the same turn instead of after your next message; restart Pi
+  after the install.
 - Pi roles run on your session's model.
 
 ## OpenCode
