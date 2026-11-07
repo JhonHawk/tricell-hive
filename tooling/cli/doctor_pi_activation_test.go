@@ -66,3 +66,15 @@ func TestPiSubagentActivationRowOnlyWithPi(t *testing.T) {
 		}
 	}
 }
+
+// With Hive's state unreadable, an eager key cannot be attributed to the user.
+func TestPiSubagentActivationRowWithUnreadableState(t *testing.T) {
+	o, f, _, stateDir := integrationsFixtureHosts(t, "claude,pi")
+	if err := os.WriteFile(filepath.Join(stateDir, "state.json"), []byte("{not json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	r := piActivationRow(t, o, f)
+	if r.Found != "not checked" || r.HiveWrote {
+		t.Fatalf("row = %+v", r)
+	}
+}

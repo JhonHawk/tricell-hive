@@ -439,7 +439,7 @@ func TestTestLogFlagStillExists(t *testing.T) {
 func TestShowRemoveSummaryNamesThePiSubagentActivationRule(t *testing.T) {
 	var out bytes.Buffer
 	showRemoveSummary(&out, management.Plan{Hosts: []string{"pi"}, StateDir: "/synthetic-state"})
-	if !strings.Contains(out.String(), "toolActivation is removed only where Hive wrote it") {
+	if !strings.Contains(out.String(), "if Hive wrote toolActivation, it is removed only") {
 		t.Fatalf("missing the Pi rule: %s", out.String())
 	}
 	out.Reset()

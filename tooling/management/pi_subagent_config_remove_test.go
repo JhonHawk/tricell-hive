@@ -141,7 +141,7 @@ func TestRemovePiConfigWhenTheKeyOrFileIsGone(t *testing.T) {
 		id := apply(t, plan(t, "remove", o))
 		absent(t, pcConfig(o))
 		absent(t, filepath.Dir(pcConfig(o)))
-		if !strings.Contains(pcNotes(t, o, id), "is gone") || pcState(t, o).PiSubagentConfig != nil {
+		if n := pcNotes(t, o, id); !strings.Contains(n, "nothing to remove; config.json is gone") || strings.Contains(n, "left toolActivation") || pcState(t, o).PiSubagentConfig != nil {
 			t.Fatalf("notes = %q", pcNotes(t, o, id))
 		}
 	})

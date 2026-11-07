@@ -48,19 +48,22 @@ func readPiConfig(piHome string) (snapshot, error) {
 // or as it is on disk when the migration does not edit it.
 func piConfigAfterMigration(p Plan) (snapshot, error) {
 	path := piConfigPath(p)
-	disk, err := readPiConfig(p.Config.PiHome)
-	if err != nil {
-		return snapshot{}, err
-	}
 	for _, edit := range p.Legacy {
 		if edit.Path == path {
-			return legacyAfter(edit), nil
+			// The migration replaces this file: judge what it leaves.
+			after := legacyAfter(edit)
+			if len(after.Data) > pi.MaxSubagentConfigBytes {
+				return snapshot{}, &pi.SubagentConfigRefusal{Cause: "the pi-subagents config is larger than 1 MiB"}
+			}
+			return after, nil
 		}
 	}
-	return disk, nil
+	return readPiConfig(p.Config.PiHome)
 }
 
-func shownPiValue(v string) string {
+// ShownPiValue shortens a value read from config.json for display: at most 64
+// runes, control characters as spaces.
+func ShownPiValue(v string) string {
 	var b strings.Builder
 	n := 0
 	for _, r := range v {
@@ -113,7 +116,7 @@ func planPiSubagentConfig(p *Plan, state State) error {
 		if pi.IsEagerValue(value) && rec != nil && rec.Value == piConfigEagerJSON {
 			step.Status = PiConfigApplied
 		} else {
-			step.Status, step.Value = PiConfigUserSet, shownPiValue(value)
+			step.Status, step.Value = PiConfigUserSet, ShownPiValue(value)
 		}
 	default:
 		step.Status, step.Expected = PiConfigWrite, finger(cur)
@@ -172,6 +175,14 @@ type piConfigEntry struct {
 	// BeforeEmpty holds the bytes of the file when it was an empty JSON object,
 	// so a recovery can give them back exactly. It never holds anything else.
 	BeforeEmpty []byte `json:",omitempty"`
+	// Removed, DeletedFile, Prior and PriorMode record, before a removal writes,
+	// what it is about to do, so a recovery restores only that: the key taken
+	// out, the file deleted, and the bytes of an object the removal left empty
+	// (whitespace, braces and the key, never other settings).
+	Removed     bool   `json:",omitempty"`
+	DeletedFile bool   `json:",omitempty"`
+	Prior       []byte `json:",omitempty"`
+	PriorMode   uint32 `json:",omitempty"`
 	// Pending is set before the first write of the entry and Done after the
 	// verified write; either one makes Recover undo the entry.
 	Pending bool `json:",omitempty"`
@@ -228,10 +239,16 @@ func preparePiConfig(p Plan, state State, next *State, j *journal) error {
 			le.BeforeEmpty = append([]byte(nil), cur.Data...)
 		}
 		le.Record = PiSubagentConfigRecord{Path: step.Path, Value: piConfigEagerJSON, CreatedFile: !cur.Exists, BackupCreated: le.BackupWanted}
+		if le.BackupWanted {
+			le.Record.BackupHash = le.Before.Hash
+		}
 		merged := le.Record
 		if old := state.PiSubagentConfig; old != nil && old.Path == step.Path {
 			merged.CreatedFile = merged.CreatedFile || old.CreatedFile
 			merged.BackupCreated = merged.BackupCreated || old.BackupCreated
+			if !le.BackupWanted {
+				merged.BackupHash = old.BackupHash
+			}
 			merged.CreatedDirs = append([]string(nil), old.CreatedDirs...)
 		}
 		next.PiSubagentConfig = &merged
@@ -244,6 +261,17 @@ func preparePiConfig(p Plan, state State, next *State, j *journal) error {
 			// that path again can still undo exactly what Hive wrote there.
 			j.PiConfig = &piConfigEntry{Path: rec.Path, Remove: true, Skip: true, Record: rec,
 				Notes: []string{"Pi subagent activation: not removed; the state records " + rec.Path + ", which is not the current pi-subagents config.json"}}
+			return nil
+		}
+		if _, err := readPiConfig(p.Config.PiHome); err != nil {
+			var refusal *pi.SubagentConfigRefusal
+			if !errors.As(err, &refusal) {
+				return fmt.Errorf("pi subagent activation: %w", err)
+			}
+			// The file cannot be edited safely, so the key stays: so does the
+			// record, for a later removal.
+			j.PiConfig = &piConfigEntry{Path: rec.Path, Remove: true, Skip: true, Record: rec,
+				Notes: []string{"Pi subagent activation: left toolActivation; " + refusal.Cause}}
 			return nil
 		}
 		j.PiConfig = &piConfigEntry{Path: rec.Path, Remove: true, Record: rec}
@@ -286,7 +314,9 @@ func piConfigUnchanged(p Plan, s State) (bool, error) {
 		}
 		return false, nil
 	}
-	return !(p.Action == "remove" && hostsIncludePi(p.Hosts) && s.PiSubagentConfig != nil && s.PiSubagentConfig.Path == piConfigPath(p)), nil
+	// Any record is an open item of a removal, even one for another Pi home: its
+	// note is how the caller learns the key was left.
+	return !(p.Action == "remove" && hostsIncludePi(p.Hosts) && s.PiSubagentConfig != nil), nil
 }
 
 // applyPiConfig performs the journaled write (install) or the key-level
@@ -412,7 +442,7 @@ func removePiConfig(j *journal, jp string, fail func(string) error) error {
 	case refusal != nil:
 		// Nothing is read or written: the file cannot be edited safely.
 	case !cur.Exists:
-		le.Notes = append(le.Notes, "Pi subagent activation: left toolActivation; "+name+" is gone")
+		le.Notes = append(le.Notes, "Pi subagent activation: nothing to remove; "+name+" is gone")
 		removeCreatedPiDirs(le.Record.CreatedDirs)
 	default:
 		st, value := pi.ClassifySubagentConfig(cur.Data, true)
@@ -422,7 +452,18 @@ func removePiConfig(j *journal, jp string, fail func(string) error) error {
 			if err != nil {
 				return err
 			}
-			if le.Record.CreatedFile && pi.SubagentConfigEmpty(out) {
+			// What the removal is about to do goes to the journal first, so a
+			// recovery restores exactly that and nothing it did not do.
+			le.Removed = true
+			le.DeletedFile = le.Record.CreatedFile && pi.SubagentConfigEmpty(out)
+			le.PriorMode = cur.Mode
+			if pi.SubagentConfigEmpty(out) && len(cur.Data) <= piConfigBeforeLimit {
+				le.Prior = append([]byte(nil), cur.Data...)
+			}
+			if err = saveJournal(jp, *j); err != nil {
+				return err
+			}
+			if le.DeletedFile {
 				err = write(le.Path, snapshot{})
 			} else {
 				err = write(le.Path, snapshot{Exists: true, Data: out, Mode: cur.Mode})
@@ -451,12 +492,14 @@ func removePiConfig(j *journal, jp string, fail func(string) error) error {
 	}
 	bk := piConfigBackupPath(le.Path)
 	if le.Record.BackupCreated {
-		if removed {
+		b, err := read(bk)
+		if err != nil {
+			return err
+		}
+		if removed && b.Exists && le.Record.BackupHash != "" && hash(b.Data) == le.Record.BackupHash {
 			if err = write(bk, snapshot{}); err != nil {
 				return err
 			}
-		} else if b, err := read(bk); err != nil {
-			return err
 		} else if b.Exists {
 			le.Notes = append(le.Notes, "Pi subagent activation: kept "+filepath.Base(bk))
 		}
@@ -539,21 +582,21 @@ func undoPiConfigInstall(j journal) error {
 	return nil
 }
 
-// restorePiConfigRemoval rolls back an interrupted removal: it puts back the
-// key it deleted, and the file and folders it deleted when Hive had created
-// them, without rewriting anything else. The backup it may have deleted is not
-// restored: the journal holds no file bytes.
+// restorePiConfigRemoval rolls back an interrupted removal, and only what the
+// journal says it did: it puts back the key it took out (or the exact bytes of
+// an object it left empty), and the file and folders it deleted. The backup it
+// may have deleted is not restored: the journal holds no file bytes.
 func restorePiConfigRemoval(j journal) error {
 	le := j.PiConfig
-	if le == nil || !le.Remove || le.Skip || !(le.Pending || le.Done) {
+	if le == nil || !le.Remove || le.Skip || !(le.Pending || le.Done) || !(le.Removed || le.DeletedFile) {
 		return nil
 	}
 	cur, err := read(le.Path)
 	if err != nil {
 		return err
 	}
-	if !cur.Exists {
-		if !le.Record.CreatedFile {
+	if le.DeletedFile {
+		if cur.Exists {
 			return nil
 		}
 		if err = os.MkdirAll(j.Plan.Config.PiHome, 0700); err != nil {
@@ -569,18 +612,29 @@ func restorePiConfigRemoval(j journal) error {
 				return err
 			}
 		}
-		data, err := pi.InsertToolActivation(nil)
-		if err != nil {
-			return err
+		data := le.Prior
+		if data == nil {
+			if data, err = pi.InsertToolActivation(nil); err != nil {
+				return err
+			}
 		}
-		return write(le.Path, snapshot{Exists: true, Data: data, Mode: 0600})
+		mode := le.PriorMode
+		if mode == 0 {
+			mode = 0600
+		}
+		return write(le.Path, snapshot{Exists: true, Data: data, Mode: mode})
+	}
+	if !cur.Exists {
+		return nil
 	}
 	if st, _ := pi.ClassifySubagentConfig(cur.Data, true); st != pi.KeyMissing {
 		return nil
 	}
-	data, err := pi.InsertToolActivation(cur.Data)
-	if err != nil {
-		return err
+	data := le.Prior
+	if data == nil || !pi.SubagentConfigEmpty(cur.Data) {
+		if data, err = pi.InsertToolActivation(cur.Data); err != nil {
+			return err
+		}
 	}
 	return write(le.Path, snapshot{Exists: true, Data: data, Mode: cur.Mode})
 }

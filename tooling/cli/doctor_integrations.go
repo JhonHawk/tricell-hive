@@ -679,12 +679,15 @@ func piSubagentActivationRow(o management.Options) integrationRow {
 		case status == pihost.ConfigUnsupported:
 			row.Found = "not read"
 			row.Evidence = append(row.Evidence, "pi-subagents' config.json is not a JSON object with unique keys; Hive does not edit it.")
+		case status == pihost.KeyPresent && recordErr != nil:
+			row.Found = "not checked"
+			row.Evidence = append(row.Evidence, "toolActivation is set, but Hive's state could not be read to tell whether Hive wrote it.")
 		case status == pihost.KeyPresent && pihost.IsEagerValue(value) && record != nil:
 			row.Found, row.HiveWrote = "eager", true
 			row.Evidence = append(row.Evidence, "toolActivation is \"eager\", written by Hive in "+sanitizeLine(path)+".")
 		case status == pihost.KeyPresent:
 			row.Found = "set by you"
-			row.Evidence = append(row.Evidence, "toolActivation is "+shortValue(sanitizeLine(value))+", set outside Hive; Hive leaves it.")
+			row.Evidence = append(row.Evidence, "toolActivation is "+sanitizeLine(management.ShownPiValue(value))+", set outside Hive; Hive leaves it.")
 		default:
 			row.Found = "not set"
 			row.Evidence = append(row.Evidence, "toolActivation is not set, so pi-subagents may expose the subagent tool only after the next prompt.")
@@ -697,13 +700,6 @@ func piSubagentActivationRow(o management.Options) integrationRow {
 		row.Evidence = append(row.Evidence, "Written by Hive: unknown (Hive's state could not be read).")
 	}
 	return row
-}
-
-func shortValue(v string) string {
-	if len(v) > 40 {
-		return v[:37] + "..."
-	}
-	return v
 }
 
 func piSubagentActivationNextStep(found string) string {

@@ -327,7 +327,7 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 	if err := preparePiConfig(p, state, &next, &j); err != nil {
 		return journal{}, State{}, nil, false, err
 	}
-	if j.PiConfig != nil && !j.PiConfig.Skip {
+	if j.PiConfig != nil {
 		changed = true
 	}
 	if err := prepareHostHooks(p, state, &next, &j); err != nil {

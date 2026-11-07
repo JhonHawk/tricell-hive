@@ -331,6 +331,9 @@ type PiSubagentConfigRecord struct {
 	CreatedFile   bool     `json:"created_file,omitempty"`
 	CreatedDirs   []string `json:"created_dirs,omitempty"`
 	BackupCreated bool     `json:"backup_created,omitempty"`
+	// BackupHash is the hash of the file the backup copied, so a removal deletes
+	// only a backup that still holds it.
+	BackupHash string `json:"backup_hash,omitempty"`
 }
 
 // PackageAction is the planned pi-subagents operation.
