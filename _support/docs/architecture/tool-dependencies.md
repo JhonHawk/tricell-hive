@@ -19,8 +19,15 @@ mistaken for an installed one. With the operator's consent, given in the
 install summary, Hive runs the host's own command that writes a host
 configuration file: `pi install npm:pi-subagents` for Pi's `settings.json` and
 `codex features enable default_mode_request_user_input` for Codex's
-`config.toml`. The Codex wait floor is the one exception: with the same consent
-Hive writes two keys into Codex's `config.toml` itself (below). Existing binaries, packages, histories, credentials,
+`config.toml`. Two steps are exceptions: with the same consent Hive writes two
+keys into Codex's `config.toml` itself (the Codex wait floor, below), and a
+user-scope install, package installation or committed-source update that
+includes Pi writes `"toolActivation": "eager"` into pi-subagents'
+`extensions/subagent/config.json` when that key is missing (change
+`pi-subagent-eager-activation`): pi-subagents 0.83 otherwise starts a session
+with only its `subagents_enable` loader, and with some providers the
+`subagent` tool appears only on the user's next prompt. Hive keeps a value the
+user set, records what it wrote, and `plan remove` deletes only that. Existing binaries, packages, histories, credentials,
 memory stores and services are untouched.
 
 | Capability | Purpose | Relevant hosts | Official source | Why manual |
