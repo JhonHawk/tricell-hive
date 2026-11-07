@@ -54,7 +54,7 @@ Report a file already at its floor as `already lean` (HA-IF-14).
 - `high`: guidance a repository needs to operate reaches no host in use by any path; a contradiction with consequence; a broken required resource; a consequential skill or agent without its boundary. Content reachable through a repository's upward pointer counts as conditionally reached and is not `high`.
 - `medium`: stale or misleading content, including loading claims that do not match a host; per-session cost without benefit.
 - `low`: redundancy, surplus pointers, minor cost.
-- `info`: observations without a proposed action, including anything about `CLAUDE.local.md`.
+- `info`: observations without a proposed action, including anything about `CLAUDE.local.md` or `HIVE.local.md`.
 
 ## Findings format
 
