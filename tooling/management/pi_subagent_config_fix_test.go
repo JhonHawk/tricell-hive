@@ -146,9 +146,9 @@ func TestPlanPiConfigJudgesThePostMigrationFile(t *testing.T) {
 	}
 }
 
-// Finding 7: a removal whose only open item is a record for another Pi home is
-// not "unchanged", so its note reaches the caller.
-func TestRemoveWithOnlyARecordForAnotherHomeIsNotUnchanged(t *testing.T) {
+// Second round, item 2: a record Hive cannot act on does not make a removal
+// "changed" (Codex parity); it is reported with the other items of a removal.
+func TestRemoveWithOnlyARecordForAnotherHomeIsUnchanged(t *testing.T) {
 	o := pcOptions(t)
 	pcInstall(t, o)
 	elsewhere := filepath.Join(filepath.Dir(o.Home), "other-pi", "config.json")
@@ -159,12 +159,96 @@ func TestRemoveWithOnlyARecordForAnotherHomeIsNotUnchanged(t *testing.T) {
 	}
 	apply(t, plan(t, "remove", o))
 	p := plan(t, "remove", o)
+	if unchanged, err := PlanUnchanged(p); err != nil || !unchanged {
+		t.Fatalf("unchanged = %v, err = %v", unchanged, err)
+	}
+	if got := apply(t, p); got != "unchanged" {
+		t.Fatalf("apply = %q", got)
+	}
+}
+
+func TestRemoveWithOnlyAFileItCannotEditIsUnchanged(t *testing.T) {
+	o := pcOptions(t)
+	pcInstall(t, o)
+	real := filepath.Join(filepath.Dir(o.Home), "real.json")
+	put(t, real, pcEagerFile)
+	os.Remove(pcConfig(o))
+	if err := os.Symlink(real, pcConfig(o)); err != nil {
+		t.Fatal(err)
+	}
+	apply(t, plan(t, "remove", o))
+	if unchanged, err := PlanUnchanged(plan(t, "remove", o)); err != nil || !unchanged {
+		t.Fatalf("unchanged = %v, err = %v", unchanged, err)
+	}
+}
+
+// Item 3: a refusal with the folder in the way and no file means there is no
+// key: the record is cleared, and that is a change.
+func TestRemovePiConfigClearsTheRecordWhenThereIsNoFile(t *testing.T) {
+	o := pcOptions(t)
+	pcInstall(t, o)
+	dir := filepath.Dir(pcConfig(o))
+	if err := os.RemoveAll(dir); err != nil {
+		t.Fatal(err)
+	}
+	real := filepath.Join(filepath.Dir(o.Home), "real-dir")
+	if err := os.MkdirAll(real, 0700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(real, dir); err != nil {
+		t.Fatal(err)
+	}
+	p := plan(t, "remove", o)
 	if unchanged, err := PlanUnchanged(p); err != nil || unchanged {
 		t.Fatalf("unchanged = %v, err = %v", unchanged, err)
 	}
 	id := apply(t, p)
-	if id == "unchanged" || !strings.Contains(pcNotes(t, o, id), elsewhere) {
-		t.Fatalf("apply = %q, notes = %q", id, pcNotes(t, o, id))
+	if pcState(t, o).PiSubagentConfig != nil {
+		t.Fatal("the record of a key that is not there survived")
+	}
+	if n := pcNotes(t, o, id); !strings.Contains(n, "nothing to remove; config.json is gone") {
+		t.Fatalf("notes = %q", n)
+	}
+}
+
+// Item 1: the migration edits the file, but the folders around it still decide.
+func TestPlanPiConfigPostMigrationStillChecksTheFolders(t *testing.T) {
+	arrange := map[string]func(t *testing.T, o Options){
+		"symlinked config folder": func(t *testing.T, o Options) {
+			real := filepath.Join(filepath.Dir(o.Home), "real-dir")
+			put(t, filepath.Join(real, "config.json"), "{}")
+			os.RemoveAll(filepath.Dir(pcConfig(o)))
+			if err := os.MkdirAll(filepath.Dir(filepath.Dir(pcConfig(o))), 0700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.Symlink(real, filepath.Dir(pcConfig(o))); err != nil {
+				t.Fatal(err)
+			}
+		},
+		"symlinked Pi home": func(t *testing.T, o Options) {
+			real := filepath.Join(filepath.Dir(o.Home), "real-pi")
+			put(t, filepath.Join(real, "extensions", "subagent", "config.json"), "{}")
+			os.RemoveAll(pcHome(o))
+			os.MkdirAll(filepath.Dir(pcHome(o)), 0700)
+			if err := os.Symlink(real, pcHome(o)); err != nil {
+				t.Fatal(err)
+			}
+		},
+	}
+	for name, f := range arrange {
+		t.Run(name, func(t *testing.T) {
+			o := pcOptions(t)
+			p := plan(t, "install", o)
+			f(t, o)
+			p.Legacy = []legacy.Edit{{Path: pcConfig(o), Before: []byte("{}"), After: []byte("{}"), Mode: 0600}}
+			p.PiSubagentConfig = nil
+			if err := planPiSubagentConfig(&p, State{}); err != nil {
+				t.Fatal(err)
+			}
+			if st := p.PiSubagentConfig; st == nil || st.Status != PiConfigManual {
+				t.Fatalf("step = %#v", st)
+			}
+		})
 	}
 }
 

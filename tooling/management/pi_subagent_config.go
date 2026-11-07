@@ -18,8 +18,10 @@ import (
 // session's first request. Hive owns that one key only, and only when it wrote
 // it. The file is the user's: the plan carries a fingerprint, the journal
 // carries fingerprints and flags, and every undo is a key-level inverse
-// computed on the file as it is then. The only file bytes a journal may hold
-// are those of an empty JSON object, which is whitespace and braces.
+// computed on the file as it is then. A journal holds file bytes only in two
+// cases, both of at most 4096 bytes: an empty JSON object (whitespace and
+// braces), and the bytes of an object a removal left empty (Prior), which are
+// whitespace, braces and the toolActivation member. Never any other setting.
 
 const (
 	piConfigBackupSuffix = ".hive-backup"
@@ -50,7 +52,17 @@ func piConfigAfterMigration(p Plan) (snapshot, error) {
 	path := piConfigPath(p)
 	for _, edit := range p.Legacy {
 		if edit.Path == path {
-			// The migration replaces this file: judge what it leaves.
+			// The migration replaces this file: judge what it leaves. The file's
+			// own state does not count (exists is true), but the folders around it
+			// still do, since the step writes through them.
+			if exists, err := pi.CheckSubagentConfigTarget(p.Config.PiHome); err != nil && !exists {
+				return snapshot{}, err
+			} else if err != nil {
+				var refusal *pi.SubagentConfigRefusal
+				if !errors.As(err, &refusal) {
+					return snapshot{}, err
+				}
+			}
 			after := legacyAfter(edit)
 			if len(after.Data) > pi.MaxSubagentConfigBytes {
 				return snapshot{}, &pi.SubagentConfigRefusal{Cause: "the pi-subagents config is larger than 1 MiB"}
@@ -255,6 +267,11 @@ func preparePiConfig(p Plan, state State, next *State, j *journal) error {
 		j.PiConfig = le
 	case p.Action == "remove" && hostsIncludePi(p.Hosts) && state.PiSubagentConfig != nil:
 		rec := *copyPiRecord(state.PiSubagentConfig)
+		exists, checkErr := pi.CheckSubagentConfigTarget(p.Config.PiHome)
+		var refusal *pi.SubagentConfigRefusal
+		if checkErr != nil && !errors.As(checkErr, &refusal) {
+			return fmt.Errorf("pi subagent activation: %w", checkErr)
+		}
 		if rec.Path != piConfigPath(p) {
 			// The key lives in a file this plan does not address. The rest of the
 			// uninstall goes on and the record stays, so a later remove that finds
@@ -263,15 +280,18 @@ func preparePiConfig(p Plan, state State, next *State, j *journal) error {
 				Notes: []string{"Pi subagent activation: not removed; the state records " + rec.Path + ", which is not the current pi-subagents config.json"}}
 			return nil
 		}
-		if _, err := readPiConfig(p.Config.PiHome); err != nil {
-			var refusal *pi.SubagentConfigRefusal
-			if !errors.As(err, &refusal) {
-				return fmt.Errorf("pi subagent activation: %w", err)
-			}
+		if refusal != nil && exists {
 			// The file cannot be edited safely, so the key stays: so does the
 			// record, for a later removal.
 			j.PiConfig = &piConfigEntry{Path: rec.Path, Remove: true, Skip: true, Record: rec,
 				Notes: []string{"Pi subagent activation: left toolActivation; " + refusal.Cause}}
+			return nil
+		}
+		if refusal != nil {
+			// A folder in the way and no file: there is no key to undo.
+			j.PiConfig = &piConfigEntry{Path: rec.Path, Remove: true, Skip: true, Record: rec,
+				Notes: []string{"Pi subagent activation: nothing to remove; " + filepath.Base(rec.Path) + " is gone"}}
+			next.PiSubagentConfig = nil
 			return nil
 		}
 		j.PiConfig = &piConfigEntry{Path: rec.Path, Remove: true, Record: rec}
@@ -314,9 +334,22 @@ func piConfigUnchanged(p Plan, s State) (bool, error) {
 		}
 		return false, nil
 	}
-	// Any record is an open item of a removal, even one for another Pi home: its
-	// note is how the caller learns the key was left.
-	return !(p.Action == "remove" && hostsIncludePi(p.Hosts) && s.PiSubagentConfig != nil), nil
+	rec := s.PiSubagentConfig
+	if p.Action != "remove" || !hostsIncludePi(p.Hosts) || rec == nil {
+		return true, nil
+	}
+	// A record Hive cannot act on changes nothing: one for another Pi home, or a
+	// file that exists but cannot be edited safely. A refusal with no file means
+	// there is no key, and clearing the record is a change.
+	if rec.Path != piConfigPath(p) {
+		return true, nil
+	}
+	exists, err := pi.CheckSubagentConfigTarget(p.Config.PiHome)
+	var refusal *pi.SubagentConfigRefusal
+	if err != nil && !errors.As(err, &refusal) {
+		return false, fmt.Errorf("pi subagent activation: %w", err)
+	}
+	return refusal != nil && exists, nil
 }
 
 // applyPiConfig performs the journaled write (install) or the key-level
@@ -477,7 +510,7 @@ func removePiConfig(j *journal, jp string, fail func(string) error) error {
 					return err
 				}
 			}
-			if le.Record.CreatedFile && pi.SubagentConfigEmpty(out) {
+			if le.DeletedFile {
 				removeCreatedPiDirs(le.Record.CreatedDirs)
 			} else if le.Record.CreatedFile {
 				le.Notes = append(le.Notes, "Pi subagent activation: left "+name+"; it holds other settings")
@@ -588,7 +621,7 @@ func undoPiConfigInstall(j journal) error {
 // may have deleted is not restored: the journal holds no file bytes.
 func restorePiConfigRemoval(j journal) error {
 	le := j.PiConfig
-	if le == nil || !le.Remove || le.Skip || !(le.Pending || le.Done) || !(le.Removed || le.DeletedFile) {
+	if le == nil || !le.Remove || le.Skip || !(le.Pending || le.Done) || !le.Removed {
 		return nil
 	}
 	cur, err := read(le.Path)

@@ -78,3 +78,15 @@ func TestPiSubagentActivationRowWithUnreadableState(t *testing.T) {
 		t.Fatalf("row = %+v", r)
 	}
 }
+
+// A value Hive never writes is the user's even when Hive's state is unreadable.
+func TestPiSubagentActivationRowUserValueWithUnreadableState(t *testing.T) {
+	o, f, home, stateDir := integrationsFixtureHosts(t, "claude,pi")
+	writePiSubagentConfig(t, home, `{"toolActivation": "lazy"}`)
+	if err := os.WriteFile(filepath.Join(stateDir, "state.json"), []byte("{not json"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if r := piActivationRow(t, o, f); r.Found != "set by you" {
+		t.Fatalf("row = %+v", r)
+	}
+}

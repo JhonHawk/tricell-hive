@@ -679,7 +679,7 @@ func piSubagentActivationRow(o management.Options) integrationRow {
 		case status == pihost.ConfigUnsupported:
 			row.Found = "not read"
 			row.Evidence = append(row.Evidence, "pi-subagents' config.json is not a JSON object with unique keys; Hive does not edit it.")
-		case status == pihost.KeyPresent && recordErr != nil:
+		case status == pihost.KeyPresent && pihost.IsEagerValue(value) && recordErr != nil:
 			row.Found = "not checked"
 			row.Evidence = append(row.Evidence, "toolActivation is set, but Hive's state could not be read to tell whether Hive wrote it.")
 		case status == pihost.KeyPresent && pihost.IsEagerValue(value) && record != nil:
