@@ -139,9 +139,8 @@ func antigravityGuidanceParts(c target.Config, r *Release) ([]string, error) {
 
 // antigravityRuleTargets lists the rule part targets of a plan. An install
 // takes the count from the release it writes; any other caller takes the parts
-// state records for this home. placeholder adds part 1 when none is recorded,
-// so status can report the guidance as not installed. Surplus parts of an
-// install are not listed: desiredResources retires them as absent entries.
+// state records for this home. Surplus parts of an install are not listed:
+// desiredResources retires them as absent entries.
 func antigravityRuleTargets(c target.Config, hosts []string, state State, rel *Release) ([]target.Target, error) {
 	if c.Scope != "user" {
 		return nil, nil

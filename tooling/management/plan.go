@@ -904,7 +904,8 @@ func validatePlan(p Plan, state State) error {
 	} else if p.UpdatePackage != nil {
 		return fmt.Errorf("unexpected update package")
 	}
-	// Plans saved before Cursor support omit cursor_home and still hash correctly.
+	// Plans saved before Cursor or Antigravity support omit cursor_home or
+	// antigravity_home; they are rejected so the current manager regenerates them.
 	if p.Version != stateVersion || p.ID != planID(p) || p.Config.CursorHome == "" || p.Config.AntigravityHome == "" {
 		return fmt.Errorf("invalid or legacy plan; regenerate with the current manager")
 	}

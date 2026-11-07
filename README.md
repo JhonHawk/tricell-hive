@@ -495,7 +495,7 @@ anything or close a work.
 | Cursor CLI | `~/.cursor/hooks.json` | Verified only in the installed code. |
 | OpenCode V2 | `~/.config/opencode/plugins/hive-events.js` | Event plugin; the context loader stays inactive. |
 | Pi | `~/.pi/agent/extensions/hive-events.ts` | Extension, auto-loaded. |
-| Antigravity | `~/.gemini/config/hooks.json`, named hook `hive` | Reports session start and activity; `agy` has no session-end event, so a turn end is activity. The `Stop` reply and the `agy` process name are not yet verified live. |
+| Antigravity | `~/.gemini/config/hooks.json`, named hook `hive` | Reports session start and activity; `agy` has no session-end event, so a turn end is activity. Observed with `agy` 1.5.2: the hook runs and identifies the session. Sessions in the Antigravity App are not identified, since its agent process is not named `agy`. |
 
 Hive edits the shared JSON files entry by entry, keeps a backup of each, leaves
 other tools' hooks byte-identical and removes only its own on uninstall. Hosts
