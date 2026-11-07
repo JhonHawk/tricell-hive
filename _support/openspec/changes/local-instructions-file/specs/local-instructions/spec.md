@@ -7,7 +7,7 @@ The per-machine instructions file `HIVE.local.md`: agents read it at session sta
 ## ADDED Requirements
 
 ### Requirement: Local instructions read at session start
-At session start and again after a compaction, the agent SHALL read `HIVE.local.md` when it exists at the root of the repository that holds the working directory or of the declared workspace that holds it; in a worktree it SHALL read and write the main checkout's file. The agent SHALL treat each entry as a claim dated when last verified, check it before reporting it as current, and never let it outrank the task, the user or the project guidance.
+At session start, and again after a compaction once the checkpoint is read, the agent SHALL read each `HIVE.local.md` that exists at the root of the repository that holds the working directory and at the root of the declared workspace that holds it; in a worktree it SHALL read and write the main checkout's file. The agent SHALL treat each entry as a claim dated when last verified, check it before reporting it as current, and never let it outrank the task, the user or the project guidance.
 
 #### Scenario: A session in a worktree
 - **WHEN** a session starts in a worktree whose main checkout has `HIVE.local.md`
@@ -18,7 +18,7 @@ At session start and again after a compaction, the agent SHALL read `HIVE.local.
 - **THEN** the agent follows the user or the project guidance and checks the entry.
 
 ### Requirement: Verified, dated and secret-free entries
-The agent SHALL record a fact in `HIVE.local.md` when it names something of this machine, account or environment, such as a path, a port in use, an installed tool, its version or its absence, a cloud profile, region or host, a local patch or workaround, or the command order that worked here, and it worked in the session; the entry carries that date and goes in the repository's file when it concerns one repository and in the workspace's file when it concerns several or the whole machine. The agent SHALL mark an entry that fails as stale with the date and cause before trying another way. The file SHALL NOT contain a secret value: an entry names the file in the secret location that holds it, and accounts stay in `ACCOUNTS.md`. The agent SHALL keep the file at or under 100 lines by removing only entries marked stale, and when none remain SHALL report its size and remove nothing. A fact that holds for every clone SHALL NOT be stored; the agent names it once, in the final report of the work item that verified it, as a candidate for the repository's tracked guidance.
+The agent SHALL record a fact in `HIVE.local.md` when it names something of this machine, account or environment, such as a path, a port in use, an installed tool, its version or its absence, a cloud profile, region or host, a local patch or workaround, or the command order that worked here, and the session confirmed it (a command exited 0, its result was observed, or a command was found missing); the entry carries that date and goes in the repository's file when it concerns one repository, in the declared workspace's file when it concerns several or the whole machine, and in the repository's file when no workspace is declared. The agent SHALL write only in the current project. The agent SHALL mark an entry that fails as stale with the date and cause before trying another way. The file SHALL NOT contain a secret value: an entry names the file in the secret location that holds it, and accounts stay in `ACCOUNTS.md`. The agent SHALL keep the file at or under 100 lines by removing only entries marked stale, and when none remain SHALL keep recording and report its size in the final report. A fact that holds for every clone SHALL NOT be stored; the agent names it once, in the final report of the work item that verified it, as a candidate for the repository's tracked guidance.
 
 #### Scenario: The local stack starts
 - **WHEN** the agent starts the local stack on ports that differ from the documented ones and the health check passes
@@ -34,10 +34,10 @@ The agent SHALL record a fact in `HIVE.local.md` when it names something of this
 
 #### Scenario: The file is full of current entries
 - **WHEN** the file has more than 100 lines and no entry is marked stale
-- **THEN** the agent reports the size and removes nothing.
+- **THEN** the agent removes no current entry and reports the size in the final report.
 
 ### Requirement: Ignored before the first write
-In any flow, read-only ones included, the agent SHALL be authorized to write `HIVE.local.md`; before its first write inside a Git repository it SHALL check that Git ignores the file and, when it does not, SHALL add it to `$(git rev-parse --git-common-dir)/info/exclude`.
+In any flow, read-only ones included, the agent SHALL be authorized to write `HIVE.local.md`; before its first write inside a Git repository it SHALL keep the file out of Git as the secret location is kept: check that Git ignores it and, when it does not, add it to `$(git rev-parse --git-common-dir)/info/exclude`.
 
 #### Scenario: A fresh clone
 - **WHEN** the agent first writes `HIVE.local.md` in a clone that does not ignore it

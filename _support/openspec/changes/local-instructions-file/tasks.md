@@ -74,4 +74,6 @@ Revisión humana (D5 A): leer la sección nueva de `global.md` y el diff de los 
 2026-11-07 — T2 hecho en `8c896e02`: los siete archivos y `global.md` nombran la regla; `go test ./tests/content/...` pasa.
 2026-11-07 — T3 hecho en `31d8a2ee`: los cuatro archivos describen `HIVE.local.md`; `npm run build` del sitio construye 17 páginas.
 
-Checkpoint: stage build, paso 5 (CI local y verify). Último commit `31d8a2ee`. Sin hallazgos abiertos. Siguiente: reproducir CI y pasar a flow-verify.
+2026-11-07 — Verify sobre `240fc93f`: el único workflow (`master-source-branch.yml`) solo valida la rama de origen de PRs a `master`, CI-only. `go vet ./...` (0), `go test ./...` (0), unittest de skills (0, 58 tests). Las nueve frases de AC6-AC14 aparecen una vez; AC15 y AC16 por `rg -l`. La revisión de todo el comportamiento encontró `harness-audit/SKILL.md:57` y `apply.md:5` nombrando solo `CLAUDE.local.md`: corregidos en `240fc93f`.
+
+Checkpoint: stage verify, paso 2 (parada de validación con `/code-review` en curso). Último commit `240fc93f`. Pendiente: hallazgos de la revisión y respuesta del usuario (validación y skill de arranque).

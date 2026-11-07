@@ -9,6 +9,7 @@ func TestProjectStateSeparatesLocationAndNaming(t *testing.T) {
 		location, naming string
 	}{
 		{"correct", []string{"_support/sessions/2026-09-21-dis-42/dis-42.research.md"}, "pass", "pass"},
+		{"with-local-instructions", []string{"_support/sessions/2026-09-21-dis-42/dis-42.research.md", "HIVE.local.md"}, "pass", "pass"},
 		{"claude-report", []string{"_support/sessions/2026-09-21-dis-42/dis-42.report.md"}, "pass", "fail"},
 		{"codex-root", []string{"dis-42.research.md"}, "fail", "pass"},
 		{"html-root", []string{"dis-42.report.html"}, "fail", "fail"},
