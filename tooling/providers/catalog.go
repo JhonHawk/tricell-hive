@@ -17,7 +17,7 @@ func Catalog() []Provider {
 		},
 		{
 			ID:     Context7,
-			Hosts:  []string{"codex", "claude", "cursor", "opencode"},
+			Hosts:  []string{"codex", "claude", "cursor", "opencode", "antigravity"},
 			Source: "context7.com",
 			Reason: "Native install/host-integration validation is pending; follow the official CLI + Skills setup instructions.",
 		},
@@ -29,7 +29,7 @@ func Catalog() []Provider {
 		},
 		{
 			ID:     AgentBrowser,
-			Hosts:  []string{"claude", "codex", "cursor", "grok", "opencode", "pi"},
+			Hosts:  []string{"antigravity", "claude", "codex", "cursor", "grok", "opencode", "pi"},
 			Source: "github.com/vercel-labs/agent-browser",
 			Reason: "Install it with Homebrew or npm and download a browser with agent-browser install, following the official instructions.",
 		},

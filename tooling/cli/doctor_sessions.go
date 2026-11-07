@@ -54,12 +54,12 @@ type hostSessions struct {
 // for the ones it cannot see.
 var hostDisplayNames = map[string]string{
 	"claude": "Claude Code", "grok": "Grok",
-	"codex": "Codex", "pi": "Pi", "cursor": "Cursor",
+	"codex": "Codex", "pi": "Pi", "cursor": "Cursor", "antigravity": "Antigravity",
 }
 
 // unseenHosts are the CLIs whose open sessions Hive cannot read, in the order
 // the notice names them.
-var unseenHosts = []string{"codex", "pi", "cursor"}
+var unseenHosts = []string{"codex", "pi", "cursor", "antigravity"}
 
 // listWords joins names as "A", "A or B" or "A, B or C" (conjunction "or" or
 // "and").

@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 	"tricell-hive/integrations/agents"
+	"tricell-hive/integrations/antigravity"
 	"tricell-hive/integrations/claude"
 	"tricell-hive/integrations/codex"
 	"tricell-hive/integrations/cursor"
@@ -45,6 +46,8 @@ var skillsDirFor = func(host string, c target.Config) string {
 		dir = opencode.SkillsDir(c)
 	case "cursor":
 		dir = cursor.SkillsDir(c)
+	case "antigravity":
+		dir = antigravity.SkillsDir(c)
 	}
 	if c.Scope == "project" {
 		if rel, err := filepath.Rel(c.Root, dir); err == nil {
@@ -155,6 +158,8 @@ func resolve(c target.Config, hosts []string, sources ...string) ([]target.Targe
 			ts, err = opencode.Resolve(c, sources...)
 		case "cursor":
 			ts, err = cursor.Resolve(c, sources...)
+		case "antigravity":
+			ts, err = antigravity.Resolve(c, sources...)
 		default:
 			return nil, fmt.Errorf("unsupported host %q", h)
 		}
@@ -885,7 +890,7 @@ func validatePlan(p Plan, state State) error {
 		return fmt.Errorf("unexpected update package")
 	}
 	// Plans saved before Cursor support omit cursor_home and still hash correctly.
-	if p.Version != stateVersion || p.ID != planID(p) || p.Config.CursorHome == "" {
+	if p.Version != stateVersion || p.ID != planID(p) || p.Config.CursorHome == "" || p.Config.AntigravityHome == "" {
 		return fmt.Errorf("invalid or legacy plan; regenerate with the current manager")
 	}
 	if p.SourceCommit != "" && !sourceCommitPattern.MatchString(p.SourceCommit) {
@@ -905,7 +910,7 @@ func validatePlan(p Plan, state State) error {
 	if p.Config.Scope != "user" && p.Config.Scope != "project" {
 		return fmt.Errorf("invalid plan scope")
 	}
-	for _, path := range []string{p.Config.Home, p.Config.CodexHome, p.Config.ClaudeHome, p.Config.GrokHome, p.Config.PiHome, p.Config.OpenCodeHome, p.Config.CursorHome, p.StateDir} {
+	for _, path := range []string{p.Config.Home, p.Config.CodexHome, p.Config.ClaudeHome, p.Config.GrokHome, p.Config.PiHome, p.Config.OpenCodeHome, p.Config.CursorHome, p.Config.AntigravityHome, p.StateDir} {
 		if path == "" || !filepath.IsAbs(path) || filepath.Clean(path) != path {
 			return fmt.Errorf("invalid root")
 		}

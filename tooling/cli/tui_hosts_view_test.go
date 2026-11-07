@@ -265,7 +265,7 @@ func TestHostsViewRowsMatchStatus(t *testing.T) {
 	for i, r := range rows {
 		names[i] = r.name
 	}
-	if strings.Join(names, ",") != "claude,codex,cursor,grok,opencode,pi" {
+	if strings.Join(names, ",") != "antigravity,claude,codex,cursor,grok,opencode,pi" {
 		t.Fatalf("rows = %v\n%s", names, d.screen())
 	}
 	for _, name := range []string{"claude", "codex"} {
@@ -359,7 +359,7 @@ func TestHostsViewNothingToApply(t *testing.T) {
 	_, d := openHostsApp(t, home, stateDir, source, deps)
 	d.key("a")
 	d.mustShow("Nothing to apply")
-	if len(hostRows(d)) != 6 {
+	if len(hostRows(d)) != 7 {
 		t.Fatalf("rows vanished:\n%s", d.screen())
 	}
 }
@@ -933,8 +933,8 @@ func TestHostsViewVersionColumnIsLabeledHiveVersion(t *testing.T) {
 				t.Fatalf("the old unlabeled header is still drawn:\n%s", d.screen())
 			}
 			assertFits(t, d, width, height)
-			if len(hostRows(d)) != 6 {
-				t.Fatalf("%d rows shown, want 6:\n%s", len(hostRows(d)), d.screen())
+			if len(hostRows(d)) != 7 {
+				t.Fatalf("%d rows shown, want 7:\n%s", len(hostRows(d)), d.screen())
 			}
 		})
 	}
@@ -1037,7 +1037,8 @@ func TestHostsViewRealProgramRemovesHostAndIgnoresInterrupt(t *testing.T) {
 	waitFor(t, "the menu", seen("Main menu"))
 	write("\r") // CLIs
 	waitFor(t, "the CLI rows", seen("[x] claude"))
-	write(" ") // uncheck claude
+	write("\x1b[B") // down: antigravity is the first row
+	write(" ")      // uncheck claude
 	write("a")
 	waitFor(t, "the removal summary", seen("Files to remove"))
 	write("\r")

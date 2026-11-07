@@ -22,7 +22,7 @@ Base: `tricell-hive` `development` en `93ab65ee` (2026-11-06); rama `feat/antigr
 
 ### T1 — Antigravity registrado como host de scope usuario, con skills
 
-- [ ] `--hosts antigravity` se acepta en install, update, remove, status, recover y doctor; `--scope project` se rechaza; las skills quedan enlazadas en `<AntigravityHome>/skills/`.
+- [x] `--hosts antigravity` se acepta en install, update, remove, status, recover y doctor; `--scope project` se rechaza; las skills quedan enlazadas en `<AntigravityHome>/skills/`.
 
 **Closes:** AC1 (registro, skills y rechazo de scope), AC2 (skills ajenas preservadas)
 
@@ -144,8 +144,9 @@ Sin parada de validación humana: el modo es `automatic` (D6 A).
 
 ## Checkpoint
 
-Etapa: build · worktree `.claude/worktrees/antigravity-host-support` · rama `feat/antigravity-host-support`. Siguiente: T1.
+Etapa: build · worktree `.claude/worktrees/antigravity-host-support` · rama `feat/antigravity-host-support`. Siguiente: T2.
 
 ## Progreso
 
 - T0 hecha (2026-11-07, sin commit de código): `agy agents` listó `hive-probe` desde `~/.gemini/config/agents/`, y `agy -p` (`gemini-3.8-flash-low`, sin pasos de herramienta) citó el marcador de la regla `always_on` de `~/.gemini/config/rules/`; archivos y carpetas de prueba borrados. Llamadas usadas: 1 de 3.
+- T1 hecha (99e989cd): host registrado, enlaces de skills relativos y detección de `agy`; `doctor` sin la línea en blanco entre dos secciones «Not checked» para caber en 80x24 con siete hosts. `go build`, `go vet` y `go test ./...` pasan (`tooling/cli` 206,7 s, una corrida previa del hijo falló sin nombre y no se repitió). Pendiente: el esfuerzo de la versión de `agy` en `doctor` con cadenas largas, sin verificar.

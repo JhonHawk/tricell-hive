@@ -698,6 +698,7 @@
         "grok_home": "<root>/home/.grok",
         "opencode_home": "<root>/home/.config/opencode",
         "cursor_home": "<root>/home/.cursor",
+        "antigravity_home": "<root>/home/.gemini/config",
         "synthetic": true
       },
       "hosts": [
@@ -733,6 +734,7 @@
     "grok_home": "<root>/home/.grok",
     "opencode_home": "<root>/home/.config/opencode",
     "cursor_home": "<root>/home/.cursor",
+    "antigravity_home": "<root>/home/.gemini/config",
     "synthetic": true
   },
   "hosts": [
@@ -1567,6 +1569,7 @@
       "grok_home": "<root>/home/.grok",
       "opencode_home": "<root>/home/.config/opencode",
       "cursor_home": "<root>/home/.cursor",
+      "antigravity_home": "<root>/home/.gemini/config",
       "synthetic": true
     },
     "hosts": [

@@ -8,7 +8,7 @@ import (
 
 const viewWorkContract = `hive view work — semantic publisher over protocol v3
 
-Identity: --host HOST --native-session-id ID are optional. Without them the command uses the host's session variable, or the process-to-session map its session-start hook wrote; no source, or an ambiguous one, is rejected (pass both flags then). Without --work-id, a command acts on the work this session opened and has not closed; with several open, --work-id is required. Hosts: claude-code, codex, grok, pi, opencode, cursor; an existing work needs accepted membership. No command starts/restarts the viewer or opens a browser. --home and --state-dir select existing manager state.
+Identity: --host HOST --native-session-id ID are optional. Without them the command uses the host's session variable, or the process-to-session map its session-start hook wrote; no source, or an ambiguous one, is rejected (pass both flags then). Without --work-id, a command acts on the work this session opened and has not closed; with several open, --work-id is required. Hosts: claude-code, codex, grok, pi, opencode, cursor, antigravity; an existing work needs accepted membership. No command starts/restarts the viewer or opens a browser. --home and --state-dir select existing manager state.
 
 A build without a plan takes three commands, each one reply of at most 4096 bytes:
 open --key KEY --title TEXT --summary TEXT [--project ROOT]

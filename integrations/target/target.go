@@ -17,7 +17,10 @@ type Config struct {
 	GrokHome     string `json:"grok_home,omitempty"`
 	OpenCodeHome string `json:"opencode_home,omitempty"`
 	CursorHome   string `json:"cursor_home,omitempty"`
-	Synthetic    bool   `json:"synthetic,omitempty"`
+	// AntigravityHome is the config folder shared by the agy CLI and the
+	// Antigravity App (~/.gemini/config).
+	AntigravityHome string `json:"antigravity_home,omitempty"`
+	Synthetic       bool   `json:"synthetic,omitempty"`
 }
 
 type Target struct {
@@ -80,6 +83,10 @@ func ExpandHostHomes(c Config, synthetic bool) (Config, error) {
 	c.CursorHome, err = resolve(c.CursorHome, "", filepath.Join(home, ".cursor"))
 	if err != nil {
 		return c, fmt.Errorf("resolve Cursor home: %w", err)
+	}
+	c.AntigravityHome, err = resolve(c.AntigravityHome, "", filepath.Join(home, ".gemini", "config"))
+	if err != nil {
+		return c, fmt.Errorf("resolve Antigravity home: %w", err)
 	}
 	return c, nil
 }

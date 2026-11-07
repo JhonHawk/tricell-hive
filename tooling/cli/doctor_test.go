@@ -269,12 +269,13 @@ func TestDoctorCLIsLabelsTheHostVersionAndHiveRelease(t *testing.T) {
 func TestDoctorCLIsRowsFitEightyColumns(t *testing.T) {
 	f := newDoctorFake(t.TempDir())
 	versions := map[string]string{
-		"claude":   "2.1.284 (Claude Code)",
-		"codex":    "codex-cli 0.159.0",
-		"cursor":   "2026.09.23-86fc751",
-		"grok":     "grok 1.0.45 (c33bff361a6f) [alpha]",
-		"opencode": "opencode v2.0.19",
-		"pi":       "0.87.1",
+		"antigravity": "1.5.2",
+		"claude":      "2.1.284 (Claude Code)",
+		"codex":       "codex-cli 0.159.0",
+		"cursor":      "2026.09.23-86fc751",
+		"grok":        "grok 1.0.45 (c33bff361a6f) [alpha]",
+		"opencode":    "opencode v2.0.19",
+		"pi":          "0.87.1",
 	}
 	st := doctorState{released: map[string]time.Time{}, registered: installerHosts}
 	const release = "4f8d96b9ce4f0123456789"
