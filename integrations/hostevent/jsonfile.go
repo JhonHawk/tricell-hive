@@ -23,6 +23,21 @@ type JSONHookFile struct {
 	// writes no field: Claude Code's settings.json is also read by Grok, which
 	// records a load error for it, and Cursor's file has no such field.
 	StatusMessages map[string]string
+	// Container is the top-level key of the object that holds the event arrays.
+	// Empty means "hooks" (Claude Code, Codex, Cursor); Antigravity's hooks.json
+	// keeps each tool's events under a top-level named hook, so Hive's is "hive".
+	Container string
+	// HandlerType, when set, is the "type" a flat handler carries
+	// (Antigravity's `{"type": "command", ...}`); empty writes no field.
+	HandlerType string
+}
+
+// ContainerKey is the top-level key the event arrays live under.
+func (f JSONHookFile) ContainerKey() string {
+	if f.Container != "" {
+		return f.Container
+	}
+	return "hooks"
 }
 
 type groupHandler struct {
@@ -36,6 +51,12 @@ type group struct {
 	Hooks []groupHandler `json:"hooks"`
 }
 
+type typedFlatHandler struct {
+	Type    string `json:"type"`
+	Command string `json:"command"`
+	Timeout int    `json:"timeout"`
+}
+
 type flatHandler struct {
 	Command string `json:"command"`
 	Timeout int    `json:"timeout"`
@@ -45,6 +66,9 @@ type flatHandler struct {
 // holding one command handler, or the bare handler for a flat file.
 func (f JSONHookFile) Entry(executable, event string) any {
 	command := Command(executable, f.Word, event)
+	if f.Flat && f.HandlerType != "" {
+		return typedFlatHandler{Type: f.HandlerType, Command: command, Timeout: HookTimeoutSeconds}
+	}
 	if f.Flat {
 		return flatHandler{Command: command, Timeout: HookTimeoutSeconds}
 	}

@@ -14,6 +14,7 @@ Collected on 2026-10-31 from documentation, published source (Codex, OpenCode, P
 | Pi 1.4.0 | Name, description and location in the system prompt (source) | `read`; a tool result (doc, obs). The docs admit the model may fail to load a relevant skill | `/skill:name`; the body expanded in the user message (source) | `read` or bash (obs) |
 | OpenCode v2.2.4 | Name and description in the system instructions (source) | `skill` tool; a tool result wrapped as `<skill_content>` (source) | `@name`; the same content in the user message (source) | Read tool, up to 2,000 lines or 50 KB (source) |
 | Cursor CLI 2026.10.22 | Name, path and description sent as `agent_skills`; descriptions trimmed silently (src, forum) | `Read`; 55% of `SKILL.md` reads partial, usually 60–120 lines (obs, 64 sessions) | `/name`; the full body inlined in the user message as `<manually_attached_skills>` (obs) | `Read`; 59% partial (obs) |
+| Antigravity `agy` 1.5.2 | not yet verified | not yet verified | `/skill-name` (doc); body handling not yet verified | not yet verified |
 
 Automatic selection often fails: in Vercel's Next.js evals the skill was not invoked in 56% of cases, and an explicit "use the skill" reached 79% (forum, 2026-01). Cursor staff call `/skill-name` "the only guaranteed trigger today" (forum 163761); Pi's docs say to use `/skill:name` to force it. An explicit invocation guarantees the load, not adherence (Codex issue #48877) or persistence.
 
@@ -27,6 +28,7 @@ Automatic selection often fails: in Vercel's Next.js evals the skill was not inv
 | Pi | Global and project `AGENTS.md` in the same system-prompt section (source) |
 | OpenCode | System instructions, combined with the agent prompt (doc) |
 | Cursor CLI | Rules at the start of the context. `~/.cursor/AGENTS.md` is never loaded; `<dir>/.cursor/rules/*.mdc` loads for each folder from the workspace up to `/`, so `~/.cursor/rules/hive.mdc` with `alwaysApply` reaches workspaces under the home folder only (src, two probes 2026-10-31) |
+| Antigravity | `always_on` rules from `~/.gemini/config/rules/`, each file truncated at 24,000 bytes by `agy` (obs, 2026-11-06); placement in the context not yet verified |
 
 No host documents that skill or reference text is treated as untrusted data; Meta's SkillInject study found the opposite, skills loaded as a trusted channel.
 
@@ -40,6 +42,7 @@ No host documents that skill or reference text is treated as untrusted data; Met
 | Pi | System prompt rebuilt (doc) | Tool results cut to 2,000 characters for the summarizer, so a read-loaded body is mostly lost; a `/skill:name` body reaches the summarizer whole (doc, inf) | Same cut |
 | OpenCode | Baseline rebuilt from current files (doc) | Skills stripped from kept messages; survives only in the ~15k-token verbatim tail (source) | Summarized |
 | Cursor CLI | Rules sent with every request (inf) | Probably summarized (inf) | Probably summarized (inf) |
+| Antigravity | not yet verified | not yet verified | not yet verified |
 
 Corrections to the 2026-10-27 probe: on Claude the probe's skill survived only inside the summary, because `/compact` ran in a separate `--resume` process; inside one process the body is re-injected. On Grok the probe's tiny skill was copied by the summarizer, not re-injected by the host.
 
@@ -55,13 +58,14 @@ Collected on 2026-11-02 from documentation, source and local transcripts of the 
 | OpenCode v2.2.5 | `todowrite`, only with `experimental.todo: true`; the list is the latest call in the message log (source) | No re-injection: issue #5934 is still reported after its stale close, and PR #25982 was closed unmerged (source, inf) |
 | Pi 1.4.0 | None built in; an example extension keeps state in tool-result details (doc) | Not applicable |
 | Cursor CLI 2026.10.22 | `TodoWrite` through `CallDynamicTool` (obs) | Unknown: no documentation or transcript shows it either way |
+| Antigravity `agy` 1.5.2 | not yet verified | not yet verified |
 
 ## What it means for Hive
 
 - A rule that must hold every turn and after compaction lives in the global guidance. On Grok, the guidance states its own authority because the host frames it as optional.
 - Each flow skill keeps its binding steps in the first ~60 lines and stays under 8 KB, for Cursor's partial reads and Codex's explicit cut.
 - References are read at a fixed moment, such as `plan-handoff.md` before the build route; a rule that only lives in a reference holds only while that read is in context.
-- A native task list is a live view, not the record: only Claude Code and Grok are shown to re-inject it after a compaction; Codex and OpenCode do not, Pi has none and Cursor is unmeasured. A plan kept in the conversation keeps its checkpoint in a file in the host's temporary location, as `flow-build` sets, because the conversation itself is summarized at compaction.
+- A native task list is a live view, not the record: only Claude Code and Grok are shown to re-inject it after a compaction; Codex and OpenCode do not, Pi has none and Cursor and Antigravity are unmeasured. A plan kept in the conversation keeps its checkpoint in a file in the host's temporary location, as `flow-build` sets, because the conversation itself is summarized at compaction.
 - A flow boundary names the command for the next flow in the host's syntax (`/flow-x`, `$flow-x`, `/skill:flow-x`, `@flow-x`), so each flow starts with its skill loaded whole. Research continuing into build and build continuing into verify cross the boundary in the same turn; the agent then reads the next skill whole before its first step.
 - A compaction summary is the model's own paraphrase, and it can harden an inference into a constraint: Grok session `01a1b012` (2026-11-06) carried "a production build of the three apps needs confirmation first", which no rule states, through two compactions. The global guidance's «Persistent memory» makes a restriction without a named source an inference to check before it stops work or adds a question.
 
@@ -73,5 +77,6 @@ Collected on 2026-11-02 from documentation, source and local transcripts of the 
 - Pi: installed docs and `dist` 1.4.0 (`skills.md`, `compaction.md`, `core/skills.js`, `agent-session.js`); issues #11019, #9874.
 - OpenCode: source at tag `v2.2.4` (`skill.ts`, `session/prompt.ts`, `compaction.ts`); docs `skills.mdx`, `instructions.mdx`; issues #10744, #46815.
 - Cursor CLI: cursor.com/docs/context/skills, /context/rules, /cli/using; forum threads 163761, 161142, 163768; local transcripts and the installed bundle.
+- Antigravity (`agy` 1.5.2): no compaction, skill-loading or task-list behavior was collected for this snapshot; its rows say not yet verified. The only observation is that an `always_on` rule in `~/.gemini/config/rules/` reaches a `agy -p` session (2026-11-07).
 - Native task lists (2026-11-02): code.claude.com/docs/en/interactive-mode ("Task list") and /tools-reference, Claude Code CHANGELOG 2.1.233 and 2.1.311; openai/codex issue #42365 and `codex-rs/core/src/tools/handlers/plan.rs`; Grok installed user guide `17-sessions.md`; OpenCode `packages/core/src/tool/plugin/todo.ts`, issue #5934, PR #25982, opencode.ai/docs/tools; Pi `docs/extensions.md`; cursor.com/docs/cli/changelog.
 - Evals and reports: vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals; Meta SkillInject summary; X posts by Codex, Claude Code and OpenCode staff (2026).

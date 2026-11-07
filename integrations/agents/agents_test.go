@@ -52,7 +52,7 @@ func replaceOnce(t *testing.T, s, old, replacement string) string {
 	return strings.Replace(s, old, replacement, 1)
 }
 
-var allHosts = []string{"claude", "codex", "grok", "pi", "opencode", "cursor"}
+var allHosts = []string{"claude", "codex", "grok", "pi", "opencode", "cursor", "antigravity"}
 
 // effortKeyPrefix is how each host's rendered effort line starts. Hosts that
 // do not emit an effort are absent from the map.
@@ -73,8 +73,8 @@ func hasLinePrefix(out []byte, prefix string) bool {
 }
 
 // TestRepositoryRolesRenderOnEveryHostAndCarryEffortOnlyWhereEmitted renders
-// every real role on all six hosts: each must render, Claude, Codex and Pi
-// must declare an effort with their own key, and Grok, OpenCode and Cursor
+// every real role on all seven hosts: each must render, Claude, Codex and Pi
+// must declare an effort with their own key, and Grok, OpenCode, Cursor and Antigravity
 // must start no line with any of those keys. The valid effort values are not
 // repeated here; Parse and ReadProfiles enforce them.
 func TestRepositoryRolesRenderOnEveryHostAndCarryEffortOnlyWhereEmitted(t *testing.T) {
@@ -251,6 +251,50 @@ func TestCursorObserveRendersInheritModelAndReadonly(t *testing.T) {
 	}
 }
 
+// An observe role on Antigravity carries no tools list and no readonly field:
+// agy has none, and a misspelled tool name hangs the subagent, so the role's
+// own instruction is the only restriction and must stay in the body.
+func TestAntigravityObserveRendersInheritModelWithoutToolsOrEffort(t *testing.T) {
+	profiles := syntheticProfiles(t)
+	source, data := syntheticRole(t, "synthetic-observer")
+	out, err := Render(source, data, profiles, "antigravity", "/skills", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const want = "---\ndescription: \"Read-only role on the execution profile.\"\nmodel: \"inherit\"\nname: \"synthetic-observer\"\n---\n" +
+		"\n# synthetic-observer\n\nRead the files you are given and report what you find.\n"
+	if string(out) != want {
+		t.Fatalf("Antigravity observe role =\n%s\nwant\n%s", out, want)
+	}
+	for _, banned := range []string{"tools", "readonly", "effort", "thinking", "permission"} {
+		if strings.Contains(string(out), banned) {
+			t.Fatalf("Antigravity output must not mention %q:\n%s", banned, out)
+		}
+	}
+}
+
+func TestProfilesRejectAntigravityEffort(t *testing.T) {
+	bad := replaceOnce(t, string(syntheticProfiles(t)), `"antigravity": {
+      "models": {"execution": {"model": "inherit"}`, `"antigravity": {
+      "models": {"execution": {"model": "inherit", "effort": "high"}`)
+	if _, err := ReadProfiles([]byte(bad)); err == nil || !strings.Contains(err.Error(), "inherited effort") {
+		t.Fatalf("ReadProfiles accepted an Antigravity model effort: %v", err)
+	}
+}
+
+func TestProfilesRejectAntigravityAccessKeys(t *testing.T) {
+	for _, key := range []string{`"readonly": true`, `"tools": ["read_file"]`, `"permissionMode": "plan"`} {
+		bad := replaceOnce(t, string(syntheticProfiles(t)), `"antigravity": {
+      "models": {"execution": {"model": "inherit"}, "reasoning": {"model": "inherit"}, "inherit": {"model": "inherit"}, "verifier": {"model": "inherit"}},
+      "access": {"observe": {}`, `"antigravity": {
+      "models": {"execution": {"model": "inherit"}, "reasoning": {"model": "inherit"}, "inherit": {"model": "inherit"}, "verifier": {"model": "inherit"}},
+      "access": {"observe": {`+key+`}`)
+		if _, err := ReadProfiles([]byte(bad)); err == nil || !strings.Contains(err.Error(), "unsupported agent access key") {
+			t.Fatalf("ReadProfiles accepted Antigravity access %s: %v", key, err)
+		}
+	}
+}
+
 func TestProfilesRejectCursorEffort(t *testing.T) {
 	bad := replaceOnce(t, string(syntheticProfiles(t)), `"execution": {"model": "inherit"}, "reasoning": {"model": "inherit"}, "inherit": {"model": "inherit"}`, `"execution": {"model": "inherit", "effort": "high"}, "reasoning": {"model": "inherit"}, "inherit": {"model": "inherit"}`)
 	if _, err := ReadProfiles([]byte(bad)); err == nil || !strings.Contains(err.Error(), "inherited effort") {
@@ -359,7 +403,7 @@ func TestGrokOpenCodeAndCursorEmitNoEffortEvenWhenRoleDeclaresOne(t *testing.T) 
 	profiles := syntheticProfiles(t)
 	source := "content/agents/design/test-agent.md"
 	data := []byte("---\nname: \"test-agent\"\ndescription: \"A role\"\nmodel_profile: \"execution\"\naccess_profile: \"observe\"\neffort: \"max\"\n---\nBody\n")
-	for _, host := range []string{"grok", "opencode", "cursor"} {
+	for _, host := range []string{"grok", "opencode", "cursor", "antigravity"} {
 		out, err := Render(source, data, profiles, host, "/skills", nil)
 		if err != nil {
 			t.Fatalf("Render(%s): %v", host, err)
@@ -383,6 +427,7 @@ func TestFiveHostProfilesStillValidateAndCursorFailsCleanly(t *testing.T) {
 	}
 	hosts := frozen["hosts"].(map[string]any)
 	delete(hosts, "cursor")
+	delete(hosts, "antigravity")
 	data, err := json.Marshal(frozen)
 	if err != nil {
 		t.Fatal(err)
@@ -398,6 +443,29 @@ func TestFiveHostProfilesStillValidateAndCursorFailsCleanly(t *testing.T) {
 	}
 	if _, err := Render(source, body, data, "cursor", "/skills", nil); err == nil || err.Error() != `unsupported agent host "cursor"` {
 		t.Fatalf("Render(cursor) on five-host profile = %v, want unsupported agent host error", err)
+	}
+}
+
+// A release frozen after Cursor and before Antigravity has six host profiles.
+func TestSixHostProfilesWithoutAntigravityStillValidate(t *testing.T) {
+	var frozen map[string]any
+	if err := json.Unmarshal(syntheticProfiles(t), &frozen); err != nil {
+		t.Fatal(err)
+	}
+	delete(frozen["hosts"].(map[string]any), "antigravity")
+	data, err := json.Marshal(frozen)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ReadProfiles(data); err != nil {
+		t.Fatalf("profiles without antigravity rejected: %v", err)
+	}
+	source, body := syntheticRole(t, "synthetic-observer")
+	if _, err := Render(source, body, data, "cursor", "/skills", nil); err != nil {
+		t.Fatalf("Render(cursor): %v", err)
+	}
+	if _, err := Render(source, body, data, "antigravity", "/skills", nil); err == nil || err.Error() != `unsupported agent host "antigravity"` {
+		t.Fatalf("Render(antigravity) without a profile = %v, want unsupported agent host error", err)
 	}
 }
 

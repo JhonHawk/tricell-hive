@@ -17,7 +17,7 @@
 </div>
 
 Hive brings shared working practices to **Claude Code, Codex, Grok Build, Pi,
-OpenCode V2, and Cursor CLI**. It supplies guidance, activity skills, specialist
+OpenCode V2, Cursor CLI, and Antigravity**. It supplies guidance, activity skills, specialist
 role definitions, and a manager that installs them in the host's native locations.
 Each CLI keeps its own model loop, authentication, tools, permissions, and history.
 
@@ -207,7 +207,7 @@ for capability requirements.
 
 ## Hosts
 
-Six host adapters are implemented. Their presence and installation on disk do
+Seven host adapters are implemented. Their presence and installation on disk do
 not prove that a particular session loaded the content or followed it.
 
 | Host | Scope | Requirements and limits |
@@ -218,8 +218,9 @@ not prove that a particular session loaded the content or followed it.
 | Pi | User | Delegated roles need pi-subagents (installed through npm as described above). Roles run on the session's model by default; set others with `hive models set`. Honors `PI_CODING_AGENT_DIR`. |
 | OpenCode V2 | User | Needs your own model providers. Roles run on the session's model and effort by default; set others with `hive models set`. |
 | Cursor CLI | User | Loads no global instruction file; each repository needs a pointer line (below). Cursor CLI 2026.10.22 loads no user-level subagents, only those in the repository's `.cursor/agents`, `.claude/agents` and `.grok/agents`, so Hive's user-level roles run as generic agents that receive the role's instructions. |
+| Antigravity | User | The `agy` CLI (1.5.2 observed) and the Antigravity App (2.29 observed), which share `~/.gemini/config`; the IDE extensions are not covered. `agy` truncates every rule file at 24,000 bytes, global ones included (observed 2026-11-06), so Hive writes the guidance as always-on parts `~/.gemini/config/rules/hive-NN.md` of at most 22,000 bytes each. Roles are `~/.gemini/config/agents/<role>.md` and run on the session's model; `agy` has no read-only field, so read-only roles rely on their instructions, and `hive models set` offers `inherit`, `flash_lite`, `flash` and `pro` with no effort. Hive does not write `~/.gemini/GEMINI.md`. Hive cannot read `agy`'s native history, and `agy` keeps its own memory ("Knowledge"). |
 
-Only Claude Code and Codex support `--scope project`; the other four reject it.
+Only Claude Code and Codex support `--scope project`; the other five reject it.
 Project scope writes inside one repository:
 
 ```sh
@@ -480,7 +481,7 @@ files stay in the repository.
 
 #### Host hooks
 
-A user-scope install also registers a silent `hive hook` command in each host,
+A user-scope install also registers a `hive hook` command in each host (silent, except on Antigravity, which requires a JSON reply on every run),
 which reports the session's start, activity and end, and where the host has one
 its native task list, to the viewer. The viewer shows them as *From host*, apart
 from what the agent publishes, and they never start or complete a stage, approve
@@ -494,6 +495,7 @@ anything or close a work.
 | Cursor CLI | `~/.cursor/hooks.json` | Verified only in the installed code. |
 | OpenCode V2 | `~/.config/opencode/plugins/hive-events.js` | Event plugin; the context loader stays inactive. |
 | Pi | `~/.pi/agent/extensions/hive-events.ts` | Extension, auto-loaded. |
+| Antigravity | `~/.gemini/config/hooks.json`, named hook `hive` | Reports session start and activity; `agy` has no session-end event, so a turn end is activity. Observed with `agy` 1.5.2: the hook runs and identifies the session. Sessions in the Antigravity App are not identified, since its agent process is not named `agy`. |
 
 Hive edits the shared JSON files entry by entry, keeps a backup of each, leaves
 other tools' hooks byte-identical and removes only its own on uninstall. Hosts

@@ -76,7 +76,7 @@ func (p UpdatePlan) Validate() error {
 	seen := map[string]bool{}
 	for _, host := range p.Hosts {
 		switch host {
-		case "claude", "codex", "grok", "pi", "opencode", "cursor":
+		case "claude", "codex", "grok", "pi", "opencode", "cursor", "antigravity":
 		default:
 			return fmt.Errorf("unknown update host")
 		}

@@ -23,7 +23,7 @@ var hookProcessArgs = func(pid int) (string, error) { return psField(pid, "args"
 // not tell sessions apart (OpenCode runs every session in one shared service).
 func hookUsesMap(host string) bool {
 	switch host {
-	case "claude-code", "codex", "grok", "cursor":
+	case "claude-code", "codex", "grok", "cursor", "antigravity":
 		return true
 	}
 	return false

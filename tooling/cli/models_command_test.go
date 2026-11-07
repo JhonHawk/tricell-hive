@@ -76,7 +76,7 @@ func TestModelsCommandWithoutOverridesPrintsTheBaseText(t *testing.T) {
 // --- helpers ----------------------------------------------------------------
 
 func (e modelsEnv) agentFile(host, role string) string {
-	dirs := map[string]string{"claude": ".claude/agents", "codex": ".codex/agents", "grok": ".grok/agents", "pi": ".pi/agent/agents", "opencode": ".config/opencode/agents"}
+	dirs := map[string]string{"claude": ".claude/agents", "codex": ".codex/agents", "grok": ".grok/agents", "pi": ".pi/agent/agents", "opencode": ".config/opencode/agents", "antigravity": ".gemini/config/agents"}
 	for _, ext := range []string{".md", ".toml"} {
 		p := filepath.Join(e.home, dirs[host], role+ext)
 		if _, err := os.Stat(p); err == nil {
@@ -249,6 +249,30 @@ func TestModelsCommandOutThenApplyGivesTheSameFilesAsSet(t *testing.T) {
 	}
 	if !reflect.DeepEqual(stateA.ModelOverrides, stateB.ModelOverrides) {
 		t.Fatalf("overrides differ: %+v vs %+v", stateA.ModelOverrides, stateB.ModelOverrides)
+	}
+}
+
+func TestModelsCommandSetOnAntigravityAcceptsATierAndRefusesAnEffort(t *testing.T) {
+	e := newModelsEnv(t)
+	e.hosts = []string{"antigravity"}
+	installDirect(t, e.home, e.stateDir, e.source, e.hosts)
+	file := e.agentFile("antigravity", "plain-role")
+	if !strings.Contains(e.read(t, file), `model: "inherit"`) {
+		t.Fatalf("antigravity role file:\n%s", e.read(t, file))
+	}
+	before := e.snapshot(t)
+	_, err := e.write("set", true, "y\n", "--host", "antigravity", "--role", "plain-role", "--model", "pro", "--effort", "high")
+	if err == nil || !strings.Contains(err.Error(), "antigravity does not support effort") {
+		t.Fatalf("error = %v, want the no-effort reason", err)
+	}
+	if !sameFiles(before, e.snapshot(t)) {
+		t.Fatal("a refused set wrote something")
+	}
+	if out, err := e.write("set", true, "y\n", "--host", "antigravity", "--role", "plain-role", "--model", "flash_lite"); err != nil {
+		t.Fatalf("set: %v\n%s", err, out)
+	}
+	if after := e.read(t, file); !strings.Contains(after, `model: "flash_lite"`) || strings.Contains(after, "effort") {
+		t.Fatalf("antigravity role file after set:\n%s", after)
 	}
 }
 

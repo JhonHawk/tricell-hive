@@ -269,12 +269,13 @@ func TestDoctorCLIsLabelsTheHostVersionAndHiveRelease(t *testing.T) {
 func TestDoctorCLIsRowsFitEightyColumns(t *testing.T) {
 	f := newDoctorFake(t.TempDir())
 	versions := map[string]string{
-		"claude":   "2.1.284 (Claude Code)",
-		"codex":    "codex-cli 0.159.0",
-		"cursor":   "2026.09.23-86fc751",
-		"grok":     "grok 1.0.45 (c33bff361a6f) [alpha]",
-		"opencode": "opencode v2.0.19",
-		"pi":       "0.87.1",
+		"antigravity": "1.5.2",
+		"claude":      "2.1.284 (Claude Code)",
+		"codex":       "codex-cli 0.159.0",
+		"cursor":      "2026.09.23-86fc751",
+		"grok":        "grok 1.0.45 (c33bff361a6f) [alpha]",
+		"opencode":    "opencode v2.0.19",
+		"pi":          "0.87.1",
 	}
 	st := doctorState{released: map[string]time.Time{}, registered: installerHosts}
 	const release = "4f8d96b9ce4f0123456789"
@@ -284,8 +285,15 @@ func TestDoctorCLIsRowsFitEightyColumns(t *testing.T) {
 		st.entries = append(st.entries, management.StatusEntry{Host: h, Release: release, VersionStatus: "verified", Status: "installed"})
 	}
 	sec := cliSection(f.deps(), st)
+	stateColumn := -1
 	for i, l := range sec.Lines {
 		mustContain(t, l, "Hive 4f8d96b9ce4f (verified)  CLI ")
+		col := len(installerHosts[i]) + len(l[len(installerHosts[i]):]) - len(strings.TrimLeft(l[len(installerHosts[i]):], " "))
+		if stateColumn == -1 {
+			stateColumn = col
+		} else if col != stateColumn {
+			t.Errorf("%s row starts its state at column %d, want %d like the first row: %q", installerHosts[i], col, stateColumn, l)
+		}
 		if installerHosts[i] == "grok" {
 			continue
 		}

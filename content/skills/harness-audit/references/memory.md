@@ -11,6 +11,7 @@ A host's own memory, the store it writes for itself and reloads in later session
 | Claude Code | `<Claude home>/projects/<project>/memory/`, whose `MEMORY.md` loads at start; `<project>` comes from the Git repository, shared by its subdirectories and worktrees, or from the start directory outside a repository; `autoMemoryDirectory`, read from any settings scope, project and local ones only in a trusted folder, moves it | Documented (code.claude.com/docs/en/memory, read 2026-10-28, Claude Code 2.1.312) |
 | Grok Build | `~/.grok/memory-v2/global/` plus one `workspaces/<project>-<hash>/` per repository, shared by its clones and worktrees, or per start directory outside a repository; both indexes enter the prompt once per session, topics are read on demand | Documented (`~/.grok/docs/user-guide/13-memory.md`, Grok Build 1.0.72) and observed 2026-10-28 |
 | Codex | `<Codex home>/memories/`, one store for every directory; `MEMORY.md` entries carry `applies_to: cwd=…` as a hint the model weighs, with no documented filter by directory | Documented (learn.chatgpt.com/docs/customization/memories, read 2026-10-28) and observed on 0.165.0 |
+| Antigravity | Its own memory ("Knowledge"), kept under `~/.gemini/antigravity-cli/knowledge/` | Documented only partially; whether it loads per entry point and how to edit an entry were not verified, so report it as an unaudited store and propose no edit |
 
 ## Changing an accepted entry
 

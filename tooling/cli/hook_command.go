@@ -3,9 +3,11 @@ package main
 // hook_command.go is `hive hook <host> <event>`, the silent subcommand every
 // host's hook (or plugin, or extension) runs. It reads the host's payload on
 // stdin, tells which host really ran it, records the session map, and reports the
-// event to the viewer or queues it. It never prints and never fails: hosts read
-// a non-zero exit, and some read stdout, as a verdict or as model context, so
-// every error and panic ends in empty output and exit 0.
+// event to the viewer or queues it. It never fails: hosts read a non-zero exit,
+// and some read stdout, as a verdict or as model context, so every error and
+// panic ends in exit 0. It prints nothing, except for Antigravity, whose
+// contract wants a JSON object from every hook: there every path, errors
+// included, prints the smallest object its event accepts (antigravityReply).
 //
 // The host named on the command line is only a hint: Grok and Cursor CLI also
 // run the hooks registered in Claude Code's settings, with their own payloads.
@@ -16,6 +18,7 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+	"tricell-hive/integrations/antigravity"
 	"tricell-hive/integrations/claude"
 	"tricell-hive/integrations/codex"
 	"tricell-hive/integrations/cursor"
@@ -45,9 +48,43 @@ var (
 
 type hookOptions struct{ home, stateDir string }
 
-// runHook never returns an error and writes nothing to stdout or stderr.
+// antigravityReply is the object `hive hook antigravity <event>` prints, or ""
+// when the first positional argument does not name Antigravity. It skips
+// --home and --state-dir with their values, as runHook does, but tolerates a
+// flag missing its value, so a malformed flag or an unknown event cannot hide
+// the host.
+func antigravityReply(args []string) string {
+	var positional []string
+	for i := 0; i < len(args); i++ {
+		name, _, has := strings.Cut(args[i], "=")
+		if name == "--home" || name == "--state-dir" {
+			if !has {
+				i++
+			}
+			continue
+		}
+		positional = append(positional, args[i])
+	}
+	if len(positional) == 0 || canonicalHookHost(positional[0]) != antigravity.HookHost {
+		return ""
+	}
+	event := ""
+	if len(positional) > 1 {
+		event = positional[1]
+	}
+	return antigravity.Reply(event)
+}
+
+// runHook never returns an error and writes nothing to stderr. It writes nothing
+// to stdout either, except the reply Antigravity's contract requires.
 func runHook(args []string, stdin io.Reader) {
-	defer func() { _ = recover() }()
+	reply := antigravityReply(args)
+	defer func() {
+		_ = recover()
+		if reply != "" {
+			_, _ = io.WriteString(os.Stdout, reply+"\n")
+		}
+	}()
 	var opts hookOptions
 	var positional []string
 	for i := 0; i < len(args); i++ {
@@ -103,18 +140,20 @@ func canonicalHookHost(hint string) string {
 		return pi.HookHost
 	case "cursor", "cursor-agent":
 		return cursor.HookHost
+	case "antigravity", "agy":
+		return antigravity.HookHost
 	}
 	return ""
 }
 
-// detectHookHost tells which host ran the hook. The OpenCode plugin and the Pi
-// extension are Hive's own files and name themselves; for the others the payload
+// detectHookHost tells which host ran the hook. The OpenCode plugin, the Pi
+// extension and Antigravity's named hook are Hive's own entries and name themselves; for the others the payload
 // and the environment win over the word on the command line, because Grok and
 // Cursor CLI run hooks registered for Claude Code.
 func detectHookHost(hint string, payload map[string]any, getenv func(string) string) string {
 	host := canonicalHookHost(hint)
 	switch host {
-	case "", opencode.HookHost, pi.HookHost:
+	case "", opencode.HookHost, pi.HookHost, antigravity.HookHost:
 		return host
 	}
 	switch {
@@ -140,6 +179,8 @@ func translateHook(host string, in hostevent.Input) []hostevent.Event {
 		return opencode.HookEvents(in)
 	case pi.HookHost:
 		return pi.HookEvents(in)
+	case antigravity.HookHost:
+		return antigravity.HookEvents(in)
 	}
 	return nil
 }

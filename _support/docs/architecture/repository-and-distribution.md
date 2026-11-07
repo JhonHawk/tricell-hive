@@ -1,6 +1,6 @@
 # Hive repository structure and distribution
 
-Reviewed: 2026-10-25. The shared guidance, activity skills, six host adapters, Go deployment manager, and packaged installer are implemented in this repository. Synthetic-home lifecycle tests cover the adapters. Historical rollout records describe earlier global installations; verify current host state separately. See the [manager contract](deployment-manager.md) and [installer contract](installer.md) for commands and limits.
+Reviewed: 2026-10-25. The shared guidance, activity skills, seven host adapters, Go deployment manager, and packaged installer are implemented in this repository. Synthetic-home lifecycle tests cover the adapters. Historical rollout records describe earlier global installations; verify current host state separately. See the [manager contract](deployment-manager.md) and [installer contract](installer.md) for commands and limits.
 
 ## Responsibilities
 
@@ -8,7 +8,7 @@ Reviewed: 2026-10-25. The shared guidance, activity skills, six host adapters, G
 |---|---|---|
 | `content/guidance/global.md` | Canonical core, essential boundaries and linked read conditions | Packaged by the manager; installation is not proof of loading |
 | `content/skills/` | Activity procedures and their supporting resources | The authored skills under `content/skills/`; availability and loading depend on each host installation |
-| `integrations/{claude,codex,grok,pi,opencode,cursor}/` | Native destination differences | Six user-scope adapters; Codex/Claude project scope; optional inactive OpenCode loader |
+| `integrations/{claude,codex,grok,pi,opencode,cursor,antigravity}/` | Native destination differences | Seven user-scope adapters; Codex/Claude project scope; optional inactive OpenCode loader |
 | `tooling/cli/` | Command interface | Go CLI, invoked from the checkout or a complete package |
 | `tooling/management/` | Shared installation, diagnosis, and removal logic | Managed blocks, snapshots, plans, state, and recovery |
 | `tooling/viewer/` | Local walkthrough viewer behind `hive view` | Standard library only; typed work store, authenticated protocol API and loopback server with embedded pages |
@@ -64,7 +64,7 @@ in about one session in three; for skill references read with Grok's read tool,
 it enforces part of the read-whole rule that the global guidance states for
 every host. Its contract is in [the deployment manager](deployment-manager.md#grok-read-whole-hook).
 
-Every host also gets Hive's session hooks, which report session start, activity, end and, where the host has one, its native task list to the local viewer without a model call: entries in Claude Code's `settings.json`, Codex's and Cursor's `hooks.json`, a second native Grok hook file, an OpenCode event plugin and a Pi extension. Their contract is in [the deployment manager](deployment-manager.md#host-session-hooks).
+Every host also gets Hive's session hooks, which report session start, activity, end and, where the host has one, its native task list to the local viewer without a model call: entries in Claude Code's `settings.json`, Codex's and Cursor's `hooks.json`, a named hook `hive` in Antigravity's `~/.gemini/config/hooks.json`, a second native Grok hook file, an OpenCode event plugin and a Pi extension. Their contract is in [the deployment manager](deployment-manager.md#host-session-hooks).
 
 An optional OpenCode user-scope plugin supplies two fixed-role reference snapshots
 in the session context hook when explicitly activated. The manager generates
@@ -72,7 +72,7 @@ them from the validated release payload; canonical references retain one editori
 home. Requests read no reference files or metadata. Refresh requires manager
 regeneration and plugin reload, not a live installed-Markdown edit. It is delivered inactive
 at `<OpenCodeHome>/hive/context-loader/{index.js,context-loader.json}`
-with no `package.json`, outside auto-discovery, not as a replacement for the core or a six-host loader.
+with no `package.json`, outside auto-discovery, not as a replacement for the core or a loader for every host.
 Its editorial JS template is included in manifest v2 offline packages; activation
 targets only the installed `hive/context-loader` directory. Metadata schema 2 records fixed
 role/resource/digest provenance and is independent of package manifest v2; the current manager

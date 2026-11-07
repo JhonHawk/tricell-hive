@@ -231,6 +231,23 @@ func TestCatalogClaudeReturnsFixedAliasesWithoutExecuting(t *testing.T) {
 	}
 }
 
+func TestCatalogAntigravityReturnsFixedTiersWithoutExecuting(t *testing.T) {
+	r := &recordingRunner{outputs: [][]byte{{}}}
+	got, err := listHostModels(context.Background(), "antigravity", r.run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if want := []string{"inherit", "flash_lite", "flash", "pro"}; !reflect.DeepEqual(catalogIDs(got), want) {
+		t.Fatalf("ids = %v, want %v", catalogIDs(got), want)
+	}
+	if len(r.calls) != 0 {
+		t.Fatalf("antigravity executed %v", r.calls)
+	}
+	if got, err = listHostModels(context.Background(), "antigravity", nil); err != nil || len(got) != 4 {
+		t.Fatalf("antigravity with a nil runner = %v, %v", got, err)
+	}
+}
+
 func TestCatalogUnknownHostIsAnError(t *testing.T) {
 	if _, err := listHostModels(context.Background(), "emacs", (&recordingRunner{outputs: [][]byte{{}}}).run); err == nil {
 		t.Fatal("expected an error")

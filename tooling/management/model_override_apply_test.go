@@ -105,7 +105,7 @@ func TestModelOverrideApplyRejectsAnEffortOnCLIsWithoutEffort(t *testing.T) {
 	o.Hosts = allAgentHosts
 	modelsSource(t, o)
 	apply(t, plan(t, "install", o))
-	for _, host := range []string{"grok", "cursor"} {
+	for _, host := range []string{"grok", "cursor", "antigravity"} {
 		t.Run(host, func(t *testing.T) {
 			// A valid plan for the CLI, edited by hand to carry an effort.
 			base := buildModels(t, o, host, map[string]ModelOverride{plainRole: {Model: "some-model"}})

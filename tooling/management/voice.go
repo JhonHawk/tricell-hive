@@ -364,7 +364,7 @@ func checkVoiceConflict(path string, s snapshot, hasSpan bool, existing VoiceSpa
 func voiceTargetPaths(c target.Config, state State) []string {
 	var paths []string
 	for path, r := range state.Records {
-		if r.Target.Kind != "block" {
+		if r.Target.Kind != "block" || skipsVoice(c, path) {
 			continue
 		}
 		for _, cons := range r.Consumers {
@@ -508,6 +508,9 @@ func BuildVoicePlan(action string, o Options, v VoiceSetting) (Plan, error) {
 		var after *VoiceSpan
 		if action == "set" {
 			managed := managedBlock(body, s.Data, voiceMarkers)
+			if err := checkAntigravityVoiceFits(c, path, state.Records[path], managed); err != nil {
+				return Plan{}, err
+			}
 			after = &VoiceSpan{Managed: managed, SourceHash: srcHash, Consumers: voiceConsumersForPath(c, state, path)}
 		}
 		p.Voice = append(p.Voice, VoiceChange{Path: path, Consumers: voiceConsumersForPath(c, state, path), Expected: finger(s), Before: before, After: after, Gone: gone})
@@ -588,7 +591,7 @@ func addVoiceChangesForInstall(p *Plan, o Options, state State) error {
 		return nil
 	}
 	for _, ch := range p.Changes {
-		if ch.Target.Kind != "block" || ch.After == nil {
+		if ch.Target.Kind != "block" || ch.After == nil || skipsVoice(p.Config, ch.Target.Path) {
 			continue
 		}
 		s, err := overlayRead(*p, ch.Target, ch.Replaces != nil)
@@ -601,6 +604,9 @@ func addVoiceChangesForInstall(p *Plan, o Options, state State) error {
 			return err
 		}
 		managed := managedBlock(body, s.Data, voiceMarkers)
+		if err := checkAntigravityVoiceFits(p.Config, ch.Target.Path, *ch.After, managed); err != nil {
+			return err
+		}
 		newConsumers := filterUserConsumers(ch.After.Consumers, p.Config)
 		// A shared file's consumer set can widen (a host joins) even when the
 		// rendered bytes don't change; still record that, so status for the

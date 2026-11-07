@@ -611,6 +611,28 @@ func TestModelsViewUnderASyntheticHomeRunsNothingAndOffersTheCurrentValueAndOthe
 	}
 }
 
+// Antigravity has no listing command: under a synthetic home its list is the
+// four fixed tiers, and nothing is executed.
+func TestModelsViewAntigravityListsTheFixedTiersWithoutRunningACommand(t *testing.T) {
+	old := defaultCatalogRunner
+	calls := 0
+	defaultCatalogRunner = func(context.Context, string, []string) ([]byte, error) {
+		calls++
+		return nil, errors.New("must not run")
+	}
+	t.Cleanup(func() { defaultCatalogRunner = old })
+	e := pickerEnv(t, "antigravity", nil, 80, 24)
+	selectRole(t, e.d, "plain-role")
+	e.d.key("enter", "right")
+	got := strings.Join(listItems(t, e.d), "|")
+	if want := "● inherit|flash_lite|flash|pro|release default|Other…"; got != want {
+		t.Fatalf("list = %q, want %q", got, want)
+	}
+	if calls != 0 {
+		t.Fatalf("a command ran for Antigravity: %d calls", calls)
+	}
+}
+
 // TestModelsViewBrowsingNeverQueriesAList is AC13 for the view: without an open
 // panel nothing is listed, by any path.
 func TestModelsViewBrowsingNeverQueriesAList(t *testing.T) {

@@ -68,7 +68,7 @@ func parsePsLstart(s string) (time.Time, error) {
 // fixed order. Codex's is the root session ID its shell tools receive
 // (codex-rs/core/src/exec_env.rs inject_session_env, observed equal to the
 // hook's session_id on 0.167.0); CODEX_THREAD_ID names a subagent's own thread
-// and is not one. Cursor and Grok have none and resolve through the session map.
+// and is not one. Cursor, Grok and Antigravity have none and resolve through the session map.
 var viewIdentityVariables = []struct{ env, host string }{
 	{"CLAUDE_CODE_SESSION_ID", "claude-code"},
 	{"PI_SESSION_ID", "pi"},
@@ -85,6 +85,7 @@ var viewHostProcessNames = map[string]string{
 	"opencode":     "opencode",
 	"pi":           "pi",
 	"cursor-agent": "cursor",
+	"agy":          "antigravity",
 }
 
 func hostOfProcessName(name string) string {

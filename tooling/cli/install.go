@@ -19,14 +19,14 @@ import (
 	"tricell-hive/tooling/providers"
 )
 
-var installerHosts = []string{"claude", "codex", "cursor", "grok", "opencode", "pi"}
+var installerHosts = []string{"antigravity", "claude", "codex", "cursor", "grok", "opencode", "pi"}
 
 // hostBinaries lists, for a host whose executables are not just its own name,
 // the programs whose presence on PATH shows its CLI is installed. The first one
 // is the CLI itself and reports the version; the others only count as evidence.
 // Cursor's CLI is cursor-agent, while the cursor launcher may be the only one
 // installed. Both installer detection and Diagnostics read this list.
-var hostBinaries = map[string][]string{"cursor": {"cursor-agent", "cursor"}}
+var hostBinaries = map[string][]string{"cursor": {"cursor-agent", "cursor"}, "antigravity": {"agy"}}
 
 // detectionBinaries returns the executables to look for on PATH for a host.
 func detectionBinaries(host string) []string {
@@ -1091,7 +1091,7 @@ func sharedResourceRoots(p management.Plan, additional []string) []string {
 }
 
 func installRoots(paths []string, c target.Config) []string {
-	roots := []string{c.CodexHome, c.ClaudeHome, c.GrokHome, c.PiHome, c.OpenCodeHome, c.CursorHome, filepath.Join(c.Home, ".agents"), filepath.Join(c.Home, ".codex"), filepath.Join(c.Home, ".claude"), filepath.Join(c.Home, ".grok"), filepath.Join(c.Home, ".pi", "agent"), filepath.Join(c.Home, ".config", "opencode")}
+	roots := []string{c.CodexHome, c.ClaudeHome, c.GrokHome, c.PiHome, c.OpenCodeHome, c.CursorHome, c.AntigravityHome, filepath.Join(c.Home, ".agents"), filepath.Join(c.Home, ".codex"), filepath.Join(c.Home, ".claude"), filepath.Join(c.Home, ".grok"), filepath.Join(c.Home, ".pi", "agent"), filepath.Join(c.Home, ".config", "opencode")}
 	sort.Slice(roots, func(i, j int) bool { return len(roots[i]) > len(roots[j]) })
 	seen := map[string]bool{}
 	for _, path := range paths {

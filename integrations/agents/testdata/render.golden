@@ -1,3 +1,15 @@
+=== antigravity content/agents/synthetic/synthetic-inherit-effort.md (203 bytes) ===
+---
+description: "Implementing role that inherits the model and declares an effort."
+model: "inherit"
+name: "synthetic-inherit-effort"
+---
+
+# synthetic-inherit-effort
+
+Make the change you are asked for.
+
+=== end ===
 === claude content/agents/synthetic/synthetic-inherit-effort.md (220 bytes) ===
 ---
 description: "Implementing role that inherits the model and declares an effort."
@@ -71,6 +83,18 @@ thinking: "medium"
 # synthetic-inherit-effort
 
 Make the change you are asked for.
+
+=== end ===
+=== antigravity content/agents/synthetic/synthetic-inherit.md (182 bytes) ===
+---
+description: "Read-only role that inherits the model and declares no effort."
+model: "inherit"
+name: "synthetic-inherit"
+---
+
+# synthetic-inherit
+
+Answer with the session model.
 
 === end ===
 === claude content/agents/synthetic/synthetic-inherit.md (268 bytes) ===
@@ -153,6 +177,18 @@ thinking: "low"
 # synthetic-inherit
 
 Answer with the session model.
+
+=== end ===
+=== antigravity content/agents/synthetic/synthetic-observer.md (186 bytes) ===
+---
+description: "Read-only role on the execution profile."
+model: "inherit"
+name: "synthetic-observer"
+---
+
+# synthetic-observer
+
+Read the files you are given and report what you find.
 
 === end ===
 === claude content/agents/synthetic/synthetic-observer.md (283 bytes) ===
@@ -238,6 +274,18 @@ thinking: "medium"
 Read the files you are given and report what you find.
 
 === end ===
+=== antigravity content/agents/synthetic/synthetic-reasoner.md (193 bytes) ===
+---
+description: "Verifying role on the reasoning profile with its own efforts."
+model: "inherit"
+name: "synthetic-reasoner"
+---
+
+# synthetic-reasoner
+
+Think carefully and return the evidence.
+
+=== end ===
 === claude content/agents/synthetic/synthetic-reasoner.md (217 bytes) ===
 ---
 description: "Verifying role on the reasoning profile with its own efforts."
@@ -312,6 +360,19 @@ thinking: "xhigh"
 # synthetic-reasoner
 
 Think carefully and return the evidence.
+
+=== end ===
+=== antigravity content/agents/synthetic/synthetic-unicode.md (260 bytes) ===
+---
+description: "A \"quoted\" role at C:\\work with mañana."
+model: "inherit"
+name: "synthetic-unicode"
+---
+
+# synthetic-unicode
+
+Use "double quotes", 'single quotes', C:\\work, and `code`.
+Unicode survives: mañana, naïve café, 日本語, and a tab:	end.
 
 === end ===
 === claude content/agents/synthetic/synthetic-unicode.md (285 bytes) ===
@@ -393,6 +454,18 @@ thinking: "medium"
 
 Use "double quotes", 'single quotes', C:\\work, and `code`.
 Unicode survives: mañana, naïve café, 日本語, and a tab:	end.
+
+=== end ===
+=== antigravity content/agents/synthetic/synthetic-verifier.md (182 bytes) ===
+---
+description: "Verifying role on the verifier model profile."
+model: "inherit"
+name: "synthetic-verifier"
+---
+
+# synthetic-verifier
+
+Check the result independently of its author.
 
 === end ===
 === claude content/agents/synthetic/synthetic-verifier.md (208 bytes) ===
