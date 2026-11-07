@@ -35,17 +35,17 @@ Base `development` en `8956c9a3`, rama `feat/pi-subagent-eager-activation`.
 
 ### T2 — Paso del manager: plan, apply, recuperación, eliminación, estado y validaciones
 
-- [ ] Paso nuevo en el plan y registro nuevo en el estado (el esquema no cambia, con `omitempty`), con su accesor `StoredPiSubagentConfig`. Se planifica igual que `planPiPackage`: install, instalación desde paquete y actualización desde el código fuente. Cubre todos los estados de AC1, AC3 y AC4, con el caso del otro Pi home.
-- [ ] Apply:
+- [x] Paso nuevo en el plan y registro nuevo en el estado (el esquema no cambia, con `omitempty`), con su accesor `StoredPiSubagentConfig`. Se planifica igual que `planPiPackage`: install, instalación desde paquete y actualización desde el código fuente. Cubre todos los estados de AC1, AC3 y AC4, con el caso del otro Pi home.
+- [x] Apply:
   - revalida el fingerprint;
   - toma como estado previo lo que deja la migración del instalador anterior cuando ella toca el mismo archivo;
   - crea el backup;
   - escribe conservando el modo, o con 0600 y carpetas en 0700 si el archivo es nuevo;
   - registra en el estado y en el journal;
   - se recupera por clave.
-- [ ] `hive plan remove` sobre Pi aplica AC5. Una eliminación interrumpida se recupera según AC6.
-- [ ] `PlanUnchanged` conoce el paso (AC7). `validatePlan`, `update_coordinator.go` y `update_providers.go` lo rechazan en una actualización de release (AC9).
-- [ ] Los tests existentes con un Pi home sintético se ajustan al paso nuevo sin perder lo que verificaban.
+- [x] `hive plan remove` sobre Pi aplica AC5. Una eliminación interrumpida se recupera según AC6.
+- [x] `PlanUnchanged` conoce el paso (AC7). `validatePlan`, `update_coordinator.go` y `update_providers.go` lo rechazan en una actualización de release (AC9).
+- [x] Los tests existentes con un Pi home sintético se ajustan al paso nuevo sin perder lo que verificaban.
 
 **Closes:** AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC8, AC9
 
@@ -143,3 +143,4 @@ Sin validación humana: la entrega es `automatic` y no hay pantalla.
 
 2026-11-06 — Plan escrito y revisado (R1–R19 aplicados); alcance confirmado en D6 A.
 2026-11-06 — T1 hecha: `go test ./integrations/pi/` y `go vet` pasan. Siguiente: T2 en un hijo `hive-build-backend`.
+2026-11-06 — T2 hecha por `hive-build-backend`: `go test ./tooling/management/... ./integrations/... ./tooling/cli/...` y `go vet` pasan. El hijo escribió el código antes que las pruebas y lo compensó con 6 mutaciones; 5 las detectó la prueba prevista, y la sexta (`update_providers.go`) es una comprobación redundante. Brecha en AC4: con la instalación, un `config.json` inválido, con claves duplicadas, que no es un objeto, que es un enlace simbólico o que no es un archivo regular hace fallar todo `BuildPlan` en el escaneo legacy, previo, en vez de dar un paso manual; no se escribe nada. El caso de más de 1 MiB y el de carpeta no escribible sí llegan al paso. La eliminación interrumpida se revierte hacia atrás (AC6), salvo un backup ya borrado.

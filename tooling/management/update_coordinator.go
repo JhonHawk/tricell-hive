@@ -91,7 +91,7 @@ func updateCore(p UpdatePlan) (Plan, error) {
 	if core.Release == nil || !reflect.DeepEqual(*core.Release, expectedRelease) || core.Product == nil || core.Product.Version != p.Package.Artifact.ProductVersion || core.Product.ArtifactID != p.Package.Artifact.ManifestSHA256 {
 		return core, fmt.Errorf("core payload is not bound to the retained package")
 	}
-	if !p.Installation && (core.PiPackage != nil || core.CodexWaitFloor != nil) {
+	if !p.Installation && (core.PiPackage != nil || core.CodexWaitFloor != nil || core.PiSubagentConfig != nil) {
 		return core, fmt.Errorf("release update cannot install providers; repair separately with hive install")
 	}
 	return core, nil

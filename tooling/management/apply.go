@@ -37,6 +37,9 @@ type journal struct {
 	// CodexLines is the wait floor edit of Codex's config.toml, journaled by
 	// lines (fingerprints and owned lines), never by the file's bytes.
 	CodexLines *linesEntry `json:",omitempty"`
+	// PiConfig is the toolActivation edit of pi-subagents' config.json,
+	// journaled by fingerprints and flags, never by the file's bytes.
+	PiConfig *piConfigEntry `json:",omitempty"`
 	// HostHooks are the edits of the shared JSON hook files, journaled by
 	// fingerprints and Hive's own entries, never by the files' bytes.
 	HostHooks []*hostHooksEntry `json:",omitempty"`
@@ -220,6 +223,7 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 	next.Voice = state.Voice
 	next.PiSubagentsSource = state.PiSubagentsSource
 	next.CodexWaitFloor = copyWaitFloorRecord(state.CodexWaitFloor)
+	next.PiSubagentConfig = copyPiRecord(state.PiSubagentConfig)
 	next.HostHooks = copyHostHooks(state.HostHooks)
 	if state.VoiceSpans != nil {
 		next.VoiceSpans = map[string]VoiceSpan{}
@@ -320,6 +324,12 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 	if j.CodexLines != nil && !j.CodexLines.Skip {
 		changed = true
 	}
+	if err := preparePiConfig(p, state, &next, &j); err != nil {
+		return journal{}, State{}, nil, false, err
+	}
+	if j.PiConfig != nil && !j.PiConfig.Skip {
+		changed = true
+	}
 	if err := prepareHostHooks(p, state, &next, &j); err != nil {
 		return journal{}, State{}, nil, false, err
 	}
@@ -337,6 +347,9 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 		if !slices.Contains(next.CreatedDirs, d) {
 			next.CreatedDirs = append(next.CreatedDirs, d)
 		}
+	}
+	if err := finishPiConfigDirs(p, &next, &j, dirsToCreate); err != nil {
+		return journal{}, State{}, nil, false, err
 	}
 	id := make([]byte, 16)
 	if _, err = rand.Read(id); err != nil {
@@ -444,6 +457,9 @@ func (e Engine) commitTransaction(p Plan, j *journal, state State, next *State, 
 		return err
 	}
 	if err := applyCodexLines(j, jp, e.fail); err != nil {
+		return err
+	}
+	if err := applyPiConfig(j, jp, e.fail); err != nil {
 		return err
 	}
 	if err := applyHostHooks(j, jp, e.fail); err != nil {
@@ -876,6 +892,11 @@ func (e Engine) Recover(stateDir string) (string, error) {
 		if err != nil {
 			return "", err
 		}
+		// A file the migration edited and the Pi step then edited is judged as
+		// it will be once the step's key is out.
+		if cur, err = piConfigAfterUndo(j, en.Change.Target.Path, cur); err != nil {
+			return "", err
+		}
 		currents[i] = cur
 		if same(cur, en.Before) {
 			inverses[i] = cur
@@ -946,6 +967,12 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	// Only now, once Recover is going ahead: it must not undo the lines of an
 	// operation it then refuses to recover.
 	if err := undoCodexInstall(j); err != nil {
+		return "", err
+	}
+	if err := undoPiConfigInstall(j); err != nil {
+		return "", err
+	}
+	if err := restorePiConfigRemoval(j); err != nil {
 		return "", err
 	}
 	if err := undoHostHooksInstall(j); err != nil {

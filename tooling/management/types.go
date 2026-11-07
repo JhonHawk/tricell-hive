@@ -135,6 +135,10 @@ type State struct {
 	// CodexWaitFloor records the lines Hive wrote into Codex's config.toml, or
 	// is nil when Hive wrote none. Schema stays 6 via omitempty.
 	CodexWaitFloor *CodexWaitFloorRecord `json:"codex_wait_floor,omitempty"`
+	// PiSubagentConfig records the toolActivation key Hive wrote into
+	// pi-subagents' config.json, or is nil when Hive wrote none. Schema stays 6
+	// via omitempty.
+	PiSubagentConfig *PiSubagentConfigRecord `json:"pi_subagent_config,omitempty"`
 	// HostHooks records, per shared JSON hook file (Claude Code's settings.json,
 	// Codex's and Cursor's hooks.json), the entries Hive added to it, keyed by
 	// path. Schema 7: a binary that knows only 6 would drop this field, so a
@@ -217,6 +221,10 @@ type Plan struct {
 	// secrets: only the path, the keys and values Hive means to set, and the
 	// fingerprint of the file the plan was computed from.
 	CodexWaitFloor *CodexWaitFloorStep `json:"codex_wait_floor,omitempty"`
+	// PiSubagentConfig is the toolActivation step for a user-scope install,
+	// package installation or committed-source update that includes Pi. It
+	// never carries the bytes of config.json. Release updates never plan it.
+	PiSubagentConfig *PiSubagentConfigStep `json:"pi_subagent_config,omitempty"`
 	// HostHooks are the shared JSON hook files a user-scope install edits, one
 	// per selected host among claude, codex and cursor. They are not file
 	// Changes: other tools keep their entries in those files, so the manager
@@ -284,6 +292,44 @@ type CodexWaitFloorRecord struct {
 	CreatedTable  bool     `json:"created_table,omitempty"`
 	CreatedFile   bool     `json:"created_file,omitempty"`
 	Separator     bool     `json:"separator,omitempty"`
+	BackupCreated bool     `json:"backup_created,omitempty"`
+}
+
+// PiSubagentConfigStep is the planned state of toolActivation in pi-subagents'
+// config.json under the plan's Pi home. Only Status "write" changes a file; the
+// other statuses are reported and write and record nothing.
+type PiSubagentConfigStep struct {
+	Status string `json:"status"`
+	Path   string `json:"path"`
+	Key    string `json:"key"`
+	// Value is JSON text: the value Hive writes ("write", "applied", "manual")
+	// or the value the user set ("user", shortened and without control
+	// characters when it is long).
+	Value string `json:"value"`
+	// Detail is the fixed cause of a "manual" step, or the path of the record
+	// Hive keeps for another Pi home ("other_home").
+	Detail string `json:"detail,omitempty"`
+	// Expected is the fingerprint of the file the write was computed from, as
+	// the migration of the legacy installer leaves it. Only "write" sets it.
+	Expected Fingerprint `json:"expected"`
+}
+
+// Statuses of a PiSubagentConfigStep.
+const (
+	PiConfigWrite     = "write"
+	PiConfigApplied   = "applied"
+	PiConfigUserSet   = "user"
+	PiConfigManual    = "manual"
+	PiConfigOtherHome = "other_home"
+)
+
+// PiSubagentConfigRecord is what Hive owns in config.json after a write. It
+// never holds the file's other content.
+type PiSubagentConfigRecord struct {
+	Path          string   `json:"path"`
+	Value         string   `json:"value"`
+	CreatedFile   bool     `json:"created_file,omitempty"`
+	CreatedDirs   []string `json:"created_dirs,omitempty"`
 	BackupCreated bool     `json:"backup_created,omitempty"`
 }
 
