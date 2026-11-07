@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Borrador · pendiente de la revisión del plan y de la ronda de entrega |
+| Estado | Completado · PR #415, 3933505f |
 | Tracker | Sin ticket: el trabajo se hace en esta sesión; ningún issue de GitHub menciona Antigravity (búsqueda 2026-11-06) |
 | Git | `tricell-hive`, base `development` en `93ab65ee`; rama propuesta `feat/antigravity-host-support` |
 
