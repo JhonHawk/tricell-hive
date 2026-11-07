@@ -12,11 +12,20 @@ func pcInstall(t *testing.T, o Options) {
 	apply(t, plan(t, "install", o))
 }
 
-func pcNotes(t *testing.T, o Options, id string) string {
+// pcNotes returns the journal's notes and checks that Apply surfaced each of
+// them in its result, which is the transaction ID followed by "; " and the
+// warnings.
+func pcNotes(t *testing.T, o Options, result string) string {
 	t.Helper()
+	id, warning, _ := strings.Cut(result, "; ")
 	j := pcJournal(t, o, id)
 	if j.PiConfig == nil {
 		return ""
+	}
+	for _, n := range j.PiConfig.Notes {
+		if !strings.Contains(warning, n) {
+			t.Fatalf("Apply did not report the note %q; result %q", n, result)
+		}
 	}
 	return strings.Join(j.PiConfig.Notes, "; ")
 }
