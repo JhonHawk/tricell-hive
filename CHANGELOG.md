@@ -10,6 +10,13 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Changed
+
+- Verify checks mobile only at the iPhone width of 440 × 956 CSS px, plus any
+  narrower width the project or the ticket names; it no longer loads changed
+  regions at 320 px, even when the project declares an accessibility
+  requirement, and its reflow floor no longer establishes WCAG 1.4.10.
+
 ### Fixed
 
 - Viewer status labels render a single Badge without a second bordered container.
