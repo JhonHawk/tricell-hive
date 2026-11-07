@@ -11,10 +11,15 @@ Run the steps below in each of them.
 
 ## Keep conditions
 
-Every worktree removal below keeps the worktree, its local branch and its remote branch, skipping step 4 for them, and reports the reason, when:
+Before checking the work's own worktree, stop the processes this work started inside it, by their process ID as the global guidance's «Preservation» sets, and leave it by running the remaining commands from the main checkout. Every worktree removal below keeps the worktree, its local branch and its remote branch, skipping step 4 for them, and reports the reason, when:
 
-- it has uncommitted or untracked files, or ignored files outside dependency and build folders such as `node_modules/`, `.venv/`, `dist/` and `build/` (`git -C <worktree> status --ignored --porcelain`), since `git worktree remove` deletes ignored files without refusing; for the work's own worktree, move the items flow-close step 2's answer keeps out of it first, as flow-close step 5 sets;
-- for a worktree of other work, found by the sweep: a running process has its working directory inside it (`lsof -d cwd -Fn` lists it), or that check cannot run, such as when `lsof` is missing. For the work's own worktree, leave it first by running the remaining commands from the main checkout.
+- it has uncommitted or untracked files, or an ignored entry (`git -C <worktree> status --ignored --porcelain`) other than the ones below, since `git worktree remove` deletes ignored files without refusing. These ignored entries do not keep it, because removing them loses nothing:
+  - a dependency or build folder, or an entry in one, such as `node_modules/`, `.venv/`, `dist/`, `build/` and `.next/`;
+  - an entry whose content the main checkout of the worktree's own repository already holds at the same path, checked with `cmp -s` for a file, or for a directory with `diff -rq <main-path> <worktree-path>` printing no line other than `Only in <main-path>…`, such as a `.env` copied in when the worktree was set up. The main checkout is the path on the first `worktree ` line of `git -C <worktree> worktree list --porcelain`; a repository with no main checkout, such as a bare one, has none of these entries;
+  - a TypeScript or Next.js generated file, `*.tsbuildinfo` or `next-env.d.ts`, which the next typecheck or build recreates.
+
+  For the work's own worktree, move the items flow-close step 2's answer keeps out of it first, as flow-close step 5 sets;
+- a running process has its working directory inside it (`lsof -d cwd -Fn` lists it), or that check cannot run, such as when `lsof` is missing.
 
 ## The work's branch
 
