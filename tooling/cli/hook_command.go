@@ -49,20 +49,30 @@ var (
 type hookOptions struct{ home, stateDir string }
 
 // antigravityReply is the object `hive hook antigravity <event>` prints, or ""
-// when the arguments do not name Antigravity. It reads the raw arguments, not
-// the parsed ones, so a malformed flag or an unknown event cannot hide the host.
+// when the first positional argument does not name Antigravity. It skips
+// --home and --state-dir with their values, as runHook does, but tolerates a
+// flag missing its value, so a malformed flag or an unknown event cannot hide
+// the host.
 func antigravityReply(args []string) string {
-	for i, a := range args {
-		if canonicalHookHost(a) != antigravity.HookHost {
+	var positional []string
+	for i := 0; i < len(args); i++ {
+		name, _, has := strings.Cut(args[i], "=")
+		if name == "--home" || name == "--state-dir" {
+			if !has {
+				i++
+			}
 			continue
 		}
-		event := ""
-		if i+1 < len(args) && !strings.HasPrefix(args[i+1], "-") {
-			event = args[i+1]
-		}
-		return antigravity.Reply(event)
+		positional = append(positional, args[i])
 	}
-	return ""
+	if len(positional) == 0 || canonicalHookHost(positional[0]) != antigravity.HookHost {
+		return ""
+	}
+	event := ""
+	if len(positional) > 1 {
+		event = positional[1]
+	}
+	return antigravity.Reply(event)
 }
 
 // runHook never returns an error and writes nothing to stderr. It writes nothing

@@ -139,6 +139,8 @@ func TestAntigravityPrintsTheAcceptedObjectOnEveryPath(t *testing.T) {
 		"flag without a value":   {agyPayload, []string{"antigravity", "Stop", "--state-dir"}, `{"decision":"stop"}` + "\n"},
 		"state dir not a path":   {agyPayload, []string{"antigravity", "SessionStart", "--state-dir", "/nonexistent/\x00bad"}, "{}\n"},
 		"relative workspace dir": {`{"conversationId":"c1","workspacePaths":["rel"]}`, []string{"antigravity", "SessionStart"}, "{}\n"},
+		"flag before the event":  {agyPayload, []string{"antigravity", "--home", "/nonexistent/home", "Stop"}, `{"decision":"stop"}` + "\n"},
+		"other host, agy value":  {agyPayload, []string{"claude", "--home", "agy", "SessionStart"}, ""},
 	}
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
