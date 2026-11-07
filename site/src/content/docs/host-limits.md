@@ -27,13 +27,14 @@ verified.
   global `AGENTS.md` in an open session within seconds of an update (one session,
   observed). OpenCode still needs a new session for changed roles or skills.
 - **Hive can only count sessions on some CLIs.** After an update it reports how
-  many open Claude Code and Grok sessions to restart. It cannot see Codex, Pi or
-  Cursor sessions, so restart those yourself.
+  many open Claude Code and Grok sessions to restart. It cannot see Codex, Pi,
+  Cursor or Antigravity sessions, so restart those yourself.
 - **Host hooks load when a session starts.** The hooks that report a session to
   the [viewer](/viewer/#host-observed-activity) are read at session start, so
   restart open sessions after installing them. Codex also skips them until you
   approve them in `/hooks`, and Cursor CLI's use of its hooks file is verified
-  only in the installed code.
+  only in the installed code. Antigravity's turn-end hook reply is not yet
+  verified in a live session.
 
 ## Claude Code
 
@@ -111,6 +112,27 @@ verified.
   working while a card is open is not settled: the binary waits and the
   documentation says otherwise.
 - Helper roles run on your session's model.
+
+## Antigravity
+
+- **Covered:** the `agy` CLI (1.5.2 observed) and the Antigravity App (2.29
+  observed), which share `~/.gemini/config`. Hive installs at user scope only;
+  the IDE extensions are not covered.
+- **The guidance arrives in several rule files.** `agy` cuts every rule file at
+  24,000 bytes, global ones included (observed 2026-11-06 on `agy` 1.5.2), and
+  always-on and global rules share a 20,000-token budget (documented). Hive
+  writes `~/.gemini/config/rules/hive-NN.md` parts that stay under that cut;
+  how many there are depends on the guidance size and the length of your home
+  path. Do not put your own files at those names.
+- Helper roles run on your session's model. `agy` has no per-role effort and no
+  read-only setting, so read-only holds only because the role's instructions say
+  so. `hive models set` offers `inherit`, `flash_lite`, `flash` and `pro`.
+- Hive cannot read `agy`'s native history, which is not a plain-text format, so
+  session review and `hive doctor` cannot inspect Antigravity sessions. `agy`
+  keeps its own memory ("Knowledge"), which Hive does not manage.
+- Hive does not write `~/.gemini/GEMINI.md`, which Gemini CLI also uses.
+- Not yet verified for Antigravity: how its context behaves after compaction,
+  its question card, and how it launches helper roles.
 
 ## What to do when a limit bites
 

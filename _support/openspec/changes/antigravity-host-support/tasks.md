@@ -94,7 +94,7 @@ Base: `tricell-hive` `development` en `93ab65ee` (2026-11-06); rama `feat/antigr
 
 ### T5 — Contenido distribuido y documentación con Antigravity
 
-- [ ] La línea de sintaxis de comandos de `global.md` incluye Antigravity con `/flow-x`; las referencias, la arquitectura, `README.md`, `llms.txt` y el sitio describen el host y sus límites.
+- [x] La línea de sintaxis de comandos de `global.md` incluye Antigravity con `/flow-x`; las referencias, la arquitectura, `README.md`, `llms.txt` y el sitio describen el host y sus límites.
 
 **Closes:** AC4
 
@@ -144,7 +144,7 @@ Sin parada de validación humana: el modo es `automatic` (D6 A).
 
 ## Checkpoint
 
-Etapa: build · worktree `.claude/worktrees/antigravity-host-support` · rama `feat/antigravity-host-support`. Siguiente: T5.
+Etapa: build · worktree `.claude/worktrees/antigravity-host-support` · rama `feat/antigravity-host-support`. Siguiente: T6.
 
 ## Progreso
 
@@ -155,3 +155,4 @@ Etapa: build · worktree `.claude/worktrees/antigravity-host-support` · rama `f
 - Verificación de T2 (`hive-verify-task`): AC1 y AC2 cumplidos en su parte; probados crecer a 4 partes, achicar a 1, voz con 40 caracteres de 4 bytes, un estado previo al cambio y `hive recover` tras un fallo de escritura. Menor pendiente: si la guía vuelve a crecer hasta una parte sobrante que el usuario editó, la instalación se detiene con «unowned Antigravity rule file» sin decir que se renombre.
 - T3 hecha (commit «feat(antigravity): render Hive roles with the inherited model»): perfil `antigravity` opcional con `inherit` en cada rol, sin esfuerzo ni campos de acceso; 19 roles en `agents/`; lista fija `inherit`, `flash_lite`, `flash`, `pro` sin comando de listado; la prueba de la vista de modelos pasa a `…OnEveryCLI`. `go test ./... -count=1`: 22 paquetes `ok`.
 - T4 hecha (commit «feat(antigravity): report agy sessions to the viewer»): hook con nombre `hive` (`SessionStart`, `PreInvocation`, `Stop`, timeout 5 s) mediante el mismo editor JSON con contenedor configurable; `Stop` responde `{"decision":"stop"}` y los demás `{}` en todo camino; `Stop` nunca termina la sesión; `agy` → `antigravity` en identidad y línea de tiempo; bundle del visor regenerado (`index-DTSo08Dd.js`). El brief del flujo delivery pasó de ~9.999 a 10.013 bytes: la prueba mantiene el límite de 10.000 de la spec para build (9.037) y da 10 KiB a los demás. Sin verificar en vivo: la respuesta de `Stop` y el nombre de proceso `agy` (T6). `go test ./... -count=1`: 22 paquetes `ok`; frontend 773 pruebas, `tsc`, `biome` y `dist verify` limpios.
+- T5 hecha (commit «docs: document Antigravity as the seventh host»): 19 archivos; `global.md` pasa de 37.738 a 37.751 bytes (+13, solo la línea de sintaxis de comandos; `/flow-x` no se repite por host en otro lugar del contenido distribuido); lo no verificado para Antigravity (compactación, tarjeta de preguntas, lanzamiento de roles, alcance fuera del home) queda escrito como tal. Sin cambios a propósito: HA-IF-18 (`instruction-files.md`, `project-layout.md`) es solo de Cursor, e `index.mdx` no lista hosts. `go test ./tests/... -count=1` ok; `npm run build` en `site/` ok (17 páginas, con el `node_modules` del checkout principal enlazado y retirado).

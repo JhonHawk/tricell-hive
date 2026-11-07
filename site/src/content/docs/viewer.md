@@ -81,7 +81,7 @@ publishes, and shows **From host** (**Del host** in Spanish) on them.
   captures and validations stay with the agent.
 - **Queue.** With the viewer stopped, hook events wait in a local queue and are
   sent, with a reconciliation from the host's session files, by the next hook run
-  or semantic command once it is running. Hooks print nothing and always exit
+  or semantic command once it is running. Hooks print nothing (Antigravity's print the small JSON reply `agy` requires) and always exit
   successfully, so a failing viewer never disturbs the host.
 
 What each host registers and its known limits:
@@ -92,6 +92,7 @@ What each host registers and its known limits:
 | Codex | Entries in `~/.codex/hooks.json` (session start and end, prompts, subagent start). | Hive never writes Codex's trust: approve the hook once from `/hooks`, and until then Codex skips it. No native task events. |
 | Grok Build | A second hook file, `~/.grok/hooks/hive-session-events.json`. | Restart open sessions after installing. No native task events. |
 | Cursor CLI | Entries in `~/.cursor/hooks.json`. | Verified only in the installed code; Cursor CLI's use of that file is not documented. No native task events. |
+| Antigravity | A named hook `hive` in `~/.gemini/config/hooks.json` (session start, each prompt, and each turn end). | `agy` has no session-end event, so a turn end counts as activity and never closes the session. The turn-end reply and the process name Hive recognizes are not yet verified live. No native task events. |
 | OpenCode | An event plugin, `hive-events.js`, in `~/.config/opencode/plugins/`. | It runs in a shared background service and passes the session explicitly. The optional context loader stays inactive. |
 | Pi | An extension, `hive-events.ts`, in `~/.pi/agent/extensions/`. | No native task events. |
 
