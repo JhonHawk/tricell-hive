@@ -72,8 +72,8 @@ Base `development` en `8956c9a3`, rama `feat/pi-subagent-eager-activation`.
 
 ### T3 — Resúmenes de instalación y desinstalación
 
-- [ ] `showInstallSummary` muestra el paso: ruta, clave, valor, «ya aplicado», «puesto por el usuario» o «paso manual», y el aviso de reiniciar Pi.
-- [ ] El resumen de desinstalación y las notas de apply informan lo que se quitó y lo que se dejó.
+- [x] `showInstallSummary` muestra el paso: ruta, clave, valor, «ya aplicado», «puesto por el usuario» o «paso manual», y el aviso de reiniciar Pi.
+- [x] El resumen de desinstalación y las notas de apply informan lo que se quitó y lo que se dejó.
 
 **Closes:** AC1, AC4, AC5
 
@@ -91,9 +91,9 @@ Base `development` en `8956c9a3`, rama `feat/pi-subagent-eager-activation`.
 
 ### T4 — Fila de `hive doctor` y de la TUI
 
-- [ ] Con Pi registrado, `hive doctor` muestra la fila «Pi subagent activation» con sus cuatro estados (AC10), y en «no fijado» indica `hive install`.
-- [ ] Los textos de `doctor_integrations.go` que dicen que Hive no lee la configuración de Pi pasan a nombrar esta única excepción.
-- [ ] La vista de integraciones de la TUI reserva las filas necesarias para mostrar todas cuando Pi y Codex están registrados.
+- [x] Con Pi registrado, `hive doctor` muestra la fila «Pi subagent activation» con sus cuatro estados (AC10), y en «no fijado» indica `hive install`.
+- [x] Los textos de `doctor_integrations.go` que dicen que Hive no lee la configuración de Pi pasan a nombrar esta única excepción.
+- [x] La vista de integraciones de la TUI reserva las filas necesarias para mostrar todas cuando Pi y Codex están registrados.
 
 **Closes:** AC10
 
@@ -111,10 +111,10 @@ Base `development` en `8956c9a3`, rama `feat/pi-subagent-eager-activation`.
 
 ### T5 — Spec y documentación
 
-- [ ] El delta de `versioned-installation` refleja lo construido: el requisito agregado y el de diagnósticos modificado.
-- [ ] `README.md:191`, `llms.txt:62`, `_support/docs/architecture/tool-dependencies.md:20` y `deployment-manager.md:111` dejan de afirmar que el piso de Codex es lo único que Hive escribe en la configuración de un host.
-- [ ] La sección de Pi de `agent-delivery.md` describe el paso y su causa: pi-subagents 0.83 en modo diferido.
-- [ ] `site/src/content/docs/host-limits.md` cambia solo si afirma algo que el cambio contradice.
+- [x] El delta de `versioned-installation` refleja lo construido: el requisito agregado y el de diagnósticos modificado.
+- [x] `README.md:191`, `llms.txt:62`, `_support/docs/architecture/tool-dependencies.md:20` y `deployment-manager.md:111` dejan de afirmar que el piso de Codex es lo único que Hive escribe en la configuración de un host.
+- [x] La sección de Pi de `agent-delivery.md` describe el paso y su causa: pi-subagents 0.83 en modo diferido.
+- [x] `site/src/content/docs/host-limits.md` cambia solo si afirma algo que el cambio contradice.
 
 **Closes:** ninguno; documenta AC1 a AC10
 
@@ -144,3 +144,4 @@ Sin validación humana: la entrega es `automatic` y no hay pantalla.
 2026-11-06 — Plan escrito y revisado (R1–R19 aplicados); alcance confirmado en D6 A.
 2026-11-06 — T1 hecha: `go test ./integrations/pi/` y `go vet` pasan. Siguiente: T2 en un hijo `hive-build-backend`.
 2026-11-06 — T2 hecha por `hive-build-backend`: `go test ./tooling/management/... ./integrations/... ./tooling/cli/...` y `go vet` pasan. El hijo escribió el código antes que las pruebas y lo compensó con 6 mutaciones; 5 las detectó la prueba prevista, y la sexta (`update_providers.go`) es una comprobación redundante. Brecha en AC4: con la instalación, un `config.json` inválido, con claves duplicadas, que no es un objeto, que es un enlace simbólico o que no es un archivo regular hace fallar todo `BuildPlan` en el escaneo legacy, previo, en vez de dar un paso manual; no se escribe nada. El caso de más de 1 MiB y el de carpeta no escribible sí llegan al paso. La eliminación interrumpida se revierte hacia atrás (AC6), salvo un backup ya borrado.
+2026-11-06 — T3 `079e5e74`, T4 `2fe6fd1e` (columna de nombre a 24 y vista con 9 filas), T5 `f32de7ca`. Las notas de eliminación ya salen en el resultado de Apply; el helper de pruebas se ajustó en `16cbc85d`. Suite local en `f32de7ca`+`16cbc85d`: `go vet ./...` pasa y `go test ./...` pasa. El único workflow (`master-source-branch.yml`) no corre pruebas. Siguiente: verify con `/code-review`.
