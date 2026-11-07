@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | Completado · PR #413, merge d12d72bc |
 | Tracker | Ninguno |
 | Git | tricell-hive, base `development` en `8956c9a3`, rama propuesta `feat/pi-subagent-eager-activation` |
 
