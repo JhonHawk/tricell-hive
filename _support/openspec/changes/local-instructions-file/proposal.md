@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | In build |
 | Tracker | ninguno |
 | Git | JhonHawk/tricell-hive · base `development` en `e0bb3a95` · rama propuesta `feat/local-instructions-file` |
 

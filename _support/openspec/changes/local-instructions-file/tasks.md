@@ -4,7 +4,7 @@ Base `e0bb3a95` en `development`; rama `feat/local-instructions-file`. Todas las
 
 ### T1 — Sección «Local instructions» en la guía global
 
-- [ ] `content/guidance/global.md` tiene la sección «Local instructions» después de «Test accounts», con el texto de `design.md`.
+- [x] `content/guidance/global.md` tiene la sección «Local instructions» después de «Test accounts», con el texto de `design.md`.
 
 **Closes:** AC6, AC7, AC8, AC9, AC10, AC11, AC12, AC13, AC14
 
@@ -22,7 +22,7 @@ Base `e0bb3a95` en `development`; rama `feat/local-instructions-file`. Todas las
 
 ### T2 — Punteros en skills, referencias, auditoría y rol
 
-- [ ] Los siete archivos de AC15 nombran «Local instructions» o `HIVE.local.md` como fija `design.md` «Punteros y documentos».
+- [x] Los siete archivos de AC15 nombran «Local instructions» o `HIVE.local.md` como fija `design.md` «Punteros y documentos».
 
 **Closes:** AC15
 
@@ -40,7 +40,7 @@ Base `e0bb3a95` en `development`; rama `feat/local-instructions-file`. Todas las
 
 ### T3 — Sitio y arquitectura
 
-- [ ] `site/src/content/docs/getting-started.md` («Give the session context») explica `HIVE.local.md` para personas: qué guarda, que no se commitea, que lo escribe el agente y que se puede editar a mano; `flows/build.md` y `flows/verify.md` («What it does») dicen que usan y actualizan lo verificado del entorno local; `_support/docs/architecture/workspace-and-artifacts.md` nombra la excepción de la raíz.
+- [x] `site/src/content/docs/getting-started.md` («Give the session context») explica `HIVE.local.md` para personas: qué guarda, que no se commitea, que lo escribe el agente y que se puede editar a mano; `flows/build.md` y `flows/verify.md` («What it does») dicen que usan y actualizan lo verificado del entorno local; `_support/docs/architecture/workspace-and-artifacts.md` nombra la excepción de la raíz.
 
 **Closes:** AC16
 
@@ -70,3 +70,8 @@ Revisión humana (D5 A): leer la sección nueva de `global.md` y el diff de los 
 ## Review status and progress
 
 2026-11-07 — Plan escrito y revisado por `hive-review-plan`; hallazgos aplicados (ver `proposal.md`).
+2026-11-07 — T1 hecho en `0ed42b6a`: las nueve frases de AC6-AC14 aparecen una vez; `global.md` pasa de 37 751 a 39 739 bytes (+1 988, más que los ~0,8 KB estimados).
+2026-11-07 — T2 hecho en `8c896e02`: los siete archivos y `global.md` nombran la regla; `go test ./tests/content/...` pasa.
+2026-11-07 — T3 hecho en `31d8a2ee`: los cuatro archivos describen `HIVE.local.md`; `npm run build` del sitio construye 17 páginas.
+
+Checkpoint: stage build, paso 5 (CI local y verify). Último commit `31d8a2ee`. Sin hallazgos abiertos. Siguiente: reproducir CI y pasar a flow-verify.
