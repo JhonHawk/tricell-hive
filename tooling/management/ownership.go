@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"sort"
+	"tricell-hive/integrations/antigravity"
 	"tricell-hive/integrations/cursor"
 	"tricell-hive/integrations/opencode"
 	"tricell-hive/integrations/target"
@@ -139,6 +140,22 @@ func desiredResources(c target.Config, hosts []string, state State, action strin
 	if err != nil {
 		return nil, err
 	}
+	// Antigravity's guidance is several rule parts whose count comes from the
+	// release (install) or from the recorded parts (any other action).
+	var rel *Release
+	if action == "install" && len(releases) > 0 {
+		rel = releases[0]
+	}
+	parts, err := antigravityRuleTargets(c, hosts, state, rel)
+	if err != nil {
+		return nil, err
+	}
+	for _, t := range parts {
+		if err := target.Safe(t.Path); err != nil {
+			return nil, err
+		}
+	}
+	bindings = append(bindings, parts...)
 	gs, err := groups(bindings)
 	if err != nil {
 		return nil, err
@@ -188,6 +205,15 @@ func desiredResources(c target.Config, hosts []string, state State, action strin
 				// never loads, to an always-applied rule; the old block retires below.
 				if oldConsumer.Host == "cursor" && r.Target.Kind == "block" && g.Target.Path == cursor.RulePath(filepath.Dir(r.Target.Path)) {
 					continue
+				}
+				// A change in the number of Antigravity rule parts is not a
+				// relocation: the parts the release no longer has retire below.
+				if oldConsumer.Host == "antigravity" && r.Target.Kind == "block" {
+					_, recorded := antigravity.RulePartNumber(c.AntigravityHome, r.Target.Path)
+					_, wanted := antigravity.RulePartNumber(c.AntigravityHome, g.Target.Path)
+					if recorded && wanted {
+						continue
+					}
 				}
 				migrating := false
 				for _, alias := range gs {

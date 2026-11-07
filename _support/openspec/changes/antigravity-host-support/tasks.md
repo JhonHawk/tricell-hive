@@ -40,7 +40,7 @@ Base: `tricell-hive` `development` en `93ab65ee` (2026-11-06); rama `feat/antigr
 
 ### T2 — Guía global partida en reglas siempre activas
 
-- [ ] El plan propone `rules/hive-NN.md` con `trigger: always_on`, de 24.000 bytes o menos cada una, cuya unión reproduce la guía reescrita; update agrega o quita partes cuando cambia su cantidad.
+- [x] El plan propone `rules/hive-NN.md` con `trigger: always_on`, de 24.000 bytes o menos cada una, cuya unión reproduce la guía reescrita; update agrega o quita partes cuando cambia su cantidad.
 
 **Closes:** AC1 (partes de la guía), AC2 (reglas ajenas preservadas y partes sobrantes quitadas)
 
@@ -144,10 +144,11 @@ Sin parada de validación humana: el modo es `automatic` (D6 A).
 
 ## Checkpoint
 
-Etapa: build · worktree `.claude/worktrees/antigravity-host-support` · rama `feat/antigravity-host-support`. Siguiente: T2.
+Etapa: build · worktree `.claude/worktrees/antigravity-host-support` · rama `feat/antigravity-host-support`. Siguiente: T3.
 
 ## Progreso
 
 - T0 hecha (2026-11-07, sin commit de código): `agy agents` listó `hive-probe` desde `~/.gemini/config/agents/`, y `agy -p` (`gemini-3.8-flash-low`, sin pasos de herramienta) citó el marcador de la regla `always_on` de `~/.gemini/config/rules/`; archivos y carpetas de prueba borrados. Llamadas usadas: 1 de 3.
 - T1 hecha (9080486c): host registrado, enlaces de skills relativos y detección de `agy`; `doctor` sin la línea en blanco entre dos secciones «Not checked» para caber en 80x24 con siete hosts. `go build`, `go vet` y `go test ./...` pasan (`tooling/cli` 206,7 s, una corrida previa del hijo falló sin nombre y no se repitió). Pendiente: el esfuerzo de la versión de `agy` en `doctor` con cadenas largas, sin verificar.
 - Verificación de T1 (`hive-verify-task`): AC1 y AC2 cumplidos en su parte. Arreglado: la columna de `doctor` se alinea al nombre de host más largo (antes `antigravity` desalineaba la fila). Queda menor: `TestAntigravityState…IsCreatedAndCleanedUp` no comprueba que `.gemini/config` desaparezca (la conducta sí lo hace).
+- T2 hecha (commit «feat(antigravity): deliver the guidance as size-bounded always-on rules»): cada parte es un registro `block` con `GlobalSource` y su número en la ruta (`rules/hive-NN.md`), sin campo nuevo en el estado; corte por `##` fuera de bloques de código con 22.000 bytes y reserva fija de 2.500 bytes de voz en la parte 1; un `hive-NN.md` ajeno no vacío detiene la instalación. Guía real en `~/`: 2 partes (16.975 y 21.374 bytes); con rutas de home largas salen 3, porque los enlaces de skills se reescriben a rutas absolutas. La unión se cumple como `strings.Join(cuerpos, "\n\n")` porque el bloque gestionado quita los saltos finales. `TestModelsViewFitsAndScrollsWithManyRolesOnSixCLIs` salta los roles de Antigravity hasta T3.

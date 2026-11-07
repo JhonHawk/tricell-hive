@@ -380,10 +380,14 @@ func releaseSources(r *Release) []string {
 
 // initialLeading is what goes before a block written into a file Hive does
 // not own yet: a newline after text that lacks one, or, for the Cursor rule
-// file Hive creates, the frontmatter that makes Cursor apply it always.
-func initialLeading(t target.Target, current []byte) string {
+// file and the Antigravity rule parts Hive creates, the frontmatter that makes
+// the host apply them always.
+func initialLeading(c target.Config, t target.Target, current []byte) string {
 	if len(current) == 0 && t.Path != "" && filepath.Ext(t.Path) == ".mdc" {
 		return cursor.RuleFrontmatter
+	}
+	if _, ok := antigravity.RulePartNumber(c.AntigravityHome, t.Path); ok && t.Kind == "block" && len(current) == 0 {
+		return antigravity.RuleFrontmatter
 	}
 	if len(current) > 0 && !bytes.HasSuffix(current, []byte("\n")) {
 		return "\n"
@@ -578,6 +582,12 @@ func buildPlan(action string, o Options, adjust func(*Plan, State) error) (Plan,
 		if action == "install" && ch.Before == nil && t.Kind == "hook" && s.Exists {
 			return p, fmt.Errorf("unowned hook collision: %s", t.Path)
 		}
+		// A rule part Hive did not create would get a block without the
+		// always_on frontmatter, so a file with content under its name stops
+		// the install instead of being rewritten.
+		if _, isPart := antigravity.RulePartNumber(c.AntigravityHome, t.Path); isPart && action == "install" && ch.Before == nil && s.Exists && len(s.Data) > 0 {
+			return p, fmt.Errorf("unowned Antigravity rule file: %s", t.Path)
+		}
 		if action == "install" && ch.Before == nil && (t.Kind == "skill" || t.Kind == "agent") {
 			if t.Kind == "agent" && s.Exists {
 				return p, fmt.Errorf("unowned agent file: %s", t.Path)
@@ -735,6 +745,11 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 		var text []byte
 		for _, c := range g.Consumers {
 			rewritten := []byte(mdlinks.RewriteSkillLinks(string(payload(p.Release, g.Target.Source)), skillsDirFor(c.Host, p.Config)))
+			if part, isPart, err := antigravityRulePart(p.Config, p.Release, g.Target); err != nil {
+				return nil, err
+			} else if isPart {
+				rewritten = []byte(part)
+			}
 			if text != nil && !bytes.Equal(text, rewritten) {
 				return nil, fmt.Errorf("shared block rendering differs by host: %s", g.Target.Path)
 			}
@@ -742,7 +757,7 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 		}
 		r.Managed = managedBlock(text, s.Data, hiveMarkers)
 		if old == nil || gone {
-			r.Leading = initialLeading(g.Target, s.Data)
+			r.Leading = initialLeading(p.Config, g.Target, s.Data)
 		}
 	case "skill":
 		r.Managed = payload(p.Release, g.Target.Source)
@@ -999,7 +1014,7 @@ func validatePlan(p Plan, state State) error {
 				if old == nil || freshGone {
 					expected.Leading = ch.After.Leading
 				}
-				if expected.Leading != "" && expected.Leading != "\n" && expected.Leading != cursor.RuleFrontmatter {
+				if expected.Leading != "" && expected.Leading != "\n" && expected.Leading != cursor.RuleFrontmatter && expected.Leading != antigravity.RuleFrontmatter {
 					return fmt.Errorf("invalid separator")
 				}
 			}
@@ -1013,7 +1028,7 @@ func validatePlan(p Plan, state State) error {
 				return err
 			}
 			if finger(current) == ch.Expected && ch.After != nil && (old == nil || freshGone) && g.Target.Kind == "block" {
-				if ch.After.Leading != initialLeading(g.Target, current.Data) {
+				if ch.After.Leading != initialLeading(p.Config, g.Target, current.Data) {
 					return fmt.Errorf("invalid initial ownership")
 				}
 			}
@@ -1039,6 +1054,9 @@ func validateVoiceChanges(p Plan, state State) error {
 			return fmt.Errorf("duplicate voice change: %s", vc.Path)
 		}
 		seen[vc.Path] = true
+		if skipsVoice(p.Config, vc.Path) {
+			return fmt.Errorf("voice change on an Antigravity rule part after the first: %s", vc.Path)
+		}
 		if !voicePathIsRegisteredHiveBlock(p, state, vc.Path) {
 			return fmt.Errorf("voice change on an unregistered path: %s", vc.Path)
 		}
@@ -1129,6 +1147,18 @@ func Status(o Options) ([]StatusEntry, error) {
 	if err != nil {
 		return nil, err
 	}
+	ruleParts, err := antigravityRuleTargets(c, h, state, nil)
+	if err != nil {
+		return nil, err
+	}
+	if len(ruleParts) == 0 && c.Scope == "user" {
+		for _, host := range h {
+			if host == "antigravity" {
+				ruleParts = append(ruleParts, target.Target{Source: GlobalSource, Path: antigravity.RulePath(c.AntigravityHome, 1), Kind: "block", Host: "antigravity", Scope: c.Scope, Context: c.Home})
+			}
+		}
+	}
+	ts = append(ts, ruleParts...)
 	pending, err := read(filepath.Join(dir, "pending.json"))
 	if err != nil {
 		return nil, err

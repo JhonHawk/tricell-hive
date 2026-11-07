@@ -431,14 +431,7 @@ func TestModelsViewFitsAndScrollsWithManyRolesOnSixCLIs(t *testing.T) {
 		installDirect(t, home, stateDir, source, []string{host})
 	}
 	cfg := hostsAppConfig(t, home, stateDir, source, deps)
-	// Antigravity has no role profile until its roles are rendered, so the
-	// Models view lists the other hosts only.
-	var modelHosts []string
-	for _, host := range installerHosts {
-		if host != "antigravity" {
-			modelHosts = append(modelHosts, host)
-		}
-	}
+	modelHosts := installerHosts
 	for _, size := range [][2]int{{80, 24}, {120, 40}} {
 		t.Run(fmt.Sprintf("%dx%d", size[0], size[1]), func(t *testing.T) {
 			m, d := newTestApp(t, cfg, size[0], size[1])
@@ -457,6 +450,9 @@ func TestModelsViewFitsAndScrollsWithManyRolesOnSixCLIs(t *testing.T) {
 				host := selectedModelsHost(t, d)
 				if host != wantHost {
 					t.Fatalf("host at position %d = %s, want %s", i, host, wantHost)
+				}
+				if host == "antigravity" {
+					continue // its roles are rendered by the next commit
 				}
 				rows := v.hostRows()
 				if len(rows) != len(roles) {
