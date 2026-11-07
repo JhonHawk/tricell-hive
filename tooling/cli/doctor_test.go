@@ -285,8 +285,15 @@ func TestDoctorCLIsRowsFitEightyColumns(t *testing.T) {
 		st.entries = append(st.entries, management.StatusEntry{Host: h, Release: release, VersionStatus: "verified", Status: "installed"})
 	}
 	sec := cliSection(f.deps(), st)
+	stateColumn := -1
 	for i, l := range sec.Lines {
 		mustContain(t, l, "Hive 4f8d96b9ce4f (verified)  CLI ")
+		col := len(installerHosts[i]) + len(l[len(installerHosts[i]):]) - len(strings.TrimLeft(l[len(installerHosts[i]):], " "))
+		if stateColumn == -1 {
+			stateColumn = col
+		} else if col != stateColumn {
+			t.Errorf("%s row starts its state at column %d, want %d like the first row: %q", installerHosts[i], col, stateColumn, l)
+		}
 		if installerHosts[i] == "grok" {
 			continue
 		}

@@ -360,8 +360,12 @@ func cliSection(deps doctorDeps, st doctorState) doctorSection {
 		}()
 	}
 	wg.Wait()
+	nameWidth := 0
+	for _, host := range installerHosts {
+		nameWidth = max(nameWidth, len(host))
+	}
 	for i, host := range installerHosts {
-		parts := []string{fmt.Sprintf("%-8s", host)}
+		parts := []string{fmt.Sprintf("%-*s", nameWidth, host)}
 		switch {
 		case editorOnly(deps.lookPath, host, detected[i]):
 			parts = append(parts, "editor only")
