@@ -16,6 +16,15 @@ func TestEntryShapesAndCommands(t *testing.T) {
 	if string(b) != `{"command":"'/opt/hive' hook cursor stop","timeout":5}` {
 		t.Fatalf("flat entry = %s", b)
 	}
+	typed := JSONHookFile{Word: "antigravity", Flat: true, HandlerType: "command", Container: "hive"}
+	b, _ = json.Marshal(typed.Entry("/opt/hive", "Stop"))
+	if string(b) != `{"type":"command","command":"'/opt/hive' hook antigravity Stop","timeout":5}` {
+		t.Fatalf("typed flat entry = %s", b)
+	}
+	if typed.ContainerKey() != "hive" || flat.ContainerKey() != "hooks" {
+		t.Fatalf("container keys = %q %q", typed.ContainerKey(), flat.ContainerKey())
+	}
+	b, _ = json.Marshal(flat.Entry("/opt/hive", "stop"))
 	var m map[string]any
 	_ = json.Unmarshal(b, &m)
 	if got := flat.Commands(m); len(got) != 1 || got[0] != "'/opt/hive' hook cursor stop" {

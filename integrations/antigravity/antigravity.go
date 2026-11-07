@@ -1,7 +1,8 @@
 // Package antigravity resolves the user-level locations shared by the agy CLI
 // and the Antigravity App, which both read ~/.gemini/config. Only user scope
 // exists. This package resolves skills and agents and names the rule files
-// that carry the global guidance; hooks are added by a later change.
+// that carry the global guidance, and the hooks.json file Hive registers its
+// named hook `hive` in (hook_register.go).
 package antigravity
 
 import (

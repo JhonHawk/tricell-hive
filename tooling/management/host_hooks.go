@@ -9,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"tricell-hive/integrations/antigravity"
 	"tricell-hive/integrations/claude"
 	"tricell-hive/integrations/codex"
 	"tricell-hive/integrations/cursor"
@@ -17,7 +18,7 @@ import (
 )
 
 // Host hooks: a user-scope install registers `hive hook <host> <event>` in the
-// shared JSON hook files of Claude Code, Codex and Cursor, through the editor
+// shared JSON hook files of Claude Code, Codex, Cursor and Antigravity, through the editor
 // in json_hooks.go. The files may hold other tools' hooks and, in Claude Code's
 // settings.json, secrets in "env", so nothing here stores their bytes: the plan
 // carries a fingerprint, the journal carries fingerprints and Hive's own
@@ -34,6 +35,8 @@ func hostHookSpec(host string, c target.Config) (hostevent.JSONHookFile, bool) {
 		return codex.SessionEventsFile(c), true
 	case "cursor":
 		return cursor.SessionEventsFile(c), true
+	case "antigravity":
+		return antigravity.SessionEventsFile(c), true
 	}
 	return hostevent.JSONHookFile{}, false
 }
@@ -123,7 +126,7 @@ func validateHostHooksState(m map[string]HostHooksRecord) error {
 		if path != r.Path || !filepath.IsAbs(path) || filepath.Clean(path) != path {
 			return fmt.Errorf("invalid recorded host hooks path")
 		}
-		if r.Host != "claude" && r.Host != "codex" && r.Host != "cursor" {
+		if r.Host != "claude" && r.Host != "codex" && r.Host != "cursor" && r.Host != "antigravity" {
 			return fmt.Errorf("invalid recorded host hooks host")
 		}
 	}

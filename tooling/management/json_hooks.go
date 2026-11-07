@@ -464,7 +464,8 @@ func editJSONHooks(cur []byte, exists bool, f hostevent.JSONHookFile, executable
 		return renderedPair{key: event, value: renderArray([]string{item}, indent, st, multi)}
 	}
 
-	hooksM, err := root.member("hooks")
+	container := f.ContainerKey()
+	hooksM, err := root.member(container)
 	if err != nil {
 		return res, refuse("%s in the top level object", err.Error())
 	}
@@ -484,11 +485,11 @@ func editJSONHooks(cur []byte, exists bool, f hostevent.JSONHookFile, executable
 		if blank && f.RootVersion > 0 {
 			members = append(members, marshalText("version", "", "", false)+colon+fmt.Sprint(f.RootVersion))
 		}
-		members = append(members, marshalText("hooks", "", "", false)+colon+renderObject(pairs, hooksIndent, st, rootLay.multi))
+		members = append(members, marshalText(container, "", "", false)+colon+renderObject(pairs, hooksIndent, st, rootLay.multi))
 		edits = append(edits, insertChildrenNoting(root, rootLay, members, src, "root", &res.Delta))
 		res.Delta.CreatedHooks = true
 	case hooksM.val.kind != '{':
-		return res, refuse("\"hooks\" is not an object")
+		return res, refuse("%q is not an object", container)
 	default:
 		hooks := hooksM.val
 		hooksLay := containerLayout(src, hooks, rootLay.indent, st)
@@ -496,7 +497,7 @@ func editJSONHooks(cur []byte, exists bool, f hostevent.JSONHookFile, executable
 		for _, event := range f.Events {
 			em, err := hooks.member(event)
 			if err != nil {
-				return res, refuse("%s in \"hooks\"", err.Error())
+				return res, refuse("%s in %q", err.Error(), container)
 			}
 			if em == nil {
 				p := newArray(event, hooksLay.indent, hooksLay.multi)
@@ -509,7 +510,7 @@ func editJSONHooks(cur []byte, exists bool, f hostevent.JSONHookFile, executable
 				continue
 			}
 			if em.val.kind != '[' {
-				return res, refuse("\"hooks.%s\" is not an array", event)
+				return res, refuse("\"%s.%s\" is not an array", container, event)
 			}
 			arr := em.val
 			arrLay := containerLayout(src, arr, hooksLay.indent, st)
@@ -603,7 +604,7 @@ func undoJSONHooksRestoring(cur []byte, f hostevent.JSONHookFile, rec HostHooksR
 	for _, e := range rec.CreatedEvents {
 		created[e] = true
 	}
-	hooksM, err := root.member("hooks")
+	hooksM, err := root.member(f.ContainerKey())
 	if err != nil || hooksM == nil || hooksM.val.kind != '{' {
 		if err != nil {
 			res.Skipped = "the file repeats a key"

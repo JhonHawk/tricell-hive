@@ -61,7 +61,7 @@ const (
 	TimelineClosed             TimelineState = "closed"
 )
 
-var timelineHosts = []string{"codex", "claude-code", "grok", "pi", "opencode", "cursor"}
+var timelineHosts = []string{"codex", "claude-code", "grok", "pi", "opencode", "cursor", "antigravity"}
 var timelineStates = []string{"active", "in_review", "awaiting_validation", "paused", "closed", "failed"}
 var timelineViewports = []string{"desktop", "mobile"}
 var timelineThemes = []string{"light", "dark", "unspecified"}

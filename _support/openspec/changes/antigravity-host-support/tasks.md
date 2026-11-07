@@ -76,7 +76,7 @@ Base: `tricell-hive` `development` en `93ab65ee` (2026-11-06); rama `feat/antigr
 
 ### T4 — Hook de sesión y visor para Antigravity
 
-- [ ] `hooks.json` recibe el hook con nombre `hive` sin tocar otros hooks; `hive hook` traduce la carga de `agy` al evento canónico con host `antigravity` e imprime JSON válido; el visor y la identidad de sesión aceptan el host.
+- [x] `hooks.json` recibe el hook con nombre `hive` sin tocar otros hooks; `hive hook` traduce la carga de `agy` al evento canónico con host `antigravity` e imprime JSON válido; el visor y la identidad de sesión aceptan el host.
 
 **Closes:** AC2 (hooks ajenos preservados), AC3
 
@@ -144,7 +144,7 @@ Sin parada de validación humana: el modo es `automatic` (D6 A).
 
 ## Checkpoint
 
-Etapa: build · worktree `.claude/worktrees/antigravity-host-support` · rama `feat/antigravity-host-support`. Siguiente: T4.
+Etapa: build · worktree `.claude/worktrees/antigravity-host-support` · rama `feat/antigravity-host-support`. Siguiente: T5.
 
 ## Progreso
 
@@ -154,3 +154,4 @@ Etapa: build · worktree `.claude/worktrees/antigravity-host-support` · rama `f
 - T2 hecha (commit «feat(antigravity): deliver the guidance as size-bounded always-on rules»): cada parte es un registro `block` con `GlobalSource` y su número en la ruta (`rules/hive-NN.md`), sin campo nuevo en el estado; corte por `##` fuera de bloques de código con 22.000 bytes y reserva fija de 2.500 bytes de voz en la parte 1; un `hive-NN.md` ajeno no vacío detiene la instalación. Guía real en `~/`: 2 partes (16.975 y 21.374 bytes); con rutas de home largas salen 3, porque los enlaces de skills se reescriben a rutas absolutas. La unión se cumple como `strings.Join(cuerpos, "\n\n")` porque el bloque gestionado quita los saltos finales. `TestModelsViewFitsAndScrollsWithManyRolesOnSixCLIs` saltaba los roles de Antigravity hasta T3.
 - Verificación de T2 (`hive-verify-task`): AC1 y AC2 cumplidos en su parte; probados crecer a 4 partes, achicar a 1, voz con 40 caracteres de 4 bytes, un estado previo al cambio y `hive recover` tras un fallo de escritura. Menor pendiente: si la guía vuelve a crecer hasta una parte sobrante que el usuario editó, la instalación se detiene con «unowned Antigravity rule file» sin decir que se renombre.
 - T3 hecha (commit «feat(antigravity): render Hive roles with the inherited model»): perfil `antigravity` opcional con `inherit` en cada rol, sin esfuerzo ni campos de acceso; 19 roles en `agents/`; lista fija `inherit`, `flash_lite`, `flash`, `pro` sin comando de listado; la prueba de la vista de modelos pasa a `…OnEveryCLI`. `go test ./... -count=1`: 22 paquetes `ok`.
+- T4 hecha (commit «feat(antigravity): report agy sessions to the viewer»): hook con nombre `hive` (`SessionStart`, `PreInvocation`, `Stop`, timeout 5 s) mediante el mismo editor JSON con contenedor configurable; `Stop` responde `{"decision":"stop"}` y los demás `{}` en todo camino; `Stop` nunca termina la sesión; `agy` → `antigravity` en identidad y línea de tiempo; bundle del visor regenerado (`index-DTSo08Dd.js`). El brief del flujo delivery pasó de ~9.999 a 10.013 bytes: la prueba mantiene el límite de 10.000 de la spec para build (9.037) y da 10 KiB a los demás. Sin verificar en vivo: la respuesta de `Stop` y el nombre de proceso `agy` (T6). `go test ./... -count=1`: 22 paquetes `ok`; frontend 773 pruebas, `tsc`, `biome` y `dist verify` limpios.
