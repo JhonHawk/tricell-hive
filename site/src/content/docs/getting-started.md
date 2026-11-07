@@ -57,6 +57,18 @@ can create or update it for you: ask it to set up your repository's Hive section
 and it proposes the facts with their evidence, asks the decisions it cannot
 deduce, and writes only what you accept.
 
+Facts that hold only on your machine, such as the ports your local stack ends
+up on, a command your system lacks, or the cloud profile and region of each
+environment, go in `HIVE.local.md` at the repository root, or at the workspace
+root when your work spans several repositories. You neither create nor commit
+it: the agent reads it at the start of each session, adds there each fact it
+verified with its date, marks the ones that stop working as stale, names the
+file that holds a password instead of writing it, and adds the file to
+`.git/info/exclude` so Git ignores it. You can edit it by hand. A fact that
+holds for every clone belongs in `AGENTS.md`, so the agent names it in its
+report instead. The [local instructions rule](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md)
+holds the details.
+
 Then ask for an outcome and state its limits:
 
 ```text wrap
