@@ -785,6 +785,11 @@ func (e Engine) Apply(p Plan) (string, error) {
 			warning = strings.TrimPrefix(warning+"; "+n, "; ")
 		}
 	}
+	if j.PiConfig != nil {
+		for _, n := range j.PiConfig.Notes {
+			warning = strings.TrimPrefix(warning+"; "+n, "; ")
+		}
+	}
 	id, err := finishApply(p, j.ID, next)
 	if err != nil {
 		if warning != "" {

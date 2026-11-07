@@ -435,3 +435,16 @@ func TestTestLogFlagStillExists(t *testing.T) {
 		t.Fatalf("test.testlogfile = %q after TestMain, want it cleared by the opt-out", got)
 	}
 }
+
+func TestShowRemoveSummaryNamesThePiSubagentActivationRule(t *testing.T) {
+	var out bytes.Buffer
+	showRemoveSummary(&out, management.Plan{Hosts: []string{"pi"}, StateDir: "/synthetic-state"})
+	if !strings.Contains(out.String(), "toolActivation is removed only where Hive wrote it") {
+		t.Fatalf("missing the Pi rule: %s", out.String())
+	}
+	out.Reset()
+	showRemoveSummary(&out, management.Plan{Hosts: []string{"claude"}, StateDir: "/synthetic-state"})
+	if strings.Contains(out.String(), "toolActivation") {
+		t.Fatalf("Pi rule shown without Pi: %s", out.String())
+	}
+}
