@@ -52,13 +52,13 @@ Base: `tricell-hive` `development` en `93ab65ee` (2026-11-06); rama `feat/antigr
 
 **Test approach:** tdd
 
-**Changes:** el corte determinista por encabezados `##` fuera de bloques de código con límite de 22.000 bytes por parte, el error que nombra una sección que no cabe, el índice de parte en el registro, su validación de fuente y de `Leading`, y la voz solo en la primera parte (también en `addVoiceChangesForInstall` y en la acción `hive voice`), como fija `design.md`. Cursor, Claude y los demás hosts siguen con un solo bloque.
+**Changes:** el corte determinista por encabezados `##` fuera de bloques de código con límite de 22.000 bytes por parte, el error que nombra una sección que no cabe, el número de parte tomado de la ruta del registro, su validación de fuente y de `Leading`, y la voz solo en la primera parte (también en `addVoiceChangesForInstall` y en la acción `hive voice`), como fija `design.md`. Cursor, Claude y los demás hosts siguen con un solo bloque.
 
 **Verification:** pruebas que comprueban: cada parte de 24.000 bytes o menos con su frontmatter; la unión de los textos gestionados igual a la guía reescrita; un `##` dentro de un bloque de código no corta; una sección sintética más grande que el límite hace fallar el plan nombrándola; una guía sintética que crece y otra que se achica cambian la cantidad de partes y update quita solo las sobrantes de Hive; install con la voz más larga y `hive voice set` cambian solo `hive-01.md`, que queda en 24.000 bytes o menos; un `rules/otra.md` ajeno queda byte a byte igual tras install, update y remove. `go test ./tooling/management/...` pasa.
 
 ### T3 — Roles de Hive renderizados para Antigravity con modelo heredado
 
-- [ ] Cada rol queda en `agents/<rol>.md` con `name`, `description` y `model: "inherit"`, sin `tools` ni esfuerzo; `hive models set` ofrece `inherit`, `flash_lite`, `flash` y `pro` para Antigravity y rechaza un esfuerzo.
+- [x] Cada rol queda en `agents/<rol>.md` con `name`, `description` y `model: "inherit"`, sin `tools` ni esfuerzo; `hive models set` ofrece `inherit`, `flash_lite`, `flash` y `pro` para Antigravity y rechaza un esfuerzo.
 
 **Closes:** AC1 (roles)
 
@@ -144,11 +144,13 @@ Sin parada de validación humana: el modo es `automatic` (D6 A).
 
 ## Checkpoint
 
-Etapa: build · worktree `.claude/worktrees/antigravity-host-support` · rama `feat/antigravity-host-support`. Siguiente: T3.
+Etapa: build · worktree `.claude/worktrees/antigravity-host-support` · rama `feat/antigravity-host-support`. Siguiente: T4.
 
 ## Progreso
 
 - T0 hecha (2026-11-07, sin commit de código): `agy agents` listó `hive-probe` desde `~/.gemini/config/agents/`, y `agy -p` (`gemini-3.8-flash-low`, sin pasos de herramienta) citó el marcador de la regla `always_on` de `~/.gemini/config/rules/`; archivos y carpetas de prueba borrados. Llamadas usadas: 1 de 3.
 - T1 hecha (9080486c): host registrado, enlaces de skills relativos y detección de `agy`; `doctor` sin la línea en blanco entre dos secciones «Not checked» para caber en 80x24 con siete hosts. `go build`, `go vet` y `go test ./...` pasan (`tooling/cli` 206,7 s, una corrida previa del hijo falló sin nombre y no se repitió). Pendiente: el esfuerzo de la versión de `agy` en `doctor` con cadenas largas, sin verificar.
 - Verificación de T1 (`hive-verify-task`): AC1 y AC2 cumplidos en su parte. Arreglado: la columna de `doctor` se alinea al nombre de host más largo (antes `antigravity` desalineaba la fila). Queda menor: `TestAntigravityState…IsCreatedAndCleanedUp` no comprueba que `.gemini/config` desaparezca (la conducta sí lo hace).
-- T2 hecha (commit «feat(antigravity): deliver the guidance as size-bounded always-on rules»): cada parte es un registro `block` con `GlobalSource` y su número en la ruta (`rules/hive-NN.md`), sin campo nuevo en el estado; corte por `##` fuera de bloques de código con 22.000 bytes y reserva fija de 2.500 bytes de voz en la parte 1; un `hive-NN.md` ajeno no vacío detiene la instalación. Guía real en `~/`: 2 partes (16.975 y 21.374 bytes); con rutas de home largas salen 3, porque los enlaces de skills se reescriben a rutas absolutas. La unión se cumple como `strings.Join(cuerpos, "\n\n")` porque el bloque gestionado quita los saltos finales. `TestModelsViewFitsAndScrollsWithManyRolesOnSixCLIs` salta los roles de Antigravity hasta T3.
+- T2 hecha (commit «feat(antigravity): deliver the guidance as size-bounded always-on rules»): cada parte es un registro `block` con `GlobalSource` y su número en la ruta (`rules/hive-NN.md`), sin campo nuevo en el estado; corte por `##` fuera de bloques de código con 22.000 bytes y reserva fija de 2.500 bytes de voz en la parte 1; un `hive-NN.md` ajeno no vacío detiene la instalación. Guía real en `~/`: 2 partes (16.975 y 21.374 bytes); con rutas de home largas salen 3, porque los enlaces de skills se reescriben a rutas absolutas. La unión se cumple como `strings.Join(cuerpos, "\n\n")` porque el bloque gestionado quita los saltos finales. `TestModelsViewFitsAndScrollsWithManyRolesOnSixCLIs` saltaba los roles de Antigravity hasta T3.
+- Verificación de T2 (`hive-verify-task`): AC1 y AC2 cumplidos en su parte; probados crecer a 4 partes, achicar a 1, voz con 40 caracteres de 4 bytes, un estado previo al cambio y `hive recover` tras un fallo de escritura. Menor pendiente: si la guía vuelve a crecer hasta una parte sobrante que el usuario editó, la instalación se detiene con «unowned Antigravity rule file» sin decir que se renombre.
+- T3 hecha (commit «feat(antigravity): render Hive roles with the inherited model»): perfil `antigravity` opcional con `inherit` en cada rol, sin esfuerzo ni campos de acceso; 19 roles en `agents/`; lista fija `inherit`, `flash_lite`, `flash`, `pro` sin comando de listado; la prueba de la vista de modelos pasa a `…OnEveryCLI`. `go test ./... -count=1`: 22 paquetes `ok`.

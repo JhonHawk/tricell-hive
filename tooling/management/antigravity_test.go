@@ -612,3 +612,56 @@ func TestAntigravityRulePartsRecoverAtWriteBoundaries(t *testing.T) {
 		})
 	}
 }
+
+func TestAntigravityRolesInstallOnePerRoleAndRemoveDeletesThem(t *testing.T) {
+	o := antigravitySetup(t)
+	modelsSource(t, o)
+	roles := []string{plainRole, "deep-role", inheritRole}
+	apply(t, plan(t, "install", o))
+	for _, role := range roles {
+		path := filepath.Join(antigravityHome(o), "agents", role+".md")
+		text := get(t, path)
+		for _, want := range []string{"name: \"" + role + "\"\n", "model: \"inherit\"\n", "Use evidence.\n"} {
+			if !strings.Contains(text, want) {
+				t.Fatalf("%s lacks %q:\n%s", path, want, text)
+			}
+		}
+		for _, banned := range []string{"tools", "readonly", "effort", "thinking"} {
+			if strings.Contains(text, banned) {
+				t.Fatalf("%s must not mention %q:\n%s", path, banned, text)
+			}
+		}
+	}
+	entries, err := os.ReadDir(filepath.Join(antigravityHome(o), "agents"))
+	if err != nil || len(entries) != len(roles) {
+		t.Fatalf("agents folder = %d entries, %v; want %d", len(entries), err, len(roles))
+	}
+	// A foreign agent file is not Hive's and survives remove.
+	put(t, filepath.Join(antigravityHome(o), "agents", "mine.md"), "mine\n")
+	apply(t, plan(t, "remove", o))
+	for _, role := range roles {
+		absent(t, filepath.Join(antigravityHome(o), "agents", role+".md"))
+	}
+	if get(t, filepath.Join(antigravityHome(o), "agents", "mine.md")) != "mine\n" {
+		t.Fatal("remove changed a foreign agent file")
+	}
+}
+
+func TestAntigravityModelOverrideAcceptsATierAndRefusesAnEffort(t *testing.T) {
+	o := antigravitySetup(t)
+	modelsSource(t, o)
+	apply(t, plan(t, "install", o))
+	path := filepath.Join(antigravityHome(o), "agents", plainRole+".md")
+	apply(t, buildModels(t, o, "antigravity", map[string]ModelOverride{plainRole: {Model: "flash_lite"}}))
+	if got := installedField(get(t, path), "model"); got != "flash_lite" {
+		t.Fatalf("model = %q, want flash_lite", got)
+	}
+	_, err := BuildModelsPlan(o, "antigravity", map[string]ModelOverride{plainRole: {Model: "pro", Effort: "high"}})
+	if err == nil || !strings.Contains(err.Error(), "antigravity does not support effort") {
+		t.Fatalf("BuildModelsPlan error = %v, want the no-effort reason", err)
+	}
+	apply(t, buildModels(t, o, "antigravity", nil))
+	if got := installedField(get(t, path), "model"); got != "inherit" {
+		t.Fatalf("model after reset = %q, want inherit", got)
+	}
+}

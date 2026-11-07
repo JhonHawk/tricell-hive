@@ -418,7 +418,7 @@ func syntheticCatalogueSource(t *testing.T) (string, []string) {
 	return dir, roles
 }
 
-func TestModelsViewFitsAndScrollsWithManyRolesOnSixCLIs(t *testing.T) {
+func TestModelsViewFitsAndScrollsWithManyRolesOnEveryCLI(t *testing.T) {
 	source, roles := syntheticCatalogueSource(t)
 	if len(roles) != syntheticRoleCount {
 		t.Fatalf("the synthetic catalogue has %d roles, want %d", len(roles), syntheticRoleCount)
@@ -450,9 +450,6 @@ func TestModelsViewFitsAndScrollsWithManyRolesOnSixCLIs(t *testing.T) {
 				host := selectedModelsHost(t, d)
 				if host != wantHost {
 					t.Fatalf("host at position %d = %s, want %s", i, host, wantHost)
-				}
-				if host == "antigravity" {
-					continue // its roles are rendered by the next commit
 				}
 				rows := v.hostRows()
 				if len(rows) != len(roles) {

@@ -38,6 +38,7 @@ func TestValidateOverrideTable(t *testing.T) {
 		{"non-ASCII letter", "claude", ModelOverride{Model: "modèle"}, "model"},
 		{"effort on grok", "grok", ModelOverride{Effort: "high"}, "grok does not support effort"},
 		{"effort on cursor", "cursor", ModelOverride{Model: "m", Effort: "high"}, "cursor does not support effort"},
+		{"effort on antigravity", "antigravity", ModelOverride{Model: "pro", Effort: "high"}, "antigravity does not support effort"},
 		{"unknown effort", "claude", ModelOverride{Effort: "extreme"}, "effort"},
 		{"effort casing", "claude", ModelOverride{Effort: "High"}, "effort"},
 		{"unknown host", "vim", ModelOverride{Model: "m"}, "unsupported agent host"},
@@ -73,6 +74,7 @@ func TestResolveOverrideReplacesModelAndEffort(t *testing.T) {
 		{"codex effort only", "codex", "inherit", "", ModelOverride{Effort: "high"}, Model{"", "high"}},
 		{"pi effort", "pi", "execution", "", ModelOverride{Effort: "xhigh"}, Model{"syn-pi/exec", "xhigh"}},
 		{"grok model", "grok", "execution", "", ModelOverride{Model: "grok-4"}, Model{"grok-4", ""}},
+		{"antigravity tier", "antigravity", "execution", "", ModelOverride{Model: "flash_lite"}, Model{"flash_lite", ""}},
 		{"cursor model", "cursor", "execution", "", ModelOverride{Model: "composer-2"}, Model{"composer-2", ""}},
 		{"opencode effort replaces the variant", "opencode", "execution", "", ModelOverride{Effort: "high"}, Model{"syn-oc/exec#high", ""}},
 		{"opencode model keeps the release variant", "opencode", "execution", "", ModelOverride{Model: "x/y"}, Model{"x/y#medium", ""}},
@@ -154,6 +156,7 @@ func TestRenderOverrideWritesEachHostsFields(t *testing.T) {
 		{"opencode", ModelOverride{Effort: "high"}, []string{`model: "syn-oc/exec#high"`}},
 		{"grok", ModelOverride{Model: "g"}, []string{`model: "g"`}},
 		{"cursor", ModelOverride{Model: "c"}, []string{`model: "c"`}},
+		{"antigravity", ModelOverride{Model: "pro"}, []string{`model: "pro"`}},
 	} {
 		o := c.o
 		out, err := Render(resolveSource, data, profiles, c.host, "/skills", &o)

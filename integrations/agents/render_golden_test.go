@@ -36,7 +36,7 @@ func renderEverything(t *testing.T) []byte {
 			t.Fatal(err)
 		}
 		canonical := "content/agents/synthetic/" + filepath.Base(path)
-		for _, host := range []string{"claude", "codex", "cursor", "grok", "opencode", "pi"} {
+		for _, host := range []string{"antigravity", "claude", "codex", "cursor", "grok", "opencode", "pi"} {
 			rendered, err := Render(canonical, data, profiles, host, "/skills", nil)
 			if err != nil {
 				t.Fatalf("Render(%s, %s): %v", host, canonical, err)

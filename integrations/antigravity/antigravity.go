@@ -1,7 +1,7 @@
 // Package antigravity resolves the user-level locations shared by the agy CLI
 // and the Antigravity App, which both read ~/.gemini/config. Only user scope
-// exists. This package resolves skills and names the rule files that carry
-// the global guidance; agents and hooks are added by later changes.
+// exists. This package resolves skills and agents and names the rule files
+// that carry the global guidance; hooks are added by a later change.
 package antigravity
 
 import (
@@ -93,5 +93,6 @@ func Resolve(c target.Config, sources ...string) ([]target.Target, error) {
 	if err != nil {
 		return nil, err
 	}
-	return target.ExpandSkills(base, sources), nil
+	out := target.ExpandSkills(base, sources)
+	return target.ExpandAgents(out, sources, AgentsDir(c.AntigravityHome), ".md", base[0]), nil
 }

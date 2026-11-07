@@ -31,6 +31,7 @@ func TestResolveReturnsProfileModelAndProfileEffort(t *testing.T) {
 		{"opencode", "execution", Model{"syn-oc/exec#medium", ""}},
 		{"opencode", "inherit", Model{"syn-oc/inherit#max", ""}},
 		{"cursor", "reasoning", Model{"inherit", ""}},
+		{"antigravity", "reasoning", Model{"inherit", ""}},
 	}
 	for _, c := range cases {
 		profile, m, err := Resolve(resolveSource, resolveRole(c.profile, ""), profiles, c.host, nil)
@@ -52,7 +53,7 @@ func TestResolveRoleEffortWinsOnlyWhereHostAcceptsEffort(t *testing.T) {
 			t.Fatalf("Resolve(%s) effort = %q, %v; want the role's low", host, m.Effort, err)
 		}
 	}
-	for _, host := range []string{"grok", "cursor"} {
+	for _, host := range []string{"grok", "cursor", "antigravity"} {
 		_, m, err := Resolve(resolveSource, data, profiles, host, nil)
 		if err != nil || m.Effort != "" {
 			t.Fatalf("Resolve(%s) effort = %q, %v; want none", host, m.Effort, err)
@@ -106,7 +107,7 @@ func TestResolveFocusedProfilePreservesHostAndRoleEffort(t *testing.T) {
 			models["focused"] = map[string]any{"model": "syn-codex-focused", "effort": "medium"}
 		}
 	})
-	for _, host := range []string{"claude", "codex", "grok", "pi", "opencode", "cursor"} {
+	for _, host := range []string{"claude", "codex", "grok", "pi", "opencode", "cursor", "antigravity"} {
 		for _, effort := range []string{"", "low", "medium"} {
 			_, want, err := Resolve(resolveSource, resolveRole("execution", effort), profiles, host, nil)
 			if err != nil {
@@ -182,8 +183,8 @@ func TestRepositoryProfilesDeclareVerifierOnAllHosts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(p.Hosts) != 6 {
-		t.Fatalf("hosts = %d, want 6", len(p.Hosts))
+	if len(p.Hosts) != 7 {
+		t.Fatalf("hosts = %d, want 7", len(p.Hosts))
 	}
 	for host, h := range p.Hosts {
 		if _, ok := h.Models["verifier"]; !ok {
@@ -202,6 +203,7 @@ func TestResolveVerifierRoleAgainstSyntheticProfiles(t *testing.T) {
 		{"opencode", "syn-oc/verify#xhigh", ""},
 		{"grok", "syn-grok-verify", ""},
 		{"cursor", "inherit", ""},
+		{"antigravity", "inherit", ""},
 	}
 	for _, c := range cases {
 		profile, m, err := Resolve(source, data, profiles, c.host, nil)

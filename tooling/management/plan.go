@@ -586,7 +586,7 @@ func buildPlan(action string, o Options, adjust func(*Plan, State) error) (Plan,
 		// always_on frontmatter, so a file with content under its name stops
 		// the install instead of being rewritten.
 		if _, isPart := antigravity.RulePartNumber(c.AntigravityHome, t.Path); isPart && action == "install" && ch.Before == nil && s.Exists && len(s.Data) > 0 {
-			return p, fmt.Errorf("unowned Antigravity rule file: %s", t.Path)
+			return p, fmt.Errorf("unowned Antigravity rule file: %s; Hive writes its guidance parts under that name, so rename or remove the file and retry", t.Path)
 		}
 		if action == "install" && ch.Before == nil && (t.Kind == "skill" || t.Kind == "agent") {
 			if t.Kind == "agent" && s.Exists {

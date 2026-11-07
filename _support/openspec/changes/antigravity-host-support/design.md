@@ -22,7 +22,7 @@ Para entregar la guía global (37.738 bytes) a un host que corta cada archivo de
 
 - Fuente: la guía reescrita que hoy produce `nextRecord` para un bloque (`global.md` con los enlaces de skills ya reescritos por `skillsDirFor`).
 - Corte determinista en el plan: se acumulan secciones `## ` mientras la parte, con frontmatter, marcadores de bloque y (en la primera) la voz más larga posible, quede en 22.000 bytes o menos; margen de 2.000 bytes bajo el tope de 24.000 para ediciones de la guía. Solo cuentan los encabezados fuera de bloques de código: `global.md` tiene un `## Hive` dentro de un bloque ```` ```markdown ```` (líneas 108-118). Una sección que sola pase el límite hace fallar el plan con un error que la nombra (`global.md` no tiene encabezados `###`, así que no hay corte de segundo nivel). Medido el 2026-11-06 sobre `93ab65ee`: dos partes, de unos 16.600 y 21.100 bytes de guía.
-- Destino: `<AntigravityHome>/rules/hive-01.md`, `hive-02.md`…; cada archivo lo crea Hive con `---\ntrigger: always_on\n---\n` y un bloque gestionado. Las partes comparten `GlobalSource` y llevan un índice de parte en el registro de estado.
+- Destino: `<AntigravityHome>/rules/hive-01.md`, `hive-02.md`…; cada archivo lo crea Hive con `---\ntrigger: always_on\n---\n` y un bloque gestionado. Las partes comparten `GlobalSource`; el número de parte sale del nombre del archivo, que ya está en la ruta del registro, así que el estado no gana campos y un estado anterior carga igual.
 - Un cambio en la cantidad de partes agrega los archivos nuevos y quita los que sobran, solo si son de Hive (registro y marcadores intactos).
 
 ### Skills, roles y hooks

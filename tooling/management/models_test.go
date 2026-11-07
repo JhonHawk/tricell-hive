@@ -36,7 +36,7 @@ func swapModel(t *testing.T, profiles, from, to string) string {
 	return strings.ReplaceAll(profiles, quoted, `"`+to+`"`)
 }
 
-var allAgentHosts = []string{"claude", "codex", "cursor", "grok", "opencode", "pi"}
+var allAgentHosts = []string{"antigravity", "claude", "codex", "cursor", "grok", "opencode", "pi"}
 
 func modelsRole(name, profile, effort string) string {
 	front := "---\nname: " + name + "\ndescription: Test role\nmodel_profile: " + profile + "\naccess_profile: observe\n"
