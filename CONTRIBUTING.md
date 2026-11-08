@@ -176,8 +176,10 @@ follow its maintainer workflows (such as local installation refreshes).
 ## Model behavior pilots
 
 Pilots that measure how a model follows the guidance are paused. Do not add or
-run them in a contribution. Ordinary non-model tests, as listed above, are
-unaffected.
+run them in a contribution. This includes the model qualification tool
+(`qualify run` in `tests/pilot`): it is maintainer measurement, and running it
+needs the maintainer's authorization. Ordinary non-model tests, as listed
+above, are unaffected.
 
 ## Reporting security issues
 

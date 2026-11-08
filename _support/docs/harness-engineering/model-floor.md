@@ -15,7 +15,7 @@ A model belongs to the floor by its identity, whatever host runs it:
 
 1. Remove the provider prefix and the variant from both the session's model and the table's model before comparing them: `opencode-go/claude-haiku-5-5#high` and the row `opencode-go/claude-haiku-5-5` both become `claude-haiku-5-5`, so a session on `claude-haiku-5-5` through another provider matches that row.
 2. Resolve an alias to the full IDs listed under «Aliases»; membership means being one of those IDs. An alias that resolves to an older model on another provider, such as `sonnet` on Amazon Bedrock, is not a floor model there.
-3. When a session's served model cannot be seen (the Codex and OpenCode traces do not record it yet), use its configured model and name it as configured.
+3. When a session's served model cannot be seen (Codex never exposes it, and an OpenCode session's trace does not carry it, although qualification runs read it from the session export), use its configured model and name it as configured.
 
 ## Floor
 
@@ -44,18 +44,26 @@ Aliases move to newer models over time: when the documentation names a new model
 
 ## Qualification
 
-A model becomes **qualified** when, on held-back tasks of the qualification suite with Hive guidance:
+A model becomes **qualified** when, on the held-back tasks of the qualification suite (`tests/fixtures/qualification/suite.json`) with Hive guidance deployed:
 
-1. it passes at least 90% of its runs;
-2. no task is in MISS, meaning the reference model passed every run and the candidate none; the reference model is given for each run with `--reference`;
-3. on the tasks marked `compare_none`, the guidance arm is not worse than the no-guidance arm by more than two standard errors.
+1. its pass rate is at least 0.90, where the rate is the mean of its per-task pass rates and the report shows its standard error across tasks;
+2. no task is in MISS, meaning the reference model passed every usable run of the task and the candidate a third or fewer of its own; the reference model is given with `--reference`;
+3. on the tasks marked `compare_none`, the difference between the guidance arm and the no-guidance arm, paired by task, is not below minus two paired standard errors.
 
-A host without a no-guidance arm can reach only the first two conditions. The 90% bar is the maintainer's choice, not an external standard, and the statistics are open for revision when the tool is planned.
+The verdict is `candidate` when all three hold, `candidate-partial` when the first two hold on a host without a no-guidance arm (Claude, Grok, Pi), and `not-candidate` otherwise, naming the failed condition. Tuning tasks never change the verdict. The 0.90 bar is the maintainer's choice, not an external standard. Per-task statistics follow Miller, "Adding Error Bars to Evals" (arXiv 2411.00640).
 
-The qualification tool is not built yet: it is planned in `_support/openspec/changes/model-qualification-tool/`. Running it will be a model pilot, which root `AGENTS.md` «Measurement» keeps paused: it needs the user's authorization and a spending cap, and follows [the pilot procedure](pilot-procedure.md).
+An attempt is **usable** when it ended `completed`, `blocked_permission` or `background_unverified` (the last two count as failures), its guidance hash and effort match the batch, and its served model is the requested one: both sides drop the provider prefix, the variant and a bracketed suffix such as `[1m]`, aliases resolve through «Aliases», and on OpenCode the variant must also match. A missing served model makes the attempt unusable on Claude, Grok, Pi and OpenCode; Codex never exposes it, so its requested model is used and reported as configured. Unusable attempts do not count, are reported by cause, and are launched again by the next `qualify run`.
+
+Running a qualification is a model pilot, which root `AGENTS.md` «Measurement» keeps paused: it needs the user's authorization and a spending cap, and follows [the pilot procedure](pilot-procedure.md). With that authorization, from the repository root:
+
+1. `go run ./tests/pilot qualify run --host <host> --models <candidates> --reference <model> --source . --guidance-source . --configured-model <value> --split heldback --runs 9 --out _support/workspace/<dir>` prints the sessions it would launch and launches none.
+2. The same command with `--confirm-sessions <N>`, where N is the printed count, launches them. It records the batch in `<dir>/batch.json` and refuses, without launching, when the host, models, reference, efforts or the deployed or arm A guidance hash differ from that record; a redeploy or another checkout starts a new `<dir>`. Each model's effort comes from «Floor» when the row gives exactly one, none is passed for `—`, and otherwise `--effort <model>=<value>` is required.
+3. `go run ./tests/pilot qualify score --out _support/workspace/<dir> --reference <model> --source .` prints the report and the verdict, or exits 1 without a verdict when the batch is incomplete.
+
+`--guidance-source` is needed only when arm A is scheduled (Codex or OpenCode with a `compare_none` task in the split). A launch that fails leaves `qualify run` with exit 1; calling it again relaunches that repetition.
 
 ## Known limits
 
 - Claude, Grok and Pi have no no-guidance arm: the pilot runner gives Claude and Pi no isolated guidance home, and Grok's isolated home keeps the real `GROK_HOME`, where Hive installs its roles and hooks.
-- The Codex and OpenCode traces do not record the served model yet, so their sessions count under the configured model.
+- Codex never exposes the served model, and an OpenCode session's trace does not carry it, so their sessions count under the configured model; qualification runs on OpenCode read it from the session export.
 - Pi, Cursor and Antigravity inherit the session model: only floor models running there count.
