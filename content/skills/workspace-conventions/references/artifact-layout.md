@@ -19,6 +19,7 @@ Create only the folders and records the work needs. One work item shares its ide
 - `workspace/YYYY-MM-DD-<work>/`: ignored by Git, for material the user may open or whose versioning is undecided: working documents, images, temporary information, and files a tool or later session must find again, such as saved state, including a loop's `loop-state.md`.
 - Scratch, reproducible material nobody needs after the task (temporary files, shell helpers, intermediate output, throwaway checkouts), goes where the host keeps temporary work: its scratch or session directory, otherwise the system temporary directory; never the repository root, and never for anything the user should read or reuse. Material holding the only copy of work, such as unintegrated source edits, uncommitted changes in a checkout, or unique evidence, is not scratch: keep it in its source location, the host's native mechanism, or a location the user approves.
 - `secrets/`: never versioned, the folder at mode `0700` and its files at `0600`, holding the secret files and the account index `ACCOUNTS.md` that the global guidance's «Test accounts» sets.
+- `scripts/`: never versioned, the local scripts that `HIVE.local.md` names, as the global guidance's «Local instructions» sets.
 - `evidence/YYYY-MM-DD-<work>/`: the selected subset that substantiates results, linked from the report.
 
 **Condition:** producing UI review images or recordings.
