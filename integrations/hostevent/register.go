@@ -6,10 +6,9 @@ import (
 	"strings"
 )
 
-// HookTimeoutSeconds is the explicit timeout every JSON hook entry carries. It
-// is above the 1.5 s default budget of Claude Code's SessionEnd and equal to
-// the whole-run budget of `hive hook`, so the hook finishes before its host
-// gives up on it.
+// HookTimeoutSeconds is the default explicit timeout for JSON hook entries.
+// It exceeds hive hook's 2 s whole-run budget. Host registrations override it
+// for events with tighter limits, such as Codex's 3 s SessionEnd cap.
 const HookTimeoutSeconds = 5
 
 // Command is the command line a host's hook file registers for one event:
