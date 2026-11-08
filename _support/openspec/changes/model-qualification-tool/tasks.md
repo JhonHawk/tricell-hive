@@ -4,7 +4,7 @@ Base: `development` en `7ae26b0e`; rama `feat/model-qualification-tool` en un wo
 
 ### T4 — Suite, registro de detectores y set de tareas
 
-- [ ] `qualify_suite.go` con el tipo, el cargador, el validador (forma y cantidades por separado), el registro de detectores y los chequeos nuevos; `suite.json` con al menos 15 tareas que pasan la validación; README de la suite.
+- [x] `qualify_suite.go` con el tipo, el cargador, el validador (forma y cantidades por separado), el registro de detectores y los chequeos nuevos; `suite.json` con al menos 15 tareas que pasan la validación; README de la suite.
 
 **Closes:** AC39
 
@@ -142,12 +142,13 @@ Sin UI. Correr una calificación con modelos reales queda fuera de este cambio.
 
 - Updated: 2026-11-08
 - Stage: build · 2
-- Last commit: 7ae26b0e
+- Last commit: 1265c17a
 - Open findings: none
-- Next: T4 via hive-build-backend child
+- Next: T1 via hive-build-backend child
 
 ### Evidence
 
+- go test ./tests/pilot/ -run QualifySuite: ok @ 1265c17a
 
 ## Estado de revisión y progreso
 
@@ -156,3 +157,4 @@ Sin UI. Correr una calificación con modelos reales queda fuera de este cambio.
 - 2026-11-08 — revisión 2: hallazgos H19–H30 de `hive-review-plan`; AC41, AC42, AC45, AC46 y AC47 retirados y reemplazados por AC56–AC59; T7 pasa a depender de T3; ninguna tarea hecha.
 - 2026-11-08 — revisión 3: D21 A (intentos no utilizables se relanzan) y H31–H39; T2, T3, T6 y T7 ajustadas; ninguna tarea hecha.
 - 2026-11-08 — revisión 4: D22 A, hallazgos H40–H45 de la tercera revisión aplicados sin cuarta revisión; AC48, AC53, AC54 y AC55 retirados y reemplazados por AC56–AC59; ninguna tarea hecha.
+2026-11-08 — T4 · 1265c17a · unverified: none
