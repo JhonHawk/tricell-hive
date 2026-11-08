@@ -58,7 +58,7 @@ Base `e0bb3a95` en `development`; rama `feat/local-instructions-file`. Todas las
 
 ### T4 — Script `extract_candidates.py` y su test
 
-- [ ] `content/skills/local-instructions/scripts/extract_candidates.py` y `tests/skills/local_instructions_extract_test.py` implementan el paso 2 de `design.md` «Skill `local-instructions`».
+- [x] `content/skills/local-instructions/scripts/extract_candidates.py` y `tests/skills/local_instructions_extract_test.py` implementan el paso 2 de `design.md` «Skill `local-instructions`».
 
 **Closes:** AC25
 
@@ -76,7 +76,7 @@ Base `e0bb3a95` en `development`; rama `feat/local-instructions-file`. Todas las
 
 ### T5 — Skill `local-instructions` y su referencia
 
-- [ ] `content/skills/local-instructions/SKILL.md` y `references/transcript-sources.md` implementan el resto de `design.md` «Skill `local-instructions`».
+- [x] `content/skills/local-instructions/SKILL.md` y `references/transcript-sources.md` implementan el resto de `design.md` «Skill `local-instructions`».
 
 **Closes:** AC17, AC24, AC26, AC27, AC28, AC29
 
@@ -94,7 +94,7 @@ Base `e0bb3a95` en `development`; rama `feat/local-instructions-file`. Todas las
 
 ### T6 — Regla de `unverified` y enlaces a la skill
 
-- [ ] «Local instructions» dice qué significa `unverified` para un lector y recomienda la skill en la línea del tope; `site/src/content/docs/skills.md`, `index.mdx` («Supporting skills»), `getting-started.md`, `llms.txt` y `CHANGELOG.md` («Unreleased», sección «Added» nueva) la nombran.
+- [x] «Local instructions» dice qué significa `unverified` para un lector y recomienda la skill en la línea del tope; `site/src/content/docs/skills.md`, `index.mdx` («Supporting skills»), `getting-started.md`, `llms.txt` y `CHANGELOG.md` («Unreleased», sección «Added» nueva) la nombran.
 
 **Closes:** AC30, AC31
 
@@ -134,4 +134,8 @@ Revisión humana (D5 A): leer la sección nueva de `global.md` y el diff de los 
 
 2026-11-07 — Segunda revisión del plan aplicada y D12 A: T4 script, T5 skill, T6 enlaces. Hay un borrador sin commitear de la skill en `content/skills/local-instructions/` escrito antes de esa revisión; T5 lo reescribe.
 
-Checkpoint: stage build (plan revisado), siguiente T4. Último commit `87fef783`. Pendiente: revisión del plan revisado, T4, T5, re-verify y segunda parada de validación.
+2026-11-07 — T4 hecho en `1b2c5683` y `bc19cd24` (tdd: el test falló antes del script y otra vez antes del enmascarado por lista de permitidos); prueba real sobre cam, carvento y fleetsystem sin fugas en un escaneo de patrones.
+2026-11-07 — T5 hecho en `cf28726f`: frases de AC17, AC24 y AC26-AC29 presentes; tests de contenido pasan.
+2026-11-07 — T6 hecho en el commit siguiente: frases de AC30 y AC31 en `global.md` (40 228 bytes, +2 477 sobre la base); el sitio construye.
+
+Checkpoint: stage verify, segunda revisión de código sobre `240fc93f..HEAD` y segunda parada de validación. Último commit `87fef783`. Pendiente: revisión del plan revisado, T4, T5, re-verify y segunda parada de validación.
