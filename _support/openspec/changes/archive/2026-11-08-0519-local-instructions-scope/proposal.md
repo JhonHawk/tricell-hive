@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Draft · plan en revisión |
+| Estado | Completado · PR #421 (22c3fdd8) |
 | Tracker | ninguno |
 | Git | JhonHawk/tricell-hive · base `development` en `831e6032` · rama propuesta `fix/local-instructions-scope` |
 
