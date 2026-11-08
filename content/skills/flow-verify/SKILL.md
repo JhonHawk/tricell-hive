@@ -5,7 +5,7 @@ description: "Verify a built candidate before it is accepted: current evidence f
 
 # Verify a built candidate
 
-At verify entry, the primary producer follows [flow-walkthrough](../flow-walkthrough/SKILL.md), which sets when a viewer session applies, for the viewer stage. For a UI change, read [UI verification](references/ui-verification.md) for the verification and capture scope.
+For a UI change, the primary producer publishes the walk's captures as [flow-walkthrough](../flow-walkthrough/SKILL.md) sets, and reads [UI verification](references/ui-verification.md) for the verification and capture scope.
 
 Enter with a built candidate: commits, or the working tree under `hold`. Without one, say what is missing and return the work to `flow-build`.
 

@@ -172,9 +172,10 @@ session; without it, each creation's operation ID starts a new work, and the
 response returns the given key or null. Sessions created before work keys keep
 their IDs.
 
-The additive `hive view work` publisher owns on-demand directory scanning and
-semantic task/stage updates over the existing v3 API. Its offline `work contract`
-is the command reference. `open` binds explicit project/change/source/key to the
+The additive `hive view work` publisher owns capture publication
+(`work capture`, the only publication verb the guidance uses) plus the advanced
+directory scanning and semantic task/stage updates over the existing v3 API. Its
+offline `work contract` is the command reference. `open` binds explicit project/change/source/key to the
 returned work ID; `publish` freezes bounded Markdown before writes, compares the
 current remote chain for no-op, uploads missing content and verifies the snapshot.
 `list`/`show` read observed state; `bind` explicitly moves a local source binding.
@@ -192,14 +193,18 @@ block each other; creation and journal migration keep the global lock. Nothing
 watches files, and no dependency or storage migration was added. Downgrading the client preserves this journal but cannot resume its
 pending requests; restore a compatible client to recover them.
 
-The semantic commands `work open|sync|evidence|close` apply one declaration per
-stage change (stage state with reason, missing tasks bound to that stage, task
-states, optional close with readback) and need no change folder. They resolve
+`work capture` publishes a batch of captures of one screen: it opens the work and
+the stage when needed, links the current commit, and numbers the iteration as
+`SCREEN · #N` in the view title, superseding the previous view of that title,
+resolving all of it when it is sent. The advanced commands
+`work open|sync|evidence|close` apply one declaration per stage change (stage
+state with reason, missing tasks bound to that stage, task states, optional
+close with readback); all need no change folder. They resolve
 the producer identity without flags from a verified host variable or from the
 process-to-session map the session hook writes (contract in
 [host session events](host-session-events.md#session-map)), and keep each
 session's current work so the work ID may be omitted while exactly one is
-current. With the viewer stopped or silent, `open`, `sync` and `evidence`
+current. With the viewer stopped or silent, `open`, `sync`, `evidence` and `capture`
 record the semantic input and operation ID in the journal, answer `queued` and
 never start the viewer; the next command on that work, or the next `hive hook`
 run of its session, sends the queue in order, rebuilding the requests on the

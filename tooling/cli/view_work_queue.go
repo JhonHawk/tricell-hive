@@ -81,7 +81,7 @@ func queuedWorkHandle(project, host, native, key string) string {
 
 func viewWorkQueueable(c viewWorkCommand) bool {
 	switch c.Action {
-	case "sync", "evidence":
+	case "sync", "evidence", "capture":
 		return true
 	case "open":
 		return c.WorkID == ""
@@ -93,7 +93,7 @@ func viewWorkQueueable(c viewWorkCommand) bool {
 // before their own declaration.
 func viewWorkQueueFlushes(action string) bool {
 	switch action {
-	case "open", "sync", "evidence", "stage", "tasks register", "task update", "close":
+	case "open", "sync", "evidence", "capture", "stage", "tasks register", "task update", "close":
 		return true
 	}
 	return false
@@ -155,6 +155,15 @@ func (e *viewWorkEngine) queueSource(c viewWorkCommand) (viewer.TimelineSource, 
 // queue records a declaration the viewer cannot take now.
 func (e *viewWorkEngine) queue(c viewWorkCommand, w io.Writer) error {
 	entry := &viewWorkQueued{ID: workID("op-"), Action: c.Action, State: "queued"}
+	if viewWorkCaptureOpens(c) {
+		// A key that already names a work of this session queues on that work:
+		// queuing under its handle would make the same work current twice.
+		if project, err := canonicalWorkDir(c.Project); err == nil {
+			if real := e.knownKeyWork(c, project); real != "" {
+				c.WorkID, c.Key, c.Title, c.Summary = real, "", "", ""
+			}
+		}
+	}
 	stored := c
 	stored.Options = management.Options{}
 	switch c.Action {
@@ -176,6 +185,33 @@ func (e *viewWorkEngine) queue(c viewWorkCommand, w io.Writer) error {
 		entry.Source = viewer.TimelineSource{ProjectRoot: project, Host: viewer.TimelineHost(c.Host), NativeSessionID: c.NativeSessionID}
 		entry.WorkID = handle
 		stored.QueuedOperation = entry.ID
+	case "capture":
+		if viewWorkCaptureOpens(c) {
+			// The first capture of a session also opens the work: it is addressed
+			// by the handle of its key, as a queued open is, until it is sent.
+			project, err := canonicalWorkDir(c.Project)
+			if err != nil {
+				return err
+			}
+			stored.Project = project
+			entry.Source = viewer.TimelineSource{ProjectRoot: project, Host: viewer.TimelineHost(c.Host), NativeSessionID: c.NativeSessionID}
+			entry.WorkID = queuedWorkHandle(project, c.Host, c.NativeSessionID, c.Key)
+			stored.QueuedOperation = entry.ID
+		} else {
+			source, err := e.queueSource(c)
+			if err != nil {
+				return err
+			}
+			entry.Source, entry.WorkID = source, c.WorkID
+			stored.WorkID = c.WorkID
+		}
+		if e.queuedFor(entry.WorkID, e.journal) >= viewWorkQueueLimit {
+			return viewWorkQueueFull()
+		}
+		var err error
+		if entry.Frozen, stored.Images, err = e.freezeImages(entry.ID, c); err != nil {
+			return err
+		}
 	default:
 		source, err := e.queueSource(c)
 		if err != nil {
@@ -209,7 +245,7 @@ func (e *viewWorkEngine) queue(c viewWorkCommand, w io.Writer) error {
 		return err
 	}
 	position := e.queuedFor(entry.WorkID, e.journal)
-	if c.Action == "open" {
+	if c.Action == "open" || viewWorkCaptureOpens(c) {
 		if err := addCurrentWork(e.state, c.Host, c.NativeSessionID, entry.WorkID); err != nil {
 			return err
 		}
@@ -322,6 +358,22 @@ func (e *viewWorkEngine) reopenKnown(c viewWorkCommand, project, handle string, 
 		return true, err
 	}
 	return true, writeViewWorkBoundedJSON(w, viewWorkResult{WorkID: real, Result: "opened"})
+}
+
+// knownKeyWork returns the work a key already opened in this session, or ""
+// when the key names no work yet (or only a queued one, still addressed by its
+// handle).
+func (e *viewWorkEngine) knownKeyWork(c viewWorkCommand, project string) string {
+	handle := queuedWorkHandle(project, c.Host, c.NativeSessionID, c.Key)
+	if real := e.realID(handle); real != handle {
+		return real
+	}
+	for _, b := range e.journal.Bindings {
+		if b.Key == c.Key && b.Project == project && string(b.Source.Host) == c.Host && b.Source.NativeSessionID == c.NativeSessionID {
+			return b.WorkID
+		}
+	}
+	return ""
 }
 
 // noteHandle remembers which work a key opened in this session, so that the
@@ -506,7 +558,7 @@ func (e *viewWorkEngine) flushQueue(c viewWorkCommand) error {
 // the handle may stand for) once the viewer reports it closed or gone.
 func (e *viewWorkEngine) releaseRejectedWork(q *viewWorkQueued, code string, c viewWorkCommand) error {
 	gone := code == "session_closed" || code == "work_closed" || code == "session_deleted" || code == "not_found"
-	if q.Action != "open" && !gone {
+	if !queuedOpens(q) && !gone {
 		return nil
 	}
 	if err := releaseCurrentWork(e.state, c.Host, c.NativeSessionID, q.WorkID); err != nil {
@@ -531,9 +583,15 @@ func (e *viewWorkEngine) archiveFlushRejection(id string, q *viewWorkQueued, cod
 	}
 }
 
+// queuedOpens is a queued declaration that creates the work it names: an open,
+// or the first capture of a session.
+func queuedOpens(q *viewWorkQueued) bool {
+	return q.Action == "open" || q.Action == "capture" && viewWorkCaptureOpens(q.Command)
+}
+
 func (e *viewWorkEngine) hasQueuedOpen(handle string) bool {
 	for _, q := range e.journal.Queue {
-		if q.Action == "open" && q.WorkID == handle {
+		if queuedOpens(q) && q.WorkID == handle {
 			return true
 		}
 	}
@@ -577,13 +635,15 @@ func (e *viewWorkEngine) flushEntry(q *viewWorkQueued, flusher viewWorkCommand) 
 	id := e.realID(q.WorkID)
 	if q.Action != "open" {
 		c.WorkID = id
-		if id == q.WorkID && e.hasQueuedOpen(id) {
+		if id == q.WorkID && e.hasQueuedOpen(id) && !queuedOpens(q) {
 			// The open that would have created this work did not apply.
 			return workStateError("session_closed")
 		}
 	}
+	// A capture that opens the work has no work to check until it is sent.
+	waiting := queuedOpens(q) && id == q.WorkID
 	if !started {
-		if q.Action != "open" {
+		if q.Action != "open" && !waiting {
 			if rejection := e.queuePrecheck(q, c); rejection != nil {
 				return rejection
 			}
@@ -630,6 +690,10 @@ func (e *viewWorkEngine) flushEntry(q *viewWorkQueued, flusher viewWorkCommand) 
 			images[n] = filepath.Join(e.dir, spec)
 		}
 		c.Images = images
+		if q.Action == "capture" {
+			_, err := e.capture(c)
+			return err
+		}
 		_, err := e.evidence(c)
 		return err
 	}
@@ -781,7 +845,7 @@ func validateWorkQueue(j *viewWorkJournal) error {
 		}
 		ids[q.ID] = true
 		switch q.Action {
-		case "open", "sync", "evidence":
+		case "open", "sync", "evidence", "capture":
 		default:
 			return bad()
 		}
@@ -799,7 +863,7 @@ func validateWorkQueue(j *viewWorkJournal) error {
 			}
 		}
 		for _, spec := range q.Command.Images {
-			if q.Action != "evidence" || !strings.HasPrefix(spec, "queue-") || strings.ContainsAny(strings.SplitN(spec, ":", 2)[0], "/\\") {
+			if q.Action != "evidence" && q.Action != "capture" || !strings.HasPrefix(spec, "queue-") || strings.ContainsAny(strings.SplitN(spec, ":", 2)[0], "/\\") {
 				return bad()
 			}
 		}

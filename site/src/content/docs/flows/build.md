@@ -7,7 +7,7 @@ Build is where the work gets done. The agent changes code or configuration, runs
 
 ## When it starts
 
-Build starts when a plan is ready, when you type its command, when you pick a small fix from the close footer or a findings round, or from [Research](/flows/research/) in the same turn, with no command to type, when you asked for a change and its how leaves you no decision and can be finished from your request and the `git diff`. When the how has a decision for you, the agent goes to [Plan](/flows/plan/) first, unless you chose to skip the plan. The [viewer](/viewer/) session for the work starts here when it did not start at Plan.
+Build starts when a plan is ready, when you type its command, when you pick a small fix from the close footer or a findings round, or from [Research](/flows/research/) in the same turn, with no command to type, when you asked for a change and its how leaves you no decision and can be finished from your request and the `git diff`. When the how has a decision for you, the agent goes to [Plan](/flows/plan/) first, unless you chose to skip the plan. The [viewer](/viewer/) session for the work starts at the first UI capture, when the work has one.
 
 ```text wrap
 Implement the agreed change locally and verify it. Do not commit or publish.
@@ -17,7 +17,7 @@ Fix the date parsing bug and add a test that would have caught it.
 
 ## What it does
 
-Task progress is published separately: one declaration per stage change carries the stage state, its reason and the task states. The binary resolves technical IDs, versions and the session identity; the agent still supplies the actual state, reason, ownership and blocking information. Editing the published plan checklist does not update live tasks. In a build with no plan, tasks that the host's native list already reports (Claude Code, OpenCode) appear in the viewer marked as from the host, without the agent registering them; with the viewer stopped, the declaration is queued and sent later. See the [viewer publication model](/viewer/#one-declaration-per-stage-change) and [host-observed activity](/viewer/#host-observed-activity).
+Build publishes only UI captures to the [viewer](/viewer/), with their iteration, and only when the work changes an interface; it declares no stages or tasks there. Task progress lives in `tasks.md` or the message. Tasks that the host's native list already reports (Claude Code, OpenCode) appear in the viewer marked as from the host, without the agent publishing them; with the viewer stopped, a capture is queued and sent later. See the [capture publication](/viewer/#publish-captures) and [host-observed activity](/viewer/#host-observed-activity).
 
 - Checks the plan's prerequisites and asks you for any that are missing, while it starts the tasks that do not need them.
 - Moves the tracked ticket to in progress, except for a one-off operation that leaves nothing in the repository, whose ticket moves only if you ask, and works on a branch when your delivery answer makes commits.
@@ -30,7 +30,7 @@ Task progress is published separately: one declaration per stage change carries 
 ## What it asks you
 
 - The delivery mode and the code review, once per session and repository, before the first edit, unless the repository declares direct delivery or the work leaves nothing to commit. Later work reuses your answers and says which ones apply; you are asked again only to change them, when your answer has no validation stop or review and the new work calls for one, or when the mode would merge or publish commits that are not this work's. A mechanical change gets only the delivery question. See the [delivery rules](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md).
-- For a change that adds or rearranges a screen, to accept its first rendered view or ask for corrections before the rest continues. The view is published to the [viewer](/viewer/) through the [walkthrough skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md). When you have delegated the work to run [unattended](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md), the view is captured and published without waiting for you.
+- For a change that adds or rearranges a screen, to accept its first rendered view or ask for corrections before the rest continues. The capture is published to the [viewer](/viewer/) through the [walkthrough skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md). When you have delegated the work to run [unattended](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md), the view is captured and published without waiting for you.
 
 Between tasks it keeps going rather than reporting. It stops to ask you something, at a validation stop, or at a blocker.
 

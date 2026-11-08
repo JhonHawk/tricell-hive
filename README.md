@@ -467,21 +467,25 @@ hive view status     # service status without its access token
 hive view stop
 ```
 
-Publish retained Markdown on demand with `hive view work publish`: the binary
-scans the selected directory, uploads the bytes and returns a compact work/revision
-receipt. `hive view work contract` describes the semantic commands. A stable key
-and retained work ID keep two change folders separate within one native session;
-`work list` lists them. Repeating unchanged content makes no remote write.
+The viewer holds only UI captures and the iteration each belongs to. Build and
+Verify publish a batch of captures of one screen with one command, `hive view
+work capture --stage build|verify --view-title SCREEN --image FILE[:caption]`;
+it opens the work and stage when needed, links the current commit and numbers
+each later capture of the same title as `SCREEN · #N`, superseding the previous
+one. Plan and Research publish nothing, and a flow without captures creates no
+work. A stable key and retained work ID keep two works separate within one
+native session; `work list` lists them. The binary still offers stage, task,
+evidence and Markdown publication (`work open|sync|evidence|tasks|publish`) as
+advanced operations, described by `hive view work contract`.
 Everything the browser manages also has a command: `hive view work rename`,
 `archive`, `restore`, `pin`, `unpin`, `recover` (reassign the lead to a pending
 join request, with a reason) and `delete` (with `--confirm` set to the work ID).
 They act as the local viewer, not as a producer, and an agent runs them only
 when you ask for that action on a named work.
-The agent declares each stage change once with `hive view work sync` (state,
-reason and task states in one call) and, for a build without a plan, needs only
-`open`, `sync`, `evidence` and `close`; it passes no host or session identity,
-because the binary resolves it. With the viewer stopped these commands answer
-`queued` and the next command or hook run sends them in order. Nothing watches
+The agent passes no host or session identity, because the binary resolves it,
+and finishes a work with `work close` (or one `work sync` to leave it in review,
+paused or awaiting validation). With the viewer stopped, `capture` answers
+`queued` and the next command or hook run sends it in order. Nothing watches
 your files, and editing a checklist does not change live task status. Source
 files stay in the repository.
 
@@ -520,9 +524,10 @@ read and manage published work.
 
 System labels follow the browser: English by default, Spanish for a Spanish primary language. Producer-authored content remains verbatim.
 
-Stages contain their own activity. The Tasks Popover lists the single task
-registry; each stage projects its assigned segments, including tasks that span
-verification and delivery. Status, pauses and CI waits are declared records,
+Stages contain their own activity. When tasks exist (published through the
+advanced commands or reported by the host), the Tasks Popover lists the single
+task registry; each stage projects its assigned segments, including tasks that
+span verification and delivery. Status, pauses and CI waits are declared records,
 not proof of host liveness or human approval. Documents, galleries and review
 panels preserve the snapshot you opened until you choose an update. Tickets and
 Git deliveries have canonical IDs: a metadata correction updates current links
