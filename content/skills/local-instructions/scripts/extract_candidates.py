@@ -223,28 +223,37 @@ def missing_programs(text):
 
 
 class Collector:
-    def __init__(self, limit):
-        self.limit = limit
+    def __init__(self, limit, roots):
+        self.limit, self.roots = limit, roots
         self.commands, self.missing, self.ports, self.cloud = {}, {}, {}, {}
 
     @staticmethod
-    def _bump(table, key, session, date, extra=None):
+    def _bump(table, key, session, date, place, extra=None):
         entry = table.setdefault(key, {"sessions": set(), "last_seen": "", "last_session": "", "where": set()})
         entry["sessions"].add(session)
-        entry["where"].add(session[2])
+        entry["where"].add(place)
         if date >= entry["last_seen"]:
             entry["last_seen"], entry["last_session"] = date, session[1]
         if extra:
             entry.setdefault("env", set()).update(extra)
 
-    def worked(self, command, session, date):
+    def worked(self, command, session, date, cwd):
+        """Count each segment where it ran: the command's directory, moved by any cd before it."""
         for seg in segments(command):
+            if seg["tokens"][0] == "cd":
+                target = seg["tokens"][1] if len(seg["tokens"]) > 1 else "~"
+                cwd = None if REDACTED in target or not cwd else os.path.normpath(
+                    os.path.join(cwd, os.path.expanduser(target)))
+                continue
+            if not in_roots(cwd, self.roots):
+                continue
+            place = where(cwd, self.roots)
             line = " ".join(seg["tokens"])
             joined = " ".join(seg["env"] + seg["tokens"])
             for pattern in PORTS:
                 for port in pattern.findall(joined):
                     if 1024 <= int(port) <= 65535:  # below 1024 the matches were PIDs and line numbers
-                        self._bump(self.ports, int(port), session, date)
+                        self._bump(self.ports, int(port), session, date, place)
             profile = region = ""
             for i, token in enumerate(seg["tokens"]):
                 nxt = seg["tokens"][i + 1] if i + 1 < len(seg["tokens"]) else ""
@@ -263,18 +272,20 @@ class Collector:
                 if name in ("AWS_REGION", "AWS_DEFAULT_REGION") and value != REDACTED:
                     region = value
             if (profile or region) and REDACTED not in (profile, region):
-                self._bump(self.cloud, (profile, region), session, date)
+                self._bump(self.cloud, (profile, region), session, date, place)
             if relevant(seg["tokens"]):
-                self._bump(self.commands, line, session, date, extra=seg["env"])
+                self._bump(self.commands, line, session, date, place, extra=seg["env"])
 
-    def failed(self, command, output, code, session, date):
+    def failed(self, command, output, code, session, date, cwd):
+        if not in_roots(cwd, self.roots):
+            return
         names = missing_programs(output)
         if not names and code == 127:
             segs = segments(command)
             if segs:
                 names = {os.path.basename(segs[0]["tokens"][0])}
         for name in names:
-            self._bump(self.missing, name, session, date)
+            self._bump(self.missing, name, session, date, where(cwd, self.roots))
 
     def _rows(self, table, key_name):
         rows = []
@@ -301,6 +312,11 @@ class Collector:
 
 def in_roots(cwd, roots):
     return bool(cwd) and any(cwd == r or cwd.startswith(r + "/") for r in roots)
+
+
+def near_roots(cwd, roots):
+    """A session started in a root, below one, or in a folder above one may run commands in a root."""
+    return in_roots(cwd, roots) or any(bool(cwd) and r.startswith(cwd.rstrip("/") + "/") for r in roots)
 
 
 def where(cwd, roots):
@@ -354,13 +370,14 @@ def scan_claude(home, roots, cutoff, collector, stats):
             try:
                 if path.stat().st_mtime < cutoff:
                     continue
-                if not in_roots(first_cwd(path, lambda r: r.get("cwd")), roots):
+                start = first_cwd(path, lambda r: r.get("cwd"))
+                if not near_roots(start, roots):
                     continue
             except OSError:
                 stats["unreadable"] += 1
                 continue
             stats["sessions"] += 1
-            session = ("claude-code", path.stem, where(first_cwd(path, lambda r: r.get("cwd")), roots))
+            session = ("claude-code", path.stem)
             uses = {}
             for record in read_jsonl(path):
                 content = (record.get("message") or {}).get("content")
@@ -372,13 +389,13 @@ def scan_claude(home, roots, cutoff, collector, stats):
                     if item.get("type") == "tool_use" and item.get("name") == "Bash":
                         tool_input = item.get("input") or {}
                         uses[item.get("id")] = (tool_input.get("command", ""), bool(tool_input.get("run_in_background")),
-                                                day(record.get("timestamp"), path))
+                                                day(record.get("timestamp"), path), record.get("cwd") or start)
                     elif item.get("type") == "tool_result" and item.get("tool_use_id") in uses:
-                        command, background, date = uses.pop(item["tool_use_id"])
+                        command, background, date, cwd = uses.pop(item["tool_use_id"])
                         if item.get("is_error"):
-                            collector.failed(command, text_of(item.get("content")), None, session, date)
+                            collector.failed(command, text_of(item.get("content")), None, session, date, cwd)
                         elif not background:  # a background command reports success when it starts
-                            collector.worked(command, session, date)
+                            collector.worked(command, session, date, cwd)
 
 
 def scan_codex(home, roots, cutoff, collector, stats):
@@ -394,10 +411,10 @@ def scan_codex(home, roots, cutoff, collector, stats):
             stats["unreadable"] += 1
             continue
         source = meta.get("source")
-        if not in_roots(meta.get("cwd", ""), roots) or (isinstance(source, dict) and "subagent" in source):
+        if not near_roots(meta.get("cwd", ""), roots) or (isinstance(source, dict) and "subagent" in source):
             continue
         stats["sessions"] += 1
-        session = ("codex", path.stem, where(meta["cwd"], roots))
+        session = ("codex", path.stem)
         for record in read_jsonl(path):
             payload = record.get("payload") or {}
             item = payload.get("item") or {}
@@ -412,10 +429,11 @@ def scan_codex(home, roots, cutoff, collector, stats):
                 command = shlex.join(str(a) for a in argv)
             date = day(record.get("timestamp"), path)
             code = item.get("exit_code")
+            cwd = item.get("cwd") or meta.get("cwd", "")
             if code == 0:
-                collector.worked(command, session, date)
+                collector.worked(command, session, date, cwd)
             elif code == 127:
-                collector.failed(command, item.get("aggregated_output", ""), code, session, date)
+                collector.failed(command, item.get("aggregated_output", ""), code, session, date, cwd)
 
 
 def main():
@@ -432,7 +450,7 @@ def main():
         clean = os.path.normpath(os.path.expanduser(root))
         roots.update({clean, os.path.realpath(clean)})
     cutoff = time.time() - args.days * 86400
-    collector = Collector(args.limit)
+    collector = Collector(args.limit, roots)
     hosts = {"claude-code": {"sessions": 0, "unreadable": 0}, "codex": {"sessions": 0, "unreadable": 0}}
     scan_claude(Path(args.claude_home), roots, cutoff, collector, hosts["claude-code"])
     scan_codex(Path(args.codex_home), roots, cutoff, collector, hosts["codex"])

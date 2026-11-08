@@ -127,6 +127,15 @@ class ExtractCandidatesTest(unittest.TestCase):
         api = projects / "-work-api"
         api.mkdir()
         (api / "s6.jsonl").write_text(claude_session("/work/api", "s6", [("pnpm start", False, "listening")]))
+        # A session in shop that moves to the sibling repository: its command belongs to api, not shop.
+        (main / "s7.jsonl").write_text(claude_session(self.root, "s7", [("cd /work/api && make api-after-cd", False, "")]))
+        # A session started in the parent folder that works inside shop counts for shop.
+        parent = projects / "-work"
+        parent.mkdir()
+        (parent / "s8.jsonl").write_text(claude_session("/work", "s8", [
+            ("cd shop && make shop-from-parent", False, ""),
+            ("make parent-only", False, ""),
+        ]))
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -170,10 +179,22 @@ class ExtractCandidatesTest(unittest.TestCase):
         raw, out = self.run_script()
         for marker in ("subagent-only", "neighbour-only", "too-old", "elsewhere-only", "codex-subagent-only", "dev:watch"):
             self.assertNotIn(marker, raw)
-        self.assertEqual(out["hosts"]["claude-code"]["sessions"], 3)
+        self.assertEqual(out["hosts"]["claude-code"]["sessions"], 5)
         self.assertEqual(out["hosts"]["codex"]["sessions"], 1)
         self.assertEqual(set(out["not_covered"]), {"grok", "pi", "opencode", "cursor", "antigravity"})
         self.assertNotIn("foo", {m["program"] for m in out["missing"]})
+
+    def test_each_command_counts_where_it_ran(self):
+        raw, out = self.run_script()
+        commands = {c["command"]: c for c in out["commands"]}
+        self.assertNotIn("api-after-cd", raw)
+        self.assertNotIn("parent-only", raw)
+        self.assertEqual(commands["make shop-from-parent"]["where"], ["."])
+        _, workspace = self.run_script("/work")
+        commands = {c["command"]: c for c in workspace["commands"]}
+        self.assertEqual(commands["make api-after-cd"]["where"], ["api"])
+        self.assertEqual(commands["make shop-from-parent"]["where"], ["shop"])
+        self.assertEqual(commands["make parent-only"]["where"], ["."])
 
     def test_workspace_root_adds_sibling_repositories_and_says_where(self):
         _, out = self.run_script("/work")
