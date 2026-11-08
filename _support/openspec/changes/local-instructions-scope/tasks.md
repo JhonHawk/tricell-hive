@@ -4,7 +4,7 @@ Base `831e6032` en `development`; rama `fix/local-instructions-scope`. Todas las
 
 ### T7 — Criterios y archivo de máquina en «Local instructions»
 
-- [ ] `content/guidance/global.md` tiene la sección «Local instructions» con el texto de `design.md`.
+- [x] `content/guidance/global.md` tiene la sección «Local instructions» con el texto de `design.md`.
 
 **Closes:** AC34, AC36, AC37, AC44, AC45, AC46, AC47, AC48, AC51, AC52
 
@@ -22,7 +22,7 @@ Base `831e6032` en `development`; rama `fix/local-instructions-scope`. Todas las
 
 ### T8 — La skill reparte entre los dos archivos
 
-- [ ] `content/skills/local-instructions/SKILL.md` aplica `design.md` «Skill».
+- [x] `content/skills/local-instructions/SKILL.md` aplica `design.md` «Skill».
 
 **Closes:** AC39, AC40, AC49
 
@@ -40,7 +40,7 @@ Base `831e6032` en `development`; rama `fix/local-instructions-scope`. Todas las
 
 ### T9 — Sitio, arquitectura y changelog
 
-- [ ] `site/src/content/docs/getting-started.md`, `_support/docs/architecture/workspace-and-artifacts.md` y `CHANGELOG.md` («Unreleased») describen el archivo de máquina y los criterios.
+- [x] `site/src/content/docs/getting-started.md`, `_support/docs/architecture/workspace-and-artifacts.md` y `CHANGELOG.md` («Unreleased») describen el archivo de máquina y los criterios.
 
 **Closes:** AC41, AC42
 
@@ -58,7 +58,7 @@ Base `831e6032` en `development`; rama `fix/local-instructions-scope`. Todas las
 
 ### T10 — Migración de los archivos locales de esta máquina
 
-- [ ] `~/.config/hive/HIVE.local.md` tiene la línea inicial y las entradas de T3 Code, Antigravity y T3 Connect/cloudflared (esta como binario, versión y comando de comprobación, sin «is reachable»); `tricell-hive/HIVE.local.md` conserva su línea inicial sin las entradas de SetStoreUpdateService ni `bb1`.
+- [x] `~/.config/hive/HIVE.local.md` tiene la línea inicial y las entradas de T3 Code, Antigravity y T3 Connect/cloudflared (esta como binario, versión y comando de comprobación, sin «is reachable»); `tricell-hive/HIVE.local.md` conserva su línea inicial sin las entradas de SetStoreUpdateService ni `bb1`.
 
 **Closes:** AC43
 
@@ -76,7 +76,7 @@ Base `831e6032` en `development`; rama `fix/local-instructions-scope`. Todas las
 
 ### T11 — Otros archivos que limitaban la escritura o nombraban un solo archivo
 
-- [ ] `content/skills/security-advisory/SKILL.md:8`, `content/skills/harness-audit/SKILL.md:10`, `content/skills/flow-build/references/delegation.md:28` y `llms.txt` aplican `design.md` «Otros punteros».
+- [x] `content/skills/security-advisory/SKILL.md:8`, `content/skills/harness-audit/SKILL.md:10`, `content/skills/flow-build/references/delegation.md:28` y `llms.txt` aplican `design.md` «Otros punteros».
 
 **Closes:** AC50
 
@@ -106,3 +106,8 @@ Revisión humana (D5 A): leer la sección nueva de `global.md` y el diff.
 ## Review status and progress
 
 2026-11-07 — Plan escrito y revisado por `hive-review-plan`; hallazgos aplicados (ver `proposal.md`).
+2026-11-07 — T7 en `2a36dfd8`: las frases de AC34, AC36, AC37, AC44-AC48, AC51 y AC52 aparecen; `several or the whole machine` y `Write only in the current project, as` dan 0; `global.md` 41 184 bytes (+754).
+2026-11-07 — T8 en `ac5a5843`, T11 en `a09214ff`, T9 en `73e1ac05`: frases de AC39, AC40, AC49, AC50, AC41 y AC42 presentes; el sitio construye.
+2026-11-07 — T10 local: `~/.config/hive/HIVE.local.md` con 3 entradas (T3 Code, cloudflared sin «reachable», Antigravity); el archivo del repo solo con su línea inicial; `~/.config` no es un repositorio Git; `XDG_CONFIG_HOME` sin definir.
+
+Checkpoint: stage build, paso 5 (suite y verify). Siguiente: suite completa, /code-review y parada de validación.
