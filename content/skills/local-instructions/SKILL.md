@@ -1,15 +1,15 @@
 ---
 name: local-instructions
-description: Create or curate a project's HIVE.local.md from what already worked on this machine, by gathering candidates from recent session transcripts, persistent and host memory, local notes and the project's guidance, asking the user which to keep, and confirming them with read-only checks. Use when the user asks to create, bootstrap, review or prune HIVE.local.md, or to record how the project runs on this machine; not for recording one fact verified during other work, which the global guidance's «Local instructions» covers.
+description: Create or curate the HIVE.local.md files of a project and of this machine from what already worked here, by gathering candidates from recent session transcripts, persistent and host memory, local notes and the project's guidance, asking the user which to keep, and confirming them with read-only checks. Use when the user asks to create, bootstrap, review or prune HIVE.local.md, or to record how the project runs on this machine; not for recording one fact verified during other work, which the global guidance's «Local instructions» covers.
 ---
 
 # Create or curate HIVE.local.md
 
-The global guidance's «Local instructions» is the canonical home of `HIVE.local.md`: where it lives, what goes in it, its secrets, its size, what `unverified` means and how Git ignores it. This skill adds only the first fill and the pruning, and changes one element of that section, named in step 5.
+The global guidance's «Local instructions» is the canonical home of `HIVE.local.md`, the project's file and the machine file: where each lives, what goes in it, its secrets, its size, what `unverified` means and how Git ignores it. This skill adds only the first fill and the pruning, and changes one element of that section, named in step 5.
 
-**Modes.** *Create* when no `HIVE.local.md` exists where «Local instructions» places it. *Curate* when it exists and the user asks to rebuild, review or prune it, or after «Local instructions» recommended this skill past 100 lines; curate lists the existing entries beside the new candidates, so no entry, the user's hand-written ones included, leaves the file without the user's answer.
+**Modes.** Each file is created or curated on its own. *Create* when no `HIVE.local.md` exists where «Local instructions» places it. *Curate* when it exists and the user asks to rebuild, review or prune it, or after «Local instructions» recommended this skill past 100 lines; curate lists the existing entries beside the new candidates, so no entry, the user's hand-written ones included, leaves the file without the user's answer.
 
-Work only in the current project, as the global guidance's «Scope and authorization» sets.
+Work only in the current project and the machine file, as «Local instructions» sets.
 
 ## 1. Read what exists
 
@@ -30,17 +30,17 @@ Run, from the main thread:
 python3 -I <this skill>/scripts/extract_candidates.py --root <repository root> [--root <declared workspace root>] --days 30
 ```
 
-It reads the top-level Claude Code and Codex sessions of the last 30 days started in those roots, below or above them, keeps each command that ran in a root (its own directory, moved by any `cd` before it on the line), leaves out subagent sessions and commands started in the background, and prints JSON: `commands` that exited 0 (with the environment variables they set), `missing` commands, `ports`, and `cloud` profiles and regions, each with its session count, the date it was last seen, and `where`: the folder below the root it ran in, `.` for the root itself. Use `where` to choose the repository's or the workspace's file. It prints no command output. It masks every value that could be a secret before printing; never open a transcript to check a candidate, since the transcript holds the values the script masked. `hosts` gives per host the transcripts `read` and the `sessions` with a command in a root, and `not_covered` the hosts it does not read; when a host you used shows zero `read`, read [transcript sources](references/transcript-sources.md); zero `sessions` with transcripts read only means none ran a command in a root.
+It reads the top-level Claude Code and Codex sessions of the last 30 days started in those roots, below or above them, keeps each command that ran in a root (its own directory, moved by any `cd` before it on the line), leaves out subagent sessions and commands started in the background, and prints JSON: `commands` that exited 0 (with the environment variables they set), `missing` commands, `ports`, and `cloud` profiles and regions, each with its session count, the date it was last seen, and `where`: the folder below the root it ran in, `.` for the root itself. Use `where` to choose between the repository's and the workspace's file. It prints no command output. It masks every value that could be a secret before printing; never open a transcript to check a candidate, since the transcript holds the values the script masked. `hosts` gives per host the transcripts `read` and the `sessions` with a command in a root, and `not_covered` the hosts it does not read; when a host you used shows zero `read`, read [transcript sources](references/transcript-sources.md); zero `sessions` with transcripts read only means none ran a command in a root.
 
 ## 3. Classify
 
 Sort every candidate, and in curate mode every existing entry, into one of:
 
-- **machine:** it names something of this machine, account or environment, the test «Local instructions» sets;
-- **every clone:** it holds for any checkout, such as a test command already in the tracked guidance; it goes to step 7's report, never into the file;
-- **discard:** a stack, branch, ticket or path that no longer exists, a duplicate, a fact a later session contradicts, or a command a single session used for one task.
+- **record:** it passes the test «Local instructions» sets. The `missing` candidates, the existing cloud profiles with their regions, and the installed tools go to the machine file; the `commands`, the `ports` and which profile serves an environment of the project go to the file their `where` names;
+- **every clone:** it holds for any checkout, such as a test command already in the tracked guidance; it goes to step 7's report, never into a file;
+- **discard:** a stack, branch, ticket or path that no longer exists, a duplicate, a fact a later session contradicts, a command a single session used for one task, or the result of a diagnosis, a count, or whether a host answered.
 
-Group the machine candidates by subject: starting the stack, isolated stacks, tools and missing commands, cloud and remote access, and other. Recommend keeping a candidate seen in two or more sessions or confirmed by a step 5 check.
+Group the record candidates by file, then by subject: starting the stack, isolated stacks, tools and missing commands, cloud and remote access, and other. Recommend keeping a candidate seen in two or more sessions or confirmed by a step 5 check.
 
 ## 4. Ask what to keep
 
@@ -66,9 +66,9 @@ Confirm each kept fact with one of these read-only checks when one applies, and 
 
 Never run a project command that starts, stops, seeds, migrates, installs, signs in or writes, even one the user kept: it stays as recorded. A fact a check confirms takes today's date. A fact no check covers, or whose check fails while the user keeps it, takes the date it was last seen and the mark `unverified`. This is the one element of «Local instructions» this skill changes: there, an entry needs this session's confirmation.
 
-## 6. Write the file
+## 6. Write the files
 
-Write as «Local instructions» sets. Start the file with one line saying it is per-machine, untracked and kept by agents under «Local instructions». Give each group a heading and each entry one line: the fact, its command when it has one, and its date, followed by `unverified` when marked. In curate mode, keep the user's own wording of an entry they kept.
+Write as «Local instructions» sets: the machine candidates go to the machine file, the project candidates to the repository's or workspace's file. Start the file with one line saying it is per-machine, untracked and kept by agents under «Local instructions». Give each group a heading and each entry one line: the fact, its command when it has one, and its date, followed by `unverified` when marked. In curate mode, keep the user's own wording of an entry they kept.
 
 ## 7. Report
 
