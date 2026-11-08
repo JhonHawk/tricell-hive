@@ -1,6 +1,6 @@
 # Pilot procedure
 
-Read before resuming a CLI behavior pilot or running any behavior test of a host, once the user authorizes it (root `AGENTS.md` «Measurement»). Ordinary non-model tests do not need it.
+Read before resuming a CLI behavior pilot or running any behavior test of a host, once the user authorizes it (root `AGENTS.md` «Measurement»). Ordinary non-model tests do not need it. Record each run's host, model and run directory: root `AGENTS.md` «Measurement» counts a run only on a model of the [support floor](model-floor.md).
 
 For behavior claims, record the host and installed version, resolved model, task, relevant instructions and references read, writes, human intervention, and terminal state. Separate guidance discovery, source reading, and task outcome. Use observable criteria and the least costly useful check. Use blinded human review when asserting subjective quality improvement; label model grading as exploratory. A single run, prompt-size estimate, or cached request does not establish reliability or improvement.
 
