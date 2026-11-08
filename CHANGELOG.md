@@ -13,10 +13,12 @@ raise the minor or the patch version.
 ### Added
 
 - «Local instructions» in the global guidance: agents read an untracked
-  `HIVE.local.md` at the repository or workspace root at session start and
-  record there, dated and without secret values, the machine facts they
-  verify, such as start commands, ports, missing tools and cloud profiles.
-- The `local-instructions` skill creates or prunes `HIVE.local.md` from what
+  `HIVE.local.md` at the repository or workspace root and the machine file
+  `~/.config/hive/HIVE.local.md` at session start, and record there, dated and
+  without secret values, the facts a later session would run or check again:
+  start commands and ports in the project's file, missing tools and cloud
+  profiles in the machine file; never diagnoses, counts or momentary states.
+- The `local-instructions` skill creates or prunes both files from what
   already worked in recent Claude Code and Codex sessions, after asking which
   facts to keep; its extraction script masks every value before printing.
 

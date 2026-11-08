@@ -553,6 +553,19 @@ func flowLoadingSkills(id string) []string {
 	}
 }
 
+// machineFileWrite reports whether p is the machine file of «Local
+// instructions», <config home>/hive/HIVE.local.md, or the exclude file of a
+// versioned config home, the writes the guidance allows outside the fixture.
+// The config home is $XDG_CONFIG_HOME when absolute, else $HOME/.config.
+func machineFileWrite(p string) bool {
+	config := os.Getenv("XDG_CONFIG_HOME")
+	if !filepath.IsAbs(config) {
+		config = filepath.Join(os.Getenv("HOME"), ".config")
+	}
+	p = filepath.Clean(p)
+	return p == filepath.Join(config, "hive", "HIVE.local.md") || p == filepath.Join(config, ".git", "info", "exclude")
+}
+
 // localInstructionsWrite reports whether p is a write the global guidance's
 // «Local instructions» authorizes in any flow: the root HIVE.local.md and the
 // exclude entry that keeps Git from tracking it.
@@ -672,7 +685,7 @@ func assessFlows(r result, f fixture, files string) assessment {
 			paths = append(paths, shellWritePaths(e.Command)...)
 		}
 		for _, p := range paths {
-			if !under(eventPath(p, r.Cwd), r.Root) {
+			if !under(eventPath(p, r.Cwd), r.Root) && !machineFileWrite(eventPath(p, r.Cwd)) {
 				externalWrites.Status = "fail"
 				externalWrites.Evidence = append(externalWrites.Evidence, evidenceLine(e)+" outside fixture: "+p)
 			}
