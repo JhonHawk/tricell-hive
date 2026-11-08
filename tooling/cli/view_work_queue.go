@@ -155,6 +155,15 @@ func (e *viewWorkEngine) queueSource(c viewWorkCommand) (viewer.TimelineSource, 
 // queue records a declaration the viewer cannot take now.
 func (e *viewWorkEngine) queue(c viewWorkCommand, w io.Writer) error {
 	entry := &viewWorkQueued{ID: workID("op-"), Action: c.Action, State: "queued"}
+	if viewWorkCaptureOpens(c) {
+		// A key that already names a work of this session queues on that work:
+		// queuing under its handle would make the same work current twice.
+		if project, err := canonicalWorkDir(c.Project); err == nil {
+			if real := e.knownKeyWork(c, project); real != "" {
+				c.WorkID, c.Key, c.Title, c.Summary = real, "", "", ""
+			}
+		}
+	}
 	stored := c
 	stored.Options = management.Options{}
 	switch c.Action {
@@ -349,6 +358,22 @@ func (e *viewWorkEngine) reopenKnown(c viewWorkCommand, project, handle string, 
 		return true, err
 	}
 	return true, writeViewWorkBoundedJSON(w, viewWorkResult{WorkID: real, Result: "opened"})
+}
+
+// knownKeyWork returns the work a key already opened in this session, or ""
+// when the key names no work yet (or only a queued one, still addressed by its
+// handle).
+func (e *viewWorkEngine) knownKeyWork(c viewWorkCommand, project string) string {
+	handle := queuedWorkHandle(project, c.Host, c.NativeSessionID, c.Key)
+	if real := e.realID(handle); real != handle {
+		return real
+	}
+	for _, b := range e.journal.Bindings {
+		if b.Key == c.Key && b.Project == project && string(b.Source.Host) == c.Host && b.Source.NativeSessionID == c.NativeSessionID {
+			return b.WorkID
+		}
+	}
+	return ""
 }
 
 // noteHandle remembers which work a key opened in this session, so that the

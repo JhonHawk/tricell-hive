@@ -433,4 +433,18 @@ func TestWorkCaptureKeyNamesItsWork(t *testing.T) {
 	if _, err := c.run("", "capture", "--project", c.project, "--view-title", "Login", "--image", a, "--key", "ticket-one", "--work-id", one.WorkID); err == nil || !strings.Contains(err.Error(), "conflict") {
 		t.Fatalf("key with work-id: %v", err)
 	}
+	// Offline, the key of an opened work queues on that work, not on a second handle.
+	c.f.mustView("stop")
+	q := decodeQueued(t, c.must("", "capture", "--project", c.project, "--view-title", "Login", "--image", c.shot("b.png", color.RGBA{G: 90, A: 255}), "--key", "ticket-one"))
+	if q.WorkID != one.WorkID || len(c.workIDs()) != 2 {
+		t.Fatalf("queued %+v, current works %v", q, c.workIDs())
+	}
+	c.f.mustView("start")
+	sent := c.capture("Home", "--image", a, "--key", "ticket-one")
+	if sent.Queue == nil || sent.Queue.Sent != 1 || sent.WorkID != one.WorkID || len(c.workIDs()) != 2 {
+		t.Fatalf("sent %+v, current works %v", sent, c.workIDs())
+	}
+	if login := captureViews(c.session(one.WorkID), "Login"); len(login) != 2 || login[1].Title != "Login · #2" {
+		t.Fatalf("login views %+v", login)
+	}
 }
