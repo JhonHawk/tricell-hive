@@ -141,10 +141,10 @@ Sin UI. Correr una calificación con modelos reales queda fuera de este cambio.
 ## Checkpoint
 
 - Updated: 2026-11-08
-- Stage: build · 5
-- Last commit: ce273c25
+- Stage: verify · 1
+- Last commit: 3ec01de7
 - Open findings: none
-- Next: reproduce CI locally, then flow-verify
+- Next: flow-verify: check reuse, AC walk, /code-review
 
 ### Evidence
 
@@ -153,6 +153,7 @@ Sin UI. Correr una calificación con modelos reales queda fuera de este cambio.
 - go test ./tests/pilot/ -count=1: ok @ b2f5a652
 - go test ./tests/pilot/ -count=1: ok @ 36230985
 - go test ./tests/pilot/ ./tests/content/ -count=1: ok @ ce273c25
+- go vet ./... && go test ./... -count=1: ok, 4m21s @ 3ec01de7 (CI has only master-source-branch.yml, a PR-to-master guard)
 
 ## Estado de revisión y progreso
 
