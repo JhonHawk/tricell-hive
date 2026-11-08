@@ -29,6 +29,9 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- Codex's generated `SessionEnd` hook uses its supported 3-second timeout,
+  removing the startup clamping warning on new installs and updates.
+
 - Viewer status labels render a single Badge without a second bordered container.
 
 - Verify reads each check's result from its exit status, keeping it with
