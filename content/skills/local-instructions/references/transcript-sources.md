@@ -1,6 +1,6 @@
 # Transcript sources
 
-Read when `extract_candidates.py` reports zero sessions for a host you used, or when the user asks which hosts the skill covers. The script finds the files itself; this page records where they are and how each host names a project, so a missing host can be explained instead of guessed.
+Read when `extract_candidates.py` reports zero transcripts `read` for a host you used, or when the user asks which hosts the skill covers. The script finds the files itself; this page records where they are and how each host names a project, so a missing host can be explained instead of guessed.
 
 | Host | Files | How the project shows | Covered by the script |
 | --- | --- | --- | --- |

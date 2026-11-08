@@ -23,7 +23,7 @@ from pathlib import Path
 
 NOT_COVERED = ["grok", "pi", "opencode", "cursor", "antigravity"]
 SHELLS = {"sh", "bash", "zsh", "fish", "dash"}
-PREFIXES = {"sudo", "env", "command", "exec", "time", "nohup"}
+PREFIXES = {"sudo", "env", "command", "builtin", "exec", "time", "nohup"}
 RELEVANT = {
     "docker", "docker-compose", "podman", "colima", "npm", "pnpm", "yarn", "bun", "npx", "node", "deno",
     "make", "just", "task", "go", "python", "python3", "uv", "poetry", "pytest", "cargo", "mvn", "gradle",
@@ -49,11 +49,13 @@ KEEP_NEXT = {"--port", "--profile", "--region", "--filter", "--file", "--env-fil
              "--prefix", "--dir", "--cwd", "--workspace", "--tail", "--since", "--context", "--namespace", "--name",
              "--target", "--stage", "--branch", "--base", "--host", "--username", "--db", "--dbname", "--database"}
 NUMERIC = re.compile(r"^\d+(?::\d+)*$")
-ENTROPY = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)[^/]{20,}$")
+ENTROPY = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)[^/]{16,}$")
 
 
 def secret_like(text):
-    return bool(ENTROPY.match(text) or MIXED.match(text))
+    """Key-like: mixed case over 12 characters, or a run of 16+ letters and digits between - . _ separators,
+    so a name such as feature-branch-20261107 stays readable."""
+    return bool(MIXED.match(text) or any(ENTROPY.match(part) for part in re.split(r"[-._]", text)))
 
 
 def safe_path(token):
@@ -181,9 +183,13 @@ def cd_target(args, cwd):
     args = [a for a in args if a == "-" or not a.startswith("-")]
     if not args:
         return os.path.expanduser("~")
-    if args[0] == "-" or cwd is None or any(c in args[0] for c in "$`*?"):
+    target = args[0]
+    if target == "-" or any(c in target for c in "$`*?"):
         return None
-    return os.path.normpath(os.path.join(cwd, os.path.expanduser(args[0])))
+    target = os.path.expanduser(target)
+    if os.path.isabs(target):
+        return os.path.normpath(target)
+    return None if cwd is None else os.path.normpath(os.path.join(cwd, target))
 
 
 def segments(command, cwd=None):
@@ -202,19 +208,29 @@ def segments(command, cwd=None):
     except ValueError:
         return []
     parts, current, stack = [], [], []
-    here = cwd
+    here, target_next = cwd, False
 
     def close():
         nonlocal here
-        if current:
-            if current[0] == "cd":
-                here = cd_target(current[1:], here)
-            else:
-                parts.append((list(current), here))
+        words = [w for w in current if w not in ("{", "}")]
+        head = next((w for w in words if w not in PREFIXES and not ASSIGN.match(w)), None)
+        if head in ("cd", "pushd"):
+            here = cd_target(words[words.index(head) + 1:], here)
+        elif head == "popd":
+            here = None
+        elif words:
+            parts.append((words, here))
         current.clear()
 
     for token in tokens:
-        if token and set(token) <= set("&|;()<>"):
+        if target_next:
+            target_next = False  # a redirection's file is not a command
+            continue
+        if token and set(token) <= set("&|;()<>") and ("<" in token or ">" in token):
+            if current and current[-1].isdigit() and len(current[-1]) == 1:
+                current.pop()  # the file descriptor of 2>&1
+            target_next = True
+        elif token and set(token) <= set("&|;()"):
             close()
             for char in token:
                 if char == "(":
@@ -273,10 +289,11 @@ class Collector:
         if extra:
             entry.setdefault("env", set()).update(extra)
 
-    def worked(self, command, session, date, cwd):
-        """Count each segment where it ran: the command's directory, moved by any cd before it."""
+    def worked(self, command, session, date, cwd, missing=()):
+        """Count each segment where it ran: the command's directory, moved by any cd before it.
+        A segment whose program the output reports missing did not run."""
         for seg in segments(command, cwd):
-            if not in_roots(seg["cwd"], self.roots):
+            if not in_roots(seg["cwd"], self.roots) or os.path.basename(seg["tokens"][0]) in missing:
                 continue
             self.touched.add(session)
             place = where(seg["cwd"], self.roots)
@@ -316,7 +333,7 @@ class Collector:
             return
         names = missing_programs(output)
         if not names and code == 127:
-            names = {os.path.basename(segs[-1]["tokens"][0])}
+            names = {os.path.basename(segs[0]["tokens"][0])}
         for name in names:
             # The segment that ran the missing program, else the last one, says where it ran.
             seg = next((s for s in segs if os.path.basename(s["tokens"][0]) == name), None)
@@ -364,7 +381,9 @@ def where(cwd, roots):
     """The first folder below the matching root, or "." for the root itself and hidden worktree folders."""
     root = max((r for r in roots if cwd == r or cwd.startswith(r + "/")), key=len)
     first = os.path.relpath(cwd, root).split(os.sep)[0]
-    return "." if first.startswith(".") else first
+    if first.startswith("."):
+        return "."
+    return REDACTED if secret_like(first) else first
 
 
 def day(stamp, path):
@@ -436,9 +455,11 @@ def scan_claude(home, roots, cutoff, collector, stats):
                         if item.get("is_error"):
                             collector.failed(command, text_of(item.get("content")), None, session, date, cwd)
                         elif not background:  # a background command reports success when it starts
-                            collector.worked(command, session, date, cwd)
-                            collector.failed(command, text_of(item.get("content")), None, session, date, cwd,
-                                             invoked_only=True)
+                            output = text_of(item.get("content"))
+                            missing = missing_programs(output)
+                            collector.worked(command, session, date, cwd, missing)
+                            if missing:
+                                collector.failed(command, output, None, session, date, cwd, invoked_only=True)
 
 
 def scan_codex(home, roots, cutoff, collector, stats):
@@ -474,9 +495,11 @@ def scan_codex(home, roots, cutoff, collector, stats):
             code = item.get("exit_code")
             cwd = as_path(item.get("cwd")) or as_path(meta.get("cwd"))
             if code == 0:
-                collector.worked(command, session, date, cwd)
-                collector.failed(command, item.get("aggregated_output", ""), None, session, date, cwd,
-                                 invoked_only=True)
+                output = item.get("aggregated_output", "")
+                missing = missing_programs(output)
+                collector.worked(command, session, date, cwd, missing)
+                if missing:
+                    collector.failed(command, output, None, session, date, cwd, invoked_only=True)
             elif code == 127:
                 collector.failed(command, item.get("aggregated_output", ""), code, session, date, cwd)
 
