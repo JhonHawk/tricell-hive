@@ -89,6 +89,28 @@ class TasksScriptTest(unittest.TestCase):
             self.assertEqual(self.text(change), first)
             self.assertEqual(first.count("T2 · abc1234"), 1)
 
+    def test_done_without_a_commit_under_hold(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            empty = TASKS_MD.replace("2026-11-08 — Plan written.\n", "")
+            change = self.folder(tmp, tasks=empty)
+            result = self.run_tasks(change, "done", "T2", "--commit", "none", "--unverified", "none")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            text = self.text(change)
+            self.assertRegex(text, r"## Review status and progress\n\n\d{4}-\d{2}-\d{2} — T2 · uncommitted · unverified: none\n$",
+                             "an empty section keeps the blank line under its heading")
+
+    def test_a_failed_write_prints_no_progress_line(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            change = self.folder(tmp)
+            change.chmod(0o500)  # the temporary file next to tasks.md cannot be created
+            try:
+                result = self.run_tasks(change, "done", "T2", "--commit", "abc1234", "--unverified", "none")
+            finally:
+                change.chmod(0o700)
+            self.assertEqual(result.returncode, 2)
+            self.assertEqual(result.stdout, "")
+            self.assertEqual(self.text(change), TASKS_MD)
+
     def test_done_exits_2_for_a_missing_task_or_progress_section(self):
         with tempfile.TemporaryDirectory() as tmp:
             change = self.folder(tmp)

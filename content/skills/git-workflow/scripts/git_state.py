@@ -255,7 +255,7 @@ class State:
         self.host, owner, name = slug
         repo = f"repos/{owner}/{name}"
         try:
-            if self.args.pr:
+            if self.args.pr is not None:
                 data = self.gh_api(f"{repo}/pulls/{self.args.pr}")
             else:
                 if not git["branch"]:
@@ -301,9 +301,9 @@ class State:
         for page in self.gh_api(f"{repo}/commits/{head}/check-runs?per_page=100", paginate=True):
             runs += [{"name": r.get("name"), "status": r.get("status"), "conclusion": r.get("conclusion")}
                      for r in page.get("check_runs", [])]
-        status = self.gh_api(f"{repo}/commits/{head}/status")
-        runs += [{"name": s.get("context"), "status": "completed" if s.get("state") != "pending" else "pending",
-                  "conclusion": s.get("state")} for s in status.get("statuses", [])]
+        for page in self.gh_api(f"{repo}/commits/{head}/status?per_page=100", paginate=True):
+            runs += [{"name": s.get("context"), "status": "completed" if s.get("state") != "pending" else "pending",
+                      "conclusion": s.get("state")} for s in page.get("statuses", [])]
         return runs
 
     def collect(self, read):
@@ -371,7 +371,7 @@ def main(argv=None):
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--pr", type=int, help="pull request number (default: the branch's open one)")
     group.add_argument("--no-pr", action="store_true", help="skip the pull-request read")
-    parser.add_argument("--since", help="push time, ISO-8601, for after_since")
+    parser.add_argument("--since", help="push time, ISO-8601 with a time zone, for after_since")
     parser.add_argument("--timeout", type=float, help="cap every command at this many seconds")
     try:
         args = parser.parse_args(argv)
@@ -380,14 +380,22 @@ def main(argv=None):
     if not valid_name(args.base) or not valid_name(args.remote):
         print("git_state.py: --base and --remote must be plain names", file=sys.stderr)
         return 2
+    if args.pr is not None and args.pr <= 0:
+        print("git_state.py: --pr must be a positive number", file=sys.stderr)
+        return 2
     if args.timeout is not None and args.timeout <= 0:
         print("git_state.py: --timeout must be positive", file=sys.stderr)
         return 2
     try:
-        args.since = parse_time(args.since) if args.since else None
+        since = datetime.fromisoformat(args.since.replace("Z", "+00:00")) if args.since else None
     except ValueError:
         print(f"git_state.py: --since is not ISO-8601: {args.since}", file=sys.stderr)
         return 2
+    if since is not None and since.tzinfo is None:
+        # A local push time read as UTC would shift after_since by the offset.
+        print("git_state.py: --since needs a time zone, such as Z or -06:00", file=sys.stderr)
+        return 2
+    args.since = since
 
     state = State(args)
     state.host = None

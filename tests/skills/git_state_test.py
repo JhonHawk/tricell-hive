@@ -183,7 +183,7 @@ class GitStateTest(unittest.TestCase):
             f"{repo}/pulls/7": {"number": 7, "state": "open", "merged_at": None, "head": {"sha": head}},
             f"{repo}/commits/{head}/check-runs?per_page=100": {"check_runs": [
                 {"name": "unit", "status": "completed", "conclusion": "success"}]},
-            f"{repo}/commits/{head}/status": {"statuses": [{"context": "legacy", "state": "pending"}]},
+            f"{repo}/commits/{head}/status?per_page=100": {"statuses": [{"context": "legacy", "state": "pending"}]},
             f"{repo}/pulls/7/reviews?per_page=100": [
                 {"id": 1, "user": bot, "commit_id": OLD, "state": "COMMENTED", "submitted_at": "2026-11-08T08:00:00Z"},
                 {"id": 2, "user": bot, "commit_id": head, "state": "COMMENTED", "submitted_at": "2026-11-08T10:00:00Z"}],
@@ -223,7 +223,7 @@ class GitStateTest(unittest.TestCase):
         env = self.fake_gh({
             f"{repo}/pulls?state=open&head=acme%3Amain": [{"number": 3, "state": "open", "head": {"sha": head}}],
             f"{repo}/commits/{head}/check-runs?per_page=100": {"check_runs": []},
-            f"{repo}/commits/{head}/status": {"statuses": []},
+            f"{repo}/commits/{head}/status?per_page=100": {"statuses": []},
             f"{repo}/pulls/3/reviews?per_page=100": [],
             f"{repo}/pulls/3/comments?per_page=100": [],
             f"{repo}/issues/3/comments?per_page=100": [{"id": 1, "user": {"login": "x", "type": "User"},
@@ -278,6 +278,11 @@ class GitStateTest(unittest.TestCase):
         code, _, _, _ = run(self.r.work, "--base", "--upload-pack=x", env=self.r.env)
         self.assertEqual(code, 2)
         code, _, _, _ = run(self.r.work, "--base", "main", "--since", "yesterday", env=self.r.env)
+        self.assertEqual(code, 2)
+        code, _, _, stderr = run(self.r.work, "--base", "main", "--since", "2026-11-08T10:00:00", env=self.r.env)
+        self.assertEqual(code, 2, "a push time without a zone would shift after_since")
+        self.assertIn("time zone", stderr)
+        code, _, _, _ = run(self.r.work, "--base", "main", "--pr", "0", env=self.r.env)
         self.assertEqual(code, 2)
         code, _, _, _ = run(Path(self.tmpdir.name) / "bin", "--base", "main", "--no-pr", env=self.r.env)
         self.assertEqual(code, 2)

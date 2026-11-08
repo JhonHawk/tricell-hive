@@ -3,8 +3,8 @@
 
 Usage:
   python3 -I tasks.py <change-folder> status
-  python3 -I tasks.py <change-folder> done T<n> --commit <sha> --unverified "<text>|none"
-  python3 -I tasks.py <change-folder> checkpoint --stage <stage> --step <step> --commit <sha>
+  python3 -I tasks.py <change-folder> done T<n> --commit <sha>|none --unverified "<text>|none"
+  python3 -I tasks.py <change-folder> checkpoint --stage <stage> --step <step> --commit <sha>|none
           --next "<action>" [--finding "<ID: decision>"]... [--check "<command> · <result> · <commit>"]...
 
 A task is a `### T<n> — <title>` heading; its boxes are the `- [ ]` and `- [x]`
@@ -53,8 +53,10 @@ def single_line(value):
 
 
 def sha(value):
+    if value == "none":
+        return "uncommitted"  # a delivery that makes no commits, such as hold
     if not SHA.match(value):
-        raise argparse.ArgumentTypeError("must be a 7 to 40 character hex commit id")
+        raise argparse.ArgumentTypeError("must be a 7 to 40 character hex commit id, or none")
     return value
 
 
@@ -159,10 +161,12 @@ def cmd_done(lines, args):
         last = end
         while last > start + 1 and not lines[last - 1].strip():
             last -= 1
+        if last == start + 1:  # an empty section keeps a blank line under its heading
+            lines.insert(last, "")
+            last += 1
         lines.insert(last, f"{today()} — {args.task} · {args.commit} · unverified: {args.unverified}")
     done = sum(1 for t in parse_tasks(lines) if complete(lines, t))
-    print(f"✓ {task['id']} · {done}/{len(tasks)} · {task['title']}")
-    return lines
+    return lines, f"✓ {task['id']} · {done}/{len(tasks)} · {task['title']}"
 
 
 def cmd_checkpoint(lines, args):
@@ -207,8 +211,7 @@ def cmd_checkpoint(lines, args):
             while lines and not lines[-1].strip():
                 lines.pop()
             lines.extend([""] + block)
-    print(f"checkpoint written · {args.stage} · {args.step} · {len(kept)} evidence line(s)")
-    return lines
+    return lines, f"checkpoint written · {args.stage} · {args.step} · {len(kept)} evidence line(s)"
 
 
 def build_parser():
@@ -240,7 +243,9 @@ def main(argv):
         handler = {"status": cmd_status, "done": cmd_done, "checkpoint": cmd_checkpoint}[args.command]
         result = handler(lines, args)
         if result is not None:
-            write(path, result)
+            new_lines, message = result
+            write(path, new_lines)
+            print(message)  # only once tasks.md holds the change
     except Failure as error:
         print(f"tasks: {error}", file=sys.stderr)
         return 2
