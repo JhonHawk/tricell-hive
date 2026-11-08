@@ -44,9 +44,10 @@ verified.
 - While a card is open it covers the screen (an open Claude Code issue), so each
   card carries the context needed to answer on its own.
 - A session isolated in a worktree has its `Edit` and `Write` of the main
-  checkout refused, and so is a shell command that runs Git in a form the
-  check cannot verify, such as inside `$(…)` (observed in 2.1.319). Its
-  documentation says to change such a file by editing it yourself or starting a
+  checkout refused, and so are compound shell commands such as Git inside
+  `$(…)`, with an error that says it cannot verify they stay in the worktree
+  (observed in 2.1.319; the same steps run as separate plain commands
+  passed). Its documentation says to change such a file by editing it yourself or starting a
   session there, and that its isolation checks do not track files a plain shell
   command writes, which stay under your permission and sandboxing settings.
   Hive uses that known gap only to add new entries to the main checkout's

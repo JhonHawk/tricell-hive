@@ -114,4 +114,22 @@ Recorrido de los criterios, desde el worktree aislado:
 - Sobre un archivo de prueba del checkout principal: el append con `>>` funciona, `sed -i.bak '2s/.*/…/'` cambia una sola línea (lo confirma `diff`), y el modo `600` se conserva.
 - Nota: Claude Code rechaza `$(git rev-parse …)` dentro de un comando compuesto; corrido como comando aparte, funciona.
 
-Revisión: `/code-review` en curso. Siguiente acción: decidir sus hallazgos; luego push, PR, merge y `flow-close`.
+Primera `/code-review` (`development...1e39c910`): H34–H42.
+- Arreglados en `554bd12d`: H34, H36, H39, H40 y H42.
+- Resueltos por D9 A (solo agregar): H35, H37 y H38.
+- H41 ya estaba decidido en D8 A.
+
+Segunda `/code-review`, limitada a los arreglos (`1e39c910...554bd12d`): H44–H51.
+- Arreglados con una línea `Unreviewed:` en el commit:
+  - H44: las filas de `ACCOUNTS.md` solo se agregan; los cambios van al informe.
+  - H45: no se cambia ni se borra nada; el informe sustituye a la marca stale y al recorte por el tope.
+  - H46: un repositorio bare se pregunta.
+  - H48: un script nuevo solo se escribe si su ruta no existe.
+  - H49: el salto de línea se comprueba solo si el archivo existe y no está vacío.
+  - H50: se etiqueta la observación en `host-limits.md`.
+- Pasan a los hallazgos del cierre:
+  - H47: «Secrets» todavía escribe `$(git rev-parse …)`; Claude Code lo rechaza y su error indica separar los comandos.
+  - H51: `getting-started.md` resume el comportamiento.
+  - H43: Claude Code también rechaza comandos compuestos que no usan Git (observado en esta sesión); su error indica separarlos.
+
+La segunda revisión no cubre lo que la primera no vio. Siguiente acción: suite, push, PR, merge y `flow-close`.
