@@ -124,6 +124,10 @@ func workInput(field string) error {
 }
 
 func runViewWork(args []string, w io.Writer, stdin io.Reader) error {
+	if len(args) > 1 && args[0] == "capture" && (args[len(args)-1] == "--help" || args[len(args)-1] == "-h") {
+		_, err := io.WriteString(w, viewWorkCaptureHelp)
+		return err
+	}
 	if len(args) == 0 || len(args) == 1 && args[0] == "help" || len(args) > 0 && (args[len(args)-1] == "--help" || args[len(args)-1] == "-h") {
 		_, err := io.WriteString(w, viewWorkContract)
 		return err
@@ -168,6 +172,7 @@ func parseViewWorkCommand(args []string, stdin io.Reader) (viewWorkCommand, erro
 	allowed := map[string]string{
 		"open":           "project change work-id key title summary",
 		"sync":           "work-id stage state reason summary previous-stage tasks close",
+		"capture":        "work-id project stage key title summary view-title image candidate branch base viewport theme",
 		"evidence":       "work-id stage reason view-title image step expected candidate supersedes viewport theme branch base",
 		"publish":        "project change work-id key title summary stage reason document-key status document explicit-documents",
 		"list":           "project include-archived limit cursor",
@@ -367,6 +372,8 @@ func validateViewWorkCommand(c *viewWorkCommand, seen map[string]bool) error {
 		return workInput("invalid work-id")
 	}
 	switch c.Action {
+	case "capture":
+		// Resolved below with the rest of the capture: the work may not exist yet.
 	case "open", "publish":
 		if c.Action == "publish" || c.WorkID != "" {
 			if err := required(c.Change); err != nil {
@@ -447,6 +454,8 @@ func validateViewWorkCommand(c *viewWorkCommand, seen map[string]bool) error {
 		if c.CloseOutcome != "" && c.CloseOutcome != "completed" && c.CloseOutcome != "abandoned" {
 			return workInput("close outcome must be completed or abandoned")
 		}
+	case "capture":
+		return validateViewWorkCapture(c)
 	case "evidence":
 		if err := required(c.Stage, c.ViewTitle); err != nil {
 			return err

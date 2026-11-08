@@ -96,7 +96,7 @@ func runViewTimeline(args []string, w io.Writer, stdin io.Reader) error {
 		return err
 	}
 	if command.operation == "session_delete" {
-		return errors.New("session deletion is a local-viewer action, not a native producer one: use `hive view work delete --work-id ID --confirm ID` or the authenticated browser confirmation; it is a critical effect the user is asked about every time (viewer publication guidance «Shared work and authority»)")
+		return errors.New("session deletion is a local-viewer action, not a native producer one: use `hive view work delete --work-id ID --confirm ID` or the authenticated browser confirmation; it is a critical effect the user is asked about every time (viewer publication guidance «Manage a work»)")
 	}
 	fs := flag.NewFlagSet("view timeline", flag.ContinueOnError)
 	fs.SetOutput(io.Discard)

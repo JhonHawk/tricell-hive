@@ -310,7 +310,10 @@ func resolveViewWorkContext(c *viewWorkCommand) error {
 			return workInput("native identity unresolved: pass --host and --native-session-id")
 		}
 	}
-	if c.WorkID == "" && c.Host != "" && c.NativeSessionID != "" && viewWorkActionNeedsWork(c.Action) && !hostReconcile(*c) {
+	// A capture acts on the session's one open work and opens one when it has
+	// none, so it reads the current works but never reports their absence.
+	capture := c.Action == "capture"
+	if c.WorkID == "" && c.Host != "" && c.NativeSessionID != "" && (viewWorkActionNeedsWork(c.Action) || capture) && !hostReconcile(*c) {
 		dir, err := stateDir()
 		if err != nil {
 			return err
@@ -321,7 +324,9 @@ func resolveViewWorkContext(c *viewWorkCommand) error {
 		}
 		switch len(ids) {
 		case 0:
-			return workInput("work-id required: this session has no open work")
+			if !capture {
+				return workInput("work-id required: this session has no open work")
+			}
 		case 1:
 			c.WorkID = ids[0]
 		default:
