@@ -59,7 +59,7 @@ func decodeCapture(t *testing.T, out string) viewWorkCaptureResult {
 
 // captureViews lists the views of a work whose title starts with the base, in
 // the order they were published.
-type publishedView struct{ Title, ViewID, Supersedes, CandidateID string }
+type publishedView struct{ Title, ViewID, EventID, Supersedes, SupersedesEvent, CandidateID string }
 
 func captureViews(s viewer.TimelineSession, base string) []publishedView {
 	var views []publishedView
@@ -69,9 +69,10 @@ func captureViews(s viewer.TimelineSession, base string) []publishedView {
 		}
 		for _, v := range event.Views {
 			if strings.HasPrefix(v.Title, base) {
-				pv := publishedView{Title: v.Title, ViewID: v.ViewID, CandidateID: event.CandidateID}
+				pv := publishedView{Title: v.Title, ViewID: v.ViewID, EventID: event.EventID, CandidateID: event.CandidateID}
 				if v.Supersedes != nil {
 					pv.Supersedes = v.Supersedes.ViewID
+					pv.SupersedesEvent = v.Supersedes.EventID
 				}
 				views = append(views, pv)
 			}
@@ -131,7 +132,7 @@ func TestWorkCaptureNumbersIterationsAndSupersedes(t *testing.T) {
 	}
 	s := c.session(first.WorkID)
 	login := captureViews(s, "Login")
-	if len(login) != 2 || login[0].Title != "Login · #1" || login[1].Title != "Login · #2" || login[1].Supersedes != login[0].ViewID || login[0].Supersedes != "" {
+	if len(login) != 2 || login[0].Title != "Login · #1" || login[1].Title != "Login · #2" || login[1].SupersedesEvent != login[0].EventID || login[0].Supersedes != "" {
 		t.Fatalf("login views %+v", login)
 	}
 	if p := captureViews(s, "Profile"); len(p) != 1 || p[0].Title != "Profile · #1" || p[0].Supersedes != "" {
@@ -172,7 +173,7 @@ func TestWorkCaptureQueuedWhileTheViewerIsStopped(t *testing.T) {
 	}
 	s := c.session(profile.WorkID)
 	login := captureViews(s, "Login")
-	if len(login) != 2 || login[0].Title != "Login · #1" || login[1].Title != "Login · #2" || login[1].Supersedes != login[0].ViewID {
+	if len(login) != 2 || login[0].Title != "Login · #1" || login[1].Title != "Login · #2" || login[1].SupersedesEvent != login[0].EventID {
 		t.Fatalf("login views %+v", login)
 	}
 	if stageEvents(s, "verify") != 1 || s.WorkKey == nil || *s.WorkKey != "offline-captures" {
@@ -281,7 +282,7 @@ func TestWorkCaptureRepeatIsUnchangedUntilTheCommitMoves(t *testing.T) {
 	}
 	s := c.session(first.WorkID)
 	login := captureViews(s, "Login")
-	if len(login) != 3 || login[2].Title != "Login · #3" || login[2].Supersedes != login[1].ViewID || len(s.Candidates) != 2 || login[2].CandidateID == login[1].CandidateID {
+	if len(login) != 3 || login[2].Title != "Login · #3" || login[2].SupersedesEvent != login[1].EventID || len(s.Candidates) != 2 || login[2].CandidateID == login[1].CandidateID {
 		t.Fatalf("views %+v candidates %+v", login, s.Candidates)
 	}
 }
@@ -371,7 +372,7 @@ func TestWorkCaptureChainsAcrossStagesAndQueuesForAnOpenWork(t *testing.T) {
 		t.Fatalf("last %+v", last)
 	}
 	forms := captureViews(c.session(build.WorkID), "Form")
-	if len(forms) != 4 || forms[1].Supersedes != forms[0].ViewID || forms[2].Title != "Form · #3" || forms[3].Supersedes != forms[2].ViewID {
+	if len(forms) != 4 || forms[1].SupersedesEvent != forms[0].EventID || forms[2].Title != "Form · #3" || forms[3].SupersedesEvent != forms[2].EventID {
 		t.Fatalf("views %+v", forms)
 	}
 }

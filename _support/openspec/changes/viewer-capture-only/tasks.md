@@ -123,7 +123,18 @@ Sin recorrido de interfaz: la interfaz no cambia (D3 A).
 
 ## Checkpoint
 
-Updated: 2026-11-08 · Stage: plan · Last commit: `7ae26b0e` (base) · Open findings: none · Next: aplicar la revisión del plan y la ronda de entrega.
+- Updated: 2026-11-08
+- Stage: build · 5
+- Last commit: d878426e
+- Open findings: none
+- Next: hive-verify-task de T1, luego flow-verify
+
+### Evidence
+
+- go test ./... -count=1|pass|26e9e671
+- go test ./tests/content/... -count=1|pass|e9a17e4c
+- pnpm build (site/)|pass, 17 páginas|de3ea595
+- CI: master-source-branch.yml solo aplica a PR hacia master|n/a|d878426e
 
 ## Review status and progress
 
