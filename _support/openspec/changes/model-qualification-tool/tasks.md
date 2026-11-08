@@ -58,7 +58,7 @@ Base: `development` en `7ae26b0e`; rama `feat/model-qualification-tool` en un wo
 
 ### T2 — Puntuador y veredicto
 
-- [ ] `qualify score` agrega intentos utilizables (D21), calcula la estadística de D18, MISS de D19 y la lectura de la skill, y emite el veredicto o se niega con código 1.
+- [x] `qualify score` agrega intentos utilizables (D21), calcula la estadística de D18, MISS de D19 y la lectura de la skill, y emite el veredicto o se niega con código 1.
 
 **Closes:** AC43, AC44, AC57
 
@@ -142,15 +142,16 @@ Sin UI. Correr una calificación con modelos reales queda fuera de este cambio.
 
 - Updated: 2026-11-08
 - Stage: build · 2
-- Last commit: b2f5a652
+- Last commit: 36230985
 - Open findings: none
-- Next: T2 via hive-build-backend child
+- Next: T3 via hive-build-backend child
 
 ### Evidence
 
 - go test ./tests/pilot/ -run QualifySuite: ok @ 1265c17a
 - go test ./tests/pilot/ -count=1: ok 44s @ 1c2e67f5
 - go test ./tests/pilot/ -count=1: ok @ b2f5a652
+- go test ./tests/pilot/ -count=1: ok @ 36230985
 
 ## Estado de revisión y progreso
 
@@ -162,3 +163,4 @@ Sin UI. Correr una calificación con modelos reales queda fuera de este cambio.
 2026-11-08 — T4 · 1265c17a · unverified: none
 2026-11-08 — T1 · 1c2e67f5 · unverified: guidanceHash symlink-vs-skill test exercises whichever record kind the Codex install yields
 2026-11-08 — T6 · b2f5a652 · unverified: no red step recorded before the fix; the 10 s export cap itself is not exercised
+2026-11-08 — T2 · 36230985 · unverified: red step not recorded before implementation
