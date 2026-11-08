@@ -7,7 +7,7 @@ description: Audit coding-agent instruction files (AGENTS.md and CLAUDE.md at wo
 
 Audit what coding-agent hosts actually load and whether each instruction, skill, or agent earns its place. Report findings with evidence, ask the decisions they need, and, after the user's answer, apply the accepted outcomes in the current project as [apply](references/apply.md) sets.
 
-A role launched read-only, such as `hive-review-harness`, or a delegated auditor edits nothing: it returns findings, decisions and any migration manifest to its parent, which asks and applies. In the main thread, write only what [apply](references/apply.md) allows after the user's answer, the `HIVE.local.md` entries the global guidance's «Local instructions» authorizes, plus an approved migration manifest, whose mechanical entries run through the `workspace-conventions` procedure for applying a layout migration, stopping at `manual` and `ask` entries. Do not edit configuration outside the project or trackers.
+A role launched read-only, such as `hive-review-harness`, or a delegated auditor edits nothing: it returns findings, decisions and any migration manifest to its parent, which asks and applies. In the main thread, write only what [apply](references/apply.md) allows after the user's answer, the entries of the project's `HIVE.local.md` and of the machine file that the global guidance's «Local instructions» authorizes, plus an approved migration manifest, whose mechanical entries run through the `workspace-conventions` procedure for applying a layout migration, stopping at `manual` and `ask` entries. Do not edit configuration outside the project or trackers; the machine file of «Local instructions» is not configuration.
 
 ## Scope
 
