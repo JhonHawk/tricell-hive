@@ -22,7 +22,7 @@ Base: `development` en `7ae26b0e`; rama `feat/model-qualification-tool` en un wo
 
 ### T1 — Brazos `deployed`, A y `none` en la suite `qualification`
 
-- [ ] El runner corre una tarea de `suite.json` con `--suite qualification` y los tres brazos según AC40, con fixtures en `os.TempDir()`, y registra en `run.json` lo que pide AC56.
+- [x] El runner corre una tarea de `suite.json` con `--suite qualification` y los tres brazos según AC40, con fixtures en `os.TempDir()`, y registra en `run.json` lo que pide AC56.
 
 **Closes:** AC40, AC56
 
@@ -142,13 +142,14 @@ Sin UI. Correr una calificación con modelos reales queda fuera de este cambio.
 
 - Updated: 2026-11-08
 - Stage: build · 2
-- Last commit: 1265c17a
+- Last commit: 1c2e67f5
 - Open findings: none
-- Next: T1 via hive-build-backend child
+- Next: T6 via hive-build-backend child
 
 ### Evidence
 
 - go test ./tests/pilot/ -run QualifySuite: ok @ 1265c17a
+- go test ./tests/pilot/ -count=1: ok 44s @ 1c2e67f5
 
 ## Estado de revisión y progreso
 
@@ -158,3 +159,4 @@ Sin UI. Correr una calificación con modelos reales queda fuera de este cambio.
 - 2026-11-08 — revisión 3: D21 A (intentos no utilizables se relanzan) y H31–H39; T2, T3, T6 y T7 ajustadas; ninguna tarea hecha.
 - 2026-11-08 — revisión 4: D22 A, hallazgos H40–H45 de la tercera revisión aplicados sin cuarta revisión; AC48, AC53, AC54 y AC55 retirados y reemplazados por AC56–AC59; ninguna tarea hecha.
 2026-11-08 — T4 · 1265c17a · unverified: none
+2026-11-08 — T1 · 1c2e67f5 · unverified: guidanceHash symlink-vs-skill test exercises whichever record kind the Codex install yields
