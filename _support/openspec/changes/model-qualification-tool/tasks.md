@@ -141,10 +141,10 @@ Sin UI. Correr una calificación con modelos reales queda fuera de este cambio.
 ## Checkpoint
 
 - Updated: 2026-11-08
-- Stage: verify · 1
-- Last commit: 3ec01de7
-- Open findings: none
-- Next: flow-verify: check reuse, AC walk, /code-review
+- Stage: verify · 5
+- Last commit: 0a899e4f
+- Open findings: H48 compare_none tasks pass on inaction: close finding P2; H53 duplicate Markdown table parser: close finding P3; H54 suite read twice per launch: close finding P3; H56 batch.json without split read as held-back: P3, no legacy batches; H60 link/.. output path resolved lexically by target.Canonical: close finding P3; H62 signal forwarding may send SIGINT then SIGTERM: close finding P3
+- Next: push, PR to development, merge (automatic), then flow-close
 
 ### Evidence
 
@@ -154,6 +154,7 @@ Sin UI. Correr una calificación con modelos reales queda fuera de este cambio.
 - go test ./tests/pilot/ -count=1: ok @ 36230985
 - go test ./tests/pilot/ ./tests/content/ -count=1: ok @ ce273c25
 - go vet ./... && go test ./... -count=1: ok, 4m21s @ 3ec01de7 (CI has only master-source-branch.yml, a PR-to-master guard)
+- go test ./tests/pilot/ ./tests/content/ -count=1: ok @ 0a899e4f
 
 ## Estado de revisión y progreso
 
