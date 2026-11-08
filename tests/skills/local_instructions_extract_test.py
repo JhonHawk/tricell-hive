@@ -41,7 +41,7 @@ def codex_session(cwd, commands, source="cli"):
     for i, (argv, code, output) in enumerate(commands):
         lines.append({"timestamp": "2026-11-06T09:00:05Z", "type": "event_msg",
                       "payload": {"type": "item_completed", "item": {"type": "CommandExecution", "id": f"c{i}",
-                                  "command": argv, "cwd": cwd, "exit_code": code, "aggregated_output": output}}})
+                                  "command": argv, "cwd": "file://" + cwd, "exit_code": code, "aggregated_output": output}}})
     return "\n".join(json.dumps(line) for line in lines) + "\n"
 
 
@@ -115,6 +115,8 @@ class ExtractCandidatesTest(unittest.TestCase):
             (["/bin/zsh", "-lc", "mysql --password=pa55word! -h 127.0.0.1 shop -e 'select 1'"], 0, ""),
             (["/bin/zsh", "-lc", "actionlint .github/workflows/ci.yml"], 127, "zsh: command not found: actionlint"),
             (["/bin/zsh", "-lc", "docker compose up -d db"], 0, "started"),
+            (["/bin/zsh", "-lc", "cd sub && subtool --check"], 127, "unmatched output"),
+            (["/bin/zsh", "-lc", "redirtool --check 2>&1"], 127, "unmatched output"),
         ]))
         (day / "rollout-2026-11-06T09-30-00-cx2.jsonl").write_text(codex_session("/elsewhere", [
             (["/bin/zsh", "-lc", "make elsewhere-only"], 0, ""),
@@ -127,6 +129,37 @@ class ExtractCandidatesTest(unittest.TestCase):
         api = projects / "-work-api"
         api.mkdir()
         (api / "s6.jsonl").write_text(claude_session("/work/api", "s6", [("pnpm start", False, "listening")]))
+        # A session in shop that moves to the sibling repository: its command belongs to api, not shop.
+        (main / "s7.jsonl").write_text(claude_session(self.root, "s7", [
+            ("cd /work/api && make api-after-cd", False, ""),
+            ("cd /work/api && apionlytool", True, "bash: line 1: apionlytool: command not found"),
+        ]))
+        # cd forms: a key-like folder name, a quoted path, cd -, cd -P and a subshell.
+        (main / "s9.jsonl").write_text(claude_session(self.root, "s9", [
+            ("cd feature-branch-20261107 && make in-branch-folder", False, ""),
+            ('cd "/work/shop/My App" && make in-spaced-folder', False, ""),
+            ("cd - && make after-cd-dash", False, ""),
+            ("cd $WORKDIR && make after-cd-var", False, ""),
+            ("pipetool 5 pnpm test 2>&1 | tail -1", False, "bash: line 1: pipetool: command not found"),
+            ("cat build.log", False, "bash: line 1: notinvoked: command not found"),
+            ("cd ./a1B2c3D4e5F6g7H8i9J0kLmN && make in-key-folder", False, ""),
+            ("pnpm build 2>&1 | tail -1", False, "done"),
+            ("./run.sh > ./out.log", False, ""),
+            ("ghosttool lint 2>&1 | tail -1", False, "bash: line 1: ghosttool: command not found"),
+            ("cd $TMPDIR && cd /work/shop/abs && make after-abs-cd", False, ""),
+            ("command cd cmdsub && make after-command-cd", False, ""),
+            ("pushd pushsub && make after-pushd", False, ""),
+            ("{ cd bracesub; make in-braces; }", False, ""),
+            ("cd -P tools && make after-cd-p", False, ""),
+            ("(cd sub && make in-subshell) && make after-subshell", False, ""),
+        ]))
+        # A session started in the parent folder that works inside shop counts for shop.
+        parent = projects / "-work"
+        parent.mkdir()
+        (parent / "s8.jsonl").write_text(claude_session("/work", "s8", [
+            ("cd shop && make shop-from-parent", False, ""),
+            ("make parent-only", False, ""),
+        ]))
 
     def tearDown(self):
         self.tmp.cleanup()
@@ -161,7 +194,7 @@ class ExtractCandidatesTest(unittest.TestCase):
         self.assertIn("NEXT_PUBLIC_APP_ENV=development", commands["pnpm dev"]["env"])
         self.assertFalse([c for c in commands if c.startswith(("python3 -", "node -e"))])
         missing = {m["program"] for m in out["missing"]}
-        self.assertEqual(missing, {"timeout", "actionlint"})
+        self.assertEqual(missing, {"timeout", "actionlint", "subtool", "pipetool", "redirtool", "ghosttool"})
         self.assertIn(3001, {p["port"] for p in out["ports"]})
         self.assertIn({"profile": "shop-qa", "region": "mx-central-1"},
                       [{"profile": c["profile"], "region": c["region"]} for c in out["cloud"]])
@@ -170,10 +203,52 @@ class ExtractCandidatesTest(unittest.TestCase):
         raw, out = self.run_script()
         for marker in ("subagent-only", "neighbour-only", "too-old", "elsewhere-only", "codex-subagent-only", "dev:watch"):
             self.assertNotIn(marker, raw)
-        self.assertEqual(out["hosts"]["claude-code"]["sessions"], 3)
+        self.assertEqual(out["hosts"]["claude-code"]["sessions"], 5)  # s1 s2 s3 s8 s9; s7 ran nothing in shop
         self.assertEqual(out["hosts"]["codex"]["sessions"], 1)
         self.assertEqual(set(out["not_covered"]), {"grok", "pi", "opencode", "cursor", "antigravity"})
         self.assertNotIn("foo", {m["program"] for m in out["missing"]})
+
+    def test_each_command_counts_where_it_ran(self):
+        raw, out = self.run_script()
+        commands = {c["command"]: c for c in out["commands"]}
+        self.assertNotIn("api-after-cd", raw)
+        self.assertNotIn("parent-only", raw)
+        self.assertEqual(commands["make shop-from-parent"]["where"], ["."])
+        _, workspace = self.run_script("/work")
+        commands = {c["command"]: c for c in workspace["commands"]}
+        self.assertEqual(commands["make api-after-cd"]["where"], ["api"])
+        self.assertEqual(commands["make shop-from-parent"]["where"], ["shop"])
+        self.assertEqual(commands["make parent-only"]["where"], ["."])
+
+    def test_cd_forms_and_missing_programs_follow_the_directory(self):
+        raw, out = self.run_script()
+        commands = {c["command"]: c for c in out["commands"]}
+        self.assertEqual(commands["make in-branch-folder"]["where"], ["feature-branch-20261107"])
+        self.assertEqual(commands["make in-spaced-folder"]["where"], ["My App"])
+        self.assertNotIn("after-cd-dash", raw)
+        self.assertNotIn("after-cd-var", raw)
+        self.assertEqual(commands["make after-cd-p"]["where"], ["tools"])
+        self.assertEqual(commands["make in-subshell"]["where"], ["sub"])
+        self.assertEqual(commands["make after-subshell"]["where"], ["."])
+        missing = {m["program"] for m in out["missing"]}
+        self.assertNotIn("apionlytool", missing)
+        self.assertNotIn("cd", missing)
+        self.assertIn("subtool", missing)
+        self.assertIn("pipetool", missing)
+        self.assertNotIn("notinvoked", missing)
+        self.assertIn("redirtool", missing)
+        self.assertFalse({"1", "null"} & missing)
+        self.assertNotIn("a1B2c3D4e5F6g7H8i9J0kLmN", raw)
+        self.assertIn("pnpm build", commands)
+        self.assertNotIn("pnpm build 2", commands)
+        self.assertIn("./run.sh", commands)
+        self.assertNotIn("./out.log", commands)
+        self.assertIn("ghosttool", missing)
+        self.assertNotIn("ghosttool lint", commands)
+        self.assertEqual(commands["make after-abs-cd"]["where"], ["abs"])
+        self.assertEqual(commands["make after-command-cd"]["where"], ["cmdsub"])
+        self.assertEqual(commands["make after-pushd"]["where"], ["pushsub"])
+        self.assertEqual(commands["make in-braces"]["where"], ["bracesub"])
 
     def test_workspace_root_adds_sibling_repositories_and_says_where(self):
         _, out = self.run_script("/work")

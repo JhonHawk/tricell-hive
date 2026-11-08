@@ -2,8 +2,8 @@
 """List what already worked on this machine for a project, from session transcripts.
 
 Reads the top-level Claude Code and Codex transcripts of the last N days whose
-session ran in a project root or below it, pairs each shell command with its
-result, and prints JSON candidates for HIVE.local.md: commands that exited 0,
+session started in a project root, below it or above it, keeps each shell
+command that ran in a root, pairs it with its result, and prints JSON candidates for HIVE.local.md: commands that exited 0,
 commands found missing, ports, and cloud profiles and regions, each with how
 many sessions show it and when it was last seen. It masks every value that
 could be a secret before printing, reads only, and never runs a transcript
@@ -18,11 +18,12 @@ import re
 import shlex
 import sys
 import time
+import urllib.parse
 from pathlib import Path
 
 NOT_COVERED = ["grok", "pi", "opencode", "cursor", "antigravity"]
 SHELLS = {"sh", "bash", "zsh", "fish", "dash"}
-PREFIXES = {"sudo", "env", "command", "exec", "time", "nohup"}
+PREFIXES = {"sudo", "env", "command", "builtin", "exec", "time", "nohup"}
 RELEVANT = {
     "docker", "docker-compose", "podman", "colima", "npm", "pnpm", "yarn", "bun", "npx", "node", "deno",
     "make", "just", "task", "go", "python", "python3", "uv", "poetry", "pytest", "cargo", "mvn", "gradle",
@@ -48,11 +49,13 @@ KEEP_NEXT = {"--port", "--profile", "--region", "--filter", "--file", "--env-fil
              "--prefix", "--dir", "--cwd", "--workspace", "--tail", "--since", "--context", "--namespace", "--name",
              "--target", "--stage", "--branch", "--base", "--host", "--username", "--db", "--dbname", "--database"}
 NUMERIC = re.compile(r"^\d+(?::\d+)*$")
-ENTROPY = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)[^/]{20,}$")
+ENTROPY = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)[^/]{16,}$")
 
 
 def secret_like(text):
-    return bool(ENTROPY.match(text) or MIXED.match(text))
+    """Key-like: mixed case over 12 characters, or a run of 16+ letters and digits between - . _ separators,
+    so a name such as feature-branch-20261107 stays readable."""
+    return bool(MIXED.match(text) or any(ENTROPY.match(part) for part in re.split(r"[-._]", text)))
 
 
 def safe_path(token):
@@ -168,8 +171,33 @@ def mask_tokens(tokens):
     return out
 
 
-def segments(command):
-    """Split the first line of a shell command into masked simple commands."""
+def as_path(cwd):
+    """Codex records a command's directory as a file:// URL."""
+    if isinstance(cwd, str) and cwd.startswith("file://"):
+        return urllib.parse.unquote(urllib.parse.urlparse(cwd).path)
+    return cwd if isinstance(cwd, str) else ""
+
+
+def cd_target(args, cwd):
+    """The directory a cd moves to, from its raw arguments; None when unknown."""
+    args = [a for a in args if a == "-" or not a.startswith("-")]
+    if not args:
+        return os.path.expanduser("~")
+    target = args[0]
+    if target == "-" or any(c in target for c in "$`*?"):
+        return None
+    target = os.path.expanduser(target)
+    if os.path.isabs(target):
+        return os.path.normpath(target)
+    return None if cwd is None else os.path.normpath(os.path.join(cwd, target))
+
+
+def segments(command, cwd=None):
+    """Split the first line of a shell command into masked simple commands, each with the directory it ran in.
+
+    A cd moves the directory for the segments after it, read from its raw arguments before
+    masking; a cd inside parentheses ends with them.
+    """
     first = command.strip().splitlines()[0] if command.strip() else ""
     if "<<" in first:
         first = first.split("<<", 1)[0]
@@ -179,18 +207,41 @@ def segments(command):
         tokens = list(lexer)
     except ValueError:
         return []
-    parts, current = [], []
+    parts, current, stack = [], [], []
+    here, target_next = cwd, False
+
+    def close():
+        nonlocal here
+        words = [w for w in current if w not in ("{", "}")]
+        head = next((w for w in words if w not in PREFIXES and not ASSIGN.match(w)), None)
+        if head in ("cd", "pushd"):
+            here = cd_target(words[words.index(head) + 1:], here)
+        elif head == "popd":
+            here = None
+        elif words:
+            parts.append((words, here))
+        current.clear()
+
     for token in tokens:
-        if token and set(token) <= set("&|;()<>"):
-            if current:
-                parts.append(current)
-            current = []
+        if target_next:
+            target_next = False  # a redirection's file is not a command
+            continue
+        if token and set(token) <= set("&|;()<>") and ("<" in token or ">" in token):
+            if current and current[-1].isdigit() and len(current[-1]) == 1:
+                current.pop()  # the file descriptor of 2>&1
+            target_next = True
+        elif token and set(token) <= set("&|;()"):
+            close()
+            for char in token:
+                if char == "(":
+                    stack.append(here)
+                elif char == ")" and stack:
+                    here = stack.pop()
         else:
             current.append(token)
-    if current:
-        parts.append(current)
+    close()
     result = []
-    for part in parts:
+    for part, place in parts:
         env, rest = [], list(part)
         while rest and (ASSIGN.match(rest[0]) or rest[0] in PREFIXES):
             token = rest.pop(0)
@@ -200,7 +251,7 @@ def segments(command):
             continue
         if os.path.basename(rest[0]) in INLINE and INLINE_FLAGS & set(rest[1:3]):
             continue  # inline code written for one task, not a way to run the project
-        result.append({"env": env, "tokens": mask_tokens(rest)})
+        result.append({"env": env, "tokens": mask_tokens(rest), "cwd": place})
     return result
 
 
@@ -223,28 +274,35 @@ def missing_programs(text):
 
 
 class Collector:
-    def __init__(self, limit):
-        self.limit = limit
+    def __init__(self, limit, roots):
+        self.limit, self.roots = limit, roots
+        self.touched = set()  # sessions with at least one command in a root
         self.commands, self.missing, self.ports, self.cloud = {}, {}, {}, {}
 
     @staticmethod
-    def _bump(table, key, session, date, extra=None):
+    def _bump(table, key, session, date, place, extra=None):
         entry = table.setdefault(key, {"sessions": set(), "last_seen": "", "last_session": "", "where": set()})
         entry["sessions"].add(session)
-        entry["where"].add(session[2])
+        entry["where"].add(place)
         if date >= entry["last_seen"]:
             entry["last_seen"], entry["last_session"] = date, session[1]
         if extra:
             entry.setdefault("env", set()).update(extra)
 
-    def worked(self, command, session, date):
-        for seg in segments(command):
+    def worked(self, command, session, date, cwd, missing=()):
+        """Count each segment where it ran: the command's directory, moved by any cd before it.
+        A segment whose program the output reports missing did not run."""
+        for seg in segments(command, cwd):
+            if not in_roots(seg["cwd"], self.roots) or os.path.basename(seg["tokens"][0]) in missing:
+                continue
+            self.touched.add(session)
+            place = where(seg["cwd"], self.roots)
             line = " ".join(seg["tokens"])
             joined = " ".join(seg["env"] + seg["tokens"])
             for pattern in PORTS:
                 for port in pattern.findall(joined):
                     if 1024 <= int(port) <= 65535:  # below 1024 the matches were PIDs and line numbers
-                        self._bump(self.ports, int(port), session, date)
+                        self._bump(self.ports, int(port), session, date, place)
             profile = region = ""
             for i, token in enumerate(seg["tokens"]):
                 nxt = seg["tokens"][i + 1] if i + 1 < len(seg["tokens"]) else ""
@@ -263,18 +321,29 @@ class Collector:
                 if name in ("AWS_REGION", "AWS_DEFAULT_REGION") and value != REDACTED:
                     region = value
             if (profile or region) and REDACTED not in (profile, region):
-                self._bump(self.cloud, (profile, region), session, date)
+                self._bump(self.cloud, (profile, region), session, date, place)
             if relevant(seg["tokens"]):
-                self._bump(self.commands, line, session, date, extra=seg["env"])
+                self._bump(self.commands, line, session, date, place, extra=seg["env"])
 
-    def failed(self, command, output, code, session, date):
+    def failed(self, command, output, code, session, date, cwd, invoked_only=False):
+        """Record missing programs; after a success, only one the command invoked, since a pipeline
+        such as `timeout 5 x | tail` exits 0 although timeout was missing."""
+        segs = segments(command, cwd)
+        if not segs:
+            return
         names = missing_programs(output)
         if not names and code == 127:
-            segs = segments(command)
-            if segs:
-                names = {os.path.basename(segs[0]["tokens"][0])}
+            names = {os.path.basename(segs[0]["tokens"][0])}
         for name in names:
-            self._bump(self.missing, name, session, date)
+            # The segment that ran the missing program, else the last one, says where it ran.
+            seg = next((s for s in segs if os.path.basename(s["tokens"][0]) == name), None)
+            if seg is None:
+                if invoked_only:
+                    continue
+                seg = segs[-1]
+            if in_roots(seg["cwd"], self.roots):
+                self.touched.add(session)
+                self._bump(self.missing, name, session, date, where(seg["cwd"], self.roots))
 
     def _rows(self, table, key_name):
         rows = []
@@ -303,11 +372,18 @@ def in_roots(cwd, roots):
     return bool(cwd) and any(cwd == r or cwd.startswith(r + "/") for r in roots)
 
 
+def near_roots(cwd, roots):
+    """A session started in a root, below one, or in a folder above one may run commands in a root."""
+    return in_roots(cwd, roots) or any(bool(cwd) and r.startswith(cwd.rstrip("/") + "/") for r in roots)
+
+
 def where(cwd, roots):
     """The first folder below the matching root, or "." for the root itself and hidden worktree folders."""
     root = max((r for r in roots if cwd == r or cwd.startswith(r + "/")), key=len)
     first = os.path.relpath(cwd, root).split(os.sep)[0]
-    return "." if first.startswith(".") else first
+    if first.startswith("."):
+        return "."
+    return REDACTED if secret_like(first) else first
 
 
 def day(stamp, path):
@@ -354,13 +430,14 @@ def scan_claude(home, roots, cutoff, collector, stats):
             try:
                 if path.stat().st_mtime < cutoff:
                     continue
-                if not in_roots(first_cwd(path, lambda r: r.get("cwd")), roots):
+                start = first_cwd(path, lambda r: r.get("cwd"))
+                if not near_roots(start, roots):
                     continue
             except OSError:
                 stats["unreadable"] += 1
                 continue
-            stats["sessions"] += 1
-            session = ("claude-code", path.stem, where(first_cwd(path, lambda r: r.get("cwd")), roots))
+            stats["read"] += 1
+            session = ("claude-code", path.stem)
             uses = {}
             for record in read_jsonl(path):
                 content = (record.get("message") or {}).get("content")
@@ -372,13 +449,17 @@ def scan_claude(home, roots, cutoff, collector, stats):
                     if item.get("type") == "tool_use" and item.get("name") == "Bash":
                         tool_input = item.get("input") or {}
                         uses[item.get("id")] = (tool_input.get("command", ""), bool(tool_input.get("run_in_background")),
-                                                day(record.get("timestamp"), path))
+                                                day(record.get("timestamp"), path), record.get("cwd") or start)
                     elif item.get("type") == "tool_result" and item.get("tool_use_id") in uses:
-                        command, background, date = uses.pop(item["tool_use_id"])
+                        command, background, date, cwd = uses.pop(item["tool_use_id"])
                         if item.get("is_error"):
-                            collector.failed(command, text_of(item.get("content")), None, session, date)
+                            collector.failed(command, text_of(item.get("content")), None, session, date, cwd)
                         elif not background:  # a background command reports success when it starts
-                            collector.worked(command, session, date)
+                            output = text_of(item.get("content"))
+                            missing = missing_programs(output)
+                            collector.worked(command, session, date, cwd, missing)
+                            if missing:
+                                collector.failed(command, output, None, session, date, cwd, invoked_only=True)
 
 
 def scan_codex(home, roots, cutoff, collector, stats):
@@ -394,10 +475,10 @@ def scan_codex(home, roots, cutoff, collector, stats):
             stats["unreadable"] += 1
             continue
         source = meta.get("source")
-        if not in_roots(meta.get("cwd", ""), roots) or (isinstance(source, dict) and "subagent" in source):
+        if not near_roots(as_path(meta.get("cwd")), roots) or (isinstance(source, dict) and "subagent" in source):
             continue
-        stats["sessions"] += 1
-        session = ("codex", path.stem, where(meta["cwd"], roots))
+        stats["read"] += 1
+        session = ("codex", path.stem)
         for record in read_jsonl(path):
             payload = record.get("payload") or {}
             item = payload.get("item") or {}
@@ -412,10 +493,15 @@ def scan_codex(home, roots, cutoff, collector, stats):
                 command = shlex.join(str(a) for a in argv)
             date = day(record.get("timestamp"), path)
             code = item.get("exit_code")
+            cwd = as_path(item.get("cwd")) or as_path(meta.get("cwd"))
             if code == 0:
-                collector.worked(command, session, date)
+                output = item.get("aggregated_output", "")
+                missing = missing_programs(output)
+                collector.worked(command, session, date, cwd, missing)
+                if missing:
+                    collector.failed(command, output, None, session, date, cwd, invoked_only=True)
             elif code == 127:
-                collector.failed(command, item.get("aggregated_output", ""), code, session, date)
+                collector.failed(command, item.get("aggregated_output", ""), code, session, date, cwd)
 
 
 def main():
@@ -432,10 +518,12 @@ def main():
         clean = os.path.normpath(os.path.expanduser(root))
         roots.update({clean, os.path.realpath(clean)})
     cutoff = time.time() - args.days * 86400
-    collector = Collector(args.limit)
-    hosts = {"claude-code": {"sessions": 0, "unreadable": 0}, "codex": {"sessions": 0, "unreadable": 0}}
+    collector = Collector(args.limit, roots)
+    hosts = {"claude-code": {"read": 0, "unreadable": 0}, "codex": {"read": 0, "unreadable": 0}}
     scan_claude(Path(args.claude_home), roots, cutoff, collector, hosts["claude-code"])
     scan_codex(Path(args.codex_home), roots, cutoff, collector, hosts["codex"])
+    for host, stats in hosts.items():
+        stats["sessions"] = sum(1 for s in collector.touched if s[0] == host)
     out = {"roots": sorted(set(args.root)), "window_days": args.days, "hosts": hosts, "not_covered": NOT_COVERED}
     out.update(collector.report())
     json.dump(out, sys.stdout, indent=1, ensure_ascii=False)
