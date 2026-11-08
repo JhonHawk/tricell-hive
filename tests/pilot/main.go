@@ -348,6 +348,9 @@ func runProcess(cmd *exec.Cmd, limit time.Duration) (int, string) {
 	}
 }
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "qualify" {
+		os.Exit(qualifyMain(os.Args[2:], os.Stdout, os.Stderr))
+	}
 	startSignalCleanup()
 	suite := flag.String("suite", "workspace-conventions", "workspace-conventions, flows, flash-class-guidance or qualification")
 	handoff := flag.String("handoff-from", "", "producer plan run directory; required for flows build")
