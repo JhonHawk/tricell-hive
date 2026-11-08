@@ -96,7 +96,7 @@ Base `e0bb3a95` en `development`; rama `feat/local-instructions-file`. Todas las
 
 - [x] «Local instructions» dice qué significa `unverified` para un lector y recomienda la skill en la línea del tope; `site/src/content/docs/skills.md`, `index.mdx` («Supporting skills»), `getting-started.md`, `llms.txt` y `CHANGELOG.md` («Unreleased», sección «Added» nueva) la nombran.
 
-**Closes:** AC30, AC31
+**Closes:** AC30, AC32
 
 **Depends on:** T5
 
@@ -108,7 +108,7 @@ Base `e0bb3a95` en `development`; rama `feat/local-instructions-file`. Todas las
 
 **Changes:** una cláusula en la guía global y un enlace o una línea en cada archivo.
 
-**Verification:** `rg -l "local-instructions" content/guidance site/src llms.txt CHANGELOG.md` lista los seis archivos; `rg -c -F` encuentra en `global.md` «which only the [local-instructions](skill:local-instructions/SKILL.md) skill writes» (AC31) y «recommend [local-instructions](skill:local-instructions/SKILL.md) to curate it» (AC30); `go test ./tests/content/...` pasa y registra el tamaño nuevo de `global.md`; `npm --prefix site run build` pasa; se repite la búsqueda de todo el comportamiento.
+**Verification:** `rg -l "local-instructions" content/guidance site/src llms.txt CHANGELOG.md` lista los seis archivos; `rg -c -F` encuentra en `global.md` «which only the [local-instructions](skill:local-instructions/SKILL.md) skill writes» y «leaves only through that skill's curation» (AC32) y «recommend [local-instructions](skill:local-instructions/SKILL.md) to curate it» (AC30); `go test ./tests/content/...` pasa y registra el tamaño nuevo de `global.md`; `npm --prefix site run build` pasa; se repite la búsqueda de todo el comportamiento.
 
 ## Verification and human review
 
@@ -140,4 +140,6 @@ Revisión humana (D5 A): leer la sección nueva de `global.md` y el diff de los 
 
 2026-11-07 — Segunda `/code-review` (`240fc93f..c9a04667`): 10 hallazgos. Bloqueantes corregidos con test en el commit siguiente: cuatro fugas de enmascarado (clave con `/`, valores numéricos tras `-p`/`-a`/`--password`, URL con `/` o `@` en la contraseña, `curl -d`), reconstrucción que perdía entradas a mano, marca `unverified` que no se quitaba al confirmar. Al cierre (no bloqueantes): `--profile` de herramientas que no son de nube tomado como nube; atribución por el primer `cwd` de la sesión; un archivo que desaparece durante el escaneo tumba la ejecución; lecturas repetidas de cada transcripción. A decisión del usuario: que el tope permita a cualquier agente quitar entradas `unverified` que el usuario eligió conservar.
 
-Checkpoint: stage verify, segunda parada de validación. Suite completa verde sobre el candidato. Último commit `87fef783`. Pendiente: revisión del plan revisado, T4, T5, re-verify y segunda parada de validación.
+2026-11-07 — Validación aprobada (D13 A); D14 A aplicado en el commit siguiente (AC32).
+
+Checkpoint: stage verify, paso 6 (push, PR y merge) tras la revisión del plan de esta revisión. Último commit `87fef783`. Pendiente: revisión del plan revisado, T4, T5, re-verify y segunda parada de validación.

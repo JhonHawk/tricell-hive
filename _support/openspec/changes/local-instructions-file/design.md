@@ -69,6 +69,6 @@ Crea o cura `HIVE.local.md` a partir de lo que ya funcionó en la máquina. La r
 6. **Escritura:** «write as «Local instructions» sets», más el formato propio: una línea inicial que lo identifica, un encabezado por grupo, una línea por entrada con su fecha y `unverified` cuando aplica.
 7. **Informe:** archivos y líneas, entradas por grupo y cuántas `unverified`, lo descartado, los datos de todo clon como candidatos para `AGENTS.md`, y los hosts no cubiertos.
 
-La excepción a «this session confirmed it» la nombra la skill; lo que significa `unverified` para cualquier lector lo dice la regla global (AC31), porque las sesiones posteriores solo leen la regla.
+La excepción a «this session confirmed it» la nombra la skill; lo que significa `unverified` para cualquier lector lo dice la regla global (AC32), porque las sesiones posteriores solo leen la regla.
 
 Referencia `references/transcript-sources.md`: Claude Code `<Claude home>/projects/<cwd con / y . como ->/*.jsonl` (los worktrees bajo `.claude/worktrees/` tienen su propia carpeta; los subagentes en `<sesión>/subagents/` se excluyen); Codex `<Codex home>/sessions/YYYY/MM/DD/rollout-*.jsonl` filtrado por el `cwd` de `session_meta`. Grok (`<Grok home>/sessions/<cwd URL-encoded>/<id>/updates.jsonl`) y Pi (`<Pi home>/sessions/--<cwd con / como ->--/*_<id>.jsonl`) se localizaron pero el script no los cubre; OpenCode, Cursor y Antigravity no se localizaron.

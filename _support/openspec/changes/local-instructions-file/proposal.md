@@ -20,6 +20,8 @@
 - **D9 A** — ¿Skill nueva o modo de `harness-audit`? Skill nueva `local-instructions`, con modos crear y curar.
 - **D10 A** — ¿Qué fuentes audita? Todo: transcripciones de los últimos 30 días de este proyecto (leídas por un hijo que devuelve solo comandos que funcionaron, sin valores), memoria persistente, memoria del host y notas locales, `AGENTS.md` o README y nombres de archivos de la carpeta de secretos.
 - **D11 A** — ¿Cómo entran los datos conservados? Confirmados con una comprobación de solo lectura cuando existe; el resto con su fecha de origen y marcado «unverified».
+- **D13 A** — ¿Se aprueba el conjunto (regla, skill y script) para push, PR y merge? Sí.
+- **D14 A** — ¿Quién puede quitar una entrada `unverified` que el usuario conservó? Solo la skill, curando con el usuario; el tope de la regla quita únicamente entradas obsoletas.
 - **D12 A** — ¿Cómo se extraen los candidatos de las transcripciones? Con un script de la skill, `extract_candidates.py` (Python de librería estándar, con tests), que ejecuta el hilo principal en lugar del hijo de D10: sesiones principales de los últimos 30 días de Claude Code y Codex, cada comando emparejado con su resultado y cualquier valor enmascarado antes de mostrarlo. Grok, Pi, OpenCode, Cursor y Antigravity quedan sin cubrir.
 
 Decididas en la investigación previa, sin ID: una sola regla y un documento libre en lugar de un script con JSON validado; un archivo neutral en lugar de `CLAUDE.local.md` (solo Claude Code, y suprime `AGENTS.md` sin un `CLAUDE.md` que lo importe) o `AGENTS.override.md` (Codex, reemplaza al `AGENTS.md` versionado); `ACCOUNTS.md` sigue igual y `HIVE.local.md` solo lo apunta. Supuestos menores tras la revisión del plan: ver `design.md` «Supuestos».
@@ -81,7 +83,9 @@ Cada criterio de la guía global se observa con `rg -n -F "<frase>" content/guid
 - AC28 — La skill escribe el archivo con un puntero a «Local instructions», sin repetir sus pasos, y nombra en su informe los datos que valen para todo clon · falso hoy: no existe la skill. **Replaces:** AC21
 - AC29 — `references/transcript-sources.md` da las rutas y codificaciones de carpeta de Claude Code (con `/` y `.` como `-`, y las carpetas de worktrees) y de Codex, y dice que Grok, Pi, OpenCode, Cursor y Antigravity no los cubre el script · falso hoy: el archivo no existe. **Replaces:** AC22
 - AC30 — La línea del tope en «Local instructions» recomienda la skill, y `site/src/content/docs/skills.md`, `index.mdx`, `getting-started.md`, `llms.txt` y `CHANGELOG.md` la nombran · falso hoy: `rg -l "local-instructions" content/guidance site/src llms.txt CHANGELOG.md` no devuelve nada. **Replaces:** AC23
-- AC31 — «Local instructions» dice que una entrada marcada `unverified` lleva la fecha en que se vio, se comprueba antes de usarla y el tope puede quitarla como una obsoleta · falso hoy: `rg -F "unverified" content/guidance/global.md` no devuelve nada.
+- AC31 — **Retired:** el tope la dejaba quitar a cualquier agente (D14 A); lo sustituye AC32. «Local instructions» dice que una entrada marcada `unverified` lleva la fecha en que se vio, se comprueba antes de usarla y el tope puede quitarla como una obsoleta · falso hoy: `rg -F "unverified" content/guidance/global.md` no devuelve nada.
+
+- AC32 — «Local instructions» dice que una entrada `unverified` la escribe solo la skill, lleva la fecha en que se vio, se comprueba antes de usarla, pierde la marca al confirmarse y solo sale del archivo curando con el usuario · falso hoy: `rg -F "leaves only through that skill's curation" content/guidance/global.md` no devuelve nada. **Replaces:** AC31
 
 ## Prerequisites
 
@@ -108,3 +112,4 @@ Ninguno: el build no necesita nada fuera del repositorio.
 2026-11-07 — Revisión del plan: `/code-review` dio 10 hallazgos, aplicados en `87fef783`; el usuario añadió la skill de arranque (D8 B, D9-D11 A). Nuevos AC17-AC23 y tareas T4-T5; no invalida T1-T3.
 2026-11-07 — Tercera revisión del plan (revisión con D12): 1 P1, 7 P2, 6 P3. Aplicados: subagentes de Codex excluidos (`exec` y `vscode` cuentan como sesiones principales, supuesto menor), enmascarado por lista de permitidos con los casos de la revisión en el test, éxito de Claude sin comandos en segundo plano, «faltó» anclado a mensajes de error completos, `where` por candidato, `--version` sin shims, excepción de memoria nombrada, alcance reescrito.
 2026-11-07 — Segunda revisión del plan: 2 P1, 7 P2, 5 P3. El usuario eligió el script (D12 A). Retirados AC18-AC23; nuevos AC24-AC31; T4 pasa a ser el script, T5 la skill y T6 los enlaces.
+2026-11-07 — Segunda validación: el usuario aprobó (D13 A) y eligió que solo la skill quite entradas `unverified` (D14 A). AC31 retirado, AC32 nuevo; cambia una frase de la regla y la spec.
