@@ -64,7 +64,10 @@ root when your work spans several repositories. You neither create nor commit
 it: the agent reads it at the start of each session, adds there each fact it
 verified with its date, marks the ones that stop working as stale, names the
 file that holds a password instead of writing it, and adds the file to
-`.git/info/exclude` so Git ignores it. You can edit it by hand. A fact that
+`.git/info/exclude` so Git ignores it. You can edit it by hand, and the
+[local-instructions skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/local-instructions/SKILL.md)
+fills it the first time from what already worked in your recent sessions, asking
+you which facts to keep. A fact that
 holds for every clone belongs in `AGENTS.md`, so the agent names it in its
 report instead. The [local instructions rule](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md)
 holds the details.
