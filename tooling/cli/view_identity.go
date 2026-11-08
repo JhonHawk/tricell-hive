@@ -311,9 +311,10 @@ func resolveViewWorkContext(c *viewWorkCommand) error {
 		}
 	}
 	// A capture acts on the session's one open work and opens one when it has
-	// none, so it reads the current works but never reports their absence.
+	// none, so it reads the current works but never reports their absence. A
+	// capture with --key names its work itself: opening by key is idempotent.
 	capture := c.Action == "capture"
-	if c.WorkID == "" && c.Host != "" && c.NativeSessionID != "" && (viewWorkActionNeedsWork(c.Action) || capture) && !hostReconcile(*c) {
+	if c.WorkID == "" && c.Host != "" && c.NativeSessionID != "" && (viewWorkActionNeedsWork(c.Action) || capture && c.Key == "") && !hostReconcile(*c) {
 		dir, err := stateDir()
 		if err != nil {
 			return err

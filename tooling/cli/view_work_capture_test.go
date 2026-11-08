@@ -376,3 +376,61 @@ func TestWorkCaptureChainsAcrossStagesAndQueuesForAnOpenWork(t *testing.T) {
 		t.Fatalf("views %+v", forms)
 	}
 }
+
+// A key that names a closed work refuses the capture without making that work
+// current, so a capture under a new key still opens its own work.
+func TestWorkCaptureNeverMakesAClosedWorkCurrent(t *testing.T) {
+	c := newCaptureCLI(t)
+	a := c.shot("a.png", color.RGBA{R: 200, A: 255})
+	first := c.capture("Login", "--image", a, "--key", "closed-work")
+	c.must("", "close", "--outcome", "completed", "--reason", "Done")
+	args := []string{"capture", "--project", c.project, "--view-title", "Login", "--image", a, "--key", "closed-work"}
+	if _, err := c.run("", args...); err == nil || !strings.Contains(err.Error(), "session_closed") {
+		t.Fatalf("error %v", err)
+	}
+	for _, id := range c.workIDs() {
+		if id == first.WorkID {
+			t.Fatalf("closed work %s is current", id)
+		}
+	}
+	next := c.capture("Login", "--image", a, "--key", "next-work")
+	if next.Result != "updated" || next.Iteration != 1 || next.WorkID == first.WorkID {
+		t.Fatalf("receipt %+v", next)
+	}
+}
+
+// A repeat counts only within the same stage occurrence and answers unchanged
+// without touching the stage.
+func TestWorkCaptureRepeatBelongsToItsStage(t *testing.T) {
+	c := newCaptureCLI(t)
+	a := c.shot("a.png", color.RGBA{R: 200, A: 255})
+	build := c.capture("Form", "--stage", "build", "--image", a, "--key", "stage-repeat")
+	verify := c.capture("Form", "--stage", "verify", "--image", a)
+	if verify.Result != "updated" || verify.Iteration != 2 {
+		t.Fatalf("verify capture %+v after build %+v", verify, build)
+	}
+	c.must("", "stage", "--stage", "verify", "--state", "completed", "--reason", "Verified")
+	again := c.capture("Form", "--stage", "verify", "--image", a)
+	s := c.session(build.WorkID)
+	if again.Result != "unchanged" || stageEvents(s, "verify") != 1 || workLifecycleStage(s, "verify").StageState != "completed" {
+		t.Fatalf("repeat %+v, %d verify occurrences, latest %+v", again, stageEvents(s, "verify"), workLifecycleStage(s, "verify"))
+	}
+}
+
+// --key names the capture's work even when the session already has one open.
+func TestWorkCaptureKeyNamesItsWork(t *testing.T) {
+	c := newCaptureCLI(t)
+	a := c.shot("a.png", color.RGBA{R: 200, A: 255})
+	one := c.capture("Login", "--image", a, "--key", "ticket-one")
+	two := c.capture("Login", "--image", a, "--key", "ticket-two")
+	if two.WorkID == one.WorkID || two.Iteration != 1 {
+		t.Fatalf("second key %+v after %+v", two, one)
+	}
+	back := c.capture("Profile", "--image", a, "--key", "ticket-one")
+	if back.WorkID != one.WorkID || back.Iteration != 1 {
+		t.Fatalf("first key again %+v", back)
+	}
+	if _, err := c.run("", "capture", "--project", c.project, "--view-title", "Login", "--image", a, "--key", "ticket-one", "--work-id", one.WorkID); err == nil || !strings.Contains(err.Error(), "conflict") {
+		t.Fatalf("key with work-id: %v", err)
+	}
+}

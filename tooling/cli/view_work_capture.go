@@ -62,8 +62,11 @@ func validateViewWorkCapture(c *viewWorkCommand) error {
 		c.Project = p
 	}
 	if c.WorkID != "" {
+		if c.Key != "" {
+			return workInput("creation fields conflict with work-id: pass --key or --work-id")
+		}
 		// The work exists: the creation fields only matter to the capture that opens it.
-		c.Key, c.Title, c.Summary = "", "", ""
+		c.Title, c.Summary = "", ""
 	}
 	if c.Reason == "" {
 		c.Reason = "Publish UI captures"
@@ -211,6 +214,10 @@ func (e *viewWorkEngine) captureWork(c viewWorkCommand) (string, error) {
 		return "", err
 	}
 	real := s.ViewerSessionID
+	if s.State == viewer.TimelineClosed || s.State == viewer.TimelineFailed {
+		// Never make a closed work current: every later capture would land on it.
+		return "", &viewWorkError{Code: "session_closed", Next: "the work named by this key is closed: pass --key with a new key"}
+	}
 	if err = addCurrentWork(e.state, c.Host, c.NativeSessionID, real); err != nil {
 		return "", err
 	}
@@ -271,24 +278,30 @@ func (e *viewWorkEngine) capture(c viewWorkCommand) (viewWorkCaptureResult, erro
 	if s.State == viewer.TimelineClosed || s.State == viewer.TimelineFailed {
 		return viewWorkCaptureResult{}, workStateError("session_closed")
 	}
+	screen := c.ViewTitle
+	// A repeat is answered before the stage is touched, so unchanged means that
+	// nothing changed remotely; it must also belong to this stage's occurrence.
+	if latest := latestCaptureIteration(s, screen); latest != nil {
+		if stage := workLifecycleStage(s, c.Stage); stage != nil && latest.Event.StageEventID == stage.EventID {
+			candidateID, err := e.evidenceCandidate(s, actor, c)
+			if err != nil {
+				return viewWorkCaptureResult{}, err
+			}
+			if artifacts, same := captureRepeats(s, latest, candidateID, images, c); same {
+				r := viewWorkEvidenceResult{WorkID: s.ViewerSessionID, Result: "unchanged", SessionVersion: s.Version, CandidateID: candidateID, EventID: latest.Event.EventID, EvidenceID: latest.Event.EvidenceID, ViewIDs: []string{latest.View.ViewID}, ArtifactIDs: artifacts}
+				return viewWorkCaptureResult{viewWorkEvidenceResult: r, Iteration: latest.N, Screen: screen}, nil
+			}
+		}
+	}
 	if err = e.captureStage(c, s); err != nil {
 		return viewWorkCaptureResult{}, err
 	}
 	if s, err = e.session(id); err != nil {
 		return viewWorkCaptureResult{}, err
 	}
-	screen := c.ViewTitle
 	latest := latestCaptureIteration(s, screen)
 	next := 1
 	if latest != nil {
-		candidateID, err := e.evidenceCandidate(s, actor, c)
-		if err != nil {
-			return viewWorkCaptureResult{}, err
-		}
-		if artifacts, same := captureRepeats(s, latest, candidateID, images, c); same {
-			r := viewWorkEvidenceResult{WorkID: s.ViewerSessionID, Result: "unchanged", SessionVersion: s.Version, CandidateID: candidateID, EventID: latest.Event.EventID, EvidenceID: latest.Event.EvidenceID, ViewIDs: []string{latest.View.ViewID}, ArtifactIDs: artifacts}
-			return viewWorkCaptureResult{viewWorkEvidenceResult: r, Iteration: latest.N, Screen: screen}, nil
-		}
 		next = latest.N + 1
 	}
 	publish := c
@@ -319,7 +332,7 @@ hive view work capture --view-title TEXT --image FILE[:caption] ... [--stage bui
 --view-title names the screen, without a number. Repeat --image once per capture of the screen (1..8 files: PNG, JPEG or WebP).
 
 What one call does, in order, when the command is sent:
-1. Work: acts on the work this session has open; with several open, pass --work-id. With none it opens one: --key is the ticket or the change folder name (default: the current branch; in a detached HEAD, --key is required), --title defaults to the key and --summary (one paragraph on what the work is about; give it on the first capture) to "UI captures for KEY".
+1. Work: --key (the ticket or the change folder name) names the work and opens it when needed; a key whose work is closed is refused with session_closed. Without --key, it acts on the work this session has open (with several open, pass --work-id or --key), or opens one named after the current branch (in a detached HEAD, --key is required). --title defaults to the key and --summary (one paragraph on what the work is about; give it on the first capture) to "UI captures for KEY". --key and --work-id are exclusive.
 2. Stage (default verify): started when it has no occurrence, resumed when paused, and a linked new occurrence when it ended. Nothing else is declared.
 3. Candidate: --candidate COMMIT, default HEAD, resolved when you run the command, on the current branch against origin/HEAD. Without a branch or a base the command stops with candidate_branch_required and publishes nothing: check out a branch, run git remote set-head origin -a, or pass --branch and --base.
 4. Iteration: the view is titled "<screen> · #N". N is one more than the highest of the work's views with that screen, and the new view supersedes it; the first is "· #1". Another screen starts at "· #1".

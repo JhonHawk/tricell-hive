@@ -28,7 +28,7 @@ publish --project ROOT --change DIR --key KEY --title TEXT --summary TEXT --stag
 list --project ROOT [--host HOST --native-session-id ID] [--include-archived] [--limit 1..100] [--cursor OPAQUE]
 show [--work-id ID]
 stage --work-id ID --stage STAGE --state STATE --reason TEXT [--summary TEXT] [--previous-stage OCCURRENCE]
-tasks register --work-id ID [--plan-revision CONFIRMED_REVISION] --json FILE|- [--reason TEXT] (revision optional without a change folder or plan)
+tasks register --work-id ID [--plan-revision CONFIRMED_REVISION] --json FILE|- [--reason TEXT]
 task update --work-id ID --key KEY --stage STAGE --state STATE --reason TEXT [transition options]
 task update --work-id ID --key KEY --reason TEXT --json FILE|-
 close --work-id ID --outcome completed|abandoned --reason TEXT (completes the active stage first)
@@ -45,7 +45,7 @@ recover --work-id ID --request-id ID --reason TEXT
 delete --work-id ID --confirm ID
 contract
 
-Creation fields and --work-id are exclusive. Change paths are bound to explicit keys, never cwd/title/content-derived identity; bind replaces a directory within the same project after pending work resolves. show/list are reads and never create/reopen work; list returns an opaque next cursor.
+Creation fields and --work-id are exclusive. Change paths bind to explicit keys only; bind replaces a directory within the same project after pending work resolves. show/list are reads and never create/reopen work; list returns an opaque next cursor.
 
 STAGE: research|plan|build|verify|delivery. Stage STATE: in_progress|in_review|awaiting_validation|completed|paused|failed. A terminal stage needs explicit --previous-stage for reentry. Existing publication never starts a stage. The creation variant explicitly starts the requested stage with --summary/--reason.
 
@@ -53,7 +53,7 @@ Plan defaults: proposal.md and tasks.md required, design.md optional, sorted spe
 
 Registration JSON, a nonempty array (max 100):
 [{"key":"T1","title":"Implement export","summary":"Add the requested export","order":1,"segments":[{"stage":"build","order":1},{"stage":"verify","order":2}]}]
---plan-revision (a confirmed published plan) is required only for a work with a change folder or a published plan. Batches validate before writes; identical registration is skipped without resetting progress. Unknown/duplicate fields, duplicate keys/stages and technical IDs/versions are rejected.
+Optional segment assignee {"host","native_session_id"} must resolve to an accepted producer. --plan-revision (a confirmed published plan) is required only for a work with a change folder or a published plan. Batches validate before writes; identical registration is skipped without resetting progress. Unknown/duplicate fields, duplicate keys/stages and technical IDs/versions are rejected.
 
 Task keys are T<n>, n from 1 (T0 is rejected). A segment order is unique per stage across all tasks of the batch, not within each task, and a task holds at most one segment per stage. A rejected --json names the field and rule, never a value: tasks[<i>].<field> (tasks register) or metadata.<field> (task update --json). Task STATE: not_started|in_progress|in_review|blocked|completed, with existing v3 transition rules. blocked requires --block-reason TEXT --block-owner TEXT --block-step TEXT (repeatable, 1..10) --resume-when TEXT. Leaving blocked requires --resolution TEXT. --review-kind human|agent is valid only for in_review. Metadata --json is exclusive with transition fields; it accepts title, summary, order, stage, segment_order, assignee, withdrawn, plan_revision, decision_reference, and needs a confirmed plan_revision or decision_reference when v3 requires it. No status inference, approval, membership creation or CI synthesis.
 
