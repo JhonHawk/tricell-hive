@@ -138,4 +138,6 @@ Revisión humana (D5 A): leer la sección nueva de `global.md` y el diff de los 
 2026-11-07 — T5 hecho en `cf28726f`: frases de AC17, AC24 y AC26-AC29 presentes; tests de contenido pasan.
 2026-11-07 — T6 hecho en el commit siguiente: frases de AC30 y AC31 en `global.md` (40 228 bytes, +2 477 sobre la base); el sitio construye.
 
-Checkpoint: stage verify, segunda revisión de código sobre `240fc93f..HEAD` y segunda parada de validación. Último commit `87fef783`. Pendiente: revisión del plan revisado, T4, T5, re-verify y segunda parada de validación.
+2026-11-07 — Segunda `/code-review` (`240fc93f..c9a04667`): 10 hallazgos. Bloqueantes corregidos con test en el commit siguiente: cuatro fugas de enmascarado (clave con `/`, valores numéricos tras `-p`/`-a`/`--password`, URL con `/` o `@` en la contraseña, `curl -d`), reconstrucción que perdía entradas a mano, marca `unverified` que no se quitaba al confirmar. Al cierre (no bloqueantes): `--profile` de herramientas que no son de nube tomado como nube; atribución por el primer `cwd` de la sesión; un archivo que desaparece durante el escaneo tumba la ejecución; lecturas repetidas de cada transcripción. A decisión del usuario: que el tope permita a cualquier agente quitar entradas `unverified` que el usuario eligió conservar.
+
+Checkpoint: stage verify, segunda parada de validación. Suite completa verde sobre el candidato. Último commit `87fef783`. Pendiente: revisión del plan revisado, T4, T5, re-verify y segunda parada de validación.
