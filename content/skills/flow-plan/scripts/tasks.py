@@ -156,15 +156,24 @@ def cmd_done(lines, args):
         match = BOX.match(lines[j])
         lines[j] = f"{match.group(1)}x{match.group(3)}"
     start, end = bounds
-    known = re.compile(rf"(?<![A-Za-z0-9]){args.task}\s*·\s*{re.escape(args.commit)}(?![0-9A-Za-z])")
-    if not any(known.search(line) for line in lines[start + 1:end]):
+    entry = f"{today()} — {args.task} · {args.commit} · unverified: {args.unverified}"
+    if args.commit == "uncommitted":
+        # Without a commit, only the same task, day and result is a repeat.
+        seen = any(line.strip() == entry for line in lines[start + 1:end])
+    else:
+        known = re.compile(rf"(?<![A-Za-z0-9]){args.task}\s*·\s*{re.escape(args.commit)}(?![0-9A-Za-z])")
+        seen = any(known.search(line) for line in lines[start + 1:end])
+    if not seen:
         last = end
         while last > start + 1 and not lines[last - 1].strip():
             last -= 1
-        if last == start + 1:  # an empty section keeps a blank line under its heading
-            lines.insert(last, "")
-            last += 1
-        lines.insert(last, f"{today()} — {args.task} · {args.commit} · unverified: {args.unverified}")
+        if last == start + 1:  # an empty section: the entry goes after one blank line under the heading
+            if last < end:
+                last += 1
+            else:
+                lines.insert(last, "")
+                last += 1
+        lines.insert(last, entry)
     done = sum(1 for t in parse_tasks(lines) if complete(lines, t))
     return lines, f"✓ {task['id']} · {done}/{len(tasks)} · {task['title']}"
 

@@ -215,6 +215,11 @@ class GitStateTest(unittest.TestCase):
         self.assertIs(comments[12]["after_since"], False, "an edit does not make an old reply new")
         self.assertEqual([c["after_since"] for c in pr["comments"]], [False, True])
 
+        for same_instant in ("2026-11-08t09:00:00z", "2026-11-08T10:00:00+0100"):
+            code, other, _, stderr = run(r.work, "--base", "main", "--pr", "7", "--since", same_instant, env=env)
+            self.assertEqual(code, 0, stderr)
+            self.assertEqual(other["pr"], pr, same_instant)
+
     def test_without_since_after_since_is_undecided(self):
         r = self.r
         r.git(r.work, "remote", "set-url", "origin", "git@github.com:acme/widget.git")
@@ -279,9 +284,10 @@ class GitStateTest(unittest.TestCase):
         self.assertEqual(code, 2)
         code, _, _, _ = run(self.r.work, "--base", "main", "--since", "yesterday", env=self.r.env)
         self.assertEqual(code, 2)
-        code, _, _, stderr = run(self.r.work, "--base", "main", "--since", "2026-11-08T10:00:00", env=self.r.env)
-        self.assertEqual(code, 2, "a push time without a zone would shift after_since")
-        self.assertIn("time zone", stderr)
+        code, _, _, _ = run(self.r.work, "--base", "main", "--since", "", env=self.r.env)
+        self.assertEqual(code, 2, "an empty push time must not pass as no push time")
+        code, _, _, _ = run(self.r.work, "--base", "main", "--since", "2026-11-08T10:00:00", "--no-pr", env=self.r.env)
+        self.assertEqual(code, 0, "a push time without a zone is read as local time")
         code, _, _, _ = run(self.r.work, "--base", "main", "--pr", "0", env=self.r.env)
         self.assertEqual(code, 2)
         code, _, _, _ = run(Path(self.tmpdir.name) / "bin", "--base", "main", "--no-pr", env=self.r.env)

@@ -345,11 +345,24 @@ def item_facts(item):
             "updated_at": item.get("updated_at"), "url": item.get("html_url"), "body": item.get("body")}
 
 
-def parse_time(text):
+ZONE = re.compile(r"([zZ]|[+-]\d{2}:?\d{2})$")
+
+
+def parse_time(text, naive_is_local=False):
+    """Parse ISO-8601, accepting `Z`/`z` and `+HHMM` on Python before 3.11.
+    GitHub's times carry `Z`; a time without a zone is UTC there, and local
+    time for --since, which the agent notes on this machine."""
     if text is None:
         return None
-    value = datetime.fromisoformat(text.replace("Z", "+00:00"))
-    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    zone = ZONE.search(text)
+    if zone:
+        mark = zone.group(1)
+        offset = "+00:00" if mark in "zZ" else f"{mark[:3]}:{mark[-2:]}"
+        text = text[:zone.start()] + offset
+    value = datetime.fromisoformat(text)
+    if value.tzinfo:
+        return value
+    return value.astimezone() if naive_is_local else value.replace(tzinfo=timezone.utc)
 
 
 def after(stamp, since):
@@ -371,7 +384,7 @@ def main(argv=None):
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--pr", type=int, help="pull request number (default: the branch's open one)")
     group.add_argument("--no-pr", action="store_true", help="skip the pull-request read")
-    parser.add_argument("--since", help="push time, ISO-8601 with a time zone, for after_since")
+    parser.add_argument("--since", help="push time, ISO-8601; without a zone it is local time")
     parser.add_argument("--timeout", type=float, help="cap every command at this many seconds")
     try:
         args = parser.parse_args(argv)
@@ -386,16 +399,14 @@ def main(argv=None):
     if args.timeout is not None and args.timeout <= 0:
         print("git_state.py: --timeout must be positive", file=sys.stderr)
         return 2
+    if args.since is not None and not args.since.strip():
+        print("git_state.py: --since is empty; omit it or pass the push time", file=sys.stderr)
+        return 2
     try:
-        since = datetime.fromisoformat(args.since.replace("Z", "+00:00")) if args.since else None
+        args.since = parse_time(args.since, naive_is_local=True) if args.since else None
     except ValueError:
         print(f"git_state.py: --since is not ISO-8601: {args.since}", file=sys.stderr)
         return 2
-    if since is not None and since.tzinfo is None:
-        # A local push time read as UTC would shift after_since by the offset.
-        print("git_state.py: --since needs a time zone, such as Z or -06:00", file=sys.stderr)
-        return 2
-    args.since = since
 
     state = State(args)
     state.host = None

@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import subprocess
 import sys
 import tempfile
@@ -93,12 +94,17 @@ class TasksScriptTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             empty = TASKS_MD.replace("2026-11-08 — Plan written.\n", "")
             change = self.folder(tmp, tasks=empty)
+            result = self.run_tasks(change, "done", "T2", "--commit", "none", "--unverified", "login flow")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertRegex(self.text(change),
+                             r"## Review status and progress\n\n\d{4}-\d{2}-\d{2} — T2 · uncommitted · unverified: login flow\n\Z",
+                             "one blank line under the heading, none after the entry")
             result = self.run_tasks(change, "done", "T2", "--commit", "none", "--unverified", "none")
             self.assertEqual(result.returncode, 0, result.stderr)
-            text = self.text(change)
-            self.assertRegex(text, r"## Review status and progress\n\n\d{4}-\d{2}-\d{2} — T2 · uncommitted · unverified: none\n$",
-                             "an empty section keeps the blank line under its heading")
+            self.assertRegex(self.text(change), r"unverified: login flow\n\d{4}-\d{2}-\d{2} — T2 · uncommitted · unverified: none\n\Z",
+                             "a later result without a commit is recorded, not taken for a repeat")
 
+    @unittest.skipIf(hasattr(os, "geteuid") and os.geteuid() == 0, "root writes into a read-only folder")
     def test_a_failed_write_prints_no_progress_line(self):
         with tempfile.TemporaryDirectory() as tmp:
             change = self.folder(tmp)
