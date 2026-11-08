@@ -914,6 +914,28 @@ func TestAssessFlowsWiresNoExecutionPrepOnlyForQuestionCases(t *testing.T) {
 	}
 }
 
+// Breaks if the writes criterion stops exempting the root HIVE.local.md and its
+// exclude entry, which the global guidance's «Local instructions» authorizes in
+// any flow, or starts exempting a sibling Markdown file.
+func TestAssessFlowsAllowsLocalInstructionsWrites(t *testing.T) {
+	for _, tc := range []struct {
+		changed []string
+		want    string
+	}{
+		{[]string{"HIVE.local.md", ".git/info/exclude"}, "pass"},
+		{[]string{"NOTES.local.md"}, "fail"},
+	} {
+		r := result{Root: "/fixture", Cwd: "/fixture", Suite: "flows", Case: "research", Terminal: "completed", Changed: tc.changed,
+			Before: baseInventory(), After: baseInventory()}
+		f := fixture{ID: "research"}
+		f.Expected.SkillRead = "flow-research"
+		got := assessedCriteria(assessFlows(r, f, t.TempDir()))
+		if got["Final writes within authorized fixture scope"] != tc.want {
+			t.Fatalf("%v: writes = %s, want %s", tc.changed, got["Final writes within authorized fixture scope"], tc.want)
+		}
+	}
+}
+
 // Breaks if assessFlows stops passing fixture.Prompt to cited_id_glossed, or
 // passes it to a case that should not see it only through its own prompt.
 func TestAssessFlowsCitedIDGlossedUsesFixturePrompt(t *testing.T) {

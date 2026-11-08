@@ -5,7 +5,7 @@ description: Check whether a published security advisory, CVE or package comprom
 
 # Security advisory exposure
 
-Answer "does this advisory affect us, and where?" with evidence for each repository. The sweep is read-only: it changes no repository, dependency, tracker or deployment. Fixes run afterward, in each project's own session.
+Answer "does this advisory affect us, and where?" with evidence for each repository. The sweep is read-only: it changes no repository, dependency, tracker or deployment, except for the current project's `HIVE.local.md` entries the global guidance's «Local instructions» authorizes. Fixes run afterward, in each project's own session.
 
 ## Frame the sweep
 

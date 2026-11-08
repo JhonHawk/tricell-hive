@@ -5,7 +5,7 @@ description: Report the project's current status and backlog, read-only, and rec
 
 # Report the project's status
 
-This skill is read-only and assesses no ticket in depth; `flow-research` does that once the user picks one. Read only what the report needs: the `## Hive` section of the repository, the tracker, Git and the pending-work records in persistent memory.
+This skill is read-only, except for the `HIVE.local.md` entries the global guidance's «Local instructions» authorizes, and assesses no ticket in depth; `flow-research` does that once the user picks one. Read only what the report needs: the `## Hive` section of the repository, the tracker, Git and the pending-work records in persistent memory.
 
 1. Collect, in parallel:
    - each declared tracker's tickets in every non-terminal state, in the main thread, with queries that cap their output at 50 tickets and return only short fields (identifier, title, state, labels, priority, assignee, parent). Use `hive-read-state` children only to run several independent collections at once, such as more than one tracker or project, as [delegation](../flow-build/references/delegation.md) sets;

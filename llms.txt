@@ -42,6 +42,7 @@ Source-byte unions are not actual tokens or evidence of small-model reliability.
 - [flow-report](content/skills/flow-report/SKILL.md): a designed HTML report, comparison, explainer or deck
 - [starlight-docs-site](content/skills/starlight-docs-site/SKILL.md): scaffold, extend or audit a documentation site
 - [harness-audit](content/skills/harness-audit/SKILL.md): audit agent instructions, skills and role definitions, ask the decisions the findings need, and apply the accepted outcomes, including a repository's `## Hive` section
+- [local-instructions](content/skills/local-instructions/SKILL.md): create or prune a project's untracked HIVE.local.md from what already worked on this machine, after asking which facts to keep
 - [security-advisory](content/skills/security-advisory/SKILL.md): check whether a published advisory affects a set of repositories, without changing them
 - [test-audit](content/skills/test-audit/SKILL.md): prune one area's duplicate or implementation-coupled tests to one owner per contract, proven by an independent review and targeted mutations
 - [workspace-conventions](content/skills/workspace-conventions/SKILL.md): organize support artifacts and retained evidence

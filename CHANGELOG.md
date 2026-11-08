@@ -10,6 +10,16 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Added
+
+- «Local instructions» in the global guidance: agents read an untracked
+  `HIVE.local.md` at the repository or workspace root at session start and
+  record there, dated and without secret values, the machine facts they
+  verify, such as start commands, ports, missing tools and cloud profiles.
+- The `local-instructions` skill creates or prunes `HIVE.local.md` from what
+  already worked in recent Claude Code and Codex sessions, after asking which
+  facts to keep; its extraction script masks every value before printing.
+
 ### Changed
 
 - Verify checks mobile only at the iPhone width of 440 × 956 CSS px, plus any

@@ -553,6 +553,13 @@ func flowLoadingSkills(id string) []string {
 	}
 }
 
+// localInstructionsWrite reports whether p is a write the global guidance's
+// «Local instructions» authorizes in any flow: the root HIVE.local.md and the
+// exclude entry that keeps Git from tracking it.
+func localInstructionsWrite(p string) bool {
+	return p == "HIVE.local.md" || p == ".git/info/exclude"
+}
+
 // The project-state fixture asks for one new findings record. Score its
 // destination independently from its suffix; neither check grades its content.
 func projectStateRecordCriteria(r result, f fixture) []criterionAssessment {
@@ -562,6 +569,9 @@ func projectStateRecordCriteria(r result, f fixture) []criterionAssessment {
 			continue
 		}
 		if _, exists := r.Before[p]; exists {
+			continue
+		}
+		if localInstructionsWrite(p) {
 			continue
 		}
 		if strings.HasSuffix(p, ".md") || strings.HasSuffix(p, ".html") {
@@ -615,7 +625,7 @@ func assessFlows(r result, f fixture, files string) assessment {
 	a.Criteria = append(a.Criteria, protected)
 	unexpected := []string{}
 	for _, p := range r.Changed {
-		if nativeIdentity(p) {
+		if nativeIdentity(p) || localInstructionsWrite(p) {
 			continue
 		}
 		allowed := strings.HasPrefix(p, "_support/")

@@ -7,7 +7,7 @@ description: Audit coding-agent instruction files (AGENTS.md and CLAUDE.md at wo
 
 Audit what coding-agent hosts actually load and whether each instruction, skill, or agent earns its place. Report findings with evidence, ask the decisions they need, and, after the user's answer, apply the accepted outcomes in the current project as [apply](references/apply.md) sets.
 
-A role launched read-only, such as `hive-review-harness`, or a delegated auditor edits nothing: it returns findings, decisions and any migration manifest to its parent, which asks and applies. In the main thread, write only what [apply](references/apply.md) allows after the user's answer, plus an approved migration manifest, whose mechanical entries run through the `workspace-conventions` procedure for applying a layout migration, stopping at `manual` and `ask` entries. Do not edit configuration outside the project or trackers.
+A role launched read-only, such as `hive-review-harness`, or a delegated auditor edits nothing: it returns findings, decisions and any migration manifest to its parent, which asks and applies. In the main thread, write only what [apply](references/apply.md) allows after the user's answer, the `HIVE.local.md` entries the global guidance's «Local instructions» authorizes, plus an approved migration manifest, whose mechanical entries run through the `workspace-conventions` procedure for applying a layout migration, stopping at `manual` and `ask` entries. Do not edit configuration outside the project or trackers.
 
 ## Scope
 
@@ -54,7 +54,7 @@ Report a file already at its floor as `already lean` (HA-IF-14).
 - `high`: guidance a repository needs to operate reaches no host in use by any path; a contradiction with consequence; a broken required resource; a consequential skill or agent without its boundary. Content reachable through a repository's upward pointer counts as conditionally reached and is not `high`.
 - `medium`: stale or misleading content, including loading claims that do not match a host; per-session cost without benefit.
 - `low`: redundancy, surplus pointers, minor cost.
-- `info`: observations without a proposed action, including anything about `CLAUDE.local.md`.
+- `info`: observations without a proposed action, including anything about `CLAUDE.local.md` or `HIVE.local.md`.
 
 ## Findings format
 

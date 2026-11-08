@@ -25,7 +25,7 @@ A child does the work for the first of these reasons that applies; when neither 
 
 ## Every child
 
-- Brief it with the decision its result informs, what it covers (its aspects, targets or task), what is already settled, and when to stop; a role that names its own inputs, such as `hive-verify-task` (the change folder, the task ID and the diff base), also gets those. A reviewer's brief follows [Reviewer brief](#reviewer-brief) instead, with nothing settled about the work it reviews. Any child that signs in, reviewer or not, also gets the rows of the accounts it uses, as the global guidance's «Test accounts» sets.
+- Brief it with the decision its result informs, what it covers (its aspects, targets or task), what is already settled, and when to stop; a role that names its own inputs, such as `hive-verify-task` (the change folder, the task ID and the diff base), also gets those. A reviewer's brief follows [Reviewer brief](#reviewer-brief) instead, with nothing settled about the work it reviews. Any child that signs in, reviewer or not, also gets the rows of the accounts it uses, as the global guidance's «Test accounts» sets. Any child that starts, serves or tests the project, or uses its environments, reviewer or not, also gets the path of `HIVE.local.md` (the main checkout's in a worktree) and reports the facts it verified or found stale, as the global guidance's «Local instructions» sets.
 - Wait for children with the host's wait tool, which returns when a child finishes or sends a message; never with a loop of sleeps and status checks.
 - A child does not commit; the main thread checks the evidence it returns, not its assertions, before using it, and owns the commits.
 
