@@ -43,10 +43,10 @@ Sin UI propia: la portada del sitio cambia solo de texto. Sin modelos reales.
 ## Checkpoint
 
 - Updated: 2026-11-08
-- Stage: build · 5
-- Last commit: 18a6c6ed
-- Open findings: none
-- Next: flow-verify: suite, walk AC27/AC31/AC33/AC34–AC38, /code-review, then push + PR + merge (automatic)
+- Stage: verify · 6
+- Last commit: ec551e5e
+- Open findings: code-review 10 findings (doc contradictions, membership stripping, watch closure, test gaps): all confirmed and fixed in ec551e5e; no second review (no product logic changed)
+- Next: push feat/model-support-floor, PR to development, wait CI, merge, flow-close
 
 ### Evidence
 
@@ -55,6 +55,9 @@ Sin UI propia: la portada del sitio cambia solo de texto. Sin modelos reales.
 - site: pnpm check (0 errors) && pnpm build (17 pages) · pass · 18a6c6ed
 - gitleaks git --staged · no leaks · 18a6c6ed
 - CI: only master-source-branch.yml (PRs to master); nothing to reproduce for a PR to development · n/a · 18a6c6ed
+- go test ./tests/content/... · pass · ec551e5e
+- site pnpm check && pnpm build · pass · ec551e5e
+- AC clause greps GS/MS · pass · ec551e5e
 
 ## Estado de revisión y progreso
 
