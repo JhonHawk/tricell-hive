@@ -124,10 +124,10 @@ Sin recorrido de interfaz: la interfaz no cambia (D3 A).
 ## Checkpoint
 
 - Updated: 2026-11-08
-- Stage: verify · 3
-- Last commit: 1d43b20d
-- Open findings: F1 trabajo cerrado se vuelve actual · corregido 1d43b20d; F2/F3 repetición entre etapas y cambio remoto antes de unchanged · corregido 1d43b20d; F4 --key ignorado con trabajo abierto · corregido 1d43b20d; F7 regla de operaciones pendientes · corregido 1d43b20d; F8 assignee en el contrato · corregido 1d43b20d; F5 candidato exige rama y origin/HEAD · rechazado: lo fija el spec (H9); F6 recover sin guía · rechazado: el contrato describe producer request y recover; close completa la etapa; F9 doble lectura de imágenes y sesión · no bloqueante, hallazgos del cierre; F10 duplicación de búsqueda de candidato · no bloqueante, hallazgos del cierre
-- Next: segunda revisión limitada al diff de 1d43b20d; luego push, PR, CI y merge
+- Stage: verify · 5
+- Last commit: 1a12f07a
+- Open findings: H1 segunda revisión: captura con --key en cola duplicaba el trabajo actual · corregido 1a12f07a (Unreviewed)
+- Next: push, PR, CI y merge (automatic)
 
 ### Evidence
 
@@ -138,6 +138,7 @@ Sin recorrido de interfaz: la interfaz no cambia (D3 A).
 - recorrido real AC1-AC4 con visor temporal (puerto 4893)|Login #1/#2 con supersedes por evento, Profile #1, unchanged, Cart #1/#2 en cola enviados al volver (sent 2)|675fe8e9
 - go test ./tooling/cli/ -run Capture|pass|675fe8e9
 - go test ./tooling/cli/ ./tests/content/ -count=1|pass|1d43b20d
+- go test ./tooling/cli/ -count=1|pass|1a12f07a
 
 ## Review status and progress
 
