@@ -16,7 +16,8 @@ Reads proposal.md, tasks.md, design.md and specs/**/*.md and prints one
   retired, outside the lines that may keep it: the marker lines, the
   proposal.md line that defines the old ID, a line that also names its
   replacement, and the progress section (a `##` heading containing
-  "progress", "progreso" or "avance");
+  "progress", "progreso" or "avance", or a `## Checkpoint` heading with its
+  `###` subsections);
 - a **Closes:** line naming a criterion when proposal.md has no `- AC<n>` bullet;
 - with --archive, each unchecked `- [ ]` box of tasks.md, then their count.
 
@@ -47,7 +48,7 @@ CLOSES = re.compile(marker("Closes").pattern + r"(.*)$")
 AC_DEFINITION = re.compile(r"^\s*[-*]\s+\**AC(\d+)\b")
 AC_REFERENCE = re.compile(r"AC(\d+)(?:\s*[-–—]\s*(?:AC)?(\d+))?")
 UNCHECKED = re.compile(r"^\s*[-*]\s+\[ \]\s*(.*)$")
-PROGRESS_HEADING = re.compile(r"^##\s.*(progress|progreso|avance)", re.IGNORECASE)
+PROGRESS_HEADING = re.compile(r"^##\s.*(progress|progreso|avance)|^##\s+checkpoint\s*$", re.IGNORECASE)
 LEVEL2_HEADING = re.compile(r"^##\s")
 
 
@@ -73,7 +74,7 @@ def scanned_files(folder):
 
 
 def exempt_progress(lines):
-    """Return the indexes of the lines inside a progress section."""
+    """Return the indexes of the lines inside a progress or checkpoint section."""
     exempt, inside = set(), False
     for i, line in enumerate(lines):
         if LEVEL2_HEADING.match(line):
