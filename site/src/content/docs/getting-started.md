@@ -57,14 +57,17 @@ can create or update it for you: ask it to set up your repository's Hive section
 and it proposes the facts with their evidence, asks the decisions it cannot
 deduce, and writes only what you accept.
 
-Facts that hold only on your machine, such as the ports your local stack ends
-up on, a command your system lacks, or the cloud profile and region of each
-environment, go in `HIVE.local.md` at the repository root, or at the workspace
-root when your work spans several repositories. You neither create nor commit
-it: the agent reads it at the start of each session, adds there each fact it
-verified with its date, marks the ones that stop working as stale, names the
-file that holds a password instead of writing it, and adds the file to
-`.git/info/exclude` so Git ignores it. You can edit it by hand, and the
+Facts that hold only on your machine and that a later session would run or
+check again go in two untracked files. Those of one project, such as the ports
+your local stack ends up on or which cloud profile serves its QA environment,
+go in `HIVE.local.md` at the repository root, or at the workspace root when your
+work spans several repositories. Those that hold in any project, such as a
+command your system lacks or the cloud profiles you have, go in the machine file
+`~/.config/hive/HIVE.local.md`. Diagnoses, counts and whether a host answers
+right now go in neither. You neither create nor commit them: the agent reads
+both at the start of each session, adds each fact it verified with its date,
+marks the ones that stop working as stale, names the file that holds a password
+instead of writing it, and keeps the files out of Git. You can edit it by hand, and the
 [local-instructions skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/local-instructions/SKILL.md)
 fills it the first time from what already worked in your recent sessions, asking
 you which facts to keep. A fact that
