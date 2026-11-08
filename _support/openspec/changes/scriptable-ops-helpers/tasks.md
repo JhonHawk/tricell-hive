@@ -43,9 +43,9 @@ Base: `development` @ `71c18043`, rama `feat/scriptable-ops-helpers`. T1 corre e
 
 ### T3 — Las skills invocan los scripts, y la documentación
 
-- [ ] `git-workflow/SKILL.md` pasos 2, 7, 8 y 9 invocan `git_state.py`, con los comandos manuales como alternativa si falta o sale con 2, y conservan el filtro de revisiones solo para bots y los hilos humanos abiertos
-- [ ] `flow-build/SKILL.md` pasos 2 y 5 y el checkpoint, y `flow-verify/SKILL.md` (checkpoint, líneas 21 y 25), invocan `tasks.py` en carpetas de cambio, con la edición manual como alternativa y sin cambiar el checkpoint de un plan guardado en la conversación
-- [ ] README, `llms.txt` si nombra requisitos, `site/` y `instruction-resources.md` al día
+- [x] `git-workflow/SKILL.md` pasos 2, 7, 8 y 9 invocan `git_state.py`, con los comandos manuales como alternativa si falta o sale con 2, y conservan el filtro de revisiones solo para bots y los hilos humanos abiertos
+- [x] `flow-build/SKILL.md` pasos 2 y 5 y el checkpoint, y `flow-verify/SKILL.md` (checkpoint, líneas 21 y 25), invocan `tasks.py` en carpetas de cambio, con la edición manual como alternativa y sin cambiar el checkpoint de un plan guardado en la conversación
+- [x] README, `llms.txt` si nombra requisitos, `site/` y `instruction-resources.md` al día
 
 **Closes:** AC7
 
@@ -71,17 +71,22 @@ Base: `development` @ `71c18043`, rama `feat/scriptable-ops-helpers`. T1 corre e
 ## Checkpoint
 
 - Updated: 2026-11-08
-- Stage: build · T3
-- Last commit: 9f7cfb16
+- Stage: verify · entry
+- Last commit: 09a42213
 - Open findings: none
-- Next: T3: skill pointers and docs
+- Next: verify: /code-review, real state read, push and merge
 
 ### Evidence
 
 - python3 -m unittest discover -s tests/skills -p '*_test.py' · exit 0, 81 tests · 9f7cfb16
+- go vet ./... · exit 0 · 09a42213
+- go test ./... · exit 0 · 09a42213
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · exit 0, 81 tests · 09a42213
+- hive update --source . --rev HEAD --dry-run · lists git_state.py and tasks.py among 263 files · 09a42213
 
 ## Review status and progress
 
 2026-11-08 — Plan escrito.
 2026-11-08 — T1 · d912db7e · unverified: real read only on a PR without reviews (#426)
 2026-11-08 — T2 · 9f7cfb16 · unverified: none
+2026-11-08 — T3 · 09a42213 · unverified: none
