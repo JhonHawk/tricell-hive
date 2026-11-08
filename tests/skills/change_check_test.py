@@ -189,6 +189,25 @@ class ChangeCheckTest(unittest.TestCase):
             result = self.run_check(self.folder(tmp, proposal="# demo\n", tasks="### T1\n\n**Closes:** none (refactor)\n"))
             self.assertEqual(result.returncode, 0, result.stdout)
 
+    def test_checkpoint_section_may_keep_a_replaced_id(self):
+        checkpoint = """
+    ## Checkpoint
+
+    - Open findings: H1: keep D4-A
+
+    ### Evidence
+
+    - suite · pass · D4-A
+
+    ## Review status and progress"""
+        tasks = TASKS.replace("\n    ## Review status and progress", checkpoint)
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.folder(tmp, tasks=tasks))
+            self.assertEqual(result.returncode, 0, result.stdout)
+            outside = tasks.replace("**Changes:** commit by D12-A, which replaced D4-A.", "**Changes:** commit by D12-A, which replaced D4-A.\n\n**Verification:** D4-A.")
+            result = self.run_check(self.folder(tmp, tasks=outside))
+            self.assertEqual(result.returncode, 1)
+
     def test_unreadable_folder_exits_2(self):
         with tempfile.TemporaryDirectory() as tmp:
             result = self.run_check(Path(tmp) / "missing")

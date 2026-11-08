@@ -91,7 +91,10 @@ It asks which hosts to install and confirms before it writes.
 - **Afterwards:** packages with the new update protocol register
   `~/.local/bin/hive` as the stable command. The installer does not edit `PATH`
   or overwrite an unowned file there. Older packages print their versioned path.
-- **Requirements:** `curl`, `tar`, and `shasum` or `sha256sum`.
+- **Requirements:** `curl`, `tar`, and `shasum` or `sha256sum`. Some skills
+  also run bundled scripts with `python3` (3.7 or later), such as the change
+  folder checks and the Git-state and task-progress helpers; the last two fall
+  back to the commands they replace when `python3` is missing.
 
 The [installer contract](_support/docs/architecture/installer.md#one-line-installation)
 lists what the script checks.

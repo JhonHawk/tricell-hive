@@ -33,6 +33,10 @@
 
 <The human walk, when the delivery stops for validation: the stack to serve, the account, and the steps.>
 
+## Checkpoint
+
+<Written by `scripts/tasks.py checkpoint`: Updated, Stage, Last commit, Open findings, Next, then `### Evidence` with the checks recorded so far.>
+
 ## Review status and progress
 
 <Date — one line per task done: its commit and anything left unverified.>
