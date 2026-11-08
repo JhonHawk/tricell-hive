@@ -446,6 +446,12 @@ func main() {
 	}
 	src, e := filepath.Abs(*source)
 	must(e)
+	if qualification {
+		// Canonicalize only for qualification: other suites keep the path as
+		// given.
+		src, e = target.Canonical(*source)
+		must(e)
+	}
 	output, e := target.Canonical(*out)
 	must(e)
 	if *nativeDataRoot != "" && (under(*nativeDataRoot, output) || under(output, *nativeDataRoot)) {

@@ -99,36 +99,23 @@ func setupQualifyGit(root string, t qualifyTask, f fixture) (*gitDeliveryReport,
 // host would discover the checkout's AGENTS.md or CLAUDE.md upward from it, and
 // the evidence directory would contain the fixture.
 func checkQualifyFixtureRoot(root, source, output string) error {
-	root = qualifyResolvePath(root)
+	root, err := target.Canonical(root)
+	if err != nil {
+		return err
+	}
 	for _, outer := range []string{source, output} {
 		if outer == "" {
 			continue
 		}
-		if abs, err := filepath.Abs(outer); err == nil {
-			outer = abs
+		outer, err := target.Canonical(outer)
+		if err != nil {
+			return err
 		}
-		outer = qualifyResolvePath(outer)
 		if under(root, outer) {
 			return fmt.Errorf("the qualification fixture root %s is under %s; set TMPDIR to a directory outside --source and --out", root, outer)
 		}
 	}
 	return nil
-}
-
-// qualifyResolvePath resolves symlinks of the longest existing prefix of path,
-// so a path that does not exist yet still compares by its real location (on
-// macOS /tmp is /private/tmp).
-func qualifyResolvePath(path string) string {
-	rest := ""
-	for p := filepath.Clean(path); ; p = filepath.Dir(p) {
-		if resolved, err := filepath.EvalSymlinks(p); err == nil {
-			return filepath.Join(resolved, rest)
-		}
-		if filepath.Dir(p) == p {
-			return path
-		}
-		rest = filepath.Join(filepath.Base(p), rest)
-	}
 }
 
 // guidanceHash is the one guidance hash for the deployed and A arms. home ""
@@ -214,14 +201,10 @@ func guidanceHashStatus(status string) bool {
 }
 
 // guidanceResource reads one managed resource as text for the hash.
-const qualifyAbsentMarker = "absent:managed resource missing"
-
 func guidanceResource(en management.StatusEntry) (string, error) {
 	info, err := os.Lstat(en.Path)
 	if errors.Is(err, os.ErrNotExist) {
-		// A drifted or interrupted installation: hash the absence, so it
-		// differs from an intact one instead of failing the whole hash.
-		return qualifyAbsentMarker, nil
+		return "", fmt.Errorf("managed guidance file %s is missing: repair the installation (for example with `hive update`) before qualifying", en.Path)
 	}
 	if err != nil {
 		return "", err

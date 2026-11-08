@@ -610,7 +610,7 @@ func TestQualifyRunRecordsAndChecksTheSplit(t *testing.T) {
 	}
 	s.Tasks[0].Split = qualifySplitHeldback
 	code, so, se := e.call(s, out, args(qualifySplitHeldback)...)
-	if code != 2 || !strings.Contains(so+se, "split") {
+	if code != 2 || !strings.Contains(so+se, "split: batch.json has") {
 		t.Fatalf("a changed split was not refused: %d\n%s%s", code, so, se)
 	}
 }

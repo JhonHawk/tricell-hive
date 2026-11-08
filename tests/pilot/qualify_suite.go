@@ -521,7 +521,7 @@ func finalAnswerText(r result) (string, bool) {
 	}
 	if last >= 0 {
 		key := events[last].Message
-		if key == "" {
+		if key == "" && r.Host == "codex" {
 			// Codex agent_message events carry no Message key: each one is a
 			// whole message, so the last event alone is the final answer.
 			return events[last].Text, true

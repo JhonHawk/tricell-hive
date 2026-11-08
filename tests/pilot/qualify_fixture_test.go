@@ -866,7 +866,24 @@ func TestQualificationFixtureRootResolvesSymlinksOfSourceAndOut(t *testing.T) {
 	}
 }
 
-func TestGuidanceHashSurvivesAMissingManagedFile(t *testing.T) {
+func TestQualificationFixtureRootRelativeRoot(t *testing.T) {
+	base, _ := filepath.EvalSymlinks(t.TempDir())
+	out := filepath.Join(base, "out")
+	if err := os.MkdirAll(filepath.Join(out, "sub"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	// A relative root under the output must be refused.
+	wd, _ := os.Getwd()
+	defer os.Chdir(wd)
+	if err := os.Chdir(base); err != nil {
+		t.Fatal(err)
+	}
+	if err := checkQualifyFixtureRoot("out/fixture", "", out); err == nil {
+		t.Fatal("a relative root under --out was accepted")
+	}
+}
+
+func TestGuidanceHashRefusesAMissingManagedFile(t *testing.T) {
 	t.Setenv("CODEX_HOME", "")
 	source := newFixtureCheckout(t, "# Rules\n")
 	home, _ := target.Canonical(t.TempDir())
@@ -876,20 +893,24 @@ func TestGuidanceHashSurvivesAMissingManagedFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	removed := false
+	removed := ""
 	for _, en := range entries {
 		if en.Host == "codex" && (en.Kind == "skill" || en.Kind == "symlink") && en.Status == "installed" {
+			removed = en.Path
 			if err := os.RemoveAll(en.Path); err != nil {
 				t.Fatal(err)
 			}
-			removed = true
 			break
 		}
 	}
-	if !removed {
+	if removed == "" {
 		t.Fatal("no managed file to remove")
 	}
-	if got := mustHash(t, "codex", home); got == base {
-		t.Fatal("a missing managed file left the hash unchanged")
+	got, err := guidanceHash("codex", home)
+	if err == nil {
+		t.Fatalf("a missing managed file was hashed: %s vs %s", got, base)
+	}
+	if !strings.Contains(err.Error(), removed) || !strings.Contains(err.Error(), "hive update") {
+		t.Fatalf("the error must name %s and the repair: %v", removed, err)
 	}
 }
