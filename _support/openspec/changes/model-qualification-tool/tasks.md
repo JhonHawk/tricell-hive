@@ -40,7 +40,7 @@ Base: `development` en `7ae26b0e`; rama `feat/model-qualification-tool` en un wo
 
 ### T6 — Modelo servido de OpenCode desde el export
 
-- [ ] Una corrida `qualification` de OpenCode fija `ModelObserved` desde `opencode session export` antes de limpiar el home aislado; Codex queda `not_observed`.
+- [x] Una corrida `qualification` de OpenCode fija `ModelObserved` desde `opencode session export` antes de limpiar el home aislado; Codex queda `not_observed`.
 
 **Closes:** AC49
 
@@ -142,14 +142,15 @@ Sin UI. Correr una calificación con modelos reales queda fuera de este cambio.
 
 - Updated: 2026-11-08
 - Stage: build · 2
-- Last commit: 1c2e67f5
+- Last commit: b2f5a652
 - Open findings: none
-- Next: T6 via hive-build-backend child
+- Next: T2 via hive-build-backend child
 
 ### Evidence
 
 - go test ./tests/pilot/ -run QualifySuite: ok @ 1265c17a
 - go test ./tests/pilot/ -count=1: ok 44s @ 1c2e67f5
+- go test ./tests/pilot/ -count=1: ok @ b2f5a652
 
 ## Estado de revisión y progreso
 
@@ -160,3 +161,4 @@ Sin UI. Correr una calificación con modelos reales queda fuera de este cambio.
 - 2026-11-08 — revisión 4: D22 A, hallazgos H40–H45 de la tercera revisión aplicados sin cuarta revisión; AC48, AC53, AC54 y AC55 retirados y reemplazados por AC56–AC59; ninguna tarea hecha.
 2026-11-08 — T4 · 1265c17a · unverified: none
 2026-11-08 — T1 · 1c2e67f5 · unverified: guidanceHash symlink-vs-skill test exercises whichever record kind the Codex install yields
+2026-11-08 — T6 · b2f5a652 · unverified: no red step recorded before the fix; the 10 s export cap itself is not exercised
