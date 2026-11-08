@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Listo para flow-build · revisión 8 |
+| Estado | Completado · PR #429, merge bdf66443 |
 | Tracker | ninguno |
 | Git | JhonHawk/tricell-hive · base `development` en `19912662` · rama propuesta `feat/model-support-floor` |
 
