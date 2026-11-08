@@ -38,7 +38,7 @@ When a ticket you picked has open scope, such as missing criteria or more than o
 - For a failure, lists the plausible causes and checks each one, and tells you which it ruled out and with what evidence.
 - Resolves conflicting sources by date, version, scope and direct observation. Missing delivery evidence means delivery is not verified, not that it did not happen.
 - For a chosen ticket, writes an assessment of its impact, complexity, readiness and dependencies.
-- Searches for an existing ticket before proposing one. It publishes nothing to the viewer: the [viewer](/viewer/) session starts at Plan or Build, with a one-paragraph summary of the work.
+- Searches for an existing ticket before proposing one. It publishes nothing to the viewer: the [viewer](/viewer/) session starts at the first UI capture of a Build or Verify, with a one-paragraph summary of the work.
 
 It does not change code, tickets, documents or deployments, and it does not treat "no search results" as proof that something is missing.
 

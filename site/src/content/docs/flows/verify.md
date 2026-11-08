@@ -23,7 +23,7 @@ Skip verify for this one; I will check it myself.
 
 ## What it asks you
 
-When your delivery answer stops for validation, Verify shows the result in the [viewer](/viewer/) while the reviews still run, saying that approval is subject to their findings, and asks you to approve or request corrections. After a round that changed something visible, it shows only those screens and asks again. A visible defect that was already there, in a region the change affects, comes to you as a finding with a recommendation; when your delivery does not stop for validation, it comes in the close's findings. Decisions follow the [delivery and question rules](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md).
+When your delivery answer stops for validation, Verify publishes the captures of the changed screens to the [viewer](/viewer/), each correction as a new iteration of the same screen, while the reviews still run, saying that approval is subject to their findings, and asks you to approve or request corrections. After a round that changed something visible, it captures only those screens again and asks again. A visible defect that was already there, in a region the change affects, comes to you as a finding with a recommendation; when your delivery does not stop for validation, it comes in the close's findings. Decisions follow the [delivery and question rules](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md).
 
 ## How it ends
 
