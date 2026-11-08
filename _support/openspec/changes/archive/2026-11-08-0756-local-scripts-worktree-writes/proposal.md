@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build · pendiente de tu aprobación |
+| Estado | Completado · PR #424, af8f556d |
 | Tracker | ninguno |
 | Git | JhonHawk/tricell-hive · base `development` en `b14ae746` · rama propuesta `feat/local-scripts-worktree-writes` |
 
