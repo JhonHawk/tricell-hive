@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | In build (plan revisado: skill añadida) |
+| Estado | Completado · PR #418 (e285329b), PR #419 (c4c1e181) |
 | Tracker | ninguno |
 | Git | JhonHawk/tricell-hive · base `development` en `e0bb3a95` · rama propuesta `feat/local-instructions-file` |
 
