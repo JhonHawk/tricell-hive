@@ -8,6 +8,8 @@ This folder holds the research and measurement basis for rebuilding Hive as a sm
 
 - [Cross-harness findings and design implications](2026-09-20-portable-harness-research.md) — source-backed findings, limits, recommendations, and a bounded evaluation approach.
 
+- [Model support floor](model-floor.md) — the models distributed guidance is written for, the candidates whose observed failures count toward a correction, and the qualification criterion.
+
 - [Harness audit rules](harness-audit-rules.md) — provenance, evidence strength, and status for every rule ID in the `harness-audit` skill; internal, not deployed.
 
 - [Workflow map](2026-09-20-workflow-map.md) — human-facing report in Spanish: Hive master inventory, comparison with local references, and rebuild proposals.
