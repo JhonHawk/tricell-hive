@@ -12,9 +12,9 @@
 
 Que un perfil exista y su región van al archivo de máquina; qué perfil sirve a cada entorno de un proyecto va al archivo de ese repositorio. Así cada proyecto ve su mapeo y ninguno ve el de otro.
 
-## Texto de la sección global (borrador para T7)
+## Texto de la sección global (borrador para T7, superado)
 
-Sustituye la sección «Local instructions» entera. El texto final puede ajustar redacción, no reglas.
+Borrador previo a las dos revisiones de código: el texto vigente es el de `content/guidance/global.md`, con las correcciones de la sección final de este documento.
 
 ```markdown
 ## Local instructions

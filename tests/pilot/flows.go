@@ -554,10 +554,16 @@ func flowLoadingSkills(id string) []string {
 }
 
 // machineFileWrite reports whether p is the machine file of «Local
-// instructions», <config home>/hive/HIVE.local.md, which the guidance lets an
-// agent write outside the fixture in any flow.
+// instructions», <config home>/hive/HIVE.local.md, or the exclude file of a
+// versioned config home, the writes the guidance allows outside the fixture.
+// The config home is $XDG_CONFIG_HOME when absolute, else $HOME/.config.
 func machineFileWrite(p string) bool {
-	return strings.HasSuffix(filepath.ToSlash(p), "/hive/HIVE.local.md")
+	config := os.Getenv("XDG_CONFIG_HOME")
+	if !filepath.IsAbs(config) {
+		config = filepath.Join(os.Getenv("HOME"), ".config")
+	}
+	p = filepath.Clean(p)
+	return p == filepath.Join(config, "hive", "HIVE.local.md") || p == filepath.Join(config, ".git", "info", "exclude")
 }
 
 // localInstructionsWrite reports whether p is a write the global guidance's

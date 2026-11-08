@@ -939,13 +939,18 @@ func TestAssessFlowsAllowsLocalInstructionsWrites(t *testing.T) {
 // Breaks if the external-writes criterion stops exempting the machine file of
 // «Local instructions», or starts exempting a sibling file in its folder.
 func TestAssessFlowsAllowsMachineFileWrite(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", "")
 	yes := true
 	for _, tc := range []struct {
 		path string
 		want string
 	}{
-		{"/home/u/.config/hive/HIVE.local.md", "pass"},
-		{"/home/u/.config/hive/notes.md", "fail"},
+		{filepath.Join(home, ".config", "hive", "HIVE.local.md"), "pass"},
+		{filepath.Join(home, ".config", ".git", "info", "exclude"), "pass"},
+		{filepath.Join(home, ".config", "hive", "notes.md"), "fail"},
+		{"/elsewhere/projects/hive/HIVE.local.md", "fail"},
 	} {
 		r := result{Root: "/fixture", Cwd: "/fixture", Suite: "flows", Case: "research", Terminal: "completed",
 			Before: baseInventory(), After: baseInventory(),

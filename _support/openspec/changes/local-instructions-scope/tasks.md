@@ -112,4 +112,6 @@ Revisión humana (D5 A): leer la sección nueva de `global.md` y el diff.
 
 2026-11-07 — `/code-review` sobre `development..8c8f5a77`: 10 hallazgos confirmados al leer el código; ronda de correcciones en el commit siguiente (plan revisado: AC47 → AC53, AC54-AC56).
 
-Checkpoint: stage verify, paso 3. Siguiente: segunda revisión de código limitada a la ronda, revisión del plan revisado y parada de validación.
+2026-11-07 — Ronda final de la segunda revisión en el commit siguiente; T11 se comprueba también con `go test ./tests/pilot/...`.
+
+Checkpoint: stage verify, paso 2 (parada de validación).
