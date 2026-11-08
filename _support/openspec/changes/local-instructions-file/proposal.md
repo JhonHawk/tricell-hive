@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | In build |
+| Estado | In build (plan revisado: skill añadida) |
 | Tracker | ninguno |
 | Git | JhonHawk/tricell-hive · base `development` en `e0bb3a95` · rama propuesta `feat/local-instructions-file` |
 
@@ -15,6 +15,12 @@
 - **D4 A** — ¿Se propone añadirlo al `.gitignore` versionado de cada proyecto? No: el exclude que escribe el agente protege cada clon y la regla no añade preguntas.
 - **D5 A** — ¿Cómo se entrega? `interactive`: parada antes del push para que el usuario revise la sección y el diff; luego push, PR y merge.
 - **D6 A** — ¿Qué revisión de código pasa el candidato? La nativa de Claude Code, `/code-review`.
+- **D7 A** — ¿Se aprueba la sección y el diff (`240fc93f`) para push, PR y merge? Sí, sujeto a `/code-review`; como la skill entra en el cambio, el conjunto se valida otra vez antes del push.
+- **D8 B** — ¿La skill de arranque entra en este cambio? Sí: se añade a este plan y va en el mismo PR.
+- **D9 A** — ¿Skill nueva o modo de `harness-audit`? Skill nueva `local-instructions`, con modos crear y curar.
+- **D10 A** — ¿Qué fuentes audita? Todo: transcripciones de los últimos 30 días de este proyecto (leídas por un hijo que devuelve solo comandos que funcionaron, sin valores), memoria persistente, memoria del host y notas locales, `AGENTS.md` o README y nombres de archivos de la carpeta de secretos.
+- **D11 A** — ¿Cómo entran los datos conservados? Confirmados con una comprobación de solo lectura cuando existe; el resto con su fecha de origen y marcado «unverified».
+- **D12 A** — ¿Cómo se extraen los candidatos de las transcripciones? Con un script de la skill, `extract_candidates.py` (Python de librería estándar, con tests), que ejecuta el hilo principal en lugar del hijo de D10: sesiones principales de los últimos 30 días de Claude Code y Codex, cada comando emparejado con su resultado y cualquier valor enmascarado antes de mostrarlo. Grok, Pi, OpenCode, Cursor y Antigravity quedan sin cubrir.
 
 Decididas en la investigación previa, sin ID: una sola regla y un documento libre en lugar de un script con JSON validado; un archivo neutral en lugar de `CLAUDE.local.md` (solo Claude Code, y suprime `AGENTS.md` sin un `CLAUDE.md` que lo importe) o `AGENTS.override.md` (Codex, reemplaza al `AGENTS.md` versionado); `ACCOUNTS.md` sigue igual y `HIVE.local.md` solo lo apunta. Supuestos menores tras la revisión del plan: ver `design.md` «Supuestos».
 
@@ -28,7 +34,7 @@ Decididas en la investigación previa, sin ID: una sola regla y un documento lib
 >
 > «Sería como el AGENTS.md pero que NO se commitea, porque CLAUDE.local.md solo es compatible con claude.»
 
-Sin ticket. Fuera de alcance: un script o esquema JSON, hooks de inicio de sesión, cambios en `ACCOUNTS.md`, añadir el archivo a `.gitignore` versionados, cambios en `flow-walkthrough`, y escribirlo en proyectos cliente (lo crea el agente allí cuando verifique algo).
+Sin ticket. Fuera de alcance: un script o esquema que guarde o valide los datos del archivo, hooks de inicio de sesión, cambios en `ACCOUNTS.md`, añadir el archivo a `.gitignore` versionados, cambios en `flow-walkthrough`, y escribirlo en proyectos cliente (lo crea el agente allí cuando verifique algo).
 
 ## Objective
 
@@ -41,7 +47,7 @@ Con el cambio, la guía global manda leer `HIVE.local.md` al iniciar la sesión 
 
 ## Scope and acceptance
 
-En alcance: una sección de la guía global; punteros en flow-build, flow-verify, delegación, la disposición de artefactos, harness-audit (HA-IF-15 y HA-PL-05) y el rol `hive-review-harness`; tres páginas del sitio y un documento de arquitectura. Fuera: lo listado en Request.
+En alcance: una sección de la guía global; la skill `local-instructions` (crear y curar `HIVE.local.md`) con su referencia de transcripciones; punteros en flow-build, flow-verify, delegación, la disposición de artefactos, harness-audit (HA-IF-15 y HA-PL-05) y el rol `hive-review-harness`; las páginas del sitio que describen el comportamiento o listan skills, `llms.txt`, `CHANGELOG.md` y un documento de arquitectura. Fuera: lo listado en Request.
 
 Cada criterio de la guía global se observa con `rg -n -F "<frase>" content/guidance/global.md`, que hoy devuelve 0 coincidencias para cada frase (comprobado en `e0bb3a95`).
 
@@ -61,6 +67,21 @@ Cada criterio de la guía global se observa con `rg -n -F "<frase>" content/guid
 - AC14 — Un hijo lo lee, no lo escribe, y reporta lo verificado u obsoleto · falso hoy: `reads the file and does not write it` no aparece. **Replaces:** AC3
 - AC15 — `flow-build/SKILL.md`, `flow-verify/SKILL.md`, `flow-build/references/delegation.md`, `workspace-conventions/references/artifact-layout.md`, `harness-audit/references/project-layout.md` (HA-PL-05), `harness-audit/references/instruction-files.md` (HA-IF-15) y `content/agents/review/hive-review-harness.md` nombran «Local instructions» o `HIVE.local.md` · falso hoy: `rg -c "Local instructions|HIVE.local.md" content` no devuelve nada. **Replaces:** AC4
 - AC16 — `site/src/content/docs/getting-started.md`, `flows/build.md`, `flows/verify.md` y `_support/docs/architecture/workspace-and-artifacts.md` describen `HIVE.local.md` · falso hoy: `rg -c "HIVE.local.md" site/src _support/docs/architecture` no devuelve nada. **Replaces:** AC5
+- AC17 — Existe `content/skills/local-instructions/SKILL.md` con `name` y `description`, a lo sumo 16 000 bytes, con dos modos: crear el archivo y curarlo · falso hoy: el archivo no existe.
+- AC18 — **Retired:** el hijo lector de transcripciones lo sustituye el script (D12 A); lo sustituyen AC24 y AC25. La skill reúne candidatos de memoria persistente, memoria del host y notas locales, `AGENTS.md` o README y nombres de archivos de la carpeta de secretos, y delega en un hijo las transcripciones de los últimos 30 días de este proyecto, que devuelve solo comandos que funcionaron sin ningún valor · falso hoy: no existe la skill.
+- AC19 — **Retired:** faltaba cómo cabe la entrevista en la herramienta de preguntas y qué pasa con la memoria; lo sustituye AC26. Antes de escribir nada, la skill entrevista al usuario con la herramienta de preguntas para conservar o descartar cada grupo de candidatos, y en modo curar también las entradas existentes · falso hoy: no existe la skill.
+- AC20 — **Retired:** faltaban las restricciones de las comprobaciones y qué hace un fallo; lo sustituye AC27. La skill confirma cada dato conservado con una comprobación de solo lectura de una lista fija cuando existe una, escribe el resto con su fecha de origen marcado `unverified`, y nunca ejecuta comandos que arrancan, siembran o migran · falso hoy: no existe la skill.
+- AC21 — **Retired:** repetía pasos de la regla; lo sustituye AC28. La skill escribe como fija «Local instructions» (sin valores secretos, tope, exclude) y nombra en su informe, sin guardarlos, los datos que valen para todo clon · falso hoy: no existe la skill.
+- AC22 — **Retired:** con el script cambia qué hosts se cubren; lo sustituye AC29. `content/skills/local-instructions/references/transcript-sources.md` da la ruta de las transcripciones de Claude Code, Codex, Grok y Pi, y dice que las de OpenCode, Cursor y Antigravity no están localizadas · falso hoy: el archivo no existe.
+- AC23 — **Retired:** faltaba `getting-started.md`; lo sustituye AC30. La línea del tope en «Local instructions» recomienda la skill, y `site/src/content/docs/skills.md`, `index.mdx`, `llms.txt` y `CHANGELOG.md` la nombran · falso hoy: `rg -l "local-instructions" content/guidance site/src llms.txt CHANGELOG.md` no devuelve nada.
+- AC24 — La skill reúne candidatos de memoria persistente, memoria del host y notas locales, la guía versionada y los nombres (nunca el contenido) de los archivos de la carpeta de secretos, y ejecuta `scripts/extract_candidates.py` sobre las sesiones principales de los últimos 30 días de Claude Code y Codex de este proyecto, incluidos sus worktrees y las sesiones abiertas en la raíz del workspace · falso hoy: no existe la skill. **Replaces:** AC18
+- AC25 — `extract_candidates.py` no imprime ningún valor: con transcripciones de prueba que llevan una contraseña en una asignación de entorno, en la parte de usuario de una URL, en una cabecera `Authorization` y tras `--password`, ninguno de esos textos aparece en su salida; devuelve los comandos que terminaron con 0 y los comandos que faltaron, con número de sesiones y fecha más reciente, y deja fuera otro proyecto con el mismo prefijo de ruta, las transcripciones de subagentes y las sesiones fuera de la ventana · falso hoy: el script y su test no existen. **Replaces:** AC18
+- AC26 — Antes de escribir nada, la skill lista en el texto cada grupo con sus candidatos numerados y pregunta por grupo con la herramienta de preguntas (conservar los recomendados, conservar todos, descartar todos o elegir por número en el chat); las respuestas quedan en `HIVE.local.md`, no en memoria persistente, y descartar un candidato no borra su fuente · falso hoy: no existe la skill. **Replaces:** AC19
+- AC27 — La skill confirma lo conservado solo con su lista de comprobaciones de solo lectura (`git config --get` solo con claves que no guardan credenciales; `--version` solo tras `command -v` y nunca con `npx` ni scripts del proyecto), escribe como `unverified` con su fecha de origen lo que no se confirma o falla y el usuario conserva, y nunca ejecuta un comando del proyecto que arranca, para, siembra, migra, instala, inicia sesión o escribe · falso hoy: no existe la skill. **Replaces:** AC20
+- AC28 — La skill escribe el archivo con un puntero a «Local instructions», sin repetir sus pasos, y nombra en su informe los datos que valen para todo clon · falso hoy: no existe la skill. **Replaces:** AC21
+- AC29 — `references/transcript-sources.md` da las rutas y codificaciones de carpeta de Claude Code (con `/` y `.` como `-`, y las carpetas de worktrees) y de Codex, y dice que Grok, Pi, OpenCode, Cursor y Antigravity no los cubre el script · falso hoy: el archivo no existe. **Replaces:** AC22
+- AC30 — La línea del tope en «Local instructions» recomienda la skill, y `site/src/content/docs/skills.md`, `index.mdx`, `getting-started.md`, `llms.txt` y `CHANGELOG.md` la nombran · falso hoy: `rg -l "local-instructions" content/guidance site/src llms.txt CHANGELOG.md` no devuelve nada. **Replaces:** AC23
+- AC31 — «Local instructions» dice que una entrada marcada `unverified` lleva la fecha en que se vio, se comprueba antes de usarla y el tope puede quitarla como una obsoleta · falso hoy: `rg -F "unverified" content/guidance/global.md` no devuelve nada.
 
 ## Prerequisites
 
@@ -79,8 +100,11 @@ Ninguno: el build no necesita nada fuera del repositorio.
 
 ## Delivery
 
-`interactive` (D5 A): tras el verify, parada antes del push para que el usuario lea la sección nueva de `global.md` y el diff; con su visto bueno, push de `feat/local-instructions-file`, PR a `development` y merge. Revisión: `/code-review` de Claude Code (D6 A) sobre el candidato antes de la parada. Con el marcador de mantenedor presente, el merge en `development` es la petición de refrescar la instalación local (`hive update --source`). Esto no autoriza un release ni cambios en proyectos cliente.
+`interactive` (D5 A): tras el verify, parada antes del push para que el usuario lea la sección nueva de `global.md` y el diff; con su visto bueno, push de `feat/local-instructions-file`, PR a `development` y merge. Revisión: `/code-review` de Claude Code (D6 A) sobre el candidato antes de la parada. Tras añadir la skill (D8 B) hay una segunda parada de validación con el conjunto completo antes del push. Con el marcador de mantenedor presente, el merge en `development` es la petición de refrescar la instalación local (`hive update --source`). Esto no autoriza un release ni cambios en proyectos cliente.
 
 ## Review status and progress
 
 2026-11-07 — Plan escrito; `hive-review-plan` devolvió 7 hallazgos P2 y 9 P3, sin P0 ni P1. Aplicados: criterios divididos con observación propia (AC1-AC5 retirados, AC6-AC16), HA-PL-05, `hive-review-harness`, `flows/verify.md` y `workspace-and-artifacts.md` en alcance, autorización en flujos de solo lectura, archivo de destino según el número de repositorios, umbral observable de dato de la máquina, poda que no borra entradas vigentes, `## Purpose` en el delta, delta alineado con el borrador, comprobación antes de dar una entrada por vigente, relectura tras compactación, tope de 100 líneas, informe del hijo en el puntero de delegación, sesiones en el mensaje de commit, supuestos marcados y comando del build del sitio.
+2026-11-07 — Revisión del plan: `/code-review` dio 10 hallazgos, aplicados en `87fef783`; el usuario añadió la skill de arranque (D8 B, D9-D11 A). Nuevos AC17-AC23 y tareas T4-T5; no invalida T1-T3.
+2026-11-07 — Tercera revisión del plan (revisión con D12): 1 P1, 7 P2, 6 P3. Aplicados: subagentes de Codex excluidos (`exec` y `vscode` cuentan como sesiones principales, supuesto menor), enmascarado por lista de permitidos con los casos de la revisión en el test, éxito de Claude sin comandos en segundo plano, «faltó» anclado a mensajes de error completos, `where` por candidato, `--version` sin shims, excepción de memoria nombrada, alcance reescrito.
+2026-11-07 — Segunda revisión del plan: 2 P1, 7 P2, 5 P3. El usuario eligió el script (D12 A). Retirados AC18-AC23; nuevos AC24-AC31; T4 pasa a ser el script, T5 la skill y T6 los enlaces.
