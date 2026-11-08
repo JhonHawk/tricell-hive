@@ -85,7 +85,7 @@ Base: `development` en `7ae26b0e`; rama `feat/model-qualification-tool` en un wo
 
 ### T3 — Subcomandos `qualify run` y `qualify score`
 
-- [ ] `qualify run` escribe o comprueba `batch.json`, calcula el calendario, exige `--confirm-sessions` igual a lo que va a lanzar, resuelve el esfuerzo, lanza el runner por intento y relanza solo repeticiones sin intento utilizable; `qualify score` imprime el informe de T2.
+- [x] `qualify run` escribe o comprueba `batch.json`, calcula el calendario, exige `--confirm-sessions` igual a lo que va a lanzar, resuelve el esfuerzo, lanza el runner por intento y relanza solo repeticiones sin intento utilizable; `qualify score` imprime el informe de T2.
 
 **Closes:** AC58
 
@@ -111,7 +111,7 @@ Base: `development` en `7ae26b0e`; rama `feat/model-qualification-tool` en un wo
 
 ### T7 — Documentación del piso y de contribución
 
-- [ ] `model-floor.md` y `CONTRIBUTING.md` según AC59.
+- [x] `model-floor.md` y `CONTRIBUTING.md` según AC59.
 
 **Closes:** AC59
 
@@ -141,10 +141,10 @@ Sin UI. Correr una calificación con modelos reales queda fuera de este cambio.
 ## Checkpoint
 
 - Updated: 2026-11-08
-- Stage: build · 2
-- Last commit: 36230985
+- Stage: build · 5
+- Last commit: ce273c25
 - Open findings: none
-- Next: T3 via hive-build-backend child
+- Next: reproduce CI locally, then flow-verify
 
 ### Evidence
 
@@ -152,6 +152,7 @@ Sin UI. Correr una calificación con modelos reales queda fuera de este cambio.
 - go test ./tests/pilot/ -count=1: ok 44s @ 1c2e67f5
 - go test ./tests/pilot/ -count=1: ok @ b2f5a652
 - go test ./tests/pilot/ -count=1: ok @ 36230985
+- go test ./tests/pilot/ ./tests/content/ -count=1: ok @ ce273c25
 
 ## Estado de revisión y progreso
 
@@ -164,3 +165,5 @@ Sin UI. Correr una calificación con modelos reales queda fuera de este cambio.
 2026-11-08 — T1 · 1c2e67f5 · unverified: guidanceHash symlink-vs-skill test exercises whichever record kind the Codex install yields
 2026-11-08 — T6 · b2f5a652 · unverified: no red step recorded before the fix; the 10 s export cap itself is not exercised
 2026-11-08 — T2 · 36230985 · unverified: red step not recorded before implementation
+2026-11-08 — T3 · 5931037e · unverified: the expected arm A hash was matched against a real runner install on Codex only, not OpenCode
+2026-11-08 — T7 · ce273c25 · unverified: none
