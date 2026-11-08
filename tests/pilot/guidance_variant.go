@@ -106,6 +106,41 @@ func validateGuidanceVariantFlags(host, guidanceSource, arm, model string) error
 	return nil
 }
 
+// validateQualificationArmFlags is the guard for --suite qualification (AC40):
+// deployed takes no --guidance-source and runs on every host; A takes one and
+// runs on codex, grok and opencode; none takes none and runs only where the
+// isolated home can be controlled by content (codex and opencode).
+func validateQualificationArmFlags(host, guidanceSource, arm, model string) error {
+	switch arm {
+	case qualifyArmDeployed:
+		if guidanceSource != "" {
+			return fmt.Errorf("--arm deployed uses the deployed guidance and takes no --guidance-source")
+		}
+	case "A":
+		if guidanceSource == "" {
+			return fmt.Errorf("--arm A requires --guidance-source")
+		}
+		if host != "codex" && host != "grok" && host != "opencode" {
+			return fmt.Errorf("--arm A is only supported for --host codex, grok or opencode")
+		}
+	case qualifyArmNone:
+		if guidanceSource != "" {
+			return fmt.Errorf("--arm none installs no guidance and takes no --guidance-source")
+		}
+		if host != "codex" && host != "opencode" {
+			return fmt.Errorf("--arm none is only supported for --host codex or opencode (model-floor.md «Known limits»)")
+		}
+	default:
+		return fmt.Errorf("--arm must be deployed, A or none for --suite qualification")
+	}
+	if host == "opencode" && arm != qualifyArmDeployed {
+		if _, err := openCodeIntegration(model); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // shadowHostConfig builds the same synthetic target.Config tooling/management
 // would build for Options{Scope:"user", Home: shadowHome} (see
 // management.normalize), without installing anything. It is the "fake host"
@@ -703,6 +738,25 @@ func setupGuidanceVariant(source, arm, output, host, userHome, model, engramData
 	if plan.Release == nil {
 		return nil, fmt.Errorf("guidance release identity unavailable")
 	}
+	return prepareIsolatedHome(source, arm, shadowHome, host, userHome, model, engramDataDir, plan.Release.ID, nativeRoots...)
+}
+
+// setupIsolatedHomeWithoutGuidance prepares the same isolated home as
+// setupGuidanceVariant (credentials, memory isolation, native cleanup) for the
+// qualification `none` arm, but installs nothing: no Hive block, skill or
+// agent ever reaches the home. It never runs the manager.
+func setupIsolatedHomeWithoutGuidance(arm, output, host, userHome, model, engramDataDir string, nativeRoots ...string) (*guidanceVariant, error) {
+	shadowHome := filepath.Join(output, "shadow-home")
+	if err := os.MkdirAll(shadowHome, 0700); err != nil {
+		return nil, err
+	}
+	return prepareIsolatedHome("", arm, shadowHome, host, userHome, model, engramDataDir, "", nativeRoots...)
+}
+
+// prepareIsolatedHome is the part of the setup both arms share: it records the
+// read paths of the (possibly absent) guidance and prepares the host-specific
+// configuration, credential link and native cleanup of the isolated home.
+func prepareIsolatedHome(source, arm, shadowHome, host, userHome, model, engramDataDir, releaseID string, nativeRoots ...string) (*guidanceVariant, error) {
 	blockPath, skillPath, err := guidanceReadPaths(host, shadowHome)
 	if err != nil {
 		return nil, err
@@ -714,13 +768,17 @@ func setupGuidanceVariant(source, arm, output, host, userHome, model, engramData
 			Source: source, Arm: arm, ShadowHome: shadowHome,
 			GuidanceBlockPath: blockPath, GuidanceBlockHash: hashOrAbsent(blockPath),
 			FlowBuildSkillPath: skillPath, FlowBuildSkillHash: hashOrAbsent(skillPath),
-			ReleaseID: plan.Release.ID,
+			ReleaseID: releaseID,
 		},
 	}
 	switch host {
 	case "codex":
 		shadowCodexHome := filepath.Join(shadowHome, ".codex")
 		realCodexHome := envRoot("CODEX_HOME", filepath.Join(userHome, ".codex"))
+		// The install creates this directory; the none arm has no install.
+		if err := os.MkdirAll(shadowCodexHome, 0700); err != nil {
+			return nil, err
+		}
 		if err := writeShadowCodexConfig(shadowCodexHome, realCodexHome); err != nil {
 			return nil, err
 		}

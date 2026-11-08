@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -124,7 +126,7 @@ func TestOpenCodeNativeExportRequiresExactSuccessfulFinalTurn(t *testing.T) {
 
 func TestOpenCodeNativeExportFailureStaysUnverified(t *testing.T) {
 	r := parseTrace("opencode", strings.NewReader(`{"type":"text","sessionID":"ses-1","part":{"type":"text","messageID":"msg-final","text":"done"}}`))
-	if err := verifyOpenCodeCompletion(&r, "/path/that/does/not/exist", "/workspace", nil); err == nil {
+	if _, err := verifyOpenCodeCompletion(&r, "/path/that/does/not/exist", "/workspace", nil); err == nil {
 		t.Fatal("missing OpenCode binary unexpectedly verified completion")
 	}
 	if got := terminalState(r, 0, ""); got != "not_verified" {
@@ -403,5 +405,45 @@ func TestOpenCodeBackgroundSubagentLeavesRunUnverified(t *testing.T) {
 	}
 	if got := terminalState(r, 0, ""); got != "completed" {
 		t.Fatalf("foreground subagent run: got %s, want completed", got)
+	}
+}
+
+func TestQualificationServedModelFromExport(t *testing.T) {
+	m := func(p, id, v string) string {
+		return `{"providerID":"` + p + `","id":"` + id + `","variant":"` + v + `"}`
+	}
+	cases := map[string]struct{ body, want string }{
+		"last assistant wins":                        {`{"info":{"model":` + m("p", "info", "") + `},"messages":[{"type":"assistant","model":` + m("p", "first", "") + `},{"type":"user"},{"type":"assistant","model":` + m("q", "last", "max") + `},{"type":"idle"}]}`, "q/last#max"},
+		"info only without assistant":                {`{"info":{"model":` + m("p", "info", "v") + `},"messages":[{"type":"user"}]}`, "p/info#v"},
+		"assistant without model does not fall back": {`{"info":{"model":` + m("p", "info", "") + `},"messages":[{"type":"assistant"}]}`, "not_observed"},
+		"no variant":                                 {`{"messages":[{"type":"assistant","model":` + m("p", "x", "") + `}]}`, "p/x"},
+		"nothing":                                    {`{"info":{},"messages":[]}`, "not_observed"},
+		"invalid":                                    {`{`, "not_observed"},
+		"empty":                                      {``, "not_observed"},
+	}
+	for name, c := range cases {
+		if got := servedModelFromExport([]byte(c.body)); got != c.want {
+			t.Errorf("%s: got %q, want %q", name, got, c.want)
+		}
+	}
+}
+
+func TestVerifyOpenCodeCompletionReturnsTheExportBytes(t *testing.T) {
+	dir := t.TempDir()
+	bin := filepath.Join(dir, "opencode")
+	if err := os.WriteFile(bin, []byte("#!/bin/sh\nprintf '{\"info\":{\"id\":\"ses-1\"}}'\n"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	r := parseTrace("opencode", strings.NewReader(`{"type":"text","sessionID":"ses-1","part":{"type":"text","messageID":"msg-final","text":"done"}}`))
+	data, err := verifyOpenCodeCompletion(&r, bin, dir, nil)
+	if err == nil {
+		t.Fatal("a directory-less export must not verify completion")
+	}
+	if string(data) != `{"info":{"id":"ses-1"}}` {
+		t.Fatalf("export bytes were not returned: %q", data)
+	}
+	r2 := parseTrace("opencode", strings.NewReader(`{"type":"text","part":{"type":"text","text":"x"}}`))
+	if data, _ := verifyOpenCodeCompletion(&r2, bin, dir, nil); data != nil {
+		t.Fatal("an export that never ran returned bytes")
 	}
 }

@@ -55,11 +55,13 @@ type result struct {
 	OutsideChanges                                                                                    []string
 	NativeTrustRegistration                                                                           bool
 	Delivery, ModelConfigured, Provider, PromptHash, FixtureHash                                      string
-	MemoryIsolation                                                                                   memoryIsolationReport
-	Trace                                                                                             traceReport
-	GitDelivery                                                                                       *gitDeliveryReport     `json:",omitempty"`
-	GuidanceVariant                                                                                   *guidanceVariantReport `json:",omitempty"`
-	FlashClass                                                                                        *flashClassReport      `json:",omitempty"`
+	// Task, Split and GuidanceHash are set only by --suite qualification.
+	Task, Split, GuidanceHash string `json:",omitempty"`
+	MemoryIsolation           memoryIsolationReport
+	Trace                     traceReport
+	GitDelivery               *gitDeliveryReport     `json:",omitempty"`
+	GuidanceVariant           *guidanceVariantReport `json:",omitempty"`
+	FlashClass                *flashClassReport      `json:",omitempty"`
 
 	// evidenceDir locates the private evidence files beside run.json; never serialized.
 	evidenceDir string
@@ -283,6 +285,9 @@ func inspectGitDelivery(root string, before *gitDeliveryReport) *gitDeliveryRepo
 	return &report
 }
 func pilotTimeLimit(limit time.Duration, explicit bool, suite, host, caseID string) time.Duration {
+	if !explicit && suite == qualificationSuite {
+		return 10 * time.Minute
+	}
 	if !explicit && suite == "flows" && host == "grok" && (caseID == "plan" || caseID == "build") {
 		return 10 * time.Minute
 	}
@@ -343,12 +348,16 @@ func runProcess(cmd *exec.Cmd, limit time.Duration) (int, string) {
 	}
 }
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "qualify" {
+		os.Exit(qualifyMain(os.Args[2:], os.Stdout, os.Stderr))
+	}
 	startSignalCleanup()
-	suite := flag.String("suite", "workspace-conventions", "workspace-conventions, flows or flash-class-guidance")
+	suite := flag.String("suite", "workspace-conventions", "workspace-conventions, flows, flash-class-guidance or qualification")
 	handoff := flag.String("handoff-from", "", "producer plan run directory; required for flows build")
 	host := flag.String("host", "", "codex, claude, grok, pi, or opencode")
 	caseID := flag.String("case", "", "fixture ID or smoke")
-	arm := flag.String("arm", "", "A or B; C only for flash-class-guidance")
+	taskID := flag.String("task", "", "qualification task ID from tests/fixtures/qualification/suite.json (only --suite qualification)")
+	arm := flag.String("arm", "", "A or B; C only for flash-class-guidance; deployed, A or none for qualification")
 	guidanceSource := flag.String("guidance-source", "", "checkout directory whose Hive guidance is installed into a per-run shadow home (deployed-global, codex/grok/opencode only, requires --arm)")
 	out := flag.String("out", "", "new raw evidence directory")
 	source := flag.String("source", ".", "checkout root")
@@ -412,10 +421,18 @@ func main() {
 	if *guidanceSource != "" && *delivery != "deployed-global" {
 		must(fmt.Errorf("--guidance-source requires --delivery deployed-global"))
 	}
-	if *delivery == "deployed-global" && *suite != flashSuite {
+	qualification := *suite == qualificationSuite
+	if qualification {
+		if *delivery != "deployed-global" || *caseID != "" || *taskID == "" {
+			must(fmt.Errorf("qualification requires deployed-global, --task and no --case"))
+		}
+		must(validateQualificationArmFlags(*host, *guidanceSource, *arm, *model))
+	} else if *taskID != "" {
+		must(fmt.Errorf("--task requires --suite qualification"))
+	} else if *delivery == "deployed-global" && *suite != flashSuite {
 		must(validateGuidanceVariantFlags(*host, *guidanceSource, *arm, *model))
 	}
-	if *suite != "workspace-conventions" && *suite != "flows" && *suite != flashSuite {
+	if *suite != "workspace-conventions" && *suite != "flows" && *suite != flashSuite && !qualification {
 		must(fmt.Errorf("unknown suite"))
 	}
 	if *suite == "flows" && *delivery != "deployed-global" {
@@ -429,21 +446,28 @@ func main() {
 	}
 	src, e := filepath.Abs(*source)
 	must(e)
+	if qualification {
+		// Canonicalize only for qualification: other suites keep the path as
+		// given.
+		src, e = target.Canonical(*source)
+		must(e)
+	}
 	output, e := target.Canonical(*out)
 	must(e)
 	if *nativeDataRoot != "" && (under(*nativeDataRoot, output) || under(output, *nativeDataRoot)) {
 		must(fmt.Errorf("native data root and evidence output must be separate"))
 	}
-	if *suite == "flows" {
+	if *suite == "flows" || qualification {
 		workspace, err := target.Canonical(filepath.Join(src, "_support/workspace"))
 		must(err)
 		if !under(output, workspace) || output == workspace {
-			must(fmt.Errorf("flows output must be below repository _support/workspace"))
+			must(fmt.Errorf("%s output must be below repository _support/workspace", *suite))
 		}
 	}
 	userHome, e := os.UserHomeDir()
 	must(e)
-	if *guidanceSource != "" && *host == "opencode" {
+	isolatedHome := *guidanceSource != "" || (qualification && qualifyIsolatedHome(*arm))
+	if isolatedHome && *host == "opencode" {
 		// Checked before --out is created so a refused run leaves nothing behind.
 		must(checkOpenCodeCwdOutsideHome(fixtureParentDir(*suite, output), userHome))
 	}
@@ -457,13 +481,20 @@ func main() {
 	var corpus struct {
 		Cases []fixture `json:"cases"`
 	}
-	b, e := os.ReadFile(filepath.Join(src, "tests/fixtures", *suite, "cases.json"))
-	must(e)
-	must(json.Unmarshal(b, &corpus))
 	var f fixture
-	for _, c := range corpus.Cases {
-		if c.ID == *caseID {
-			f = c
+	var qtask qualifyTask
+	var b []byte
+	if qualification {
+		f, qtask, b, e = loadQualifyFixture(src, *taskID)
+		must(e)
+	} else {
+		b, e = os.ReadFile(filepath.Join(src, "tests/fixtures", *suite, "cases.json"))
+		must(e)
+		must(json.Unmarshal(b, &corpus))
+		for _, c := range corpus.Cases {
+			if c.ID == *caseID {
+				f = c
+			}
 		}
 	}
 	if *caseID == "smoke" && *suite != "flows" {
@@ -481,6 +512,9 @@ func main() {
 	must(e)
 	root, e = target.Canonical(root)
 	must(e)
+	if qualification {
+		must(checkQualifyFixtureRoot(root, src, output))
+	}
 	memoryProject := ""
 	if *suite == flashSuite {
 		memoryProject = "flash-class-" + digest([]byte(root))[:24]
@@ -504,12 +538,12 @@ func main() {
 		f.Prompt += "\nEl plan recibido está en `" + imported.Plan + "`. Sus referencias locales conservadas mantienen las rutas relativas."
 		save(filepath.Join(output, "handoff.json"), imported)
 	}
-	if *suite == "flows" {
+	if *suite == "flows" || (qualification && qtask.Case != "") {
 		f.Prompt = flowTaskPrompt(f.Prompt, root)
 	}
 	cwd, e := fixtureWorkingDirectory(root, f.Cwd)
 	must(e)
-	if f.ID == "placement" {
+	if f.ID == "placement" && !qualification {
 		must(initGit(filepath.Join(root, "frontend")))
 		must(initGit(filepath.Join(root, "backend")))
 	} else {
@@ -522,6 +556,10 @@ func main() {
 	}
 	if *suite == "flows" && questionFlowCase(f.ID) {
 		must(setupInitialCommit(root))
+	}
+	if qualification {
+		gitDelivery, e = setupQualifyGit(root, qtask, f)
+		must(e)
 	}
 	if *delivery == "project" && *arm == "B" {
 		opts := management.Options{Scope: "project", Root: cwd, StateDir: filepath.Join(output, "installation"), Source: src, Hosts: []string{*host}}
@@ -540,6 +578,9 @@ func main() {
 		must(os.WriteFile(filepath.Join(cwd, filename), []byte(management.Begin+"\n"+strings.TrimRight(string(body), "\n")+"\n"+management.End+"\n"), 0600))
 	}
 	r := result{MemoryStoreMode: *memoryStore, Suite: *suite, Handoff: imported, CodexBypassSandbox: *codexBypass, Host: *host, Case: f.ID, Arm: *arm, Delivery: *delivery, Root: root, Cwd: cwd, ModelRequested: *model, ModelConfigured: *configuredModel, Provider: *provider, Effort: *effort, Started: time.Now().UTC().Format(time.RFC3339Nano), Terminal: "not_verified", PromptHash: digest([]byte(f.Prompt)), FixtureHash: digest(b), TimeLimitSeconds: timeout.Seconds(), GitDelivery: gitDelivery}
+	if qualification {
+		r.Task, r.Split = qtask.ID, qtask.Split
+	}
 	if *suite == flashSuite {
 		runtimeFixture, err := json.Marshal(f)
 		must(err)
@@ -574,8 +615,19 @@ func main() {
 	// export runs against the real install.
 	beforeProtected := protectedFor(*host, userHome)
 	var guidance *guidanceVariant
-	if *guidanceSource != "" {
-		guidance, e = setupGuidanceVariant(*guidanceSource, *arm, output, *host, userHome, *model, engramDataDir(output), *nativeDataRoot)
+	if qualification && *arm == qualifyArmDeployed {
+		r.GuidanceHash, e = guidanceHash(*host, "")
+		must(e)
+	}
+	if qualification && *arm == qualifyArmNone {
+		r.GuidanceHash = qualifyHashNone
+	}
+	if isolatedHome {
+		if *guidanceSource != "" {
+			guidance, e = setupGuidanceVariant(*guidanceSource, *arm, output, *host, userHome, *model, engramDataDir(output), *nativeDataRoot)
+		} else {
+			guidance, e = setupIsolatedHomeWithoutGuidance(*arm, output, *host, userHome, *model, engramDataDir(output), *nativeDataRoot)
+		}
 		must(e)
 		r.GuidanceVariant = &guidance.report
 		// Registered immediately so any must() failure or SIGINT/SIGTERM
@@ -585,6 +637,10 @@ func main() {
 		// direct call afterward, and a possible second run from a later
 		// must() failure, are both harmless.
 		registerCleanup(guidance.cleanup)
+		if qualification && *arm == "A" {
+			r.GuidanceHash, e = guidanceHash(*host, guidance.shadowHome)
+			must(e)
+		}
 	}
 	var flashMemory *flashMemoryGuard
 	if *suite == flashSuite {
@@ -700,8 +756,19 @@ func main() {
 	if r.FlashClass != nil {
 		r.ModelObserved = "not_observed"
 	}
+	var exported []byte
+	verifyRan := false
 	if *host == "opencode" && *suite != flashSuite && r.ExitCode == 0 && r.Error == "" && !r.Trace.TerminalSeen {
-		_ = verifyOpenCodeCompletion(&r.Trace, *host, cwd, cmd.Env)
+		exported, _ = verifyOpenCodeCompletion(&r.Trace, *host, cwd, cmd.Env)
+		verifyRan = true
+	}
+	if *host == "opencode" && *suite == qualificationSuite {
+		// Served model: read before completeGuidanceCleanup removes the isolated
+		// data directory, reusing the export verification already took.
+		if exported == nil && !(verifyRan && r.Trace.FinalAssistantID != "") && r.Trace.SessionID != "" && !r.Trace.SessionIDConflict {
+			exported, _ = exportOpenCodeSession(*host, cwd, r.Trace.SessionID, cmd.Env)
+		}
+		r.ModelObserved = servedModelFromExport(exported)
 	}
 	memory.stopHTTP()
 	if *suite == flashSuite {
