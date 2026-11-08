@@ -490,7 +490,7 @@ func TestHiveSettingKeysAppearInTheGuidance(t *testing.T) {
 			}
 		}
 		if !ok {
-			t.Errorf("key %q is not the start of any backtick-quoted text in the canonical project-settings.md declaration", k.Name)
+			t.Errorf("key %q is not the start of any backtick-quoted text in the canonical «Project settings» declaration of global.md", k.Name)
 		}
 	}
 }
@@ -509,7 +509,7 @@ func TestHiveSettingKeysCoverTheGuidanceExample(t *testing.T) {
 		}
 		seen++
 		if !knownHiveKey(strings.TrimSpace(name)) {
-			t.Errorf("the example in project-settings.md uses key %q, which hiveSettingKeys does not know", strings.TrimSpace(name))
+			t.Errorf("the example in global.md «Project settings» uses key %q, which hiveSettingKeys does not know", strings.TrimSpace(name))
 		}
 	}
 	if seen == 0 {
@@ -540,7 +540,7 @@ func TestHiveSettingKeysRequiredSet(t *testing.T) {
 }
 
 // The retired keys and Delivery values the manager warns about are the ones
-// project-settings.md names on its «Retired keys:» line.
+// the global guidance's «Project settings» names on its «Retired keys:» line.
 func TestRetiredHiveKeysMatchTheGuidance(t *testing.T) {
 	prose, _ := projectSettingsSection(t)
 	var line string
@@ -550,7 +550,7 @@ func TestRetiredHiveKeysMatchTheGuidance(t *testing.T) {
 		}
 	}
 	if line == "" {
-		t.Fatal("project-settings.md has no line starting \"Retired keys:\"")
+		t.Fatal("global.md «Project settings» has no line starting \"Retired keys:\"")
 	}
 	var sentence string
 	sentence, _, _ = strings.Cut(line, ".")
