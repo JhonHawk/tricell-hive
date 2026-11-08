@@ -33,7 +33,13 @@ Las demás menciones son punteros:
 - «Support folder» y «Proportionality» exceptúan el script local y nombran el elemento que cambian.
 - `artifact-layout.md` lista `scripts/`.
 
-**Texto propuesto** (inglés, como toda la guía distribuida):
+**Texto propuesto** (inglés, como toda la guía distribuida). La ronda de verify con D9 A lo cambió después:
+- la viñeta 1 ahora solo agrega entradas nuevas, tras comprobar el salto de línea final, y nombra en el informe final los cambios a entradas existentes;
+- el checkout principal se encuentra con `git worktree list --porcelain`;
+- cada comando Git corre por separado;
+- la autorización habla de «the `HIVE.local.md` files».
+
+El texto vigente es el de `content/guidance/global.md`; lo que sigue es la versión del plan, como historia.
 
 - Viñeta 1 de «Local instructions»: «…; in a worktree, read and write the main checkout's file. When the host refuses that edit from the worktree, make the same write through a shell command, which the host's permission settings govern: append a new entry with `>>`; to change one existing line, rewrite that line, addressed by its line number, with `sed -i.bak`, confirm with `diff <file>.bak <file>` that only that line changed, then remove the `.bak` file, or, when the check fails, restore the file by moving the `.bak` file back. When the shell write is refused too, write nothing and name the update in the final report. Never write a copy of the file inside the worktree.»
 - Viñeta 2 de «Local instructions» (H28): «Write only in those files of the current project, the local scripts below, and in the machine file.»

@@ -15,6 +15,7 @@
 - **D6 A** — ¿Dónde quedan las escrituras diferidas mientras la sesión está en el worktree? En un archivo ignorado del worktree, `_support/workspace/YYYY-MM-DD-<trabajo>/pending-local.md`; el checkpoint solo lo señala, porque `tasks.md` se versiona. **Replaces:** D1 A, solo en dónde se guarda lo pendiente (antes: el checkpoint).
 - **D7 A** — Con lo que mostró la segunda revisión, ¿cómo se escribe desde un worktree aislado en `HIVE.local.md`, `ACCOUNTS.md` o un script local del checkout principal? Por shell, bajo los permisos del usuario: ante el rechazo, la misma escritura se hace con un comando de shell (`>>` para una entrada nueva, edición de esa sola línea para una existente, o la escritura del script). Nunca se escribe una copia en el worktree. **Replaces:** D1 A y D6 A. La razón: diferir dependía de una salida del worktree que en Claude Code solo ocurre a pedido del usuario y que con `remove` borra lo pendiente (H11). Claude Code documenta que una escritura por shell al checkout principal «isn't refused» por el aislamiento y queda bajo «your permissions and sandboxing settings».
 - **D8 A** — Sabiendo que la ruta prevista por Claude Code para cambiar el checkout principal es «edit it yourself or start an interactive session there», y que la escritura por shell usa un hueco que el aislamiento no vigila, ¿se mantiene D7 A? Sí, con la edición de una línea comprobada con `diff`, la comprobación del exclude desde el worktree y los scripts ejecutables. `host-limits.md` lo describe como un hueco conocido que usa Hive. Corrige la presentación de D7, que lo había llamado «vía documentada».
+- **D9 A** — Tras `/code-review` (H35, H37, H38), ¿qué se escribe por shell desde un worktree aislado? Solo lo que se agrega: una entrada, una fila de `ACCOUNTS.md` o un script nuevo, comprobando antes el salto de línea final. Un cambio a una entrada o a un script existentes (por ejemplo, marcar stale) no se hace desde el worktree: lo nombra el informe final. **Replaces:** la edición de una línea con `sed` de D7 A y D8 A.
 - **D4 B** y **D5 A**, en «Delivery».
 
 ## Request
@@ -77,13 +78,24 @@ Fuera:
   - nunca se escribe una copia del archivo dentro del worktree.
 
   Falso hoy porque el texto solo dice «in a worktree, read and write the main checkout's file».
-- AC16 — **Replaces:** AC15. «Local instructions» dice que, cuando el host rechaza desde un worktree la edición del archivo del checkout principal, la misma escritura se hace con un comando de shell, bajo los permisos del host:
+- AC16 — **Retired:** reemplazado por AC17 (D9 A, tras `/code-review`: H34–H40). Texto anterior: «Local instructions» dice que, cuando el host rechaza desde un worktree la edición del archivo del checkout principal, la misma escritura se hace con un comando de shell, bajo los permisos del host:
   - una entrada nueva se agrega con `>>`;
   - una línea existente se reescribe por su número con `sed -i.bak`, un `diff` contra el `.bak` confirma que solo cambió esa línea antes de borrar el `.bak`, y si falla se restaura;
   - si la escritura por shell también se rechaza, no se escribe nada y el informe final lo nombra;
   - nunca se escribe una copia dentro del worktree.
 
   Además, la viñeta de autorización admite que la comprobación del exclude corra desde el worktree sobre la misma ruta relativa; la viñeta 2 incluye los scripts locales entre lo que se escribe; y todo script nuevo se hace ejecutable. Falso hoy porque el texto solo dice «in a worktree, read and write the main checkout's file».
+- AC17 — **Replaces:** AC16. «Local instructions» dice:
+  - En un worktree, el checkout principal es la ruta de la primera línea `worktree` de `git worktree list --porcelain`, ejecutado como comando propio.
+  - Cuando el host rechaza desde un worktree la edición del archivo del checkout principal, solo se agrega una entrada nueva por shell: con `>>`, tras comprobar que el archivo termina en salto de línea.
+  - Un cambio a una entrada existente (por ejemplo, marcar stale) no se hace desde ese worktree: lo nombra el informe final.
+  - Si el shell también se rechaza, no se escribe nada y el informe lo nombra.
+  - Nunca se escribe una copia dentro del worktree.
+  - La comprobación del exclude corre con `git check-ignore` desde el worktree, y cada comando Git corre por separado, nunca dentro de `$(…)`.
+  - Desde un worktree, un script nuevo se escribe por shell y un cambio a uno existente lo nombra el informe.
+  - La viñeta de autorización habla de «the `HIVE.local.md` files».
+
+  Falso hoy porque el texto solo dice «in a worktree, read and write the main checkout's file».
 
 ## Prerequisites
 
@@ -123,3 +135,4 @@ El refresco de la instalación local después del merge sigue la regla del `AGEN
   H18 se resolvió como decisión menor: si la escritura por shell también se rechaza, no se escribe nada y el informe final lo nombra. Se retira AC11 y se agrega AC15.
 - 2026-11-08 — Cuarta revisión: H22–H28, sin P0 ni P1. H23 corrigió la cita de la documentación y se resolvió con D8 A. Se aplicaron H22 (el exclude se comprueba desde el worktree dentro de la viñeta de autorización, con un delta de «Ignored before the first write»), H24 (`sed` por número de línea más `diff`), H25 (todo script nuevo es ejecutable) y H28 (la viñeta 2 incluye los scripts). Quedan listados: H26 (`check-ignore` usa el `.gitignore` de la rama del worktree) y H27 (`flow-close` y `branch-cleanup` mueven cosas al checkout principal desde un worktree, fuera de alcance). Se retira AC15 y se agrega AC16.
 - 2026-11-08 — Quinta revisión: H29–H33, sin P0 ni P1. Se aplicaron H29–H32 en `design.md` y `tasks.md`; H33 queda listado. No cambian criterios ni deltas, así que no hace falta otra ronda.
+- 2026-11-08 — Verify: `/code-review` dejó H34–H42. Confirmados: H34 (Git dentro de `$(…)` rechazado, observado en esta sesión), H35 (`sed` falla con `/` y `&`), H36 (`>>` sin salto de línea final), H37 (`.bak` sin ignorar), H38 (carrera por número de línea), H39 (ambigüedad de la autorización), H40 (`--git-common-dir` en submódulos) y H42 (afirmaciones sin etiquetar). H41 ya estaba decidido en D8 A. D9 A (solo agregar) resolvió H35, H37 y H38; los demás se arreglaron en una ronda. Se retira AC16 y se agrega AC17.

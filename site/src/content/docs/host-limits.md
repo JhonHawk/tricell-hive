@@ -44,13 +44,15 @@ verified.
 - While a card is open it covers the screen (an open Claude Code issue), so each
   card carries the context needed to answer on its own.
 - A session isolated in a worktree has its `Edit` and `Write` of the main
-  checkout refused (observed in 2.1.319). Claude Code's intended route is to
-  edit the file yourself or start a session there, but its isolation checks do
-  not track files a shell command writes, which stay under your permission and
-  sandboxing settings. Hive uses that known gap only for the main checkout's
-  `HIVE.local.md`, `ACCOUNTS.md` and local scripts; when your settings or the
-  sandbox refuse the shell write too, the agent writes nothing and names the
-  update in its report.
+  checkout refused, and so is a shell command that runs Git in a form the
+  check cannot verify, such as inside `$(…)` (observed in 2.1.319). Its
+  documentation says to change such a file by editing it yourself or starting a
+  session there, and that its isolation checks do not track files a plain shell
+  command writes, which stay under your permission and sandboxing settings.
+  Hive uses that known gap only to add new entries to the main checkout's
+  `HIVE.local.md` and `ACCOUNTS.md` and to write new local scripts; a change to
+  an existing entry, and any write your settings or the sandbox refuse, the
+  agent names in its report instead.
 
 ## Codex
 

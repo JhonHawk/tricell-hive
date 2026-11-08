@@ -76,8 +76,9 @@ report instead. A helper that only your machine needs, such as a script that
 creates a database for each worktree, goes in `_support/scripts/` next to the
 file that names it, also kept out of Git: the agent writes it while it builds,
 names it in its report, and runs it from any worktree through the main
-checkout's path. From a worktree the host isolates, the agent writes these
-files through the shell, under your permission settings. The [local instructions rule](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md)
+checkout's path. From a worktree the host isolates, the agent adds new
+entries and scripts through the shell, under your permission settings, and
+names any other change in its report. The [local instructions rule](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md)
 holds the details.
 
 Then ask for an outcome and state its limits:

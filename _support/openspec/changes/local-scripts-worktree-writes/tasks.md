@@ -6,7 +6,7 @@ Base `development` en `b14ae746`; rama `feat/local-scripts-worktree-writes`. Tod
 
 - [x] `content/guidance/global.md` lleva las ediciones de «Proposed shape» en `design.md`: las viñetas 1 y 2, la de autorización y la nueva de «Local instructions», el puntero en «Test accounts» y las excepciones en «Support folder» y «Proportionality».
 
-**Closes:** AC9, AC12, AC13, AC16
+**Closes:** AC9, AC12, AC13, AC17
 
 **Depends on:** none
 
@@ -20,7 +20,7 @@ Base `development` en `b14ae746`; rama `feat/local-scripts-worktree-writes`. Tod
 
 **Verification:**
 - `rg -c "through a shell command" content/guidance/global.md` devuelve 4 (viñeta 1, viñeta de autorización, viñeta de scripts y «Test accounts»); hoy devuelve 0.
-- `rg -n "_support/scripts/<name>|except the local scripts|local script «Local instructions» sets is not|from the worktree on the same relative path|diff <file>.bak" content/guidance/global.md` muestra cinco coincidencias nuevas; hoy no muestra ninguna.
+- `rg -o "_support/scripts/<name>|except the local scripts|local script «Local instructions» sets is not|git worktree list --porcelain|ends with a newline|running each Git command on its own|the .HIVE.local.md. files and creating" content/guidance/global.md` muestra siete coincidencias nuevas, una de cada frase; en la base no muestra ninguna.
 - La viñeta de scripts va después de la que empieza por «This rule authorizes, in any flow».
 - `go test ./tests/content/...` pasa.
 
@@ -102,4 +102,16 @@ Entrega `automatic` (D4 B): no hay parada para validar. Después de la revisión
 
 ## Checkpoint
 
-Etapa: build terminado, pasa a verify. Último commit `6531003a` en `feat/local-scripts-worktree-writes` (worktree `.claude/worktrees/local-scripts-worktree-writes`). Sin hallazgos abiertos. Siguiente acción: `go test ./...`, luego `flow-verify` (`/code-review`, entrega `automatic`).
+Etapa: verify, paso 2. Candidato `1e39c910` en `feat/local-scripts-worktree-writes`, en el worktree `.claude/worktrees/local-scripts-worktree-writes`.
+
+Evidencia reutilizada:
+- `go test ./...` pasó en `6531003a`. `1e39c910` solo cambia `tasks.md`, así que el resultado sigue valiendo.
+- `pnpm run build` en `site/` construyó 17 páginas.
+- El CI solo tiene `master-source-branch`, que no aplica a los PR contra `development`.
+
+Recorrido de los criterios, desde el worktree aislado:
+- `git check-ignore -v` resuelve el exclude compartido: `HIVE.local.md` y `_support/secrets/` están ignorados y `_support/scripts/` no, así que la regla agregaría la entrada al exclude.
+- Sobre un archivo de prueba del checkout principal: el append con `>>` funciona, `sed -i.bak '2s/.*/…/'` cambia una sola línea (lo confirma `diff`), y el modo `600` se conserva.
+- Nota: Claude Code rechaza `$(git rev-parse …)` dentro de un comando compuesto; corrido como comando aparte, funciona.
+
+Revisión: `/code-review` en curso. Siguiente acción: decidir sus hallazgos; luego push, PR, merge y `flow-close`.
