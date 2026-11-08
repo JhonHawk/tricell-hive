@@ -4,7 +4,7 @@ Base: `development` @ `7ae26b0e`; rama `feat/viewer-capture-only` en `.claude/wo
 
 ### T1 — Comando `hive view work capture`
 
-- [ ] `capture` publica un lote de capturas en una llamada, como fija «Proposed shape» de `design.md`: abre el trabajo, arranca, reanuda o vuelve a entrar en la etapa, usa `HEAD` como candidato, y calcula al enviar `supersedes` y «· #N» desde los títulos del servidor. Se encola como acción propia. `--help` es autosuficiente, y `capture` aparece en los flujos `build` y `verify` del contrato.
+- [x] `capture` publica un lote de capturas en una llamada, como fija «Proposed shape» de `design.md`: abre el trabajo, arranca, reanuda o vuelve a entrar en la etapa, usa `HEAD` como candidato, y calcula al enviar `supersedes` y «· #N» desde los títulos del servidor. Se encola como acción propia. `--help` es autosuficiente, y `capture` aparece en los flujos `build` y `verify` del contrato.
 
 **Closes:** AC1, AC2, AC3, AC4
 
@@ -94,7 +94,7 @@ El repositorio de prueba define `refs/remotes/origin/HEAD`.
 
 ### T4 — Sitio y documentos de arquitectura
 
-- [ ] Las páginas del sitio describen la publicación solo de capturas y enlazan la skill sin copiar sus reglas: `site/src/content/docs/viewer.md`, `flows/{overview,plan,build,verify,close,research}.md`, `skills.md` (l. 34) e `index.mdx` (l. 104). `README.md` (l. 480-486) y `llms.txt` (l. 57) dejan de describir declaraciones de etapa y proyecciones de tareas. `deployment-manager.md` (l. 176 y 195) e `instruction-resources.md` (l. 17) nombran `work capture`.
+- [x] Las páginas del sitio describen la publicación solo de capturas y enlazan la skill sin copiar sus reglas: `site/src/content/docs/viewer.md`, `flows/{overview,plan,build,verify,close,research}.md`, `skills.md` (l. 34) e `index.mdx` (l. 104). `README.md` (l. 480-486) y `llms.txt` (l. 57) dejan de describir declaraciones de etapa y proyecciones de tareas. `deployment-manager.md` (l. 176 y 195) e `instruction-resources.md` (l. 17) nombran `work capture`.
 
 **Closes:** AC8
 
@@ -137,3 +137,5 @@ Updated: 2026-11-08 · Stage: plan · Last commit: `7ae26b0e` (base) · Open fin
 - Etapas en pausa o terminadas, y el candidato en `HEAD` separado, cubiertos en T1.
 2026-11-08 — T2 · e9a17e4c · unverified: sintaxis de capture contra el binario final de T1
 2026-11-08 — T3 · f638c16b · unverified: none
+2026-11-08 — T4 · de3ea595 · unverified: sintaxis contra el --help final de T1
+2026-11-08 — T1 · 26e9e671 · unverified: rechazo de una primera captura en cola (limpieza del handle) sin test
