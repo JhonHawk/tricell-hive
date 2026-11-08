@@ -4,16 +4,16 @@ This page is the canonical list of the models Hive's distributed guidance is wri
 
 ## Two sets
 
-- **Writing target.** Distributed content is written clearly for the named models of the `execution`, `focused`, `reasoning` and `verifier` profiles in `integrations/agent-profiles.json`: the frontier models that run main and verification sessions, and the models that run delegated roles. A rule aimed at a model outside this set needs the recurrence that root `AGENTS.md` «Measurement» sets; a plausible misreading by a smaller model is not enough.
+- **Writing target.** Distributed content is written clearly for the named models of the `execution`, `focused`, `reasoning` and `verifier` profiles in `integrations/agent-profiles.json`: the models that run Hive's delegated roles, from execution to reasoning and verification, which include the frontier models. The profiles do not set a host's main-session model: the user picks it, and only a floor model counts there. A rule aimed at a model outside this set needs the recurrence that root `AGENTS.md` «Measurement» sets; a plausible misreading by a smaller model is not enough.
 - **Support floor.** The writing target plus the Haiku and flash-class models the user kept on 2026-10-11 and confirmed on 2026-11-08. A failure observed on any floor model, provisional or qualified, counts toward a correction as «Measurement» sets; a failure seen only on a model outside the floor does not.
 
-On hosts that inherit the session model (Pi, Cursor, Antigravity) or declare none (OpenCode), only floor models count.
+On hosts that inherit the session model (Pi, Cursor, Antigravity) or declare none (OpenCode), delegated roles run whatever model the session runs. Hive's guidance is not written for that open set (decision of 2026-11-08: write for the role-profile models and correct on observed failures instead); only floor models count there.
 
 ## Membership and normalization
 
 A model belongs to the floor by its identity, whatever host runs it:
 
-1. Remove the provider prefix and the variant: `opencode-go/claude-haiku-5-5#high` is `claude-haiku-5-5`.
+1. Remove the provider prefix and the variant from both the session's model and the table's model before comparing them: `opencode-go/claude-haiku-5-5#high` and the row `opencode-go/claude-haiku-5-5` both become `claude-haiku-5-5`, so a session on `claude-haiku-5-5` through another provider matches that row.
 2. Resolve an alias to the full IDs listed under «Aliases»; membership means being one of those IDs. An alias that resolves to an older model on another provider, such as `sonnet` on Amazon Bedrock, is not a floor model there.
 3. When a session's served model cannot be seen (the Codex and OpenCode traces do not record it yet), use its configured model and name it as configured.
 

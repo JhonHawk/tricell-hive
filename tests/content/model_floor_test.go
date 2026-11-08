@@ -28,6 +28,9 @@ var writingTargetProfiles = []string{"execution", "focused", "reasoning", "verif
 
 var floorStatuses = map[string]bool{"provisional": true, "qualified": true}
 
+// fullModelID matches a backquoted versioned model ID, such as `claude-opus-5-5`.
+var fullModelID = regexp.MustCompile("`[a-z0-9.]+(-[a-z0-9.]+)+`")
+
 type floorRow struct {
 	host, model, origin, target, status string
 	efforts                             map[string]bool
@@ -39,22 +42,31 @@ type expectedModel struct {
 }
 
 func TestModelFloor(t *testing.T) {
-	doc := readFile(t, modelFloorPath)
-	expected := append(profileModels(t, readFile(t, agentProfilesPath)), flashModels(t, readFile(t, flashClassPath))...)
+	doc := readFloorFile(t, modelFloorPath)
+	expected := append(profileModels(t, readFloorFile(t, agentProfilesPath)), flashModels(t, readFloorFile(t, flashClassPath))...)
 	for _, err := range checkFloor(doc, expected) {
 		t.Error(err)
 	}
 }
 
 func TestModelFloorDetectsDrift(t *testing.T) {
-	doc := readFile(t, modelFloorPath)
-	expected := append(profileModels(t, readFile(t, agentProfilesPath)), flashModels(t, readFile(t, flashClassPath))...)
+	doc := readFloorFile(t, modelFloorPath)
+	expected := append(profileModels(t, readFloorFile(t, agentProfilesPath)), flashModels(t, readFloorFile(t, flashClassPath))...)
 	cases := map[string]func(string) string{
 		"row removed": func(d string) string {
-			return dropLine(d, "| codex | `gpt-6.1-terra` |")
+			return dropFloorLine(d, "| codex | `gpt-6.1-terra` |")
 		},
 		"effort changed": func(d string) string {
 			return strings.Replace(d, "| claude | `sonnet` | `high` |", "| claude | `sonnet` | `low` |", 1)
+		},
+		"stale writing-target row": func(d string) string {
+			return strings.Replace(d, "| codex | `gpt-6.1-terra` |", "| codex | `gpt-6.1-terra` |\n| codex | `gpt-5.9-old` | `medium` | `focused` | yes | provisional | none | — |\n| codex | `gpt-6.1-terra-x` |", 1)
+		},
+		"flash model marked as writing target": func(d string) string {
+			return strings.Replace(d, "floor of 2026-10-11 (`flashModels`) | no |", "floor of 2026-10-11 (`flashModels`) | yes |", 1)
+		},
+		"alias with a placeholder ID": func(d string) string {
+			return regexp.MustCompile("(?m)^\\| `sonnet` \\| [^|]+\\|").ReplaceAllString(d, "| `sonnet` | `tbd` |")
 		},
 		"alias without ID": func(d string) string {
 			return regexp.MustCompile("(?m)^\\| `sonnet` \\| [^|]+\\|").ReplaceAllString(d, "| `sonnet` | |")
@@ -75,7 +87,7 @@ func TestModelFloorDetectsDrift(t *testing.T) {
 // lacks or states wrongly.
 func checkFloor(doc string, expected []expectedModel) []error {
 	var errs []error
-	rows := parseTable(section(doc, "## Floor"))
+	rows := floorTable(floorSection(doc, "## Floor"))
 	if len(rows) == 0 {
 		return []error{fmt.Errorf("model-floor.md has no table under «## Floor»")}
 	}
@@ -85,9 +97,9 @@ func checkFloor(doc string, expected []expectedModel) []error {
 			errs = append(errs, fmt.Errorf("floor row %q has %d cells, want 8", strings.Join(cells, " | "), len(cells)))
 			continue
 		}
-		r := floorRow{host: cells[0], model: unquote(cells[1]), origin: cells[3], target: cells[4], status: cells[5], efforts: map[string]bool{}}
+		r := floorRow{host: cells[0], model: floorUnquote(cells[1]), origin: cells[3], target: cells[4], status: cells[5], efforts: map[string]bool{}}
 		for _, e := range strings.Split(cells[2], ",") {
-			if e = unquote(strings.TrimSpace(e)); e != "" && e != "—" {
+			if e = floorUnquote(strings.TrimSpace(e)); e != "" && e != "—" {
 				r.efforts[e] = true
 			}
 		}
@@ -109,7 +121,26 @@ func checkFloor(doc string, expected []expectedModel) []error {
 			errs = append(errs, fmt.Errorf("floor row %s %s: writing target %q, want yes", want.host, want.model, r.target))
 		}
 	}
-	aliases := parseTable(section(doc, "## Aliases"))
+	// A row claims the writing target only for a current role-profile model,
+	// so a stale or wrongly promoted row fails too.
+	isTarget := map[string]bool{}
+	for _, want := range expected {
+		if want.target {
+			isTarget[want.host+" "+want.model] = true
+		}
+	}
+	for key, r := range floor {
+		switch r.target {
+		case "yes":
+			if !isTarget[key] {
+				errs = append(errs, fmt.Errorf("floor row %s marks a writing target that no role profile names", key))
+			}
+		case "no":
+		default:
+			errs = append(errs, fmt.Errorf("floor row %s: writing target %q, want yes or no", key, r.target))
+		}
+	}
+	aliases := floorTable(floorSection(doc, "## Aliases"))
 	if len(aliases) == 0 {
 		errs = append(errs, fmt.Errorf("model-floor.md has no table under «## Aliases»"))
 	}
@@ -119,17 +150,19 @@ func checkFloor(doc string, expected []expectedModel) []error {
 			errs = append(errs, fmt.Errorf("alias row %q has %d cells, want 4", strings.Join(cells, " | "), len(cells)))
 			continue
 		}
-		alias := unquote(cells[0])
+		alias := floorUnquote(cells[0])
 		seen[alias] = true
-		if !strings.Contains(cells[1], "`") {
+		if !fullModelID.MatchString(cells[1]) {
 			errs = append(errs, fmt.Errorf("alias %s names no full model ID", alias))
 		}
 		if !regexp.MustCompile(`\d{4}-\d{2}-\d{2}`).MatchString(cells[3]) {
 			errs = append(errs, fmt.Errorf("alias %s has no verification date", alias))
 		}
 	}
+	// A model name without a hyphen or a provider path is an alias, such as
+	// opus or sonnet, and needs its resolution recorded.
 	for _, r := range floor {
-		if r.host == "claude" && !strings.Contains(r.model, "-") && !seen[r.model] {
+		if !strings.ContainsAny(r.model, "-/") && !seen[r.model] {
 			errs = append(errs, fmt.Errorf("floor alias %s has no row under «## Aliases»", r.model))
 		}
 	}
@@ -185,8 +218,8 @@ func flashModels(t *testing.T, src string) []expectedModel {
 	return out
 }
 
-// section returns the text from heading to the next heading of the same level.
-func section(doc, heading string) string {
+// floorSection returns the text from heading to the next heading of the same level.
+func floorSection(doc, heading string) string {
 	i := strings.Index(doc, "\n"+heading+"\n")
 	if i < 0 {
 		return ""
@@ -198,8 +231,8 @@ func section(doc, heading string) string {
 	return rest
 }
 
-// parseTable returns the body rows of the first Markdown table in text.
-func parseTable(text string) [][]string {
+// floorTable returns the body rows of the first Markdown table in text.
+func floorTable(text string) [][]string {
 	var rows [][]string
 	inTable := false
 	for _, line := range strings.Split(text, "\n") {
@@ -226,9 +259,9 @@ func parseTable(text string) [][]string {
 	return rows
 }
 
-func unquote(s string) string { return strings.Trim(strings.TrimSpace(s), "`") }
+func floorUnquote(s string) string { return strings.Trim(strings.TrimSpace(s), "`") }
 
-func dropLine(doc, prefix string) string {
+func dropFloorLine(doc, prefix string) string {
 	var kept []string
 	for _, line := range strings.Split(doc, "\n") {
 		if !strings.HasPrefix(line, prefix) {
@@ -238,7 +271,7 @@ func dropLine(doc, prefix string) string {
 	return strings.Join(kept, "\n")
 }
 
-func readFile(t *testing.T, path string) string {
+func readFloorFile(t *testing.T, path string) string {
 	t.Helper()
 	b, err := os.ReadFile(path)
 	if err != nil {
