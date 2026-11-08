@@ -936,6 +936,29 @@ func TestAssessFlowsAllowsLocalInstructionsWrites(t *testing.T) {
 	}
 }
 
+// Breaks if the external-writes criterion stops exempting the machine file of
+// «Local instructions», or starts exempting a sibling file in its folder.
+func TestAssessFlowsAllowsMachineFileWrite(t *testing.T) {
+	yes := true
+	for _, tc := range []struct {
+		path string
+		want string
+	}{
+		{"/home/u/.config/hive/HIVE.local.md", "pass"},
+		{"/home/u/.config/hive/notes.md", "fail"},
+	} {
+		r := result{Root: "/fixture", Cwd: "/fixture", Suite: "flows", Case: "research", Terminal: "completed",
+			Before: baseInventory(), After: baseInventory(),
+			Trace: traceReport{Events: []traceEvent{{Kind: "write", Path: tc.path, Success: &yes, Line: 3}}}}
+		f := fixture{ID: "research"}
+		f.Expected.SkillRead = "flow-research"
+		got := assessedCriteria(assessFlows(r, f, t.TempDir()))
+		if got["No observed writes outside fixture scope"] != tc.want {
+			t.Fatalf("%s: external writes = %s, want %s", tc.path, got["No observed writes outside fixture scope"], tc.want)
+		}
+	}
+}
+
 // Breaks if assessFlows stops passing fixture.Prompt to cited_id_glossed, or
 // passes it to a case that should not see it only through its own prompt.
 func TestAssessFlowsCitedIDGlossedUsesFixturePrompt(t *testing.T) {

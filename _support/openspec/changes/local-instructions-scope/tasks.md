@@ -6,7 +6,7 @@ Base `831e6032` en `development`; rama `fix/local-instructions-scope`. Todas las
 
 - [x] `content/guidance/global.md` tiene la sección «Local instructions» con el texto de `design.md`.
 
-**Closes:** AC34, AC36, AC37, AC44, AC45, AC46, AC47, AC48, AC51, AC52
+**Closes:** AC34, AC36, AC37, AC44, AC45, AC46, AC48, AC51, AC52, AC53, AC54, AC55, AC56
 
 **Depends on:** none
 
@@ -18,7 +18,7 @@ Base `831e6032` en `development`; rama `fix/local-instructions-scope`. Todas las
 
 **Changes:** reescribe los puntos 1, 2, 4 y 5 de la sección; el 3 (secretos, `unverified`, tope) solo pasa a decir «each file». El commit nombra la sesión Claude Code `de72f693` (2026-11-07) y su fallo, y la aprobación del usuario, como pide «Measurement».
 
-**Verification:** cada frase de AC34, AC36, AC37, AC44-AC48, AC51 y AC52 da al menos 1 con `rg -c -F "<frase>" content/guidance/global.md`; `several or the whole machine` y `Write only in the current project, as` dan 0; `go test ./tests/content/...` pasa y registra el tamaño nuevo (base 40 430 bytes).
+**Verification:** cada frase de AC34, AC36, AC37, AC44-AC46, AC48, AC51-AC56 da al menos 1 con `rg -c -F "<frase>" content/guidance/global.md`; `several or the whole machine` y `Write only in the current project, as` dan 0; `go test ./tests/content/...` pasa y registra el tamaño nuevo (base 40 430 bytes).
 
 ### T8 — La skill reparte entre los dos archivos
 
@@ -82,7 +82,7 @@ Base `831e6032` en `development`; rama `fix/local-instructions-scope`. Todas las
 
 **Depends on:** T7
 
-**Locations:** los cuatro archivos
+**Locations:** los cuatro archivos, más `flow-research/SKILL.md:8`, `flow-status/SKILL.md:8`, las páginas `skills.md`, `index.mdx`, `flows/build.md`, `flows/verify.md` y el detector `tests/pilot/flows.go` con su test
 
 **Execution:** main thread
 
@@ -110,4 +110,6 @@ Revisión humana (D5 A): leer la sección nueva de `global.md` y el diff.
 2026-11-07 — T8 en `ac5a5843`, T11 en `a09214ff`, T9 en `73e1ac05`: frases de AC39, AC40, AC49, AC50, AC41 y AC42 presentes; el sitio construye.
 2026-11-07 — T10 local: `~/.config/hive/HIVE.local.md` con 3 entradas (T3 Code, cloudflared sin «reachable», Antigravity); el archivo del repo solo con su línea inicial; `~/.config` no es un repositorio Git; `XDG_CONFIG_HOME` sin definir.
 
-Checkpoint: stage build, paso 5 (suite y verify). Siguiente: suite completa, /code-review y parada de validación.
+2026-11-07 — `/code-review` sobre `development..8c8f5a77`: 10 hallazgos confirmados al leer el código; ronda de correcciones en el commit siguiente (plan revisado: AC47 → AC53, AC54-AC56).
+
+Checkpoint: stage verify, paso 3. Siguiente: segunda revisión de código limitada a la ronda, revisión del plan revisado y parada de validación.

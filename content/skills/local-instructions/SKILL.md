@@ -38,7 +38,7 @@ Sort every candidate, and in curate mode every existing entry, into one of:
 
 - **record:** it passes the test «Local instructions» sets. The `missing` candidates, the existing cloud profiles with their regions, and the installed tools go to the machine file; the `commands`, the `ports` and which profile serves an environment of the project go to the file their `where` names;
 - **every clone:** it holds for any checkout, such as a test command already in the tracked guidance; it goes to step 7's report, never into a file;
-- **discard:** a stack, branch, ticket or path that no longer exists, a duplicate, a fact a later session contradicts, a command a single session used for one task, or the result of a diagnosis, a count, or whether a host answered.
+- **discard:** a `missing` program that the project's own dependencies provide, such as one in `node_modules/.bin` or the project's package manifest, since it was missing only until they were installed; a stack, branch, ticket or path that no longer exists, a duplicate, a fact a later session contradicts, a command a single session used for one task, or the result of a diagnosis, a count, or whether a host answered.
 
 Group the record candidates by file, then by subject: starting the stack, isolated stacks, tools and missing commands, cloud and remote access, and other. Recommend keeping a candidate seen in two or more sessions or confirmed by a step 5 check.
 
@@ -68,7 +68,7 @@ Never run a project command that starts, stops, seeds, migrates, installs, signs
 
 ## 6. Write the files
 
-Write as «Local instructions» sets: the machine candidates go to the machine file, the project candidates to the repository's or workspace's file. Start the file with one line saying it is per-machine, untracked and kept by agents under «Local instructions». Give each group a heading and each entry one line: the fact, its command when it has one, and its date, followed by `unverified` when marked. In curate mode, keep the user's own wording of an entry they kept.
+Write as «Local instructions» sets, each **record** candidate to the file step 3 names for it. Start the file with one line saying it is per-machine, untracked and kept by agents under «Local instructions». Give each group a heading and each entry one line: the fact, its command when it has one, and its date, followed by `unverified` when marked. In curate mode, keep the user's own wording of an entry they kept.
 
 ## 7. Report
 

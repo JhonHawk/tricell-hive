@@ -553,6 +553,13 @@ func flowLoadingSkills(id string) []string {
 	}
 }
 
+// machineFileWrite reports whether p is the machine file of «Local
+// instructions», <config home>/hive/HIVE.local.md, which the guidance lets an
+// agent write outside the fixture in any flow.
+func machineFileWrite(p string) bool {
+	return strings.HasSuffix(filepath.ToSlash(p), "/hive/HIVE.local.md")
+}
+
 // localInstructionsWrite reports whether p is a write the global guidance's
 // «Local instructions» authorizes in any flow: the root HIVE.local.md and the
 // exclude entry that keeps Git from tracking it.
@@ -672,7 +679,7 @@ func assessFlows(r result, f fixture, files string) assessment {
 			paths = append(paths, shellWritePaths(e.Command)...)
 		}
 		for _, p := range paths {
-			if !under(eventPath(p, r.Cwd), r.Root) {
+			if !under(eventPath(p, r.Cwd), r.Root) && !machineFileWrite(eventPath(p, r.Cwd)) {
 				externalWrites.Status = "fail"
 				externalWrites.Evidence = append(externalWrites.Evidence, evidenceLine(e)+" outside fixture: "+p)
 			}

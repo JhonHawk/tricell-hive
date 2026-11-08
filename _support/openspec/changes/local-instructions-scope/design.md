@@ -44,3 +44,7 @@ Notas:
 ## Migración local (T10)
 
 Con la aprobación del plan por el usuario (la regla nueva aún no está desplegada): mover a `~/.config/hive/HIVE.local.md`, con su línea inicial, las entradas de T3 Code, Antigravity y T3 Connect/cloudflared, esta última reescrita como binario, versión y comando de comprobación (`~/.t3/bin/t3 connect status`), sin «is reachable»; quitar las de SetStoreUpdateService y `ssh bb1`. El archivo del repo queda con su línea inicial. Son archivos sin seguimiento y no entran en el PR.
+
+## Correcciones de la revisión de código
+
+El texto final de la regla está en `content/guidance/global.md`: relectura que conserva las entradas ajenas y deja marcarlas obsoletas; el archivo de máquina como única escritura fuera del proyecto, que no es configuración global; Git desde la carpeta del archivo; el archivo del proyecto manda si se contradicen; `XDG_CONFIG_HOME` solo si es absoluta. La skill descarta un `missing` que proveen las dependencias del proyecto.
