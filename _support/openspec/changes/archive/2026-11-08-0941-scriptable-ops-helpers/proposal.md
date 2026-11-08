@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Borrador · plan escrito el 2026-11-08 |
+| Estado | Completado · PR #427, merge 133dbb51 |
 | Tracker | Sin ticket |
 | Git | tricell-hive · base `development` @ `71c18043` · rama propuesta `feat/scriptable-ops-helpers` |
 
