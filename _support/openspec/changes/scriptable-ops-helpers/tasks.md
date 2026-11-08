@@ -71,10 +71,10 @@ Base: `development` @ `71c18043`, rama `feat/scriptable-ops-helpers`. T1 corre e
 ## Checkpoint
 
 - Updated: 2026-11-08
-- Stage: verify · entry
-- Last commit: 09a42213
-- Open findings: none
-- Next: verify: /code-review, real state read, push and merge
+- Stage: verify · integrate
+- Last commit: 7402923c
+- Open findings: fork PR lookup, gh host aliases, sequential gh calls, duplicated progress regex: P3, to close findings
+- Next: push, PR, merge into development, close
 
 ### Evidence
 
@@ -83,6 +83,11 @@ Base: `development` @ `71c18043`, rama `feat/scriptable-ops-helpers`. T1 corre e
 - go test ./... · exit 0 · 09a42213
 - python3 -m unittest discover -s tests/skills -p '*_test.py' · exit 0, 81 tests · 09a42213
 - hive update --source . --rev HEAD --dry-run · lists git_state.py and tasks.py among 263 files · 09a42213
+- /code-review medium on 9ecfcc32 · 10 findings, 6 fixed in 943e9972, 4 to findings · 9ecfcc32
+- /code-review medium on 9ecfcc32..943e9972 · 10 findings, all fixed in 7402923c (Unreviewed) · 943e9972
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · exit 0, 83 tests · 7402923c
+- go vet ./... and go test ./... · exit 0 · 943e9972; go test ./tests/content/ · exit 0 · 7402923c
+- real read: --pr 352 matches gh api; --fetch on the branch · ahead 4, base_in_head true · 9ecfcc32
 
 ## Review status and progress
 
