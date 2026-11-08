@@ -4,7 +4,7 @@ Base: `development` en `19912662`; rama propuesta `feat/model-support-floor`. Un
 
 ### T5 — Regla, documento del piso y entradas para personas
 
-- [ ] `AGENTS.md` separa el objetivo de escritura del piso y cuenta observaciones en candidatos con al menos una sesión real; `model-floor.md` lista los nueve modelos con su normalización; un test de contenido lo alinea con `agent-profiles.json` y `flashModels`; la rúbrica, `pilot-procedure.md`, el índice de `harness-engineering`, README, `llms.txt` y la portada del sitio apuntan a él.
+- [x] `AGENTS.md` separa el objetivo de escritura del piso y cuenta observaciones en candidatos con al menos una sesión real; `model-floor.md` lista los nueve modelos con su normalización; un test de contenido lo alinea con `agent-profiles.json` y `flashModels`; la rúbrica, `pilot-procedure.md`, el índice de `harness-engineering`, README, `llms.txt` y la portada del sitio apuntan a él.
 
 **Closes:** AC27, AC31, AC33, AC34, AC35, AC36, AC37, AC38
 
@@ -42,6 +42,20 @@ Sin UI propia: la portada del sitio cambia solo de texto. Sin modelos reales.
 
 ## Checkpoint
 
+- Updated: 2026-11-08
+- Stage: build · 5
+- Last commit: 18a6c6ed
+- Open findings: none
+- Next: flow-verify: suite, walk AC27/AC31/AC33/AC34–AC38, /code-review, then push + PR + merge (automatic)
+
+### Evidence
+
+- go vet ./... · pass · 18a6c6ed
+- go test ./... · pass (incl. tests/content ModelFloor, spec_deltas) · 18a6c6ed
+- site: pnpm check (0 errors) && pnpm build (17 pages) · pass · 18a6c6ed
+- gitleaks git --staged · no leaks · 18a6c6ed
+- CI: only master-source-branch.yml (PRs to master); nothing to reproduce for a PR to development · n/a · 18a6c6ed
+
 ## Estado de revisión y progreso
 
 - 2026-11-08 — plan escrito.
@@ -52,3 +66,4 @@ Sin UI propia: la portada del sitio cambia solo de texto. Sin modelos reales.
 - 2026-11-08 — revisión 6: D15; objetivo de escritura separado del piso, `focused`, pertenencia por modelo, rúbrica; T5 cierra AC27–AC33.
 - 2026-11-08 — revisión 7: D16 y D17; T5 cierra AC27, AC31, AC33 y AC34–AC38.
 - 2026-11-08 — séptima revisión de plan: 2 P1 en el texto de T5 (lectura final con el rango viejo; fuente de los IDs de alias). Revisión 8: corregidos en T5 y en Prerrequisitos, sin cambiar criterios ni el delta.
+2026-11-08 — T5 · 18a6c6ed · unverified: none
