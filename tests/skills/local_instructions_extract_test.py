@@ -13,7 +13,8 @@ SCRIPT = ROOT / "content/skills/local-instructions/scripts/extract_candidates.py
 sys.dont_write_bytecode = True  # keep __pycache__ out of the distributed skill folder
 
 SECRETS = ["hunter2pass", "s3cr3tUserPw", "abcTOKENxyz123456789", "pa55word!", "S3cretPw", "dbpw77",
-           "qtok99", "731942", "redispw", "vercelpw"]
+           "qtok99", "731942", "redispw", "vercelpw", "wJalrXUtnFEMI", "84736251", "98765432", "55512345",
+           "zq/x7k", "x7kq", "p@ss", "secretvalue123"]
 
 
 def claude_session(cwd, session, commands):
@@ -74,6 +75,14 @@ class ExtractCandidatesTest(unittest.TestCase):
             ("vercel env add API_KEY production <<< vercelpw", False, "ok"),
             ("pnpm dev:watch", False, "started", True),
             ("rg 'command not found' docs || true", False, "docs/x.md: bash: foo: command not found"),
+            ("aws configure set aws_secret_access_key wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY", False, ""),
+            ("mysql -u root -p 84736251 shop", False, "ok"),
+            ("redis-cli -a 98765432 ping", False, "PONG"),
+            ("docker login --password 55512345 registry.local", False, "ok"),
+            ("psql postgres://app:zq/x7kq@localhost:5432/db", False, "ok"),
+            ("mongosh mongodb://app:p@ss@db.local/x", False, "ok"),
+            ("curl -d secretvalue123 http://localhost:3000/x", False, "ok"),
+            ("ssh -p 2222 deploy@qa.local", False, "ok"),
         ]))
         # A second session repeats the start command, so it counts twice.
         (main / "s2.jsonl").write_text(claude_session(self.root, "s2", [
@@ -143,6 +152,8 @@ class ExtractCandidatesTest(unittest.TestCase):
         self.assertIn("docker compose up -d db", commands)
         self.assertEqual(commands["docker compose up -d db"]["sessions"], 2)
         self.assertIn("pnpm run dev --port 3001", commands)
+        self.assertIn("ssh -p 2222 deploy@qa.local", commands)
+        self.assertIn("docker run -e DB_PASSWORD=<redacted> -p 5432:5432 postgres", commands)
         self.assertNotIn("pnpm run broken", commands)
         self.assertIn("MONGOMS_SYSTEM_BINARY=/home/u/.cache/mongod", commands["pnpm test:int"]["env"])
         self.assertIn("MONGOMS_RUNTIME_DOWNLOAD=false", commands["pnpm test:int"]["env"])

@@ -7,7 +7,7 @@ description: Create or curate a project's HIVE.local.md from what already worked
 
 The global guidance's «Local instructions» is the canonical home of `HIVE.local.md`: where it lives, what goes in it, its secrets, its size, what `unverified` means and how Git ignores it. This skill adds only the first fill and the pruning, and changes one element of that section, named in step 5.
 
-**Modes.** *Create* when no `HIVE.local.md` exists where «Local instructions» places it, or the user asks to rebuild it. *Curate* when it exists and the user asks to review or prune it, or after «Local instructions» reported it past 100 lines.
+**Modes.** *Create* when no `HIVE.local.md` exists where «Local instructions» places it. *Curate* when it exists and the user asks to rebuild, review or prune it, or after «Local instructions» recommended this skill past 100 lines; curate lists the existing entries beside the new candidates, so no entry, the user's hand-written ones included, leaves the file without the user's answer.
 
 Work only in the current project, as the global guidance's «Scope and authorization» sets.
 

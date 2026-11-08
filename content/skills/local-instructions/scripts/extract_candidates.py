@@ -36,18 +36,33 @@ FLAGS = {"true", "false", "yes", "no", "on", "off"}
 INLINE = {"python", "python3", "node", "deno", "bun", "ruby", "perl"}
 INLINE_FLAGS = {"-", "-c", "-e", "-p", "--eval", "--print"}
 SECRET_FLAG = re.compile(r"pass|pwd|secret|token|key|auth|cred|cookie|bearer|session", re.I)
-# Flags whose next argument may be a credential or a payload: always masked, unless a port number.
+# Flags whose next argument may be a credential or a payload: always masked.
 VALUE_FLAGS = {"-H", "--header", "-u", "--user", "-b", "--cookie", "--data", "--data-raw", "--data-binary",
-               "--data-urlencode", "--json", "--form", "-F", "-a", "-p", "-P", "--body", "--value"}
+               "--data-urlencode", "--json", "--form", "-F", "-a", "--body", "--value"}
+# -p and -P carry a port only for these programs; for any other, such as mysql, they may carry a password.
+PORT_P = {"docker", "docker-compose", "podman", "ssh", "scp", "kubectl"}
+PORT_VALUE = re.compile(r"^\d{2,5}(?::\d{2,5})*$")
+HTTP_CLIENTS = {"curl", "wget", "http"}
 # Long flags whose next argument is kept; after any other long flag a plain word is masked.
 KEEP_NEXT = {"--port", "--profile", "--region", "--filter", "--file", "--env-file", "--project", "--project-name",
              "--prefix", "--dir", "--cwd", "--workspace", "--tail", "--since", "--context", "--namespace", "--name",
              "--target", "--stage", "--branch", "--base", "--host", "--username", "--db", "--dbname", "--database"}
 NUMERIC = re.compile(r"^\d+(?::\d+)*$")
 ENTROPY = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)[^/]{20,}$")
+
+
+def secret_like(text):
+    return bool(ENTROPY.match(text) or MIXED.match(text))
+
+
+def safe_path(token):
+    """A path whose every part looks like a name, not like a key."""
+    return ("/" in token and PATHLIKE.match(token) is not None and len(token) <= 160
+            and not any(secret_like(part) for part in token.split("/")))
 ASSIGN = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", re.S)
-USERINFO = re.compile(r"([A-Za-z][A-Za-z0-9+.-]*://)[^/@\s]+@")
-PATHLIKE = re.compile(r"^[\w./~:%+@-]+$")
+USERINFO = re.compile(r"^([A-Za-z][A-Za-z0-9+.-]*://)\S*@")  # greedy: up to the last @, so a password may hold / or @
+PATHLIKE = re.compile(r"^[\w./~:%@-]+$")
+MIXED = re.compile(r"^(?=.*[a-z])(?=.*[A-Z])[A-Za-z0-9+=_-]{12,}$")
 SIMPLE = re.compile(r"^[\w.:/%+@,-]+$")
 # Whole-line shell messages for a missing program (zsh, bash in English or Spanish, dash).
 MISSING = [
@@ -71,7 +86,7 @@ def mask_assignment(name, value):
         return REDACTED
     if value.isdigit() or value.lower() in FLAGS:
         return value
-    if value.startswith(("/", "~/", "./")) and PATHLIKE.match(value) and len(value) <= 160:
+    if value.startswith(("/", "~/", "./")) and safe_path(value):
         return value
     if (name in KEEP_ENV or PUBLIC_ENV.search(name)) and SIMPLE.match(value) and len(value) <= 40:
         return value
@@ -79,13 +94,13 @@ def mask_assignment(name, value):
 
 
 def mask_url(token):
-    token = USERINFO.sub(r"\1" + REDACTED + "@", token)
+    token = USERINFO.sub(r"\g<1>" + REDACTED + "@", token)
     base, query, _ = token.partition("?")
     base = base.split("#", 1)[0]
     if any(c in base for c in " \t\n'\"`{}$\\") or len(base) > 200:
         return REDACTED
     scheme, _, rest = base.partition("://")
-    parts = [REDACTED if ENTROPY.match(part) else part for part in rest.split("/")]
+    parts = [REDACTED if secret_like(part) else part for part in rest.split("/")]
     return scheme + "://" + "/".join(parts) + ("?" + REDACTED if query else "")
 
 
@@ -100,30 +115,32 @@ def mask_token(token):
         flag, value = token.split("=", 1)
         if flag in VALUE_FLAGS or SECRET_FLAG.search(flag):
             return flag + "=" + REDACTED
-        if flag in KEEP_NEXT or NUMERIC.match(value) or ("/" in value and PATHLIKE.match(value)):
+        if flag in KEEP_NEXT or NUMERIC.match(value) or safe_path(value):
             return flag + "=" + mask_token(value)
         return flag + "=" + REDACTED
     if any(c in token for c in " \t\n'\"`{}$\\"):
         return REDACTED
-    if "/" in token and PATHLIKE.match(token) and len(token) <= 160:
+    if safe_path(token):
         return token
-    if len(token) > 40:
-        return REDACTED
-    if ENTROPY.match(token):
+    if len(token) > 40 or secret_like(token):
         return REDACTED
     return token
 
 
 def mask_tokens(tokens):
     """Keep the program, words, flag names, numbers and paths; mask what a flag may carry."""
+    program = os.path.basename(tokens[0]) if tokens else ""
     out, pending = [], None
     for token in tokens:
-        if pending == "hide" and not NUMERIC.match(token):
+        if pending == "hide":
             out.append(REDACTED)
             pending = None
             continue
-        if pending == "long" and not (token.startswith("-") or NUMERIC.match(token)
-                                      or ("/" in token and PATHLIKE.match(token))):
+        if pending == "port":
+            out.append(token if PORT_VALUE.match(token) else REDACTED)
+            pending = None
+            continue
+        if pending == "long" and not (token.startswith("-") or NUMERIC.match(token) or safe_path(token)):
             out.append(REDACTED)
             pending = None
             continue
@@ -136,7 +153,9 @@ def mask_tokens(tokens):
                 pending = "long"
         elif re.fullmatch(r"-[A-Za-z]", token):
             out.append(token)
-            if token in VALUE_FLAGS:
+            if token in ("-p", "-P"):
+                pending = "port" if program in PORT_P else "hide"
+            elif token in VALUE_FLAGS or (token == "-d" and program in HTTP_CLIENTS):
                 pending = "hide"
         elif token.startswith("-") and "=" not in token and len(token) > 2:
             # A cluster such as -it is kept; -pS3cret or -uroot carries a value.
@@ -144,6 +163,8 @@ def mask_tokens(tokens):
             out.append(token if keep else token[:2] + REDACTED)
         else:
             out.append(mask_token(token))
+            if out[-1] == token and SECRET_FLAG.search(token) and len(out) > 1:
+                pending = "hide"  # a word that names a secret, such as aws_secret_access_key, precedes its value
     return out
 
 
