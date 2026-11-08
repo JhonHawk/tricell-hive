@@ -87,6 +87,8 @@ Cada criterio de la guía global se observa con `rg -n -F "<frase>" content/guid
 
 - AC32 — «Local instructions» dice que una entrada `unverified` la escribe solo la skill, lleva la fecha en que se vio, se comprueba antes de usarla, pierde la marca al confirmarse y solo sale del archivo curando con el usuario · falso hoy: `rg -F "leaves only through that skill's curation" content/guidance/global.md` no devuelve nada. **Replaces:** AC31
 
+- AC33 — «Local instructions» dice que una entrada `unverified` que falla conserva la marca y gana la fecha y la causa, sin marcarse obsoleta · falso hoy: `rg -F "instead keeps its mark" content/guidance/global.md` no devuelve nada.
+
 ## Prerequisites
 
 Ninguno: el build no necesita nada fuera del repositorio.
@@ -113,3 +115,4 @@ Ninguno: el build no necesita nada fuera del repositorio.
 2026-11-07 — Tercera revisión del plan (revisión con D12): 1 P1, 7 P2, 6 P3. Aplicados: subagentes de Codex excluidos (`exec` y `vscode` cuentan como sesiones principales, supuesto menor), enmascarado por lista de permitidos con los casos de la revisión en el test, éxito de Claude sin comandos en segundo plano, «faltó» anclado a mensajes de error completos, `where` por candidato, `--version` sin shims, excepción de memoria nombrada, alcance reescrito.
 2026-11-07 — Segunda revisión del plan: 2 P1, 7 P2, 5 P3. El usuario eligió el script (D12 A). Retirados AC18-AC23; nuevos AC24-AC31; T4 pasa a ser el script, T5 la skill y T6 los enlaces.
 2026-11-07 — Segunda validación: el usuario aprobó (D13 A) y eligió que solo la skill quite entradas `unverified` (D14 A). AC31 retirado, AC32 nuevo; cambia una frase de la regla y la spec.
+2026-11-07 — Revisión del plan del ajuste D14: 1 P1 (una entrada `unverified` que falla pasaba a obsoleta y el tope la quitaba), 2 P2, 3 P3. Aplicado: un fallo conserva la marca `unverified` con fecha y causa (opción A de la revisión, supuesto menor dentro de D14 A); AC33 nuevo; verificación de T6 ampliada; antecedente «When no stale entry remains»; diseño, tamaño y checkpoint al día.

@@ -40,7 +40,7 @@ Va justo después de «Test accounts». El texto final puede ajustar redacción,
 - A child reads the file and does not write it: it reports each fact it verified or found stale, and the main thread updates the file.
 ```
 
-Cláusula de T6 (borrador): «An entry marked `unverified`, which only the [local-instructions](skill:local-instructions/SKILL.md) skill writes, carries the date it was last seen, not confirmed: check it before relying on it, and the cap may remove it like a stale one.» La línea del tope pasa a «removing only entries marked stale or `unverified`; when none remain, keep recording and recommend [local-instructions](skill:local-instructions/SKILL.md) to curate it in the final report».
+Cláusula de T6 (final, tras D14 A): «An entry marked `unverified`, which only the [local-instructions](skill:local-instructions/SKILL.md) skill writes, carries the date it was last seen, not confirmed: check it before relying on it, and when it holds, replace the mark with that date. Keep the file at or under 100 lines by removing only entries marked stale; an `unverified` entry leaves only through that skill's curation with the user. When no stale entry remains, keep recording and recommend [local-instructions](skill:local-instructions/SKILL.md) to curate it in the final report.» Y en el punto de escritura: un fallo marca la entrada obsoleta, salvo una `unverified`, que conserva su marca con la fecha y la causa.
 
 No toca «Persistent memory» (D3 A) ni añade preguntas (D4 A).
 
