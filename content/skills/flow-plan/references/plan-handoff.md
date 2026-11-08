@@ -1,6 +1,6 @@
 # Plan handoff
 
-Read right before returning a ready plan, at `flow-plan` step 6. Reading this reference does not invoke the planning workflow.
+Read right before returning a ready plan, at `flow-plan` step 6, and read its [Compaction reply](#compaction-reply) before a close's next-step block that starts another work item. Reading this reference does not invoke the planning workflow.
 
 ## Write the summary first
 
@@ -18,7 +18,7 @@ A saved change folder holds the detail and the user may not open it, so summariz
 
 ## Then end with the build route
 
-End the summary with the next-step block that the global guidance's «Questions and routes» section sets, with its compaction reply for a build in the same session, never with a question card; when the plan has a viewer session, that block carries the open-viewer reply line that [viewer publication](../../flow-walkthrough/references/viewer-publication.md#open-the-viewer) sets. The build route is a route, not a request for leave to proceed: a plan does not authorize implementation, and only the user's reply starts `flow-build`.
+End the summary with the next-step block that the global guidance's «Questions and routes» section sets, with the [compaction reply](#compaction-reply) for a build in the same session, never with a question card; when the plan has a viewer session, that block carries the open-viewer reply line that [viewer publication](../../flow-walkthrough/references/viewer-publication.md#open-the-viewer) sets. The build route is a route, not a request for leave to proceed: a plan does not authorize implementation, and only the user's reply starts `flow-build`.
 
 - Recommend building unless something blocks it, and say in the block that typing the build command approves the criteria shown, by their IDs with a gloss, such as "approves AC1–AC4 (export, permissions and audit)": `/flow-build <change folder>` in the host's syntax, or, for a plan kept in the conversation, `/flow-build` with the ticket key or a short description of the work.
 - Recommend stopping with the plan ready only for a named blocker, such as an open decision, an unmet prerequisite or the user's statement not to implement now, and say which; that the user asked for a plan is not a blocker.
@@ -28,3 +28,7 @@ A correction to a criterion or a sketch is not approval: [revise the plan](../SK
 When execution is already explicitly authorized, show the summary the same way and continue to `flow-build`.
 
 A change folder is committed with the code it plans, as [git-workflow step 4](../../git-workflow/SKILL.md) sets; until then it stays on disk.
+
+## Compaction reply
+
+When the next-step block leads from an approved plan to its build in the same session, or starts another work item after a close, add compacting first as one of its replies, never because of an estimated share of the context window, which the model cannot see: the host's compaction command followed, where the host accepts instructions, by what to keep (the change folder, or the whole plan summary for a plan kept in the conversation, the approved criteria and the delivery answers, or the files and decisions the next work reuses). After that compaction, the global guidance's «Questions and routes» sets what follows.

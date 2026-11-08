@@ -21,8 +21,8 @@ import (
 
 // retiredHiveKeys are keys the section no longer reads as settings: Hive asks
 // them each session and the old value only informs the recommended option. A
-// test keeps them in step with «Retired keys:» in
-// project-settings.md.
+// test keeps them in step with «Retired keys:» in the global guidance's
+// «Project settings» section (content/guidance/global.md).
 var retiredHiveKeys = []string{"Review", "UI verification"}
 
 // retiredDeliveryValues are the retired Delivery values.
