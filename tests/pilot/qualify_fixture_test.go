@@ -846,3 +846,50 @@ func TestQualificationServedModelCodexStaysNotObserved(t *testing.T) {
 		t.Fatalf("observed=%q requested=%q", r.ModelObserved, r.ModelRequested)
 	}
 }
+
+func TestQualificationFixtureRootResolvesSymlinksOfSourceAndOut(t *testing.T) {
+	real := t.TempDir()
+	realRoot, _ := filepath.EvalSymlinks(real)
+	link := filepath.Join(t.TempDir(), "link")
+	if err := os.Symlink(realRoot, link); err != nil {
+		t.Fatal(err)
+	}
+	root := filepath.Join(realRoot, "fixture")
+	if err := os.MkdirAll(root, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := checkQualifyFixtureRoot(root, link, ""); err == nil {
+		t.Fatal("a root under a symlinked --source was accepted")
+	}
+	if err := checkQualifyFixtureRoot(root, "", link); err == nil {
+		t.Fatal("a root under a symlinked --out was accepted")
+	}
+}
+
+func TestGuidanceHashSurvivesAMissingManagedFile(t *testing.T) {
+	t.Setenv("CODEX_HOME", "")
+	source := newFixtureCheckout(t, "# Rules\n")
+	home, _ := target.Canonical(t.TempDir())
+	installFor(t, source, home, "codex")
+	base := mustHash(t, "codex", home)
+	entries, err := management.Status(management.Options{Scope: "user", Home: home, Hosts: []string{"codex"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	removed := false
+	for _, en := range entries {
+		if en.Host == "codex" && (en.Kind == "skill" || en.Kind == "symlink") && en.Status == "installed" {
+			if err := os.RemoveAll(en.Path); err != nil {
+				t.Fatal(err)
+			}
+			removed = true
+			break
+		}
+	}
+	if !removed {
+		t.Fatal("no managed file to remove")
+	}
+	if got := mustHash(t, "codex", home); got == base {
+		t.Fatal("a missing managed file left the hash unchanged")
+	}
+}

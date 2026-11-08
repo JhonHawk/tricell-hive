@@ -94,7 +94,7 @@ func (b *limitedBuffer) Write(p []byte) (int, error) {
 }
 
 // openCodeExportTimeout bounds one `opencode session export`. It is its own
-// limit, not the run's remaining time, so a run that used its whole plazo can
+// limit, not the run's remaining time, so a run that used its whole time limit can
 // still be exported.
 const openCodeExportTimeout = 10 * time.Second
 

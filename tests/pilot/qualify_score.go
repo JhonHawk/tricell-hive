@@ -66,6 +66,19 @@ type qualifyBatch struct {
 	Effort       map[string]string `json:"effort"`
 	DeployedHash string            `json:"deployed_hash"`
 	AHash        string            `json:"a_hash"`
+	// Split is the task split the batch was launched with; a batch without it
+	// (written before the field existed) is a held-back one.
+	Split string `json:"split,omitempty"`
+}
+
+// qualifyReferenceMatches accepts the batch reference as stored (on OpenCode
+// with its `#variant`, after effort resolution) or its base model; a given
+// `#variant` must be the batch's.
+func qualifyReferenceMatches(given, stored string) bool {
+	if given == stored {
+		return true
+	}
+	return !strings.Contains(given, "#") && given == qualifyBaseModel(stored)
 }
 
 func readQualifyBatch(dir string) (qualifyBatch, error) {
@@ -330,8 +343,11 @@ func scoreQualification(dir string, suite qualifySuite, cases map[string]fixture
 	if err != nil {
 		return rep, err
 	}
-	if reference != batch.Reference {
+	if !qualifyReferenceMatches(reference, batch.Reference) {
 		return rep, fmt.Errorf("--reference %q differs from the batch reference %q", reference, batch.Reference)
+	}
+	if batch.Split != "" && batch.Split != qualifySplitHeldback {
+		return rep, fmt.Errorf("batch.json was launched with --split %s; qualify score scores held-back batches only", batch.Split)
 	}
 	floor, err := parseQualifyFloor(floorDoc)
 	if err != nil {

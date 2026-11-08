@@ -587,3 +587,30 @@ func TestQualifyRunKeepsPreviousAttemptsAndEncodesModelPaths(t *testing.T) {
 		}
 	}
 }
+
+func TestQualifyRunRecordsAndChecksTheSplit(t *testing.T) {
+	e := newQREnv(t)
+	installFor(t, e.source, e.home, "codex")
+	e.useRecorder(false)
+	s := e.suite(t, qrCompare)
+	s.Tasks[0].Split = qualifySplitTuning
+	out := e.outDir("split")
+	args := func(split string) []string {
+		return append([]string{"--host", "codex", "--models", "gpt-6.1-terra", "--reference", "gpt-6.1-sol", "--effort", "gpt-6.1-sol=high", "--runs", "1", "--split", split}, "--confirm-sessions", "4")
+	}
+	if code, so, se := e.call(s, out, args(qualifySplitTuning)...); code != 0 {
+		t.Fatalf("tuning call: %d\n%s%s", code, so, se)
+	}
+	b, err := readQualifyBatch(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if b.Split != qualifySplitTuning {
+		t.Fatalf("batch.json split = %q", b.Split)
+	}
+	s.Tasks[0].Split = qualifySplitHeldback
+	code, so, se := e.call(s, out, args(qualifySplitHeldback)...)
+	if code != 2 || !strings.Contains(so+se, "split") {
+		t.Fatalf("a changed split was not refused: %d\n%s%s", code, so, se)
+	}
+}

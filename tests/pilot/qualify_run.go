@@ -290,9 +290,17 @@ func qualifyBatchDiff(old, cur qualifyBatch) string {
 		}
 		return m
 	}
+	split := func(s string) string {
+		if s == "" {
+			return qualifySplitHeldback
+		}
+		return s
+	}
 	switch {
 	case old.Host != cur.Host:
 		return fmt.Sprintf("host: batch.json has %q, this call has %q", old.Host, cur.Host)
+	case split(old.Split) != split(cur.Split):
+		return fmt.Sprintf("split: batch.json has %q, this call has %q", split(old.Split), split(cur.Split))
 	case !reflect.DeepEqual(old.Models, cur.Models):
 		return fmt.Sprintf("models: batch.json has %v, this call has %v", old.Models, cur.Models)
 	case old.Reference != cur.Reference:
@@ -395,7 +403,7 @@ func qualifyRunCmd(args []string, load qualifySuiteLoader, stdout, stderr io.Wri
 		seen[qualifyBaseModel(m)] = true
 		requested = append(requested, m)
 	}
-	batch := qualifyBatch{Host: *host, Effort: map[string]string{}}
+	batch := qualifyBatch{Host: *host, Split: *split, Effort: map[string]string{}}
 	known := map[string]bool{}
 	var candidates []string
 	resolve := func(m string) (string, error) {
@@ -547,6 +555,9 @@ func qualifyRunCmd(args []string, load qualifySuiteLoader, stdout, stderr io.Wri
 			fmt.Fprintf(&combined, "%v\n", err)
 		} else {
 			current.Store(cmd.Process)
+			if interrupted.Load() { // a signal arrived before the process was stored
+				_ = cmd.Process.Signal(syscall.SIGTERM)
+			}
 			if err := cmd.Wait(); err != nil {
 				var ee *exec.ExitError
 				if errors.As(err, &ee) {

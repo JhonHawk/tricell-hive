@@ -461,3 +461,21 @@ func TestQualifySuiteEvaluateTask(t *testing.T) {
 	}
 	_ = yes
 }
+
+// A Codex agent_message has an empty Message key: the final answer is the last
+// text event alone, not every assistant message of the session.
+func TestQualifySuiteAnswerChecksCodexEmptyMessageKey(t *testing.T) {
+	r := result{Trace: traceReport{Events: []traceEvent{
+		assistantText(1, "", "Voy a implementar el cambio ahora."),
+		assistantText(2, "", "Solo propongo un plan."),
+	}}}
+	if got := answerMustNot(r, []string{`(?i)implementar`}); got.Status != "pass" {
+		t.Fatalf("an early message counted in answer_must_not: %s", got.Status)
+	}
+	if got := answerMust(r, []string{`(?i)implementar`}); got.Status != "fail" {
+		t.Fatalf("an early message satisfied answer_must: %s", got.Status)
+	}
+	if got := answerMust(r, []string{`(?i)plan`}); got.Status != "pass" {
+		t.Fatalf("the last message is not the answer: %s", got.Status)
+	}
+}

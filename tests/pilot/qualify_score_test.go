@@ -647,3 +647,40 @@ func TestQualifyScoreSkillReadRateAndBatchRoundTrip(t *testing.T) {
 		t.Errorf("round trip %+v", got)
 	}
 }
+
+func TestQualifyScoreReferenceVariantAndSplit(t *testing.T) {
+	suite := qsSuite(t, 1)
+	mk := func(t *testing.T) *qsEnv {
+		b := qualifyBatch{Host: "opencode", Models: []string{"opencode-go/qwen3.8-flash#high"}, Reference: "opencode-go/claude-haiku-5-5#high",
+			Effort: map[string]string{"opencode-go/qwen3.8-flash": "high", "opencode-go/claude-haiku-5-5": "high"}, DeployedHash: qsDeployedHash, AHash: qsAHash}
+		return newQSEnv(t, b)
+	}
+	t.Run("reference without a variant scores, a different variant is refused", func(t *testing.T) {
+		e := mk(t)
+		e.cell("opencode-go/claude-haiku-5-5#high", qualifyArmDeployed, "h1", true)
+		for _, arm := range []string{qualifyArmDeployed, "A", qualifyArmNone} {
+			e.cell("opencode-go/qwen3.8-flash#high", arm, "h1", true)
+		}
+		if _, err := e.score(suite, "opencode-go/claude-haiku-5-5"); err != nil {
+			t.Errorf("base reference refused: %v", err)
+		}
+		if _, err := e.score(suite, "opencode-go/claude-haiku-5-5#high"); err != nil {
+			t.Errorf("full reference refused: %v", err)
+		}
+		if _, err := e.score(suite, "opencode-go/claude-haiku-5-5#medium"); err == nil || !strings.Contains(err.Error(), "differs") {
+			t.Errorf("other variant: %v", err)
+		}
+		if _, err := e.score(suite, "opencode-go/other"); err == nil {
+			t.Error("other model accepted")
+		}
+	})
+	t.Run("a tuning batch is refused with a clear message", func(t *testing.T) {
+		b := qsCodexBatch()
+		b.Split = qualifySplitTuning
+		e := newQSEnv(t, b)
+		fillCodex(e, [3]int{3, 3, 3}, [3]int{3, 3, 3}, [3]int{3, 3, 3})
+		if _, err := e.score(suite, "gpt-6.1-sol"); err == nil || !strings.Contains(err.Error(), "held-back") {
+			t.Fatalf("tuning batch: %v", err)
+		}
+	})
+}
