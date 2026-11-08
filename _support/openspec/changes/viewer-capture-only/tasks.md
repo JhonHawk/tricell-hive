@@ -71,7 +71,7 @@ El repositorio de prueba define `refs/remotes/origin/HEAD`.
 
 ### T3 — Delta del spec
 
-- [ ] El delta `specs/walkthrough-viewer/spec.md` modifica tres requisitos: «Viewer-first walkthrough publication» (l. 133), «Proportional identity-aware publication procedure» (l. 235) y «Declared flow stages and immutable documents» (l. 243). Añade el requisito del comando `capture`, y `check_change.py` sale con 0. `workflow-lifecycle` no cambia.
+- [x] El delta `specs/walkthrough-viewer/spec.md` modifica tres requisitos: «Viewer-first walkthrough publication» (l. 133), «Proportional identity-aware publication procedure» (l. 235) y «Declared flow stages and immutable documents» (l. 243). Añade el requisito del comando `capture`, y `check_change.py` sale con 0. `workflow-lifecycle` no cambia.
 
 **Closes:** AC6
 
@@ -136,3 +136,4 @@ Updated: 2026-11-08 · Stage: plan · Last commit: `7ae26b0e` (base) · Open fin
 - AC5 pasa a una lista permitida y AC7 a ≤ 6.000 bytes.
 - Etapas en pausa o terminadas, y el candidato en `HEAD` separado, cubiertos en T1.
 2026-11-08 — T2 · e9a17e4c · unverified: sintaxis de capture contra el binario final de T1
+2026-11-08 — T3 · f638c16b · unverified: none
