@@ -93,27 +93,17 @@ func (b *limitedBuffer) Write(p []byte) (int, error) {
 	return b.Buffer.Write(p)
 }
 
-// verifyOpenCodeCompletion checks the exact session recorded in the CLI JSONL
-// against OpenCode's read-only native export. The transcript is parsed in
-// memory and only the bounded proof metadata is retained in traceReport.
-func verifyOpenCodeCompletion(r *traceReport, binary, directory string, env []string) error {
-	if r == nil {
-		return fmt.Errorf("missing trace report")
-	}
-	r.NativeCompletion = nil
-	r.NativeExportError = ""
-	if r.SessionID == "" || r.SessionIDConflict {
-		return setNativeExportError(r, "session ID missing or inconsistent")
-	}
-	if r.FinalAssistantID == "" {
-		return setNativeExportError(r, "final assistant message ID not observed")
-	}
-	if binary == "" {
-		return setNativeExportError(r, "OpenCode binary unavailable")
-	}
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+// openCodeExportTimeout bounds one `opencode session export`. It is its own
+// limit, not the run's remaining time, so a run that used its whole plazo can
+// still be exported.
+const openCodeExportTimeout = 10 * time.Second
+
+// exportOpenCodeSession runs OpenCode's read-only `session export` for one
+// session and returns the bounded stdout. The error text is a sanitized reason.
+func exportOpenCodeSession(binary, directory, sessionID string, env []string) ([]byte, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), openCodeExportTimeout)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, binary, "session", "export", "--standalone", r.SessionID)
+	cmd := exec.CommandContext(ctx, binary, "session", "export", "--standalone", sessionID)
 	cmd.Dir = directory
 	if env != nil {
 		cmd.Env = env
@@ -123,17 +113,71 @@ func verifyOpenCodeCompletion(r *traceReport, binary, directory string, env []st
 	cmd.Stdout = &stdout
 	if err := cmd.Run(); err != nil {
 		if ctx.Err() != nil {
-			return setNativeExportError(r, "native session export timed out")
+			return nil, fmt.Errorf("native session export timed out")
 		}
-		return setNativeExportError(r, "native session export command failed")
+		return nil, fmt.Errorf("native session export command failed")
 	}
-	evidence, err := parseOpenCodeCompletionExport(r.SessionID, r.FinalAssistantID, directory, bytes.NewReader(stdout.Bytes()))
+	return stdout.Bytes(), nil
+}
+
+// verifyOpenCodeCompletion checks the exact session recorded in the CLI JSONL
+// against OpenCode's read-only native export. The transcript is parsed in
+// memory and only the bounded proof metadata is retained in traceReport. It
+// also returns the export bytes whenever the export command succeeded, even
+// when the verdict is an error, so the caller can reuse them; they are nil when
+// no export ran.
+func verifyOpenCodeCompletion(r *traceReport, binary, directory string, env []string) ([]byte, error) {
+	if r == nil {
+		return nil, fmt.Errorf("missing trace report")
+	}
+	r.NativeCompletion = nil
+	r.NativeExportError = ""
+	if r.SessionID == "" || r.SessionIDConflict {
+		return nil, setNativeExportError(r, "session ID missing or inconsistent")
+	}
+	if r.FinalAssistantID == "" {
+		return nil, setNativeExportError(r, "final assistant message ID not observed")
+	}
+	if binary == "" {
+		return nil, setNativeExportError(r, "OpenCode binary unavailable")
+	}
+	data, err := exportOpenCodeSession(binary, directory, r.SessionID, env)
 	if err != nil {
-		return setNativeExportError(r, err.Error())
+		return nil, setNativeExportError(r, err.Error())
+	}
+	evidence, err := parseOpenCodeCompletionExport(r.SessionID, r.FinalAssistantID, directory, bytes.NewReader(data))
+	if err != nil {
+		return data, setNativeExportError(r, err.Error())
 	}
 	r.NativeCompletion = evidence
 	r.TerminalSource = "native_export"
-	return nil
+	return data, nil
+}
+
+// servedModelFromExport returns provider/model#variant of the model that
+// answered, from the last assistant message of an OpenCode session export. The
+// session's own Info.Model is used only when the export has no assistant
+// message. Anything missing or malformed is "not_observed".
+func servedModelFromExport(data []byte) string {
+	var exported struct {
+		Info struct {
+			Model struct{ ProviderID, ID, Variant string }
+		}
+		Messages []struct {
+			Type  string
+			Model struct{ ProviderID, ID, Variant string }
+		}
+	}
+	if json.Unmarshal(data, &exported) != nil {
+		return "not_observed"
+	}
+	for i := len(exported.Messages) - 1; i >= 0; i-- {
+		if m := exported.Messages[i]; m.Type == "assistant" {
+			return modelReference(m.Model.ProviderID, m.Model.ID, m.Model.Variant)
+		}
+	}
+	m := exported.Info.Model
+	return modelReference(m.ProviderID, m.ID, m.Variant)
 }
 
 func setNativeExportError(r *traceReport, message string) error {

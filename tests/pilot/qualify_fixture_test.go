@@ -700,3 +700,149 @@ func TestQualificationArmRunnerRefusesOutputOutsideWorkspaceAndCaseFlag(t *testi
 		t.Fatalf("expected --case to be refused: %v\n%s", err, outText)
 	}
 }
+
+// fakeOpenCodeScript emulates the OpenCode CLI: a JSONL run and a session
+// export whose body, delay and visibility of the isolated data directory the
+// test controls through the environment.
+const fakeOpenCodeScript = `#!/bin/sh
+echo "$(basename "$0") $*" >> "$FAKE_HOST_LOG"
+case "$1" in
+  --version) echo "fake 1.0"; exit 0 ;;
+  auth)
+    if [ "$2" = "export" ]; then printf '{"marker":"%s"}' "$3"; exit 0; fi
+    if [ "$2" = "import" ]; then mkdir -p "$HOME/.local/share/opencode"; cat > "$HOME/.local/share/opencode/opencode.db"; exit 0; fi ;;
+  session)
+    if [ "$2" = "export" ]; then
+      if [ -f "$HOME/.local/share/opencode/opencode.db" ]; then echo "EXPORT_DATA_DIR_PRESENT" >> "$FAKE_HOST_LOG"; fi
+      if [ -n "$FAKE_EXPORT_SLEEP" ]; then sleep "$FAKE_EXPORT_SLEEP"; fi
+      if [ -z "$FAKE_EXPORT_JSON" ]; then exit 1; fi
+      printf '%s' "$FAKE_EXPORT_JSON"; exit 0
+    fi
+    exit 1 ;;
+esac
+if [ -n "$FAKE_RUN_STREAM_STOP" ]; then
+  echo '{"type":"text","sessionID":"ses-1","part":{"type":"text","messageID":"msg-1","text":"done"}}'
+  echo '{"type":"step_finish","sessionID":"ses-1","part":{"type":"step-finish","messageID":"msg-1","reason":"stop"}}'
+else
+  echo '{"type":"text","sessionID":"ses-1","part":{"type":"text","messageID":"msg-1","text":"done"}}'
+fi
+exit 0
+`
+
+func (q *qualifyRun) useFakeOpenCode() {
+	q.t.Helper()
+	writeFixtureFiles(q.t, q.bin, map[string]string{"opencode": fakeOpenCodeScript})
+	if err := os.Chmod(filepath.Join(q.bin, "opencode"), 0700); err != nil {
+		q.t.Fatal(err)
+	}
+}
+
+func (q *qualifyRun) exports() int {
+	return strings.Count(q.launches(), "opencode session export")
+}
+
+const servedModelDeepseek = `{"id":"deepseek-v4.1-flash","providerID":"opencode-go","variant":"high"}`
+
+func exportWithModels(infoModel, assistantModel string) string {
+	msg := `{"id":"msg-1","type":"assistant","finish":"stop"`
+	if assistantModel != "" {
+		msg += `,"model":` + assistantModel
+	}
+	msg += `}`
+	return `{"info":{"id":"ses-1","model":` + infoModel + `},"messages":[` + msg + `]}`
+}
+
+func runOpenCodeQualification(t *testing.T, q *qualifyRun, name string, env ...string) result {
+	t.Helper()
+	for _, kv := range env {
+		k, v, _ := strings.Cut(kv, "=")
+		t.Setenv(k, v)
+	}
+	outText, err, out := q.run(name, "", "--host", "opencode", "--task", "question-no-edit", "--arm", "none", "--model", "opencode-go/deepseek-v4.1-flash#high")
+	if err != nil {
+		t.Fatalf("%v\n%s", err, outText)
+	}
+	return q.result(out)
+}
+
+func TestQualificationServedModelComesFromTheExportOnce(t *testing.T) {
+	for name, stream := range map[string]string{"stream-terminal": "1", "no-terminal-reuses-verify-export": ""} {
+		t.Run(name, func(t *testing.T) {
+			q := newQualifyRun(t)
+			q.useFakeOpenCode()
+			r := runOpenCodeQualification(t, q, "served", "FAKE_EXPORT_JSON="+exportWithModels(`{}`, servedModelDeepseek), "FAKE_RUN_STREAM_STOP="+stream)
+			if r.ModelObserved != "opencode-go/deepseek-v4.1-flash#high" {
+				t.Fatalf("ModelObserved = %q", r.ModelObserved)
+			}
+			if n := q.exports(); n != 1 {
+				t.Fatalf("export launched %d times", n)
+			}
+		})
+	}
+}
+
+func TestQualificationServedModelPrefersTheLastAssistantMessage(t *testing.T) {
+	q := newQualifyRun(t)
+	q.useFakeOpenCode()
+	info := `{"id":"other-model","providerID":"other","variant":"low"}`
+	r := runOpenCodeQualification(t, q, "assistant-wins", "FAKE_EXPORT_JSON="+exportWithModels(info, servedModelDeepseek), "FAKE_RUN_STREAM_STOP=1")
+	if r.ModelObserved != "opencode-go/deepseek-v4.1-flash#high" {
+		t.Fatalf("ModelObserved = %q", r.ModelObserved)
+	}
+}
+
+func TestQualificationServedModelRunsBeforeTheIsolatedDataDirIsRemoved(t *testing.T) {
+	q := newQualifyRun(t)
+	q.useFakeOpenCode()
+	runOpenCodeQualification(t, q, "before-cleanup", "FAKE_EXPORT_JSON="+exportWithModels(`{}`, servedModelDeepseek), "FAKE_RUN_STREAM_STOP=1")
+	if !strings.Contains(q.launches(), "EXPORT_DATA_DIR_PRESENT") {
+		t.Fatalf("the export did not see the isolated data directory:\n%s", q.launches())
+	}
+}
+
+func TestQualificationServedModelIsNotObservedWithoutAModelInTheExport(t *testing.T) {
+	for name, body := range map[string]string{
+		"no model":      exportWithModels(`{}`, ""),
+		"export fails":  "",
+		"invalid JSON":  `{nope`,
+		"empty message": `{"info":{"id":"ses-1"},"messages":[]}`,
+	} {
+		t.Run(name, func(t *testing.T) {
+			q := newQualifyRun(t)
+			q.useFakeOpenCode()
+			r := runOpenCodeQualification(t, q, "not-observed", "FAKE_EXPORT_JSON="+body, "FAKE_RUN_STREAM_STOP=1")
+			if r.ModelObserved != "not_observed" {
+				t.Fatalf("ModelObserved = %q", r.ModelObserved)
+			}
+		})
+	}
+}
+
+func TestQualificationServedModelExportUsesItsOwnTimeoutNotTheRunDeadline(t *testing.T) {
+	q := newQualifyRun(t)
+	q.useFakeOpenCode()
+	t.Setenv("FAKE_EXPORT_JSON", exportWithModels(`{}`, servedModelDeepseek))
+	t.Setenv("FAKE_RUN_STREAM_STOP", "1")
+	t.Setenv("FAKE_EXPORT_SLEEP", "2")
+	// The run limit is 3s and the export takes 2s: a run-deadline export would
+	// have no time left, the dedicated 10s timeout does.
+	outText, err, out := q.run("own-timeout", "", "--host", "opencode", "--task", "question-no-edit", "--arm", "none", "--model", "opencode-go/deepseek-v4.1-flash#high", "--timeout", "3s")
+	if err != nil {
+		t.Fatalf("%v\n%s", err, outText)
+	}
+	if r := q.result(out); r.ModelObserved != "opencode-go/deepseek-v4.1-flash#high" {
+		t.Fatalf("ModelObserved = %q", r.ModelObserved)
+	}
+}
+
+func TestQualificationServedModelCodexStaysNotObserved(t *testing.T) {
+	q := newQualifyRun(t)
+	outText, err, out := q.run("codex-served", "", "--host", "codex", "--task", "question-no-edit", "--arm", "none", "--model", "gpt-6", "--effort", "high")
+	if err != nil {
+		t.Fatalf("%v\n%s", err, outText)
+	}
+	r := q.result(out)
+	if r.ModelObserved != "not_observed" || r.ModelRequested != "gpt-6" {
+		t.Fatalf("observed=%q requested=%q", r.ModelObserved, r.ModelRequested)
+	}
+}

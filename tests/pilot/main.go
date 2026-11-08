@@ -747,8 +747,19 @@ func main() {
 	if r.FlashClass != nil {
 		r.ModelObserved = "not_observed"
 	}
+	var exported []byte
+	verifyRan := false
 	if *host == "opencode" && *suite != flashSuite && r.ExitCode == 0 && r.Error == "" && !r.Trace.TerminalSeen {
-		_ = verifyOpenCodeCompletion(&r.Trace, *host, cwd, cmd.Env)
+		exported, _ = verifyOpenCodeCompletion(&r.Trace, *host, cwd, cmd.Env)
+		verifyRan = true
+	}
+	if *host == "opencode" && *suite == qualificationSuite {
+		// Served model: read before completeGuidanceCleanup removes the isolated
+		// data directory, reusing the export verification already took.
+		if exported == nil && !(verifyRan && r.Trace.FinalAssistantID != "") && r.Trace.SessionID != "" && !r.Trace.SessionIDConflict {
+			exported, _ = exportOpenCodeSession(*host, cwd, r.Trace.SessionID, cmd.Env)
+		}
+		r.ModelObserved = servedModelFromExport(exported)
 	}
 	memory.stopHTTP()
 	if *suite == flashSuite {
