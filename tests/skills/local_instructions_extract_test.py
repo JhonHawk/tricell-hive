@@ -12,26 +12,31 @@ ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "content/skills/local-instructions/scripts/extract_candidates.py"
 sys.dont_write_bytecode = True  # keep __pycache__ out of the distributed skill folder
 
-SECRETS = ["hunter2pass", "s3cr3tUserPw", "abcTOKENxyz123456789", "pa55word!"]
+SECRETS = ["hunter2pass", "s3cr3tUserPw", "abcTOKENxyz123456789", "pa55word!", "S3cretPw", "dbpw77",
+           "qtok99", "731942", "redispw", "vercelpw"]
 
 
 def claude_session(cwd, session, commands):
-    """One Claude Code transcript: each command is (text, is_error, result_text)."""
+    """One Claude Code transcript: each command is (text, is_error, result_text[, background])."""
     lines = []
-    for i, (command, is_error, result) in enumerate(commands):
+    for i, (command, is_error, result, *rest) in enumerate(commands):
         tool_id = f"toolu_{session}_{i}"
+        tool_input = {"command": command, "description": "run"}
+        if rest and rest[0]:
+            tool_input["run_in_background"] = True
         lines.append({"type": "assistant", "cwd": cwd, "sessionId": session, "timestamp": "2026-11-05T10:00:00Z",
                       "message": {"content": [{"type": "tool_use", "id": tool_id, "name": "Bash",
-                                               "input": {"command": command, "description": "run"}}]}})
+                                               "input": tool_input}]}})
         lines.append({"type": "user", "cwd": cwd, "sessionId": session, "timestamp": "2026-11-05T10:00:01Z",
                       "message": {"content": [{"type": "tool_result", "tool_use_id": tool_id, "is_error": is_error,
                                                "content": result}]}})
     return "\n".join(json.dumps(line) for line in lines) + "\n"
 
 
-def codex_session(cwd, commands):
+def codex_session(cwd, commands, source="cli"):
     """One Codex rollout: each command is (argv, exit_code, output)."""
-    lines = [{"timestamp": "2026-11-06T09:00:00Z", "type": "session_meta", "payload": {"id": "cx1", "cwd": cwd}}]
+    lines = [{"timestamp": "2026-11-06T09:00:00Z", "type": "session_meta",
+              "payload": {"id": "cx1", "cwd": cwd, "source": source}}]
     for i, (argv, code, output) in enumerate(commands):
         lines.append({"timestamp": "2026-11-06T09:00:05Z", "type": "event_msg",
                       "payload": {"type": "item_completed", "item": {"type": "CommandExecution", "id": f"c{i}",
@@ -61,6 +66,14 @@ class ExtractCandidatesTest(unittest.TestCase):
             ("API_SECRET=\"hunter2pass and more\" NEXT_PUBLIC_APP_ENV=development pnpm dev", False, "ok"),
             ("python3 - <<'EOF'\nprint('inline')\nEOF", False, "inline"),
             ("node -e 'console.log(1)'", False, "1"),
+            ("mysql -uroot -pS3cretPw shop", False, "ok"),
+            ("docker run -e DB_PASSWORD=dbpw77 -p 5432:5432 postgres", False, "ok"),
+            ("curl http://localhost:3001/api?token=qtok99", False, "ok"),
+            ("PGPASSWORD=731942 psql -h localhost -U app shop", False, "ok"),
+            ("redis-cli -a redispw ping", False, "PONG"),
+            ("vercel env add API_KEY production <<< vercelpw", False, "ok"),
+            ("pnpm dev:watch", False, "started", True),
+            ("rg 'command not found' docs || true", False, "docs/x.md: bash: foo: command not found"),
         ]))
         # A second session repeats the start command, so it counts twice.
         (main / "s2.jsonl").write_text(claude_session(self.root, "s2", [
@@ -97,13 +110,22 @@ class ExtractCandidatesTest(unittest.TestCase):
         (day / "rollout-2026-11-06T09-30-00-cx2.jsonl").write_text(codex_session("/elsewhere", [
             (["/bin/zsh", "-lc", "make elsewhere-only"], 0, ""),
         ]))
+        # A Codex subagent run shares the cwd and is excluded.
+        (day / "rollout-2026-11-06T10-00-00-cx3.jsonl").write_text(codex_session(self.root, [
+            (["/bin/zsh", "-lc", "make codex-subagent-only"], 0, ""),
+        ], source={"subagent": {"thread_spawn": {}}}))
+        # A sibling repository of the same workspace counts only with the workspace root.
+        api = projects / "-work-api"
+        api.mkdir()
+        (api / "s6.jsonl").write_text(claude_session("/work/api", "s6", [("pnpm start", False, "listening")]))
 
     def tearDown(self):
         self.tmp.cleanup()
 
-    def run_script(self):
+    def run_script(self, *roots):
+        roots = roots or (self.root,)
         result = subprocess.run(
-            [sys.executable, "-I", str(SCRIPT), "--root", self.root, "--days", "30",
+            [sys.executable, "-I", str(SCRIPT), *[a for r in roots for a in ("--root", r)], "--days", "30",
              "--claude-home", str(self.claude), "--codex-home", str(self.codex)],
             capture_output=True, text=True, check=False)
         self.assertEqual(result.returncode, 0, result.stderr)
@@ -135,11 +157,20 @@ class ExtractCandidatesTest(unittest.TestCase):
 
     def test_excludes_neighbours_subagents_and_old_sessions(self):
         raw, out = self.run_script()
-        for marker in ("subagent-only", "neighbour-only", "too-old", "elsewhere-only"):
+        for marker in ("subagent-only", "neighbour-only", "too-old", "elsewhere-only", "codex-subagent-only", "dev:watch"):
             self.assertNotIn(marker, raw)
         self.assertEqual(out["hosts"]["claude-code"]["sessions"], 3)
         self.assertEqual(out["hosts"]["codex"]["sessions"], 1)
         self.assertEqual(set(out["not_covered"]), {"grok", "pi", "opencode", "cursor", "antigravity"})
+        self.assertNotIn("foo", {m["program"] for m in out["missing"]})
+
+    def test_workspace_root_adds_sibling_repositories_and_says_where(self):
+        _, out = self.run_script("/work")
+        start = {c["command"]: c for c in out["commands"]}["pnpm start"]
+        self.assertEqual(start["sessions"], 3)
+        self.assertEqual(set(start["where"]), {"shop", "api"})
+        _, alone = self.run_script()
+        self.assertEqual({c["command"]: c for c in alone["commands"]}["pnpm start"]["where"], ["."])
 
 
 if __name__ == "__main__":

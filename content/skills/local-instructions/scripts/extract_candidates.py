@@ -36,14 +36,24 @@ FLAGS = {"true", "false", "yes", "no", "on", "off"}
 INLINE = {"python", "python3", "node", "deno", "bun", "ruby", "perl"}
 INLINE_FLAGS = {"-", "-c", "-e", "-p", "--eval", "--print"}
 SECRET_FLAG = re.compile(r"pass|pwd|secret|token|key|auth|cred|cookie|bearer|session", re.I)
-VALUE_FLAGS = {"-H", "--header", "-u", "--user", "-b", "--data", "--data-raw", "--data-binary", "--json", "--form", "-F"}
+# Flags whose next argument may be a credential or a payload: always masked, unless a port number.
+VALUE_FLAGS = {"-H", "--header", "-u", "--user", "-b", "--cookie", "--data", "--data-raw", "--data-binary",
+               "--data-urlencode", "--json", "--form", "-F", "-a", "-p", "-P", "--body", "--value"}
+# Long flags whose next argument is kept; after any other long flag a plain word is masked.
+KEEP_NEXT = {"--port", "--profile", "--region", "--filter", "--file", "--env-file", "--project", "--project-name",
+             "--prefix", "--dir", "--cwd", "--workspace", "--tail", "--since", "--context", "--namespace", "--name",
+             "--target", "--stage", "--branch", "--base", "--host", "--username", "--db", "--dbname", "--database"}
+NUMERIC = re.compile(r"^\d+(?::\d+)*$")
+ENTROPY = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)[^/]{20,}$")
 ASSIGN = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", re.S)
 USERINFO = re.compile(r"([A-Za-z][A-Za-z0-9+.-]*://)[^/@\s]+@")
 PATHLIKE = re.compile(r"^[\w./~:%+@-]+$")
 SIMPLE = re.compile(r"^[\w.:/%+@,-]+$")
+# Whole-line shell messages for a missing program (zsh, bash in English or Spanish, dash).
 MISSING = [
-    re.compile(r"command not found: ([A-Za-z0-9._+-]+)"),
-    re.compile(r"([A-Za-z0-9._+-]+): (?:command not found|orden no encontrada)"),
+    re.compile(r"^\S+: command not found: ([A-Za-z0-9._+-]+)\s*$"),
+    re.compile(r"^(?:\S+: )?(?:\S+ \d+: )?([A-Za-z0-9._+-]+): (?:command not found|orden no encontrada)\s*$"),
+    re.compile(r"^\S+: \d+: ([A-Za-z0-9._+-]+): not found\s*$"),
 ]
 PORTS = [
     re.compile(r"(?:localhost|127\.0\.0\.1|0\.0\.0\.0):(\d{2,5})\b"),
@@ -68,40 +78,72 @@ def mask_assignment(name, value):
     return REDACTED
 
 
-def mask_token(token):
+def mask_url(token):
     token = USERINFO.sub(r"\1" + REDACTED + "@", token)
+    base, query, _ = token.partition("?")
+    base = base.split("#", 1)[0]
+    if any(c in base for c in " \t\n'\"`{}$\\") or len(base) > 200:
+        return REDACTED
+    scheme, _, rest = base.partition("://")
+    parts = [REDACTED if ENTROPY.match(part) else part for part in rest.split("/")]
+    return scheme + "://" + "/".join(parts) + ("?" + REDACTED if query else "")
+
+
+def mask_token(token):
+    if "://" in token and not ASSIGN.match(token):
+        return mask_url(token)
     match = ASSIGN.match(token)
     if match:
         name, value = match.groups()
         return name + "=" + mask_assignment(name, value)
     if token.startswith("-") and "=" in token:
         flag, value = token.split("=", 1)
-        if SECRET_FLAG.search(flag):
+        if flag in VALUE_FLAGS or SECRET_FLAG.search(flag):
             return flag + "=" + REDACTED
-        return flag + "=" + mask_token(value)
+        if flag in KEEP_NEXT or NUMERIC.match(value) or ("/" in value and PATHLIKE.match(value)):
+            return flag + "=" + mask_token(value)
+        return flag + "=" + REDACTED
     if any(c in token for c in " \t\n'\"`{}$\\"):
         return REDACTED
     if "/" in token and PATHLIKE.match(token) and len(token) <= 160:
         return token
     if len(token) > 40:
         return REDACTED
-    if len(token) >= 20 and re.search(r"[A-Za-z]", token) and re.search(r"\d", token):
+    if ENTROPY.match(token):
         return REDACTED
     return token
 
 
 def mask_tokens(tokens):
-    out, hide_next = [], False
+    """Keep the program, words, flag names, numbers and paths; mask what a flag may carry."""
+    out, pending = [], None
     for token in tokens:
-        if hide_next:
+        if pending == "hide" and not NUMERIC.match(token):
             out.append(REDACTED)
-            hide_next = False
+            pending = None
             continue
-        if token in VALUE_FLAGS or (token.startswith("-") and "=" not in token and SECRET_FLAG.search(token)):
+        if pending == "long" and not (token.startswith("-") or NUMERIC.match(token)
+                                      or ("/" in token and PATHLIKE.match(token))):
+            out.append(REDACTED)
+            pending = None
+            continue
+        pending = None
+        if token.startswith("--") and "=" not in token:
             out.append(token)
-            hide_next = True
-            continue
-        out.append(mask_token(token))
+            if token in VALUE_FLAGS or SECRET_FLAG.search(token):
+                pending = "hide"
+            elif token not in KEEP_NEXT:
+                pending = "long"
+        elif re.fullmatch(r"-[A-Za-z]", token):
+            out.append(token)
+            if token in VALUE_FLAGS:
+                pending = "hide"
+        elif token.startswith("-") and "=" not in token and len(token) > 2:
+            # A cluster such as -it is kept; -pS3cret or -uroot carries a value.
+            keep = re.fullmatch(r"-\d+", token) or (re.fullmatch(r"-[a-z]{2,3}", token) and token[1] not in "pu")
+            out.append(token if keep else token[:2] + REDACTED)
+        else:
+            out.append(mask_token(token))
     return out
 
 
@@ -149,13 +191,14 @@ def relevant(tokens):
 
 
 def missing_programs(text):
-    # The zsh form names the shell first ("zsh: command not found: x"), so the
-    # first pattern that matches wins.
-    for pattern in MISSING:
-        found = set(pattern.findall(text or ""))
-        if found:
-            return found
-    return set()
+    found = set()
+    for line in (text or "").splitlines():
+        for pattern in MISSING:  # the zsh form names the shell first, so the first match wins
+            match = pattern.match(line.strip())
+            if match:
+                found.add(match.group(1))
+                break
+    return found
 
 
 class Collector:
@@ -165,8 +208,9 @@ class Collector:
 
     @staticmethod
     def _bump(table, key, session, date, extra=None):
-        entry = table.setdefault(key, {"sessions": set(), "last_seen": "", "last_session": ""})
+        entry = table.setdefault(key, {"sessions": set(), "last_seen": "", "last_session": "", "where": set()})
         entry["sessions"].add(session)
+        entry["where"].add(session[2])
         if date >= entry["last_seen"]:
             entry["last_seen"], entry["last_session"] = date, session[1]
         if extra:
@@ -215,7 +259,8 @@ class Collector:
         rows = []
         for key, entry in table.items():
             row = {key_name: key} if not isinstance(key, tuple) else {"profile": key[0], "region": key[1]}
-            row.update(sessions=len(entry["sessions"]), last_seen=entry["last_seen"], last_session=entry["last_session"])
+            row.update(sessions=len(entry["sessions"]), last_seen=entry["last_seen"], last_session=entry["last_session"],
+                       where=sorted(entry["where"])[:5])
             if entry.get("env"):
                 row["env"] = sorted(entry["env"])
             rows.append(row)
@@ -235,6 +280,13 @@ class Collector:
 
 def in_roots(cwd, roots):
     return bool(cwd) and any(cwd == r or cwd.startswith(r + "/") for r in roots)
+
+
+def where(cwd, roots):
+    """The first folder below the matching root, or "." for the root itself and hidden worktree folders."""
+    root = max((r for r in roots if cwd == r or cwd.startswith(r + "/")), key=len)
+    first = os.path.relpath(cwd, root).split(os.sep)[0]
+    return "." if first.startswith(".") else first
 
 
 def day(stamp, path):
@@ -287,7 +339,7 @@ def scan_claude(home, roots, cutoff, collector, stats):
                 stats["unreadable"] += 1
                 continue
             stats["sessions"] += 1
-            session = ("claude-code", path.stem)
+            session = ("claude-code", path.stem, where(first_cwd(path, lambda r: r.get("cwd")), roots))
             uses = {}
             for record in read_jsonl(path):
                 content = (record.get("message") or {}).get("content")
@@ -297,12 +349,14 @@ def scan_claude(home, roots, cutoff, collector, stats):
                     if not isinstance(item, dict):
                         continue
                     if item.get("type") == "tool_use" and item.get("name") == "Bash":
-                        uses[item.get("id")] = ((item.get("input") or {}).get("command", ""), day(record.get("timestamp"), path))
+                        tool_input = item.get("input") or {}
+                        uses[item.get("id")] = (tool_input.get("command", ""), bool(tool_input.get("run_in_background")),
+                                                day(record.get("timestamp"), path))
                     elif item.get("type") == "tool_result" and item.get("tool_use_id") in uses:
-                        command, date = uses.pop(item["tool_use_id"])
+                        command, background, date = uses.pop(item["tool_use_id"])
                         if item.get("is_error"):
                             collector.failed(command, text_of(item.get("content")), None, session, date)
-                        else:
+                        elif not background:  # a background command reports success when it starts
                             collector.worked(command, session, date)
 
 
@@ -314,14 +368,15 @@ def scan_codex(home, roots, cutoff, collector, stats):
         try:
             if path.stat().st_mtime < cutoff:
                 continue
-            meta_cwd = first_cwd(path, lambda r: (r.get("payload") or {}).get("cwd") if r.get("type") == "session_meta" else "")
+            meta = next((r.get("payload") or {} for r in read_jsonl(path) if r.get("type") == "session_meta"), {})
         except OSError:
             stats["unreadable"] += 1
             continue
-        if not in_roots(meta_cwd, roots):
+        source = meta.get("source")
+        if not in_roots(meta.get("cwd", ""), roots) or (isinstance(source, dict) and "subagent" in source):
             continue
         stats["sessions"] += 1
-        session = ("codex", path.stem)
+        session = ("codex", path.stem, where(meta["cwd"], roots))
         for record in read_jsonl(path):
             payload = record.get("payload") or {}
             item = payload.get("item") or {}
@@ -338,7 +393,7 @@ def scan_codex(home, roots, cutoff, collector, stats):
             code = item.get("exit_code")
             if code == 0:
                 collector.worked(command, session, date)
-            elif code is not None:
+            elif code == 127:
                 collector.failed(command, item.get("aggregated_output", ""), code, session, date)
 
 
