@@ -26,7 +26,9 @@ For a new or rearranged screen, order the tasks by what each one needs in order 
 
 ## Acceptance criteria
 
-Number them `AC1`, `AC2`…, one observable behavior each. Name for each the observation that would show it false, and check that the observation is false on the current base branch: a criterion already true there, or one that restates the request, grades nothing; rewrite or drop it. Every criterion appears in the `Closes:` line of at least one task, whose verification covers it.
+Number them `AC1`, `AC2`…, one observable behavior each. Name for each the observation that would show it false, and check that the observation is false on the current base branch: a criterion already true there, or one that restates the request, grades nothing; rewrite or drop it. Every criterion appears in the `Closes:` line of at least one task, whose verification covers it or names the stage that reaches its place.
+
+End each criterion with `Observed in: <place>`: where its real effect shows. For a screen or an API the project serves, the candidate served locally with the project's real build and seeded data of realistic volume is the real effect. A mock, a stub or an emulation of a service the project does not own, such as a cloud account, a payment provider or another team's system, and a dry run, are substitutes: a check against one supports a task and never closes a criterion. Until a walk observes a criterion in its place, its task keeps it in `Closes:` and reports it as not verified. The walk of `flow-verify` closes each criterion whose place it reaches; one whose place is a deployed environment stays not verified until the functional walk of `flow-deploy` observes it there, when that walk runs, and naming the environment does not ask for the walk. Name a deployed environment only when the effect exists nowhere else, such as a change to infrastructure.
 
 ## Where the plan lives
 
@@ -47,7 +49,7 @@ Write `<Specs>/changes/<change-id>/`, with `<change-id>` in English kebab-case s
 
 This applies when a written plan changes during planning or the build: a decision replaced, a criterion changed, added or dropped, a task added or changed, or a delta changed. A change of outcome is a new change, as the global guidance's «Scope changes» sets.
 
-1. Edit in the same pass every place in the change folder that states what changed: the proposal's sections and criteria, `design.md`, each task's text, `Closes:`, test approach and verification, and the delta. Mark the new decision or criterion with `**Replaces:** <old IDs>` on its line; keep a dropped criterion's line and add `**Retired:** <reason>` to it; never delete the old line. Both markers stay in English, like `Closes:`.
+1. Edit in the same pass every place in the change folder that states what changed: the proposal's sections and criteria, `design.md`, each task's text, `Closes:`, test approach and verification, and the delta. Mark the new decision or criterion with `**Replaces:** <old IDs>` on its line; keep a dropped criterion's line and add `**Retired:** <reason>` to it; never delete the old line. Both markers stay in English, like `Closes:` and `Observed in:`.
 2. Reopen each `[x]` task the revision invalidates.
 3. Run `python3 <flow-plan-dir>/scripts/check_change.py <change-folder>` ([script](scripts/check_change.py)) and fix each line it prints until it exits 0.
 4. When the revision changes a criterion or the delta, have one `hive-review-plan` child review the revised folder, briefed as [delegation](../flow-build/references/delegation.md#reviewer-brief) sets: one round per revision. A gap that survives it goes to the user as a decision.

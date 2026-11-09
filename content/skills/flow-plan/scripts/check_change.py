@@ -19,6 +19,11 @@ Reads proposal.md, tasks.md, design.md and specs/**/*.md and prints one
   "progress", "progreso" or "avance", or a `## Checkpoint` heading with its
   `###` subsections);
 - a **Closes:** line naming a criterion when proposal.md has no `- AC<n>` bullet;
+- a criterion, neither retired nor replaced, none of whose bullets, read with
+  the lines indented under it up to a nested criterion, names a place after
+  its last **Observed in:** (also `**Observed in**:` or `Observed in:`); an empty
+  marker, a dash or a `<…>` placeholder that is not a link is no place; not
+  checked with --archive;
 - with --archive, each unchecked `- [ ]` box of tasks.md, then their count.
 
 Exit status: 0 when nothing is printed, 1 when something is, 2 when the folder,
@@ -45,6 +50,8 @@ def marker(word):
 REPLACES = marker("Replaces")
 RETIRED = marker("Retired")
 CLOSES = re.compile(marker("Closes").pattern + r"(.*)$")
+OBSERVED = marker("Observed in")
+PLACEHOLDER = re.compile(r"^<(?![A-Za-z][A-Za-z0-9+.-]*:)[^>]*>")
 AC_DEFINITION = re.compile(r"^\s*[-*]\s+\**AC(\d+)\b")
 AC_REFERENCE = re.compile(r"AC(\d+)(?:\s*[-–—]\s*(?:AC)?(\d+))?")
 UNCHECKED = re.compile(r"^\s*[-*]\s+\[ \]\s*(.*)$")
@@ -168,6 +175,45 @@ def criteria_findings(proposal, tasks, old):
     return findings
 
 
+def criterion_lines(proposal, start):
+    """Return a criterion's bullet with the lines indented under it, up to a nested criterion."""
+    indent = len(proposal[start]) - len(proposal[start].lstrip())
+    lines = [proposal[start]]
+    for following in proposal[start + 1:]:
+        if not following.strip():
+            continue
+        if len(following) - len(following.lstrip()) <= indent or AC_DEFINITION.match(following):
+            break
+        lines.append(following)
+    return lines
+
+
+def names_place(lines):
+    """True when text follows the criterion's last marker, on its line or wrapped below it, and is not a placeholder."""
+    text = " ".join(part.strip() for part in lines)
+    found = list(OBSERVED.finditer(text))
+    place = text[found[-1].end():].strip(" *`.·—–-") if found else ""
+    return bool(place) and not PLACEHOLDER.match(place)
+
+
+def observed_findings(proposal, old):
+    """Report each active criterion none of whose bullets names a place where it is observed."""
+    progress = exempt_progress(proposal)
+    gone = {int(number) for prefix, number, _ in old if prefix == "AC"}
+    named, last = {}, {}
+    for i, line in enumerate(proposal):
+        match = AC_DEFINITION.match(line)
+        if not match or i in progress or int(match.group(1)) in gone:
+            continue
+        number = int(match.group(1))
+        last[number] = i + 1
+        named[number] = named.get(number, False) or names_place(criterion_lines(proposal, i))
+    return [
+        f"proposal.md:{last[number]}: AC{number} names no **Observed in:** place"
+        for number in sorted(named) if not named[number]
+    ]
+
+
 def main(argv):
     args = [a for a in argv if a != "--archive"]
     if len(args) != 1:
@@ -186,6 +232,8 @@ def main(argv):
 
     old = collect_replacements(docs)
     findings = criteria_findings(docs["proposal.md"], docs["tasks.md"], old)
+    if "--archive" not in argv:
+        findings += observed_findings(docs["proposal.md"], old)
     findings += stale_mentions(docs, old)
     if "--archive" in argv:
         boxes = [

@@ -29,6 +29,22 @@ raise the minor or the patch version.
   regions at 320 px, even when the project declares an accessibility
   requirement, and its reflow floor no longer establishes WCAG 1.4.10.
 
+- A decision the agent asks now carries a `Situation:` line, an
+  `If you choose it:` line under each option and an `I recommend` line, and
+  the round says how many decisions are still to come. Each acceptance criterion
+  ends with `Observed in: <place>`, where its real effect shows: a check
+  against a mock, a stub, an emulation or a dry run supports a task but does
+  not close the criterion, and a criterion whose place a stage has not reached,
+  such as a deployed environment, is reported as not verified. The plan
+  coherence check reports a criterion without the marker.
+
+### Migration
+
+- Change folders in progress receive the new coherence-check finding the next
+  time their plan is revised: add `Observed in:` to each active criterion. A
+  criterion without the marker is still verified through its real path. Archived change
+  folders are not checked and need no edit.
+
 ### Fixed
 
 - Codex's generated `SessionEnd` hook uses its supported 3-second timeout,

@@ -28,7 +28,7 @@ Assess COM-833 before I start it.
 
 ## What it asks you
 
-Very little, and only after it has read what the project already answers. It plays your request back: what you want, for whom and why, with any conflict, false premise or cheaper path it found. When something that changes the result is still open, it asks one open question per message, in the text, with the reason and the option to tell it to just start. Choices between options use the cards of the [shared guidance](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md): a bold context line, the options with the recommended one first, and a line saying what the agent waits for.
+Very little, and only after it has read what the project already answers. It plays your request back: what you want, for whom and why, with any conflict, false premise or cheaper path it found. When something that changes the result is still open, it asks one open question per message, in the text, with the reason and the option to tell it to just start. Choices between options use the cards of the [shared guidance](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md): a bold context line, a `Situation:` line, the options with the recommended one first, each with an `If you choose it:` line, an `I recommend` line, and a line saying what the agent waits for.
 
 When a ticket you picked has open scope, such as missing criteria or more than one change in it, the agent settles those scope decisions with you during research, before it closes the what.
 
