@@ -28,6 +28,16 @@ raise the minor or the patch version.
   you approve becomes the reference of the plan, the build's first view, the
   verification walk and the UX review. A request for the design itself is
   drawn without the offer and is not reported as done before you approve it.
+- Plans that touch a system outside the repository measure each external fact
+  before the tasks, with a read-only command and its output (one read-only
+  helper per system when there are two or more), and ask one decision per
+  class of effect, with a spending ceiling, in the delivery round; `flow-deploy`
+  does not ask again for what an answered class covers, and production keeps
+  its own question.
+- Unattended work states an amount for unforeseen spend when it starts: within
+  it, a reversible effect that no answer covers can go ahead and is listed in
+  the final report; with no amount it is zero and the effect is skipped and
+  reported, as before.
 
 ### Changed
 
