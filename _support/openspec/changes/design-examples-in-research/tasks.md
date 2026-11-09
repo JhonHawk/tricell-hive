@@ -4,7 +4,7 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 
 ### T1 — Propuestas de pantalla en research
 
-- [ ] `flow-research` tiene la sección «Examples for a screen», el rol `hive-design-ui` entrega ejemplos en el archivo de diseño que su encargo le asigna y la referencia de delegación nombra ese trabajo
+- [x] `flow-research` tiene la sección «Examples for a screen», el rol `hive-design-ui` entrega ejemplos en el archivo de diseño que su encargo le asigna y la referencia de delegación nombra ese trabajo
 
 **Closes:** AC1, AC2, AC3, AC4, AC7, AC11, AC12
 
@@ -143,3 +143,4 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 2026-11-09 — Plan escrito.
 2026-11-09 — Revisión 1 del plan: T1 gana la referencia de delegación, los punteros del paso 0 y las dos frases del rol; T5 cambia la frase existente del revisor; las verificaciones observan cada cláusula. Ninguna tarea estaba hecha.
 2026-11-09 — Revisión 2 del plan: T1 deja intacto el párrafo final del rol y gana las cláusulas de autorización y de cierre; T4 y T5 definen la diferencia y su destino; T6 gana `overview.md`; T7 es nueva. Ninguna tarea estaba hecha.
+2026-11-09 — T1 · 6e36bdfc · unverified: none
