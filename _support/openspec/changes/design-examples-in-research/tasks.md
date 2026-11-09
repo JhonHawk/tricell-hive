@@ -40,7 +40,7 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 
 ### T3 — El plan usa el ejemplo aprobado
 
-- [ ] «UI decisions», el resumen del plan y la plantilla `design.md` toman el ejemplo aprobado como referencia
+- [x] «UI decisions», el resumen del plan y la plantilla `design.md` toman el ejemplo aprobado como referencia
 
 **Closes:** AC6
 
@@ -58,7 +58,7 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 
 ### T4 — Build y verify comparan contra el ejemplo
 
-- [ ] La primera vista del build y el recorrido de verify comparan contra el ejemplo aprobado
+- [x] La primera vista del build y el recorrido de verify comparan contra el ejemplo aprobado
 
 **Closes:** AC8
 
@@ -76,7 +76,7 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 
 ### T5 — La revisión de UX compara contra el ejemplo
 
-- [ ] `hive-review-ux` y el encargo del revisor incluyen la imagen del ejemplo aprobado
+- [x] `hive-review-ux` y el encargo del revisor incluyen la imagen del ejemplo aprobado
 
 **Closes:** AC9
 
@@ -145,3 +145,6 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 2026-11-09 — Revisión 2 del plan: T1 deja intacto el párrafo final del rol y gana las cláusulas de autorización y de cierre; T4 y T5 definen la diferencia y su destino; T6 gana `overview.md`; T7 es nueva. Ninguna tarea estaba hecha.
 2026-11-09 — T1 · 6e36bdfc · unverified: none
 2026-11-09 — T2 · bad61441 · unverified: none
+2026-11-09 — T3 · ca36e5cc · unverified: none
+2026-11-09 — T4 · ca36e5cc · unverified: none
+2026-11-09 — T5 · ca36e5cc · unverified: none
