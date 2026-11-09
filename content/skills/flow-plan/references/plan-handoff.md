@@ -9,7 +9,7 @@ A saved change folder holds the detail and the user may not open it, so summariz
 1. The objective in one or two sentences, and the files and areas of the scope line [flow-research](../../flow-research/SKILL.md) step 5 sets, recounted from the plan; its stages and checks go in items 7 and 8. When research gave that line in this conversation and the file count differs by more than a quarter, or an area was added or removed, say what changed and why, such as "~42 files, not ~30: the retired contract's tests are removed"; without that line, give the count alone.
 2. The text of each acceptance criterion `AC<n>`, and the name of each requirement the delta adds, modifies or removes: they are the contract the user approves.
 3. The decisions in force, and the minor calls (as «Questions and routes» in the global guidance defines them) taken without asking with their reasons.
-4. For a change to a screen, the sketch of each changed region before and after from the `UI` section of `design.md`, with its components and states. Check that each sketch matches the text that describes it, such as two actions drawn side by side when the text says so.
+4. For a change to a screen, the sketch of each changed region before and after from the `UI` section of `design.md`, with its components and states; for a region with an approved example, the example's record in place of its after sketch. Check that each sketch matches the text that describes it, such as two actions drawn side by side when the text says so.
 5. Each task on one line, with what it delivers and who executes it.
 6. The prerequisites still unmet, with who provides each.
 7. The verification: the tests, the UI walk and review, and the code review.

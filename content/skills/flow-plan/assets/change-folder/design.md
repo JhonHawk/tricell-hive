@@ -18,7 +18,7 @@
 
 <!-- Only for a change to a screen. -->
 
-<The screen pattern, where each action goes and its weight, the states (loading, empty, error, permissions) and an ASCII sketch of the region.>
+<The screen pattern, where each action goes and its weight, the states (loading, empty, error, permissions) and an ASCII sketch of the region, or the record of its approved example.>
 
 ## Copy
 

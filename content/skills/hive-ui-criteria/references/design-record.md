@@ -29,6 +29,7 @@ The file follows the Google Labs DESIGN.md format (alpha): YAML frontmatter, the
   - **Library:** name, installed version, the file the version came from; for a library that copies its code, also the `style`, the registry and each primitive with its installed version.
   - **Customization layer:** kind and path of each piece.
   - **Library tools:** the MCP server or skill, if any.
+  - **Design file:** the design tool and the location of the app's design file, only when the user gives it; write it only at the user's instruction. It says where [Examples for a screen](../../flow-research/SKILL.md#examples-for-a-screen) draws proposals for the app's screens, and authorizes no write by itself. It is the one value with no source file: it carries no fingerprint and never makes the record stale.
   - **Product:** users, main tasks, the mode of each area ([criteria](criteria.md#screen-modes)), constraints, and any accessibility requirement.
   - **Decisions:** approved deviations from the library, each with date and origin. This is the list that precedence level 2 reads.
   - **Sources:** every source file with its fingerprint, the output of `git hash-object <path>`. A lockfile gets no fingerprint, because any dependency change alters it; reading it covers the version only.
@@ -59,6 +60,7 @@ Dense back-office screens for operators.
 - **Library:** ExampleUI 3.1.0 (pnpm-lock.yaml)
 - **Customization layer:** CSS variables, src/styles/theme.css; wrapper, src/components/Button.tsx
 - **Library tools:** none found
+- **Design file:** ExampleDraw, https://draw.example/file/abc123
 - **Product:** operators; review and approve orders; area Orders = operate
 - **Decisions:** 2026-01-10, primary button uses the brand color (ticket EX-12)
 - **Sources:** src/styles/theme.css 1f3a9c0e...; src/components/Button.tsx 7be21d44...

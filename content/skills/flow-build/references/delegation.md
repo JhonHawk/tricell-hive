@@ -8,7 +8,7 @@ A child does the work for the first of these reasons that applies; when neither 
 
 1. **Independence: every review.** Every review or verification Hive launches, by a `hive-review-*` or `hive-verify-*` role, always runs in a child, never in the main thread, because the context that produced the work biases its review. The cost of that child does not decide. A code review by the host's native command, when the user chose it in the delivery round, runs as that command runs. The checks the main thread runs for each task are not a review.
 2. **Cost: large work the session would carry.** What the main thread reads or writes rides along in each of its later calls, while a fresh child starts at tens of thousands of tokens and returns a short summary. Delegate:
-   - in research, each aspect as [flow-research step 4](../../flow-research/SKILL.md) sets;
+   - in research, each aspect as [flow-research step 4](../../flow-research/SKILL.md) sets, and drawing in a design file the examples [Examples for a screen](../../flow-research/SKILL.md#examples-for-a-screen) sets, with one `hive-design-ui` child briefed as that section sets, when the host gives its children the connection that writes to that file, since the design tool's reads are large;
    - in a build, a task that needs more than 5 large reads or edits more than 3 files, when its interface is settled and its writes do not overlap files another task in progress writes;
    - in any other flow, a check or collection that needs more than 5 large reads.
 
@@ -34,7 +34,7 @@ A child does the work for the first of these reasons that applies; when neither 
 Give a reviewer what it needs to judge the work and nothing that argues for it:
 
 - the artifact: the diff, the plan files or the captures;
-- the requirements it must meet: the request, the ticket's criteria and the acceptance criteria;
+- the requirements it must meet: the request, the ticket's criteria and the acceptance criteria, and for a UX review the image of the approved example when the work has one;
 - the output of the checks already run, as their commands and results.
 
 Never include the producer's reasoning, its account of why the work is right, a claim such as "verified" or "tests pass" without its output, or a list of facts or conclusions the reviewer should not re-check, such as "already settled" or "facts already gathered", since a framing that the work is correct lowers what a reviewer finds. A UX reviewer covers the regions the change alters and their possible impact on the layouts and other components that contain or reuse them, such as containers, lists, dialogs and shared components, measured and exercised on the captures in its brief. Its brief also gives how to reach each state its role always checks, loading, empty, error and the longest real values, such as the fixture route, the account and how to force the error, or says which of them cannot be reached. The brief does the same for the states the measured checks of [criteria](../../hive-ui-criteria/references/criteria.md) need: for a list, search or filters, no results apart from an empty catalog, a list of more than 1000 items, and returning from a detail view; for a form or any submit, how to hold the submit pending, such as a delayed stub or a throttled network.
