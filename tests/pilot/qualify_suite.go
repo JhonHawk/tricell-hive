@@ -281,7 +281,8 @@ func validateQualifyChecks(t qualifyTask) error {
 		}
 	}
 	for _, p := range c.CommitMade {
-		if !relativeInside(p) || p == "." || p == ".git" || strings.HasPrefix(path.Clean(p), ".git/") {
+		clean := path.Clean(p)
+		if !relativeInside(p) || strings.HasSuffix(p, "/") || clean == "." || clean == ".git" || strings.HasPrefix(clean, ".git/") {
 			return fail("commit_made path %q must be relative, inside the fixture and outside .git", p)
 		}
 	}
@@ -380,6 +381,9 @@ func validateActionRequired(t qualifyTask, cases map[string]fixture) error {
 	if t.NoActionExpected {
 		if !t.Checks.GitUnchanged {
 			return fmt.Errorf("task %q: no_action_expected requires git_unchanged", t.ID)
+		}
+		if len(t.Checks.CommitMade) > 0 {
+			return fmt.Errorf("task %q: no_action_expected cannot require commit_made", t.ID)
 		}
 		return nil
 	}

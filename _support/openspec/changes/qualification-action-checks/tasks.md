@@ -4,7 +4,7 @@ Base `development` 695ca885, rama `feat/qualification-action-checks`. Todas en e
 
 ### T8 — Chequeo `commit_made` y lista cerrada de `compare_none`
 
-- [ ] `commit_made` existe, se valida su ruta y `compare_none` acepta `commit_made` y `answer_must`
+- [x] `commit_made` existe, se valida su ruta y `compare_none` acepta `commit_made` y `answer_must`
 
 **Closes:** AC61
 
@@ -16,13 +16,13 @@ Base `development` 695ca885, rama `feat/qualification-action-checks`. Todas en e
 
 **Test approach:** check
 
-**Changes:** `commitMade` y `changedRefs` (compartido con `noNewCommit`); `answer_must_not` sigue fuera de la lista cerrada.
+**Changes:** `commitMade` y `changedRefs` (compartido con `noNewCommit`); las rutas se comparan ya limpias y no pueden ser directorios; `answer_must_not` sigue fuera de la lista cerrada.
 
 **Verification:** `go test ./tests/pilot/ -run 'TestQualifySuite(CommitMade|ShapeRejections)'` pasa: commit con la ruta cambiada pasa; sin commit, edición sin commit y commit de otro archivo fallan; rutas en `.git` o fuera del fixture se rechazan.
 
 ### T9 — Regla «no hace nada» y `no_action_expected`
 
-- [ ] el validador rechaza toda tarea que apruebe `doNothingRun`, salvo `no_action_expected` con `git_unchanged`
+- [x] el validador rechaza toda tarea que apruebe `doNothingRun`, salvo `no_action_expected` con `git_unchanged`
 
 **Closes:** AC60
 
@@ -42,7 +42,7 @@ Base `development` 695ca885, rama `feat/qualification-action-checks`. Todas en e
 
 - [ ] las siete tareas verifican la acción pedida y las cuatro de pregunta llevan `no_action_expected`
 
-**Closes:** AC62
+**Closes:** AC63
 
 **Depends on:** T9
 
@@ -52,9 +52,9 @@ Base `development` 695ca885, rama `feat/qualification-action-checks`. Todas en e
 
 **Test approach:** check
 
-**Changes:** chequeos de AC62; el spec vigente no se edita: el delta se fusiona al cerrar.
+**Changes:** chequeos de AC63; el spec vigente no se edita: el delta se fusiona al cerrar.
 
-**Verification:** `go test ./tests/pilot/ ./tests/content/` pasa (`TestQualifySuiteRealFileAccepted` y las pruebas de deltas) y el escaneo `rg` del README de los fixtures no imprime nada.
+**Verification:** `go test ./tests/pilot/ ./tests/content/` pasa (`TestQualifySuiteRealFileAccepted` y las pruebas de deltas) y `rg -l -i -P '/Users/|/home/|/Volumes/|/private/|~/|password=|secret=|(?<!EXAMPLE_API_)token=' -g '!README.md' tests/fixtures/qualification` no imprime nada.
 
 ## Verificación y revisión humana
 
@@ -68,4 +68,18 @@ Sin validación humana: la entrega es automática.
 
 ## Checkpoint
 
+- Updated: 2026-11-08
+- Stage: flow-build · 5 (CI local + revisión del plan en curso)
+- Last commit: 7fc5494d
+- Open findings: none
+- Next: leer suite completa y revisión del plan; luego flow-verify con /code-review
+
+### Evidence
+
+- go test ./tests/pilot/ ./tests/content/ · ok · 7fc5494d
+
 ## Estado de revisión y progreso
+
+2026-11-08 — T8 · 7fc5494d · unverified: none
+2026-11-08 — T9 · 7fc5494d · unverified: T8–T10 en un solo commit: la regla de T9 hace fallar la suite real hasta T10
+2026-11-08 — T10 · 7fc5494d · unverified: ninguna corrida real: los regex de answer_must no se probaron con respuestas de modelos

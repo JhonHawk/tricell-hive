@@ -191,7 +191,8 @@
         "answer_must": [
           "EXAMPLE_API_TOKEN",
           "\\.env\\b"
-        ]
+        ],
+        "git_unchanged": true
       },
       "split": "heldback"
     },
@@ -242,7 +243,8 @@
         },
         "answer_must": [
           "\\.env\\.local"
-        ]
+        ],
+        "git_unchanged": true
       },
       "split": "tuning"
     },
@@ -253,9 +255,15 @@
       "checks": {
         "criteria": {
           "ticket_ids_not_packed_in_prose": [
-            "pass"
+            "pass",
+            "not_observed"
           ]
-        }
+        },
+        "answer_must": [
+          "SHP-12\\b",
+          "SHP-30\\b",
+          "SHP-40\\b"
+        ]
       },
       "split": "heldback"
     },
@@ -305,9 +313,15 @@
       "checks": {
         "criteria": {
           "ticket_ids_not_packed_in_prose": [
-            "pass"
+            "pass",
+            "not_observed"
           ]
-        }
+        },
+        "answer_must": [
+          "TCK-1\\b",
+          "TCK-4\\b",
+          "TCK-7\\b"
+        ]
       },
       "split": "tuning"
     },

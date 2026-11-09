@@ -227,6 +227,9 @@ func TestQualifySuiteShapeRejections(t *testing.T) {
 		{"compare-none-answer-must-names-hive", func(s *qualifySuite) { s.Tasks[0].Checks.AnswerMust = []string{`(?i)skill`} }, "compare_none"},
 		{"commit-made-path-inside-git", func(s *qualifySuite) { s.Tasks[0].Checks.CommitMade = []string{".git/HEAD"} }, "commit_made"},
 		{"commit-made-path-escapes", func(s *qualifySuite) { s.Tasks[0].Checks.CommitMade = []string{"../x"} }, "commit_made"},
+		{"commit-made-dot-git-unclean", func(s *qualifySuite) { s.Tasks[0].Checks.CommitMade = []string{"./.git"} }, "commit_made"},
+		{"commit-made-directory", func(s *qualifySuite) { s.Tasks[0].Checks.CommitMade = []string{"src/"} }, "commit_made"},
+		{"no-action-expected-with-commit-made", func(s *qualifySuite) { s.Tasks[0].Checks.CommitMade = []string{"README.md"} }, "no_action_expected"},
 		{"no-action-expected-without-git-unchanged", func(s *qualifySuite) { s.Tasks[0].Checks.GitUnchanged = false }, "no_action_expected"},
 		{"do-nothing-run-passes", func(s *qualifySuite) { s.Tasks[0].NoActionExpected = false }, "does nothing"},
 		{"accepted-not-observed-passes-do-nothing", func(s *qualifySuite) {
