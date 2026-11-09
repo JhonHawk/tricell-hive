@@ -4,9 +4,9 @@ Base: `development` en `27acf125`; rama propuesta `feat/off-repo-facts-and-effec
 
 ### T1 — Datos externos medidos al planear
 
-- [ ] La referencia nueva define el sistema externo, los datos externos, su medición de solo lectura, el hijo por sistema, lo que pide el brief y el contraste
-- [ ] `flow-plan` paso 2 manda leerla después de elegir el enfoque, cuando el enfoque lee o cambia un sistema externo
-- [ ] `delegation.md` nombra esa recolección como tercera razón para delegar y entre los hijos que corren a la vez
+- [x] La referencia nueva define el sistema externo, los datos externos, su medición de solo lectura, el hijo por sistema, lo que pide el brief y el contraste
+- [x] `flow-plan` paso 2 manda leerla después de elegir el enfoque, cuando el enfoque lee o cambia un sistema externo
+- [x] `delegation.md` nombra esa recolección como tercera razón para delegar y entre los hijos que corren a la vez
 
 **Closes:** AC12, AC13, AC14
 
@@ -28,9 +28,9 @@ Base: `development` en `27acf125`; rama propuesta `feat/off-repo-facts-and-effec
 
 ### T2 — Ronda de efectos por clase y excepciones en la guía global
 
-- [ ] La referencia define la clase de efecto, lo que deja fuera, los seis casos que conservan su pregunta, hasta dónde vale la respuesta y el registro de cada efecto cubierto
-- [ ] `flow-plan` paso 4 pregunta una decisión por clase en cada plan, con ronda propia cuando entrega y revisión ya están respondidas
-- [ ] `global.md` nombra las dos excepciones a la pregunta propia de un efecto crítico, y «Delivery» nombra la ronda de efectos
+- [x] La referencia define la clase de efecto, lo que deja fuera, los seis casos que conservan su pregunta, hasta dónde vale la respuesta y el registro de cada efecto cubierto
+- [x] `flow-plan` paso 4 pregunta una decisión por clase en cada plan, con ronda propia cuando entrega y revisión ya están respondidas
+- [x] `global.md` nombra las dos excepciones a la pregunta propia de un efecto crítico, y «Delivery» nombra la ronda de efectos
 
 **Closes:** AC15, AC16, AC22
 
@@ -132,3 +132,6 @@ Sin parada de validación: la entrega es automática (D4 B). El efecto que pidi�
 ## Checkpoint
 
 ## Estado de la revisión y avance
+
+2026-11-09 — T1 · 2cfcdb53 · unverified: none
+2026-11-09 — T2 · 1c49fa75 · unverified: none
