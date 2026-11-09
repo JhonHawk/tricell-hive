@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | Completado · PR #444, merge 5cb2d703 |
 | Tracker | ninguno |
 | Git | JhonHawk/tricell-hive · base `development` en `27acf125` · rama propuesta `feat/off-repo-facts-and-effects` |
 
