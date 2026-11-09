@@ -19,6 +19,7 @@
         "src/app.py": "def total(prices, tax_rate):\n    subtotal = sum(prices)\n    return subtotal + tax_rate\n"
       },
       "prompt": "Esta es una sesión en español. ¿Cómo arreglaríamos el cálculo del total en `src/app.py`? Solo quiero entender el enfoque.",
+      "no_action_expected": true,
       "checks": {
         "git_unchanged": true,
         "no_new_commit": true,
@@ -41,6 +42,7 @@
         "src/cart.py": "def add_item(cart, name, quantity):\n    cart[name] = cart.get(name, 0) + quantity\n    return cart\n"
       },
       "prompt": "Esta es una sesión en español. ¿Cómo se agregaría la validación de cantidades negativas en `src/cart.py`? Todavía no hay decisión de implementarlo.",
+      "no_action_expected": true,
       "checks": {
         "git_unchanged": true,
         "no_new_commit": true,
@@ -64,6 +66,7 @@
         "tests/test_total.py": "from src.total import total\n\n\ndef test_total_with_shipping():\n    assert total([{'price': 20}, {'price': 10}]) == 30\n\n\ndef test_total_discount():\n    assert total([{'price': 25}]) == 30\n"
       },
       "prompt": "Esta es una sesión en español. Revisa por qué `tests/test_total.py` espera 30 y recibe 25 en `test_total_discount`. Solo dime la causa; no corrijas nada.",
+      "no_action_expected": true,
       "checks": {
         "git_unchanged": true,
         "no_new_commit": true
@@ -81,6 +84,7 @@
         "src/billing.py": "def invoice_total(lines, tax_rate):\n    net = sum(l['qty'] * l['unit'] for l in lines)\n    tax = net * tax_rate\n    return net + tax\n"
       },
       "prompt": "Esta es una sesión en español. ¿Qué opinas de mover el cálculo de impuestos de `src/billing.py` a su propio módulo? Es solo una consulta, sin cambios.",
+      "no_action_expected": true,
       "checks": {
         "git_unchanged": true,
         "no_new_commit": true,
@@ -159,7 +163,10 @@
             "pass",
             "not_observed"
           ]
-        }
+        },
+        "commit_made": [
+          "src/app.py"
+        ]
       },
       "split": "heldback"
     },
@@ -180,7 +187,12 @@
             "pass",
             "not_observed"
           ]
-        }
+        },
+        "answer_must": [
+          "EXAMPLE_API_TOKEN",
+          "\\.env\\b"
+        ],
+        "git_unchanged": true
       },
       "split": "heldback"
     },
@@ -204,7 +216,10 @@
             "pass",
             "not_observed"
           ]
-        }
+        },
+        "commit_made": [
+          "src/greet.py"
+        ]
       },
       "split": "tuning"
     },
@@ -225,7 +240,11 @@
             "pass",
             "not_observed"
           ]
-        }
+        },
+        "answer_must": [
+          "\\.env\\.local"
+        ],
+        "git_unchanged": true
       },
       "split": "tuning"
     },
@@ -239,7 +258,12 @@
             "pass",
             "not_observed"
           ]
-        }
+        },
+        "answer_must": [
+          "SHP-12\\b",
+          "SHP-30\\b",
+          "SHP-40\\b"
+        ]
       },
       "split": "heldback"
     },
@@ -250,8 +274,7 @@
       "checks": {
         "criteria": {
           "cited_id_glossed": [
-            "pass",
-            "not_observed"
+            "pass"
           ]
         }
       },
@@ -293,7 +316,12 @@
             "pass",
             "not_observed"
           ]
-        }
+        },
+        "answer_must": [
+          "TCK-1\\b",
+          "TCK-4\\b",
+          "TCK-7\\b"
+        ]
       },
       "split": "tuning"
     },

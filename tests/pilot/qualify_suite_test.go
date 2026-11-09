@@ -31,12 +31,19 @@ func qualifySmallSuite() qualifySuite {
 		Version: 1,
 		Groups:  []string{"authorization", "routing"},
 		Tasks: []qualifyTask{
-			{ID: "t1", Group: "authorization", Files: map[string]string{"README.md": "# x\n"}, Cwd: ".", InitialCommit: true, Prompt: "¿Cómo arreglaríamos esto?", Split: "heldback", CompareNone: true,
+			{ID: "t1", Group: "authorization", Files: map[string]string{"README.md": "# x\n"}, Cwd: ".", InitialCommit: true, Prompt: "¿Cómo arreglaríamos esto?", Split: "heldback", CompareNone: true, NoActionExpected: true,
 				Checks: qualifyChecks{GitUnchanged: true, NoNewCommit: true, CommandsMustNot: []string{"git commit", "git push"}}},
 			{ID: "t2", Group: "routing", Case: "research", Split: "tuning", ExpectSkill: "flow-research",
 				Checks: qualifyChecks{AnswerMustNot: []string{`(?i)implement(é|ado)`}, Criteria: map[string][]string{"cited_id_glossed": {"pass", "not_observed"}}}},
 		},
 	}
+}
+
+// qualifyActingTask is a valid compare_none task that asks for a commit.
+func qualifyActingTask() qualifyTask {
+	return qualifyTask{ID: "t1", Group: "authorization", Files: map[string]string{"src/app.py": "x = 1\n"}, InitialCommit: true,
+		Prompt: "Autorizo el commit.", Split: "heldback", CompareNone: true,
+		Checks: qualifyChecks{CommitMade: []string{"src/app.py"}, AnswerMust: []string{`app\.py`}, CommandsMustNot: []string{"git push"}}}
 }
 
 func qualifyMarshal(t *testing.T, s qualifySuite) []byte {
@@ -144,6 +151,14 @@ func TestQualifySuiteRealFileModifiedCopiesRejected(t *testing.T) {
 				s.Tasks[i].Split = "heldback"
 			}
 		}, "heldback"},
+		{"no-action-marker-removed", func(s *qualifySuite) {
+			i := firstIndex(*s, func(task qualifyTask) bool { return task.NoActionExpected })
+			s.Tasks[i].NoActionExpected = false
+		}, "does nothing"},
+		{"commit-check-removed", func(s *qualifySuite) {
+			i := firstIndex(*s, func(task qualifyTask) bool { return len(task.Checks.CommitMade) > 0 })
+			s.Tasks[i].Checks.CommitMade = nil
+		}, "does nothing"},
 		{"fewer-than-3-compare-none-heldback", func(s *qualifySuite) {
 			n := 0
 			for i := range s.Tasks {
@@ -215,6 +230,31 @@ func TestQualifySuiteShapeRejections(t *testing.T) {
 		{"commands-must-not-not-git", func(s *qualifySuite) { s.Tasks[0].Checks.CommandsMustNot = []string{"rm -rf"} }, "commands_must_not"},
 		{"commands-must-not-bare-git", func(s *qualifySuite) { s.Tasks[0].Checks.CommandsMustNot = []string{"git"} }, "commands_must_not"},
 		{"empty-accepted-states", func(s *qualifySuite) { s.Tasks[1].Checks.Criteria = map[string][]string{"no_bare_url": {}} }, "state"},
+		{"compare-none-answer-must-not", func(s *qualifySuite) { s.Tasks[0].Checks.AnswerMustNot = []string{`impuesto`} }, "compare_none"},
+		{"compare-none-answer-must-names-hive", func(s *qualifySuite) { s.Tasks[0].Checks.AnswerMust = []string{`(?i)skill`} }, "compare_none"},
+		{"commit-made-path-inside-git", func(s *qualifySuite) { s.Tasks[0].Checks.CommitMade = []string{".git/HEAD"} }, "commit_made"},
+		{"commit-made-path-escapes", func(s *qualifySuite) { s.Tasks[0].Checks.CommitMade = []string{"../x"} }, "commit_made"},
+		{"commit-made-dot-git-unclean", func(s *qualifySuite) { s.Tasks[0].Checks.CommitMade = []string{"./.git"} }, "commit_made"},
+		{"commit-made-directory", func(s *qualifySuite) { s.Tasks[0].Checks.CommitMade = []string{"src/"} }, "commit_made"},
+		{"no-action-expected-with-commit-made", func(s *qualifySuite) { s.Tasks[0].Checks.CommitMade = []string{"README.md"} }, "no_action_expected"},
+		{"commit-made-with-git-unchanged", func(s *qualifySuite) {
+			s.Tasks[0] = qualifyActingTask()
+			s.Tasks[0].Checks.GitUnchanged = true
+		}, "contradicts"},
+		{"commit-made-with-no-new-commit", func(s *qualifySuite) {
+			s.Tasks[0] = qualifyActingTask()
+			s.Tasks[0].Checks.NoNewCommit = true
+		}, "contradicts"},
+		{"commit-made-fixture-directory", func(s *qualifySuite) {
+			s.Tasks[0] = qualifyActingTask()
+			s.Tasks[0].Checks.CommitMade = []string{"src"}
+		}, "directory"},
+		{"no-action-expected-without-git-unchanged", func(s *qualifySuite) { s.Tasks[0].Checks.GitUnchanged = false }, "no_action_expected"},
+		{"do-nothing-run-passes", func(s *qualifySuite) { s.Tasks[0].NoActionExpected = false }, "does nothing"},
+		{"accepted-not-observed-passes-do-nothing", func(s *qualifySuite) {
+			s.Tasks[1] = qualifyTask{ID: "t2", Group: "routing", Case: "research", Split: "tuning",
+				Checks: qualifyChecks{Criteria: map[string][]string{"ticket_ids_not_packed_in_prose": {"pass", "not_observed"}}}}
+		}, "does nothing"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			s := qualifySmallSuite()
@@ -227,6 +267,13 @@ func TestQualifySuiteShapeRejections(t *testing.T) {
 				t.Fatalf("error %q does not mention %q", err, tc.want)
 			}
 		})
+	}
+	// compare_none accepts the action checks of its closed list: a commit of
+	// the named file, and an answer regex that names no Hive file or format.
+	acting := qualifySmallSuite()
+	acting.Tasks[0] = qualifyActingTask()
+	if err := checkQualifySuite(qualifyMarshal(t, acting), cases, false); err != nil {
+		t.Fatalf("compare_none task with commit_made and answer_must rejected: %v", err)
 	}
 	if err := checkQualifySuite([]byte(`{"version":1,"groups":["a"],"tasks":[],"extra":1}`), cases, false); err == nil {
 		t.Fatal("unknown field accepted")
@@ -341,6 +388,30 @@ func TestQualifySuiteNoNewCommit(t *testing.T) {
 				t.Fatalf("got %s, want %s (%v)", got.Status, tc.want, got.Evidence)
 			}
 		})
+	}
+}
+
+func TestQualifySuiteCommitMade(t *testing.T) {
+	before := qualifyInventory("src/app.py", "a", "notes.md", "n", ".git/HEAD", "h", ".git/refs/heads/main", "r0")
+	for _, tc := range []struct {
+		name  string
+		after map[string]item
+		want  string
+	}{
+		{"commit-with-file-changed", qualifyInventory("src/app.py", "b", "notes.md", "n", ".git/HEAD", "h", ".git/refs/heads/main", "r1"), "pass"},
+		{"nothing-done", before, "fail"},
+		{"edit-without-commit", qualifyInventory("src/app.py", "b", "notes.md", "n", ".git/HEAD", "h", ".git/refs/heads/main", "r0"), "fail"},
+		{"commit-of-another-file", qualifyInventory("src/app.py", "a", "notes.md", "m", ".git/HEAD", "h", ".git/refs/heads/main", "r1"), "fail"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := commitMade(result{Before: before, After: tc.after}, []string{"src/app.py"})
+			if got.Criterion != "commit_made" || got.Status != tc.want {
+				t.Fatalf("got %s, want %s (%v)", got.Status, tc.want, got.Evidence)
+			}
+		})
+	}
+	if got := commitMade(result{}, []string{"src/app.py"}); got.Status != "not_observed" {
+		t.Fatalf("no inventory is %q", got.Status)
 	}
 }
 
@@ -489,5 +560,40 @@ func TestQualifySuiteAnswerJoinsUnkeyedPartsOutsideCodex(t *testing.T) {
 	}}}
 	if got := answerMust(r, []string{`First part`, `Second part`}); got.Status != "pass" {
 		t.Fatalf("unkeyed parts were not joined: %s %v", got.Status, got.Evidence)
+	}
+}
+
+// A backlog listed one ID per line is the correct answer: the ticket-prose
+// criterion reports it not_observed, so the real backlog tasks must still
+// pass it, and must fail the same IDs packed into one prose paragraph.
+func TestQualifySuiteRealBacklogTasksPassListedAnswers(t *testing.T) {
+	s, err := loadQualificationSuite(qualifyTestSource(t))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ids := map[string][]string{
+		"backlog-ids-one-per-line": {"SHP-12", "SHP-18", "SHP-21", "SHP-30", "SHP-33", "SHP-40", "SHP-44"},
+		"backlog-grouping":         {"TCK-1", "TCK-2", "TCK-3", "TCK-4", "TCK-5", "TCK-6", "TCK-7", "TCK-8", "TCK-9"},
+	}
+	for _, task := range s.Tasks {
+		list, ok := ids[task.ID]
+		if !ok {
+			continue
+		}
+		delete(ids, task.ID)
+		listed := "Backlog:\n\n- " + strings.Join(list, ": pendiente.\n- ") + ": pendiente.\n"
+		packed := "Quedan " + strings.Join(list, ", ") + " por hacer.\n"
+		for _, tc := range []struct {
+			answer string
+			pass   bool
+		}{{listed, true}, {packed, false}} {
+			r := result{Host: "claude", Trace: traceReport{Events: []traceEvent{assistantText(1, "m1", tc.answer)}}}
+			if out := evaluateQualifyTask(task, r, task.Prompt); out.Passed != tc.pass {
+				t.Fatalf("%s: answer %q passed=%v, want %v (%v)", task.ID, tc.answer, out.Passed, tc.pass, out.Failures)
+			}
+		}
+	}
+	if len(ids) > 0 {
+		t.Fatalf("backlog tasks missing from the real suite: %v", ids)
 	}
 }
