@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build · plan revisado, pendiente de aprobación |
+| Estado | Completado · PR #431, 69575ff7 |
 | Tracker | Ninguno (sin ticket; búsqueda del 2026-11-08: solo #375 y #356 tratan del visor, ninguno de este recorte) |
 | Git | tricell-hive · base `development` @ `7ae26b0e` · rama propuesta `feat/viewer-capture-only` en `.claude/worktrees/` |
 
