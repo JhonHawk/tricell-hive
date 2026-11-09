@@ -245,7 +245,7 @@ func validateQualifyTask(t qualifyTask, groups map[string]bool, cases map[string
 			return fail("cwd %q must be a relative path inside the fixture", t.Cwd)
 		}
 		for p := range t.Files {
-			if !relativeInside(p) || p == "." || p == ".git" || strings.HasPrefix(path.Clean(p), ".git/") {
+			if !fixtureFilePath(p) {
 				return fail("file path %q must be relative, inside the fixture and outside .git", p)
 			}
 		}
@@ -259,6 +259,16 @@ func validateQualifyTask(t qualifyTask, groups map[string]bool, cases map[string
 		}
 	}
 	return validateActionRequired(t, cases)
+}
+
+// fixtureFilePath reports whether p names a file inside the fixture and
+// outside .git: relative, without a trailing slash, compared once cleaned.
+func fixtureFilePath(p string) bool {
+	if !relativeInside(p) || strings.HasSuffix(p, "/") {
+		return false
+	}
+	c := path.Clean(p)
+	return c != "." && c != ".git" && !strings.HasPrefix(c, ".git/")
 }
 
 func relativeInside(p string) bool {
@@ -281,8 +291,7 @@ func validateQualifyChecks(t qualifyTask) error {
 		}
 	}
 	for _, p := range c.CommitMade {
-		clean := path.Clean(p)
-		if !relativeInside(p) || strings.HasSuffix(p, "/") || clean == "." || clean == ".git" || strings.HasPrefix(clean, ".git/") {
+		if !fixtureFilePath(p) {
 			return fail("commit_made path %q must be relative, inside the fixture and outside .git", p)
 		}
 	}
@@ -386,6 +395,21 @@ func validateActionRequired(t qualifyTask, cases map[string]fixture) error {
 			return fmt.Errorf("task %q: no_action_expected cannot require commit_made", t.ID)
 		}
 		return nil
+	}
+	if len(t.Checks.CommitMade) > 0 {
+		// A check no run can pass would fail every model without notice.
+		if t.Checks.GitUnchanged || t.Checks.NoNewCommit {
+			return fmt.Errorf("task %q: commit_made contradicts git_unchanged and no_new_commit", t.ID)
+		}
+		files, _, _ := resolveQualifyTask(t, cases)
+		for _, p := range t.Checks.CommitMade {
+			dir := path.Clean(p) + "/"
+			for f := range files {
+				if strings.HasPrefix(path.Clean(f), dir) {
+					return fmt.Errorf("task %q: commit_made path %q is a fixture directory; name its files", t.ID, p)
+				}
+			}
+		}
 	}
 	_, _, prompt := resolveQualifyTask(t, cases)
 	if evaluateQualifyTask(t, doNothingRun(t, cases), prompt).Passed {
@@ -538,11 +562,17 @@ func commitMade(r result, paths []string) criterionAssessment {
 		c.Status = "fail"
 		c.Evidence = append(c.Evidence, "no ref changed")
 	}
+	// Inventory keys use the OS separator; listed paths are slash paths.
+	want := map[string]bool{}
 	for _, p := range paths {
-		p = path.Clean(p)
-		before, inBefore := r.Before[p]
-		after, inAfter := r.After[p]
-		if inBefore == inAfter && before.Hash == after.Hash {
+		want[path.Clean(p)] = true
+	}
+	changed := map[string]bool{}
+	for _, p := range changedInventoryPaths(r.Before, r.After, func(p string) bool { return !want[filepath.ToSlash(p)] }) {
+		changed[filepath.ToSlash(p)] = true
+	}
+	for _, p := range paths {
+		if p = path.Clean(p); !changed[p] {
 			c.Status = "fail"
 			c.Evidence = append(c.Evidence, "unchanged: "+p)
 		}

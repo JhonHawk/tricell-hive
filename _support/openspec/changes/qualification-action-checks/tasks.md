@@ -40,7 +40,7 @@ Base `development` 695ca885, rama `feat/qualification-action-checks`. Todas en e
 
 ### T10 — Suite real, README y delta
 
-- [ ] las siete tareas verifican la acción pedida y las cuatro de pregunta llevan `no_action_expected`
+- [x] las siete tareas verifican la acción pedida y las cuatro de pregunta llevan `no_action_expected`
 
 **Closes:** AC63
 
@@ -69,17 +69,20 @@ Sin validación humana: la entrega es automática.
 ## Checkpoint
 
 - Updated: 2026-11-08
-- Stage: flow-build · 5 (CI local + revisión del plan en curso)
-- Last commit: 7fc5494d
+- Stage: flow-verify · entrada: revisión 2 del plan y /code-review
+- Last commit: 21b66950
 - Open findings: none
-- Next: leer suite completa y revisión del plan; luego flow-verify con /code-review
+- Next: revisión del plan ronda 2, /code-review, push y PR
 
 ### Evidence
 
 - go test ./tests/pilot/ ./tests/content/ · ok · 7fc5494d
+- go vet ./... && go test ./... && python3 -m unittest discover -s tests/skills · ok (83 py tests) · 7fc5494d
+- go test ./tests/pilot/ ./tests/content/ · ok · 21b66950
 
 ## Estado de revisión y progreso
 
 2026-11-08 — T8 · 7fc5494d · unverified: none
 2026-11-08 — T9 · 7fc5494d · unverified: T8–T10 en un solo commit: la regla de T9 hace fallar la suite real hasta T10
 2026-11-08 — T10 · 7fc5494d · unverified: ninguna corrida real: los regex de answer_must no se probaron con respuestas de modelos
+2026-11-08 — T10 · 21b66950 · unverified: ninguna corrida real: los regex de answer_must no se probaron con respuestas de modelos
