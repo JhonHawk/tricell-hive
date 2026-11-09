@@ -247,6 +247,28 @@ A decision `D<n>` shown to the user SHALL carry, under its title line, a `Situat
 - **WHEN** the situation would name a task ID, a file, a branch or an internal name the user has not been given
 - **THEN** the same message explains it, or the situation leaves it out
 
+### Requirement: Reasons state effects, not rules
+
+Every sentence shown to the user that gives the reason for an action taken, a step skipped, a question or a stop, in a decision and the text around it, a report, a stop, a blocker or a progress line, SHALL state that reason as its effect on the user or their work: what the step protects or what skipping it would cost. It SHALL NOT give as the reason that a rule, a skill, a flow or the guidance requires, allows or forbids it. A rule, a skill or the guidance SHALL be named only when the sentence is about it: the user asked about it, the work reads or changes it, or it is an instruction of the user's project that the user can change, named with its effect.
+
+#### Scenario: A stop before a destructive step
+
+- **GIVEN** a worktree holds uncommitted changes and a rule makes the agent ask before forcing its removal
+- **WHEN** the agent stops to ask
+- **THEN** the message says that forcing the removal would lose those changes
+- **AND** it does not say that a rule or a skill makes it ask
+
+#### Scenario: A report explains a step
+
+- **WHEN** a report says why a review ran, a check was skipped or a fix was left for the close
+- **THEN** the reason is what that step protects or what it would cost
+- **AND** no sentence gives a rule, a skill, a flow or the guidance as the reason
+
+#### Scenario: The rule is the subject
+
+- **WHEN** the user asks which rule governs a behavior, or the work reads or changes that rule
+- **THEN** the message names the rule
+
 ### Requirement: Criteria close on the real effect
 
 Each acceptance criterion SHALL end with `Observed in: <place>`, the place where its real effect shows. For a screen or an API the project serves, the candidate served locally with the project's real build and seeded data of realistic volume SHALL count as the real effect. A mock, a stub or an emulation of a service the project does not own, and a dry run, are substitutes, and a check against one SHALL NOT close a criterion. Until a walk observes a criterion in its place, its task SHALL keep it in its `Closes:` line and report it as not verified. The walk of verify SHALL close each criterion whose place it reaches; a criterion whose place is a deployed environment SHALL stay not verified until that deployment's functional walk observes it, and naming the environment SHALL NOT declare that walk. A criterion SHALL name a deployed environment only when its effect exists nowhere else. A criterion without the marker SHALL be verified through its real path. `check_change.py` SHALL print one finding for each active criterion none of whose bullets, read with the lines indented under it, names a place after the marker, and SHALL NOT evaluate the marker with `--archive`.

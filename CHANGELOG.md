@@ -54,6 +54,11 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- Agents no longer give a rule as the reason for what they did, skipped, ask
+  or stop for, such as "the flow-build rule requires it": in every sentence
+  you read, the reason is the effect on you or your work. Until now this held
+  only for a decision's recommendation line. A rule is named only when the
+  sentence is about it.
 - Seven rules that gave two readings of the same moment now give one. A human
   reviewer's pending approval holds the merge in every delivery mode: the
   agent stops with the pull request open and reports the merge as pending. Under unattended
