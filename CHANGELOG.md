@@ -55,11 +55,12 @@ raise the minor or the patch version.
 ### Fixed
 
 - Agents no longer give a rule as the reason for what they did, skipped, ask
-  or stop for, such as "the flow-build rule requires it": in every sentence
-  you read, the reason is the effect on you or your work. Until now this held
-  only for a decision's recommendation line. With no effect to state, the
-  agent gives no reason; naming a command, a skill or a rule you asked about
-  is unaffected, and an instruction you wrote can still be the reason.
+  or stop for, such as "the flow-build rule requires it": wherever a
+  message gives a reason, it is the effect on you or your work. Until now this
+  held only for a decision's recommendation line. An instruction you or your
+  project wrote, such as your `AGENTS.md`, can still be named as the reason
+  with what it changes in the work; commands and skill names are written as
+  before.
 - Seven rules that gave two readings of the same moment now give one. A human
   reviewer's pending approval holds the merge in every delivery mode: the
   agent stops with the pull request open and reports the merge as pending. Under unattended

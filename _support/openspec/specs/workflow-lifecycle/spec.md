@@ -249,7 +249,7 @@ A decision `D<n>` shown to the user SHALL carry, under its title line, a `Situat
 
 ### Requirement: Reasons state effects, not rules
 
-A message to the user that gives the reason for an action taken, a step skipped, a question or a stop, whether in a decision, the text around it, a report, a stop or a blocker, SHALL state that reason as its effect on the user or their work: what the step protects, costs or risks. It SHALL NOT give as the reason that an instruction the agent follows requires, allows or forbids it, whatever the instruction is called, such as a rule, a skill, a flow, the guidance or its instructions. When the agent can state no effect, it SHALL give no reason. The requirement governs reasons, not mentions: commands, skill names and rules are written wherever another requirement asks for them, and a rule is named when the user asked about it or the work reads or changes it. An instruction the user wrote or can change, such as their project's guidance, MAY be given as the reason, named with what it asks.
+A message to the user that gives the reason for an action taken, a step skipped, a question or a stop, in any part of it, such as a decision, the text around it, a report, a progress note, a stop or a blocker, SHALL state that reason as its effect on the user or their work: what the step protects, costs or risks. It SHALL NOT give as the reason that an instruction the agent follows requires, allows or forbids it, whatever the instruction is called, such as a rule, a skill, a flow, the guidance or its instructions, with one exception: an instruction the user or their project wrote in their own files, which is not part of Hive's guidance, skills or roles, MAY be named as the reason, together with what it changes in this work. Where no requirement asks for a reason and the agent can state no effect, it SHALL give none. The requirement governs reasons, not mentions: commands, skill names and rules are still written where a requirement or a skill asks for them, and a rule MAY be named when the user asked about it or the work changes it.
 
 #### Scenario: A stop before a destructive step
 
@@ -262,24 +262,32 @@ A message to the user that gives the reason for an action taken, a step skipped,
 
 - **WHEN** a report says why a review ran, a check was skipped or a fix was left for the close
 - **THEN** the reason is what that step protects, costs or risks
-- **AND** no sentence gives a rule, a skill, a flow, the guidance or the agent's instructions as the reason
+- **AND** no sentence gives a rule, a skill, a flow or the guidance of Hive, or the agent's instructions, as the reason
 
 #### Scenario: No effect to state
 
+- **GIVEN** a report sentence where no requirement asks for a reason
 - **WHEN** the agent follows an instruction whose effect it cannot state
 - **THEN** it reports what it did without a reason
 - **AND** it invents no consequence
 
 #### Scenario: The rule is the subject
 
-- **WHEN** the user asks which rule governs a behavior, or the work reads or changes that rule
-- **THEN** the message names the rule
+- **WHEN** the user asks which rule governs a behavior, or the work changes that rule
+- **THEN** the message may name the rule
 
 #### Scenario: A project instruction is the reason
 
-- **GIVEN** the project's guidance requires human validation of a screen
+- **GIVEN** the project's own `AGENTS.md` requires human validation of a screen
 - **WHEN** the agent recommends the delivery mode that stops for validation
-- **THEN** it may name that instruction as the reason, with what it asks
+- **THEN** it may name that instruction as the reason, together with what it changes in this work, such as the stop before the push
+
+#### Scenario: Hive's guidance is not the user's instruction
+
+- **GIVEN** Hive's guidance or a Hive skill is installed in a file the user can edit
+- **WHEN** the agent gives the reason for a step that guidance or skill sets
+- **THEN** it states the step's effect
+- **AND** it does not name that guidance or skill as the reason
 
 ### Requirement: Criteria close on the real effect
 
