@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | En build |
+| Estado | Completado · PR #435, merge e5905764 |
 | Tracker | ninguno (hallazgos H48 y H65 del cierre de `model-qualification-tool`) |
 | Git | tricell-hive, base `development` 695ca885, rama `feat/qualification-action-checks` |
 
