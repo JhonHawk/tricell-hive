@@ -249,7 +249,7 @@ A decision `D<n>` shown to the user SHALL carry, under its title line, a `Situat
 
 ### Requirement: Reasons state effects, not rules
 
-Every sentence shown to the user that gives the reason for an action taken, a step skipped, a question or a stop, in a decision and the text around it, a report, a stop, a blocker or a progress line, SHALL state that reason as its effect on the user or their work: what the step protects or what skipping it would cost. It SHALL NOT give as the reason that a rule, a skill, a flow or the guidance requires, allows or forbids it. A rule, a skill or the guidance SHALL be named only when the sentence is about it: the user asked about it, the work reads or changes it, or it is an instruction of the user's project that the user can change, named with its effect.
+A message to the user that gives the reason for an action taken, a step skipped, a question or a stop, whether in a decision, the text around it, a report, a stop or a blocker, SHALL state that reason as its effect on the user or their work: what the step protects, costs or risks. It SHALL NOT give as the reason that an instruction the agent follows requires, allows or forbids it, whatever the instruction is called, such as a rule, a skill, a flow, the guidance or its instructions. When the agent can state no effect, it SHALL give no reason. The requirement governs reasons, not mentions: commands, skill names and rules are written wherever another requirement asks for them, and a rule is named when the user asked about it or the work reads or changes it. An instruction the user wrote or can change, such as their project's guidance, MAY be given as the reason, named with what it asks.
 
 #### Scenario: A stop before a destructive step
 
@@ -261,13 +261,25 @@ Every sentence shown to the user that gives the reason for an action taken, a st
 #### Scenario: A report explains a step
 
 - **WHEN** a report says why a review ran, a check was skipped or a fix was left for the close
-- **THEN** the reason is what that step protects or what it would cost
-- **AND** no sentence gives a rule, a skill, a flow or the guidance as the reason
+- **THEN** the reason is what that step protects, costs or risks
+- **AND** no sentence gives a rule, a skill, a flow, the guidance or the agent's instructions as the reason
+
+#### Scenario: No effect to state
+
+- **WHEN** the agent follows an instruction whose effect it cannot state
+- **THEN** it reports what it did without a reason
+- **AND** it invents no consequence
 
 #### Scenario: The rule is the subject
 
 - **WHEN** the user asks which rule governs a behavior, or the work reads or changes that rule
 - **THEN** the message names the rule
+
+#### Scenario: A project instruction is the reason
+
+- **GIVEN** the project's guidance requires human validation of a screen
+- **WHEN** the agent recommends the delivery mode that stops for validation
+- **THEN** it may name that instruction as the reason, with what it asks
 
 ### Requirement: Criteria close on the real effect
 
