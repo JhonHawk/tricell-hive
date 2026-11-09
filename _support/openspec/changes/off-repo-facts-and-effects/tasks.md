@@ -132,10 +132,10 @@ Sin parada de validación: la entrega es automática (D4 B). El efecto que pidi�
 ## Checkpoint
 
 - Updated: 2026-11-09
-- Stage: verify · 2
-- Last commit: ac8f0e25
-- Open findings: none
-- Next: run /code-review on origin/development..HEAD, fix blocking findings in one round, push, PR, merge (automatic), hive update, flow-close
+- Stage: verify · 6
+- Last commit: f0af88c4
+- Open findings: hive-review-plan has no instruction to check the external facts or ## Effects sections · to the close's findings
+- Next: push, open PR, merge to development, hive update, flow-close
 
 ### Evidence
 
@@ -145,6 +145,10 @@ Sin parada de validación: la entrega es automática (D4 B). El efecto que pidi�
 - check_change.py · exit 0 · 303101bd
 - hive-verify-task: T2 AC15 AC16 AC22 met; T3 AC23 AC19 met; T4 AC24 AC25 met
 - CI: no workflow runs on pull requests to development (only master-source-branch.yml, for master)
+- go test ./... · exit 0 · final candidate
+- unittest tests/skills · OK · final candidate
+- site build · Complete · final candidate
+- /code-review round 1: 10 findings, 9 fixed in 79504b50; round 2 on the fixes: 9 findings, fixed in the next commit with Unreviewed
 
 ## Estado de la revisión y avance
 
