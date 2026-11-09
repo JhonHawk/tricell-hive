@@ -147,7 +147,7 @@ A promotion that has not been made SHALL NOT be a reason to keep a branch, workt
 - **THEN** the plan includes the promotion to that environment as a task
 
 ### Requirement: Plan revisions keep the change folder coherent
-A revision of a written plan that has a change folder SHALL edit in the same pass every artifact that states what changed, mark a replaced decision or criterion with `**Replaces:** <old IDs>` and a dropped criterion with `**Retired:** <reason>` without deleting the old line, reopen each completed task the revision invalidates, and run the coherence check until it exits 0 before work continues; a revision that changes a criterion or the delta SHALL get one `hive-review-plan` round.
+A revision of a written plan that has a change folder SHALL edit in the same pass every artifact that states what changed, mark a replaced decision or criterion with `**Replaces:** <old IDs>` and a dropped criterion with `**Retired:** <reason>` without deleting the old line, reopen each completed task the revision invalidates, and run the coherence check until it exits 0 before work continues; a revision that changes a criterion, the delta, an external fact or a class of effect SHALL get one `hive-review-plan` round.
 
 #### Scenario: A task still names a replaced decision
 - **GIVEN** a change folder whose revision replaced a decision and marked the new one with `**Replaces:**`
@@ -156,7 +156,7 @@ A revision of a written plan that has a change folder SHALL edit in the same pas
 
 #### Scenario: A revision changes a criterion
 - **GIVEN** a change folder whose plan was already reviewed
-- **WHEN** a revision changes a criterion or the delta
+- **WHEN** a revision changes a criterion, the delta, an external fact or a class of effect
 - **THEN** one `hive-review-plan` child reviews the revised folder, and a gap that survives the round goes to the user as a decision
 
 ### Requirement: Archive confirms unchecked tasks
