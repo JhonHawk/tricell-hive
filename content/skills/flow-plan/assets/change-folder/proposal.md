@@ -54,7 +54,7 @@ None: the build needs nothing from outside the repository.
 
 None: the tasks take no effect on an external system.
 
-- <class of effect> · target: <account, repository or environment> · ceiling: <amount, or 0> · tasks: <T<n>> · answer: <approved or refused, with the decision ID and letter>
+- <class of effect> · target: <account, repository or environment> · ceiling: <amount, or 0> · tasks: <T<n>> · answer: <approved, refused or unanswered, with the decision ID and letter when answered>
 
 ## Delivery
 

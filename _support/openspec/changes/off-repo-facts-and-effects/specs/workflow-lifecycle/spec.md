@@ -2,7 +2,7 @@
 
 ### Requirement: A plan measures the external facts it depends on
 
-When a plan's chosen approach reads or changes an external system, the plan SHALL list each external fact the approach depends on and measure it with a read-only read before its tasks are written. An external system SHALL be one provider account or service reached by its own credential or CLI; what the delivery already uses of the repository's remote, CI and tracker SHALL NOT count as one. With two or more external systems, one read-only child per external system SHALL be launched in the same step, each briefed to return, per fact, the exact read-only command and a verbatim excerpt of its output. The main thread SHALL accept a fact only with both, and SHALL compare a capability, limit or permission fact with the provider's current documentation. A fact that observation and documentation disagree on, or that no read-only read can show, SHALL be written in the plan as not measured, with the task that meets it first, and SHALL appear in the plan summary.
+When a plan's chosen approach reads or changes an external system, the plan SHALL list each external fact the approach depends on and measure it with a read-only read before its tasks are written. An external system SHALL be one provider account or service reached by its own credential or CLI; what the delivery already uses of the repository's remote, CI and tracker SHALL NOT count as one. With two or more external systems, one read-only child per external system SHALL be launched in the same step, each a state-reading child briefed to return, per fact, the exact read-only command and a verbatim excerpt of its output. The main thread SHALL accept a fact only with both, and SHALL compare a capability, limit or permission fact with the provider's current documentation. A fact that observation and documentation disagree on, or that no read-only read can show, SHALL be written in the plan as not measured, with the task that meets it first, and SHALL appear in the plan summary.
 
 #### Scenario: Plan across two external systems
 
@@ -26,12 +26,12 @@ When a plan's chosen approach reads or changes an external system, the plan SHAL
 
 ### Requirement: A plan authorizes foreseen effects by class
 
-Each plan SHALL ask one decision per class of effect its tasks foresee on an external system: in the delivery and review round when that round is asked, and in a round of its own when those answers are already in force. A class SHALL name one kind of action on one named target, its spending ceiling and the tasks that use it, and SHALL leave out the effects the delivery answer or a rule already authorizes. Its answer SHALL be the user's instruction for each effect of that class that the named tasks of that work item take within the ceiling, and for no other work. A class whose target is a production one SHALL say so in its question. No class SHALL cover a production deployment, an effect that stops or interrupts a component serving users, an irreversible or hard-to-reverse effect, destroying or replacing infrastructure, changing or deleting data the task did not create in a non-local database, or creating accounts or records in a shared environment; each of those SHALL keep its own question. Each covered effect SHALL be recorded with its target and how to revert it before it is taken, and listed in the final report. An effect no answered class covers SHALL be asked when it arrives. An operational task SHALL have no such round.
+Each plan SHALL ask one decision per class of effect its tasks foresee on an external system: in the delivery and review round when that round is asked, and in a round of its own when those answers are already in force. A class SHALL name one kind of action on one named target, its spending ceiling and the tasks that use it, and SHALL leave out the effects the delivery answer or a rule already authorizes. A class the user approved SHALL be the user's instruction for each effect of that class that the named tasks of that work item take within the ceiling, and for no other plan or work item. A class the user refused SHALL authorize nothing and SHALL NOT be asked again: its tasks are revised with the user, or skipped and reported in unattended work. A class left unanswered SHALL authorize nothing. A class whose target is a production one SHALL say so in its question. No class SHALL cover a production deployment, an effect that stops or interrupts a component serving users, an irreversible or hard-to-reverse effect, destroying or replacing infrastructure, changing or deleting data the task did not create in a non-local database, or creating accounts or records in a shared environment; each of those SHALL keep its own question. Each covered effect SHALL be recorded with its target and how to revert it before it is taken, and listed in the final report. An effect no class was asked for SHALL be asked when it arrives in attended work. An operational task SHALL have no such round.
 
 #### Scenario: Several effects of one class
 
 - **GIVEN** a plan whose tasks change access policies in one cloud account several times
-- **WHEN** the user answers that class in the plan's round
+- **WHEN** the user approves that class in the plan's round
 - **THEN** each of those changes is taken without a new question, within the ceiling
 - **AND** the final report lists each one with how to revert it
 
@@ -43,9 +43,16 @@ Each plan SHALL ask one decision per class of effect its tasks foresee on an ext
 
 #### Scenario: Production deployment in the same plan
 
-- **GIVEN** a plan with an answered class and a promotion task that reaches production
+- **GIVEN** a plan with an approved class and a promotion task that reaches production
 - **WHEN** the deploy stage reaches production
-- **THEN** it asks the production question, whatever the classes answered
+- **THEN** it asks the production question, whatever the classes approved
+
+#### Scenario: Refused class
+
+- **GIVEN** a class the user refused in the plan's round
+- **WHEN** a task of that plan needs an effect of that class
+- **THEN** the effect is not taken and the class is not asked again
+- **AND** the task is revised with the user, or skipped and reported in unattended work
 
 #### Scenario: Deploy run that does not come from the plan
 
@@ -61,7 +68,7 @@ Each plan SHALL ask one decision per class of effect its tasks foresee on an ext
 
 ### Requirement: Unattended work may spend an amount for unforeseen effects
 
-At every activation of unattended delegation, the activation message SHALL state the amount for unforeseen spend the user gave, or ask it. That question SHALL NOT count among the open answers that keep the work on hold, and no answer SHALL mean zero. The answers in force SHALL include the classes of effect the plan answered, each ceiling counting as authorized spend for its target; an unanswered class SHALL add no authorization and SHALL NOT keep the work on hold, and each of its effects SHALL be decided as any other effect of unattended work. Unattended work SHALL take a spending effect no answer covers only when an amount is in force, the resource or setting change can be undone by a command recorded before it is taken, and the total of such spend, counted at the provider's price until the delegation's expiry or at the effect's maximum, stays within the amount; when neither the price nor a maximum can be read, it SHALL skip the effect; money already spent SHALL count against the amount and SHALL NOT make the effect irreversible. It SHALL record the effect before taking it and list it in the end report with how to revert it. Otherwise it SHALL skip the effect and report it. The forbidden actions of unattended delegation SHALL NOT change.
+At every activation of unattended delegation, the activation message SHALL state the amount for unforeseen spend the user gave, or ask it. That question SHALL NOT count among the open answers that keep the work on hold, and no answer SHALL mean zero. The answers in force SHALL include the classes of effect the user approved in the plan, each ceiling counting as authorized spend for its target; the effects of a refused class SHALL be skipped and reported; an unanswered class SHALL add no authorization and SHALL NOT keep the work on hold, and each of its effects SHALL be decided as any other effect of unattended work. Unattended work SHALL take a spending effect no answer covers only when an amount is in force, the resource or setting change can be undone by a command recorded before it is taken, and the total of such spend, counted at the provider's price until the delegation's expiry or at the effect's maximum, stays within the amount; when neither the price nor a maximum can be read, or the effect keeps charging after the expiry without a known maximum that fits, it SHALL skip the effect; money already spent SHALL count against the amount and SHALL NOT make the effect irreversible. It SHALL record the effect before taking it and list it in the end report with how to revert it. Otherwise it SHALL skip the effect and report it. The forbidden actions of unattended delegation SHALL NOT change.
 
 #### Scenario: Small unforeseen spend within the amount
 

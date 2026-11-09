@@ -14,7 +14,7 @@ A saved change folder holds the detail and the user may not open it, so summariz
 6. The prerequisites still unmet, with who provides each, and each external fact written as not measured, with the task that meets it first, as [outside the repository](outside-the-repository.md) sets.
 7. The verification: the tests, the UI walk and review, and the code review.
 8. The delivery mode, with the validation stop and the endpoint after it.
-9. Each class of effect answered, with its target and ceiling, what remains open or unauthorized, and the change folder path or that the plan lives in the conversation.
+9. Each class of effect with its answer (approved, refused or unanswered), its target, ceiling and tasks, what remains open or unauthorized, and the change folder path or that the plan lives in the conversation.
 
 ## Then end with the build route
 

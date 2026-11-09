@@ -13,7 +13,7 @@ Para medir los datos externos se presentaron tres enfoques:
 - D1 A, D2 A, D3 A y D6 A, como las registra `proposal.md`.
 - Llamadas menores tomadas sin preguntar:
   - Un solo archivo nuevo, `content/skills/flow-plan/references/outside-the-repository.md`, es el hogar de los datos externos y de la ronda de efectos, porque las dos reglas se leen en la misma condición y `flow-plan/SKILL.md` solo gana punteros.
-  - No se añade ni se cambia ningún rol: `hive-read-state` cubre Git remoto, CI, tracker y despliegue; `hive-research` cubre lo demás (capacidad de una cuenta o licencia, permisos, límites y la documentación del proveedor). Lo que el contraste necesita de ellos lo pide el brief.
+  - Corregido en la revisión de código: un solo rol, `hive-read-state`, mide cada sistema externo, y su descripción y su paso 1 nombran la cuenta o el servicio externo; `hive-research` no interviene. Texto original, ya sin efecto: no se añade ni se cambia ningún rol: `hive-read-state` cubre Git remoto, CI, tracker y despliegue; `hive-research` cubre lo demás (capacidad de una cuenta o licencia, permisos, límites y la documentación del proveedor). Lo que el contraste necesita de ellos lo pide el brief.
   - `check_change.py` no cambia.
   - La ronda de efectos no aplica a una tarea operativa, que sigue preguntando cada efecto crítico (`global.md` línea 68).
 - Supuesto sin verificar en todos los hosts: un hijo con perfil de solo observación puede correr los CLI de lectura del proveedor. `hive-read-state` ya lee así el build servido; donde un host lo impida, el hijo lo reporta y el dato queda como no medido.
