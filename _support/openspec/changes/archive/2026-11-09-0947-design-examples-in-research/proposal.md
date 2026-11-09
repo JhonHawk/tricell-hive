@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Listo para flow-build |
+| Estado | Completado · PR #440, merge be1ce314 |
 | Tracker | ninguno |
 | Git | JhonHawk/tricell-hive · base `development` en `997c5485` · rama propuesta `feat/design-examples-in-research` |
 
