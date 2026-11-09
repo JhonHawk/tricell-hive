@@ -72,7 +72,7 @@ The agent summarizes the plan in the message: the objective with the files and a
 No. A change whose how leaves you no decision goes from Research to Build in the same turn.
 
 ### Does a ready plan mean the agent may start building?
-No. Your reply starts Build, unless you already authorized it to proceed.
+No. Your reply starts Build, unless you asked beforehand to build after the plan without stopping, or unattended delegation is active.
 
 ### Where is the exact rule?
 Source: [content/skills/flow-plan/SKILL.md](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/SKILL.md)

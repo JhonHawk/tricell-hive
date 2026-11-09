@@ -25,6 +25,6 @@ End the summary with the next-step block that the global guidance's «Questions 
 
 A correction to a criterion or a sketch is not approval: [revise the plan](../SKILL.md#revise-a-plan-in-progress), show the revised criteria or sketch, and end with the build route again.
 
-When execution is already explicitly authorized, show the summary the same way and continue to `flow-build`.
+Only two cases continue to `flow-build` in the same turn, with no reply: the user's own message asked beforehand to build after the plan without stopping, or [unattended delegation](../../unattended-delegation/SKILL.md) is active and its objective reaches the build. Show the summary the same way, then continue.
 
 A change folder is committed with the code it plans, as [git-workflow step 4](../../git-workflow/SKILL.md) sets; until then it stays on disk.
