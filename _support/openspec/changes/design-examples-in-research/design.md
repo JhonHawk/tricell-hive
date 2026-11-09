@@ -60,7 +60,7 @@ Dónde viven los ejemplos en el flujo: solo una forma es sensata. Research decid
 
 La validación del usuario en verify no cambia: se pide cuando la entrega se detiene para validar.
 
-**Pedido de solo diseño.** Es la acción que el usuario pidió: research la dibuja como fija esta sección, sin la oferta. No la reporta hecha antes de que el usuario apruebe el ejemplo. Tras la aprobación reporta el resultado y termina con el bloque de siguiente paso hacia el cierre, que la trata como tarea operacional y se ocupa de la imagen local y de nombrar la página creada; research no corre el cierre en el mismo turno. Cuando el pedido nombra una página o unos frames existentes como destino, ese destino manda sobre la página propia. Con la delegación desatendida activa, la aprobación queda sin responder y se reporta como pendiente. Cuando el pedido manda dibujar en un archivo y el host no puede escribir en él, es un bloqueo que se reporta con su salida.
+**Pedido de solo diseño.** Es la acción que el usuario pidió: research la dibuja como fija esta sección, sin la oferta. No la reporta hecha antes de que el usuario apruebe el ejemplo. Tras la aprobación reporta el resultado y corre el cierre, como `flow-build` hace con una tarea operacional; el cierre se ocupa de la imagen local y de nombrar la página creada. Cuando el pedido nombra una página o unos frames como destino, se dibuja ahí y solo se cambian los frames que nombra y los nodos que el trabajo crea. Con la delegación desatendida activa, la aprobación queda sin responder y se reporta como pendiente. Cuando el pedido manda dibujar en un archivo y el host no puede escribir en él, es un bloqueo que se reporta con su salida.
 
 ## Impact
 

@@ -94,7 +94,7 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 
 ### T6 — Sitio y hogares canónicos
 
-- [ ] Las páginas de research, plan, build y verify y `instruction-resources.md` describen el comportamiento nuevo
+- [x] Las páginas de research, plan, build y verify y `instruction-resources.md` describen el comportamiento nuevo
 
 **Closes:** AC10
 
@@ -138,6 +138,18 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 
 ## Checkpoint
 
+- Updated: 2026-11-09
+- Stage: flow-verify · 1
+- Last commit: f55eba4c
+- Open findings: none
+- Next: Read the results of the full suite (go test ./..., go vet ./...) and of /code-review; fix in one round; then push, open the pull request, merge to development and run hive update (D3 B)
+
+### Evidence
+
+- ac-walk: rg probes for AC1-AC13 on the candidate files, every count as expected · f55eba4c
+- sizes: global.md 45,095 bytes unchanged against origin/development; largest SKILL.md flow-close 15,995 (not touched), largest touched flow-build 13,619 · f55eba4c
+- go test ./tests/content/... ok and python3 -m unittest discover -s tests/skills: 89 tests OK · on the working tree before ca36e5cc, same content
+
 ## Review status and progress
 
 2026-11-09 — Plan escrito.
@@ -149,3 +161,4 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 2026-11-09 — T4 · ca36e5cc · unverified: none
 2026-11-09 — T5 · ca36e5cc · unverified: none
 2026-11-09 — T7 · 49b6075f · unverified: none
+2026-11-09 — T6 · f55eba4c · unverified: none
