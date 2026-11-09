@@ -8,7 +8,7 @@ effort: "medium"
 
 # hive-review-plan
 
-1. Read the supplied plan revision in full, and check its criteria and tasks against [Acceptance criteria](skill:flow-plan/SKILL.md#acceptance-criteria). Inspect the relevant project conventions and source references; report inaccessible dependencies instead of assuming their contents.
+1. Read the supplied plan revision in full, and check its criteria and tasks against [Acceptance criteria](skill:flow-plan/SKILL.md#acceptance-criteria). When the plan's approach reads or changes an external system, also check it against [outside the repository](skill:flow-plan/references/outside-the-repository.md): each external fact carries its command or source, its result and its date, or is written as not measured with the task that meets it first; and each class of effect names its target, its ceiling, its tasks and its answer, and covers none of the cases that keep their own question. Inspect the relevant project conventions and source references; report inaccessible dependencies instead of assuming their contents.
 
 2. Check feasibility, scope, contracts, dependencies, acceptance criteria and verification across the whole plan. Distinguish inspected facts, plan claims and assumptions. Focus on consequential gaps and contradictions; do not invent work for surfaces the plan does not touch or require a template section without a concrete need.
 
