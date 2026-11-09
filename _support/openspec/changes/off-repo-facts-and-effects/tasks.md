@@ -131,6 +131,21 @@ Sin parada de validación: la entrega es automática (D4 B). El efecto que pidi�
 
 ## Checkpoint
 
+- Updated: 2026-11-09
+- Stage: verify · 2
+- Last commit: ac8f0e25
+- Open findings: none
+- Next: run /code-review on origin/development..HEAD, fix blocking findings in one round, push, PR, merge (automatic), hive update, flow-close
+
+### Evidence
+
+- go vet ./... && go test ./... · ok all packages · 8d6fb722 (later commit ac8f0e25 changes four guidance sentences only; go test ./tests/content/... ok on ac8f0e25)
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · 89 tests OK · 8d6fb722
+- site: npm run build with the main checkout's node_modules · 17 pages built · working tree before 8d6fb722
+- check_change.py · exit 0 · 303101bd
+- hive-verify-task: T2 AC15 AC16 AC22 met; T3 AC23 AC19 met; T4 AC24 AC25 met
+- CI: no workflow runs on pull requests to development (only master-source-branch.yml, for master)
+
 ## Estado de la revisión y avance
 
 2026-11-09 — T1 · 2cfcdb53 · unverified: none
