@@ -147,7 +147,7 @@ A promotion that has not been made SHALL NOT be a reason to keep a branch, workt
 - **THEN** the plan includes the promotion to that environment as a task
 
 ### Requirement: Plan revisions keep the change folder coherent
-A revision of a written plan that has a change folder SHALL edit in the same pass every artifact that states what changed, mark a replaced decision or criterion with `**Replaces:** <old IDs>` and a dropped criterion with `**Retired:** <reason>` without deleting the old line, reopen each completed task the revision invalidates, and run the coherence check until it exits 0 before work continues; a revision that changes a criterion, the delta, an external fact or a class of effect SHALL get one `hive-review-plan` round.
+A revision of a written plan that has a change folder SHALL edit in the same pass every artifact that states what changed, mark a replaced decision or criterion with `**Replaces:** <old IDs>` and a dropped criterion with `**Retired:** <reason>` without deleting the old line, reopen each completed task the revision invalidates, and run the coherence check until it exits 0 before work continues; a revision that changes a criterion or the delta SHALL get one `hive-review-plan` round.
 
 #### Scenario: A task still names a replaced decision
 - **GIVEN** a change folder whose revision replaced a decision and marked the new one with `**Replaces:**`
@@ -156,7 +156,7 @@ A revision of a written plan that has a change folder SHALL edit in the same pas
 
 #### Scenario: A revision changes a criterion
 - **GIVEN** a change folder whose plan was already reviewed
-- **WHEN** a revision changes a criterion, the delta, an external fact or a class of effect
+- **WHEN** a revision changes a criterion or the delta
 - **THEN** one `hive-review-plan` child reviews the revised folder, and a gap that survives the round goes to the user as a decision
 
 ### Requirement: Archive confirms unchecked tasks
@@ -388,7 +388,7 @@ When a plan's chosen approach reads or changes an external system, the plan SHAL
 
 ### Requirement: A plan authorizes foreseen effects by class
 
-Each plan SHALL ask one decision per class of effect its tasks foresee on an external system: in the delivery and review round when that round is asked, and in a round of its own when those answers are already in force. A class SHALL name one kind of action on one named target, its spending ceiling and the tasks that use it, and SHALL leave out the effects the delivery answer or a rule already authorizes. A class the user approved SHALL be the user's instruction for each effect of that class that the named tasks of that work item take within the ceiling, and for no other plan or work item. A class the user refused SHALL authorize nothing and SHALL NOT be asked again: its tasks are revised with the user, or skipped and reported in unattended work. A class left unanswered SHALL authorize nothing. A class whose target is a production one SHALL say so in its question. No class SHALL cover a production deployment, an effect that stops or interrupts a component serving users, an irreversible or hard-to-reverse effect, destroying or replacing infrastructure, changing or deleting data the task did not create in a non-local database, or creating accounts or records in a shared environment; each of those SHALL keep its own question. Each covered effect SHALL be recorded with its target and how to revert it before it is taken, and listed in the final report. An effect no class was asked for SHALL be asked when it arrives in attended work. An operational task SHALL have no such round.
+Each plan SHALL ask one decision per class of effect its tasks foresee on an external system: in the delivery and review round when that round is asked, and in a round of its own when those answers are already in force. A class SHALL name one kind of action on one named target, its spending ceiling and the tasks that use it, and SHALL leave out the effects the delivery answer or a rule already authorizes. A class the user approved SHALL be the user's instruction for each effect of that class that the named tasks of that work item take within the ceiling, and for no other plan or work item. When a revision changes an approved class's kind of action, target, ceiling or tasks, its answer SHALL return to unanswered and the class SHALL be asked again before any further effect of it. A class the user refused SHALL authorize nothing and SHALL NOT be asked again: its tasks are revised with the user, or skipped and reported in unattended work. A class left unanswered SHALL authorize nothing. A class whose target is a production one SHALL say so in its question. No class SHALL cover a production deployment, an effect that stops or interrupts a component serving users, an irreversible or hard-to-reverse effect, destroying or replacing infrastructure, changing or deleting data the task did not create in a non-local database, or creating accounts or records in a shared environment; each of those SHALL keep its own question. Each covered effect SHALL be recorded with its target and how to revert it before it is taken, and listed in the final report. An effect no class was asked for SHALL be asked when it arrives in attended work. An operational task SHALL have no such round.
 
 #### Scenario: Several effects of one class
 

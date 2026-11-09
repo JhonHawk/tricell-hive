@@ -52,7 +52,7 @@ This applies when a written plan changes during planning or the build: a decisio
 1. Edit in the same pass every place in the change folder that states what changed: the proposal's sections and criteria, `design.md`, each task's text, `Closes:`, test approach and verification, and the delta. Mark the new decision or criterion with `**Replaces:** <old IDs>` on its line; keep a dropped criterion's line and add `**Retired:** <reason>` to it; never delete the old line. Both markers stay in English, like `Closes:` and `Observed in:`.
 2. Reopen each `[x]` task the revision invalidates.
 3. Run `python3 <flow-plan-dir>/scripts/check_change.py <change-folder>` ([script](scripts/check_change.py)) and fix each line it prints until it exits 0.
-4. When the revision changes a criterion, the delta, an external fact or a class of effect, have one `hive-review-plan` child review the revised folder, briefed as [delegation](../flow-build/references/delegation.md#reviewer-brief) sets: one round per revision. A gap that survives it goes to the user as a decision.
+4. When the revision changes a criterion or the delta, have one `hive-review-plan` child review the revised folder, briefed as [delegation](../flow-build/references/delegation.md#reviewer-brief) sets: one round per revision. A gap that survives it goes to the user as a decision.
 5. Add one line to the progress section with the revision, its reason and what it invalidated, and tell the user in one line what changed.
 
 A plan kept in the conversation applies steps 1, 2 and 5 to its checkpoint file.
