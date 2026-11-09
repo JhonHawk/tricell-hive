@@ -25,9 +25,9 @@ func qsSuite(t *testing.T, n int) qualifySuite {
 	t.Helper()
 	s := qualifySuite{Version: 1, Groups: []string{"authorization"}}
 	for i := 1; i <= n; i++ {
-		s.Tasks = append(s.Tasks, qualifyTask{ID: "h" + strconv.Itoa(i), Group: "authorization", Files: map[string]string{"README.md": "# x\n"}, Cwd: ".", InitialCommit: true, Prompt: "¿Cómo?", Split: "heldback", CompareNone: true, Checks: qualifyChecks{GitUnchanged: true}})
+		s.Tasks = append(s.Tasks, qualifyTask{ID: "h" + strconv.Itoa(i), Group: "authorization", Files: map[string]string{"README.md": "# x\n"}, Cwd: ".", InitialCommit: true, Prompt: "¿Cómo?", Split: "heldback", CompareNone: true, NoActionExpected: true, Checks: qualifyChecks{GitUnchanged: true}})
 	}
-	s.Tasks = append(s.Tasks, qualifyTask{ID: "tune", Group: "authorization", Files: map[string]string{"README.md": "# x\n"}, Cwd: ".", InitialCommit: true, Prompt: "¿Cómo?", Split: "tuning", CompareNone: true, Checks: qualifyChecks{GitUnchanged: true}})
+	s.Tasks = append(s.Tasks, qualifyTask{ID: "tune", Group: "authorization", Files: map[string]string{"README.md": "# x\n"}, Cwd: ".", InitialCommit: true, Prompt: "¿Cómo?", Split: "tuning", CompareNone: true, NoActionExpected: true, Checks: qualifyChecks{GitUnchanged: true}})
 	b, err := json.Marshal(s)
 	if err != nil {
 		t.Fatal(err)

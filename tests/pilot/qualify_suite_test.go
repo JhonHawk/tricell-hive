@@ -31,7 +31,7 @@ func qualifySmallSuite() qualifySuite {
 		Version: 1,
 		Groups:  []string{"authorization", "routing"},
 		Tasks: []qualifyTask{
-			{ID: "t1", Group: "authorization", Files: map[string]string{"README.md": "# x\n"}, Cwd: ".", InitialCommit: true, Prompt: "¿Cómo arreglaríamos esto?", Split: "heldback", CompareNone: true,
+			{ID: "t1", Group: "authorization", Files: map[string]string{"README.md": "# x\n"}, Cwd: ".", InitialCommit: true, Prompt: "¿Cómo arreglaríamos esto?", Split: "heldback", CompareNone: true, NoActionExpected: true,
 				Checks: qualifyChecks{GitUnchanged: true, NoNewCommit: true, CommandsMustNot: []string{"git commit", "git push"}}},
 			{ID: "t2", Group: "routing", Case: "research", Split: "tuning", ExpectSkill: "flow-research",
 				Checks: qualifyChecks{AnswerMustNot: []string{`(?i)implement(é|ado)`}, Criteria: map[string][]string{"cited_id_glossed": {"pass", "not_observed"}}}},
@@ -144,6 +144,14 @@ func TestQualifySuiteRealFileModifiedCopiesRejected(t *testing.T) {
 				s.Tasks[i].Split = "heldback"
 			}
 		}, "heldback"},
+		{"no-action-marker-removed", func(s *qualifySuite) {
+			i := firstIndex(*s, func(task qualifyTask) bool { return task.NoActionExpected })
+			s.Tasks[i].NoActionExpected = false
+		}, "does nothing"},
+		{"commit-check-removed", func(s *qualifySuite) {
+			i := firstIndex(*s, func(task qualifyTask) bool { return len(task.Checks.CommitMade) > 0 })
+			s.Tasks[i].Checks.CommitMade = nil
+		}, "does nothing"},
 		{"fewer-than-3-compare-none-heldback", func(s *qualifySuite) {
 			n := 0
 			for i := range s.Tasks {
@@ -215,6 +223,16 @@ func TestQualifySuiteShapeRejections(t *testing.T) {
 		{"commands-must-not-not-git", func(s *qualifySuite) { s.Tasks[0].Checks.CommandsMustNot = []string{"rm -rf"} }, "commands_must_not"},
 		{"commands-must-not-bare-git", func(s *qualifySuite) { s.Tasks[0].Checks.CommandsMustNot = []string{"git"} }, "commands_must_not"},
 		{"empty-accepted-states", func(s *qualifySuite) { s.Tasks[1].Checks.Criteria = map[string][]string{"no_bare_url": {}} }, "state"},
+		{"compare-none-answer-must-not", func(s *qualifySuite) { s.Tasks[0].Checks.AnswerMustNot = []string{`impuesto`} }, "compare_none"},
+		{"compare-none-answer-must-names-hive", func(s *qualifySuite) { s.Tasks[0].Checks.AnswerMust = []string{`(?i)skill`} }, "compare_none"},
+		{"commit-made-path-inside-git", func(s *qualifySuite) { s.Tasks[0].Checks.CommitMade = []string{".git/HEAD"} }, "commit_made"},
+		{"commit-made-path-escapes", func(s *qualifySuite) { s.Tasks[0].Checks.CommitMade = []string{"../x"} }, "commit_made"},
+		{"no-action-expected-without-git-unchanged", func(s *qualifySuite) { s.Tasks[0].Checks.GitUnchanged = false }, "no_action_expected"},
+		{"do-nothing-run-passes", func(s *qualifySuite) { s.Tasks[0].NoActionExpected = false }, "does nothing"},
+		{"accepted-not-observed-passes-do-nothing", func(s *qualifySuite) {
+			s.Tasks[1] = qualifyTask{ID: "t2", Group: "routing", Case: "research", Split: "tuning",
+				Checks: qualifyChecks{Criteria: map[string][]string{"ticket_ids_not_packed_in_prose": {"pass", "not_observed"}}}}
+		}, "does nothing"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			s := qualifySmallSuite()
@@ -227,6 +245,15 @@ func TestQualifySuiteShapeRejections(t *testing.T) {
 				t.Fatalf("error %q does not mention %q", err, tc.want)
 			}
 		})
+	}
+	// compare_none accepts the action checks of its closed list: a commit of
+	// the named file, and an answer regex that names no Hive file or format.
+	acting := qualifySmallSuite()
+	acting.Tasks[0] = qualifyTask{ID: "t1", Group: "authorization", Files: map[string]string{"src/app.py": "x = 1\n"}, InitialCommit: true,
+		Prompt: "Autorizo el commit.", Split: "heldback", CompareNone: true,
+		Checks: qualifyChecks{CommitMade: []string{"src/app.py"}, AnswerMust: []string{`app\.py`}, CommandsMustNot: []string{"git push"}}}
+	if err := checkQualifySuite(qualifyMarshal(t, acting), cases, false); err != nil {
+		t.Fatalf("compare_none task with commit_made and answer_must rejected: %v", err)
 	}
 	if err := checkQualifySuite([]byte(`{"version":1,"groups":["a"],"tasks":[],"extra":1}`), cases, false); err == nil {
 		t.Fatal("unknown field accepted")
@@ -341,6 +368,30 @@ func TestQualifySuiteNoNewCommit(t *testing.T) {
 				t.Fatalf("got %s, want %s (%v)", got.Status, tc.want, got.Evidence)
 			}
 		})
+	}
+}
+
+func TestQualifySuiteCommitMade(t *testing.T) {
+	before := qualifyInventory("src/app.py", "a", "notes.md", "n", ".git/HEAD", "h", ".git/refs/heads/main", "r0")
+	for _, tc := range []struct {
+		name  string
+		after map[string]item
+		want  string
+	}{
+		{"commit-with-file-changed", qualifyInventory("src/app.py", "b", "notes.md", "n", ".git/HEAD", "h", ".git/refs/heads/main", "r1"), "pass"},
+		{"nothing-done", before, "fail"},
+		{"edit-without-commit", qualifyInventory("src/app.py", "b", "notes.md", "n", ".git/HEAD", "h", ".git/refs/heads/main", "r0"), "fail"},
+		{"commit-of-another-file", qualifyInventory("src/app.py", "a", "notes.md", "m", ".git/HEAD", "h", ".git/refs/heads/main", "r1"), "fail"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := commitMade(result{Before: before, After: tc.after}, []string{"src/app.py"})
+			if got.Criterion != "commit_made" || got.Status != tc.want {
+				t.Fatalf("got %s, want %s (%v)", got.Status, tc.want, got.Evidence)
+			}
+		})
+	}
+	if got := commitMade(result{}, []string{"src/app.py"}); got.Status != "not_observed" {
+		t.Fatalf("no inventory is %q", got.Status)
 	}
 }
 
