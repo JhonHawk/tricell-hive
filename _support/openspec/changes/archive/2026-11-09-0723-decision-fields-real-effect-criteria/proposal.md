@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | En entrega · construido y verificado; pull request a `development` |
+| Estado | Completado · PR #438, merge 837a7a41 |
 | Tracker | ninguno |
 | Git | JhonHawk/tricell-hive · base `development` en `dab27f73` · rama `feat/decision-fields-real-effect-criteria` |
 
