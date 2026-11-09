@@ -69,16 +69,17 @@ Sin validación humana: la entrega es automática.
 ## Checkpoint
 
 - Updated: 2026-11-08
-- Stage: flow-verify · entrada: revisión 2 del plan y /code-review
-- Last commit: 21b66950
-- Open findings: none
-- Next: revisión del plan ronda 2, /code-review, push y PR
+- Stage: flow-verify · 3 (segunda review limitada al diff de arreglos)
+- Last commit: 495d9cd6
+- Open findings: R1 P2: commit_made puede penalizar la pregunta de entrega de Hive en el brazo A (no confirmado; al cierre); R3/R5/R8 P3: answer_must del último mensaje y regex débiles (al cierre)
+- Next: leer segunda review; push, PR, merge; flow-close
 
 ### Evidence
 
 - go test ./tests/pilot/ ./tests/content/ · ok · 7fc5494d
 - go vet ./... && go test ./... && python3 -m unittest discover -s tests/skills · ok (83 py tests) · 7fc5494d
 - go test ./tests/pilot/ ./tests/content/ · ok · 21b66950
+- go test ./tests/pilot/ ./tests/content/ · ok · 495d9cd6
 
 ## Estado de revisión y progreso
 
