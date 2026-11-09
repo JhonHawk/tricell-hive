@@ -55,9 +55,8 @@ raise the minor or the patch version.
 ### Fixed
 
 - Seven rules that gave two readings of the same moment now give one. A human
-  reviewer assigned to a pull request holds the merge in every delivery mode
-  until that reviewer approved its head commit; otherwise the agent stops with
-  the pull request open and reports the merge as pending. Under unattended
+  reviewer's pending approval holds the merge in every delivery mode: the
+  agent stops with the pull request open and reports the merge as pending. Under unattended
   delegation, adding test infrastructure, opening a finding's ticket and the
   close's support-material decision take the recommended option, within that
   mode's limits, and the end report presents each one. A blocking finding and
