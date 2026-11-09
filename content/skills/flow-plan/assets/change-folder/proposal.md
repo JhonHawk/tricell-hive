@@ -27,9 +27,9 @@
 
 <What is in scope and what is out of it.>
 
-<!-- Format reminder, rule in flow-plan «Revise a plan in progress»: a revision marks the new decision or criterion with `**Replaces:** <old IDs>` on its line, and a dropped criterion keeps its line with `**Retired:** <reason>`. Both markers stay in English, whatever the session language. Delete this comment. -->
+<!-- Format reminder, rule in flow-plan «Revise a plan in progress»: a revision marks the new decision or criterion with `**Replaces:** <old IDs>` on its line, and a dropped criterion keeps its line with `**Retired:** <reason>`. Both markers stay in English, whatever the session language, and so does `Observed in:`. Delete this comment. -->
 
-- AC1 — <one observable behavior> · false today because <the observation that shows it>
+- AC1 — <one observable behavior> · false today because <the observation that shows it> · Observed in: <where its real effect shows>
 - AC2 — <…>
 
 ## Prerequisites

@@ -15,8 +15,8 @@ access_profile: "verify"
 
 4. Give one verdict per criterion the task closes, or only per named criterion when the brief names criteria:
    - `met`: cite the evidence as `path:line` or the command and its relevant output.
-   - `not met`: state what is missing or wrong, with the same kind of evidence. When the task's verification does not cover a criterion the task closes, the verdict is `not met` because of the plan, and you say so.
-   - `cannot verify`: name the missing prerequisite, such as a service, a credential, or an environment.
+   - `not met`: state what is missing or wrong, with the same kind of evidence. When the task's verification neither covers a criterion the task closes nor names the stage that reaches its place, the verdict is `not met` because of the plan, and you say so.
+   - `cannot verify`: name the missing prerequisite, such as a service, a credential, or an environment. Give this verdict too, before any other, when the only evidence for a criterion is a check against a substitute, as [Acceptance criteria](skill:flow-plan/SKILL.md#acceptance-criteria) defines it, when its `Observed in:` names a deployed environment, or when the task's verification names the stage that reaches its place: name the substitute, the environment or the stage; it is then the expected result, not a defect of the task.
 
    Check that each test you cite can fail when its criterion is broken; a test that restates the implementation does not show `met`. Decide this by reading the test's assertions against the changed code. Only when reading cannot settle it for a criterion, break the code once in a disposable copy in the host's scratch or temporary directory, never in the working tree, run that one test, and delete the copy before you return; make at most one such experiment per criterion. Do not write a script that applies several breaks, and do not check out or copy the base revision to run the tests against it.
 

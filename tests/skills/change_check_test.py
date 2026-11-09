@@ -27,10 +27,11 @@ PROPOSAL = """
 
     ## Scope and acceptance
 
-    - AC1 — The export button appears · false today
+    - AC1 — The export button appears · false today · Observed in: the export page served locally
     - AC2 — Retired criterion **Retired:** already true on the base
-    - AC3 — The export runs · false today
+    - AC3 — The export runs · false today · **Observed in:** the exported file
     - AC4 — Pagination works · false today
+      **Observed in**: the list page served locally
 
     ## Estado de la revisión y avance
 
@@ -207,6 +208,65 @@ class ChangeCheckTest(unittest.TestCase):
             outside = tasks.replace("**Changes:** commit by D12-A, which replaced D4-A.", "**Changes:** commit by D12-A, which replaced D4-A.\n\n**Verification:** D4-A.")
             result = self.run_check(self.folder(tmp, tasks=outside))
             self.assertEqual(result.returncode, 1)
+
+    def test_reports_an_active_criterion_without_its_observed_place(self):
+        proposal = PROPOSAL.replace(" · **Observed in:** the exported file", "")
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.folder(tmp, proposal=proposal))
+            self.assertEqual(result.returncode, 1, result.stdout)
+            self.assertEqual(result.stdout.splitlines(), ["proposal.md:12: AC3 names no **Observed in:** place"])
+
+    def test_the_observed_place_may_sit_in_a_sub_bullet_or_after_a_blank_line(self):
+        proposal = PROPOSAL.replace(
+            "    - AC1 — The export button appears · false today · Observed in: the export page served locally\n",
+            "    - AC1 — The export button appears\n      - false today\n      - Observed in: the export page served locally\n",
+        ).replace(
+            "    - AC3 — The export runs · false today · **Observed in:** the exported file\n",
+            "    - AC3 — The export runs · false today\n\n      **Observed in:** the exported file\n\n",
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.folder(tmp, proposal=proposal))
+            self.assertEqual(result.stdout, "")
+
+    def test_an_observed_marker_without_a_place_is_reported(self):
+        for empty in (" · Observed in:", " · Observed in: <where its real effect shows>"):
+            proposal = PROPOSAL.replace(" · **Observed in:** the exported file", empty)
+            with self.subTest(marker=empty), tempfile.TemporaryDirectory() as tmp:
+                result = self.run_check(self.folder(tmp, proposal=proposal))
+                self.assertIn("AC3 names no **Observed in:** place", result.stdout)
+
+    def test_observed_place_edge_cases_that_name_a_place(self):
+        cases = {
+            "autolink": (" · **Observed in:** the exported file", " · Observed in: <http://localhost:3000/export>"),
+            "wrapped": ("    - AC3 — The export runs · false today · **Observed in:** the exported file\n",
+                        "    - AC3 — The export runs as issue\n      #431 asks · **Observed in:**\n      the exported file\n"),
+            "marker named earlier": (" · **Observed in:** the exported file", " · requires `Observed in: <place>` · Observed in: the check's output"),
+            "quoted": ("    ## Scope and acceptance\n", "    ## Request\n\n    - AC1 — quoted from the ticket\n\n    ## Scope and acceptance\n"),
+        }
+        for name, (old, new) in cases.items():
+            with self.subTest(case=name), tempfile.TemporaryDirectory() as tmp:
+                self.assertIn(old, PROPOSAL)
+                result = self.run_check(self.folder(tmp, proposal=PROPOSAL.replace(old, new)))
+                self.assertNotIn("Observed in", result.stdout)
+
+    def test_observed_place_edge_cases_that_name_none(self):
+        marker = " · **Observed in:** the exported file"
+        cases = {
+            "placeholder with text": " · Observed in: <place> (TBD)",
+            "dash": " · Observed in: —",
+            "nested criterion": "\n      - AC9 — nested · Observed in: its own page",
+            "ordered item": "\n    1. A step. Observed in: elsewhere",
+        }
+        for name, new in cases.items():
+            with self.subTest(case=name), tempfile.TemporaryDirectory() as tmp:
+                result = self.run_check(self.folder(tmp, proposal=PROPOSAL.replace(marker, new)))
+                self.assertIn("AC3 names no **Observed in:** place", result.stdout)
+
+    def test_archive_does_not_ask_for_the_observed_place(self):
+        proposal = PROPOSAL.replace(" · **Observed in:** the exported file", "")
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.folder(tmp, proposal=proposal), "--archive")
+            self.assertNotIn("Observed in", result.stdout)
 
     def test_unreadable_folder_exits_2(self):
         with tempfile.TemporaryDirectory() as tmp:

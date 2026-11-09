@@ -43,7 +43,7 @@ TASKS_MD = textwrap.dedent(
     """
 )
 
-PROPOSAL = "# demo\n\n- AC1 — one · false today\n- AC2 — two · false today\n"
+PROPOSAL = "# demo\n\n- AC1 — one · false today · Observed in: here\n- AC2 — two · false today · Observed in: here\n"
 
 
 class TasksScriptTest(unittest.TestCase):
@@ -183,8 +183,8 @@ class TasksScriptTest(unittest.TestCase):
 
             - **D4 A** — Old way.
             - **D12 A** — New way. **Replaces:** D4-A
-            - AC1 — one · false today
-            - AC2 — two · false today
+            - AC1 — one · false today · Observed in: here
+            - AC2 — two · false today · Observed in: here
             """
         )
         with tempfile.TemporaryDirectory() as tmp:
