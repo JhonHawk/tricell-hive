@@ -21,6 +21,13 @@ raise the minor or the patch version.
 - The `local-instructions` skill creates or prunes both files from what
   already worked in recent Claude Code and Codex sessions, after asking which
   facts to keep; its extraction script masks every value before printing.
+- Screen examples in research: for a new or rearranged screen whose
+  composition is open, `flow-research` asks once per work whether you want
+  proposals, drawn in the design file the app's `DESIGN.md` declares (or one
+  you name) when the host can write to it, or as text sketches. The example
+  you approve becomes the reference of the plan, the build's first view, the
+  verification walk and the UX review. A request for the design itself is
+  drawn without the offer and is not reported as done before you approve it.
 
 ### Changed
 

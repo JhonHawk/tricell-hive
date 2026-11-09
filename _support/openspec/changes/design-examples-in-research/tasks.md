@@ -110,7 +110,7 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 
 ### T7 — La delegación desatendida no responde la oferta ni aprueba un ejemplo
 
-- [ ] `unattended-delegation` nombra las dos excepciones
+- [x] `unattended-delegation` nombra las dos excepciones
 
 **Closes:** AC13
 
@@ -148,3 +148,4 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 2026-11-09 — T3 · ca36e5cc · unverified: none
 2026-11-09 — T4 · ca36e5cc · unverified: none
 2026-11-09 — T5 · ca36e5cc · unverified: none
+2026-11-09 — T7 · 49b6075f · unverified: none
