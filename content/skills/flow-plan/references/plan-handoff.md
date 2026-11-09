@@ -18,13 +18,13 @@ A saved change folder holds the detail and the user may not open it, so summariz
 
 ## Then end with the build route
 
-End the summary with the next-step block that the global guidance's «Questions and routes» section sets, with its compaction reply for a build in the same session, never with a question card. The build route is a route, not a request for leave to proceed: a plan does not authorize implementation, and only the user's reply starts `flow-build`.
+End the summary with the next-step block that the global guidance's «Questions and routes» section sets, with its compaction reply for a build in the same session, never with a question card. The build route is a route, not a request for leave to proceed: a plan does not authorize implementation, and only the user's reply starts `flow-build`, except in the two cases below that continue in the same turn.
 
 - Recommend building unless something blocks it, and say in the block that typing the build command approves the criteria shown, by their IDs with a gloss, such as "approves AC1–AC4 (export, permissions and audit)": `/flow-build <change folder>` in the host's syntax, or, for a plan kept in the conversation, `/flow-build` with the ticket key or a short description of the work.
 - Recommend stopping with the plan ready only for a named blocker, such as an open decision, an unmet prerequisite or the user's statement not to implement now, and say which; that the user asked for a plan is not a blocker.
 
 A correction to a criterion or a sketch is not approval: [revise the plan](../SKILL.md#revise-a-plan-in-progress), show the revised criteria or sketch, and end with the build route again.
 
-When execution is already explicitly authorized, show the summary the same way and continue to `flow-build`.
+Only two cases continue to `flow-build` in the same turn, with no reply: the user's own message asked beforehand to build after the plan without stopping, or [unattended delegation](../../unattended-delegation/SKILL.md) is active and its objective reaches the build. Show the summary the same way, then continue.
 
 A change folder is committed with the code it plans, as [git-workflow step 4](../../git-workflow/SKILL.md) sets; until then it stays on disk.

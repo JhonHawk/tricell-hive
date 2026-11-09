@@ -54,6 +54,18 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- Seven rules that gave two readings of the same moment now give one. A human
+  reviewer's pending approval holds the merge in every delivery mode: the
+  agent stops with the pull request open and reports the merge as pending. Under unattended
+  delegation, adding test infrastructure, opening a finding's ticket and the
+  close's support-material decision take the recommended option, within that
+  mode's limits, and the end report presents each one. A blocking finding and
+  a P1 finding are the same thing. A close that defers no step still asks the
+  support-material decision. Plan continues into build without a reply only
+  when the user asked for it beforehand or unattended delegation is active. A
+  mechanical change under `interactive` still stops before the push. A fix-now
+  answer that is not a small understood change goes to `flow-plan`.
+
 - Codex's generated `SessionEnd` hook uses its supported 3-second timeout,
   removing the startup clamping warning on new installs and updates.
 
