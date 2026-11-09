@@ -22,7 +22,7 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 
 ### T2 — Campo del archivo de diseño en el registro de diseño
 
-- [ ] El registro de diseño describe el campo `**Design file:**`
+- [x] El registro de diseño describe el campo `**Design file:**`
 
 **Closes:** AC5
 
@@ -144,3 +144,4 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 2026-11-09 — Revisión 1 del plan: T1 gana la referencia de delegación, los punteros del paso 0 y las dos frases del rol; T5 cambia la frase existente del revisor; las verificaciones observan cada cláusula. Ninguna tarea estaba hecha.
 2026-11-09 — Revisión 2 del plan: T1 deja intacto el párrafo final del rol y gana las cláusulas de autorización y de cierre; T4 y T5 definen la diferencia y su destino; T6 gana `overview.md`; T7 es nueva. Ninguna tarea estaba hecha.
 2026-11-09 — T1 · 6e36bdfc · unverified: none
+2026-11-09 — T2 · bad61441 · unverified: none
