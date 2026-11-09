@@ -6,7 +6,7 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 
 - [x] `flow-research` tiene la sección «Examples for a screen», el rol `hive-design-ui` entrega ejemplos en el archivo de diseño que su encargo le asigna y la referencia de delegación nombra ese trabajo
 
-**Closes:** AC1, AC2, AC3, AC4, AC7, AC11, AC12
+**Closes:** AC1, AC2, AC14, AC4, AC15, AC17, AC12
 
 **Depends on:** none
 
@@ -16,9 +16,9 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 
 **Test approach:** check
 
-**Changes:** en `flow-research`, la sección nueva con la condición, la oferta y sus opciones, el número de ejemplos, el límite de escritura, la elección, el registro y el pedido de solo diseño, como fija `design.md` «Proposed shape»; la excepción en el primer párrafo; un puntero desde los pasos 0, 3 y 5. La sección dice además que la opción del archivo de diseño nombra la escritura, que esa respuesta es su instrucción explícita, que una escritura de pago pide su propia pregunta, que la oferta solo se hace cuando el usuario pidió un cambio, y que tras aprobar un pedido de solo diseño research termina con el bloque de siguiente paso hacia el cierre. En el rol, el paso 1 (línea 11, bocetos «for the `UI` section of `design.md`») admite la página del archivo de diseño que el encargo asigna y dice que cuenta entre las rutas que el encargo nombra; los pasos 3 y 4 dicen que la evidencia de un frame es su imagen y sus nodos. El párrafo final del rol (línea 19) no se toca: `tests/content/agent_boundary_test.go` lo fija palabra por palabra. En la referencia de delegación, un punto bajo el trabajo que un hijo hace por costo. No se renumeran los pasos de research. No cambia `global.md`.
+**Changes:** en `flow-research`, la sección nueva con la condición, la oferta y sus opciones, el número de ejemplos, el límite de escritura, la elección, el registro y el pedido de solo diseño, como fija `design.md` «Proposed shape»; la excepción en el primer párrafo; un puntero desde los pasos 0, 3 y 5. La sección dice además que la opción del archivo de diseño nombra la escritura, que esa respuesta es su instrucción explícita, que una escritura de pago pide su propia pregunta, que la oferta solo se hace cuando el usuario pidió un cambio, y que tras aprobar un pedido de solo diseño research corre el cierre. En el rol, el paso 1 (línea 11, bocetos «for the `UI` section of `design.md`») admite la página del archivo de diseño que el encargo asigna y dice que cuenta entre las rutas que el encargo nombra; los pasos 3 y 4 dicen que la evidencia de un frame es su imagen y sus nodos. El párrafo final del rol (línea 19) no se toca: `tests/content/agent_boundary_test.go` lo fija palabra por palabra. En la referencia de delegación, un punto bajo el trabajo que un hijo hace por costo. No se renumeran los pasos de research. No cambia `global.md`.
 
-**Verification:** leer la sección contra AC1, AC2, AC3 y AC11, cláusula por cláusula, y anotar la línea de cada una en el registro de la tarea, incluidas las de la respuesta que autoriza la escritura, la escritura de pago y el bloque hacia el cierre; `git diff -- content/agents/design/hive-design-ui.md` no toca el párrafo final del rol; además: `rg -n "Examples for a screen" content/skills/flow-research/SKILL.md` muestra la sección y los punteros de los pasos 0, 3 y 5 (cuatro líneas o más); `rg -n -i "design file" content/skills/flow-research/SKILL.md content/agents/design/hive-design-ui.md` muestra ambos; `rg -n "hive-design-ui" content/skills/flow-build/references/delegation.md` muestra el punto nuevo; `awk 'NR==8' content/skills/flow-research/SKILL.md` nombra los ejemplos; `wc -c` de `flow-research/SKILL.md` y de `delegation.md` da 16,000 o menos; `git diff --stat -- content/guidance/global.md` no muestra nada; `go test ./tests/content/...` pasa.
+**Verification:** leer la sección contra AC1, AC2, AC14 y AC17, cláusula por cláusula, y anotar la línea de cada una en el registro de la tarea, incluidas las de la respuesta que autoriza la escritura, la escritura de pago y el cierre; `git diff -- content/agents/design/hive-design-ui.md` no toca el párrafo final del rol; además: `rg -n "Examples for a screen" content/skills/flow-research/SKILL.md` muestra la sección y los punteros de los pasos 0, 3 y 5 (cuatro líneas o más); `rg -n -i "design file" content/skills/flow-research/SKILL.md content/agents/design/hive-design-ui.md` muestra ambos; `rg -n "hive-design-ui" content/skills/flow-build/references/delegation.md` muestra el punto nuevo; `awk 'NR==8' content/skills/flow-research/SKILL.md` nombra los ejemplos; `wc -c` de `flow-research/SKILL.md` y de `delegation.md` da 16,000 o menos; `git diff --stat -- content/guidance/global.md` no muestra nada; `go test ./tests/content/...` pasa.
 
 ### T2 — Campo del archivo de diseño en el registro de diseño
 
@@ -60,7 +60,7 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 
 - [x] La primera vista del build y el recorrido de verify comparan contra el ejemplo aprobado
 
-**Closes:** AC8
+**Closes:** AC16
 
 **Depends on:** none
 
@@ -70,7 +70,7 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 
 **Test approach:** check
 
-**Changes:** en `flow-build`, la primera vista se compara contra el ejemplo aprobado cuando el plan tiene uno. En `flow-verify`, el recorrido compara la captura de cada región con ejemplo; el texto define qué es una diferencia como `design.md` «Diferencia» fija, la trata como defecto de UI que el cambio introdujo, y lista las que queden en el mensaje de validación cuando la entrega se detiene y en el reporte final cuando no. La validación del usuario y sus condiciones no cambian.
+**Changes:** en `flow-build`, la primera vista se compara contra el ejemplo aprobado cuando el trabajo tiene uno, cada corrección que se aparta de él se añade a su registro, y el checkpoint de un trabajo sin carpeta de cambio lleva ese registro. En `flow-verify`, el recorrido compara la captura de cada región con ejemplo; el texto define qué es una diferencia como `design.md` «Diferencia» fija, la trata como defecto de UI que el cambio introdujo, y lista las que queden en el mensaje de validación cuando la entrega se detiene y en el reporte final cuando no. La validación del usuario y sus condiciones no cambian.
 
 **Verification:** `rg -n "approved example" content/skills/flow-build/SKILL.md content/skills/flow-verify/SKILL.md` muestra ambos; en `flow-verify`, la lectura de las líneas encontradas confirma la comparación en el recorrido, la definición de diferencia y los dos destinos de la lista (mensaje de validación y reporte final), y `git diff -- content/skills/flow-verify/SKILL.md` no toca la frase «ask the user to approve or request corrections»; `wc -c` de los dos da 16,000 o menos; `go test ./tests/content/...` pasa.
 
@@ -112,7 +112,7 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 
 - [x] `unattended-delegation` nombra las dos excepciones
 
-**Closes:** AC13
+**Closes:** AC18
 
 **Depends on:** none
 
@@ -122,7 +122,7 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 
 **Test approach:** check
 
-**Changes:** en el paso 5, dos excepciones más a «Take the option you would recommend for every other question», con puntero a la sección de research: con la delegación activa no se hace la oferta de propuestas, y la aprobación del ejemplo de un pedido de solo diseño queda sin responder y se reporta como pendiente. No cambia la excepción de la primera vista ni lo demás del paso.
+**Changes:** en el paso 5, dos excepciones más a «Take the option you would recommend for every other question», con puntero a la sección de research: con la delegación activa no se hace la oferta de propuestas, y la elección o la aprobación de un ejemplo de pantalla queda sin responder y se reporta como pendiente. No cambia la excepción de la primera vista ni lo demás del paso.
 
 **Verification:** `rg -n "Examples for a screen" content/skills/unattended-delegation/SKILL.md` muestra el puntero, y la lectura de esa línea confirma las dos excepciones; `wc -c content/skills/unattended-delegation/SKILL.md` da 16,000 o menos; `go test ./tests/content/...` pasa.
 
@@ -139,16 +139,23 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 ## Checkpoint
 
 - Updated: 2026-11-09
-- Stage: flow-verify · 1
-- Last commit: f55eba4c
-- Open findings: none
-- Next: Read the results of the full suite (go test ./..., go vet ./...) and of /code-review; fix in one round; then push, open the pull request, merge to development and run hive update (D3 B)
+- Stage: flow-verify · 6
+- Last commit: 74c3d481
+- Open findings: code review 1 on f55eba4c: 10 findings, all confirmed, fixed in 74c3d481; code review 2 on 74c3d481 (fix diff only): 10 findings, all confirmed, fixed locally in the commit after 74c3d481 with an Unreviewed line; no third review
+- Next: This checkpoint travels in the commit after 74c3d481, which holds the local fixes of the second code review. Run the full suite on that commit; when it passes, push feat/design-examples-in-research, open the pull request against development, merge it, run hive update from the main checkout and then flow-close (D3 B). No further review round.
 
 ### Evidence
 
 - ac-walk: rg probes for AC1-AC13 on the candidate files, every count as expected · f55eba4c
 - sizes: global.md 45,095 bytes unchanged against origin/development; largest SKILL.md flow-close 15,995 (not touched), largest touched flow-build 13,619 · f55eba4c
 - go test ./tests/content/... ok and python3 -m unittest discover -s tests/skills: 89 tests OK · on the working tree before ca36e5cc, same content
+- ac-walk after fixes: every AC1-AC13 count as expected; check_change.py exit 0 · 74c3d481
+- go test content, integrations, tooling/package, tooling/distribution ok (15 packages) and tests/skills 89 tests OK · working tree of 74c3d481
+- go test ./... 22 packages ok and go vet ./... clean, 262 s · 49b6075f, before the fix round
+- go test ./... 22 packages ok and go vet ./... clean · 74c3d481
+- ac-walk: every criterion's clauses found in the candidate files; check_change.py exit 0 · tree of the commit after 74c3d481
+- go test content, integrations, tooling/package, tooling/distribution, tooling/management ok (16 packages) and tests/skills 89 tests OK · tree of the commit after 74c3d481
+- sizes: global.md 45,095 bytes unchanged; flow-research 12,283, flow-verify 11,587, flow-build 13,731, all under 16,000 · tree of the commit after 74c3d481
 
 ## Review status and progress
 
@@ -162,3 +169,4 @@ Base: `development` en `997c5485`; rama `feat/design-examples-in-research`. T1 a
 2026-11-09 — T5 · ca36e5cc · unverified: none
 2026-11-09 — T7 · 49b6075f · unverified: none
 2026-11-09 — T6 · f55eba4c · unverified: none
+2026-11-09 — Ronda de correcciones de la primera revisión de código: commit `74c3d481` (T1, T4, T5, T6 y T7 rehechas en parte). Correcciones locales de la segunda revisión: en el commit siguiente, con su línea `Unreviewed:`. Las tareas siguen hechas con el texto final; sus criterios pasan a AC14–AC18 como registra la propuesta.
