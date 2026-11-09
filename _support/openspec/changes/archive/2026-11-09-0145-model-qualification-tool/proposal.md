@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Listo para `flow-build` · revisión 4 |
+| Estado | Completado · PR #432, merge 8d4bad57 |
 | Tracker | ninguno |
 | Git | JhonHawk/tricell-hive · base `development` en `7ae26b0e` · rama propuesta `feat/model-qualification-tool` |
 
