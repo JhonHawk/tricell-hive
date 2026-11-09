@@ -50,11 +50,11 @@ None: the build needs nothing from outside the repository.
 
 ## Effects
 
-<!-- One line per class of effect the user answered in the plan's effects round. Keep this heading in English, whatever the session language, like `Observed in:`: flow-deploy looks for it. When the plan foresees no effect on an external system, keep only the next line. -->
+<!-- One line per class of effect asked in the plan's effects round. Keep this heading in English, whatever the session language, like `Observed in:`: flow-deploy looks for it. When the plan foresees no effect on an external system, keep only the `None:` line; otherwise delete the `None:` line and keep one line per class. Delete this comment. -->
 
 None: the tasks take no effect on an external system.
 
-- <class of effect> · target: <account, repository or environment> · ceiling: <amount, or 0> · tasks: <T<n>> · answer: <decision ID and letter>
+- <class of effect> · target: <account, repository or environment> · ceiling: <amount, or 0> · tasks: <T<n>> · answer: <approved or refused, with the decision ID and letter>
 
 ## Delivery
 

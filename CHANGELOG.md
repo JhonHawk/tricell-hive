@@ -32,8 +32,8 @@ raise the minor or the patch version.
   before the tasks, with a read-only command and its output (one read-only
   helper per system when there are two or more), and ask one decision per
   class of effect, with a spending ceiling, in the delivery round; `flow-deploy`
-  does not ask again for what an answered class covers, and production keeps
-  its own question.
+  does not ask again for what an approved class covers, and a production deployment
+  keeps its own question.
 - Unattended work states an amount for unforeseen spend when it starts: within
   it, a reversible effect that no answer covers can go ahead and is listed in
   the final report; with no amount it is zero and the effect is skipped and
