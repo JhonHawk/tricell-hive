@@ -53,9 +53,9 @@ Base: `development` en `27acf125`; rama propuesta `feat/off-repo-facts-and-effec
 
 ### T3 — Deploy, plantilla, resumen y listas de contenido del plan
 
-- [ ] `flow-deploy` paso 4 y `flow-plan` paso 3 no repiten, en la tarea de promoción de un plan, lo que una clase respondida en ese plan cubre, y siguen preguntando producción aparte
-- [ ] La plantilla `proposal.md` muestra la línea de un dato externo y la sección `## Effects`
-- [ ] `plan-handoff.md` y las listas de `flow-plan` llevan los datos no medidos y las clases respondidas
+- [x] `flow-deploy` paso 4 y `flow-plan` paso 3 no repiten, en la tarea de promoción de un plan, lo que una clase respondida en ese plan cubre, y siguen preguntando producción aparte
+- [x] La plantilla `proposal.md` muestra la línea de un dato externo y la sección `## Effects`
+- [x] `plan-handoff.md` y las listas de `flow-plan` llevan los datos no medidos y las clases respondidas
 
 **Closes:** AC23, AC19
 
@@ -76,9 +76,9 @@ Base: `development` en `27acf125`; rama propuesta `feat/off-repo-facts-and-effec
 
 ### T4 — Monto para gasto imprevisto en el encargo desatendido
 
-- [ ] El paso 2 dice o pregunta el monto en toda activación, sin contarlo entre las respuestas abiertas ni detener el trabajo
-- [ ] El paso 4 cuenta las clases del plan entre las respuestas en vigor y deja sin autorizar las no respondidas
-- [ ] La viñeta de destino y techo exactos del paso 6 nombra su excepción con sus tres condiciones
+- [x] El paso 2 dice o pregunta el monto en toda activación, sin contarlo entre las respuestas abiertas ni detener el trabajo
+- [x] El paso 4 cuenta las clases del plan entre las respuestas en vigor y deja sin autorizar las no respondidas
+- [x] La viñeta de destino y techo exactos del paso 6 nombra su excepción con sus tres condiciones
 
 **Closes:** AC24, AC25
 
@@ -99,9 +99,9 @@ Base: `development` en `27acf125`; rama propuesta `feat/off-repo-facts-and-effec
 
 ### T5 — Sitio y registro de cambios
 
-- [ ] Las páginas de plan y deploy describen la medición de datos externos y la autorización por clase
-- [ ] Las páginas que describen el encargo desatendido nombran el monto para imprevistos
-- [ ] `CHANGELOG.md` lo nombra en `[Unreleased]`
+- [x] Las páginas de plan y deploy describen la medición de datos externos y la autorización por clase
+- [x] Las páginas que describen el encargo desatendido nombran el monto para imprevistos
+- [x] `CHANGELOG.md` lo nombra en `[Unreleased]`
 
 **Closes:** AC11
 
@@ -135,3 +135,6 @@ Sin parada de validación: la entrega es automática (D4 B). El efecto que pidi�
 
 2026-11-09 — T1 · 2cfcdb53 · unverified: none
 2026-11-09 — T2 · 1c49fa75 · unverified: none
+2026-11-09 — T3 · 303101bd · unverified: none
+2026-11-09 — T4 · a00eb014 · unverified: none
+2026-11-09 — T5 · 8d6fb722 · unverified: none
