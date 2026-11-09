@@ -4,7 +4,7 @@ Read before deciding whether a child does a piece of work, in any flow, and befo
 
 ## When a child does the work
 
-A child does the work for the first of these reasons that applies; when neither applies, the main thread does the work.
+A child does the work for the first of these reasons that applies; when none applies, the main thread does the work.
 
 1. **Independence: every review.** Every review or verification Hive launches, by a `hive-review-*` or `hive-verify-*` role, always runs in a child, never in the main thread, because the context that produced the work biases its review. The cost of that child does not decide. A code review by the host's native command, when the user chose it in the delivery round, runs as that command runs. The checks the main thread runs for each task are not a review.
 2. **Cost: large work the session would carry.** What the main thread reads or writes rides along in each of its later calls, while a fresh child starts at tens of thousands of tokens and returns a short summary. Delegate:
@@ -12,11 +12,12 @@ A child does the work for the first of these reasons that applies; when neither 
    - in a build, a task that needs more than 5 large reads or edits more than 3 files, when its interface is settled and its writes do not overlap files another task in progress writes;
    - in any other flow, a check or collection that needs more than 5 large reads.
 
-   A large read is defined in the global guidance's «Proportionality». Work below these limits stays in the main thread, and so does a task whose writes overlap files another task in progress writes.
+   A large read is defined in the global guidance's «Proportionality». Work below these limits stays in the main thread unless reason 3 applies, and so does a task whose writes overlap files another task in progress writes.
+3. **Cross-check: the external facts of a plan.** When a plan's approach depends on two or more external systems, one read-only child per external system measures that system's facts, whatever their size, as [outside the repository](../../flow-plan/references/outside-the-repository.md) sets, so the main thread checks each returned fact instead of producing it.
 
 ## When children run at the same time
 
-- Read-only children run side by side, launched in the same step: reviews, research aspects, and the collections or sweeps a flow sends to parallel children, such as flow-status's independent collections and security-advisory's sweep.
+- Read-only children run side by side, launched in the same step: reviews, research aspects, the external facts of a plan, and the collections or sweeps a flow sends to parallel children, such as flow-status's independent collections and security-advisory's sweep.
 - Children that write, such as a backend task and a frontend task each delegated for its cost, run side by side only when all of these hold; otherwise they run one after another, each still in its child:
   - the contract they share is written as a typed artifact, such as types, a schema or an API definition, and does not change while they run;
   - their writes touch disjoint files;

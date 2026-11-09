@@ -11,10 +11,10 @@ A saved change folder holds the detail and the user may not open it, so summariz
 3. The decisions in force, and the minor calls (as «Questions and routes» in the global guidance defines them) taken without asking with their reasons.
 4. For a change to a screen, the sketch of each changed region before and after from the `UI` section of `design.md`, with its components and states; for a region with an approved example, the example's record in place of its after sketch. Check that each sketch matches the text that describes it, such as two actions drawn side by side when the text says so.
 5. Each task on one line, with what it delivers and who executes it.
-6. The prerequisites still unmet, with who provides each.
+6. The prerequisites still unmet, with who provides each, and each external fact written as not measured, with the task that meets it first, as [outside the repository](outside-the-repository.md) sets.
 7. The verification: the tests, the UI walk and review, and the code review.
 8. The delivery mode, with the validation stop and the endpoint after it.
-9. What remains open or unauthorized, and the change folder path or that the plan lives in the conversation.
+9. Each class of effect with its answer (approved, refused or unanswered), its target, ceiling and tasks, what remains open or unauthorized, and the change folder path or that the plan lives in the conversation.
 
 ## Then end with the build route
 

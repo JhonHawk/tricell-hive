@@ -44,6 +44,18 @@ None: the build needs nothing from outside the repository.
 
 <What was read and observed before planning, with paths, commits and dates.>
 
+<!-- Only when the approach reads or changes an external system: one line per external fact, as flow-plan's reference «Outside the repository» sets. A fact no read-only read could show is written as not measured, with the task that meets it first. Delete this comment. -->
+
+- <external fact> · <read-only command or source> · <result, or not measured> · <date>
+
+## Effects
+
+<!-- One line per class of effect asked in the plan's effects round. Keep this heading in English, whatever the session language, like `Observed in:`: flow-deploy looks for it. When the plan foresees no effect on an external system, keep only the `None:` line; otherwise delete the `None:` line and keep one line per class. Delete this comment. -->
+
+None: the tasks take no effect on an external system.
+
+- <class of effect> · target: <account, repository or environment> · ceiling: <amount, or 0> · tasks: <T<n>> · answer: <approved, refused or unanswered, with the decision ID and letter when answered>
+
 ## Delivery
 
 <The delivery mode, its validation stop and its endpoint. The code review mechanism. What this choice does not authorize.>
