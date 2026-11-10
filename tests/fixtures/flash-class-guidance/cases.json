@@ -11,7 +11,7 @@
         "_support/openspec/changes/sample-export/design.md": "# Design\n\nUse the existing export handler and account-access boundary. The authorization decision has not been implemented or verified. Production publication is outside this plan's authorized effects.\n"
       },
       "expected": {
-        "skill_read": "flow-plan/references/plan-review.md",
+        "skill_read": "flow-plan/SKILL.md",
         "criteria": ["csv_boundary_verification_gap", "revoked_account_criterion_uncovered", "production_task_exceeds_authority", "review_only_no_writes", "exact_native_child_completed"]
       }
     },

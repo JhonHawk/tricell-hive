@@ -59,7 +59,7 @@ func TestFlashClassSnapshotMetadataRejectsBeforeActivation(t *testing.T) {
 			object(list(m["references"])[0])["role"] = "hive-build-backend"
 		},
 		"other role resource": func(m map[string]any, _ string, _ *guidanceVariant) {
-			object(list(m["references"])[0])["resource"] = "flow-plan/references/plan-review.md"
+			object(list(m["references"])[0])["resource"] = "flow-plan/SKILL.md"
 		},
 		"digest mismatch": func(m map[string]any, _ string, _ *guidanceVariant) {
 			object(list(m["references"])[0])["sha256"] = strings.Repeat("0", 64)
