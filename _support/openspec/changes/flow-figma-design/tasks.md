@@ -8,7 +8,7 @@ El mensaje del commit que integra T1 nombra las observaciones que motivan el cam
 
 - [x] Existe la skill con sus ocho pasos en orden y pasa las pruebas de contenido
 
-**Closes:** AC1, AC5
+**Closes:** AC8, AC5
 
 **Depends on:** none
 
@@ -26,7 +26,7 @@ El mensaje del commit que integra T1 nombra las observaciones que motivan el cam
 
 - [x] `flow-research` ya no tiene la sección ni la oferta y recomienda la etapa en su bloque
 
-**Closes:** AC2, AC6
+**Closes:** AC7, AC6
 
 **Depends on:** T1
 
@@ -36,9 +36,9 @@ El mensaje del commit que integra T1 nombra las observaciones que motivan el cam
 
 **Test approach:** check
 
-**Changes:** Quita «Examples for a screen» y sus cuatro apuntadores; el paso 5 recomienda `flow-figma-design` cuando hay pantalla nueva o recompuesta sin composición fijada y el host tiene una conexión que escribe en Figma, también en la terminación de un ticket evaluado, y nunca bajo delegación desatendida. El paso 0 continúa hacia la etapa en el mismo turno para la petición cuyo entregable es el diseño, o reporta el bloqueo sin conexión a Figma, y la guía global nombra esa continuación. En «Questions and routes», la lista de transiciones gana las dos nuevas y la cláusula «Offer a flow's command only when the next step needs that flow's procedure» gana un diseño en Figma. No cambia las tres continuaciones en el mismo turno.
+**Changes:** Quita «Examples for a screen» y sus cuatro apuntadores; el paso 5 recomienda `flow-figma-design` cuando hay pantalla nueva o recompuesta sin composición fijada y el host tiene una conexión que escribe en Figma, también en la terminación de un ticket evaluado, y nunca bajo delegación desatendida. El paso 0 continúa hacia la etapa en el mismo turno para la petición cuyo entregable es el diseño, o reporta el bloqueo sin conexión a Figma, y la guía global nombra esa continuación. En «Questions and routes», la lista de transiciones gana las dos nuevas y la cláusula «Offer a flow's command only when the next step needs that flow's procedure» gana un diseño en Figma. Agrega a la guía global esa cuarta continuación en el mismo turno; no cambia las otras tres.
 
-**Verification:** `rg -n "Examples for a screen|examples-for-a-screen" content/skills/flow-research` no devuelve nada; `rg -n "flow-figma-design" content/skills/flow-research/SKILL.md content/guidance/global.md` devuelve la recomendación y la transición; `go test ./tests/content/...` pasa.
+**Verification:** `rg -n "Examples for a screen|examples-for-a-screen" content/skills/flow-research` no devuelve nada; `rg -n "flow-figma-design" content/skills/flow-research/SKILL.md content/guidance/global.md` devuelve la recomendación y la transición; `rg -n "four continuations" content/guidance/global.md` devuelve una línea; `go test ./tests/content/...` pasa.
 
 ### T3 — Los consumidores apuntan a la skill nueva y el rol gana sus límites
 

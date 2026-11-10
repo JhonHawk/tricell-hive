@@ -34,11 +34,11 @@ Decisiones menores tomadas sin preguntar:
 
 1. **Entrada.** Se entra por el comando, desde el bloque de la investigación, o por una petición cuyo entregable es el diseño. Comprueba la conexión que escribe en Figma; sin ella no dibuja nada y reporta el bloqueo con lo que falta: para una pantalla que se va a construir, con la ruta al plan, y para una petición cuyo entregable es el diseño, sin otra ruta que conectar Figma.
 2. **Cargar antes de dibujar.** Las instrucciones propias de la conexión de Figma cuando las trae, y el sistema de diseño del proyecto como fija `hive-ui-criteria`.
-3. **Resolver el archivo.** El declarado en «Design file» del `DESIGN.md`, el nombrado en la conversación, o el pedido una vez.
+3. **Resolver el archivo.** El de Figma nombrado en la conversación, si no el declarado en «Design file» del `DESIGN.md` cuando es de Figma, o el pedido una vez; un archivo declarado que nadie nombró se confirma antes de la primera escritura, y se comprueba que la conexión puede escribir en él.
 4. **Avisar los pasos manuales.** Lo que el usuario tendrá que hacer en Figma, como publicar una librería o aceptar su actualización, antes del primer dibujo.
-5. **Dibujar.** Dos o tres ejemplos cuando la composición está abierta y uno cuando está fijada, a ancho de escritorio, con tokens, componentes, textos reales y volumen realista, en una página con el nombre del trabajo. Un hijo `hive-design-ui` cuando el host da esa conexión a sus hijos; su encargo lleva el archivo, la página, los anchos (escritorio y 440 px) y los nodos que este trabajo creó.
+5. **Dibujar.** Dos o tres ejemplos cuando la composición está abierta y uno cuando está fijada, a ancho de escritorio, con tokens, componentes, textos reales y volumen realista, en una página con el nombre del trabajo. Un hijo `hive-design-ui` cuando el host da esa conexión a sus hijos; su encargo lleva el archivo, la página, el único ancho de sus frames (1440 px por defecto en escritorio; 440 px para el frame móvil del ejemplo elegido) y los nodos que este trabajo creó.
 6. **Elegir.** Una decisión con una opción por ejemplo; se redibuja con cada corrección; el frame de 440 px se aprueba aparte cuando la pantalla se sirve en móvil. En la misma ronda, la pregunta del registro en `DESIGN.md` cuando el archivo no está declarado.
-7. **Registrar.** `examples.md` en la carpeta del trabajo con la herramienta, la ubicación del archivo, el nodo de cada frame, la imagen local y el estado, actualizado a «approved» con su fecha; se quitan los ejemplos no elegidos.
+7. **Registrar la aprobación.** El registro se escribe como pendiente en el paso 5, al terminar de dibujar; aquí se actualiza. `examples.md` en la carpeta del trabajo con la herramienta, la ubicación del archivo, el nodo de cada frame, la imagen local y el estado, actualizado a «approved» con su fecha; se quitan los ejemplos no elegidos.
 8. **Cerrar.** Bloque de siguiente paso hacia `flow-plan`; o `flow-close` cuando el entregable era el diseño.
 
 Recableado:
@@ -58,7 +58,7 @@ El nombre visible de la etapa en el bloque de siguiente paso: «diseño en Figma
 
 Lo que usa lo que cambia está listado en «Contexto verificado» de la propuesta. No toca producción ni datos. El comportamiento de `flow-build` y `flow-verify` frente al ejemplo aprobado no cambia: siguen leyendo el registro.
 
-El tamaño de `content/guidance/global.md` crece en unos 80 bytes (las dos transiciones y un procedimiento más en la cláusula); el número exacto va en el pull request.
+El tamaño de `content/guidance/global.md` crece 190 bytes, de 47.122 a 47.312 (las dos transiciones, un procedimiento más en la cláusula y la cuarta continuación); el número exacto va en el pull request.
 
 ## Recovery
 
