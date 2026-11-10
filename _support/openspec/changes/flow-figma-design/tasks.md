@@ -89,6 +89,21 @@ Lo que este cambio no verifica: la conducta en una sesión real. Los pilotos est
 
 ## Checkpoint
 
+- Updated: 2026-11-10
+- Stage: verify · 6
+- Last commit: 44c8d846
+- Open findings: none
+- Next: push, pull request, merge into development, refresh the local installation, close
+
+### Evidence
+
+- go test ./... · exit 0 · 44c8d846
+- npm run build (site) · exit 0 · 44c8d846
+- stale-wording rg of AC3 · no output · 44c8d846
+- check_change.py · exit 0 · 44c8d846
+- /code-review medium on d9b53f5d · 10 findings, all applied in b40af1bf
+- hive-review-plan on b40af1bf · 9 findings, all applied in 44c8d846
+
 ## Review status and progress
 
 2026-11-10 — Plan escrito.
