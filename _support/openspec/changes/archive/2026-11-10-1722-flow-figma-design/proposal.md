@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | En construcción |
+| Estado | Completado · PR #450, merge 7c1bf212 |
 | Tracker | ninguno (sin issue; búsqueda en GitHub Issues sin coincidencias, 2026-11-10) |
 | Git | tricell-hive, base `development` en `a1c6c9ac`, rama propuesta `feat/flow-figma-design` |
 
