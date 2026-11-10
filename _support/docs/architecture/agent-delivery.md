@@ -73,7 +73,7 @@ Activation adds that directory path to the user configuration’s `plugins` arra
 removing the entry and reloading the plugin through the native host deactivates it. Explicit activation enables `hive.context-loader` to resolve
 `Agent.Info.name` from the active agent ID and supply only:
 
-- `hive-review-plan`: `flow-plan/references/plan-review.md`.
+- `hive-review-plan`: `flow-plan/SKILL.md`.
 - `hive-review-harness`: `harness-audit/SKILL.md`.
 
 The manager generates embedded reference snapshots from the validated release

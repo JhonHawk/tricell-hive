@@ -51,7 +51,7 @@ manager from an old manager binary that cannot verify manifest version `2`.
 The manager SHALL generate the two fixed reference snapshots from its validated release payload into the installed plugin, serializing content as data and validating derived identity before writes. When explicitly active, the loader SHALL resolve the native agent's identifier and supply that generated snapshot for `hive-review-plan` or `hive-review-harness` before model dispatch without opening reference or metadata files in its request loop. It SHALL NOT infer prompt intent, alter tools, permissions or generation settings, or persist message changes. Source resources missing or invalid at generation SHALL reject delivery before writes; runtime missing-snapshot diagnostics SHALL be bounded and SHALL NOT claim native request abortion. The global core's obligation to report dependencies remains. Unknown roles SHALL remain unchanged.
 
 The fixed mappings SHALL be `hive-review-plan` to
-`flow-plan/references/plan-review.md` and `hive-review-harness` to
+`flow-plan/SKILL.md` and `hive-review-harness` to
 `harness-audit/SKILL.md`. The identifier SHALL be resolved from the native
 agent lookup's `data.id`, then its `id`, then the hook event's agent value (also
 when the lookup fails), and SHALL NOT be taken from the display name.
