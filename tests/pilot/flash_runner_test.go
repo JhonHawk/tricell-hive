@@ -50,7 +50,6 @@ func TestFlashClassRunnerWithFakeNativeCLIs(t *testing.T) {
 			write(filepath.Join(source, "integrations/agent-profiles.json"), string(profiles))
 			write(filepath.Join(source, "content/agents/review/hive-review-plan.md"), "---\nname: hive-review-plan\ndescription: Review the plan.\nmodel_profile: reasoning\naccess_profile: observe\neffort: medium\n---\n# Keep role instructions\n")
 			write(filepath.Join(source, "content/skills/flow-plan/SKILL.md"), "---\nname: flow-plan\ndescription: Plan authorized work.\n---\n# Plan\n")
-			write(filepath.Join(source, "content/skills/flow-plan/references/plan-review.md"), "# Review\nRead only.\n")
 			write(filepath.Join(source, "content/skills/harness-audit/SKILL.md"), "---\nname: harness-audit\ndescription: Audit instructions.\n---\n# Audit\n")
 			write(filepath.Join(source, "integrations/opencode/context-loader.js"), "const snapshot = __HIVE_CONTEXT_SNAPSHOT_DATA__;\nexport default {};\n")
 			write(filepath.Join(home, ".config/opencode/opencode.json"), `{"mcp":{"engram":{"type":"local","enabled":true,"command":["engram","mcp"]}}}`)
