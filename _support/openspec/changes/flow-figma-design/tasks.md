@@ -6,7 +6,7 @@ El mensaje del commit que integra T1 nombra las observaciones que motivan el cam
 
 ### T1 — La skill `flow-figma-design`
 
-- [ ] Existe la skill con sus ocho pasos en orden y pasa las pruebas de contenido
+- [x] Existe la skill con sus ocho pasos en orden y pasa las pruebas de contenido
 
 **Closes:** AC1, AC5
 
@@ -24,7 +24,7 @@ El mensaje del commit que integra T1 nombra las observaciones que motivan el cam
 
 ### T2 — La investigación recomienda la etapa y la guía global nombra la transición
 
-- [ ] `flow-research` ya no tiene la sección ni la oferta y recomienda la etapa en su bloque
+- [x] `flow-research` ya no tiene la sección ni la oferta y recomienda la etapa en su bloque
 
 **Closes:** AC2, AC6
 
@@ -42,7 +42,7 @@ El mensaje del commit que integra T1 nombra las observaciones que motivan el cam
 
 ### T3 — Los consumidores apuntan a la skill nueva y el rol gana sus límites
 
-- [ ] Ningún archivo distribuido apunta a la sección retirada, y el rol y el registro de diseño dicen lo decidido
+- [x] Ningún archivo distribuido apunta a la sección retirada, y el rol y el registro de diseño dicen lo decidido
 
 **Closes:** AC3, AC4, AC5
 
@@ -60,7 +60,7 @@ El mensaje del commit que integra T1 nombra las observaciones que motivan el cam
 
 ### T4 — Sitio, README, llms.txt, arquitectura y changelog
 
-- [ ] La documentación para personas describe la etapa y el sitio compila
+- [x] La documentación para personas describe la etapa y el sitio compila
 
 **Closes:** AC3, AC6
 
@@ -93,3 +93,7 @@ Lo que este cambio no verifica: la conducta en una sesión real. Los pilotos est
 
 2026-11-10 — Plan escrito.
 2026-11-10 — Revisión del plan aplicada: T2, T3 y T4 ampliadas; ninguna tarea hecha invalidada.
+2026-11-10 — T1 · c5fa4149 · unverified: conducta en una sesión real: los pilotos están en pausa
+2026-11-10 — T2 · bc3455b4 · unverified: conducta en una sesión real: los pilotos están en pausa
+2026-11-10 — T3 · ee689b2c · unverified: conducta en una sesión real: los pilotos están en pausa; plan-handoff.md y la plantilla design.md no necesitaron cambio
+2026-11-10 — T4 · c45a6c0b · unverified: none
