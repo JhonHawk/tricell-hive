@@ -468,7 +468,7 @@ The implementation uses OpenCode V2 `Plugin.define({id, setup})`, a session
 `context` hook and `ctx.agent.get({agentID})`. It resolves the role from the
 native identifier, `data.id`, then `id`, then the hook event's agent value (also
 when the lookup fails), never from the display name. It maps only
-`hive-review-plan` to `flow-plan/references/plan-review.md` and
+`hive-review-plan` to `flow-plan/SKILL.md` and
 `hive-review-harness` to
 `harness-audit/SKILL.md`. Each request receives the corresponding embedded
 snapshot again; deduplication touches only parts previously added by this plugin
