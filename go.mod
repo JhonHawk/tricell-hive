@@ -1,6 +1,6 @@
 module tricell-hive
 
-go 1.27.0
+go 1.27.4
 
 require (
 	charm.land/bubbles/v2 v2.0.0

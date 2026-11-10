@@ -6,7 +6,7 @@ needs.
 
 ## Set up
 
-Install **Go 1.27.0 or later**, as declared in [go.mod](go.mod), plus Python 3 for
+Install **Go 1.27.4 or later**, as declared in [go.mod](go.mod), plus Python 3 for
 the skill tests. Clone the repository and work from its root. The first build
 needs access to the Go modules unless they are already cached.
 
