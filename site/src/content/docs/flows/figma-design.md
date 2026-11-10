@@ -44,7 +44,7 @@ The agent ends with the command to start [Plan](/flows/plan/), naming the approv
 
 ## Related flows
 
-- [Research](/flows/research/) recommends the stage and takes the request whose deliverable is the design.
+- [Research](/flows/research/) recommends the stage, and continues into it in the same turn when your request's deliverable is the design.
 - [Plan](/flows/plan/) follows and takes the approved example as the screen's reference.
 - [Build](/flows/build/) and [Verify](/flows/verify/) compare the built screen against that example.
 

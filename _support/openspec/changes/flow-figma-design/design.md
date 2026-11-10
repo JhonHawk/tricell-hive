@@ -23,7 +23,7 @@ Se eligió el primero porque da la etapa con comando propio y arregla la ruta po
 
 Decisiones menores tomadas sin preguntar:
 
-- La petición cuyo entregable es el diseño mismo (replicar una pantalla en Figma) se muda a la skill nueva con el mismo comportamiento: se dibuja sin recomendación previa, no se reporta como hecha antes de la aprobación y cierra con `flow-close` como tarea operativa. La investigación la envía ahí con su bloque de siguiente paso.
+- La petición cuyo entregable es el diseño mismo (replicar una pantalla en Figma) se muda a la skill nueva con el mismo comportamiento: se dibuja sin recomendación previa, no se reporta como hecha antes de la aprobación y cierra con `flow-close` como tarea operativa. La investigación continúa hacia la etapa en el mismo turno, como cuando la dibujaba ella, de modo que el usuario no gana una parada; la guía global nombra esa continuación.
 - Bajo delegación desatendida la investigación no recomienda la etapa; si ya estaba en curso, conserva todos los ejemplos y reporta la elección como no resuelta, como hoy.
 - El delta retira el requisito «Screen examples in research» y agrega «Screen proposals in Figma before the plan», en lugar de modificar el anterior, porque cambia de nombre y de responsable.
 - La etapa no publica nada en el visor, como la investigación hoy.
@@ -45,7 +45,7 @@ Recableado:
 
 - `flow-research`: se quita la sección; los pasos 0, 3 y 5 y el párrafo inicial dejan de apuntarla; el paso 5 gana la recomendación de la etapa con sus condiciones, también en la terminación de un ticket evaluado.
 - `global.md` «Questions and routes»: la lista de transiciones gana «research to Figma design, Figma design to plan», y la cláusula que limita cuándo se ofrece el comando de un flujo gana «a design in Figma».
-- `flow-research` paso 0: la petición cuyo entregable es el diseño termina con el bloque de siguiente paso hacia la etapa.
+- `flow-research` paso 0: la petición cuyo entregable es el diseño continúa hacia la etapa en el mismo turno, o reporta el bloqueo sin conexión a Figma.
 - `flow-plan` paso 4 nombra dónde está el registro (`examples.md` en la carpeta del trabajo bajo `_support/workspace/`), para un plan que empieza en otra sesión o tras una compactación, y agrega la tarea que escribe «Design file» cuando el registro trae esa instrucción.
 - `delegation.md`: el dibujo deja de estar bajo «in research» y gana un punto propio para la etapa.
 - `flow-plan` pasos 4 y 5 de «UI decisions», `flow-verify/SKILL.md:12`, `delegation.md:11`, `design-record.md:32`, `unattended-delegation/SKILL.md:14` y `hive-design-ui.md:11`: sus enlaces pasan a la skill nueva y su redacción deja de decir que la investigación dibuja.

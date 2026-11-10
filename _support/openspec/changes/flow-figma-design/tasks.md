@@ -36,7 +36,7 @@ El mensaje del commit que integra T1 nombra las observaciones que motivan el cam
 
 **Test approach:** check
 
-**Changes:** Quita «Examples for a screen» y sus cuatro apuntadores; el paso 5 recomienda `flow-figma-design` cuando hay pantalla nueva o recompuesta sin composición fijada y el host tiene una conexión que escribe en Figma, también en la terminación de un ticket evaluado, y nunca bajo delegación desatendida. El paso 0 envía a la etapa, con el bloque de siguiente paso, la petición cuyo entregable es el diseño. En «Questions and routes», la lista de transiciones gana las dos nuevas y la cláusula «Offer a flow's command only when the next step needs that flow's procedure» gana un diseño en Figma. No cambia las tres continuaciones en el mismo turno.
+**Changes:** Quita «Examples for a screen» y sus cuatro apuntadores; el paso 5 recomienda `flow-figma-design` cuando hay pantalla nueva o recompuesta sin composición fijada y el host tiene una conexión que escribe en Figma, también en la terminación de un ticket evaluado, y nunca bajo delegación desatendida. El paso 0 continúa hacia la etapa en el mismo turno para la petición cuyo entregable es el diseño, o reporta el bloqueo sin conexión a Figma, y la guía global nombra esa continuación. En «Questions and routes», la lista de transiciones gana las dos nuevas y la cláusula «Offer a flow's command only when the next step needs that flow's procedure» gana un diseño en Figma. No cambia las tres continuaciones en el mismo turno.
 
 **Verification:** `rg -n "Examples for a screen|examples-for-a-screen" content/skills/flow-research` no devuelve nada; `rg -n "flow-figma-design" content/skills/flow-research/SKILL.md content/guidance/global.md` devuelve la recomendación y la transición; `go test ./tests/content/...` pasa.
 
@@ -93,6 +93,7 @@ Lo que este cambio no verifica: la conducta en una sesión real. Los pilotos est
 
 2026-11-10 — Plan escrito.
 2026-11-10 — Revisión del plan aplicada: T2, T3 y T4 ampliadas; ninguna tarea hecha invalidada.
+2026-11-10 — Revisión de código sobre `d9b53f5d`: 10 hallazgos aplicados en una ronda sobre T1, T2 y T3 (skill, investigación, guía global, plan, rol de diseño) y sus documentos; AC2 revisado.
 2026-11-10 — T1 · c5fa4149 · unverified: conducta en una sesión real: los pilotos están en pausa
 2026-11-10 — T2 · bc3455b4 · unverified: conducta en una sesión real: los pilotos están en pausa
 2026-11-10 — T3 · ee689b2c · unverified: conducta en una sesión real: los pilotos están en pausa; plan-handoff.md y la plantilla design.md no necesitaron cambio
