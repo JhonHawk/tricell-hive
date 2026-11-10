@@ -97,7 +97,8 @@ Implement the agreed change locally and verify it. Do not commit or publish.
 
 If a CLI behaves differently from what these pages describe, check [Host limits](/host-limits/).
 
-Start with [Research](/flows/research/) when facts are missing, [Plan](/flows/plan/)
-for consequential decisions, or [Build](/flows/build/) for an authorized change.
+Start with [Research](/flows/research/) when facts are missing,
+[Figma design](/flows/figma-design/) for a new screen you want to see first,
+[Plan](/flows/plan/) for consequential decisions, or [Build](/flows/build/) for an authorized change.
 [Close](/flows/close/) records the result and cleans up the session. The
 [Skills catalog](/skills/) links to each procedure and supporting capability.

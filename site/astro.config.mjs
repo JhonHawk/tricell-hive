@@ -77,6 +77,7 @@ export default defineConfig({
             { label: "Changes and loops", slug: "flows/overview" },
             { slug: "flows/status" },
             { slug: "flows/research" },
+            { slug: "flows/figma-design" },
             { slug: "flows/plan" },
             { slug: "flows/build" },
             { slug: "flows/verify" },
