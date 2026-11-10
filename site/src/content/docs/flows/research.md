@@ -38,10 +38,10 @@ When a ticket you picked has open scope, such as missing criteria or more than o
 - For a failure, lists the plausible causes and checks each one, and tells you which it ruled out and with what evidence.
 - Resolves conflicting sources by date, version, scope and direct observation. Missing delivery evidence means delivery is not verified, not that it did not happen.
 - For a chosen ticket, writes an assessment of its impact, complexity, readiness and dependencies.
-- When you asked for a change that adds a screen, or adds, removes or moves a region of one, and neither your request nor an existing screen fixes its composition, offers once, as a decision, to design and present screen examples: frames on a page of your design file when the app's `DESIGN.md` declares one and the host can write to it, or text sketches. Choosing the design file is your instruction for that write. You pick or correct one example, and that approved example is the reference that [Plan](/flows/plan/), [Build](/flows/build/) and [Verify](/flows/verify/) compare against. It makes no offer for a change that keeps the screen's layout, such as a button, a copy, a field or a column, nor while work runs [unattended](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md). A request whose deliverable is the design itself, such as replicating a screen in a design file, is drawn without the offer and is not reported as done until you approve the example; it then runs [Close](/flows/close/), which closes it as an operational task. The [skill section](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/SKILL.md#examples-for-a-screen) holds the rule.
+- When the work brings a screen that is new, or one that adds, removes or moves a region, and nothing fixes its composition, and the host has a connection that can write to Figma, recommends [Figma design](/flows/figma-design/) in its next-step block, also after assessing a ticket. It draws nothing itself. It makes no recommendation for a change that keeps the screen's layout, such as a button, a copy, a field or a column, nor while work runs [unattended](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md). A request whose deliverable is the design itself, such as replicating a screen in a design file, is sent to that stage with the same next-step block.
 - Searches for an existing ticket before proposing one. It publishes nothing to the viewer: the [viewer](/viewer/) session starts at the first UI capture of a Build or Verify, with a one-paragraph summary of the work.
 
-It does not change code, tickets, documents or deployments, apart from the frames you accepted in your design file, and it does not treat "no search results" as proof that something is missing.
+It does not change code, tickets, documents or deployments and it does not treat "no search results" as proof that something is missing.
 
 ## How it ends
 
@@ -59,6 +59,7 @@ Your reply starts only the flow it names. No flow needs a ticket. A single actio
 ## Related flows
 
 - [Status](/flows/status/) reports the backlog; Research takes the one ticket you pick from it.
+- [Figma design](/flows/figma-design/) is the optional step it recommends before Plan for a new or recomposed screen.
 - [Build](/flows/build/) follows in the same turn when the how is settled; [Plan](/flows/plan/) follows when it has a decision for you.
 
 ## FAQ
