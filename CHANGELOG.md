@@ -43,6 +43,10 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Raise the minimum Go toolchain to 1.27.4, incorporating the upstream
+  security and bug fixes, and align the source-build documentation and
+  standard-library license notices.
+
 - Verify checks mobile only at the iPhone width of 440 × 956 CSS px, plus any
   narrower width the project or the ticket names; it no longer loads changed
   regions at 320 px, even when the project declares an accessibility

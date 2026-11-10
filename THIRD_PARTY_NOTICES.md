@@ -9,7 +9,7 @@ preserved in the shipped JavaScript comment banner. No premium block is included
 
 | Component | Version | License | Relationship |
 | --- | --- | --- | --- |
-| Go standard library | go1.27.0 | BSD-3-Clause | linked into the binary |
+| Go standard library | go1.27.4 | BSD-3-Clause | linked into the binary |
 | charm.land/bubbles/v2 | v2.0.0 | MIT | direct |
 | charm.land/bubbletea/v2 | v2.0.2 | MIT | direct |
 | charm.land/lipgloss/v2 | v2.0.1 | MIT | direct |
@@ -30,7 +30,7 @@ preserved in the shipped JavaScript comment banner. No premium block is included
 | golang.org/x/sync | v0.19.0 | BSD-3-Clause | indirect |
 | golang.org/x/sys | v0.42.0 | BSD-3-Clause | indirect |
 
-## Go standard library go1.27.0
+## Go standard library go1.27.4
 
 License: BSD-3-Clause. Source file: `LICENSE (Go installation)`.
 

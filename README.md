@@ -141,7 +141,7 @@ GitHub's automatic **Source code** archives are not packages; use the
 
 ### From a source checkout
 
-From the checkout root, with **Go 1.27.0 or later** as declared in [go.mod](go.mod):
+From the checkout root, with **Go 1.27.4 or later** as declared in [go.mod](go.mod):
 
 ```sh
 # Build a binary at a stable path: a user-scope install writes that path into
