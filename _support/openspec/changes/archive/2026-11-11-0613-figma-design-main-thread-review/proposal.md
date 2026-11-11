@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Draft |
+| Estado | Completado · PR #453 (f6ee0520), PR #454 (20956270) |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` @ `ea4195ab` · rama propuesta `feat/figma-design-main-thread-review` |
 
