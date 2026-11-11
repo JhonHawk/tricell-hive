@@ -106,11 +106,11 @@ El PR lista los lugares revisados y declara que el tamaño de `content/guidance/
 
 ## Checkpoint
 
-- Updated: 2026-11-10
-- Stage: flow-verify · 1
-- Last commit: d5c21aa9
-- Open findings: none
-- Next: verify: native /code-review, then push, PR, merge (D4 B)
+- Updated: 2026-11-11
+- Stage: flow-verify · 6
+- Last commit: 8fc7fd51
+- Open findings: P2 · step 3 sibling-record search omits archived folders and workspace examples.md · close findings; P3 · spec scenario 'Review before the user sees the frames' no longer checks the under-review status · close findings; P2 · hive-review-ux frames criteria point to flow-figma-design step 3 instead of the brief · close findings; P3 · README/site new-screen route omits the unattended exception · close findings
+- Next: push, PR to development, CI, merge (D4 B); then flow-close
 
 ### Evidence
 
@@ -118,6 +118,9 @@ El PR lista los lugares revisados y declara que el tamaño de `content/guidance/
 - go vet ./... · clean · d5c21aa9
 - pnpm --dir site check, lint, build · 0 errors, 18 pages · d5c21aa9
 - check_change.py · exit 0 · d5c21aa9
+- go test ./... · exit 0 · 8fc7fd51
+- pnpm --dir site check, lint, build · exit 0 · 0606440a/8fc7fd51
+- /code-review high + medium second review · 10 + 9 findings, blocking fixed · 0606440a
 
 ## Review status and progress
 
