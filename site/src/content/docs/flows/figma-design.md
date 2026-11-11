@@ -27,6 +27,7 @@ Typing the command, or choosing the stage in the next-step block, is your instru
 - Whether to approve or correct each screen's example. When you asked for alternatives for a screen you named, which one to keep, as a decision with one option per alternative. When the screen is served on mobile, you also approve a 440 px frame of the chosen example.
 - Once per work, in the same round, whether to record the Figma file in the app's `DESIGN.md` when it is not declared there.
 - Once per convention, in the same round, whether to record in `DESIGN.md` a convention your correction set for more screens than this one, such as the row actions of every list, so later screens follow it.
+- In the same round, each business rule the frames decide that nothing settled yet, such as whether a rejection needs a comment or who may approve, as a decision of its own: approving a screen does not approve its rules. What your request, the ticket, research or the existing screens already settle is not asked, and a minor rule that changes neither scope, data, cost nor who may act is listed as an assumption you can reply to change. The reviewer agent looks for these rules too, without seeing the drawer's list.
 
 ## What it produces
 
@@ -35,7 +36,9 @@ Typing the command, or choosing the stage in the next-step block, is your instru
 
 ## How it ends
 
-Once every screen is approved, the agent ends with the command to start [Plan](/flows/plan/), naming the approved example; it offers [Build](/flows/build/) instead only when Research had offered Build too, the approved screens add no region you had not asked for, and you said yes to no `DESIGN.md` entry. If you said yes to recording the file or a convention in `DESIGN.md`, the plan includes the task that writes it, delivered with the change. When the design itself was the deliverable, the work is not reported as done before you approve the example, and it then runs [Close](/flows/close/), which closes it as an operational task and names each `DESIGN.md` entry as pending.
+When a rule would add a capability you did not ask for, change data or settings other screens use, or change a permission, the agent stops drawing the screens it shapes, asks the approval of the others, and ends with the command to start [Research](/flows/research/) for those rules; when the stage runs again, it picks up its record and draws only the stopped screens.
+
+Once every screen is approved, the agent ends with the command to start [Plan](/flows/plan/), naming the approved example; it offers [Build](/flows/build/) instead only when Research had offered Build too, the approved screens add no region you had not asked for, and you said yes to no `DESIGN.md` entry, and no rule is still waiting for your answer. If you said yes to recording the file or a convention in `DESIGN.md`, the plan includes the task that writes it, delivered with the change. When the design itself was the deliverable, the work is not reported as done before you approve the example, and it then runs [Close](/flows/close/), which closes it as an operational task and names each `DESIGN.md` entry as pending.
 
 ## What it does not do
 
