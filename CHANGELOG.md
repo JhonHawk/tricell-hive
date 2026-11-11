@@ -12,6 +12,11 @@ raise the minor or the patch version.
 
 ### Added
 
+- Design record: a `**Design library:**` field names the app's published Figma
+  library, written only at the user's instruction. When it is declared, the
+  Figma design stage draws with instances of that library's components and
+  variables, defines its own pieces only for what the library lacks, and lists
+  each such piece in the example's record as a candidate for the library.
 - Figma design stage: each business rule a frame decides that nothing settled,
   such as whether a rejection needs a comment, is recorded and asked as a
   decision of its own beside the screen's approval; minor ones are listed as
