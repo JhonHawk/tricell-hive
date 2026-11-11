@@ -135,10 +135,10 @@ Sin validación humana: entrega `automatic` (D4 B).
 ## Checkpoint
 
 - Updated: 2026-11-11
-- Stage: verify · 1 · reviews
-- Last commit: 0e205ef4
+- Stage: verify · 5 · integrate
+- Last commit: e4114cb3
 - Open findings: none
-- Next: /code-review on the branch, then integrate (automatic)
+- Next: push, PR, merge (automatic), then flow-close
 
 ### Evidence
 
@@ -146,6 +146,12 @@ Sin validación humana: entrega `automatic` (D4 B).
 - pnpm build (site) · pass, 18 pages · 6f3b8ffe
 - check_change.py · exit 0 · 6f3b8ffe
 - apply_deltas.py dry run · MODIFIED + ADDED, no refusal · 6f3b8ffe
+- go test ./tests/... · pass · e4114cb3
+- pnpm build (site) · pass · e4114cb3
+- check_change.py · exit 0 · e4114cb3
+- apply_deltas.py dry run · MODIFIED + ADDED, no refusal · e4114cb3
+- /code-review round 1 · 10 findings fixed in d85e7c07
+- /code-review round 2 (fix diff) · 10 findings; blocking ones fixed in e4114cb3
 
 ## Review status and progress
 
