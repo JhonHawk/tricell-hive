@@ -50,6 +50,10 @@ raise the minor or the patch version.
 
 ### Changed
 
+- A round of decisions larger than the host's question card, such as more than
+  three on Codex, is asked whole in consecutive cards with no message between
+  them, instead of listing the rest in the text and asking them again later.
+
 - `flow-figma-design` draws one example per screen that follows the app's
   existing screens and recorded decisions, and alternatives only for a screen
   the user names. The main thread draws by script from shared pieces on the

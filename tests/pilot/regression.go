@@ -76,6 +76,17 @@ const minQuestionDetail = 40
 // shortcut (work-close-sequence finding 7), so both apply minQuestionDetail
 // to the same window the same way.
 func detailRunesBeforeQuestion(events []traceEvent, qi int) int {
+	return detailRunes(events, qi, false)
+}
+
+// roundDetailRunesBeforeQuestion is detailRunesBeforeQuestion for S1, where a
+// card that follows an answered card of the same round with no text between
+// inherits the detail written before that round's first card.
+func roundDetailRunesBeforeQuestion(events []traceEvent, qi int) int {
+	return detailRunes(events, qi, true)
+}
+
+func detailRunes(events []traceEvent, qi int, inherit bool) int {
 	q := events[qi]
 	boundary := -1
 	for j := 0; j < qi; j++ {
@@ -91,11 +102,24 @@ func detailRunesBeforeQuestion(events []traceEvent, qi int) int {
 			detail += nonWhitespaceRuneCount(e.Text)
 		}
 	}
+	// A card that follows the previous card's answered result with no text
+	// between continues one round asked in consecutive cards: it inherits the
+	// detail written before that round's first card. An empty or failed result
+	// ends the round's cards, so the next card does not inherit.
+	b := boundary
+	if inherit && detail == 0 && b >= 0 && events[b].ID != "" && events[b].Success != nil && *events[b].Success && strings.TrimSpace(events[b].Text) != "" {
+		for k := b - 1; k >= 0; k-- {
+			if events[k].Kind == "question" && events[k].ID == events[b].ID {
+				return detailRunes(events, k, true)
+			}
+		}
+	}
 	return detail
 }
 
 // questionAfterDetail is S1 (question_after_detail): every native question
-// call must be preceded, after the last tool_result whose Message differs
+// call, or the first card of a round asked in consecutive cards, must be
+// preceded, after the last tool_result whose Message differs
 // from the question's own, by at least minQuestionDetail non-whitespace
 // runes of role-assistant text. A sibling call's result in the same message
 // does not cut the window, including when it arrives before the question in
@@ -109,7 +133,7 @@ func questionAfterDetail(r result) criterionAssessment {
 			continue
 		}
 		observed = true
-		if detailRunesBeforeQuestion(events, qi) < minQuestionDetail {
+		if roundDetailRunesBeforeQuestion(events, qi) < minQuestionDetail {
 			c.Status = "fail"
 			c.Evidence = append(c.Evidence, regressionEvidence(q))
 		}

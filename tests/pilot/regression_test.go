@@ -96,6 +96,46 @@ func TestQuestionAfterDetail(t *testing.T) {
 			want: "fail",
 		},
 		{
+			name: "consecutive-card-inherits-the-first-card-detail",
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Message: "m1", Text: strings.Repeat("i", 40)},
+				{Kind: "question", ID: "q1", Message: "m1"},
+				{Kind: "tool_result", ID: "q1", Message: "m1", Text: "D1 A", Success: &yes},
+				{Kind: "question", ID: "q2", Message: "m2"},
+			},
+			want: "pass",
+		},
+		{
+			name: "consecutive-card-after-an-undetailed-first-card-fails",
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Message: "m1", Text: strings.Repeat("j", 10)},
+				{Kind: "question", ID: "q1", Message: "m1"},
+				{Kind: "tool_result", ID: "q1", Message: "m1", Text: "D1 A", Success: &yes},
+				{Kind: "question", ID: "q2", Message: "m2"},
+			},
+			want: "fail",
+		},
+		{
+			name: "card-after-an-empty-card-does-not-inherit",
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Message: "m1", Text: strings.Repeat("l", 40)},
+				{Kind: "question", ID: "q1", Message: "m1"},
+				{Kind: "tool_result", ID: "q1", Message: "m1", Text: " ", Success: &yes},
+				{Kind: "question", ID: "q2", Message: "m2"},
+			},
+			want: "fail",
+		},
+		{
+			name: "card-after-another-tool-result-does-not-inherit",
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Message: "m1", Text: strings.Repeat("k", 40)},
+				{Kind: "tool", ID: "t1", Message: "m1"},
+				{Kind: "tool_result", ID: "t1", Message: "m1", Success: &yes},
+				{Kind: "question", ID: "q2", Message: "m2"},
+			},
+			want: "fail",
+		},
+		{
 			name: "pi-toolresult-role-text-does-not-count",
 			events: []traceEvent{
 				{Kind: "text", Role: "toolResult", Message: "m1", Text: strings.Repeat("h", 40)},
