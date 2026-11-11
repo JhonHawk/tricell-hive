@@ -359,7 +359,7 @@ flowchart TD
     Entry -.->|You ask for a plan| Plan["flow-plan"]
 
     Status -->|User picks a ticket| Research
-    Research -->|New screen, composition open| Figma["flow-figma-design"]
+    Research -->|New screen| Figma["flow-figma-design"]
     Figma -->|Example approved| Plan
     Research -->|The how has a decision for you| Plan
     Research -->|The how is settled| Build
@@ -397,10 +397,11 @@ lists where each flow loops.
   a supported answer and assesses a ticket you pick. An analysis ends at its findings
   with no flow recommended. It does not publish to the viewer.
 - [Figma design](https://hive.tricell.tech/flows/figma-design/) ([skill](content/skills/flow-figma-design/SKILL.md)) is an optional
-  stage between Research and Plan for a new or recomposed screen: it draws two or three
-  proposals as frames in the project's Figma file, has you pick or correct one, and
-  records the approved example that Plan, Build and Verify compare against. Research
-  recommends it only when the host can write to Figma. It does not publish to the viewer.
+  stage between Research and Plan for a new or recomposed screen: it draws one example
+  as frames in the project's Figma file, following your existing screens, has a reviewer
+  agent check it, has you approve or correct it, and records the approved example that
+  Plan, Build and Verify compare against. It draws alternatives only for a screen you
+  name. Research recommends it only when the host can write to Figma. It does not publish to the viewer.
 - [Plan](https://hive.tricell.tech/flows/plan/) ([skill](content/skills/flow-plan/SKILL.md)) settles the how: it presents two or
   three approaches before the tasks, resolves the decisions that are yours, and
   defines contracts, verifiable tasks, and acceptance criteria.

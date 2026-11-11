@@ -11,7 +11,7 @@ Hive's flows are not a one-way line. Work loops back when a check fails, when a 
 | --- | --- |
 | [Status](/flows/status/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-status/SKILL.md)) | Reports the project's state and backlog, read-only, and recommends what to take next. |
 | [Research](/flows/research/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/SKILL.md)) | The entry for every request to do work: settles what you need, then answers, continues into Build, or goes to Plan; an analysis ends at its findings. |
-| [Figma design](/flows/figma-design/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-figma-design/SKILL.md)) | Optional, between Research and Plan: draws proposals for a new screen in your Figma file, has you pick or correct one, and records the approved example. |
+| [Figma design](/flows/figma-design/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-figma-design/SKILL.md)) | Optional, between Research and Plan: draws one example of a new screen in your Figma file, following your existing screens and reviewed before you see it, has you approve or correct it, and records the approved example. |
 | [Plan](/flows/plan/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/SKILL.md)) | Settles the how: presents approaches, resolves the decisions and splits the work into verifiable tasks. |
 | [Build](/flows/build/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-build/SKILL.md)) | Makes the change and hands over a built candidate. |
 | [Verify](/flows/verify/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-verify/SKILL.md)) | Checks the candidate with evidence, asks for your validation and integrates it. |
@@ -30,8 +30,8 @@ When you ask for something that would change work already open, the agent first 
 
 | Flow | Where it iterates | Where the work returns |
 | --- | --- | --- |
-| Research | One open question per message, rounds of investigation, and, for a new or reorganized screen, a recommendation of the Figma design stage in its next-step block | Your answer refines what is wanted; a complete request continues into Build in the same turn, a change of the how that needs your decision goes to Plan, and a screen whose composition is open can go through Figma design first |
-| Figma design | Proposals redrawn after each correction you give | You approve one example, which goes to Plan as the screen's reference; a correction stays in the stage |
+| Research | One open question per message, rounds of investigation, and, for a new or reorganized screen, a recommendation of the Figma design stage in its next-step block | Your answer refines what is wanted; a complete request continues into Build in the same turn, a change of the how that needs your decision goes to Plan, and a new screen, or one whose composition is open, can go through Figma design first |
+| Figma design | The example redrawn after each correction you give | You approve one example, which goes to Plan as the screen's reference; a correction stays in the stage |
 | Plan | Decision rounds and plan revisions | The plan is revised; a change of intent becomes a new change |
 | Build | Task by task toward a built candidate, and correction rounds after you reject the first rendered view | Stays in Build while the how leaves you no decision; otherwise back to Plan |
 | Verify | One round of fixes after your validation and the reviews | A correction stays in Verify; an added task goes back to Build, or to Plan when it brings a decision of the how for you |

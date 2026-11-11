@@ -43,6 +43,14 @@ raise the minor or the patch version.
 
 ### Changed
 
+- `flow-figma-design` draws one example per screen that follows the app's
+  existing screens and recorded decisions, and alternatives only for a screen
+  the user names. The main thread draws by script from shared pieces on the
+  tool's automatic layout instead of a child, records the frames as under
+  review, and has `hive-review-ux`, which gains a design-file frames mode,
+  review them before the user sees them. Research recommends the stage for
+  every new screen when the host can write to Figma, and a convention the user
+  sets while correcting an example can be recorded in `DESIGN.md`.
 - Raise the minimum Go toolchain to 1.27.4, incorporating the upstream
   security and bug fixes, and align the source-build documentation and
   standard-library license notices.

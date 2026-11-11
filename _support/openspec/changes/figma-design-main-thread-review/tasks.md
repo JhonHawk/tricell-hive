@@ -4,7 +4,7 @@ Base: `development` @ `ea4195ab`; rama `feat/figma-design-main-thread-review` en
 
 ### T1 — `flow-figma-design`: un ejemplo, hilo principal por script, revisión y convenciones
 
-- [ ] La skill dibuja un ejemplo por pantalla siguiendo sus hermanas, alternativas solo para una pantalla nombrada, dibujo en el hilo principal por script, registro al dibujar con estado en revisión, revisión de un `hive-review-ux` antes de preguntar, y la pregunta de convención en la ronda de aprobación
+- [x] La skill dibuja un ejemplo por pantalla siguiendo sus hermanas, alternativas solo para una pantalla nombrada, dibujo en el hilo principal por script, registro al dibujar con estado en revisión, revisión de un `hive-review-ux` antes de preguntar, y la pregunta de convención en la ronda de aprobación
 
 **Closes:** AC1, AC2, AC3, AC5
 
@@ -22,7 +22,7 @@ Base: `development` @ `ea4195ab`; rama `feat/figma-design-main-thread-review` en
 
 ### T2 — Delegación y roles
 
-- [ ] La regla de delegación deja el dibujo de Figma en el hilo principal y define el brief del revisor de frames; `hive-review-ux` describe el modo de frames; `hive-design-ui` deja de describir páginas de Figma
+- [x] La regla de delegación deja el dibujo de Figma en el hilo principal y define el brief del revisor de frames; `hive-review-ux` describe el modo de frames; `hive-design-ui` deja de describir páginas de Figma
 
 **Closes:** AC2, AC3
 
@@ -40,7 +40,7 @@ Base: `development` @ `ea4195ab`; rama `feat/figma-design-main-thread-review` en
 
 ### T3 — Research, plan y registro de diseño
 
-- [ ] Research recomienda la etapa para toda pantalla nueva con conexión, también cuando iría directo a build; el plan agrega la tarea que escribe una convención con sí; **Decisions** admite convenciones de la app
+- [x] Research recomienda la etapa para toda pantalla nueva con conexión, también cuando iría directo a build; el plan agrega la tarea que escribe una convención con sí; **Decisions** admite convenciones de la app
 
 **Closes:** AC4, AC5
 
@@ -112,3 +112,6 @@ Pendiente.
 
 2026-11-10 — Plan escrito.
 2026-11-10 — Revisión del plan aplicada; ver la propuesta.
+2026-11-10 — T1 · 0cc78735 · unverified: none
+2026-11-10 — T2 · 41465969 · unverified: Figma reads by a read-only child per host
+2026-11-10 — T3 · 87da6650 · unverified: none
