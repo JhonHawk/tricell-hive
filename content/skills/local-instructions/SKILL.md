@@ -51,7 +51,7 @@ Before writing anything, list in the message text every group with its candidate
 - `C - Discard all`;
 - `D - Choose by number`: the user replies in the chat with the numbers to keep.
 
-A `D` answer ends the round's cards, as a free-text answer does in «Questions and routes»: ask for the numbers of each group answered `D`, and the remaining groups, in the chat. A candidate the user does not keep is not written; in curate mode, an existing entry the user does not keep is removed. The answers live in `HIVE.local.md`, not in persistent memory: this departs from the global guidance's «Persistent memory», which saves a user's decision, because the file is their record. Discarding a candidate deletes nothing from its source: cleaning host or persistent memory is `harness-audit`'s job.
+A `D` answer needs the user's numbers in the chat, so it ends the round's cards as «Questions and routes» sets for an answer that adds a decision: in that reply, ask for the numbers of each group answered `D` and name the groups not yet asked. A candidate the user does not keep is not written; in curate mode, an existing entry the user does not keep is removed. The answers live in `HIVE.local.md`, not in persistent memory: this departs from the global guidance's «Persistent memory», which saves a user's decision, because the file is their record. Discarding a candidate deletes nothing from its source: cleaning host or persistent memory is `harness-audit`'s job.
 
 ## 5. Confirm what the user kept
 

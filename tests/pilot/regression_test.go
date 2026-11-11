@@ -100,7 +100,7 @@ func TestQuestionAfterDetail(t *testing.T) {
 			events: []traceEvent{
 				{Kind: "text", Role: "assistant", Message: "m1", Text: strings.Repeat("i", 40)},
 				{Kind: "question", ID: "q1", Message: "m1"},
-				{Kind: "tool_result", ID: "q1", Message: "m1", Success: &yes},
+				{Kind: "tool_result", ID: "q1", Message: "m1", Text: "D1 A", Success: &yes},
 				{Kind: "question", ID: "q2", Message: "m2"},
 			},
 			want: "pass",
@@ -110,7 +110,17 @@ func TestQuestionAfterDetail(t *testing.T) {
 			events: []traceEvent{
 				{Kind: "text", Role: "assistant", Message: "m1", Text: strings.Repeat("j", 10)},
 				{Kind: "question", ID: "q1", Message: "m1"},
-				{Kind: "tool_result", ID: "q1", Message: "m1", Success: &yes},
+				{Kind: "tool_result", ID: "q1", Message: "m1", Text: "D1 A", Success: &yes},
+				{Kind: "question", ID: "q2", Message: "m2"},
+			},
+			want: "fail",
+		},
+		{
+			name: "card-after-an-empty-card-does-not-inherit",
+			events: []traceEvent{
+				{Kind: "text", Role: "assistant", Message: "m1", Text: strings.Repeat("l", 40)},
+				{Kind: "question", ID: "q1", Message: "m1"},
+				{Kind: "tool_result", ID: "q1", Message: "m1", Text: " ", Success: &yes},
 				{Kind: "question", ID: "q2", Message: "m2"},
 			},
 			want: "fail",
