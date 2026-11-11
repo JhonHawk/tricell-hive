@@ -12,6 +12,13 @@ raise the minor or the patch version.
 
 ### Added
 
+- Figma design stage: each business rule a frame decides that nothing settled,
+  such as whether a rejection needs a comment, is recorded and asked as a
+  decision of its own beside the screen's approval; minor ones are listed as
+  assumptions, and a rule that adds a capability, changes shared data or
+  settings, or changes a permission sends the work back to research. The UX
+  reviewer looks for these rules on its own, and the plan takes the approved
+  ones as decisions.
 - «Local instructions» in the global guidance: agents read an untracked
   `HIVE.local.md` at the repository or workspace root and the machine file
   `~/.config/hive/HIVE.local.md` at session start, and record there, dated and
