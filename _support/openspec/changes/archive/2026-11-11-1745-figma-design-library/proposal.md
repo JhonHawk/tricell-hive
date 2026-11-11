@@ -23,9 +23,11 @@
 
 ## Alcance y aceptación
 
-**Dentro:** `flow-figma-design` paso 5, `hive-ui-criteria` registro de diseño, specs `ui-criteria` y `workflow-lifecycle`, página del sitio, `instruction-resources.md`, CHANGELOG.
+**Dentro:** `flow-figma-design` pasos 4 y 5, `hive-review-ux` (modo frames), `hive-ui-criteria` registro de diseño, specs `ui-criteria` y `workflow-lifecycle`, página del sitio, `instruction-resources.md`, CHANGELOG.
 
-**Fuera:** crear la biblioteca de fleetsystem (trabajo de ese proyecto) y una comprobación del revisor de UX, que se añadiría solo si una sesión ignora la biblioteca.
+**Fuera:** crear la biblioteca de fleetsystem (trabajo de ese proyecto).
+
+**Tras la revisión de código:** el revisor de UX señala una pieza que la biblioteca tiene y no se dibujó como instancia; las variables siguen la misma regla; añadir la biblioteca al archivo es un paso manual del usuario; sin acceso a ella se dibuja con piezas propias y se avisa; las candidatas tienen línea `candidate:` y se nombran en el mensaje de aprobación.
 
 - **AC1** — Con `**Design library:**` declarado, el paso 5 dibuja con instancias de sus componentes y variables y solo define piezas para lo que falta, anotadas como candidatas. Observed in: `content/skills/flow-figma-design/SKILL.md`.
 - **AC2** — El registro de diseño define el campo, escrito solo por instrucción del usuario, sin huella ni efecto en la caducidad. Observed in: `content/skills/hive-ui-criteria/references/design-record.md`.
