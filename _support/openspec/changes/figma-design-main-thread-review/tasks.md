@@ -108,9 +108,9 @@ El PR lista los lugares revisados y declara que el tamaño de `content/guidance/
 
 - Updated: 2026-11-11
 - Stage: flow-verify · 6
-- Last commit: 8fc7fd51
-- Open findings: P2 · step 3 sibling-record search omits archived folders and workspace examples.md · close findings; P3 · spec scenario 'Review before the user sees the frames' no longer checks the under-review status · close findings; P2 · hive-review-ux frames criteria point to flow-figma-design step 3 instead of the brief · close findings; P3 · README/site new-screen route omits the unattended exception · close findings
-- Next: push, PR to development, CI, merge (D4 B); then flow-close
+- Last commit: da317d95
+- Open findings: P3 · spec scenario 'Review before the user sees the frames' does not check the under-review status · close findings; P3 · README/site new-screen route omits the unattended exception · close findings; P3 · sibling records in other worktrees are not found · close findings; P3 · sibling corrections live only in per-work records; recording them in DESIGN.md would remove the search · close findings
+- Next: push fix branch, PR, merge (D4 B), deploy, then close
 
 ### Evidence
 
@@ -121,6 +121,8 @@ El PR lista los lugares revisados y declara que el tamaño de `content/guidance/
 - go test ./... · exit 0 · 8fc7fd51
 - pnpm --dir site check, lint, build · exit 0 · 0606440a/8fc7fd51
 - /code-review high + medium second review · 10 + 9 findings, blocking fixed · 0606440a
+- go test ./tests/... · exit 0 · da317d95
+- /code-review medium on the fix · 8 findings, H6/H7 refinements applied · 6463298a
 
 ## Review status and progress
 
