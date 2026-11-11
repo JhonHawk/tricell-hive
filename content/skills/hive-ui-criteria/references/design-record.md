@@ -30,6 +30,7 @@ The file follows the Google Labs DESIGN.md format (alpha): YAML frontmatter, the
   - **Customization layer:** kind and path of each piece.
   - **Library tools:** the MCP server or skill, if any.
   - **Design file:** the design tool and the location of the app's design file, only when the user gives it; write it only at the user's instruction. [flow-figma-design](../../flow-figma-design/SKILL.md) asks for that instruction once when it drew in a file the record does not declare, and keeps a yes in the approved example's record; the plan for that screen then adds the task that writes the field, as [UI decisions](../../flow-plan/SKILL.md#ui-decisions) sets. The field says where that stage draws examples for the app's screens, and authorizes no write by itself. It is the one value with no source file: it carries no fingerprint and never makes the record stale.
+  - **Design library:** the name of the design tool's published library that holds the app's components and variables, as the tool lists it, only when the user gives it; write it only at the user's instruction. [flow-figma-design](../../flow-figma-design/SKILL.md) draws with instances of it. Like the design file, it has no source file, carries no fingerprint, never makes the record stale and authorizes no write.
   - **Product:** users, main tasks, the mode of each area ([criteria](criteria.md#screen-modes)), constraints, and any accessibility requirement.
   - **Decisions:** approved deviations from the library and the app's conventions, each with date and origin. A convention is one the user set while correcting an example of [flow-figma-design](../../flow-figma-design/SKILL.md) for screens beyond that one, such as the row actions of every list, written only at the user's instruction that stage keeps in the example's record; its origin is where that record is kept: the change folder that carries it, otherwise the Figma file and the frame's node. This is the list that precedence level 2 reads.
   - **Sources:** every source file with its fingerprint, the output of `git hash-object <path>`. A lockfile gets no fingerprint, because any dependency change alters it; reading it covers the version only.
@@ -61,6 +62,7 @@ Dense back-office screens for operators.
 - **Customization layer:** CSS variables, src/styles/theme.css; wrapper, src/components/Button.tsx
 - **Library tools:** none found
 - **Design file:** ExampleDraw, https://draw.example/file/abc123
+- **Design library:** ExampleUI Kit
 - **Product:** operators; review and approve orders; area Orders = operate
 - **Decisions:** 2026-01-10, primary button uses the brand color (ticket EX-12)
 - **Sources:** src/styles/theme.css 1f3a9c0e...; src/components/Button.tsx 7be21d44...
