@@ -4,7 +4,7 @@ Base `development` @ `98266174`; rama `feat/figma-design-rule-questions` en `.cl
 
 ### T1 — Reglas en `flow-figma-design`
 
-- [ ] El skill define la regla, sus fuentes y su línea de registro; las pregunta aparte, declara las menores como supuesto y manda a investigación las que cambian el alcance
+- [x] El skill define la regla, sus fuentes y su línea de registro; las pregunta aparte, declara las menores como supuesto y manda a investigación las que cambian el alcance
 
 **Closes:** AC1, AC2, AC3
 
@@ -47,7 +47,7 @@ Base `development` @ `98266174`; rama `feat/figma-design-rule-questions` en `.cl
 
 ### T2 — El revisor de frames busca reglas sin fuente
 
-- [ ] El modo de frames reporta reglas sin fuente aparte de los hallazgos, y el brief lista sus fuentes como requisitos
+- [x] El modo de frames reporta reglas sin fuente aparte de los hallazgos, y el brief lista sus fuentes como requisitos
 
 **Closes:** AC4
 
@@ -69,7 +69,7 @@ Base `development` @ `98266174`; rama `feat/figma-design-rule-questions` en `.cl
 
 ### T3 — El plan toma las reglas del registro
 
-- [ ] `flow-plan` escribe las reglas aprobadas como decisiones y pregunta las propuestas
+- [x] `flow-plan` escribe las reglas aprobadas como decisiones y pregunta las propuestas
 
 **Closes:** AC5
 
@@ -88,7 +88,7 @@ Base `development` @ `98266174`; rama `feat/figma-design-rule-questions` en `.cl
 
 ### T4 — Guía global, especificación, sitio y registro
 
-- [ ] Transición nueva en la guía global, delta aplicada, páginas del sitio, changelog e inventario
+- [x] Transición nueva en la guía global, delta aplicada, páginas del sitio, changelog e inventario
 
 **Closes:** AC6
 
@@ -140,3 +140,7 @@ Stage: plan · Next: resumen del plan y luego `flow-build`.
 
 - 2026-11-11 — Plan escrito.
 - 2026-11-11 — Revisión del plan aplicada; ver proposal.md.
+2026-11-11 — T1 · 06d6d060 · unverified: none
+2026-11-11 — T2 · 32e1fdc6 · unverified: none
+2026-11-11 — T3 · ad08c1ae · unverified: none
+2026-11-11 — T4 · 6f3b8ffe · unverified: none
