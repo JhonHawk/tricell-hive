@@ -58,7 +58,7 @@ Base: `development` @ `ea4195ab`; rama `feat/figma-design-main-thread-review` en
 
 ### T4 — Sitio, README, llms.txt, CHANGELOG y arquitectura
 
-- [ ] Las páginas y documentos describen un ejemplo, el dibujo por script, la revisión, las alternativas a petición, la recomendación para pantallas nuevas y la pregunta de convención
+- [x] Las páginas y documentos describen un ejemplo, el dibujo por script, la revisión, las alternativas a petición, la recomendación para pantallas nuevas y la pregunta de convención
 
 **Closes:** AC6
 
@@ -76,7 +76,7 @@ Base: `development` @ `ea4195ab`; rama `feat/figma-design-main-thread-review` en
 
 ### T5 — Especificaciones y verificación final
 
-- [ ] Los deltas de `workflow-lifecycle` y `ui-criteria` reflejan lo construido; la suite pasa
+- [x] Los deltas de `workflow-lifecycle` y `ui-criteria` reflejan lo construido; la suite pasa
 
 **Closes:** AC6
 
@@ -106,7 +106,18 @@ El PR lista los lugares revisados y declara que el tamaño de `content/guidance/
 
 ## Checkpoint
 
-Pendiente.
+- Updated: 2026-11-10
+- Stage: flow-verify · 1
+- Last commit: d5c21aa9
+- Open findings: none
+- Next: verify: native /code-review, then push, PR, merge (D4 B)
+
+### Evidence
+
+- go test ./... · all ok · d5c21aa9
+- go vet ./... · clean · d5c21aa9
+- pnpm --dir site check, lint, build · 0 errors, 18 pages · d5c21aa9
+- check_change.py · exit 0 · d5c21aa9
 
 ## Review status and progress
 
@@ -115,3 +126,5 @@ Pendiente.
 2026-11-10 — T1 · 0cc78735 · unverified: none
 2026-11-10 — T2 · 41465969 · unverified: Figma reads by a read-only child per host
 2026-11-10 — T3 · 87da6650 · unverified: none
+2026-11-10 — T4 · d5c21aa9 · unverified: none
+2026-11-10 — T5 · uncommitted · unverified: none

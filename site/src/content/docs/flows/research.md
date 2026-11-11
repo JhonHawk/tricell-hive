@@ -49,7 +49,7 @@ The answer comes in the conversation: what was concluded, the evidence, and what
 
 - If you asked to analyze, explain or find out why, it ends at the findings with a footer that asks how to continue and lists the replies you can give, each with a letter and the best one starred, with no command to type and never a flow you did not ask for. When it confirmed a defect in your project, fixing it is one of those replies.
 - If you picked a ticket and the findings confirm work it asks for, it ends with the command to start [Plan](/flows/plan/), or [Build](/flows/build/) when the fix leaves you no decision, and waits for your reply before starting either.
-- If you asked for a change whose how leaves you no decision and can be finished from your request and the `git diff`, it continues into Build in the same turn.
+- If you asked for a change whose how leaves you no decision and can be finished from your request and the `git diff`, it continues into Build in the same turn, except a new screen it offers to Figma design first, as above.
 - Otherwise it ends with the command to start [Plan](/flows/plan/) and the reason, because the how has a decision for you or the work could not be resumed from the request and the diff.
 
 Whenever it ends with the command to start Plan, Figma design or Build, or continues into Build, one line estimates the scope: about how many files and which areas the work touches, and which stages and checks it will pass through, such as the plan, per-task verification, a review, CI, and a promotion only when you asked for one. You can narrow it in your reply; the agent then gives the revised line and the same ending again.
@@ -60,7 +60,7 @@ Your reply starts only the flow it names. No flow needs a ticket. A single actio
 
 - [Status](/flows/status/) reports the backlog; Research takes the one ticket you pick from it.
 - [Figma design](/flows/figma-design/) is the optional step it recommends before Plan for a new or recomposed screen.
-- [Build](/flows/build/) follows in the same turn when the how is settled; [Plan](/flows/plan/) follows when it has a decision for you.
+- [Build](/flows/build/) follows in the same turn when the how is settled, unless a new screen goes to Figma design first; [Plan](/flows/plan/) follows when it has a decision for you.
 
 ## FAQ
 

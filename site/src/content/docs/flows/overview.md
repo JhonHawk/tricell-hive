@@ -31,7 +31,7 @@ When you ask for something that would change work already open, the agent first 
 | Flow | Where it iterates | Where the work returns |
 | --- | --- | --- |
 | Research | One open question per message, rounds of investigation, and, for a new or reorganized screen, a recommendation of the Figma design stage in its next-step block | Your answer refines what is wanted; a complete request continues into Build in the same turn, a change of the how that needs your decision goes to Plan, and a new screen, or one whose composition is open, can go through Figma design first |
-| Figma design | The example redrawn after each correction you give | You approve one example, which goes to Plan as the screen's reference; a correction stays in the stage |
+| Figma design | The example redrawn after each correction you give | You approve each screen's example, which goes to Plan, or to Build for a small settled change, as the screen's reference; a correction stays in the stage |
 | Plan | Decision rounds and plan revisions | The plan is revised; a change of intent becomes a new change |
 | Build | Task by task toward a built candidate, and correction rounds after you reject the first rendered view | Stays in Build while the how leaves you no decision; otherwise back to Plan |
 | Verify | One round of fixes after your validation and the reviews | A correction stays in Verify; an added task goes back to Build, or to Plan when it brings a decision of the how for you |

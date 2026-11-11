@@ -24,7 +24,7 @@ Typing the command, or choosing the stage in the next-step block, is your instru
 
 - The Figma file, only when the project's `DESIGN.md` does not declare it and you have not named it. The agent asks once, in the text; without a file, the work goes on to Plan.
 - Before the first drawing, a list of the steps only you can take in Figma, such as publishing a library the frames need, or a statement that there are none.
-- Whether to approve or correct the example. When you asked for alternatives for a screen you named, which one to keep, as a decision with one option per alternative. When the screen is served on mobile, you also approve a 440 px frame of the chosen example.
+- Whether to approve or correct each screen's example. When you asked for alternatives for a screen you named, which one to keep, as a decision with one option per alternative. When the screen is served on mobile, you also approve a 440 px frame of the chosen example.
 - Once per work, in the same round, whether to record the Figma file in the app's `DESIGN.md` when it is not declared there.
 - Once per convention, in the same round, whether to record in `DESIGN.md` a convention your correction set for more screens than this one, such as the row actions of every list, so later screens follow it.
 
@@ -35,7 +35,7 @@ Typing the command, or choosing the stage in the next-step block, is your instru
 
 ## How it ends
 
-The agent ends with the command to start [Plan](/flows/plan/), naming the approved example. If you said yes to recording the file or a convention in `DESIGN.md`, the plan includes the task that writes it, delivered with the change. When the design itself was the deliverable, the work is not reported as done before you approve the example, and it then runs [Close](/flows/close/), which closes it as an operational task and names each `DESIGN.md` entry as pending.
+The agent ends with the command to start [Plan](/flows/plan/), or [Build](/flows/build/) when Research found the change small and settled, naming the approved example. If you said yes to recording the file or a convention in `DESIGN.md`, the plan or the build includes the task that writes it, delivered with the change. When the design itself was the deliverable, the work is not reported as done before you approve the example, and it then runs [Close](/flows/close/), which closes it as an operational task and names each `DESIGN.md` entry as pending.
 
 ## What it does not do
 

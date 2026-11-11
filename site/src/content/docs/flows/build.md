@@ -7,7 +7,7 @@ Build is where the work gets done. The agent changes code or configuration, runs
 
 ## When it starts
 
-Build starts when a plan is ready, when you type its command, when you pick a small fix from the close footer or a findings round, or from [Research](/flows/research/) in the same turn, with no command to type, when you asked for a change and its how leaves you no decision and can be finished from your request and the `git diff`. When the how has a decision for you, the agent goes to [Plan](/flows/plan/) first, unless you chose to skip the plan. The [viewer](/viewer/) session for the work starts at the first UI capture, when the work has one.
+Build starts when a plan is ready, when you type its command, when you pick a small fix from the close footer or a findings round, or from [Research](/flows/research/) in the same turn, with no command to type, when you asked for a change and its how leaves you no decision and can be finished from your request and the `git diff`, unless it brings a new screen that Research first offers to [Figma design](/flows/figma-design/), which then ends with this command. When the how has a decision for you, the agent goes to [Plan](/flows/plan/) first, unless you chose to skip the plan. The [viewer](/viewer/) session for the work starts at the first UI capture, when the work has one.
 
 ```text wrap
 Implement the agreed change locally and verify it. Do not commit or publish.

@@ -348,7 +348,8 @@ Start each flow by typing its command, such as `/flow-status` or `/flow-plan COM
 (`$flow-plan` in Codex, `/skill:flow-plan` in Pi, `@flow-plan` in OpenCode). A typed
 command loads the skill whole for that flow, which the host's automatic selection does
 not guarantee. A request to do work does not need a command: it enters Research, which
-continues into Build in the same turn when the request is complete. Where a flow needs
+continues into Build in the same turn when the request is complete, unless it brings a
+new screen and the host can write to Figma, when it offers Figma design first. Where a flow needs
 your go-ahead for the next one, it ends by naming that command.
 
 ```mermaid
@@ -359,7 +360,7 @@ flowchart TD
     Entry -.->|You ask for a plan| Plan["flow-plan"]
 
     Status -->|User picks a ticket| Research
-    Research -->|New screen| Figma["flow-figma-design"]
+    Research -->|New or recomposed screen| Figma["flow-figma-design"]
     Figma -->|Example approved| Plan
     Research -->|The how has a decision for you| Plan
     Research -->|The how is settled| Build
@@ -392,7 +393,7 @@ lists where each flow loops.
 - [Research](https://hive.tricell.tech/flows/research/) ([skill](content/skills/flow-research/SKILL.md)) is the entry for every
   request to do work: it settles what you need, reading before it asks and asking one
   open question at a time. A complete request is checked and done, or continues into
-  Build in the same turn; Plan comes only when the how has a decision for you or the work
+  Build in the same turn, except a new screen it offers to Figma design first; Plan comes only when the how has a decision for you or the work
   cannot be finished from your request and the `git diff`. It also turns uncertainty into
   a supported answer and assesses a ticket you pick. An analysis ends at its findings
   with no flow recommended. It does not publish to the viewer.
