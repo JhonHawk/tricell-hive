@@ -61,7 +61,8 @@ verified.
   touch resolves with no answer after about 120 seconds: 60 seconds hidden, then a
   60-second visible countdown. Pressing a key in the card stops that. When it
   closes, Hive's rule is that the decisions are already in the message above it, so
-  answer there (for example `D2 B`).
+  answer there (for example `D2 B`); the agent opens no further card for that round.
+  A round of more than three decisions comes as consecutive cards, one after another.
 - Question cards in Default mode need a Codex feature that is off by default,
   `default_mode_request_user_input`. Without it, the agent writes the options in
   the message instead of a card. `hive doctor` shows the state of this and of the

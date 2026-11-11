@@ -91,11 +91,22 @@ func detailRunesBeforeQuestion(events []traceEvent, qi int) int {
 			detail += nonWhitespaceRuneCount(e.Text)
 		}
 	}
+	// A card that follows the previous card's result with no text between
+	// continues one round asked in consecutive cards: it inherits the detail
+	// written before that round's first card.
+	if detail == 0 && boundary >= 0 && events[boundary].ID != "" {
+		for k := boundary - 1; k >= 0; k-- {
+			if events[k].Kind == "question" && events[k].ID == events[boundary].ID {
+				return detailRunesBeforeQuestion(events, k)
+			}
+		}
+	}
 	return detail
 }
 
 // questionAfterDetail is S1 (question_after_detail): every native question
-// call must be preceded, after the last tool_result whose Message differs
+// call, or the first card of a round asked in consecutive cards, must be
+// preceded, after the last tool_result whose Message differs
 // from the question's own, by at least minQuestionDetail non-whitespace
 // runes of role-assistant text. A sibling call's result in the same message
 // does not cut the window, including when it arrives before the question in
