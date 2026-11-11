@@ -35,7 +35,7 @@ Typing the command, or choosing the stage in the next-step block, is your instru
 
 ## How it ends
 
-The agent ends with the command to start [Plan](/flows/plan/), or [Build](/flows/build/) when Research found the change small and settled, naming the approved example. If you said yes to recording the file or a convention in `DESIGN.md`, the plan or the build includes the task that writes it, delivered with the change. When the design itself was the deliverable, the work is not reported as done before you approve the example, and it then runs [Close](/flows/close/), which closes it as an operational task and names each `DESIGN.md` entry as pending.
+Once every screen is approved, the agent ends with the command to start [Plan](/flows/plan/), naming the approved example; it offers [Build](/flows/build/) instead only when Research had offered Build too, the approved screens add no region you had not asked for, and you said yes to no `DESIGN.md` entry. If you said yes to recording the file or a convention in `DESIGN.md`, the plan includes the task that writes it, delivered with the change. When the design itself was the deliverable, the work is not reported as done before you approve the example, and it then runs [Close](/flows/close/), which closes it as an operational task and names each `DESIGN.md` entry as pending.
 
 ## What it does not do
 
