@@ -61,7 +61,7 @@ Hoy una regla que la pantalla decide queda implícita en el dibujo, y aprobar la
 
   · false today because el paso 8 solo lleva a plan o build y no menciona reglas · Observed in: `content/skills/flow-figma-design/SKILL.md` en la rama integrada
 - AC4 — En el modo de frames, `hive-review-ux` reporta, aparte de sus hallazgos, cada comportamiento que no fijan sus requisitos ni las pantallas hermanas, sin reprobar el veredicto. El brief de frames pone las decisiones de investigación entre los requisitos y no incluye la lista de reglas propuestas de quien dibujó · false today because `rg -n -i "rule" content/agents/review/hive-review-ux.md` no encuentra nada · Observed in: `content/agents/review/hive-review-ux.md` y `content/skills/flow-build/references/delegation.md` en la rama integrada
-- AC5 — `flow-plan` escribe como decisiones del plan las reglas aprobadas del registro, junto al registro del ejemplo, y pregunta las propuestas antes de aprobar el plan. Bajo delegación desatendida no decide una regla propuesta que cambia el alcance · false today because «UI decisions» paso 4 solo lee el estado de cada pantalla · Observed in: `content/skills/flow-plan/SKILL.md` en la rama integrada
+- AC5 — `flow-plan` escribe como decisiones del plan las reglas aprobadas del registro y como supuestos las `assumption`, junto al registro del ejemplo; pregunta las propuestas antes de aprobar el plan y no decide una regla de alcance: la nombra y lleva a investigación, o bajo delegación desatendida la reporta sin resolver · false today because «UI decisions» paso 4 solo lee el estado de cada pantalla · Observed in: `content/skills/flow-plan/SKILL.md` en la rama integrada
 - AC6 — La delta de `workflow-lifecycle` agrega el requisito «Business rules that appear while drawing» y ajusta el final de «Screen proposals in Figma before the plan». Las páginas `flows/figma-design` y `flows/plan` describen las preguntas de regla y la vuelta a Research · false today because ninguna lo menciona (`rg -n -i "rule" site/src/content/docs/flows/figma-design.md` sin resultados de reglas de negocio) · Observed in: la rama integrada y el sitio construido con `pnpm build`
 
 ## Prerrequisitos
@@ -106,3 +106,14 @@ Modo `automatic` y revisión con `/code-review` de Claude Code, respuestas D4 B 
   - **Delta:** ahora es MODIFIED + ADDED.
   - **Verificaciones:** observables (`pnpm`, ruta real del script).
   - **Notas menores:** el paso 2 junta las fuentes, y se suman `instruction-resources.md` y la sección `[Unreleased]` del changelog.
+- 2026-11-11 — Revisión de código (`/code-review`, 10 hallazgos) aplicada en una ronda:
+  - **Estados nuevos:** la regla de alcance tiene su propio estado `scope` y no se pregunta en la ronda; las pantallas que moldea quedan `stopped by <regla>`.
+  - **Antes de ir a investigación:** se termina el registro y la revisión de las demás pantallas.
+  - **Reglas del revisor:** se contrastan con las fuentes antes de registrarlas.
+  - **Aprobar con redibujo:** la pantalla queda pendiente aunque se haya elegido aprobarla.
+  - **Plan:** lleva los supuestos y manda las reglas `scope` a investigación.
+  - **Desatendido:** no termina hacia investigación.
+  - **Revisor:** remite a la definición del skill en vez de copiarla.
+  - **Brief:** las decisiones de investigación quedan solo en el caso de frames.
+  - **Sitio:** el criterio de regla menor queda completo.
+  - **AC5:** se ajustó a esos cambios.

@@ -134,7 +134,18 @@ Sin validación humana: entrega `automatic` (D4 B).
 
 ## Checkpoint
 
-Stage: plan · Next: resumen del plan y luego `flow-build`.
+- Updated: 2026-11-11
+- Stage: verify · 1 · reviews
+- Last commit: 0e205ef4
+- Open findings: none
+- Next: /code-review on the branch, then integrate (automatic)
+
+### Evidence
+
+- go test ./... · pass · 6f3b8ffe
+- pnpm build (site) · pass, 18 pages · 6f3b8ffe
+- check_change.py · exit 0 · 6f3b8ffe
+- apply_deltas.py dry run · MODIFIED + ADDED, no refusal · 6f3b8ffe
 
 ## Review status and progress
 
