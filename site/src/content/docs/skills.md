@@ -13,7 +13,7 @@ For where each flow loops and where a requested change returns the work, see the
 
 - [Status](/flows/status/): report the backlog and unfinished work, read-only, and recommend what to take next.
 - [Research](/flows/research/): investigate an uncertain question and report evidence.
-- [Figma design](/flows/figma-design/): optionally draw proposals for a new screen in Figma and record the approved example.
+- [Figma design](/flows/figma-design/): optionally draw a new screen in Figma, reviewed before you see it, and record the approved example.
 - [Plan](/flows/plan/): settle consequential decisions and define verifiable work.
 - [Build](/flows/build/): implement authorized changes and hand over a built candidate.
 - [Verify](/flows/verify/): check the candidate at the level you set, then integrate it.

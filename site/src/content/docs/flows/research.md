@@ -38,7 +38,7 @@ When a ticket you picked has open scope, such as missing criteria or more than o
 - For a failure, lists the plausible causes and checks each one, and tells you which it ruled out and with what evidence.
 - Resolves conflicting sources by date, version, scope and direct observation. Missing delivery evidence means delivery is not verified, not that it did not happen.
 - For a chosen ticket, writes an assessment of its impact, complexity, readiness and dependencies.
-- When the work brings a screen that is new, or one that adds, removes or moves a region, and nothing fixes its composition, and the host has a connection that can write to Figma, recommends [Figma design](/flows/figma-design/) in its next-step block, also after assessing a ticket. It draws nothing itself. It makes no recommendation for a change that keeps the screen's layout, such as a button, a copy, a field or a column, nor while work runs [unattended](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md). A request whose deliverable is the design itself, such as replicating a screen in Figma, continues into that stage in the same turn, or stops at the missing Figma connection as its blocker.
+- When the host has a connection that can write to Figma, recommends [Figma design](/flows/figma-design/) in its next-step block, also after assessing a ticket, for a new screen, even one your existing screens already shape and even a small change it would otherwise build at once, and for a screen that adds, removes or moves a region when nothing fixes its composition. It draws nothing itself. It makes no recommendation for a change that keeps the screen's layout, such as a button, a copy, a field or a column, nor while work runs [unattended](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md). A request whose deliverable is the design itself, such as replicating a screen in Figma, continues into that stage in the same turn, or stops at the missing Figma connection as its blocker.
 - Searches for an existing ticket before proposing one. It publishes nothing to the viewer: the [viewer](/viewer/) session starts at the first UI capture of a Build or Verify, with a one-paragraph summary of the work.
 
 It does not change code, tickets, documents or deployments and it does not treat "no search results" as proof that something is missing.
@@ -49,7 +49,7 @@ The answer comes in the conversation: what was concluded, the evidence, and what
 
 - If you asked to analyze, explain or find out why, it ends at the findings with a footer that asks how to continue and lists the replies you can give, each with a letter and the best one starred, with no command to type and never a flow you did not ask for. When it confirmed a defect in your project, fixing it is one of those replies.
 - If you picked a ticket and the findings confirm work it asks for, it ends with the command to start [Plan](/flows/plan/), or [Build](/flows/build/) when the fix leaves you no decision, and waits for your reply before starting either.
-- If you asked for a change whose how leaves you no decision and can be finished from your request and the `git diff`, it continues into Build in the same turn.
+- If you asked for a change whose how leaves you no decision and can be finished from your request and the `git diff`, it continues into Build in the same turn, except a new screen it offers to Figma design first, as above.
 - Otherwise it ends with the command to start [Plan](/flows/plan/) and the reason, because the how has a decision for you or the work could not be resumed from the request and the diff.
 
 Whenever it ends with the command to start Plan, Figma design or Build, or continues into Build, one line estimates the scope: about how many files and which areas the work touches, and which stages and checks it will pass through, such as the plan, per-task verification, a review, CI, and a promotion only when you asked for one. You can narrow it in your reply; the agent then gives the revised line and the same ending again.
@@ -60,7 +60,7 @@ Your reply starts only the flow it names. No flow needs a ticket. A single actio
 
 - [Status](/flows/status/) reports the backlog; Research takes the one ticket you pick from it.
 - [Figma design](/flows/figma-design/) is the optional step it recommends before Plan for a new or recomposed screen.
-- [Build](/flows/build/) follows in the same turn when the how is settled; [Plan](/flows/plan/) follows when it has a decision for you.
+- [Build](/flows/build/) follows in the same turn when the how is settled, unless a new screen goes to Figma design first; [Plan](/flows/plan/) follows when it has a decision for you.
 
 ## FAQ
 

@@ -348,7 +348,8 @@ Start each flow by typing its command, such as `/flow-status` or `/flow-plan COM
 (`$flow-plan` in Codex, `/skill:flow-plan` in Pi, `@flow-plan` in OpenCode). A typed
 command loads the skill whole for that flow, which the host's automatic selection does
 not guarantee. A request to do work does not need a command: it enters Research, which
-continues into Build in the same turn when the request is complete. Where a flow needs
+continues into Build in the same turn when the request is complete, unless it brings a
+new screen and the host can write to Figma, when it offers Figma design first. Where a flow needs
 your go-ahead for the next one, it ends by naming that command.
 
 ```mermaid
@@ -359,7 +360,7 @@ flowchart TD
     Entry -.->|You ask for a plan| Plan["flow-plan"]
 
     Status -->|User picks a ticket| Research
-    Research -->|New screen, composition open| Figma["flow-figma-design"]
+    Research -->|New or recomposed screen| Figma["flow-figma-design"]
     Figma -->|Example approved| Plan
     Research -->|The how has a decision for you| Plan
     Research -->|The how is settled| Build
@@ -392,15 +393,16 @@ lists where each flow loops.
 - [Research](https://hive.tricell.tech/flows/research/) ([skill](content/skills/flow-research/SKILL.md)) is the entry for every
   request to do work: it settles what you need, reading before it asks and asking one
   open question at a time. A complete request is checked and done, or continues into
-  Build in the same turn; Plan comes only when the how has a decision for you or the work
+  Build in the same turn, except a new screen it offers to Figma design first; Plan comes only when the how has a decision for you or the work
   cannot be finished from your request and the `git diff`. It also turns uncertainty into
   a supported answer and assesses a ticket you pick. An analysis ends at its findings
   with no flow recommended. It does not publish to the viewer.
 - [Figma design](https://hive.tricell.tech/flows/figma-design/) ([skill](content/skills/flow-figma-design/SKILL.md)) is an optional
-  stage between Research and Plan for a new or recomposed screen: it draws two or three
-  proposals as frames in the project's Figma file, has you pick or correct one, and
-  records the approved example that Plan, Build and Verify compare against. Research
-  recommends it only when the host can write to Figma. It does not publish to the viewer.
+  stage between Research and Plan for a new or recomposed screen: it draws one example
+  as frames in the project's Figma file, following your existing screens, has a reviewer
+  agent check it, has you approve or correct it, and records the approved example that
+  Plan, Build and Verify compare against. It draws alternatives only for a screen you
+  name. Research recommends it only when the host can write to Figma. It does not publish to the viewer.
 - [Plan](https://hive.tricell.tech/flows/plan/) ([skill](content/skills/flow-plan/SKILL.md)) settles the how: it presents two or
   three approaches before the tasks, resolves the decisions that are yours, and
   defines contracts, verifiable tasks, and acceptance criteria.
