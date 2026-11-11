@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Completado · PR pendiente de número al integrar |
+| Estado | Completado · PR #461, merge 5be1ee32 |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` @ `6b81dbf0` · rama `feat/figma-design-library` |
 
