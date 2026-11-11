@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Draft |
+| Estado | Completado · PR #457, merge 5c49b453 |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` @ `98266174` · rama propuesta `feat/figma-design-rule-questions` |
 
