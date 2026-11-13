@@ -94,7 +94,7 @@ Base: `tricell-hive` `development` en `b9113a3c`; rama `feat/business-rules-reco
 
 ### T6 — El sitio, README, llms.txt y la documentación de arquitectura
 
-- [ ] Las páginas del sitio, `README.md` y `llms.txt` describen las tarjetas y la escritura de reglas al ticket; `instruction-resources.md` nombra al dueño de cada referencia nueva.
+- [x] Las páginas del sitio, `README.md` y `llms.txt` describen las tarjetas y la escritura de reglas al ticket; `instruction-resources.md` nombra al dueño de cada referencia nueva.
 
 **Closes:** AC9
 
@@ -121,6 +121,20 @@ El comportamiento de un agente con estas reglas no se comprueba en este trabajo:
 
 ## Checkpoint
 
+- Updated: 2026-11-13
+- Stage: flow-verify · 2 — code review running
+- Last commit: ecd64a88
+- Open findings: none
+- Next: adjudicate /code-review findings, read go test ./... result, then push and open the pull request (automatic delivery)
+
+### Evidence
+
+- go vet ./... · exit 0 · ecd64a88
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · 89 tests OK · ecd64a88
+- npm --prefix site run build (node_modules linked from the main checkout) · exit 0, 18 pages · ecd64a88
+- go test ./tests/content/... · ok · after each task
+- AC1–AC9 walk by rg in their Observed-in files · every phrase present · ecd64a88
+
 ## Review status and progress
 
 2026-11-13 — Plan escrito y revisado; ninguna tarea iniciada.
@@ -130,3 +144,4 @@ El comportamiento de un agente con estas reglas no se comprueba en este trabajo:
 2026-11-13 — T3 · 0838055c · unverified: none
 2026-11-13 — T4 · 1dee6fa7 · unverified: none
 2026-11-13 — T5 · 09e01d7a · unverified: none
+2026-11-13 — T6 · ecd64a88 · unverified: none
