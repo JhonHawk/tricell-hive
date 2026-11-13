@@ -5,11 +5,11 @@ Computes the WCAG 2.1 contrast ratio between two CSS colors (any syntax
 coloraide parses: oklch(), hex, rgb(), named). Converts through sRGB, so OKLCH
 theme values are handled directly.
 
-Usage (no system install — coloraide is fetched by uv per-run):
-    uv run --with coloraide python scripts/contrast-check.py <foreground> <background>
+Usage (no system install — uv fetches the coloraide version you checked, per run):
+    uv run --with 'coloraide==<checked version>' python scripts/contrast-check.py <foreground> <background>
 
 Example:
-    uv run --with coloraide python scripts/contrast-check.py \\
+    uv run --with 'coloraide==<checked version>' python scripts/contrast-check.py \\
         "oklch(70% 0.16 260)" "oklch(12% 0 0)"
 
 Exit code is 0 when the pair meets AA for normal text (>= 4.5:1), else 1 — so

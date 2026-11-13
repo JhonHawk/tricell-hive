@@ -30,10 +30,10 @@ The default source is the current directory; `--source` selects another checkout
 
 ### Complete release update and committed-source update
 
-The release updater described here is the candidate in this checkout. A future
-publication of the updated installer and compatible packages is required; the
-observed public 0.8.0 package does not implement this protocol. Run the new
-installer once to migrate a package installation. It retains verified packages
+The release updater described here shipped in Hive 0.9.0 (published
+2026-11-06); the 0.8.0 and earlier packages do not implement this protocol.
+Run the 0.9.0-or-newer installer once to migrate an installation of 0.8.0 or
+earlier. It retains verified packages
 and registers `~/.local/bin/hive` without editing PATH or adopting an unowned
 command. A checkout install does not adopt that command.
 
