@@ -58,7 +58,7 @@ Base: `tricell-hive` `development` en `b9113a3c`; rama `feat/business-rules-reco
 
 ### T4 — Las tarjetas de reglas en la etapa de Figma
 
-- [ ] Existe `rule-cards.md`; `flow-figma-design/SKILL.md` define la regla por puntero a la referencia común, dibuja las tarjetas tras la primera revisión, las incluye en la segunda pasada, actualiza la fila y escribe el ticket al aprobarse el ejemplo, manda las líneas `rule:` al registro de reglas del plan y dice qué escribe la etapa en su línea 8.
+- [x] Existe `rule-cards.md`; `flow-figma-design/SKILL.md` define la regla por puntero a la referencia común, dibuja las tarjetas tras la primera revisión, las incluye en la segunda pasada, actualiza la fila y escribe el ticket al aprobarse el ejemplo, manda las líneas `rule:` al registro de reglas del plan y dice qué escribe la etapa en su línea 8.
 
 **Closes:** AC3, AC5, AC6
 
@@ -127,3 +127,4 @@ El comportamiento de un agente con estas reglas no se comprueba en este trabajo:
 2026-11-13 — T1 · 447c5eea · unverified: none
 2026-11-13 — T2 · b408e21b · unverified: none
 2026-11-13 — T3 · 0838055c · unverified: none
+2026-11-13 — T4 · 1dee6fa7 · unverified: none
