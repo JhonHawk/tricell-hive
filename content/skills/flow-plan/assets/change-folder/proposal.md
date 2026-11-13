@@ -15,6 +15,14 @@
 <date>
 - **<D<n> letter>** — <question?> <answer and what it changes>.
 
+## Business rules
+
+<!-- Keep this heading in English, whatever the session language, like `## Effects`: flow-plan's reference «Business rules» looks for it. One line per business rule the work adopts that its ticket and documentation did not state, and per rule a decision cancels, in the format that reference sets; never delete a line. The control lines of the ticket and of the rule cards go here too. When the work adopts none, keep only the `None:` line; otherwise delete it. Delete this comment. -->
+
+None: the work adopts no business rule beyond what its ticket and documentation state.
+
+rule: <the rule> · screen <name, or none> · <status> · found by <drawer | reviewer | research | plan | build | verify>
+
 ## Request
 
 <The user's request, quoted. The ticket's acceptance criteria, quoted, with the date they were read. What the ticket leaves out of scope.>
