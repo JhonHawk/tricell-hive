@@ -40,7 +40,7 @@ Base `development` en `a8b2632e`; rama `feat/hive-local-one-line-facts`, en el w
 
 ### T3 — La documentación describe la entrada de una línea
 
-- [ ] Cada lugar de `content/`, del sitio, de la arquitectura y de la especificación que afirme qué guarda el archivo dice lo nuevo, y el changelog lo registra
+- [x] Cada lugar de `content/`, del sitio, de la arquitectura y de la especificación que afirme qué guarda el archivo dice lo nuevo, y el changelog lo registra
 
 **Closes:** AC7
 
@@ -95,14 +95,23 @@ Sin interfaz que recorrer. Los criterios AC1 a AC5 y AC7 se observan en los arch
 
 ## Checkpoint
 
-Updated: 2026-11-13
-Stage: plan
-Last commit: none
-Open findings: none
-Next: flow-build T1
+- Updated: 2026-11-13
+- Stage: verify · 1
+- Last commit: 8c6dfeaa
+- Open findings: none
+- Next: code review with /code-review of T1-T3, push, pull request, merge, local refresh; then T4: copies, table, the user's approval per file, Engram details, rewrite
+
+### Evidence
+
+- go test ./... · exit 0 · working tree that became 8c6dfeaa
+- python3 -I tests/skills/local_instructions_extract_test.py · 6 tests OK · 1d2264a8
+- npm run build in site/ · exit 0 · 8c6dfeaa
+- content/guidance/global.md · 48751 -> 50690 bytes · 0c4dedf6
+- CI: no job applies to a pull request to development
 
 ## Review status and progress
 
 2026-11-13 — Plan escrito y revisado; ver el progreso de la propuesta.
 2026-11-13 — T1 · 0c4dedf6 · unverified: none
 2026-11-13 — T2 · 1d2264a8 · unverified: none
+2026-11-13 — T3 · 8c6dfeaa · unverified: none

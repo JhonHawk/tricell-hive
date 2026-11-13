@@ -53,13 +53,13 @@ Before writing anything, list in the message text every group with its candidate
 - `C - Discard all`;
 - `D - Choose by number`: the user replies in the chat with the numbers to keep.
 
-A `D` answer needs the user's numbers in the chat, so it ends the round's cards as «Questions and routes» sets for an answer that adds a decision: in that reply, ask for the numbers of each group answered `D` and name the groups not yet asked. A candidate the user does not keep is not written; in curate mode, an existing entry is changed, moved or removed only as the user's answer says. The answers live in `HIVE.local.md`, not in persistent memory: this departs from the global guidance's «Persistent memory», which saves a user's decision, because the file is their record. Only the detail of an entry goes to persistent memory, as «Local instructions» sets. Discarding a candidate deletes nothing from its source: cleaning host or persistent memory is `harness-audit`'s job.
+A `D` answer needs the user's numbers in the chat, so it ends the round's cards as «Questions and routes» sets for an answer that adds a decision: in that reply, ask for the numbers of each group answered `D` and name the groups not yet asked. In curate mode, ask besides one question per file about its existing entries, with these options: `A - (★) Apply the proposals`; `B - Keep every entry as it is`; `C - Choose by number`, where the user replies in the chat with the numbers whose proposal to apply. A candidate the user does not keep is not written; an existing entry is split, relocated or retired only when the answer applies its proposal, and otherwise stays as it is. The answers live in `HIVE.local.md`, not in persistent memory: this departs from the global guidance's «Persistent memory», which saves a user's decision, because the file is their record. Only two things go to persistent memory: the detail of an entry, as «Local instructions» sets, and an instruction of the user whose proposal the answer applied, saved as a decision. Discarding a candidate deletes nothing from its source: cleaning host or persistent memory is `harness-audit`'s job.
 
 ## 5. Confirm what the user kept
 
 Confirm each kept fact with one of these read-only checks when one applies, and run nothing else:
 
-- `command -v <tool>`; then `<tool> --version` only for a tool `command -v` resolved to a path outside a version-manager shim folder (such as `shims`, `.asdf` or `mise`), never for `pnpm`, `yarn` or `corepack`, which may download a version, and never through `npx`, a package runner or a project script;
+- `command -v <tool>`; then `<tool> --version` only when the entry holds a version the project pins, and only for a tool `command -v` resolved to a path outside a version-manager shim folder (such as `shims`, `.asdf` or `mise`), never for `pnpm`, `yarn` or `corepack`, which may download a version, and never through `npx`, a package runner or a project script;
 - `docker ps --format '{{.Names}} {{.Ports}}'` and `docker compose ls`;
 - `lsof -nP -iTCP:<port> -sTCP:LISTEN`;
 - `aws configure list-profiles` and `aws configure get region --profile <profile>`;
