@@ -56,7 +56,7 @@ Base `development` en `a8b2632e`; rama `feat/hive-local-one-line-facts`, en el w
 
 ### T4 — Los ocho archivos de la máquina quedan limpios
 
-- [ ] Cada `HIVE.local.md` tiene solo líneas de entrada de hasta 200 caracteres, sin entradas obsoletas ni de las clases excluidas, en 50 líneas o menos; el detalle de lo partido está en Engram y una copia literal de los archivos anteriores queda guardada
+- [x] Cada `HIVE.local.md` tiene solo líneas de entrada de hasta 200 caracteres, sin entradas obsoletas ni de las clases excluidas, en 50 líneas o menos; el detalle de lo partido está en Engram y una copia literal de los archivos anteriores queda guardada
 
 **Closes:** AC6
 
@@ -121,3 +121,4 @@ Sin interfaz que recorrer. Los criterios AC1 a AC5 y AC7 se observan en los arch
 2026-11-13 — T1 · 0c4dedf6 · unverified: none
 2026-11-13 — T2 · 1d2264a8 · unverified: none
 2026-11-13 — T3 · 8c6dfeaa · unverified: none
+2026-11-13 — T4 · uncommitted · unverified: none
