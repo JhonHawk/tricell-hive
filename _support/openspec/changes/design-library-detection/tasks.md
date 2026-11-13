@@ -1,10 +1,10 @@
 # Tasks
 
-Base `development` en `aaa0458e`; rama `worktree-design-library-detection`, en el worktree `.claude/worktrees/design-library-detection`. Todas las tareas corren en el hilo principal: son texto de guía que depende de las decisiones de esta sesión, y ninguna pasa de cinco archivos.
+Base `development` en `aaa0458e`; rama `feat/design-library-detection`, en el worktree `.claude/worktrees/design-library-detection`. Todas las tareas corren en el hilo principal: son texto de guía que depende de las decisiones de esta sesión, y ninguna pasa de cinco archivos.
 
 ### T1 — La etapa de Figma fija, inventaría y registra la librería, y valida la primera pantalla
 
-- [ ] `references/design-library.md` existe con sus cuatro partes, `SKILL.md` apunta a ella desde el paso 3, dibuja primero una pantalla cuando hay varias y sigue en 16,000 bytes o menos, y `rule-cards.md` habla de la librería fijada
+- [x] `references/design-library.md` existe con sus cuatro partes, `SKILL.md` apunta a ella desde el paso 3, dibuja primero una pantalla cuando hay varias y sigue en 16,000 bytes o menos, y `rule-cards.md` habla de la librería fijada
 
 **Closes:** AC1, AC2, AC3, AC4
 
@@ -22,7 +22,7 @@ Base `development` en `aaa0458e`; rama `worktree-design-library-detection`, en e
 
 ### T2 — El registro de diseño y el plan reflejan quién escribe archivo y librería
 
-- [ ] `design-record.md` dice que la etapa de Figma pregunta y escribe los dos campos, y `flow-plan` solo añade la tarea para un sí pendiente
+- [x] `design-record.md` dice que la etapa de Figma pregunta y escribe los dos campos, y `flow-plan` solo añade la tarea para un sí pendiente
 
 **Closes:** AC4, AC5
 
@@ -40,7 +40,7 @@ Base `development` en `aaa0458e`; rama `worktree-design-library-detection`, en e
 
 ### T3 — El revisor de UX sube de perfil y compara contra hermanas y librería
 
-- [ ] `hive-review-ux` usa el perfil `reasoning`, y su texto y su brief piden la imagen de las hermanas, la librería fijada, el inventario y la búsqueda de cada candidata
+- [x] `hive-review-ux` usa el perfil `reasoning`, y su texto y su brief piden la imagen de las hermanas, la librería fijada, el inventario y la búsqueda de cada candidata
 
 **Closes:** AC6, AC7
 
@@ -58,7 +58,7 @@ Base `development` en `aaa0458e`; rama `worktree-design-library-detection`, en e
 
 ### T4 — La documentación describe el cambio
 
-- [ ] La entrega de agentes, el mapa de recursos de instrucciones y las páginas del sitio de la etapa y del plan dicen lo nuevo
+- [x] La entrega de agentes, el mapa de recursos de instrucciones y las páginas del sitio de la etapa y del plan dicen lo nuevo
 
 **Closes:** AC8
 
@@ -86,12 +86,25 @@ Sin interfaz que recorrer: los criterios se observan en los archivos y en el pla
 
 ## Checkpoint
 
-Updated: 2026-11-13
-Stage: plan
-Last commit: none
-Open findings: none
-Next: flow-build T1
+- Updated: 2026-11-13
+- Stage: verify · 1
+- Last commit: 67da38bc
+- Open findings: none
+- Next: code review with /code-review, then push, PR to development and merge
+
+### Evidence
+
+- go test ./... · exit 0, every package ok · working tree of b3d59c03 (content, roles); T4 changed only _support/docs and site
+- go test ./tests/content/... ./integrations/... · exit 0 · 67da38bc
+- npm run build in site/ · 18 pages built · 67da38bc
+- candidate manager: update --source . --out FILE (not applied) · hive-review-ux after: opus/high (Claude), gpt-6.1-sol/high (Codex); before: sonnet/high, gpt-6.1-terra/medium; no model overrides in the plan's config · b3d59c03
+- wc -c content/skills/flow-figma-design/SKILL.md · 15977 (limit 16000) · 67da38bc
+- CI: the repository's only workflow is master-source-branch.yml, which runs on pull requests to master; no job applies to this pull request
 
 ## Review status and progress
 
 2026-11-13 — Plan escrito.
+2026-11-13 — T1 · bee308a0 · unverified: none
+2026-11-13 — T2 · d1b3cfe5 · unverified: none
+2026-11-13 — T3 · b3d59c03 · unverified: none
+2026-11-13 — T4 · 67da38bc · unverified: none

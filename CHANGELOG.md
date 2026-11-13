@@ -17,10 +17,17 @@ raise the minor or the patch version.
   affected screens for approval while the others retain theirs.
 
 - Design record: a `**Design library:**` field names the app's published Figma
-  library, written only at the user's instruction. When it is declared, the
-  Figma design stage draws with instances of that library's components and
-  variables, defines its own pieces only for what the library lacks, and lists
-  each such piece in the example's record as a candidate for the library.
+  library, written only at the user's instruction. The Figma design stage draws
+  with instances of that library's components and variables, defines its own
+  pieces only for what the library lacks, and lists each such piece in the
+  example's record as a candidate for the library.
+- Figma design stage: the library binds even when `DESIGN.md` does not declare
+  it. The stage draws with the library you name or share in the conversation,
+  otherwise the declared one, otherwise the one it detects in your existing
+  screens, their records or the file's enabled libraries. Before drawing it
+  writes an inventory of the components those screens use and of what it
+  searched in the library, and a work of several screens gets one screen drawn
+  and reviewed before the rest.
 - Figma design stage: each business rule a frame decides that nothing settled,
   such as whether a rejection needs a comment, is recorded and asked as a
   decision of its own beside the set's approval; minor ones are listed as
@@ -74,6 +81,17 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Figma design stage: when the Figma file or the library is not declared, it
+  asks once whether to record them and, on a yes, writes those two fields in
+  the app's `DESIGN.md` itself, shows the change and delivers it at once,
+  instead of leaving the write to a plan. It is the one repository file the
+  stage edits; without a `DESIGN.md` the entry stays pending.
+- `hive-review-ux` runs on the `reasoning` profile instead of `focused`: Opus
+  at high effort on Claude and GPT-6.1 Sol at high effort on Codex, for design
+  frames and built screens alike, so a UX review takes longer and uses more
+  quota. For design frames it also reads each sibling screen's image, checks
+  the pieces against the bound library and the inventory, and does not pass
+  while a comparison it could run was not run.
 - A round of decisions larger than the host's question card, such as more than
   three on Codex, is asked whole in consecutive cards with no message between
   them, instead of listing the rest in the text and asking them again later.

@@ -17,7 +17,7 @@ A frame with no rule to keep gets no card. A `scope` rule has stopped its screen
 
 ## Draw the cards
 
-Draw them after the first review's findings are fixed and its unsettled rules recorded, never before: the first reviewer must list the unsettled rules without seeing yours.
+Draw them after the first review's findings are fixed and its unsettled rules recorded, never before: the first reviewer must list the unsettled rules without seeing yours. For a work of several screens, that review is the one of the whole set, not the earlier review of the first screen alone that step 5 sets: that one gets no cards and no follow-up.
 
 - Use the annotation component of the library [design library](design-library.md) binds when it holds one; otherwise define one card component in the file, on the tool's automatic layout and bound to the file's variables, as a piece of this work with its `candidate:` line, and place one instance per frame.
 - Place each card outside its frame's bounds, to the right, aligned to the frame's top and 40 px away, so an export of the frame leaves it out. Space the frames this work draws so a card fits between two of them. Never move a frame this work did not create to make room: ask it as a decision first.
