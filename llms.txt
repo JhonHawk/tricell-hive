@@ -7,7 +7,7 @@ Distributable content lives in `content/` and `integrations/`; the manager is in
 ## Docs
 
 - [Documentation site](https://hive.tricell.tech/): getting started, a skills catalog with flow guides, a flows overview, inspiration projects, and a changelog rendered from CHANGELOG.md; each flow page links to its skill
-- [README](README.md): overview, installation (one-line, release package, or source), hosts, update, recovery, and uninstall. One-line install: `curl -fsSL https://hive.tricell.tech/install.sh | sh`; append `-s -- --dry-run --hosts <hosts>` to preview without changing any host, which needs no terminal; a real installation needs a terminal. The candidate release updater requires a future compatible published package and one migration using its updated installer; `hive update --source DIR` remains the committed-source route
+- [README](README.md): overview, installation (one-line, release package, or source), hosts, update, recovery, and uninstall. One-line install: `curl -fsSL https://hive.tricell.tech/install.sh | sh`; append `-s -- --dry-run --hosts <hosts>` to preview without changing any host, which needs no terminal; a real installation needs a terminal. `hive update` installs a compatible published release (0.9.0 or newer), after installations of 0.8.0 or earlier run the 0.9.0-or-newer installer once; `hive update --source DIR` remains the committed-source route
 - [One-line installer script](get-hive.sh): what the one-line command downloads and runs
 - [Changelog](CHANGELOG.md): release history, starting with 0.1.0
 - [Contributing](CONTRIBUTING.md): local test suite, viewer frontend development (Node >=24 and pnpm 12.8.1), checked-in bundle freshness, conventions, and language rules
