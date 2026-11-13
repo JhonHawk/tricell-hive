@@ -4,7 +4,7 @@ Base: `tricell-hive` `development` en `b9113a3c`; rama `feat/business-rules-reco
 
 ### T1 — La referencia común de reglas de negocio y el registro en el plan
 
-- [ ] Existe `business-rules.md` con la definición, la línea del registro y sus estados, dónde vive el registro y cuál gobierna, la escritura al ticket con sus casos (sin ticket, abandonado, pausado, tickets espejo, herramienta que no edita la descripción) y lo que hace cada flujo; la plantilla de `proposal.md` tiene la sección `## Business rules`, con encabezado en inglés; `flow-plan/SKILL.md` apunta a la referencia en «UI decisions» paso 4, «Change folder» y «Revise a plan in progress».
+- [x] Existe `business-rules.md` con la definición, la línea del registro y sus estados, dónde vive el registro y cuál gobierna, la escritura al ticket con sus casos (sin ticket, abandonado, pausado, tickets espejo, herramienta que no edita la descripción) y lo que hace cada flujo; la plantilla de `proposal.md` tiene la sección `## Business rules`, con encabezado en inglés; `flow-plan/SKILL.md` apunta a la referencia en «UI decisions» paso 4, «Change folder» y «Revise a plan in progress».
 
 **Closes:** AC1, AC4
 
@@ -124,3 +124,4 @@ El comportamiento de un agente con estas reglas no se comprueba en este trabajo:
 ## Review status and progress
 
 2026-11-13 — Plan escrito y revisado; ninguna tarea iniciada.
+2026-11-13 — T1 · 447c5eea · unverified: none
