@@ -16,7 +16,9 @@ Twenty roles cover design, implementation, documentation, operations, verificati
 | inherit | Inherit / high | Inherit / high | Inherit / high | Inherit | Inherit | Inherit | Inherit |
 | verifier | Opus / high | GPT-6.1 Sol / high | Inherit / high | Grok 4.6 (no effort) | Inherit | Inherit | Inherit |
 
-The `focused` profile is used by `hive-read-state`, `hive-write-docs`, and `hive-review-ux`. On Codex it selects GPT-6.1 Terra / medium; on other hosts it preserves the execution mapping. Role effort overrides still apply, including low for `hive-read-state`. Older frozen releases without this profile remain readable; a role requesting it requires a release that declares it.
+The `focused` profile is used by `hive-read-state` and `hive-write-docs`. On Codex it selects GPT-6.1 Terra / medium; on other hosts it preserves the execution mapping. Role effort overrides still apply, including low for `hive-read-state`. Older frozen releases without this profile remain readable; a role requesting it requires a release that declares it.
+
+Since 2026-11-13, `hive-review-ux` uses the `reasoning` profile instead of `focused` (change `design-library-detection`, the user's decision): Opus / high on Claude and GPT-6.1 Sol / high on Codex, for the review of frames in a design file and for the review of a built screen in `flow-verify` alike; on Pi its effort rises from medium to high, and the other hosts that inherit the session model do not change. Two real sessions preceded it, both in the same project on 2026-11-13: Codex CLI 0.169.0, reviewer on `gpt-6.1-terra` at medium effort, child `01a1d47c` of session `01a1d465`, and Claude Code, reviewer on `claude-sonnet-5-5` at high effort, session `62cf4d39`; in both the reviewer left unreported defects against the sibling screens or the design library that the user then corrected. The sessions do not separate the model's part from that of the reviewer's instructions, which the same change also rewrote.
 
 Since 2026-10-26, Codex uses GPT-6.1 Sol / high for routine task verification; the plan-execution rule still prevents verification on a smaller model or at a lower effort than the implementer.
 
