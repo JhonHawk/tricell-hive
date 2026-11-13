@@ -41,7 +41,7 @@ are `Environments`, `Other trackers` (trackers besides the main one, such as a
 client's Jira, each with its ticket key prefixes), `Delivery: direct-base` (marks
 a support repository), `Completion` (a later completion point for tickets, one
 per tracker), and `Hive guidance`. With `Other trackers`, the agent reads and
-searches every declared tracker, moves and comments each ticket in the tracker its
+searches every declared tracker, moves and comments each ticket, and writes its business rules, in the tracker its
 key belongs to, and creates new tickets only in the main one.
 The delivery mode, the review mechanism and the `UI verification` level are not
 keys: the agent asks them each session and reuses your answers for that session.

@@ -11,11 +11,11 @@ Hive's flows are not a one-way line. Work loops back when a check fails, when a 
 | --- | --- |
 | [Status](/flows/status/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-status/SKILL.md)) | Reports the project's state and backlog, read-only, and recommends what to take next. |
 | [Research](/flows/research/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/SKILL.md)) | The entry for every request to do work: settles what you need, then answers, continues into Build, or goes to Plan; an analysis ends at its findings. |
-| [Figma design](/flows/figma-design/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-figma-design/SKILL.md)) | Optional, between Research and Plan: draws one example of a new screen in your Figma file, following your existing screens and reviewed before you see it, has you approve or correct it, and records the approved example. |
+| [Figma design](/flows/figma-design/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-figma-design/SKILL.md)) | Optional, between Research and Plan: draws one example of a new screen in your Figma file, following your existing screens and reviewed before you see it, has you approve or correct it, and records the approved example, with a rule card beside each frame. |
 | [Plan](/flows/plan/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/SKILL.md)) | Settles the how: presents approaches, resolves the decisions and splits the work into verifiable tasks. |
 | [Build](/flows/build/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-build/SKILL.md)) | Makes the change and hands over a built candidate. |
 | [Verify](/flows/verify/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-verify/SKILL.md)) | Checks the candidate with evidence, asks for your validation and integrates it. |
-| [Close](/flows/close/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/SKILL.md)) | Moves the ticket and reports, then ends with a footer; the record archive and cleanup run on your reply. |
+| [Close](/flows/close/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/SKILL.md)) | Moves the ticket, writes the work's business rules to it and reports, then ends with a footer; the record archive and cleanup run on your reply. |
 | [Deploy](/flows/deploy/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/SKILL.md)) | Promotes an integrated change through the environments and checks what is served. |
 
 Around them:

@@ -401,7 +401,9 @@ lists where each flow loops.
   stage between Research and Plan for a new or recomposed screen: it draws one example
   as frames in the project's Figma file, following your existing screens, has a reviewer
   agent check it, has you approve or correct it, and records the approved example that
-  Plan, Build and Verify compare against. It draws alternatives only for a screen you
+  Plan, Build and Verify compare against, with a rule card beside each frame for the
+  business rules it does not say. A work's business rules are written to its ticket
+  when you approve the example, when the build starts and at the close. It draws alternatives only for a screen you
   name. Research recommends it only when the host can write to Figma. It does not publish to the viewer.
 - [Plan](https://hive.tricell.tech/flows/plan/) ([skill](content/skills/flow-plan/SKILL.md)) settles the how: it presents two or
   three approaches before the tasks, resolves the decisions that are yours, and
@@ -412,7 +414,7 @@ lists where each flow loops.
   your delivery, review and UI answers and your request set: affected tests, runtime and UI
   checks, the full suite and the dedicated review, a security review only when you
   ask for it, and your validation through a walkthrough, and then integrates it.
-- [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) moves the ticket and reports at
+- [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) moves the ticket, writes the work's business rules to it and reports at
   integration, also when a project declares a later completion point in its
   `Completion` key, then ends with a footer that recommends closing and lists replies
   from the context, such as resolving a finding. The record archive and the cleanup run on
