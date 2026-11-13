@@ -122,10 +122,10 @@ El comportamiento de un agente con estas reglas no se comprueba en este trabajo:
 ## Checkpoint
 
 - Updated: 2026-11-13
-- Stage: flow-verify · 2 — code review running
-- Last commit: ecd64a88
-- Open findings: none
-- Next: adjudicate /code-review findings, read go test ./... result, then push and open the pull request (automatic delivery)
+- Stage: flow-verify · follow-up fixes and checks
+- Last commit: 4950ea7a
+- Open findings: follow-up code review found H1 (stated rules omitted on further cards) and H2 (unchanged groups skip a changed design location); both corrected locally. Revised-plan review: no material findings.
+- Next: finish local checks, commit the local follow-up fixes with Unreviewed notice, push and open the pull request to development, merge under D5 B, refresh the local installation, then completion-point close.
 
 ### Evidence
 
@@ -134,6 +134,12 @@ El comportamiento de un agente con estas reglas no se comprueba en este trabajo:
 - npm --prefix site run build (node_modules linked from the main checkout) · exit 0, 18 pages · ecd64a88
 - go test ./tests/content/... · ok · after each task
 - AC1–AC9 walk by rg in their Observed-in files · every phrase present · ecd64a88
+- go test ./... · exit 0 · 4950ea7a
+- go vet ./... · exit 0 · 4950ea7a
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · exit 0 · 4950ea7a
+- npm --prefix site run build (node_modules linked from the main checkout) · exit 0 · 4950ea7a
+- check_change.py on the change folder · exit 0 · 4950ea7a
+- hive-verify-task on T2 (AC2) · met · b408e21b
 
 ## Review status and progress
 
@@ -145,3 +151,5 @@ El comportamiento de un agente con estas reglas no se comprueba en este trabajo:
 2026-11-13 — T4 · 1dee6fa7 · unverified: none
 2026-11-13 — T5 · 09e01d7a · unverified: none
 2026-11-13 — T6 · ecd64a88 · unverified: none
+
+2026-11-13 — Seguimiento desde Codex: revisión independiente del plan sin hallazgos materiales; revisión de 4950ea7a con H1 y H2, confirmados por lectura y corregidos localmente. Se añaden escenarios al delta para alternativas con regla `stated` y cambio de ubicación de diseño sin cambio de reglas. Sin otra revisión tras este seguimiento.

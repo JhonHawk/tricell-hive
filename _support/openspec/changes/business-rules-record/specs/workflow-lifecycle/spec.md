@@ -4,7 +4,7 @@
 
 ### Requirement: Business rules a work item adopts are recorded and reach its ticket
 
-A business rule SHALL be a behavior of the product in a situation: what an action requires, who may take it, which state follows it, what it blocks or keeps, or where a setting lives. Each rule a work item decides or assumes that its ticket and the documentation the work read do not state, in any flow, SHALL be recorded in the work's rule record in the same turn: one line naming the rule, the screen it shapes when it has one, its status, and the flow that found it. A rule adopted without the user's decision, by the main thread or by a child that reports it, SHALL be recorded as an assumption and stated in the main thread's next message. A rule that replaces one the ticket, the documentation or the record states SHALL keep the earlier rule's line, marked cancelled with the date, the reason and the rule that replaces it; no line SHALL be deleted. The record SHALL live in the example's record of the design stage (`examples.md`) while the work has no change folder, in the proposal of its change folder once it has one, which then governs, and, for work without a change folder, in the work's checkpoint file once its plan or build starts. The main thread SHALL write the record's rules to the work's ticket when the user approves a design example, when the build starts and at the work item's completion point: a section of the description, between a heading and a closing line of its own, that it alone replaces, leaving the rest of the description unchanged, holding the rules decided, the assumptions, the rules still to decide and the rules cancelled with their reasons, and a comment naming what that write added and what it cancelled, with each reason. It SHALL skip a write when the section it would write equals the one the ticket holds, and SHALL write nothing to a tracker when the work has no ticket or was abandoned; a close that writes nothing SHALL list the rules in its report. These writes SHALL take no question, as an exception the guidance states to its rule for effects on data the task did not create. Research SHALL read a ticket with its comments and SHALL NOT write the ticket.
+A business rule SHALL be a behavior of the product in a situation: what an action requires, who may take it, which state follows it, what it blocks or keeps, or where a setting lives. Each rule a work item decides or assumes that its ticket and the documentation the work read do not state, in any flow, SHALL be recorded in the work's rule record in the same turn: one line naming the rule, the screen it shapes when it has one, its status, and the flow that found it. A rule adopted without the user's decision, by the main thread or by a child that reports it, SHALL be recorded as an assumption and stated in the main thread's next message. A rule that replaces one the ticket, the documentation or the record states SHALL keep the earlier rule's line, marked cancelled with the date, the reason and the rule that replaces it; no line SHALL be deleted. The record SHALL live in the example's record of the design stage (`examples.md`) while the work has no change folder, in the proposal of its change folder once it has one, which then governs, and, for work without a change folder, in the work's checkpoint file once its plan or build starts. The main thread SHALL write the record's rules to the work's ticket when the user approves a design example, when the build starts and at the work item's completion point: a section of the description, between a heading and a closing line of its own, that it alone replaces, leaving the rest of the description unchanged, holding the rules decided, the assumptions, the rules still to decide and the rules cancelled with their reasons, and a comment naming what that write added and what it cancelled, with each reason. It SHALL skip a write only when the groups and the design location it would write equal those the ticket holds, ignoring the generated write date, and SHALL write nothing to a tracker when the work has no ticket or was abandoned; a close that writes nothing SHALL list the rules in its report. These writes SHALL take no question, as an exception the guidance states to its rule for effects on data the task did not create. Research SHALL read a ticket with its comments and SHALL NOT write the ticket.
 
 #### Scenario: A rule decided during the plan
 
@@ -39,6 +39,12 @@ A business rule SHALL be a behavior of the product in a situation: what an actio
 - **WHEN** the section the close would write equals the one the ticket holds
 - **THEN** it writes neither the section nor a comment
 
+#### Scenario: The design location changes without changing the rules
+
+- **GIVEN** a ticket section holding the rules and the previous design location
+- **WHEN** the user approves a replacement design at another location with the same rules
+- **THEN** the next write updates the design location instead of skipping the write
+
 ### Requirement: Rule cards beside each frame
 
 `flow-figma-design` SHALL draw, beside each frame it draws and outside the frame's bounds, an annotation card marked as not being interface, with one row per rule of that screen whose condition or consequence the frame's visible text does not state, each row naming its origin: stated by a source, decided, assumed or still to decide. A frame with no such rule SHALL get no card. The stage SHALL draw the cards after it reconciles the first review, so that the reviewer first lists unsettled rules without them, and SHALL have them reviewed in the one follow-up review. It SHALL name each card's node in the example's record and SHALL update a card's row in the same turn its rule is answered. When a later flow changes a rule a card shows, the main thread SHALL correct the row, keeping the earlier rule as cancelled with its reason, when the host has a connection that can write to Figma, and otherwise SHALL record the card as stale. A frame a later decision contradicts SHALL be recorded as stale and listed among what the work leaves open at its close; it SHALL NOT be redrawn outside the design stage.
@@ -49,6 +55,12 @@ A business rule SHALL be a behavior of the product in a situation: what an actio
 - **WHEN** the stage finishes its first review
 - **THEN** a card beside the frame carries that rule with its origin
 - **AND** the record names the card's node
+
+#### Scenario: Alternatives reuse a stated rule
+
+- **GIVEN** two alternatives for one screen whose specification states a rule neither frame says
+- **WHEN** the first card has already recorded that rule as stated
+- **THEN** both alternatives carry the rule in their cards and the record holds it once for that screen
 
 #### Scenario: A frame with nothing to annotate
 

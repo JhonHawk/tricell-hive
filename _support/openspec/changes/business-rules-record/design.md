@@ -42,7 +42,7 @@ Líneas de control en el mismo registro: `ticket section: <key> · <heading>`, `
 - Contiene las reglas que el ticket no decía y las cancelaciones de las que sí decía; no repite las reglas propias del ticket.
 - Antes de escribir se lee la descripción; se reemplaza solo la sección y el resto queda byte a byte.
 - Cada escritura agrega un comentario: una línea por regla agregada y, por cada cancelación, qué se canceló y por qué.
-- La sección va entre su encabezado y una línea de cierre propia (el mismo texto más ` · end`); si falta alguna de las dos o se repite, no se edita la descripción y la sección va en el comentario. Si la sección que se escribiría es igual a la que el ticket ya tiene, no se escribe. Sin ticket, no se escribe y el reporte del cierre lista las reglas. Con tickets espejo, se escribe en cada uno en su tracker. Si la herramienta no puede editar la descripción, la sección completa va en el comentario y se reporta.
+- La sección va entre su encabezado y una línea de cierre propia (el mismo texto más ` · end`); si falta alguna de las dos o se repite, no se edita la descripción y la sección va en el comentario. Si los grupos y la ubicación del diseño son iguales a los que el ticket ya tiene, sin comparar la fecha generada de escritura, no se escribe. Sin ticket, no se escribe y el reporte del cierre lista las reglas. Con tickets espejo, se escribe en cada uno en su tracker. Si la herramienta no puede editar la descripción, la sección completa va en el comentario y se reporta.
 - Nunca un valor secreto ni rutas internas del repositorio.
 
 ### Tarjeta de reglas
@@ -80,3 +80,5 @@ Líneas de control en el mismo registro: `ticket section: <key> · <heading>`, `
 ## Recovery
 
 Revertir el commit del cambio y desplegar de nuevo con `hive update --source`. Las secciones ya escritas en tickets de otros proyectos no se revierten con eso: el historial de cada tracker las deshace.
+
+2026-11-13 — Seguimiento desde Codex: las tarjetas reutilizan las líneas `stated` de la pantalla sin duplicarlas en el registro; la omisión de escritura compara también la ubicación del diseño, ignorando la fecha generada. Corrige AC5 y la sección del ticket sin cambiar alcance.

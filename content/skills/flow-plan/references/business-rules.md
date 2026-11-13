@@ -67,7 +67,7 @@ The section opens with the date of the write and, when a design file holds the w
 
 Write the group names in the ticket's language and each rule in plain words: no decision ID alone, no path or identifier of the repository, never a secret value. Leave out the `stated` rules, which the ticket or its sources already say.
 
-Skip the write when the groups you would write equal the ones the ticket's section already holds.
+Skip the write only when the groups and the design location you would write equal those the ticket's section already holds; ignore the generated write date in this comparison.
 
 **The comment.** Add one comment per write: one line per rule added or decided since the section the ticket held and, for each cancellation, what was cancelled, why and what replaces it. The comment is how the author of a cancelled rule learns of it.
 
