@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | En build |
+| Estado | Completado · PR #464, merge 7f703e0e |
 | Tracker | ninguno |
 | Git | `tricell-hive`, base `development` en `b9113a3c`, rama propuesta `feat/business-rules-record` |
 

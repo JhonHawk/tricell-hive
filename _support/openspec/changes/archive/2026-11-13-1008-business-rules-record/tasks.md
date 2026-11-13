@@ -122,10 +122,10 @@ El comportamiento de un agente con estas reglas no se comprueba en este trabajo:
 ## Checkpoint
 
 - Updated: 2026-11-13
-- Stage: flow-verify · follow-up fixes and checks
-- Last commit: 4950ea7a
-- Open findings: follow-up code review found H1 (stated rules omitted on further cards) and H2 (unchanged groups skip a changed design location); both corrected locally. Revised-plan review: no material findings.
-- Next: finish local checks, commit the local follow-up fixes with Unreviewed notice, push and open the pull request to development, merge under D5 B, refresh the local installation, then completion-point close.
+- Stage: completion-point close · integrated and installed
+- Last commit: 7f703e0e434153010233433363d18e2c25ac91dc (PR #464)
+- Open findings: none; final follow-up fixes e7a6b32d have no further independent review.
+- Next: close cleanup — inventory this work's support material, archive/apply the spec delta on a new branch, then remove eligible merged branches/worktree. Keep this checkpoint until that cleanup.
 
 ### Evidence
 
@@ -153,3 +153,15 @@ El comportamiento de un agente con estas reglas no se comprueba en este trabajo:
 2026-11-13 — T6 · ecd64a88 · unverified: none
 
 2026-11-13 — Seguimiento desde Codex: revisión independiente del plan sin hallazgos materiales; revisión de 4950ea7a con H1 y H2, confirmados por lectura y corregidos localmente. Se añaden escenarios al delta para alternativas con regla `stated` y cambio de ubicación de diseño sin cambio de reglas. Sin otra revisión tras este seguimiento.
+
+### Codex completion evidence — 2026-11-13
+
+- Follow-up hive-review-plan on revised 4950ea7a: no material findings.
+- Follow-up hive-review-code on 4950ea7a: two source-confirmed findings, fixed locally in e7a6b32d with an Unreviewed notice.
+- go vet ./... and go test ./...: exit 0; CLI package 234.227s.
+- After final text corrections: go test ./tests/content/... and change-folder checker: exit 0; go test ./tooling/distribution/... ./tooling/management/... ./tooling/package/... ./integrations/...: exit 0.
+- Python skill tests: 89 OK. Site npm check/lint/build: exit 0, 18 pages; i18n/404 warnings. npm reused the main checkout dependencies; the temporary node_modules link was removed.
+- Gitleaks on branch history and final diff: no leaks. git diff --check: exit 0.
+- PR #464 merged as 7f703e0e434153010233433363d18e2c25ac91dc. No checks or requested human reviews; development workflow did not run on this merge.
+- Installed source 7f703e0e, release f190745e0d81, seven registered hosts. No binary rebuild or viewer restart; new sessions load the changed skills/roles.
+- No model pilots, live tracker writes, Figma edits, master promotion or public release.
