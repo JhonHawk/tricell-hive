@@ -5,9 +5,9 @@ description: Create or curate the HIVE.local.md files of a project and of this m
 
 # Create or curate HIVE.local.md
 
-The global guidance's «Local instructions» is the canonical home of `HIVE.local.md`, the project's file and the machine file: where each lives, what goes in it, its secrets, its size, what `unverified` means and how Git ignores it. This skill adds only the first fill and the pruning, and changes one element of that section, named in step 5.
+The global guidance's «Local instructions» is the canonical home of `HIVE.local.md`, the project's file and the machine file: where each lives, what an entry is and when its detail goes to persistent memory, its secrets, its size, what `unverified` means and how Git ignores it. This skill adds only the first fill and the pruning, and changes one element of that section, named in step 5.
 
-**Modes.** Each file is created or curated on its own. *Create* when no `HIVE.local.md` exists where «Local instructions» places it. *Curate* when it exists and the user asks to rebuild, review or prune it, or after «Local instructions» recommended this skill past 100 lines; curate lists the existing entries beside the new candidates, so no entry, the user's hand-written ones included, leaves the file without the user's answer.
+**Modes.** Each file is created or curated on its own. *Create* when no `HIVE.local.md` exists where «Local instructions» places it. *Curate* when it exists and the user asks to rebuild, review or prune it, or after «Local instructions» recommended this skill past 50 lines; curate lists the existing entries beside the new candidates, so no entry, the user's hand-written ones included, leaves the file without the user's answer.
 
 Work only in the current project and the machine file, as «Local instructions» sets.
 
@@ -34,30 +34,32 @@ It reads the top-level Claude Code and Codex sessions of the last 30 days starte
 
 ## 3. Classify
 
-Sort every candidate, and in curate mode every existing entry, into one of:
+Sort every candidate into one of:
 
-- **record:** it passes the test «Local instructions» sets. The `missing` candidates, the existing cloud profiles with their regions, and the installed tools go to the machine file; the `commands`, the `ports` and which profile serves an environment of the project go to the file their `where` names;
+- **record:** it passes the test «Local instructions» sets. The `missing` candidates, the existing cloud profiles with their regions, and the installed tools go to the machine file; the `commands`, the `ports` and which profile serves an environment of the project go to the file their `where` names. Each becomes one entry as that section defines it: a `commands` candidate is a line that says what it starts or does, with the command in its detail when it does not fit the line;
 - **every clone:** it holds for any checkout, such as a test command already in the tracked guidance; it goes to step 7's report, never into a file;
 - **discard:** a `missing` program that the project's own dependencies provide, such as one in `node_modules/.bin` or the project's package manifest, since it was missing only until they were installed; a stack, branch, ticket or path that no longer exists, a duplicate, a fact a later session contradicts, a command a single session used for one task, or the result of a diagnosis, a count, or whether a host answered.
+
+In curate mode, the existing entries are not sorted into those classes: give each one proposal instead. **Keep** it as it is; **split** it, with the line that stays and the detail that moves to persistent memory, when it is longer than its line or holds steps; **relocate** it, with its destination, when it belongs in another of the files; or **retire** it, when «Local instructions» excludes it or it falls in the discard class above, such as an event, the state of a finished work item, a duplicate or an entry marked stale. An instruction of the user found among the entries is split too: the one line that says what it constrains, and the instruction saved as a decision in the file's project, or in `hive-machine` for the machine file.
 
 Group the record candidates by file, then by subject: starting the stack, isolated stacks, tools and missing commands, cloud and remote access, and other. Recommend keeping a candidate seen in two or more sessions or confirmed by a step 5 check.
 
 ## 4. Ask what to keep
 
-Before writing anything, list in the message text every group with its candidates numbered, each with its session count and last date, and the **discard** class as one more group. Then ask through the host's native question tool, as the global guidance's «Questions and routes» sets, one question per group, with these options:
+Before writing anything, list in the message text every group with its candidates numbered, each with its session count and last date, and the **discard** class as one more group; in curate mode, list each existing entry with its proposal and the line it would become. Then ask through the host's native question tool, as the global guidance's «Questions and routes» sets, one question per group, with these options:
 
 - `A - (★) Keep the recommended`: the numbers you recommend, named in the option;
 - `B - Keep all`;
 - `C - Discard all`;
 - `D - Choose by number`: the user replies in the chat with the numbers to keep.
 
-A `D` answer needs the user's numbers in the chat, so it ends the round's cards as «Questions and routes» sets for an answer that adds a decision: in that reply, ask for the numbers of each group answered `D` and name the groups not yet asked. A candidate the user does not keep is not written; in curate mode, an existing entry the user does not keep is removed. The answers live in `HIVE.local.md`, not in persistent memory: this departs from the global guidance's «Persistent memory», which saves a user's decision, because the file is their record. Discarding a candidate deletes nothing from its source: cleaning host or persistent memory is `harness-audit`'s job.
+A `D` answer needs the user's numbers in the chat, so it ends the round's cards as «Questions and routes» sets for an answer that adds a decision: in that reply, ask for the numbers of each group or file answered `D` and name the groups not yet asked. In curate mode, ask besides one question per file about its existing entries, with these options: `A - (★) Apply the proposals`; `B - Keep every entry as it is`; `D - Choose by number`, where the user replies in the chat with the numbers whose proposal to apply, handled as a group's `D` answer is. The groups hold only new candidates, so an existing entry is decided by its file's question alone. A candidate the user does not keep is not written; an existing entry is split, relocated or retired only when the answer applies its proposal, and otherwise stays as it is. The answers live in `HIVE.local.md`, not in persistent memory: this departs from the global guidance's «Persistent memory», which saves a user's decision, because the file is their record. Only two things go to persistent memory, both as «Local instructions» sets: the detail of an entry, and an instruction of the user whose proposal the answer applied, saved as a decision. Discarding a candidate deletes nothing from its source: cleaning host or persistent memory is `harness-audit`'s job.
 
 ## 5. Confirm what the user kept
 
 Confirm each kept fact with one of these read-only checks when one applies, and run nothing else:
 
-- `command -v <tool>`; then `<tool> --version` only for a tool `command -v` resolved to a path outside a version-manager shim folder (such as `shims`, `.asdf` or `mise`), never for `pnpm`, `yarn` or `corepack`, which may download a version, and never through `npx`, a package runner or a project script;
+- `command -v <tool>`; then `<tool> --version` only when the entry records that the project pins a version this machine lacks, and only for a tool `command -v` resolved to a path outside a version-manager shim folder (such as `shims`, `.asdf` or `mise`), never for `pnpm`, `yarn` or `corepack`, which may download a version, and never through `npx`, a package runner or a project script;
 - `docker ps --format '{{.Names}} {{.Ports}}'` and `docker compose ls`;
 - `lsof -nP -iTCP:<port> -sTCP:LISTEN`;
 - `aws configure list-profiles` and `aws configure get region --profile <profile>`;
@@ -68,7 +70,7 @@ Never run a project command that starts, stops, seeds, migrates, installs, signs
 
 ## 6. Write the files
 
-Write as «Local instructions» sets, each **record** candidate to the file step 3 names for it. Start the file with one line saying it is per-machine, untracked and kept by agents under «Local instructions». Give each group a heading and each entry one line: the fact, its command when it has one, and its date, followed by `unverified` when marked. In curate mode, keep the user's own wording of an entry they kept.
+Write as «Local instructions» sets, each **record** candidate to the file step 3 names for it. Start the file with one line saying it is per-machine, untracked and kept by agents under «Local instructions». Give each group a heading and each entry the one line «Local instructions» defines: the fact and its date, followed by `unverified` when marked and by its pointer when it has a detail. Save each detail as that section sets, and read it back before removing its text from a file. In curate mode, keep the user's own wording of an entry they kept as it is.
 
 ## 7. Report
 

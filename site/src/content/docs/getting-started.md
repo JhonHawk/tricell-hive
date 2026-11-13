@@ -63,8 +63,15 @@ your local stack ends up on or which cloud profile serves its QA environment,
 go in `HIVE.local.md` at the repository root, or at the workspace root when your
 work spans several repositories. Those that hold in any project, such as a
 command your system lacks or the cloud profiles you have, go in the machine file
-`~/.config/hive/HIVE.local.md`. Diagnoses, counts and whether a host answers
-right now go in neither. You neither create nor commit them: the agent reads
+`~/.config/hive/HIVE.local.md`. Each fact is one short line that says what your
+machine or project has or uses, such as which containers a project runs, that a
+design app is installed, or which account a tool signs in with. When the
+machine has Engram, steps and workarounds that do not fit a line go there and
+the line points to them; without it only the line is kept. Past 50 lines the
+agent drops the entries that stopped working and suggests pruning the file with
+you. Diagnoses, counts, events,
+the state of a piece of work and whether a host answers right now go in neither.
+You neither create nor commit them: the agent reads
 both at the start of each session, adds each fact it verified with its date,
 marks the ones that stop working as stale, names the file that holds a password
 instead of writing it, and keeps the files out of Git. You can edit it by hand, and the
