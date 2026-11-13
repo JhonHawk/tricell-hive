@@ -81,8 +81,8 @@ raise the minor or the patch version.
 
 ### Changed
 
-- Figma design stage: when the Figma file or the library is not declared, it
-  asks once whether to record them and, on a yes, writes those two fields in
+- Figma design stage: when the Figma file or the library is not declared, or
+  `DESIGN.md` declares another one, it asks once whether to record them and, on a yes, writes those two fields in
   the app's `DESIGN.md` itself, shows the change and delivers it at once,
   instead of leaving the write to a plan. It is the one repository file the
   stage edits; without a `DESIGN.md` the entry stays pending.

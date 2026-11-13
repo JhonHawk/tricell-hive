@@ -26,7 +26,7 @@ Solo un camino es sensato para el hueco central: la regla de la librería copia 
 `content/skills/flow-figma-design/references/design-library.md` (nuevo), en este orden:
 
 1. **Which library binds** — conversación, `DESIGN.md`, detección (librería habilitada en el archivo según la conexión; librería de la que los marcos hermanos instancian componentes o enlazan variables; librería que nombra el registro de una hermana). Un enlace a otro archivo cuenta como nombrada cuando el usuario lo presenta como librería o la conexión lo lista entre las habilitadas, no cuando es la pantalla a replicar. Desempate y la única pregunta.
-2. **Inventory** — líneas `uses: <pieza> · <componente o variable de la librería> · <nodo de la hermana>` y `searched: <pieza> · <término> · found <componente> | not found`, escritas en `examples.md` antes del primer dibujo.
+2. **Inventory** — líneas `uses: <pieza> · <componente o variable> · <su librería, o local> · <nodo de la hermana>` y `searched: <pieza> · <término> · found <componente> | not found`, escritas en `examples.md` antes del primer dibujo.
 3. **Draw with it** — la regla que hoy vive en el paso 5: instancia o enlace, pieza local solo con `not found`, línea `candidate:`, el archivo que no puede usar la librería.
 4. **Record it** — la pregunta única por archivo y librería no declarados, la escritura de los dos campos, el caso sin `DESIGN.md`, la entrega de la edición, y la delegación desatendida (no pregunta, no escribe).
 

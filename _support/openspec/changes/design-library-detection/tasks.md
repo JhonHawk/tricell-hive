@@ -87,10 +87,10 @@ Sin interfaz que recorrer: los criterios se observan en los archivos y en el pla
 ## Checkpoint
 
 - Updated: 2026-11-13
-- Stage: verify · 1
-- Last commit: 67da38bc
+- Stage: verify · 6
+- Last commit: c59f7b88
 - Open findings: none
-- Next: code review with /code-review, then push, PR to development and merge
+- Next: commit the second review round (Unreviewed), push, open the pull request to development, merge, refresh the local installation, close
 
 ### Evidence
 
@@ -100,6 +100,11 @@ Sin interfaz que recorrer: los criterios se observan en los archivos y en el pla
 - candidate manager: update --source . --out FILE (not applied) · hive-review-ux after: opus/high (Claude), gpt-6.1-sol/high (Codex); before: sonnet/high, gpt-6.1-terra/medium; no model overrides in the plan's config · b3d59c03
 - wc -c content/skills/flow-figma-design/SKILL.md · 15977 (limit 16000) · 67da38bc
 - CI: the repository's only workflow is master-source-branch.yml, which runs on pull requests to master; no job applies to this pull request
+- /code-review on 67da38bc · 10 findings, all confirmed and fixed in c59f7b88
+- /code-review on 67da38bc..c59f7b88 and hive-review-plan on the revised folder · no P0 or P1; contradictions fixed in the commit after c59f7b88, which gets no further review
+- go test ./... · exit 0 · working tree after c59f7b88 (final candidate)
+- npm run build in site/ · exit 0, 18 pages · final candidate
+- wc -c content/skills/flow-figma-design/SKILL.md · 15984 (limit 16000) · final candidate
 
 ## Review status and progress
 
