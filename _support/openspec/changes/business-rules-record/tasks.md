@@ -22,7 +22,7 @@ Base: `tricell-hive` `development` en `b9113a3c`; rama `feat/business-rules-reco
 
 ### T2 — La guía global autoriza la escritura de reglas al ticket
 
-- [ ] «Scope and authorization» autoriza la sección de reglas y su comentario con sus tres momentos y el puntero, sin pregunta aunque cambien datos que la tarea no creó, y corregir las filas de tarjetas que el trabajo creó; la frase de la tarea operativa nombra la excepción del diseño que nombra su ticket; «Project settings» cubre esa escritura con `Other trackers`; `outside-the-repository.md` la nombra junto a los movimientos del ticket.
+- [x] «Scope and authorization» autoriza la sección de reglas y su comentario con sus tres momentos y el puntero, sin pregunta aunque cambien datos que la tarea no creó, y corregir las filas de tarjetas que el trabajo creó; la frase de la tarea operativa nombra la excepción del diseño que nombra su ticket; «Project settings» cubre esa escritura con `Other trackers`; `outside-the-repository.md` la nombra junto a los movimientos del ticket.
 
 **Closes:** AC2
 
@@ -125,3 +125,4 @@ El comportamiento de un agente con estas reglas no se comprueba en este trabajo:
 
 2026-11-13 — Plan escrito y revisado; ninguna tarea iniciada.
 2026-11-13 — T1 · 447c5eea · unverified: none
+2026-11-13 — T2 · b408e21b · unverified: none

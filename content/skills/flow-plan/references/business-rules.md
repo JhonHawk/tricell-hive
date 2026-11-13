@@ -71,6 +71,8 @@ Write the group names in the ticket's language and each rule in plain words: no 
 
 After both parts, read the description back, check that the section is there and that the text outside it did not change, and add a `ticket write: <date> · <moment>` line to the record. When the tool cannot edit the description, put the whole section in the comment and say so in the report. Name each write in that stage's message: the ticket, and how many rules it added and cancelled. Under [unattended delegation](../../unattended-delegation/SKILL.md) the writes run the same way, and the rules still `proposed` go under **To decide**.
 
+**At the close.** Closing a work item's business rules means making write 3 when it applies and otherwise listing the record's rules in the final report. Either way, name in that report each `card stale:` and `frame stale:` line of the record, as «After the design stage» of [rule cards](../../flow-figma-design/references/rule-cards.md) sets.
+
 ## Documentation in the repository
 
 A rule that changes an observable behavior goes in the plan's spec delta, as [flow-plan](../SKILL.md#change-folder) sets. When a file of the repository states a rule the work cancels or replaces, such as a requirements document, the plan has a task that updates it. Documentation outside the repository, such as a file a person sent, is never edited: the ticket's section records the change.
