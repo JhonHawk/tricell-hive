@@ -52,6 +52,21 @@ raise the minor or the patch version.
   it, a reversible effect that no answer covers can go ahead and is listed in
   the final report; with no amount it is zero and the effect is skipped and
   reported, as before.
+- Business rules: each rule a work item adopts that its ticket and
+  documentation did not state, whether it appears in research, the design, the
+  plan, the build or the verification, is recorded in one list for that work,
+  and a rule that replaces another keeps the earlier one as cancelled, with the
+  reason. Hive writes those rules to the work's ticket without asking, when you
+  approve a design example, when the build starts and at the close: a section
+  of its own in the description, which leaves the rest of the text untouched,
+  and a comment that says what was added and what was cancelled and why.
+  Research now reads a ticket's comments.
+- Figma design stage: a rule card beside each frame lists the business rules
+  the frame does not say by itself, each with its origin: the specification, a
+  decision, an assumption or still to decide. When the plan or the build later
+  changes a rule on a card, the card is corrected and keeps the earlier rule as
+  cancelled; a frame that a later decision contradicts is recorded and named at
+  the close, not redrawn.
 
 ### Changed
 

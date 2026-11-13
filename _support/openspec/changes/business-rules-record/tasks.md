@@ -76,7 +76,7 @@ Base: `tricell-hive` `development` en `b9113a3c`; rama `feat/business-rules-reco
 
 ### T5 — El revisor de UX y su brief cubren las tarjetas
 
-- [ ] `hive-review-ux.md` dice qué revisa en una tarjeta y toma la definición de regla de la referencia común; «Reviewer brief» da las tarjetas solo en la segunda pasada.
+- [x] `hive-review-ux.md` dice qué revisa en una tarjeta y toma la definición de regla de la referencia común; «Reviewer brief» da las tarjetas solo en la segunda pasada.
 
 **Closes:** AC8
 
@@ -100,7 +100,7 @@ Base: `tricell-hive` `development` en `b9113a3c`; rama `feat/business-rules-reco
 
 **Depends on:** T1, T2, T3, T4, T5
 
-**Locations:** `site/src/content/docs/flows/figma-design.md`, `flows/build.md`, `flows/close.md`, `flows/plan.md`, `flows/verify.md`, `flows/research.md`, `flows/overview.md`, `getting-started.md`, `README.md`, `llms.txt`, `_support/docs/architecture/instruction-resources.md`
+**Locations:** `site/src/content/docs/flows/figma-design.md`, `flows/build.md`, `flows/close.md`, `flows/plan.md`, `flows/verify.md`, `flows/research.md`, `flows/overview.md`, `getting-started.md`, `README.md`, `llms.txt`, `_support/docs/architecture/instruction-resources.md`, `CHANGELOG.md` (hilo principal)
 
 **Execution:** `hive-write-docs`
 
@@ -124,7 +124,9 @@ El comportamiento de un agente con estas reglas no se comprueba en este trabajo:
 ## Review status and progress
 
 2026-11-13 — Plan escrito y revisado; ninguna tarea iniciada.
+2026-11-13 — Revisión durante el build: T6 suma la entrada de `CHANGELOG.md` bajo `[Unreleased]`, que `CONTRIBUTING.md` pide en cada pull request y el plan no listaba; no cambia criterios ni invalida tareas.
 2026-11-13 — T1 · 447c5eea · unverified: none
 2026-11-13 — T2 · b408e21b · unverified: none
 2026-11-13 — T3 · 0838055c · unverified: none
 2026-11-13 — T4 · 1dee6fa7 · unverified: none
+2026-11-13 — T5 · 09e01d7a · unverified: none
