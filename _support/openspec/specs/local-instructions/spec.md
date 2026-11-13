@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The per-machine instructions files `HIVE.local.md`, one at a repository or workspace root for that project's facts and the machine file `~/.config/hive/HIVE.local.md` for facts that hold in any project: agents read them at session start, record there the machine and environment facts a later session can run or check, and keep them untracked and free of secret values, so a later session does not re-derive them.
+The per-machine instructions files `HIVE.local.md`, one at a repository or workspace root for that project's facts and the machine file `~/.config/hive/HIVE.local.md` for facts that hold in any project: agents read them at session start, record there, one line each, what the machine or the environment has, uses or needs that a later session can run or check, keep the detail a fact needs in persistent memory behind a pointer, and keep the files untracked and free of secret values, so a later session does not re-derive them.
 
 ## Requirements
 

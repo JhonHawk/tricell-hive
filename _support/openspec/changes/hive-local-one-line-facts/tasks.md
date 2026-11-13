@@ -4,7 +4,7 @@ Base `development` en `a8b2632e`; rama `feat/hive-local-one-line-facts`, en el w
 
 ### T1 — La guía global define la entrada de una línea y su detalle en la memoria persistente
 
-- [ ] «Local instructions» define la entrada de una línea, el detalle con su puntero y su ciclo de vida, lo que no se registra y el tope de 50 líneas, y «Persistent memory» permite esa escritura y el proyecto que nombra un puntero
+- [x] «Local instructions» define la entrada de una línea, el detalle con su puntero y su ciclo de vida, lo que no se registra y el tope de 50 líneas, y «Persistent memory» permite esa escritura y el proyecto que nombra un puntero
 
 **Closes:** AC1, AC2, AC3, AC4
 
@@ -22,7 +22,7 @@ Base `development` en `a8b2632e`; rama `feat/hive-local-one-line-facts`, en el w
 
 ### T2 — La skill `local-instructions` escribe líneas y parte las entradas largas al curar
 
-- [ ] La skill escribe entradas de una línea con su puntero cuando hay detalle, usa el tope de 50 y, al curar, propone para cada entrada existente si queda, se parte, se reubica o sale
+- [x] La skill escribe entradas de una línea con su puntero cuando hay detalle, usa el tope de 50 y, al curar, propone para cada entrada existente si queda, se parte, se reubica o sale
 
 **Closes:** AC4, AC5
 
@@ -104,3 +104,5 @@ Next: flow-build T1
 ## Review status and progress
 
 2026-11-13 — Plan escrito y revisado; ver el progreso de la propuesta.
+2026-11-13 — T1 · 0c4dedf6 · unverified: none
+2026-11-13 — T2 · 1d2264a8 · unverified: none

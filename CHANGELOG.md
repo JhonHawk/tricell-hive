@@ -81,6 +81,16 @@ raise the minor or the patch version.
 
 ### Changed
 
+- `HIVE.local.md`: an entry is now one line of at most 200 characters that
+  says what the machine or the project has, uses or needs, or a limitation of
+  a tool with its workaround, with the date it was verified. Steps and commands
+  that do not fit go to persistent memory under `local/<slug>`, in the file's
+  project or in the project `hive-machine` for the machine file, and the line
+  ends with its pointer; without Engram the line stands alone. Events, the
+  state of a work item, a user's instruction and facts the repository states
+  are not recorded there. The cap drops from 100 to 50 lines per file, and the
+  `local-instructions` skill, when it curates, proposes for each existing
+  entry to keep, split, relocate or retire it.
 - Figma design stage: when the Figma file or the library is not declared, or
   `DESIGN.md` declares another one, it asks once whether to record them and, on a yes, writes those two fields in
   the app's `DESIGN.md` itself, shows the change and delivers it at once,
