@@ -19,7 +19,7 @@ A frame with no rule to keep gets no card. A `scope` rule has stopped its screen
 
 Draw them after the first review's findings are fixed and its unsettled rules recorded, never before: the first reviewer must list the unsettled rules without seeing yours.
 
-- Use the declared design library's annotation component when it holds one; otherwise define one card component in the file, on the tool's automatic layout and bound to the file's variables, as a piece of this work with its `candidate:` line, and place one instance per frame.
+- Use the annotation component of the library [design library](design-library.md) binds when it holds one; otherwise define one card component in the file, on the tool's automatic layout and bound to the file's variables, as a piece of this work with its `candidate:` line, and place one instance per frame.
 - Place each card outside its frame's bounds, to the right, aligned to the frame's top and 40 px away, so an export of the frame leaves it out. Space the frames this work draws so a card fits between two of them. Never move a frame this work did not create to make room: ask it as a decision first.
 - Open the card with a heading that says it is a design annotation and not interface, in the session language.
 - Write one row per rule: its origin, then the rule in one or two sentences of plain words, never a decision ID alone. The origin is one of four, named in the session language: the specification, for a `stated` rule, with the source's own identifier when it has one; a decision, for an `approved` rule, with its date; an assumption; or still to decide, for a `proposed` rule.
