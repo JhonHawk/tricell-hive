@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Listo para flow-build |
+| Estado | Completado · PR #468, merge ff52a22f |
 | Tracker | ninguno |
 | Git | tricell-hive, base `development` en `aaa0458e`, rama `feat/design-library-detection` |
 
