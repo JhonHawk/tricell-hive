@@ -40,7 +40,7 @@ Base: `tricell-hive` `development` en `b9113a3c`; rama `feat/business-rules-reco
 
 ### T3 — Los momentos y los punteros en research, build, verificación y cierre
 
-- [ ] `flow-research` paso 1 nombra los comentarios del ticket, también cuando un hijo lo lee; `flow-build` escribe las reglas al arrancar, junto a mover el ticket, y apunta a la referencia para una regla decidida o asumida a mitad del build; `flow-verify` apunta a ella para una corrección que decide una regla; `flow-close` paso 3 lleva su frase y el paso 5 el recorte que `design.md` fija.
+- [x] `flow-research` paso 1 nombra los comentarios del ticket, también cuando un hijo lo lee; `flow-build` escribe las reglas al arrancar, junto a mover el ticket, y apunta a la referencia para una regla decidida o asumida a mitad del build; `flow-verify` apunta a ella para una corrección que decide una regla; `flow-close` paso 3 lleva su frase y el paso 5 el recorte que `design.md` fija.
 
 **Closes:** AC3, AC4, AC7
 
@@ -126,3 +126,4 @@ El comportamiento de un agente con estas reglas no se comprueba en este trabajo:
 2026-11-13 — Plan escrito y revisado; ninguna tarea iniciada.
 2026-11-13 — T1 · 447c5eea · unverified: none
 2026-11-13 — T2 · b408e21b · unverified: none
+2026-11-13 — T3 · 0838055c · unverified: none
