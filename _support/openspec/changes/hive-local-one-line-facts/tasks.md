@@ -73,7 +73,7 @@ Base `development` en `a8b2632e`; rama `feat/hive-local-one-line-facts`, en el w
 1. Copiar los ocho archivos, tal cual, a la carpeta de la limpieza, con modo `0600`.
 2. Escribir ahí la tabla, una fila por entrada: su clase de `design.md` «Proposed shape» (queda, se parte, sale, se muda, se reubica), la línea propuesta, el tema de Engram cuando se parte, el destino cuando se reubica, y la marca de la que contiene un valor que debe sustituirse por el archivo que lo guarda. La entrada de archivo y librería de diseño de una app queda como línea hasta que su `DESIGN.md` los tenga. Las limitaciones de herramientas con su solución quedan o se parten, no salen.
 3. Mostrar la tabla en la conversación y pedir una decisión por archivo: aprobar lo propuesto o conservar todo, con respuestas que nombren una entrada para cambiar su clase. Cada decisión dice que cubre reescribir ese archivo y guardar su detalle en el Engram de su proyecto.
-4. Por cada archivo aprobado: guardar en Engram el detalle de cada entrada partida, bajo `local/<slug>` en el proyecto que nombra el `.engram/config.json` más cercano al archivo, o en `hive-machine` para el archivo de máquina, y cada instrucción del usuario como decisión; sin valores secretos; leer cada guardado de vuelta antes de seguir.
+4. Por cada archivo aprobado: guardar en Engram el detalle de cada entrada partida, bajo `local/<slug>` en el proyecto que nombra el `.engram/config.json` más cercano al archivo, o en `hive-machine` para el archivo de máquina, que se crea por la línea de comandos de Engram, con el nombre de la carpeta al inicio del tema cuando el archivo está debajo de la carpeta de la configuración de Engram, y cada instrucción del usuario como decisión; sin valores secretos; leer cada guardado de vuelta antes de seguir.
 5. Leer el archivo de nuevo justo antes de escribirlo y reescribir solo las entradas de la tabla aprobada, conservando cualquier entrada que otra sesión haya añadido entretanto.
 6. Avisar, sin editar nada de esos repositorios, qué archivo y librería de diseño conviene registrar en el `DESIGN.md` de su app, y que las sesiones abiertas con la guía anterior deben reiniciarse para no volver a escribir entradas largas.
 
@@ -96,10 +96,10 @@ Sin interfaz que recorrer. Los criterios AC1 a AC5 y AC7 se observan en los arch
 ## Checkpoint
 
 - Updated: 2026-11-13
-- Stage: verify · 1
-- Last commit: 8c6dfeaa
+- Stage: verify · 6
+- Last commit: cea40ee3
 - Open findings: none
-- Next: code review with /code-review of T1-T3, push, pull request, merge, local refresh; then T4: copies, table, the user's approval per file, Engram details, rewrite
+- Next: commit the final fix round (Unreviewed), push, pull request to development, merge, local refresh; then T4: rewrite the eight files from the approved table (D14-D21, all A; details already saved in Engram and read back), verify, close
 
 ### Evidence
 
@@ -108,6 +108,12 @@ Sin interfaz que recorrer. Los criterios AC1 a AC5 y AC7 se observan en los arch
 - npm run build in site/ · exit 0 · 8c6dfeaa
 - content/guidance/global.md · 48751 -> 50690 bytes · 0c4dedf6
 - CI: no job applies to a pull request to development
+- /code-review on 8c6dfeaa · 10 findings, fixed in cea40ee3
+- /code-review on 8c6dfeaa..cea40ee3 and hive-review-plan on the revised folder · no P0 or P1; fixed in the commit after cea40ee3, which gets no further review
+- go test ./... · exit 0 · final candidate (tree after cea40ee3)
+- npm run build in site/ · exit 0 · final candidate
+- content/guidance/global.md · 48751 -> 51485 bytes · final candidate
+- cleanup table approved by the user per file (D14-D21 A); 28 details saved in Engram and read back; copies in the main checkout's _support/workspace/2026-11-13-hive-local-cleanup/original
 
 ## Review status and progress
 
