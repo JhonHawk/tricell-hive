@@ -400,11 +400,14 @@ lists where each flow loops.
 - [Figma design](https://hive.tricell.tech/flows/figma-design/) ([skill](content/skills/flow-figma-design/SKILL.md)) is an optional
   stage between Research and Plan for a new or recomposed screen: it draws one example
   as frames in the project's Figma file, following your existing screens, has a reviewer
-  agent check it, has you approve or correct it, and records the approved example that
+  agent check it, asks you to approve or correct the completed set once, and records
+  the approved examples that
   Plan, Build and Verify compare against, with a rule card beside each frame for the
   business rules it does not say. A work's business rules are written to its ticket
   when you approve the example, when the build starts and at the close. It draws alternatives only for a screen you
-  name. Research recommends it only when the host can write to Figma. It does not publish to the viewer.
+  name. Applicable mobile frames are ready before approval; corrections return only
+  the affected screens for approval. Research recommends it only when the host can
+  write to Figma. It does not publish to the viewer.
 - [Plan](https://hive.tricell.tech/flows/plan/) ([skill](content/skills/flow-plan/SKILL.md)) settles the how: it presents two or
   three approaches before the tasks, resolves the decisions that are yours, and
   defines contracts, verifiable tasks, and acceptance criteria.

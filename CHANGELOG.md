@@ -12,6 +12,10 @@ raise the minor or the patch version.
 
 ### Added
 
+- Figma design stage: one decision approves or corrects the completed set of
+  screens, with applicable mobile frames ready; corrections return only the
+  affected screens for approval while the others retain theirs.
+
 - Design record: a `**Design library:**` field names the app's published Figma
   library, written only at the user's instruction. When it is declared, the
   Figma design stage draws with instances of that library's components and
@@ -19,7 +23,7 @@ raise the minor or the patch version.
   each such piece in the example's record as a candidate for the library.
 - Figma design stage: each business rule a frame decides that nothing settled,
   such as whether a rejection needs a comment, is recorded and asked as a
-  decision of its own beside the screen's approval; minor ones are listed as
+  decision of its own beside the set's approval; minor ones are listed as
   assumptions, and a rule that adds a capability, changes shared data or
   settings, or changes a permission sends the work back to research. The UX
   reviewer looks for these rules on its own, and the plan takes the approved
