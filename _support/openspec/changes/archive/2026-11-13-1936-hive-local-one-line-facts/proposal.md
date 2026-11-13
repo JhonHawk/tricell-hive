@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Listo para flow-build |
+| Estado | Completado · PR #470, merge 9737eec4 |
 | Tracker | ninguno |
 | Git | tricell-hive, base `development` en `a8b2632e`, rama `feat/hive-local-one-line-facts` |
 
