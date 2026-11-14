@@ -694,3 +694,20 @@ A business rule SHALL be a behavior of the product in a situation: what an actio
 - **GIVEN** an approved frame that shows a link between an evidence and a document
 - **WHEN** the plan decides that link does not exist
 - **THEN** the record marks the frame stale, no flow outside the design stage redraws it, and the close lists it among what the work leaves open
+
+### Requirement: Research audits a codebase on request
+
+When the user asks to audit a codebase, or to find what to improve in it, without naming one question, research SHALL run a code audit and change no repository file. Before judging, it SHALL record the project's verification commands from its CI files or scripts, the decision records that exist and the rejected findings in force; a repository with no command that tells whether the code works SHALL get that as its first finding. It SHALL audit the categories the user names, otherwise correctness, security, performance, tests, debt and architecture, dependencies, tooling, docs and direction, starting from the most changed files. Every finding SHALL cite one to five locations and state its impact, effort, fix risk, confidence and fix sketch; the main thread SHALL open each cited location before reporting the finding, whoever found it, and SHALL drop behavior a platform convention or a decision record settles, misattributed evidence, duplicates and findings a rejection in force covers. Findings SHALL be ranked by impact over effort, lowered by low confidence and fix risk, with findings that unblock others first; direction findings SHALL be reported apart, each citing the repository, and the report SHALL state what was not audited. The report SHALL end with research's block for an analysis, whose replies include creating tickets for chosen findings, investigating or planning one, fixing a confirmed defect, rejecting findings and stopping. Findings the user rejects SHALL be recorded in persistent memory per repository in the same turn, with their locations and the audited commit, and a later audit SHALL suppress a recorded finding while the code at its locations is unchanged since that commit; findings the main thread drops in vetting SHALL NOT be recorded.
+
+#### Scenario: A finding rejected earlier
+
+- **GIVEN** a finding the user rejected at a recorded commit
+- **WHEN** a later audit finds it again and its locations are unchanged since that commit
+- **THEN** the report omits it and the coverage counts it among the suppressed findings
+- **AND** when its locations changed, the report shows it again and says it was rejected before, with the reason
+
+#### Scenario: A child reports a by-design behavior
+
+- **GIVEN** a child that reports honoring a proxy environment variable as a security flaw
+- **WHEN** the main thread opens the cited location
+- **THEN** the finding is dropped as behavior by design and counted in the coverage, not recorded as a rejection
