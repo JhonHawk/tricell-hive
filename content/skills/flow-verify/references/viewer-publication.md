@@ -1,6 +1,6 @@
 # Viewer publication
 
-Read once per session, when the first build or verify flow that [flow-walkthrough](../SKILL.md) gives a viewer session takes its first UI capture, and again after a compaction. The viewer holds only UI captures and their iteration: publish no stage, task, document or reason during the flow, never read `hive view work contract`, and publish nothing for a flow without captures. This procedure changes only local viewer state and does not authorize project, tracker or external writes. Hive's session hooks already report the session's start, activity and end. Delegated children return captures and findings to the primary producer, which alone publishes.
+Read once per session, when the first build or verify flow that [walkthrough](walkthrough.md) gives a viewer session takes its first UI capture, and again after a compaction. The viewer holds only UI captures and their iteration: publish no stage, task, document or reason during the flow, never read `hive view work contract`, and publish nothing for a flow without captures. This procedure changes only local viewer state and does not authorize project, tracker or external writes. Hive's session hooks already report the session's start, activity and end. Delegated children return captures and findings to the primary producer, which alone publishes.
 
 ## Publish captures
 

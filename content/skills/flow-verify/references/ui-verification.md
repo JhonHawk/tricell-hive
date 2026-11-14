@@ -22,4 +22,4 @@ Read when reviewing the UX of a UI change. The audit measures; it does not repla
 - `agent-browser` has no timeout for `open`, `eval`, `snapshot`, `screenshot` or `close`, and one stuck command blocks its session. Run each command through a 45-second limit: `timeout 45 agent-browser …`, or `gtimeout 45`, or `perl -e 'alarm shift; exec @ARGV' 45 agent-browser …` when neither exists. When the limit expires, run `agent-browser doctor`, close that session and continue in a fresh one; do not resend the command into it.
 - Give each flow its own `--session` and close every session you opened with `agent-browser close --session <name>` when the flow ends.
 
-The caller owns acceptance and review. For publishing captures, use [flow-walkthrough](../../flow-walkthrough/SKILL.md); follow [artifact layout and retention](../../workspace-conventions/references/artifact-layout.md) for the evidence destination.
+The caller owns acceptance and review. For publishing captures, use [walkthrough](walkthrough.md); follow [artifact layout and retention](../../workspace-conventions/references/artifact-layout.md) for the evidence destination.

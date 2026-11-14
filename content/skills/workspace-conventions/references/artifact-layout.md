@@ -24,7 +24,7 @@ Create only the folders and records the work needs. One work item shares its ide
 
 **Condition:** producing UI review images or recordings.
 
-**Actions:** put images and recordings in `workspace/YYYY-MM-DD-<work>/images/`. Publish UI captures using [flow-walkthrough](../../flow-walkthrough/SKILL.md); its [readback checks](../../flow-walkthrough/references/viewer-publication.md#close-and-input-hygiene) precede removing the disposable upload inputs. Link current output and selected evidence from the handoff.
+**Actions:** put images and recordings in `workspace/YYYY-MM-DD-<work>/images/`. Publish UI captures using [walkthrough](../../flow-verify/references/walkthrough.md); its [readback checks](../../flow-verify/references/viewer-publication.md#close-and-input-hygiene) precede removing the disposable upload inputs. Link current output and selected evidence from the handoff.
 
 Keep source plans, user-selected output, unique evidence, uncommitted work and anything with uncertain ownership. Keep failed or unconfirmed upload inputs, and all inputs for paused work. Walkthrough pages generated before the standalone fallback was removed are kept as they are, never deleted or rewritten by that removal. Retention does not authorize publication, and nothing expires by age.
 
