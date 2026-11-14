@@ -58,7 +58,7 @@ Base `development` @ bedc9b64, rama `refactor/condense-skill-catalogue`. Todas l
 
 ### T4 — workspace-conventions pasa a referencias de flow-close
 
-- [ ] El mantenimiento de `_support`, `artifact-layout.md` y `archive.md` se leen desde `flow-close/references/`, y `flow-close/SKILL.md` sigue ≤ 16.000 bytes sin perder ninguna regla
+- [x] El mantenimiento de `_support`, `artifact-layout.md` y `archive.md` se leen desde `flow-close/references/`, y `flow-close/SKILL.md` sigue ≤ 16.000 bytes sin perder ninguna regla
 
 **Closes:** AC1, AC2, AC3, AC4
 
@@ -163,3 +163,4 @@ Validación humana: leer el diff de `flow-close/SKILL.md` (el recorte), las desc
 2026-11-14 — T1 · d373e77e · unverified: none
 2026-11-14 — T2 · 47e58ddf · unverified: none
 2026-11-14 — T3 · a3654f4f · unverified: none
+2026-11-14 — T4 · b2484d4e · unverified: none
