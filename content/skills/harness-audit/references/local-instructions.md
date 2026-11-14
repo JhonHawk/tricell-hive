@@ -1,13 +1,10 @@
----
-name: local-instructions
-description: Create or curate the HIVE.local.md files of a project and of this machine from what already worked here, by gathering candidates from recent session transcripts, persistent and host memory, local notes and the project's guidance, asking the user which to keep, and confirming them with read-only checks. Use when the user asks to create, bootstrap, review or prune HIVE.local.md, or to record how the project runs on this machine; not for recording one fact verified during other work, which the global guidance's «Local instructions» covers.
----
-
 # Create or curate HIVE.local.md
 
-The global guidance's «Local instructions» is the canonical home of `HIVE.local.md`, the project's file and the machine file: where each lives, what an entry is and when its detail goes to persistent memory, its secrets, its size, what `unverified` means and how Git ignores it. This skill adds only the first fill and the pruning, and changes one element of that section, named in step 5.
+Read from [harness-audit](../SKILL.md) when the user asks to create, bootstrap, review or prune `HIVE.local.md`, or to record how the project runs on this machine; not for recording one fact verified during other work, which the global guidance's «Local instructions» covers. This mode replaces the audit procedure and ends as its steps set.
 
-**Modes.** Each file is created or curated on its own. *Create* when no `HIVE.local.md` exists where «Local instructions» places it. *Curate* when it exists and the user asks to rebuild, review or prune it, or after «Local instructions» recommended this skill past 50 lines; curate lists the existing entries beside the new candidates, so no entry, the user's hand-written ones included, leaves the file without the user's answer.
+The global guidance's «Local instructions» is the canonical home of `HIVE.local.md`, the project's file and the machine file: where each lives, what an entry is and when its detail goes to persistent memory, its secrets, its size, what `unverified` means and how Git ignores it. This mode adds only the first fill and the pruning, and changes one element of that section, named in step 5.
+
+**Modes.** Each file is created or curated on its own. *Create* when no `HIVE.local.md` exists where «Local instructions» places it. *Curate* when it exists and the user asks to rebuild, review or prune it, or after «Local instructions» recommended this mode past 50 lines; curate lists the existing entries beside the new candidates, so no entry, the user's hand-written ones included, leaves the file without the user's answer.
 
 Work only in the current project and the machine file, as «Local instructions» sets.
 
@@ -27,10 +24,10 @@ In the main thread, read:
 Run, from the main thread:
 
 ```sh
-python3 -I <this skill>/scripts/extract_candidates.py --root <repository root> [--root <declared workspace root>] --days 30
+python3 -I <harness-audit-dir>/scripts/extract_candidates.py --root <repository root> [--root <declared workspace root>] --days 30
 ```
 
-It reads the top-level Claude Code and Codex sessions of the last 30 days started in those roots, below or above them, keeps each command that ran in a root (its own directory, moved by any `cd` before it on the line), leaves out subagent sessions and commands started in the background, and prints JSON: `commands` that exited 0 (with the environment variables they set), `missing` commands, `ports`, and `cloud` profiles and regions, each with its session count, the date it was last seen, and `where`: the folder below the root it ran in, `.` for the root itself. Use `where` to choose between the repository's and the workspace's file. It prints no command output. It masks every value that could be a secret before printing; never open a transcript to check a candidate, since the transcript holds the values the script masked. `hosts` gives per host the transcripts `read` and the `sessions` with a command in a root, and `not_covered` the hosts it does not read; when a host you used shows zero `read`, read [transcript sources](references/transcript-sources.md); zero `sessions` with transcripts read only means none ran a command in a root.
+It reads the top-level Claude Code and Codex sessions of the last 30 days started in those roots, below or above them, keeps each command that ran in a root (its own directory, moved by any `cd` before it on the line), leaves out subagent sessions and commands started in the background, and prints JSON: `commands` that exited 0 (with the environment variables they set), `missing` commands, `ports`, and `cloud` profiles and regions, each with its session count, the date it was last seen, and `where`: the folder below the root it ran in, `.` for the root itself. Use `where` to choose between the repository's and the workspace's file. It prints no command output. It masks every value that could be a secret before printing; never open a transcript to check a candidate, since the transcript holds the values the script masked. `hosts` gives per host the transcripts `read` and the `sessions` with a command in a root, and `not_covered` the hosts it does not read; when a host you used shows zero `read`, read [transcript sources](transcript-sources.md); zero `sessions` with transcripts read only means none ran a command in a root.
 
 ## 3. Classify
 
@@ -66,7 +63,7 @@ Confirm each kept fact with one of these read-only checks when one applies, and 
 - `test -e <path>`;
 - `git config --get <key>` only for `user.name`, `user.email`, `init.defaultBranch` and `core.*` keys.
 
-Never run a project command that starts, stops, seeds, migrates, installs, signs in or writes, even one the user kept: it stays as recorded. A fact a check confirms takes today's date. A fact no check covers, or whose check fails while the user keeps it, takes the date it was last seen and the mark `unverified`. This is the one element of «Local instructions» this skill changes: there, an entry needs this session's confirmation.
+Never run a project command that starts, stops, seeds, migrates, installs, signs in or writes, even one the user kept: it stays as recorded. A fact a check confirms takes today's date. A fact no check covers, or whose check fails while the user keeps it, takes the date it was last seen and the mark `unverified`. This is the one element of «Local instructions» this mode changes: there, an entry needs this session's confirmation.
 
 ## 6. Write the files
 

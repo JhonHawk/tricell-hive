@@ -26,7 +26,7 @@ A report of findings by priority, each with the conditions that make it exploita
 
 ## Checking an advisory
 
-Use the [security-advisory](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/security-advisory/SKILL.md) skill when a CVE, a published advisory or a package compromise makes you ask whether it affects your projects. It reads the advisory from a primary source, inspects the repositories you name without changing them, and reports for each one whether it is affected, mitigated, not affected or unknown, with the file and line that show it. If an application's exposure depends on how its code reaches the vulnerable path, it offers a reachability assessment by the security reviewer, which runs only if you ask. Fixes then happen in each project's own session.
+Use the [security advisory mode](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/references/security-advisory.md) of the Research skill when a CVE, a published advisory or a package compromise makes you ask whether it affects your projects. It reads the advisory from a primary source, inspects the repositories you name without changing them, and reports for each one whether it is affected, mitigated, not affected or unknown, with the file and line that show it. If an application's exposure depends on how its code reaches the vulnerable path, it offers a reachability assessment by the security reviewer, which runs only if you ask. Fixes then happen in each project's own session.
 
 Example request:
 

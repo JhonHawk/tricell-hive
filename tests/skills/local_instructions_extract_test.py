@@ -9,7 +9,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "content/skills/local-instructions/scripts/extract_candidates.py"
+SCRIPT = ROOT / "content/skills/harness-audit/scripts/extract_candidates.py"
 sys.dont_write_bytecode = True  # keep __pycache__ out of the distributed skill folder
 
 SECRETS = ["hunter2pass", "s3cr3tUserPw", "abcTOKENxyz123456789", "pa55word!", "S3cretPw", "dbpw77",

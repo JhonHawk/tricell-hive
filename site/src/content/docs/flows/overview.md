@@ -9,7 +9,7 @@ Hive's flows are not a one-way line. Work loops back when a check fails, when a 
 
 | Flow | What it does |
 | --- | --- |
-| [Status](/flows/status/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-status/SKILL.md)) | Reports the project's state and backlog, read-only, and recommends what to take next. |
+| [Status](/flows/status/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/SKILL.md)) | Reports the project's state and backlog, read-only, and recommends what to take next. |
 | [Research](/flows/research/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/SKILL.md)) | The entry for every request to do work: settles what you need, then answers, continues into Build, or goes to Plan; an analysis ends at its findings. |
 | [Figma design](/flows/figma-design/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-figma-design/SKILL.md)) | Optional, between Research and Plan: draws one example of a new screen in your Figma file, following your existing screens and reviewed before you see it, has you approve or correct it, and records the approved example, with a rule card beside each frame. |
 | [Plan](/flows/plan/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/SKILL.md)) | Settles the how: presents approaches, resolves the decisions and splits the work into verifiable tasks. |
@@ -20,7 +20,7 @@ Hive's flows are not a one-way line. Work loops back when a check fails, when a 
 
 Around them:
 
-- The [viewer](/viewer/) shows the UI captures of a work and the iteration each belongs to. Only Build and Verify publish to it, when they capture an interface; Plan, Research and any flow without captures publish nothing. The [flow-walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) skill publishes the captures and presents a built interface for your validation. Hive's host hooks add the session's activity, and the host's task list where it has one, as [host-observed activity](/viewer/#host-observed-activity).
+- The [viewer](/viewer/) shows the UI captures of a work and the iteration each belongs to. Only Build and Verify publish to it, when they capture an interface; Plan, Research and any flow without captures publish nothing. The [walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-verify/references/walkthrough.md) skill publishes the captures and presents a built interface for your validation. Hive's host hooks add the session's activity, and the host's task list where it has one, as [host-observed activity](/viewer/#host-observed-activity).
 - [Unattended delegation](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md) lets work continue while you are away, within the objective and answers you already gave, and stops at anything irreversible.
 - [Security review](/flows/security/) is a review you ask for, plus the advisory check.
 

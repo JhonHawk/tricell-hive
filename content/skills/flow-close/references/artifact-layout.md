@@ -24,7 +24,7 @@ Create only the folders and records the work needs. One work item shares its ide
 
 **Condition:** producing UI review images or recordings.
 
-**Actions:** put images and recordings in `workspace/YYYY-MM-DD-<work>/images/`. Publish UI captures using [flow-walkthrough](../../flow-walkthrough/SKILL.md); its [readback checks](../../flow-walkthrough/references/viewer-publication.md#close-and-input-hygiene) precede removing the disposable upload inputs. Link current output and selected evidence from the handoff.
+**Actions:** put images and recordings in `workspace/YYYY-MM-DD-<work>/images/`. Publish UI captures using [walkthrough](../../flow-verify/references/walkthrough.md); its [readback checks](../../flow-verify/references/viewer-publication.md#close-and-input-hygiene) precede removing the disposable upload inputs. Link current output and selected evidence from the handoff.
 
 Keep source plans, user-selected output, unique evidence, uncommitted work and anything with uncertain ownership. Keep failed or unconfirmed upload inputs, and all inputs for paused work. Walkthrough pages generated before the standalone fallback was removed are kept as they are, never deleted or rewritten by that removal. Retention does not authorize publication, and nothing expires by age.
 
@@ -32,7 +32,7 @@ Keep source plans, user-selected output, unique evidence, uncommitted work and a
 
 - On resume of any retained record, a change record or a session record, reconcile it with current sources and state. Keep current status and next steps consistent; retain superseded statements only as clearly labeled history. Reuse the same work folder and canonical record across conversations; avoid competing current versions.
 - Name new records under `sessions/` `<topic>.<type>.<extension>`, with a descriptive English `kebab-case` topic shared by related records and an English type: `research` for retained investigations (including findings called a report) and `report` for distinct execution, closure, or presentation deliverables. Use Markdown for ordinary research; honor an explicitly requested format. Tool-defined filenames keep their names.
-- Dated folders use the work's initial ISO date, except archived changes, named as [flow-close](../../flow-close/SKILL.md) step 4 sets; internal filenames do not repeat it. Continuing work keeps its initial date, scope, and location. Do not automatically rename or migrate existing material to this layout.
+- Dated folders use the work's initial ISO date, except archived changes, named as [flow-close](../SKILL.md) step 4 sets; internal filenames do not repeat it. Continuing work keeps its initial date, scope, and location. Do not automatically rename or migrate existing material to this layout.
 - Date human-authored records and folders, except archived changes, with the user's local calendar date, checking the clock and timezone when uncertain. Preserve original evidence timestamps, with explicit offsets when time affects interpretation.
 
 ## Retain evidence
@@ -43,8 +43,8 @@ Retain necessary evidence, including justified binaries; only curated, shareable
 
 **Condition:** closing a work item or session.
 
-**Actions:** run [flow-close](../../flow-close/SKILL.md), which sets what it removes, stops and keeps, and what it proposes for the work's support material.
+**Actions:** run [flow-close](../SKILL.md), which sets what it removes, stops and keeps, and what it proposes for the work's support material.
 
 **Condition:** requested organization of existing support material, evidence curation, promotion of findings into durable guidance, or archiving.
 
-**Actions:** use [workspace conventions](../SKILL.md).
+**Actions:** use [support maintenance](support-maintenance.md).

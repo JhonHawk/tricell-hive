@@ -1,6 +1,6 @@
 # Viewer publication
 
-Read once per session, when the first build or verify flow that [flow-walkthrough](../SKILL.md) gives a viewer session takes its first UI capture, and again after a compaction. The viewer holds only UI captures and their iteration: publish no stage, task, document or reason during the flow, never read `hive view work contract`, and publish nothing for a flow without captures. This procedure changes only local viewer state and does not authorize project, tracker or external writes. Hive's session hooks already report the session's start, activity and end. Delegated children return captures and findings to the primary producer, which alone publishes.
+Read once per session, when the first build or verify flow that [walkthrough](walkthrough.md) gives a viewer session takes its first UI capture, and again after a compaction. The viewer holds only UI captures and their iteration: publish no stage, task, document or reason during the flow, never read `hive view work contract`, and publish nothing for a flow without captures. This procedure changes only local viewer state and does not authorize project, tracker or external writes. Hive's session hooks already report the session's start, activity and end. Delegated children return captures and findings to the primary producer, which alone publishes.
 
 ## Publish captures
 
@@ -22,7 +22,7 @@ Never open the viewer on your own, and never ask about it on its own. At each st
 
 ## Close and input hygiene
 
-At the work's completion phase, as [flow-close](../../flow-close/SKILL.md) step 1 sets, and only for a work with captures: run `hive view work close --outcome completed|abandoned --reason TEXT` for integrated or abandoned work. For a work that waits, run `hive view work sync --stage STAGE --state in_review|paused|awaiting_validation --reason TEXT` instead, with the stage of its last capture: `in_review` while its open pull request waits for the user's merge or a human reviewer, `paused` for a pause. Both read the work back; never close an already closed work again, and never infer a close from a document's status. Remove the task's disposable capture inputs only after that readback confirms the work and no capture reply is still `queued`; what to keep, and for how long, is set by [artifact retention](../../workspace-conventions/references/artifact-layout.md).
+At the work's completion phase, as [flow-close](../../flow-close/SKILL.md) step 1 sets, and only for a work with captures: run `hive view work close --outcome completed|abandoned --reason TEXT` for integrated or abandoned work. For a work that waits, run `hive view work sync --stage STAGE --state in_review|paused|awaiting_validation --reason TEXT` instead, with the stage of its last capture: `in_review` while its open pull request waits for the user's merge or a human reviewer, `paused` for a pause. Both read the work back; never close an already closed work again, and never infer a close from a document's status. Remove the task's disposable capture inputs only after that readback confirms the work and no capture reply is still `queued`; what to keep, and for how long, is set by [artifact retention](../../flow-close/references/artifact-layout.md).
 
 ## Manage a work
 

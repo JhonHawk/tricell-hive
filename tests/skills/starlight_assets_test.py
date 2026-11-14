@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-ASSETS = ROOT / "content/skills/starlight-docs-site/assets"
+ASSETS = ROOT / "content/skills/flow-report/assets/starlight"
 
 
 class StarlightAssetsTest(unittest.TestCase):

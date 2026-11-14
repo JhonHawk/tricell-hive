@@ -18,7 +18,7 @@ A child does the work for the first of these reasons that applies; when none app
 ## When children run at the same time
 
 - Children that run side by side are all launched before the main thread waits on any of them. When the host's launch call returns only once its child finishes, put all the launches in one response with no other tool call between them: launching one per response makes them run one after another.
-- Read-only children run side by side: reviews, research aspects, the external facts of a plan, and the collections or sweeps a flow sends to parallel children, such as flow-status's independent collections and security-advisory's sweep.
+- Read-only children run side by side: reviews, research aspects, the external facts of a plan, and the collections or sweeps a flow sends to parallel children, such as the independent collections of research's status report and its advisory sweep.
 - Children that write, such as a backend task and a frontend task each delegated for its cost, run side by side only when all of these hold; otherwise they run one after another, each still in its child:
   - the contract they share is written as a typed artifact, such as types, a schema or an API definition, and does not change while they run;
   - their writes touch disjoint files;

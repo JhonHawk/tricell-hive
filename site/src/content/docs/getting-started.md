@@ -75,7 +75,7 @@ You neither create nor commit them: the agent reads
 both at the start of each session, adds each fact it verified with its date,
 marks the ones that stop working as stale, names the file that holds a password
 instead of writing it, and keeps the files out of Git. You can edit it by hand, and the
-[local-instructions skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/local-instructions/SKILL.md)
+[local-instructions skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/references/local-instructions.md)
 fills it the first time from what already worked in your recent sessions, asking
 you which facts to keep. A fact that
 holds for every clone belongs in `AGENTS.md`, so the agent names it in its

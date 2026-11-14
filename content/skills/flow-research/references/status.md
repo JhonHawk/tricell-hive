@@ -1,16 +1,13 @@
----
-name: flow-status
-description: Report the project's current status and backlog, read-only, and recommend what to take next. Use when the user asks for the project's status, its backlog, unfinished work, or what to work on next, such as "¿qué sigue?" or "status del proyecto"; not for investigating one question or one ticket, which belongs to flow-research.
----
-
 # Report the project's status
 
-This skill is read-only, except for the writes the global guidance's «Local instructions» authorizes, and assesses no ticket in depth; `flow-research` does that once the user picks one. Read only what the report needs: the `## Hive` section of the repository, the tracker, Git and the pending-work records in persistent memory.
+Read from [flow-research](../SKILL.md) when the user asks for the project's status, its backlog, unfinished work or what to work on next, such as "¿qué sigue?" or "status del proyecto". This report replaces research's steps 0 to 5 and ends as step 3 below sets; investigating one question or one ticket stays with research's steps.
+
+This report is read-only, except for the writes the global guidance's «Local instructions» authorizes, and assesses no ticket in depth; research does that, with its own steps, once the user picks one. Read only what the report needs: the `## Hive` section of the repository, the tracker, Git and the pending-work records in persistent memory.
 
 1. Collect, in parallel:
-   - each declared tracker's tickets in every non-terminal state, in the main thread, with queries that cap their output at 50 tickets and return only short fields (identifier, title, state, labels, priority, assignee, parent). Use `hive-read-state` children only to run several independent collections at once, such as more than one tracker or project, as [delegation](../flow-build/references/delegation.md) sets;
+   - each declared tracker's tickets in every non-terminal state, in the main thread, with queries that cap their output at 50 tickets and return only short fields (identifier, title, state, labels, priority, assignee, parent). Use `hive-read-state` children only to run several independent collections at once, such as more than one tracker or project, as [delegation](../../flow-build/references/delegation.md) sets;
    - unfinished local work: the current branch, uncommitted changes, local branches not merged into the base branch, worktrees, open pull requests, and the change folders under `Specs` with work outside Git, read with `git status --short --untracked-files=normal -- <Specs>/changes` in each checkout and worktree of the repository that holds it, where a `??` entry ending in `/` directly under `changes/` is a folder never committed and any other entry an uncommitted edit;
-   - the work left open on purpose: the `Pending:` records [flow-close](../flow-close/SKILL.md#pending-work) writes, searched in the project the global guidance's «Persistent memory» names, with an explicit result limit. A record is ready to resume when every ticket and condition that unblocks it is resolved; flow-status never deletes one, which only a close does.
+   - the work left open on purpose: the `Pending:` records [flow-close](../../flow-close/SKILL.md#pending-work) writes, searched in the project the global guidance's «Persistent memory» names, with an explicit result limit. A record is ready to resume when every ticket and condition that unblocks it is resolved; this report never deletes one, which only a close does.
 2. Write the report as [Report](#report) sets. Never replace it with a question card.
 3. When the user asked what to take next, end the report with the route as the global guidance's «Questions and routes» section sets: the recommended ticket or group and the command that assesses it, such as `/flow-research COM-833` in the host's syntax. The ticket the user names starts `flow-research`. A plain status request ends with the recommendations.
 
@@ -36,3 +33,7 @@ Local work
 Recommendation
   1. Promote development → qa: closes COM-829.
 ```
+
+## Find the next ticket
+
+When flow-close's footer reply **Find the next ticket** runs this report, use the cut of the tickets that reuse this session's context: the files, modules and decisions it touched. Leave out the tickets another session has in progress, and the tickets opened from this work's findings unless they are P0 or P1. Recommend the one that reuses the most context, with its task count (from its description or checklist); choosing it starts `flow-research` to assess it. That report's next-step block carries the compaction reply for another work item that the global guidance's «Questions and routes» sets.

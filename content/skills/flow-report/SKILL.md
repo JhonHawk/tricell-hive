@@ -1,13 +1,15 @@
 ---
 name: flow-report
-description: Create a visual HTML report, printable paper, comparison, explainer, or deck when the requested deliverable needs presentation layout. Not for resumable research notes, plans, or routine Markdown findings.
+description: Create a visual HTML report, printable paper, comparison, explainer, or deck when the requested deliverable needs presentation layout, or scaffold, extend or audit a Starlight documentation site, such as a user manual or a spec site. Not for resumable research notes, plans, or routine Markdown findings.
 ---
 
 # Durable reports
 
-Before writing the support deliverable, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md).
+When documentation should live as a maintained, searchable Starlight site, read [docs site](references/docs-site.md) instead of the steps below.
 
-Use this skill when the requested deliverable benefits from an explicit visual or printable presentation. A request to save findings for later does not by itself call for HTML: keep resumable research in a Markdown work record, placed where that reference puts research records. Preserve an explicitly requested format. Keep ordinary answers, status updates, and ordinary handoffs out of HTML; viewer publication belongs to [flow-walkthrough](../flow-walkthrough/SKILL.md), not these report assets. The global guidance's «Questions and routes» section shapes chat replies.
+Before writing the support deliverable, read [artifact layout and retention](../flow-close/references/artifact-layout.md).
+
+Use this skill when the requested deliverable benefits from an explicit visual or printable presentation. A request to save findings for later does not by itself call for HTML: keep resumable research in a Markdown work record, placed where that reference puts research records. Preserve an explicitly requested format. Keep ordinary answers, status updates, and ordinary handoffs out of HTML; viewer publication belongs to [walkthrough](../flow-verify/references/walkthrough.md), not these report assets. The global guidance's «Questions and routes» section shapes chat replies.
 
 Choose the asset that matches what the reader receives:
 

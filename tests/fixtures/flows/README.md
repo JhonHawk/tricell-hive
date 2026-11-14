@@ -4,8 +4,8 @@ The conventions screen runs the same six additive cases per CLI:
 `conventions-smoke`, `project-state`, `adaptive-plan`, `infra-plan`,
 `direct-build`, and `git-delivery`. This defines a 30-run matrix across Codex,
 Claude, Grok, Pi, and OpenCode. `deployed-smoke` is a separate explicit loading
-check for `flow-report`, `engram-init-workspace`, `starlight-docs-site`,
-`unattended-delegation`, `workspace-archive`, and `flow-walkthrough`; it is not
+check for `flow-report`, `harness-audit`, `unattended-delegation`,
+`flow-close`, and `flow-verify`; it is not
 part of that matrix.
 The older `smoke`, `research`, `plan`, and
 `build` fixtures remain available as historical cases. Only the explicit loading

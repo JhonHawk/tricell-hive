@@ -1,6 +1,6 @@
 # Workspace and artifact organization
 
-This document explains the artifact policy in [the shared global guidance](../../../content/guidance/global.md). That source carries the essential operating rules without requiring a skill or this document to load. The [workspace-conventions skill](../../../content/skills/workspace-conventions/SKILL.md) is the canonical procedure for organizing existing material, curating evidence, promoting findings, and archiving. This reference provides examples and rationale; it is not a second router or an installer.
+This document explains the artifact policy in [the shared global guidance](../../../content/guidance/global.md). That source carries the essential operating rules without requiring a skill or this document to load. flow-close's [support maintenance](../../../content/skills/flow-close/references/support-maintenance.md) reference is the canonical procedure for organizing existing material, curating evidence, promoting findings, and archiving. This reference provides examples and rationale; it is not a second router or an installer.
 
 ## Resolve scope before choosing a folder
 
@@ -91,7 +91,7 @@ At close, retain useful conclusions, link their evidence, and remove only the ta
 
 Archiving retains execution history without treating age as proof of completion. For example, closed research may be archived while an older unresolved investigation remains active. The skill contains the operating procedure, including closure checks, authorization, collisions, and link preservation; maintain those details there.
 
-The [`engram-init-workspace` skill](../../../content/skills/engram-init-workspace/SKILL.md) provides an explicit dry-run helper when a declared workspace needs a shared local Engram identity. It requires an identity and selected targets, verifies all existing configurations before apply, and never infers sibling repositories, changes global ignores, or migrates memory. The [archive procedure](../../../content/skills/workspace-conventions/references/archive.md) of `workspace-conventions` handles selected closed-session moves; it has no age policy and never stages, commits, or pushes; `flow-close` delivers the moves its support-material decision selected. Explicit unattended delegation is documented by [`unattended-delegation`](../../../content/skills/unattended-delegation/SKILL.md); it is a bounded coordination mode, not a workspace lifecycle mechanism.
+harness-audit's [Engram workspace mode](../../../content/skills/harness-audit/references/engram-workspace.md) provides an explicit dry-run helper when a declared workspace needs a shared local Engram identity. It requires an identity and selected targets, verifies all existing configurations before apply, and never infers sibling repositories, changes global ignores, or migrates memory. The [archive procedure](../../../content/skills/flow-close/references/archive.md) of flow-close's support maintenance handles selected closed-session moves; it has no age policy and never stages, commits, or pushes; `flow-close` delivers the moves its support-material decision selected. Explicit unattended delegation is documented by [`unattended-delegation`](../../../content/skills/unattended-delegation/SKILL.md); it is a bounded coordination mode, not a workspace lifecycle mechanism.
 
 ## Limits of this implementation
 
