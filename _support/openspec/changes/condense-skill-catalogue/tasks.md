@@ -4,7 +4,7 @@ Base `development` @ bedc9b64, rama `refactor/condense-skill-catalogue`. Todas l
 
 ### T1 — flow-walkthrough pasa a referencia de flow-verify
 
-- [ ] La publicación de capturas y el walkthrough se leen desde `flow-verify/references/`, y nada enlaza ya `flow-walkthrough`
+- [x] La publicación de capturas y el walkthrough se leen desde `flow-verify/references/`, y nada enlaza ya `flow-walkthrough`
 
 **Closes:** AC1, AC2, AC3
 
@@ -22,7 +22,7 @@ Base `development` @ bedc9b64, rama `refactor/condense-skill-catalogue`. Todas l
 
 ### T2 — flow-status y security-advisory pasan a modos de flow-research
 
-- [ ] El estado del proyecto y la exposición a un aviso se leen desde `flow-research/references/`
+- [x] El estado del proyecto y la exposición a un aviso se leen desde `flow-research/references/`
 
 **Closes:** AC1, AC2, AC3
 
@@ -159,3 +159,6 @@ Validación humana: leer el diff de `flow-close/SKILL.md` (el recorte), las desc
 ## Checkpoint
 
 ## Review status and progress
+
+2026-11-14 — T1 · d373e77e · unverified: none
+2026-11-14 — T2 · 47e58ddf · unverified: none
