@@ -76,7 +76,7 @@ Base `development` @ bedc9b64, rama `refactor/condense-skill-catalogue`. Todas l
 
 ### T5 — starlight-docs-site pasa a modo de flow-report
 
-- [ ] Un sitio de documentación Starlight se arma desde `flow-report/references/docs-site.md` con los mismos assets
+- [x] Un sitio de documentación Starlight se arma desde `flow-report/references/docs-site.md` con los mismos assets
 
 **Closes:** AC1, AC2, AC3, AC4
 
@@ -164,3 +164,4 @@ Validación humana: leer el diff de `flow-close/SKILL.md` (el recorte), las desc
 2026-11-14 — T2 · 47e58ddf · unverified: none
 2026-11-14 — T3 · a3654f4f · unverified: none
 2026-11-14 — T4 · b2484d4e · unverified: none
+2026-11-14 — T5 · 58d3f983 · unverified: none
