@@ -159,10 +159,10 @@ Validación humana: leer el diff de `flow-close/SKILL.md` (el recorte), las desc
 ## Checkpoint
 
 - Updated: 2026-11-14
-- Stage: verify · 2 reviews
-- Last commit: 0648ad6a
-- Open findings: none
-- Next: code review, then validation stop before push
+- Stage: verify · 6 integrate
+- Last commit: d6fa6b3d
+- Open findings: H14 SkillSource still names workspace-conventions: kept on purpose (old states map to it); H15 pilot default suite still asks for workspace-conventions: P3, pilots paused
+- Next: push, PR, merge, then T8 local deploy
 
 ### Evidence
 
@@ -170,6 +170,10 @@ Validación humana: leer el diff de `flow-close/SKILL.md` (el recorte), las desc
 - go vet ./... · pass · 0648ad6a
 - python3 -m unittest discover -s tests/skills · 89 OK · 0648ad6a
 - hive update --source . --dry-run · validated · 0648ad6a
+- go test ./... · pass · d6fa6b3d
+- go vet ./... · pass · d6fa6b3d
+- python3 -m unittest discover -s tests/skills · OK · d6fa6b3d
+- hive update --source . --dry-run · validated · d6fa6b3d
 
 ## Review status and progress
 
