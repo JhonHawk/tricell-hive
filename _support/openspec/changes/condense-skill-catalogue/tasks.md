@@ -112,7 +112,7 @@ Base `development` @ bedc9b64, rama `refactor/condense-skill-catalogue`. Todas l
 
 ### T7 — Documentación, specs y CHANGELOG
 
-- [ ] El sitio, el README, `llms.txt`, la arquitectura y el `CHANGELOG` describen el catálogo de 13 y a dónde fue cada procedimiento
+- [x] El sitio, el README, `llms.txt`, la arquitectura y el `CHANGELOG` describen el catálogo de 13 y a dónde fue cada procedimiento
 
 **Closes:** AC3, AC6
 
@@ -158,6 +158,19 @@ Validación humana: leer el diff de `flow-close/SKILL.md` (el recorte), las desc
 
 ## Checkpoint
 
+- Updated: 2026-11-14
+- Stage: verify · 2 reviews
+- Last commit: 0648ad6a
+- Open findings: none
+- Next: code review, then validation stop before push
+
+### Evidence
+
+- go test ./... · pass · 0648ad6a
+- go vet ./... · pass · 0648ad6a
+- python3 -m unittest discover -s tests/skills · 89 OK · 0648ad6a
+- hive update --source . --dry-run · validated · 0648ad6a
+
 ## Review status and progress
 
 2026-11-14 — T1 · d373e77e · unverified: none
@@ -166,3 +179,4 @@ Validación humana: leer el diff de `flow-close/SKILL.md` (el recorte), las desc
 2026-11-14 — T4 · b2484d4e · unverified: none
 2026-11-14 — T5 · 58d3f983 · unverified: none
 2026-11-14 — T6 · f28daf3b · unverified: none
+2026-11-14 — T7 · 0648ad6a · unverified: none

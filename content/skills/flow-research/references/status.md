@@ -33,3 +33,7 @@ Local work
 Recommendation
   1. Promote development → qa: closes COM-829.
 ```
+
+## Find the next ticket
+
+When flow-close's footer reply **Find the next ticket** runs this report, use the cut of the tickets that reuse this session's context: the files, modules and decisions it touched. Leave out the tickets another session has in progress and those opened from this work's findings, unless they are P0 or P1. Recommend the one that reuses the most context, with its task count (from its description or checklist); choosing it starts `flow-research` to assess it. That report's next-step block carries the compaction reply for another work item that the global guidance's «Questions and routes» sets.

@@ -9,6 +9,8 @@ Close is the last step of a piece of work. It moves the ticket, tells you where 
 
 Close starts when work reaches its completion point: the merge into the base branch, or the open pull request when the delivery is `ready` (it stops before the merge for you) or a person asked to review it, or who reviewed it, has not approved its latest commit: the agent does not wait for that approval, it stops and tells you the merge is pending and on whom. With the pull request left open, the ticket stays in progress, the viewer shows the work as in review, and a later session that finds the pull request merged finishes only what waited for the merge: the viewer close, the ticket, the change record and the branch cleanup. It also runs when a one-off operation that leaves nothing in the repository ends, such as a database dump, when you abandon or pause work, when you end the session, or when you ask for a cleanup. Work kept on hold, with nothing committed, is fully closed later, when it is delivered; until then it is paused: the processes and containers it started are stopped and the report lists what is pending. Work paused outside `hold`, such as a plan paused before its build, closes the same way and also versions its change folder.
 
+Close also takes requests to organize existing support material, curate retained evidence, promote a finding into the documentation, apply an approved layout migration, or archive closed sessions you select, through its [support maintenance](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/references/support-maintenance.md) procedure, outside any close.
+
 Example requests:
 
 ```text wrap

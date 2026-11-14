@@ -9,6 +9,8 @@ Verify is the step between a built change and a finished one. [Build](/flows/bui
 
 Verify starts when a candidate exists: commits, or the working tree when your delivery answer is to hold. It follows Build in the same turn, with no command to type, unless you asked to stop after Build or to skip Verify. You can also start it on a change that is already built. Without a candidate, it says what is missing and returns the work to Build.
 
+Verify also answers a walkthrough or demo you ask for of an interface that is already built: it follows only its [walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-verify/references/walkthrough.md), publishing the captures to the [viewer](/viewer/) and walking you through them, without the suite, reviews or delivery.
+
 ```text wrap
 Verify the change on this branch and integrate it if everything passes.
 Skip verify for this one; I will check it myself.
