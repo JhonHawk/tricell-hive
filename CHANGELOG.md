@@ -15,7 +15,7 @@ raise the minor or the patch version.
 - Research audits a codebase when you ask for it, or for what to improve in
   it. It reads the project's check commands and decision records first,
   audits nine categories from the most changed files, opens every cited
-  location before showing a finding, ranks findings by impact for the effort,
+  location before showing a finding, ranks findings by impact, confidence and effort,
   lists ideas for the project's direction apart, and says what it did not
   audit. Findings you reject are remembered per repository and not raised
   again while their code stays the same. The method is inspired by
