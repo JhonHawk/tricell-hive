@@ -32,6 +32,13 @@ inspired the methodology of Hive's UI criteria skill: screen modes, product and
 design records, accessibility minimums and refinement passes. No file or passage
 is redistributed.
 
+## improve
+
+[improve](https://github.com/shadcn/improve) by shadcn (MIT) inspired the
+method of Research's code audit: categories audited in parallel, findings
+checked at the code they cite, ranking by impact and effort, and a record of
+rejected findings. No file or passage is redistributed.
+
 ## DESIGN.md
 
 The [DESIGN.md format](https://github.com/google-labs-code/design.md) from Google

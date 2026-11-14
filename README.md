@@ -395,7 +395,8 @@ lists where each flow loops.
   open question at a time. A complete request is checked and done, or continues into
   Build in the same turn, except a new screen it offers to Figma design first; Plan comes only when the how has a decision for you or the work
   cannot be finished from your request and the `git diff`. It also turns uncertainty into
-  a supported answer and assesses a ticket you pick. An analysis ends at its findings
+  a supported answer, assesses a ticket you pick, and audits the codebase for what to
+  improve when you ask. An analysis ends at its findings
   with no flow recommended. It does not publish to the viewer.
 - [Figma design](https://hive.tricell.tech/flows/figma-design/) ([skill](content/skills/flow-figma-design/SKILL.md)) is an optional
   stage between Research and Plan for a new or recomposed screen: it draws one example
