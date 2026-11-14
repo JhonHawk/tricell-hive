@@ -12,7 +12,7 @@ hold the canonical rules.
 For where each flow loops and where a requested change returns the work, see the [changes and loops overview](/flows/overview/).
 
 - [Status](/flows/status/): report the backlog and unfinished work, read-only, and recommend what to take next.
-- [Research](/flows/research/): investigate an uncertain question and report evidence.
+- [Research](/flows/research/): investigate an uncertain question and report evidence, or audit the codebase for what to improve.
 - [Figma design](/flows/figma-design/): optionally draw a new screen in Figma, reviewed before you see it, and record the approved example.
 - [Plan](/flows/plan/): settle consequential decisions and define verifiable work.
 - [Build](/flows/build/): implement authorized changes and hand over a built candidate.

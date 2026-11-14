@@ -15,6 +15,7 @@ It starts on any request to do work, with no command to type, and when the next 
 - You want to compare two ways of solving a problem, or settle two sources that disagree.
 - You ask whether or how something could be done, such as "can we fix this record?" or "how would we fix it?". That is a question, so the agent looks first and waits for your choice. A polite request that names the action and its target, such as "can you add this user to the repository?", counts as a request for that change.
 - You pick a ticket to work on and want it assessed first.
+- You ask it to audit the codebase, or to find what to improve in it, as [Auditing a codebase](#auditing-a-codebase) describes.
 
 A single lookup that answers the question needs no investigation: the agent reports the answer with its source and any doubt. For the project's status or backlog, use [Status](/flows/status/).
 
@@ -24,6 +25,7 @@ Example requests:
 Investigate why this endpoint times out. Read only; report evidence and options.
 Compare the two queue libraries we could use and tell me which fits this project.
 Assess COM-833 before I start it.
+Audit this codebase and tell me what is worth improving.
 ```
 
 ## What it asks you
@@ -55,6 +57,17 @@ The answer comes in the conversation: what was concluded, the evidence, and what
 Whenever it ends with the command to start Plan, Figma design or Build, or continues into Build, one line estimates the scope: about how many files and which areas the work touches, and which stages and checks it will pass through, such as the plan, per-task verification, a review, CI, and a promotion only when you asked for one. You can narrow it in your reply; the agent then gives the revised line and the same ending again.
 
 Your reply starts only the flow it names. No flow needs a ticket. A single action that needs no flow, such as opening a ticket for work that will be done later or by someone else, is asked directly ("Do you want me to create the ticket?") instead of being sent through a flow command.
+
+## Auditing a codebase
+
+When you ask for an audit of the codebase, or for what to improve in it, without a single question, Research sweeps the repository instead of answering one question. It changes no file.
+
+- It first reads how the project checks itself (the build, test, lint and type-check commands from its CI or scripts) and the decision records it keeps, such as ADRs or specs, so a tradeoff the team already decided is not reported as a problem. A repository with no way to tell whether the code works gets that as its first finding. It runs your tests or a dependency audit only when you ask, since tests can write files and an audit command reaches an outside service, and some send it your dependency list.
+- It audits correctness, security, performance, tests, debt and architecture, dependencies, tooling, docs and direction, starting from the files that change most, or only the categories or area you name. Large audits are split across helper agents by group of categories.
+- Every finding cites the code it is about, with its impact, effort, the risk of fixing it and how sure the agent is. The agent opens each cited place itself before showing you a finding, and drops what turns out to be intended behavior, a wrong location or a duplicate.
+- The findings come in a table ordered by impact, then by how sure the agent is, the effort and the risk of the fix, with what to do first named, ideas about where the project could go listed apart when the audit covers them, and a coverage section that says what was not audited.
+
+It ends at the findings, like any analysis. You can ask for tickets for the findings you pick, which the agent writes so someone who never saw the session can act on them, investigate or plan one finding, fix a confirmed defect, or reject findings. A finding you reject is remembered for that repository and not raised again while its code stays the same.
 
 ## Related flows
 
