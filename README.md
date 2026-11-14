@@ -344,7 +344,7 @@ covers exact revision selection.
 Start where the request belongs. These are available routes, not a mandatory
 sequence for every task. Authorization and preservation apply throughout.
 
-Start each flow by typing its command, such as `/flow-status` or `/flow-plan COM-833`
+Start each flow by typing its command, such as `/flow-research status` or `/flow-plan COM-833`
 (`$flow-plan` in Codex, `/skill:flow-plan` in Pi, `@flow-plan` in OpenCode). A typed
 command loads the skill whole for that flow, which the host's automatic selection does
 not guarantee. A request to do work does not need a command: it enters Research, which
@@ -355,7 +355,7 @@ your go-ahead for the next one, it ends by naming that command.
 ```mermaid
 flowchart TD
     Entry{"What is needed?"}
-    Entry -->|Status or what's next| Status["flow-status"]
+    Entry -->|Status or what's next| Status["flow-research (status)"]
     Entry -->|Any request to do work, a question or a ticket| Research["flow-research"]
     Entry -.->|You ask for a plan| Plan["flow-plan"]
 
@@ -365,8 +365,8 @@ flowchart TD
     Research -->|The how has a decision for you| Plan
     Research -->|The how is settled| Build
     Research -->|An analysis| Findings["Findings, no flow recommended"]
-    Plan --> Build["flow-build<br/><small>tasks · first rendered view (flow-walkthrough)</small>"]
-    Build --> Verify["flow-verify<br/><small>suite · UX review · code review · validation (flow-walkthrough)</small>"]
+    Plan --> Build["flow-build<br/><small>tasks · first rendered view (walkthrough)</small>"]
+    Build --> Verify["flow-verify<br/><small>suite · UX review · code review · validation (walkthrough)</small>"]
     Build -->|Mechanical change| Close
     Verify --> Close["flow-close"]
     Verify -->|Promotion requested| Deploy["flow-deploy"]
@@ -388,7 +388,7 @@ work, and gets its own destination when it is a separate topic; the [shared guid
 classifies it, and the [flows overview](https://hive.tricell.tech/flows/overview/)
 lists where each flow loops.
 
-- Status ([skill](content/skills/flow-status/SKILL.md)) reports the backlog grouped by
+- Status, a mode of Research ([reference](content/skills/flow-research/references/status.md)), reports the backlog grouped by
   module and the unfinished local work, and recommends what to take next. It is read-only.
 - [Research](https://hive.tricell.tech/flows/research/) ([skill](content/skills/flow-research/SKILL.md)) is the entry for every
   request to do work: it settles what you need, reading before it asks and asking one
@@ -533,7 +533,7 @@ flow's brief (research, plan, build, verify, delivery, close, collab or local), 
 names every operation with its flows, `--section rules` prints the shared rules,
 and `--operation NAME` narrows to one operation.
 JSON inputs use `--json FILE` or `--json -`. The
-[publication skill](content/skills/flow-walkthrough/SKILL.md) owns the agent's
+[walkthrough reference](content/skills/flow-verify/references/walkthrough.md) owns the agent's
 procedure; the [viewer manual](https://hive.tricell.tech/viewer/) explains how to
 read and manage published work.
 

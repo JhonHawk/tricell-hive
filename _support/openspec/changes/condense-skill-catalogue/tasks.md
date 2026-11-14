@@ -94,7 +94,7 @@ Base `development` @ bedc9b64, rama `refactor/condense-skill-catalogue`. Todas l
 
 ### T6 — Lista de skills de los pilotos
 
-- [ ] La lista de skills del pilot `deployed-smoke` nombra solo skills que existen
+- [x] La lista de skills del pilot `deployed-smoke` nombra solo skills que existen
 
 **Closes:** AC4
 
@@ -165,3 +165,4 @@ Validación humana: leer el diff de `flow-close/SKILL.md` (el recorte), las desc
 2026-11-14 — T3 · a3654f4f · unverified: none
 2026-11-14 — T4 · b2484d4e · unverified: none
 2026-11-14 — T5 · 58d3f983 · unverified: none
+2026-11-14 — T6 · f28daf3b · unverified: none

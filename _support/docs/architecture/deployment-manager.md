@@ -160,7 +160,7 @@ go run ./tooling/cli view contract [--operation NAME | --for FLOW | --list | --s
 ```
 
 The user starts and stops the service explicitly. Agents publish through
-[flow-walkthrough](../../../content/skills/flow-walkthrough/SKILL.md); the offline
+[walkthrough](../../../content/skills/flow-verify/references/walkthrough.md); the offline
 `hive view contract [--operation NAME | --for FLOW | --list | --section rules]`
 owns exact operations, schemas, authority, limits and examples (compact JSON;
 `--for` gives a per-flow brief under 10,000 bytes). JSON inputs use `--json FILE` or stdin; uploads

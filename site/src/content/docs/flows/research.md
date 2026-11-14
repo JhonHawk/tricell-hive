@@ -17,7 +17,7 @@ It starts on any request to do work, with no command to type, and when the next 
 - You pick a ticket to work on and want it assessed first.
 - You ask it to audit the codebase, or to find what to improve in it, as [Auditing a codebase](#auditing-a-codebase) describes.
 
-A single lookup that answers the question needs no investigation: the agent reports the answer with its source and any doubt. For the project's status or backlog, use [Status](/flows/status/).
+A single lookup that answers the question needs no investigation: the agent reports the answer with its source and any doubt. The project's status or backlog runs as Research's [Status](/flows/status/) mode, and whether a published security advisory affects your repositories as its advisory sweep ([Security review](/flows/security/) describes it).
 
 Example requests:
 

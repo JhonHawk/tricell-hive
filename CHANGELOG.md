@@ -143,6 +143,28 @@ raise the minor or the patch version.
   such as a deployed environment, is reported as not verified. The plan
   coherence check reports a criterion without the marker.
 
+### Removed
+
+- The skill catalogue goes from 20 to 13 skills. Seven skills that sessions
+  rarely loaded, or never invoked by name, become references or modes of the
+  skill that already runs that work, so their descriptions no longer load in
+  every session. Their procedures do not change. The next `hive update`
+  removes the old skills from each host it installs; a project-scope install
+  keeps them until that project is reinstalled.
+  - `flow-walkthrough` → the walkthrough reference of `flow-verify`, which also
+    answers a walkthrough or demo you ask for.
+  - `flow-status` → the status mode of `flow-research`: ask for the status or
+    what comes next, or type `/flow-research status`; `/flow-status` is gone.
+  - `security-advisory` → the advisory sweep of `flow-research`.
+  - `local-instructions` → the local instructions mode of `harness-audit`.
+  - `engram-init-workspace` → the Engram workspace mode of `harness-audit`,
+    still only on explicit request.
+  - `workspace-conventions` → the support maintenance reference of
+    `flow-close`, with `artifact-layout.md`, `archive.md` and the archive
+    helper.
+  - `starlight-docs-site` → the docs-site mode of `flow-report`, with its
+    assets under `assets/starlight/`.
+
 ### Migration
 
 - Change folders in progress receive the new coherence-check finding the next
