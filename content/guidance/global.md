@@ -73,7 +73,7 @@ These rules hold in every mode, including unattended delegation.
 
 ## Support folder (`_support`)
 
-Application code, scripts, and configuration stay in their source locations, even when an agent wrote them, except the local scripts «Local instructions» sets. Supporting artifacts that are not change records go in one support home: `<repo>/_support/` for one repository, the declared `<workspace>/_support/` for work across repositories, or one at a monorepo's root; never infer a workspace from a parent folder, and do not initialize Git. Before writing or cleaning a support artifact, read [artifact layout and retention](skill:workspace-conventions/references/artifact-layout.md). Scratch belongs in the host's temporary location, never the repository root; unique work is not scratch. Local retention is not versioning; eligibility for Git is not authorization to commit or push.
+Application code, scripts, and configuration stay in their source locations, even when an agent wrote them, except the local scripts «Local instructions» sets. Supporting artifacts that are not change records go in one support home: `<repo>/_support/` for one repository, the declared `<workspace>/_support/` for work across repositories, or one at a monorepo's root; never infer a workspace from a parent folder, and do not initialize Git. Before writing or cleaning a support artifact, read [artifact layout and retention](skill:flow-close/references/artifact-layout.md). Scratch belongs in the host's temporary location, never the repository root; unique work is not scratch. Local retention is not versioning; eligibility for Git is not authorization to commit or push.
 
 ## Questions and routes
 

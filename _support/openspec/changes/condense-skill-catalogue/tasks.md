@@ -40,7 +40,7 @@ Base `development` @ bedc9b64, rama `refactor/condense-skill-catalogue`. Todas l
 
 ### T3 — local-instructions y engram-init-workspace pasan a modos de harness-audit
 
-- [ ] La curación de `HIVE.local.md` y la identidad de Engram se leen desde `harness-audit/references/`, la segunda solo a petición explícita
+- [x] La curación de `HIVE.local.md` y la identidad de Engram se leen desde `harness-audit/references/`, la segunda solo a petición explícita
 
 **Closes:** AC1, AC2, AC3, AC4
 
@@ -162,3 +162,4 @@ Validación humana: leer el diff de `flow-close/SKILL.md` (el recorte), las desc
 
 2026-11-14 — T1 · d373e77e · unverified: none
 2026-11-14 — T2 · 47e58ddf · unverified: none
+2026-11-14 — T3 · a3654f4f · unverified: none

@@ -1,15 +1,12 @@
----
-name: workspace-conventions
-description: Organize existing support artifacts, curate retained evidence, promote findings into durable guidance, or archive closed work. Use for these maintenance activities, not routine file placement, resuming a task, or removing the current task's disposable temporaries.
----
+# Support maintenance
 
-# Workspace conventions
+Read from [flow-close](../SKILL.md) when the user asks to organize existing support artifacts, curate retained evidence, promote a finding into durable guidance, apply an approved layout migration from [harness-audit](../../harness-audit/SKILL.md), or archive closed work; not for routine file placement, resuming a task, or removing the current task's disposable temporaries, which flow-close's own steps cover. This procedure replaces the close steps.
 
 Maintain existing work records without losing their provenance or creating competing sources of truth. Apply the project's artifact locations; this procedure does not create a new workspace.
 
 ## Inspect the requested material
 
-Before writing or cleaning a support artifact, read [artifact layout and retention](references/artifact-layout.md).
+Before writing or cleaning a support artifact, read [artifact layout and retention](artifact-layout.md).
 
 Resolve the established support home and current work identifier. Read the relevant records and inspect candidate destinations and links before proposing a reorganization. Limit inventory to the requested scope; do not bulk-read unrelated logs or sensitive files.
 
@@ -21,7 +18,7 @@ Distinguish current knowledge, execution history, reproducible scratch, and uniq
 - **Curate evidence:** retain the smallest useful subset that substantiates the finding. Keep interpretation in Markdown with links to actual evidence. Record observation date and relevant provenance; distinguish a historical snapshot from current state. Preserve unique evidence until the curated replacement is checked. Sensitive evidence stays in an appropriate private location; describe access limits without copying secrets into the report.
 - **Promote a finding:** reconcile it with current sources and the existing durable document, then update that canonical home. Link the originating session and mark historical conclusions as historical or superseded where needed. Keep execution history without leaving two live policies.
 - **Apply a layout migration:** execute an approved migration manifest from the `harness-audit` skill, one repository at a time. Run only its mechanical `git mv`, `mkdir`, and `insert` entries, adding an `insert` line exactly as written after its stated line and skipping it when the file already contains it; stop at `manual` and `ask` entries, update affected links, and verify with `git status`, `git diff -M --stat`, and the manifest's checks. Commit only as the global guidance's «Delivery» answer allows.
-- **Archive closed work:** a closed change folder is archived by [flow-close](../flow-close/SKILL.md). For existing `sessions/` folders the user selects for archival, read and follow [archive](references/archive.md), which defines the closure criteria and the file operation under `sessions/archived/<original-folder>/`.
+- **Archive closed work:** a closed change folder is archived by [flow-close](../SKILL.md). For existing `sessions/` folders the user selects for archival, read and follow [archive](archive.md), which defines the closure criteria and the file operation under `sessions/archived/<original-folder>/`.
 
 ## Apply and verify
 

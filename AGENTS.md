@@ -50,7 +50,7 @@ Sessions in this repository require the deployed Hive global guidance, whose sup
 - Repo-scoped work uses this repository's `_support/`; `_support/workspace/` is git-ignored.
 - When a task involves external reference repositories, inspiration sources, attribution or private project decisions, read `_support/workspace/local-context/reference-sources.local.md` and `decisions.local.md` first. Both are local and untracked: never copy their contents, including the names of the reference repositories, into tracked files.
 - Worktrees go in the host's native path (`.claude/worktrees/`, `.grok/worktrees/`), which `.git/info/exclude` ignores; never create a `../tricell-hive-worktrees` sibling folder, which the user removed.
-- For requested organization of existing material, evidence curation, promotion, or archiving, read `content/skills/workspace-conventions/SKILL.md`.
+- For requested organization of existing material, evidence curation, promotion, or archiving, read `content/skills/flow-close/references/support-maintenance.md`.
 - See `_support/docs/architecture/workspace-and-artifacts.md` for explanations and examples.
 
 ## Scope and preservation

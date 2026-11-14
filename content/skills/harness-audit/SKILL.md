@@ -9,11 +9,11 @@ When the user asks to create, bootstrap, review or prune `HIVE.local.md`, read [
 
 Audit what coding-agent hosts actually load and whether each instruction, skill, or agent earns its place. Report findings with evidence, ask the decisions they need, and, after the user's answer, apply the accepted outcomes in the current project as [apply](references/apply.md) sets.
 
-A role launched read-only, such as `hive-review-harness`, or a delegated auditor edits nothing: it returns findings, decisions and any migration manifest to its parent, which asks and applies. In the main thread, write only what [apply](references/apply.md) allows after the user's answer, the entries of the project's `HIVE.local.md` and of the machine file that the global guidance's «Local instructions» authorizes, plus an approved migration manifest, whose mechanical entries run through the `workspace-conventions` procedure for applying a layout migration, stopping at `manual` and `ask` entries. Do not edit configuration outside the project or trackers; the machine file of «Local instructions» is not configuration.
+A role launched read-only, such as `hive-review-harness`, or a delegated auditor edits nothing: it returns findings, decisions and any migration manifest to its parent, which asks and applies. In the main thread, write only what [apply](references/apply.md) allows after the user's answer, the entries of the project's `HIVE.local.md` and of the machine file that the global guidance's «Local instructions» authorizes, plus an approved migration manifest, whose mechanical entries run through the layout migration of flow-close's [support maintenance](../flow-close/references/support-maintenance.md), stopping at `manual` and `ask` entries. Do not edit configuration outside the project or trackers; the machine file of «Local instructions» is not configuration.
 
 ## Scope
 
-Before applying an outcome that writes `Specs`, creates a specs directory, or creates or continues a change record, read [change folder](../flow-plan/SKILL.md#change-folder); before writing or cleaning supporting artifacts, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md). An audit that applies nothing needs neither.
+Before applying an outcome that writes `Specs`, creates a specs directory, or creates or continues a change record, read [change folder](../flow-plan/SKILL.md#change-folder); before writing or cleaning supporting artifacts, read [artifact layout and retention](../flow-close/references/artifact-layout.md). An audit that applies nothing needs neither.
 
 Establish before reading deeply:
 

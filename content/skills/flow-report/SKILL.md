@@ -5,7 +5,7 @@ description: Create a visual HTML report, printable paper, comparison, explainer
 
 # Durable reports
 
-Before writing the support deliverable, read [artifact layout and retention](../workspace-conventions/references/artifact-layout.md).
+Before writing the support deliverable, read [artifact layout and retention](../flow-close/references/artifact-layout.md).
 
 Use this skill when the requested deliverable benefits from an explicit visual or printable presentation. A request to save findings for later does not by itself call for HTML: keep resumable research in a Markdown work record, placed where that reference puts research records. Preserve an explicitly requested format. Keep ordinary answers, status updates, and ordinary handoffs out of HTML; viewer publication belongs to [walkthrough](../flow-verify/references/walkthrough.md), not these report assets. The global guidance's «Questions and routes» section shapes chat replies.
 
