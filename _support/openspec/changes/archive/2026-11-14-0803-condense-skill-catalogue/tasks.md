@@ -130,7 +130,7 @@ Base `development` @ bedc9b64, rama `refactor/condense-skill-catalogue`. Todas l
 
 ### T8 — Observar el retiro en la instalación local
 
-- [ ] Tras el merge, la instalación local de esta máquina ya no tiene las 7 skills y sí las referencias nuevas
+- [x] Tras el merge, la instalación local de esta máquina ya no tiene las 7 skills y sí las referencias nuevas
 
 **Closes:** AC5
 
@@ -184,3 +184,4 @@ Validación humana: leer el diff de `flow-close/SKILL.md` (el recorte), las desc
 2026-11-14 — T5 · 58d3f983 · unverified: none
 2026-11-14 — T6 · f28daf3b · unverified: none
 2026-11-14 — T7 · 0648ad6a · unverified: none
+2026-11-14 — T8 · f670577f · unverified: none

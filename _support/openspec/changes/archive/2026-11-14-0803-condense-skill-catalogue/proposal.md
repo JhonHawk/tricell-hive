@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | Completado · PR #473, f670577f |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` @ bedc9b64 · rama propuesta `refactor/condense-skill-catalogue` |
 
