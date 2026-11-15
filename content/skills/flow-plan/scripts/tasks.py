@@ -6,6 +6,7 @@ Usage:
   python3 -I tasks.py <change-folder> done T<n> --commit <sha>|none --unverified "<text>|none"
   python3 -I tasks.py <change-folder> checkpoint --stage <stage> --step <step> --commit <sha>|none
           --next "<action>" [--finding "<ID: decision>"]... [--check "<command> · <result> · <commit>"]...
+          [--worktree "<path> · <branch>"]
 
 A task is a `### T<n> — <title>` heading; its boxes are the `- [ ]` and `- [x]`
 lines up to the next `##` or `###` heading.
@@ -16,7 +17,9 @@ lines up to the next `##` or `###` heading.
   and prints `✓ T<n> · <tasks done>/<tasks> · <title>`.
 - checkpoint: writes or replaces `## Checkpoint`, just before the progress section,
   with the fixed lines Updated, Stage (stage and step), Last commit, Open findings and
-  Next, followed by `### Evidence`. Existing evidence lines are kept; each --check adds one.
+  Next, then `- Worktree: <path> · <branch>` when --worktree was given now or before,
+  followed by `### Evidence`. Existing evidence lines and the Worktree line are kept;
+  each --check adds one, a new --worktree replaces it and --worktree none removes it.
 
 Writes tasks.md directly. Exit status: 0 on success, 2 when the arguments are invalid,
 the folder or tasks.md cannot be read or written, the task does not exist, or the
@@ -180,12 +183,15 @@ def cmd_done(lines, args):
 
 def cmd_checkpoint(lines, args):
     kept = []
+    worktree = args.worktree
     existing = section_bounds(lines, CHECKPOINT)
     if existing:
         start, end = existing
         inside = False
         for line in lines[start + 1:end]:
-            if EVIDENCE.match(line):
+            if worktree is None and not inside and line.startswith("- Worktree: "):
+                worktree = line[len("- Worktree: "):]
+            elif EVIDENCE.match(line):
                 inside = True
             elif HEADING.match(line):
                 inside = False
@@ -204,6 +210,7 @@ def cmd_checkpoint(lines, args):
         f"- Last commit: {args.commit}",
         f"- Open findings: {findings}",
         f"- Next: {args.next}",
+        *([f"- Worktree: {worktree}"] if worktree and worktree != "none" else []),
         "",
         "### Evidence",
         "",
@@ -239,6 +246,7 @@ def build_parser():
     cp.add_argument("--next", required=True, type=single_line)
     cp.add_argument("--finding", action="append", default=[], type=single_line)
     cp.add_argument("--check", action="append", default=[], type=single_line)
+    cp.add_argument("--worktree", type=single_line, help="'<path> · <branch>' of the work's worktree, kept by later calls; 'none' removes it")
     return parser
 
 
