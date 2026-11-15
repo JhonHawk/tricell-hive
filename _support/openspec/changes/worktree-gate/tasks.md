@@ -263,10 +263,10 @@ Entrega `automatic` (D3 B): sin parada de validación.
 ## Checkpoint
 
 - Updated: 2026-11-15
-- Stage: verify · round 1 fixed (be7ab2ef); second review running
-- Last commit: be7ab2ef
-- Open findings: CR-10 children cannot run checks on the base: accepted cost of D6 A, reported
-- Next: settle second /code-review, full suite, push, PR, merge, hive update, T6
+- Stage: verify · suite green on 82dec2ab; integrating
+- Last commit: 82dec2ab
+- Open findings: CR-10 children cannot run checks on the base: accepted cost of D6 A
+- Next: push, PR, merge, hive update, then T6
 
 ### Evidence
 
@@ -278,6 +278,10 @@ Entrega `automatic` (D3 B): sin parada de validación.
 - go test ./tests/content/... · pass · be7ab2ef
 - python3 -m unittest tests.skills.tasks_test · OK · be7ab2ef
 - pnpm --dir site run build · pass · be7ab2ef
+- go test ./... · 22 ok · 82dec2ab
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · 90 OK · 82dec2ab
+- pnpm --dir site run build · pass · 82dec2ab
+- pnpm --dir site run check · 0 errors · 82dec2ab
 
 ## Review status and progress
 
