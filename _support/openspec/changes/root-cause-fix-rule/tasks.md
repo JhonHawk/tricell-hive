@@ -96,10 +96,10 @@ Base `development` en `6746ceee`, rama `feat/root-cause-fix-rule`. Todas las tar
 ## Checkpoint
 
 - Updated: 2026-11-15
-- Stage: build · 5
-- Last commit: 665991d4
+- Stage: verify · 6
+- Last commit: a28d9521
 - Open findings: none
-- Next: flow-verify: /code-review on candidate, whole-behavior review, then ready PR
+- Next: push, open ready PR to development, stop for the user to merge
 
 ### Evidence
 
@@ -107,6 +107,11 @@ Base `development` en `6746ceee`, rama `feat/root-cause-fix-rule`. Todas las tar
 - go test ./... · all packages ok · 665991d4
 - pnpm --dir site check/lint/build · 0 errors, 18 pages · 665991d4
 - CI: only master-source-branch.yml (PRs to master); none runs on a PR to development
+- go vet ./... · exit 0 · 5072d966
+- go test ./... · exit 0, 22 packages ok · 5072d966
+- pnpm --dir site check/lint/build · exit 0 · 5072d966
+- /code-review high · 665991d4: 10 findings, 8 blocking fixed in 633ed0e8; 633ed0e8: 10 findings, 6 blocking fixed in 5072d966 (Unreviewed)
+- go test ./tests/content/ and ./tooling/management -run Anchor|Reference · exit 0 · a28d9521
 
 ## Review status and progress
 
