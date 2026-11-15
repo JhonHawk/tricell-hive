@@ -1,6 +1,6 @@
 # Delegation
 
-Read before deciding whether a child does a piece of work, in any flow, and before briefing one. What a child may do is the delegation rule of the global guidance's «Scope and authorization».
+Read before deciding whether a child does a piece of work, in any flow, and before briefing or waiting for one. What a child may do is the delegation rule of the global guidance's «Scope and authorization».
 
 ## When a child does the work
 
