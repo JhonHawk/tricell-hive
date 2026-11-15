@@ -111,7 +111,7 @@ El archivo debe quedar por debajo de los 15957 bytes actuales.
 
 ### T4 — Delta de spec, sitio y documentación de arquitectura
 
-- [ ] El delta de `workflow-lifecycle` refleja la pregunta y el directorio de trabajo; el sitio y `workspace-and-artifacts.md` los describen.
+- [x] El delta de `workflow-lifecycle` refleja la pregunta y el directorio de trabajo; el sitio y `workspace-and-artifacts.md` los describen.
 
 **Closes:** AC5
 
@@ -136,7 +136,7 @@ El archivo debe quedar por debajo de los 15957 bytes actuales.
 
 ### T5 — Revisión completa de la conducta y suite
 
-- [ ] Cada lugar que dependía de los criterios, de la ubicación o del registro en memoria está actualizado o justificado, y la suite pasa.
+- [x] Cada lugar que dependía de los criterios, de la ubicación o del registro en memoria está actualizado o justificado, y la suite pasa.
 
 **Closes:** AC1, AC2, AC3, AC4
 
@@ -152,7 +152,7 @@ El archivo debe quedar por debajo de los 15957 bytes actuales.
 
 **Verification:**
 - `rg -n -i "worktree" content/ site/ _support/docs/ _support/openspec/specs/`, revisado línea a línea.
-- `go test ./...` y `python3 -m unittest discover tests/skills` pasan.
+- `go test ./...` y `python3 -m unittest discover -s tests/skills -p '*_test.py'` pasan.
 
 ### T6 — Inventario, clasificación y respaldo de las memorias de worktree (tras desplegar)
 
@@ -254,7 +254,7 @@ Antes de leer cada almacén se aplica la sección «Secrets» de la guía global
 | Check | Cuándo y dónde | Evidencia | Autorización |
 | --- | --- | --- | --- |
 | Checks de cada tarea | Al cerrar cada tarea, en local | El comando de la tarea pasa | Cubierto por la implementación |
-| Suite completa | Candidato final, en local | `go test ./...`; `pnpm --dir site run build`; `pnpm --dir site run check`; `python3 -m unittest discover tests/skills` | Cubierto por la implementación |
+| Suite completa | Candidato final, en local | `go test ./...`; `pnpm --dir site run build`; `pnpm --dir site run check`; `python3 -m unittest discover -s tests/skills -p '*_test.py'` | Cubierto por la implementación |
 | Revisión de código | Candidato final, antes del push | Claude Code `/code-review` (D4 A) | La respuesta de revisión |
 | Despliegue local | Tras integrar en `development` | `hive update --source <checkout> --out <plan>` y `hive apply --plan <plan>`; sobre los skills instalados, `rg -F` de "user's decision whether", "native worktree location", "own directory option" y `--worktree` | Checkout de mantenedor: actualizar la instalación al integrar |
 
@@ -262,7 +262,19 @@ Entrega `automatic` (D3 B): sin parada de validación.
 
 ## Checkpoint
 
-<Lo escribe `scripts/tasks.py checkpoint`.>
+- Updated: 2026-11-15
+- Stage: build · T5 done; T6-T8 after merge and hive update
+- Last commit: 3f98f048
+- Open findings: none
+- Next: flow-verify: /code-review, then push, PR, merge, hive update, T6
+
+### Evidence
+
+- go test ./... · pass (4m17s) · 3f98f048
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · 90 tests OK · 3f98f048
+- pnpm --dir site run build · pass · 3f98f048
+- pnpm --dir site run check · 0 errors · 3f98f048
+- check_change.py worktree-gate · exit 0 · 3f98f048
 
 ## Review status and progress
 
@@ -281,3 +293,5 @@ No invalida tareas hechas (ninguna lo está).
 2026-11-15 — T1 · cbb79dd4 · unverified: AC1/AC2 in installed copies until hive update
 2026-11-15 — T2 · f7dfb692 · unverified: AC3 in installed copies until hive update
 2026-11-15 — T3 · 891d71c9 · unverified: AC4 in installed copies until hive update
+2026-11-15 — T4 · 3f98f048 · unverified: none
+2026-11-15 — T5 · 3f98f048 · unverified: none

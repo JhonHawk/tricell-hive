@@ -35,7 +35,7 @@
 
 ## Checkpoint
 
-<Written by `scripts/tasks.py checkpoint`: Updated, Stage, Last commit, Open findings, Next, then `### Evidence` with the checks recorded so far.>
+<Written by `scripts/tasks.py checkpoint`: Updated, Stage, Last commit, Open findings, Next, Worktree when the work has one (`- Worktree: <path> · <branch>`), then `### Evidence` with the checks recorded so far.>
 
 ## Review status and progress
 

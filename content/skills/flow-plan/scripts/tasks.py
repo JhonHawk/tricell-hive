@@ -6,6 +6,7 @@ Usage:
   python3 -I tasks.py <change-folder> done T<n> --commit <sha>|none --unverified "<text>|none"
   python3 -I tasks.py <change-folder> checkpoint --stage <stage> --step <step> --commit <sha>|none
           --next "<action>" [--finding "<ID: decision>"]... [--check "<command> · <result> · <commit>"]...
+          [--worktree "<path> · <branch>"]
 
 A task is a `### T<n> — <title>` heading; its boxes are the `- [ ]` and `- [x]`
 lines up to the next `##` or `###` heading.
@@ -16,7 +17,9 @@ lines up to the next `##` or `###` heading.
   and prints `✓ T<n> · <tasks done>/<tasks> · <title>`.
 - checkpoint: writes or replaces `## Checkpoint`, just before the progress section,
   with the fixed lines Updated, Stage (stage and step), Last commit, Open findings and
-  Next, followed by `### Evidence`. Existing evidence lines are kept; each --check adds one.
+  Next, then `- Worktree: <path> · <branch>` when --worktree was given now or before,
+  followed by `### Evidence`. Existing evidence lines and the Worktree line are kept;
+  each --check adds one and a new --worktree replaces it.
 
 Writes tasks.md directly. Exit status: 0 on success, 2 when the arguments are invalid,
 the folder or tasks.md cannot be read or written, the task does not exist, or the
