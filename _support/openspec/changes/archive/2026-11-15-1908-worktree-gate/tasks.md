@@ -156,7 +156,7 @@ El archivo debe quedar por debajo de los 15957 bytes actuales.
 
 ### T6 — Inventario, clasificación y respaldo de las memorias de worktree (tras desplegar)
 
-- [ ] Existe la lista de registros y pasajes con una ruta de worktree, dividida en "borrar" y "quitar la ruta" (D5 A) y validada por el usuario, con respaldo y una restauración probada.
+- [x] Existe la lista de registros y pasajes con una ruta de worktree, dividida en "borrar" y "quitar la ruta" (D5 A) y validada por el usuario, con respaldo y una restauración probada.
 
 **Closes:** AC6, AC7
 
@@ -202,7 +202,7 @@ Antes de leer cada almacén se aplica la sección «Secrets» de la guía global
 
 ### T7 — Aplicar la lista validada en Engram
 
-- [ ] Los registros del grupo "borrar" quedan borrados de forma recuperable; los del grupo "quitar la ruta" conservan su id y su contenido sin la ruta.
+- [x] Los registros del grupo "borrar" quedan borrados de forma recuperable; los del grupo "quitar la ruta" conservan su id y su contenido sin la ruta.
 
 **Closes:** AC6
 
@@ -227,7 +227,7 @@ Antes de leer cada almacén se aplica la sección «Secrets» de la guía global
 
 ### T8 — Limpiar las memorias de los hosts
 
-- [ ] Los pasajes aprobados en T6 ya no están en Claude Code ni en Grok, y existe la nota de Codex que los pide quitar.
+- [x] Los pasajes aprobados en T6 ya no están en Claude Code ni en Grok, y existe la nota de Codex que los pide quitar.
 
 **Closes:** AC7
 
@@ -263,10 +263,10 @@ Entrega `automatic` (D3 B): sin parada de validación.
 ## Checkpoint
 
 - Updated: 2026-11-15
-- Stage: verify · suite green on 82dec2ab; integrating
-- Last commit: 82dec2ab
-- Open findings: CR-10 children cannot run checks on the base: accepted cost of D6 A
-- Next: push, PR, merge, hive update, then T6
+- Stage: close · archive
+- Last commit: 86cf5b1b
+- Open findings: H27: children cannot run checks on base (accepted cost of D6 A, P3)
+- Next: archive PR, delete feat/worktree-gate, remove scratchpad temporaries
 
 ### Evidence
 
@@ -282,6 +282,9 @@ Entrega `automatic` (D3 B): sin parada de validación.
 - python3 -m unittest discover -s tests/skills -p '*_test.py' · 90 OK · 82dec2ab
 - pnpm --dir site run build · pass · 82dec2ab
 - pnpm --dir site run check · 0 errors · 82dec2ab
+- engram import restore test on store copy · not restored · 86cf5b1b
+- mem_update find/replace on throwaway 17640 · same id, version kept, hard-deleted after · 86cf5b1b
+- installed copies AC1-AC4 rg · pass · 86cf5b1b
 
 ## Review status and progress
 
@@ -303,3 +306,6 @@ No invalida tareas hechas (ninguna lo está).
 2026-11-15 — T4 · 3f98f048 · unverified: none
 2026-11-15 — T5 · 3f98f048 · unverified: none
 2026-11-15 — Verify: two /code-review rounds fixed (be7ab2ef and the next commit); T5's suite evidence at 3f98f048 is superseded by the rerun on the final candidate. AC1–AC4 stay unverified in installed copies until hive update.
+2026-11-15 — T7 · uncommitted · unverified: none
+2026-11-15 — T8 · uncommitted · unverified: Codex applies the note when it consolidates; Grok may relearn from later sessions
+2026-11-15 — T6 · uncommitted · unverified: restore of a soft-delete only by SQL deleted_at=NULL; engram import does not restore
