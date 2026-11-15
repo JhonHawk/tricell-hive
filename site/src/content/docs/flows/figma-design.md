@@ -7,9 +7,9 @@ Figma design settles what a screen looks like before the work is planned. The ag
 
 ## When to use
 
-[Research](/flows/research/) recommends this stage in its next-step block when the host has a connection that can write to Figma and the work brings a new screen, even one whose layout your existing screens already set and even when the change would otherwise go straight to Build, or changes an existing screen by adding, removing or moving a region whose composition nothing fixes. That holds after assessing a ticket too. A change that keeps the screen's layout, such as a button, a copy, a field or a column, gets no recommendation, and neither does work that runs [unattended](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md). You can also type the command yourself, or ask for a design as the deliverable, such as replicating a screen in Figma.
+[Research](/flows/research/) recommends this stage in its next-step block, naming your Figma file, when the host has a connection that can write to Figma, that file is known (you named it in the conversation, your app's `DESIGN.md` declares it, or the project's memory records it), and the work brings a new screen, even one whose layout your existing screens already set and even when the change would otherwise go straight to Build, or changes an existing screen by adding, removing or moving a region whose composition nothing fixes. That holds after assessing a ticket too. A change that keeps the screen's layout, such as a button, a copy, a field or a column, gets no recommendation, and neither does work that runs [unattended](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md). You can also type the command yourself, or ask for a design as the deliverable, such as replicating a screen in Figma.
 
-Without a Figma connection there is no stage: the work goes from Research to [Plan](/flows/plan/), which draws its sketches in text.
+Without a Figma connection, or without a known Figma file, Research does not offer the stage: the work goes from Research to [Plan](/flows/plan/), which draws its sketches in text. Typing the command yourself still runs it, and it asks you for the file.
 
 Example requests:
 

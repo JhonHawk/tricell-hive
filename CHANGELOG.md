@@ -103,6 +103,12 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Research offers the Figma design stage only when your project's Figma file is
+  known: you named it in the conversation, your app's `DESIGN.md` declares it,
+  or the project's memory records it. The offer names that file and passes its
+  link in the command. Without a known file the work goes to the plan with text
+  sketches, as it does without a Figma connection.
+
 - `HIVE.local.md`: an entry is now one line of at most 200 characters that
   says what the machine or the project has, lacks, uses or needs, or a limitation of
   a tool with its workaround, with the date it was verified. Steps and commands
