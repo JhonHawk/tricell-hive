@@ -81,7 +81,7 @@ El archivo debe quedar por debajo de los 15957 bytes actuales.
 
 ### T3 — Checkpoint, cierre, delegación y roles: el worktree se encuentra sin registro en memoria
 
-- [ ] El checkpoint nombra el worktree. Si no hay checkpoint, se encuentra con `git worktree list`. El barrido de `branch-cleanup` tiene una fuente coherente. Los hijos y roles siguen lo que fije D6.
+- [x] El checkpoint nombra el worktree. Si no hay checkpoint, se encuentra con `git worktree list`. El barrido de `branch-cleanup` tiene una fuente coherente. Los hijos y roles siguen lo que fije D6.
 
 **Closes:** AC4
 
@@ -280,3 +280,4 @@ Entrega `automatic` (D3 B): sin parada de validación.
 No invalida tareas hechas (ninguna lo está).
 2026-11-15 — T1 · cbb79dd4 · unverified: AC1/AC2 in installed copies until hive update
 2026-11-15 — T2 · f7dfb692 · unverified: AC3 in installed copies until hive update
+2026-11-15 — T3 · 891d71c9 · unverified: AC4 in installed copies until hive update
