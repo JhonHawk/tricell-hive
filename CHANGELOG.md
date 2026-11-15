@@ -13,14 +13,16 @@ raise the minor or the patch version.
 ### Added
 
 - Build fixes a defect at its cause: it names the cause before editing and
-  fixes it there with the smallest change, does not count a guard, retry or
-  fallback where the symptom showed as a fix unless that state is legitimate,
-  asks you before a workaround when the cause needs another repository, a
-  contract or stored data, and marks and reports each workaround, with a
-  ticket proposed for the cause. Reuse
-  no longer copies an existing workaround, the verification round fixes a
-  defect at its cause, and the code review checks both. Build's stored-data
-  and security rules moved to references of their own.
+  fixes it there, in any module of the repository, with the smallest change.
+  A guard, retry or fallback where the symptom showed is not a fix unless the
+  contract allows that state or it comes from untrusted input. It asks you
+  before a workaround when the cause needs a repository outside the project, a
+  contract, stored data or a larger change, and marks and reports each
+  workaround or incident mitigation that changes code, with a ticket proposed
+  for the cause. Reuse no longer copies an existing workaround, the
+  verification round fixes a defect at its cause, and the code review checks
+  both. Build's stored-data and security rules moved to references of their
+  own.
 
 - Research audits a codebase when you ask for it, or for what to improve in
   it. It reads the project's check commands and decision records first,

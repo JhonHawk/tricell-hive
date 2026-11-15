@@ -4,7 +4,7 @@ Base `development` en `6746ceee`, rama `feat/root-cause-fix-rule`. Todas las tar
 
 ### T1 — Regla de arreglo en la causa y sus punteros
 
-- [x] `flow-build/references/defect-fix.md` existe con la regla de `design.md` «Proposed shape»
+- [x] `flow-build/references/defect-fix.md` existe con la regla de AC7
 - [x] `flow-build/SKILL.md` la enlaza en el paso 2 y en «Reuse before writing» (tarea o enfoque), y el peldaño 2 excluye copiar un parche
 - [x] `flow-verify/SKILL.md` paso 3 la enlaza como excepción a «Fix only what each finding names»
 - [x] `flow-deploy/references/urgent-fixes.md` la enlaza para la mitigación de un incidente
