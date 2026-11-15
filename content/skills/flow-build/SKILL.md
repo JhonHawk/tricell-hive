@@ -28,7 +28,7 @@ Between tasks, continue with the next tool call instead of ending the turn with 
 Read before writing new code in a task, and when [flow-plan](../flow-plan/SKILL.md) step 2 weighs approaches. A task or an approach that fixes a defect first reads [defect fix](references/defect-fix.md). Take the first rung that fully does what the task needs:
 
 1. It need not exist: leave out features, options and flexibility the request does not name, and name them in the report.
-2. The codebase already has it, such as a helper, component or pattern: use it as the surrounding code does, unless it is a workaround, such as one a comment marks or a guard for a state that should never exist: do not copy it, and name it in the report.
+2. The codebase already has it, such as a helper, component or pattern: use it as the surrounding code does, unless it is a workaround, such as one a comment marks or a guard for a state the code's contract forbids: do not copy it, and name it in the report.
 3. The standard library or a platform feature does it, such as a native input type or a database constraint, unless the project has its own; a design-system component beats a native control.
 4. An installed dependency does it.
 5. Only then write new code, or add a dependency after the global guidance's package check, and say in the plan's approach or the report why rungs 2 to 4 do not fit.

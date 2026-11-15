@@ -9,7 +9,7 @@ Base `development` en `6746ceee`, rama `feat/root-cause-fix-rule`. Todas las tar
 - [x] `flow-verify/SKILL.md` paso 3 la enlaza como excepción a «Fix only what each finding names»
 - [x] `flow-deploy/references/urgent-fixes.md` la enlaza para la mitigación de un incidente
 
-**Closes:** AC1, AC2, AC3
+**Closes:** AC2, AC3, AC7
 
 **Depends on:** none
 
@@ -65,10 +65,10 @@ Base `development` en `6746ceee`, rama `feat/root-cause-fix-rule`. Todas las tar
 
 ### T4 — Sitio, índice de recursos y changelog
 
-- [ ] `site/src/content/docs/flows/build.md` describe el arreglo en la causa y el parche marcado, con enlace a `defect-fix.md`, y la línea de reutilización dice que no copia un parche
-- [ ] `site/src/content/docs/flows/verify.md` revisado; ajustado si describe el arreglo de la ronda
-- [ ] `_support/docs/architecture/instruction-resources.md` lista las tres referencias nuevas con su dueño y condición
-- [ ] `CHANGELOG.md` tiene la entrada bajo `[Unreleased]`
+- [x] `site/src/content/docs/flows/build.md` describe el arreglo en la causa y el parche marcado, con enlace a `defect-fix.md`, y la línea de reutilización dice que no copia un parche
+- [x] `site/src/content/docs/flows/verify.md` revisado; ajustado si describe el arreglo de la ronda
+- [x] `_support/docs/architecture/instruction-resources.md` lista las tres referencias nuevas con su dueño y condición
+- [x] `CHANGELOG.md` tiene la entrada bajo `[Unreleased]`
 
 **Closes:** AC6
 
@@ -95,8 +95,22 @@ Base `development` en `6746ceee`, rama `feat/root-cause-fix-rule`. Todas las tar
 
 ## Checkpoint
 
+- Updated: 2026-11-15
+- Stage: build · 5
+- Last commit: 665991d4
+- Open findings: none
+- Next: flow-verify: /code-review on candidate, whole-behavior review, then ready PR
+
+### Evidence
+
+- go vet ./... · clean · 665991d4
+- go test ./... · all packages ok · 665991d4
+- pnpm --dir site check/lint/build · 0 errors, 18 pages · 665991d4
+- CI: only master-source-branch.yml (PRs to master); none runs on a PR to development
+
 ## Review status and progress
 
 2026-11-15 — T1 · a5ec06a8 · unverified: none
 2026-11-15 — T2 · a5ec06a8 · unverified: none
 2026-11-15 — T3 · 0fa1456f · unverified: none
+2026-11-15 — T4 · 665991d4 · unverified: none

@@ -15,8 +15,9 @@ raise the minor or the patch version.
 - Build fixes a defect at its cause: it names the cause before editing and
   fixes it there with the smallest change, does not count a guard, retry or
   fallback where the symptom showed as a fix unless that state is legitimate,
-  and marks and reports a workaround, with a ticket proposed for the cause,
-  when the cause lies outside the work or an incident needs mitigation. Reuse
+  asks you before a workaround when the cause needs another repository, a
+  contract or stored data, and marks and reports each workaround, with a
+  ticket proposed for the cause. Reuse
   no longer copies an existing workaround, the verification round fixes a
   defect at its cause, and the code review checks both. Build's stored-data
   and security rules moved to references of their own.
