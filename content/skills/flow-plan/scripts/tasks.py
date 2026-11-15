@@ -19,7 +19,7 @@ lines up to the next `##` or `###` heading.
   with the fixed lines Updated, Stage (stage and step), Last commit, Open findings and
   Next, then `- Worktree: <path> · <branch>` when --worktree was given now or before,
   followed by `### Evidence`. Existing evidence lines and the Worktree line are kept;
-  each --check adds one and a new --worktree replaces it.
+  each --check adds one, a new --worktree replaces it and --worktree none removes it.
 
 Writes tasks.md directly. Exit status: 0 on success, 2 when the arguments are invalid,
 the folder or tasks.md cannot be read or written, the task does not exist, or the
@@ -210,7 +210,7 @@ def cmd_checkpoint(lines, args):
         f"- Last commit: {args.commit}",
         f"- Open findings: {findings}",
         f"- Next: {args.next}",
-        *([f"- Worktree: {worktree}"] if worktree else []),
+        *([f"- Worktree: {worktree}"] if worktree and worktree != "none" else []),
         "",
         "### Evidence",
         "",
@@ -246,7 +246,7 @@ def build_parser():
     cp.add_argument("--next", required=True, type=single_line)
     cp.add_argument("--finding", action="append", default=[], type=single_line)
     cp.add_argument("--check", action="append", default=[], type=single_line)
-    cp.add_argument("--worktree", type=single_line, help="'<path> · <branch>' of the work's worktree; later calls keep it")
+    cp.add_argument("--worktree", type=single_line, help="'<path> · <branch>' of the work's worktree, kept by later calls; 'none' removes it")
     return parser
 
 

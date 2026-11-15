@@ -65,7 +65,7 @@ El archivo debe quedar por debajo de los 15957 bytes actuales.
 
 **Changes:**
 - **Nueva invariante en `global.md`.** Un comando que actúa sobre un repositorio (gestor de paquetes, build, test, Git) recibe el repositorio o worktree del cambio por ruta absoluta.
-  - Formas: la "own directory option" de la herramienta (`git -C`, `pnpm --dir`, `go -C`), argumentos absolutos, o `cd <ruta absoluta> && <comando>` en la misma llamada.
+  - Formas: la "own directory option" de la herramienta (`git -C`, `pnpm --dir`, `go -C`); solo para una herramienta sin ella, `cd <ruta absoluta> && <comando>` en la misma llamada o, donde el host lo rechaza, rutas absolutas a los archivos que lee. Nunca argumentos absolutos que el gestor de paquetes lea como paquete.
   - Nunca se apoya en un `cd` de una llamada anterior: en un hijo, el directorio vuelve al de inicio entre llamadas.
   - Nunca desde la raíz de un workspace declarado ni tras una "chain of relative" `cd ..`.
   - Un cambio que abarca varios repositorios ejecuta cada comando en el suyo.
@@ -263,10 +263,10 @@ Entrega `automatic` (D3 B): sin parada de validación.
 ## Checkpoint
 
 - Updated: 2026-11-15
-- Stage: build · T5 done; T6-T8 after merge and hive update
-- Last commit: 3f98f048
-- Open findings: none
-- Next: flow-verify: /code-review, then push, PR, merge, hive update, T6
+- Stage: verify · round 1 fixed (be7ab2ef); second review running
+- Last commit: be7ab2ef
+- Open findings: CR-10 children cannot run checks on the base: accepted cost of D6 A, reported
+- Next: settle second /code-review, full suite, push, PR, merge, hive update, T6
 
 ### Evidence
 
@@ -275,6 +275,9 @@ Entrega `automatic` (D3 B): sin parada de validación.
 - pnpm --dir site run build · pass · 3f98f048
 - pnpm --dir site run check · 0 errors · 3f98f048
 - check_change.py worktree-gate · exit 0 · 3f98f048
+- go test ./tests/content/... · pass · be7ab2ef
+- python3 -m unittest tests.skills.tasks_test · OK · be7ab2ef
+- pnpm --dir site run build · pass · be7ab2ef
 
 ## Review status and progress
 
@@ -295,3 +298,4 @@ No invalida tareas hechas (ninguna lo está).
 2026-11-15 — T3 · 891d71c9 · unverified: AC4 in installed copies until hive update
 2026-11-15 — T4 · 3f98f048 · unverified: none
 2026-11-15 — T5 · 3f98f048 · unverified: none
+2026-11-15 — Verify: two /code-review rounds fixed (be7ab2ef and the next commit); T5's suite evidence at 3f98f048 is superseded by the rerun on the final candidate. AC1–AC4 stay unverified in installed copies until hive update.

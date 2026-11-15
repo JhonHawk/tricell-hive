@@ -195,6 +195,10 @@ class TasksScriptTest(unittest.TestCase):
             self.assertEqual(text.count("- Worktree:"), 1)
             self.assertIn("- Worktree: /repo/.claude/worktrees/w2 · feat/w2", text)
 
+            fourth = self.checkpoint(change, "close", "cleanup", "archive", "--worktree", "none")
+            self.assertEqual(fourth.returncode, 0, fourth.stderr)
+            self.assertNotIn("- Worktree:", self.text(change))
+
     def test_check_change_exits_0_when_the_checkpoint_names_a_replaced_decision(self):
         proposal = textwrap.dedent(
             """\
