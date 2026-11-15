@@ -15,7 +15,7 @@ Hive's flows are not a one-way line. Work loops back when a check fails, when a 
 | [Plan](/flows/plan/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/SKILL.md)) | Settles the how: presents approaches, resolves the decisions and splits the work into verifiable tasks. |
 | [Build](/flows/build/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-build/SKILL.md)) | Makes the change and hands over a built candidate. |
 | [Verify](/flows/verify/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-verify/SKILL.md)) | Checks the candidate with evidence, asks for your validation and integrates it. |
-| [Close](/flows/close/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/SKILL.md)) | Moves the ticket, writes the work's business rules to it and reports, then ends with a footer; the record archive and cleanup run on your reply. |
+| [Close](/flows/close/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/SKILL.md)) | Moves the ticket, writes the work's business rules to it and reports, then ends with a footer; the record archive and cleanup run on your reply, and with nothing left to decide, archive or clean up they run at once and the footer drops closing. |
 | [Deploy](/flows/deploy/) ([skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/SKILL.md)) | Promotes an integrated change through the environments and checks what is served. |
 
 Around them:
