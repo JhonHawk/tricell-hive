@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | Completado · PR #476, merge 8a617594 |
 | Tracker | sin ticket · relacionado: #475 (margen de tamaño en otras tres skills) |
 | Git | JhonHawk/tricell-hive · base `development` en `6746ceee` · rama propuesta `feat/root-cause-fix-rule` |
 
