@@ -12,6 +12,15 @@ raise the minor or the patch version.
 
 ### Added
 
+- Build fixes a defect at its cause: it names the cause before editing and
+  fixes it there with the smallest change, does not count a guard, retry or
+  fallback where the symptom showed as a fix unless that state is legitimate,
+  and marks and reports a workaround, with a ticket proposed for the cause,
+  when the cause lies outside the work or an incident needs mitigation. Reuse
+  no longer copies an existing workaround, the verification round fixes a
+  defect at its cause, and the code review checks both. Build's stored-data
+  and security rules moved to references of their own.
+
 - Research audits a codebase when you ask for it, or for what to improve in
   it. It reads the project's check commands and decision records first,
   audits nine categories from the most changed files, opens every cited

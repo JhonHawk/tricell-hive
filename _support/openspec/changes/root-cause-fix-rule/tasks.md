@@ -4,10 +4,10 @@ Base `development` en `6746ceee`, rama `feat/root-cause-fix-rule`. Todas las tar
 
 ### T1 — Regla de arreglo en la causa y sus punteros
 
-- [ ] `flow-build/references/defect-fix.md` existe con la regla de `design.md` «Proposed shape»
-- [ ] `flow-build/SKILL.md` la enlaza en el paso 2 y en «Reuse before writing» (tarea o enfoque), y el peldaño 2 excluye copiar un parche
-- [ ] `flow-verify/SKILL.md` paso 3 la enlaza como excepción a «Fix only what each finding names»
-- [ ] `flow-deploy/references/urgent-fixes.md` la enlaza para la mitigación de un incidente
+- [x] `flow-build/references/defect-fix.md` existe con la regla de `design.md` «Proposed shape»
+- [x] `flow-build/SKILL.md` la enlaza en el paso 2 y en «Reuse before writing» (tarea o enfoque), y el peldaño 2 excluye copiar un parche
+- [x] `flow-verify/SKILL.md` paso 3 la enlaza como excepción a «Fix only what each finding names»
+- [x] `flow-deploy/references/urgent-fixes.md` la enlaza para la mitigación de un incidente
 
 **Closes:** AC1, AC2, AC3
 
@@ -25,10 +25,10 @@ Base `development` en `6746ceee`, rama `feat/root-cause-fix-rule`. Todas las tar
 
 ### T2 — Secciones situacionales a referencias
 
-- [ ] `flow-build/references/stored-data.md` y `security-boundaries.md` contienen las secciones tal cual, con su condición de lectura al inicio
-- [ ] `flow-build/SKILL.md` las enlaza con su condición y ya no las contiene, y ya no tiene la sección «Delegation» (D6 A)
-- [ ] Los 7 enlaces entrantes apuntan a los archivos nuevos
-- [ ] El comentario de `tooling/management/voice.go:220` sigue siendo cierto, o se reescribe
+- [x] `flow-build/references/stored-data.md` y `security-boundaries.md` contienen las secciones tal cual, con su condición de lectura al inicio
+- [x] `flow-build/SKILL.md` las enlaza con su condición y ya no las contiene, y ya no tiene la sección «Delegation» (D6 A)
+- [x] Los 7 enlaces entrantes apuntan a los archivos nuevos
+- [x] El comentario de `tooling/management/voice.go:220` sigue siendo cierto, o se reescribe
 
 **Closes:** AC4
 
@@ -46,8 +46,8 @@ Base `development` en `6746ceee`, rama `feat/root-cause-fix-rule`. Todas las tar
 
 ### T3 — Ángulo de revisión de código
 
-- [ ] `hive-review-code.md` paso 2 incluye el arreglo en el síntoma y el código que copia un parche, y aclara que arreglar en la causa no es un cambio no pedido
-- [ ] Paso 3 dice cuál es el escenario de fallo de esos hallazgos
+- [x] `hive-review-code.md` paso 2 incluye el arreglo en el síntoma y el código que copia un parche, y aclara que arreglar en la causa no es un cambio no pedido
+- [x] Paso 3 dice cuál es el escenario de fallo de esos hallazgos
 
 **Closes:** AC5
 
@@ -96,3 +96,7 @@ Base `development` en `6746ceee`, rama `feat/root-cause-fix-rule`. Todas las tar
 ## Checkpoint
 
 ## Review status and progress
+
+2026-11-15 — T1 · a5ec06a8 · unverified: none
+2026-11-15 — T2 · a5ec06a8 · unverified: none
+2026-11-15 — T3 · 0fa1456f · unverified: none
