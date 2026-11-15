@@ -35,13 +35,13 @@ Before checking the work's own worktree, stop the processes this work started in
 After the work's branch, check these other branches of the same repository:
 
 - each local or remote branch whose pull request the user authored and merged into the base, listed once with `gh pr list --author @me --state merged --base <base> --json headRefName,headRefOid`;
-- in a repository without pull requests, each local branch that `git branch --merged <base>` lists and that persistent memory records for the user's earlier work, such as a worktree record git-workflow step 3 wrote; keep any other branch there, since nothing shows it is the user's;
+- in a repository without pull requests, each local branch that `git branch --merged <base>` lists and that a close record in persistent memory, or a plan or checkpoint, names for the user's earlier work; keep any other branch there, since nothing shows it is the user's;
 - the temporary or preview branches the work created.
 
 The sweep never switches a checkout's branch: this narrows, at this point, git-workflow step 2's "never switch, reset or delete its branch" to branches no checkout uses. It applies steps 1, 2 and 4 above to each branch and removes its worktree unless a keep condition holds. It also keeps, reporting the reason, a branch:
 
 - checked out in a checkout other than a clean worktree this sweep removes;
-- that persistent memory records for work whose close is not recorded as done, such as work in progress or a close waiting for the user's reply, unless a pending-close record for that work is older than 24 hours. For such an older pending close, do not remove its branch or worktree here: resume that work's pending close steps in order, as flow-close sets for a hygiene request, which asks its support decision before its own cleanup.
+- that persistent memory, a plan or a checkpoint names for work whose close is not recorded as done, such as work in progress, including a fresh branch with no commits beyond the base, or a close waiting for the user's reply, unless a pending-close record for that work is older than 24 hours. For such an older pending close, do not remove its branch or worktree here: resume that work's pending close steps in order, as flow-close sets for a hygiene request, which asks its support decision before its own cleanup.
 
 A promotion that has not been made is never a reason to keep a branch or a worktree.
 

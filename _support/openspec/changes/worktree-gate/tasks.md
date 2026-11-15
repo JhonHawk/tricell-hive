@@ -10,7 +10,7 @@ Los comandos de este plan siguen la regla que añaden: cada uno indica el reposi
 
 ### T1 — `git-workflow`: preguntar antes de crear un worktree, solo ruta nativa, sin registro en memoria
 
-- [ ] El paso 3 pide preguntar antes de crear un worktree, fija la ruta nativa del host y nombra el worktree donde fija T3. Ya no tiene los tres criterios, la alternativa de ubicación ni el registro en memoria. Los pasos 2 y 3 no dan dos hogares a la misma pregunta.
+- [x] El paso 3 pide preguntar antes de crear un worktree, fija la ruta nativa del host y nombra el worktree donde fija T3. Ya no tiene los tres criterios, la alternativa de ubicación ni el registro en memoria. Los pasos 2 y 3 no dan dos hogares a la misma pregunta.
 
 **Closes:** AC1, AC2, AC4
 
@@ -51,7 +51,7 @@ El archivo debe quedar por debajo de los 15957 bytes actuales.
 
 ### T2 — Guía global y rúbrica: directorio de trabajo de los comandos y fin del registro de worktrees en memoria
 
-- [ ] `global.md` tiene la regla del directorio de trabajo, acotada; «Persistent memory» y la rúbrica de revisión de sesiones ya no cuentan crear o quitar un worktree como momento de escritura.
+- [x] `global.md` tiene la regla del directorio de trabajo, acotada; «Persistent memory» y la rúbrica de revisión de sesiones ya no cuentan crear o quitar un worktree como momento de escritura.
 
 **Closes:** AC3, AC4
 
@@ -278,3 +278,5 @@ Entrega `automatic` (D3 B): sin parada de validación.
 - respaldo protegido;
 - recuentos y modelos.
 No invalida tareas hechas (ninguna lo está).
+2026-11-15 — T1 · cbb79dd4 · unverified: AC1/AC2 in installed copies until hive update
+2026-11-15 — T2 · f7dfb692 · unverified: AC3 in installed copies until hive update

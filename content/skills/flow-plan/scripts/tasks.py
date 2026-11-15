@@ -180,12 +180,15 @@ def cmd_done(lines, args):
 
 def cmd_checkpoint(lines, args):
     kept = []
+    worktree = args.worktree
     existing = section_bounds(lines, CHECKPOINT)
     if existing:
         start, end = existing
         inside = False
         for line in lines[start + 1:end]:
-            if EVIDENCE.match(line):
+            if worktree is None and not inside and line.startswith("- Worktree: "):
+                worktree = line[len("- Worktree: "):]
+            elif EVIDENCE.match(line):
                 inside = True
             elif HEADING.match(line):
                 inside = False
@@ -204,6 +207,7 @@ def cmd_checkpoint(lines, args):
         f"- Last commit: {args.commit}",
         f"- Open findings: {findings}",
         f"- Next: {args.next}",
+        *([f"- Worktree: {worktree}"] if worktree else []),
         "",
         "### Evidence",
         "",
@@ -239,6 +243,7 @@ def build_parser():
     cp.add_argument("--next", required=True, type=single_line)
     cp.add_argument("--finding", action="append", default=[], type=single_line)
     cp.add_argument("--check", action="append", default=[], type=single_line)
+    cp.add_argument("--worktree", type=single_line, help="'<path> · <branch>' of the work's worktree; later calls keep it")
     return parser
 
 

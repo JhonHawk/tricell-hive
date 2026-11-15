@@ -176,6 +176,25 @@ class TasksScriptTest(unittest.TestCase):
             self.assertIn("- lint · pass · def5678", text)
             self.assertIn("Plan written.", text)
 
+    def test_checkpoint_keeps_the_worktree_until_a_new_one_is_given(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            change = self.folder(tmp)
+            first = self.checkpoint(change, "build", "T1", "run T2", "--worktree", "/repo/.claude/worktrees/w1 · feat/w1")
+            self.assertEqual(first.returncode, 0, first.stderr)
+            self.assertIn("- Worktree: /repo/.claude/worktrees/w1 · feat/w1", self.text(change))
+
+            second = self.checkpoint(change, "build", "T2", "run T3")
+            self.assertEqual(second.returncode, 0, second.stderr)
+            text = self.text(change)
+            self.assertEqual(text.count("- Worktree:"), 1)
+            self.assertIn("- Worktree: /repo/.claude/worktrees/w1 · feat/w1", text)
+
+            third = self.checkpoint(change, "build", "T3", "run T4", "--worktree", "/repo/.claude/worktrees/w2 · feat/w2")
+            self.assertEqual(third.returncode, 0, third.stderr)
+            text = self.text(change)
+            self.assertEqual(text.count("- Worktree:"), 1)
+            self.assertIn("- Worktree: /repo/.claude/worktrees/w2 · feat/w2", text)
+
     def test_check_change_exits_0_when_the_checkpoint_names_a_replaced_decision(self):
         proposal = textwrap.dedent(
             """\
