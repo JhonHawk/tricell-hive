@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | Completado · PR #479, 86cf5b1b |
 | Tracker | ninguno |
 | Git | JhonHawk/tricell-hive · base `development` en `fb753487` · rama propuesta `feat/worktree-gate` |
 
