@@ -27,18 +27,18 @@ What the ticket needs from a document it links, such as a requirement or a desig
 
 ## Ready list
 
-A ticket is ready when all eight hold; otherwise it is not ready, and a ticket that fails only check 6 is blocked.
+A ticket is ready when all eight hold; otherwise it is not ready. A ticket that fails one because it lacks something nobody in the session can supply is blocked.
 
 1. The title and one sentence of the outcome name the change without implementation detail.
-2. Each criterion is observable, and a person other than the author can check it.
+2. At least one criterion exists, and each one is observable: a person other than the author can check it.
 3. Each criterion states one rule.
 4. No vague term, such as "fast", "user-friendly" or "as needed", and no "to be defined" marker stands in a criterion.
 5. An out-of-scope line exists.
 6. Every open business question is listed with who answers it, and none is unresolved.
-7. A bug has its steps to reproduce, its expected and observed results and its environment.
+7. The sections its type adds are present: for a bug, its steps to reproduce, its expected and observed results and its environment.
 8. The work is one change that is integrated and accepted on its own, with at most 7 criteria; a spike has its timebox and its deliverable.
 
-A ticket that fails check 8 for its size goes to [breakdown](breakdown.md).
+A draft that fails check 8 for its size goes to [breakdown](breakdown.md). A ticket that already exists and fails it is reported as too large, with the split proposed and nothing split: [flow-research](../../flow-research/SKILL.md) settles its scope with the user, and [existing ticket](existing-ticket.md) proposes the split to its owner.
 
 ## Hint
 

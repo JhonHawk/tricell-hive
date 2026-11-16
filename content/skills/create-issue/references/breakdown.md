@@ -9,7 +9,7 @@ Read at [create-issue](../SKILL.md) step 3, when the work names more than one ch
 - The parent states the outcome the children share, what is out of scope for the whole set, and its children. A set has at least two children; with one, write one ticket.
 - Each child is drafted and checked as a ticket of its type, as [ticket types](ticket-types.md) sets, and names the repository it changes.
 - When a child cannot start before another finishes, record that it is blocked by it; leave the others unordered.
-- A set is a parent with its children. Several tickets for separate findings, each one chosen by the user, are single tickets and follow the skill's steps 7 and 8.
+- A set is a parent with its children. Several tickets for separate findings, each one chosen by the user, are single tickets and follow the skill's steps 7 and 8; so is a group of findings that a flow presents as one item, which is one ticket that lists its members.
 
 ## Approval
 
@@ -19,7 +19,7 @@ While [unattended delegation](../../unattended-delegation/SKILL.md) is active, c
 
 ## Writes
 
-1. Create every ticket of the set in the primary tracker, also when its children change different repositories.
+1. Create every ticket of the set in one tracker, the primary tracker of the repository the session works in or the one the user names for the set, also when its children change different repositories.
 2. Write one ticket at a time, never in parallel, since trackers limit bursts of writes: the parent first, then each child linked to it, then the blocked-by relations, as [trackers](trackers.md) sets.
 3. After each write, add the ticket's link to the list of what was created, in the message, and read the ticket back as the skill's step 8 sets.
 4. When a write fails, stop: write nothing more, delete nothing, and report the tickets created with their links and the ones still missing, then ask how to continue.

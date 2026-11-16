@@ -4,7 +4,11 @@ Read before the first write to a tracker, at [create-issue](../SKILL.md) step 8,
 
 ## Before writing
 
-Read what the authenticated account may do in the target: create a ticket, set its type and labels, relate it to another, comment, and edit a ticket someone else wrote. A tracker can drop a field the account may not set without reporting an error, so name before the write each field you will not be able to set. New tickets go in the primary tracker, as the global guidance's «Project settings» sets.
+Read what the authenticated account may do in the target: create a ticket, set its type and labels, relate it to another, comment, and edit a ticket someone else wrote. A tracker can drop a field the account may not set without reporting an error, so name before the write each field you will not be able to set. New tickets go in the primary tracker: the `Tracker` that the `## Hive` of the repository the session works in declares, as the global guidance's «Project settings» sets, unless the user names another tracker or repository for the ticket.
+
+## Type
+
+Set the ticket's type with the tracker's own type when it has one that matches, such as Jira's story, task and bug, or an issue type the GitHub organization defines. Without a matching type, use a label the project already has for that type; without that label either, the type stands only in the ticket's text. A spike without a type of its own is filed as a task. Never create a type or a label for this.
 
 ## Parent and children
 
@@ -25,7 +29,7 @@ Relate the new ticket to the ticket it came from: blocked-by or blocking when on
 
 ## Blocked
 
-A ticket created with an undecided business rule is marked with the first of these that exists:
+A ticket created as blocked, because a business rule is undecided or it lacks a fact nobody in the session can supply, is marked with the first of these that exists:
 
 1. The tracker's native blocked-by relation, when what blocks it is another ticket.
 2. The label or state the project already uses for blocked work or for work that needs information; read the project's labels and states to find it.

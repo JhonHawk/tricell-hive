@@ -6,15 +6,15 @@ The workflow guidance SHALL keep the procedure for creating, breaking down and v
 
 #### Scenario: A flow needs a ticket
 - **WHEN** a flow's finding or a separate topic gets the user's answer to create a ticket
-- **THEN** the flow follows the `create-issue` skill in the same turn, which searches every declared tracker for an existing one, relates the new ticket to its origin and creates it in the primary tracker without another confirmation, shows the created ticket with its link, and returns to the flow's next step.
+- **THEN** the flow follows the `create-issue` skill in the same turn, which searches every declared tracker for an existing one, creates no other when an open one exists, relates the new ticket to its origin and creates it in the primary tracker without another confirmation, shows the created ticket with its link, and returns to the flow's next step.
 
 #### Scenario: The skill is used on its own
 - **WHEN** the user asks for a ticket outside a flow
 - **THEN** the skill shows the draft, creates the ticket after the user confirms, and ends by offering the next step.
 
 #### Scenario: An undecided business rule
-- **WHEN** a ticket is created while one of its business rules is undecided
-- **THEN** the ticket is created marked as blocked, through the tracker's native blocked-by relation, a blocked label or state the project already has, or else the first line of the ticket with the question and who it waits on, and no label or state is created.
+- **WHEN** a ticket is created while one of its business rules is undecided, or while it lacks a fact nobody in the session can supply
+- **THEN** the missing part is not invented and the ticket is created marked as blocked, through the tracker's native blocked-by relation, a blocked label or state the project already has, or else the first line of the ticket with the question and who it waits on, and no label or state is created.
 
 #### Scenario: A ticket chosen for research
 - **WHEN** the user picks a ticket for research

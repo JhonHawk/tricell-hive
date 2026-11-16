@@ -7,7 +7,9 @@ Read at [create-issue](../SKILL.md) step 1, when the user asks to validate, revi
 3. **Check authorship and permission.** Before any write, compare the ticket's author with the account authenticated in the tracker, and read what that account may write there, as [trackers](trackers.md) sets.
 4. **Pick the output.** Take the first case that holds:
    - **The account cannot write to the tracker.** Hand the report to the user in the message, written so they can send it: what is missing, the technical findings and the questions.
-   - **The account is not the author.** Do not edit the ticket, whatever the permission allows. Write one comment with what is missing for each failed check, the technical findings, and each open question with a recommended answer. Show the comment and post it after the user confirms.
    - **The account is the author, or the user states the ticket is theirs.** Show the change, with each section as it is and as it would be, and edit the ticket after the user confirms. A ticket left with an undecided business rule is marked as blocked, as [trackers](trackers.md) sets.
+   - **Otherwise the account is not the author.** Do not edit the ticket, whatever the permission allows. Write one comment with what is missing for each failed check, the technical findings, and each open question with a recommended answer. Show the comment and post it after the user confirms.
+
+   A ticket that is too large, as the ready list's check 8 sets, gets its split proposed in that output; it is never split here. When the user owns it, offer the breakdown as the next step.
 5. **Never decide for the owner.** An undecided business rule always goes to the ticket's owner as a question, in the comment or in the report. Never fill it in, and never rewrite a rule the owner wrote.
 6. **Report.** Say whether the ticket is ready, what each failed check lacks, and what was posted or edited, with its link. Then end as the skill's step 9 sets.

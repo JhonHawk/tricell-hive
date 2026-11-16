@@ -96,7 +96,7 @@ Las tareas fijan frases literales en inglés que el contenido debe llevar, para 
 
 ### T6 — Sitio, listas y arquitectura
 
-- [ ] El sitio, `llms.txt`, el registro de cambios y la lista de hogares canónicos describen la skill
+- [x] El sitio, `llms.txt`, el registro de cambios y la lista de hogares canónicos describen la skill
 
 **Closes:** AC11
 
@@ -141,13 +141,18 @@ Las tareas fijan frases literales en inglés que el contenido debe llevar, para 
 ## Checkpoint
 
 - Updated: 2026-11-16
-- Stage: build · T6 en curso (hijo hive-write-docs)
-- Last commit: 34789218
+- Stage: verify · paso 1: suite completa y /code-review en curso
+- Last commit: f83cf172
 - Open findings: none
-- Next: revisar y confirmar T6; suite completa; CI local; flow-verify
+- Next: leer la suite y la revisión; una ronda de arreglos; push, PR e integración; T7
 
 ### Evidence
 
+- go test ./tests/content/... ./tooling/management/... · ok · 34789218
+- pnpm --dir site check, lint, build · exit 0, 19 páginas · f83cf172
+- criterios AC1, AC3, AC5, AC7–AC11, AC13–AC22 sobre el candidato (rg) · 18/18 ok · f83cf172
+- vista previa de /flows/create-issue/ en 1280 y 390 px, claro y oscuro · sin desbordamiento, entrada en la barra lateral · f83cf172
+- go vet ./... · exit 0 · 34789218
 
 ## Review status and progress
 
@@ -157,3 +162,4 @@ Las tareas fijan frases literales en inglés que el contenido debe llevar, para 
 2026-11-16 — T3 · 48d0fef3 · unverified: el archivo instalado lo observa T7
 2026-11-16 — T4 · 6a9d2ee5 · unverified: los archivos instalados los observa T7
 2026-11-16 — T5 · 34789218 · unverified: los archivos instalados los observa T7
+2026-11-16 — T6 · f83cf172 · unverified: la vista previa del sitio la recorre la verificación final
