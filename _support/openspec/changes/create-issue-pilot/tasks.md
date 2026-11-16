@@ -98,7 +98,7 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 
 ### T6 — Los detectores del caso leen las formas que la revisión encontró
 
-- [ ] La evaluación del caso marca los intentos que antes pasaban y deja de fallar turnos correctos
+- [x] La evaluación del caso marca los intentos que antes pasaban y deja de fallar turnos correctos
 
 **Closes:** AC8, AC9, AC13
 
@@ -116,7 +116,7 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 
 ### T7 — Una sesión más, en Pi, para observar el recorte nuevo
 
-- [ ] El caso corrió una vez en Pi con el arnés nuevo y su registro muestra el relleno
+- [x] El caso corrió una vez en Pi con el arnés nuevo y su registro muestra el relleno
 
 **Closes:** AC12
 
@@ -144,10 +144,10 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 ## Checkpoint
 
 - Updated: 2026-11-16
-- Stage: verify · ronda de hallazgos de /code-review, en espera del usuario
-- Last commit: f9048e65
-- Open findings: H4 P1 · gh auth token entrega el token del llavero con GH_CONFIG_DIR vacío (reproducido) · decisión D38 pendiente; H5 P2 · siete huecos de los detectores de tickets (cuenta doble, confirmación por decisión, gh tras env/asignación, comando ilegible pasa, GitHub por MCP/glab/curl, gh api mal clasificado, frases de confirmación amplias) · pendiente; H6 P3 · lista fija de herramientas de Linear porque trace.go pierde el servidor en Codex y Grok · se lista
-- Next: Aplicar la respuesta a D38 (hueco del llavero de gh: relleno en GH_TOKEN, revisar AC6) y a H4 (siete huecos de los detectores); arreglar sin preguntar el test frágil de launch_test.go (os.Environ con variables GH_/GITHUB_ ajenas); después push, PR, merge y cierre
+- Stage: verify · segunda revisión, limitada a los arreglos
+- Last commit: 355d2659
+- Open findings: none
+- Next: Correr /code-review sobre f9048e65..HEAD; arreglo local de lo bloqueante con línea Unreviewed; suite completa; push, PR, merge; cierre (archivo, watch item, Engram, reporte)
 
 ### Evidence
 
@@ -164,3 +164,5 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 2026-11-16 — T4 · df159f44 · unverified: none
 2026-11-16 — Revisión tras `/code-review`: AC12 sustituye a AC6 y se añade AC13; T5, T6 y T7 nuevas; T1 a T4 no se reabren.
 2026-11-16 — T5 · abd1dec3 · unverified: AC12: el run.json de una corrida real lo observa T7
+2026-11-16 — T6 · 355d2659 · unverified: none
+2026-11-16 — T7 · 355d2659 · unverified: none
