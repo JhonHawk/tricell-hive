@@ -1258,6 +1258,7 @@ func TestTicketAtMostThreeQuestions(t *testing.T) {
 		{"four decision lines in the text", []traceEvent{ticketTextEvent("D1 — a?\nD2 — b?\nD3 — c?\nD4 — d?")}, "fail"},
 		{"option references are not decisions", []traceEvent{ticketTextEvent("D1 — a?\nD1-A: x\nD1-B: y\nElijo D1 B")}, "pass"},
 		{"one decision line", []traceEvent{ticketTextEvent("D1 — a?")}, "pass"},
+		{"decision line under a heading", []traceEvent{ticketTextEvent("### D1 — a?\nSituación: x")}, "pass"},
 		{"no question", []traceEvent{ticketTextEvent("Aquí está el borrador.")}, "not_observed"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {

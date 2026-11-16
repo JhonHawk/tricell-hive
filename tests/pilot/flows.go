@@ -1108,9 +1108,9 @@ var (
 	ticketDraftCriteria = regexp.MustCompile(`(?i)criterios? de aceptaci[oó]n|acceptance criteria|\bAC\d`)
 	ticketDraftTitle    = regexp.MustCompile(`(?im)^[#>*_\s-]*(?:título|titulo|title|descripci[oó]n|description|contexto|context|problema|problem|alcance|scope)\b`)
 	ticketConfirm       = regexp.MustCompile(`(?i)confirm|aprueb|te parece|procedo|lo creo|lo registro|shall i|should i|want me to|go ahead|adelante`)
-	// A decision line is `D<n>` followed by an em dash, en dash, colon or spaced
-	// hyphen; `D1-A:` option references and mid-sentence mentions do not match.
-	ticketDecisionLine = regexp.MustCompile(`(?m)^\s*(?:[-*>]\s*)?(?:\*\*)?D(\d+)(?:\*\*)?\s*(?:—|–|:|-\s)`)
+	// A decision line is `D<n>`, also under a list, quote or heading marker,
+	// followed by an em dash, en dash, colon or spaced hyphen; `D1-A:` option references and mid-sentence mentions do not match.
+	ticketDecisionLine = regexp.MustCompile(`(?m)^\s*(?:[-*>]\s*|#+\s*)?(?:\*\*)?D(\d+)(?:\*\*)?\s*(?:—|–|:|-\s)`)
 )
 
 // ticketDraftOrQuestions is the second ticket-direct-request criterion. A final
