@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Listo para flow-build |
+| Estado | Completado · PR #482, b315ff00 |
 | Tracker | ninguno |
 | Git | JhonHawk/tricell-hive · base `development` en `b8ee7913` · rama propuesta `feat/create-issue` |
 

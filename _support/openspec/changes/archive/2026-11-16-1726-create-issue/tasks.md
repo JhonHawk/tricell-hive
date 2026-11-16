@@ -112,7 +112,7 @@ Las tareas fijan frases literales en inglés que el contenido debe llevar, para 
 
 ### T7 — Refresco de la instalación y primer uso real
 
-- [ ] La skill está instalada en cada host registrado y creó en `JhonHawk/tricell-hive` un ticket padre con dos hijos tras una aprobación del lote
+- [x] La skill está instalada en cada host registrado y creó en `JhonHawk/tricell-hive` un ticket padre con dos hijos tras una aprobación del lote
 
 **Closes:** AC12
 
@@ -141,10 +141,10 @@ Las tareas fijan frases literales en inglés que el contenido debe llevar, para 
 ## Checkpoint
 
 - Updated: 2026-11-16
-- Stage: verify · paso 1: suite completa y /code-review en curso
-- Last commit: f83cf172
+- Stage: close · T1–T7 hechas; PR #482 integrado en b315ff00; instalación refrescada; tickets #483, #484, #485 creados y releídos
+- Last commit: b315ff00
 - Open findings: none
-- Next: leer la suite y la revisión; una ronda de arreglos; push, PR e integración; T7
+- Next: flow-close: archivo de la carpeta de cambio, ramas, temporales, memoria, reporte
 
 ### Evidence
 
@@ -153,6 +153,13 @@ Las tareas fijan frases literales en inglés que el contenido debe llevar, para 
 - criterios AC1, AC3, AC5, AC7–AC11, AC13–AC22 sobre el candidato (rg) · 18/18 ok · f83cf172
 - vista previa de /flows/create-issue/ en 1280 y 390 px, claro y oscuro · sin desbordamiento, entrada en la barra lateral · f83cf172
 - go vet ./... · exit 0 · 34789218
+- go test ./... · exit 0 · f83cf172
+- python3 -m unittest discover -s tests/skills · 90 tests OK · 34789218 (sin cambios en tests/skills ni scripts desde entonces)
+- /code-review sobre feat/create-issue · 10 hallazgos, todos confirmados leyendo y corregidos · f83cf172
+- tras los arreglos: go test ./tests/content/... ./tooling/management/..., check_change.py, pnpm site check/lint/build · exit 0 · fa9f5854
+- hive update --source + hive apply · exit 0 · b315ff00; skills instaladas idénticas a content/ (create-issue, flow-research, flow-plan, unattended-delegation; flow-close salvo __pycache__ local)
+- guía global con los dos punteros a create-issue en Claude Code, Codex, OpenCode, Pi, Cursor y Antigravity · b315ff00
+- AC12: #483 padre, #484 y #485 hijos como sub-issues, textos idénticos a lo aprobado (D30 A) · b315ff00
 
 ## Review status and progress
 
@@ -163,3 +170,4 @@ Las tareas fijan frases literales en inglés que el contenido debe llevar, para 
 2026-11-16 — T4 · 6a9d2ee5 · unverified: los archivos instalados los observa T7
 2026-11-16 — T5 · 34789218 · unverified: los archivos instalados los observa T7
 2026-11-16 — T6 · f83cf172 · unverified: la vista previa del sitio la recorre la verificación final
+2026-11-16 — T7 · b315ff00 · unverified: el archivo de guía global que lee Grok no aparece en el despliegue y no se comprobó; el comportamiento en otros hosts no se ejecutó
