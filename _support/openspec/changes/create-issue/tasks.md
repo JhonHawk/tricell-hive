@@ -78,7 +78,7 @@ Las tareas fijan frases literales en inglés que el contenido debe llevar, para 
 
 ### T5 — Close, delegación sin supervisión y plan
 
-- [ ] `flow-close` apunta a la skill sin superar su límite, `unattended-delegation` acota el ticket sin supervisión y `flow-plan` trata la pista como dato por verificar
+- [x] `flow-close` apunta a la skill sin superar su límite, `unattended-delegation` acota el ticket sin supervisión y `flow-plan` trata la pista como dato por verificar
 
 **Closes:** AC7, AC8, AC18
 
@@ -140,6 +140,15 @@ Las tareas fijan frases literales en inglés que el contenido debe llevar, para 
 
 ## Checkpoint
 
+- Updated: 2026-11-16
+- Stage: build · T6 en curso (hijo hive-write-docs)
+- Last commit: 34789218
+- Open findings: none
+- Next: revisar y confirmar T6; suite completa; CI local; flow-verify
+
+### Evidence
+
+
 ## Review status and progress
 
 2026-11-16 — Plan escrito y revisado; las tareas recogen los nueve hallazgos de la revisión del plan.
@@ -147,3 +156,4 @@ Las tareas fijan frases literales en inglés que el contenido debe llevar, para 
 2026-11-16 — T2 · 0b7b96d6 · unverified: los archivos instalados los observa T7
 2026-11-16 — T3 · 48d0fef3 · unverified: el archivo instalado lo observa T7
 2026-11-16 — T4 · 6a9d2ee5 · unverified: los archivos instalados los observa T7
+2026-11-16 — T5 · 34789218 · unverified: los archivos instalados los observa T7

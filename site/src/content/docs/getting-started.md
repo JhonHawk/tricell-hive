@@ -107,5 +107,6 @@ If a CLI behaves differently from what these pages describe, check [Host limits]
 Start with [Research](/flows/research/) when facts are missing,
 [Figma design](/flows/figma-design/) for a new screen you want to see first,
 [Plan](/flows/plan/) for consequential decisions, or [Build](/flows/build/) for an authorized change.
-[Close](/flows/close/) records the result and cleans up the session. The
+[Close](/flows/close/) records the result and cleans up the session.
+[Create issue](/flows/create-issue/) writes a ticket for work that will be done later or by someone else. The
 [Skills catalog](/skills/) links to each procedure and supporting capability.

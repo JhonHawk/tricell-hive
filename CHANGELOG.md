@@ -12,6 +12,14 @@ raise the minor or the patch version.
 
 ### Added
 
+- `create-issue` is a skill for writing tracker tickets: one ticket of four
+  types (story, bug, task or spike) checked against a fixed ready list, a parent
+  ticket with children approved once as a set, or the check of a ticket that
+  already exists. It searches every declared tracker first, asks at most three
+  questions per round, and reads each ticket back after writing it. Research,
+  Close and unattended work now follow it when a finding or separate topic
+  becomes a ticket, and Plan treats a ticket's solution hint as a claim to
+  verify. A ticket page joins the documentation site.
 - Build fixes a defect at its cause: it names the cause before editing and
   fixes it there, in any module of the repository, with the smallest change.
   A guard, retry or fallback where the symptom showed is not a fix unless the
