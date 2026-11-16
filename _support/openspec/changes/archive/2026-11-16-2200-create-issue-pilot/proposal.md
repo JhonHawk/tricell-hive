@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Listo para flow-build |
+| Estado | Completado · PR #487, merge 3fdca2c3 |
 | Tracker | ninguno |
 | Git | JhonHawk/tricell-hive · base `development` en `8ec852a5` · rama propuesta `test/create-issue-pilot` |
 
