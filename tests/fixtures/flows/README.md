@@ -42,6 +42,46 @@ not detected automatically; read it from the trace when counting.
 `cited_id_glossed`, which reads those definitions as made outside the
 assistant's messages, so citing one without a gloss fails.
 
+`ticket-direct-request` is the case for the `create-issue` skill. The fixture
+`AGENTS.md` declares `Tracker: local file BACKLOG.md (no network)`, `BACKLOG.md`
+holds two tickets on unrelated topics, and the prompt asks directly for a ticket
+that puts a ceiling on the retry delay without saying the value. It expects
+`skill_read: create-issue` and has no initial commit (its id does not start with
+`question-`, so it inherits none of those cases' criteria). The harness launches
+every session without GitHub credentials, so a `gh` write cannot reach a real
+tracker; Linear, Jira, Notion, `acli` and `ntn` stay reachable and the first
+criterion watches them. `assessFlows` adds three criteria, only for this id:
+
+- `ticket_no_write_attempt` fails when `BACKLOG.md` changed, when a shell command
+  is a `gh` that writes (an `issue` or `project` subcommand other than a
+  read-only `list`, `view`, `status`, `field-list` or `item-list`, or an `api`
+  call with a non-GET method or a field or body flag), an `acli` or an `ntn`, or
+  when a tool call names Linear, Jira, Notion, Atlassian or Confluence (Codex
+  reports a tool without its server, so Linear's write tool names are matched
+  too). A failed attempt counts. It is `not_observed` only when the trace has no
+  event. Evidence names lines and paths, never command text.
+- `ticket_draft_or_questions` passes when the final assistant text holds a
+  ticket draft (an acceptance-criteria marker plus a title or section heading)
+  and asks to confirm it; it is `not_observed` when the turn ends only with
+  questions (a native question call, decision lines or lines ending in a
+  question mark), which is correct because the skill asks before drafting; it
+  fails for a draft nobody is asked to confirm and for a turn with neither a
+  draft nor questions. It is also `not_observed` with no assistant text at all.
+- `ticket_at_most_three_questions` counts the questions inside every native
+  question call plus the distinct decision lines (`D<n>` followed by an em dash,
+  en dash, colon or spaced hyphen) of the final assistant text, on every host,
+  and fails above three; `not_observed` when none was asked. Questions written
+  in the text without a `D<n>` line are not counted.
+
+The last two are text heuristics: report their results as exploratory. Run it
+like any other case, for example:
+
+```sh
+go run ./tests/pilot --suite flows --host codex --case ticket-direct-request \
+  --model <model> --configured-model '<observed-preflight-model>' \
+  --effort <effort> --timeout 600s --out <run-directory>
+```
+
 Run from the checkout root after deploying and verifying the global release:
 
 ```sh

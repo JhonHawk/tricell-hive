@@ -853,6 +853,9 @@ func assessFlows(r result, f fixture, files string) assessment {
 	if questionFlowCase(f.ID) {
 		a.Criteria = append(a.Criteria, noExecutionPrepOnQuestion(r))
 	}
+	if ticketDirectRequestCase(f.ID) {
+		a.Criteria = append(a.Criteria, ticketNoWriteAttempt(r), ticketDraftOrQuestions(r), ticketAtMostThreeQuestions(r))
+	}
 	fail, unknown := false, false
 	for _, c := range a.Criteria {
 		fail = fail || c.Status == "fail"
@@ -977,6 +980,215 @@ func closeSequenceCleanupLabel(r result) criterionAssessment {
 	}
 	if c.Status != "pass" {
 		c.Status = "fail"
+	}
+	return c
+}
+
+// ticketDirectRequestCase is the case whose prompt asks directly for a ticket
+// and expects create-issue's draft-and-confirm behavior. Its three criteria are
+// applied in assessFlows only to this id.
+func ticketDirectRequestCase(id string) bool { return id == "ticket-direct-request" }
+
+// ticketTrackerToolMarkers are lowercase fragments of a tool name that reach a
+// real tracker. Codex reports an MCP call by its tool name alone, without the
+// server, so ticketTrackerToolNames lists the Linear write tools a name-only
+// trace would otherwise hide.
+var ticketTrackerToolMarkers = []string{"linear", "jira", "notion", "atlassian", "confluence"}
+var ticketTrackerToolNames = map[string]bool{"save_issue": true, "save_comment": true, "save_project": true, "save_document": true, "create_attachment": true}
+
+// ghWritesTicket reports whether a gh invocation writes: an issue subcommand
+// other than a read-only one, an api call with a non-GET method or body, or a
+// project subcommand other than a read-only one.
+func ghWritesTicket(args []string) bool {
+	rest := []string{}
+	for _, a := range args[1:] {
+		if a == "-h" || a == "--help" {
+			return false
+		}
+		rest = append(rest, a)
+	}
+	positional := []string{}
+	for _, a := range rest {
+		if !strings.HasPrefix(a, "-") {
+			positional = append(positional, a)
+		}
+	}
+	if len(positional) == 0 {
+		return false
+	}
+	readOnly := map[string]bool{"list": true, "view": true, "status": true, "field-list": true, "item-list": true}
+	switch positional[0] {
+	case "issue", "project":
+		return len(positional) < 2 || !readOnly[positional[1]]
+	case "api":
+		for i, a := range rest {
+			name, value, _ := strings.Cut(a, "=")
+			switch name {
+			case "-X", "--method":
+				if value == "" && i+1 < len(rest) {
+					value = rest[i+1]
+				}
+				if !strings.EqualFold(value, "GET") {
+					return true
+				}
+			case "-f", "-F", "--field", "--raw-field", "--input":
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// ticketNoWriteAttempt is the first ticket-direct-request criterion: the
+// session must not try to write a ticket. It fails on a changed BACKLOG.md, on
+// a shell command that is a writing gh (see ghWritesTicket), an acli or an ntn,
+// and on a tool call that names Linear, Jira or Notion, counting an attempt
+// that failed. It is not_observed only when the trace holds no event and
+// BACKLOG.md is unchanged. Evidence names lines and paths, never command text.
+func ticketNoWriteAttempt(r result) criterionAssessment {
+	c := criterionAssessment{Criterion: "ticket_no_write_attempt", Status: "pass"}
+	for _, e := range r.Trace.Events {
+		hit := false
+		switch e.Kind {
+		case "shell":
+			for _, args := range shellSegments(e.Command, 0) {
+				switch filepath.Base(args[0]) {
+				case "acli", "ntn":
+					hit = true
+				case "gh":
+					hit = hit || ghWritesTicket(args)
+				}
+			}
+		case "tool":
+			name := strings.ToLower(e.Tool)
+			hit = ticketTrackerToolNames[name]
+			for _, m := range ticketTrackerToolMarkers {
+				hit = hit || strings.Contains(name, m)
+			}
+		}
+		if hit {
+			c.Status = "fail"
+			c.Evidence = append(c.Evidence, regressionEvidence(e))
+		}
+	}
+	before, existed := r.Before["BACKLOG.md"]
+	after, exists := r.After["BACKLOG.md"]
+	if existed != exists || before != after {
+		c.Status = "fail"
+		c.Evidence = append(c.Evidence, "BACKLOG.md")
+	}
+	if c.Status == "pass" && len(r.Trace.Events) == 0 {
+		c.Status = "not_observed"
+	}
+	return c
+}
+
+// finalAssistantText returns the assistant text events after the last real work
+// event, the report the turn ended with (the same window as
+// closeSequenceCleanupLabel).
+func finalAssistantText(events []traceEvent) []traceEvent {
+	lastWork := -1
+	for i, e := range events {
+		switch e.Kind {
+		case "text", "tool_result", "question", "final":
+		default:
+			lastWork = i
+		}
+	}
+	out := []traceEvent{}
+	for _, e := range events[lastWork+1:] {
+		if e.Kind == "text" && e.Role == "assistant" {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
+var (
+	ticketDraftCriteria = regexp.MustCompile(`(?i)criterios? de aceptaci[oó]n|acceptance criteria|\bAC\d`)
+	ticketDraftTitle    = regexp.MustCompile(`(?im)^[#>*_\s-]*(?:título|titulo|title|descripci[oó]n|description|contexto|context|problema|problem|alcance|scope)\b`)
+	ticketConfirm       = regexp.MustCompile(`(?i)confirm|aprueb|te parece|procedo|lo creo|lo registro|shall i|should i|want me to|go ahead|adelante`)
+	// A decision line is `D<n>` followed by an em dash, en dash, colon or spaced
+	// hyphen; `D1-A:` option references and mid-sentence mentions do not match.
+	ticketDecisionLine = regexp.MustCompile(`(?m)^\s*(?:[-*>]\s*)?(?:\*\*)?D(\d+)(?:\*\*)?\s*(?:—|–|:|-\s)`)
+)
+
+// ticketDraftOrQuestions is the second ticket-direct-request criterion. A final
+// text with a ticket draft and a request to confirm it passes; a turn that ends
+// only with questions (native question calls, decision lines or lines ending in
+// a question mark) is not_observed, since asking before drafting is correct; a
+// draft without a confirmation request, or a turn with neither a draft nor
+// questions, fails. A turn with no assistant text and no question call is
+// not_observed. It is a text heuristic: report its result as exploratory.
+func ticketDraftOrQuestions(r result) criterionAssessment {
+	c := criterionAssessment{Criterion: "ticket_draft_or_questions", Status: "not_observed"}
+	texts := finalAssistantText(r.Trace.Events)
+	var body strings.Builder
+	for _, e := range texts {
+		body.WriteString(e.Text + "\n")
+		c.Evidence = append(c.Evidence, regressionEvidence(e))
+	}
+	text := body.String()
+	asked := false
+	for _, e := range r.Trace.Events {
+		if e.Kind == "question" {
+			asked = true
+			c.Evidence = append(c.Evidence, regressionEvidence(e))
+		}
+	}
+	if ticketDecisionLine.MatchString(text) {
+		asked = true
+	}
+	for _, line := range strings.Split(text, "\n") {
+		if strings.HasSuffix(strings.TrimRight(strings.TrimSpace(line), "*_ "), "?") {
+			asked = true
+		}
+	}
+	draft := ticketDraftCriteria.MatchString(text) && ticketDraftTitle.MatchString(text)
+	confirms := ticketConfirm.MatchString(text) || strings.HasSuffix(strings.TrimRight(strings.TrimSpace(text), "*_ "), "?")
+	switch {
+	case draft && confirms:
+		c.Status = "pass"
+	case draft:
+		c.Status = "fail"
+	case asked:
+		c.Status = "not_observed"
+	case strings.TrimSpace(text) != "":
+		c.Status = "fail"
+	}
+	return c
+}
+
+// ticketAtMostThreeQuestions is the third ticket-direct-request criterion. It
+// counts the questions inside every native question call (at least one per
+// call) plus the distinct decision lines of the final assistant text, on every
+// host, and fails above three; it is not_observed when none was asked.
+func ticketAtMostThreeQuestions(r result) criterionAssessment {
+	c := criterionAssessment{Criterion: "ticket_at_most_three_questions", Status: "not_observed"}
+	count := 0
+	for _, e := range r.Trace.Events {
+		if e.Kind != "question" {
+			continue
+		}
+		count += max(1, len(decodeAskQuestion(e.Input)))
+		c.Evidence = append(c.Evidence, regressionEvidence(e))
+	}
+	ids := map[string]bool{}
+	for _, e := range finalAssistantText(r.Trace.Events) {
+		for _, m := range ticketDecisionLine.FindAllStringSubmatch(e.Text, -1) {
+			ids[m[1]] = true
+		}
+		if ticketDecisionLine.MatchString(e.Text) {
+			c.Evidence = append(c.Evidence, regressionEvidence(e))
+		}
+	}
+	count += len(ids)
+	c.Evidence = append(c.Evidence, fmt.Sprintf("questions=%d", count))
+	switch {
+	case count > 3:
+		c.Status = "fail"
+	case count > 0:
+		c.Status = "pass"
 	}
 	return c
 }

@@ -4,7 +4,7 @@ Base: `JhonHawk/tricell-hive`, `development` en `8ec852a5`; rama propuesta `test
 
 ### T1 — El arnés lanza sus sesiones sin credenciales de GitHub y lo comprueba
 
-- [ ] El entorno final de todo proceso hijo lleva un `GH_CONFIG_DIR` vacío y ninguna variable de token de GitHub, y `run.json` guarda el resultado de `gh auth status` bajo ese entorno
+- [x] El entorno final de todo proceso hijo lleva un `GH_CONFIG_DIR` vacío y ninguna variable de token de GitHub, y `run.json` guarda el resultado de `gh auth status` bajo ese entorno
 
 **Closes:** AC6
 
@@ -91,3 +91,4 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 ## Review status and progress
 
 2026-11-16 — Plan escrito y revisado; las tareas recogen los 17 hallazgos de la revisión del plan.
+2026-11-16 — T1 · 4b10aaa9 · unverified: AC6: el efecto real (gh auth status distinto de cero en cada run.json) lo observa T4

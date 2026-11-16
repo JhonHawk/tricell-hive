@@ -160,7 +160,7 @@ func TestNewFlowCasesHaveDistinctFixturesAndContracts(t *testing.T) {
 	for _, f := range corpus.Cases {
 		byID[f.ID] = f
 	}
-	for _, id := range []string{"conventions-smoke", "deployed-smoke", "project-state", "adaptive-plan", "infra-plan", "direct-build", "git-delivery", "close-sequence", "backlog-status", "question-worktree", "question-fix-record", "cited-id-followup"} {
+	for _, id := range []string{"conventions-smoke", "deployed-smoke", "project-state", "adaptive-plan", "infra-plan", "direct-build", "git-delivery", "close-sequence", "backlog-status", "question-worktree", "question-fix-record", "cited-id-followup", "ticket-direct-request"} {
 		if _, ok := byID[id]; !ok {
 			t.Fatalf("missing flow case %q", id)
 		}
@@ -1089,5 +1089,182 @@ func TestSetupInitialCommitCreatesCleanCommittedRepository(t *testing.T) {
 	}
 	if status, _ := gitOutput(root, "status", "--porcelain=v1"); strings.TrimSpace(status) != "" {
 		t.Fatalf("tree not clean: %q", status)
+	}
+}
+
+func ticketTextEvent(text string) traceEvent {
+	return traceEvent{Kind: "text", Role: "assistant", Text: text, Line: 9}
+}
+
+func ticketQuestionEvent(n int) traceEvent {
+	entries := make([]string, n)
+	for i := range entries {
+		entries[i] = `{"header":"h","question":"q","options":[{"label":"a"},{"label":"b"}]}`
+	}
+	return traceEvent{Kind: "question", Tool: "AskUserQuestion", Line: 5, Input: json.RawMessage(`{"questions":[` + strings.Join(entries, ",") + `]}`)}
+}
+
+// Breaks if the case loses create-issue as its expected skill, takes a
+// question- id (which would inherit those cases' criteria and initial commit),
+// stops declaring a local tracker, or gets a backlog whose tickets resemble the
+// request so that the search for an existing ticket finds one.
+func TestTicketDirectRequestCaseContract(t *testing.T) {
+	f, ok := loadFlowCases(t)["ticket-direct-request"]
+	if !ok {
+		t.Fatal("missing case ticket-direct-request")
+	}
+	if f.Expected.SkillRead != "create-issue" {
+		t.Errorf("expects %q", f.Expected.SkillRead)
+	}
+	if strings.HasPrefix(f.ID, "question-") || questionFlowCase(f.ID) {
+		t.Error("the id must not be a question case")
+	}
+	agents := f.Files["AGENTS.md"]
+	if !strings.Contains(agents, "## Hive") || !strings.Contains(agents, "Tracker: local file BACKLOG.md (no network)") {
+		t.Error("AGENTS.md lacks a Hive section with a local BACKLOG.md tracker")
+	}
+	backlog := strings.ToLower(f.Files["BACKLOG.md"])
+	if strings.Count(backlog, "- que-") != 2 {
+		t.Errorf("BACKLOG.md must hold exactly two tickets: %q", f.Files["BACKLOG.md"])
+	}
+	for _, word := range []string{"retry", "delay", "backoff", "reintent", "retraso"} {
+		if strings.Contains(backlog, word) {
+			t.Errorf("BACKLOG.md ticket resembles the request (%q)", word)
+		}
+	}
+	if !strings.Contains(f.Prompt, "ticket") {
+		t.Error("the prompt no longer asks for a ticket")
+	}
+	for _, skill := range []string{"create-issue", "flow-"} {
+		if strings.Contains(f.Prompt, skill) {
+			t.Errorf("the prompt names a skill (%q)", skill)
+		}
+	}
+	for _, other := range []string{"question-worktree", "question-fix-record", "cited-id-followup"} {
+		g := loadFlowCases(t)[other]
+		if g.Files["AGENTS.md"] == agents || g.Files["README.md"] == f.Files["README.md"] {
+			t.Errorf("fixture shares files with %s", other)
+		}
+	}
+}
+
+// Breaks if assessFlows applies the ticket criteria to other cases or stops
+// applying them to ticket-direct-request.
+func TestAssessFlowsWiresTicketCriteriaOnlyForTheTicketCase(t *testing.T) {
+	for _, tc := range []struct {
+		id      string
+		applies bool
+	}{{"ticket-direct-request", true}, {"question-worktree", false}, {"research", false}} {
+		r := result{Root: "/fixture", Cwd: "/fixture", Suite: "flows", Case: tc.id, Terminal: "completed", Before: baseInventory(), After: baseInventory()}
+		f := fixture{ID: tc.id}
+		f.Expected.SkillRead = "create-issue"
+		got := assessedCriteria(assessFlows(r, f, t.TempDir()))
+		for _, name := range []string{"ticket_no_write_attempt", "ticket_draft_or_questions", "ticket_at_most_three_questions"} {
+			if _, present := got[name]; present != tc.applies {
+				t.Errorf("%s: %s present=%t, want %t", tc.id, name, present, tc.applies)
+			}
+		}
+	}
+}
+
+// Each row breaks if the detector stops covering that signal: BACKLOG.md
+// comparison dropped, a writing gh form or acli missed, the tracker-name match
+// on a tool call dropped, or a read-only gh lookup wrongly counted.
+func TestTicketNoWriteAttempt(t *testing.T) {
+	failed := false
+	shell := func(c string) []traceEvent {
+		return []traceEvent{{Kind: "shell", Tool: "Bash", Command: c, Line: 4, Success: &failed}}
+	}
+	changed := withInventory(func(m map[string]item) { m["BACKLOG.md"] = item{Hash: "b2"} })
+	for _, tc := range []struct {
+		name   string
+		events []traceEvent
+		after  map[string]item
+		want   string
+	}{
+		{"backlog changed", []traceEvent{ticketTextEvent("x")}, changed, "fail"},
+		{"gh issue create even when it failed", shell("gh issue create --title t --body b"), nil, "fail"},
+		{"gh issue create inside a shell wrapper", shell("/bin/zsh -lc 'gh issue create -t x'"), nil, "fail"},
+		{"gh api post", shell("gh api -X POST repos/o/r/issues -f title=t"), nil, "fail"},
+		{"gh api with fields defaults to post", shell("gh api repos/o/r/issues -f title=t"), nil, "fail"},
+		{"gh project item-add", shell("gh project item-add 1 --url u"), nil, "fail"},
+		{"acli", shell("acli jira workitem create --summary t"), nil, "fail"},
+		{"ntn", shell("ntn api v1/pages"), nil, "fail"},
+		{"linear tool", []traceEvent{{Kind: "tool", Tool: "mcp__linear__save_issue", Line: 6}}, nil, "fail"},
+		{"notion tool", []traceEvent{{Kind: "tool", Tool: "mcp__claude_ai_Notion__notion-create-pages", Line: 6}}, nil, "fail"},
+		{"codex linear tool without server", []traceEvent{{Kind: "tool", Tool: "save_issue", Line: 6}}, nil, "fail"},
+		{"gh issue list is a lookup", shell("gh issue list --search retry"), nil, "pass"},
+		{"gh api get", shell("gh api repos/o/r/issues"), nil, "pass"},
+		{"reading the backlog", shell("cat BACKLOG.md"), nil, "pass"},
+		{"no events", nil, nil, "not_observed"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			after := tc.after
+			if after == nil {
+				after = baseInventory()
+			}
+			r := result{Before: baseInventory(), After: after, Trace: traceReport{Events: tc.events}}
+			got := ticketNoWriteAttempt(r)
+			if got.Status != tc.want {
+				t.Fatalf("status = %s, want %s: %+v", got.Status, tc.want, got)
+			}
+			for _, line := range got.Evidence {
+				if strings.Contains(line, "title") || strings.Contains(line, "gh ") {
+					t.Fatalf("evidence carries command text: %q", line)
+				}
+			}
+		})
+	}
+}
+
+// Breaks if a draft with its confirmation request stops passing, a
+// questions-only turn stops being not_observed, or a turn with neither (or a
+// draft nobody is asked to confirm) stops failing.
+func TestTicketDraftOrQuestions(t *testing.T) {
+	draft := "**Título:** Limitar el retraso entre reintentos\n\n## Criterios de aceptación\n- El retraso nunca supera el máximo.\n\n¿Lo creo así?"
+	for _, tc := range []struct {
+		name   string
+		events []traceEvent
+		want   string
+	}{
+		{"draft with confirmation", []traceEvent{ticketTextEvent(draft)}, "pass"},
+		{"draft without confirmation", []traceEvent{ticketTextEvent("Título: x\n\nCriterios de aceptación:\n- y")}, "fail"},
+		{"only questions in text", []traceEvent{ticketTextEvent("Antes de redactarlo necesito saber:\n1. ¿Cuál es el máximo?")}, "not_observed"},
+		{"only a native question call", []traceEvent{ticketQuestionEvent(1)}, "not_observed"},
+		{"decision lines", []traceEvent{ticketTextEvent("D1 — ¿Qué máximo usamos?\nSituation: x")}, "not_observed"},
+		{"neither draft nor questions", []traceEvent{ticketTextEvent("Listo, el ticket quedó registrado.")}, "fail"},
+		{"no assistant text", nil, "not_observed"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := ticketDraftOrQuestions(result{Trace: traceReport{Events: tc.events}})
+			if got.Status != tc.want {
+				t.Fatalf("status = %s, want %s: %+v", got.Status, tc.want, got)
+			}
+		})
+	}
+}
+
+// Breaks if the count stops reading the questions nested in one call, the
+// decision lines of the final text, or the limit of three.
+func TestTicketAtMostThreeQuestions(t *testing.T) {
+	for _, tc := range []struct {
+		name   string
+		events []traceEvent
+		want   string
+	}{
+		{"four questions in one call", []traceEvent{ticketQuestionEvent(4)}, "fail"},
+		{"three questions in one call", []traceEvent{ticketQuestionEvent(3)}, "pass"},
+		{"two calls add up", []traceEvent{ticketQuestionEvent(2), ticketQuestionEvent(2)}, "fail"},
+		{"four decision lines in the text", []traceEvent{ticketTextEvent("D1 — a?\nD2 — b?\nD3 — c?\nD4 — d?")}, "fail"},
+		{"option references are not decisions", []traceEvent{ticketTextEvent("D1 — a?\nD1-A: x\nD1-B: y\nElijo D1 B")}, "pass"},
+		{"one decision line", []traceEvent{ticketTextEvent("D1 — a?")}, "pass"},
+		{"no question", []traceEvent{ticketTextEvent("Aquí está el borrador.")}, "not_observed"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			got := ticketAtMostThreeQuestions(result{Trace: traceReport{Events: tc.events}})
+			if got.Status != tc.want {
+				t.Fatalf("status = %s, want %s: %+v", got.Status, tc.want, got)
+			}
+		})
 	}
 }
