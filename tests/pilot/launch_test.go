@@ -126,6 +126,13 @@ func TestGitHubPreflightRefusesAnotherToken(t *testing.T) {
 	}
 }
 
+func TestGitHubPreflightRefusesAnUnfinishedTokenCheck(t *testing.T) {
+	fakeGitHubCLI(t, "1", `"$(kill -9 $$)"`)
+	if _, _, err := prepareGitHubIsolation(t.TempDir(), []string{"PATH=" + os.Getenv("PATH")}); err == nil {
+		t.Fatal("launched although gh auth token was killed before it answered")
+	}
+}
+
 func TestGitHubPreflightRefusesASignedInSession(t *testing.T) {
 	fakeGitHubCLI(t, "0", `"$GH_TOKEN"`)
 	if _, _, err := prepareGitHubIsolation(t.TempDir(), []string{"PATH=" + os.Getenv("PATH")}); err == nil {

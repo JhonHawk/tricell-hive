@@ -35,8 +35,11 @@ const githubPlaceholderToken = "hive-pilot-no-github-access"
 // A launched session must not reach GitHub as the user: gh finds no stored
 // session in configDir and takes the placeholder for every host instead of a
 // real token from the environment or the keychain. PATH is left alone, since
-// the hosts' shells rebuild it from their startup files. A session that
-// unsets the placeholder itself is not stopped; the ticket case reports it.
+// the hosts' shells rebuild it from their startup files. This covers gh's
+// default paths only: a session that unsets the placeholder, or asks for the
+// stored account by name (`gh auth token --user <login>`), still reaches the
+// keychain token. Nothing in the environment prevents that; the ticket case
+// reports those commands.
 func withoutGitHubCredentials(env []string, configDir string) []string {
 	out := make([]string, 0, len(env)+1)
 	for _, item := range env {
@@ -99,7 +102,7 @@ func prepareGitHubIsolation(output string, env []string) ([]string, githubAccess
 	token.Env = env
 	// The output may be a real token: compare it, never store or print it.
 	stdout, err := token.Output()
-	if err != nil && !errors.As(err, &exit) {
+	if err != nil && !(errors.As(err, &exit) && exit.ExitCode() > 0) {
 		return nil, report, fmt.Errorf("gh auth token preflight did not finish: %w", err)
 	}
 	switch strings.TrimSpace(string(stdout)) {
