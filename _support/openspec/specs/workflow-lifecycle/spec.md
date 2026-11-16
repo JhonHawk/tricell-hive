@@ -707,11 +707,11 @@ A business rule SHALL be a behavior of the product in a situation: what an actio
 
 ### Requirement: Canvas sections hold what the design stage draws
 
-`flow-figma-design` SHALL place every node it creates on a page inside a section it created, so that no frame, rule card, reference image or component of the work stays loose, except a rule card for a frame the work did not create, which stays beside that frame. By default it SHALL create, from left to right, a section for the pieces the work defines, a section for the reference material when the work brings any, and one section per flow, a flow being the screens a user goes through to complete one task in one app; a grouping the user asked for SHALL replace that list. It SHALL name each section with a two-digit number in reading order and what it holds, SHALL tell the user which sections it will create before the first drawing without waiting for an answer, SHALL regroup what is drawn when a later reply changes the grouping, and SHALL record each section's node with the example. It SHALL NOT move, rename or resize a node the work did not create, and SHALL ask as a decision before grouping existing frames a request names as its target.
+`flow-figma-design` SHALL place every node it creates on a page inside a section it created, so that no frame, rule card, reference image or component of the work stays loose, except a rule card for a frame the work did not create, which stays beside that frame; when the tool cannot create a section, it SHALL draw without one and say so when it asks for approval. By default it SHALL group what it creates, from left to right, in a section for the pieces the work defines, a section for the reference material the work brings, and one section per flow, a flow being the screens a user goes through to complete one task in one app; a grouping the user asked for SHALL replace that list. It SHALL create a section when its first node is placed and never an empty one, SHALL name each section with a two-digit number and what it holds, SHALL tell the user which sections it expects to create before the first drawing without waiting for an answer, SHALL regroup what is drawn when a later reply changes the grouping, and SHALL record each section's node with the example. It SHALL NOT move or rename a node the work did not create, nor move one into a section, and SHALL ask as a decision before grouping existing frames a request names as its target; unattended work SHALL NOT ask it and SHALL report those frames as unresolved.
 
 #### Scenario: A work with two flows and reference captures
 
-- **GIVEN** a work that draws the screens of two tasks of one app and brings captures of another product
+- **GIVEN** a work that draws the screens of two tasks of one app, defines a component and brings captures of another product
 - **WHEN** the stage draws its frames
 - **THEN** the page holds a section for the work's pieces, one for the captures and one per flow, each numbered and named, and no node of the work sits outside them
 
@@ -723,9 +723,9 @@ A business rule SHALL be a behavior of the product in a situation: what an actio
 
 #### Scenario: Rules added to frames that already existed
 
-- **GIVEN** a request to add rule cards to existing frames that sit loose on the page
+- **GIVEN** an attended request to add rule cards to existing frames that sit loose on the page
 - **WHEN** the stage draws the cards
-- **THEN** each card stays beside its frame, no existing frame is moved, and the approval round asks whether to group those frames
+- **THEN** each card stays beside its frame, no existing frame is moved, no empty section is created, and the approval round asks whether to group those frames
 
 ### Requirement: Research audits a codebase on request
 
