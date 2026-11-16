@@ -56,25 +56,41 @@ Notion, `acli` and `ntn` stay reachable: the first criterion watches all of
 them. `assessFlows` adds three criteria, only for this id:
 
 - `ticket_no_write_attempt` fails when `BACKLOG.md` changed, when a shell command
-  is a `gh` that writes (an `issue` or `project` subcommand other than a
-  read-only `list`, `view`, `status`, `field-list` or `item-list`, or an `api`
-  call with a non-GET method or a field or body flag), an `acli` or an `ntn`, or
-  when a tool call names Linear, Jira, Notion, Atlassian or Confluence (Codex
-  reports a tool without its server, so Linear's write tool names are matched
-  too). A failed attempt counts. It is `not_observed` only when the trace has no
-  event. Evidence names lines and paths, never command text.
+  reaches a tracker, or when a tool call names Linear, Jira, Notion, Atlassian,
+  Confluence or GitHub. A shell command reaches a tracker when it is an `acli`,
+  an `ntn`, a `glab`, a `gh auth token`, a `gh` that writes (an `issue` or
+  `project` subcommand other than a read-only `list`, `view`, `status`,
+  `field-list` or `item-list`; an `api` call with a method other than GET, or
+  with a field or body and no method; a `graphql` call whose arguments hold a
+  mutation), or a `curl` that names `api.github.com`, `uploads.github.com`,
+  `api.linear.app`, `atlassian.net` or `api.notion.com` with a method other than
+  GET or a request body, so a Linear read through `curl` fails too. The command
+  is read behind variable assignments, `env`, `command`, `exec`, `sudo`, `nohup`
+  and `time`, and inside `$(…)` and backticks; one the tokenizer cannot read
+  fails when its text names `acli`, `ntn`, `glab` or a `gh issue`, `gh project`,
+  `gh api` or `gh auth token` as whole words. A failed attempt counts. It is
+  `not_observed` only when the trace has no event. Evidence names lines and
+  paths, never command text. Known limits: Codex and Grok report a tool without
+  its server, so only Linear's write tool names are matched there and a GitHub
+  tool is not seen; `wget`, `httpie`, `security find-generic-password`, and a
+  tracker command behind `eval`, `xargs` or `timeout` are not watched.
 - `ticket_draft_or_questions` passes when the final assistant text holds a
   ticket draft (an acceptance-criteria marker plus a title or section heading)
-  and asks to confirm it; it is `not_observed` when the turn ends only with
-  questions (a native question call, decision lines or lines ending in a
-  question mark), which is correct because the skill asks before drafting; it
+  and asks to confirm it, through a confirmation phrase, a question, a decision
+  line or a native question call; it is `not_observed` when the turn ends only
+  with questions, which is correct because the skill asks before drafting; it
   fails for a draft nobody is asked to confirm and for a turn with neither a
   draft nor questions. It is also `not_observed` with no assistant text at all.
+  The final text is what follows the last tool work; a denied question card
+  does not end it.
 - `ticket_at_most_three_questions` counts the questions inside every native
-  question call plus the distinct decision lines (`D<n>` followed by an em dash,
+  question call (a repeated identical call once) and the distinct decision lines
+  (`D<n>`, also under a list, quote or heading marker, followed by an em dash,
   en dash, colon or spaced hyphen) of the final assistant text, on every host,
-  and fails above three; `not_observed` when none was asked. Questions written
-  in the text without a `D<n>` line are not counted.
+  and fails above three. A decision written in the text and asked again in its
+  card is one question: the count is the larger of the questions in calls and
+  the distinct decision IDs. `not_observed` when none was asked. Questions
+  written in the text without a `D<n>` line are not counted.
 
 The last two are text heuristics: report their results as exploratory. Run it
 like any other case, for example:

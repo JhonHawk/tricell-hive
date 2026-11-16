@@ -990,25 +990,117 @@ func closeSequenceCleanupLabel(r result) criterionAssessment {
 func ticketDirectRequestCase(id string) bool { return id == "ticket-direct-request" }
 
 // ticketTrackerToolMarkers are lowercase fragments of a tool name that reach a
-// real tracker. Codex reports an MCP call by its tool name alone, without the
-// server, so ticketTrackerToolNames lists the Linear write tools a name-only
-// trace would otherwise hide.
-var ticketTrackerToolMarkers = []string{"linear", "jira", "notion", "atlassian", "confluence"}
+// real tracker. Codex and Grok report an MCP call by its tool name alone,
+// without the server, so ticketTrackerToolNames lists the Linear write tools a
+// name-only trace would otherwise hide.
+var ticketTrackerToolMarkers = []string{"linear", "jira", "notion", "atlassian", "confluence", "github"}
 var ticketTrackerToolNames = map[string]bool{"save_issue": true, "save_comment": true, "save_project": true, "save_document": true, "create_attachment": true}
 
-// ghWritesTicket reports whether a gh invocation writes: an issue subcommand
-// other than a read-only one, an api call with a non-GET method or body, or a
-// project subcommand other than a read-only one.
-func ghWritesTicket(args []string) bool {
-	rest := []string{}
-	for _, a := range args[1:] {
+// ticketTrackerHosts are the API hosts a curl call can write a ticket to.
+var ticketTrackerHosts = []string{"api.github.com", "uploads.github.com", "api.linear.app", "atlassian.net", "api.notion.com"}
+
+var (
+	ticketSubstitution = regexp.MustCompile("\\$\\(([^()]*)\\)|`([^`]*)`")
+	ticketAssignment   = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
+	// ticketRawTrackerCommand decides by text when a command cannot be tokenized.
+	ticketRawTrackerCommand = regexp.MustCompile(`(?:^|[^A-Za-z0-9_.-])(?:acli|ntn|glab|gh\s+(?:issue|project|api|auth\s+token))(?:\s|$)`)
+)
+
+// ticketCommandWords drops what can precede the program in a shell segment:
+// variable assignments, env with its options, and the command, exec, sudo,
+// nohup and time wrappers.
+func ticketCommandWords(args []string) []string {
+	for len(args) > 0 {
+		switch a := args[0]; {
+		case ticketAssignment.MatchString(a):
+			args = args[1:]
+		case a == "command", a == "exec", a == "sudo", a == "nohup", a == "time":
+			args = args[1:]
+			for len(args) > 0 && strings.HasPrefix(args[0], "-") {
+				args = args[1:]
+			}
+		case filepath.Base(a) == "env":
+			args = args[1:]
+			for len(args) > 0 && (strings.HasPrefix(args[0], "-") || ticketAssignment.MatchString(args[0])) {
+				if (args[0] == "-u" || args[0] == "--unset" || args[0] == "-C" || args[0] == "--chdir") && len(args) > 1 {
+					args = args[1:]
+				}
+				args = args[1:]
+			}
+		default:
+			return args
+		}
+	}
+	return args
+}
+
+// ticketCommandAttempt reports whether a shell command tries to reach a real
+// tracker: an acli, an ntn, a glab, a gh that writes or asks for the token
+// (ghTicketAttempt), or a curl that writes to a tracker API, also inside a
+// command substitution. A command the tokenizer cannot read is decided by its
+// text, so an unbalanced quote in a ticket body does not hide the attempt.
+func ticketCommandAttempt(command string, depth int) bool {
+	if depth > 3 {
+		return false
+	}
+	for i := 0; i < 8; i++ {
+		m := ticketSubstitution.FindStringSubmatchIndex(command)
+		if m == nil {
+			break
+		}
+		inner := ""
+		if m[2] >= 0 {
+			inner = command[m[2]:m[3]]
+		} else {
+			inner = command[m[4]:m[5]]
+		}
+		if ticketCommandAttempt(inner, depth+1) {
+			return true
+		}
+		command = command[:m[0]] + "x" + command[m[1]:]
+	}
+	segments := shellSegments(command, 0)
+	if len(segments) == 0 {
+		return ticketRawTrackerCommand.MatchString(command)
+	}
+	for _, segment := range segments {
+		args := ticketCommandWords(segment)
+		if len(args) == 0 {
+			continue
+		}
+		switch filepath.Base(args[0]) {
+		case "acli", "ntn", "glab":
+			return true
+		case "gh":
+			if ghTicketAttempt(args) {
+				return true
+			}
+		case "curl":
+			if curlWritesTracker(args) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// ghTicketAttempt reports whether a gh invocation writes a ticket or hands out
+// the token: `auth token`, an issue or project subcommand other than a
+// read-only one, or an api call that is not a read. An api call is a read with
+// an explicit GET, with no method and no field or body, and for graphql when
+// no argument holds a mutation.
+func ghTicketAttempt(args []string) bool {
+	rest := args[1:]
+	positional := []string{}
+	for i := 0; i < len(rest); i++ {
+		a := rest[i]
 		if a == "-h" || a == "--help" {
 			return false
 		}
-		rest = append(rest, a)
-	}
-	positional := []string{}
-	for _, a := range rest {
+		if (a == "-R" || a == "--repo" || a == "--hostname") && i+1 < len(rest) {
+			i++
+			continue
+		}
 		if !strings.HasPrefix(a, "-") {
 			positional = append(positional, a)
 		}
@@ -1018,31 +1110,67 @@ func ghWritesTicket(args []string) bool {
 	}
 	readOnly := map[string]bool{"list": true, "view": true, "status": true, "field-list": true, "item-list": true}
 	switch positional[0] {
+	case "auth":
+		return len(positional) > 1 && positional[1] == "token"
 	case "issue", "project":
-		return len(positional) < 2 || !readOnly[positional[1]]
+		return len(positional) > 1 && !readOnly[positional[1]]
 	case "api":
+		method, fields, mutation := "", false, false
 		for i, a := range rest {
-			name, value, _ := strings.Cut(a, "=")
-			switch name {
-			case "-X", "--method":
-				if value == "" && i+1 < len(rest) {
-					value = rest[i+1]
+			switch {
+			case a == "-X" || a == "--method":
+				if i+1 < len(rest) {
+					method = rest[i+1]
 				}
-				if !strings.EqualFold(value, "GET") {
-					return true
-				}
-			case "-f", "-F", "--field", "--raw-field", "--input":
-				return true
+			case strings.HasPrefix(a, "--method="):
+				method = strings.TrimPrefix(a, "--method=")
+			case strings.HasPrefix(a, "--input"), strings.HasPrefix(a, "--field"), strings.HasPrefix(a, "--raw-field"):
+				fields = true
+			case strings.HasPrefix(a, "--"):
+			case strings.HasPrefix(a, "-X"):
+				method = strings.TrimPrefix(a, "-X")
+			case strings.HasPrefix(a, "-f"), strings.HasPrefix(a, "-F"):
+				fields = true
 			}
+			mutation = mutation || strings.Contains(a, "mutation")
 		}
+		if len(positional) > 1 && positional[1] == "graphql" {
+			return mutation
+		}
+		if method != "" {
+			return !strings.EqualFold(method, "GET")
+		}
+		return fields
 	}
 	return false
 }
 
+// curlWritesTracker reports a curl call that names a tracker API host and
+// carries a non-GET method or a request body.
+func curlWritesTracker(args []string) bool {
+	host, write := false, false
+	for i, a := range args {
+		for _, h := range ticketTrackerHosts {
+			host = host || strings.Contains(a, h)
+		}
+		switch {
+		case a == "-X" || a == "--request":
+			write = write || (i+1 < len(args) && !strings.EqualFold(args[i+1], "GET"))
+		case strings.HasPrefix(a, "--request="):
+			write = write || !strings.EqualFold(strings.TrimPrefix(a, "--request="), "GET")
+		case strings.HasPrefix(a, "--data"), a == "--json", a == "--form", a == "--upload-file", a == "-d", a == "-F", a == "-T":
+			write = true
+		case strings.HasPrefix(a, "-X") && !strings.HasPrefix(a, "--"):
+			write = write || !strings.EqualFold(a[2:], "GET")
+		}
+	}
+	return host && write
+}
+
 // ticketNoWriteAttempt is the first ticket-direct-request criterion: the
 // session must not try to write a ticket. It fails on a changed BACKLOG.md, on
-// a shell command that is a writing gh (see ghWritesTicket), an acli or an ntn,
-// and on a tool call that names Linear, Jira or Notion, counting an attempt
+// a shell command that reaches a tracker (see ticketCommandAttempt), and on a
+// tool call that names Linear, Jira, Notion or GitHub, counting an attempt
 // that failed. It is not_observed only when the trace holds no event and
 // BACKLOG.md is unchanged. Evidence names lines and paths, never command text.
 func ticketNoWriteAttempt(r result) criterionAssessment {
@@ -1051,14 +1179,7 @@ func ticketNoWriteAttempt(r result) criterionAssessment {
 		hit := false
 		switch e.Kind {
 		case "shell":
-			for _, args := range shellSegments(e.Command, 0) {
-				switch filepath.Base(args[0]) {
-				case "acli", "ntn":
-					hit = true
-				case "gh":
-					hit = hit || ghWritesTicket(args)
-				}
-			}
+			hit = ticketCommandAttempt(e.Command, 0)
 		case "tool":
 			name := strings.ToLower(e.Tool)
 			hit = ticketTrackerToolNames[name]
@@ -1090,7 +1211,7 @@ func finalAssistantText(events []traceEvent) []traceEvent {
 	lastWork := -1
 	for i, e := range events {
 		switch e.Kind {
-		case "text", "tool_result", "question", "final":
+		case "text", "tool_result", "question", "final", "permission_denied":
 		default:
 			lastWork = i
 		}
@@ -1107,14 +1228,17 @@ func finalAssistantText(events []traceEvent) []traceEvent {
 var (
 	ticketDraftCriteria = regexp.MustCompile(`(?i)criterios? de aceptaci[oó]n|acceptance criteria|\bAC\d`)
 	ticketDraftTitle    = regexp.MustCompile(`(?im)^[#>*_\s-]*(?:título|titulo|title|descripci[oó]n|description|contexto|context|problema|problem|alcance|scope)\b`)
-	ticketConfirm       = regexp.MustCompile(`(?i)confirm|aprueb|te parece|procedo|lo creo|lo registro|shall i|should i|want me to|go ahead|adelante`)
+	ticketConfirm       = regexp.MustCompile(`(?i)\bconf[ií]rm(?:a|as|ar|es|en|e|alo|ame|amelo)?\b|te parece|shall i|should i|want me to`)
 	// A decision line is `D<n>`, also under a list, quote or heading marker,
 	// followed by an em dash, en dash, colon or spaced hyphen; `D1-A:` option references and mid-sentence mentions do not match.
 	ticketDecisionLine = regexp.MustCompile(`(?m)^\s*(?:[-*>]\s*|#+\s*)?(?:\*\*)?D(\d+)(?:\*\*)?\s*(?:—|–|:|-\s)`)
+	// ticketDecisionID finds the decision a question card names in its own text.
+	ticketDecisionID = regexp.MustCompile(`\bD(\d+)\s*(?:—|–|:|-\s)`)
 )
 
 // ticketDraftOrQuestions is the second ticket-direct-request criterion. A final
-// text with a ticket draft and a request to confirm it passes; a turn that ends
+// text with a ticket draft and a request to confirm it (a confirmation phrase,
+// a question, a decision line or a native question call) passes; a turn that ends
 // only with questions (native question calls, decision lines or lines ending in
 // a question mark) is not_observed, since asking before drafting is correct; a
 // draft without a confirmation request, or a turn with neither a draft nor
@@ -1145,9 +1269,8 @@ func ticketDraftOrQuestions(r result) criterionAssessment {
 		}
 	}
 	draft := ticketDraftCriteria.MatchString(text) && ticketDraftTitle.MatchString(text)
-	confirms := ticketConfirm.MatchString(text) || strings.HasSuffix(strings.TrimRight(strings.TrimSpace(text), "*_ "), "?")
 	switch {
-	case draft && confirms:
+	case draft && (asked || ticketConfirm.MatchString(text)):
 		c.Status = "pass"
 	case draft:
 		c.Status = "fail"
@@ -1161,19 +1284,35 @@ func ticketDraftOrQuestions(r result) criterionAssessment {
 
 // ticketAtMostThreeQuestions is the third ticket-direct-request criterion. It
 // counts the questions inside every native question call (at least one per
-// call) plus the distinct decision lines of the final assistant text, on every
-// host, and fails above three; it is not_observed when none was asked.
+// call, a repeated identical call once) and the distinct decision lines of the
+// final assistant text, on every host, and fails above three. A decision
+// written in the text and asked again in its card is one question: the count
+// is the larger of the questions in calls and the distinct decision IDs seen
+// in the text or in the calls. It is not_observed when none was asked.
 func ticketAtMostThreeQuestions(r result) criterionAssessment {
 	c := criterionAssessment{Criterion: "ticket_at_most_three_questions", Status: "not_observed"}
-	count := 0
+	inCalls := 0
+	ids := map[string]bool{}
+	calls := map[string]bool{}
 	for _, e := range r.Trace.Events {
 		if e.Kind != "question" {
 			continue
 		}
-		count += max(1, len(decodeAskQuestion(e.Input)))
 		c.Evidence = append(c.Evidence, regressionEvidence(e))
+		if key := string(e.Input); key != "" {
+			if calls[key] {
+				continue
+			}
+			calls[key] = true
+		}
+		entries := decodeAskQuestion(e.Input)
+		inCalls += max(1, len(entries))
+		for _, q := range entries {
+			if m := ticketDecisionID.FindStringSubmatch(q.Question); m != nil {
+				ids[m[1]] = true
+			}
+		}
 	}
-	ids := map[string]bool{}
 	for _, e := range finalAssistantText(r.Trace.Events) {
 		for _, m := range ticketDecisionLine.FindAllStringSubmatch(e.Text, -1) {
 			ids[m[1]] = true
@@ -1182,7 +1321,7 @@ func ticketAtMostThreeQuestions(r result) criterionAssessment {
 			c.Evidence = append(c.Evidence, regressionEvidence(e))
 		}
 	}
-	count += len(ids)
+	count := max(inCalls, len(ids))
 	c.Evidence = append(c.Evidence, fmt.Sprintf("questions=%d", count))
 	switch {
 	case count > 3:

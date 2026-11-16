@@ -8,6 +8,8 @@ Base: `JhonHawk/tricell-hive`, `development` en `8ec852a5`; rama propuesta `test
 
 **Closes:** AC12
 
+T1 dejó el entorno sin variables de token, el criterio anterior que se retiró; T5 lo cambia por el relleno y es la tarea que entrega AC12.
+
 **Depends on:** none
 
 **Locations:** `tests/pilot/launch.go`, `tests/pilot/launch_test.go`, `tests/pilot/main.go`
@@ -78,7 +80,7 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 
 ### T5 — Un token de relleno tapa el llavero de `gh`
 
-- [ ] El entorno del hijo lleva un token de relleno inválido, y el arnés no lanza la sesión si `gh auth token` entrega otro
+- [x] El entorno del hijo lleva un token de relleno inválido, y el arnés no lanza la sesión si `gh auth token` entrega otro
 
 **Closes:** AC12
 
@@ -98,7 +100,7 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 
 - [ ] La evaluación del caso marca los intentos que antes pasaban y deja de fallar turnos correctos
 
-**Closes:** AC13
+**Closes:** AC8, AC9, AC13
 
 **Depends on:** T2
 
@@ -108,15 +110,15 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 
 **Test approach:** check
 
-**Changes:** En el detector de escrituras: saltar `env`, `command` y las asignaciones de variable al inicio de un comando y mirar dentro de `$(…)`; marcar `gh auth token`, `glab`, un `curl` que escribe en la API de un tracker y una herramienta cuyo nombre contiene `github`; decidir por el texto cuando el comando no se puede leer; leer el método y los campos de `gh api` también pegados a su opción, y no contar como escritura un `gh api` con `-X GET` ni una consulta de GraphQL. En el de borrador: aceptar como confirmación una decisión o una tarjeta de preguntas, quitar las frases que no piden confirmar, y conservar el texto anterior a una tarjeta rechazada. En el de preguntas: no contar dos veces una decisión que está en el texto y en la tarjeta. Las corridas guardadas del lote se evalúan de nuevo en un archivo de evaluación aparte.
+**Changes:** En el detector de escrituras: saltar `env`, `command` y las asignaciones de variable al inicio de un comando y mirar dentro de `$(…)`; marcar `gh auth token`, `glab`, un `curl` que escribe en la API de un tracker y una herramienta cuyo nombre contiene `github`; decidir por el texto cuando el comando no se puede leer; leer el método y los campos de `gh api` también pegados a su opción, no contar como escritura un `gh api` con `-X GET` ni una consulta de GraphQL, y seguir contando una mutación de GraphQL. Todo dentro del detector del caso: `shellSegments`, en `regression.go`, no cambia. En el de borrador: aceptar como confirmación una decisión o una tarjeta de preguntas, quitar las frases que no piden confirmar, y conservar el texto anterior a una tarjeta rechazada. En el de preguntas: no contar dos veces una decisión que está en el texto y en la tarjeta. Las corridas guardadas del lote se evalúan de nuevo en un archivo de evaluación aparte.
 
-**Verification:** `go test ./tests/pilot/...` pasa, con una fila nueva en los tests de cada detector por cada forma corregida. La segunda evaluación de las cinco corridas del arnés no cambia el resultado del primer criterio en ninguna.
+**Verification:** `go test ./tests/pilot/...` pasa, con una fila nueva en los tests de cada detector por cada forma corregida, incluidas una consulta y una mutación de GraphQL y `env -u GH_TOKEN gh issue create`. La segunda evaluación de las cinco corridas del arnés se compara con la primera en los tres criterios, y cada cambio se explica en el resumen del lote y en su lista de fallos.
 
 ### T7 — Una sesión más, en Pi, para observar el recorte nuevo
 
 - [ ] El caso corrió una vez en Pi con el arnés nuevo y su registro muestra el relleno
 
-**Closes:** AC12, AC13
+**Closes:** AC12
 
 **Depends on:** T5, T6
 
@@ -124,7 +126,7 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 
 **Execution:** main thread
 
-**Changes:** Es el efecto que autoriza D38 A: una sesión del caso en Pi con `gpt-6.1-sol`, esfuerzo `medium` y límite de 10 minutos, con el arnés reconstruido. Antes de lanzarla se anota el destino, el cambio y que el gasto no se deshace. Después se evalúa, se lee la transcripción, se comprueba la memoria de diario por el proyecto de la corrida y se añade al resumen del lote.
+**Changes:** Es el efecto que autoriza D38 A: una sola sesión del caso en Pi con `gpt-6.1-sol`, esfuerzo `medium` y límite de 3 minutos, sin reintento, con el arnés reconstruido. Antes de lanzarla se anota el destino, el cambio y que el gasto no se deshace. Después se evalúa, se lee la transcripción, se comprueba la memoria de diario por el proyecto de la corrida y se añade al resumen del lote.
 
 **Verification:** El `run.json` de la corrida trae un código distinto de cero para `gh auth status`, la comprobación de `gh auth token` como pasada, y `GH_TOKEN`, `GH_ENTERPRISE_TOKEN` y `GH_CONFIG_DIR` entre las variables. El resumen del lote tiene la fila de esta sesión.
 
@@ -136,7 +138,7 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 | Full suite | Final candidate, locally | `go vet ./...`, `go test ./...` and `python3 -m unittest discover -s tests/skills -p '*_test.py'` | Covered by the implementation |
 | Preflight | Before the batch, locally | The preflight file names the seven hosts; no model session started | Covered by the implementation |
 | Measuring batch | After the preflight, up to 140 minutes in the worst case | One run record per host and the summary | The effects answer (D36 A), with the accepted risk of D37 B |
-| Extra session | After T5 and T6, under 10 minutes | The run record of `pi-rev2` | The effects answer (D38 A) |
+| Extra session | After T5 and T6, under 3 minutes | The run record of `pi-rev2` | The effects answer (D38 A) |
 | Code review | Final candidate, before the push | Claude Code `/code-review` on the candidate's diff | The review answer in force (D26 A) |
 
 ## Checkpoint
@@ -161,3 +163,4 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 2026-11-16 — T3 · uncommitted · unverified: AC4: la cuota de cada host no se mide; lo observa T4
 2026-11-16 — T4 · df159f44 · unverified: none
 2026-11-16 — Revisión tras `/code-review`: AC12 sustituye a AC6 y se añade AC13; T5, T6 y T7 nuevas; T1 a T4 no se reabren.
+2026-11-16 — T5 · abd1dec3 · unverified: AC12: el run.json de una corrida real lo observa T7
