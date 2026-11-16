@@ -43,9 +43,10 @@ verified.
   you, not a hang.
 - While a card is open it covers the screen (an open Claude Code issue), so each
   card carries the context needed to answer on its own.
-- Each round of decisions comes in the card alone, after the agent's report. If
-  you dismiss the card, the agent writes those decisions in the chat and you
-  answer there (for example `D2 B`).
+- Each round of decisions comes in the card alone, after the agent's report.
+  Dismissing the card with Esc stops the turn: the agent writes those decisions
+  in the chat when you send your next message, and you answer there (for example
+  `D2 B`).
 - A session isolated in a worktree has its `Edit` and `Write` of the main
   checkout refused, and so are compound shell commands such as Git inside
   `$(…)`, with an error that says it cannot verify they stay in the worktree
@@ -85,7 +86,8 @@ verified.
 
 - Its question card closes after 1800 seconds by default, and a close by timeout
   counts as a decline. The `toolset.ask_user_question.timeout_enabled` setting
-  controls that.
+  controls that. After a decline the agent writes that round's decisions in the
+  chat.
 - Helper roles keep the model written in the installed role file even when the
   session runs another one (observed). The agent can still mistake this for
   inheritance, so if it asks you about which model a verifier used, point it to the
@@ -94,8 +96,9 @@ verified.
 ## Pi
 
 - Pi has no built-in question tool. Cards exist only if you install the
-  third-party `rpiv-ask-user-question` extension; without it the agent writes the
-  full options in the message and you answer in text.
+  third-party `rpiv-ask-user-question` extension, and then each round comes in the
+  card alone; without it the agent writes the full options in the message and you
+  answer in text.
 - Helper roles need the `pi-subagents` package. Hive declares it with
   `pi install npm:pi-subagents` when you install for Pi, and leaves an existing
   pin alone. It also sets `"toolActivation": "eager"` in
@@ -161,5 +164,7 @@ verified.
    but restart it when in doubt.
 2. Run `hive doctor` to see what Hive can check on your machine.
 3. If a card closes before you answer, the agent writes its decisions in the
-   chat: reply there with the decision ID and letter. The next decision still
-   comes in a card.
+   chat: reply there with the decision ID and letter. After Esc the turn stops,
+   so that text comes when you send your next message; on Cursor the decisions
+   are already in the message above the card. The next decision still comes in
+   a card.
