@@ -22,7 +22,7 @@ Base: `JhonHawk/tricell-hive`, `development` en `8ec852a5`; rama propuesta `test
 
 ### T2 — El caso del pedido directo y sus tres detectores
 
-- [ ] `flows` tiene el caso `ticket-direct-request`, y su evaluación reporta los tres criterios de tickets
+- [x] `flows` tiene el caso `ticket-direct-request`, y su evaluación reporta los tres criterios de tickets
 
 **Closes:** AC2, AC7, AC8, AC9
 
@@ -46,7 +46,7 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 
 ### T3 — Comprobación previa, sin gasto
 
-- [ ] Queda escrito con qué versión, modelo, esfuerzo y comando corre cada uno de los siete hosts, y qué vías a un tracker real tiene cada uno
+- [x] Queda escrito con qué versión, modelo, esfuerzo y comando corre cada uno de los siete hosts, y qué vías a un tracker real tiene cada uno
 
 **Closes:** AC4
 
@@ -62,7 +62,7 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 
 ### T4 — El lote de medición y su registro
 
-- [ ] El caso corrió una vez en cada host no bloqueado, y el registro y el reporte dicen cuánto tardó y usó cada sesión
+- [x] El caso corrió una vez en cada host no bloqueado, y el registro y el reporte dicen cuánto tardó y usó cada sesión
 
 **Closes:** AC2, AC4, AC6, AC7, AC8, AC9, AC10, AC11
 
@@ -88,7 +88,22 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 
 ## Checkpoint
 
+- Updated: 2026-11-16
+- Stage: verify · revisión de código antes del push
+- Last commit: df159f44
+- Open findings: none
+- Next: Correr /code-review sobre development..HEAD, una ronda de arreglos, push, PR contra development, merge, refresco local (tests/ no cambia binario ni contenido) y cierre: archivo del change, watch item en Engram, reporte
+
+### Evidence
+
+- go test ./tests/pilot/... · ok · caf1d155
+- go vet ./... && go test ./... · ok · df159f44
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · 90 OK · df159f44
+
 ## Review status and progress
 
 2026-11-16 — Plan escrito y revisado; las tareas recogen los 17 hallazgos de la revisión del plan.
 2026-11-16 — T1 · 4b10aaa9 · unverified: AC6: el efecto real (gh auth status distinto de cero en cada run.json) lo observa T4
+2026-11-16 — T2 · caf1d155 · unverified: AC2, AC7, AC8, AC9: la evaluación de una corrida real la observa T4
+2026-11-16 — T3 · uncommitted · unverified: AC4: la cuota de cada host no se mide; lo observa T4
+2026-11-16 — T4 · df159f44 · unverified: none
