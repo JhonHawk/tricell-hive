@@ -38,11 +38,11 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 **Changes:** reescribe los tres puntos con la condición observable (herramienta que espera y descripción por opción), el contenido del texto previo (línea de contexto e informe), la respuesta a una tarjeta sin contestar y al turno cortado, y los casos que siguen en texto. Antes de editar, revisa cada lugar que depende de la conducta, como pide `AGENTS.md` «Guidance structure», y anota los lugares revisados y el cambio de tamaño de `global.md` para el pull request. No cambia el formato de una decisión, las tarjetas consecutivas, las preguntas abiertas ni el bloque de siguiente paso.
 
-**Verification:** `go test ./tests/...` pasa; `rg -n "visible text first|without repeating the decisions|round's text before it" content/guidance/global.md` no devuelve nada, y `rg -n` de la frase inicial de cada uno de los tres puntos nuevos la encuentra una vez; el tamaño de `global.md` antes y después queda anotado. AC1 y AC2 quedan sin verificar hasta T6.
+**Verification:** `go test ./tests/...` pasa; `rg -n "visible text first|without repeating the decisions|round's text before it" content/guidance/global.md` no devuelve nada, y `rg -c "through that tool alone when it also gives each option a description field|When a card comes back unanswered and it carried the round alone" content/guidance/global.md` da 2; el tamaño de `global.md` antes y después queda anotado. AC1 y AC2 quedan sin verificar hasta T6.
 
 ### T3 — Las skills que citan el orden apuntan a la regla nueva
 
-- [x] `flow-plan` paso 4, `flow-verify` paso 3 y la referencia del visor dejan de pedir el texto antes de la tarjeta
+- [x] `flow-plan` paso 4, `flow-verify` paso 2 y la referencia del visor dejan de pedir el texto antes de la tarjeta
 
 **Closes:** AC1
 
@@ -90,9 +90,9 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 **Test approach:** check
 
-**Changes:** con los commits de la rama hechos y la revisión de código aplicada, nombra los commits aún no desplegados, ejecuta `hive update --source <checkout de la rama> --rev feat/question-card-alone --out FILE` y `hive apply --plan FILE`, y dice al usuario que las sesiones abiertas necesitan reinicio. Antes de desplegar incorpora `development` a la rama, de modo que lleve la línea de T7 y la borre en su diff. El binario no se recompila: el cambio es solo de contenido. Los refrescos posteriores de otras sesiones siguen la línea de T7; una sesión que aun así despliegue desde `development` pisa la regla, y T6 lo detecta por las ventanas de despliegue y no cuenta esas rondas.
+**Changes:** con los commits de la rama hechos y la revisión de código aplicada, nombra los commits aún no desplegados, ejecuta `hive update --source <checkout de la rama> --rev feat/question-card-alone --out FILE` y `hive apply --plan FILE`, y dice al usuario que las sesiones abiertas necesitan reinicio. Antes de desplegar incorpora `development` a la rama, de modo que lleve la línea de T7; el commit que la borra se añade al cerrar la prueba, justo antes de integrar. El binario no se recompila: el cambio es solo de contenido. Los refrescos posteriores de otras sesiones siguen la línea de T7; una sesión que aun así despliegue desde `development` pisa la regla, y T6 lo detecta por las ventanas de despliegue y no cuenta esas rondas.
 
-**Verification:** en el archivo de guía instalado de cada host que `hive status --hosts codex,claude,grok,pi,opencode,cursor,antigravity --scope user` da como instalado (sus rutas las lista `hive doctor`), `rg -q "Write the message as visible text first" <archivo>` termina con código 1 y `rg -q` de la frase inicial de la regla nueva termina con código 0; `hive releases` muestra la instantánea desplegada desde la rama.
+**Verification:** en el archivo de guía instalado de cada host que `hive status --hosts codex,claude,grok,pi,opencode,cursor,antigravity --scope user` da como instalado (sus rutas las lista `hive doctor`), `rg -q "Write the message as visible text first" <archivo>` termina con código 1 y `rg -q "through that tool alone when it also gives each option a description field" <archivo>` termina con código 0; `hive releases` muestra la instantánea desplegada desde la rama.
 
 ### T6 — La prueba se mide y el usuario decide la integración
 
@@ -160,7 +160,7 @@ Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prue
 
 2026-11-16 — Plan escrito.
 2026-11-16 — Revisión tras la revisión del plan: D6 A añade T7 y cambia T5; D7 A sustituye AC3 por AC6 en T1 y T6.
-2026-11-16 — T1 · uncommitted · unverified: AC6 hasta T6; la línea base de Codex se reproduce como 63 filas con 10 vacías (la cifra de 47 era de hilos principales)
+2026-11-16 — T1 · uncommitted · unverified: AC6 hasta T6; la línea base de Codex se reproduce: 63 filas en los archivos, de ellas 47 tarjetas que esperan desde el 2026-11-09, con 10 vacías
 2026-11-16 — T7 · 27da2b19 · unverified: AC4 hasta T6; el ensayo de los comandos de refresco con --dry-run terminó sin dejar worktrees; push y pull request pendientes de la revisión de código
 2026-11-16 — T2 · 6545eca3 · unverified: AC1 y AC2 hasta T6 (sesiones reales)
 2026-11-16 — T3 · 7fab11bf · unverified: AC1 hasta T6

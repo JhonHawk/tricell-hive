@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | In build |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `c35c3424` · ramas propuestas: `chore/trial-refresh-line` (una línea de `AGENTS.md`, se integra antes de la prueba) y `feat/question-card-alone` (la regla, sin integrar hasta cerrar la prueba) |
 
@@ -15,12 +15,12 @@
 - **D3 A** — ¿Qué resultado da por buena la prueba? Al menos 20 rondas en Claude Code y 10 en Codex, que incluyan 3 tarjetas sin contestar, sin ninguna ronda perdida. Si Codex falla dos veces, ese host vuelve a la regla actual.
 - **D4 A** — ¿Cómo se entrega la rama de prueba? Modo `ready`: revisión, push y pull request abierto sin integrar; el usuario integra cuando la prueba cumpla D3 A.
 - **D5 A** — ¿Qué revisión de código corre antes de desplegar y publicar? La nativa de Claude Code, `/code-review`.
-- **D6 A** — ¿Cómo se evita que los refrescos de otras sesiones pisen la regla de prueba? Una línea temporal en `AGENTS.md` «Refreshing a local installation», integrada a `development` antes de la prueba: mientras la rama de prueba exista sin integrar, cada refresco despliega la unión de esa rama con `development`, hecha en un worktree temporal que no toca la rama ni su checkout. La rama de prueba borra la línea al integrarse. **Replaces:** la línea de aviso en `HIVE.local.md` que D1 A preveía.
+- **D6 A** — ¿Cómo se evita que los refrescos de otras sesiones pisen la regla de prueba? Una línea temporal en `AGENTS.md` «Refreshing a local installation», integrada a `development` antes de la prueba: mientras la rama de prueba exista sin integrar, cada refresco despliega la unión de esa rama con `development`, hecha en un worktree temporal que no toca la rama ni su checkout. El último commit de la rama de prueba antes de integrarla borra la línea; mientras tanto la rama la conserva, porque las sesiones leen `AGENTS.md` del checkout en que trabajan. **Replaces:** la línea de aviso en `HIVE.local.md` que D1 A preveía.
 - **D7 A** — ¿La prueba debe ver tarjetas sin contestar en Codex? Sí: al menos 2 de las 3 tarjetas sin contestar son de Codex.
 
 Supuestos tomados sin preguntar, dichos al usuario junto a D1–D3:
 - La tarjeta va sola únicamente donde la herramienta espera la respuesta y cada opción admite descripción; donde no la admite (Cursor) o no hay herramienta que espere, la ronda sigue como hoy.
-- Cuando el host corta el turno con la tarjeta abierta y el modelo no recibe resultado (Esc en Codex y OpenCode), el agente escribe la ronda en respuesta al siguiente mensaje del usuario, salvo que ese mensaje ya la conteste.
+- Cuando el host corta el turno al descartarse la tarjeta, devuelva o no un resultado (Esc en Claude Code, Codex y OpenCode), el agente escribe la ronda en respuesta al siguiente mensaje del usuario, salvo que ese mensaje ya la conteste.
 - El mensaje anterior a la tarjeta conserva su línea final de espera, que dice qué se espera y cuántas decisiones quedan después; la indicación de que «ok» aplica las opciones con estrella pasa al texto que se escribe tras una tarjeta sin contestar.
 - Los scripts de medición pasan de la carpeta temporal de la sesión a `_support/workspace/2026-11-16-question-card-alone/measure/`.
 
@@ -84,3 +84,5 @@ Esta elección no autoriza integrar, activar auto-merge ni desplegar a otra máq
 2026-11-16 — Plan escrito.
 2026-11-16 — Revisión del plan (`hive-review-plan`): 7 hallazgos. Corregidos en la carpeta: la línea de espera se conserva antes de la tarjeta, las búsquedas de T4, el comando de T5, la línea base de T1 y las vigilancias en T6. Dos fueron al usuario: D6 A (línea temporal en `AGENTS.md`, nueva tarea T7, sustituye el aviso en `HIVE.local.md`) y D7 A (AC6 sustituye a AC3). Invalidó: el texto de T5 y el `Closes:` de T1 y T6.
 2026-11-16 — Segunda revisión del plan: 5 hallazgos, todos corregidos en la carpeta. El refresco de T7 une la rama con `development` en un worktree temporal en vez de escribir en la rama, y vale mientras la rama exista sin integrar; T3 cubre también la lista de reglas de la referencia del visor; T2 y T5 comprueban que la regla nueva está; la recuperación ya no nombra `HIVE.local.md`; Pi queda dicho como supuesto.
+2026-11-16 — Build: T1, T7, T2, T3 y T4 hechas. Revisión de código (`/code-review`, nativa) sobre `6f9acaf5`: 10 hallazgos; 9 confirmados y corregidos en una ronda (Esc en Claude Code corta el turno con resultado; los hosts con la ronda ya en el texto reciben una línea, no la ronda otra vez; los hallazgos `H<n>` vuelven a las reglas del texto; la tarjeta lleva el ID y el título; un descarte devuelto como error no cuenta como herramienta que falla; tras una petición de conversar se contesta antes de escribir la ronda; la referencia de `harness-audit`; la rúbrica; este registro). Uno refutado: «10 de 47» en Codex es correcto, y la nota de T1 que lo contradecía era el error. La línea temporal de `AGENTS.md` se borra en el último commit antes de integrar, no al desplegar.
+2026-11-16 — Segunda revisión de código, limitada a las correcciones (una pasada a esfuerzo bajo no leyó el texto y no cuenta; la válida fue a esfuerzo medio): 10 hallazgos, todos corregidos sin nueva revisión. Un «ok» solo aplica decisiones que el usuario vio; una tarjeta contestada en parte cuenta como sin contestar; las reglas de tarjeta valen también donde la ronda va antes en el texto; tras un turno cortado el agente contesta el mensaje del usuario antes de escribir la ronda; la frase inicial de la regla ya no coincide con el marcador de la regla anterior que usan T2, T5 y AC4. `global.md`: 52386 -> 54293 bytes.
