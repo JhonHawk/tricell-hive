@@ -1,12 +1,12 @@
 # Tasks
 
-Base: `JhonHawk/tricell-hive`, `development` en `8ec852a5`; rama propuesta `test/create-issue-pilot`. T1 corre en el hilo principal. T2 edita cuatro archivos del mismo paquete Go, así que espera a T1 y la corre un hijo `hive-build-backend`. T3 y T4 corren en el hilo principal: T4 gasta cuota y escribe el registro del lote.
+Base: `JhonHawk/tricell-hive`, `development` en `8ec852a5`; rama propuesta `test/create-issue-pilot`. T1 corre en el hilo principal. T2 edita cuatro archivos del mismo paquete Go, así que espera a T1 y la corre un hijo `hive-build-backend`. T3 y T4 corren en el hilo principal: T4 gasta cuota y escribe el registro del lote. T5 a T7 salen de la revisión de código (D38 A y H5 A) y corren en el hilo principal.
 
 ### T1 — El arnés lanza sus sesiones sin credenciales de GitHub y lo comprueba
 
 - [x] El entorno final de todo proceso hijo lleva un `GH_CONFIG_DIR` vacío y ninguna variable de token de GitHub, y `run.json` guarda el resultado de `gh auth status` bajo ese entorno
 
-**Closes:** AC6
+**Closes:** AC12
 
 **Depends on:** none
 
@@ -64,7 +64,7 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 
 - [x] El caso corrió una vez en cada host no bloqueado, y el registro y el reporte dicen cuánto tardó y usó cada sesión
 
-**Closes:** AC2, AC4, AC6, AC7, AC8, AC9, AC10, AC11
+**Closes:** AC2, AC4, AC7, AC8, AC9, AC10, AC11
 
 **Depends on:** T3
 
@@ -76,6 +76,58 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 
 **Verification:** El directorio tiene un subdirectorio por corrida con su `run.json`, o con la transcripción y el estado de Git en las dos a mano. Cada `run.json` del arnés trae un código de salida distinto de cero para `gh auth status`. El resumen trae, por sesión, host y versión, modelo pedido y servido o configurado, esfuerzo, duración, uso o costo donde se reporta, lecturas, escrituras, estado final, el resultado de los tres criterios y el proyecto de Engram con lo hallado y lo borrado. El reporte al usuario da la duración y el uso por host, cada fallo en la forma indicada y el tope que propone para el lote completo.
 
+### T5 — Un token de relleno tapa el llavero de `gh`
+
+- [ ] El entorno del hijo lleva un token de relleno inválido, y el arnés no lanza la sesión si `gh auth token` entrega otro
+
+**Closes:** AC12
+
+**Depends on:** T1
+
+**Locations:** `tests/pilot/launch.go`, `tests/pilot/launch_test.go`, `tests/fixtures/flows/README.md`
+
+**Execution:** main thread
+
+**Test approach:** tdd
+
+**Changes:** La función que recorta el entorno fija `GH_TOKEN` y `GH_ENTERPRISE_TOKEN` a un valor de relleno constante, que no es un secreto, y sigue quitando `GITHUB_TOKEN` y `GITHUB_ENTERPRISE_TOKEN`. La comprobación previa ejecuta además `gh auth token` con ese entorno, falla si la salida no es exactamente el relleno, y guarda el resultado en `run.json`. El README deja de decir que un `gh` no puede llegar a un tracker real y dice qué cubre el recorte. El test de la comprobación arma su entorno con una lista fija, no con el del proceso, para no depender de las variables `GH_` o `GITHUB_` de la máquina.
+
+**Verification:** Los tests fallan antes del cambio y pasan después: el entorno resultante trae el relleno una sola vez en cada variable; un `gh` falso que entrega otro token hace fallar la comprobación; uno que entrega el relleno la deja pasar. `go test ./tests/pilot/...` pasa. Con el `gh` real y el entorno recortado, `gh auth token` devuelve el relleno. El efecto en una corrida lo observa T7.
+
+### T6 — Los detectores del caso leen las formas que la revisión encontró
+
+- [ ] La evaluación del caso marca los intentos que antes pasaban y deja de fallar turnos correctos
+
+**Closes:** AC13
+
+**Depends on:** T2
+
+**Locations:** `tests/pilot/flows.go`, `tests/pilot/flows_test.go`, `tests/fixtures/flows/README.md`
+
+**Execution:** main thread
+
+**Test approach:** check
+
+**Changes:** En el detector de escrituras: saltar `env`, `command` y las asignaciones de variable al inicio de un comando y mirar dentro de `$(…)`; marcar `gh auth token`, `glab`, un `curl` que escribe en la API de un tracker y una herramienta cuyo nombre contiene `github`; decidir por el texto cuando el comando no se puede leer; leer el método y los campos de `gh api` también pegados a su opción, y no contar como escritura un `gh api` con `-X GET` ni una consulta de GraphQL. En el de borrador: aceptar como confirmación una decisión o una tarjeta de preguntas, quitar las frases que no piden confirmar, y conservar el texto anterior a una tarjeta rechazada. En el de preguntas: no contar dos veces una decisión que está en el texto y en la tarjeta. Las corridas guardadas del lote se evalúan de nuevo en un archivo de evaluación aparte.
+
+**Verification:** `go test ./tests/pilot/...` pasa, con una fila nueva en los tests de cada detector por cada forma corregida. La segunda evaluación de las cinco corridas del arnés no cambia el resultado del primer criterio en ninguna.
+
+### T7 — Una sesión más, en Pi, para observar el recorte nuevo
+
+- [ ] El caso corrió una vez en Pi con el arnés nuevo y su registro muestra el relleno
+
+**Closes:** AC12, AC13
+
+**Depends on:** T5, T6
+
+**Locations:** `_support/workspace/2026-11-16-create-issue-pilot/pi-rev2/` (no se versiona)
+
+**Execution:** main thread
+
+**Changes:** Es el efecto que autoriza D38 A: una sesión del caso en Pi con `gpt-6.1-sol`, esfuerzo `medium` y límite de 10 minutos, con el arnés reconstruido. Antes de lanzarla se anota el destino, el cambio y que el gasto no se deshace. Después se evalúa, se lee la transcripción, se comprueba la memoria de diario por el proyecto de la corrida y se añade al resumen del lote.
+
+**Verification:** El `run.json` de la corrida trae un código distinto de cero para `gh auth status`, la comprobación de `gh auth token` como pasada, y `GH_TOKEN`, `GH_ENTERPRISE_TOKEN` y `GH_CONFIG_DIR` entre las variables. El resumen del lote tiene la fila de esta sesión.
+
 ## Verification and human review
 
 | Check | When and where | Evidence | Authorization |
@@ -84,15 +136,16 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 | Full suite | Final candidate, locally | `go vet ./...`, `go test ./...` and `python3 -m unittest discover -s tests/skills -p '*_test.py'` | Covered by the implementation |
 | Preflight | Before the batch, locally | The preflight file names the seven hosts; no model session started | Covered by the implementation |
 | Measuring batch | After the preflight, up to 140 minutes in the worst case | One run record per host and the summary | The effects answer (D36 A), with the accepted risk of D37 B |
+| Extra session | After T5 and T6, under 10 minutes | The run record of `pi-rev2` | The effects answer (D38 A) |
 | Code review | Final candidate, before the push | Claude Code `/code-review` on the candidate's diff | The review answer in force (D26 A) |
 
 ## Checkpoint
 
 - Updated: 2026-11-16
-- Stage: verify · revisión de código antes del push
-- Last commit: df159f44
-- Open findings: none
-- Next: Correr /code-review sobre development..HEAD, una ronda de arreglos, push, PR contra development, merge, refresco local (tests/ no cambia binario ni contenido) y cierre: archivo del change, watch item en Engram, reporte
+- Stage: verify · ronda de hallazgos de /code-review, en espera del usuario
+- Last commit: f9048e65
+- Open findings: H4 P1 · gh auth token entrega el token del llavero con GH_CONFIG_DIR vacío (reproducido) · decisión D38 pendiente; H5 P2 · siete huecos de los detectores de tickets (cuenta doble, confirmación por decisión, gh tras env/asignación, comando ilegible pasa, GitHub por MCP/glab/curl, gh api mal clasificado, frases de confirmación amplias) · pendiente; H6 P3 · lista fija de herramientas de Linear porque trace.go pierde el servidor en Codex y Grok · se lista
+- Next: Aplicar la respuesta a D38 (hueco del llavero de gh: relleno en GH_TOKEN, revisar AC6) y a H4 (siete huecos de los detectores); arreglar sin preguntar el test frágil de launch_test.go (os.Environ con variables GH_/GITHUB_ ajenas); después push, PR, merge y cierre
 
 ### Evidence
 
@@ -107,3 +160,4 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 2026-11-16 — T2 · caf1d155 · unverified: AC2, AC7, AC8, AC9: la evaluación de una corrida real la observa T4
 2026-11-16 — T3 · uncommitted · unverified: AC4: la cuota de cada host no se mide; lo observa T4
 2026-11-16 — T4 · df159f44 · unverified: none
+2026-11-16 — Revisión tras `/code-review`: AC12 sustituye a AC6 y se añade AC13; T5, T6 y T7 nuevas; T1 a T4 no se reabren.

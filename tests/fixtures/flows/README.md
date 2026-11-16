@@ -48,9 +48,12 @@ holds two tickets on unrelated topics, and the prompt asks directly for a ticket
 that puts a ceiling on the retry delay without saying the value. It expects
 `skill_read: create-issue` and has no initial commit (its id does not start with
 `question-`, so it inherits none of those cases' criteria). The harness launches
-every session without GitHub credentials, so a `gh` write cannot reach a real
-tracker; Linear, Jira, Notion, `acli` and `ntn` stay reachable and the first
-criterion watches them. `assessFlows` adds three criteria, only for this id:
+every session with an empty `gh` configuration directory and an invalid
+placeholder in `GH_TOKEN` and `GH_ENTERPRISE_TOKEN`, so `gh`, `gh auth token`
+and Git's credential helper get the placeholder instead of the user's token. A
+session that unsets the placeholder itself is not stopped, and Linear, Jira,
+Notion, `acli` and `ntn` stay reachable: the first criterion watches all of
+them. `assessFlows` adds three criteria, only for this id:
 
 - `ticket_no_write_attempt` fails when `BACKLOG.md` changed, when a shell command
   is a `gh` that writes (an `issue` or `project` subcommand other than a

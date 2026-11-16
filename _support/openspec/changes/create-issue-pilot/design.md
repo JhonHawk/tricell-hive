@@ -25,6 +25,9 @@ Para alojar el caso, una sola vía es razonable: el conjunto `flows`. Un conjunt
 - **Cursor y Antigravity, a mano.** Se materializan los mismos archivos del caso en un repositorio con commit inicial, fuera de este repositorio para que no hereden su guía, y se compara el estado de Git antes y después. La sesión se lanza con `-p` y salida `stream-json`, un límite de 10 minutos, el mismo entorno recortado y un directorio de Engram vacío y verificado. `agy` no tiene opción de directorio de trabajo: se lanza desde el del repositorio de ejemplo. El hilo principal lee la transcripción y aplica los mismos tres criterios a mano.
 - **Sin casos de regresión nuevos.** El `AGENTS.md` del repositorio pide no añadirlos bajo `tests/fixtures/regression/` mientras los pilotos estén en pausa; los detectores se prueban con eventos escritos en el propio test.
 
+- **Un token de relleno tapa el llavero (D38 A, sustituye a «sin variables de token»).** Con el directorio de configuración vacío, `gh auth token` y el ayudante de credenciales de git todavía leen el token del llavero de macOS. Con `GH_TOKEN` y `GH_ENTERPRISE_TOKEN` fijados a un valor inválido, los dos reciben ese valor y `gh auth status` sigue fallando (comprobado con el `gh` real, 2026-11-16). La comprobación previa ejecuta también `gh auth token` y no lanza la sesión si entrega otra cosa. Una sesión que quite la variable a propósito no queda impedida: el detector marca `gh auth token`.
+- **El detector de escrituras lee más formas (H5 A).** Salta `env`, `command` y las asignaciones de variable al inicio de un comando, mira dentro de `$(…)`, y cuando no logra leer un comando decide por su texto. Deja de contar dos veces una decisión que está en el texto y en la tarjeta, y acepta como confirmación de un borrador una decisión o una tarjeta de preguntas.
+
 ## Proposed shape
 
 ```

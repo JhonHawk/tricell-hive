@@ -27,9 +27,16 @@ func environmentInDirectory(env []string, cwd string) []string {
 // gh reads a token from these variables before its configuration directory.
 var githubTokenVariables = []string{"GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN"}
 
-// A launched session must not reach GitHub as the user: gh finds no token in
-// the environment and no stored session in configDir. PATH is left alone,
-// since the hosts' shells rebuild it from their startup files.
+// githubPlaceholderToken is not a secret: an invalid value that gh and git's
+// credential helper take instead of the token stored in the system keychain,
+// which an empty configuration directory alone does not hide.
+const githubPlaceholderToken = "hive-pilot-no-github-access"
+
+// A launched session must not reach GitHub as the user: gh finds no stored
+// session in configDir and takes the placeholder for every host instead of a
+// real token from the environment or the keychain. PATH is left alone, since
+// the hosts' shells rebuild it from their startup files. A session that
+// unsets the placeholder itself is not stopped; the ticket case reports it.
 func withoutGitHubCredentials(env []string, configDir string) []string {
 	out := make([]string, 0, len(env)+1)
 	for _, item := range env {
@@ -38,7 +45,7 @@ func withoutGitHubCredentials(env []string, configDir string) []string {
 			out = append(out, item)
 		}
 	}
-	return append(out, "GH_CONFIG_DIR="+configDir)
+	return append(out, "GH_CONFIG_DIR="+configDir, "GH_TOKEN="+githubPlaceholderToken, "GH_ENTERPRISE_TOKEN="+githubPlaceholderToken)
 }
 
 // githubAccessReport holds variable names only, never their values.
@@ -47,12 +54,14 @@ type githubAccessReport struct {
 	PreflightCommand   string
 	CLIFound           bool
 	AuthStatusExitCode int
+	AuthToken          string
 	Variables          []string
 }
 
 // prepareGitHubIsolation trims env, then asks gh itself, under that same
-// environment and before any model runs, whether it still has a session. A gh
-// that answers as signed in stops the launch; a missing gh is recorded.
+// environment and before any model runs, whether it still has a session and
+// which token it hands out. A gh that answers as signed in, or returns a token
+// other than the placeholder, stops the launch; a missing gh is recorded.
 func prepareGitHubIsolation(output string, env []string) ([]string, githubAccessReport, error) {
 	report := githubAccessReport{ConfigDirectory: "gh-config", PreflightCommand: "gh auth status"}
 	configDir := filepath.Join(output, report.ConfigDirectory)
@@ -72,20 +81,36 @@ func prepareGitHubIsolation(output string, env []string) ([]string, githubAccess
 		return env, report, nil
 	}
 	report.CLIFound = true
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
-	cmd := exec.CommandContext(ctx, bin, "auth", "status")
-	cmd.Env = env
-	err = cmd.Run()
+	status := exec.CommandContext(ctx, bin, "auth", "status")
+	status.Env = env
+	err = status.Run()
 	var exit *exec.ExitError
 	switch {
 	case err == nil:
-		return nil, report, fmt.Errorf("gh still answers as signed in without credentials in the child environment")
+		return nil, report, fmt.Errorf("gh still answers as signed in under the child environment")
 	case errors.As(err, &exit) && exit.ExitCode() > 0:
 		report.AuthStatusExitCode = exit.ExitCode()
-		return env, report, nil
+	default:
+		return nil, report, fmt.Errorf("gh auth status preflight did not finish: %w", err)
 	}
-	return nil, report, fmt.Errorf("gh auth status preflight did not finish: %w", err)
+	token := exec.CommandContext(ctx, bin, "auth", "token")
+	token.Env = env
+	// The output may be a real token: compare it, never store or print it.
+	stdout, err := token.Output()
+	if err != nil && !errors.As(err, &exit) {
+		return nil, report, fmt.Errorf("gh auth token preflight did not finish: %w", err)
+	}
+	switch strings.TrimSpace(string(stdout)) {
+	case githubPlaceholderToken:
+		report.AuthToken = "placeholder_only"
+	case "":
+		report.AuthToken = "none"
+	default:
+		return nil, report, fmt.Errorf("gh auth token returns a token other than the placeholder under the child environment")
+	}
+	return env, report, nil
 }
 
 func validHost(host string) bool {
