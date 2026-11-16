@@ -20,6 +20,7 @@ For where each flow loops and where a requested change returns the work, see the
 - [Security review](/flows/security/): review a change's security boundaries when you ask.
 - [Close](/flows/close/): record the outcome and clean up the work session.
 - [Deploy](/flows/deploy/): promote an integrated change and check what is served.
+- [Create issue](/flows/create-issue/): write a ticket someone else can work, break work down into a parent ticket with children, or check that a ticket is ready.
 
 ## Supporting skills
 
