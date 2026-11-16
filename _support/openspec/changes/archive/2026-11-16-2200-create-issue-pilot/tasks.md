@@ -144,10 +144,10 @@ El README describe el caso, sus criterios, que los dos últimos son heurísticas
 ## Checkpoint
 
 - Updated: 2026-11-16
-- Stage: verify · segunda revisión, limitada a los arreglos
-- Last commit: 355d2659
-- Open findings: none
-- Next: Correr /code-review sobre f9048e65..HEAD; arreglo local de lo bloqueante con línea Unreviewed; suite completa; push, PR, merge; cierre (archivo, watch item, Engram, reporte)
+- Stage: close · cierre completo: PR #487 integrado en 3fdca2c3, plan archivado
+- Last commit: ec44bd2c
+- Open findings: H6 P3 · trace.go pierde el servidor de la herramienta en Codex y Grok · se lista; H7 P2 · el pedido del caso termina en «Regístralo en el tracker» · pendiente del usuario
+- Next: Nada pendiente de este trabajo. Hallazgos sin decidir: H7 (pedido del caso), H6 (traza sin servidor) y H1 a H3 del cierre de create-issue
 
 ### Evidence
 
