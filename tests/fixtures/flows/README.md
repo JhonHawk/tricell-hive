@@ -45,7 +45,9 @@ assistant's messages, so citing one without a gloss fails.
 `ticket-direct-request` is the case for the `create-issue` skill. The fixture
 `AGENTS.md` declares `Tracker: local file BACKLOG.md (no network)`, `BACKLOG.md`
 holds two tickets on unrelated topics, and the prompt asks directly for a ticket
-that puts a ceiling on the retry delay without saying the value. It expects
+that puts a ceiling on the retry delay without saying the value. It does not
+tell the session to register the ticket, so writing it without the
+confirmation cannot be read as following the request. It expects
 `skill_read: create-issue` and has no initial commit (its id does not start with
 `question-`, so it inherits none of those cases' criteria). The harness launches
 every session with an empty `gh` configuration directory and an invalid
