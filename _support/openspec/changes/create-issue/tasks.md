@@ -42,7 +42,7 @@ Las tareas fijan frases literales en inglés que el contenido debe llevar, para 
 
 ### T3 — La guía global remite a la skill
 
-- [ ] `content/guidance/global.md` conserva cuándo proponer un ticket y su autorización, y remite a `create-issue` para el cómo
+- [x] `content/guidance/global.md` conserva cuándo proponer un ticket y su autorización, y remite a `create-issue` para el cómo
 
 **Closes:** AC8
 
@@ -145,3 +145,4 @@ Las tareas fijan frases literales en inglés que el contenido debe llevar, para 
 2026-11-16 — Plan escrito y revisado; las tareas recogen los nueve hallazgos de la revisión del plan.
 2026-11-16 — T1 · 25b29595 · unverified: el archivo instalado lo observa T7
 2026-11-16 — T2 · 0b7b96d6 · unverified: los archivos instalados los observa T7
+2026-11-16 — T3 · 48d0fef3 · unverified: el archivo instalado lo observa T7
