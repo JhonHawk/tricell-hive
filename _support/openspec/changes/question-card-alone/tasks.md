@@ -144,10 +144,10 @@ Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prue
 ## Checkpoint
 
 - Updated: 2026-11-16
-- Stage: verify · 1 (revisión de código)
-- Last commit: 27e752a0
+- Stage: verify · 2 (revisión de la línea temporal y entrega)
+- Last commit: 862c718c
 - Open findings: none
-- Next: /code-review sobre feat/question-card-alone y chore/trial-refresh-line; después push y pull requests en modo ready
+- Next: /code-review de chore/trial-refresh-line; push y pull request de ambas ramas en modo ready; volver el checkout a development
 
 ### Evidence
 
@@ -155,6 +155,8 @@ Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prue
 - npm --prefix site run build · exit 0, 19 páginas · 27e752a0
 - go test ./tests/... en chore/trial-refresh-line · exit 0 · 27da2b19
 - ensayo del refresco: worktree temporal + hive update --dry-run · exit 0, sin worktrees restantes · 27da2b19
+- go -C <repo> test ./... · exit 0 · candidato con las correcciones de ambas revisiones
+- npm --prefix site run build · exit 0 · mismo candidato
 
 ## Review status and progress
 
