@@ -1,9 +1,11 @@
 package main
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -65,5 +67,83 @@ func TestCodexNativeDispatchKeepsParentThread(t *testing.T) {
 		if err != nil || !slices.Contains(args, "--ephemeral") {
 			t.Fatalf("single-agent smoke lost ephemeral mode: %v, %v", args, err)
 		}
+	}
+}
+
+func TestChildEnvironmentShadowsGitHubCredentials(t *testing.T) {
+	got := withoutGitHubCredentials([]string{"PATH=/bin", "GH_TOKEN=a", "GITHUB_TOKEN=b", "GH_ENTERPRISE_TOKEN=c", "GITHUB_ENTERPRISE_TOKEN=d", "GH_CONFIG_DIR=/real", "GH_HOST=example.test", "OTHER=value"}, "/private/gh")
+	want := []string{"PATH=/bin", "GH_HOST=example.test", "OTHER=value", "GH_CONFIG_DIR=/private/gh", "GH_TOKEN=" + githubPlaceholderToken, "GH_ENTERPRISE_TOKEN=" + githubPlaceholderToken}
+	if !slices.Equal(got, want) {
+		t.Fatalf("child environment keeps GitHub credentials or loses a setting: %v", got)
+	}
+}
+
+// fakeGitHubCLI puts a gh in PATH: `auth status` exits with statusExit and
+// `auth token` prints token, both only under the trimmed environment (an empty
+// configuration directory and the placeholder in GH_TOKEN); otherwise `auth
+// status` exits 0, which the preflight refuses.
+func fakeGitHubCLI(t *testing.T, statusExit, token string) {
+	t.Helper()
+	bin := t.TempDir()
+	script := "#!/bin/sh\n" +
+		"[ -d \"$GH_CONFIG_DIR\" ] && [ -z \"$(ls -A \"$GH_CONFIG_DIR\")\" ] && [ \"$GH_TOKEN\" = '" + githubPlaceholderToken + "' ] && [ -z \"$GITHUB_TOKEN\" ] || exit 0\n" +
+		"[ \"$1 $2\" = 'auth token' ] && { printf '%s\\n' " + token + "; exit 0; }\n" +
+		"exit " + statusExit + "\n"
+	if err := os.WriteFile(filepath.Join(bin, "gh"), []byte(script), 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+}
+
+func TestGitHubPreflightRecordsTheChildSession(t *testing.T) {
+	fakeGitHubCLI(t, "4", `"$GH_TOKEN"`)
+	out := t.TempDir()
+	// A fixed parent environment: the machine's own GH_ and GITHUB_ variables
+	// must not reach the recorded names.
+	parent := []string{"PATH=" + os.Getenv("PATH"), "GH_TOKEN=secret-value", "GITHUB_TOKEN=secret-value", "GH_HOST=example.test"}
+	env, report, err := prepareGitHubIsolation(out, parent)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !report.CLIFound || report.AuthStatusExitCode != 4 || report.AuthToken != "placeholder_only" {
+		t.Fatalf("preflight did not record gh's answers: %+v", report)
+	}
+	if !slices.Equal(report.Variables, []string{"GH_CONFIG_DIR", "GH_ENTERPRISE_TOKEN", "GH_HOST", "GH_TOKEN"}) {
+		t.Fatalf("recorded GitHub variables: %v", report.Variables)
+	}
+	if !slices.Contains(env, "GH_CONFIG_DIR="+filepath.Join(out, report.ConfigDirectory)) || strings.Contains(strings.Join(env, "\n"), "secret-value") {
+		t.Fatal("returned environment is not the trimmed one")
+	}
+	if _, _, err := prepareGitHubIsolation(out, parent); err == nil {
+		t.Fatal("reused a prior gh configuration directory")
+	}
+}
+
+func TestGitHubPreflightRefusesAnotherToken(t *testing.T) {
+	fakeGitHubCLI(t, "1", "token-from-the-keychain")
+	if _, _, err := prepareGitHubIsolation(t.TempDir(), []string{"PATH=" + os.Getenv("PATH")}); err == nil {
+		t.Fatal("launched although gh auth token returns a token other than the placeholder")
+	}
+}
+
+func TestGitHubPreflightRefusesAnUnfinishedTokenCheck(t *testing.T) {
+	fakeGitHubCLI(t, "1", `"$(kill -9 $$)"`)
+	if _, _, err := prepareGitHubIsolation(t.TempDir(), []string{"PATH=" + os.Getenv("PATH")}); err == nil {
+		t.Fatal("launched although gh auth token was killed before it answered")
+	}
+}
+
+func TestGitHubPreflightRefusesASignedInSession(t *testing.T) {
+	fakeGitHubCLI(t, "0", `"$GH_TOKEN"`)
+	if _, _, err := prepareGitHubIsolation(t.TempDir(), []string{"PATH=" + os.Getenv("PATH")}); err == nil {
+		t.Fatal("launched with a gh session that still answers as signed in")
+	}
+}
+
+func TestGitHubPreflightWithoutTheCLI(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	_, report, err := prepareGitHubIsolation(t.TempDir(), []string{"PATH=" + os.Getenv("PATH")})
+	if err != nil || report.CLIFound || report.AuthStatusExitCode != 0 || report.AuthToken != "" {
+		t.Fatalf("missing gh must be recorded, not fail the run: %+v, %v", report, err)
 	}
 }
