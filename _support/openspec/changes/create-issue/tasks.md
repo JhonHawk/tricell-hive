@@ -6,7 +6,7 @@ Las tareas fijan frases literales en inglés que el contenido debe llevar, para 
 
 ### T1 — La skill y sus tipos de ticket
 
-- [ ] Existen `content/skills/create-issue/SKILL.md` y `references/ticket-types.md` con los nueve pasos, los cuatro tipos, la lista de «listo», la pista y la regla de autoría que fija `design.md`
+- [x] Existen `content/skills/create-issue/SKILL.md` y `references/ticket-types.md` con los nueve pasos, los cuatro tipos, la lista de «listo», la pista y la regla de autoría que fija `design.md`
 
 **Closes:** AC1, AC7, AC10, AC13, AC14, AC15, AC21, AC22
 
@@ -24,7 +24,7 @@ Las tareas fijan frases literales en inglés que el contenido debe llevar, para 
 
 ### T2 — Desglose, trackers y validación de un ticket existente
 
-- [ ] Existen `references/breakdown.md`, `references/trackers.md` y `references/existing-ticket.md`, enlazadas desde el `SKILL.md` con su condición de lectura
+- [x] Existen `references/breakdown.md`, `references/trackers.md` y `references/existing-ticket.md`, enlazadas desde el `SKILL.md` con su condición de lectura
 
 **Closes:** AC3, AC5, AC16, AC17, AC18, AC19, AC20
 
@@ -143,3 +143,5 @@ Las tareas fijan frases literales en inglés que el contenido debe llevar, para 
 ## Review status and progress
 
 2026-11-16 — Plan escrito y revisado; las tareas recogen los nueve hallazgos de la revisión del plan.
+2026-11-16 — T1 · 25b29595 · unverified: el archivo instalado lo observa T7
+2026-11-16 — T2 · 0b7b96d6 · unverified: los archivos instalados los observa T7
