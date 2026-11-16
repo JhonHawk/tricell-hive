@@ -705,6 +705,28 @@ A business rule SHALL be a behavior of the product in a situation: what an actio
 - **WHEN** the plan decides that link does not exist
 - **THEN** the record marks the frame stale, no flow outside the design stage redraws it, and the close lists it among what the work leaves open
 
+### Requirement: Canvas sections hold what the design stage draws
+
+`flow-figma-design` SHALL place every node it creates on a page inside a section it created, so that no frame, rule card, reference image or component of the work stays loose, except a rule card for a frame the work did not create, which stays beside that frame; when the tool cannot create a section, it SHALL draw without one and say so when it asks for approval. By default it SHALL group what it creates, from left to right, in a section for the pieces the work defines, a section for the reference material the work brings, and one section per flow, a flow being the screens a user goes through to complete one task in one app; a grouping the user asked for SHALL replace that list. It SHALL create a section when its first node is placed and never an empty one, SHALL name each section with a two-digit number and what it holds, SHALL tell the user which sections it expects to create before the first drawing without waiting for an answer, SHALL regroup what is drawn when a later reply changes the grouping, and SHALL record each section's node with the example. It SHALL NOT move or rename a node the work did not create, nor move one into a section, and SHALL ask as a decision before grouping existing frames a request names as its target; unattended work SHALL NOT ask it and SHALL report those frames as unresolved.
+
+#### Scenario: A work with two flows and reference captures
+
+- **GIVEN** a work that draws the screens of two tasks of one app, defines a component and brings captures of another product
+- **WHEN** the stage draws its frames
+- **THEN** the page holds a section for the work's pieces, one for the captures and one per flow, each numbered and named, and no node of the work sits outside them
+
+#### Scenario: The user asked for another grouping
+
+- **GIVEN** a request that asks for one section per screen
+- **WHEN** the stage draws its frames
+- **THEN** it groups them as asked, and the other section rules still apply
+
+#### Scenario: Rules added to frames that already existed
+
+- **GIVEN** an attended request to add rule cards to existing frames that sit loose on the page
+- **WHEN** the stage draws the cards
+- **THEN** each card stays beside its frame, no existing frame is moved, no empty section is created, and the approval round asks whether to group those frames
+
 ### Requirement: Research audits a codebase on request
 
 When the user asks to audit a codebase, or to find what to improve in it, without naming one question, research SHALL run a code audit and change no repository file. Before judging, it SHALL record the project's verification commands from its CI files or scripts, the decision records that exist and the rejected findings in force; a repository with no command that tells whether the code works SHALL get that as its first finding. It SHALL audit the categories the user names, otherwise correctness, security, performance, tests, debt and architecture, dependencies, tooling, docs and direction, starting from the most changed files. Every finding SHALL cite one to five locations and state its impact, effort, fix risk, confidence and fix sketch; the main thread SHALL open each cited location before reporting the finding, whoever found it, and SHALL drop behavior a platform convention or a decision record settles, misattributed evidence, duplicates and findings a rejection in force covers. The audit SHALL NOT run the test suite, a dependency audit command that sends the dependency list to an outside service, or code of a repository outside the current project unless the user asks for it in that audit. Findings SHALL be ranked by impact level, then confidence, effort and fix risk, after the findings that unblock others, which come first whatever their impact; when the audit covers direction, direction findings SHALL be reported apart, each citing the repository, and the report SHALL state what was not audited. The report SHALL end with research's block for an analysis, whose replies include creating tickets for chosen findings, investigating or planning one, fixing a confirmed defect, rejecting findings and stopping. Findings the user rejects SHALL be recorded in persistent memory per repository in the same turn, with their locations and the audited commit, and a later audit SHALL suppress a recorded finding while the files it cites are unchanged since that commit, and SHALL show it again, naming the earlier rejection, when they changed or that commit no longer exists; findings the main thread drops in vetting SHALL NOT be recorded.

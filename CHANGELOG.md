@@ -12,6 +12,11 @@ raise the minor or the patch version.
 
 ### Added
 
+- Figma design groups everything it draws in named, numbered sections instead
+  of leaving frames loose on the page: by default one for the pieces the work
+  defines, one for reference material and one per user flow, or the grouping
+  you ask for. It names the sections before drawing, regroups them when you
+  reply, and never moves a frame that already existed without asking.
 - `create-issue` is a skill for writing tracker tickets: one ticket of four
   types (story, bug, task or spike) checked against a fixed ready list, a parent
   ticket with children approved once as a set, or the check of a ticket that
