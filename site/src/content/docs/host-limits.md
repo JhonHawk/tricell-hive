@@ -43,6 +43,9 @@ verified.
   you, not a hang.
 - While a card is open it covers the screen (an open Claude Code issue), so each
   card carries the context needed to answer on its own.
+- Each round of decisions comes in the card alone, after the agent's report. If
+  you dismiss the card, the agent writes those decisions in the chat and you
+  answer there (for example `D2 B`).
 - A session isolated in a worktree has its `Edit` and `Write` of the main
   checkout refused, and so are compound shell commands such as Git inside
   `$(…)`, with an error that says it cannot verify they stay in the worktree
@@ -59,10 +62,13 @@ verified.
 
 - **Question cards close by themselves.** In Default mode a card that you do not
   touch resolves with no answer after about 120 seconds: 60 seconds hidden, then a
-  60-second visible countdown. Pressing a key in the card stops that. When it
-  closes, Hive's rule is that the decisions are already in the message above it, so
-  answer there (for example `D2 B`); the agent opens no further card for that round.
-  A round of more than three decisions comes as consecutive cards, one after another.
+  60-second visible countdown. Pressing a key in the card stops that. A closed
+  card keeps its questions on screen but not their options, so when it closes the
+  agent writes that round's open decisions in the chat: answer there (for example
+  `D2 B`). It opens no further card for that round. Pressing Esc on a card
+  interrupts the turn instead, and the agent writes the round when you send your
+  next message. A round of more than three decisions comes as consecutive cards,
+  one after another.
 - Question cards in Default mode need a Codex feature that is off by default,
   `default_mode_request_user_input`. Without it, the agent writes the options in
   the message instead of a card. `hive doctor` shows the state of this and of the
@@ -101,7 +107,8 @@ verified.
 ## OpenCode
 
 - Dismissing a question card interrupts the whole turn. Answer it, or reply in
-  text if you would rather not stop the work.
+  text if you would rather not stop the work; after a dismissal the agent writes
+  the round's decisions in the chat when you send your next message.
 - Text sent together with a card can be lost, so each card stands on its own
   with its context.
 - Roles run on your session's model and variant; per-role effort settings have no
@@ -120,7 +127,8 @@ verified.
   agent then gives a generic helper the role's contract, and read-only holds only
   because the brief says so, not because the host enforces it.
 - Its question card has no description field and no "Recommended" mark, so
-  the effect of each option is written in its label. Whether the agent keeps
+  the effect of each option is written in its label and the round is also
+  written in full in the message before the card. Whether the agent keeps
   working while a card is open is not settled: the binary waits and the
   documentation says otherwise.
 - Helper roles run on your session's model.
@@ -152,6 +160,6 @@ verified.
    was only to the global instructions; Codex 0.166 also reloaded them once,
    but restart it when in doubt.
 2. Run `hive doctor` to see what Hive can check on your machine.
-3. If a card closes before you answer, reply in the chat with the decision ID
-   and letter. The decisions are also written in the message, and the next
-   decision still comes in a card.
+3. If a card closes before you answer, the agent writes its decisions in the
+   chat: reply there with the decision ID and letter. The next decision still
+   comes in a card.
