@@ -126,9 +126,9 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 **Test approach:** check
 
-**Changes:** añade una frase al párrafo del checkout del mantenedor: mientras la rama de prueba `feat/question-card-alone` exista sin integrar, cada refresco crea un worktree temporal separado de esa rama en la carpeta temporal del host (`git worktree add --detach`), une ahí `development`, despliega con `--source` en ese worktree y lo retira; no escribe en la rama, en su checkout ni en el remoto. Si la unión da conflicto, ejecuta `git merge --abort`, retira el worktree temporal, no despliega, lo avisa y deja la instalación como está. Rama `chore/trial-refresh-line`, pull request propio en modo `ready`; el usuario lo integra. No toca `content/`, así que no se despliega nada.
+**Changes:** añade una frase al párrafo del checkout del mantenedor: mientras la rama de prueba `feat/question-card-alone` exista sin integrar, cada refresco construye la unión de esa rama con `development` sin worktree (`git merge-tree --write-tree` y `git commit-tree`), despliega con `--rev` en ese commit y, tras un despliegue correcto, guarda el commit en `refs/hive/trial-join`; no escribe en la rama ni en el remoto. Si la unión falla, no despliega contenido e informa la salida del comando. (Revisado tras la revisión de código, que descartó el worktree temporal.) Rama `chore/trial-refresh-line`, pull request propio en modo `ready`; el usuario lo integra. No toca `content/`, así que no se despliega nada.
 
-**Verification:** `rg -n "feat/question-card-alone" AGENTS.md` muestra la frase en «Refreshing a local installation»; un ensayo de sus comandos con `hive update --dry-run` desde un worktree temporal termina sin dejar worktrees (`git worktree list`) ni cambios en la rama; `go test ./tests/...` pasa; el pull request tiene CI en verde. AC4 queda sin verificar hasta T6.
+**Verification:** `rg -n "feat/question-card-alone" AGENTS.md` muestra la frase en «Refreshing a local installation»; un ensayo de sus comandos (unión con `git merge-tree`, `hive update --rev <unión> --dry-run`) termina con código 0 sin cambios en la rama, y una referencia inexistente hace salir a `git merge-tree` con código 1; `go test ./tests/...` pasa; el pull request tiene CI en verde. AC4 queda sin verificar hasta T6.
 
 ## Verification and human review
 
@@ -144,10 +144,10 @@ Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prue
 ## Checkpoint
 
 - Updated: 2026-11-16
-- Stage: verify · 2 (revisión de la línea temporal y entrega)
+- Stage: verify · 6 (parada ready)
 - Last commit: 862c718c
-- Open findings: none
-- Next: /code-review de chore/trial-refresh-line; push y pull request de ambas ramas en modo ready; volver el checkout a development
+- Open findings: H-abierto: la unión de prueba se despliega sin correr las pruebas de contenido sobre el árbol combinado · al cierre
+- Next: esperar a que el usuario integre el pull request #492; después T5: incorporar development a la rama, desplegarla con los pasos del párrafo de AGENTS.md y verificar los archivos instalados; luego T6 al reunir el volumen de AC6
 
 ### Evidence
 
