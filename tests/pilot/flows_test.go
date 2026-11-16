@@ -1135,6 +1135,13 @@ func TestTicketDirectRequestCaseContract(t *testing.T) {
 	if !strings.Contains(f.Prompt, "ticket") {
 		t.Error("the prompt no longer asks for a ticket")
 	}
+	// An instruction to write the ticket would read as the confirmation the
+	// first criterion expects the session to ask for.
+	for _, order := range []string{"regístr", "registr", "register", "créalo", "crea el ticket"} {
+		if strings.Contains(strings.ToLower(f.Prompt), order) {
+			t.Errorf("the prompt tells the session to write the ticket (%q)", order)
+		}
+	}
 	for _, skill := range []string{"create-issue", "flow-"} {
 		if strings.Contains(f.Prompt, skill) {
 			t.Errorf("the prompt names a skill (%q)", skill)

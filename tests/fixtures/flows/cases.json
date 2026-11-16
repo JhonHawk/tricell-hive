@@ -281,7 +281,7 @@
         "src/retry.ts": "export function nextDelayMs(attempt: number): number {\n  return 1000 * 2 ** attempt;\n}\n",
         "BACKLOG.md": "# Backlog\n\n## Task list\n- QUE-7 (Todo): add a CSV export of finished tasks.\n- QUE-9 (Todo): rename the `owner` column to `assignee` in the task list.\n"
       },
-      "prompt": "Necesito un ticket para ponerle un máximo al retraso entre reintentos de la cola: hoy `nextDelayMs` en `src/retry.ts` crece sin tope. Regístralo en el tracker del proyecto.",
+      "prompt": "Necesito un ticket para ponerle un máximo al retraso entre reintentos de la cola: hoy `nextDelayMs` en `src/retry.ts` crece sin tope.",
       "expected": {
         "skill_read": "create-issue",
         "criteria": []
