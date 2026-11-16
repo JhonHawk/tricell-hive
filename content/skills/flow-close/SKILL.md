@@ -76,12 +76,12 @@ End the final report with the next-step block of the global guidance's «Questio
 - **Find the next ticket**, as **Find the next ticket** below sets, run only when the user picks it.
 - **Continue** with what remains of the work, naming it, such as the next phase of a plan in progress.
 
-**See the findings** shows one table, after searching each declared tracker for an existing ticket for each finding:
+**See the findings** shows one table, after checking each finding for an existing ticket as [create-issue](../create-issue/SKILL.md) step 2 sets:
 
 | ID | Finding | Detail and impact | Recommendation |
 | --- | --- | --- | --- |
 | H1 | <what, with its severity> | <where, how it fails, who it affects, the evidence> | <open a ticket, ignore, or fix now, with its reason> |
 
-Recommend fixing now or a ticket as the global guidance's «Scope changes» ticket rule sets, which also governs the duplicate search and how a new ticket relates to its origin; recommend ignoring when the finding did not recur or has no impact. After the table, ask the findings as a round, as the global guidance's «Questions and routes» sets: each finding is one question with the options fix now, ticket and ignore, its recommendation starred; the user may answer all at once or a few at a time, such as "ok" or "H1 ticket, H2 ignore". A ticket answer opens it unless one already exists; a fix-now answer goes as **Resolve findings now** sets; an ignore answer is noted in the report. When every finding has an answer, end again with the close footer, without the findings replies.
+Recommend fixing now or a ticket as the global guidance's «Scope changes» ticket rule sets; recommend ignoring when the finding did not recur or has no impact. After the table, ask the findings as a round, as the global guidance's «Questions and routes» sets: each finding is one question with the options fix now, ticket and ignore, its recommendation starred; the user may answer all at once or a few at a time, such as "ok" or "H1 ticket, H2 ignore". A ticket answer creates it as that skill sets; a fix-now answer goes as **Resolve findings now** sets; an ignore answer is noted in the report. When every finding has an answer, end again with the close footer, without the findings replies.
 
 **Find the next ticket** runs research's [status report](../flow-research/references/status.md#find-the-next-ticket) as it sets for that reply.

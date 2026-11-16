@@ -60,7 +60,7 @@ Las tareas fijan frases literales en inglés que el contenido debe llevar, para 
 
 ### T4 — Research y su auditoría remiten a la skill
 
-- [ ] `flow-research` y `code-audit.md` apuntan a la skill para comprobar si un ticket ya existe, crearlo y juzgar si está listo
+- [x] `flow-research` y `code-audit.md` apuntan a la skill para comprobar si un ticket ya existe, crearlo y juzgar si está listo
 
 **Closes:** AC8, AC9
 
@@ -146,3 +146,4 @@ Las tareas fijan frases literales en inglés que el contenido debe llevar, para 
 2026-11-16 — T1 · 25b29595 · unverified: el archivo instalado lo observa T7
 2026-11-16 — T2 · 0b7b96d6 · unverified: los archivos instalados los observa T7
 2026-11-16 — T3 · 48d0fef3 · unverified: el archivo instalado lo observa T7
+2026-11-16 — T4 · 6a9d2ee5 · unverified: los archivos instalados los observa T7
