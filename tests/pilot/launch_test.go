@@ -1,9 +1,11 @@
 package main
 
 import (
+	"os"
 	"os/exec"
 	"path/filepath"
 	"slices"
+	"strings"
 	"testing"
 )
 
@@ -65,5 +67,60 @@ func TestCodexNativeDispatchKeepsParentThread(t *testing.T) {
 		if err != nil || !slices.Contains(args, "--ephemeral") {
 			t.Fatalf("single-agent smoke lost ephemeral mode: %v, %v", args, err)
 		}
+	}
+}
+
+func TestChildEnvironmentDropsGitHubCredentials(t *testing.T) {
+	got := withoutGitHubCredentials([]string{"PATH=/bin", "GH_TOKEN=a", "GITHUB_TOKEN=b", "GH_ENTERPRISE_TOKEN=c", "GITHUB_ENTERPRISE_TOKEN=d", "GH_CONFIG_DIR=/real", "GH_HOST=example.test", "OTHER=value"}, "/private/gh")
+	want := []string{"PATH=/bin", "GH_HOST=example.test", "OTHER=value", "GH_CONFIG_DIR=/private/gh"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("child environment keeps GitHub credentials or loses a setting: %v", got)
+	}
+}
+
+// The fake gh exits 4 only for `auth status` under the trimmed environment, so
+// the recorded code proves the preflight ran gh with the child's own settings.
+func TestGitHubPreflightRecordsTheChildSession(t *testing.T) {
+	bin := t.TempDir()
+	script := "#!/bin/sh\n[ \"$1 $2\" = 'auth status' ] || exit 0\n[ -z \"$GH_TOKEN$GITHUB_TOKEN$GH_ENTERPRISE_TOKEN$GITHUB_ENTERPRISE_TOKEN\" ] || exit 0\n[ -d \"$GH_CONFIG_DIR\" ] || exit 0\n[ -z \"$(ls -A \"$GH_CONFIG_DIR\")\" ] || exit 0\nexit 4\n"
+	if err := os.WriteFile(filepath.Join(bin, "gh"), []byte(script), 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	out := t.TempDir()
+	env, report, err := prepareGitHubIsolation(out, append(os.Environ(), "GH_TOKEN=secret-value", "GITHUB_TOKEN=secret-value", "GH_HOST=example.test"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !report.CLIFound || report.AuthStatusExitCode != 4 || report.PreflightCommand != "gh auth status" {
+		t.Fatalf("preflight did not record gh's answer: %+v", report)
+	}
+	if !slices.Equal(report.Variables, []string{"GH_CONFIG_DIR", "GH_HOST"}) {
+		t.Fatalf("recorded GitHub variables: %v", report.Variables)
+	}
+	if !slices.Contains(env, "GH_CONFIG_DIR="+filepath.Join(out, report.ConfigDirectory)) || strings.Contains(strings.Join(env, "\n"), "secret-value") {
+		t.Fatal("returned environment is not the trimmed one")
+	}
+	if _, _, err := prepareGitHubIsolation(out, os.Environ()); err == nil {
+		t.Fatal("reused a prior gh configuration directory")
+	}
+}
+
+func TestGitHubPreflightRefusesASignedInSession(t *testing.T) {
+	bin := t.TempDir()
+	if err := os.WriteFile(filepath.Join(bin, "gh"), []byte("#!/bin/sh\nexit 0\n"), 0700); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	if _, _, err := prepareGitHubIsolation(t.TempDir(), os.Environ()); err == nil {
+		t.Fatal("launched with a gh session that still answers as signed in")
+	}
+}
+
+func TestGitHubPreflightWithoutTheCLI(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	_, report, err := prepareGitHubIsolation(t.TempDir(), os.Environ())
+	if err != nil || report.CLIFound || report.AuthStatusExitCode != 0 {
+		t.Fatalf("missing gh must be recorded, not fail the run: %+v, %v", report, err)
 	}
 }

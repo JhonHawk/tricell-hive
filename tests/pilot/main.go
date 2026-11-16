@@ -58,6 +58,7 @@ type result struct {
 	// Task, Split and GuidanceHash are set only by --suite qualification.
 	Task, Split, GuidanceHash string `json:",omitempty"`
 	MemoryIsolation           memoryIsolationReport
+	GitHubAccess              *githubAccessReport `json:",omitempty"`
 	Trace                     traceReport
 	GitDelivery               *gitDeliveryReport     `json:",omitempty"`
 	GuidanceVariant           *guidanceVariantReport `json:",omitempty"`
@@ -720,6 +721,14 @@ func main() {
 			must(e)
 		}
 	}
+	// Last rewrite of the child's environment, after guidance and memory.
+	var githubAccess githubAccessReport
+	childEnv, githubAccess, e = prepareGitHubIsolation(output, childEnv)
+	if e != nil {
+		memory.cleanup()
+		must(e)
+	}
+	r.GitHubAccess = &githubAccess
 	r.Command = append([]string{*host}, args...)
 	stdout, e := os.OpenFile(filepath.Join(output, "stdout.jsonl"), os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0600)
 	must(e)

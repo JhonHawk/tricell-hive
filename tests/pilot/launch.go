@@ -1,10 +1,15 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"fmt"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 )
 
 // Setting Cmd.Env explicitly prevents os/exec from updating PWD for Cmd.Dir.
@@ -17,6 +22,70 @@ func environmentInDirectory(env []string, cwd string) []string {
 		}
 	}
 	return append(out, "PWD="+cwd)
+}
+
+// gh reads a token from these variables before its configuration directory.
+var githubTokenVariables = []string{"GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN"}
+
+// A launched session must not reach GitHub as the user: gh finds no token in
+// the environment and no stored session in configDir. PATH is left alone,
+// since the hosts' shells rebuild it from their startup files.
+func withoutGitHubCredentials(env []string, configDir string) []string {
+	out := make([]string, 0, len(env)+1)
+	for _, item := range env {
+		name, _, _ := strings.Cut(item, "=")
+		if name != "GH_CONFIG_DIR" && !slices.Contains(githubTokenVariables, name) {
+			out = append(out, item)
+		}
+	}
+	return append(out, "GH_CONFIG_DIR="+configDir)
+}
+
+// githubAccessReport holds variable names only, never their values.
+type githubAccessReport struct {
+	ConfigDirectory    string
+	PreflightCommand   string
+	CLIFound           bool
+	AuthStatusExitCode int
+	Variables          []string
+}
+
+// prepareGitHubIsolation trims env, then asks gh itself, under that same
+// environment and before any model runs, whether it still has a session. A gh
+// that answers as signed in stops the launch; a missing gh is recorded.
+func prepareGitHubIsolation(output string, env []string) ([]string, githubAccessReport, error) {
+	report := githubAccessReport{ConfigDirectory: "gh-config", PreflightCommand: "gh auth status"}
+	configDir := filepath.Join(output, report.ConfigDirectory)
+	if err := os.Mkdir(configDir, 0700); err != nil {
+		return nil, report, fmt.Errorf("create empty gh configuration directory: %w", err)
+	}
+	env = withoutGitHubCredentials(env, configDir)
+	for _, item := range env {
+		name, _, _ := strings.Cut(item, "=")
+		if strings.HasPrefix(name, "GH_") || strings.HasPrefix(name, "GITHUB_") {
+			report.Variables = append(report.Variables, name)
+		}
+	}
+	slices.Sort(report.Variables)
+	bin, err := exec.LookPath("gh")
+	if err != nil {
+		return env, report, nil
+	}
+	report.CLIFound = true
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	cmd := exec.CommandContext(ctx, bin, "auth", "status")
+	cmd.Env = env
+	err = cmd.Run()
+	var exit *exec.ExitError
+	switch {
+	case err == nil:
+		return nil, report, fmt.Errorf("gh still answers as signed in without credentials in the child environment")
+	case errors.As(err, &exit) && exit.ExitCode() > 0:
+		report.AuthStatusExitCode = exit.ExitCode()
+		return env, report, nil
+	}
+	return nil, report, fmt.Errorf("gh auth status preflight did not finish: %w", err)
 }
 
 func validHost(host string) bool {
