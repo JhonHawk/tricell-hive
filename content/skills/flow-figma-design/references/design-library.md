@@ -37,7 +37,7 @@ Each piece and variable comes from the first of these that gives it, as an insta
 1. the bound library, when the piece's `uses:` line names that library or its `searched:` line reads `found`;
 2. the component or variable its `uses:` line names, from another library or from the file itself, whether or not a library is bound.
 
-Define a piece or a variable in the file only when neither gives it, and record it as a `candidate: <piece> · <node>` line, which step 6's message lists. When the file still cannot use the bound library after step 4's steps, draw with your own pieces and say so in step 6's message.
+Define a piece or a variable in the file only when neither gives it, place the piece in the section [canvas sections](sections.md) sets for them, and record it as a `candidate: <piece> · <node>` line, which step 6's message lists. When the file still cannot use the bound library after step 4's steps, draw with your own pieces and say so in step 6's message.
 
 ## Record it
 
