@@ -54,59 +54,59 @@ Este documento conserva dentro de la carpeta del cambio el análisis completo de
 
 ---
 
-## 3. Línea base numérica: Antes vs. Después (medido en `f886538f`)
+## 3. Línea base numérica: Antes vs. Después (medido en `f886538f` / `e005e617` y tras `T7`)
 
 ### 3.1 Huella de lectura declarada (`go test -v ./tests/content -run Footprint`)
 
-| Escenario (`reading_footprint_test.go`) | Baseline editorial A (`d5164f71`) | Antes (`f886538f` actual) | Después (meta tras `T7`) | Delta esperado |
+| Escenario (`reading_footprint_test.go`) | Baseline editorial A (`d5164f71`) | Antes (`f886538f` / `e005e617`) | Después (medido tras `T7`) | Delta vs. `f886538f` (`e005e617`) |
 | --- | ---: | ---: | ---: | --- |
-| `global-only` (bytes / caracteres) | 46,912 B / 46,898 chars | **52,508 B** / **52,385 chars** | `< 52,508 B` (medir al cerrar `T7`) | Reducción neta en cada sesión y turno |
-| `simple-query` (bytes / caracteres) | 46,912 B / 46,898 chars | **52,508 B** / **52,385 chars** | `< 52,508 B` (medir al cerrar `T7`) | Reducción neta en consultas simples |
-| `question` (bytes / caracteres) | 46,912 B / 46,898 chars | **52,508 B** / **52,385 chars** | `< 52,508 B` (medir al cerrar `T7`) | Reducción neta en rondas de preguntas |
-| `plan-build-cycle` unión (bytes / caracteres) | 107,021 B / 106,987 chars | **133,441 B** / **133,211 chars** | `< 133,441 B` (medir al cerrar `T7`) | Reducción acumulada en el ciclo completo |
+| `global-only` (bytes / caracteres) | 46,912 B / 46,898 chars | **52,508 B** / **52,385 chars** | **52,379 B** / **52,256 chars** | **-129 B (-129 chars)** en cada sesión |
+| `simple-query` (bytes / caracteres) | 46,912 B / 46,898 chars | **52,508 B** / **52,385 chars** | **52,379 B** / **52,256 chars** | **-129 B (-129 chars)** |
+| `question` (bytes / caracteres) | 46,912 B / 46,898 chars | **52,508 B** / **52,385 chars** | **52,379 B** / **52,256 chars** | **-129 B (-129 chars)** |
+| `plan-build-cycle` unión (bytes / caracteres) | 107,021 B / 106,987 chars | **133,441 B** (`130,621 B` en `e005e617`) | **130,722 B** / **130,498 chars** | **-2,719 B vs. `f886538f`** (`+101 B` vs. `e005e617` por enlaces a scripts) |
 
 ### 3.2 Tamaño por archivo afectado (límite de `skill_size_test.go`: `16,000` bytes para skills y referencias)
 
-| Archivo | Antes (`f886538f`) — Bytes | Antes — Runes | Antes — Líneas | Margen actual vs. 16,000 B | Después (se completa en `T7`) |
-| --- | ---: | ---: | ---: | ---: | --- |
-| `content/guidance/global.md` | **52,508 B** | 52,385 | 149 | n/a (dividido en 4 reglas ≤ 22 KB en Antigravity) | Pendiente de medir en `T7` (`< 52,508 B`) |
-| `content/skills/flow-close/SKILL.md` | **15,993 B** | 15,963 | 87 | **7 B** (al límite) | Pendiente de medir en `T7` (`<= 16,000 B`) |
-| `content/skills/git-workflow/SKILL.md` | **15,950 B** | 15,938 | 36 | **50 B** (al límite) | Pendiente de medir en `T7` (`<= 16,000 B`) |
-| `content/skills/flow-build/SKILL.md` | **15,150 B** | 15,127 | 70 | 850 B | Pendiente de medir en `T7` (`<= 16,000 B`) |
-| `content/skills/flow-plan/SKILL.md` | **14,099 B** | 14,083 | 58 | 1,901 B | Pendiente de medir en `T7` (`<= 16,000 B`) |
-| `content/skills/harness-audit/references/local-instructions.md` | **9,706 B** | 9,668 | 74 | 6,294 B | Pendiente de medir en `T7` (`<= 16,000 B`) |
-| `content/skills/harness-audit/SKILL.md` | **9,427 B** | 9,419 | 79 | 6,573 B | Pendiente de medir en `T7` (`<= 16,000 B`) |
-| `content/skills/flow-plan/references/business-rules.md` | **9,186 B** | 9,169 | 80 | 6,814 B | Pendiente de medir en `T7` (`<= 16,000 B`) |
-| `content/skills/create-issue/SKILL.md` | **6,641 B** | 6,631 | 18 | 9,359 B | Pendiente de medir en `T7` (`<= 16,000 B`) |
-| `content/skills/create-prd/SKILL.md` | **6,386 B** | 6,380 | 22 | 9,614 B | Pendiente de medir en `T7` (`<= 16,000 B`) |
-| `content/skills/flow-close/references/branch-cleanup.md` | **5,235 B** | 5,229 | 50 | 10,765 B | Pendiente de medir en `T7` (`<= 16,000 B`) |
+| Archivo | Antes (`f886538f` / `e005e617`) — Bytes | Antes — Runes | Antes — Líneas | Después (`T7`) — Bytes / Runes / Líneas | Delta (Bytes) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| `content/guidance/global.md` | **52,508 B** | 52,385 | 149 | **52,379 B** / 52,256 runes / 149 líneas | **-129 B** |
+| `content/skills/flow-close/SKILL.md` | **15,993 B** (`13,172 B` en `e005e617`) | 15,963 | 87 (`75` en `e005e617`) | **13,178 B** / 13,154 runes / 75 líneas | **-2,815 B vs. `f886538f`** (`+6 B` vs. `e005e617`) |
+| `content/skills/git-workflow/SKILL.md` | **15,950 B** | 15,938 | 36 | **15,869 B** / 15,857 runes / 36 líneas | **-81 B** (margen sube de 50 B a 131 B) |
+| `content/skills/flow-build/SKILL.md` | **15,150 B** | 15,127 | 70 | **15,265 B** / 15,242 runes / 70 líneas | **+115 B** (enlace a `check_package.py`) |
+| `content/skills/flow-plan/SKILL.md` | **14,099 B** | 14,083 | 58 | **14,209 B** / 14,193 runes / 58 líneas | **+110 B** (alcance de `check_change.py`) |
+| `content/skills/harness-audit/references/local-instructions.md` | **9,706 B** | 9,668 | 74 | **9,959 B** / 9,921 runes / 74 líneas | **+253 B** (enlace a `local_instructions.py`) |
+| `content/skills/harness-audit/SKILL.md` | **9,427 B** | 9,419 | 79 | **9,521 B** / 9,513 runes / 79 líneas | **+94 B** (enlace a `local_instructions.py`) |
+| `content/skills/flow-plan/references/business-rules.md` | **9,186 B** | 9,169 | 80 | **9,383 B** / 9,366 runes / 80 líneas | **+197 B** (enlace a `business_rules.py`) |
+| `content/skills/create-issue/SKILL.md` | **6,641 B** | 6,631 | 18 | **6,814 B** / 6,804 runes / 18 líneas | **+173 B** (enlace a `check_issue.py`) |
+| `content/skills/create-prd/SKILL.md` | **6,386 B** | 6,380 | 22 | **6,531 B** / 6,525 runes / 22 líneas | **+145 B** (enlace a `check_prd.py`) |
+| `content/skills/flow-close/references/branch-cleanup.md` | **5,235 B** | 5,229 | 50 | **5,468 B** / 5,462 runes / 50 líneas | **+233 B** (enlace a `cleanup_branches.py`) |
 
-### 3.3 Tamaño por sección de `content/guidance/global.md` (Antes)
+### 3.3 Tamaño por sección de `content/guidance/global.md` (Antes vs. Después)
 
-| Sección de `content/guidance/global.md` | Antes — Bytes | Antes — Líneas | Impactada en Fase 1 |
-| --- | ---: | ---: | --- |
-| `# Tricell Hive guidance` (encabezado) | 268 B | 4 | No |
-| `## Language` | 650 B | 6 | No |
-| `## Scope and authorization` | **6,820 B** | 15 | **Sí (`H7`: check de paquete ≥ 7 días)** |
-| `## Preservation` | **2,818 B** | 8 | **Sí (`H9`: limpieza al cierre)** |
-| `## Secrets` | **1,574 B** | 9 | **Sí (`H6`, `H8`: exclusión y escáner antes de commit)** |
-| `## Test accounts` | 2,048 B | 9 | Indirecto (`H6` valida ausencia de secretos en `ACCOUNTS.md`) |
-| `## Local instructions` | **9,218 B** | 11 | **Sí (`H6`: exclusión, 200 chars, 50 líneas, `local_instructions.py`)** |
-| `## Evidence` | 360 B | 5 | No |
-| `## Proportionality` | 3,237 B | 7 | No |
-| `## Support folder (_support)` | 809 B | 4 | No |
-| `## Questions and routes` | 14,258 B | 20 | No |
-| `## Delivery` | 4,426 B | 13 | No |
-| `## Project settings` + bloque `## Hive` | 1,895 B | 20 | No |
-| `## Persistent memory` | 2,174 B | 6 | No |
-| `## Scope changes` | 1,953 B | 12 | No |
-| **Total `content/guidance/global.md`** | **52,508 B** | **149** | **4 secciones adelgazadas** |
+| Sección de `content/guidance/global.md` | Antes — Bytes | Antes — Líneas | Después (`T7`) — Bytes | Delta (Bytes) |
+| --- | ---: | ---: | ---: | ---: |
+| `# Tricell Hive guidance` (encabezado) | 268 B | 4 | 268 B | 0 B |
+| `## Language` | 650 B | 6 | 650 B | 0 B |
+| `## Scope and authorization` (`H7`: `check_package.py`) | **6,820 B** | 15 | **6,881 B** | +61 B (agrega link `skill:flow-build/scripts/check_package.py`) |
+| `## Preservation` | **2,818 B** | 8 | **2,818 B** | 0 B |
+| `## Secrets` (`H6`, `H8`: `local_instructions.py` + `git_state.py`) | **1,574 B** | 9 | **1,735 B** | +161 B (agrega links `skill:`) |
+| `## Test accounts` | 2,048 B | 9 | 2,048 B | 0 B |
+| `## Local instructions` (`H6`: `local_instructions.py`) | **9,218 B** | 11 | **8,867 B** | **-351 B** |
+| `## Evidence` | 360 B | 5 | 360 B | 0 B |
+| `## Proportionality` | 3,237 B | 7 | 3,237 B | 0 B |
+| `## Support folder (_support)` | 809 B | 4 | 809 B | 0 B |
+| `## Questions and routes` | 14,258 B | 20 | 14,258 B | 0 B |
+| `## Delivery` | 4,426 B | 13 | 4,426 B | 0 B |
+| `## Project settings` + bloque `## Hive` | 1,895 B | 20 | 1,895 B | 0 B |
+| `## Persistent memory` | 2,174 B | 6 | 2,174 B | 0 B |
+| `## Scope changes` | 1,953 B | 12 | 1,953 B | 0 B |
+| **Total `content/guidance/global.md`** | **52,508 B** | **149** | **52,379 B** | **-129 B** |
 
 ### 3.4 Cobertura determinística (Antes vs. Después)
 
-| Indicador de cobertura determinística | Antes (`f886538f`) | Después (al completar `T1`–`T7`) | Delta |
+| Indicador de cobertura determinística | Antes (`f886538f`) | Después (medido tras `T1`–`T7`) | Delta |
 | --- | ---: | ---: | ---: |
 | Scripts Python determinísticos en `content/skills/*/scripts/*.py` | **11 scripts** (en 6 skills) | **17 scripts** (en 8 skills) | **+6 scripts nuevos** y **2 extendidos** |
-| Enlaces Markdown internos con `#fragment` validados en `references.go` | **0 de 133** (0%, ignorados) | **133 de 133** (100% de enlaces con `#fragment` en `content/`) | **+133 anclas validadas** |
+| Enlaces Markdown internos con `#fragment` validados en `references.go` | **0 de 133** (0%, ignorados de 528 enlaces) | **134 de 134** (100% validados de 557 enlaces internos) | **+134 anclas validadas** |
 | Superficies de proyecto auditadas por `hive doctor --project` | **2** (`AGENTS.md` `## Hive`, `<Specs>/changes/`) | **6** (`AGENTS.md` `## Hive`, `<Specs>/changes/`, `HIVE.local.md`, `ACCOUNTS.md`, `_support/secrets/`, `_support/scripts/`) | **+4 superficies** |
 | Reglas de `H6`–`H12` respaldadas por validador/script determinístico | **0 de 7** (100% dependientes del prompt) | **7 de 7** (100% respaldadas por código y tests) | **+7 reglas determinísticas** |

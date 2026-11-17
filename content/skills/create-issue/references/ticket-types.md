@@ -27,7 +27,7 @@ What the ticket needs from a document it links, such as a requirement or a desig
 
 ## Ready list
 
-A ticket is ready when all eight hold; otherwise it is not ready. A ticket that fails one because it lacks something nobody in the session can supply is blocked.
+A ticket is ready when all eight hold (checked structurally with [check_issue.py](../scripts/check_issue.py) when `python3` runs it); otherwise it is not ready. A ticket that fails one because it lacks something nobody in the session can supply is blocked.
 
 1. The title and one sentence of the outcome name the change without implementation detail.
 2. At least one criterion exists, and each one is observable: a person other than the author can check it.
