@@ -7,7 +7,7 @@ Current revision: T10, approved 2026-11-17, narrows T9 to complete questions wit
 Primera tarea del build: su origen es una carpeta temporal que un reinicio de la máquina puede borrar.
 
 - [x] `_support/workspace/2026-11-16-question-card-alone/measure/` contiene los scripts de Claude Code, Codex y los otros hosts con sus salidas del 9 al 16 de noviembre, y un `README.md` con el comando de cada uno
-- [ ] Reopened by AC15 (2026-11-17): `others/grok_rounds.py` takes the cutoff and an output path as parameters (filtering on `created_at`, excluding temporary probe and pilot folders), keeps the baseline outputs, classifies declined cards and, after each unanswered card, the agent's next message, re-asked IDs and the user's next message, as the Claude Code and Codex extractors do; the `README.md` gives its command and drops "No entran en el criterio de la prueba"
+- [x] Reopened by AC15 (2026-11-17): `others/grok_rounds.py` takes the cutoff and an output path as parameters (filtering on `created_at`, excluding temporary probe and pilot folders), keeps the baseline outputs, classifies declined cards and, after each unanswered card, the agent's next message, re-asked IDs and the user's next message, as the Claude Code and Codex extractors do; the `README.md` gives its command and drops "No entran en el criterio de la prueba"
 
 **Closes:** AC15
 
@@ -201,18 +201,15 @@ Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prue
 ## Checkpoint
 
 - Updated: 2026-11-17
-- Stage: ready · T10 published and installed; PR #491 remains open without merge
-- Candidate: af3222e1, based on development 15b2e402; this final record changes metadata only
+- Stage: ready · T1 Grok extractor done; T6 waits for real sessions · T6
+- Last commit: 49fc3f27
+- Open findings: none
+- Next: T6 against AC13, AC10 and AC15 once samples suffice (2026-11-17 ~21:00Z: Claude Code 0/20, Codex 4/10, Grok 2/10, unanswered 0/3)
 - Worktree: `.claude/worktrees/question-channel-fix` · `feat/question-card-alone`, retained for the active trial
-- Findings: native Codex review found no actionable regressions; independent plan review's two stale cutoff references corrected
-- Deployment: 016345f994f3d984b5e2276279877a8b0d891e22 (trial af3222e19282dbd2c2f326d06726691aec5d4540, base 15b2e402c72543b74d63e50df1bc2b188638212a); release 441dbe9f56d2e478fa50b3e3356205efed865e93ece9ed0532daf96f44b93243; T10 cutoff 2026-11-17T09:30:37Z
-- Next: T6 against AC13, AC10 and AC15; AC4 persistence through another session's refresh. Earlier cutoffs are historical. No model pilot or merge authorized.
-- Evidence: existing ignored work folder, `codex-t10-review.log` and `t10-deployment.json`; reproducible scratch/caches may be removed at close
 
 ### Evidence
 
 Historical evidence below predates T9 and does not verify its uncommitted candidate.
-
 - go -C <repo> test ./... · exit 0 · 27e752a0 (árbol sin cambios desde la ejecución)
 - npm --prefix site run build · exit 0, 19 páginas · 27e752a0
 - go test ./tests/... en chore/trial-refresh-line · exit 0 · 27da2b19
@@ -227,6 +224,7 @@ Historical evidence below predates T9 and does not verify its uncommitted candid
 - rg de «The card closed by itself:» y «The user left it unanswered:» en la guía instalada · ambas en los 6 archivos de los 7 hosts; regla anterior en ninguno
 - git merge origin/development (007d3999) en la rama + go test ./... + npm --prefix site run build · exit 0 · 6d1c40ed
 - hive update --rev fe3c4438 + hive apply · unchanged: la instalación ya tenía ese contenido · refs/hive/trial-join = fe3c4438
+- SINCE=2026-11-09 UNTIL=2026-11-16T10:46:00 OUT=<tmp> python3 -I -W ignore measure/others/grok_rounds.py · 10 rows identical to the Grok baseline, baseline files unchanged (shasum) · none
 
 ## Review status and progress
 
@@ -287,3 +285,4 @@ Commands ran against `.claude/worktrees/question-channel-fix`, using its absolut
 - New trial cutoff 2026-11-17T09:30:37Z; first join 016345f994f3d984b5e2276279877a8b0d891e22. Metadata-only final refreshes do not reset this cutoff. AC12 verified; AC13/AC10/AC14 live behavior remains unverified. AC4 persistence needs another session's refresh. No model pilot or merge.
 
 2026-11-17 — Revision after the first T6 review (Claude Code session b103d2f3): the user chose to add a Grok quota. AC15 replaces AC14 with at least 10 Grok rounds and zero lost rounds on every host; thresholds for Claude Code, Codex and unanswered cards and the T10 cutoff are unchanged. Reason: Grok is the second host by spend (23 % over 30 days) and its 51 sessions from 2026-11-09 to 11-17 asked 12 cards and no decision rounds in text. Reopens T1 for the Grok extractor (an independent plan review found it lacks a cutoff, unanswered-card classification and baseline preservation); T6 stays open and depends on it. Grok eligibility, round and lost-round consequence defined in T6 and AC15. First T6 sample so far: Claude Code 0/20, Codex 4/10, Grok not yet counted, unanswered 0/3; failures recorded in engram:tricell-hive/watch/t10-question-channel.
+2026-11-17 — T1 · uncommitted · unverified: declined detection and next-message fields checked on 17 historical Grok declines; no post-cutoff unanswered Grok card yet
