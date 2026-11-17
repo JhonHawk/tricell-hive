@@ -6,7 +6,7 @@ T1 a T7 y T9 corren en el hilo principal: los textos de la skill comparten un vo
 
 ### T1 — Entrada de la skill y formato del PRD
 
-- [ ] `content/skills/create-prd/SKILL.md` y `references/prd-format.md` existen, con los nueve pasos, las secciones, la línea de regla, los estados, la lista de comprobación y las versiones.
+- [x] `content/skills/create-prd/SKILL.md` y `references/prd-format.md` existen, con los nueve pasos, las secciones, la línea de regla, los estados, la lista de comprobación y las versiones.
 
 **Closes:** AC2, AC3, AC5, AC11, AC25, AC26, AC29, AC30
 
@@ -24,7 +24,7 @@ T1 a T7 y T9 corren en el hilo principal: los textos de la skill comparten un vo
 
 ### T2 — Documento que llega
 
-- [ ] `references/incoming-document.md` dice cómo estructurar un documento ya escrito sin cambiar sus reglas y cómo se arma el cuestionario para su autor.
+- [x] `references/incoming-document.md` dice cómo estructurar un documento ya escrito sin cambiar sus reglas y cómo se arma el cuestionario para su autor.
 
 **Closes:** AC4
 
@@ -42,7 +42,7 @@ T1 a T7 y T9 corren en el hilo principal: los textos de la skill comparten un vo
 
 ### T3 — Dónde vive el documento y cómo se congela
 
-- [ ] `references/documents.md` cubre la herramienta de documentos, las operaciones por herramienta, la copia congelada y el modo `.md` con su ubicación y su PDF.
+- [x] `references/documents.md` cubre la herramienta de documentos, las operaciones por herramienta, la copia congelada y el modo `.md` con su ubicación y su PDF.
 
 **Closes:** AC8, AC18, AC19, AC20, AC31
 
@@ -60,7 +60,7 @@ T1 a T7 y T9 corren en el hilo principal: los textos de la skill comparten un vo
 
 ### T4 — Script de PDF
 
-- [ ] `scripts/render_pdf.py` convierte un `.md` de PRD en PDF con el navegador instalado, y sin navegador deja el HTML y sale con error.
+- [x] `scripts/render_pdf.py` convierte un `.md` de PRD en PDF con el navegador instalado, y sin navegador deja el HTML y sale con error.
 
 **Closes:** AC21, AC22, AC28
 
@@ -78,7 +78,7 @@ T1 a T7 y T9 corren en el hilo principal: los textos de la skill comparten un vo
 
 ### T5 — Revisión técnica
 
-- [ ] `references/technical-review.md` dice cómo se contrasta cada regla con el código y qué deja el documento «listo para desarrollo».
+- [x] `references/technical-review.md` dice cómo se contrasta cada regla con el código y qué deja el documento «listo para desarrollo».
 
 **Closes:** AC15, AC16, AC17
 
@@ -96,7 +96,7 @@ T1 a T7 y T9 corren en el hilo principal: los textos de la skill comparten un vo
 
 ### T6 — Rol `hive-review-prd`
 
-- [ ] `content/agents/review/hive-review-prd.md` existe y el paso 6 de la skill lo lanza con el encargo de un revisor.
+- [x] `content/agents/review/hive-review-prd.md` existe y el paso 6 de la skill lo lanza con el encargo de un revisor.
 
 **Closes:** AC23, AC24
 
@@ -114,7 +114,7 @@ T1 a T7 y T9 corren en el hilo principal: los textos de la skill comparten un vo
 
 ### T7 — Entrada desde research, hogar canónico y revisión del comportamiento completo
 
-- [ ] Los pasos 0 y 5 de `flow-research` envían a la skill las peticiones de un requerimiento, la lista de hogares canónicos nombra la skill, y queda escrita la lista de lugares revisados que pide el `AGENTS.md` del proyecto.
+- [x] Los pasos 0 y 5 de `flow-research` envían a la skill las peticiones de un requerimiento, la lista de hogares canónicos nombra la skill, y queda escrita la lista de lugares revisados que pide el `AGENTS.md` del proyecto.
 
 **Closes:** AC13, AC27
 
@@ -132,7 +132,7 @@ T1 a T7 y T9 corren en el hilo principal: los textos de la skill comparten un vo
 
 ### T8 — Sitio y listas
 
-- [ ] El sitio tiene la página de `create-prd`, enlazada desde la barra lateral y las listas, y `llms.txt`, `CHANGELOG.md` y `CONTRIBUTING.md` la nombran.
+- [x] El sitio tiene la página de `create-prd`, enlazada desde la barra lateral y las listas, y `llms.txt`, `CHANGELOG.md` y `CONTRIBUTING.md` la nombran.
 
 **Closes:** AC13
 
@@ -184,8 +184,30 @@ Parada de validación: el usuario lee `content/skills/create-prd/SKILL.md` y sus
 
 ## Checkpoint
 
+- Updated: 2026-11-16
+- Stage: build · T7 y T8 en curso (hijos: barrido de lugares, sitio)
+- Last commit: cf758070
+- Open findings: none
+- Next: aplicar el barrido, commit de T7 y T8, CI local, flow-verify
+- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/create-prd · feat/create-prd
+
+### Evidence
+
+- go vet ./... && go test ./... · pasa · cf758070
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · 99 pruebas pasan · cf758070
+
 ## Review status and progress
 
 2026-11-16 — Plan escrito.
 
 2026-11-16 — Dos lecturas de `hive-review-plan` aplicadas antes de construir; el detalle está en `proposal.md` «Review status and progress». Nada construido se invalida.
+2026-11-16 — T4 · 3fd7d41f · unverified: AC21, AC22 y AC28 en la instalación temporal del candidato (verificación)
+2026-11-16 — T1 · aa245644 · unverified: AC2, AC3, AC5, AC11, AC25, AC26, AC29 y AC30 en la instalación temporal del candidato (verificación)
+2026-11-16 — T2 · aa245644 · unverified: AC4 en la instalación temporal del candidato (verificación)
+2026-11-16 — T3 · aa245644 · unverified: AC8, AC18, AC19, AC20 y AC31 en la instalación temporal del candidato (verificación)
+2026-11-16 — T5 · aa245644 · unverified: AC15, AC16 y AC17 en la instalación temporal del candidato (verificación)
+2026-11-16 — T6 · cf758070 · unverified: AC23 y AC24 en la instalación temporal del candidato (verificación)
+2026-11-16 — T7 · adc8334f · unverified: AC27 en la instalación temporal del candidato (verificación); queda una decisión del usuario: si la guía global nombra el paso de research a create-prd
+2026-11-16 — T8 · 9a88a42a · unverified: none
+
+2026-11-16 — T7, lugares revisados por el barrido del comportamiento completo (hijo `hive-research`), para el pull request: `content/guidance/global.md` («Proportionality», «Questions and routes», «Scope and authorization», «Support folder», «Delivery»); `content/skills/**` con sus referencias (`create-issue`, `flow-research`, `flow-plan/references/business-rules.md`, `flow-close/references/artifact-layout.md`, `flow-build/references/delegation.md`, `flow-research/references/code-audit.md`); `content/agents/**`; `site/src/content/docs/**`; `_support/docs/architecture/**`, `README.md`, `llms.txt`, `AGENTS.md`; `tests/pilot/**` y `tests/fixtures/**`; y la coherencia interna de la skill. Corregido en el mismo cambio: la revisión técnica confirma antes de escribir; el archivo `.md` dentro de un repositorio se pregunta antes de la primera escritura y su commit espera al usuario; una regla de un documento que llega nunca se reescribe por la lista de comprobación; `draft` e `iterating` se distinguen por la lista; las referencias remiten a las rondas del paso 3 en vez de repetir el tope. Sin cambios, a propósito: `README.md` (no lista skills), `tests/pilot/protected.go` (su lista ya omite `create-issue`). Pendiente de decisión del usuario: `content/guidance/global.md:93` lista cuatro continuaciones en el mismo turno y no nombra la de research a `create-prd`. Hallazgo anotado, fuera de este cambio: `flow-plan/references/business-rules.md:80` dice que el plan actualiza un documento de requerimientos del repositorio y no remite a las versiones de `create-prd`.
