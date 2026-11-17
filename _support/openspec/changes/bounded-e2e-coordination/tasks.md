@@ -4,7 +4,7 @@ Base: development `15b2e402c72543b74d63e50df1bc2b188638212a`. Sin rama de implem
 
 ### T1 — Fijar el procedimiento canónico de coordinación
 
-- [ ] Crear el procedimiento E2E y su frontera con los flujos ordinarios y unattended-delegation.
+- [x] Crear el procedimiento E2E y su frontera con los flujos ordinarios y unattended-delegation.
 
 **Closes:** AC1, AC5; observación conductual en T8.
 
@@ -178,3 +178,4 @@ No hay UI de producto ni cuentas de aplicación. Las páginas documentales se co
 2026-11-17 — R1: launcher específico del caso, H3 independiente del mecanismo, integración local conjunta; AC8 retirado y sustituido por AC11, AC12 añadido. Todas las tareas siguen pendientes.
 
 2026-11-17 — R1 revisada sin hallazgos materiales residuales; validador de plan pasa. D50–D55 registradas. Ninguna tarea implementada; esperar aceptación de la ruta a build.
+2026-11-17 — T1 · 596aeb688f802414c0b2343456805e450b98e3c4 · unverified: AC1/AC5 behavioral evidence pending T8; independent contract verification pending
