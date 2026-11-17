@@ -8,7 +8,7 @@ T1 a T7, T9 y T10 corren en el hilo principal: los textos de la skill comparten 
 
 - [x] `content/skills/create-prd/SKILL.md` y `references/prd-format.md` existen, con los nueve pasos, las secciones, la ficha de regla, los estados, la lista de comprobación y las versiones.
 
-**Closes:** AC2, AC5, AC11, AC25, AC26, AC29, AC30, AC33
+**Closes:** AC2, AC5, AC25, AC26, AC29, AC30, AC33, AC34
 
 **Depends on:** none
 
@@ -20,7 +20,7 @@ T1 a T7, T9 y T10 corren en el hilo principal: los textos de la skill comparten 
 
 **Changes:** Escribe los pasos de `design.md` «Pasos de `SKILL.md`» y, en la referencia, las secciones del PRD, la ficha de regla con sus estados y veredictos (D35 A: nunca una fila de tabla), la lista fija de comprobación, los estados del documento con lo que permite cada paso, y el historial de versiones con su lista de cambios. Antes de escribir, lee `_support/docs/harness-engineering/model-floor.md` y `_support/docs/architecture/instruction-resources.md`. No cambia `create-issue` ni la guía global.
 
-**Verification:** `go test ./tests/content/...` pasa (frontmatter, tamaño ≤ 16.000 bytes y enlaces); `wc -c` de `SKILL.md` da 9.000 bytes o menos; `rg -n "at most three questions" content/skills/create-prd/SKILL.md` encuentra la línea. AC2, AC5, AC11, AC25, AC26, AC29, AC30 y AC33 se observan en la instalación temporal del candidato, que alcanza la verificación antes del push.
+**Verification:** `go test ./tests/content/...` pasa (frontmatter, tamaño ≤ 16.000 bytes y enlaces); `wc -c` de `SKILL.md` da 9.000 bytes o menos; `rg -n "at most three questions" content/skills/create-prd/SKILL.md` encuentra la línea. AC2, AC5, AC25, AC26, AC29, AC30, AC33 y AC34 se observan en la instalación temporal del candidato, que alcanza la verificación antes del push.
 
 ### T2 — Documento que llega
 
@@ -36,7 +36,7 @@ T1 a T7, T9 y T10 corren en el hilo principal: los textos de la skill comparten 
 
 **Test approach:** check
 
-**Changes:** Lee el documento completo; pasa cada regla a una línea con su fuente apuntando a la sección o página del original; no corrige ni completa una regla del autor; marca `to decide` lo ambiguo, lo contradictorio y lo que falta; arma el cuestionario con una respuesta recomendada por pregunta, ordenado por cuánto cambia el documento; el original nunca se edita. El resultado empieza en `iterating`, nunca aprobado.
+**Changes:** Lee el documento completo; pasa cada regla a una ficha con su fuente apuntando a la sección o página del original; no corrige ni completa una regla del autor; marca `to decide` lo ambiguo, lo contradictorio y lo que falta; arma el cuestionario con una respuesta recomendada por pregunta, ordenado por cuánto cambia el documento; el original nunca se edita. El resultado empieza en `iterating`, nunca aprobado.
 
 **Verification:** `go test ./tests/content/...` pasa; `rg -n "never edit" content/skills/create-prd/references/incoming-document.md` encuentra la regla del original. AC4 se observa en la instalación temporal del candidato.
 
@@ -182,7 +182,7 @@ T1 a T7, T9 y T10 corren en el hilo principal: los textos de la skill comparten 
 
 **Changes:** Sigue la skill instalada de principio a fin: redacta el PRD desde las decisiones ya registradas de `create-architecture` (memoria del proyecto, tema `decision/create-architecture-skill`), corre el revisor, pide la aprobación del usuario y congela la versión 1. Solo con la clase de efecto de `proposal.md` «Effects» aprobada; antes de cada escritura anota aquí el destino, el cambio y cómo se revierte. No crea tickets.
 
-**Verification:** Releer las dos páginas: la viva tiene las nueve secciones, cada regla con su línea completa y una fila de historial que enlaza la copia; la copia lleva versión, estado y fecha en el título. El cierre del trabajo y el archivo de esta carpeta esperan a T9: el ticket se mueve al integrar, pero la carpeta no se archiva con T9 abierta, y un defecto que T9 encuentre se corrige como una revisión de este mismo cambio, en un pull request nuevo.
+**Verification:** Releer las dos páginas: la viva tiene las nueve secciones, cada regla como una ficha completa y un punto del historial que enlaza la copia; la copia lleva versión, estado y fecha en el título. El cierre del trabajo y el archivo de esta carpeta esperan a T9: el ticket se mueve al integrar, pero la carpeta no se archiva con T9 abierta, y un defecto que T9 encuentre se corrige como una revisión de este mismo cambio, en un pull request nuevo.
 
 ## Verification and human review
 
@@ -203,10 +203,10 @@ Parada de validación: el usuario lee `content/skills/create-prd/SKILL.md` y sus
 ## Checkpoint
 
 - Updated: 2026-11-16
-- Stage: verify · correcciones del usuario (D35 A: ficha por regla) y de las dos revisiones de código aplicadas; falta su visto bueno al ejemplo corregido
-- Last commit: 19a057fd
-- Open findings: código, 2ª lectura: escapes con barra invertida y ***énfasis doble*** no se convierten bien · no bloqueante, al cierre; código: un navegador empaquetado en snap no ve la carpeta temporal del sistema · plausible, sin reproducir, al cierre; código: una línea con ~2000 '>' o ~1200 niveles de lista agota la recursión · no bloqueante, al cierre; guía: flow-plan/references/business-rules.md:80 no remite a las versiones de create-prd · fuera de este cambio, al cierre
-- Next: releer el plan revisado (hive-review-plan), reinstalar en temporal, pedir la validación, push y pull request
+- Stage: verify · candidato corregido; espera el visto bueno del usuario al ejemplo en ficha
+- Last commit: 6d39e7c2
+- Open findings: none
+- Next: con la aprobación: push, pull request contra development, integrar, refrescar la instalación, T9 (aprobación y copia congelada en Notion), cierre
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/create-prd · feat/create-prd
 
 ### Evidence
@@ -220,6 +220,10 @@ Parada de validación: el usuario lee `content/skills/create-prd/SKILL.md` y sus
 - script instalado sobre un .md de ejemplo · PDF A4 (595x842), pdftotext contiene cada regla; --browser inexistente sale 3 y deja el .html; <script> e imagen remota salen como texto · 930236d2
 - python3 -m unittest discover -s tests/skills -p '*_test.py' · pasa (29 pruebas del script) · 19a057fd
 - go test ./tests/content/... ./tooling/management/... · pasa · 19a057fd
+- go vet ./... && go test ./... · pasa · ba0c8cb1
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · pasa · 6d39e7c2
+- npm run build en site/ · pasa · ba0c8cb1
+- instalación temporal del candidato · AC33, AC34, AC32 y los demás criterios leídos en los archivos instalados; script instalado: PDF A4 con la ficha completa, sin navegador sale 3 y deja <nombre>.print.html, <script> sale como texto · ba0c8cb1
 
 ## Review status and progress
 
@@ -241,3 +245,5 @@ Parada de validación: el usuario lee `content/skills/create-prd/SKILL.md` y sus
 2026-11-16 — T10 · 6d30656d · unverified: AC32 en la instalación temporal del candidato (verificación)
 
 2026-11-16 — T9, efectos 2 y 3 (misma clase aprobada): destino, la página «PRD · create-architecture» que esta sesión creó; cambio, reemplazar su contenido para pasar cada regla de fila de tabla a ficha (versión 2) y su historial de versiones de tabla a lista; cómo revertir, el historial de la página en Notion o moverla a la papelera. Hecho medido de paso: la respuesta de crear una página trae su identificador y su enlace.
+
+2026-11-16 — Revisión D35 A: T1, T2, T3, T5, T6, T7 y T8 rehechas en `ea0a1097` (ficha por regla, historial como lista) y T4 en `e96b4d14` y el commit de su muestra; AC33 y AC34 observados en la instalación temporal del candidato en `ba0c8cb1`, junto con AC21, AC22, AC28 y AC32. Sin verificar: AC14, que espera a la integración.

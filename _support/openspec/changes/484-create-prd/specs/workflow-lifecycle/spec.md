@@ -22,7 +22,7 @@ The workflow guidance SHALL keep the procedure for writing, restructuring, updat
 
 #### Scenario: A correction arrives
 - **WHEN** answers or corrections change the document
-- **THEN** the skill writes a new version with its list of changes, and a cancelled rule keeps its line with the version that cancelled it and the rule that replaces it.
+- **THEN** the skill writes a new version with its list of changes, and a cancelled rule keeps its entry with the version that cancelled it and the rule that replaces it.
 
 ### Requirement: A requirement document's state is set by validation
 

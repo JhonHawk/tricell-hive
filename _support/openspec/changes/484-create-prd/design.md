@@ -34,7 +34,7 @@ Decisiones menores, tomadas sin preguntar porque ninguna opción cambia el alcan
 ```text
 content/skills/create-prd/
   SKILL.md                         pasos; objetivo ≤ 9.000 bytes
-  references/prd-format.md         secciones, línea de regla, estados, lista de comprobación, versiones
+  references/prd-format.md         secciones, ficha de regla, estados, lista de comprobación, versiones
   references/incoming-document.md  estructurar un documento que llega y su cuestionario
   references/documents.md          dónde vive, operaciones por herramienta, congelar, modo .md y PDF
   references/technical-review.md   contraste con el código y paso a «listo para desarrollo»
@@ -52,7 +52,7 @@ tests/skills/render_pdf_test.py
 5. **Comprobar** con la lista fija, en el mismo hilo.
 6. **Revisión independiente**: un hijo `hive-review-prd`; lo que sostiene se aplica, y lo que necesita al dueño pasa a preguntas abiertas.
 7. **Fijar el estado** según lo que la validación encontró.
-8. **Escribir y congelar** según `documents.md`; fila nueva en el historial con la lista de cambios.
+8. **Escribir y congelar** según `documents.md`; punto nuevo en el historial con la lista de cambios.
 9. **Terminar**: enlace, estado, preguntas abiertas con quién las responde y supuestos; ofrece el siguiente paso (tickets con `create-issue`, diseño, plan) y se detiene.
 
 ### Ficha de una regla
@@ -64,7 +64,7 @@ Cada regla es una ficha propia, nunca una fila de una tabla (D35 A): un encabeza
 | decided | Su dueño la decidió; lleva quién y cuándo |
 | assumption | Quien redactó la completó; vale mientras el dueño no diga otra cosa |
 | to decide | Abierta; lleva quién la responde. Impide «aprobado por negocio» |
-| cancelled | Reemplazada; lleva la versión y la regla que la reemplaza. La línea no se borra |
+| cancelled | Reemplazada; lleva la versión y la regla que la reemplaza. La ficha no se borra |
 
 | Veredicto | Significa | Efecto |
 | --- | --- | --- |
