@@ -4,6 +4,10 @@
 
 The size check SHALL report the global core separately from explicit simple-query, question, retained plan/build and E2E scenarios. Each scenario SHALL name its read conditions and source files, include the entrypoints and mandatory procedures selected by those conditions, and count each source once. Missing required sources SHALL fail measurement. The change report SHALL distinguish prose, references and executable code, and SHALL retain a before/after comparison using the same source set so a scenario-definition change is not misreported as savings. Existing scenario measurements SHALL remain identifiable. Source bytes and characters SHALL NOT be presented as actual tokens, observed native delivery or model reliability. Native metadata/rendering, repeated reads, project inputs, history and host policy SHALL remain explicit exclusions. Each skill entrypoint and reference SHALL retain the existing 16,000-byte limit; no new aggregate quota is implied.
 
+#### Scenario: Standalone user decision
+- **WHEN** the declared scenario is a user decision without an activity, delegation or artifact
+- **THEN** its source union includes the global core and only the procedures required by its current read conditions, without unconditionally adding every packaged reference.
+
 #### Scenario: Coordination reference is added
 - **WHEN** E2E requires a new situational reference
 - **THEN** the E2E scenario includes it, and the report does not count moving prose from an entrypoint into that reference as a reduction in the required source union.

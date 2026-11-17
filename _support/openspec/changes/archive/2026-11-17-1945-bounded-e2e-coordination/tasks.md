@@ -162,10 +162,10 @@ No hay UI de producto ni cuentas de aplicación. Las páginas documentales se co
 ## Checkpoint
 
 - Updated: 2026-11-17
-- Stage: verify · T8 complete; automatic delivery pending
-- Last commit: ae71d318075402e4134a1fcadf66a889c048eadd
-- Open findings: Nonblocking observation limits: MCP routing inconclusive; incomplete stage source reads and late plan/record preparation; verification.md records evidence
-- Next: Commit final assessment, push/open PR, reconcile reviews and current base, merge under D53, refresh maintainer installation preserving trial; no fourth pilot
+- Stage: close · T1-T8 integrated in PR500; archive and behavior handoff
+- Last commit: 73da1bd07f256b61294ea8219060226ac31a03cc
+- Open findings: Observed stage reading/preparation-order deviations remain in watch/e2e-skill-contract-adoption; no further pilot authorized
+- Next: Archive with spec deltas, deliver closing PR, preserve pilot evidence and trial, clean merged branches; future real-session review recorded in pending/bounded-e2e-coordination
 
 ### Evidence
 
@@ -188,6 +188,7 @@ No hay UI de producto ni cuentas de aplicación. Las páginas documentales se co
 - Restored prior release441dbe9f56d2 on7hosts at18:06:24Z; hash differences0; trial joinunchanged; total setup+run+restore6m47s; exact pilot session absent from everyday Engram sessions/observations/prompts; isolated store removed
 - Post-pilot runner fixes3c1f8e87: async native stop association, integration-worktree readback and complete H1/H2/H3 outcome prompt; E2E race regressions and full tests/pilot -race125.819s pass; vet/diff clean; marked Unreviewed after limited native review
 - D57 third run AC1-7/9-12 met; independent anchors validated; eight pass plus routing inconclusive; installation restored in332.880s
+- PR500 merged73da1bd0; all active ACs met within verification.md limits; local content refreshed with trial61ef5b5a
 
 ## Review status and progress
 

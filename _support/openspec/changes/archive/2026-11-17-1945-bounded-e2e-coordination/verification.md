@@ -1,6 +1,14 @@
 # Verificación de Fase 2
 
-Estado al 2026-11-17: T1–T8 completas; los criterios del plan tienen evidencia después de la tercera observación autorizada por D57 A. Entrega automática D53 A pendiente de publicación e integración. Las observaciones anteriores permanecen abajo como historia, con sus resultados originales. Los tres intentos autorizados están consumidos; no hay autorización para un cuarto.
+Estado al 2026-11-17: T1–T8 completas; los criterios del plan tienen evidencia después de la tercera observación autorizada por D57 A. Integrado en PR #500, development `73da1bd0`, y actualizado localmente preservando el trial. Las observaciones anteriores permanecen abajo como historia, con sus resultados originales. Los tres intentos autorizados están consumidos; no hay autorización para un cuarto.
+
+## Handoff: observar las próximas sesiones reales
+
+El usuario pidió dejar este seguimiento al cerrar el cambio. Al revisar próximas sesiones que realmente ejerciten E2E, usar `_support/docs/harness-engineering/session-review-rubric.md`, incluida su sección Bounded E2E follow-up. Registrar host, modelo observado/configurado, esfuerzo, sesión, versión instalada y evidencia de las lecturas; comprobar preparación previa del plan/registro, fronteras del owner, revisión independiente del head, corrección/reemplazo, integración conjunta y uso de H1/H2/H3. Separar comportamiento observado, fallo, oportunidad no ejercida y evidencia inconclusa. No atribuir una lectura al catálogo ni un resultado funcional a la validez del JSON.
+
+El conteo y sus condiciones permanecen únicamente en Engram `watch/e2e-skill-contract-adoption`; el seguimiento abierto se encuentra en `pending/bounded-e2e-coordination`. Responsable: el mantenedor y la próxima sesión de revisión, cuando existan trazas de trabajo real que ejerciten estos comportamientos. Este handoff no inicia vigilancia en segundo plano, no autoriza otro piloto y no convierte una observación en permiso para endurecer las reglas. H4/H5 continúan diferidos a Fase 3.
+
+Conservación: las trazas locales de los tres intentos y sus fixtures se mantienen como soporte del watch y del contraste futuro; no se publican ni se eliminan en este cierre. El archivo OpenSpec conserva este dictamen y el contexto de aceptación.
 
 ## Dictamen vigente: tercera observación (D57 A)
 

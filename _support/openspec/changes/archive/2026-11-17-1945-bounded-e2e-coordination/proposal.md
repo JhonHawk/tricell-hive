@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Verify · T8 pendiente de decisión sobre evidencia adicional |
+| Estado | Completado · PR #500, merge 73da1bd07f256b61294ea8219060226ac31a03cc |
 | Tracker | Ninguno |
 | Git | tricell-hive · development · 15b2e402c72543b74d63e50df1bc2b188638212a · feat/bounded-e2e-coordination |
 
