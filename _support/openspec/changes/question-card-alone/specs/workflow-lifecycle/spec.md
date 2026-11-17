@@ -1,31 +1,29 @@
 ## ADDED Requirements
 
-### Requirement: Each pending question uses one permitted channel
+### Requirement: Pending questions are not duplicated across tools
 
-The agent SHALL select one channel per pending question within the host's current tool and mode restrictions and SHALL prefer a waiting tool when permitted for that question. Availability alone SHALL NOT authorize its use. Host-required text and response forms SHALL take precedence over Hive's card, decision-block, cancellation and timeout defaults. An asynchronous question SHALL NOT supplement a waiting card, and the agent SHALL NOT issue another card for a question still pending in either tool. An asynchronous tool SHALL be used only when the host permits it, independent work can continue, and either no permitted waiting tool serves the question or the host explicitly directs asynchronous use. Its acceptance receipt SHALL NOT count as the user's answer. A chat answer SHALL settle only what the user answered and SHALL NOT be reported as clearing a tool queue without an observed result.
+The agent SHALL NOT issue the same pending question through both asynchronous and waiting tools, or issue another card while its answer is pending. A tool's acceptance receipt SHALL NOT count as a user answer.
 
 #### Scenario: An asynchronous question is still pending
 
-- **GIVEN** a permitted async question was issued while independent work continued
-- **WHEN** that work finishes before the answer arrives
-- **THEN** the agent names the pending decision without issuing another card or proceeding with dependent work
+- **GIVEN** a permitted asynchronous question was issued
+- **WHEN** its answer is still pending
+- **THEN** the agent does not send the same question again through a waiting tool or a second card
 
-#### Scenario: The host requires text
+### Requirement: Decision information survives a required change of form
 
-- **GIVEN** the host prohibits the waiting tool for a permission request and requires concise text
-- **WHEN** the agent needs that permission
-- **THEN** it uses the native required form, without a decision block or a duplicate card
+When the host requires text instead of a card or another question form, the agent SHALL retain the alternatives, their consequences and the recommended option with its reason, expressed in the form the host permits. It SHALL NOT interpret a different form as removing that information or as permission to use a prohibited tool.
 
-#### Scenario: Chat answers a pending question
+#### Scenario: The host requires a permission request in concise text
 
-- **GIVEN** a question is pending in a tool
-- **WHEN** the user answers it in chat
-- **THEN** the agent applies the answer only to the decisions it covers
-- **AND** it does not claim that the tool queue cleared without observing that result
+- **GIVEN** the host requires text and prohibits the waiting tool for that permission request
+- **WHEN** the agent asks permission
+- **THEN** it states the recommendation and why, and the alternative with its consequence in the permitted form
+- **AND** it does not issue a prohibited or duplicate card
 
 ### Requirement: Decision rounds go through the card alone
 
-When the selected native question tool is permitted for that question, waits for the answer and gives each option a description field, the agent SHALL ask a round of decisions or findings through that tool without writing them out in the text before it: the text before the first card SHALL hold the context line, the report or explanation the round needs and the waiting line, which says what is awaited and how many decisions are still to come, and SHALL NOT hold a decision's or a finding's title line, `Situation:` line, option lines or `I recommend` line. Each card SHALL stand alone: its question SHALL carry the decision's or finding's ID and title with the situation. Where the channel choice selects text, or the selected card has no description field per option, the agent SHALL use the host-required form or, where the host permits it, write the whole round in the text; when a card that follows a round written in the text comes back without an answer, the agent SHALL add one line naming the decisions still open and SHALL NOT write the round again. A plain acceptance SHALL apply the starred options only of decisions the user was shown, in a card that opened or in the text.
+When the selected native question tool is permitted for that question, waits for the answer and gives each option a description field, the agent SHALL ask a round of decisions or findings through that tool without writing them out in the text before it: the text before the first card SHALL hold the context line, the report or explanation the round needs and the waiting line, which says what is awaited and how many decisions are still to come, and SHALL NOT hold a decision's or a finding's title line, `Situation:` line, option lines or `I recommend` line. Each card SHALL stand alone: its question SHALL carry the decision's or finding's ID and title with the situation. Where the host requires text or no permitted waiting tool carries the question, or the selected card has no description field per option, the agent SHALL use the host-required form or, where the host permits it, write the whole round in the text; when a card that follows a round written in the text comes back without an answer, the agent SHALL add one line naming the decisions still open and SHALL NOT write the round again. A plain acceptance SHALL apply the starred options only of decisions the user was shown, in a card that opened or in the text.
 
 #### Scenario: A round answered through the card
 

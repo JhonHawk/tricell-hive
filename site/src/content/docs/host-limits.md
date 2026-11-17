@@ -63,17 +63,18 @@ verified.
 - **The current mode decides how a question is asked.** Codex 0.169.0's
   Default-mode instructions reserve the waiting card for optional questions.
   Required input and permission requests use a concise question in chat, without
-  a multiple-choice block. An unanswered optional card lets the agent continue
-  with its best judgment; it does not grant permission.
+  a multiple-choice block. Decisions still include their alternatives, consequences
+  and recommendation with its reason in the permitted form. An unanswered
+  optional card lets the agent continue with its best judgment; it does not grant
+  permission.
 - A Default-mode waiting card left untouched closes after about 120 seconds:
   60 seconds hidden, then a 60-second visible countdown. Pressing a key in the
   card stops that. Esc interrupts the turn. The feature
   `default_mode_request_user_input` enables the tool in Default mode, but does
   not override the mode's restrictions. `hive doctor` reports its state.
-- Hive uses one channel for each pending question. An asynchronous card is not
-  an extra copy of a waiting card. Its acceptance receipt is not your answer,
-  and answering in chat does not establish that an earlier card disappeared.
-  The agent follows the channel choice in the global guidance's
+- Hive does not send the same pending question through both an asynchronous
+  tool and a waiting card. An acceptance receipt is not your answer.
+  The procedure is in the global guidance's
   [Questions and routes](https://github.com/JhonHawk/tricell-hive/blob/development/content/guidance/global.md#questions-and-routes).
 - A helper role that declares a read-only sandbox can still run with the session's
   sandbox (observed on Codex 0.163.0). Hive therefore relies on the role's text, not
