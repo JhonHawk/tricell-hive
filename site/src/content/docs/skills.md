@@ -26,7 +26,7 @@ For where each flow loops and where a requested change returns the work, see the
 ## Supporting skills
 
 - [Shared rules (global guidance)](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md): how the agent asks you a decision, handles a change you request mid-work, asks before an effect beyond your machine, and reads the repository's `## Hive` settings; it is always loaded and every flow uses it.
-- [Git workflow](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/git-workflow/SKILL.md): prepare authorized Git delivery while preserving unrelated work.
+- [Git workflow](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/git-workflow/SKILL.md): prepare authorized Git delivery while preserving unrelated work and scanning target paths before committing.
 - [Visual reports](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-report/SKILL.md): present a report, comparison, or explainer as a designed page.
 - [Starlight documentation sites, a mode of Visual reports](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-report/references/docs-site.md): scaffold, extend, or audit maintained documentation sites.
 - [Harness audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/SKILL.md): audit agent instructions, skills, and role definitions, and the memory each host loads by where a session starts, including host memory and Engram records that restate the rules of Hive or the project, ask the decisions the findings need, and apply what you accept in the current project, including creating or updating a repository's `## Hive` section.

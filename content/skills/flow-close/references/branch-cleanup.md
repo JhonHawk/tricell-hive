@@ -7,7 +7,7 @@ Read by [flow-close](../SKILL.md) at its cleanup step, and by a hygiene request.
 - For a work item: each repository where the work created a branch, a worktree or a commit, or wrote its change folder, plus the repository that holds `Specs` when it is another one.
 - For a hygiene request: the current repository, the repository that holds its `Specs`, and each repository a pending-close record in persistent memory names.
 
-Run the steps below in each of them.
+Run the steps below in each of them, first computing the dry-run plan with `python3 -I <flow-close-dir>/scripts/cleanup_branches.py --repo <dir> --base <base>` ([cleanup](../scripts/cleanup_branches.py)) and applying safe removals with `--apply` when `python3` runs it.
 
 ## Keep conditions
 

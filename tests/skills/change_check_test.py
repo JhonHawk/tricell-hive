@@ -274,6 +274,40 @@ class ChangeCheckTest(unittest.TestCase):
             self.assertEqual(result.returncode, 2)
             self.assertIn("proposal.md", result.stderr)
 
+    def test_valid_business_rules_section_passes_and_malformed_lines_fail(self):
+        valid_rules = """
+    ## Business rules
+
+    ticket section: COM-833 · Reglas de negocio · export
+    ticket write: 2026-11-16 · build start · COM-833
+    rule: Only admins may export CSV · screen Export · approved 2026-11-16: D2 A · found by plan
+    rule: Default format is UTF-8 · screen none · assumption · found by build
+    rule: Old rule · screen Export · cancelled 2026-11-16: replaced by admin rule · replaced by Only admins may export CSV · found by research
+    card stale: Export · Old rule
+    frame stale: 12:34 · Old rule
+"""
+        proposal_ok = PROPOSAL.replace("    ## Scope and acceptance\n", valid_rules + "\n    ## Scope and acceptance\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            res_ok = self.run_check(self.folder(tmp, proposal=proposal_ok))
+            self.assertEqual(res_ok.returncode, 0, res_ok.stdout)
+
+        bad_stated = valid_rules.replace("assumption", "stated: ticket description")
+        proposal_stated = PROPOSAL.replace("    ## Scope and acceptance\n", bad_stated + "\n    ## Scope and acceptance\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            res_stated = self.run_check(self.folder(tmp, proposal=proposal_stated))
+            self.assertEqual(res_stated.returncode, 1)
+            self.assertIn("Business rules", res_stated.stdout)
+
+        bad_line = valid_rules + "    - random bullet not following grammar\n"
+        proposal_bad = PROPOSAL.replace("    ## Scope and acceptance\n", bad_line + "\n    ## Scope and acceptance\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            res_bad = self.run_check(self.folder(tmp, proposal=proposal_bad))
+            self.assertEqual(res_bad.returncode, 1)
+            self.assertIn("Business rules", res_bad.stdout)
+            # With --archive, Business rules grammar is not checked
+            res_arch = self.run_check(self.folder(tmp, proposal=proposal_bad, tasks=TASKS.replace("- [ ]", "- [x]")), "--archive")
+            self.assertEqual(res_arch.returncode, 0, res_arch.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

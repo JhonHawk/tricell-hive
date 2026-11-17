@@ -31,7 +31,7 @@ Read before writing new code in a task, and when [flow-plan](../flow-plan/SKILL.
 2. The codebase already has it, such as a helper, component or pattern: use it as the surrounding code does, unless it is a workaround, such as one a comment marks or a guard [defect fix](references/defect-fix.md) does not count as a fix: do not copy it, and name it in the report.
 3. The standard library or a platform feature does it, such as a native input type or a database constraint, unless the project has its own; a design-system component beats a native control.
 4. An installed dependency does it.
-5. Only then write new code, or add a dependency after the global guidance's package check, and say in the plan's approach or the report why rungs 2 to 4 do not fit.
+5. Only then write new code, or add a dependency after running `python3 -I <flow-build-dir>/scripts/check_package.py` ([check package](scripts/check_package.py)) as the global guidance's package check sets, and say in the plan's approach or the report why rungs 2 to 4 do not fit.
 
 No rung drops validation at trust boundaries, error handling that prevents data loss, security or accessibility.
 
