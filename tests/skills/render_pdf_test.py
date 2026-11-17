@@ -29,6 +29,15 @@ PRD = textwrap.dedent("""\
 
     ## Requirements
 
+    ### R3 · P0 · decided
+
+    A returned order cannot be returned again.
+
+    - Source: Ana, 2026-11-10
+    - Verdict: exists
+
+    ## Summary
+
     | Code | Priority | Rule | State | Source | Verdict |
     | --- | --- | --- | --- | --- | --- |
     | R1 | P0 | A customer returns an order within 30 days | decided | Ana, 2026-11-10 | not checked |
@@ -50,6 +59,11 @@ PRD = textwrap.dedent("""\
     ```
 
     ---
+
+    ## Version history
+
+    - **Version 1** · 2026-11-10 · iterating
+      - Added: R1 to R3.
 
     Closing paragraph with a footnote[^1] and an image ![logo](http://tracker.example/logo.png).
 """)
@@ -94,6 +108,9 @@ class Conversion(unittest.TestCase):
         page = self.page
         self.assertIn("<h1>PRD: Returns</h1>", page)
         self.assertIn("<h2>Requirements</h2>", page)
+        self.assertRegex(page, r"(?s)<h3>R3 · P0 · decided</h3>\s*<p>A returned order cannot be returned again\.</p>"
+                               r"\s*<ul>\s*<li>Source: Ana, 2026-11-10</li>\s*<li>Verdict: exists</li>")
+        self.assertRegex(page, r"(?s)<li><strong>Version 1</strong> · 2026-11-10 · iterating\s*<ul>\s*<li>Added: R1 to R3\.</li>")
         self.assertIn("<strong>cannot</strong>", page)
         self.assertIn("<em>app</em>", page)
         self.assertIn("<code>support</code>", page)
@@ -370,7 +387,9 @@ class RealBrowser(unittest.TestCase):
             # Reading order, not -layout: a rule that wraps inside its cell must still read whole.
             text = " ".join(subprocess.run([pdftotext, str(tmp / "prd.pdf"), "-"],
                                            capture_output=True, text=True).stdout.split())
-            for rule in ("A customer returns an order within 30 days", "A refund over $500 needs a supervisor"):
+            for rule in ("A customer returns an order within 30 days", "A refund over $500 needs a supervisor",
+                         "R3 · P0 · decided", "A returned order cannot be returned again.",
+                         "Source: Ana, 2026-11-10", "Verdict: exists", "Added: R1 to R3."):
                 self.assertIn(rule, text)
             # With -layout a value broken across two lines reads apart: short cells must not break.
             laid_out = subprocess.run([pdftotext, "-layout", str(tmp / "prd.pdf"), "-"],
