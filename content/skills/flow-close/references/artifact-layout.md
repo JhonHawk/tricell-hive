@@ -37,7 +37,7 @@ Keep source plans, user-selected output, unique evidence of work not yet integra
 
 ## Retain evidence
 
-Verification material serves the review of its own work. Keep it unversioned in the work's `workspace/` folder while the work is open; once the work is integrated, its pull request body, which lists each acceptance criterion with its evidence, is the record that replaces it, or the final report when the delivery opens no pull request. A capture is replaced only when its uploaded URL was read back in the merged body, as [pull request captures](../../git-workflow/references/pr-captures.md#read-back) sets; keep every other capture.
+Verification material serves the review of its own work. Keep it unversioned in the work's `workspace/` folder while the work is open; once the work is integrated, its pull request body, which lists each acceptance criterion with its evidence, is the record that replaces it, or the final report when the delivery opens no pull request. A capture is replaced only when its uploaded URL is in the merged body, read again at the close with `gh pr view <n> --json body`, as [pull request captures](../../git-workflow/references/pr-captures.md#read-back) sets; keep every other capture.
 
 Promote a conclusion from that material, as docs-cleanup's [inventory](../../docs-cleanup/references/inventory.md#promote-a-conclusion) sets, only when it is one of these, since later work reuses only these:
 
