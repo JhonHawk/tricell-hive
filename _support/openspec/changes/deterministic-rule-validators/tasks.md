@@ -58,7 +58,7 @@ Commit base del repositorio `tricell-hive` al escribir el plan: `f886538f` en la
 
 ### T4 — Añadir subcomando determinístico `commit` con preflight de secretos e índice en `git_state.py` (`H8`)
 
-- [ ] `content/skills/git-workflow/scripts/git_state.py commit` ejecuta commits atómicos por rutas explícitas preservando el índice previo, escaneando secretos y validando el trailer `Unreviewed:`.
+- [x] `content/skills/git-workflow/scripts/git_state.py commit` ejecuta commits atómicos por rutas explícitas preservando el índice previo, escaneando secretos y validando el trailer `Unreviewed:`.
 
 **Closes:** AC4
 
@@ -157,3 +157,4 @@ Parada de validación humana (`D4 A` — `interactive`): antes de `git push`, pr
 - 2026-11-16 — Plan redactado para `T1`–`T7` cubriendo `AC1`–`AC8`.
 2026-11-16 — T1 · c50d4220 · unverified: none
 2026-11-16 — T3 · 6bfb80bf · unverified: none
+2026-11-16 — T4 · e3888838 · unverified: none
