@@ -78,7 +78,7 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 ### T5 — La rama de prueba queda desplegada en la instalación local
 
-- [ ] Los archivos de guía instalados de cada host registrado contienen la regla de T2
+- [x] Los archivos de guía instalados de cada host registrado contienen la regla de T2
 
 **Closes:** AC4
 
@@ -144,10 +144,10 @@ Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prue
 ## Checkpoint
 
 - Updated: 2026-11-16
-- Stage: verify · 6 (parada ready)
-- Last commit: 862c718c
-- Open findings: H-abierto: la unión de prueba se despliega sin correr las pruebas de contenido sobre el árbol combinado · al cierre
-- Next: esperar a que el usuario integre el pull request #492; después T5: incorporar development a la rama, desplegarla con los pasos del párrafo de AGENTS.md y verificar los archivos instalados; luego T6 al reunir el volumen de AC6
+- Stage: build · T6 (espera el volumen de la prueba)
+- Last commit: 15f74421
+- Open findings: none
+- Next: T6 cuando las sesiones reales reúnan AC6: medir desde el despliegue (2026-11-17T00:06Z aprox.) con los scripts de _support/workspace/2026-11-16-question-card-alone/measure/; el último commit antes de integrar #491 borra el párrafo temporal de AGENTS.md
 
 ### Evidence
 
@@ -157,6 +157,8 @@ Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prue
 - ensayo del refresco: worktree temporal + hive update --dry-run · exit 0, sin worktrees restantes · 27da2b19
 - go -C <repo> test ./... · exit 0 · candidato con las correcciones de ambas revisiones
 - npm --prefix site run build · exit 0 · mismo candidato
+- hive update --source <checkout> --rev aceff0f0 --out FILE + hive apply · exit 0 · unión de 15f74421 y 582997ab, guardada en refs/hive/trial-join
+- rg de la regla nueva y de la anterior en los archivos de guía instalados · nueva en 6 archivos (7 hosts), anterior en ninguno
 
 ## Review status and progress
 
@@ -167,3 +169,4 @@ Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prue
 2026-11-16 — T2 · 6545eca3 · unverified: AC1 y AC2 hasta T6 (sesiones reales)
 2026-11-16 — T3 · 7fab11bf · unverified: AC1 hasta T6
 2026-11-16 — T4 · 27e752a0 · unverified: none
+2026-11-16 — T5 · 15f74421 · unverified: AC4: la regla nueva está en la guía instalada de los siete hosts (Grok la lee de ~/.claude/CLAUDE.md) y la anterior en ninguno; falta observar que sobrevive a un refresco de otra sesión, en T6
