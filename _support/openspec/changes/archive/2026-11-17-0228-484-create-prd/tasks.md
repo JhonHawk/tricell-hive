@@ -168,9 +168,9 @@ T1 a T7, T9 y T10 corren en el hilo principal: los textos de la skill comparten 
 
 ### T9 — Sesión real en Notion
 
-- [ ] Tras integrar y refrescar la instalación, la skill instalada deja en Notion el PRD de `create-architecture` y su versión 1 congelada.
+- [x] Tras integrar y refrescar la instalación, la skill instalada deja en Notion el PRD de `create-architecture` actualizado con las respuestas de su dueño y revisado, sin ofrecerlo para aprobación mientras le queden reglas por decidir.
 
-**Closes:** AC14
+**Closes:** AC35
 
 **Depends on:** T1, T2, T3, T4, T5, T6, T7, T8
 
@@ -180,9 +180,9 @@ T1 a T7, T9 y T10 corren en el hilo principal: los textos de la skill comparten 
 
 **Test approach:** check
 
-**Changes:** Sigue la skill instalada de principio a fin: redacta el PRD desde las decisiones ya registradas de `create-architecture` (memoria del proyecto, tema `decision/create-architecture-skill`), corre el revisor, pide la aprobación del usuario y congela la versión 1. Solo con la clase de efecto de `proposal.md` «Effects» aprobada; antes de cada escritura anota aquí el destino, el cambio y cómo se revierte. No crea tickets.
+**Changes:** Sigue la skill instalada de principio a fin: redacta el PRD desde las decisiones ya registradas de `create-architecture` (memoria del proyecto, tema `decision/create-architecture-skill`), lo actualiza con las respuestas de su dueño hasta la versión 3, corre la lista de comprobación y la revisión, primero con un revisor sustituto (D40 A) y después con el rol `hive-review-prd`, y no ofrece la aprobación mientras queden reglas por decidir. La aprobación y la copia congelada quedan pendientes (D41 A). Solo con la clase de efecto de `proposal.md` «Effects» aprobada; antes de cada escritura anota aquí el destino, el cambio y cómo se revierte. No crea tickets.
 
-**Verification:** Releer las dos páginas: la viva tiene las nueve secciones, cada regla como una ficha completa y un punto del historial que enlaza la copia; la copia lleva versión, estado y fecha en el título. El cierre del trabajo y el archivo de esta carpeta esperan a T9: el ticket se mueve al integrar, pero la carpeta no se archiva con T9 abierta, y un defecto que T9 encuentre se corrige como una revisión de este mismo cambio, en un pull request nuevo.
+**Verification:** Releer la página: tiene las nueve secciones, cada regla como una ficha completa, un punto del historial por versión y el estado que las comprobaciones sostienen; y, en la sesión, el reporte del rol y que la skill no pidió la aprobación. La aprobación y la copia congelada (D41 A) quedan fuera de esta tarea, como pendiente. El cierre del trabajo y el archivo de esta carpeta esperan a T9: el ticket se mueve al integrar, pero la carpeta no se archiva con T9 abierta, y un defecto que T9 encuentre se corrige como una revisión de este mismo cambio, en un pull request nuevo.
 
 ## Verification and human review
 
@@ -203,10 +203,10 @@ Parada de validación: el usuario lee `content/skills/create-prd/SKILL.md` y sus
 ## Checkpoint
 
 - Updated: 2026-11-16
-- Stage: verify · candidato corregido; espera el visto bueno del usuario al ejemplo en ficha
-- Last commit: 6d39e7c2
+- Stage: close · integrado y desplegado; T9 hecha con AC35; cierre: pasos 2, 4 y 5 pendientes
+- Last commit: 57849508
 - Open findings: none
-- Next: con la aprobación: push, pull request contra development, integrar, refrescar la instalación, T9 (aprobación y copia congelada en Notion), cierre
+- Next: al responder «cerrar»: inventario de soporte, archivar la carpeta (rama nueva desde development con las ediciones sin confirmar de este worktree), quitar worktree y rama feat/create-prd
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/create-prd · feat/create-prd
 
 ### Evidence
@@ -247,3 +247,6 @@ Parada de validación: el usuario lee `content/skills/create-prd/SKILL.md` y sus
 2026-11-16 — T9, efectos 2 y 3 (misma clase aprobada): destino, la página «PRD · create-architecture» que esta sesión creó; cambio, reemplazar su contenido para pasar cada regla de fila de tabla a ficha (versión 2) y su historial de versiones de tabla a lista; cómo revertir, el historial de la página en Notion o moverla a la papelera. Hecho medido de paso: la respuesta de crear una página trae su identificador y su enlace.
 
 2026-11-16 — Revisión D35 A: T1, T2, T3, T5, T6, T7 y T8 rehechas en `ea0a1097` (ficha por regla, historial como lista) y T4 en `e96b4d14` y el commit de su muestra; AC33 y AC34 observados en la instalación temporal del candidato en `ba0c8cb1`, junto con AC21, AC22, AC28 y AC32. Sin verificar: AC14, que espera a la integración.
+
+2026-11-16 — Revisión del plan en T9 (D40 A, D41 A): AC14 se retira por AC35. Integrado en `57849508` (PR #493) y refrescada la instalación desde la unión `c4d556ae`. T9, efectos 4 a 6 (misma clase aprobada): destino, la misma página; cambio, escribir la versión 3 con las respuestas del dueño (R4 y R15 decididas, R14 cancelada por R16) y con lo que encontraron el revisor sustituto y el rol `hive-review-prd`, que corrió por primera vez; cómo revertir, el historial de la página en Notion. Resultado: versión 3 en iteración, 15 reglas por decidir y 13 preguntas que detienen la aprobación. Sin verificar en una sesión real: la aprobación de una versión y su copia congelada (duplicar y renombrar en Notion).
+2026-11-16 — T9 · uncommitted · unverified: la aprobación de una versión y su copia congelada en Notion, que D41 A deja pendientes
