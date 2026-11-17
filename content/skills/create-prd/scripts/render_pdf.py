@@ -30,11 +30,13 @@ import tempfile
 from pathlib import Path
 
 SAFE_LINK = re.compile(r"(?i)^(https?://|mailto:)")
-FENCE = re.compile(r"^ {0,3}(```|~~~)")
-HEADING = re.compile(r"^ {0,3}(#{1,6})\s+(.*?)\s*#*\s*$")
+FENCE = re.compile(r"^( {0,3})(`{3,}|~{3,})")
+HEADING = re.compile(r"^ {0,3}(#{1,6})[ \t]+(.*?)(?:[ \t]+#+)?[ \t]*$")
 RULE = re.compile(r"^ {0,3}([-*_])(\s*\1){2,}\s*$")
 QUOTE = re.compile(r"^ {0,3}>\s?")
 ITEM = re.compile(r"^(\s*)([-*+]|\d{1,9}[.)])\s+(.*)$")
+SHORT_CELL = 20  # characters: a column whose every cell is at most this long holds short values
+SHORT_COLUMNS_TOTAL = 60  # characters: the short columns keep one line only while they fit together
 TABLE_SEPARATOR = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$")
 
 STYLE = """
@@ -51,6 +53,7 @@ ul, ol { padding-left: 6mm; }
 table { border-collapse: collapse; width: 100%; }
 th, td { border: 0.2mm solid #888; padding: 1.2mm 1.8mm; text-align: left; vertical-align: top; }
 th { background: #eee; }
+.short { white-space: nowrap; }
 tr { break-inside: avoid; }
 code, pre { font: 9.5pt/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
 pre { background: #f3f3f3; padding: 2mm; white-space: pre-wrap; }
@@ -77,7 +80,9 @@ def inline(text):
 
     text = html.escape(text.replace("\x00", ""), quote=True)
     text = re.sub(r"`([^`]+)`", lambda m: keep("<code>%s</code>" % m.group(1)), text)
-    text = re.sub(r"(?<!!)\[([^\]]+)\]\(([^)\s]+)\)", link, text)
+    # A target holds no token, so a code span never ends up inside an href; one level of
+    # parentheses belongs to the target.
+    text = re.sub(r"(?<!!)\[([^\]]+)\]\(((?:[^()\s\x00]|\([^()\s\x00]*\))+)\)", link, text)
     text = re.sub(r"\*\*(?!\s)(.+?)(?<!\s)\*\*", r"<strong>\1</strong>", text)
     text = re.sub(r"(?<!\w)__(?!\s)(.+?)(?<!\s)__(?!\w)", r"<strong>\1</strong>", text)
     text = re.sub(r"(?<![*\w])\*(?![\s*])(.+?)(?<![\s*])\*(?![*\w])", r"<em>\1</em>", text)
@@ -94,65 +99,132 @@ def cells(row):
     return [cell.replace("\\|", "|").strip() for cell in re.split(r"(?<!\\)\|", row)]
 
 
-def starts_block(lines, i):
-    line = lines[i]
-    return bool(FENCE.match(line) or HEADING.match(line) or RULE.match(line) or QUOTE.match(line)
-                or ITEM.match(line) or starts_table(lines, i))
-
-
 def starts_table(lines, i):
-    return "|" in lines[i] and i + 1 < len(lines) and bool(TABLE_SEPARATOR.match(lines[i + 1])) \
-        and "-" in lines[i + 1]
+    """A header row with a pipe, then a separator row with the same number of cells."""
+    return ("|" in lines[i] and i + 1 < len(lines) and bool(TABLE_SEPARATOR.match(lines[i + 1]))
+            and len(cells(lines[i])) == len(cells(lines[i + 1])))
+
+
+def render_table(head, rows):
+    """Render a table; columns of short values stay on one line so the long column takes the wrapping."""
+    widths = {}
+    for row in [head] + rows:
+        for column, cell in enumerate(row):
+            widths[column] = max(widths.get(column, 0), len(cell))
+    short = {column for column, width in widths.items() if width <= SHORT_CELL}
+    # Only when those columns fit together: a table of nothing but short columns must stay free to wrap.
+    if sum(widths[column] for column in short) > SHORT_COLUMNS_TOTAL or len(short) == len(widths):
+        short = set()
+
+    def cell(tag, column, text):
+        return "<%s%s>%s</%s>" % (tag, ' class="short"' if column in short else "", inline(text), tag)
+
+    table = ["<table>", "<thead><tr>%s</tr></thead>" % "".join(cell("th", c, t) for c, t in enumerate(head)),
+             "<tbody>"]
+    for row in rows:
+        table.append("<tr>%s</tr>" % "".join(cell("td", c, t) for c, t in enumerate(row)))
+    return "\n".join(table + ["</tbody>", "</table>"])
+
+
+def is_ordered(match):
+    return match.group(2)[0].isdigit()
+
+
+def interrupts_paragraph(lines, i):
+    """Whether line i starts a block although it directly follows paragraph text."""
+    line = lines[i]
+    if FENCE.match(line) or HEADING.match(line) or RULE.match(line) or QUOTE.match(line) or starts_table(lines, i):
+        return True
+    item = ITEM.match(line)
+    # A number other than 1 at the start of a wrapped line is text, such as a year.
+    return bool(item) and (not is_ordered(item) or item.group(2)[:-1] == "1")
+
+
+def take_fence(lines, i):
+    """Return the lines of the fenced block that opens at i, and the index after it."""
+    indent, fence = FENCE.match(lines[i]).groups()
+    body, i = [], i + 1
+    while i < len(lines):
+        closing = lines[i].strip()
+        if closing and set(closing) == {fence[0]} and len(closing) >= len(fence):
+            return body, i + 1
+        body.append(lines[i][len(indent):] if lines[i].startswith(indent) else lines[i].lstrip())
+        i += 1
+    return body, i
+
+
+def take_list(lines, i):
+    """Return the lines of the list that starts at i, and the index after it."""
+    first = ITEM.match(lines[i])
+    indent, ordered = len(first.group(1)), is_ordered(first)
+
+    def belongs(line):
+        item = ITEM.match(line)
+        if item and len(item.group(1)) <= indent + 1:
+            return is_ordered(item) == ordered
+        return len(line) - len(line.lstrip()) >= indent + 2
+
+    block, i = [lines[i]], i + 1
+    while i < len(lines):
+        if not lines[i].strip():
+            j = i
+            while j < len(lines) and not lines[j].strip():
+                j += 1
+            if j == len(lines) or not belongs(lines[j]):
+                break
+            block.extend(lines[i:j])
+            i = j
+        elif belongs(lines[i]):
+            block.append(lines[i])
+            i += 1
+        elif not ITEM.match(lines[i]) and block[-1].strip() and not interrupts_paragraph(lines, i):
+            block.append(lines[i])  # an unindented line that continues the item above it
+            i += 1
+        else:
+            break
+    return block, i
 
 
 def render_list(block):
-    """Render consecutive list lines; deeper-indented lines nest under their item."""
-    out, i = [], 0
-    while i < len(block):
-        base = ITEM.match(block[i])
-        indent, ordered = len(base.group(1)), base.group(2)[0].isdigit()
-        tag = "ol" if ordered else "ul"
-        out.append("<%s>" % tag)
-        while i < len(block):
-            match = ITEM.match(block[i])
-            if not match or len(match.group(1)) > indent + 1 or match.group(2)[0].isdigit() != ordered:
-                break
-            text, i = [match.group(3)], i + 1
-            children = []
-            while i < len(block):
-                child = ITEM.match(block[i])
-                if child and len(child.group(1)) <= indent + 1:
-                    break
-                if child or children:
-                    children.append(block[i])
-                else:
-                    text.append(block[i].strip())
-                i += 1
-            nested = ""
-            if children:
-                nested = "\n" + render_list(children) + "\n"
-            out.append("<li>%s%s</li>" % (inline(" ".join(text)), nested))
-        out.append("</%s>" % tag)
-        if i < len(block) and not ITEM.match(block[i]):
-            out.append("<p>%s</p>" % inline(block[i].strip()))
-            i += 1
+    """Render one list; what follows an item's own text nests under it as blocks."""
+    first = ITEM.match(block[0])
+    indent, ordered = len(first.group(1)), is_ordered(first)
+    items = []
+    for line in block:
+        item = ITEM.match(line)
+        if item and len(item.group(1)) <= indent + 1:
+            items.append((item.group(3), []))
+        else:
+            items[-1][1].append(line)
+    start = first.group(2)[:-1] if ordered else "1"
+    out = ['<ol start="%s">' % int(start) if ordered and int(start) != 1 else "<ol>" if ordered else "<ul>"]
+    for text, rest in items:
+        text, k = [text], 0
+        while k < len(rest) and rest[k].strip() and not (
+                ITEM.match(rest[k]) or FENCE.match(rest[k].lstrip()) or QUOTE.match(rest[k].lstrip())):
+            text.append(rest[k].strip())
+            k += 1
+        children = [line for line in rest[k:]]
+        depth = min((len(c) - len(c.lstrip()) for c in children if c.strip()), default=0)
+        nested = convert_lines([c[depth:] for c in children])
+        out.append("<li>%s%s</li>" % (inline(" ".join(text)), "\n%s\n" % nested if nested else ""))
+    out.append("</ol>" if ordered else "</ul>")
     return "\n".join(out)
 
 
 def convert(markdown):
     """Convert the Markdown subset to HTML; anything outside it stays as literal text."""
-    lines = markdown.replace("\r\n", "\n").replace("\r", "\n").expandtabs(4).split("\n")
+    return convert_lines(markdown.replace("\r\n", "\n").replace("\r", "\n").expandtabs(4).split("\n"))
+
+
+def convert_lines(lines):
     out, i = [], 0
     while i < len(lines):
         line = lines[i]
         if not line.strip():
             i += 1
         elif FENCE.match(line):
-            fence, body, i = FENCE.match(line).group(1), [], i + 1
-            while i < len(lines) and not lines[i].lstrip().startswith(fence):
-                body.append(lines[i])
-                i += 1
-            i += 1
+            body, i = take_fence(lines, i)
             out.append("<pre><code>%s\n</code></pre>" % html.escape("\n".join(body), quote=True))
         elif HEADING.match(line):
             level, text = HEADING.match(line).groups()
@@ -166,42 +238,21 @@ def convert(markdown):
             while i < len(lines) and QUOTE.match(lines[i]):
                 body.append(QUOTE.sub("", lines[i], count=1))
                 i += 1
-            out.append("<blockquote>\n%s\n</blockquote>" % convert("\n".join(body)))
+            out.append("<blockquote>\n%s\n</blockquote>" % convert_lines(body))
         elif starts_table(lines, i):
             head, i = cells(line), i + 2
             rows = []
             while i < len(lines) and lines[i].strip() and "|" in lines[i]:
                 rows.append(cells(lines[i]))
                 i += 1
-            table = ["<table>", "<thead><tr>%s</tr></thead>" % "".join("<th>%s</th>" % inline(c) for c in head),
-                     "<tbody>"]
-            for row in rows:
-                table.append("<tr>%s</tr>" % "".join("<td>%s</td>" % inline(c) for c in row))
-            out.append("\n".join(table + ["</tbody>", "</table>"]))
+            out.append(render_table(head, rows))
         elif ITEM.match(line):
-            block = []
-            while i < len(lines):
-                if lines[i].strip():
-                    if not (ITEM.match(lines[i]) or lines[i].startswith("  ")):
-                        break
-                    if block and ITEM.match(lines[i]) and not lines[i].startswith(" ") \
-                            and ITEM.match(lines[i]).group(2)[0].isdigit() != ITEM.match(block[0]).group(2)[0].isdigit():
-                        break
-                    block.append(lines[i])
-                    i += 1
-                else:
-                    nxt = i + 1
-                    if nxt < len(lines) and lines[nxt].strip() and (
-                            lines[nxt].startswith("  ") or (ITEM.match(lines[nxt]) and
-                            ITEM.match(lines[nxt]).group(2)[0].isdigit() == ITEM.match(block[0]).group(2)[0].isdigit())):
-                        i += 1
-                    else:
-                        break
+            block, i = take_list(lines, i)
             out.append(render_list(block))
         else:
             body = [line.strip()]
             i += 1
-            while i < len(lines) and lines[i].strip() and not starts_block(lines, i):
+            while i < len(lines) and lines[i].strip() and not interrupts_paragraph(lines, i):
                 body.append(lines[i].strip())
                 i += 1
             out.append("<p>%s</p>" % inline(" ".join(body)))
@@ -255,17 +306,22 @@ def print_pdf(browser, page, stem, pdf):
         source.write_text(page, encoding="utf-8")
         profile = work / "profile"
         profile.mkdir()
+        printed = work / "printed.pdf"  # never the destination: an older PDF there must not pass for this run's
         command = [browser, "--headless", "--disable-gpu", "--no-first-run", "--no-default-browser-check",
                    "--disable-extensions", "--disable-background-networking", "--no-pdf-header-footer",
-                   "--user-data-dir=%s" % profile, "--print-to-pdf=%s" % pdf, source.as_uri()]
+                   "--user-data-dir=%s" % profile, "--print-to-pdf=%s" % printed, source.as_uri()]
         try:
             result = subprocess.run(command, capture_output=True, text=True, timeout=120)
         except (OSError, subprocess.TimeoutExpired) as error:
             return str(error)
         if result.returncode != 0:
             return "the browser exited with code %d" % result.returncode
-        if not pdf.is_file() or pdf.stat().st_size == 0:
+        if not printed.is_file() or printed.stat().st_size == 0:
             return "the browser wrote no PDF"
+        try:
+            shutil.move(str(printed), str(pdf))
+        except OSError as error:
+            return "cannot write %s: %s" % (pdf, error.strerror or error)
         return None
     finally:
         shutil.rmtree(work, ignore_errors=True)
@@ -280,7 +336,7 @@ def main(argv=None):
 
     source = Path(args.markdown)
     try:
-        markdown = source.read_text(encoding="utf-8", errors="replace")
+        markdown = source.read_text(encoding="utf-8-sig", errors="replace")
     except OSError as error:
         print("render_pdf: cannot read %s: %s" % (source, error.strerror or error), file=sys.stderr)
         return 2

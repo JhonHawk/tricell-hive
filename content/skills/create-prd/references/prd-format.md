@@ -69,12 +69,12 @@ A version passes when all ten hold; each check that fails is reported with what 
 
 ## States
 
-The state of the document is set by what the checks support. A label in the source, such as "ready for development", is a claim to check and never sets the state.
+The state of the document is set by what the checks support. A label in the source, such as "ready for development", is a claim to check and never sets the state. Exactly one state holds for a version. An open question that holds back no rule does not hold back an approval.
 
 | State | It is reached when |
 | --- | --- |
 | `draft` | The document is still being written: check 1 or check 2 of the ready list fails. |
-| `iterating` | Checks 1 and 2 pass, and another check of the ready list fails, a rule is `to decide`, an open question is unanswered, the review did not run, or the user has not approved it. |
+| `iterating` | Checks 1 and 2 pass, and the version does not meet what `approved by business` requires. |
 | `approved by business` | All four hold for this version: the ready list passes, a `hive-review-prd` child reviewed it, no rule is `to decide`, and the user approved it explicitly, as [create-prd](../SKILL.md) step 7 asks. |
 | `technical review` | A session with the repository took a version that is `approved by business` and is comparing it with the code. |
 | `ready for development` | The technical review set it, as [technical review](technical-review.md) sets. No other step sets this state. |

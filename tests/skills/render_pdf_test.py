@@ -29,10 +29,10 @@ PRD = textwrap.dedent("""\
 
     ## Requirements
 
-    | Code | Priority | Rule | State |
-    | --- | --- | --- | --- |
-    | R1 | P0 | A customer returns an order within 30 days | decided |
-    | R2 | P1 | A refund over $500 needs a supervisor | to decide |
+    | Code | Priority | Rule | State | Source | Verdict |
+    | --- | --- | --- | --- | --- | --- |
+    | R1 | P0 | A customer returns an order within 30 days | decided | Ana, 2026-11-10 | not checked |
+    | R2 | P1 | A refund over $500 needs a supervisor | to decide | Ana, 2026-11-12 | not checked |
 
     ## User stories
 
@@ -61,8 +61,9 @@ FAKE_BROWSER = textwrap.dedent("""\
     profile = [a.split("=", 1)[1] for a in sys.argv if a.startswith("--user-data-dir=")]
     with open(os.environ["FAKE_BROWSER_LOG"], "w") as f:
         json.dump({"argv": sys.argv[1:], "profile_existed": bool(profile) and os.path.isdir(profile[0])}, f)
-    with open(out, "wb") as f:
-        f.write(b"%PDF-1.4 fake")
+    if not os.environ.get("FAKE_BROWSER_SILENT"):
+        with open(out, "wb") as f:
+            f.write(b"%PDF-1.4 fake")
 """)
 
 
@@ -97,7 +98,7 @@ class Conversion(unittest.TestCase):
         self.assertIn("<em>app</em>", page)
         self.assertIn("<code>support</code>", page)
         self.assertIn('<a href="https://example.com/policy">the policy</a>', page)
-        self.assertIn("<th>Priority</th>", page)
+        self.assertRegex(page, r"<th[^>]*>Priority</th>")
         self.assertIn("<td>A refund over $500 needs a supervisor</td>", page)
         self.assertRegex(page, r"(?s)<ul>\s*<li>As a customer I return an order\s*<ul>\s*<li>from the order list</li>")
         self.assertRegex(page, r"(?s)<ol>\s*<li>Open the order</li>\s*<li>Tap return</li>\s*</ol>")
@@ -115,6 +116,77 @@ class Conversion(unittest.TestCase):
         text = visible_text(self.page)
         self.assertIn("footnote[^1]", text)
         self.assertIn("![logo](http://tracker.example/logo.png)", text)
+
+
+class EdgesOfTheSubset(unittest.TestCase):
+    def body(self, markdown):
+        return load().convert(textwrap.dedent(markdown))
+
+    def test_a_heading_keeps_a_trailing_hash_that_belongs_to_its_text(self):
+        self.assertIn("<h2>Support for C#</h2>", self.body("## Support for C#\n"))
+        self.assertIn("<h2>Title</h2>", self.body("## Title ##\n"))
+
+    def test_a_paragraph_line_that_starts_with_a_number_stays_in_the_paragraph(self):
+        self.assertIn("<p>Released in 2026. It was good.</p>", self.body("Released in\n2026. It was good.\n"))
+
+    def test_an_ordered_list_keeps_the_number_it_starts_at(self):
+        body = self.body("""\
+            Before.
+
+            3. third
+            4. fourth
+        """)
+        self.assertRegex(body, r'(?s)<ol start="3">\s*<li>third</li>\s*<li>fourth</li>')
+
+    def test_a_line_with_a_pipe_above_a_rule_is_not_a_table(self):
+        body = self.body("a | b\n---\nnext\n")
+        self.assertNotIn("<table>", body)
+        self.assertIn("a | b", body)
+        self.assertIn("<hr>", body)
+
+    def test_a_longer_fence_holds_a_shorter_one(self):
+        body = self.body("````\n```\ninner\n```\n````\n")
+        self.assertEqual(body.count("<pre>"), 1)
+        self.assertIn("```\ninner\n```\n</code></pre>", body)
+
+    def test_a_fenced_block_under_a_list_item_keeps_its_lines(self):
+        body = self.body("""\
+            - step
+
+              ```
+              a | b
+              # not a heading
+              ```
+            - next
+        """)
+        self.assertIn("<pre><code>a | b\n# not a heading\n</code></pre>", body)
+        self.assertEqual(body.count("<ul>"), 1)
+        self.assertNotIn("<h1>", body)
+
+    def test_an_unindented_continuation_line_stays_in_its_item(self):
+        body = self.body("- item one that wraps\nonto the next line\n- item two\n")
+        self.assertEqual(body.count("<ul>"), 1)
+        self.assertIn("<li>item one that wraps onto the next line</li>", body)
+
+    def test_a_link_target_keeps_its_parentheses_and_never_holds_a_code_span(self):
+        body = self.body("[a](http://a.b/c_(d)) and [b](https://x/`y`)\n")
+        self.assertIn('<a href="http://a.b/c_(d)">a</a>', body)
+        self.assertNotIn("\x00", body)
+        self.assertIn("<code>y</code>", body)
+
+
+class ShortCells(unittest.TestCase):
+    def test_short_columns_stay_on_one_line_and_the_long_one_wraps(self):
+        page = load().build_page(PRD, "t")
+        for short in ("R1", "P0", "to decide", "Ana, 2026-11-10", "not checked"):
+            self.assertIn('<td class="short">%s</td>' % short, page)
+        self.assertIn("<td>A customer returns an order within 30 days</td>", page)
+        self.assertRegex(page, r"\.short\s*\{[^}]*white-space:\s*nowrap")
+
+    def test_a_table_of_many_short_columns_is_left_free_to_wrap(self):
+        row = "| " + " | ".join(["eighteen chars txt"] * 8) + " |"
+        table = "\n".join([row, "|" + " --- |" * 8, row])
+        self.assertNotIn('class="short"', load().convert(table))
 
 
 class UntrustedText(unittest.TestCase):
@@ -179,6 +251,21 @@ class BrowserProcess(unittest.TestCase):
         self.assertTrue(any(a.startswith("--headless") for a in seen["argv"]))
         self.assertTrue(seen["argv"][-1].startswith("file://"))
 
+    def test_a_browser_that_writes_nothing_fails_even_when_an_older_pdf_exists(self):
+        fake = self.tmp / "fake-browser"
+        fake.write_text(FAKE_BROWSER)
+        fake.chmod(fake.stat().st_mode | stat.S_IXUSR)
+        (self.tmp / "prd.pdf").write_bytes(b"%PDF-1.4 version one")
+        result = run(self.md, "--browser", fake, env=dict(os.environ, FAKE_BROWSER_SILENT="1",
+                                                           FAKE_BROWSER_LOG=str(self.tmp / "log.json")))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertTrue((self.tmp / "prd.html").exists())
+
+    def test_a_byte_order_mark_does_not_hide_the_first_heading(self):
+        self.md.write_bytes(b"\xef\xbb\xbf" + PRD.encode("utf-8"))
+        run(self.md, "--browser", self.tmp / "no-such-browser")
+        self.assertIn("<h1>PRD: Returns</h1>", (self.tmp / "prd.html").read_text())
+
     def test_out_names_the_pdf(self):
         fake = self.tmp / "fake-browser"
         fake.write_text(FAKE_BROWSER)
@@ -219,6 +306,11 @@ class RealBrowser(unittest.TestCase):
                                            capture_output=True, text=True).stdout.split())
             for rule in ("A customer returns an order within 30 days", "A refund over $500 needs a supervisor"):
                 self.assertIn(rule, text)
+            # With -layout a value broken across two lines reads apart: short cells must not break.
+            laid_out = subprocess.run([pdftotext, "-layout", str(tmp / "prd.pdf"), "-"],
+                                      capture_output=True, text=True).stdout
+            for value in ("Ana, 2026-11-10", "to decide", "not checked"):
+                self.assertIn(value, laid_out)
 
 
 if __name__ == "__main__":
