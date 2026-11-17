@@ -1,6 +1,6 @@
 # Tasks
 
-Base: development `15b2e402c72543b74d63e50df1bc2b188638212a`. Sin rama de implementación. Las decisiones D50/D51 describen el producto futuro: esta construcción sigue las reglas actuales para hijos; sus commits los hace el principal. Solo el piloto autorizado ejerce el nuevo contrato en su fixture.
+Base: development `15b2e402c72543b74d63e50df1bc2b188638212a`. Rama de implementación: `feat/bounded-e2e-coordination`. Las decisiones D50/D51 describen el producto futuro: esta construcción sigue las reglas actuales para hijos; sus commits los hace el principal. Solo el piloto autorizado ejerce el nuevo contrato en su fixture.
 
 ### T1 — Fijar el procedimiento canónico de coordinación
 
