@@ -168,6 +168,33 @@ class EdgesOfTheSubset(unittest.TestCase):
         self.assertEqual(body.count("<ul>"), 1)
         self.assertIn("<li>item one that wraps onto the next line</li>", body)
 
+    def test_a_table_with_a_short_separator_row_is_a_table(self):
+        body = self.body("| a | b |\n|--|:-:|\n| 1 | 2 |\n")
+        self.assertRegex(body, r"<th[^>]*>a</th>")
+        self.assertRegex(body, r"<td[^>]*>2</td>")
+
+    def test_code_in_three_backticks_inside_a_line_does_not_open_a_fence(self):
+        body = self.body("```inline``` is code\n\nNext paragraph.\n\n## Heading\n")
+        self.assertNotIn("<pre>", body)
+        self.assertIn("is code", body)
+        self.assertIn("<p>Next paragraph.</p>", body)
+        self.assertIn("<h2>Heading</h2>", body)
+
+    def test_a_wrapped_item_line_that_starts_with_a_number_stays_in_the_item(self):
+        body = self.body("- released in\n  2024. Then more\n- next\n")
+        self.assertIn("<li>released in 2024. Then more</li>", body)
+        self.assertNotIn("<ol", body)
+
+    def test_a_table_under_a_list_item_is_a_table(self):
+        body = self.body("""\
+            - item
+
+              | a | b |
+              | --- | --- |
+              | 1 | 2 |
+        """)
+        self.assertRegex(body, r"(?s)<li>item\s*<table>")
+
     def test_a_link_target_keeps_its_parentheses_and_never_holds_a_code_span(self):
         body = self.body("[a](http://a.b/c_(d)) and [b](https://x/`y`)\n")
         self.assertIn('<a href="http://a.b/c_(d)">a</a>', body)
@@ -227,7 +254,7 @@ class BrowserProcess(unittest.TestCase):
         result = run(self.md, "--browser", self.tmp / "no-such-browser")
         self.assertNotEqual(result.returncode, 0)
         self.assertFalse((self.tmp / "prd.pdf").exists())
-        page = self.tmp / "prd.html"
+        page = self.tmp / "prd.print.html"
         self.assertTrue(page.exists())
         self.assertIn("<h1>PRD: Returns</h1>", page.read_text())
         self.assertIn(str(page), result.stderr)
@@ -243,7 +270,7 @@ class BrowserProcess(unittest.TestCase):
         pdf = self.tmp / "prd.pdf"
         self.assertTrue(pdf.exists())
         self.assertIn(str(pdf), result.stdout)
-        self.assertFalse((self.tmp / "prd.html").exists())
+        self.assertFalse((self.tmp / "prd.print.html").exists())
         seen = json.loads(log.read_text())
         self.assertTrue(seen["profile_existed"])
         profile = [a.split("=", 1)[1] for a in seen["argv"] if a.startswith("--user-data-dir=")][0]
@@ -259,12 +286,51 @@ class BrowserProcess(unittest.TestCase):
         result = run(self.md, "--browser", fake, env=dict(os.environ, FAKE_BROWSER_SILENT="1",
                                                            FAKE_BROWSER_LOG=str(self.tmp / "log.json")))
         self.assertNotEqual(result.returncode, 0)
-        self.assertTrue((self.tmp / "prd.html").exists())
+        self.assertTrue((self.tmp / "prd.print.html").exists())
 
     def test_a_byte_order_mark_does_not_hide_the_first_heading(self):
         self.md.write_bytes(b"\xef\xbb\xbf" + PRD.encode("utf-8"))
         run(self.md, "--browser", self.tmp / "no-such-browser")
-        self.assertIn("<h1>PRD: Returns</h1>", (self.tmp / "prd.html").read_text())
+        self.assertIn("<h1>PRD: Returns</h1>", (self.tmp / "prd.print.html").read_text())
+
+    def test_the_printable_page_never_replaces_a_file_that_was_there(self):
+        (self.tmp / "prd.html").write_text("mine")
+        run(self.md, "--browser", self.tmp / "no-such-browser")
+        self.assertEqual((self.tmp / "prd.html").read_text(), "mine")
+
+    def test_out_may_name_a_folder(self):
+        fake = self.tmp / "fake-browser"
+        fake.write_text(FAKE_BROWSER)
+        fake.chmod(fake.stat().st_mode | stat.S_IXUSR)
+        folder = self.tmp / "exports"
+        folder.mkdir()
+        result = run(self.md, "--out", folder, "--browser", fake,
+                     env=dict(os.environ, FAKE_BROWSER_LOG=str(self.tmp / "log.json")))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue((folder / "prd.pdf").is_file())
+        self.assertIn(str(folder / "prd.pdf"), result.stdout)
+
+    def test_browser_may_be_a_command_on_the_path(self):
+        bin_dir = self.tmp / "bin"
+        bin_dir.mkdir()
+        fake = bin_dir / "my-browser"
+        fake.write_text(FAKE_BROWSER)
+        fake.chmod(fake.stat().st_mode | stat.S_IXUSR)
+        env = dict(os.environ, PATH=str(bin_dir) + os.pathsep + os.environ["PATH"],
+                   FAKE_BROWSER_LOG=str(self.tmp / "log.json"))
+        result = run(self.md, "--browser", "my-browser", env=env)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_a_folder_that_cannot_be_written_is_reported_without_a_traceback(self):
+        locked = self.tmp / "locked"
+        locked.mkdir()
+        md = locked / "prd.md"
+        md.write_text(PRD)
+        locked.chmod(0o500)
+        self.addCleanup(locked.chmod, 0o700)
+        result = run(md, "--browser", self.tmp / "no-such-browser")
+        self.assertIn(result.returncode, (3, 4))
+        self.assertNotIn("Traceback", result.stderr)
 
     def test_out_names_the_pdf(self):
         fake = self.tmp / "fake-browser"

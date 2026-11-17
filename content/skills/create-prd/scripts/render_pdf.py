@@ -16,7 +16,8 @@ temporary profile that is removed afterwards.
 
 Exit codes: 0 PDF written (its path on stdout) · 2 usage or unreadable
 input · 3 no browser found (the printable page is left beside the Markdown
-file) · 4 the browser failed (same page left).
+file, as <name>.print.html) · 4 the browser failed (same page left) or a
+file could not be written.
 """
 
 import argparse
@@ -37,7 +38,7 @@ QUOTE = re.compile(r"^ {0,3}>\s?")
 ITEM = re.compile(r"^(\s*)([-*+]|\d{1,9}[.)])\s+(.*)$")
 SHORT_CELL = 20  # characters: a column whose every cell is at most this long holds short values
 SHORT_COLUMNS_TOTAL = 60  # characters: the short columns keep one line only while they fit together
-TABLE_SEPARATOR = re.compile(r"^\s*\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)*\|?\s*$")
+TABLE_SEPARATOR = re.compile(r"^\s*\|?\s*:?-+:?\s*(\|\s*:?-+:?\s*)*\|?\s*$")
 
 STYLE = """
 @page { size: A4; margin: 18mm 16mm; }
@@ -101,8 +102,21 @@ def cells(row):
 
 def starts_table(lines, i):
     """A header row with a pipe, then a separator row with the same number of cells."""
-    return ("|" in lines[i] and i + 1 < len(lines) and bool(TABLE_SEPARATOR.match(lines[i + 1]))
-            and len(cells(lines[i])) == len(cells(lines[i + 1])))
+    return ("|" in lines[i] and i + 1 < len(lines) and "|" in lines[i + 1]
+            and bool(TABLE_SEPARATOR.match(lines[i + 1])) and len(cells(lines[i])) == len(cells(lines[i + 1])))
+
+
+def opens_fence(line):
+    """The fence a line opens, or None. A backtick fence holds no backtick after it: that is inline code."""
+    match = FENCE.match(line)
+    if match and match.group(2)[0] == "`" and "`" in line[match.end():]:
+        return None
+    return match
+
+
+def is_text_number(match):
+    """An ordered marker other than 1 on a line that continues text is text, such as a year."""
+    return is_ordered(match) and match.group(2)[:-1] != "1"
 
 
 def render_table(head, rows):
@@ -133,16 +147,15 @@ def is_ordered(match):
 def interrupts_paragraph(lines, i):
     """Whether line i starts a block although it directly follows paragraph text."""
     line = lines[i]
-    if FENCE.match(line) or HEADING.match(line) or RULE.match(line) or QUOTE.match(line) or starts_table(lines, i):
+    if opens_fence(line) or HEADING.match(line) or RULE.match(line) or QUOTE.match(line) or starts_table(lines, i):
         return True
     item = ITEM.match(line)
-    # A number other than 1 at the start of a wrapped line is text, such as a year.
-    return bool(item) and (not is_ordered(item) or item.group(2)[:-1] == "1")
+    return bool(item) and not is_text_number(item)
 
 
 def take_fence(lines, i):
     """Return the lines of the fenced block that opens at i, and the index after it."""
-    indent, fence = FENCE.match(lines[i]).groups()
+    indent, fence = opens_fence(lines[i]).groups()
     body, i = [], i + 1
     while i < len(lines):
         closing = lines[i].strip()
@@ -200,9 +213,11 @@ def render_list(block):
     out = ['<ol start="%s">' % int(start) if ordered and int(start) != 1 else "<ol>" if ordered else "<ul>"]
     for text, rest in items:
         text, k = [text], 0
-        while k < len(rest) and rest[k].strip() and not (
-                ITEM.match(rest[k]) or FENCE.match(rest[k].lstrip()) or QUOTE.match(rest[k].lstrip())):
-            text.append(rest[k].strip())
+        flat = [line.lstrip() for line in rest]
+        while k < len(rest) and flat[k] and not (
+                (ITEM.match(flat[k]) and not is_text_number(ITEM.match(flat[k]))) or opens_fence(flat[k])
+                or QUOTE.match(flat[k]) or starts_table(flat, k)):
+            text.append(flat[k])
             k += 1
         children = [line for line in rest[k:]]
         depth = min((len(c) - len(c.lstrip()) for c in children if c.strip()), default=0)
@@ -223,7 +238,7 @@ def convert_lines(lines):
         line = lines[i]
         if not line.strip():
             i += 1
-        elif FENCE.match(line):
+        elif opens_fence(line):
             body, i = take_fence(lines, i)
             out.append("<pre><code>%s\n</code></pre>" % html.escape("\n".join(body), quote=True))
         elif HEADING.match(line):
@@ -273,7 +288,9 @@ def find_browser(override=None):
     """Return the path of a Chromium-family browser, or None. `override` skips the search."""
     if override:
         path = Path(override)
-        return str(path) if path.is_file() and os.access(path, os.X_OK) else None
+        if path.is_file() and os.access(path, os.X_OK):
+            return str(path)
+        return shutil.which(override)
     for name in ("google-chrome", "google-chrome-stable", "chromium", "chromium-browser",
                  "microsoft-edge", "microsoft-edge-stable", "brave-browser", "chrome", "msedge"):
         found = shutil.which(name)
@@ -311,11 +328,12 @@ def print_pdf(browser, page, stem, pdf):
                    "--disable-extensions", "--disable-background-networking", "--no-pdf-header-footer",
                    "--user-data-dir=%s" % profile, "--print-to-pdf=%s" % printed, source.as_uri()]
         try:
-            result = subprocess.run(command, capture_output=True, text=True, timeout=120)
+            result = subprocess.run(command, capture_output=True, timeout=120)
         except (OSError, subprocess.TimeoutExpired) as error:
             return str(error)
         if result.returncode != 0:
-            return "the browser exited with code %d" % result.returncode
+            said = result.stderr.decode("utf-8", errors="replace").strip().splitlines()
+            return "the browser exited with code %d%s" % (result.returncode, ": " + said[-1] if said else "")
         if not printed.is_file() or printed.stat().st_size == 0:
             return "the browser wrote no PDF"
         try:
@@ -330,8 +348,8 @@ def print_pdf(browser, page, stem, pdf):
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Render a PRD Markdown file to PDF with an installed browser.")
     parser.add_argument("markdown", help="the PRD Markdown file")
-    parser.add_argument("--out", help="the PDF to write (default: beside the Markdown file)")
-    parser.add_argument("--browser", help="browser executable to use; skips the search")
+    parser.add_argument("--out", help="the PDF to write, or the folder to write it in (default: beside the Markdown file)")
+    parser.add_argument("--browser", help="browser executable or command to use; skips the search")
     args = parser.parse_args(argv)
 
     source = Path(args.markdown)
@@ -341,22 +359,31 @@ def main(argv=None):
         print("render_pdf: cannot read %s: %s" % (source, error.strerror or error), file=sys.stderr)
         return 2
     pdf = Path(args.out) if args.out else source.with_suffix(".pdf")
+    if pdf.is_dir():
+        pdf = pdf / (source.stem + ".pdf")
     page = build_page(markdown, source.stem)
-    fallback = source.with_suffix(".html")
+    # Its own name: the page never replaces the Markdown file or a page that was already there.
+    fallback = source.with_name(source.stem + ".print.html")
     how = ("The printable page is at %s: open it in any browser and print it to PDF "
            "(Cmd+P or Ctrl+P, then Save as PDF)." % fallback)
 
-    browser = find_browser(args.browser)
-    if browser is None:
-        fallback.write_text(page, encoding="utf-8")
-        print("render_pdf: no Chromium-family browser found (Chrome, Edge, Chromium or Brave). " + how,
+    try:
+        browser = find_browser(args.browser)
+        if browser is None:
+            fallback.write_text(page, encoding="utf-8")
+            missing = ("the browser given with --browser was not found: %s" % args.browser if args.browser
+                       else "no Chromium-family browser found (Chrome, Edge, Chromium or Brave)")
+            print("render_pdf: %s. %s" % (missing, how), file=sys.stderr)
+            return 3
+        pdf.parent.mkdir(parents=True, exist_ok=True)
+        error = print_pdf(browser, page, source.stem, pdf.resolve())
+        if error:
+            fallback.write_text(page, encoding="utf-8")
+            print("render_pdf: %s. %s" % (error, how), file=sys.stderr)
+            return 4
+    except OSError as error:
+        print("render_pdf: cannot write %s: %s" % (error.filename or fallback, error.strerror or error),
               file=sys.stderr)
-        return 3
-    pdf.parent.mkdir(parents=True, exist_ok=True)
-    error = print_pdf(browser, page, source.stem, pdf.resolve())
-    if error:
-        fallback.write_text(page, encoding="utf-8")
-        print("render_pdf: %s. %s" % (error, how), file=sys.stderr)
         return 4
     print(pdf)
     return 0
