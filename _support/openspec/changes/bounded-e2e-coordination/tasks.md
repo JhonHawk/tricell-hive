@@ -112,7 +112,7 @@ Base: development `15b2e402c72543b74d63e50df1bc2b188638212a`. Rama de implementa
 
 ### T7 — Preparar una única observación nativa y su límite
 
-- [ ] Añadir al soporte de pilotos existente un caso E2E acotado y sus comprobaciones sin invocar modelos durante esta tarea.
+- [x] Añadir al soporte de pilotos existente un caso E2E acotado y sus comprobaciones sin invocar modelos durante esta tarea.
 
 **Closes:** AC10; la evidencia real se obtiene en T8.
 
@@ -189,3 +189,4 @@ No hay UI de producto ni cuentas de aplicación. Las páginas documentales se co
 2026-11-17 — T5 · 8e14faadba1840acb502cd5e34bb158a335606e8 · unverified: AC7 and AC11 behavioral observation pending T8
 2026-11-17 — T2 · 42e81faaa4e50f697f6ae8b7bf8f87510e39373b · unverified: AC2 structural verification passed; real owner commits pending T8; T6 reconciles plan movement for owner worktrees
 2026-11-17 — T4 · 2f532f65c5c29fe8ecb5b187306dbe0bd189cbe0 · unverified: AC6 structure independently verified (9 tests OK); real commands and flow evidence pending T8
+2026-11-17 — T7 · 8105289483add86f69ae7100c0fc9e81727336a7 · unverified: AC10/AC12 real native observation and restoration pending T8; case and deadline fixes independently verified

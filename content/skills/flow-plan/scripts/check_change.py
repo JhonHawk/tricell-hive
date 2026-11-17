@@ -31,6 +31,7 @@ its proposal.md or its tasks.md cannot be read. It only reads.
 """
 
 import re
+import importlib.util
 import sys
 from pathlib import Path
 
@@ -261,6 +262,31 @@ def business_rules_findings(proposal):
     return findings
 
 
+def execution_findings(folder, tasks):
+    """An optional checkpoint pointer stays local and uses the owning validator."""
+    pointers = [(n, line[len("- Execution record: "):].strip())
+                for n, line in enumerate(tasks, 1) if line.startswith("- Execution record: ")]
+    if not pointers:
+        return []
+    if len(pointers) != 1:
+        return ["tasks.md:1: multiple execution record pointers"]
+    n, pointer = pointers[0]
+    spec = importlib.util.spec_from_file_location("hive_tasks", Path(__file__).with_name("tasks.py"))
+    module = importlib.util.module_from_spec(spec)
+    previous = sys.dont_write_bytecode
+    try:
+        sys.dont_write_bytecode = True
+        spec.loader.exec_module(module)
+        record = folder / pointer
+        module.execution_location(folder, record)
+        module.validate_execution(module.load_record(record), folder.resolve(), record)
+    except (module.Failure, OSError, UnicodeError, ValueError, TypeError, KeyError) as error:
+        return [f"tasks.md:{n}: execution record: {error}"]
+    finally:
+        sys.dont_write_bytecode = previous
+    return []
+
+
 def main(argv):
     args = [a for a in argv if a != "--archive"]
     if len(args) != 1:
@@ -282,6 +308,7 @@ def main(argv):
     if "--archive" not in argv:
         findings += observed_findings(docs["proposal.md"], old)
         findings += business_rules_findings(docs["proposal.md"])
+        findings += execution_findings(folder, docs["tasks.md"])
     findings += stale_mentions(docs, old)
     if "--archive" in argv:
         boxes = [
