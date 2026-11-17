@@ -175,9 +175,9 @@ an interactive install offers on macOS arm64 (Homebrew) and Linux amd64 (Node
 it shows; and the Codex question card (`codex-question-card`), which an
 interactive install with the Codex host offers selected by default when the
 installed Codex supports it (0.163.0 or later) and, after you consent, enables with `codex features enable
-default_mode_request_user_input`, Codex's own command, so Codex asks its
-decisions through a card that waits in Default mode (uncheck it, or type `none`,
-to skip it; `codex features disable default_mode_request_user_input` turns it
+default_mode_request_user_input`, Codex's own command, making the waiting card
+available in Default mode for questions Codex permits through it (uncheck it,
+or type `none`, to skip it; `codex features disable default_mode_request_user_input` turns it
 off). The Codex wait floor (`codex-wait-floor`) is the fourth: an interactive
 install or a committed-source `hive update` with the Codex host offers it, selected by default, while
 the setting is not applied and Codex is 0.164 or later (a dry run offers

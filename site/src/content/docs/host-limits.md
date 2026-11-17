@@ -60,18 +60,21 @@ verified.
 
 ## Codex
 
-- **Question cards close by themselves.** In Default mode a card that you do not
-  touch resolves with no answer after about 120 seconds: 60 seconds hidden, then a
-  60-second visible countdown. Pressing a key in the card stops that. A closed
-  card keeps its questions on screen but not their options, so when it closes the
-  agent writes that round's open decisions in the chat: answer there (for example
-  `D2 B`). It opens no further card for that round. Pressing Esc on a card
-  interrupts the turn instead: see «If you cancel a card» below. A round of more
-  than three decisions comes as consecutive cards, one after another.
-- Question cards in Default mode need a Codex feature that is off by default,
-  `default_mode_request_user_input`. Without it, the agent writes the options in
-  the message instead of a card. `hive doctor` shows the state of this and of the
-  wait setting below.
+- **The current mode decides how a question is asked.** Codex 0.169.0's
+  Default-mode instructions reserve the waiting card for optional questions.
+  Required input and permission requests use a concise question in chat, without
+  a multiple-choice block. An unanswered optional card lets the agent continue
+  with its best judgment; it does not grant permission.
+- A Default-mode waiting card left untouched closes after about 120 seconds:
+  60 seconds hidden, then a 60-second visible countdown. Pressing a key in the
+  card stops that. Esc interrupts the turn. The feature
+  `default_mode_request_user_input` enables the tool in Default mode, but does
+  not override the mode's restrictions. `hive doctor` reports its state.
+- Hive uses one channel for each pending question. An asynchronous card is not
+  an extra copy of a waiting card. Its acceptance receipt is not your answer,
+  and answering in chat does not establish that an earlier card disappeared.
+  The agent follows the channel choice in the global guidance's
+  [Questions and routes](https://github.com/JhonHawk/tricell-hive/blob/development/content/guidance/global.md#questions-and-routes).
 - A helper role that declares a read-only sandbox can still run with the session's
   sandbox (observed on Codex 0.163.0). Hive therefore relies on the role's text, not
   the sandbox, to keep such helpers read-only.
@@ -161,16 +164,18 @@ verified.
    was only to the global instructions; Codex 0.166 also reloaded them once,
    but restart it when in doubt.
 2. Run `hive doctor` to see what Hive can check on your machine.
-3. If a card closes by itself before you answer, the agent writes its decisions
-   in the chat: reply there with the decision ID and letter. On Cursor the
-   decisions are already in the message above the card, and on Grok Build a
-   timeout counts as a decline, so you get the one-line reminder instead. The
-   next decision still comes in a card.
+3. If a card closes before you answer, the agent follows the host's current
+   instructions. Codex Default mode continues after an unanswered optional
+   question. Where the host leaves the response to Hive, a card that closes
+   empty gets its open decisions in chat; on Cursor they are already above the
+   card, and on Grok Build a timeout counts as a decline and gets a reminder.
 
 ## If you cancel a card
 
 When you cancel a question card yourself, the agent does not paste the questions
-into the chat. It acts on what you write next:
+into the chat. The host's current restrictions still govern re-asking and
+response format; where it leaves those choices to Hive, the agent acts on what
+you write next:
 
 - You answer by ID (for example `D4 A, D5 B`) or write "ok": those answers
   apply, and anything still open is asked again in a card.

@@ -1,6 +1,8 @@
 # Tasks
 
-Base: tricell-hive `development` en `c35c3424` (2026-11-16). Ramas: `chore/trial-refresh-line` para T7, que el usuario integra antes de T5, y `feat/question-card-alone` para T2–T4, sin integrar hasta que T6 cumpla AC8. Otras sesiones trabajan en el checkout principal sobre `development`, así que el build pregunta antes de su primera edición si la rama vive en un worktree. Todas las tareas corren en el hilo principal: ninguna edita más de 3 archivos; en T6, la lectura de sesiones de un host que pase de 5 lecturas grandes va a un child `hive-research` por host.
+Historical base: `development` at `c35c3424` (2026-11-16). Historical trial branch: `feat/question-card-alone`; its previous delivery and deployment approvals are not current-session authority. T9 is a local correction approved on 2026-11-17 in the isolated worktree at detached `af4093ec`. The user subsequently authorized native Codex review, commit/push to the trial branch and local deployment, without merge. T6 remains pending later real-session evidence. Model pilots remain paused.
+
+Reopened tasks retain their historical implementation and evidence below. T9 revalidates the changed local text of T2, T4 and T8; installation checks in T5/T8 remain pending execution. Existing T1/T3/T7 evidence is not proof of the new behavior.
 
 ### T1 — Los scripts de medición y la línea base quedan guardados
 
@@ -8,7 +10,7 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 - [x] `_support/workspace/2026-11-16-question-card-alone/measure/` contiene los scripts de Claude Code, Codex y los otros hosts con sus salidas del 9 al 16 de noviembre, y un `README.md` con el comando de cada uno
 
-**Closes:** AC8
+**Closes:** AC11
 
 **Depends on:** none
 
@@ -20,13 +22,13 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 **Changes:** copia los scripts y sus salidas; añade a cada extractor la fecha de corte como parámetro y la clasificación que T6 necesita: ronda con o sin bloque de decisión antes de la tarjeta, tarjeta sin contestar, y si el mensaje siguiente del agente escribe las decisiones abiertas. No cambia las cifras de la línea base.
 
-**Verification:** `python3 extract.py && python3 aggregate.py` en `measure/cc/` reproduce 306 rondas, 330 tarjetas y 252 rondas con bloque de decisión antes de la tarjeta; `python3 cards.py && python3 agg.py` en `measure/codex/` reproduce 47 tarjetas con 10 vacías. AC8 queda sin verificar hasta T6.
+**Verification:** `python3 extract.py && python3 aggregate.py` en `measure/cc/` reproduce 306 rondas, 330 tarjetas y 252 rondas con bloque de decisión antes de la tarjeta; `python3 cards.py && python3 agg.py` en `measure/codex/` reproduce 47 tarjetas con 10 vacías. AC11 queda sin verificar hasta T6.
 
 ### T2 — La guía global pide la tarjeta sola y el texto tras una tarjeta sin respuesta
 
 - [x] Los tres puntos de «Questions and routes» dicen la regla de `design.md` «Proposed shape», sin restos del orden anterior
 
-**Closes:** AC1
+**Closes:** AC9
 
 **Depends on:** none
 
@@ -36,15 +38,15 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 **Test approach:** check
 
-**Changes:** reescribe los tres puntos con la condición observable (herramienta que espera y descripción por opción), el contenido del texto previo (línea de contexto e informe), la respuesta a una tarjeta sin contestar y al turno cortado, y los casos que siguen en texto. Antes de editar, revisa cada lugar que depende de la conducta, como pide `AGENTS.md` «Guidance structure», y anota los lugares revisados y el cambio de tamaño de `global.md` para el pull request. No cambia el formato de una decisión, las tarjetas consecutivas, las preguntas abiertas ni el bloque de siguiente paso.
+**Historical changes (2026-11-16):** reescribe los tres puntos con la condición observable (herramienta que espera y descripción por opción), el contenido del texto previo (línea de contexto e informe), la respuesta a una tarjeta sin contestar y al turno cortado, y los casos que siguen en texto. Antes de editar, revisa cada lugar que depende de la conducta, como pide `AGENTS.md` «Guidance structure», y anota los lugares revisados y el cambio de tamaño de `global.md` para el pull request. No cambia el formato de una decisión, las tarjetas consecutivas, las preguntas abiertas ni el bloque de siguiente paso.
 
-**Verification:** `go test ./tests/...` pasa; `rg -n "visible text first|without repeating the decisions|round's text before it" content/guidance/global.md` no devuelve nada, y `rg -c "through that tool alone when it also gives each option a description field|When a card comes back unanswered and it carried the round alone" content/guidance/global.md` da 2; el tamaño de `global.md` antes y después queda anotado. AC1 queda sin verificar hasta T6.
+**Historical verification (2026-11-16; superseded by T9 for local text and superseded deployment evidence):** `go test ./tests/...` pasa; `rg -n "visible text first|without repeating the decisions|round's text before it" content/guidance/global.md` no devuelve nada, y `rg -c "through that tool alone when it also gives each option a description field|When a card comes back unanswered and it carried the round alone" content/guidance/global.md` da 2; el tamaño de `global.md` antes y después queda anotado. AC9 queda sin verificar hasta T6.
 
 ### T3 — Las skills que citan el orden apuntan a la regla nueva
 
 - [x] `flow-plan` paso 4, `flow-verify` paso 2 y la referencia del visor dejan de pedir el texto antes de la tarjeta
 
-**Closes:** AC1
+**Closes:** AC9
 
 **Depends on:** T2
 
@@ -56,13 +58,13 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 **Changes:** cada mención pasa a ser un puntero a «Questions and routes» sin repetir sus pasos; la opción «Open the viewer» se describe como opción de la tarjeta y como última línea de opción cuando la ronda se escribe en texto. No cambia qué se pregunta ni cuándo.
 
-**Verification:** `rg -n -i "visible text before the question tool's card|written in the visible text|written in full before its card" content` no devuelve nada; `go test ./tests/content/...` pasa (tamaño de skills y referencias). AC1 queda sin verificar hasta T6.
+**Verification:** `rg -n -i "visible text before the question tool's card|written in the visible text|written in full before its card" content` no devuelve nada; `go test ./tests/content/...` pasa (tamaño de skills y referencias). AC9 queda sin verificar hasta T6.
 
 ### T4 — El sitio, la arquitectura y la rúbrica describen el orden nuevo
 
 - [x] La página de límites por host, `agent-delivery.md` y la rúbrica de revisión de sesiones coinciden con la regla de T2
 
-**Closes:** AC5
+**Closes:** AC12
 
 **Depends on:** T2
 
@@ -72,13 +74,13 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 **Test approach:** check
 
-**Changes:** en la página, Codex y el paso 3 de la lista final dicen que tras un cierre el agente escribe las decisiones en el chat; en la arquitectura, la regla del 2026-11-04 pasa a historia con las sesiones y cifras que la reemplazan, y la tabla por host cambia «Full options in the text and in the card» por el reparto nuevo, con Codex 0.169.0 revisado; en la rúbrica, la fila de la tarjeta vacía comprueba el texto completo después y se añade la fila de la ronda sin bloque de decisión antes de la tarjeta. `README.md` y `llms.txt` no cambian: no afirman este orden.
+**Historical changes (2026-11-16):** en la página, Codex y el paso 3 de la lista final dicen que tras un cierre el agente escribe las decisiones en el chat; en la arquitectura, la regla del 2026-11-04 pasa a historia con las sesiones y cifras que la reemplazan, y la tabla por host cambia «Full options in the text and in the card» por el reparto nuevo, con Codex 0.169.0 revisado; en la rúbrica, la fila de la tarjeta vacía comprueba el texto completo después y se añade la fila de la ronda sin bloque de decisión antes de la tarjeta. `README.md` y `llms.txt` no cambian: no afirman este orden.
 
-**Verification:** `rg -n -i "already in the message above it|also written in the message|full options in the text and in the card|writes each decision's title line and each option line in the visible text|gets one line, not the round repeated" site _support/docs` no devuelve nada fuera de los párrafos marcados como historia; `npm run build` en `site/` termina sin errores y la página `host-limits` construida muestra el texto nuevo.
+**Historical verification (2026-11-16; superseded by T9 for local text and superseded deployment evidence):** `rg -n -i "already in the message above it|also written in the message|full options in the text and in the card|writes each decision's title line and each option line in the visible text|gets one line, not the round repeated" site _support/docs` no devuelve nada fuera de los párrafos marcados como historia; `npm run build` en `site/` termina sin errores y la página `host-limits` construida muestra el texto nuevo.
 
 ### T5 — La rama de prueba queda desplegada en la instalación local
 
-- [x] Los archivos de guía instalados de cada host registrado contienen la regla de T2
+- [ ] Los archivos de guía instalados de cada host registrado contienen la regla de T2
 
 **Closes:** AC4
 
@@ -90,27 +92,27 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 **Test approach:** check
 
-**Changes:** con los commits de la rama hechos y la revisión de código aplicada, nombra los commits aún no desplegados, ejecuta `hive update --source <checkout de la rama> --rev feat/question-card-alone --out FILE` y `hive apply --plan FILE`, y dice al usuario que las sesiones abiertas necesitan reinicio. Antes de desplegar incorpora `development` a la rama, de modo que lleve la línea de T7; el commit que la borra se añade al cerrar la prueba, justo antes de integrar. El binario no se recompila: el cambio es solo de contenido. Los refrescos posteriores de otras sesiones siguen la línea de T7; una sesión que aun así despliegue desde `development` pisa la regla, y T6 lo detecta por las ventanas de despliegue y no cuenta esas rondas.
+**Historical changes (2026-11-16):** con los commits de la rama hechos y la revisión de código aplicada, nombra los commits aún no desplegados, ejecuta `hive update --source <checkout de la rama> --rev feat/question-card-alone --out FILE` y `hive apply --plan FILE`, y dice al usuario que las sesiones abiertas necesitan reinicio. Antes de desplegar incorpora `development` a la rama, de modo que lleve la línea de T7; el commit que la borra se añade al cerrar la prueba, justo antes de integrar. El binario no se recompila: el cambio es solo de contenido. Los refrescos posteriores de otras sesiones siguen la línea de T7; una sesión que aun así despliegue desde `development` pisa la regla, y T6 lo detecta por las ventanas de despliegue y no cuenta esas rondas.
 
-**Verification:** en el archivo de guía instalado de cada host que `hive status --hosts codex,claude,grok,pi,opencode,cursor,antigravity --scope user` da como instalado (sus rutas las lista `hive doctor`), `rg -q "Write the message as visible text first" <archivo>` termina con código 1 y `rg -q "through that tool alone when it also gives each option a description field" <archivo>` termina con código 0; `hive releases` muestra la instantánea desplegada desde la rama.
+**Historical verification (2026-11-16; superseded by T9 for local text and superseded deployment evidence):** en el archivo de guía instalado de cada host que `hive status --hosts codex,claude,grok,pi,opencode,cursor,antigravity --scope user` da como instalado (sus rutas las lista `hive doctor`), `rg -q "Write the message as visible text first" <archivo>` termina con código 1 y `rg -q "through that tool alone when it also gives each option a description field" <archivo>` termina con código 0; `hive releases` muestra la instantánea desplegada desde la rama.
 
 ### T6 — La prueba se mide y el usuario decide la integración
 
-- [ ] Un informe con las rondas posteriores al despliegue de T8, las tarjetas sin contestar y las rondas perdidas por host, contra AC8
+- [ ] Informe de las rondas posteriores al despliegue autorizado de T9, contra AC9–AC11; la evidencia de versiones anteriores queda histórica
 
-**Closes:** AC1, AC7, AC8, AC4
+**Closes:** AC9, AC10, AC11, AC4
 
-**Depends on:** T1, T5, T8, y que las sesiones reales reúnan el volumen de AC8
+**Depends on:** T1, T9, an authorized deploy of the corrected version, and real sessions meeting AC11
 
-**Locations:** `_support/workspace/2026-11-16-question-card-alone/measure/`; `~/.claude/projects`, `~/.codex/sessions` y los registros de los otros hosts, solo lectura
+**Locations:** `_support/workspace/2026-11-16-question-card-alone/measure/`; native host session histories, read-only
 
-**Execution:** main thread; un child `hive-research` por host cuando leer sus sesiones pase de 5 lecturas grandes
+**Execution:** main thread; delegate a bounded host review when the applicable delegation rule requires it
 
 **Test approach:** check
 
-**Changes:** ejecuta los scripts con el despliegue de T8 como corte, cuenta solo sesiones iniciadas después de él (en Codex y OpenCode, que recargan la guía solas, las rondas posteriores a él), descarta las rondas de sesiones que corrieron con la guía de `development` (ventanas de `hive releases`), lee a ojo cada tarjeta sin contestar y cada ronda marcada como perdida, e informa según la rúbrica de revisión de sesiones; el informe revisa las vigilancias de Engram que el cambio toca (`watch/card-without-visible-text`, `watch/card-without-message`, `watch/no-card-after-card-timeout`) y propone cerrar o redefinir cada una. Si Codex suma dos rondas perdidas, el plan se revisa para dejarlo en la regla anterior mediante una excepción por host. No integra la rama: la integración es la decisión del usuario tras el informe.
+**Changes:** Record the new deployment cutoff before counting. Count new sessions after it, or later rounds where a host demonstrably reloaded the corrected guidance. Exclude other guidance versions. Read each unanswered card and potential lost round against the host instructions and the session-review rubric; examine tool identity, receipts, user answers and available UI evidence without inferring queue resolution from chat. Keep the prior 20 Claude Code / 10 Codex rounds and 3 unanswered cards (2 Codex) thresholds. If Codex has two lost rounds, revise the plan without restoring a native-host conflict. Review the existing watch topics at the authorized close. No integration or model pilot is authorized by this task.
 
-**Verification:** el informe muestra al menos 20 rondas en Claude Code y 10 en Codex con al menos 3 tarjetas sin contestar, 2 de ellas de Codex; en cada ronda contada el texto previo no tiene bloque de decisión (AC1); cada tarjeta cerrada sola va seguida del texto completo de sus decisiones abiertas y de ninguna otra tarjeta de esa ronda, y cada tarjeta cancelada por el usuario va seguida de lo que corresponde a lo que el usuario dijo: respuestas por ID aplicadas y el resto preguntado otra vez por la tarjeta, la misma tarjeta, el replanteo, el descarte o el recordatorio (AC7); cero rondas perdidas (AC8); los archivos instalados siguen sirviendo la regla de la rama al medir, después de al menos un refresco hecho por otra sesión tras un merge a `development` (AC4).
+**Verification:** Zero lost rounds under AC11; each counted round satisfies AC9 and each unanswered card AC10. The installed version and its persistence after another session's refresh establish AC4. Ordinary tests cannot close these behavior criteria.
 
 ### T7 — La línea temporal de refresco está en `development`
 
@@ -132,9 +134,9 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 ### T8 — La regla distingue la tarjeta que se cierra sola de la que cancela el usuario
 
-- [x] El punto «When a card comes back unanswered» de la guía global, sus dependientes y la instalación local siguen D9
+- [ ] El punto «When a card comes back unanswered» de la guía global, sus dependientes y la instalación local siguen D9
 
-**Closes:** AC7, AC8
+**Closes:** AC10, AC11
 
 **Depends on:** T5
 
@@ -144,9 +146,27 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 **Test approach:** check
 
-**Changes:** reescribe ese punto en dos ramas, «The card closed by itself» y «The user left it unanswered», como fija `design.md` «D9»; alinea la referencia de `harness-audit`, la página de límites por host (sección nueva «If you cancel a card»), la arquitectura y la fila de la rúbrica; añade a los extractores de Claude Code y de Codex, para cada tarjeta sin contestar (en Codex también la que no tiene resultado, que es la cancelada con Esc), si el agente volvió a preguntar por la tarjeta, y el siguiente mensaje del usuario para la lectura a ojo; anota para el pull request el cambio de tamaño de `global.md` y los lugares revisados; pasa `/code-review`, hace commit, push y redespliega con los pasos del párrafo temporal de `AGENTS.md`. Más de 3 archivos, pero en el hilo principal: es una corrección de una frase por archivo sobre texto que esta sesión acaba de escribir.
+**Historical changes (2026-11-16):** reescribe ese punto en dos ramas, «The card closed by itself» y «The user left it unanswered», como fija `design.md` «D9»; alinea la referencia de `harness-audit`, la página de límites por host (sección nueva «If you cancel a card»), la arquitectura y la fila de la rúbrica; añade a los extractores de Claude Code y de Codex, para cada tarjeta sin contestar (en Codex también la que no tiene resultado, que es la cancelada con Esc), si el agente volvió a preguntar por la tarjeta, y el siguiente mensaje del usuario para la lectura a ojo; anota para el pull request el cambio de tamaño de `global.md` y los lugares revisados; pasa `/code-review`, hace commit, push y redespliega con los pasos del párrafo temporal de `AGENTS.md`. Más de 3 archivos, pero en el hilo principal: es una corrección de una frase por archivo sobre texto que esta sesión acaba de escribir.
 
-**Verification:** `go test ./...` y `npm --prefix site run build` terminan con código 0; `rg -c "The card closed by itself:|The user left it unanswered:" content/guidance/global.md` da 2 y la misma búsqueda encuentra ambas frases en la guía instalada de cada host tras el despliegue. AC7 y AC8 quedan sin verificar hasta T6.
+**Historical verification (2026-11-16; superseded by T9 for local text and superseded deployment evidence):** `go test ./...` y `npm --prefix site run build` terminan con código 0; `rg -c "The card closed by itself:|The user left it unanswered:" content/guidance/global.md` da 2 y la misma búsqueda encuentra ambas frases en la guía instalada de cada host tras el despliegue. AC10 y AC11 quedan sin verificar hasta T6.
+
+### T9 — One channel per question, within native host restrictions
+
+- [x] Correct the canonical rule, align its consumers and retained plan, and verify the local candidate
+
+**Closes:** AC9, AC10, AC11, AC12
+
+**Depends on:** the user's 2026-11-17 approval for the local correction
+
+**Locations:** `content/guidance/global.md`; `site/src/content/docs/host-limits.md`; `_support/docs/architecture/agent-delivery.md`; `_support/docs/architecture/tool-dependencies.md`; `_support/docs/harness-engineering/session-review-rubric.md`; `README.md`; `llms.txt`; this change folder
+
+**Execution:** main thread integrates the canonical rule and bounded documentation edits; an independent `hive-review-plan` review covers this revision
+
+**Test approach:** check
+
+**Changes:** Follow `design.md` «Proposed shape». Retire superseded criteria without deleting them, preserve historical evidence and the existing trial thresholds, and leave deployment and behavior verification pending. Checked consumers: `flow-plan`, `flow-verify` and `viewer-publication`, `harness-audit` local-instructions, agents (no question directives), and `tests/pilot/regression.go` (existing S1 checks surrounding text). No synthetic regression fixture is added. Record the global-guidance size delta with the candidate's final report.
+
+**Verification:** Run `python3 -I <flow-plan-dir>/scripts/check_change.py <absolute-change-folder>`, ordinary content/Go checks and the site build, and review the resulting diff against the canonical rule. A passing local check does not verify AC9–AC11 in real sessions. AC12 requires the built page and aligned text; T6 closes behavior after an authorized deployment. The user subsequently authorized native Codex review, commit/push and local installation, without merge.
 
 ## Verification and human review
 
@@ -154,20 +174,23 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 | --- | --- | --- | --- |
 | Tests of each task | When the task closes, locally | The task's command passes | Covered by the implementation |
 | Full suite | Final candidate, locally | `go test ./...` and `npm run build` in `site/` | Covered by the implementation |
-| Code review | Final candidate, before the push or the validation stop | Nativa: Claude Code `/code-review` (D5 A) | The review answer |
-| Trial | After T8's deploy, in real sessions on this machine | The report of T6 against AC8 | D1 A |
+| Historical code review | Previous published candidate | Nativa: Claude Code `/code-review` (D5 A) | Historical answer, not current-session publication authority |
+| Native code review | T9 candidate before publication | Codex `review --uncommitted`: no actionable findings | Explicit approval, 2026-11-17 |
+| Trial | After the authorized T9 deploy, in real sessions on this machine | The report of T6 against AC11 | Local deployment authorized; no model pilots |
 
 Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prueba misma: el usuario trabaja en sus sesiones con la regla nueva y decide la integración con el informe de T6.
 
 ## Checkpoint
 
-- Updated: 2026-11-16
-- Stage: build · T6 (espera el volumen de la prueba)
-- Last commit: 6d1c40ed
-- Open findings: none
-- Next: T6: seguir _support/workspace/2026-11-16-question-card-alone/handoff.md (en el checkout principal, ignorado por Git); corte de la prueba 2026-11-17T00:29:27Z
+- Updated: 2026-11-17
+- Stage: delivery · T9 local candidate and native review passed; publication and installation authorized
+- Candidate base: detached af4093ec; uncommitted diff in `.claude/worktrees/question-channel-fix` under the main checkout
+- Open findings: none from independent plan review or native Codex review; no deployment of T9 yet
+- Next: commit, synchronize development, verify the combined candidate, push PR #491 without merge and deploy locally. T5 and the installation part of T8 remain open; T6 waits for the recorded new cutoff and real sessions. 2026-11-17T00:29:27Z belongs to the previous version only.
 
 ### Evidence
+
+Historical evidence below predates T9 and does not verify its uncommitted candidate.
 
 - go -C <repo> test ./... · exit 0 · 27e752a0 (árbol sin cambios desde la ejecución)
 - npm --prefix site run build · exit 0, 19 páginas · 27e752a0
@@ -196,3 +219,22 @@ Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prue
 2026-11-16 — T5 · 15f74421 · unverified: AC4: la regla nueva está en la guía instalada de los siete hosts (Grok la lee de ~/.claude/CLAUDE.md) y la anterior en ninguno; falta observar que sobrevive a un refresco de otra sesión, en T6
 2026-11-16 — Revisión por D9: T8 añadida; T2 deja de cerrar AC2 (retirado); T6 cierra AC7 y AC8.
 2026-11-16 — T8 · a1ee85f7 · unverified: AC7 y AC8 hasta T6 (sesiones reales); las correcciones de la segunda pasada de revisión no se revisaron de nuevo
+
+2026-11-17 — T9 added after the user approved a local correction: native host compatibility and one channel per pending question. AC9–AC12 replace AC1, AC7, AC8 and AC5. T2, T4, T5 and T8 reopened; prior checks and deployment evidence retained as history. T6 remains pending a new authorized deploy and real-session evidence. No model pilot, commit, publication or deployment performed for T9.
+
+2026-11-17 — T9 local candidate complete, uncommitted on af4093ec. T2 and T4 locally reverified; T5 and T8 installation remain open. AC12 checked in source and generated `host-limits` HTML; AC9–AC11 remain unverified in real sessions. Independent `hive-review-plan` review found no material gaps; no dedicated code review chosen in this session. No commit, publication, deployment or model pilot.
+
+### T9 local verification
+
+Commands ran against `.claude/worktrees/question-channel-fix`, using its absolute path for repository commands. Evidence covers the uncommitted T9 candidate, not a deployed version.
+
+- `go -C <worktree> vet ./...` — exit 0.
+- `go -C <worktree> test ./...` — exit 0, all packages; CLI package 250.259 s. After final content edits, `go -C <worktree> test ./tests/content/...` — exit 0.
+- `python3 -m unittest discover -s <worktree>/tests/skills -p '*_test.py'` — exit 0, 119 tests in 13.919 s.
+- `npm --prefix <worktree>/site run check` — exit 0, no diagnostics; `run lint` — exit 0, no fixes; `run build` — exit 0, 20 pages. Build warned about empty i18n and missing docs/404, outside the changed page.
+- Site scripts used the existing main-checkout dependencies after package.json and pnpm-lock.yaml compared equal. The pnpm wrapper rejected the temporary node_modules symlink; npm ran the same declared scripts without installing dependencies. The generated host-limits HTML contains the new channel and native-mode explanation. Temporary dependency symlink removed after checks.
+- `python3 -I <flow-plan-dir>/scripts/check_change.py <change-folder>` and `git -C <worktree> diff --check` — exit 0.
+- Independent plan review — no material findings; covers the revised folder and its consistency with canonical guidance and named consumers, not live host behavior or a dedicated code review.
+- Global guidance: 56,383 → 57,451 UTF-8 bytes (+1,068) from af4093ec. No change to pilot detectors or synthetic regression fixtures.
+
+2026-11-17 — The user explicitly approved native Codex review, commit/push to the trial branch and local deployment, with no merge. Native `codex review --uncommitted` completed with no actionable defects; it checked the revised rule and consumers, plan coherence and diff whitespace. It did not test live host behavior. The prior local-only authorization and no-review-selected statements above are historical.
