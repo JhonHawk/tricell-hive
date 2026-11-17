@@ -2,13 +2,13 @@
 
 Base: `JhonHawk/tricell-hive`, `development` en `582997ab`; rama `feat/create-prd`.
 
-T1 a T7 y T9 corren en el hilo principal: los textos de la skill comparten un vocabulario que T1 fija, y cada tarea edita como mucho tres archivos. T8 va a un hijo `hive-write-docs`, porque edita diez archivos, siete de ellos del sitio, y sus fuentes ya están escritas cuando empieza.
+T1 a T7, T9 y T10 corren en el hilo principal: los textos de la skill comparten un vocabulario que T1 fija, y cada tarea edita como mucho tres archivos. T8 va a un hijo `hive-write-docs`, porque edita diez archivos, siete de ellos del sitio, y sus fuentes ya están escritas cuando empieza.
 
 ### T1 — Entrada de la skill y formato del PRD
 
-- [x] `content/skills/create-prd/SKILL.md` y `references/prd-format.md` existen, con los nueve pasos, las secciones, la línea de regla, los estados, la lista de comprobación y las versiones.
+- [x] `content/skills/create-prd/SKILL.md` y `references/prd-format.md` existen, con los nueve pasos, las secciones, la ficha de regla, los estados, la lista de comprobación y las versiones.
 
-**Closes:** AC2, AC3, AC5, AC11, AC25, AC26, AC29, AC30
+**Closes:** AC2, AC5, AC11, AC25, AC26, AC29, AC30, AC33
 
 **Depends on:** none
 
@@ -18,9 +18,9 @@ T1 a T7 y T9 corren en el hilo principal: los textos de la skill comparten un vo
 
 **Test approach:** check
 
-**Changes:** Escribe los pasos de `design.md` «Pasos de `SKILL.md`» y, en la referencia, las secciones del PRD, la línea de regla con sus estados y veredictos, la lista fija de comprobación, los estados del documento con lo que permite cada paso, y el historial de versiones con su lista de cambios. Antes de escribir, lee `_support/docs/harness-engineering/model-floor.md` y `_support/docs/architecture/instruction-resources.md`. No cambia `create-issue` ni la guía global.
+**Changes:** Escribe los pasos de `design.md` «Pasos de `SKILL.md`» y, en la referencia, las secciones del PRD, la ficha de regla con sus estados y veredictos (D35 A: nunca una fila de tabla), la lista fija de comprobación, los estados del documento con lo que permite cada paso, y el historial de versiones con su lista de cambios. Antes de escribir, lee `_support/docs/harness-engineering/model-floor.md` y `_support/docs/architecture/instruction-resources.md`. No cambia `create-issue` ni la guía global.
 
-**Verification:** `go test ./tests/content/...` pasa (frontmatter, tamaño ≤ 16.000 bytes y enlaces); `wc -c` de `SKILL.md` da 9.000 bytes o menos; `rg -n "at most three questions" content/skills/create-prd/SKILL.md` encuentra la línea. AC2, AC3, AC5, AC11, AC25, AC26, AC29 y AC30 se observan en la instalación temporal del candidato, que alcanza la verificación antes del push.
+**Verification:** `go test ./tests/content/...` pasa (frontmatter, tamaño ≤ 16.000 bytes y enlaces); `wc -c` de `SKILL.md` da 9.000 bytes o menos; `rg -n "at most three questions" content/skills/create-prd/SKILL.md` encuentra la línea. AC2, AC5, AC11, AC25, AC26, AC29, AC30 y AC33 se observan en la instalación temporal del candidato, que alcanza la verificación antes del push.
 
 ### T2 — Documento que llega
 
@@ -126,7 +126,7 @@ T1 a T7 y T9 corren en el hilo principal: los textos de la skill comparten un vo
 
 **Test approach:** check
 
-**Changes:** En `flow-research` agrega la frase en los dos lugares donde está la de Figma: en el paso 0, una petición cuyo entregable es un documento de requerimientos se atiende siguiendo `create-prd` en el mismo turno, que hace sus propias preguntas; en el paso 5, lo mismo cuando el paso 3 ya hizo preguntas. La frase dice «sigue la skill», no «inicia un flujo», y nada más de `flow-research` cambia. Agrega la viñeta de `create-prd` junto a la de `create-issue`. Busca en la guía global, las skills con sus referencias, los roles, `site/`, `_support/docs/architecture/` y `tests/pilot/` cada lugar que enuncie o dependa de escribir o validar un requerimiento; confirma que no queda una instrucción duplicada o en conflicto y anota los lugares revisados en la sección de progreso, para el pull request. La guía global no cambia.
+**Changes:** En `flow-research` agrega la frase en los dos lugares donde está la de Figma: en el paso 0, una petición cuyo entregable es un documento de requerimientos se atiende siguiendo `create-prd` en el mismo turno, que hace sus propias preguntas; en el paso 5, lo mismo cuando el paso 3 ya hizo preguntas. La frase dice «sigue la skill», no «inicia un flujo», y nada más de `flow-research` cambia. Agrega la viñeta de `create-prd` junto a la de `create-issue`. Busca en la guía global, las skills con sus referencias, los roles, `site/`, `_support/docs/architecture/` y `tests/pilot/` cada lugar que enuncie o dependa de escribir o validar un requerimiento; confirma que no queda una instrucción duplicada o en conflicto y anota los lugares revisados en la sección de progreso, para el pull request. La guía global cambia en T10, por D33 A; en esta tarea no.
 
 **Verification:** `go vet ./... && go test ./...` pasa; `rg -n "create-prd" content/skills/flow-research/SKILL.md _support/docs/architecture/instruction-resources.md` encuentra una línea en cada uno; `wc -c content/skills/flow-research/SKILL.md` da menos de 16.000; AC27 se observa en la instalación temporal del candidato. La comprobación de que la guía global no cambiaba se retiró con D33 A; T10 la cambia.
 
@@ -156,15 +156,15 @@ T1 a T7 y T9 corren en el hilo principal: los textos de la skill comparten un vo
 
 **Depends on:** T7
 
-**Locations:** `content/guidance/global.md`
+**Locations:** `content/guidance/global.md`, `_support/docs/architecture/compaction-survival.md`
 
 **Execution:** main thread
 
 **Test approach:** check
 
-**Changes:** En «Questions and routes», la frase de las continuaciones pasa de cuatro a cinco y nombra la de research a `create-prd` para una petición cuyo entregable es un documento de requerimientos, junto a la de Figma. Ninguna otra frase de la guía global cambia; el pull request declara el cambio de tamaño.
+**Changes:** En «Questions and routes», la frase de las continuaciones pasa de cuatro a cinco y nombra la de research a `create-prd` para una petición cuyo entregable es un documento de requerimientos, junto a la de Figma. La misma frase dice que un flujo o una skill que entra por continuación se lee completa. `compaction-survival.md`, que repite la lista, la nombra también. Ninguna otra frase de la guía global cambia; el pull request declara el cambio de tamaño.
 
-**Verification:** `go test ./tests/content/... ./tooling/management/...` pasa; `rg -n "five continuations" content/guidance/global.md` encuentra la línea; `rg -n -i "four continuations" .` fuera de los archivos archivados no encuentra nada. AC32 se observa en la instalación temporal del candidato.
+**Verification:** `go test ./tests/content/... ./tooling/management/...` pasa; `rg -n "five continuations" content/guidance/global.md` encuentra la línea; `rg -n -i "four continuations" content site _support/docs` no encuentra nada, y `rg -n "create-prd" _support/docs/architecture/compaction-survival.md` encuentra la línea. AC32 se observa en la instalación temporal del candidato.
 
 ### T9 — Sesión real en Notion
 
@@ -203,10 +203,10 @@ Parada de validación: el usuario lee `content/skills/create-prd/SKILL.md` y sus
 ## Checkpoint
 
 - Updated: 2026-11-16
-- Stage: verify · recorrido de criterios hecho en la instalación temporal; falta /code-review y la parada de validación
-- Last commit: e727d326
-- Open findings: none
-- Next: /code-review, ronda de correcciones, parada de validación con D33
+- Stage: verify · correcciones del usuario (D35 A: ficha por regla) y de las dos revisiones de código aplicadas; falta su visto bueno al ejemplo corregido
+- Last commit: 19a057fd
+- Open findings: código, 2ª lectura: escapes con barra invertida y ***énfasis doble*** no se convierten bien · no bloqueante, al cierre; código: un navegador empaquetado en snap no ve la carpeta temporal del sistema · plausible, sin reproducir, al cierre; código: una línea con ~2000 '>' o ~1200 niveles de lista agota la recursión · no bloqueante, al cierre; guía: flow-plan/references/business-rules.md:80 no remite a las versiones de create-prd · fuera de este cambio, al cierre
+- Next: releer el plan revisado (hive-review-plan), reinstalar en temporal, pedir la validación, push y pull request
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/create-prd · feat/create-prd
 
 ### Evidence
@@ -218,6 +218,8 @@ Parada de validación: el usuario lee `content/skills/create-prd/SKILL.md` y sus
 - npm run build en site/ (node_modules del checkout principal enlazado) · 20 páginas, flows/create-prd/index.html generado · 930236d2
 - instalación temporal del candidato (hive plan install --scope user --hosts claude --home TMP … + hive apply) · AC2-AC5, AC8, AC11, AC15-AC20, AC23-AC27, AC29-AC31 observados en los archivos instalados · 930236d2
 - script instalado sobre un .md de ejemplo · PDF A4 (595x842), pdftotext contiene cada regla; --browser inexistente sale 3 y deja el .html; <script> e imagen remota salen como texto · 930236d2
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · pasa (29 pruebas del script) · 19a057fd
+- go test ./tests/content/... ./tooling/management/... · pasa · 19a057fd
 
 ## Review status and progress
 
@@ -237,3 +239,5 @@ Parada de validación: el usuario lee `content/skills/create-prd/SKILL.md` y sus
 
 2026-11-16 — T9, adelantado en parte a petición del usuario durante la validación («abre el Notion de ejemplo»), con la skill del candidato, idéntica a la de la instalación temporal. Efecto 1 (clase aprobada, D29 A y D31 A): destino, un borrador privado en el Notion conectado; cambio, crear la página «PRD · create-architecture» en su versión 1; cómo revertir, mover la página a la papelera desde Notion. La aprobación y la copia congelada quedan para después de integrar.
 2026-11-16 — T10 · 6d30656d · unverified: AC32 en la instalación temporal del candidato (verificación)
+
+2026-11-16 — T9, efectos 2 y 3 (misma clase aprobada): destino, la página «PRD · create-architecture» que esta sesión creó; cambio, reemplazar su contenido para pasar cada regla de fila de tabla a ficha (versión 2) y su historial de versiones de tabla a lista; cómo revertir, el historial de la página en Notion o moverla a la papelera. Hecho medido de paso: la respuesta de crear una página trae su identificador y su enlace.

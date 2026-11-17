@@ -16,6 +16,7 @@ Lo que tenía más de una forma se resolvió como decisión del usuario (abajo).
 - **D30 A** — Entrada desde `flow-research`. Opciones: agregar la frase en sus pasos 0 y 5, los dos lugares donde está la de Figma (elegida); dejarlo sin cambios y confiar en la descripción de la skill. Sin la frase, un pedido dicho con otras palabras puede terminar en un documento escrito a mano. La frase sigue la forma de la que ya existe para Figma: una petición cuyo entregable es un documento de requerimientos sigue `create-prd` en el mismo turno. Reemplaza la decisión menor inicial de no tocar `flow-research`.
 - **D31 A** — Alcance de la autorización de Notion: crear, renombrar y actualizar solo las páginas que la prueba crea.
 - **D33 A** — Guía global. Opciones: nombrar en su lista de continuaciones el paso de research a `create-prd` (elegida); dejarla igual; que research se detenga con el comando. Reemplaza la decisión menor inicial de no tocar la guía global: dos lecturas independientes entendieron que el texto anterior prohibía el paso.
+- **D35 A** — Presentación de la regla. Opciones: ficha por regla (elegida); tabla de tres columnas con la fuente y el veredicto en una lista aparte; lista con el detalle anidado. Reemplaza la línea o fila de tabla inicial, que el usuario rechazó al ver el ejemplo en Notion.
 
 Decisiones menores, tomadas sin preguntar porque ninguna opción cambia el alcance, un contrato existente, datos guardados, el costo ni la reversibilidad:
 
@@ -54,9 +55,9 @@ tests/skills/render_pdf_test.py
 8. **Escribir y congelar** según `documents.md`; fila nueva en el historial con la lista de cambios.
 9. **Terminar**: enlace, estado, preguntas abiertas con quién las responde y supuestos; ofrece el siguiente paso (tickets con `create-issue`, diseño, plan) y se detiene.
 
-### Línea de una regla
+### Ficha de una regla
 
-`R<n> · P0|P1|P2 · <la regla, un solo comportamiento> · <estado> · fuente: <quién o documento y sección> · código: <veredicto>`
+Cada regla es una ficha propia, nunca una fila de una tabla (D35 A): un encabezado `R<n> · P0|P1|P2 · <estado>`, el texto de la regla en un párrafo propio, y una lista de dos puntos con la fuente y el veredicto contra el código. El historial de versiones es una lista, un punto por versión.
 
 | Estado | Significa |
 | --- | --- |
@@ -132,7 +133,7 @@ Su encargo lleva el texto actual del documento, o la ruta de un `.md` local con 
 
 ## Impact
 
-Cambia un comportamiento existente: `flow-research`, en su paso 0, envía a la skill las peticiones de un requerimiento; su archivo pasa de 10.245 bytes a unos 10.800, bajo el límite de 16.000. Lo demás es nuevo. `create-issue` ya lee «the requirement document with the rule it comes from» y sigue igual. Tocan producción solo en el sentido de que `hive update` los instala en cada host registrado.
+Cambia un comportamiento existente: `flow-research`, en su paso 0, envía a la skill las peticiones de un requerimiento; su archivo pasa de 10.245 bytes a unos 10.800, bajo el límite de 16.000. También cambia la guía global: su lista de continuaciones en el mismo turno nombra la de research a `create-prd` (D33 A), y `_support/docs/architecture/compaction-survival.md` repite esa lista. Lo demás es nuevo. `create-issue` ya lee «the requirement document with the rule it comes from» y sigue igual. Tocan producción solo en el sentido de que `hive update` los instala en cada host registrado.
 
 ## Recovery
 
