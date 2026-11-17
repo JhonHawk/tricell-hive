@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | Completado · PR #497, merge 40246a94 |
 | Tracker | none |
 | Git | `tricell-hive`, rama base `development` (`f886538f`), rama propuesta `feat/deterministic-rule-validators` |
 
