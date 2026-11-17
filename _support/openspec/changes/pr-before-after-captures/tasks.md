@@ -126,8 +126,18 @@ Sin recorrido humano antes del push: la entrega es PR listo y el usuario revisa 
 ## Checkpoint
 
 - Updated: 2026-11-17
-- Stage: plan · revisión aplicada, pendiente de aprobación
-- Next: el usuario aprueba el plan y empieza el build
+- Stage: verify · pushing ready PR · flow-verify 6
+- Last commit: d1fc2a31
+- Open findings: 6 non-blocking review P3 findings and the pilot timing flake · to the close's findings
+- Next: push, open the ready PR with the before|after table, wait for CI, stop for the user's merge
+
+### Evidence
+
+- go test ./... · all packages pass except tests/pilot TestE2ESetupDeadlinesOwnDescendantsAndPipes (timing flake, also fails on development 1/40) · d1fc2a31
+- npm --prefix site run check && lint && build · exit 0, 20 pages · 5e71fc7b (site unchanged since)
+- check_change.py · exit 0 · d1fc2a31
+- /code-review medium · 10 findings, 7 fixed in d1fc2a31; hive-review-code limited re-review · 0 blocking, 3 P3 · d1fc2a31
+- before captures · _support/workspace/2026-11-17-pr-before-after-captures/images/before/close-{1280,440}-dark-evidence.png · 8ac8d77c site
 
 ## Review status and progress
 
