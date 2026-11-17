@@ -118,7 +118,7 @@ Base: development `15b2e402c72543b74d63e50df1bc2b188638212a`. Sin rama de implem
 
 **Depends on:** T1.
 
-**Locations:** `tests/pilot/e2e_case.go` y prueba enfocada; `tests/pilot/launch.go`, `launch_test.go` y registro del nuevo caso; fixtures generadas por el caso, nunca fixtures/regression.
+**Locations:** `tests/pilot/e2e_case.go` y prueba enfocada; `tests/pilot/launch.go`, `launch_test.go`, wrappers de deadline en `memory.go` y registro del nuevo caso; fixtures generadas por el caso, nunca fixtures/regression.
 
 **Execution:** `hive-build-backend`; no lanza modelos ni instala contenido global.
 
@@ -162,14 +162,15 @@ No hay UI de producto ni cuentas de aplicación. Las páginas documentales se co
 ## Checkpoint
 
 - Updated: 2026-11-17
-- Stage: build · T1 canonical coordination
-- Last commit: 15b2e402c72543b74d63e50df1bc2b188638212a
+- Stage: build · T2 implemented; T3/T4/T7 delegated; T6 wiring prepared
+- Last commit: 596aeb688f802414c0b2343456805e450b98e3c4
 - Open findings: none
-- Next: Implement T1 then T2-T5/T7; preserve trial
+- Next: Independent T1/T2 verification; T5 documentation when slot opens; finish T3/T4/T7 and T6
 
 ### Evidence
 
 - Investigación local de estado y pilotos completada; ningún modelo ni instalación ejecutado.
+- T1 content suite exit 0; T2 AgentBoundary/Render/SkillSize and integrations/agents exit 0; native behavior pending T8
 
 ## Review status and progress
 
@@ -179,3 +180,5 @@ No hay UI de producto ni cuentas de aplicación. Las páginas documentales se co
 
 2026-11-17 — R1 revisada sin hallazgos materiales residuales; validador de plan pasa. D50–D55 registradas. Ninguna tarea implementada; esperar aceptación de la ruta a build.
 2026-11-17 — T1 · 596aeb688f802414c0b2343456805e450b98e3c4 · unverified: AC1/AC5 behavioral evidence pending T8; independent contract verification pending
+
+2026-11-17 — Build iniciado por `$flow-build`. T7 incluye wrappers compatibles de deadline en memory.go: los helpers actuales usan timeouts fijos; el límite total debe cubrir también su setup. No cambia el criterio ni habilita otro piloto.
