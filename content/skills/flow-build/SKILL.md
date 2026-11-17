@@ -5,6 +5,8 @@ description: Implement or resume authorized code or configuration work; reconcil
 
 # Implement authorized work
 
+For explicit E2E work, read [coordination](references/e2e-coordination.md) before dispatch; for its multiunit checkpoint, read [execution record](../flow-plan/references/execution-record.md). When adding or changing project verification commands or feature coverage, read [project verification](../flow-verify/references/project-verification.md).
+
 When the build captures an interface, the primary producer publishes the captures as [walkthrough](../flow-verify/references/walkthrough.md) sets; for a changed interface read [UI verification](../flow-verify/references/ui-verification.md) for capture scope.
 
 Enter with a ready plan, in a change folder or kept in the conversation as [flow-plan](../flow-plan/SKILL.md#where-the-plan-lives) sets, or with a small understood change the user asked for (as the global guidance's «Proportionality» defines it), handed over by `flow-research` in the same turn or started by the user's typed command, or with a fix that the close footer or a findings round sends when that fix is a small understood change; other fixes go to `flow-plan`. Without a plan, ask the delivery and review questions as the global guidance's «Delivery» section sets, before the first edit.

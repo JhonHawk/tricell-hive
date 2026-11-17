@@ -1,8 +1,7 @@
 package main
 
 import (
-	"context"
-	"errors"
+	"bytes"
 	"fmt"
 	"os"
 	"os/exec"
@@ -66,6 +65,10 @@ type githubAccessReport struct {
 // which token it hands out. A gh that answers as signed in, or returns a token
 // other than the placeholder, stops the launch; a missing gh is recorded.
 func prepareGitHubIsolation(output string, env []string) ([]string, githubAccessReport, error) {
+	return prepareGitHubIsolationWithin(output, env, time.Now().Add(20*time.Second))
+}
+
+func prepareGitHubIsolationWithin(output string, env []string, deadline time.Time) ([]string, githubAccessReport, error) {
 	report := githubAccessReport{ConfigDirectory: "gh-config", PreflightCommand: "gh auth status"}
 	configDir := filepath.Join(output, report.ConfigDirectory)
 	if err := os.Mkdir(configDir, 0700); err != nil {
@@ -84,26 +87,23 @@ func prepareGitHubIsolation(output string, env []string) ([]string, githubAccess
 		return env, report, nil
 	}
 	report.CLIFound = true
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-	status := exec.CommandContext(ctx, bin, "auth", "status")
+	status := exec.Command(bin, "auth", "status")
 	status.Env = env
-	err = status.Run()
-	var exit *exec.ExitError
+	_, code, message := setupOutputWithin(status, deadline)
 	switch {
-	case err == nil:
+	case code == 0:
 		return nil, report, fmt.Errorf("gh still answers as signed in under the child environment")
-	case errors.As(err, &exit) && exit.ExitCode() > 0:
-		report.AuthStatusExitCode = exit.ExitCode()
+	case code > 0:
+		report.AuthStatusExitCode = code
 	default:
-		return nil, report, fmt.Errorf("gh auth status preflight did not finish: %w", err)
+		return nil, report, fmt.Errorf("gh auth status preflight did not finish: %s", message)
 	}
-	token := exec.CommandContext(ctx, bin, "auth", "token")
+	token := exec.Command(bin, "auth", "token")
 	token.Env = env
 	// The output may be a real token: compare it, never store or print it.
-	stdout, err := token.Output()
-	if err != nil && !(errors.As(err, &exit) && exit.ExitCode() > 0) {
-		return nil, report, fmt.Errorf("gh auth token preflight did not finish: %w", err)
+	stdout, code, message := setupOutputWithin(token, deadline)
+	if code < 0 {
+		return nil, report, fmt.Errorf("gh auth token preflight did not finish: %s", message)
 	}
 	switch strings.TrimSpace(string(stdout)) {
 	case githubPlaceholderToken:
@@ -114,6 +114,16 @@ func prepareGitHubIsolation(output string, env []string) ([]string, githubAccess
 		return nil, report, fmt.Errorf("gh auth token returns a token other than the placeholder under the child environment")
 	}
 	return env, report, nil
+}
+
+// Capture only stdout in memory, preserving the caller's redaction boundary.
+// runProcess owns the process group, so a setup helper's descendant cannot
+// retain an inherited pipe or survive cancellation of its parent.
+func setupOutputWithin(cmd *exec.Cmd, deadline time.Time) ([]byte, int, string) {
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	code, message := runProcess(cmd, time.Until(deadline))
+	return stdout.Bytes(), code, message
 }
 
 func validHost(host string) bool {
@@ -144,7 +154,7 @@ func launchArgs(r result, output, prompt string) ([]string, error) {
 		}
 		// Codex 0.155.1 native collaboration cannot resolve an ephemeral parent
 		// thread. Keep persistence only for this explicit delegation probe.
-		if r.Case == "native-agent-dispatch" {
+		if r.Case == "native-agent-dispatch" || r.Case == e2eCaseID {
 			a = slices.DeleteFunc(a, func(arg string) bool { return arg == "--ephemeral" })
 		}
 		if r.Effort != "" {
@@ -153,6 +163,15 @@ func launchArgs(r result, output, prompt string) ([]string, error) {
 		return append(a, "-"), nil
 	case "claude":
 		a := []string{"-p", "--model", r.ModelRequested, "--output-format", "stream-json", "--verbose", "--no-session-persistence", "--permission-mode", "acceptEdits", "--allowedTools", "Read,Write,Edit,Glob,Grep,Bash"}
+		if r.Case == e2eCaseID {
+			a = slices.DeleteFunc(a, func(arg string) bool { return arg == "--no-session-persistence" })
+			for i, arg := range a {
+				if arg == "--allowedTools" {
+					a[i+1] += ",Agent,Skill,TaskStop"
+				}
+			}
+			a = append(a, "--settings", filepath.Join(output, "native-settings.json"))
+		}
 		if r.Effort != "" {
 			a = append(a, "--effort", r.Effort)
 		}

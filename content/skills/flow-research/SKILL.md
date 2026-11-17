@@ -5,6 +5,8 @@ description: Settle what the user needs before any work, then send it to flow-bu
 
 # Research what the user needs
 
+For an explicitly delegated E2E objective, read [coordination](../flow-build/references/e2e-coordination.md) before routing covered stages; a research request alone grants no build authority.
+
 Research settles what the work is; `flow-plan` settles how. It publishes nothing to the viewer, and changes nothing in the project, tracker or shared data except through the work it hands to `flow-build`, a single action the user asks for, and the writes the global guidance's «Local instructions» authorizes. Follow-up questions keep it open and authorize nothing.
 
 When the user asks to audit a codebase, or to find what to improve in it, without naming one question to answer, read [code audit](references/code-audit.md) before step 1: it sets that audit's aspects, the brief of its children, its report and the rejected findings it skips.
