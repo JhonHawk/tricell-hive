@@ -6,7 +6,7 @@ Limit the inventory to the repositories and folders the request covers, and do n
 
 ## Support homes
 
-List every entry of each support home: the `_support/` folder at the root of the declared workspace, and the one at the root of each covered repository. Judge each entry by its content:
+List every entry of each support home: the `_support/` folder at the root of the declared workspace, which often sits outside any repository, so Git tracks nothing in it, and the one at the root of each covered repository. Judge each entry by its content:
 
 - `docs/`: living knowledge; its documents are candidates only for moving or for pruning as [Living documentation](#living-documentation) sets.
 - `sessions/`: execution history; a folder whose records all read closed can be archived, as [archive](archive.md) sets.
