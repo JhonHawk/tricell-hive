@@ -2,7 +2,7 @@
 
 Historical base: `development` at `c35c3424` (2026-11-16). Historical trial branch: `feat/question-card-alone`; its previous delivery and deployment approvals are not current-session authority. T9 is a local correction approved on 2026-11-17 in the isolated worktree at detached `af4093ec`. The user subsequently authorized native Codex review, commit/push to the trial branch and local deployment, without merge. T6 remains pending later real-session evidence. Model pilots remain paused.
 
-Reopened tasks retain their historical implementation and evidence below. T9 revalidates the changed local text of T2, T4 and T8; installation checks in T5/T8 remain pending execution. Existing T1/T3/T7 evidence is not proof of the new behavior.
+Reopened tasks retain their historical implementation and evidence below. T9 revalidates the changed local text of T2, T4 and T8; installation checks in T5/T8 passed for T9; T6 remains pending. Existing T1/T3/T7 evidence is not proof of the new behavior.
 
 ### T1 — Los scripts de medición y la línea base quedan guardados
 
@@ -80,7 +80,7 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 ### T5 — La rama de prueba queda desplegada en la instalación local
 
-- [ ] Los archivos de guía instalados de cada host registrado contienen la regla de T2
+- [x] Los archivos de guía instalados de cada host registrado contienen la regla de T2
 
 **Closes:** AC4
 
@@ -134,7 +134,7 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 ### T8 — La regla distingue la tarjeta que se cierra sola de la que cancela el usuario
 
-- [ ] El punto «When a card comes back unanswered» de la guía global, sus dependientes y la instalación local siguen D9
+- [x] El punto «When a card comes back unanswered» de la guía global, sus dependientes y la instalación local siguen D9
 
 **Closes:** AC10, AC11
 
@@ -183,10 +183,12 @@ Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prue
 ## Checkpoint
 
 - Updated: 2026-11-17
-- Stage: delivery · T9 local candidate and native review passed; publication and installation authorized
-- Candidate base: detached af4093ec; uncommitted diff in `.claude/worktrees/question-channel-fix` under the main checkout
-- Open findings: none from independent plan review or native Codex review; no deployment of T9 yet
-- Next: commit, synchronize development, verify the combined candidate, push PR #491 without merge and deploy locally. T5 and the installation part of T8 remain open; T6 waits for the recorded new cutoff and real sessions. 2026-11-17T00:29:27Z belongs to the previous version only.
+- Stage: ready · corrected trial published and installed; PR #491 stays open without merge
+- Candidate: correction 420b2e37, synchronized with development 15b2e402 in df96a4d6; this metadata-only checkpoint is the next branch commit
+- Open findings: none from the independent plan review or native Codex review
+- Deployment: join 43c79157f2bbb59c8e21eace799afb2189701b33 (trial df96a4d6fd1f82a50365d3bfe2a983b0e0c0e785; base 15b2e402c72543b74d63e50df1bc2b188638212a); release 76eafee953426655964ad112dfa122b5d2ee74d76994b26c1820f91b78040aac; cutoff 2026-11-17T08:49:56Z
+- Next: T6 real-session observation against AC9–AC11, plus persistence through a later refresh for AC4. Count only sessions that loaded this rule. Earlier cutoffs are historical. No merge or model pilot is authorized.
+- Close hygiene pending: task worktree and reproducible scratch. Review evidence remains locally in `_support/workspace/2026-11-16-question-card-alone/codex-t9-review.log` while the trial is open.
 
 ### Evidence
 
@@ -238,3 +240,12 @@ Commands ran against `.claude/worktrees/question-channel-fix`, using its absolut
 - Global guidance: 56,383 → 57,451 UTF-8 bytes (+1,068) from af4093ec. No change to pilot detectors or synthetic regression fixtures.
 
 2026-11-17 — The user explicitly approved native Codex review, commit/push to the trial branch and local deployment, with no merge. Native `codex review --uncommitted` completed with no actionable defects; it checked the revised rule and consumers, plan coherence and diff whitespace. It did not test live host behavior. The prior local-only authorization and no-review-selected statements above are historical.
+
+### T9 delivery verification
+
+- Native Codex review of the uncommitted correction later committed as 420b2e37: no actionable defects; no live host behavior check.
+- Combined candidate df96a4d6 on development 15b2e402: full Go suite exit 0 (CLI 223.207 s), go vet exit 0, 146 Python tests passed in 15.557 s, site check/lint/build exit 0 (20 pages), change validation and secret scan passed. No CI workflow targets development PRs.
+- T5 and T8 installation checks passed for all seven hosts. Native channel selection, required unanswered-card response and removal of the old asynchronous-supplement instruction were checked in installed guidance. Grok shares Claude's block; Antigravity splits guidance across files.
+- New cutoff: 2026-11-17T08:49:56Z. Installation receipt c581c77f33e29145ad1c53cd8ed0761a; first corrected join 43c79157f2bbb59c8e21eace799afb2189701b33. A metadata-only final refresh does not restart this cutoff.
+- AC12 locally verified. AC9–AC11 remain unverified in real sessions; AC4 persistence through a later session's refresh remains pending for this version. No model pilot or merge.
+- Final global guidance: 57,162 bytes; development 15b2e402: 52,219 (+4,943 for the whole trial). T9 alone added 1,068 bytes before synchronizing the base.
