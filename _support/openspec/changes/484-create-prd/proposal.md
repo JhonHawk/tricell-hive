@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | In build · verificado, en entrega |
 | Tracker | [JhonHawk/tricell-hive#484](https://github.com/JhonHawk/tricell-hive/issues/484) · abierto · historia · hijo de #483; hermano #485 (`create-design`) |
 | Git | JhonHawk/tricell-hive · base `development` en `582997ab` · rama propuesta `feat/create-prd` |
 
@@ -33,6 +33,7 @@
 - **D33 A** — ¿La guía global debe nombrar el paso de research a `create-prd` en el mismo turno? Sí: su lista de continuaciones pasa de cuatro a cinco. Reemplaza el supuesto de que la guía global no cambiaba; la tomó el usuario porque el revisor del plan y el barrido final leyeron el texto anterior como un conflicto.
 - **D34 A** — ¿Se aprueba el candidato para publicarlo? Sí, sujeto a los hallazgos de la revisión de código. La aprobación se dio con D33 A aplicada; la corrección D35 reabre la parada de validación.
 - **D35 A** — ¿Cómo se presenta cada regla? Como una ficha propia: un encabezado con código, prioridad y estado, el texto de la regla a todo el ancho, y debajo la fuente y el veredicto contra el código. Nunca como fila de una tabla: el usuario vio el ejemplo de Notion con seis columnas y el texto quedaba apretado. El historial de versiones pasa a lista por la misma razón.
+- **D36 A** — ¿Se aprueba el candidato corregido para publicarlo? Sí: push, pull request contra `development`, integración, refresco de la instalación y continuación de la prueba real en Notion.
 
 ## Business rules
 
