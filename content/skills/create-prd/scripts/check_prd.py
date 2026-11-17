@@ -87,11 +87,13 @@ def validate_prd(text):
     if sec_positions != sorted(sec_positions):
         findings.append("sections are not in the required 1..9 order")
 
-    if "non-goals" in sec_ranges:
-        s, e = sec_ranges["non-goals"]
+    for key, _ in EXPECTED_SECTIONS:
+        if key not in sec_ranges:
+            continue
+        s, e = sec_ranges[key]
         content = [l.strip() for l in lines[s:e] if l.strip() and not l.strip().startswith("<!--")]
         if not content:
-            findings.append("non-goals section must name at least one item")
+            findings.append(f"{key} section is empty")
 
     seen_codes = set()
     p0_p1_codes = set()
@@ -124,12 +126,20 @@ def validate_prd(text):
             if code in seen_codes:
                 findings.append(f"line {abs_line}: duplicate rule code {code}")
             seen_codes.add(code)
-            if prio in ("P0", "P1"):
+            is_cancelled = state.startswith(("cancelled", "cancelada", "cancelado"))
+            if prio in ("P0", "P1") and not is_cancelled:
                 p0_p1_codes.add(code)
             if not state.startswith(VALID_STATE_PREFIXES):
                 findings.append(f"line {abs_line}: invalid state {state!r} for {code}")
 
             block = req_lines[r_off + 1 : r_end]
+            body_lines = [l.strip() for l in block if l.strip() and not l.strip().startswith("<!--")]
+            has_statement = any(
+                not re.match(r"^(?:[-*]|\|)\s*", l) and not SOURCE_LINE_RE.match(l) and not VERDICT_LINE_RE.match(l)
+                for l in body_lines
+            )
+            if not has_statement:
+                findings.append(f"line {abs_line}: {code} is missing a rule statement paragraph")
             has_source = any(SOURCE_LINE_RE.match(l) for l in block)
             has_verdict = any(VERDICT_LINE_RE.match(l) for l in block)
             if not has_source:

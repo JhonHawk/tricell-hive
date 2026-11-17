@@ -383,13 +383,33 @@ SECRET_PATTERNS = [
     ("slack-token", re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b")),
     ("api-secret-key", re.compile(r"\bsk-(?:ant-|proj-|live-)?[A-Za-z0-9_-]{20,}\b")),
     ("private-key", re.compile(r"-----BEGIN (?:[A-Z0-9 ]+ )?PRIVATE KEY-----")),
-    (
-        "secret-assignment",
-        re.compile(
-            r"(?i)\b(?:api[_-]?key|secret|token|password|passwd|client[_-]?secret)\b\s*[:=]\s*['\"]?[A-Za-z0-9/+_=-]{20,}"
-        ),
-    ),
 ]
+
+SECRET_ASSIGNMENT_RE = re.compile(
+    r"(?i)\b[A-Za-z0-9_-]*(?:api[_-]?key|apikey|secret|token|password|passwd|pwd|credential|private[_-]?key|client[_-]?secret)\b\s*[:=]\s*(['\"]?)([^\s'\";,)]{8,})\1"
+)
+PLACEHOLDER_PREFIXES = ("<", "$", "os.", "env.", "process.env", "self.", "args.")
+PLACEHOLDER_WORDS = {"none", "null", "true", "false", "nil", "example", "placeholder", "redacted", "changeme", "undefined"}
+
+
+def is_likely_secret_value(val):
+    low = val.lower()
+    if low in PLACEHOLDER_WORDS or low.startswith(PLACEHOLDER_PREFIXES):
+        return False
+    # Ignore pure lowercase snake/dotted code identifiers like foo_bar or module.attr
+    if re.fullmatch(r"[a-z][a-z0-9_.]*", val):
+        return False
+    classes = sum(
+        [
+            any("a" <= c <= "z" for c in val),
+            any("A" <= c <= "Z" for c in val),
+            any("0" <= c <= "9" for c in val),
+            any(not c.isalnum() for c in val),
+        ]
+    )
+    has_digit_or_sym = any("0" <= c <= "9" or not c.isalnum() for c in val)
+    return (has_digit_or_sym and classes >= 3) or len(val) >= 24
+
 
 FORBIDDEN_COMMIT_FLAGS = {"-a", "-A", "--all", "--no-verify", "-n", "--amend"}
 
@@ -397,6 +417,7 @@ FORBIDDEN_COMMIT_FLAGS = {"-a", "-A", "--all", "--no-verify", "-n", "--amend"}
 def scan_diff_secrets(diff_text):
     findings = []
     current_file = "<diff>"
+    added_by_file = {}
     for line in diff_text.splitlines():
         if line.startswith("+++ b/"):
             current_file = line[6:]
@@ -404,10 +425,34 @@ def scan_diff_secrets(diff_text):
         if not line.startswith("+") or line.startswith("+++"):
             continue
         added = line[1:]
+        added_by_file.setdefault(current_file, []).append(added)
+        matched = False
         for label, pattern in SECRET_PATTERNS:
             if pattern.search(added):
                 findings.append({"path": current_file, "rule": label})
+                matched = True
                 break
+        if not matched:
+            for m in SECRET_ASSIGNMENT_RE.finditer(added):
+                if is_likely_secret_value(m.group(2)):
+                    findings.append({"path": current_file, "rule": "secret-assignment"})
+                    break
+
+    gitleaks = shutil.which("gitleaks")
+    if gitleaks and not findings and added_by_file:
+        for path, added_lines in added_by_file.items():
+            try:
+                proc = subprocess.run(
+                    [gitleaks, "stdin", "--no-banner", "--exit-code", "1", "--redact=100"],
+                    input="\n".join(added_lines) + "\n",
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
+                )
+                if proc.returncode == 1:
+                    findings.append({"path": path, "rule": "gitleaks"})
+            except (OSError, subprocess.TimeoutExpired):
+                pass
     return findings
 
 
@@ -448,16 +493,22 @@ def run_commit(argv):
         return 2
 
     norm_paths = []
+    real_top = os.path.realpath(top)
+    abs_repo = os.path.abspath(args.repo)
     for raw in paths:
         if raw in (".", "./", "..") or raw.startswith("-") or "\0" in raw:
             print(f"git_state.py commit: invalid or whole-tree path {raw!r}", file=sys.stderr)
             return 2
-        candidate = os.path.realpath(os.path.join(args.repo, raw))
-        if os.path.isdir(candidate):
-            print(f"git_state.py commit: directory path {raw!r} is not allowed; name each file", file=sys.stderr)
-            return 2
-        rel = os.path.relpath(candidate, os.path.realpath(top)).replace("\\", "/")
-        if rel.startswith(".."):
+        joined = os.path.normpath(os.path.join(abs_repo, raw))
+        if os.path.islink(joined):
+            candidate = os.path.join(os.path.realpath(os.path.dirname(joined)), os.path.basename(joined))
+        else:
+            candidate = os.path.realpath(joined)
+            if os.path.isdir(candidate):
+                print(f"git_state.py commit: directory path {raw!r} is not allowed; name each file", file=sys.stderr)
+                return 2
+        rel = os.path.relpath(candidate, real_top).replace("\\", "/")
+        if rel in (".", "..") or rel.startswith("../"):
             print(f"git_state.py commit: path {raw!r} is outside repository", file=sys.stderr)
             return 2
         norm_paths.append(rel)

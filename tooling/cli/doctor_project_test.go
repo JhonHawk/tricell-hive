@@ -771,6 +771,26 @@ func TestDoctorProjectLocalInstructionsAndSecrets(t *testing.T) {
 		}
 	})
 
+	t.Run("password assignment and non-bullet line block like local_instructions.py", func(t *testing.T) {
+		root := projectRepoWithSpecs(t, validHiveSection)
+		exclude := filepath.Join(root, ".git", "info", "exclude")
+		if err := os.WriteFile(exclude, []byte("HIVE.local.md\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		secretAssign := "DB_" + "PASSWORD=" + "SuperSecretPass123"
+		body := fmt.Sprintf("Per-machine facts.\n\n- %s · 2026-11-16\nstray line · 2026-11-16\n", secretAssign)
+		if err := os.WriteFile(filepath.Join(root, "HIVE.local.md"), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		sec := collectProject(root, doctorDeps{})
+		text := projectText(t, root)
+		mustContain(t, text, "HIVE.local.md: line 3 contains a secret-like value")
+		mustContain(t, text, "HIVE.local.md: line 4 is not a '- ' entry")
+		if !sec.Blocking {
+			t.Fatalf("expected blocking findings:\n%s", text)
+		}
+	})
+
 	t.Run("over 50 entries without STALE warns without blocking, with STALE blocks", func(t *testing.T) {
 		root := projectRepoWithSpecs(t, validHiveSection)
 		exclude := filepath.Join(root, ".git", "info", "exclude")

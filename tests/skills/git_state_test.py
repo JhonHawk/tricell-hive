@@ -349,6 +349,37 @@ class GitStateTest(unittest.TestCase):
         status = r.git(r.work, "status", "--porcelain=v1", "--", "leaked.txt")
         self.assertTrue(status.startswith("??"), f"expected untracked restoration, got {status!r}")
 
+    def test_commit_supports_symlink_to_directory_and_blocks_short_password_secret(self):
+        r = self.r
+        target_dir = r.work / "realdir"
+        target_dir.mkdir()
+        (target_dir / "file.txt").write_text("ok\n")
+        link_path = r.work / "dirlink"
+        link_path.symlink_to("realdir")
+
+        code, data, _, stderr = run(
+            r.work,
+            "commit",
+            "-m",
+            "chore: add symlink to directory",
+            "--unreviewed-fix",
+            "symlink support",
+            "--",
+            "dirlink",
+            env=r.env,
+        )
+        self.assertEqual(code, 0, stderr)
+        self.assertTrue(data["ok"])
+        self.assertEqual(data["paths"], ["dirlink"])
+
+        # Short secret assignment with mixed classes (< 20 chars) must still be blocked
+        secret_assign = "DB_" + "PASSWORD=" + "P@ssw0rd!987"
+        (r.work / "db.env").write_text(f"{secret_assign}\n")
+        code2, data2, _, _ = run(r.work, "commit", "-m", "leak short", "--", "db.env", env=r.env)
+        self.assertEqual(code2, 1)
+        self.assertFalse(data2["ok"])
+        self.assertTrue(data2["secret_findings"])
+
 
 if __name__ == "__main__":
     unittest.main()

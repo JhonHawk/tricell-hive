@@ -89,6 +89,24 @@ class LocalInstructionsScriptTests(unittest.TestCase):
         self.assertIn("0700", joined)
         self.assertIn("ACCOUNTS.md", joined)
 
+    def test_non_bullet_lines_are_checked_and_failed_unverified_mark_keeps_length(self):
+        mod = load_module()
+        mod.ensure_ignore(str(self.repo))
+        fact = "f" * 160
+        entry = f"- {fact} · 2026-11-10 unverified"
+        (self.repo / "HIVE.local.md").write_text(
+            "Per-machine facts.\n\n" + entry + "\nstray line without date\n", encoding="utf-8"
+        )
+        report = mod.check_project_local(str(self.repo))
+        self.assertTrue(any("line 4" in b for b in report["blocking"]), report)
+
+        (self.repo / "HIVE.local.md").write_text("Per-machine facts.\n\n" + entry + "\n", encoding="utf-8")
+        for _ in range(2):
+            self.assertTrue(mod.mark_stale(str(self.repo), fact[:20], "2026-11-17", "check failed")["ok"])
+        text = (self.repo / "HIVE.local.md").read_text(encoding="utf-8")
+        self.assertEqual(text.count("unverified 2026-11-17"), 1, text)
+        self.assertTrue(mod.check_project_local(str(self.repo))["ok"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -85,6 +85,38 @@ class CheckPrdTests(unittest.TestCase):
         self.assertIn("table", joined.lower())
         self.assertIn("vague", joined.lower())
 
+    def test_cancelled_p0_rule_exempt_from_ac_and_empty_sections_or_rule_body_fail(self):
+        # Cancelled P0 rule does not require an AC citation.
+        cancelled_only = (
+            VALID_SPANISH_PRD.replace(
+                "### R1 · P0 · decidida",
+                "### R1 · P0 · cancelada",
+            )
+            .replace(
+                "- Al solicitar un reembolso de $600 queda en espera de supervisor (R1).\n",
+                "",
+            )
+        )
+        res_cancelled = self.mod.validate_prd(cancelled_only)
+        self.assertTrue(res_cancelled["ok"], res_cancelled["findings"])
+
+        # Empty required section (e.g., Objetivos) and rule without rule-statement paragraph must fail.
+        missing_body = (
+            VALID_SPANISH_PRD.replace(
+                "- Reducir el tiempo de resolución de reembolsos.",
+                "",
+            )
+            .replace(
+                "Todo reembolso mayor a $500 requiere aprobación de un supervisor antes de pagarse.\n\n",
+                "",
+            )
+        )
+        res_bad = self.mod.validate_prd(missing_body)
+        self.assertFalse(res_bad["ok"])
+        joined = "\n".join(res_bad["findings"]).lower()
+        self.assertIn("goals", joined)
+        self.assertIn("r1", joined)
+
 
 if __name__ == "__main__":
     unittest.main()

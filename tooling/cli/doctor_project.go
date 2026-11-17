@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -677,11 +678,82 @@ var (
 	localDatePattern       = regexp.MustCompile(`\b\d{4}-\d{2}-\d{2}\b`)
 	stalePrefixPattern     = regexp.MustCompile(`^STALE \d{4}-\d{2}-\d{2} \([^)]*\):\s*`)
 	unverifiedFailPattern  = regexp.MustCompile(`\bunverified \d{4}-\d{2}-\d{2} \([^)]*\):\s*`)
+	secretTokenSplitter    = regexp.MustCompile(`[\s|,;]+`)
+	secretFlagKeyRegexp    = regexp.MustCompile(`(?i)(?:secret|token|password|passwd|pwd|api[_-]?key|apikey|credential|auth|bearer|private[_-]?key|client[_-]?secret)`)
 	knownSecretTokenRegexp = regexp.MustCompile(`\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|glpat-[A-Za-z0-9_-]{20,}|(?:AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|xox[baprs]-[A-Za-z0-9-]{10,}|sk-(?:ant-|proj-|live-)?[A-Za-z0-9_-]{20,})\b|-----BEGIN (?:[A-Z0-9 ]+ )?PRIVATE KEY-----`)
 )
 
+func shannonEntropy(s string) float64 {
+	if len(s) == 0 {
+		return 0
+	}
+	counts := make(map[byte]int, 32)
+	for i := 0; i < len(s); i++ {
+		counts[s[i]]++
+	}
+	n := float64(len(s))
+	var ent float64
+	for _, c := range counts {
+		p := float64(c) / n
+		ent -= p * math.Log2(p)
+	}
+	return ent
+}
+
+func isMixedClassSecret(val string) bool {
+	if len(val) < 20 {
+		return false
+	}
+	var hasLower, hasUpper, hasDigit, hasSym bool
+	for i := 0; i < len(val); i++ {
+		b := val[i]
+		switch {
+		case b >= 'a' && b <= 'z':
+			hasLower = true
+		case b >= 'A' && b <= 'Z':
+			hasUpper = true
+		case b >= '0' && b <= '9':
+			hasDigit = true
+		default:
+			hasSym = true
+		}
+	}
+	classes := 0
+	for _, has := range []bool{hasLower, hasUpper, hasDigit, hasSym} {
+		if has {
+			classes++
+		}
+	}
+	return classes >= 3 && shannonEntropy(val) >= 3.3
+}
+
 func containsSecretToken(line string) bool {
-	return knownSecretTokenRegexp.MatchString(line)
+	if knownSecretTokenRegexp.MatchString(line) {
+		return true
+	}
+	for _, raw := range secretTokenSplitter.Split(line, -1) {
+		tok := strings.Trim(raw, "'\"`()[]{}")
+		if tok == "" || strings.HasPrefix(tok, "http://") || strings.HasPrefix(tok, "https://") ||
+			strings.HasPrefix(tok, "engram:") || strings.HasPrefix(tok, "/") ||
+			strings.HasPrefix(tok, "~/") || strings.HasPrefix(tok, "./") {
+			continue
+		}
+		if eq := strings.IndexByte(tok, '='); eq > 0 {
+			k, v := tok[:eq], strings.Trim(tok[eq+1:], "'\"`")
+			if v == "" || strings.HasPrefix(v, "$") || (strings.HasPrefix(v, "<") && strings.HasSuffix(v, ">")) {
+				continue
+			}
+			if secretFlagKeyRegexp.MatchString(k) && len(v) >= 8 {
+				return true
+			}
+			if isMixedClassSecret(v) {
+				return true
+			}
+		} else if isMixedClassSecret(tok) {
+			return true
+		}
+	}
+	return false
 }
 
 func effectiveLocalEntryRunes(line string) int {
@@ -739,12 +811,24 @@ func localProjectFindings(root string, git gitRunner) []hiveFinding {
 	localFile := filepath.Join(root, "HIVE.local.md")
 	if text, err := readLimited(localFile); err == nil {
 		totalEntries, staleEntries := 0, 0
+		pastIntro := false
 		for i, raw := range strings.Split(text, "\n") {
 			line := strings.TrimRight(raw, "\r")
 			trimmed := strings.TrimSpace(line)
-			if trimmed == "" || strings.HasPrefix(trimmed, "#") || !strings.HasPrefix(trimmed, "- ") {
+			if trimmed == "" || strings.HasPrefix(trimmed, "#") {
+				pastIntro = true
 				continue
 			}
+			if !strings.HasPrefix(trimmed, "- ") {
+				if containsSecretToken(trimmed) {
+					add(true, "HIVE.local.md: line %d contains a secret-like value", i+1)
+				}
+				if pastIntro {
+					add(true, "HIVE.local.md: line %d is not a '- ' entry", i+1)
+				}
+				continue
+			}
+			pastIntro = true
 			totalEntries++
 			rest := strings.TrimPrefix(trimmed, "- ")
 			if strings.HasPrefix(rest, "STALE ") {

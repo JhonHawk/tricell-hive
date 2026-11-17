@@ -4,7 +4,7 @@
 Usage:
   python3 cleanup_branches.py --repo DIR --base BRANCH [--env-branch BRANCH]...
                               [--active-branch BRANCH]... [--open-pr-base BRANCH]...
-                              [--merged-pr BRANCH=SHA]... [--apply]
+                              [--merged-pr BRANCH=SHA]... [--candidate BRANCH]... [--apply]
 
 By default runs in dry-run mode and prints a JSON plan of `worktrees` and
 `branches` with their action (`remove_worktree`, `delete_branch`, or `keep`)
@@ -17,6 +17,7 @@ import fnmatch
 import json
 import os
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -154,13 +155,32 @@ def worktree_has_active_cwd(wt_path, lsof_code, lsof_out):
     return False, None
 
 
-def is_branch_merged(repo, branch, base, merged_prs):
+def read_agents_env_branches(repo):
+    agents_file = pathlib.Path(repo) / "AGENTS.md"
+    if not agents_file.is_file():
+        return set()
+    envs = set()
+    for line in agents_file.read_text(encoding="utf-8").splitlines():
+        m = re.match(r"^\s*-\s*Environments:\s*(.+?)\s*$", line)
+        if not m:
+            continue
+        for part in re.split(r"\s*(?:→|->|,)\s*", m.group(1)):
+            name = part.strip()
+            if name:
+                envs.add(name)
+    return envs
+
+
+def is_branch_merged(repo, branch, base, merged_prs, explicit_candidates=None):
+    explicit_candidates = set(explicit_candidates or [])
     code, local_sha, _ = run_git(repo, "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}")
     local_sha = local_sha.strip() if code == 0 else None
     code_r, remote_sha, _ = run_git(repo, "rev-parse", "--verify", "--quiet", f"refs/remotes/origin/{branch}")
     remote_sha = remote_sha.strip() if code_r == 0 else None
 
-    code_anc, _, _ = run_git(repo, "merge-base", "--is-ancestor", f"refs/heads/{branch}", base) if local_sha else (1, "", "")
+    code_anc, _, _ = (
+        run_git(repo, "merge-base", "--is-ancestor", f"refs/heads/{branch}", base) if local_sha else (1, "", "")
+    )
     git_merged = code_anc == 0
 
     pr_head = merged_prs.get(branch)
@@ -170,6 +190,9 @@ def is_branch_merged(repo, branch, base, merged_prs):
         if remote_sha and remote_sha != pr_head:
             return False, False, f"remote branch head ({remote_sha[:8]}) moved past merged PR headRefOid ({pr_head[:8]})"
         return True, not git_merged, None
+
+    if branch not in explicit_candidates:
+        return False, False, f"branch {branch} is not in merged PRs or explicit cleanup candidates"
 
     if git_merged:
         if remote_sha and local_sha and remote_sha != local_sha:
@@ -188,12 +211,14 @@ def plan_cleanup(
     active_branches=None,
     open_pr_bases=None,
     merged_prs=None,
+    candidates=None,
     lsof_runner=None,
 ):
-    env_branches = set(env_branches or [])
+    env_branches = set(env_branches or []) | read_agents_env_branches(repo)
     active_branches = set(active_branches or [])
     open_pr_bases = set(open_pr_bases or [])
     merged_prs = dict(merged_prs or {})
+    explicit_candidates = set(candidates or [])
     lsof_runner = lsof_runner or default_lsof_runner
 
     worktrees = parse_worktrees(repo)
@@ -244,7 +269,7 @@ def plan_cleanup(
             kept_branches.add((branch, clean_reason))
             continue
 
-        merged, _, merge_reason = is_branch_merged(repo, branch, base, merged_prs)
+        merged, _, merge_reason = is_branch_merged(repo, branch, base, merged_prs, explicit_candidates)
         if not merged:
             wt_plans.append({"path": path, "branch": branch, "action": "keep", "reason": merge_reason})
             kept_branches.add((branch, merge_reason))
@@ -255,11 +280,11 @@ def plan_cleanup(
 
     code, out, _ = run_git(repo, "for-each-ref", "--format=%(refname:short)", "refs/heads")
     local_branches = [b.strip() for b in out.splitlines() if b.strip()] if code == 0 else []
-    candidates = sorted(set(local_branches) | set(merged_prs.keys()))
+    all_branches = sorted(set(local_branches) | set(merged_prs.keys()) | explicit_candidates)
 
     kept_map = dict(kept_branches)
     branch_plans = []
-    for branch in candidates:
+    for branch in all_branches:
         if branch in protected:
             continue
         if branch in kept_map:
@@ -277,19 +302,22 @@ def plan_cleanup(
             )
             continue
 
-        merged, squash_or_rebase, merge_reason = is_branch_merged(repo, branch, base, merged_prs)
+        merged, squash_or_rebase, merge_reason = is_branch_merged(
+            repo, branch, base, merged_prs, explicit_candidates
+        )
         if not merged:
             branch_plans.append({"branch": branch, "action": "keep", "reason": merge_reason})
             continue
 
+        code_l, _, _ = run_git(repo, "rev-parse", "--verify", "--quiet", f"refs/heads/{branch}")
         code_r, _, _ = run_git(repo, "rev-parse", "--verify", "--quiet", f"refs/remotes/origin/{branch}")
-        has_remote = code_r == 0
         branch_plans.append(
             {
                 "branch": branch,
                 "action": "delete_branch",
                 "delete_flag": "-D" if squash_or_rebase else "-d",
-                "delete_remote": has_remote,
+                "has_local": code_l == 0,
+                "delete_remote": code_r == 0,
                 "reason": "merged into base",
             }
         )
@@ -322,6 +350,7 @@ def apply_cleanup(repo, plan):
     errors = []
     removed_worktrees = []
     deleted_branches = []
+    failed_wt_branches = set()
 
     for wt in plan.get("worktrees", []):
         if wt.get("action") != "remove_worktree":
@@ -330,6 +359,8 @@ def apply_cleanup(repo, plan):
         code, _, err = run_git(repo, "worktree", "remove", wt["path"])
         if code != 0:
             errors.append(f"worktree remove {wt['path']}: {err}")
+            if wt.get("branch"):
+                failed_wt_branches.add(wt["branch"])
         else:
             removed_worktrees.append(wt["path"])
 
@@ -337,11 +368,16 @@ def apply_cleanup(repo, plan):
         if br.get("action") != "delete_branch":
             continue
         branch = br["branch"]
+        if branch in failed_wt_branches:
+            continue
         if br.get("delete_remote"):
             code_r, _, err_r = run_git(repo, "push", "origin", "--delete", branch)
             if code_r != 0:
                 errors.append(f"remote delete {branch}: {err_r}")
                 continue
+        if not br.get("has_local", True):
+            deleted_branches.append(branch)
+            continue
         flag = br.get("delete_flag", "-d")
         code_l, _, err_l = run_git(repo, "branch", flag, branch)
         if code_l != 0:
@@ -375,6 +411,7 @@ def main(argv=None):
     parser.add_argument("--active-branch", action="append", default=[], help="Branch named in active plan/checkpoint")
     parser.add_argument("--open-pr-base", action="append", default=[], help="Branch used as base of an open PR")
     parser.add_argument("--merged-pr", action="append", default=[], help="Merged PR mapping BRANCH=HEAD_SHA")
+    parser.add_argument("--candidate", action="append", default=[], help="Explicit non-PR branch candidate for --merged check")
     parser.add_argument("--apply", action="store_true", help="Execute removals and branch deletions")
     args = parser.parse_args(argv)
 
@@ -387,6 +424,7 @@ def main(argv=None):
             active_branches=args.active_branch,
             open_pr_bases=args.open_pr_base,
             merged_prs=merged_prs,
+            candidates=args.candidate,
         )
     except (ValueError, RuntimeError) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}), file=sys.stderr)

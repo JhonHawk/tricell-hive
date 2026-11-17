@@ -92,13 +92,15 @@ def validate_issue(text, ticket_type="story", finding_group=False):
                 return sec_ranges[alias]
         return None
 
-    for key, aliases in BASE_SECTIONS.items():
-        if find_section(aliases) is None:
-            findings.append(f"missing required base section: {key}")
-
-    for key, aliases in TYPE_SECTIONS[ticket_type]:
-        if find_section(aliases) is None:
-            findings.append(f"missing required {ticket_type} section: {key}")
+    for label, specs in (("base", BASE_SECTIONS.items()), (ticket_type, TYPE_SECTIONS[ticket_type])):
+        for key, aliases in specs:
+            sec = find_section(aliases)
+            if sec is None:
+                findings.append(f"missing required {label} section: {key}")
+                continue
+            s, e, _ = sec
+            if not any(l.strip() for l in lines[s:e] if not l.strip().startswith("<!--")):
+                findings.append(f"{key} section is empty")
 
     done_sec = find_section(BASE_SECTIONS["done when"])
     criteria_count = 0
@@ -116,12 +118,6 @@ def validate_issue(text, ticket_type="story", finding_group=False):
             findings.append(
                 f"Done when section has {criteria_count} criteria (> 7 limit; break down or pass --finding-group)"
             )
-
-    out_sec = find_section(BASE_SECTIONS["out of scope"])
-    if out_sec is not None:
-        s, e, _ = out_sec
-        if not any(l.strip() for l in lines[s:e] if not l.strip().startswith("<!--")):
-            findings.append("Out of scope section must name at least one item")
 
     for norm, (s, e, raw) in sec_ranges.items():
         if "hint" in norm or "pista" in norm:

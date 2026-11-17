@@ -138,6 +138,44 @@ class CleanupBranchesTests(unittest.TestCase):
         self.assertEqual(br_item["action"], "keep")
         self.assertIn("headRefOid", br_item["reason"])
 
+    def test_fresh_and_environment_branches_at_base_are_never_scheduled(self):
+        mod = load_module()
+        wt = self.tmp / "wt-fresh"
+        self.git(self.main_repo, "worktree", "add", "-q", "-b", "feat/fresh", str(wt), "development")
+        self.git(self.main_repo, "branch", "qa", "development")
+        plan = mod.plan_cleanup(
+            str(self.main_repo),
+            base="development",
+            env_branches=["qa"],
+            candidates=["qa"],
+            lsof_runner=lambda: (0, ""),
+        )
+        wt_item = next(item for item in plan["worktrees"] if item["branch"] == "feat/fresh")
+        self.assertEqual(wt_item["action"], "keep")
+        self.assertFalse(any(b["action"] == "delete_branch" for b in plan["branches"]), plan["branches"])
+
+    def test_failed_worktree_removal_keeps_its_local_and_remote_branch(self):
+        mod = load_module()
+        wt = self.tmp / "wt-locked"
+        self.git(self.main_repo, "worktree", "add", "-q", "-b", "feat/locked", str(wt), "development")
+        (wt / "l.txt").write_text("1\n")
+        self.git(wt, "add", "l.txt")
+        self.git(wt, "commit", "-q", "-m", "locked")
+        head_sha = self.git(wt, "rev-parse", "HEAD")
+        self.git(wt, "push", "-q", "origin", "feat/locked")
+        self.git(self.main_repo, "worktree", "lock", str(wt))
+        plan = mod.plan_cleanup(
+            str(self.main_repo),
+            base="development",
+            merged_prs={"feat/locked": head_sha},
+            lsof_runner=lambda: (0, ""),
+        )
+        applied = mod.apply_cleanup(str(self.main_repo), plan)
+        self.assertFalse(applied["ok"])
+        self.assertNotIn("feat/locked", applied["deleted_branches"])
+        remote = self.git(self.main_repo, "ls-remote", "--heads", "origin", "feat/locked")
+        self.assertTrue(remote, "remote branch must survive a failed worktree removal")
+
 
 if __name__ == "__main__":
     unittest.main()

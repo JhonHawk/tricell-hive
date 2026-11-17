@@ -177,10 +177,19 @@ def check_project_local(repo):
     if local_file.is_file():
         total_entries = 0
         stale_entries = 0
+        past_intro = False
         for idx, raw in enumerate(local_file.read_text(encoding="utf-8").splitlines(), 1):
             trimmed = raw.strip()
-            if not trimmed or trimmed.startswith("#") or not trimmed.startswith("- "):
+            if not trimmed or trimmed.startswith("#"):
+                past_intro = True
                 continue
+            if not trimmed.startswith("- "):
+                if line_has_secret(trimmed):
+                    blocking.append(f"HIVE.local.md: line {idx} contains a secret-like value")
+                if past_intro:
+                    blocking.append(f"HIVE.local.md: line {idx} is not a '- ' entry")
+                continue
+            past_intro = True
             total_entries += 1
             if trimmed[2:].startswith("STALE "):
                 stale_entries += 1
@@ -262,8 +271,10 @@ def mark_stale(repo, match_substring, date_str, cause, target_file=None):
         rest = trimmed[2:]
         if rest.startswith("STALE "):
             continue
-        if "unverified" in rest:
-            lines[i] = f"- unverified {date_str.strip()} ({cause.strip()}): {rest}"
+        if "unverified" in rest.lower():
+            cleaned = UNVERIFIED_FAIL_RE.sub("", rest)
+            cleaned = re.sub(r"\s*\bunverified\b", "", cleaned).strip()
+            lines[i] = f"- unverified {date_str.strip()} ({cause.strip()}): {cleaned}"
         else:
             lines[i] = f"- STALE {date_str.strip()} ({cause.strip()}): {rest}"
         updated += 1

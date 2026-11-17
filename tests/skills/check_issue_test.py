@@ -76,6 +76,17 @@ class CheckIssueTests(unittest.TestCase):
         self.assertIn("bug", joined)
         self.assertIn("hint", joined)
 
+    def test_empty_required_sections_fail(self):
+        empty_outcome = VALID_STORY.replace(
+            "Los administradores pueden descargar el reporte mensual en CSV para conciliar pagos.",
+            "",
+        ).replace("- Ninguna.", "")
+        res = self.mod.validate_issue(empty_outcome, ticket_type="story")
+        self.assertFalse(res["ok"])
+        joined = "\n".join(res["findings"]).lower()
+        self.assertIn("outcome", joined)
+        self.assertIn("dependencies", joined)
+
 
 if __name__ == "__main__":
     unittest.main()
