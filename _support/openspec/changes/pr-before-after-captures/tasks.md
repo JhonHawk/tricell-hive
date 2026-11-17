@@ -94,7 +94,7 @@ Base `development` en `8ac8d77c`; rama `feat/pr-before-after-captures`. Todas la
 
 ### T6 — Candidato verificado y PR con su propia tabla
 
-- [ ] Suite completa y sitio en verde sobre el candidato; el PR de este cambio lleva la tabla antes | después de `flows/close.md` a 1280 y 440 px, subida con `--attach` (D8 A)
+- [x] Suite completa y sitio en verde sobre el candidato; el PR de este cambio lleva la tabla antes | después de `flows/close.md` a 1280 y 440 px, subida con `--attach` (D8 A)
 
 **Closes:** AC9
 
@@ -126,10 +126,10 @@ Sin recorrido humano antes del push: la entrega es PR listo y el usuario revisa 
 ## Checkpoint
 
 - Updated: 2026-11-17
-- Stage: verify · pushing ready PR · flow-verify 6
-- Last commit: d1fc2a31
-- Open findings: 6 non-blocking review P3 findings and the pilot timing flake · to the close's findings
-- Next: push, open the ready PR with the before|after table, wait for CI, stop for the user's merge
+- Stage: ready · PR #502 open, waiting for the user's merge · flow-close (completion point)
+- Last commit: bef4e6b4
+- Open findings: none
+- Next: user merges PR #502; then follow-up close (support material, branch cleanup) and local refresh per AGENTS.md
 
 ### Evidence
 
@@ -138,6 +138,7 @@ Sin recorrido humano antes del push: la entrega es PR listo y el usuario revisa 
 - check_change.py · exit 0 · d1fc2a31
 - /code-review medium · 10 findings, 7 fixed in d1fc2a31; hive-review-code limited re-review · 0 blocking, 3 P3 · d1fc2a31
 - before captures · _support/workspace/2026-11-17-pr-before-after-captures/images/before/close-{1280,440}-dark-evidence.png · 8ac8d77c site
+- PR #502 read-back · before/close-1280 → user-attachments/df16a436, close-1280 → 1875717d, before/close-440 → 179b10aa, close-440 → c0a51b7c; no local path left · bef4e6b4
 
 ## Review status and progress
 
@@ -148,3 +149,4 @@ Sin recorrido humano antes del push: la entrega es PR listo y el usuario revisa 
 2026-11-17 — T3 · d7a7b3c2 · unverified: AC12 only in installed text after merge and local refresh
 2026-11-17 — T4 · 5e71fc7b · unverified: none
 2026-11-17 — T5 · uncommitted · unverified: none
+2026-11-17 — T6 · bef4e6b4 · unverified: AC8, AC10-AC12 observed only in installed text after the user's merge and the local refresh
