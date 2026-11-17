@@ -84,6 +84,7 @@ export default defineConfig({
             { slug: "flows/security" },
             { slug: "flows/close" },
             { slug: "flows/create-issue" },
+            { slug: "flows/create-prd" },
             { slug: "flows/deploy" },
           ],
         },
