@@ -10,21 +10,32 @@ The document opens with its title, naming the module or feature, its version, it
 2. **Goals**: the outcomes the change must produce, each one observable after release.
 3. **Non-goals**: at least one thing a reader could expect from the title and will not get.
 4. **User stories**: who does what to get what. Each story names the codes of the rules it needs.
-5. **Requirements**: the rules, one per line, as «Rule line» sets.
+5. **Requirements**: the rules, one entry each, as «Rule entry» sets.
 6. **Acceptance criteria**: what a person other than the author can observe to check a rule or a story. Each criterion names the rule code it checks.
 7. **Success metrics**: how anyone will know after release that each goal was met: the measure, its value today when known, and its target. An unknown target is an open question, never an invented number.
 8. **Open questions**: each question with who answers it and the codes of the rules it holds back.
-9. **Version history**: one row per version, as «Versions» sets.
+9. **Version history**: one entry per version, as «Versions» sets.
 
 After a technical review, the document also carries, at its end, the section that [technical review](technical-review.md) sets.
 
 The document never holds a screen layout or a component choice, which belong to the design; a technical how, such as an architecture, a schema, an endpoint or a library, which belongs to the plan; or a date, an estimate or an assignment, which belong to the schedule.
 
-## Rule line
+## Rule entry
 
-Each requirement is one rule on one line with six parts, written as a line or as a row of a table with these columns:
+Each requirement is one rule, written as an entry of its own with six parts. Never write the rules as rows of a table: a rule's text in a narrow column is hard to read. An entry has three blocks, in this order:
 
-`R<n> · P0 | P1 | P2 · <the rule> · <state> · source: <where it comes from> · code: <verdict>`
+1. A heading, one level below the heading of the requirements section, with the code, the priority and the state: `R<n> · P0 | P1 | P2 · <state>`. A `to decide` state names who answers it; a `cancelled` state names the version that cancelled it and the code of the rule that replaces it.
+2. The rule, as a paragraph of its own.
+3. A list of two items: `Source: <where it comes from>` and `Verdict: <verdict against the code>`.
+
+```text
+### R8 · P1 · to decide (Ana answers)
+
+A refund over $500 is paid only after a supervisor approves it.
+
+- Source: Ana, 2026-11-10
+- Verdict: contradicts; today no approval is asked
+```
 
 - **Code**: `R1`, `R2` and so on, in the order the rules were created. A code is stable across versions and is never reused or renumbered, since tickets, designs and plans cite a rule by its code.
 - **Priority**: `P0` when the feature does not ship without the rule; `P1` when the feature works without it and this delivery still expects it; `P2` when it can wait for a later delivery.
@@ -33,14 +44,14 @@ Each requirement is one rule on one line with six parts, written as a line or as
 - **Source**: who stated the rule and when, or the document and section that states it; for an `assumption`, the writer.
 - **Verdict**: one of the five below; `not checked` until someone compares the rule with the code.
 
-Write the state and the verdict in the document's language, with the meaning this reference gives them.
+Write the state, the verdict and the labels `Source` and `Verdict` in the document's language, with the meaning this reference gives them.
 
 | State | Meaning |
 | --- | --- |
 | `decided` | Its owner decided it; the source says who and when. |
 | `assumption` | The writer completed it; it holds unless the owner says otherwise. |
-| `to decide` | Nobody decided it yet; the line says who answers it. |
-| `cancelled` | A later version replaced it; the line says which version cancelled it and the code of the rule that replaces it. |
+| `to decide` | Nobody decided it yet; the entry's heading says who answers it. |
+| `cancelled` | A later version replaced it; the entry's heading says which version cancelled it and the code of the rule that replaces it. |
 
 | Verdict | Meaning | Effect |
 | --- | --- | --- |
@@ -57,7 +68,7 @@ Write a verdict in words its author can read, such as "today a supervisor is not
 A version passes when all ten hold; each check that fails is reported with what is missing.
 
 1. The nine sections are present, in order, and the non-goals name at least one thing.
-2. Every rule line has its six parts.
+2. Every rule entry has its six parts, and no rule is written as a row of a table.
 3. Each rule states one behavior.
 4. No vague term, such as "fast", "user-friendly", "as needed" or "etc.", and no "to be defined" marker stands in a rule or a criterion.
 5. Every `P0` and `P1` rule has at least one acceptance criterion, and a person other than the author can observe each criterion.
@@ -83,11 +94,11 @@ A change to any rule after an approval produces a new version, which starts in `
 
 ## Versions
 
-Versions are numbered from 1. A new version starts each time the document changes after the skill reported it, at its step 9, not at each edit before that. Each row of the version history holds the version, its date, the state it reached, who approved it, the link or path of its frozen copy when it has one, and its list of changes:
+Versions are numbered from 1. A new version starts each time the document changes after the skill reported it, at its step 9, not at each edit before that. Write the version history as a list, one item per version and never a table: the version, its date and the state it reached on the item's first line, then, nested under it, who approved it and the link or path of its frozen copy when it has them, and its list of changes:
 
 - **Added**: the codes of the new rules.
 - **Decided**: each rule that left `to decide` or `assumption`, with the answer and who gave it.
 - **Changed**: each rule whose wording changed without changing its behavior, with what changed.
 - **Cancelled**: each cancelled rule, with the reason and the code of the rule that replaces it.
 
-Never delete a rule's line. When an answer changes the behavior a rule states, cancel that rule and add the new behavior as a rule with a new code; keep the code only when the wording changes and the behavior does not.
+Never delete a rule's entry. When an answer changes the behavior a rule states, cancel that rule and add the new behavior as a rule with a new code; keep the code only when the wording changes and the behavior does not.

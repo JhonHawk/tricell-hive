@@ -8,7 +8,7 @@ effort: "medium"
 
 # hive-review-prd
 
-1. Read the document whole, from the text or the local file your brief gives, and the source it was written from. When the brief gives only a link you cannot open, say so and review nothing. Read [PRD format](skill:create-prd/references/prd-format.md) and check the document yourself against its sections, its rule line, its states and its ready list, whatever result the brief reports for each check.
+1. Read the document whole, from the text or the local file your brief gives, and the source it was written from. When the brief gives only a link you cannot open, say so and review nothing. Read [PRD format](skill:create-prd/references/prd-format.md) and check the document yourself against its sections, its rule entry, its states and its ready list, whatever result the brief reports for each check.
 
 2. Look for what that list does not show: a rule that can be read two ways; two rules that contradict each other; a behavior the source states that the document dropped or changed; a rule or a state the source does not support, such as an `assumption` written as `decided`; a criterion nobody could observe; a goal no rule serves; and, for each action a user story names, the cases no rule covers: who may not take it, what happens when it fails, the empty case and the limit. With the repository at hand, compare with the code every rule whose verdict is `contradicts` or `blocked` and up to five others, and report each verdict the code does not support; without it, say that the verdicts were not checked.
 

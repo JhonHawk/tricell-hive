@@ -34,8 +34,8 @@ The Google Docs column comes from its documentation and was not exercised in a r
 Freeze a version when it reaches `approved by business` or `ready for development`:
 
 1. Copy the document inside the same tool, as the table sets. Title the copy with the document's title, its version, its state, its date and the words "do not edit", in the document's language, such as `Returns · v2 · approved by business · 2026-11-16 · do not edit`.
-2. Read the copy back and compare its last rule line with the live document's. A tool that copies in the background can return before the copy is complete: read it again, up to three times. When it is still incomplete, create the copy from the content you read instead.
-3. Write the copy's link in that version's row of the live document's version history.
+2. Read the copy back and compare its last rule entry with the live document's. A tool that copies in the background can return before the copy is complete: read it again, up to three times. When it is still incomplete, create the copy from the content you read instead.
+3. Write the copy's link in that version's entry of the live document's version history.
 4. Never write to a frozen copy again, not even to fix a typing error: a correction is a new version of the live document. None of these tools lets the connection lock the copy; say in the report how the user can lock it or restrict it to read-only in that tool, and never change a document's sharing or permissions yourself.
 
 The live document goes on as the next version.
