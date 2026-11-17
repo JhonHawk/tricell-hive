@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"os/exec"
@@ -101,6 +102,63 @@ func TestE2EFixtureJointCheckExercisesBothUnits(t *testing.T) {
 	cmd.Env = append(os.Environ(), "GOWORK=off")
 	if out, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("%s: %v", out, err)
+	}
+}
+
+func TestE2EImmutableViolationPersistsFailedOutcome(t *testing.T) {
+	root := t.TempDir()
+	for name, body := range e2eFiles() {
+		path := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte(body), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, mutation := range []string{"changed", "missing"} {
+		t.Run(mutation, func(t *testing.T) {
+			report := e2eReport{ModelStarted: true, ExitCode: 0}
+			if err := os.WriteFile(filepath.Join(root, "acceptance/acceptance_test.go"), []byte(e2eFiles()["acceptance/acceptance_test.go"]), 0600); err != nil {
+				t.Fatal(err)
+			}
+			if err := verifyE2EImmutableFiles(root, &report); err != nil {
+				t.Fatal(err)
+			}
+			path := filepath.Join(root, "acceptance/acceptance_test.go")
+			var err error
+			if mutation == "changed" {
+				err = os.WriteFile(path, []byte("package acceptance\n"), 0600)
+			} else {
+				err = os.Remove(path)
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := verifyE2EImmutableFiles(root, &report); err == nil {
+				t.Fatal("weakened acceptance fixture accepted")
+			}
+			evidence := filepath.Join(t.TempDir(), "evidence.json")
+			if err := e2eWrite(evidence, report); err != nil {
+				t.Fatal(err)
+			}
+			data, err := os.ReadFile(evidence)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var persisted e2eReport
+			if err := json.Unmarshal(data, &persisted); err != nil {
+				t.Fatal(err)
+			}
+			class := classifyE2E(persisted)
+			if class != "failed" || persisted.RunnerFailure == "" || e2eResultExitCode(class) == 0 {
+				t.Fatalf("proven fixture violation lost: class=%s report=%+v", class, persisted)
+			}
+		})
+	}
+	unknown := e2eReport{ModelStarted: true, ExitCode: 0, Reason: "integration evidence unavailable"}
+	if class := classifyE2E(unknown); class != "inconclusive" {
+		t.Fatalf("unknown evidence misclassified: %s", class)
 	}
 }
 

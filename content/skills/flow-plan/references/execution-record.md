@@ -76,7 +76,7 @@ For `returned`, record a full head and at least one evidence file in `evidence`.
 }
 ```
 
-The verifier identity must differ from the owner, its head must match exactly, its criteria must equal the unit's criteria, and each check needs a command, passing result and available confined evidence file. The helper repeats the Git handoff check before verified and when first integrating. A metadata check cannot establish that a command ran, that an identity is independent or that an output satisfies a criterion. The coordinator reads the actual evidence and the verifier's reasoning before accepting the transition.
+The verifier identity must differ from the current owner and every historical owner of the unit, so replacement cannot make an earlier author's preserved work eligible for self-verification. This v1 check conservatively excludes all historical owners. Its head must match exactly, its criteria must equal the unit's criteria, and each check needs a command, passing result and available confined evidence file. The helper repeats the Git handoff check before verified and when first integrating. A metadata check cannot establish that a command ran, that an identity is independent or that an output satisfies a criterion. The coordinator reads the actual evidence and the verifier's reasoning before accepting the transition.
 
 ## Replacement and plan reconciliation
 

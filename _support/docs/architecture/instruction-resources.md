@@ -117,19 +117,19 @@ against `15b2e402` (rerun `go test ./tests/content -run Footprint -count=1 -v`):
 | --- | ---: | ---: | ---: |
 | Global | 52,219 | 52,673 | +454 |
 | Legacy plan/build subset, same paths | 130,562 | 132,415 | +1,853 |
-| Required plan/build, pre-existing paths | 168,348 | 171,204 | +2,856 |
+| Required plan/build, pre-existing paths | 168,348 | 171,237 | +2,889 |
 | Required plan/build, new sources | 0 | 7,407 | +7,407 |
-| E2E, pre-existing paths | 190,649 | 194,289 | +3,640 |
-| E2E, new sources | 0 | 29,332 | +29,332 |
-| Executable helpers, pre-existing paths | 67,544 | 96,843 | +29,299 |
+| E2E, pre-existing paths | 190,649 | 194,322 | +3,673 |
+| E2E, new sources | 0 | 29,866 | +29,866 |
+| Executable helpers, pre-existing paths | 67,544 | 96,964 | +29,420 |
 | Executable helpers, new sources | 0 | 8,319 | +8,319 |
 
-The candidate E2E union is 223,621 B, including 64,909 B of references.
+The candidate E2E union is 224,188 B, including 65,476 B of references.
 The complete distributed Markdown inventory (all `content/**/*.md`, not a reading
-scenario) grew from 558,726 to 592,006 B; distributed Python grew from 194,684 to
-232,302 B. Those inventories use Git blobs at the baseline and filesystem bytes
+scenario) grew from 558,726 to 592,573 B; distributed Python grew from 194,684 to
+232,423 B. Those inventories use Git blobs at the baseline and filesystem bytes
 for the candidate, excluding caches. This adds capabilities and reading cost;
-it is not a net prose reduction. Excluding scripts does not remove the 33,280 B
+it is not a net prose reduction. Excluding scripts does not remove the 33,847 B
 Markdown increase. Each entrypoint and reference remains under 16,000 B.
 
 Native discovery metadata, rendering, plugin wrappers, repeated reads across

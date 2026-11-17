@@ -433,6 +433,20 @@ class ExecutionRecordTest(unittest.TestCase):
             self.assertEqual(unit["history"][0]["returned_head"], head)
             self.assertEqual(unit["history"][0]["assignment_id"], "A1")
             self.assertIsNone(unit["verifier"])
+            for state in ("running", "returned"):
+                result = self.update_record(change, record, source, lambda d: d["units"][0].update(state=state))
+                self.assertEqual(result.returncode, 0, result.stderr)
+            before = record.read_bytes()
+            # The replacement still returns the former owner's partial head.
+            prior_author_verdict = {**self.verdict(head), "id": "owner-1"}
+            result = self.update_record(change, record, source, lambda d: d["units"][0].update(
+                state="verified", verifier=prior_author_verdict))
+            self.assertEqual(result.returncode, 2, result.stdout)
+            self.assertIn("verifier must differ", result.stderr)
+            self.assertEqual(record.read_bytes(), before)
+            result = self.update_record(change, record, source, lambda d: d["units"][0].update(
+                state="verified", verifier=self.verdict(head)))
+            self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_execution_concurrent_and_interrupted_writers_keep_prior_state(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -417,7 +417,9 @@ def evidence_check(check, base, head=None, available=True):
 def validate_verifier(unit, base, available=True):
     verdict = unit["verifier"]
     object_fields(verdict, {"id", "head", "criteria", "checks"}, set(), "verifier")
-    require(nonempty(verdict["id"]) and verdict["id"] != unit["owner_id"], "verifier must differ from owner")
+    owners = {unit["owner_id"], *(prior["owner_id"] for prior in unit.get("history", []))}
+    require(nonempty(verdict["id"]) and verdict["id"] not in owners,
+            "verifier must differ from current and historical owners")
     require(verdict["head"] == unit["returned_head"], "verifier head differs from returned head")
     unique_strings(verdict["criteria"], "verifier criteria", False)
     require(set(verdict["criteria"]) == set(unit["criteria"]), "verifier must cover exact unit criteria")

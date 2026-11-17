@@ -56,6 +56,7 @@ type e2eReport struct {
 	SchemaVersion                             int    `json:"schema_version"`
 	Class                                     string `json:"class"`
 	Reason                                    string `json:"reason"`
+	RunnerFailure                             string `json:"runner_failure,omitempty"`
 	Deadline, ActiveDeadline, Started         string
 	FixtureRoot, InitialHead, IntegrationHead string
 	ModelStarted                              bool
@@ -76,7 +77,7 @@ func classifyE2E(r e2eReport) string {
 	if !r.ModelStarted {
 		return "blocked"
 	}
-	if r.ExitCode != 0 || len(r.ProtectedChanges) > 0 || (r.JointChecked && r.JointExitCode != 0) {
+	if r.RunnerFailure != "" || r.ExitCode != 0 || len(r.ProtectedChanges) > 0 || (r.JointChecked && r.JointExitCode != 0) {
 		return "failed"
 	}
 	if r.Review != nil {
@@ -267,7 +268,11 @@ func e2eMain(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	fmt.Fprintf(stdout, "%s: %s\nEvidence: %s\nReserved restoration deadline: %s\n", report.Class, report.Reason, *out, report.Deadline)
-	if report.Class == "failed" || report.Class == "blocked" {
+	return e2eResultExitCode(report.Class)
+}
+
+func e2eResultExitCode(class string) int {
+	if class == "failed" || class == "blocked" {
 		return 1
 	}
 	return 0
@@ -467,14 +472,8 @@ func runE2E(output, model, attempt, installation string, budget e2eBudget, repor
 		return err
 	}
 	report.IntegrationHead = strings.TrimSpace(string(current))
-	for name, body := range e2eFiles() {
-		if name == "a/value.go" || name == "b/label.go" {
-			continue
-		}
-		actual, err := os.ReadFile(filepath.Join(root, name))
-		if err != nil || string(actual) != body {
-			return fmt.Errorf("immutable fixture file changed: %s", name)
-		}
+	if err := verifyE2EImmutableFiles(root, report); err != nil {
+		return err
 	}
 	outputBytes, code, jointErr := e2eCommand(budget.activeDeadline, root, childEnv, "go", "-C", root, "test", "./...")
 	report.JointChecked = true
@@ -484,6 +483,23 @@ func runE2E(output, model, attempt, installation string, budget e2eBudget, repor
 		return jointErr
 	}
 	report.Reason = "joint local check passed; native behavioral attribution requires evidence review, never coordinator self-report"
+	return nil
+}
+
+func verifyE2EImmutableFiles(root string, report *e2eReport) error {
+	for name, body := range e2eFiles() {
+		if name == "a/value.go" || name == "b/label.go" {
+			continue
+		}
+		actual, err := os.ReadFile(filepath.Join(root, name))
+		if err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("immutable fixture file could not be inspected: %s: %w", name, err)
+		}
+		if err != nil || string(actual) != body {
+			report.RunnerFailure = fmt.Sprintf("immutable fixture file changed or removed: %s", name)
+			return fmt.Errorf("%s", report.RunnerFailure)
+		}
+	}
 	return nil
 }
 
