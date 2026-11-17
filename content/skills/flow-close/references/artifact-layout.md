@@ -20,7 +20,7 @@ Create only the folders and records the work needs. One work item shares its ide
 - Scratch, reproducible material nobody needs after the task (temporary files, shell helpers, intermediate output, throwaway checkouts), goes where the host keeps temporary work: its scratch or session directory, otherwise the system temporary directory; never the repository root, and never for anything the user should read or reuse. Material holding the only copy of work, such as unintegrated source edits, uncommitted changes in a checkout, or unique evidence, is not scratch: keep it in its source location, the host's native mechanism, or a location the user approves.
 - `secrets/`: never versioned, the folder at mode `0700` and its files at `0600`, holding the secret files and the account index `ACCOUNTS.md` that the global guidance's «Test accounts» sets.
 - `scripts/`: never versioned, the local scripts that `HIVE.local.md` names, as the global guidance's «Local instructions» sets.
-- A work's verification material, such as walk outputs, captures and raw CI, cloud or tool output, goes in its `workspace/YYYY-MM-DD-<work>/` folder and is retained as [Retain evidence](#retain-evidence) sets. Do not create an `evidence/` folder; an existing one is legacy material, cleaned up on request as [support maintenance](support-maintenance.md) sets.
+- A work's verification material, such as walk outputs, captures and raw CI, cloud or tool output, goes in its `workspace/YYYY-MM-DD-<work>/` folder and is retained as [Retain evidence](#retain-evidence) sets. Do not create an `evidence/` folder; an existing one is legacy material, cleaned up on request with [docs-cleanup](../../docs-cleanup/SKILL.md).
 
 **Condition:** producing UI review images or recordings.
 
@@ -39,7 +39,7 @@ Keep source plans, user-selected output, unique evidence of work not yet integra
 
 Verification material serves the review of its own work. Keep it unversioned in the work's `workspace/` folder while the work is open; once the work is integrated, its pull request body, which lists each acceptance criterion with its evidence, is the record that replaces it, or the final report when the delivery opens no pull request.
 
-Promote a conclusion from that material, as [support maintenance](support-maintenance.md) «Promote a finding» sets, only when it is one of these, since later work reuses only these:
+Promote a conclusion from that material, as docs-cleanup's [inventory](../../docs-cleanup/references/inventory.md#promote-a-conclusion) sets, only when it is one of these, since later work reuses only these:
 
 - a measurement a later change will be compared against, such as CI time, build time or bundle size;
 - a rehearsal or procedure that was run, such as a rollback, a restore or a cutover;
@@ -57,4 +57,4 @@ Keep, until a decision covers them: the trace of a finding that has no ticket ye
 
 **Condition:** requested organization of existing support material, evidence curation, cleanup of legacy material in a workspace or monorepo, promotion of findings into durable guidance, or archiving.
 
-**Actions:** use [support maintenance](support-maintenance.md).
+**Actions:** use [docs-cleanup](../../docs-cleanup/SKILL.md).
