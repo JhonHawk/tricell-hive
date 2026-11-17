@@ -128,7 +128,7 @@ T1 a T7 y T9 corren en el hilo principal: los textos de la skill comparten un vo
 
 **Changes:** En `flow-research` agrega la frase en los dos lugares donde está la de Figma: en el paso 0, una petición cuyo entregable es un documento de requerimientos se atiende siguiendo `create-prd` en el mismo turno, que hace sus propias preguntas; en el paso 5, lo mismo cuando el paso 3 ya hizo preguntas. La frase dice «sigue la skill», no «inicia un flujo», y nada más de `flow-research` cambia. Agrega la viñeta de `create-prd` junto a la de `create-issue`. Busca en la guía global, las skills con sus referencias, los roles, `site/`, `_support/docs/architecture/` y `tests/pilot/` cada lugar que enuncie o dependa de escribir o validar un requerimiento; confirma que no queda una instrucción duplicada o en conflicto y anota los lugares revisados en la sección de progreso, para el pull request. La guía global no cambia.
 
-**Verification:** `go vet ./... && go test ./...` pasa; `rg -n "create-prd" content/skills/flow-research/SKILL.md _support/docs/architecture/instruction-resources.md` encuentra una línea en cada uno; `wc -c content/skills/flow-research/SKILL.md` da menos de 16.000; AC27 se observa en la instalación temporal del candidato; `git diff --stat origin/development -- content/guidance/global.md` no muestra cambios.
+**Verification:** `go vet ./... && go test ./...` pasa; `rg -n "create-prd" content/skills/flow-research/SKILL.md _support/docs/architecture/instruction-resources.md` encuentra una línea en cada uno; `wc -c content/skills/flow-research/SKILL.md` da menos de 16.000; AC27 se observa en la instalación temporal del candidato. La comprobación de que la guía global no cambiaba se retiró con D33 A; T10 la cambia.
 
 ### T8 — Sitio y listas
 
@@ -147,6 +147,24 @@ T1 a T7 y T9 corren en el hilo principal: los textos de la skill comparten un vo
 **Changes:** La página describe el comportamiento y enlaza la skill, sin copiar sus reglas, con la misma estructura que `flows/create-issue.md`. Las listas reciben una entrada cada una, y la página de research dice que una petición de un requerimiento sigue la skill. `README.md` no cambia: no lista skills.
 
 **Verification:** `npm run build` en `site/` termina sin errores y genera `flows/create-prd/index.html`; `rg -n "create-prd" llms.txt CHANGELOG.md site/astro.config.mjs` encuentra una línea en cada uno.
+
+### T10 — La guía global nombra la continuación de research a `create-prd`
+
+- [x] La lista de continuaciones en el mismo turno de la guía global incluye la de research a `create-prd`.
+
+**Closes:** AC32
+
+**Depends on:** T7
+
+**Locations:** `content/guidance/global.md`
+
+**Execution:** main thread
+
+**Test approach:** check
+
+**Changes:** En «Questions and routes», la frase de las continuaciones pasa de cuatro a cinco y nombra la de research a `create-prd` para una petición cuyo entregable es un documento de requerimientos, junto a la de Figma. Ninguna otra frase de la guía global cambia; el pull request declara el cambio de tamaño.
+
+**Verification:** `go test ./tests/content/... ./tooling/management/...` pasa; `rg -n "five continuations" content/guidance/global.md` encuentra la línea; `rg -n -i "four continuations" .` fuera de los archivos archivados no encuentra nada. AC32 se observa en la instalación temporal del candidato.
 
 ### T9 — Sesión real en Notion
 
@@ -185,16 +203,21 @@ Parada de validación: el usuario lee `content/skills/create-prd/SKILL.md` y sus
 ## Checkpoint
 
 - Updated: 2026-11-16
-- Stage: build · T7 y T8 en curso (hijos: barrido de lugares, sitio)
-- Last commit: cf758070
+- Stage: verify · recorrido de criterios hecho en la instalación temporal; falta /code-review y la parada de validación
+- Last commit: e727d326
 - Open findings: none
-- Next: aplicar el barrido, commit de T7 y T8, CI local, flow-verify
+- Next: /code-review, ronda de correcciones, parada de validación con D33
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/create-prd · feat/create-prd
 
 ### Evidence
 
 - go vet ./... && go test ./... · pasa · cf758070
 - python3 -m unittest discover -s tests/skills -p '*_test.py' · 99 pruebas pasan · cf758070
+- go vet ./... && go test ./... · pasa · 930236d2
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · 99 pruebas pasan · 930236d2
+- npm run build en site/ (node_modules del checkout principal enlazado) · 20 páginas, flows/create-prd/index.html generado · 930236d2
+- instalación temporal del candidato (hive plan install --scope user --hosts claude --home TMP … + hive apply) · AC2-AC5, AC8, AC11, AC15-AC20, AC23-AC27, AC29-AC31 observados en los archivos instalados · 930236d2
+- script instalado sobre un .md de ejemplo · PDF A4 (595x842), pdftotext contiene cada regla; --browser inexistente sale 3 y deja el .html; <script> e imagen remota salen como texto · 930236d2
 
 ## Review status and progress
 
@@ -211,3 +234,6 @@ Parada de validación: el usuario lee `content/skills/create-prd/SKILL.md` y sus
 2026-11-16 — T8 · 9a88a42a · unverified: none
 
 2026-11-16 — T7, lugares revisados por el barrido del comportamiento completo (hijo `hive-research`), para el pull request: `content/guidance/global.md` («Proportionality», «Questions and routes», «Scope and authorization», «Support folder», «Delivery»); `content/skills/**` con sus referencias (`create-issue`, `flow-research`, `flow-plan/references/business-rules.md`, `flow-close/references/artifact-layout.md`, `flow-build/references/delegation.md`, `flow-research/references/code-audit.md`); `content/agents/**`; `site/src/content/docs/**`; `_support/docs/architecture/**`, `README.md`, `llms.txt`, `AGENTS.md`; `tests/pilot/**` y `tests/fixtures/**`; y la coherencia interna de la skill. Corregido en el mismo cambio: la revisión técnica confirma antes de escribir; el archivo `.md` dentro de un repositorio se pregunta antes de la primera escritura y su commit espera al usuario; una regla de un documento que llega nunca se reescribe por la lista de comprobación; `draft` e `iterating` se distinguen por la lista; las referencias remiten a las rondas del paso 3 en vez de repetir el tope. Sin cambios, a propósito: `README.md` (no lista skills), `tests/pilot/protected.go` (su lista ya omite `create-issue`). Pendiente de decisión del usuario: `content/guidance/global.md:93` lista cuatro continuaciones en el mismo turno y no nombra la de research a `create-prd`. Hallazgo anotado, fuera de este cambio: `flow-plan/references/business-rules.md:80` dice que el plan actualiza un documento de requerimientos del repositorio y no remite a las versiones de `create-prd`.
+
+2026-11-16 — T9, adelantado en parte a petición del usuario durante la validación («abre el Notion de ejemplo»), con la skill del candidato, idéntica a la de la instalación temporal. Efecto 1 (clase aprobada, D29 A y D31 A): destino, un borrador privado en el Notion conectado; cambio, crear la página «PRD · create-architecture» en su versión 1; cómo revertir, mover la página a la papelera desde Notion. La aprobación y la copia congelada quedan para después de integrar.
+2026-11-16 — T10 · 6d30656d · unverified: AC32 en la instalación temporal del candidato (verificación)

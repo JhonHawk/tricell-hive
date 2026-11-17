@@ -15,6 +15,7 @@ Lo que tenía más de una forma se resolvió como decisión del usuario (abajo).
 - **D26 A** — Revisor. Opciones: rol nuevo `hive-review-prd` (elegida); ampliar `hive-review-plan`; hijo sin rol.
 - **D30 A** — Entrada desde `flow-research`. Opciones: agregar la frase en sus pasos 0 y 5, los dos lugares donde está la de Figma (elegida); dejarlo sin cambios y confiar en la descripción de la skill. Sin la frase, un pedido dicho con otras palabras puede terminar en un documento escrito a mano. La frase sigue la forma de la que ya existe para Figma: una petición cuyo entregable es un documento de requerimientos sigue `create-prd` en el mismo turno. Reemplaza la decisión menor inicial de no tocar `flow-research`.
 - **D31 A** — Alcance de la autorización de Notion: crear, renombrar y actualizar solo las páginas que la prueba crea.
+- **D33 A** — Guía global. Opciones: nombrar en su lista de continuaciones el paso de research a `create-prd` (elegida); dejarla igual; que research se detenga con el comando. Reemplaza la decisión menor inicial de no tocar la guía global: dos lecturas independientes entendieron que el texto anterior prohibía el paso.
 
 Decisiones menores, tomadas sin preguntar porque ninguna opción cambia el alcance, un contrato existente, datos guardados, el costo ni la reversibilidad:
 
@@ -23,7 +24,6 @@ Decisiones menores, tomadas sin preguntar porque ninguna opción cambia el alcan
 - El PDF sale de un script determinista y no de HTML escrito por el agente, para que el PDF lleve exactamente el texto del `.md`.
 - Donde la herramienta no tiene «duplicar» (Claude Docs), la copia es un documento nuevo creado con el contenido leído. Donde la conexión no edita en su lugar (el conector oficial de Google), cada versión es un documento nuevo.
 - La copia congelada lleva en su título «no editar» y la skill nunca vuelve a escribirla; donde la herramienta ofrece bloqueo, la referencia lo nombra como paso opcional del usuario.
-- La guía global no cambia. Su lista de cuatro continuaciones en el mismo turno trata el paso de un flujo al siguiente; `create-prd` no es un flujo que research inicia, sino el cómo de una acción que research ya hace en el mismo turno, como `create-issue`. Riesgo: un modelo que lea esa lista de forma literal puede detenerse con un bloque de siguiente paso; si se observa en sesiones reales, se agrega el caso a la lista.
 - El rol `hive-review-prd` usa el perfil de razonamiento, acceso de solo lectura y esfuerzo medio, como `hive-review-plan`.
 
 ## Proposed shape
