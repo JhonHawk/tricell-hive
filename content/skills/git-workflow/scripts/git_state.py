@@ -375,7 +375,178 @@ def valid_name(text):
     return bool(text) and not text.startswith("-") and "\0" not in text and ".." not in text
 
 
+SECRET_PATTERNS = [
+    ("github-token", re.compile(r"\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,})\b")),
+    ("gitlab-token", re.compile(r"\bglpat-[A-Za-z0-9_-]{20,}\b")),
+    ("aws-access-key", re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b")),
+    ("google-api-key", re.compile(r"\bAIza[0-9A-Za-z_-]{35}\b")),
+    ("slack-token", re.compile(r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b")),
+    ("api-secret-key", re.compile(r"\bsk-(?:ant-|proj-|live-)?[A-Za-z0-9_-]{20,}\b")),
+    ("private-key", re.compile(r"-----BEGIN (?:[A-Z0-9 ]+ )?PRIVATE KEY-----")),
+    (
+        "secret-assignment",
+        re.compile(
+            r"(?i)\b(?:api[_-]?key|secret|token|password|passwd|client[_-]?secret)\b\s*[:=]\s*['\"]?[A-Za-z0-9/+_=-]{20,}"
+        ),
+    ),
+]
+
+FORBIDDEN_COMMIT_FLAGS = {"-a", "-A", "--all", "--no-verify", "-n", "--amend"}
+
+
+def scan_diff_secrets(diff_text):
+    findings = []
+    current_file = "<diff>"
+    for line in diff_text.splitlines():
+        if line.startswith("+++ b/"):
+            current_file = line[6:]
+            continue
+        if not line.startswith("+") or line.startswith("+++"):
+            continue
+        added = line[1:]
+        for label, pattern in SECRET_PATTERNS:
+            if pattern.search(added):
+                findings.append({"path": current_file, "rule": label})
+                break
+    return findings
+
+
+def run_commit(argv):
+    for token in argv:
+        if token == "--":
+            break
+        if token in FORBIDDEN_COMMIT_FLAGS:
+            print(f"git_state.py commit: forbidden flag {token}", file=sys.stderr)
+            return 2
+
+    parser = argparse.ArgumentParser(prog="git_state.py commit")
+    parser.add_argument("--repo", default=".", help="repository directory (default: current)")
+    parser.add_argument("-m", "--message", required=True, help="commit message")
+    parser.add_argument("--unreviewed-fix", default=None, help="reason for an unreviewed post-review fix")
+    parser.add_argument("--timeout", type=float, default=None, help="command timeout in seconds")
+    parser.add_argument("paths", nargs="*", help="explicit file paths to commit")
+    try:
+        args = parser.parse_args(argv)
+    except SystemExit as exc:
+        return 2 if exc.code else 0
+
+    paths = [p for p in args.paths if p != "--"]
+    if not paths or not args.message.strip():
+        print("git_state.py commit: explicit file paths and a non-empty -m message are required", file=sys.stderr)
+        return 2
+    if args.unreviewed_fix is not None and not args.unreviewed_fix.strip():
+        print("git_state.py commit: --unreviewed-fix requires a non-empty reason", file=sys.stderr)
+        return 2
+
+    state = State(argparse.Namespace(repo=args.repo, timeout=args.timeout))
+    if not state.git:
+        print("git_state.py commit: git not found", file=sys.stderr)
+        return 2
+    top, err = state.git_out("rev-parse", "--show-toplevel")
+    if top is None:
+        print(f"git_state.py commit: {args.repo} is not a Git repository: {err}", file=sys.stderr)
+        return 2
+
+    norm_paths = []
+    for raw in paths:
+        if raw in (".", "./", "..") or raw.startswith("-") or "\0" in raw:
+            print(f"git_state.py commit: invalid or whole-tree path {raw!r}", file=sys.stderr)
+            return 2
+        candidate = os.path.realpath(os.path.join(args.repo, raw))
+        if os.path.isdir(candidate):
+            print(f"git_state.py commit: directory path {raw!r} is not allowed; name each file", file=sys.stderr)
+            return 2
+        rel = os.path.relpath(candidate, os.path.realpath(top)).replace("\\", "/")
+        if rel.startswith(".."):
+            print(f"git_state.py commit: path {raw!r} is outside repository", file=sys.stderr)
+            return 2
+        norm_paths.append(rel)
+
+    staged_before_out, err = state.git_out("diff", "--cached", "--name-only")
+    if staged_before_out is None:
+        print(f"git_state.py commit: cannot read staged index: {err}", file=sys.stderr)
+        return 2
+    staged_before = [line for line in staged_before_out.splitlines() if line]
+    expected_preserved = sorted(set(staged_before) - set(norm_paths))
+
+    untracked_out, _ = state.git_out("ls-files", "--others", "--exclude-standard", "--", *norm_paths)
+    untracked_targets = [line for line in (untracked_out or "").splitlines() if line]
+    committed = False
+    try:
+        if untracked_targets:
+            code, _, add_err = state.git_run("add", "-N", "--", *untracked_targets)
+            if code != 0:
+                print(f"git_state.py commit: git add -N failed: {add_err}", file=sys.stderr)
+                return 1
+
+        code, diff_out, diff_err = state.git_run("diff", "HEAD", "--", *norm_paths)
+        if code != 0:
+            print(f"git_state.py commit: git diff failed: {diff_err}", file=sys.stderr)
+            return 1
+        findings = scan_diff_secrets(diff_out)
+        if findings:
+            print(
+                json.dumps(
+                    {"ok": False, "paths": norm_paths, "secret_findings": findings, "preserved_staged": expected_preserved},
+                    separators=(",", ":"),
+                )
+            )
+            return 1
+
+        message = args.message.strip()
+        if args.unreviewed_fix:
+            trailer = f"Unreviewed: {args.unreviewed_fix.strip()}"
+            if "Unreviewed:" not in message:
+                message = f"{message}\n\n{trailer}"
+
+        code, _, commit_err = state.git_run("commit", "--only", "-m", message, "--", *norm_paths)
+        if code != 0:
+            print(
+                json.dumps(
+                    {"ok": False, "paths": norm_paths, "error": commit_err or "git commit failed", "secret_findings": []},
+                    separators=(",", ":"),
+                )
+            )
+            return 1
+        committed = True
+    finally:
+        if untracked_targets and not committed:
+            state.git_run("reset", "-q", "--", *untracked_targets)
+
+    staged_after_out, _ = state.git_out("diff", "--cached", "--name-only")
+    staged_after = sorted(line for line in (staged_after_out or "").splitlines() if line)
+    sha, _ = state.git_out("rev-parse", "HEAD")
+    ok = staged_after == expected_preserved
+    result = {
+        "ok": ok,
+        "sha": sha,
+        "paths": norm_paths,
+        "preserved_staged": staged_after,
+        "secret_findings": [],
+    }
+    if not ok:
+        result["error"] = f"staged index mismatch: expected {expected_preserved}, got {staged_after}"
+    print(json.dumps(result, separators=(",", ":"), ensure_ascii=False))
+    return 0 if ok else 1
+
+
+def extract_commit_argv(argv):
+    """If 'commit' is the subcommand (at index 0 or right after --repo DIR), return the remaining args."""
+    if not argv:
+        return None
+    if argv[0] == "commit":
+        return argv[1:]
+    if len(argv) >= 3 and argv[0] == "--repo" and argv[2] == "commit":
+        return ["--repo", argv[1], *argv[3:]]
+    return None
+
+
 def main(argv=None):
+    raw_argv = list(sys.argv[1:] if argv is None else argv)
+    commit_argv = extract_commit_argv(raw_argv)
+    if commit_argv is not None:
+        return run_commit(commit_argv)
+
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--base", required=True, help="base branch name, such as development")
     parser.add_argument("--repo", default=".", help="repository directory (default: current)")

@@ -40,7 +40,7 @@ Commit base del repositorio `tricell-hive` al escribir el plan: `f886538f` en la
 
 ### T3 — Implementar verificador determinístico de antigüedad de paquetes (≥ 7 días) y advisories (`H7`)
 
-- [ ] `content/skills/flow-build/scripts/check_package.py` verifica la fecha de publicación (`>= 7` días) y la ausencia de advisories activos en OSV para paquetes `npm`, `pypi`, `go` y `cargo`.
+- [x] `content/skills/flow-build/scripts/check_package.py` verifica la fecha de publicación (`>= 7` días) y la ausencia de advisories activos en OSV para paquetes `npm`, `pypi`, `go` y `cargo`.
 
 **Closes:** AC3
 
@@ -156,3 +156,4 @@ Parada de validación humana (`D4 A` — `interactive`): antes de `git push`, pr
 
 - 2026-11-16 — Plan redactado para `T1`–`T7` cubriendo `AC1`–`AC8`.
 2026-11-16 — T1 · c50d4220 · unverified: none
+2026-11-16 — T3 · 6bfb80bf · unverified: none
