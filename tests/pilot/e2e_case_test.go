@@ -203,7 +203,7 @@ func TestE2ENativeObserverRequiresCompletionAndInjectsOnce(t *testing.T) {
 		t.Helper()
 		cmd := exec.Command("python3", script)
 		cmd.Env = append(os.Environ(), "HIVE_E2E_ROOT="+root, "HIVE_E2E_OUTPUT="+out, fmt.Sprintf("HIVE_E2E_ACTIVE_DEADLINE=%d", time.Now().Add(time.Minute).Unix()))
-		cmd.Stdin = strings.NewReader(`{"tool_name":"Agent","tool_input":{"subagent_type":"hive-build-owner","description":"unit-A initial owner"},"tool_response":{"status":"` + status + `","agentId":"native-a","resolvedModel":"model"}}`)
+		cmd.Stdin = strings.NewReader(`{"hook_event_name":"PostToolUse","session_id":"parent","tool_name":"Agent","tool_input":{"subagent_type":"hive-build-owner","description":"unit-A initial owner"},"tool_response":{"status":"` + status + `","agentId":"native-a","resolvedModel":"model"}}`)
 		if data, err := cmd.CombinedOutput(); err != nil {
 			t.Fatalf("%s: %v", data, err)
 		}
@@ -348,6 +348,182 @@ func TestE2ESetupDeadlinesOwnDescendantsAndPipes(t *testing.T) {
 				if stateText != "" && !strings.HasPrefix(stateText, "Z") {
 					t.Errorf("owned setup process %d survived return: %s", pid, stateText)
 				}
+			}
+		})
+	}
+}
+
+func TestE2EIntegrationResolvesSeparateConfinedWorktree(t *testing.T) {
+	root, err := filepath.EvalSymlinks(t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	for name, body := range e2eFiles() {
+		p := filepath.Join(root, name)
+		if err := os.MkdirAll(filepath.Dir(p), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(body), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := initGit(root); err != nil {
+		t.Fatal(err)
+	}
+	if err := setupInitialCommit(root); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(root, ".claude/worktrees/fixture-integration")
+	if _, err := gitOutput(root, "worktree", "add", "-b", "fixture-integration", target); err != nil {
+		t.Fatal(err)
+	}
+	for name, body := range map[string]string{"a/value.go": "package a\nfunc Value(n int) int {if n<0{return 0};return n*2}\n", "b/label.go": "package b\nimport \"strconv\"\nfunc Label(n int) string {return \"value=\"+strconv.Itoa(n)}\n"} {
+		if err := os.WriteFile(filepath.Join(target, name), []byte(body), 0600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := gitOutput(target, "add", "--", "a/value.go", "b/label.go"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := gitOutput(target, "-c", "commit.gpgsign=false", "commit", "-qm", "test: complete both units"); err != nil {
+		t.Fatal(err)
+	}
+	got, head, err := inspectE2EIntegration(root, os.Environ(), time.Now().Add(time.Minute))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != target || len(head) != 40 {
+		t.Fatalf("wrong integration identity %q %q", got, head)
+	}
+	if branch, _ := gitOutput(root, "branch", "--show-current"); branch != "main" {
+		t.Fatal("runner changed root checkout", branch)
+	}
+	if err := verifyE2EImmutableFiles(got, &e2eReport{}); err != nil {
+		t.Fatal(err)
+	}
+	if out, code, err := e2eCommand(time.Now().Add(time.Minute), got, append(os.Environ(), "GOWORK=off"), "go", "-C", got, "test", "./..."); err != nil || code != 0 {
+		t.Fatalf("joint check: %s %v", out, err)
+	}
+	if err := os.WriteFile(filepath.Join(target, "a/value.go"), []byte("package a\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := inspectE2EIntegration(root, os.Environ(), time.Now().Add(time.Minute)); err == nil {
+		t.Fatal("dirty integration accepted")
+	}
+}
+
+func TestE2EIntegrationRejectsWorktreeOutsideFixture(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "README.md"), []byte("fixture\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := initGit(root); err != nil {
+		t.Fatal(err)
+	}
+	if err := setupInitialCommit(root); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(t.TempDir(), "outside")
+	if _, err := gitOutput(root, "worktree", "add", "-b", "fixture-integration", target); err != nil {
+		t.Fatal(err)
+	}
+	if _, _, err := inspectE2EIntegration(root, os.Environ(), time.Now().Add(time.Minute)); err == nil {
+		t.Fatal("outside integration accepted")
+	}
+}
+
+func TestE2EAsyncObserverCorrelatesNativeStopWithoutChildFeedback(t *testing.T) {
+	// Synthetic native hook payloads exercise the driver, not model autonomy.
+	for _, order := range []string{"launch-stop", "stop-launch", "wrong-session", "missing-stop"} {
+		t.Run(order, func(t *testing.T) {
+			root, err := filepath.EvalSymlinks(t.TempDir())
+			if err != nil {
+				t.Fatal(err)
+			}
+			out := t.TempDir()
+			wt := filepath.Join(root, ".claude/worktrees/unit-a")
+			if err := os.MkdirAll(filepath.Join(wt, "a"), 0700); err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(filepath.Join(wt, "a/value.go"), []byte("package a\nfunc Value(n int) int {if n<0{return 0};return n*2}\n"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			if err := initGit(wt); err != nil {
+				t.Fatal(err)
+			}
+			if err := setupInitialCommit(wt); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := gitOutput(wt, "branch", "-M", "unit-a"); err != nil {
+				t.Fatal(err)
+			}
+			before, _ := gitOutput(wt, "rev-parse", "HEAD")
+			script := filepath.Join(out, "observer.py")
+			if err := os.WriteFile(script, []byte(e2eObserver), 0600); err != nil {
+				t.Fatal(err)
+			}
+			invoke := func(payload map[string]any) string {
+				t.Helper()
+				data, err := json.Marshal(payload)
+				if err != nil {
+					t.Fatal(err)
+				}
+				cmd := exec.Command("python3", script)
+				cmd.Env = append(os.Environ(), "HIVE_E2E_ROOT="+root, "HIVE_E2E_OUTPUT="+out, fmt.Sprintf("HIVE_E2E_ACTIVE_DEADLINE=%d", time.Now().Add(time.Minute).Unix()))
+				cmd.Stdin = strings.NewReader(string(data))
+				response, code, message := setupOutputWithin(cmd, time.Now().Add(5*time.Second))
+				if code != 0 {
+					t.Fatalf("hook exit %d: %s", code, message)
+				}
+				return string(response)
+			}
+			launch := map[string]any{"hook_event_name": "PostToolUse", "session_id": "parent", "tool_name": "Agent", "tool_input": map[string]any{"subagent_type": "hive-build-owner", "description": "unit-A-owner-1"}, "tool_response": map[string]any{"status": "async_launched", "agentId": "native-a", "resolvedModel": "model"}}
+			stop := map[string]any{"hook_event_name": "SubagentStop", "session_id": "parent", "agent_id": "native-a", "agent_type": "hive-build-owner", "cwd": root, "agent_transcript_path": "native-a.jsonl"}
+			if order == "wrong-session" {
+				stop["session_id"] = "other"
+			}
+			if order == "stop-launch" {
+				if response := invoke(stop); response != "" {
+					t.Fatal("child stop received feedback", response)
+				}
+				current, _ := gitOutput(wt, "rev-parse", "HEAD")
+				if current != before {
+					t.Fatal("unassociated stop mutated fixture")
+				}
+				invoke(launch)
+			} else {
+				invoke(launch)
+				current, _ := gitOutput(wt, "rev-parse", "HEAD")
+				if current != before {
+					t.Fatal("async launch treated as completion")
+				}
+				if order != "missing-stop" {
+					if response := invoke(stop); response != "" {
+						t.Fatal("child stop received feedback", response)
+					}
+				}
+			}
+			after, _ := gitOutput(wt, "rev-parse", "HEAD")
+			if order == "wrong-session" || order == "missing-stop" {
+				if after != before {
+					t.Fatal("uncorroborated completion mutated fixture")
+				}
+				return
+			}
+			if after == before {
+				t.Fatal("matching native completion did not trigger controlled mutation")
+			}
+			childRead := map[string]any{"hook_event_name": "PostToolUse", "session_id": "parent", "agent_id": "child", "tool_name": "Read", "tool_input": map[string]any{}, "tool_response": map[string]any{}}
+			if response := invoke(childRead); response != "" {
+				t.Fatal("child received parent notification", response)
+			}
+			parentRead := map[string]any{"hook_event_name": "PostToolUse", "session_id": "parent", "tool_name": "Read", "tool_input": map[string]any{}, "tool_response": map[string]any{}}
+			response := invoke(parentRead)
+			if order != "stop-launch" && !strings.Contains(response, "Controlled fixture defect injected") {
+				t.Fatal("parent not notified", response)
+			}
+			if response := invoke(parentRead); response != "" {
+				t.Fatal("parent notified twice", response)
 			}
 		})
 	}

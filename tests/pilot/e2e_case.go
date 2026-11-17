@@ -59,6 +59,7 @@ type e2eReport struct {
 	RunnerFailure                             string `json:"runner_failure,omitempty"`
 	Deadline, ActiveDeadline, Started         string
 	FixtureRoot, InitialHead, IntegrationHead string
+	IntegrationWorktree                       string
 	ModelStarted                              bool
 	ExitCode                                  int
 	JointChecked                              bool
@@ -150,53 +151,117 @@ func TestCombined(t *testing.T) { for _,c:=range []struct{n int;want string}{{3,
 func e2ePrompt(root string, deadline time.Time) string {
 	return fmt.Sprintf(`Implement this disposable project's complete objective under explicitly delegated bounded E2E authority. Objective: a.Value doubles a nonnegative integer and returns zero for negative input; b.Label renders exactly "value=" followed by the decimal integer. The acceptance package is immutable. Unit A and unit B have disjoint write scopes and fixed interfaces described in AGENTS.md. Acceptance includes independent local owner heads, independent verification of each exact returned head, a demonstrated negative-input defect followed by its cause-level correction, B's native-confirmed partial return followed by a replacement owner carrying its checkpoint, and both checked heads integrated into fixture-integration with go test ./... passing there. Record actual commands, exit results, full heads, native assignment identities, source reads, limits and retained resources in the project's ignored support workspace. Verified alone does not mean integrated.
 
+Acceptance also includes these inspectable deliverables: a validated plan and execution record consistent with the grant and actual endpoint; a project verification contract covering launch, doctor, drive, evidence and cleanup plus a feature map, with actual commands/results and checked revisions distinguished from unsupported or not-applicable capabilities and their reasons; a bounded rule/enforcer/negative-case table for A's correction, with evidence of the enforced rejection and the disposition of superseded procedural prose (explicitly none if none existed); and an explicit inventory of added or widened suppressions, skipped tests and exclusions, including configuration changes, with evidence and disposition for each candidate or an explicit none result. The inventory must also account for the fixture's legitimate lint directive and explain its disposition without treating every suppression as a defect. Keep unexecuted checks and unsupported claims unverified.
+
 Grant: continue through all covered stages without another human command; create isolated local branches/worktrees below %s, assign native local deliverable owners and independent verifiers, run local checks, and make scoped local commits. The delivery endpoint is the checked local fixture-integration branch; scoped owner and coordinator local commits in this disposable repository are authorized, with no publication and no commit/push/merge in any other repository, no remote operations, no tracker writes, no dependency installation, no global edits, no services beyond the runner's isolated memory, no owner children. Owners use only their assigned worktree and source path. The first B assignment's partial-return limit and the A fault-injection condition are fixture instrumentation, not evidence of a natural failure. Preserve existing authentication and native history. Stop new work by %s; keep all task evidence and report anything unverified.`, root, deadline.UTC().Format(time.RFC3339Nano))
 }
 
 // Only this case installs an invocation-local native observer. It captures native
 // completion payloads (including agentId/resolvedModel when supplied) rather than
 // inferring that a writer stopped from elapsed time or assistant prose.
-const e2eObserver = `import json, os, pathlib, subprocess, sys, time
+const e2eObserver = `import fcntl, json, os, pathlib, subprocess, sys, time
 p=json.load(sys.stdin)
 out=pathlib.Path(os.environ['HIVE_E2E_OUTPUT'])
-with (out/'native-events.jsonl').open('a') as f:
- f.write(json.dumps(p,separators=(',',':'))+'\n')
-response=p.get('tool_response',{})
-inputs=p.get('tool_input',{})
-if p.get('tool_name')!='Agent' or not isinstance(response,dict) or response.get('status')!='completed':
- sys.exit(0)
-if inputs.get('subagent_type')!='hive-build-owner' or 'unit-A' not in inputs.get('description',''):
- sys.exit(0)
-marker=out/'fault-injection.claim'
-try:
- fd=os.open(marker,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600);os.close(fd)
-except FileExistsError:
- sys.exit(0)
 root=pathlib.Path(os.environ['HIVE_E2E_ROOT'])
 wt=root/'.claude/worktrees/unit-a'
 end=float(os.environ['HIVE_E2E_ACTIVE_DEADLINE'])
+response=p.get('tool_response',{})
+inputs=p.get('tool_input',{})
+kind=p.get('hook_event_name')
+session=p.get('session_id')
+completion=None
+assignment=None
+# The lock protects only local event/association records. No subprocess or
+# wait for an agent runs under it. Completion-before-launch stays pending.
+with (out/'native-observer.lock').open('a') as lock:
+ fcntl.flock(lock,fcntl.LOCK_EX)
+ with (out/'native-events.jsonl').open('a') as f:
+  f.write(json.dumps(p,separators=(',',':'))+'\n')
+ statepath=out/'native-associations.json'
+ state=json.loads(statepath.read_text()) if statepath.exists() else {}
+ if kind=='PostToolUse' and not p.get('agent_id') and session and p.get('tool_name')=='Agent' and isinstance(response,dict):
+  aid=response.get('agentId')
+  if aid and inputs.get('subagent_type')=='hive-build-owner' and inputs.get('description','').startswith('unit-A') and response.get('status') in ('async_launched','completed'):
+   key=json.dumps([session,aid])
+   entry=state.setdefault(key,{})
+   if 'launch' in entry and entry['launch'].get('tool_input')!=inputs:
+    entry['conflict']=True
+   else:
+    entry['launch']=p
+ if kind=='SubagentStop' and session and p.get('agent_id') and p.get('agent_type')=='hive-build-owner' and p.get('cwd'):
+  cwd=pathlib.Path(p['cwd']).resolve()
+  if cwd==root or root in cwd.parents:
+   key=json.dumps([session,p['agent_id']])
+   state.setdefault(key,{})['stop']=p
+ for entry in state.values():
+  launch=entry.get('launch',{})
+  if entry.get('conflict') or launch.get('session_id')!=session:
+   continue
+  result=launch.get('tool_response',{})
+  stopped=entry.get('stop')
+  if result.get('status')=='completed':
+   completion=launch
+  elif stopped:
+   completion=stopped
+  else:
+   continue
+  assignment={'session_id':session,'agent_id':result['agentId'],'unit':'unit-A','role':'hive-build-owner'}
+  break
+ # A known competing A writer keeps injection blocked, even if one owner ended.
+ if assignment:
+  for entry in state.values():
+   launch=entry.get('launch',{})
+   result=launch.get('tool_response',{})
+   if launch.get('session_id')==session and result.get('agentId')!=assignment['agent_id'] and result.get('status')=='async_launched' and not entry.get('stop'):
+    completion=None
+    assignment=None
+    break
+ temporary=out/'native-associations.tmp'
+ temporary.write_text(json.dumps(state))
+ os.replace(temporary,statepath)
+ if completion:
+  try:
+   fd=os.open(out/'fault-injection.claim',os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600);os.close(fd)
+  except FileExistsError:
+   completion=None
+
 def git(*args):
  left=end-time.time()
  if left<=0: raise RuntimeError('active deadline reached')
  return subprocess.check_output(['git','-C',str(wt),'-c','commit.gpgsign=false',*args],stderr=subprocess.STDOUT,timeout=left).decode().strip()
-try:
- if wt.resolve()!=wt or not wt.is_dir():
-  raise RuntimeError('fault injection refused: worktree path escapes through symlink')
- if git('branch','--show-current')!='unit-a' or git('status','--porcelain'):
-  raise RuntimeError('fault injection refused: wrong branch or dirty writer return')
- before=git('rev-parse','HEAD')
- source=wt/'a/value.go'
- if source.is_symlink() or not source.is_file(): raise RuntimeError('unsafe mutation path')
- source.write_text('package a\n\n//nolint:revive // Fixed public API is exercised by immutable acceptance tests.\n// Controlled fixture mutation after native owner completion; not model output.\nfunc Value(n int) int { return n * 2 }\n')
- git('add','--','a/value.go')
- git('commit','--allow-empty','-qm','test: inject controlled negative-input fixture defect')
- after=git('rev-parse','HEAD')
- event={'kind':'fixture_mutation','before':before,'after':after,'native_completion':response,'worktree':str(wt),'path':'a/value.go'}
+if completion:
+ try:
+  if wt.resolve()!=wt or not wt.is_dir():
+   raise RuntimeError('fault injection refused: worktree path escapes through symlink')
+  if git('branch','--show-current')!='unit-a' or git('status','--porcelain'):
+   raise RuntimeError('fault injection refused: wrong branch or dirty writer return')
+  before=git('rev-parse','HEAD')
+  source=wt/'a/value.go'
+  if source.is_symlink() or not source.is_file(): raise RuntimeError('unsafe mutation path')
+  source.write_text('package a\n\n//nolint:revive // Fixed public API is exercised by immutable acceptance tests.\n// Controlled fixture mutation after native owner completion; not model output.\nfunc Value(n int) int { return n * 2 }\n')
+  git('add','--','a/value.go')
+  git('commit','--allow-empty','-qm','test: inject controlled negative-input fixture defect')
+  after=git('rev-parse','HEAD')
+  event={'kind':'fixture_mutation','before':before,'after':after,'native_completion':completion,'native_assignment':assignment,'worktree':str(wt),'path':'a/value.go'}
+  message='Controlled fixture defect injected after native completion in unit-A at '+after+'. Earlier verification is stale; this is harness mutation, not owner output.'
+ except Exception as e:
+  event={'kind':'fixture_mutation_refused','reason':str(e),'native_completion':completion,'native_assignment':assignment}
+  message='Controlled fixture mutation was not completed; inspect fixture-mutations.jsonl. Do not claim the injection occurred.'
  with (out/'fixture-mutations.jsonl').open('a') as f: f.write(json.dumps(event)+'\n')
- print(json.dumps({'hookSpecificOutput':{'hookEventName':'PostToolUse','additionalContext':'Controlled fixture defect injected after native completion in unit-A at '+after+'. Earlier verification is stale; this is harness mutation, not owner output.'}}))
-except Exception as e:
- with (out/'fixture-mutations.jsonl').open('a') as f: f.write(json.dumps({'kind':'fixture_mutation_refused','reason':str(e)})+'\n')
- print(json.dumps({'hookSpecificOutput':{'hookEventName':'PostToolUse','additionalContext':'Controlled fixture mutation was not completed; inspect fixture-mutations.jsonl. Do not claim the injection occurred.'}}))
+ temporary=out/'fault-notification.tmp'
+ temporary.write_text(json.dumps({'session_id':session,'message':message}))
+ os.replace(temporary,out/'fault-notification.json')
+# SubagentStop returns no feedback: additionalContext there could keep the child
+# running. Notify only the matching parent on its next native PostToolUse.
+notification=out/'fault-notification.json'
+if kind=='PostToolUse' and not p.get('agent_id') and session and notification.exists():
+ pending=json.loads(notification.read_text())
+ if pending.get('session_id')==session:
+  try:
+   fd=os.open(out/'fault-notification-delivered.claim',os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600);os.close(fd)
+  except FileExistsError:
+   sys.exit(0)
+  print(json.dumps({'hookSpecificOutput':{'hookEventName':'PostToolUse','additionalContext':pending['message']}}))
 `
 
 func e2eWrite(path string, v any) error {
@@ -381,7 +446,8 @@ func runE2E(output, model, attempt, installation string, budget e2eBudget, repor
 		return err
 	}
 	quote := func(s string) string { return "'" + strings.ReplaceAll(s, "'", "'\"'\"'") + "'" }
-	settings := map[string]any{"hooks": map[string]any{"PostToolUse": []any{map[string]any{"matcher": "Agent|Bash|Read|Skill", "hooks": []any{map[string]any{"type": "command", "command": quote(python) + " " + quote(observer), "timeout": 10}}}}}}
+	observerHook := map[string]any{"type": "command", "command": quote(python) + " " + quote(observer), "timeout": 10}
+	settings := map[string]any{"hooks": map[string]any{"PostToolUse": []any{map[string]any{"matcher": "Agent|Bash|Read|Skill", "hooks": []any{observerHook}}}, "SubagentStop": []any{map[string]any{"hooks": []any{observerHook}}}}}
 	if err = e2eWrite(filepath.Join(output, "native-settings.json"), settings); err != nil {
 		return err
 	}
@@ -458,24 +524,18 @@ func runE2E(output, model, attempt, installation string, budget e2eBudget, repor
 	if err = e2eWrite(filepath.Join(output, "trace.json"), r.Trace); err != nil {
 		return err
 	}
-	// The runner never integrates on behalf of the model. Read the declared target,
-	// require it checked out, and execute the immutable joint acceptance check there.
-	branch, _, err := e2eCommand(budget.activeDeadline, root, childEnv, "git", "-C", root, "branch", "--show-current")
+	// Resolve the declared branch's actual checkout without integrating or
+	// changing any checkout on behalf of the coordinator.
+	target, integrationHead, err := inspectE2EIntegration(root, childEnv, budget.activeDeadline)
 	if err != nil {
 		return err
 	}
-	if strings.TrimSpace(string(branch)) != "fixture-integration" {
-		return fmt.Errorf("declared local integration target not checked out; verified is not integrated")
-	}
-	current, _, err := e2eCommand(budget.activeDeadline, root, childEnv, "git", "-C", root, "rev-parse", "HEAD")
-	if err != nil {
+	report.IntegrationWorktree, report.IntegrationHead = target, integrationHead
+	if err := verifyE2EImmutableFiles(target, report); err != nil {
 		return err
 	}
-	report.IntegrationHead = strings.TrimSpace(string(current))
-	if err := verifyE2EImmutableFiles(root, report); err != nil {
-		return err
-	}
-	outputBytes, code, jointErr := e2eCommand(budget.activeDeadline, root, childEnv, "go", "-C", root, "test", "./...")
+	targetEnv := environmentInDirectory(childEnv, target)
+	outputBytes, code, jointErr := e2eCommand(budget.activeDeadline, target, targetEnv, "go", "-C", target, "test", "./...")
 	report.JointChecked = true
 	report.JointExitCode = code
 	report.JointOutput = string(outputBytes)
@@ -484,6 +544,88 @@ func runE2E(output, model, attempt, installation string, budget e2eBudget, repor
 	}
 	report.Reason = "joint local check passed; native behavioral attribution requires evidence review, never coordinator self-report"
 	return nil
+}
+
+func inspectE2EIntegration(root string, env []string, deadline time.Time) (string, string, error) {
+	canonicalRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return "", "", err
+	}
+	run := func(dir string, args ...string) (string, error) {
+		output, _, err := e2eCommand(deadline, dir, environmentInDirectory(env, dir), "git", append([]string{"-C", dir}, args...)...)
+		return strings.TrimSpace(string(output)), err
+	}
+	listing, err := run(canonicalRoot, "worktree", "list", "--porcelain", "-z")
+	if err != nil {
+		return "", "", err
+	}
+	target, listedHead := "", ""
+	for _, record := range strings.Split(listing, "\x00\x00") {
+		path, branch, head := "", "", ""
+		for _, field := range strings.Split(record, "\x00") {
+			if v, ok := strings.CutPrefix(field, "worktree "); ok {
+				path = v
+			}
+			if v, ok := strings.CutPrefix(field, "branch "); ok {
+				branch = v
+			}
+			if v, ok := strings.CutPrefix(field, "HEAD "); ok {
+				head = v
+			}
+		}
+		if branch != "refs/heads/fixture-integration" {
+			continue
+		}
+		if target != "" {
+			return "", "", fmt.Errorf("integration branch has ambiguous checkouts")
+		}
+		target, listedHead = path, head
+	}
+	if target == "" {
+		return "", "", fmt.Errorf("declared local integration target not checked out; verified is not integrated")
+	}
+	target, err = filepath.EvalSymlinks(target)
+	if err != nil {
+		return "", "", err
+	}
+	if !under(target, canonicalRoot) {
+		return "", "", fmt.Errorf("integration checkout escapes fixture")
+	}
+	common, err := run(canonicalRoot, "rev-parse", "--path-format=absolute", "--git-common-dir")
+	if err != nil {
+		return "", "", err
+	}
+	targetCommon, err := run(target, "rev-parse", "--path-format=absolute", "--git-common-dir")
+	if err != nil {
+		return "", "", err
+	}
+	common, err = filepath.EvalSymlinks(common)
+	if err != nil {
+		return "", "", err
+	}
+	targetCommon, err = filepath.EvalSymlinks(targetCommon)
+	if err != nil {
+		return "", "", err
+	}
+	if common != targetCommon {
+		return "", "", fmt.Errorf("integration checkout belongs to a different repository")
+	}
+	branch, err := run(target, "symbolic-ref", "--short", "HEAD")
+	if err != nil || branch != "fixture-integration" {
+		return "", "", fmt.Errorf("integration checkout branch changed or is detached")
+	}
+	head, err := run(target, "rev-parse", "--verify", "HEAD")
+	if err != nil || len(head) != 40 || head != listedHead {
+		return "", "", fmt.Errorf("integration full head changed or could not be corroborated")
+	}
+	status, err := run(target, "status", "--porcelain=v1", "--untracked-files=all")
+	if err != nil {
+		return "", "", err
+	}
+	if status != "" {
+		return "", "", fmt.Errorf("integration checkout is dirty")
+	}
+	return target, head, nil
 }
 
 func verifyE2EImmutableFiles(root string, report *e2eReport) error {
