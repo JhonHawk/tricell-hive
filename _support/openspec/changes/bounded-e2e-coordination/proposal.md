@@ -20,6 +20,8 @@ Las decisiones describen el comportamiento futuro del producto. El usuario inici
 
 - **D56 A** — Tras el primer resultado parcial, el usuario autoriza exactamente un piloto adicional de Claude instalado, máximo 20 minutos en total incluyendo instalación temporal compartida y restauración con plan vigente, dentro de la cuota existente. Si cumple los criterios, continuar D53 A. No autoriza un tercer intento ni una campaña general.
 
+- **D57 A** — Validar el encargo alineado con exactamente un piloto adicional de Claude (tercero total), máximo 20 minutos incluyendo setup, instalación temporal y restauración, con cuota existente. Si cumple los criterios, continuar D53 A. No autoriza un cuarto intento.
+
 ## Business rules
 
 rule: La coordinación E2E se activa explícitamente dentro de los flujos existentes y continúa el objetivo dentro de los límites acordados sin exigir la ausencia del usuario. · screen none · approved 2026-11-17: D50 A · found by plan

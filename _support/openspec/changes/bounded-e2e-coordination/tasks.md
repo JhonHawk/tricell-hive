@@ -130,7 +130,7 @@ Base: development `15b2e402c72543b74d63e50df1bc2b188638212a`. Rama de implementa
 
 ### T8 — Verificar el candidato y ejecutar el piloto autorizado
 
-- [ ] Completar suites/revisión y la única ejecución nativa; restaurar instalación y reportar cada AC con su evidencia o falta de ella.
+- [x] Completar suites/revisión y la única ejecución nativa; restaurar instalación y reportar cada AC con su evidencia o falta de ella.
 
 **Closes:** AC1, AC2, AC3, AC4, AC5, AC6, AC7, AC9, AC10, AC11, AC12.
 
@@ -162,10 +162,10 @@ No hay UI de producto ni cuentas de aplicación. Las páginas documentales se co
 ## Checkpoint
 
 - Updated: 2026-11-17
-- Stage: verify · T8 second observation assessed; AC6/AC11 and correction sequence incomplete
-- Last commit: 3c1f8e87df5fcdb3fcdadd3016f6b8aab4363a49
-- Open findings: second observation AC6/AC11 not met; verifier-requested correction sequence not exercised; AC7/AC10 now met within stated limits; source-reading and commit-helper deviations remain; see verification.md
-- Next: Report second independent verdict and local experimental-prompt alignment; D56 consumed, no third attempt authorized; no push/PR/merge while T8 open
+- Stage: verify · T8 complete; automatic delivery pending
+- Last commit: ae71d318075402e4134a1fcadf66a889c048eadd
+- Open findings: Nonblocking observation limits: MCP routing inconclusive; incomplete stage source reads and late plan/record preparation; verification.md records evidence
+- Next: Commit final assessment, push/open PR, reconcile reviews and current base, merge under D53, refresh maintainer installation preserving trial; no fourth pilot
 
 ### Evidence
 
@@ -187,6 +187,7 @@ No hay UI de producto ni cuentas de aplicación. Las páginas documentales se co
 - Single Claude run ended; original driver inconclusive because integration branch is in separate worktree; async owner completion did not trigger fixture injection
 - Restored prior release441dbe9f56d2 on7hosts at18:06:24Z; hash differences0; trial joinunchanged; total setup+run+restore6m47s; exact pilot session absent from everyday Engram sessions/observations/prompts; isolated store removed
 - Post-pilot runner fixes3c1f8e87: async native stop association, integration-worktree readback and complete H1/H2/H3 outcome prompt; E2E race regressions and full tests/pilot -race125.819s pass; vet/diff clean; marked Unreviewed after limited native review
+- D57 third run AC1-7/9-12 met; independent anchors validated; eight pass plus routing inconclusive; installation restored in332.880s
 
 ## Review status and progress
 
@@ -210,3 +211,10 @@ No hay UI de producto ni cuentas de aplicación. Las páginas documentales se co
 - D56 second observation completed: candidate d0e328d9, temporary trial join dff5aa59; setup 18:42:18Z through restored installation18:48:29Z (371.585s). Claude session b3a7be3f-3f10-4998-91e4-a3968d45b23f; driver exit0, actual joint integration check exit0, automatic class inconclusive pending semantic review. Prior release441dbe9f56d2 restored on7hosts;312 entries match, trial join unchanged. Exact fixture/session/agent identifier search in everyday Engram returns0; isolated store removed. Evidence under attempt-2/native-run; original attempt preserved. No third attempt authorized.
 
 - Second independent assessment: AC1/2/3/4/5/7/9/10/12 met, AC6/11 not met; specific verifier-before-correction sequence absent. Anchored review class failed. Prompt aligned with existing criteria after detecting experimental specification mismatch; no distributed guidance change or model run.
+
+2026-11-17 — D57 A approved: one additional installed-Claude observation, max20min total including setup/install/restore, existing quota; continue D53 only if acceptance passes. No fourth attempt authorized.
+
+- D57 observation started: candidate ae71d318, temporary join ac67204b405779f411f4ccfe2abf6c3ddde5e09e; overall deadline2026-11-17T19:21:56.631421Z. Wrapper exec session49402 owns automatic fresh-plan restore; driverPID51465. Evidence attempt-3/native-run, persistent guard attempt-3/single-attempt.claim. Never relaunch. No fourth attempt authorized.
+
+- D57 run and restoration completed: installed join ac67204b; setup19:01:56Z through restored19:07:29Z (332.880s). Native session948f3f04-1511-42d1-b9da-fe4cf12f9806; integration53e3c9da819c5c6ee99af495bc2a06b2a2641065, joint exit0. Driver51465 stopped. Priorrelease441dbe9f56d2 restored,312 entries unchanged, trialjoin unchanged; isolatedEngram absent and exact session/agent/fixture matches0 in everydaystore. Reviewer verify_second_native_run assessing attempt-3; no fourth run authorized.
+2026-11-17 — T8 · ae71d318075402e4134a1fcadf66a889c048eadd · unverified: No acceptance criterion left unverified; MCP routing attribution inconclusive; stage source reads and procedure order deviations recorded in verification.md

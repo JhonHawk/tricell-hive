@@ -1,6 +1,32 @@
 # Verificación de Fase 2
 
-Estado al 2026-11-17: T1–T7 implementadas; T8 abierta. No hay push, PR ni integración de este cambio en development. Las respuestas D53–D55 siguen vigentes; el intento de D52 ya se consumió. D56 A autoriza un segundo intento acotado, cuya evaluación se registra separada.
+Estado al 2026-11-17: T1–T8 completas; los criterios del plan tienen evidencia después de la tercera observación autorizada por D57 A. Entrega automática D53 A pendiente de publicación e integración. Las observaciones anteriores permanecen abajo como historia, con sus resultados originales. Los tres intentos autorizados están consumidos; no hay autorización para un cuarto.
+
+## Dictamen vigente: tercera observación (D57 A)
+
+El candidato `ae71d318` se instaló temporalmente junto al trial existente. Claude Code 2.1.326 ejecutó el objetivo con Opus 5.5 como coordinador/revisor y Sonnet 5.5 como responsable. Setup, ejecución y restauración duraron **332.880 segundos (5 min 33 s)**, dentro del techo de 20 minutos. Siete agentes completaron sin nuevas instrucciones humanas por etapa. La telemetría acumulada informa USD 4.3018733 a precio de lista, no un cargo acreditado; sus eventos repetidos no se suman.
+
+| Criterio | Resultado | Evidencia y límite |
+| --- | --- | --- |
+| AC1 | Cumplido | Dos unidades, corrección, sustitución, revisión e integración local sin microgestión humana. No acredita seguir cada paso del procedimiento. |
+| AC2 | Cumplido | Owners con commits locales confinados, helper y escáner; remotos e integración permanecen con el coordinador. |
+| AC3 | Cumplido | Tests negativos del registro sin cambios; rechazo real de init inválido y posterior registro coherente. |
+| AC4 | Cumplido | Rechazos determinísticos de identidad/head/alcance; revisores distintos verifican los heads efectivos antes de integrarlos. |
+| AC5 | Cumplido | Sustitución B posterior al cierre nativo; conserva head parcial, checkpoint e historia. |
+| AC6 | Cumplido | Init no destructivo y check v1 reales; cinco capacidades y mapa de features. Doctor ejecutado; Drive/Evidence corresponden a la revisión de integración. Launch/Cleanup no aplican, con razones explícitas. |
+| AC7 | Cumplido | Tabla regla/enforcer/caso negativo; fallo observado por el verificador, corrección del mismo owner y nuevo veredicto independiente. No existía prosa procedural previa que retirar en la fixture. |
+| AC9 | Cumplido | Medición comparable de prosa, referencias y scripts; límites de 16,000 B y pruebas de contenido pasan. |
+| AC10 | Cumplido con límites declarados | Candidato, roles, modelos, fuentes observadas, estados terminales y restauración registrados. No se atribuyen lecturas ausentes ni se afirma que la ruta MCP haya sido ejercida. |
+| AC11 | Cumplido | Inventario de supresiones/config recibido por revisores independientes, referencia canónica leída y disposiciones fundamentadas; excepción preexistente conservada. |
+| AC12 | Cumplido | Ambos heads revisados son ancestros del head integrado; prueba conjunta y readback preceden al estado integrated. |
+
+La revisión independiente y el principal comprobaron los anchors de la secuencia: fallo real en `native-events.jsonl:23`, corrección del mismo owner en `:43`, nuevo brief/revisión en `:48`/`:64`, integración y prueba conjunta en `:66`, registro integrado en `:67` e init/check del contrato en `:36`/`:68`. Los hashes y líneas fueron validados por `pilot e2e review`. El esquema adicional de nueve puntos conserva **ocho pass y uno inconclusive**, por no retener salidas crudas separadas que atribuyan el routing de memoria; el comando sale 1. No se convierte ese resultado en pass. No se observó una llamada MCP del modelo, aunque la búsqueda exacta en la memoria cotidiana dio cero coincidencias y el almacén aislado fue retirado. Esta limitación de atribución no añade ni sustituye criterios del plan.
+
+Se corrigió el hallazgo preliminar sobre H1: repetir el comando desde el checkout original falla, pero su evidencia declara expresamente el head de integración, donde el comando sí pasó. El contrato aprobado trata la revisión como identidad declarada y exige reconciliar candidato y evidencia antes de reutilizarla. No se afirma que el checkout original funcione; el contrato no se puede reutilizar allí sin esa reconciliación. La fixture no fue corregida ni reetiquetada por el revisor o el principal.
+
+Desviaciones observadas: los owners arrancaron antes de preparar el plan/registro; la revisión del plan llegó después de implementar. La sustitución respetó el cierre, aunque su historia se registró después. Se leyeron las referencias de coordinación, registro, contrato y supresiones, pero no se observó lectura de los SKILL de etapa ni de defect-fix. Se conserva esto en el watch existente, sin inventar una garantía de adopción, otra regla o una nueva ejecución. Una fixture y una observación satisfactoria no prueban fiabilidad ni portabilidad.
+
+La instalación anterior quedó restaurada en siete hosts: 312 entradas sin diferencias, trial join intacto y proceso del driver terminado. Evidencia independiente y original conservadas en `attempt-3/native-run/` bajo la carpeta local de este trabajo, con `independent-review.md`, `review-input.json` y `reviewed-e2e-evidence.json`. Las suites completas previas se reutilizan solo donde sus entradas no cambiaron; la alineación del encargo pasó E2E race y vet. No hay CI de tests para development: el único workflow protege la promoción a master.
 
 ## Candidato y comprobaciones
 
