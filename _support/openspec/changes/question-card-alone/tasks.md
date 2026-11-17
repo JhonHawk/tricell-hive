@@ -1,14 +1,15 @@
 # Tasks
 
-Current revision: T10, approved 2026-11-17, narrows T9 to complete questions without duplicates. Native Codex review, push to the existing trial and local refresh remain authorized; no merge or model pilot. Historical T9 records below describe the preceding version.
+Current revision: T10, approved 2026-11-17, narrows T9 to complete questions without duplicates; the same day AC15 replaced the former sample criterion to add a Grok quota of at least 10 rounds. Native Codex review, push to the existing trial and local refresh remain authorized; no merge or model pilot. Historical T9 records below describe the preceding version.
 
 ### T1 — Los scripts de medición y la línea base quedan guardados
 
 Primera tarea del build: su origen es una carpeta temporal que un reinicio de la máquina puede borrar.
 
 - [x] `_support/workspace/2026-11-16-question-card-alone/measure/` contiene los scripts de Claude Code, Codex y los otros hosts con sus salidas del 9 al 16 de noviembre, y un `README.md` con el comando de cada uno
+- [ ] Reopened by AC15 (2026-11-17): `others/grok_rounds.py` takes the cutoff and an output path as parameters (filtering on `created_at`, excluding temporary probe and pilot folders), keeps the baseline outputs, classifies declined cards and, after each unanswered card, the agent's next message, re-asked IDs and the user's next message, as the Claude Code and Codex extractors do; the `README.md` gives its command and drops "No entran en el criterio de la prueba"
 
-**Closes:** AC14
+**Closes:** AC15
 
 **Depends on:** none
 
@@ -20,7 +21,7 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 **Changes:** copia los scripts y sus salidas; añade a cada extractor la fecha de corte como parámetro y la clasificación que T6 necesita: ronda con o sin bloque de decisión antes de la tarjeta, tarjeta sin contestar, y si el mensaje siguiente del agente escribe las decisiones abiertas. No cambia las cifras de la línea base.
 
-**Verification:** `python3 extract.py && python3 aggregate.py` en `measure/cc/` reproduce 306 rondas, 330 tarjetas y 252 rondas con bloque de decisión antes de la tarjeta; `python3 cards.py && python3 agg.py` en `measure/codex/` reproduce 47 tarjetas con 10 vacías. AC14 queda sin verificar hasta T6.
+**Verification:** `python3 extract.py && python3 aggregate.py` en `measure/cc/` reproduce 306 rondas, 330 tarjetas y 252 rondas con bloque de decisión antes de la tarjeta; `python3 cards.py && python3 agg.py` en `measure/codex/` reproduce 47 tarjetas con 10 vacías; `others/grok_rounds.py` con corte 2026-11-09 y una salida temporal reproduce las 10 filas de su línea base sin sobrescribirla. AC15 queda sin verificar hasta T6.
 
 ### T2 — La guía global pide la tarjeta sola y el texto tras una tarjeta sin respuesta
 
@@ -96,11 +97,11 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 ### T6 — La prueba se mide y el usuario decide la integración
 
-- [ ] Informe de las rondas posteriores al despliegue autorizado de T10, contra AC13, AC10 and AC14; la evidencia de versiones anteriores queda histórica
+- [ ] Informe de las rondas posteriores al despliegue autorizado de T10, contra AC13, AC10 and AC15; la evidencia de versiones anteriores queda histórica
 
-**Closes:** AC13, AC10, AC14, AC4
+**Closes:** AC13, AC10, AC15, AC4
 
-**Depends on:** T1, T10, an authorized deploy of the corrected version, and real sessions meeting AC14
+**Depends on:** T1, T10, an authorized deploy of the corrected version, and real sessions meeting AC15
 
 **Locations:** `_support/workspace/2026-11-16-question-card-alone/measure/`; native host session histories, read-only
 
@@ -108,9 +109,9 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 **Test approach:** check
 
-**Changes:** Record the new deployment cutoff before counting. Count new sessions after it, or later rounds where a host demonstrably reloaded the corrected guidance. Exclude other guidance versions. Read each unanswered card and potential lost round against the host instructions and the session-review rubric; examine tool identity, receipts, user answers and available UI evidence without inferring queue resolution from chat. Keep the prior 20 Claude Code / 10 Codex rounds and 3 unanswered cards (2 Codex) thresholds. If Codex has two lost rounds, revise the plan without restoring a native-host conflict. Review the existing watch topics at the authorized close. No integration or model pilot is authorized by this task.
+**Changes:** Record the new deployment cutoff before counting. Count new sessions after it, or later rounds where a host demonstrably reloaded the corrected guidance. Exclude other guidance versions. Read each unanswered card and potential lost round against the host instructions and the session-review rubric; examine tool identity, receipts, user answers and available UI evidence without inferring queue resolution from chat. Keep the 20 Claude Code / 10 Codex rounds and 3 unanswered cards (2 Codex) thresholds and add at least 10 Grok rounds (AC15). A Grok session counts when its `summary.json` `created_at` is at or after the cutoff and its working directory is not a temporary probe or pilot folder (under `/private/tmp` or `/private/var/folders`); a session created before the cutoff and resumed later does not count, since Grok loads the guidance at session start (inference from `site/src/content/docs/host-limits.md`, which asks for a restart). As for Claude Code, a Grok round is one or more consecutive card calls with no agent message between them. If Codex or Grok has two lost rounds, revise the plan for that host without restoring a native-host conflict. Review the existing watch topics at the authorized close. No integration or model pilot is authorized by this task.
 
-**Verification:** Zero lost rounds under AC14; each counted round satisfies AC13 and each unanswered card AC10. The installed version and its persistence after another session's refresh establish AC4. Ordinary tests cannot close these behavior criteria.
+**Verification:** Zero lost rounds under AC15; each counted round satisfies AC13 and each unanswered card AC10. The installed version and its persistence after another session's refresh establish AC4. Ordinary tests cannot close these behavior criteria.
 
 ### T7 — La línea temporal de refresco está en `development`
 
@@ -134,7 +135,7 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 - [x] El punto «When a card comes back unanswered» de la guía global, sus dependientes y la instalación local siguen D9
 
-**Closes:** AC10, AC14
+**Closes:** AC10, AC15
 
 **Depends on:** T5
 
@@ -146,13 +147,13 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 **Historical changes (2026-11-16):** reescribe ese punto en dos ramas, «The card closed by itself» y «The user left it unanswered», como fija `design.md` «D9»; alinea la referencia de `harness-audit`, la página de límites por host (sección nueva «If you cancel a card»), la arquitectura y la fila de la rúbrica; añade a los extractores de Claude Code y de Codex, para cada tarjeta sin contestar (en Codex también la que no tiene resultado, que es la cancelada con Esc), si el agente volvió a preguntar por la tarjeta, y el siguiente mensaje del usuario para la lectura a ojo; anota para el pull request el cambio de tamaño de `global.md` y los lugares revisados; pasa `/code-review`, hace commit, push y redespliega con los pasos del párrafo temporal de `AGENTS.md`. Más de 3 archivos, pero en el hilo principal: es una corrección de una frase por archivo sobre texto que esta sesión acaba de escribir.
 
-**Historical verification (2026-11-16; superseded by T9 for local text and superseded deployment evidence):** `go test ./...` y `npm --prefix site run build` terminan con código 0; `rg -c "The card closed by itself:|The user left it unanswered:" content/guidance/global.md` da 2 y la misma búsqueda encuentra ambas frases en la guía instalada de cada host tras el despliegue. AC10 y AC14 quedan sin verificar hasta T6.
+**Historical verification (2026-11-16; superseded by T9 for local text and superseded deployment evidence):** `go test ./...` y `npm --prefix site run build` terminan con código 0; `rg -c "The card closed by itself:|The user left it unanswered:" content/guidance/global.md` da 2 y la misma búsqueda encuentra ambas frases en la guía instalada de cada host tras el despliegue. AC10 y AC15 quedan sin verificar hasta T6.
 
 ### T9 — One channel per question, within native host restrictions
 
 - [x] Correct the canonical rule, align its consumers and retained plan, and verify the local candidate
 
-**Closes:** AC13, AC10, AC14, AC12
+**Closes:** AC13, AC10, AC15, AC12
 
 **Depends on:** the user's 2026-11-17 approval for the local correction
 
@@ -164,14 +165,14 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 **Changes:** Follow `design.md` «Proposed shape». Retire superseded criteria without deleting them, preserve historical evidence and the existing trial thresholds, and leave deployment and behavior verification pending. Checked consumers: `flow-plan`, `flow-verify` and `viewer-publication`, `harness-audit` local-instructions, agents (no question directives), and `tests/pilot/regression.go` (existing S1 checks surrounding text). No synthetic regression fixture is added. Record the global-guidance size delta with the candidate's final report.
 
-**Verification:** Run `python3 -I <flow-plan-dir>/scripts/check_change.py <absolute-change-folder>`, ordinary content/Go checks and the site build, and review the resulting diff against the canonical rule. A passing local check does not verify AC13–AC14 in real sessions. AC12 requires the built page and aligned text; T6 closes behavior after an authorized deployment. The user subsequently authorized native Codex review, commit/push and local installation, without merge.
+**Verification:** Run `python3 -I <flow-plan-dir>/scripts/check_change.py <absolute-change-folder>`, ordinary content/Go checks and the site build, and review the resulting diff against the canonical rule. A passing local check does not verify AC13 or AC15 in real sessions. AC12 requires the built page and aligned text; T6 closes behavior after an authorized deployment. The user subsequently authorized native Codex review, commit/push and local installation, without merge.
 
 ### T10 — Complete questions without duplicate presentation
 
 - [x] Narrow the canonical rule and align documentation and the retained plan
 - [x] Verify, review and deploy the narrowed version to the local trial
 
-**Closes:** AC13, AC14, AC12, AC4
+**Closes:** AC13, AC15, AC12, AC4
 
 **Depends on:** the user's option A, 2026-11-17; existing delivery authorization
 
@@ -183,7 +184,7 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 **Changes:** Remove T9's separate async routing procedure, keep card-only decision presentation, prevent duplicate pending questions and retain alternatives, consequences and recommendation/reason in a host-required text form. No cancellation/timeout changes. Cause in the text: T9's form override did not preserve the decision's information explicitly. Observed gap: user's screenshot of D52 shows no explicit recommendation; the pause alternative appears in prose; internal causation remains inferred. No synthetic regression fixture or model pilot.
 
-**Verification:** content/package checks, change validation, site checks/build, native Codex review and readback of all seven hosts. Reuse unchanged Go/Python checks from the prior candidate where their inputs are unchanged. Record the new deployment cutoff. AC13, AC10 and AC14 remain unverified until real-session observation; AC4 persistence waits for a later session's refresh.
+**Verification:** content/package checks, change validation, site checks/build, native Codex review and readback of all seven hosts. Reuse unchanged Go/Python checks from the prior candidate where their inputs are unchanged. Record the new deployment cutoff. AC13, AC10 and AC15 remain unverified until real-session observation; AC4 persistence waits for a later session's refresh.
 
 ## Verification and human review
 
@@ -193,7 +194,7 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 | Full suite | Final candidate, locally | `go test ./...` and `npm run build` in `site/` | Covered by the implementation |
 | Historical code review | Previous published candidate | Nativa: Claude Code `/code-review` (D5 A) | Historical answer, not current-session publication authority |
 | Native code review | T9 candidate before publication | Codex `review --uncommitted`: no actionable findings | Explicit approval, 2026-11-17 |
-| Trial | After the authorized T10 deploy, in real sessions on this machine | The report of T6 against AC14 | Local deployment authorized; no model pilots |
+| Trial | After the authorized T10 deploy, in real sessions on this machine | The report of T6 against AC15 | Local deployment authorized; no model pilots |
 
 Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prueba misma: el usuario trabaja en sus sesiones con la regla nueva y decide la integración con el informe de T6.
 
@@ -205,7 +206,7 @@ Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prue
 - Worktree: `.claude/worktrees/question-channel-fix` · `feat/question-card-alone`, retained for the active trial
 - Findings: native Codex review found no actionable regressions; independent plan review's two stale cutoff references corrected
 - Deployment: 016345f994f3d984b5e2276279877a8b0d891e22 (trial af3222e19282dbd2c2f326d06726691aec5d4540, base 15b2e402c72543b74d63e50df1bc2b188638212a); release 441dbe9f56d2e478fa50b3e3356205efed865e93ece9ed0532daf96f44b93243; T10 cutoff 2026-11-17T09:30:37Z
-- Next: T6 against AC13, AC10 and AC14; AC4 persistence through another session's refresh. Earlier cutoffs are historical. No model pilot or merge authorized.
+- Next: T6 against AC13, AC10 and AC15; AC4 persistence through another session's refresh. Earlier cutoffs are historical. No model pilot or merge authorized.
 - Evidence: existing ignored work folder, `codex-t10-review.log` and `t10-deployment.json`; reproducible scratch/caches may be removed at close
 
 ### Evidence
@@ -284,3 +285,5 @@ Commands ran against `.claude/worktrees/question-channel-fix`, using its absolut
 - Full `go test ./...` passed on af3222e1, CLI 225.206 s. Reused Python/go-vet checks have unchanged inputs. Site check/lint/build and rendered host-limits text passed. Static change validation and secret scan passed. Native review found no actionable regressions; no dedicated re-review of metadata-only cutoff corrections.
 - T5/T10 installation verified in all seven hosts: no duplicate pending tool question, preserved alternatives/consequences/recommendation and reason, and removal of the separate T9 routing bullets. Receipt bf84c5a6bb6d3c50425598c087e3e71b.
 - New trial cutoff 2026-11-17T09:30:37Z; first join 016345f994f3d984b5e2276279877a8b0d891e22. Metadata-only final refreshes do not reset this cutoff. AC12 verified; AC13/AC10/AC14 live behavior remains unverified. AC4 persistence needs another session's refresh. No model pilot or merge.
+
+2026-11-17 — Revision after the first T6 review (Claude Code session b103d2f3): the user chose to add a Grok quota. AC15 replaces AC14 with at least 10 Grok rounds and zero lost rounds on every host; thresholds for Claude Code, Codex and unanswered cards and the T10 cutoff are unchanged. Reason: Grok is the second host by spend (23 % over 30 days) and its 51 sessions from 2026-11-09 to 11-17 asked 12 cards and no decision rounds in text. Reopens T1 for the Grok extractor (an independent plan review found it lacks a cutoff, unanswered-card classification and baseline preservation); T6 stays open and depends on it. Grok eligibility, round and lost-round consequence defined in T6 and AC15. First T6 sample so far: Claude Code 0/20, Codex 4/10, Grok not yet counted, unanswered 0/3; failures recorded in engram:tricell-hive/watch/t10-question-channel.
