@@ -44,9 +44,8 @@ verified.
 - While a card is open it covers the screen (an open Claude Code issue), so each
   card carries the context needed to answer on its own.
 - Each round of decisions comes in the card alone, after the agent's report.
-  Dismissing the card with Esc stops the turn: the agent writes those decisions
-  in the chat when you send your next message, and you answer there (for example
-  `D2 B`).
+  Dismissing the card with Esc stops the turn, and what the agent does next
+  depends on what you write: see «If you cancel a card» below.
 - A session isolated in a worktree has its `Edit` and `Write` of the main
   checkout refused, and so are compound shell commands such as Git inside
   `$(…)`, with an error that says it cannot verify they stay in the worktree
@@ -67,9 +66,8 @@ verified.
   card keeps its questions on screen but not their options, so when it closes the
   agent writes that round's open decisions in the chat: answer there (for example
   `D2 B`). It opens no further card for that round. Pressing Esc on a card
-  interrupts the turn instead, and the agent writes the round when you send your
-  next message. A round of more than three decisions comes as consecutive cards,
-  one after another.
+  interrupts the turn instead: see «If you cancel a card» below. A round of more
+  than three decisions comes as consecutive cards, one after another.
 - Question cards in Default mode need a Codex feature that is off by default,
   `default_mode_request_user_input`. Without it, the agent writes the options in
   the message instead of a card. `hive doctor` shows the state of this and of the
@@ -86,8 +84,8 @@ verified.
 
 - Its question card closes after 1800 seconds by default, and a close by timeout
   counts as a decline. The `toolset.ask_user_question.timeout_enabled` setting
-  controls that. After a decline the agent writes that round's decisions in the
-  chat.
+  controls that. After a decline the agent reminds you in one line which
+  decisions are still open and waits for what you say.
 - Helper roles keep the model written in the installed role file even when the
   session runs another one (observed). The agent can still mistake this for
   inheritance, so if it asks you about which model a verifier used, point it to the
@@ -110,8 +108,8 @@ verified.
 ## OpenCode
 
 - Dismissing a question card interrupts the whole turn. Answer it, or reply in
-  text if you would rather not stop the work; after a dismissal the agent writes
-  the round's decisions in the chat when you send your next message.
+  text if you would rather not stop the work; after a dismissal, see «If you
+  cancel a card» below.
 - Text sent together with a card can be lost, so each card stands on its own
   with its context.
 - Roles run on your session's model and variant; per-role effort settings have no
@@ -163,8 +161,30 @@ verified.
    was only to the global instructions; Codex 0.166 also reloaded them once,
    but restart it when in doubt.
 2. Run `hive doctor` to see what Hive can check on your machine.
-3. If a card closes before you answer, the agent writes its decisions in the
-   chat: reply there with the decision ID and letter. After Esc the turn stops,
-   so that text comes when you send your next message; on Cursor the decisions
-   are already in the message above the card. The next decision still comes in
-   a card.
+3. If a card closes by itself before you answer, the agent writes its decisions
+   in the chat: reply there with the decision ID and letter. On Cursor the
+   decisions are already in the message above the card, and on Grok Build a
+   timeout counts as a decline, so you get the one-line reminder instead. The
+   next decision still comes in a card.
+
+## If you cancel a card
+
+When you cancel a question card yourself, the agent does not paste the questions
+into the chat. It acts on what you write next:
+
+- You answer by ID (for example `D4 A, D5 B`) or write "ok": those answers
+  apply, and anything still open is asked again in a card.
+- You say it was a mistake, or ask for the questions again: the same card
+  comes back.
+- You say the work is going the wrong way, or your free text changes a question
+  or one of its options: the agent drops the questions that touches, rethinks
+  them with what you said, and asks a new round.
+- You tell it to drop the questions: it drops them, and asks one again only
+  if a later step cannot go on without it.
+- You change the subject or ask something that leaves the questions as they
+  were: the agent answers, reminds you in one line which decisions are still
+  open, and asks them again when you say so.
+- You have said nothing about the open decisions yet (you declined and the
+  turn went on, answered only part of the card, or chose to talk without saying
+  about what): one line names the open decisions and tells you to say "ask
+  again" for the card, or what to change.
