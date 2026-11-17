@@ -56,7 +56,9 @@ The answer comes in the conversation: what was concluded, the evidence, and what
 
 Whenever it ends with the command to start Plan, Figma design or Build, or continues into Build, one line estimates the scope: about how many files and which areas the work touches, and which stages and checks it will pass through, such as the plan, per-task verification, a review, CI, and a promotion only when you asked for one. You can narrow it in your reply; the agent then gives the revised line and the same ending again.
 
-Your reply starts only the flow it names. No flow needs a ticket. A single action that needs no flow, such as opening a ticket for work that will be done later or by someone else, is asked directly ("Do you want me to create the ticket?") instead of being sent through a flow command.
+With an explicit [E2E coordination](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-build/references/e2e-coordination.md) grant, the coordinator continues the covered stages toward the agreed endpoint without a new command for each stage. A research question alone still does not authorize implementation; decisions and effects outside the grant remain yours.
+
+Outside that grant, your reply starts only the flow it names. No flow needs a ticket. A single action that needs no flow, such as opening a ticket for work that will be done later or by someone else, is asked directly ("Do you want me to create the ticket?") instead of being sent through a flow command.
 
 ## Auditing a codebase
 

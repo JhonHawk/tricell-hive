@@ -5,6 +5,8 @@ description: Close a work item and its session hygiene. Use when a work item rea
 
 # Close a work item and the session
 
+For explicit E2E work, read [coordination](../flow-build/references/e2e-coordination.md) before closing units or cleaning their resources.
+
 The completion point is the merge into the base branch. When the delivery is `ready`, or a human reviewer's approval is pending, the open pull request is the completion point, reached at the stop [git-workflow step 8](../git-workflow/SKILL.md) sets: the ticket stays in progress, and a later session that finds it merged runs a follow-up close.
 
 To clean up, prune, reorganize, curate or archive existing docs or support material, or to apply a layout migration, use [docs-cleanup](../docs-cleanup/SKILL.md) instead of these steps.

@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"testing"
 	"unicode/utf8"
 )
@@ -104,4 +106,86 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 		})
 	}
 	t.Log("C uses B's canonical sources; mapped plan-review injection adds no unique source to this cycle. Raw source frontmatter is counted. This is not per-request context or actual tokens. Native rendering and skill/role discovery metadata, plugin metadata/wrappers, repeated text across readers/requests, history, project inputs and host policy are not measured. Pilots must observe delivery and token usage separately.")
+}
+
+// Compare the same pre-existing sources on both sides; new sources are separate.
+// The legacy scenario above remains identifiable rather than being silently expanded.
+func TestRequiredProcedureReadingFootprint(t *testing.T) {
+	const base = "15b2e402"
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	skills := "content/skills/"
+	cycle := []string{
+		"content/guidance/global.md",
+		skills + "flow-research/SKILL.md", skills + "flow-plan/SKILL.md",
+		skills + "flow-build/SKILL.md", skills + "flow-verify/SKILL.md", skills + "flow-close/SKILL.md",
+		skills + "flow-build/references/delegation.md",
+		skills + "flow-plan/references/plan-handoff.md", skills + "flow-plan/references/business-rules.md",
+		skills + "flow-close/references/artifact-layout.md", skills + "flow-close/references/support-material.md",
+		skills + "flow-verify/references/project-verification.md", skills + "flow-verify/references/suppression-review.md",
+		"content/agents/review/hive-review-plan.md", "content/agents/development/hive-build-backend.md",
+		"content/agents/quality/hive-verify-task.md", "content/agents/review/hive-review-code.md",
+	}
+	e2e := append(append([]string{}, cycle...),
+		skills+"flow-build/references/e2e-coordination.md", skills+"flow-plan/references/execution-record.md",
+		skills+"flow-build/references/defect-fix.md", skills+"git-workflow/SKILL.md",
+		skills+"flow-close/references/branch-cleanup.md", "content/agents/development/hive-build-owner.md",
+	)
+	added := map[string]bool{
+		skills + "flow-build/references/e2e-coordination.md":      true,
+		skills + "flow-plan/references/execution-record.md":       true,
+		skills + "flow-verify/references/project-verification.md": true,
+		skills + "flow-verify/references/suppression-review.md":   true,
+		"content/agents/development/hive-build-owner.md":          true,
+		skills + "flow-verify/scripts/check_contract.py":          true,
+	}
+	for _, scenario := range []struct {
+		name, predicate string
+		paths           []string
+	}{
+		{"plan-build-required", "retained backend plan, delegated implementation and independent reviews; project verification contract maintained; hold and pause; no UI, external system, data migration, defect correction or unattended authority", cycle},
+		{"e2e", "same backend plan with explicit multiunit E2E grant, local owners, correction, replacement, independent verification and authorized Git integration; no UI, data migration, deployment or unattended authority", e2e},
+		{"executable-resources", "execution rather than mandatory source reading: task/plan, project contract, scoped Git and cleanup helpers; never added to the prose union", []string{skills + "flow-plan/scripts/tasks.py", skills + "flow-plan/scripts/check_change.py", skills + "flow-verify/scripts/check_contract.py", skills + "git-workflow/scripts/git_state.py", skills + "flow-close/scripts/cleanup_branches.py"}},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			t.Logf("predicate: %s", scenario.predicate)
+			before, comparable, fresh, prose, references, code := 0, 0, 0, 0, 0, 0
+			_, err := readingUnion(scenario.paths, func(path string) ([]byte, error) {
+				data, err := os.ReadFile(filepath.Join(root, path))
+				if err != nil {
+					return nil, err
+				}
+				kind := "prose"
+				if strings.Contains(path, "/references/") {
+					kind = "reference"
+					references += len(data)
+				} else if strings.HasSuffix(path, ".py") {
+					kind = "code"
+					code += len(data)
+				} else {
+					prose += len(data)
+				}
+				if added[path] {
+					fresh += len(data)
+					t.Logf("new %s %s: %d B", kind, path, len(data))
+				} else {
+					old, err := exec.Command("git", "-C", root, "show", base+":"+path).Output()
+					if err != nil {
+						return nil, fmt.Errorf("baseline %s: %w", path, err)
+					}
+					before += len(old)
+					comparable += len(data)
+					t.Logf("same-path %s %s: %d -> %d B", kind, path, len(old), len(data))
+				}
+				return data, nil
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Logf("same-path baseline %s: %d B -> %d B (%+d); new sources %d B; total %d B; prose %d B; references %d B; executable code %d B", base, before, comparable, comparable-before, fresh, comparable+fresh, prose, references, code)
+		})
+	}
+	t.Log("Explicit source unions, not transitive loading or observed tokens. Excludes native metadata/rendering, repeated reads, project inputs, history and host policies. Executable resources are measured separately, not presumed read by a model. No aggregate quota; each entrypoint/reference retains its 16000-byte check.")
 }

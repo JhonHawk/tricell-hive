@@ -12,6 +12,17 @@ raise the minor or the patch version.
 
 ### Added
 
+- Explicit E2E coordination gives the coordinator responsibility for independent
+  deliverables through the authorized endpoint. Assigned local owners may commit
+  in their own branches and worktrees; independent verification binds each head,
+  and the coordinator integrates and checks the units together. This mode does
+  not require the user to be away and does not itself grant unattended authority.
+- A project verification contract indexes existing launch, readiness, journey,
+  evidence and cleanup capabilities. Structural validation does not execute the
+  commands or establish that a feature works. Repeatable defect fixes record the
+  enforcement mechanism and a negative check; reviews inventory weakened checks
+  and assess each candidate against evidence.
+
 - `docs-cleanup` is a skill for cleaning up, pruning or reorganizing the
   documentation, architecture notes, evidence and support material of a
   repository, a workspace or a monorepo, with or without Hive. It lists every
