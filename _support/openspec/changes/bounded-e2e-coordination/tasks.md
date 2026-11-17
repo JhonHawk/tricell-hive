@@ -22,7 +22,7 @@ Base: development `15b2e402c72543b74d63e50df1bc2b188638212a`. Rama de implementa
 
 ### T2 — Incorporar el responsable local con una frontera explícita
 
-- [ ] Añadir el rol local y su asignación con ramas/worktrees y recursos exclusivos.
+- [x] Añadir el rol local y su asignación con ramas/worktrees y recursos exclusivos.
 
 **Closes:** AC2; commits y comportamiento reales en T8.
 
@@ -58,7 +58,7 @@ Base: development `15b2e402c72543b74d63e50df1bc2b188638212a`. Rama de implementa
 
 ### T4 — Generar y mantener el contrato de verificación del proyecto
 
-- [ ] Añadir H1 con plantilla, init no destructivo, validación estructural y mantenimiento por cambios afectados.
+- [x] Añadir H1 con plantilla, init no destructivo, validación estructural y mantenimiento por cambios afectados.
 
 **Closes:** AC6; comandos reales de la fixture se observan en T8.
 
@@ -76,7 +76,7 @@ Base: development `15b2e402c72543b74d63e50df1bc2b188638212a`. Rama de implementa
 
 ### T5 — Encauzar correcciones y revisar debilitamientos de controles
 
-- [ ] Integrar H2 y H3 en sus procedimientos existentes sin prohibición universal de comentarios/supresiones.
+- [x] Integrar H2 y H3 en sus procedimientos existentes sin prohibición universal de comentarios/supresiones.
 
 **Closes:** AC7, AC11; resultado aplicado se observa en T8.
 
@@ -162,15 +162,19 @@ No hay UI de producto ni cuentas de aplicación. Las páginas documentales se co
 ## Checkpoint
 
 - Updated: 2026-11-17
-- Stage: build · T2 implemented; T3/T4/T7 delegated; T6 wiring prepared
-- Last commit: 596aeb688f802414c0b2343456805e450b98e3c4
+- Stage: build · T1/T2/T5 done; T4 independent verification; T3/T7 active; T6 docs and wiring ready for seam checks
+- Last commit: 8e14faadba1840acb502cd5e34bb158a335606e8
 - Open findings: none
-- Next: Independent T1/T2 verification; T5 documentation when slot opens; finish T3/T4/T7 and T6
+- Next: T3 record/check seam; independent T3 verification; full suite then native review and authorized single pilot
 
 ### Evidence
 
 - Investigación local de estado y pilotos completada; ningún modelo ni instalación ejecutado.
 - T1 content suite exit 0; T2 AgentBoundary/Render/SkillSize and integrations/agents exit 0; native behavior pending T8
+- T4 unittest verification_contract_test.py: 9 tests OK, 1.240s; commit 2f532f65; runtime AC6 pending
+- T5 content SkillSize/AgentBoundary exit 0; commit 8e14faad; runtime AC7/AC11 pending
+- T2 independent verifier: AC2 structural met; worktree-plan conflict corrected in T6; runtime pending
+- Site pnpm check: 0 errors/warnings; lint: 14 files no fixes; build pending output
 
 ## Review status and progress
 
@@ -182,3 +186,6 @@ No hay UI de producto ni cuentas de aplicación. Las páginas documentales se co
 2026-11-17 — T1 · 596aeb688f802414c0b2343456805e450b98e3c4 · unverified: AC1/AC5 behavioral evidence pending T8; independent contract verification pending
 
 2026-11-17 — Build iniciado por `$flow-build`. T7 incluye wrappers compatibles de deadline en memory.go: los helpers actuales usan timeouts fijos; el límite total debe cubrir también su setup. No cambia el criterio ni habilita otro piloto.
+2026-11-17 — T5 · 8e14faadba1840acb502cd5e34bb158a335606e8 · unverified: AC7 and AC11 behavioral observation pending T8
+2026-11-17 — T2 · 42e81faaa4e50f697f6ae8b7bf8f87510e39373b · unverified: AC2 structural verification passed; real owner commits pending T8; T6 reconciles plan movement for owner worktrees
+2026-11-17 — T4 · 2f532f65c5c29fe8ecb5b187306dbe0bd189cbe0 · unverified: AC6 structure independently verified (9 tests OK); real commands and flow evidence pending T8
