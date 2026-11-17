@@ -1,6 +1,6 @@
 # Tasks
 
-Base: tricell-hive `development` en `c35c3424` (2026-11-16). Ramas: `chore/trial-refresh-line` para T7, que el usuario integra antes de T5, y `feat/question-card-alone` para T2–T4, sin integrar hasta que T6 cumpla AC6. Otras sesiones trabajan en el checkout principal sobre `development`, así que el build pregunta antes de su primera edición si la rama vive en un worktree. Todas las tareas corren en el hilo principal: ninguna edita más de 3 archivos; en T6, la lectura de sesiones de un host que pase de 5 lecturas grandes va a un child `hive-research` por host.
+Base: tricell-hive `development` en `c35c3424` (2026-11-16). Ramas: `chore/trial-refresh-line` para T7, que el usuario integra antes de T5, y `feat/question-card-alone` para T2–T4, sin integrar hasta que T6 cumpla AC8. Otras sesiones trabajan en el checkout principal sobre `development`, así que el build pregunta antes de su primera edición si la rama vive en un worktree. Todas las tareas corren en el hilo principal: ninguna edita más de 3 archivos; en T6, la lectura de sesiones de un host que pase de 5 lecturas grandes va a un child `hive-research` por host.
 
 ### T1 — Los scripts de medición y la línea base quedan guardados
 
@@ -8,7 +8,7 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 - [x] `_support/workspace/2026-11-16-question-card-alone/measure/` contiene los scripts de Claude Code, Codex y los otros hosts con sus salidas del 9 al 16 de noviembre, y un `README.md` con el comando de cada uno
 
-**Closes:** AC6
+**Closes:** AC8
 
 **Depends on:** none
 
@@ -20,13 +20,13 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 **Changes:** copia los scripts y sus salidas; añade a cada extractor la fecha de corte como parámetro y la clasificación que T6 necesita: ronda con o sin bloque de decisión antes de la tarjeta, tarjeta sin contestar, y si el mensaje siguiente del agente escribe las decisiones abiertas. No cambia las cifras de la línea base.
 
-**Verification:** `python3 extract.py && python3 aggregate.py` en `measure/cc/` reproduce 306 rondas, 330 tarjetas y 252 rondas con bloque de decisión antes de la tarjeta; `python3 cards.py && python3 agg.py` en `measure/codex/` reproduce 47 tarjetas con 10 vacías. AC6 queda sin verificar hasta T6.
+**Verification:** `python3 extract.py && python3 aggregate.py` en `measure/cc/` reproduce 306 rondas, 330 tarjetas y 252 rondas con bloque de decisión antes de la tarjeta; `python3 cards.py && python3 agg.py` en `measure/codex/` reproduce 47 tarjetas con 10 vacías. AC8 queda sin verificar hasta T6.
 
 ### T2 — La guía global pide la tarjeta sola y el texto tras una tarjeta sin respuesta
 
 - [x] Los tres puntos de «Questions and routes» dicen la regla de `design.md` «Proposed shape», sin restos del orden anterior
 
-**Closes:** AC1, AC2
+**Closes:** AC1
 
 **Depends on:** none
 
@@ -38,7 +38,7 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 **Changes:** reescribe los tres puntos con la condición observable (herramienta que espera y descripción por opción), el contenido del texto previo (línea de contexto e informe), la respuesta a una tarjeta sin contestar y al turno cortado, y los casos que siguen en texto. Antes de editar, revisa cada lugar que depende de la conducta, como pide `AGENTS.md` «Guidance structure», y anota los lugares revisados y el cambio de tamaño de `global.md` para el pull request. No cambia el formato de una decisión, las tarjetas consecutivas, las preguntas abiertas ni el bloque de siguiente paso.
 
-**Verification:** `go test ./tests/...` pasa; `rg -n "visible text first|without repeating the decisions|round's text before it" content/guidance/global.md` no devuelve nada, y `rg -c "through that tool alone when it also gives each option a description field|When a card comes back unanswered and it carried the round alone" content/guidance/global.md` da 2; el tamaño de `global.md` antes y después queda anotado. AC1 y AC2 quedan sin verificar hasta T6.
+**Verification:** `go test ./tests/...` pasa; `rg -n "visible text first|without repeating the decisions|round's text before it" content/guidance/global.md` no devuelve nada, y `rg -c "through that tool alone when it also gives each option a description field|When a card comes back unanswered and it carried the round alone" content/guidance/global.md` da 2; el tamaño de `global.md` antes y después queda anotado. AC1 queda sin verificar hasta T6.
 
 ### T3 — Las skills que citan el orden apuntan a la regla nueva
 
@@ -96,11 +96,11 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 ### T6 — La prueba se mide y el usuario decide la integración
 
-- [ ] Un informe con las rondas posteriores al despliegue, las tarjetas sin contestar y las rondas perdidas por host, contra el criterio D3 A
+- [ ] Un informe con las rondas posteriores al despliegue de T8, las tarjetas sin contestar y las rondas perdidas por host, contra AC8
 
-**Closes:** AC1, AC2, AC6, AC4
+**Closes:** AC1, AC7, AC8, AC4
 
-**Depends on:** T1, T5, y que las sesiones reales reúnan el volumen de AC6
+**Depends on:** T1, T5, T8, y que las sesiones reales reúnan el volumen de AC8
 
 **Locations:** `_support/workspace/2026-11-16-question-card-alone/measure/`; `~/.claude/projects`, `~/.codex/sessions` y los registros de los otros hosts, solo lectura
 
@@ -108,9 +108,9 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 **Test approach:** check
 
-**Changes:** ejecuta los scripts con la fecha del despliegue como corte, descarta las rondas de sesiones que corrieron con la guía de `development` (ventanas de `hive releases`), lee a ojo cada tarjeta sin contestar y cada ronda marcada como perdida, e informa según la rúbrica de revisión de sesiones; el informe revisa las vigilancias de Engram que el cambio toca (`watch/card-without-visible-text`, `watch/card-without-message`, `watch/no-card-after-card-timeout`) y propone cerrar o redefinir cada una. Si Codex suma dos rondas perdidas, el plan se revisa para dejarlo en la regla anterior mediante una excepción por host. No integra la rama: la integración es la decisión del usuario tras el informe.
+**Changes:** ejecuta los scripts con el despliegue de T8 como corte, cuenta solo sesiones iniciadas después de él (en Codex y OpenCode, que recargan la guía solas, las rondas posteriores a él), descarta las rondas de sesiones que corrieron con la guía de `development` (ventanas de `hive releases`), lee a ojo cada tarjeta sin contestar y cada ronda marcada como perdida, e informa según la rúbrica de revisión de sesiones; el informe revisa las vigilancias de Engram que el cambio toca (`watch/card-without-visible-text`, `watch/card-without-message`, `watch/no-card-after-card-timeout`) y propone cerrar o redefinir cada una. Si Codex suma dos rondas perdidas, el plan se revisa para dejarlo en la regla anterior mediante una excepción por host. No integra la rama: la integración es la decisión del usuario tras el informe.
 
-**Verification:** el informe muestra al menos 20 rondas en Claude Code y 10 en Codex con al menos 3 tarjetas sin contestar, 2 de ellas de Codex; en cada ronda contada el texto previo no tiene bloque de decisión (AC1); cada tarjeta sin contestar va seguida del texto completo de sus decisiones abiertas (AC2); cero rondas perdidas (AC6); los archivos instalados siguen sirviendo la regla de la rama al medir, después de al menos un refresco hecho por otra sesión tras un merge a `development` (AC4).
+**Verification:** el informe muestra al menos 20 rondas en Claude Code y 10 en Codex con al menos 3 tarjetas sin contestar, 2 de ellas de Codex; en cada ronda contada el texto previo no tiene bloque de decisión (AC1); cada tarjeta cerrada sola va seguida del texto completo de sus decisiones abiertas y de ninguna otra tarjeta de esa ronda, y cada tarjeta cancelada por el usuario va seguida de lo que corresponde a lo que el usuario dijo: respuestas por ID aplicadas y el resto preguntado otra vez por la tarjeta, la misma tarjeta, el replanteo, el descarte o el recordatorio (AC7); cero rondas perdidas (AC8); los archivos instalados siguen sirviendo la regla de la rama al medir, después de al menos un refresco hecho por otra sesión tras un merge a `development` (AC4).
 
 ### T7 — La línea temporal de refresco está en `development`
 
@@ -130,6 +130,24 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 **Verification:** `rg -n "feat/question-card-alone" AGENTS.md` muestra la frase en «Refreshing a local installation»; un ensayo de sus comandos (unión con `git merge-tree`, `hive update --rev <unión> --dry-run`) termina con código 0 sin cambios en la rama, y una referencia inexistente hace salir a `git merge-tree` con código 1; `go test ./tests/...` pasa; el pull request tiene CI en verde. AC4 queda sin verificar hasta T6.
 
+### T8 — La regla distingue la tarjeta que se cierra sola de la que cancela el usuario
+
+- [ ] El punto «When a card comes back unanswered» de la guía global, sus dependientes y la instalación local siguen D9
+
+**Closes:** AC7, AC8
+
+**Depends on:** T5
+
+**Locations:** `content/guidance/global.md`; `content/skills/harness-audit/references/local-instructions.md`; `site/src/content/docs/host-limits.md`; `_support/docs/architecture/agent-delivery.md`; `_support/docs/harness-engineering/session-review-rubric.md`; la instalación local; `_support/workspace/2026-11-16-question-card-alone/measure/cc/extract.py` y `measure/codex/cards.py`
+
+**Execution:** main thread
+
+**Test approach:** check
+
+**Changes:** reescribe ese punto en dos ramas, «The card closed by itself» y «The user left it unanswered», como fija `design.md` «D9»; alinea la referencia de `harness-audit`, la página de límites por host (sección nueva «If you cancel a card»), la arquitectura y la fila de la rúbrica; añade a los extractores de Claude Code y de Codex, para cada tarjeta sin contestar (en Codex también la que no tiene resultado, que es la cancelada con Esc), si el agente volvió a preguntar por la tarjeta, y el siguiente mensaje del usuario para la lectura a ojo; anota para el pull request el cambio de tamaño de `global.md` y los lugares revisados; pasa `/code-review`, hace commit, push y redespliega con los pasos del párrafo temporal de `AGENTS.md`. Más de 3 archivos, pero en el hilo principal: es una corrección de una frase por archivo sobre texto que esta sesión acaba de escribir.
+
+**Verification:** `go test ./...` y `npm --prefix site run build` terminan con código 0; `rg -c "The card closed by itself:|The user left it unanswered:" content/guidance/global.md` da 2 y la misma búsqueda encuentra ambas frases en la guía instalada de cada host tras el despliegue. AC7 y AC8 quedan sin verificar hasta T6.
+
 ## Verification and human review
 
 | Check | When and where | Evidence | Authorization |
@@ -137,7 +155,7 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 | Tests of each task | When the task closes, locally | The task's command passes | Covered by the implementation |
 | Full suite | Final candidate, locally | `go test ./...` and `npm run build` in `site/` | Covered by the implementation |
 | Code review | Final candidate, before the push or the validation stop | Nativa: Claude Code `/code-review` (D5 A) | The review answer |
-| Trial | After T5, in real sessions on this machine | The report of T6 against D3 A | D1 A |
+| Trial | After T8's deploy, in real sessions on this machine | The report of T6 against AC8 | D1 A |
 
 Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prueba misma: el usuario trabaja en sus sesiones con la regla nueva y decide la integración con el informe de T6.
 
@@ -170,3 +188,4 @@ Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prue
 2026-11-16 — T3 · 7fab11bf · unverified: AC1 hasta T6
 2026-11-16 — T4 · 27e752a0 · unverified: none
 2026-11-16 — T5 · 15f74421 · unverified: AC4: la regla nueva está en la guía instalada de los siete hosts (Grok la lee de ~/.claude/CLAUDE.md) y la anterior en ninguno; falta observar que sobrevive a un refresco de otra sesión, en T6
+2026-11-16 — Revisión por D9: T8 añadida; T2 deja de cerrar AC2 (retirado); T6 cierra AC7 y AC8.
