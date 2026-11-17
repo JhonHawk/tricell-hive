@@ -20,13 +20,13 @@ Create only the folders and records the work needs. One work item shares its ide
 - Scratch, reproducible material nobody needs after the task (temporary files, shell helpers, intermediate output, throwaway checkouts), goes where the host keeps temporary work: its scratch or session directory, otherwise the system temporary directory; never the repository root, and never for anything the user should read or reuse. Material holding the only copy of work, such as unintegrated source edits, uncommitted changes in a checkout, or unique evidence, is not scratch: keep it in its source location, the host's native mechanism, or a location the user approves.
 - `secrets/`: never versioned, the folder at mode `0700` and its files at `0600`, holding the secret files and the account index `ACCOUNTS.md` that the global guidance's «Test accounts» sets.
 - `scripts/`: never versioned, the local scripts that `HIVE.local.md` names, as the global guidance's «Local instructions» sets.
-- `evidence/YYYY-MM-DD-<work>/`: the selected subset that substantiates results, linked from the report.
+- A work's verification material, such as walk outputs, captures and raw CI, cloud or tool output, goes in its `workspace/YYYY-MM-DD-<work>/` folder and is retained as [Retain evidence](#retain-evidence) sets. Do not create an `evidence/` folder; an existing one is legacy material, cleaned up on request as [support maintenance](support-maintenance.md) sets.
 
 **Condition:** producing UI review images or recordings.
 
-**Actions:** put images and recordings in `workspace/YYYY-MM-DD-<work>/images/`. Publish UI captures using [walkthrough](../../flow-verify/references/walkthrough.md); its [readback checks](../../flow-verify/references/viewer-publication.md#close-and-input-hygiene) precede removing the disposable upload inputs. Link current output and selected evidence from the handoff.
+**Actions:** put images and recordings in `workspace/YYYY-MM-DD-<work>/images/`. Publish UI captures using [walkthrough](../../flow-verify/references/walkthrough.md); its [readback checks](../../flow-verify/references/viewer-publication.md#close-and-input-hygiene) precede removing the disposable upload inputs. Link current output from the handoff.
 
-Keep source plans, user-selected output, unique evidence, uncommitted work and anything with uncertain ownership. Keep failed or unconfirmed upload inputs, and all inputs for paused work. Walkthrough pages generated before the standalone fallback was removed are kept as they are, never deleted or rewritten by that removal. Retention does not authorize publication, and nothing expires by age.
+Keep source plans, user-selected output, unique evidence of work not yet integrated, uncommitted work and anything with uncertain ownership. Keep failed or unconfirmed upload inputs, and all inputs for paused work. Walkthrough pages generated before the standalone fallback was removed are kept as they are, never deleted or rewritten by that removal. Retention does not authorize publication, and nothing expires by age.
 
 ## Name and date records
 
@@ -37,7 +37,17 @@ Keep source plans, user-selected output, unique evidence, uncommitted work and a
 
 ## Retain evidence
 
-Retain necessary evidence, including justified binaries; only curated, shareable material is eligible for Git. Keep secrets, raw dumps, and unnecessary reproducible output out of Git. State availability limits for private evidence.
+Verification material serves the review of its own work. Keep it unversioned in the work's `workspace/` folder while the work is open; once the work is integrated, its pull request body, which lists each acceptance criterion with its evidence, is the record that replaces it, or the final report when the delivery opens no pull request.
+
+Promote a conclusion from that material, as [support maintenance](support-maintenance.md) «Promote a finding» sets, only when it is one of these, since later work reuses only these:
+
+- a measurement a later change will be compared against, such as CI time, build time or bundle size;
+- a rehearsal or procedure that was run, such as a rollback, a restore or a cutover;
+- a review or audit whose findings open other work.
+
+The promoted text goes into the durable document that uses it, under `docs/` or the project's existing documentation home, and states the figure, the method, the sample size, the observation date and the provenance: the command, the commit and the pull request. It copies no raw data, and a CI run link is never its only provenance, because CI artifacts and logs expire (on GitHub after 90 days at most).
+
+Keep, until a decision covers them: the trace of a finding that has no ticket yet, a dump or export, and the material of paused or unintegrated work. Keep secrets, raw dumps and reproducible output out of Git. State availability limits for private evidence.
 
 ## Close or maintain material
 
@@ -45,6 +55,6 @@ Retain necessary evidence, including justified binaries; only curated, shareable
 
 **Actions:** run [flow-close](../SKILL.md), which sets what it removes, stops and keeps, and what it proposes for the work's support material.
 
-**Condition:** requested organization of existing support material, evidence curation, promotion of findings into durable guidance, or archiving.
+**Condition:** requested organization of existing support material, evidence curation, cleanup of legacy material in a workspace or monorepo, promotion of findings into durable guidance, or archiving.
 
 **Actions:** use [support maintenance](support-maintenance.md).
