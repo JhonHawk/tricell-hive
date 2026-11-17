@@ -734,7 +734,9 @@ func containsSecretToken(line string) bool {
 	for _, raw := range secretTokenSplitter.Split(line, -1) {
 		tok := strings.Trim(raw, "'\"`()[]{}")
 		if tok == "" || strings.HasPrefix(tok, "http://") || strings.HasPrefix(tok, "https://") ||
-			strings.HasPrefix(tok, "engram:") || strings.HasPrefix(tok, "/") ||
+			strings.HasPrefix(tok, "engram:") || strings.HasPrefix(tok, "arn:") ||
+			strings.HasPrefix(tok, "git@") || strings.HasPrefix(tok, "ssh://") ||
+			strings.HasPrefix(tok, "op://") || strings.HasPrefix(tok, "/") ||
 			strings.HasPrefix(tok, "~/") || strings.HasPrefix(tok, "./") {
 			continue
 		}
@@ -746,11 +748,14 @@ func containsSecretToken(line string) bool {
 			if secretFlagKeyRegexp.MatchString(k) && len(v) >= 8 {
 				return true
 			}
-			if isMixedClassSecret(v) {
+			tok = v
+		}
+		for _, sub := range strings.FieldsFunc(tok, func(r rune) bool {
+			return r == ':' || r == '/' || r == '@' || r == '.'
+		}) {
+			if isMixedClassSecret(sub) {
 				return true
 			}
-		} else if isMixedClassSecret(tok) {
-			return true
 		}
 	}
 	return false

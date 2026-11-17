@@ -100,6 +100,14 @@ class CheckPrdTests(unittest.TestCase):
         res_cancelled = self.mod.validate_prd(cancelled_only)
         self.assertTrue(res_cancelled["ok"], res_cancelled["findings"])
 
+        # Bold/italic markdown rule statement must pass
+        bold_rule = VALID_SPANISH_PRD.replace(
+            "Todo reembolso mayor a $500",
+            "**Todo** reembolso mayor a $500",
+        )
+        res_bold = self.mod.validate_prd(bold_rule)
+        self.assertTrue(res_bold["ok"], res_bold["findings"])
+
         # Empty required section (e.g., Objetivos) and rule without rule-statement paragraph must fail.
         missing_body = (
             VALID_SPANISH_PRD.replace(

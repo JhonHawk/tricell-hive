@@ -135,7 +135,7 @@ def validate_prd(text):
             block = req_lines[r_off + 1 : r_end]
             body_lines = [l.strip() for l in block if l.strip() and not l.strip().startswith("<!--")]
             has_statement = any(
-                not re.match(r"^(?:[-*]|\|)\s*", l) and not SOURCE_LINE_RE.match(l) and not VERDICT_LINE_RE.match(l)
+                not re.match(r"^(?:[-*]\s+|\|)", l) and not SOURCE_LINE_RE.match(l) and not VERDICT_LINE_RE.match(l)
                 for l in body_lines
             )
             if not has_statement:

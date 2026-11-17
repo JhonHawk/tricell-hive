@@ -782,6 +782,15 @@ func TestDoctorProjectLocalInstructionsAndSecrets(t *testing.T) {
 		if err := os.WriteFile(filepath.Join(root, "HIVE.local.md"), []byte(body), 0o644); err != nil {
 			t.Fatal(err)
 		}
+		for _, benign := range []string{
+			"- Container image ghcr.io/AcmeOrg/dev-postgres:16 runs on port 5432 · 2026-11-16",
+			"- Repo mirror git@github.com:JhonHawk/tricell-hive.git · 2026-11-16",
+			"- Uses AWS role arn:aws:iam::123456789012:role/DevDeployRole in us-east-1 · 2026-11-16",
+		} {
+			if containsSecretToken(benign) {
+				t.Fatalf("benign operational entry flagged as secret: %s", benign)
+			}
+		}
 		sec := collectProject(root, doctorDeps{})
 		text := projectText(t, root)
 		mustContain(t, text, "HIVE.local.md: line 3 contains a secret-like value")
