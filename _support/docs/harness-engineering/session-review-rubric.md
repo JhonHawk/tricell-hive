@@ -53,6 +53,18 @@ Each check names what to look for and how to observe it in the transcript.
 | Verification | A criterion closed by a local or mocked check whose real effect later failed | The verification each task recorded against the later failure of the same behavior in the real environment | 2026-11-08 (Codex `01a1b955`) |
 | Scope changes | A change of route or scope the user makes after the plan is approved: whether it was classified in one line with what it costs, and which later decisions it caused | The message that accepts the change, and the decisions that trace back to it | 2026-11-08 (Codex `01a1b955`) |
 
+### Bounded E2E follow-up
+
+For a real session that exercises the bounded E2E procedure, also check the following. Report each behavior as observed, failed, not exercised or inconclusive; an unrelated session does not supply a successful episode. These checks observe existing requirements, not new permissions or a mandate to run a pilot.
+
+| Area | What to check | How to observe it | Added |
+| --- | --- | --- | --- |
+| E2E preparation and source reads | The grant covers the stages and effects; the coordinator selects and reads the applicable skills, prepares the plan and validates the execution record before dispatch | Actual source reads and command results in timestamp order; catalog entries and a retrospective plan are not evidence of prior preparation | 2026-11-17 (PR #500; Claude session `948f3f04-1511-42d1-b9da-fe4cf12f9806`) |
+| E2E ownership and verification | Scoped commits, stopped owners during independent exact-head verification, a new verdict after correction, confirmed closure before replacement, preserved checkpoint and joint check before integration | Native launch/completion/stop events, Git heads and paths, scoped-commit scan output, verifier identity and raw check results; distinguish fixture injection from model work | 2026-11-17 (PR #500; same observation) |
+| E2E project checks and correction | Project capabilities and features have real evidence for the declared revision; repeatable corrections select an enforcer; suppression/skip/configuration inventory reaches the chosen independent review and receives grounded dispositions | Contract init/check output separately from application execution; candidate/revision/cwd reconciliation; rule-to-enforcer negative case; review brief, canonical reference read and verdict. Mark missing opportunities not exercised | 2026-11-17 (PR #500; same observation) |
+
+Use the session card and support-floor test above before counting recurrence. The existing watch `watch/e2e-skill-contract-adoption` in project memory owns the observation count and reopening conditions; reports point to it instead of maintaining another count. Preserve the distinction between completed objectives and compliance with every procedural step, and between absent evidence and demonstrated failure. A future review does not authorize guidance edits, new model runs or changes to the reviewed session.
+
 ## 5. Timeline and parallelism
 
 Build a phase table from the transcript: each flow and task with its start, end and duration, the user's waiting time, CI time and children's spans. Then answer:
