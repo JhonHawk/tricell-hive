@@ -94,7 +94,7 @@ Commit base del repositorio `tricell-hive` al escribir el plan: `f886538f` en la
 
 ### T6 — Añadir validación y splicer de `## Business rules` (`H10`) y validadores de *ready list* para PRD y tickets (`H11`)
 
-- [ ] `check_change.py` y `business_rules.py` validan y actualizan entre marcadores `## Business rules`, y `check_prd.py` / `check_issue.py` validan borradores de PRD y tickets en inglés y español.
+- [x] `check_change.py` y `business_rules.py` validan y actualizan entre marcadores `## Business rules`, y `check_prd.py` / `check_issue.py` validan borradores de PRD y tickets en inglés y español.
 
 **Closes:** AC6, AC7
 
@@ -112,7 +112,7 @@ Commit base del repositorio `tricell-hive` al escribir el plan: `f886538f` en la
 
 ### T7 — Actualizar `content/guidance/global.md`, skills propietarios, documentación y pruebas de especificaciones (`D3 A`)
 
-- [ ] `content/guidance/global.md` y los skills propietarios invocan los validadores y scripts de `T1`–`T6` en lugar de recetas manuales de shell, reduciendo el tamaño de `global.md` y manteniendo la paridad con `_support/openspec/`, `_support/docs/architecture/` y `site/`.
+- [x] `content/guidance/global.md` y los skills propietarios invocan los validadores y scripts de `T1`–`T6` en lugar de recetas manuales de shell, reduciendo el tamaño de `global.md` y manteniendo la paridad con `_support/openspec/`, `_support/docs/architecture/` y `site/`.
 
 **Closes:** AC8
 
@@ -140,17 +140,19 @@ Parada de validación humana (`D4 A` — `interactive`): antes de `git push`, pr
 
 ## Checkpoint
 
-- Updated: 2026-11-16
-- Stage: plan · 6
-- Last commit: f886538f
+- Updated: 2026-11-17
+- Stage: verify · 1
+- Last commit: bb28fa19
 - Open findings: none
-- Next: /flow-build _support/openspec/changes/deterministic-rule-validators
+- Next: flow-verify validation stop (D4 A)
 
 ### Evidence
 
 - `git rev-parse --short HEAD` → `f886538f` (2026-11-16)
 - check_change.py: exit 0 (f886538f)
 - apply_deltas.py dry-run: 9 MODIFIED requirements valid (f886538f)
+- go vet ./... && go test ./tests/content/... ./tooling/... ./integrations/...: pass (bb28fa19)
+- python3 -m unittest discover -s tests/skills -p *_test.py: 140 tests pass (bb28fa19)
 
 ## Review status and progress
 
@@ -160,3 +162,5 @@ Parada de validación humana (`D4 A` — `interactive`): antes de `git push`, pr
 2026-11-16 — T4 · e3888838 · unverified: none
 2026-11-17 — T5 · 6771a316 · unverified: none
 2026-11-17 — T2 · 828f2a3e · unverified: none
+2026-11-17 — T6 · cd34acbc · unverified: none
+2026-11-17 — T7 · bb28fa19 · unverified: none
