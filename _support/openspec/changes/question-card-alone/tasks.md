@@ -132,7 +132,7 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 ### T8 — La regla distingue la tarjeta que se cierra sola de la que cancela el usuario
 
-- [ ] El punto «When a card comes back unanswered» de la guía global, sus dependientes y la instalación local siguen D9
+- [x] El punto «When a card comes back unanswered» de la guía global, sus dependientes y la instalación local siguen D9
 
 **Closes:** AC7, AC8
 
@@ -163,9 +163,9 @@ Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prue
 
 - Updated: 2026-11-16
 - Stage: build · T6 (espera el volumen de la prueba)
-- Last commit: 15f74421
-- Open findings: none
-- Next: T6 cuando las sesiones reales reúnan AC6: medir desde el despliegue (2026-11-17T00:06Z aprox.) con los scripts de _support/workspace/2026-11-16-question-card-alone/measure/; el último commit antes de integrar #491 borra el párrafo temporal de AGENTS.md
+- Last commit: a1ee85f7
+- Open findings: P3: la unión de prueba se despliega sin correr las pruebas de contenido sobre el árbol combinado · al cierre
+- Next: T6 cuando las sesiones iniciadas tras el despliegue de T8 (2026-11-17T00:29Z; hora local 2026-11-16 18:29 CST) reúnan AC8: medir con los scripts de _support/workspace/2026-11-16-question-card-alone/measure/ y leer a ojo cada tarjeta sin contestar contra AC7; el último commit antes de integrar #491 borra el párrafo temporal de AGENTS.md y su sesión borra refs/hive/trial-join
 
 ### Evidence
 
@@ -177,6 +177,10 @@ Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prue
 - npm --prefix site run build · exit 0 · mismo candidato
 - hive update --source <checkout> --rev aceff0f0 --out FILE + hive apply · exit 0 · unión de 15f74421 y 582997ab, guardada en refs/hive/trial-join
 - rg de la regla nueva y de la anterior en los archivos de guía instalados · nueva en 6 archivos (7 hosts), anterior en ninguno
+- go -C <repo> test ./... · exit 0 · candidato a1ee85f7
+- npm --prefix site run build · exit 0 · candidato a1ee85f7
+- hive update --rev 4c5d9bc3 --out FILE + hive apply · exit 0 · unión de ab4db72f y 582997ab, en refs/hive/trial-join
+- rg de «The card closed by itself:» y «The user left it unanswered:» en la guía instalada · ambas en los 6 archivos de los 7 hosts; regla anterior en ninguno
 
 ## Review status and progress
 
@@ -189,3 +193,4 @@ Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prue
 2026-11-16 — T4 · 27e752a0 · unverified: none
 2026-11-16 — T5 · 15f74421 · unverified: AC4: la regla nueva está en la guía instalada de los siete hosts (Grok la lee de ~/.claude/CLAUDE.md) y la anterior en ninguno; falta observar que sobrevive a un refresco de otra sesión, en T6
 2026-11-16 — Revisión por D9: T8 añadida; T2 deja de cerrar AC2 (retirado); T6 cierra AC7 y AC8.
+2026-11-16 — T8 · a1ee85f7 · unverified: AC7 y AC8 hasta T6 (sesiones reales); las correcciones de la segunda pasada de revisión no se revisaron de nuevo
