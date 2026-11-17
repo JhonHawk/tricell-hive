@@ -162,10 +162,10 @@ No hay UI de producto ni cuentas de aplicación. Las páginas documentales se co
 ## Checkpoint
 
 - Updated: 2026-11-17
-- Stage: verify · T8 waiting for decision on one additional bounded native observation
+- Stage: verify · T8 second observation assessed; AC6/AC11 and correction sequence incomplete
 - Last commit: 3c1f8e87df5fcdb3fcdadd3016f6b8aab4363a49
-- Open findings: AC6/AC7/AC11 not met and AC10 incomplete in original native observation; independent review confirms AC1/2/3/4/5/9/12 met; see verification.md
-- Next: Present D56 for corrected single pilot+temporary installation/restore or keep local candidate pending; no second attempt until explicit answer; no push/PR/merge while T8 open
+- Open findings: second observation AC6/AC11 not met; verifier-requested correction sequence not exercised; AC7/AC10 now met within stated limits; source-reading and commit-helper deviations remain; see verification.md
+- Next: Report second independent verdict and local experimental-prompt alignment; D56 consumed, no third attempt authorized; no push/PR/merge while T8 open
 
 ### Evidence
 
@@ -204,3 +204,9 @@ No hay UI de producto ni cuentas de aplicación. Las páginas documentales se co
 2026-11-17 — T7 · 8105289483add86f69ae7100c0fc9e81727336a7 · unverified: AC10/AC12 real native observation and restoration pending T8; case and deadline fixes independently verified
 2026-11-17 — T3 · 93e2668b4a7dba212d9bd031ca8bb7ecbd916c8b · unverified: AC3 met independently; AC4/AC5/AC12 native and semantic observation pending T8; identity and plan-edit races corrected
 2026-11-17 — T6 · f32b1fe77825e30858061cea5d44445a64a8b6bb · unverified: Behavioral ACs pending T8; size/links/footprint and site check/lint/build passed
+
+2026-11-17 — D56 A approved: one additional corrected installed-Claude pilot, 20 minutes total including temporary shared installation and conflict-aware restoration, existing quota. If criteria pass, continue automatic delivery. No third attempt authorized.
+
+- D56 second observation completed: candidate d0e328d9, temporary trial join dff5aa59; setup 18:42:18Z through restored installation18:48:29Z (371.585s). Claude session b3a7be3f-3f10-4998-91e4-a3968d45b23f; driver exit0, actual joint integration check exit0, automatic class inconclusive pending semantic review. Prior release441dbe9f56d2 restored on7hosts;312 entries match, trial join unchanged. Exact fixture/session/agent identifier search in everyday Engram returns0; isolated store removed. Evidence under attempt-2/native-run; original attempt preserved. No third attempt authorized.
+
+- Second independent assessment: AC1/2/3/4/5/7/9/10/12 met, AC6/11 not met; specific verifier-before-correction sequence absent. Anchored review class failed. Prompt aligned with existing criteria after detecting experimental specification mismatch; no distributed guidance change or model run.

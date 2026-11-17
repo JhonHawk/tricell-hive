@@ -1,6 +1,6 @@
 # Verificación de Fase 2
 
-Estado al 2026-11-17: T1–T7 implementadas; T8 abierta. No hay push, PR ni integración de este cambio en development. Las respuestas D53–D55 siguen vigentes; el único intento de D52 ya se consumió.
+Estado al 2026-11-17: T1–T7 implementadas; T8 abierta. No hay push, PR ni integración de este cambio en development. Las respuestas D53–D55 siguen vigentes; el intento de D52 ya se consumió. D56 A autoriza un segundo intento acotado, cuya evaluación se registra separada.
 
 ## Candidato y comprobaciones
 
@@ -10,7 +10,7 @@ Pasaron `go vet ./...`, `go test ./...`, 172 pruebas Python y site check/lint/bu
 
 La revisión nativa incluyó el inventario de supresiones/exclusiones del candidato. Aceptó las directivas de la fixture, sus rutas ignoradas, las excepciones acotadas del owner, los campos de progreso excluidos del fingerprint y las fronteras explícitas de medición. No identificó nuevos skips de tests ni exclusiones de CI/lint del repositorio. Esto no sustituye la revisión que debía realizar el coordinador dentro del piloto.
 
-## Resultado de la única observación nativa
+## Resultado de la primera observación nativa
 
 Claude Code 2.1.326 usó Opus 5.5 como coordinador y verificador, y Sonnet 5.5 para los responsables. El ciclo completo de setup, ejecución y restauración duró aproximadamente 6 min 47 s, dentro del máximo de 20 min. No recibió instrucciones humanas adicionales de etapa.
 
@@ -51,3 +51,27 @@ Estas correcciones están en `3c1f8e87`; el paquete completo tests/pilot pasó c
 Contra development `15b2e402`: Markdown distribuido 558,726 → 592,573 B (**+33,847 B**); Python distribuido 194,684 → 232,423 B (**+37,739 B**). Global: **+454 B**. La unión de lectura E2E declara **224,188 B**, con 65,476 B de referencias, y mide por separado 105,283 B de helpers ejecutables. Excluir scripts no convierte esta fase en una reducción de prosa: incorpora capacidades nuevas. No son tokens observados.
 
 El episodio de lectura/adopción queda registrado como watch en Engram `watch/e2e-skill-contract-adoption`; este documento no lleva otro conteo de recurrencias.
+
+## Segunda observación autorizada (D56 A)
+
+El segundo intento observó `d0e328d9` (código del driver `3c1f8e87`) junto al mismo trial. Setup y restauración completos: **371.585 segundos (6 min 12 s)**. Claude Code 2.1.326 sirvió `claude-opus-5-5` al coordinador; la traza conserva las identidades y modelos de los responsables y verificadores. No recibió comandos humanos adicionales. La inyección controlada sí ocurrió esta vez; el driver encontró el worktree real de integración y ejecutó la comprobación conjunta con exit 0. El resultado automático permanece `inconclusive` hasta la revisión semántica independiente.
+
+La instalación previa se restauró mediante un plan nuevo: siete hosts, 312 entradas sin diferencias, trial join intacto. El proceso del driver terminó, el almacén aislado fue retirado y la búsqueda de identificadores exactos de fixture/sesión/agentes, también en campos de contenido de Engram cotidiano, encontró cero registros. La ruta de lectura MCP de memoria no fue ejercida. La telemetría informó USD 3.4975706 a precio de lista; no acredita un cargo real.
+
+La evidencia se conserva separada en `attempt-2/native-run/` bajo la carpeta local de este trabajo. El primer intento y su guard permanecen intactos. D56 está consumida; no hay autorización para un tercer piloto. La revisión independiente con hashes de evidencia se conserva en `attempt-2/native-run/independent-review.md`; `pilot e2e review` validó los anchors y clasificó el run como `failed` (exit 1), sin modificar el informe original.
+
+### Dictamen del segundo intento
+
+| Criterio | Resultado | Alcance |
+| --- | --- | --- |
+| AC1, AC2, AC3, AC4, AC5, AC9, AC12 | Cumplidos | Coordinación, límites locales, rechazos determinísticos, verificación de heads, reemplazo cerrado e integración conjunta. |
+| AC6 | No cumplido | Escribió un contrato Markdown; no generó el formato v1 ni ejecutó init/check. Launch además llamó build a go vet; no acredita arranque. |
+| AC7 | Cumplido | Tabla regla/enforcer/caso negativo con falla real y disposición explícita de prosa previa inexistente. |
+| AC10 | Cumplido con límites declarados | Registra candidato, modelos, roles, fuentes efectivamente leídas, terminal y restauración. No equivale a que se leyeran todas las skills; la ruta MCP no fue ejercida. |
+| AC11 | No cumplido | Hay inventario y disposiciones, pero no se entregó al mecanismo independiente el brief H3 completo con su referencia. |
+
+El recorrido específico de T8 verificador → solicitud → misma persona responsable → nuevo veredicto no se ejercitó: el coordinador detectó el fallo y pidió la corrección antes de asignar al verificador. La prueba negativa posterior del verificador sí corrobora el defecto y el nuevo head, pero no reemplaza esa secuencia. Algunos briefs de owners instruyeron commits Git directos, omitiendo el escáner del helper; B sustituto sí lo usó. No se identificaron secretos en los diffs ni efectos remotos no autorizados.
+
+El encargo experimental tampoco explicitaba esa secuencia del verificador: pedía defecto demostrado y corrección. Asimismo pedía un contrato e inventario, sin precisar el formato validado ni la entrega del inventario al mecanismo independiente. Estas discrepancias entre encargo y evaluación limitan atribuir los resultados al modelo. Se alineó únicamente el encargo del driver con los criterios existentes: detección independiente antes de la corrección, contrato v1 validado y resolución independiente del inventario. No se dictan herramientas/skills ni comandos por etapa; no se cambió la guía distribuida ni se debilitó un criterio. Los pilotos originales no se reetiquetan y esta edición no tiene observación nativa.
+
+Comprobaciones independientes repetidas: 17 tests del registro, 9 del contrato, contenido/footprint/tamaños/fronteras y E2E race pasaron. Para la alineación posterior del encargo se repiten los casos E2E y vet de tests/pilot; no se repiten las suites ajenas sin entradas modificadas. El resultado queda local, con T8 abierta y sin push/PR/merge. Una nueva observación requiere autorización propia; no forma parte de D56.
