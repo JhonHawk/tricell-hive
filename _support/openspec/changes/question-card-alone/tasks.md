@@ -163,9 +163,9 @@ Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prue
 
 - Updated: 2026-11-16
 - Stage: build · T6 (espera el volumen de la prueba)
-- Last commit: a1ee85f7
-- Open findings: P3: la unión de prueba se despliega sin correr las pruebas de contenido sobre el árbol combinado · al cierre
-- Next: T6 cuando las sesiones iniciadas tras el despliegue de T8 (2026-11-17T00:29Z; hora local 2026-11-16 18:29 CST) reúnan AC8: medir con los scripts de _support/workspace/2026-11-16-question-card-alone/measure/ y leer a ojo cada tarjeta sin contestar contra AC7; el último commit antes de integrar #491 borra el párrafo temporal de AGENTS.md y su sesión borra refs/hive/trial-join
+- Last commit: 6d1c40ed
+- Open findings: none
+- Next: T6: seguir _support/workspace/2026-11-16-question-card-alone/handoff.md (en el checkout principal, ignorado por Git); corte de la prueba 2026-11-17T00:29:27Z
 
 ### Evidence
 
@@ -181,6 +181,8 @@ Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prue
 - npm --prefix site run build · exit 0 · candidato a1ee85f7
 - hive update --rev 4c5d9bc3 --out FILE + hive apply · exit 0 · unión de ab4db72f y 582997ab, en refs/hive/trial-join
 - rg de «The card closed by itself:» y «The user left it unanswered:» en la guía instalada · ambas en los 6 archivos de los 7 hosts; regla anterior en ninguno
+- git merge origin/development (007d3999) en la rama + go test ./... + npm --prefix site run build · exit 0 · 6d1c40ed
+- hive update --rev fe3c4438 + hive apply · unchanged: la instalación ya tenía ese contenido · refs/hive/trial-join = fe3c4438
 
 ## Review status and progress
 
