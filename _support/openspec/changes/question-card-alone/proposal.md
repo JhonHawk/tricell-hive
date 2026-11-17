@@ -126,3 +126,5 @@ Esta elección no autoriza integrar, activar auto-merge ni desplegar a otra máq
 2026-11-17 — T9 delivered under explicit current-session approval: native Codex review passed, correction 420b2e37 and base sync df96a4d6 pushed to PR #491 without merge; join 43c79157f2bbb59c8e21eace799afb2189701b33 installed in all seven hosts. T5/T8 installation checked. T6 counts from 2026-11-17T08:49:56Z; AC9–AC11 and renewed AC4 persistence remain open.
 
 2026-11-17 — T10 user-approved narrowing: remove separate async channel routing, retain complete decision information in any permitted form. AC13 replaces AC9 and AC14 replaces AC11; T2/T4/T5 reopen, T6 awaits T10 deployment and real evidence. T8 cancellation handling and AC10 are unchanged.
+
+2026-11-17 — T10 delivered: af3222e1, native review and checks passed, installed on seven hosts at 2026-11-17T09:30:37Z via 016345f994f3d984b5e2276279877a8b0d891e22. T6 remains pending real sessions. No merge.

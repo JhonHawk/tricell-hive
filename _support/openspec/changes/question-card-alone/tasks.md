@@ -78,7 +78,7 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 
 ### T5 — La rama de prueba queda desplegada en la instalación local
 
-- [ ] Los archivos de guía instalados de cada host registrado contienen la regla de T2
+- [x] Los archivos de guía instalados de cada host registrado contienen la regla de T2
 
 **Closes:** AC4
 
@@ -169,7 +169,7 @@ Primera tarea del build: su origen es una carpeta temporal que un reinicio de la
 ### T10 — Complete questions without duplicate presentation
 
 - [x] Narrow the canonical rule and align documentation and the retained plan
-- [ ] Verify, review and deploy the narrowed version to the local trial
+- [x] Verify, review and deploy the narrowed version to the local trial
 
 **Closes:** AC13, AC14, AC12, AC4
 
@@ -200,12 +200,13 @@ Sin cambio de interfaz: no hay recorrido de UI. La validación humana es la prue
 ## Checkpoint
 
 - Updated: 2026-11-17
-- Stage: verify · T10 content and site checks passed; reviews complete; full suite running
-- Base: 1a800656; worktree `.claude/worktrees/question-channel-fix`, branch `feat/question-card-alone`
-- Findings: D52 screenshot lacks an explicit recommendation; its pause alternative was in prose. Plan review found two stale cutoff references, now corrected; native code review found no actionable regressions. No model pilot authorized
-- Next: complete T10, validate revised plan, independent plan review and native code review, push and refresh; PR #491 remains unmerged
-- T9 cutoff 2026-11-17T08:49:56Z is historical; T10 needs a new cutoff after deployment
-- Unique review and deployment evidence stays in the existing ignored work folder; current task scratch and generated caches are reproducible
+- Stage: ready · T10 published and installed; PR #491 remains open without merge
+- Candidate: af3222e1, based on development 15b2e402; this final record changes metadata only
+- Worktree: `.claude/worktrees/question-channel-fix` · `feat/question-card-alone`, retained for the active trial
+- Findings: native Codex review found no actionable regressions; independent plan review's two stale cutoff references corrected
+- Deployment: 016345f994f3d984b5e2276279877a8b0d891e22 (trial af3222e19282dbd2c2f326d06726691aec5d4540, base 15b2e402c72543b74d63e50df1bc2b188638212a); release 441dbe9f56d2e478fa50b3e3356205efed865e93ece9ed0532daf96f44b93243; T10 cutoff 2026-11-17T09:30:37Z
+- Next: T6 against AC13, AC10 and AC14; AC4 persistence through another session's refresh. Earlier cutoffs are historical. No model pilot or merge authorized.
+- Evidence: existing ignored work folder, `codex-t10-review.log` and `t10-deployment.json`; reproducible scratch/caches may be removed at close
 
 ### Evidence
 
@@ -277,3 +278,9 @@ Commands ran against `.claude/worktrees/question-channel-fix`, using its absolut
 - `go test ./tests/content/... ./tooling/management/...`: exit 0, management 41.610 s. Site check/lint/build: exit 0, 20 pages, unchanged empty-i18n and missing-docs/404 warnings. Change validation and diff whitespace checks passed.
 - Python suite and go vet evidence reused from df96a4d6: those code, tests, dependencies and configurations are unchanged. The full Go suite is running on T10 because guidance is also an input of packaging checks.
 - Global guidance: 57,162 to 56,456 bytes (-706). Compared with development 15b2e402 (52,219), whole trial is +4,237 bytes. No pilot detectors or synthetic regression fixtures changed.
+
+### T10 delivery verification
+
+- Full `go test ./...` passed on af3222e1, CLI 225.206 s. Reused Python/go-vet checks have unchanged inputs. Site check/lint/build and rendered host-limits text passed. Static change validation and secret scan passed. Native review found no actionable regressions; no dedicated re-review of metadata-only cutoff corrections.
+- T5/T10 installation verified in all seven hosts: no duplicate pending tool question, preserved alternatives/consequences/recommendation and reason, and removal of the separate T9 routing bullets. Receipt bf84c5a6bb6d3c50425598c087e3e71b.
+- New trial cutoff 2026-11-17T09:30:37Z; first join 016345f994f3d984b5e2276279877a8b0d891e22. Metadata-only final refreshes do not reset this cutoff. AC12 verified; AC13/AC10/AC14 live behavior remains unverified. AC4 persistence needs another session's refresh. No model pilot or merge.
