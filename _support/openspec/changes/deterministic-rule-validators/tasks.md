@@ -22,7 +22,7 @@ Commit base del repositorio `tricell-hive` al escribir el plan: `f886538f` en la
 
 ### T2 — Validar y gestionar `HIVE.local.md`, `ACCOUNTS.md` y `_support/secrets/` (`H6`)
 
-- [ ] `hive doctor --project` inspecciona las invariantes de `HIVE.local.md`, `ACCOUNTS.md` y `_support/secrets/`, y `content/skills/harness-audit/scripts/local_instructions.py` provee subcomandos determinísticos para validar, asegurar `.git/info/exclude`, agregar entradas y marcar `STALE`.
+- [x] `hive doctor --project` inspecciona las invariantes de `HIVE.local.md`, `ACCOUNTS.md` y `_support/secrets/`, y `content/skills/harness-audit/scripts/local_instructions.py` provee subcomandos determinísticos para validar, asegurar `.git/info/exclude`, agregar entradas y marcar `STALE`.
 
 **Closes:** AC2
 
@@ -159,3 +159,4 @@ Parada de validación humana (`D4 A` — `interactive`): antes de `git push`, pr
 2026-11-16 — T3 · 6bfb80bf · unverified: none
 2026-11-16 — T4 · e3888838 · unverified: none
 2026-11-17 — T5 · 6771a316 · unverified: none
+2026-11-17 — T2 · 828f2a3e · unverified: none

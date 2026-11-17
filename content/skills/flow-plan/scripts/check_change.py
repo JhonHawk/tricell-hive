@@ -56,7 +56,20 @@ AC_DEFINITION = re.compile(r"^\s*[-*]\s+\**AC(\d+)\b")
 AC_REFERENCE = re.compile(r"AC(\d+)(?:\s*[-–—]\s*(?:AC)?(\d+))?")
 UNCHECKED = re.compile(r"^\s*[-*]\s+\[ \]\s*(.*)$")
 PROGRESS_HEADING = re.compile(r"^##\s.*(progress|progreso|avance)|^##\s+checkpoint\s*$", re.IGNORECASE)
+BUSINESS_RULES_HEADING = re.compile(r"^##\s+Business rules\s*$")
 LEVEL2_HEADING = re.compile(r"^##\s")
+
+BR_NONE = re.compile(r"^None:\s+\S")
+BR_TICKET_SECTION = re.compile(r"^ticket section:\s+[^·]+?\s+·\s+\S.*$")
+BR_TICKET_WRITE = re.compile(r"^ticket write:\s+\d{4}-\d{2}-\d{2}\s+·\s+[^·]+?\s+·\s+\S+$")
+BR_CARD_STALE = re.compile(r"^card stale:\s+[^·]+?\s+·\s+\S.*$")
+BR_FRAME_STALE = re.compile(r"^frame stale:\s+[^·]+?\s+·\s+\S.*$")
+BR_RULE = re.compile(
+    r"^rule:\s+(.+?)\s+·\s+screen\s+([^·]+?)\s+·\s+(.+?)\s+·\s+found by\s+(drawer|reviewer|research|plan|build|verify)\s*$"
+)
+BR_STATUS = re.compile(
+    r"^(?:proposed|assumption|scope|approved\s+\d{4}-\d{2}-\d{2}:\s+\S.*|cancelled\s+\d{4}-\d{2}-\d{2}:\s+.+?\s+·\s+replaced by\s+\S.*)$"
+)
 
 
 def id_label(prefix, number, letter):
@@ -214,6 +227,40 @@ def observed_findings(proposal, old):
     ]
 
 
+def valid_business_rule_line(trimmed):
+    if BR_NONE.match(trimmed) or BR_TICKET_SECTION.match(trimmed) or BR_TICKET_WRITE.match(trimmed):
+        return True, ""
+    if BR_CARD_STALE.match(trimmed) or BR_FRAME_STALE.match(trimmed):
+        return True, ""
+    m = BR_RULE.match(trimmed)
+    if not m:
+        return False, "invalid line in ## Business rules"
+    status = m.group(3).strip()
+    if status.startswith("stated:"):
+        return False, "stated: status is only valid in examples.md, not in proposal.md ## Business rules"
+    if not BR_STATUS.match(status):
+        return False, f"invalid rule status in ## Business rules: {status}"
+    return True, ""
+
+
+def business_rules_findings(proposal):
+    findings = []
+    inside = False
+    for i, line in enumerate(proposal):
+        if LEVEL2_HEADING.match(line):
+            inside = bool(BUSINESS_RULES_HEADING.match(line))
+            continue
+        if not inside:
+            continue
+        trimmed = line.strip()
+        if not trimmed or trimmed.startswith("<!--"):
+            continue
+        ok, reason = valid_business_rule_line(trimmed)
+        if not ok:
+            findings.append(f"proposal.md:{i + 1}: {reason}: {trimmed}")
+    return findings
+
+
 def main(argv):
     args = [a for a in argv if a != "--archive"]
     if len(args) != 1:
@@ -234,6 +281,7 @@ def main(argv):
     findings = criteria_findings(docs["proposal.md"], docs["tasks.md"], old)
     if "--archive" not in argv:
         findings += observed_findings(docs["proposal.md"], old)
+        findings += business_rules_findings(docs["proposal.md"])
     findings += stale_mentions(docs, old)
     if "--archive" in argv:
         boxes = [
