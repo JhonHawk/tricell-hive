@@ -94,7 +94,7 @@ Base: development `15b2e402c72543b74d63e50df1bc2b188638212a`. Rama de implementa
 
 ### T6 — Conectar los flujos y medir el costo completo de lectura
 
-- [ ] Integrar las llamadas al procedimiento y helpers, actualizar documentación y medir el antes/después comparable.
+- [x] Integrar las llamadas al procedimiento y helpers, actualizar documentación y medir el antes/después comparable.
 
 **Closes:** AC1, AC2, AC4, AC6, AC9; AC conductuales esperan T8.
 
@@ -162,10 +162,10 @@ No hay UI de producto ni cuentas de aplicación. Las páginas documentales se co
 ## Checkpoint
 
 - Updated: 2026-11-17
-- Stage: build · T1/T2/T5 done; T4 independent verification; T3/T7 active; T6 docs and wiring ready for seam checks
-- Last commit: 8e14faadba1840acb502cd5e34bb158a335606e8
-- Open findings: none
-- Next: T3 record/check seam; independent T3 verification; full suite then native review and authorized single pilot
+- Stage: verify · T8 waiting for decision on one additional bounded native observation
+- Last commit: 3c1f8e87df5fcdb3fcdadd3016f6b8aab4363a49
+- Open findings: AC6/AC7/AC11 not met and AC10 incomplete in original native observation; independent review confirms AC1/2/3/4/5/9/12 met; see verification.md
+- Next: Present D56 for corrected single pilot+temporary installation/restore or keep local candidate pending; no second attempt until explicit answer; no push/PR/merge while T8 open
 
 ### Evidence
 
@@ -175,6 +175,18 @@ No hay UI de producto ni cuentas de aplicación. Las páginas documentales se co
 - T5 content SkillSize/AgentBoundary exit 0; commit 8e14faad; runtime AC7/AC11 pending
 - T2 independent verifier: AC2 structural met; worktree-plan conflict corrected in T6; runtime pending
 - Site pnpm check: 0 errors/warnings; lint: 14 files no fixes; build pending output
+- Python full suite: 172 tests OK, 43.666s; T3 independently verified including owner reconciliation and concurrent plan edit fixes
+- Site check/lint/build exit0; 20 pages; existing i18n/404 warnings; Go vet exit0; footprint and package links exit0
+- Full go test ./... passed; full race passed all packages except tooling/cli default 10m timeout in maximum-document test, rerun with 30m timeout in progress
+- Native review findings fixed in b174a26a with regressions; follow-up review in progress; tasks 27 tests OK; site check/lint/build OK
+- Native followup b174a26a: no concrete regressions; explicit H3 inventory accepted; independent root tasks27, content, links and site checks pass
+- Entire tests/pilot race after fixes passed125.281s; full Go suite passed; remaining CLI race retry still running
+- Temporary join ca415945faa7 candidate b174a26a plus trial61ef5b5a installed release694286c98660; prior441dbe9f56d2 captured for fresh restore plan; refs/hive/trial-join untouched
+- One attempt claimed; Claude2.1.326 session7bdb4844-4eec-4709-81ea-034986a69697 observed claude-opus-5-5; driverPID96281; deadline2026-11-17T18:19:37.399311Z; raw and restoration evidence in ignored workspace
+- CLI race retry passed638.094s; all repository race packages now have passing evidence; tests/pilot after review fixes125.281s
+- Single Claude run ended; original driver inconclusive because integration branch is in separate worktree; async owner completion did not trigger fixture injection
+- Restored prior release441dbe9f56d2 on7hosts at18:06:24Z; hash differences0; trial joinunchanged; total setup+run+restore6m47s; exact pilot session absent from everyday Engram sessions/observations/prompts; isolated store removed
+- Post-pilot runner fixes3c1f8e87: async native stop association, integration-worktree readback and complete H1/H2/H3 outcome prompt; E2E race regressions and full tests/pilot -race125.819s pass; vet/diff clean; marked Unreviewed after limited native review
 
 ## Review status and progress
 
@@ -191,3 +203,4 @@ No hay UI de producto ni cuentas de aplicación. Las páginas documentales se co
 2026-11-17 — T4 · 2f532f65c5c29fe8ecb5b187306dbe0bd189cbe0 · unverified: AC6 structure independently verified (9 tests OK); real commands and flow evidence pending T8
 2026-11-17 — T7 · 8105289483add86f69ae7100c0fc9e81727336a7 · unverified: AC10/AC12 real native observation and restoration pending T8; case and deadline fixes independently verified
 2026-11-17 — T3 · 93e2668b4a7dba212d9bd031ca8bb7ecbd916c8b · unverified: AC3 met independently; AC4/AC5/AC12 native and semantic observation pending T8; identity and plan-edit races corrected
+2026-11-17 — T6 · f32b1fe77825e30858061cea5d44445a64a8b6bb · unverified: Behavioral ACs pending T8; size/links/footprint and site check/lint/build passed

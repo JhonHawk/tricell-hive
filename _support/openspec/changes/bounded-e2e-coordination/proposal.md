@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Build · T1 en curso |
+| Estado | Verify · T8 pendiente de decisión sobre evidencia adicional |
 | Tracker | Ninguno |
 | Git | tricell-hive · development · 15b2e402c72543b74d63e50df1bc2b188638212a · feat/bounded-e2e-coordination |
 
