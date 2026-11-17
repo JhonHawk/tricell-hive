@@ -7,7 +7,7 @@ description: Close a work item and its session hygiene. Use when a work item rea
 
 The completion point is the merge into the base branch. When the delivery is `ready`, or a human reviewer's approval is pending, the open pull request is the completion point, reached at the stop [git-workflow step 8](../git-workflow/SKILL.md) sets: the ticket stays in progress, and a later session that finds it merged runs a follow-up close.
 
-To organize, curate, promote or archive support material, or to apply a layout migration, read [support maintenance](references/support-maintenance.md) instead of these steps.
+To organize, curate, clean up, promote or archive support material, or to apply a layout migration, read [support maintenance](references/support-maintenance.md) instead of these steps.
 
 The close also runs when an operational task ends, as the global guidance's «Proportionality» defines it, and when the user abandons the work; a step with nothing to act on, such as the ticket move of work that was not integrated, is skipped. Work delivered under `hold` gets no full close until it is delivered later, at that delivery's completion point; until then, when its verified working tree is reported, it closes as a pause: step 1 pauses its viewer session, step 2 lists its support material without asking or acting on it, step 5 stops the processes and containers it started and keeps everything else, step 6 reports what is pending and step 7 records it, with no footer. Work paused outside `hold`, such as a plan paused before its build, closes the same way, and also commits its change folder as [git-workflow step 4](../git-workflow/SKILL.md) sets for a pause.
 
@@ -28,7 +28,7 @@ Close a work item once; the follow-up close of a pull request that waited at its
 
 ## Support material
 
-List what this work created or changed under the project's support home, in its checkout or worktree: its folders under `sessions/`, `workspace/` and `evidence/`, found by the work's identifier as [artifact layout](references/artifact-layout.md) names it, its change folder when the work was abandoned, and any other support path its checkpoint or its commits name. Its reproducible temporaries live in the host's temporary location, and step 5 removes them. Name material of other work or uncertain ownership as kept, without an action. Propose one action for each item, with its reason:
+List what this work created or changed under the project's support home, in its checkout or worktree: its folders under `sessions/`, `workspace/` and `evidence/`, found by the work's identifier as [artifact layout](references/artifact-layout.md) names it, its change folder when the work was abandoned, and any other support path its checkpoint or its commits name. Step 5 removes its reproducible temporaries from the host's temporary location. Name material of other work or uncertain ownership as kept, without an action. Propose one action for each item, with its reason:
 
 - **Commit:** a curated, shareable record under `sessions/` that is not yet in Git; never verification material, a secret, a raw dump or reproducible output.
 - **Archive:** a `sessions/` folder whose records all read closed and that holds nothing **Commit** excludes, moved as [archive](references/archive.md) sets; the user's answer selects it, and the commit below delivers the move that procedure leaves to its caller.
