@@ -57,9 +57,9 @@ The caller supplies relevant project conventions and task decisions. If resoluti
 
 The management package checks instruction links in the global core, roles and skills when preparing a release and when validating a saved plan before applying it. It resolves links against the release payload, not files left elsewhere in the checkout. Removing an owner or resource while a consumer still requires it fails validation before managed writes, including a saved plan whose hashes were recalculated.
 
-The supported authoring subset is ordinary inline Markdown links and reference definitions with simple destinations (optionally angle-bracketed or with a double-quoted inline title). Use uncomplicated paths without parentheses. The check covers the global core, role Markdown, skill entrypoints, and Markdown under their `references/` directories. It validates relative and `skill:owner/path` targets, checks logical owners, and rejects unsupported local schemes and personal installation paths. A directory link must end in `/` and contain packaged files.
+The supported authoring subset is ordinary inline Markdown links and reference definitions with simple destinations (optionally angle-bracketed or with a double-quoted inline title). Use uncomplicated paths without parentheses. The check covers the global core, role Markdown, skill entrypoints, and Markdown under their `references/` directories. It validates relative and `skill:owner/path` targets, checks logical owners, verifies ATX heading anchors (`#fragment`) on local, relative and `skill:` Markdown links, and rejects unsupported local schemes and personal installation paths. A directory link must end in `/` and contain packaged files.
 
-Fenced examples, asset contents, arbitrary prose/code dependencies, heading anchors, and remote URL availability are outside this check. HTTP(S) and mail links are external. This is a packaging gate, not a full Markdown parser or evidence of runtime reading, permissions, tool availability, or behavioral compliance.
+Fenced examples, asset contents, arbitrary prose/code dependencies, and remote URL availability are outside this check. HTTP(S) and mail links are external. This is a packaging gate, not a full Markdown parser or evidence of runtime reading, permissions, tool availability, or behavioral compliance.
 
 ## Refactoring and delivery
 
