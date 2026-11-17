@@ -56,7 +56,7 @@ Write nothing to a tracker when the work names no ticket or was abandoned; the c
 
 Make each write through the tracker's own CLI or tool, in the tracker that declares the ticket's key, and in each ticket when the work names more than one. A write has two parts.
 
-**The section.** Read the description right before the write. The section runs from one heading, `Business rules · <the work's name>`, written in the ticket's language, to its closing line, the same text followed by ` · end`. Run `python3 -I <flow-plan-dir>/scripts/business_rules.py splice-description` ([splicer](../scripts/business_rules.py)) when `python3` runs it: on the first write it appends both markers and the section at the end of the description (and you record the heading in a `ticket section:` line); on a later write it replaces only what lies between those two lines and verifies that the text outside them is byte-for-byte unchanged; when either marker is missing or duplicated, it refuses so you put the section in the comment instead and say so in the report. Leave every other character of the description as it was: never edit, reorder or delete its author's text, not even a sentence a rule cancels.
+**The section.** Read the description right before the write. The section runs from one heading, `Business rules · <the work's name>`, written in the ticket's language, to its closing line, the same text followed by ` · end`. Leave every other character of the description as it was: never edit, reorder or delete its author's text, not even a sentence a rule cancels. When `python3` runs it, save the description and rendered section body to local files and run `python3 -I <flow-plan-dir>/scripts/business_rules.py splice-description --description-file <description-file> --heading <heading> --body-file <body-file> --out <output-file>` ([splicer](../scripts/business_rules.py)). On `ok` and `changed`, write the output; on `first_write`, record the heading in a `ticket section:` line. On unchanged, skip the write; on `fallback_to_comment`, put the section in the comment and report it. Without Python, preserve the same marker boundaries, author text and unchanged comparison ignoring the generated date; if those cannot be verified, use the comment fallback.
 
 The section opens with the date of the write and, when a design file holds the work's frames, its location. Then it holds these groups, in this order, each only when it has rules:
 
@@ -66,8 +66,6 @@ The section opens with the date of the write and, when a design file holds the w
 - **Cancelled:** each `cancelled` rule, quoted, with where it was stated, the reason and the rule that replaces it.
 
 Write the group names in the ticket's language and each rule in plain words: no decision ID alone, no path or identifier of the repository, never a secret value. Leave out the `stated` rules, which the ticket or its sources already say.
-
-Skip the write only when the groups and the design location you would write equal those the ticket's section already holds; ignore the generated write date in this comparison.
 
 **The comment.** Add one comment per write: one line per rule added or decided since the section the ticket held and, for each cancellation, what was cancelled, why and what replaces it. The comment is how the author of a cancelled rule learns of it.
 
