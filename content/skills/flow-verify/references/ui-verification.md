@@ -4,6 +4,14 @@ Read for a UI change, including its first view, final verification and correctio
 
 For a correction, check and recapture only affected screens and states, including any neighbors, widths or themes whose layout can change. Preserve earlier evidence for unaffected views and distinguish the new revision. Repeat a complete mobile journey only when navigation or the flow changed or the user explicitly requests it. Reuse suitable captures already made; do not claim coverage for a width, theme or state that was not exercised.
 
+## Before captures
+
+Read in a build that changes an existing screen, before its first edit of anything that screen renders: its components, styles, layout, the data contract it consumes or its seed data. Those captures feed the before and after table of the pull request, as [pull request captures](../../git-workflow/references/pr-captures.md) sets.
+
+- The main thread serves the unchanged checkout with the data it already has and captures each region the plan changes, or the request changes when the work has no plan, at the widths, themes and states the verification will check, before it edits that surface or launches a child task that edits it. A child's brief asks for no capture.
+- Save them in the work's `workspace/YYYY-MM-DD-<work>/images/before/`, each named so it pairs with the candidate capture of the same region, width, theme and state, and record their paths, or that there are none, in the build's checkpoint. Do not publish them to the viewer: they would number as the screen's first iteration.
+- When that data differs from the data the verification will seed, note the difference for the table. A new screen has no before capture, and a before state an earlier edit already changed is not rebuilt: the table says so.
+
 ## Automated accessibility audit
 
 Read when reviewing the UX of a UI change. The audit measures; it does not replace the keyboard, focus and interaction checks of the review.
