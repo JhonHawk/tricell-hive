@@ -214,7 +214,8 @@ class RealBrowser(unittest.TestCase):
             self.assertAlmostEqual(float(height), 841.9, delta=1)
         pdftotext = shutil.which("pdftotext")
         if pdftotext:
-            text = " ".join(subprocess.run([pdftotext, "-layout", str(tmp / "prd.pdf"), "-"],
+            # Reading order, not -layout: a rule that wraps inside its cell must still read whole.
+            text = " ".join(subprocess.run([pdftotext, str(tmp / "prd.pdf"), "-"],
                                            capture_output=True, text=True).stdout.split())
             for rule in ("A customer returns an order within 30 days", "A refund over $500 needs a supervisor"):
                 self.assertIn(rule, text)
