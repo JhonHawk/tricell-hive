@@ -21,6 +21,7 @@ For where each flow loops and where a requested change returns the work, see the
 - [Close](/flows/close/): record the outcome and clean up the work session.
 - [Deploy](/flows/deploy/): promote an integrated change and check what is served.
 - [Create issue](/flows/create-issue/): write a ticket someone else can work, break work down into a parent ticket with children, or check that a ticket is ready.
+- [Create PRD](/flows/create-prd/): write the requirement document of a module or feature, restructure one someone else wrote, or check it against the code.
 
 ## Supporting skills
 

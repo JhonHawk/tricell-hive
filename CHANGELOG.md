@@ -12,6 +12,16 @@ raise the minor or the patch version.
 
 ### Added
 
+- `create-prd` is a skill for writing requirement documents: a PRD for a module
+  or feature whose rules each have a code, a priority, a state and a source, a
+  document someone else wrote restructured without editing the original, an
+  update with its author's answers, or its review against the code. It checks
+  each version against a ready list, has a separate reviewer read it, never
+  decides a business rule nobody decided, and freezes each approved version.
+  The document lives in Notion, Google Docs or Claude Docs when the session
+  can write there, otherwise as a Markdown file with a PDF. Research now sends
+  a request for a requirement document to it, and a page joins the
+  documentation site.
 - Figma design groups everything it draws in named, numbered sections instead
   of leaving frames loose on the page: by default one for the pieces the work
   defines, one for reference material and one per user flow, or the grouping

@@ -108,5 +108,6 @@ Start with [Research](/flows/research/) when facts are missing,
 [Figma design](/flows/figma-design/) for a new screen you want to see first,
 [Plan](/flows/plan/) for consequential decisions, or [Build](/flows/build/) for an authorized change.
 [Close](/flows/close/) records the result and cleans up the session.
-[Create issue](/flows/create-issue/) writes a ticket for work that will be done later or by someone else. The
+[Create issue](/flows/create-issue/) writes a ticket for work that will be done later or by someone else.
+[Create PRD](/flows/create-prd/) writes the requirement document of a module or feature. The
 [Skills catalog](/skills/) links to each procedure and supporting capability.
