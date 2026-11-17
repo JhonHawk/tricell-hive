@@ -17,7 +17,7 @@ Reviewed: 2026-10-25. The shared guidance, activity skills, seven host adapters,
 | `site/` | Documentation site for people | Starlight site published from `master`; not packaged or deployed by the manager |
 | `_support/docs/` | Durable research and decisions | Existing |
 | `_support/sessions/` | Resumable work records | Available |
-| `_support/evidence/` | Curated evidence suitable for version control | Available |
+| `_support/evidence/` | Retired since 2026-11-16: verification material stays in `_support/workspace/` and reusable conclusions go to `_support/docs/`; a legacy folder is cleaned up through the docs-cleanup skill | Not created |
 | `_support/workspace/` | Local scratch; retains `hive-retirement/` | Only `.gitkeep` markers are versionable |
 | `dist/` | Generated distribution artifacts | Ignored by Git; generated when needed |
 

@@ -12,6 +12,20 @@ raise the minor or the patch version.
 
 ### Added
 
+- `docs-cleanup` is a skill for cleaning up, pruning or reorganizing the
+  documentation, architecture notes, evidence and support material of a
+  repository, a workspace or a monorepo, with or without Hive. It lists every
+  support folder and documentation folder by content, with what cites each
+  item, writes the plan as a manifest, shows what it would remove, move,
+  promote or update, and acts only after you confirm. It prunes a current
+  document only when a newer source contradicts it, never touches secrets,
+  current specs, change records, decision records, worktrees, backups or
+  dumps, and tags each repository's state before removing anything, so any
+  file can be restored. It replaces Close's support maintenance reference.
+- Verification evidence is no longer kept in Git: it stays in the work's
+  unversioned folder, the merged pull request is the record, and only
+  measurements, rehearsals and reviews that later work reuses move into the
+  documentation, with their figures, method, date and provenance.
 - `create-prd` is a skill for writing requirement documents: a PRD for a module
   or feature whose rules each have a code, a priority, a state and a source, a
   document someone else wrote restructured without editing the original, an
@@ -126,6 +140,11 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Close asks about a work's own support material with what it would delete
+  first, each file with its size and reason and the total, and names old
+  versioned material it finds, such as an `evidence/` folder, in one line
+  with the `docs-cleanup` command instead of acting on it. Cleaning up
+  material earlier work left moved from Close to `docs-cleanup`.
 - Research offers the Figma design stage only when your project's Figma file is
   known: you named it in the conversation, your app's `DESIGN.md` declares it,
   or the project's memory records it. The offer names that file and passes its
@@ -214,6 +233,10 @@ raise the minor or the patch version.
   folders are not checked and need no edit.
 
 ### Fixed
+
+- Guidance now delegates supported mechanical checks to the existing validators
+  instead of repeating their recipes, while retaining required inputs, permissions,
+  preservation rules, semantic review and handling for unsupported cases.
 
 - Agents no longer give a rule as the reason for what they did, skipped, ask
   or stop for, such as "the flow-build rule requires it": wherever a

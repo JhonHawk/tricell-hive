@@ -65,7 +65,7 @@ Write a verdict in words its author can read, such as "today a supervisor is not
 
 ## Ready list
 
-A version passes when all ten hold; each check that fails is reported with what is missing.
+A version passes when all ten hold; report each failure. [check_prd.py](../scripts/check_prd.py) checks structure in local Markdown; judge meaning and coverage separately.
 
 1. The nine sections are present, in order, and the non-goals name at least one thing.
 2. Every rule entry has its six parts, and no rule is written as a row of a table.

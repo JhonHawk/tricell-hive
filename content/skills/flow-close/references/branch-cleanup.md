@@ -1,50 +1,29 @@
 # Branch cleanup
 
-Read by [flow-close](../SKILL.md) at its cleanup step, and by a hygiene request. It removes merged branches and their clean worktrees, which the global guidance's «Preservation» authorizes; it grants no other effect.
+Read by [flow-close](../SKILL.md) at its cleanup step, and by a hygiene request. The global guidance’s «Preservation» authorizes removing merged branches and their clean worktrees; this procedure grants no other effect.
 
-## Which repositories
+## Scope and inputs
 
-- For a work item: each repository where the work created a branch, a worktree or a commit, or wrote its change folder, plus the repository that holds `Specs` when it is another one.
-- For a hygiene request: the current repository, the repository that holds its `Specs`, and each repository a pending-close record in persistent memory names.
+For a work item, cover each repository where it created a branch, worktree or commit, or wrote its change folder, plus the repository holding `Specs`. For a hygiene request, cover the current repository, its specs repository and those named in pending-close records.
 
-Run the steps below in each of them.
+Handle the work’s own branch first, then sweep earlier branches in the same repository. Before its own cleanup, stop only processes this work started, move out the material its support decision keeps, return its checkout to the base through [git-workflow](../../git-workflow/SKILL.md), and run from the main checkout. The sweep never switches another checkout’s branch.
 
-## Keep conditions
+For each pass, refresh Git refs and collect the following inputs for [cleanup_branches.py](../scripts/cleanup_branches.py); the helper does not query the tracker or persistent memory:
 
-Before checking the work's own worktree, stop the processes this work started inside it, by their process ID as the global guidance's «Preservation» sets, and leave it by running the remaining commands from the main checkout. Every worktree removal below keeps the worktree, its local branch and its remote branch, skipping step 4 for them, and reports the reason, when:
+- Merged PRs: for the work’s branch, read its PR state, target base and `headRefOid`; for the sweep, list the user’s merged PRs into the base with `gh pr list --author @me --state merged --base <base> --json headRefName,headRefOid`. Supply only eligible branches as `--merged-pr <branch>=<headRefOid>`.
+- Non-PR candidates: use `--candidate <branch>` only for temporary/preview branches this work created, or, in a repository without PRs, local branches whose ownership the user’s earlier plan, checkpoint or close record establishes. The helper checks ancestry; this flag never proves ownership or permits unmerged commits.
+- Protected inputs: pass each open PR’s base as `--open-pr-base <branch>` and each branch named by unfinished work in memory, plans or checkpoints as `--active-branch <branch>`. This includes fresh branches with no commits beyond base and pending closes. When a pending close is older than 24 hours, resume its close steps, including its support decision, before its own cleanup; never sweep it away. Pass environment branches not already read from `AGENTS.md` with `--env-branch <branch>`.
 
-- it has uncommitted or untracked files, or an ignored entry (`git -C <worktree> status --ignored --porcelain`) other than the ones below, since `git worktree remove` deletes ignored files without refusing. These ignored entries do not keep it, because removing them loses nothing:
-  - a dependency or build folder, or an entry in one, such as `node_modules/`, `.venv/`, `dist/`, `build/` and `.next/`;
-  - an entry whose content the main checkout of the worktree's own repository already holds at the same path, checked with `cmp -s` for a file, or for a directory with `diff -rq <main-path> <worktree-path>` printing no line other than `Only in <main-path>…`, such as a `.env` copied in when the worktree was set up. The main checkout is the path on the first `worktree ` line of `git -C <worktree> worktree list --porcelain`; a repository with no main checkout, such as a bare one, has none of these entries;
-  - a tool cache or generated file from this list only, at any depth, or an entry inside one of its folders: `*.tsbuildinfo`, `next-env.d.ts`, `*.pyc`, `.turbo/`, `__pycache__/`, `.pytest_cache/`, `.mypy_cache/`, `.ruff_cache/` and `.DS_Store`.
+If an input cannot be established, keep the affected candidates and report why; an unavailable PR or memory query is not an empty result. A promotion not yet made is not a reason to keep a branch.
 
-  These exemptions cover ignored entries only: an untracked one still keeps the worktree, which is never removed with `--force`.
+## Plan and apply
 
-  For the work's own worktree, move the items flow-close step 2's answer keeps out of it first, as flow-close step 5 sets;
-- a running process has its working directory inside it (`lsof -d cwd -Fn` lists it), or that check cannot run, such as when `lsof` is missing.
+Run `python3 -I <flow-close-dir>/scripts/cleanup_branches.py --repo <absolute-repo> --base <base>` with the inputs above, repeating each flag for each value. With no eligible candidates, there is nothing to apply. Read the returned `worktrees` and `branches`, including every `keep` reason, before repeating the invocation with `--apply` and the same inputs.
 
-## The work's branch
+The helper owns the mechanical checks and removal order. It must retain uncommitted or untracked work, unique ignored material, a busy worktree or one whose process check fails, protected/active branches, and branches still checked out outside a removable worktree. Only ignored build/dependency files, allowlisted generated caches or copies already preserved in the main checkout are disposable; untracked files never qualify. Squash/rebase deletion requires the merged PR head to match each copy being removed; never force worktree removal or delete later/unmerged commits.
 
-1. Exclude the base and environment branches, and keep a branch that an open pull request uses as its base.
-2. A branch merged by squash or rebase counts as merged only when `gh pr view <branch> --json state,headRefOid` reports `MERGED` and its `headRefOid` equals the head of each copy you will delete: the local branch, and the remote one (`git rev-parse origin/<branch>` after `git fetch`). A copy with commits after that head, or with unmerged commits, is never deleted: report the local one with `git log <base>..<branch>` and the remote one with `git log <headRefOid>..origin/<branch>`.
-3. Return the checkout to the base branch, and remove the branch's worktree, never forcing the removal, unless a keep condition holds.
-4. Delete the merged remote branch, then the local one with `git branch -d`; use `git branch -D` only for a squash- or rebase-merged branch that passed step 2.
-
-## The sweep
-
-After the work's branch, check these other branches of the same repository:
-
-- each local or remote branch whose pull request the user authored and merged into the base, listed once with `gh pr list --author @me --state merged --base <base> --json headRefName,headRefOid`;
-- in a repository without pull requests, each local branch that `git branch --merged <base>` lists and that a close record in persistent memory, or a plan or checkpoint, names for the user's earlier work; keep any other branch there, since nothing shows it is the user's;
-- the temporary or preview branches the work created.
-
-The sweep never switches a checkout's branch: this narrows, at this point, git-workflow step 2's "never switch, reset or delete its branch" to branches no checkout uses. It applies steps 1, 2 and 4 above to each branch and removes its worktree unless a keep condition holds. It also keeps, reporting the reason, a branch:
-
-- checked out in a checkout other than a clean worktree this sweep removes;
-- that persistent memory, a plan or a checkpoint names for work whose close is not recorded as done, such as work in progress, including a fresh branch with no commits beyond the base, or a close waiting for the user's reply, unless a pending-close record for that work is older than 24 hours. For such an older pending close, do not remove its branch or worktree here: resume that work's pending close steps in order, as flow-close sets for a hygiene request, which asks its support decision before its own cleanup.
-
-A promotion that has not been made is never a reason to keep a branch or a worktree.
+If the helper is unavailable, perform only the authorized cleanup whose inputs and preservation conditions above you can establish manually; a missing check keeps the affected work. Do not bypass a helper refusal. Preserve the remote-before-local branch deletion order, using safe local deletion except for a verified squash/rebase merge.
 
 ## Report
 
-List the repositories checked, the branches and worktrees removed, and each one kept with its reason.
+Report the repositories checked, `removed_worktrees`, `deleted_branches`, each retained item with its reason, and any `errors`. A nonzero exit or partial result is not a completed cleanup.

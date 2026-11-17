@@ -293,6 +293,93 @@ class GitStateTest(unittest.TestCase):
         code, _, _, _ = run(Path(self.tmpdir.name) / "bin", "--base", "main", "--no-pr", env=self.r.env)
         self.assertEqual(code, 2)
 
+    def test_commit_preserves_unrelated_staged_files_and_handles_untracked(self):
+        r = self.r
+        (r.work / "kept.txt").write_text("staged earlier\n")
+        r.git(r.work, "add", "kept.txt")
+        (r.work / "base.txt").write_text("updated base\n")
+        (r.work / "newfile.txt").write_text("brand new file\n")
+
+        code, data, _, stderr = run(
+            r.work,
+            "commit",
+            "-m",
+            "feat: update base and newfile",
+            "--unreviewed-fix",
+            "minor lint adjustment",
+            "--",
+            "base.txt",
+            "newfile.txt",
+            env=r.env,
+        )
+        self.assertEqual(code, 0, stderr)
+        self.assertTrue(data["ok"])
+        self.assertEqual(sorted(data["paths"]), ["base.txt", "newfile.txt"])
+        self.assertEqual(data["preserved_staged"], ["kept.txt"])
+        self.assertEqual(r.git(r.work, "diff", "--cached", "--name-only"), "kept.txt")
+        msg = r.git(r.work, "log", "-1", "--format=%B")
+        self.assertIn("Unreviewed: minor lint adjustment", msg)
+
+    def test_commit_rejects_wildcards_directories_and_hook_bypass(self):
+        r = self.r
+        sub = r.work / "subdir"
+        sub.mkdir()
+        (sub / "inside.txt").write_text("hello\n")
+        for bad in (
+            ["commit", "-m", "bad", "--", "."],
+            ["commit", "-m", "bad", "-a", "--", "base.txt"],
+            ["commit", "-m", "bad", "--no-verify", "--", "base.txt"],
+            ["commit", "-m", "bad", "--", "subdir"],
+        ):
+            code, _, _, _ = run(r.work, *bad, env=r.env)
+            self.assertEqual(code, 2, f"expected rejection for {bad}")
+
+    def test_commit_blocks_secret_and_restores_untracked_index_state(self):
+        r = self.r
+        (r.work / "kept.txt").write_text("staged earlier\n")
+        r.git(r.work, "add", "kept.txt")
+        token = "ghp_" + "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8"
+        (r.work / "leaked.txt").write_text(f"API_TOKEN={token}\n")
+
+        code, data, _, _ = run(r.work, "commit", "-m", "leak", "--", "leaked.txt", env=r.env)
+        self.assertEqual(code, 1)
+        self.assertFalse(data["ok"])
+        self.assertTrue(data["secret_findings"])
+        self.assertEqual(r.git(r.work, "diff", "--cached", "--name-only"), "kept.txt")
+        status = r.git(r.work, "status", "--porcelain=v1", "--", "leaked.txt")
+        self.assertTrue(status.startswith("??"), f"expected untracked restoration, got {status!r}")
+
+    def test_commit_supports_symlink_to_directory_and_blocks_short_password_secret(self):
+        r = self.r
+        target_dir = r.work / "realdir"
+        target_dir.mkdir()
+        (target_dir / "file.txt").write_text("ok\n")
+        link_path = r.work / "dirlink"
+        link_path.symlink_to("realdir")
+
+        code, data, _, stderr = run(
+            r.work,
+            "commit",
+            "-m",
+            "chore: add symlink to directory",
+            "--unreviewed-fix",
+            "symlink support",
+            "--",
+            "dirlink",
+            env=r.env,
+        )
+        self.assertEqual(code, 0, stderr)
+        self.assertTrue(data["ok"])
+        self.assertEqual(data["paths"], ["dirlink"])
+
+        # Short secret assignment with mixed classes (< 20 chars) must still be blocked
+        secret_assign = "DB_" + "PASSWORD=" + "P@ssw0rd!987"
+        (r.work / "db.env").write_text(f"{secret_assign}\n")
+        code2, data2, _, _ = run(r.work, "commit", "-m", "leak short", "--", "db.env", env=r.env)
+        self.assertEqual(code2, 1)
+        self.assertFalse(data2["ok"])
+        self.assertTrue(data2["secret_findings"])
+
 
 if __name__ == "__main__":
     unittest.main()

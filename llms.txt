@@ -48,7 +48,7 @@ Source-byte unions are not actual tokens or evidence of small-model reliability.
 - [harness-audit local instructions mode](content/skills/harness-audit/references/local-instructions.md): create or prune the untracked HIVE.local.md of a project and the machine file (~/.config/hive/HIVE.local.md) from what already worked on this machine, after asking which facts to keep
 - [flow-research security advisory mode](content/skills/flow-research/references/security-advisory.md): check whether a published advisory affects a set of repositories, without changing them
 - [test-audit](content/skills/test-audit/SKILL.md): prune one area's duplicate or implementation-coupled tests to one owner per contract, proven by an independent review and targeted mutations
-- [flow-close support maintenance](content/skills/flow-close/references/support-maintenance.md): organize support artifacts and retained evidence
+- [docs-cleanup](content/skills/docs-cleanup/SKILL.md): clean up, prune or reorganize the docs, evidence and support material of a repository, workspace or monorepo, with or without Hive, through a manifest you confirm
 - [unattended-delegation](content/skills/unattended-delegation/SKILL.md): coordinate delegated work with a bounded objective and expiry
 - [harness-audit Engram workspace mode](content/skills/harness-audit/references/engram-workspace.md): establish one Engram identity for a declared workspace, only when asked
 - [Role profiles](integrations/agent-profiles.json): default model and effort per role and host

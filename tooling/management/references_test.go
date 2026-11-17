@@ -28,6 +28,9 @@ func TestReleaseRejectsBrokenInstructionDependencies(t *testing.T) {
 		{"personal path", "[required](/Users/alice/private.md)", "nonportable personal path"},
 		{"unsupported scheme", "[required](file:///tmp/private.md)", "unsupported local destination"},
 		{"reference definition", "[required][guide]\n\n[guide]: skill:workspace-conventions/references/missing.md", "target is not included in this release"},
+		{"missing local anchor", "[required](#no-such-heading)", "missing heading anchor"},
+		{"empty local anchor", "[required](#)", "missing heading anchor"},
+		{"missing skill anchor", "[required](skill:workspace-conventions/SKILL.md#no-such-heading)", "missing heading anchor"},
 	} {
 		t.Run("global/"+tc.name, func(t *testing.T) {
 			o := setup(t)
@@ -44,8 +47,8 @@ func TestReleaseRejectsBrokenInstructionDependencies(t *testing.T) {
 func TestReleaseLinksResolveWithinPayload(t *testing.T) {
 	o := setup(t)
 	put(t, filepath.Join(o.Source, GlobalSource), "# Rules\nRead [logical](skill:other/references/guide.md), [relative](../skills/other/SKILL.md), [directory](skill:other/references/), [web](https://example.com/docs), [http](http://example.com/docs), [mail](mailto:team@example.com) and [anchor](#rules).\nRead [guide][details].\n\n[details]: <skill:other/references/guide.md>\n```md\n[example](skill:missing/references/absent.md)\n/Users/alice/example.md\n```\n~~~md\n[example](file:///tmp/not-real.md)\n~~~\n")
-	put(t, filepath.Join(o.Source, SkillSource), "# Skill\nRead [local](references/guide.md#section), [other](../other/SKILL.md), [external](https://example.com/docs) and [logical](skill:other/references/guide.md) and [directory](skill:other/references/).\n```md\n[example](references/not-real.md)\n```\n")
-	put(t, filepath.Join(o.Source, "content/skills/workspace-conventions/references/guide.md"), "# Section\nRead [entry](../SKILL.md).\n")
+	put(t, filepath.Join(o.Source, SkillSource), "# Skill\nRead [local](references/guide.md#section), [dup](references/guide.md#section-1), [other](../other/SKILL.md), [external](https://example.com/docs) and [logical](skill:other/references/guide.md#guide) and [directory](skill:other/references/).\n```md\n[example](references/not-real.md)\n```\n")
+	put(t, filepath.Join(o.Source, "content/skills/workspace-conventions/references/guide.md"), "# Section\nRead [entry](../SKILL.md).\n\n## Section\nDuplicate heading.\n")
 	put(t, filepath.Join(o.Source, "content/skills/other/SKILL.md"), "# Other\nRead [guide][details].\n\n[details]: references/guide.md\n")
 	put(t, filepath.Join(o.Source, "content/skills/other/references/guide.md"), "# Guide\n")
 	p := plan(t, "install", o)
