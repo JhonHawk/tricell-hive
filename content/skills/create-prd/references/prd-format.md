@@ -1,6 +1,6 @@
 # PRD format
 
-Read before drafting a requirement document and before checking one, at [create-prd](../SKILL.md) steps 4, 5 and 7, and when the `hive-review-prd` role reviews one. Reading this reference writes no document.
+Read before drafting a requirement document and before checking one, at [create-prd](../SKILL.md) steps 4, 5 and 7, in its [incoming document](incoming-document.md) and [technical review](technical-review.md) uses, and when the `hive-review-prd` role reviews one. Reading this reference writes no document.
 
 ## Sections
 
@@ -73,8 +73,8 @@ The state of the document is set by what the checks support. A label in the sour
 
 | State | It is reached when |
 | --- | --- |
-| `draft` | The document is being written and its owner has not received it. |
-| `iterating` | Its owner received it, and a check of the ready list fails, a rule is `to decide`, an open question is unanswered, or the review did not run. |
+| `draft` | The document is still being written: check 1 or check 2 of the ready list fails. |
+| `iterating` | Checks 1 and 2 pass, and another check of the ready list fails, a rule is `to decide`, an open question is unanswered, the review did not run, or the user has not approved it. |
 | `approved by business` | All four hold for this version: the ready list passes, a `hive-review-prd` child reviewed it, no rule is `to decide`, and the user approved it explicitly, as [create-prd](../SKILL.md) step 7 asks. |
 | `technical review` | A session with the repository took a version that is `approved by business` and is comparing it with the code. |
 | `ready for development` | The technical review set it, as [technical review](technical-review.md) sets. No other step sets this state. |
@@ -83,7 +83,7 @@ A change to any rule after an approval produces a new version, which starts in `
 
 ## Versions
 
-Versions are numbered from 1. A new version starts each time the document changes after its owner received it, not at each edit while drafting. Each row of the version history holds the version, its date, the state it reached, who approved it, the link or path of its frozen copy when it has one, and its list of changes:
+Versions are numbered from 1. A new version starts each time the document changes after the skill reported it, at its step 9, not at each edit before that. Each row of the version history holds the version, its date, the state it reached, who approved it, the link or path of its frozen copy when it has one, and its list of changes:
 
 - **Added**: the codes of the new rules.
 - **Decided**: each rule that left `to decide` or `assumption`, with the answer and who gave it.

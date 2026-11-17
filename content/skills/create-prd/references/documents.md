@@ -13,7 +13,7 @@ Take the first that holds:
 ## Before the first write
 
 - Read what the account may do in the tool: create a document, edit it, copy it and comment on it. Name before the write each operation it will not be able to do.
-- Use the destination the user named. When they named none, ask where the document goes, as a decision whose recommended option is a private draft where the tool has one.
+- Use the destination the user named. When they named none, ask where the document goes, as a decision whose recommended option is a private draft where the tool has one. The user's request for the document and that answer are the instruction for the writes this reference sets, the frozen copies included; write nothing else in the tool.
 - Never write into, rename or move a document this work did not create, unless the user points at that document for it.
 
 ## Operations by tool
@@ -42,7 +42,7 @@ The live document goes on as the next version.
 
 ## Markdown mode
 
-- **Inside a repository**, the document is `_support/docs/requirements/<module>/prd.md` in the repository's support home, which the global guidance's «Support folder» sets, with `<module>` in English kebab-case. **Outside a repository**, it is `<module>-prd.md` in the working folder.
-- The file is a support artifact, not a change to deliver: write it without creating a branch, committing or asking a delivery question. Report its path and that it is not committed, and commit it only when the user asks, as [git-workflow](../../git-workflow/SKILL.md) sets.
+- **Inside a repository**, the document is `_support/docs/requirements/<module>/prd.md` in the repository's support home, which the global guidance's «Support folder» sets, with `<module>` in English kebab-case, unless the project guidance names another place for requirement documents. That file is added to the repository, which is the user's choice: name its path and ask before the first write, unless the user already asked for the file there. **Outside a repository**, it is `<module>-prd.md` in the working folder.
+- Write the file without creating a branch or committing. Report its path and that it is not committed. Committing it is a delivery: it waits for the user to ask, and then the global guidance's «Delivery» and [git-workflow](../../git-workflow/SKILL.md) govern it.
 - **Freezing** copies the file beside itself as `prd-v<N>.md`, or `<module>-prd-v<N>.md` outside a repository, with the same title line as a frozen copy in a tool. That file is never edited again.
-- **PDF.** Each time the document goes to its owner, and at each freeze, render its PDF beside it: `python3 -I <create-prd-dir>/scripts/render_pdf.py <file.md>` ([script](../scripts/render_pdf.py)). It prints with a browser already installed and installs nothing. When it exits 0, it prints the PDF's path. When it exits 3 or 4, no PDF was written and it left a printable page beside the file: tell the user where that page is and how to print it, as the script's message says. Never install a browser or a converter for this. The PDF is derived from the Markdown file and can be rendered again, so it needs no versioning.
+- **PDF.** Each time the document goes to its owner, and at each freeze, render its PDF beside it: `python3 -I <create-prd-dir>/scripts/render_pdf.py <file.md>` ([script](../scripts/render_pdf.py)). It prints with a browser already installed and installs nothing. When it exits 0, it prints the PDF's path. When it exits 2, it could not read the file. When it exits 3 or 4, no PDF was written and it left a printable page beside the file: tell the user where that page is and how to print it, as the script's message says. Never install a browser or a converter for this. The PDF is derived from the Markdown file and can be rendered again, so it needs no versioning.
