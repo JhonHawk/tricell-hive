@@ -718,3 +718,89 @@ func TestDoctorProjectWarnsOnMalformedOtherTrackersAndCompletionValues(t *testin
 		})
 	}
 }
+
+func TestDoctorProjectLocalInstructionsAndSecrets(t *testing.T) {
+	t.Run("unignored HIVE.local.md and overlong or secret entry block", func(t *testing.T) {
+		root := projectRepoWithSpecs(t, validHiveSection)
+		longFact := "- " + strings.Repeat("a", 205) + " · 2026-11-16\n"
+		token := "ghp_" + "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8"
+		secretFact := "- token " + token + " · 2026-11-16\n"
+		if err := os.WriteFile(filepath.Join(root, "HIVE.local.md"), []byte("Per-machine facts.\n\n"+longFact+secretFact), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		sec := collectProject(root, doctorDeps{})
+		text := projectText(t, root)
+		mustContain(t, text, "HIVE.local.md: not ignored by Git")
+		mustContain(t, text, "HIVE.local.md: line 3 exceeds 200 characters")
+		mustContain(t, text, "HIVE.local.md: line 4 contains a secret-like value")
+		if !sec.Blocking {
+			t.Fatalf("expected blocking findings:\n%s", text)
+		}
+	})
+
+	t.Run("valid ignored HIVE.local.md and properly permissioned _support/secrets pass", func(t *testing.T) {
+		root := projectRepoWithSpecs(t, validHiveSection)
+		exclude := filepath.Join(root, ".git", "info", "exclude")
+		if err := os.WriteFile(exclude, []byte("HIVE.local.md\n_support/secrets/\n_support/scripts/\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		// STALE prefix does not count toward 200-char limit
+		stalePrefix := "STALE 2026-11-16 (port changed inside container after upgrade): "
+		body := "- " + stalePrefix + strings.Repeat("b", 180) + " · 2026-11-10\n"
+		if err := os.WriteFile(filepath.Join(root, "HIVE.local.md"), []byte("Per-machine facts.\n\n## Runtime\n"+body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		secretsDir := filepath.Join(root, "_support", "secrets")
+		if err := os.MkdirAll(secretsDir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(secretsDir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(secretsDir, "ACCOUNTS.md"), []byte("| env | role | id | source | reach | status |\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(secretsDir, "api.key"), []byte("secret"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		sec := collectProject(root, doctorDeps{})
+		text := projectText(t, root)
+		mustContain(t, text, "Valid")
+		if sec.Blocking {
+			t.Fatalf("unexpected blocking finding:\n%s", text)
+		}
+	})
+
+	t.Run("over 50 entries without STALE warns without blocking, with STALE blocks", func(t *testing.T) {
+		root := projectRepoWithSpecs(t, validHiveSection)
+		exclude := filepath.Join(root, ".git", "info", "exclude")
+		if err := os.WriteFile(exclude, []byte("HIVE.local.md\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var b strings.Builder
+		b.WriteString("Per-machine facts.\n\n")
+		for i := 1; i <= 51; i++ {
+			fmt.Fprintf(&b, "- fact number %d verified · 2026-11-16\n", i)
+		}
+		if err := os.WriteFile(filepath.Join(root, "HIVE.local.md"), []byte(b.String()), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		sec := collectProject(root, doctorDeps{})
+		text := projectText(t, root)
+		mustContain(t, text, "HIVE.local.md: 51 entries (> 50 with no STALE entries); curate with harness-audit")
+		if sec.Blocking {
+			t.Fatalf("over 50 current entries without STALE must not block:\n%s", text)
+		}
+
+		b.WriteString("- STALE 2026-11-16 (old): old fact · 2026-11-01\n")
+		if err := os.WriteFile(filepath.Join(root, "HIVE.local.md"), []byte(b.String()), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		sec2 := collectProject(root, doctorDeps{})
+		text2 := projectText(t, root)
+		mustContain(t, text2, "HIVE.local.md: 52 entries (> 50) with unpruned STALE entries")
+		if !sec2.Blocking {
+			t.Fatalf("over 50 entries with STALE must block:\n%s", text2)
+		}
+	})
+}

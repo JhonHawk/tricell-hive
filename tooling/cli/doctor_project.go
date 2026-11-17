@@ -17,6 +17,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 )
 
 // retiredHiveKeys are keys the section no longer reads as settings: Hive asks
@@ -567,6 +568,10 @@ func validateHiveSection(root, content string, git gitRunner) hiveVerdict {
 			break
 		}
 	}
+	for _, f := range localProjectFindings(root, git) {
+		findings = append(findings, f.Text)
+		blocking = blocking || f.Blocking
+	}
 	for _, it := range items {
 		unknown = unknown || (!knownHiveKey(it.Key) && !retiredHiveKey(it.Key))
 	}
@@ -666,4 +671,102 @@ func quotedList(values []string) string {
 		quoted[i] = fmt.Sprintf("%q", v)
 	}
 	return strings.Join(quoted, ", ")
+}
+
+var (
+	localDatePattern       = regexp.MustCompile(`\b\d{4}-\d{2}-\d{2}\b`)
+	stalePrefixPattern     = regexp.MustCompile(`^STALE \d{4}-\d{2}-\d{2} \([^)]*\):\s*`)
+	unverifiedFailPattern  = regexp.MustCompile(`\bunverified \d{4}-\d{2}-\d{2} \([^)]*\):\s*`)
+	knownSecretTokenRegexp = regexp.MustCompile(`\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|glpat-[A-Za-z0-9_-]{20,}|(?:AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|xox[baprs]-[A-Za-z0-9-]{10,}|sk-(?:ant-|proj-|live-)?[A-Za-z0-9_-]{20,})\b|-----BEGIN (?:[A-Z0-9 ]+ )?PRIVATE KEY-----`)
+)
+
+func containsSecretToken(line string) bool {
+	return knownSecretTokenRegexp.MatchString(line)
+}
+
+func effectiveLocalEntryRunes(line string) int {
+	rest := strings.TrimPrefix(strings.TrimSpace(line), "- ")
+	rest = stalePrefixPattern.ReplaceAllString(rest, "")
+	rest = unverifiedFailPattern.ReplaceAllString(rest, "unverified ")
+	return utf8.RuneCountInString("- " + rest)
+}
+
+func localProjectFindings(root string, git gitRunner) []hiveFinding {
+	var out []hiveFinding
+	add := func(blocking bool, format string, a ...any) {
+		out = append(out, hiveFinding{Text: fmt.Sprintf(format, a...), Blocking: blocking})
+	}
+	for _, rel := range []string{"HIVE.local.md", "_support/secrets", "_support/scripts"} {
+		full := filepath.Join(root, filepath.FromSlash(rel))
+		if _, err := os.Stat(full); err != nil {
+			continue
+		}
+		if _, err := git(root, "check-ignore", "-q", rel); err != nil && gitAnswered(err) {
+			add(true, "%s: not ignored by Git; add it to .git/info/exclude", rel)
+		}
+	}
+
+	secretsDir := filepath.Join(root, "_support", "secrets")
+	if info, err := os.Stat(secretsDir); err == nil && info.IsDir() {
+		if perm := info.Mode().Perm(); perm != 0o700 {
+			add(true, "_support/secrets: permissions are %04o; expected 0700", perm)
+		}
+		if entries, err := os.ReadDir(secretsDir); err == nil {
+			for _, e := range entries {
+				if e.IsDir() {
+					continue
+				}
+				name := e.Name()
+				fpath := filepath.Join(secretsDir, name)
+				if finfo, err := os.Stat(fpath); err == nil && finfo.Mode().IsRegular() {
+					if name != "ACCOUNTS.md" && finfo.Mode().Perm() != 0o600 {
+						add(true, "_support/secrets/%s: permissions are %04o; expected 0600", shown(name), finfo.Mode().Perm())
+					}
+				}
+				if name == "ACCOUNTS.md" {
+					if text, err := readLimited(fpath); err == nil {
+						for i, line := range strings.Split(text, "\n") {
+							if containsSecretToken(line) {
+								add(true, "_support/secrets/ACCOUNTS.md: line %d contains a secret-like value", i+1)
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	localFile := filepath.Join(root, "HIVE.local.md")
+	if text, err := readLimited(localFile); err == nil {
+		totalEntries, staleEntries := 0, 0
+		for i, raw := range strings.Split(text, "\n") {
+			line := strings.TrimRight(raw, "\r")
+			trimmed := strings.TrimSpace(line)
+			if trimmed == "" || strings.HasPrefix(trimmed, "#") || !strings.HasPrefix(trimmed, "- ") {
+				continue
+			}
+			totalEntries++
+			rest := strings.TrimPrefix(trimmed, "- ")
+			if strings.HasPrefix(rest, "STALE ") {
+				staleEntries++
+			}
+			if effectiveLocalEntryRunes(trimmed) > 200 {
+				add(true, "HIVE.local.md: line %d exceeds 200 characters", i+1)
+			}
+			if !localDatePattern.MatchString(trimmed) {
+				add(true, "HIVE.local.md: line %d is missing a YYYY-MM-DD verification date", i+1)
+			}
+			if containsSecretToken(trimmed) {
+				add(true, "HIVE.local.md: line %d contains a secret-like value", i+1)
+			}
+		}
+		if totalEntries > 50 {
+			if staleEntries > 0 {
+				add(true, "HIVE.local.md: %d entries (> 50) with unpruned STALE entries", totalEntries)
+			} else {
+				add(false, "HIVE.local.md: %d entries (> 50 with no STALE entries); curate with harness-audit", totalEntries)
+			}
+		}
+	}
+	return out
 }

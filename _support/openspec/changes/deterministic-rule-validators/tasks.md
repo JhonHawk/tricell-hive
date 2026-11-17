@@ -76,7 +76,7 @@ Commit base del repositorio `tricell-hive` al escribir el plan: `f886538f` en la
 
 ### T5 — Crear planificador y ejecutor determinístico `cleanup_branches.py` en `flow-close` (`H9`)
 
-- [ ] `content/skills/flow-close/scripts/cleanup_branches.py` planifica en JSON (dry-run por defecto) y ejecuta con `--apply` la limpieza segura de ramas y worktrees al cierre.
+- [x] `content/skills/flow-close/scripts/cleanup_branches.py` planifica en JSON (dry-run por defecto) y ejecuta con `--apply` la limpieza segura de ramas y worktrees al cierre.
 
 **Closes:** AC5
 
@@ -158,3 +158,4 @@ Parada de validación humana (`D4 A` — `interactive`): antes de `git push`, pr
 2026-11-16 — T1 · c50d4220 · unverified: none
 2026-11-16 — T3 · 6bfb80bf · unverified: none
 2026-11-16 — T4 · e3888838 · unverified: none
+2026-11-17 — T5 · 6771a316 · unverified: none
