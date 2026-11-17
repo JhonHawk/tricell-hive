@@ -67,7 +67,7 @@ Never run a project command that starts, stops, seeds, migrates, installs, signs
 
 ## 6. Write the files
 
-Write as «Local instructions» sets, each **record** candidate to the file step 3 names for it, using `python3 -I <harness-audit-dir>/scripts/local_instructions.py` ([helper](../scripts/local_instructions.py)) (`ensure-ignore`, `add`, `mark-stale`, `check`) to guarantee Git exclusion, the 200-character and 50-line limits, and secret-free entries. Start the file with one line saying it is per-machine, untracked and kept by agents under «Local instructions». Give each group a heading and each entry the one line «Local instructions» defines: the fact and its date, followed by `unverified` when marked and by its pointer when it has a detail. Save each detail as that section sets, and read it back before removing its text from a file. In curate mode, keep the user's own wording of an entry they kept as it is.
+Write each **record** candidate to the file step 3 names, through the global guidance’s «Local instructions» operations and their result checks. Start a new file with its per-machine, untracked purpose, group entries by subject, and use the prescribed dated entry and pointer, retaining `unverified` where step 5 requires it. Save and read back each detail before removing it from a file. In curate mode, preserve the user’s wording for entries they kept. The helper checks structure and suspected secrets, not whether the fact is true or the write is authorized.
 
 ## 7. Report
 

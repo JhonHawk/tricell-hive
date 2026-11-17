@@ -234,6 +234,10 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- Guidance now delegates supported mechanical checks to the existing validators
+  instead of repeating their recipes, while retaining required inputs, permissions,
+  preservation rules, semantic review and handling for unsupported cases.
+
 - Agents no longer give a rule as the reason for what they did, skipped, ask
   or stop for, such as "the flow-build rule requires it": wherever a
   message gives a reason, it is the effect on you or your work. Until now this
