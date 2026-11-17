@@ -24,7 +24,7 @@ Create only the folders and records the work needs. One work item shares its ide
 
 **Condition:** producing UI review images or recordings.
 
-**Actions:** put images and recordings in `workspace/YYYY-MM-DD-<work>/images/`. Publish UI captures using [walkthrough](../../flow-verify/references/walkthrough.md); its [readback checks](../../flow-verify/references/viewer-publication.md#close-and-input-hygiene) precede removing the disposable upload inputs. Link current output from the handoff.
+**Actions:** put images and recordings in `workspace/YYYY-MM-DD-<work>/images/`, and a build's before captures in its `images/before/`. Publish UI captures using [walkthrough](../../flow-verify/references/walkthrough.md); its [readback checks](../../flow-verify/references/viewer-publication.md#close-and-input-hygiene) precede removing the disposable upload inputs, which never include a capture that [Retain evidence](#retain-evidence) keeps. Link current output from the handoff.
 
 Keep source plans, user-selected output, unique evidence of work not yet integrated, uncommitted work and anything with uncertain ownership. Keep failed or unconfirmed upload inputs, and all inputs for paused work. Walkthrough pages generated before the standalone fallback was removed are kept as they are, never deleted or rewritten by that removal. Retention does not authorize publication, and nothing expires by age.
 
@@ -37,7 +37,7 @@ Keep source plans, user-selected output, unique evidence of work not yet integra
 
 ## Retain evidence
 
-Verification material serves the review of its own work. Keep it unversioned in the work's `workspace/` folder while the work is open; once the work is integrated, its pull request body, which lists each acceptance criterion with its evidence, is the record that replaces it, or the final report when the delivery opens no pull request.
+Verification material serves the review of its own work. Keep it unversioned in the work's `workspace/` folder while the work is open; once the work is integrated, its pull request body, which lists each acceptance criterion with its evidence, is the record that replaces it, or the final report when the delivery opens no pull request. A capture is replaced only when its uploaded URL was read back in the merged body, as [pull request captures](../../git-workflow/references/pr-captures.md#read-back) sets; keep every other capture.
 
 Promote a conclusion from that material, as docs-cleanup's [inventory](../../docs-cleanup/references/inventory.md#promote-a-conclusion) sets, only when it is one of these, since later work reuses only these:
 
