@@ -30,9 +30,9 @@ This operation applies when the user asks to clean up, curate or archive the sup
    - **promote:** it passes the test of [Retain evidence](artifact-layout.md#retain-evidence), and no durable document states its conclusion yet;
    - **remove from tree:** versioned verification material, a superseded copy, or raw output whose conclusion a durable document already states or that no later work cites;
    - **archive session:** a closed `sessions/` folder, as [archive](archive.md) sets;
-   - **keep:** current knowledge, material of open or paused work, a finding's trace without a ticket, sensitive material, and anything of uncertain ownership.
+   - **keep:** current knowledge, change records under `<Specs>/changes/`, archived ones included, material of open or paused work, a finding's trace without a ticket, sensitive material, and anything of uncertain ownership.
 
-   An item that a current document cites is removed only once that document states the promoted conclusion in place of the citation.
+   An item that a current document cites is removed only once that document states the promoted conclusion in place of the citation. When a repository's own guidance, such as its `AGENTS.md`, still tells agents to write into a folder the manifest removes, add an entry that changes that instruction, since otherwise later work refills the folder.
 4. **Write the manifest.** Group its entries by repository, each with the item, its class, the reason (its content and the citations found), the links to update and its size. End it with the archive tag each repository gets and the checks of step 6, and say that removing files from the tree does not shrink a clone, since history keeps them and this operation never rewrites history. Ask the manifest as one decision, as the global guidance's «Questions and routes» sets; when the request asked only for the inventory or a proposal, stop after it.
 5. **Apply it, one repository at a time.**
    - Write each promoted conclusion into its durable document with the fields [Retain evidence](artifact-layout.md#retain-evidence) sets, and update the links that cited the item.
