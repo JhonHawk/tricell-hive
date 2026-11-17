@@ -4,7 +4,7 @@ Commit base del repositorio `tricell-hive` al escribir el plan: `f886538f` en la
 
 ### T1 — Validar anclas `#fragment` en referencias de instrucciones (`H12`)
 
-- [ ] `validateInstructionReferences` en `tooling/management/references.go` valida anclas `#fragment` locales, relativas y `skill:` contra los encabezados Markdown del archivo destino.
+- [x] `validateInstructionReferences` en `tooling/management/references.go` valida anclas `#fragment` locales, relativas y `skill:` contra los encabezados Markdown del archivo destino.
 
 **Closes:** AC1
 
@@ -155,3 +155,4 @@ Parada de validación humana (`D4 A` — `interactive`): antes de `git push`, pr
 ## Review status and progress
 
 - 2026-11-16 — Plan redactado para `T1`–`T7` cubriendo `AC1`–`AC8`.
+2026-11-16 — T1 · c50d4220 · unverified: none
