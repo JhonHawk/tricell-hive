@@ -141,18 +141,20 @@ Parada de validación humana (`D4 A` — `interactive`): antes de `git push`, pr
 ## Checkpoint
 
 - Updated: 2026-11-17
-- Stage: verify · 1
-- Last commit: bb28fa19
-- Open findings: none
-- Next: flow-verify validation stop (D4 A)
+- Stage: verify · closed
+- Last commit: 5cac34e4
+- Open findings: none (4 initial P1/P2 closed and verified at 86c12412; 2 follow-up P2 false-positives closed at 5cac34e4)
+- Next: push feat/deterministic-rule-validators, open PR to development, merge, and run flow-close
 
 ### Evidence
 
-- `git rev-parse --short HEAD` → `f886538f` (2026-11-16)
-- check_change.py: exit 0 (f886538f)
+- `git rev-parse --short HEAD` → `5cac34e4` (2026-11-17)
+- check_change.py: exit 0
 - apply_deltas.py dry-run: 9 MODIFIED requirements valid (f886538f)
-- go vet ./... && go test ./tests/content/... ./tooling/... ./integrations/...: pass (bb28fa19)
-- python3 -m unittest discover -s tests/skills -p *_test.py: 140 tests pass (bb28fa19)
+- go vet ./... && go test ./...: pass (5cac34e4; tooling/cli 223.147s, tooling/management 52.972s, tooling/package 2.861s, tests/content 0.298s)
+- python3 -m unittest discover -s tests/skills -p *_test.py: 146 tests pass in 12.861s (5cac34e4)
+- TestGuidanceReadingFootprint: pass — content/guidance/global.md 52379B (52256 chars), plan-build-cycle 130722B (130498 chars)
+- hive-review-code: initial pass on 6d46cda4 (4 findings P1/P1/P2/P2); limited post-fix pass on 6d46cda4..86c12412 confirmed all 4 closed (0 P0/P1, 2 new P2s closed in 5cac34e4)
 
 ## Review status and progress
 
@@ -164,3 +166,5 @@ Parada de validación humana (`D4 A` — `interactive`): antes de `git push`, pr
 2026-11-17 — T2 · 828f2a3e · unverified: none
 2026-11-17 — T6 · cd34acbc · unverified: none
 2026-11-17 — T7 · bb28fa19 · unverified: none
+2026-11-17 — fix round 1 · 86c12412 · hive-review-code: 4 closed, 2 P2 false-positives found
+2026-11-17 — fix round 2 · 5cac34e4 · unreviewed: close 2 P2 false-positives in doctor_project.go and check_prd.py; full suite 146 py + go test ./... green
