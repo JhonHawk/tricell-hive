@@ -351,6 +351,71 @@ class ApplyLayoutTest(Fixture, unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("destination exists", result.stderr)
 
+    TOOLS = ["contracts-check.sh", "set-key.sh", "check-i18n.mts", "detect-changes.sh", "verify-push.sh", "rollback.sh"]
+
+    def index_tools(self, repo):
+        index = repo / "_support/docs/README.md"
+        index.write_text(index.read_text() + "".join(f"- `{n}` — tool\n" for n in self.TOOLS))
+
+    def test_a_move_out_of_a_docker_exclusion_is_reviewed_until_the_file_names_it(self):
+        repo = monorepo(self.tmp() / "shop")
+        write(repo, ".dockerignore", "_support\nnode_modules\n")
+        commit(repo)
+        plan_file = self.planned(repo)
+        plan = json.loads(plan_file.read_text())
+        builds = [r for r in plan["reviews"] if r["reason"] == "build contents"]
+        self.assertTrue(any(r["path"] == ".dockerignore" and "infra/," in r["detail"]
+                            and "now included" in r["detail"] for r in builds), builds)
+        self.assertEqual(self.run_cmd("apply", plan_file).returncode, 0)
+        self.index_tools(repo)
+        result = self.run_cmd("verify", plan_file)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(".dockerignore no longer excludes infra/terraform/main.tf", result.stdout)
+        (repo / ".dockerignore").write_text("_support\nnode_modules\ninfra/\nscripts/\n!apps/backend/scripts\n!apps/web/scripts\n")
+        result = self.run_cmd("verify", plan_file)
+        self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_a_move_into_a_package_exclusion_is_reviewed(self):
+        repo = monorepo(self.tmp() / "shop")
+        write(repo, ".npmignore", "/scripts/\n")
+        commit(repo)
+        plan = json.loads(self.planned(repo).read_text())
+        self.assertTrue(any(r["reason"] == "build contents" and r["path"] == ".npmignore"
+                            and "now excluded" in r["detail"] and "scripts/ci/" in r["detail"]
+                            for r in plan["reviews"]), plan["reviews"])
+
+    def test_ignored_files_left_in_a_moved_folder_are_reported(self):
+        repo = monorepo(self.tmp() / "shop")
+        write(repo, ".gitignore", (repo / ".gitignore").read_text() + ".terraform/\n")
+        commit(repo)
+        write(repo, "_support/infrastructure/terraform/environments/qa/.terraform/terraform.tfstate", "{}\n")
+        plan_file = self.planned(repo)
+        plan = json.loads(plan_file.read_text())
+        stay = [r for r in plan["reviews"] if r["reason"] == "ignored files stay"]
+        self.assertTrue(any(r["path"] == "_support/infrastructure/terraform" and ".terraform" in r["detail"]
+                            for r in stay), plan["reviews"])
+        self.assertEqual(self.run_cmd("apply", plan_file).returncode, 0)
+        self.index_tools(repo)
+        result = self.run_cmd("verify", plan_file)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("note: _support/infrastructure/terraform still holds 1 file Git ignores", result.stdout)
+
+    def test_a_reference_the_user_keeps_stays_and_passes_verify(self):
+        repo = monorepo(self.tmp() / "shop")
+        write(repo, ".github/scripts/select.mjs", "const OLD = '_support/scripts/verify-push.sh'\n")
+        commit(repo)
+        plan_file = self.planned(repo, "--keep-ref", ".github/scripts/select.mjs:1")
+        plan = json.loads(plan_file.read_text())
+        self.assertFalse([r for r in plan["rewrites"] if r["file"] == ".github/scripts/select.mjs"])
+        self.assertEqual(self.run_cmd("apply", plan_file).returncode, 0)
+        self.index_tools(repo)
+        result = self.run_cmd("verify", plan_file)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("_support/scripts/verify-push.sh", (repo / ".github/scripts/select.mjs").read_text())
+        result = self.plan(repo, extra=["--keep-ref", "nothing.txt"], check=False)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("--keep-ref names no reference: nothing.txt", result.stderr)
+
     def test_undo_restores_the_tree_and_keeps_other_work(self):
         repo = monorepo(self.tmp() / "shop")
         ci = repo / ".github/workflows/ci.yml"
