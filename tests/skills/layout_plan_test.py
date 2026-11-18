@@ -401,15 +401,18 @@ class ApplyLayoutTest(Fixture, unittest.TestCase):
         write(repo, ".gitignore", (repo / ".gitignore").read_text() + ".terraform/\n")
         commit(repo)
         write(repo, "_support/infrastructure/terraform/environments/qa/.terraform/terraform.tfstate", "{}\n")
-        write(repo, "_support/infrastructure/terraform/prod.auto.tfvars", "secret = 1\n")  # ignored, and the plan moves it
+        # ignored, and the plan moves them: one beside tracked files, one alone in its folder
+        write(repo, "_support/infrastructure/terraform/prod.auto.tfvars", "secret = 1\n")
+        write(repo, "_support/infrastructure/terraform/secrets/qa.auto.tfvars", "secret = 2\n")
         write(repo, ".git/info/exclude", "*.auto.tfvars\n")
         plan_file = self.planned(repo)
         plan = json.loads(plan_file.read_text())
         stay = [r for r in plan["reviews"] if r["reason"] == "ignored files stay"]
         self.assertTrue(any(r["path"] == "_support/infrastructure/terraform" and ".terraform" in r["detail"]
                             for r in stay), plan["reviews"])
-        if any(r["source"] == "_support/infrastructure/terraform/prod.auto.tfvars" and r["destination"] for r in plan["rows"]):
-            self.assertFalse([r for r in stay if "prod.auto.tfvars" in r["detail"]], stay)
+        for name, listed in (("prod.auto.tfvars", "prod.auto.tfvars"), ("secrets/qa.auto.tfvars", "secrets/")):
+            if any(r["source"] == f"_support/infrastructure/terraform/{name}" and r["destination"] for r in plan["rows"]):
+                self.assertFalse([r for r in stay if listed in r["detail"]], stay)
         self.assertEqual(self.run_cmd("apply", plan_file).returncode, 0)
         self.index_tools(repo)
         result = self.run_cmd("verify", plan_file)

@@ -928,6 +928,19 @@ class Planner:
                                 "now excluded: " + ", ".join(sorted(changed[True]))
                                 + f"; the build loses them: change {ignore_file}, or name each one in it to keep the change")
 
+    def staying(self, i, root, entry):
+        """The part of an ignored entry the plan does not move. A folder Git lists as one entry
+        is opened when the plan moves a file inside it, so only the files that stay are named."""
+        path = entry.rstrip("/")
+        if self.moves(i, path):
+            return []
+        if not entry.endswith("/") or not any(k[0] == i and r["destination"] and k[1].startswith(path + "/")
+                                              for k, r in self.rows.items()):
+            return [entry]
+        result = git(root.path, "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--", path)
+        files = [f for f in result.stdout.split("\0") if f] if result is not None and result.returncode == 0 else []
+        return [f for f in files if not self.moves(i, f)]
+
     def moves(self, i, rel):
         """Whether the plan moves rel, itself or with a folder that holds it."""
         while rel:
@@ -969,7 +982,7 @@ class Planner:
                         parent = os.path.dirname(parent)
             emptied = folders - holding
             for folder in sorted(f for f in emptied if not any(f.startswith(e + "/") for e in emptied)):
-                left = [p for p in left_ignored(root.path, folder) if not self.moves(i, p.rstrip("/"))]
+                left = [p for entry in left_ignored(root.path, folder) for p in self.staying(i, root, entry)]
                 if left:
                     self.review(i, folder, "ignored files stay",
                                 f"Git ignores {plural(len(left), 'entry', 'entries')} that stay at {folder} after the move, "
