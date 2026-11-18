@@ -35,7 +35,7 @@ Create only the folders and records the work needs. One work item shares its ide
 - A helper only this machine needs is a local script under `scripts/`.
 - Anything else is scratch.
 
-Application code never reads or writes `_support/`: a path the running application needs, such as a log or a report folder, is its own configuration.
+Code never depends on the work material under `_support/` (`workspace/`, `data/`, `scripts/`, `secrets/`, `sessions/`), which a fresh clone does not have: a path the running application needs, such as a log or a report folder, is its own configuration. Tooling may read the versioned knowledge in `_support/docs` and `_support/openspec`.
 - A work's verification material, such as walk outputs, captures and raw CI, cloud or tool output, goes in its `workspace/YYYY-MM-DD-<work>/` folder and is retained as [Retain evidence](#retain-evidence) sets. Do not create an `evidence/` folder; an existing one is legacy material, cleaned up on request with [project-layout](../SKILL.md).
 
 **Condition:** producing UI review images or recordings.
