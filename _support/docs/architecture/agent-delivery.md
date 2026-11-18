@@ -66,6 +66,22 @@ For example, a backend implementation assignment identifies the authorized API c
 
 Role links use `skill:owner/path` logical resource identities, for example `skill:flow-plan/references/ui-planning.md`. They resolve from the named skill's discovered directory, not the native agent file. This is an authoring convention interpreted through instructions, not a new CLI URI handler. The release validator checks the owning skill and resource exist in the bundle; the renderer rewrites inline locators outside fences to installed resource paths without embedding resource content. See [instruction resources](instruction-resources.md) for authoring and validation limits.
 
+### Child skill access and nesting by host
+
+Whether a child sees the host's skill catalog, and whether it may launch children of its own, as of 2026-11-17. DOC is the host's documentation, OBS an observation on the maintainer's machine, INF an inference. An explicit path in the brief is the delivery that holds on every host, which is why the brief carries one.
+
+| Host (installed version) | Child sees the skill catalog | Child may launch children |
+| --- | --- | --- |
+| Claude Code 2.1.327 | Yes: the same catalog and skill tool; a `skills:` frontmatter field only preloads content (DOC [sub-agents](https://code.claude.com/docs/en/sub-agents), OBS) | Yes by default, up to `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` (default 3) (DOC); a user setting may lower it |
+| Codex 0.169.0 | Yes: inherited from the parent; a role may only disable skills (DOC [subagents](https://developers.openai.com/codex/subagents)) | No by default: `agents.max_depth` 1 (INF from the `rust-v0.169.0` source and the binary's strings; not on the docs pages) |
+| OpenCode 2.3.0 | Yes: the same catalog, gated per agent by the `skill` permission (DOC [skills](https://opencode.ai/docs/skills), [agents](https://opencode.ai/docs/agents)) | No by default: depth 1, experimental `subagent_depth` (DOC [tools](https://opencode.ai/docs/tools)) |
+| Pi 1.5.2, pi-subagents 0.83.0 | Only with `inheritSkills: true`, which Hive's renderer sets (`integrations/agents/agents.go`) (DOC bundled `pi-subagents/docs/agents.md`) | No unless the role allows `subagent` or `allowNestedSubagents`; Hive roles do not (DOC) |
+| Grok Build 1.0.89 | No in one probe (2026-11-06): the primary session received the skill list and the child did not; the child read skills only by path (OBS, one observation) | DOC: `[subagents] max_depth`, 5 on the daemon route and 1 on the shell route (`~/.grok/docs/user-guide/16-subagents.md`); the probe child had no spawn tool (OBS) |
+| Cursor CLI 2026.11.13 | Not documented. A third-party Cursor plugin's agent definition warns its child that "your skill catalog hides" a skill marked `disable-model-invocation`, which implies children see a catalog without command-only skills (INF) | One level: the main agent and its direct children may launch children, a grandchild may not (DOC [subagents](https://cursor.com/docs/subagents)) |
+| Antigravity `agy` 1.5.9 | Not documented; the SDK shows `skills_paths` on the local agent config, not on the subagent config | Not verified; the SDK documents `max_subagent_depth` and `allowed_subagents` |
+
+Hive's global guidance forbids children from launching children on every host, whatever the host allows.
+
 ### Optional OpenCode reference supply
 
 At OpenCode user scope, the manager delivers the inactive directory
