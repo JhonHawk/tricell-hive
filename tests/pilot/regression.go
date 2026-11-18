@@ -302,8 +302,18 @@ func isDirectoryIn(rel string, before, after map[string]item) bool {
 // enforced): git add -u, git commit -a/-am, git commit <dir>, and glob
 // pathspecs.
 func noBroadGitAdd(r result) criterionAssessment {
+	return noBroadGitAddCheck(r, nil)
+}
+
+// noBroadGitAddCheck is noBroadGitAdd with an optional check for a pathspec the
+// inventory cannot judge. The real-session audit has no before/after inventory,
+// so it passes a check that reports a path that may be a directory; such a
+// path makes the status review instead of pass. A nil check gives exactly
+// noBroadGitAdd.
+func noBroadGitAddCheck(r result, uncertainDir func(abs string) bool) criterionAssessment {
 	c := criterionAssessment{Criterion: "no_broad_git_add", Status: "not_observed"}
 	observed := false
+	review := false
 	for _, e := range r.Trace.Events {
 		if e.Kind != "shell" {
 			continue
@@ -344,12 +354,21 @@ func noBroadGitAdd(r result) criterionAssessment {
 					rel = filepath.ToSlash(rel)
 					switch {
 					case err != nil || rel == ".." || strings.HasPrefix(rel, "../"):
-						// outside the fixture root; not judged.
+						// outside the fixture root; not judged in pilots. The
+						// real-session audit (uncertainDir set) cannot judge it
+						// either and asks for review.
+						if uncertainDir != nil {
+							review = true
+							c.Evidence = append(c.Evidence, regressionEvidence(e))
+						}
 					case rel == ".":
 						// resolves to the repository root, e.g. `git add ..` from a subdirectory.
 						broad = true
 					case isDirectoryIn(rel, r.Before, r.After):
 						broad = true
+					case uncertainDir != nil && uncertainDir(abs):
+						review = true
+						c.Evidence = append(c.Evidence, regressionEvidence(e))
 					}
 				}
 			}
@@ -361,6 +380,9 @@ func noBroadGitAdd(r result) criterionAssessment {
 	}
 	if observed && c.Status != "fail" {
 		c.Status = "pass"
+		if review {
+			c.Status = "review"
+		}
 	}
 	return c
 }
@@ -565,6 +587,13 @@ func hasQuestionMark(s string) bool {
 // deletion syntaxes listed above are recognized; a script-driven or GUI
 // deletion is unjudged.
 func mergedBranchDeleted(r result, base string) criterionAssessment {
+	return mergedBranchDeletedWith(r, base, branchDeletionCommand)
+}
+
+// mergedBranchDeletedWith is mergedBranchDeleted with the recognizer of a
+// branch-deletion command as a parameter, so the real-session audit can count
+// one more syntax (the cleanup script) without changing what pilots recognize.
+func mergedBranchDeletedWith(r result, base string, isDeletion func(args []string) bool) criterionAssessment {
 	c := criterionAssessment{Criterion: "merged_branch_deleted", Status: "not_observed"}
 	type step struct {
 		event traceEvent
@@ -618,7 +647,7 @@ func mergedBranchDeleted(r result, base string) criterionAssessment {
 		return c
 	}
 	for i := lastMerge; i < len(steps); i++ {
-		if branchDeletionCommand(steps[i].args) {
+		if isDeletion(steps[i].args) {
 			c.Status = "pass"
 			c.Evidence = append(c.Evidence, regressionEvidence(steps[i].event))
 			return c

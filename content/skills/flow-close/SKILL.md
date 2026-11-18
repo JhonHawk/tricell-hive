@@ -19,7 +19,7 @@ The close also runs when an operational task ends, as the global guidance's «Pr
 4. Close an integrated change folder: run `python3 <flow-plan-dir>/scripts/check_change.py <folder> --archive` ([check](../flow-plan/scripts/check_change.py)) and fix each coherence line; for unchecked boxes, ask as a decision, with their count, whether to archive anyway; a no or an unattended close leaves it pending. Otherwise, on a new branch from the base, copy in the folder's uncommitted edits from the checkout or worktree holding them, run `python3 <flow-close-dir>/scripts/apply_deltas.py <folder> --specs <Specs> --detail "<PR, merge SHA>"` ([merge](scripts/apply_deltas.py)), fix each refusal, report each dropped scenario, then add `--apply`: it merges the deltas, marks the proposal completed and archives the folder. Once the archive commit holds those edits, `git restore` the folder in that source checkout; deliver the move with the items step 2's answer commits, archives or promotes, as the delivery says.
 5. Clean up the branches and worktrees of each repository the work touched as [branch cleanup](references/branch-cleanup.md) sets (using [cleanup_branches.py](scripts/cleanup_branches.py)), and stop and remove only what the global guidance's «Preservation» authorizes at close; keep the checkpoint while step 2 lists items as pending. Before removing a worktree, move the items step 2's answer keeps out of it to the same paths in the main checkout, since removing a worktree deletes its ignored files. List any dump or export made and ask before removing it. List remote resources created (storage objects, registry images, task definitions), each with its removal command, and ask before removing them: each is a critical effect. Keep anything with uncommitted work or uncertain ownership.
 6. Write the final report as [Final report](#final-report) sets.
-7. Write the outcome to persistent memory, the account index rows as the global guidance's «Test accounts» sets, and the pending-work records as [Pending work](#pending-work) sets.
+7. Write the outcome to persistent memory, the account index rows as the global guidance's «Test accounts» sets, the pending-work records as [Pending work](#pending-work) sets, and each candidate's record as [Candidates](#candidates) sets.
 8. End with the close footer as [Close footer](#close-footer) sets.
 
 At the completion point, and when an operational task ends, first run steps 1, 3, 6 and 7, record steps 2, 4 and 5 as pending, and end with step 8; when step 2's inventory lists no item to act on, step 4 has no change folder and step 5 has nothing of this work to remove or ask about, run them at once instead, before step 6. Retain step 1’s readback and receipts and record their location for later input cleanup; do not close an already closed viewer again. Run the pending steps in order when the user chooses to close, starts another work item or ends the session, report what they did and any viewer limitation, and update memory. When another work starts, step 2’s question joins its first round; steps 4 and 5 wait for the answer. If the session stops without a reply, a later close or hygiene request resumes the pending steps from memory.
@@ -47,6 +47,7 @@ Report the whole work item in one message, each part only when it has content:
 - **Repaired:** the local environment repairs made, such as reinstalled dependencies or seeded data.
 - **Support material:** each item with its path and the action applied, or listed as pending, as [support material](references/support-material.md) sets.
 - **Findings:** the defects not fixed, as [Findings](#findings) sets.
+- **Candidates:** the work's repetitions, as [Candidates](#candidates) sets.
 - **Next:** what remains, with who owns it, and what comes next, such as the merge left to the user and review bots or base CI still pending.
 
 When the user asks to keep or share this report, or it exceeds what fits on one screen, offer a `flow-report` page as one reply of the close footer.
@@ -54,6 +55,12 @@ When the user asks to keep or share this report, or it exceeds what fits on one 
 ## Findings
 
 A finding is a defect the work found but did not fix: a review finding below P1, a UI defect that was already there, a test that already failed or fails intermittently (keep its error output), or anything else noticed on the way. Every finding carries one priority by its observable impact, whatever scale its source used: P0 blocks the release, an operation or a core flow for every input; P1 is blocking, as [flow-verify step 3](../flow-verify/SKILL.md) defines it, and must be fixed before merge; P2 should be fixed but does not block; P3 is minor. A finding of P2 or higher with a concrete failure scenario is proposed; the rest get one line each in the report. P2 findings that share an area or a cause are proposed as one group that lists each member with its evidence; findings of P1 or higher are proposed one by one. Never open a ticket without the user's answer, which unattended delegation gives at its step 5.
+
+## Candidates
+
+A candidate is a repetition the work did not turn into a mechanism under [defect fix](../flow-build/references/defect-fix.md) point 5: an inline script or command chain the work ran two or more times for the same purpose, such as the same link check or hash comparison, or a correction the user gave twice in the work. The report lists each one on one line, with what repeated, how many times and the mechanism that point would choose, and asks nothing about it; a work with none has no such part.
+
+At step 7, search the project's persistent memory for each candidate by the terms of its purpose, then create or update one record under the topic `candidate/<tool>-<target>` in kebab case, such as `candidate/link-check-docs`, with the sessions that saw it, their dates and its count. A candidate seen in two sessions or more is offered in the close footer; it is not a finding, since it is no defect.
 
 ## Close footer
 
@@ -63,6 +70,7 @@ End the final report with the next-step block of the global guidance's «Questio
 - **Resolve findings now**, naming them, such as "resolve H2 and H3 in this branch": they enter `flow-build` on the work's branch, with the code review of the fix and its checks, or `flow-plan` when the fix is not a small understood change.
 - **See the findings**, with their count and highest severity, such as "see the 3 findings (1 P1)".
 - **Explain a finding or a result**, naming it.
+- **Turn a candidate into a mechanism**, naming it: only for a candidate whose record counts two sessions or more; it enters `flow-build` as **Resolve findings now** does.
 - **Find the next ticket**, as **Find the next ticket** below sets, run only when the user picks it.
 - **Continue** with what remains of the work, naming it, such as the next phase of a plan in progress.
 

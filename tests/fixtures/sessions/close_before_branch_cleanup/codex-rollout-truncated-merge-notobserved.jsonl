@@ -1,0 +1,9 @@
+{"timestamp":"2026-01-01T11:00:01.000Z","type":"session_meta","payload":{"id":"00000000-0000-0000-0000-000000000001","cwd":"project","source":"cli"}}
+{"timestamp":"2026-01-01T11:00:02.000Z","type":"turn_context","payload":{"model":"gpt-example","cwd":"project"}}
+{"timestamp":"2026-01-01T11:00:03.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t2"}}
+{"timestamp":"2026-01-01T11:00:04.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"call_1","input":"text(await tools.exec_command({cmd:\"gh pr merge 1 --repo example/repo --merge\",yield_time_ms:1000}));"}}
+{"timestamp":"2026-01-01T11:00:05.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"call_1","output":[{"type":"input_text","text":"Script completed\nWall time 0.1 seconds"},{"type":"input_text","text":"Warning: truncated output (original token count: 5000)"}]}}
+{"timestamp":"2026-01-01T11:00:06.000Z","type":"response_item","payload":{"type":"message","role":"assistant","id":"msg2","phase":"final_answer","content":[{"type":"output_text","text":"**Close · EXAMPLE · integrated**\n\nThe change is merged."}]}}
+{"timestamp":"2026-01-01T11:00:07.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"call_3","input":"text(await tools.exec_command({cmd:\"git branch -d topic\",yield_time_ms:1000}));"}}
+{"timestamp":"2026-01-01T11:00:08.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"call_3","output":[{"type":"input_text","text":"Script completed\nWall time 0.1 seconds"},{"type":"input_text","text":"{\"chunk_id\": \"1\", \"exit_code\": 0, \"output\": \"example output\", \"wall_time_seconds\": 0.1}"}]}}
+{"timestamp":"2026-01-01T11:00:09.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t8"}}

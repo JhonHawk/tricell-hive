@@ -10,6 +10,10 @@ This folder holds the research and measurement basis for rebuilding Hive as a sm
 
 - [Model support floor](model-floor.md) — the models distributed guidance is written for, the candidates whose observed failures count toward a correction, and the qualification criterion.
 
+- [Rule enforcers](rule-enforcers.md) — which of Hive's rules a script, test or session-audit criterion enforces, and which still rest on prose.
+
+- [Session review rubric](session-review-rubric.md) — what a review of a real session checks, starting with the automated `--audit-session` pass.
+
 - [Harness audit rules](harness-audit-rules.md) — provenance, evidence strength, and status for every rule ID in the `harness-audit` skill; internal, not deployed.
 
 - [Workflow map](2026-09-20-workflow-map.md) — human-facing report in Spanish: Hive master inventory, comparison with local references, and rebuild proposals.

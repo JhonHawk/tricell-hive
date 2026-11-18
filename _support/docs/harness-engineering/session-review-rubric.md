@@ -2,6 +2,12 @@
 
 Read before analyzing a real agent session, with or without Hive. It lists what a review checks and how to report it. It is a living document: when a review checks something new that the user wants checked again, add a row with the date and the session that motivated it, and remove a row only by the user's decision.
 
+## 0. Automated first pass
+
+Before reading a transcript, run `go -C <checkout> run ./tests/pilot --audit-session <file> --host claude|codex|grok` on it (Claude: the project transcript under `~/.claude/projects/`; Codex: the rollout under `~/.codex/sessions/`; Grok: `updates.jsonl` in the session folder under `~/.grok/sessions/`). It reads a session that already ran and runs no model. Read the transcript only where a criterion reports `fail` or `review`, and confirm each before reporting it: a criterion's evidence names lines, not their text. A `review` of `close_before_branch_cleanup` is a failure only when that close was one of the closes [flow-close](../../../content/skills/flow-close/SKILL.md) runs without deferring a step, or when its footer does not offer the pending cleanup as a reply; at a completion point the report legitimately comes first.
+
+Then read the determinism candidates the projects recorded: search each Engram project for topics starting with `candidate/`. A candidate recorded in three projects becomes a candidate for Hive: record it as a watch item with its `Enforceable:` line, as root `AGENTS.md` «Measurement» sets. Rules already enforced, and the ones still enforced only by prose, are listed in [rule-enforcers.md](rule-enforcers.md). Added 2026-11-17 (change `determinism-candidates`).
+
 The vanilla-versus-Hive evaluation keeps its own scoring in `_support/sessions/2026-10-30-vanilla-harness-evaluation/vanilla-harness-evaluation.research.md`; sections 1, 2 and 3 below follow it so results stay comparable.
 
 ## 1. Session card (recorded, not scored)
@@ -26,7 +32,7 @@ Each check names what to look for and how to observe it in the transcript.
 | --- | --- | --- | --- |
 | Questions | Each decision has an ID and a title holding the question; options on their own line with `(★)` on the recommended one | Card labels and text rounds; a cosmetic label difference, such as a host marker «(Recommended)» instead of ★, is not reported until the user asks | 2026-10-31 |
 | Questions | No question in a round depends on another open question of the same round | A later question presupposes an option, usually the recommended one, of an earlier one | 2026-11-01 |
-| Questions | An empty or timed-out card gets one line, not the round repeated | Codex Default mode closes a card after 120 s | 2026-10-31 |
+| Questions | A card that closed by itself (empty answer or timeout) gets the round written in the text; a card the user left unanswered gets one line naming the open decisions, not the round repeated | Codex Default mode closes a card after 120 s; the card's result against the next message | 2026-10-31; corrected 2026-11-17 to the global guidance's «When a card comes back unanswered» |
 | Flow boundaries | Moving between flows ends with a next-step block and the host's command, not a card | The report closing research or plan | 2026-10-31 |
 | Delivery | Delivery and review asked once before the first edit; the review question uses the fixed option names | The round at plan step 4 or before a build without plan | 2026-10-31 |
 | Delivery | Before validation or push, commits that are not this work item's are named and asked about | `git log origin/<base>..HEAD` and the validation message | 2026-11-01 |
