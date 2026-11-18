@@ -22,7 +22,7 @@ Base: `tricell-hive` `development` en `8e71ca4b`, rama `feat/determinism-candida
 
 ### T2 — Tres criterios para sesiones reales
 
-- [ ] `text_round_without_card`, `close_before_branch_cleanup` y `skill_named_as_reason` corren en `--audit-session`, con los estados que fija `design.md`.
+- [x] `text_round_without_card`, `close_before_branch_cleanup` y `skill_named_as_reason` corren en `--audit-session`, con los estados que fija `design.md`.
 
 **Closes:** AC1, AC9
 
@@ -92,7 +92,7 @@ Base: `tricell-hive` `development` en `8e71ca4b`, rama `feat/determinism-candida
 
 ### T6 — Auditoría de las sesiones revisadas a mano
 
-- [ ] El modo corre sobre las sesiones de AC9 y reproduce los resultados de la revisión manual.
+- [x] El modo corre sobre las sesiones de AC9 y reproduce los resultados de la revisión manual.
 
 **Closes:** AC9
 
@@ -119,16 +119,20 @@ Sin parada de validación: la entrega es `ready` y el usuario fusiona el PR.
 ## Checkpoint
 
 - Updated: 2026-11-17
-- Stage: build · T2 (reabierta por D11 A)
-- Last commit: bb18b4a5
+- Stage: verify · 3 · limited re-review of the fix round
+- Last commit: 736c17b9
 - Open findings: none
-- Next: T2 (ronda de correcciones de la revisión de código y D11 A) → T6 → verify
+- Next: adjudicate the limited re-review, then push and open the ready PR
 
 ### Evidence
 
 - go vet ./... && go test ./... -count=1 · all pass except tests/pilot TestE2ESetupDeadlinesOwnDescendantsAndPipes (pre-existing timing flake, also fails on an unmodified git archive of HEAD) · bb18b4a5
 - npm --prefix site run check/lint/build · exit 0, 20 pages · bb18b4a5
 - before captures: none (no interface change)
+- go vet ./tests/... && go test ./tests/pilot/... -skip TestE2ESetupDeadlinesOwnDescendantsAndPipes -count=1 · ok · 736c17b9
+- go test ./tests/content/... · ok · 736c17b9
+- --audit-session on AC9 sessions · 01a1e864 and 01a1eadf text_round_without_card fail; 01a1eb37 and 01a1eb3d close_before_branch_cleanup review; 01a1ea8f no text_round fail · 736c17b9
+- fixture secret scan on tests/fixtures/sessions · no output · 736c17b9
 
 ## Review status and progress
 
@@ -140,3 +144,5 @@ Sin parada de validación: la entrega es `ready` y el usuario fusiona el PR.
 2026-11-17 — T4 · bb18b4a5 · unverified: none
 2026-11-17 — T6 · uncommitted · unverified: 01a1ea8f's negative case holds because the audit detects no round title in its text (its rounds lived in cards), not because it judged a round as carded
 2026-11-17 — Revisión por D11 A: `close_before_branch_cleanup` marca `review`, no `fail`, porque `flow-close` permite cerrar antes de limpiar cuando deja pasos pendientes. AC2 se retira y AC9 lo reemplaza; reabre T2 y T6; la fila de la tabla de reglas pasa a `judgment`; el merge reconoce también `git merge` seguido del push de la base. Revisión del plan sobre el cambio: 2 P2 y 4 P3, aplicados (razón precisa en el diseño, cómo resuelve el inspector un `review`, punto de control, AC9, T2).
+2026-11-17 — T2 · 736c17b9 · unverified: Codex timeout result shape (status timeout/timed_out) is an assumption: no such rollout exists on this machine
+2026-11-17 — T6 · uncommitted · unverified: 01a1ea8f's negative case holds because no round title appears in its text (its rounds were cards)
