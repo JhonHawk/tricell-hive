@@ -249,6 +249,72 @@ class CheckLayoutTest(unittest.TestCase):
         self.assertNotIn("no documentation index", result.stdout)
         self.assertFinding(result, "LAYOUT-05", fragment="b.md")
 
+    def dependency_tree(self, base):
+        # dependency and build output of five ecosystems, each full of Markdown
+        for rel in ("node_modules/pkg/README.md", ".venv/lib/x.md", "vendor/acme/README.md",
+                    "target/doc/x.md", "_support/infrastructure/.terraform/modules/README.md"):
+            write(base, f"_support/docs/site/{rel}" if not rel.startswith("_support") else rel, "# dep\n")
+        write(base, "_support/docs/site/composer.json", "{}\n")
+        write(base, "_support/docs/site/Cargo.toml", "[package]\n")
+        write(base, "_support/docs/site/bin/run.md", "# real doc in a bin folder without a .csproj\n")
+
+    def test_dependency_folders_are_never_documents_in_a_repo(self):
+        repo = self.tmp() / "r"
+        clean_repo(repo)
+        write(repo, ".gitignore", "_support/scripts/\nnode_modules/\n.venv/\nvendor/\ntarget/\n.terraform/\n")
+        self.dependency_tree(repo)
+        result = self.run_check(repo)
+        for name in ("node_modules", ".venv", "vendor", "target", ".terraform"):
+            self.assertNotIn(name, result.stdout)
+        self.assertFinding(result, "LAYOUT-05", fragment="bin/run.md")
+
+    def test_dependency_folders_are_pruned_outside_git(self):
+        base = self.tmp() / "ws"
+        write(base, "_support/docs/README.md", "# Index\n")
+        self.dependency_tree(base)
+        result = self.run_check(base)
+        for name in ("node_modules", ".venv", "vendor", "target", ".terraform"):
+            self.assertNotIn(name, result.stdout)
+        self.assertFinding(result, "LAYOUT-05", fragment="bin/run.md")
+
+    def test_child_repositories_are_not_walked_outside_git(self):
+        base = self.tmp() / "ws"
+        write(base, "_support/docs/README.md", "# Index\n")
+        init_repo(base / "_support/docs/child")
+        write(base, "_support/docs/child/x.md", "# child repo doc\n")
+        result = self.run_check(base)
+        self.assertNotIn("child", result.stdout)
+
+    def test_layout_01_sees_an_ignored_local_script(self):
+        repo = self.tmp() / "r"
+        clean_repo(repo)  # .gitignore ignores _support/scripts/
+        write(repo, "_support/scripts/x.sh", "echo\n")
+        result = self.run_check(repo)
+        self.assertFinding(result, "LAYOUT-01", fragment="x.sh")
+
+    def test_layout_08_code_and_infrastructure_under_support(self):
+        repo = self.tmp() / "r"
+        clean_repo(repo)
+        write(repo, "_support/infrastructure/main.tf", "resource \"x\" \"y\" {}\n")
+        write(repo, "_support/aws/role/policy.json", "{}\n")
+        write(repo, "_support/aws/role/README.md", "# role\n")
+        write(repo, "_support/tools/run.py", "print(1)\n")
+        write(repo, "_support/sessions/2026-01-02-fix/run.py", "print(1)\n")
+        write(repo, "_support/docs/example.py", "print(1)\n")
+        write(repo, "_support/docs/README.md", "# Index\n\n- [Guide](guide.md) read first\n")
+        write(repo, "_support/scripts/ci.sh", "echo\n")
+        write(repo, "HIVE.local.md", "- `_support/scripts/ci.sh` 2026-11-18\n")
+        commit_all(repo, force=["_support/scripts/ci.sh"])
+        result = self.run_check(repo)
+        self.assertEqual(result.returncode, 1)
+        self.assertFinding(result, "LAYOUT-08", fragment="main.tf")
+        self.assertFinding(result, "LAYOUT-08", fragment="policy.json")
+        self.assertFinding(result, "LAYOUT-08", fragment="run.py")
+        self.assertIn("plan_layout.py", [l for l in result.stdout.splitlines() if l.startswith("LAYOUT-08")][0])
+        lines = [l for l in result.stdout.splitlines() if l.startswith("LAYOUT-08")]
+        self.assertFalse([l for l in lines if "README.md" in l or "sessions" in l or "example.py" in l or "ci.sh" in l], lines)
+        self.assertFinding(result, "LAYOUT-02", fragment="ci.sh")
+
     def test_json_output(self):
         repo = self.tmp() / "r"
         clean_repo(repo)
