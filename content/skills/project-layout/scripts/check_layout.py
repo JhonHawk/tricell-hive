@@ -12,6 +12,12 @@ Rules (see references/layout.md):
   LAYOUT-06  coordinator table row whose repo is missing, has another remote,
              is not ignored or is not re-included in .ignore
   LAYOUT-07  undeclared root docs/ folder with Markdown (review)
+  LAYOUT-08  tracked code or infrastructure under _support/ outside docs, openspec,
+             sessions and the LAYOUT-02 homes
+
+Files inside dependency or build output folders of any ecosystem are never read:
+inside Git, only tracked and non-ignored files are listed, plus the ignored files
+under _support/; outside Git, child repositories, PRUNE and GATED folders are skipped.
 
 Output: one finding per line, `<rule> <severity> <path>: <problem> - <correction>`.
 Exit 1 when any finding is `fail`, otherwise 0. Never opens _support/secrets/ nor
@@ -19,6 +25,7 @@ reads the content of _support/data/.
 """
 
 import argparse
+import fnmatch
 import json
 import os
 import re
@@ -36,6 +43,26 @@ SUPPORT_CHILDREN = {
 }
 UNTRACKED_SUPPORT = ("scripts", "secrets", "workspace", "data")
 IGNORED_NAMES = {"__pycache__", ".DS_Store"}
+# Dependency and build output, from the github/gitignore templates of each ecosystem.
+PRUNE = {
+    ".git", "node_modules", ".pnpm-store", ".next", ".nuxt", ".turbo", ".venv", "venv",
+    "__pycache__", ".tox", ".mypy_cache", ".pytest_cache", ".terraform", ".gradle",
+    ".dart_tool", "_build", "Pods", "site-packages", ".bundle",
+}
+# Common names that are build output only when the manifest that produces them sits beside them.
+GATED = {
+    "target": ("Cargo.toml", "pom.xml"),
+    "vendor": ("composer.json", "go.mod", "Gemfile"),
+    "dist": ("package.json", "pyproject.toml", "setup.py", "build.gradle", "build.gradle.kts", "pubspec.yaml"),
+    "build": ("package.json", "pyproject.toml", "setup.py", "build.gradle", "build.gradle.kts", "pubspec.yaml"),
+    "bin": ("*.csproj", "*.fsproj"),
+    "obj": ("*.csproj", "*.fsproj"),
+    "deps": ("mix.exs",),
+}
+IAC_EXTENSIONS = {".tf", ".tfvars", ".hcl"}
+IAC_FAMILY = {"infra", "infrastructure", "terraform", "deployments", "aws", "gcp", "azure", "iam", "cloud"}
+CONFIG_EXTENSIONS = {".json", ".yaml", ".yml"}
+NOT_CODE_HOMES = {"docs", "openspec", "sessions"}
 LINK_RE = re.compile(r"\]\((<[^>]+>|[^)\s]+)")
 SCHEME_RE = re.compile(r"^(?:[a-zA-Z][a-zA-Z0-9+.-]*:|#|/)")
 TEST_PATH_RE = re.compile(r"(?:^|/)(?:tests?|__tests__|spec|e2e)/|[._-](?:test|spec)\.[a-z]+$|_test\.[a-z]+$|(?:^|/)test_[^/]*$")
@@ -125,20 +152,91 @@ def parse_layout(index_text):
         if not match:
             continue
         for part in match.group(1).split(" · "):
-            key_match = re.match(r"^(docs|tools) at (\S+)\s*$", part.strip())
+            key_match = re.match(r"^(docs|tools|infra) at (\S+)\s*$", part.strip())
             if key_match:
                 layout[key_match.group(1)] = norm_path(key_match.group(2))
         break
     return layout
 
 
-def walk_files(base):
-    for dirpath, dirnames, filenames in os.walk(base):
-        dirnames[:] = sorted(d for d in dirnames if d not in IGNORED_NAMES)
-        for name in sorted(filenames):
-            if name in IGNORED_NAMES:
-                continue
-            yield os.path.join(dirpath, name)
+def git_toplevel(path):
+    result = git(path, "rev-parse", "--show-toplevel")
+    if result is None or result.returncode != 0:
+        return None
+    return os.path.realpath(result.stdout.strip())
+
+
+def has_manifest(directory, patterns):
+    try:
+        names = os.listdir(directory)
+    except OSError:
+        return False
+    return any(fnmatch.fnmatch(name, pattern) for pattern in patterns for name in names)
+
+
+def is_dependency_dir(parent, name):
+    if name in PRUNE:
+        return True
+    return name in GATED and has_manifest(parent, GATED[name])
+
+
+def under_dependency(path, top):
+    """Whether a path below top crosses a dependency or build output folder."""
+    rel = os.path.relpath(path, top)
+    parent = top
+    for name in rel.split(os.sep)[:-1]:
+        if is_dependency_dir(parent, name):
+            return True
+        parent = os.path.join(parent, name)
+    return False
+
+
+def list_files(base):
+    """Files under base, sorted, without dependency or build output of any ecosystem.
+
+    Paths keep the spelling of base, so callers can take relpaths against it."""
+    real = os.path.realpath(base)
+    return [os.path.join(base, os.path.relpath(p, real)) for p in _list_real(real)]
+
+
+def _list_real(base):
+    if not os.path.isdir(base):
+        return []
+    top = git_toplevel(base)
+    if top is None:
+        found = []
+        for dirpath, dirnames, filenames in os.walk(base):
+            dirnames[:] = sorted(
+                d for d in dirnames
+                if d not in IGNORED_NAMES and not is_dependency_dir(dirpath, d)
+                and not os.path.exists(os.path.join(dirpath, d, ".git"))
+            )
+            found.extend(os.path.join(dirpath, n) for n in sorted(filenames) if n not in IGNORED_NAMES)
+        return found
+    rel_base = os.path.relpath(base, top)
+    prefix = "" if rel_base == "." else rel_base + "/"
+    paths = set()
+    listed = git(top, "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", rel_base)
+    if listed is not None and listed.returncode == 0:
+        paths.update(p for p in listed.stdout.split("\0") if p)
+    # The convention keeps unversioned material ignored under _support/: list it too.
+    if "_support" in rel_base.split(os.sep):
+        specs = [rel_base]
+    else:
+        specs = [f"{prefix}_support", f":(glob){prefix}**/_support/**"]
+    ignored = git(top, "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--", *specs)
+    if ignored is not None and ignored.returncode == 0:
+        paths.update(p for p in ignored.stdout.split("\0") if p)
+    found = []
+    for rel in sorted(paths):
+        if rel.endswith("/"):
+            continue  # a nested repository
+        path = os.path.join(top, rel)
+        name = os.path.basename(rel)
+        if name in IGNORED_NAMES or not os.path.isfile(path) or under_dependency(path, top):
+            continue
+        found.append(path)
+    return found
 
 
 def check_scripts(root, out):
@@ -148,7 +246,7 @@ def check_scripts(root, out):
     local = read_text(os.path.join(root, "HIVE.local.md"))
     named = set(re.findall(r"_support/scripts/([^\s`'\")\]]+)", local))
     named = {n.rstrip("/.,;:") for n in named}
-    for path in walk_files(scripts):
+    for path in list_files(scripts):
         rel = os.path.relpath(path, scripts).replace(os.sep, "/")
         top = rel.split("/")[0]
         if rel in named or top in named:
@@ -168,7 +266,12 @@ def tracked_files(root):
 
 
 def check_tracked(root, out):
-    for rel in tracked_files(root):
+    tracked = tracked_files(root)
+    tf_entries = {
+        rel.split("/")[1] for rel in tracked
+        if rel.startswith("_support/") and rel.count("/") > 1 and os.path.splitext(rel)[1] == ".tf"
+    }
+    for rel in tracked:
         parts = rel.split("/")
         if parts[0] == "_support":
             if len(parts) > 2 and parts[1] in UNTRACKED_SUPPORT and parts[-1] != ".gitkeep":
@@ -177,6 +280,15 @@ def check_tracked(root, out):
                     f"tracked file under _support/{parts[1]}/ (never versioned)",
                     f"git rm --cached it and ignore _support/{parts[1]}/",
                 ))
+            elif len(parts) > 2 and parts[1] not in NOT_CODE_HOMES and parts[1] not in UNTRACKED_SUPPORT:
+                extension = os.path.splitext(rel)[1].lower()
+                infra_tree = parts[1] in IAC_FAMILY or parts[1] in tf_entries
+                if extension in CODE_EXTENSIONS or extension in IAC_EXTENSIONS or (infra_tree and extension in CONFIG_EXTENSIONS):
+                    out.append(Finding(
+                        "LAYOUT-08", "fail", os.path.join(root, rel),
+                        "tracked code or infrastructure under _support/",
+                        f"run plan_layout.py plan --root {root} and move it with the project's code",
+                    ))
             continue
         if parts[0] == ".engram":
             continue
@@ -213,7 +325,7 @@ def check_index(root, index, layout, out):
     docs_rel = layout.get("docs", "_support/docs")
     docs_home = os.path.join(root, docs_rel)
     if os.path.isdir(docs_home):
-        for path in walk_files(docs_home):
+        for path in list_files(docs_home):
             if not path.lower().endswith(".md") or os.path.realpath(path) == os.path.realpath(index):
                 continue
             rel = os.path.relpath(path, index_dir).replace(os.sep, "/")
@@ -327,7 +439,7 @@ def check_undeclared_docs(root, layout, out):
     docs = os.path.join(root, "docs")
     if not os.path.isdir(docs) or layout.get("docs") == "docs":
         return
-    if any(p.lower().endswith(".md") for p in walk_files(docs)):
+    if any(p.lower().endswith(".md") for p in list_files(docs)):
         out.append(Finding(
             "LAYOUT-07", "review", docs, "documentation home docs/ is not declared",
             "migrate it to _support/docs or declare 'Layout: docs at docs/' in the index",
