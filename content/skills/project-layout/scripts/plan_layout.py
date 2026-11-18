@@ -179,6 +179,10 @@ class Root:
         for rel in self.files:
             if rel.startswith("_support/") or HISTORY_RE.search(rel):
                 continue
+            # A committed dependency folder, such as Go's vendor/ beside go.mod, holds
+            # other projects' manifests, not this project's packages.
+            if cl.under_dependency(self.abs(rel), self.path, gated=True):
+                continue
             name = os.path.basename(rel)
             directory = os.path.dirname(rel)
             if directory and (name in MANIFESTS or name.endswith(MANIFEST_SUFFIXES)):

@@ -473,6 +473,15 @@ class SecondReviewTest(Fixture, unittest.TestCase):
         plan = self.plan_json(repo)
         self.assertFalse([r for r in plan["rewrites"] if r["file"].startswith("logs/")], plan["rewrites"])
 
+    def test_a_committed_vendor_library_is_not_a_package(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, "go.mod", "module x\n")
+        write(repo, "vendor/acme/composer.json", "{}\n")
+        write(repo, "_support/scripts/acme/check.sh", "echo\n")
+        commit(repo)
+        dest = [r["destination"] for r in self.plan_json(repo)["rows"] if r["source"] == "_support/scripts/acme/check.sh"][0]
+        self.assertFalse((dest or "").startswith("vendor/"), dest)
+
     def test_undo_never_empties_a_file_it_cannot_read(self):
         repo = small_repo(self.tmp() / "r")
         write(repo, ".github/workflows/deploy.yml", "steps:\n  - run: _support/scripts/x.sh\n")
