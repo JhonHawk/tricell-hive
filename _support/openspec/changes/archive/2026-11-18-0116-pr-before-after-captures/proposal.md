@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Borrador · revisión del plan aplicada, pendiente de aprobación |
+| Estado | Completado · PR #502, merge 570b7fb2 |
 | Tracker | ninguno |
 | Git | `tricell-hive`, base `development` en `8ac8d77c`; rama propuesta `feat/pr-before-after-captures` |
 
