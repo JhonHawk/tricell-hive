@@ -1026,8 +1026,10 @@ var (
 var (
 	tableDecisionCell = regexp.MustCompile(`^[\s*_]*D\d+\b`)
 	tableBareID       = regexp.MustCompile(`^[\s*_]*D\d+[\s*_]*$`)
-	tableOptionCell   = regexp.MustCompile(`^[\s*_]*[A-Z]\b[\s*_]*(\(?★|[-—–·).:])`)
-	tableLineBreak    = regexp.MustCompile(`(?i)<br\s*/?>`)
+	// An option opens with its letter and a separator; "." and ":" count only
+	// before a space, so "E.g." is not an option.
+	tableOptionCell = regexp.MustCompile(`^[\s*_]*([A-Z])\b[\s*_]*(\(?★|[-—–·)]|[.:](\s|$))`)
+	tableLineBreak  = regexp.MustCompile(`(?i)<br\s*/?>`)
 )
 
 // tableRounds returns the rows of a Markdown table that write a decision, each
@@ -1058,16 +1060,19 @@ func tableRounds(text string) []string {
 			next++
 		}
 		var options []string
+		letters := map[string]bool{}
 		starred := false
 		for _, cell := range cells[next:] {
 			for _, part := range tableLineBreak.Split(cell, -1) {
-				if tableOptionCell.MatchString(part) {
+				if m := tableOptionCell.FindStringSubmatch(part); m != nil {
 					options = append(options, strings.TrimSpace(part))
+					letters[m[1]] = true
 					starred = starred || strings.Contains(part, "★")
 				}
 			}
 		}
-		if len(options) < 2 || !starred {
+		// A round lists its options from A; a note that opens with another letter is not one.
+		if !letters["A"] || !letters["B"] || !starred {
 			continue
 		}
 		rows = append(rows, heading+"\n"+strings.Join(options, "\n"))
@@ -1371,7 +1376,9 @@ func auditCriteria(s auditSession, base string) []criterionAssessment {
 
 var (
 	// The title names a review; the options decide whether it picks a mechanism.
-	reviewQuestionTitle = regexp.MustCompile(`(?i)\brevisi[oó]n\b|\breview\b`)
+	reviewQuestionTitle = regexp.MustCompile(`(?i)\brevisi(?:[oó]n|ones)\b|\breview(?:s|ers?)?\b`)
+	// A decision about a review's findings is not the question that picks it.
+	reviewFindingsTitle = regexp.MustCompile(`(?i)hallazgo|finding`)
 	nativeReviewOption  = regexp.MustCompile(`(?i)/review\b|codex review|revisi[oó]n nativa|native review|\bnativ[ae]\s*:`)
 	// The options of the question that picks the review mechanism name at least one
 	// mechanism: the agent, the host's native review or no dedicated review.
@@ -1404,7 +1411,7 @@ func reviewQuestionNativeOption(s auditSession) criterionAssessment {
 				named++
 			}
 		}
-		if !reviewQuestionTitle.MatchString(title) || named < 2 {
+		if !reviewQuestionTitle.MatchString(title) || reviewFindingsTitle.MatchString(title) || named < 2 {
 			return
 		}
 		if nativeReviewOption.MatchString(names) {
