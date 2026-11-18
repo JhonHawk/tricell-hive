@@ -233,6 +233,8 @@ def _list_real(base):
     ignored = git(top, "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--directory", "--", *specs)
     if ignored is not None and ignored.returncode == 0:
         for entry in (p for p in ignored.stdout.split("\0") if p):
+            if "_support" not in entry.rstrip("/").split("/"):
+                continue  # --directory also names ignored folders the pathspec does not cover
             if entry.endswith("/"):
                 folder = os.path.join(top, entry.rstrip("/"))
                 if not under_dependency(os.path.join(folder, "x"), top) and os.path.basename(folder) not in PRUNE:

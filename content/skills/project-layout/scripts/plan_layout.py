@@ -212,10 +212,11 @@ class Root:
         for rel in paths:
             probes[rel] = rel
             probes[rel + "/.layout-probe"] = rel
-        result = git(self.path, "check-ignore", "--stdin", input="\n".join(probes) + "\n")
+        # -z: without it Git quotes a path with non-ASCII characters and the match fails
+        result = git(self.path, "check-ignore", "-z", "--stdin", input="\0".join(probes) + "\0")
         if result is None:
             return set()
-        return {probes[line] for line in result.stdout.splitlines() if line in probes}
+        return {probes[item] for item in result.stdout.split("\0") if item in probes}
 
 
 class Planner:
@@ -808,8 +809,8 @@ class Planner:
         """A moving Markdown file keeps its relative links pointing where they did."""
         for i, root in enumerate(self.roots):
             for rel in root.files:
-                if not rel.endswith(MARKDOWN) or NEVER_READ.search("/" + rel):
-                    continue
+                if not rel.endswith(MARKDOWN) or NEVER_READ.search("/" + rel) or HISTORY_RE.search(rel):
+                    continue  # a record of the past keeps the links it was written with
                 new_rel = self.new_location(i, rel)
                 if new_rel == rel:
                     continue
@@ -1124,8 +1125,11 @@ def cmd_verify(args):
                 gone.add(parent)
                 parent = os.path.dirname(parent)
         dest = os.path.join(roots[row["root"]], row["destination"])
-        moved_markdown += [(row["root"], f) for f in ([dest] if os.path.isfile(dest) else cl.list_files(dest))
-                           if f.endswith(MARKDOWN)]
+        if not HISTORY_RE.search(row["source"]):
+            for f in ([dest] if os.path.isfile(dest) else cl.list_files(dest)):
+                if f.endswith(MARKDOWN):
+                    old = source if f == dest else os.path.join(source, os.path.relpath(f, dest))
+                    moved_markdown.append((f, os.path.dirname(old)))
     residual = []
     planner = Planner(roots, [], {})
     for i in range(len(roots)):
@@ -1139,13 +1143,18 @@ def cmd_verify(args):
                     targets = [t for _, t in planner.resolutions(i, rel, pre, path)]
                     if targets and not any(os.path.lexists(t) for t in targets) and any(t in gone for t in targets):
                         residual.append(f"{roots[i]}/{rel}:{number}: {pre}{path}")
-    for i, path in moved_markdown:
+    for path, old_dir in moved_markdown:
         text = read_text_strict(path) or ""
         for number, line in enumerate(text.splitlines(), 1):
             for _, pre, link in tokens(line, True):
-                if not pre and link.startswith("../") and not os.path.lexists(
-                        os.path.normpath(os.path.join(os.path.dirname(path), link.split("*")[0].rstrip("/")))):
-                    residual.append(f"{path}:{number}: {link} points at nothing")
+                if pre or not link.startswith("../"):
+                    continue
+                clean = link.split("*")[0].rstrip("/")
+                if os.path.lexists(os.path.normpath(os.path.join(os.path.dirname(path), clean))):
+                    continue
+                if not os.path.lexists(os.path.normpath(os.path.join(old_dir, clean))):
+                    continue  # already broken before the move: not this plan's doing
+                residual.append(f"{path}:{number}: {link} points at nothing")
     for i, root in enumerate(plan["roots"]):
         tools = [r for r in plan["rows"] if r["root"] == i and r["rule"] in TOOL_RULES and r["destination"]
                  and not TEST_NAME.match(os.path.basename(r["source"]))]
@@ -1193,7 +1202,11 @@ def cmd_undo(args):
         by_file[(item["root"], item["file"])].append(item)
     for (i, rel), items in sorted(by_file.items()):
         path = os.path.join(root_path(plan, i), rel)
-        lines = (read_text_strict(path) or "").splitlines(True)
+        text = read_text_strict(path)
+        if text is None:
+            conflicts.append(f"{rel}: unreadable or missing after apply; its rewrites are left as they are")
+            continue
+        lines = text.splitlines(True)
         for item in items:
             if item["line"] <= len(lines) and lines[item["line"] - 1] == item["after"]:
                 lines[item["line"] - 1] = item["before"]

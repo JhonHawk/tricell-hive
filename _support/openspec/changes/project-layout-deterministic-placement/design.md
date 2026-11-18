@@ -81,7 +81,7 @@ plan_layout.py undo --plan FILE
 
 **Prueba.** Un nombre `*.test.*`, `*.spec.*`, `*_test.*` o `test_*`. Su sujeto es el mismo nombre sin el marcador, en el mismo directorio.
 
-**Una sola vez.** Se parte el nombre por `-`, `_` y `.`. Es de una sola vez si algún token es `backfill`, `fix`, `cutover`, `migrate`, `migration`, `seed`, `cleanup`, `oneoff`, `once` o `repair`, o si el nombre contiene una clave `\b[A-Za-z]{2,10}-\d+\b`.
+**Una sola vez.** Se parte el nombre por `-`, `_` y `.`. Es de una sola vez si algún token es `backfill`, `fix`, `cutover`, `migrate`, `migration`, `seed`, `cleanup`, `oneoff`, `once` o `repair`, o si el nombre contiene una clave `\b[A-Za-z]{2,10}-\d{2,}\b` cuyo prefijo no es un runtime, una codificación o una versión de la lista fija `NOT_KEYS` (`node`, `utf`, `python`, `sha`…).
 
 **Casas.** Se resuelven una vez por raíz:
 - **Raíz de herramientas:** `Layout: tools at`; si no, la primera que exista de `scripts`, `script`, `tools` o `hack`; si no, `scripts`.

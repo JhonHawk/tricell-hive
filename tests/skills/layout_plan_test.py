@@ -441,5 +441,62 @@ class ReviewFindingsTest(Fixture, unittest.TestCase):
         return rows[0]["destination"], rows[0]["rule"]
 
 
+class SecondReviewTest(Fixture, unittest.TestCase):
+    def run_cmd(self, command, plan_file):
+        return subprocess.run(["python3", "-I", str(SCRIPT), command, "--plan", str(plan_file)], text=True, capture_output=True)
+
+    def test_ignored_folders_outside_support_are_not_read(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, ".gitignore", "logs/\n_support/workspace/\n")
+        write(repo, ".github/workflows/deploy.yml", "steps:\n  - run: _support/scripts/x.sh\n")
+        write(repo, "_support/scripts/x.sh", "echo\n")
+        commit(repo)
+        write(repo, "logs/gen.sh", "bash _support/scripts/x.sh\n")
+        plan = self.plan_json(repo)
+        self.assertFalse([r for r in plan["rewrites"] if r["file"].startswith("logs/")], plan["rewrites"])
+
+    def test_undo_never_empties_a_file_it_cannot_read(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, ".github/workflows/deploy.yml", "steps:\n  - run: _support/scripts/x.sh\n")
+        write(repo, "_support/scripts/x.sh", "echo\n")
+        commit(repo)
+        plan_file = repo.parent / "plan.json"
+        self.plan(repo, extra=["--out", str(plan_file)])
+        self.assertEqual(self.run_cmd("apply", plan_file).returncode, 0)
+        workflow = repo / ".github/workflows/deploy.yml"
+        workflow.write_bytes(workflow.read_bytes() + b"\0")
+        result = self.run_cmd("undo", plan_file)
+        self.assertEqual(result.returncode, 1)
+        self.assertGreater(workflow.stat().st_size, 1)
+
+    def test_a_non_ascii_ignored_destination_is_still_guarded(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, ".gitignore", "infra/revisi\u00f3n/\n")
+        write(repo, "_support/infrastructure/revisi\u00f3n/main.tf", "x\n")
+        commit(repo)
+        plan = self.plan_json(repo)
+        row = [r for r in plan["rows"] if r["source"].endswith("main.tf")][0]
+        self.assertIsNone(row["destination"])
+
+    def test_verify_ignores_links_broken_before_the_move(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, "_support/contracts/a.md", "[gone](../old/gone.md)\n")
+        commit(repo)
+        plan_file = repo.parent / "plan.json"
+        self.plan(repo, extra=["--out", str(plan_file)])
+        self.assertEqual(self.run_cmd("apply", plan_file).returncode, 0)
+        result = self.run_cmd("verify", plan_file)
+        self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_history_records_keep_their_links_when_they_move(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, ".gitignore", "_support/evidence/*\n_support/workspace/\n")
+        write(repo, "_support/docs/x.md", "# x\n")
+        commit(repo)
+        write(repo, "_support/evidence/2026-01-02-abc-1-x/report.md", "[x](../../docs/x.md)\n")
+        plan = self.plan_json(repo)
+        self.assertFalse([r for r in plan["rewrites"] if "report.md" in r["file"]], plan["rewrites"])
+
+
 if __name__ == "__main__":
     unittest.main()
