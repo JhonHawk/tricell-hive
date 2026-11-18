@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Draft |
+| Estado | Completado · PR #510, merge 768b219e |
 | Tracker | Sin ticket |
 | Git | tricell-hive · base `development` en `5a64191b` · rama propuesta `feat/project-layout-placement` |
 
