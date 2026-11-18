@@ -7,7 +7,7 @@
 
 ### T1 — El comprobador ignora dependencias de cualquier lenguaje y falla con código bajo `_support/`
 
-- [ ] `list_files` reemplaza a `walk_files`, y LAYOUT-08 reporta como `fail` el código e IaC versionado bajo `_support/`.
+- [x] `list_files` reemplaza a `walk_files`, y LAYOUT-08 reporta como `fail` el código e IaC versionado bajo `_support/`.
 
 **Closes:** AC16, AC17
 
@@ -33,7 +33,7 @@
 
 ### T2 — `plan_layout.py plan`: destinos y reescrituras por reglas fijas
 
-- [ ] El plan calcula las filas, notas, reescrituras, revisiones y líneas `Layout:` que fija `design.md`, en JSON y en Markdown, con `--override`.
+- [x] El plan calcula las filas, notas, reescrituras, revisiones y líneas `Layout:` que fija `design.md`, en JSON y en Markdown, con `--override`.
 
 **Closes:** AC18, AC19, AC21, AC22, AC23, AC24
 
@@ -72,7 +72,7 @@ Se agregan una segunda fixture idéntica con otros nombres de proyecto, dos corr
 
 ### T3 — `apply`, `verify` y `undo`: mover, reescribir, comprobar y deshacer sin commit
 
-- [ ] `apply --plan FILE` revalida, mueve (con `git mv` o `os.replace`), reescribe y escribe `<plan>.undo.json`. `verify --plan FILE` falla con citas restantes, herramientas fuera del índice o sin índice. `undo --plan FILE` invierte exactamente lo registrado.
+- [x] `apply --plan FILE` revalida, mueve (con `git mv` o `os.replace`), reescribe y escribe `<plan>.undo.json`. `verify --plan FILE` falla con citas restantes, herramientas fuera del índice o sin índice. `undo --plan FILE` invierte exactamente lo registrado.
 
 **Closes:** AC20, AC25, AC22, AC29
 
@@ -98,7 +98,7 @@ Se agregan una segunda fixture idéntica con otros nombres de proyecto, dos corr
 
 ### T4 — Verificación con datos reales de carvento
 
-- [ ] Se corren cuatro verificaciones y sus resultados quedan en el checkpoint:
+- [x] Se corren cuatro verificaciones y sus resultados quedan en el checkpoint:
   - el plan, `apply`, `verify` y `undo` sobre clones en el scratch de carvento-monorepo en `5f06d0c1` y carvento-specs en `965a73d8`;
   - el plan en seco sobre la raíz real del workspace;
   - el plan en seco sobre el árbol real del monorepo;
@@ -127,7 +127,7 @@ Se agregan una segunda fixture idéntica con otros nombres de proyecto, dos corr
 
 ### T5 — La convención y la skill usan el planificador
 
-- [ ] Se actualizan los textos de la convención, la skill y sus consumidores para que usen el planificador.
+- [x] Se actualizan los textos de la convención, la skill y sus consumidores para que usen el planificador.
 
 **Closes:** AC28
 
@@ -159,7 +159,7 @@ Se agregan una segunda fixture idéntica con otros nombres de proyecto, dos corr
 
 ### T6 — Detector de rondas en texto, criterio de revisión nativa y watch
 
-- [ ] `additional_tools` cuenta como permiso de la tarjeta; el criterio `review_question_native_option` existe; se registran dos watch en Engram.
+- [x] `additional_tools` cuenta como permiso de la tarjeta; el criterio `review_question_native_option` existe; se registran dos watch en Engram.
 
 **Closes:** AC26, AC27
 
@@ -198,4 +198,39 @@ La entrega es `ready`: el PR queda abierto para el merge del usuario. La validac
 
 ## Checkpoint
 
+- Updated: 2026-11-18
+- Stage: verify · 6
+- Last commit: 6287fa3
+- Open findings: H27 P2 committed vendor/ dirs count as packages (R4 by name could target vendor/<pkg>/scripts) · close finding; H28 P3 dependent re-placed after a collision keeps a stale collision note/review · close finding; H29 P3 review criterion misses titles with bare 'revisión' or 'revisión del código' · close finding; H30 P2 review criterion reads the Situación line as options (false positive on findings decisions) · close finding; H31 P3 NOT_KEYS list approximates ticket keys (single-digit keys, PG- prefixes) · close finding
+- Next: push, PR ready, CI, stop for user merge; then close
+
+### Evidence
+
+- check_layout on real carvento-specs checkout: 0 node_modules findings (was 309) · pass · 9c92c9d
+- check_layout on scratch clone carvento-monorepo 5f06d0c1: 57 LAYOUT-08 fail, rc 1 · pass · 9c92c9d
+- plan twice on clones mono+specs: cmp identical · pass · 73852f6
+- AC19 destinations on clone (detect-changes→scripts/ci, backup/set-channel→apps/backend/scripts, check-i18n→apps/backoffice/scripts, verify-contracts-push→scripts/hooks, rollback-environment→scripts/ops, infra/terraform, infra/aws incl README, iam policy review) · pass · c3cf289
+- apply on clone: 107 moves, 108 rewrites, no commit, git grep old file paths outside archive empty · pass · c3cf289
+- shell tests at new paths: 18 pass as baseline; next-build-cache.test.sh fails at baseline too; deploy-workflows needs its review row 253 fixed by hand, then passes · pass · c3cf289
+- verify on clone lists only the prefix review rows; undo restores status+diff byte-identical keeping a foreign ci.yml edit · pass · c3cf289
+- dry plan on real workspace + monorepo + specs trees: no change (status/listing cmp); contracts/product F5 to _support/docs; 39 workspace evidence folders F3; backups F4; monorepo evidence F2 review (detect-changes.sh:56) · pass · c3cf289
+- before captures: none (no UI)
+- go vet ./... · pass · 8aac1ea
+- go test ./... (incl. tests/pilot, tests/content) · pass · 8aac1ea
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · pass · 8aac1ea
+- site npm run check (0 hints) and build (20 pages) · pass · 8aac1ea
+- CI: only master-source-branch.yml exists, not applicable to development · n/a · 8aac1ea
+- code review round 1 (/code-review): 10 findings, all fixed in e2098a9 with regression tests · pass · e2098a9
+- code review round 2 (/code-review, fixes diff): 5 blocking fixed in 6287fa3 (Unreviewed), 5 non-blocking to close · pass · 6287fa3
+- python3 -m unittest discover -s tests/skills · pass · 6287fa3
+- go test ./tests/... · pass · 6287fa3
+- real clone replan after fixes: identical, same rule counts, 122 rewrites; apply/undo identical; shell tests as baseline · pass · e2098a9
+
 ## Review status and progress
+
+2026-11-18 — T1 · 9c92c9d · unverified: AC17 on real data pending T4
+2026-11-18 — T2 · 73852f6 · unverified: AC18, AC19, AC21, AC23 on real carvento data pending T4
+2026-11-18 — T3 · 04d561e · unverified: AC20, AC29 on real carvento data pending T4
+2026-11-18 — T4 · c3cf289 · unverified: none
+2026-11-18 — T6 · ad29e1d · unverified: none
+2026-11-18 — T5 · 8aac1ea · unverified: AC28 observed only in the user's next real carvento session
