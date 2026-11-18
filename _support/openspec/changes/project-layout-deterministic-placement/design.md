@@ -28,7 +28,7 @@ Supuestos menores, porque no cambian alcance, contratos, datos, costo ni reversi
   - `git ls-files -z --cached --others --exclude-standard -- <base>`;
   - para lo que está bajo `_support/`, también lo ignorado: `git ls-files -z --others --ignored --exclude-standard -- <base>/_support`, porque la convención ignora `_support/{scripts,workspace,data,secrets}` y los proyectos ignoran su `evidence/`.
 - **Fuera de Git:** usa `os.walk` ordenado y no entra en directorios con `.git`, que son repos hijos.
-- **Poda, en los dos casos:** se descarta toda ruta con un componente en la lista fija `PRUNE` de AC16, o con un componente de `GATED` cuyo directorio padre tiene el manifiesto que lo produce:
+- **Poda:** se descarta toda ruta con un componente en la lista fija `PRUNE` de AC16. Fuera de Git también se descarta un componente de `GATED` cuyo directorio padre tiene el manifiesto que lo produce; dentro de Git no, porque Git ya quitó la salida ignorada y un `build/` versionado es código fuente:
   - `target`: `Cargo.toml` o `pom.xml`;
   - `vendor`: `composer.json`, `go.mod` o `Gemfile`;
   - `dist` y `build`: `package.json`, `pyproject.toml`, `setup.py`, `build.gradle`, `build.gradle.kts` o `pubspec.yaml`;
@@ -74,7 +74,7 @@ plan_layout.py undo --plan FILE
 5. `root`: cualquier otra.
 
 **Llamadores.** Son los archivos de las raíces que contienen un token de referencia que resuelve al candidato. Los tokens se definen en **Reescrituras**.
-- Se excluyen los registros históricos: `openspec/changes/archive/`, `_support/openspec/changes/archive/`, `sessions/`, `_support/sessions/`, `evidence/`, `_support/evidence/`, `_support/workspace/` y `CHANGELOG*`.
+- Se excluyen los registros históricos, anclados a la raíz del repositorio para que una carpeta de código llamada `sessions/` no cuente: `openspec/changes/archive/`, `_support/openspec/changes/archive/`, `sessions/`, `_support/sessions/`, `evidence/`, `_support/evidence/`, `_support/workspace/`, `_support/reports/` y `CHANGELOG*`.
 - También se excluyen las listas de ignorados (`.gitignore`, `.ignore`, `.dockerignore`, `.prettierignore` y cualquier `*ignore`): nombran patrones, no rutas que algo use, así que una entrada vieja ahí no rompe nada.
 - Un candidato no cuenta como llamador para clasificar a otro. Sus referencias sí se reescriben.
 - Una referencia de prefijo o glob en un archivo `ci` cuenta como llamador `ci` solo de las pruebas que cubre, porque es un descubrimiento de pruebas, como el `find _support/scripts -name '*.test.sh'`.
@@ -124,11 +124,13 @@ plan_layout.py undo --plan FILE
 - hay un archivo versionado con el mismo nombre base y otra extensión → `same name elsewhere`;
 - dos paquetes con el mismo nombre base → `ambiguous package`, y R4 no aplica por componente.
 
-**Reescrituras.** Se buscan tokens con límites, de modo que la forma más larga gana y una subcadena nunca se reescribe sola. Un token es la ruta que termina en el candidato o en un prefijo de candidatos. Se resuelve así:
-- `./` o `../` al inicio → relativo al archivo que lo cita, en su ubicación actual, o en la nueva si ese archivo también se mueve;
-- `<repo>/` al inicio, con el nombre de una raíz → relativo al workspace;
-- `$VAR/` al inicio (`$REPO_ROOT/`, `${ROOT}/`) → relativo al repo;
+**Reescrituras.** Se buscan tokens con límites, de modo que la forma más larga gana y una subcadena nunca se reescribe sola. Un token es la ruta con `_support/` que termina en el candidato o en un prefijo de candidatos, y en Markdown también un enlace relativo (`../infrastructure/main.tf`). Una sustitución delante (`$VAR/`, `"$VAR"/`, `$(git rev-parse --show-toplevel)/`) se conserva tal cual. Se resuelve así:
+- tras una sustitución, `../x` → relativo al archivo que lo cita, y cualquier otro → relativo al repo;
+- `./` o `../` al inicio → relativo al archivo que lo cita, luego al repo, donde corren CI y los scripts de paquete;
+- `<repo>/` al inicio, con el nombre de otra raíz → relativo al workspace que la contiene;
 - cualquier otro → relativo al repo.
+
+La forma nueva se calcula desde la ubicación nueva del archivo que cita, también cuando ese archivo está dentro de una carpeta que se mueve. Un Markdown que se mueve recalcula además sus enlaces `../` para que sigan apuntando adonde apuntaban.
 
 Casos:
 - **Literal:** el token resuelve a un candidato con destino. Se reescribe con la misma forma y se guarda `file`, `line`, `sha256_line`, `old` y `new`.
@@ -137,7 +139,7 @@ Casos:
 - **Archivos que no se tocan:** se leen como bytes y se decodifican en UTF-8 estricto. Si fallan, o tienen un byte NUL, no se tocan y salen como `review` cuando contienen un token.
 - **Al escribir:** se conservan los finales de línea y el modo del archivo.
 
-**Rutas internas.** Aplica a un candidato que se mueve y cuyo texto tiene, en cualquier línea, un ancla de ubicación propia: `BASH_SOURCE`, `dirname "$0"`, `$(dirname`, `__dirname`, `import.meta.url`, `__file__` o `Path(__file__)`. Cada literal `(\.\./)+[\w./-]*` del archivo se resuelve desde el directorio viejo y desde el nuevo. Si el destino resuelto cambia, sale una fila `review` con los dos.
+**Rutas internas.** En código, una ruta relativa sin `_support/` suele ser relativa al directorio de trabajo, así que no se reescribe; se revisa así. Aplica a un candidato que se mueve y cuyo texto tiene, en cualquier línea, un ancla de ubicación propia: `BASH_SOURCE`, `dirname "$0"`, `$(dirname`, `__dirname`, `import.meta.url`, `__file__` o `Path(__file__)`. Cada literal `(\.\./)+[\w./-]*` del archivo se resuelve desde el directorio viejo y desde el nuevo. Si el destino resuelto cambia, sale una fila `review` con los dos.
 
 **Índice.** Por cada herramienta movida por R4–R8 se emite una línea esqueleto con la ruta, el comando y su prueba. El agente completa para qué sirve.
 
@@ -168,9 +170,9 @@ Es la única vía por la que nace una línea `Layout:` (H26).
    - que ningún destino exista;
    - que el commit de cada raíz siga siendo el del plan.
 2. Crea los directorios.
-3. Mueve: `git mv` si el archivo está versionado, `os.replace` si no. Una carpeta de F3 o F4 se mueve entera.
+3. Mueve: `git mv` si el archivo o la carpeta están versionados, `os.replace` si no. Una carpeta se mueve entera. El plan ya mandó a revisión todo lo versionado cuyo destino Git ignora, porque ahí saldría de Git.
 4. Reescribe línea por línea, sin tocar el resto del archivo, aunque tenga cambios locales de otro trabajo.
-5. Escribe `<plan>.undo.json` con cada movimiento y cada reescritura hechos.
+5. Escribe `<plan>.undo.json` antes del primer cambio y lo actualiza tras cada archivo reescrito y cada movimiento, con las carpetas que creó y las que vació. Si algo falla a mitad, se detiene y dice cómo deshacer con `undo`.
 6. Imprime las filas `review` que quedan.
 
 Nunca hace commit, push ni `git add` de archivos que no mueve.
@@ -193,6 +195,7 @@ Nunca hace commit, push ni `git add` de archivos que no mueve.
 - **Pregunta de revisión:**
   - una línea de título de decisión (`D<n> — …`) en un mensaje del asistente que contiene `revisión de código`, `code review` o `revisión`, y entre cuyas opciones aparece `hive-review-code`;
   - o una pregunta de tarjeta con esos mismos textos.
+- Debe cumplir las dos cosas: el título nombra una revisión de código, y sus opciones nombran un mecanismo (`hive-review-code`, `/review`, `Codex review`, sin revisión dedicada). Una decisión sobre aplicar hallazgos no es esa pregunta.
 - **Falla** si ninguna de sus opciones contiene `/review` ni `Codex review`.
 - **Pasa** si alguna la contiene.
 - **No observado** sin pregunta de revisión.

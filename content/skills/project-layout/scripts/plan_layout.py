@@ -20,19 +20,18 @@ import hashlib
 import json
 import os
 import re
-import subprocess
 import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import check_layout as cl  # noqa: E402
+import check_layout as cl  # noqa: E402  (python3 -I leaves the script's folder off sys.path)
 
 VERSION = 1
 MANIFESTS = (
     "package.json", "go.mod", "pyproject.toml", "setup.py", "composer.json", "Gemfile", "pom.xml",
     "build.gradle", "build.gradle.kts", "Cargo.toml", "pubspec.yaml", "mix.exs",
 )
-MANIFEST_GLOBS = ("*.csproj",)
+MANIFEST_SUFFIXES = (".csproj",)
 TOOL_ROOTS = ("scripts", "script", "tools", "hack")
 PACKAGE_TOOL_DIRS = ("scripts", "script", "tools")
 IAC_HOMES = ("infra", "infrastructure", "terraform", "deployments")
@@ -42,9 +41,15 @@ GROUPS = {
     "ops": ("ops", "operations", "runbooks"),
 }
 ONE_OFF_WORDS = {"backfill", "fix", "cutover", "migrate", "migration", "seed", "cleanup", "oneoff", "once", "repair"}
-KEY_RE = re.compile(r"\b[A-Za-z]{2,10}-\d+\b")
+KEY_RE = re.compile(r"\b([A-Za-z]{2,10})-\d{2,}\b")
+# Prefixes that look like a ticket key but name a runtime, an encoding or a version.
+NOT_KEYS = {
+    "node", "utf", "iso", "es", "ubuntu", "python", "py", "java", "jdk", "go", "sha", "md", "win",
+    "macos", "debian", "alpine", "postgres", "pg", "mysql", "mongo", "redis", "http", "ipv", "rfc",
+}
 DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
 DOC_EXTENSIONS = {".md", ".mdx", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp"}
+MARKDOWN = (".md", ".mdx")
 LEGACY_EVIDENCE = ("evidence", "reports")
 LEGACY_DATA = ("backups", "migration-data")
 RUNTIME_CONFIG_EXTENSIONS = {".json", ".yaml", ".yml", ".toml", ".ini", ".env", ".cfg", ".conf"}
@@ -53,20 +58,26 @@ CI_PATHS = re.compile(
     r"bitbucket-pipelines\.yml|Jenkinsfile|buildspec[^/]*\.ya?ml|amplify\.yml)$"
 )
 HOOK_PATHS = re.compile(r"^(?:\.husky/|\.githooks/)|(?:^|/)(?:lefthook\.ya?ml|\.pre-commit-config\.yaml)$")
+# Records of what happened: references there describe the past and are never rewritten.
 HISTORY_RE = re.compile(
-    r"(?:^|/)openspec/changes/archive/|(?:^|/)sessions/|(?:^|/)evidence/|(?:^|/)_support/workspace/"
+    r"^(?:_support/)?(?:openspec/changes/archive|sessions|evidence)/|^_support/(?:workspace|reports)/"
     r"|(?:^|/)CHANGELOG[^/]*$"
 )
 NEVER_READ = re.compile(r"(?:^|/)_support/(?:secrets|data)/|(?:^|/)\.engram/|(?:^|/)\.git/")
 TEST_NAME = re.compile(r"^(?P<stem>.+?)(?:\.test|\.spec|_test)(?P<ext>\.[^.]+)$|^test_(?P<stem2>.+)$")
-# A path token that reaches into a support folder, optionally with a variable, a relative
-# prefix or a repository prefix. Boundaries keep a substring from being read as a token.
-TOKEN_RE = re.compile(
-    r"(?<![\w@./-])((?:\$\{?\w+\}?/)?(?:\.{1,2}/)*(?:[\w.@+-]+/)*?_support/[\w.@+/*-]*)"
+# A path that reaches into a support folder: optionally after a variable or command
+# substitution and a slash (`$DIR/`, `"$ROOT"/`, `$(git rev-parse --show-toplevel)/`), with
+# relative segments or a repository prefix. Boundaries keep a substring from being a token.
+SUPPORT_TOKEN_RE = re.compile(
+    r"(?<![\w@./-])(?P<pre>(?:\$\([^()\n]*\)|\"\$\{?\w+\}?\"|\$\{?\w+\}?)/)?"
+    r"(?P<path>(?:\.{1,2}/)*(?:[\w.@+-]+/)*?_support/[\w.@+/*-]*)"
 )
+# A relative path with no support folder in it, such as a Markdown link `../openspec/x.md`.
+RELATIVE_TOKEN_RE = re.compile(r"(?<![\w@./-])(?P<path>(?:\.{1,2}/)+[\w.@+-][\w.@+/*-]*)")
 ANCHOR_RE = re.compile(r"BASH_SOURCE|dirname \"?\$0|\$\(dirname|__dirname|import\.meta\.url|__file__")
 REL_LITERAL_RE = re.compile(r"(?<![\w.])((?:\.\./)*\.\.(?:/[\w.@-]+)*)(?![\w.])")
 MAX_READ = 5 * 1024 * 1024
+TOOL_RULES = ("R4", "R5", "R6", "R7", "R8")
 
 
 def fail(message):
@@ -74,8 +85,8 @@ def fail(message):
     return 1
 
 
-def git(root, *args):
-    return cl.git(root, *args)
+def git(root, *args, **kwargs):
+    return cl.git(root, *args, **kwargs)
 
 
 def sha256_bytes(data):
@@ -95,19 +106,19 @@ def read_bytes(path):
 
 
 def read_text_strict(path):
-    """(text, ok): text decoded as strict UTF-8 without NUL bytes, else (None, False)."""
+    """Text decoded as strict UTF-8 without NUL bytes, or None."""
     try:
         if os.path.getsize(path) > MAX_READ:
-            return None, False
+            return None
     except OSError:
-        return None, False
+        return None
     data = read_bytes(path)
     if data is None or b"\0" in data:
-        return None, False
+        return None
     try:
-        return data.decode("utf-8"), True
+        return data.decode("utf-8")
     except UnicodeDecodeError:
-        return None, False
+        return None
 
 
 def fingerprint(path):
@@ -123,10 +134,6 @@ def fingerprint(path):
     return sha256_bytes(data) if data is not None else None
 
 
-def gm_date(seconds):
-    return time.strftime("%Y-%m-%d", time.gmtime(seconds))
-
-
 def oldest_mtime(path):
     files = cl.list_files(path) if os.path.isdir(path) else [path]
     stamps = []
@@ -135,7 +142,21 @@ def oldest_mtime(path):
             stamps.append(os.path.getmtime(item))
         except OSError:
             continue
-    return gm_date(min(stamps)) if stamps else "0000-00-00"
+    return time.strftime("%Y-%m-%d", time.gmtime(min(stamps))) if stamps else "0000-00-00"
+
+
+def tokens(line, relative):
+    """(column, prefix, path) of each path token in a line; with relative, also the
+    relative paths that hold no support folder."""
+    found = {}
+    for match in SUPPORT_TOKEN_RE.finditer(line):
+        found[match.start()] = (match.group("pre") or "", match.group("path").rstrip("."))
+    if relative:
+        for match in RELATIVE_TOKEN_RE.finditer(line):
+            start = match.start("path")
+            if not any(s <= start < s + len(p) + len(pre) for s, (pre, p) in found.items()):
+                found[start] = ("", match.group("path").rstrip("."))
+    return [(col, pre, path) for col, (pre, path) in sorted(found.items())]
 
 
 class Root:
@@ -147,7 +168,6 @@ class Root:
         self.files = [os.path.relpath(p, self.path).replace(os.sep, "/") for p in cl.list_files(self.path)]
         self.tracked = set(cl.tracked_files(self.path)) if self.is_git else set()
         index = cl.find_index(self.path)
-        self.index = index
         self.layout = cl.parse_layout(cl.read_text(index)) if index else {}
         self.packages = self._packages()
 
@@ -161,7 +181,7 @@ class Root:
                 continue
             name = os.path.basename(rel)
             directory = os.path.dirname(rel)
-            if directory and (name in MANIFESTS or any(re.fullmatch(g.replace("*", ".*"), name) for g in MANIFEST_GLOBS)):
+            if directory and (name in MANIFESTS or name.endswith(MANIFEST_SUFFIXES)):
                 found.add(directory)
         return sorted(found)
 
@@ -174,7 +194,7 @@ class Root:
 
     def first_existing(self, base, names):
         for name in names:
-            if os.path.isdir(os.path.join(self.path, base, name) if base else self.abs(name)):
+            if os.path.isdir(os.path.join(self.path, base, name)):
                 return name
         return None
 
@@ -184,19 +204,34 @@ class Root:
             return result.stdout.split()[0]
         return None
 
+    def ignored(self, paths):
+        """The subset of repository-relative paths Git ignores (a folder through a child probe)."""
+        if not self.is_git or not paths:
+            return set()
+        probes = {}
+        for rel in paths:
+            probes[rel] = rel
+            probes[rel + "/.layout-probe"] = rel
+        result = git(self.path, "check-ignore", "--stdin", input="\n".join(probes) + "\n")
+        if result is None:
+            return set()
+        return {probes[line] for line in result.stdout.splitlines() if line in probes}
+
 
 class Planner:
     def __init__(self, roots, overrides, homes):
         self.roots = [Root(r) for r in roots]
         self.overrides = overrides
+        self.used_overrides = set()
         self.homes_override = homes
         self.rows = {}  # (root index, source) -> row
         self.reviews = []
         self.rewrites = []
-        self.contents = {}  # (root index, rel) -> text, or None when unreadable
+        self.contents = {}
         self.layout_lines = []
         self.index_lines = []
         self._homes = {}
+        self._listing = {}
 
     # ---- homes -------------------------------------------------------------
     def homes(self, i):
@@ -211,9 +246,8 @@ class Planner:
 
     # ---- reading -------------------------------------------------------------
     def readable_files(self, i):
-        """Files whose support paths are references: not history, secrets, data or ignore lists."""
-        root = self.roots[i]
-        for rel in root.files:
+        """Files whose paths are references: not history, secrets, data or ignore lists."""
+        for rel in self.roots[i].files:
             if NEVER_READ.search("/" + rel) or HISTORY_RE.search(rel) or os.path.basename(rel).endswith("ignore"):
                 continue
             yield rel
@@ -221,9 +255,19 @@ class Planner:
     def content(self, i, rel):
         key = (i, rel)
         if key not in self.contents:
-            text, ok = read_text_strict(self.roots[i].abs(rel))
-            self.contents[key] = text if ok else None
+            self.contents[key] = read_text_strict(self.roots[i].abs(rel))
         return self.contents[key]
+
+    def listing(self, path):
+        if path not in self._listing:
+            self._listing[path] = cl.list_files(path)
+        return self._listing[path]
+
+    @staticmethod
+    def scans_relative(rel):
+        # A Markdown link is relative to its file; a relative path in code usually is
+        # relative to the working directory, so code gets the internal-path review instead.
+        return rel.endswith(MARKDOWN)
 
     # ---- candidates ------------------------------------------------------------
     def collect(self):
@@ -243,28 +287,32 @@ class Planner:
             support = root.abs("_support")
             if os.path.isdir(support):
                 for name in sorted(os.listdir(support)):
-                    if name in cl.SUPPORT_CHILDREN:
-                        continue
-                    self.add_folder(i, name)
+                    if name not in cl.SUPPORT_CHILDREN:
+                        self.add_entry(i, name)
 
-    def add_file(self, i, rel, prefix, entry):
-        key = (i, rel)
-        if key in self.rows:
-            return
+    def new_row(self, i, rel, kind, entry, subpath=""):
         root = self.roots[i]
-        self.rows[key] = {
-            "root": i, "source": rel, "kind": "file", "tracked": rel in root.tracked,
-            "subpath": rel[len(prefix):], "entry": entry, "rule": None, "destination": None,
-            "notes": [], "override": False,
+        if kind == "file":
+            tracked = rel in root.tracked
+        else:
+            tracked = any(r.startswith(rel + "/") for r in root.tracked)
+        return {
+            "root": i, "source": rel, "kind": kind, "tracked": tracked, "subpath": subpath, "entry": entry,
+            "rule": None, "destination": None, "notes": [], "override": False,
         }
 
-    def add_folder(self, i, name):
+    def add_file(self, i, rel, prefix, entry):
+        if (i, rel) not in self.rows:
+            self.rows[(i, rel)] = self.new_row(i, rel, "file", entry, rel[len(prefix):])
+
+    def add_entry(self, i, name):
         root = self.roots[i]
         base = f"_support/{name}"
-        path = root.abs(base)
+        if not os.path.isdir(root.abs(base)):
+            self.rows[(i, base)] = self.new_row(i, base, "file", name)
+            return
         files = [r for r in root.files if r.startswith(base + "/")]
-        has_tf = any(r.endswith(".tf") for r in files)
-        if os.path.isdir(path) and (name in cl.IAC_FAMILY or has_tf):
+        if name in cl.IAC_FAMILY or any(r.endswith(".tf") for r in files):
             for rel in files:
                 self.add_file(i, rel, base + "/", name)
             return
@@ -273,37 +321,44 @@ class Planner:
             if rest:
                 self.review(i, base, "no rule", f"{len(rest)} other files stay; classify them by hand")
             return
-        self.rows[(i, base)] = {
-            "root": i, "source": base, "kind": "folder", "tracked": any(r in root.tracked for r in files),
-            "subpath": "", "entry": name, "rule": None, "destination": None, "notes": [], "override": False,
-        }
+        self.rows[(i, base)] = self.new_row(i, base, "folder", name)
 
     def review(self, i, path, reason, detail):
         self.reviews.append({"root": i, "path": path, "reason": reason, "detail": detail})
 
     # ---- references ------------------------------------------------------------
-    def resolutions(self, i, citing, token):
+    def resolutions(self, i, citing, pre, path):
         """(base kind, absolute path) pairs a token may point to, most specific first.
 
-        `$VAR/x` is read from the root; `./x` and `../x` from the citing file's folder, then
-        from the root, where CI and package scripts run; any other path from the root."""
+        After a variable or command substitution, a relative path is read from the citing
+        file's folder (the variable usually holds it) and any other path from the root;
+        `./x` and `../x` from the citing file's folder, then from the root, where CI and
+        package scripts run; `<repo>/x`, naming another root, from the workspace that holds
+        it; any other path from the root."""
         root = self.roots[i]
-        path = token
         star = path.find("*")
         if star >= 0:
             path = path[:star]
         path = path.rstrip("/").rstrip(".")
         if not path:
             return []
-        var = re.match(r"^\$\{?\w+\}?/", path)
-        if var:
-            return [("var", os.path.normpath(os.path.join(root.path, path[var.end():])))]
-        if path.startswith("./") or path.startswith("../"):
+        citing_dir = os.path.dirname(root.abs(citing))
+        relative = path.startswith("./") or path.startswith("../")
+        if pre:
+            if relative:
+                return [("file", os.path.normpath(os.path.join(citing_dir, path)))]
+            return [("root", os.path.normpath(os.path.join(root.path, path)))]
+        if relative:
             return [
-                ("file", os.path.normpath(os.path.join(os.path.dirname(root.abs(citing)), path))),
+                ("file", os.path.normpath(os.path.join(citing_dir, path))),
                 ("root", os.path.normpath(os.path.join(root.path, path))),
             ]
-        return [("root", os.path.normpath(os.path.join(root.path, path)))]
+        first = path.split("/")[0]
+        found = []
+        for k, other in enumerate(self.roots):
+            if k != i and os.path.basename(other.path) == first:
+                found.append((f"ws:{k}", os.path.normpath(os.path.join(os.path.dirname(other.path), path))))
+        return found + [("root", os.path.normpath(os.path.join(root.path, path)))]
 
     def candidate_index(self):
         files, folders = {}, {}
@@ -312,7 +367,18 @@ class Planner:
             (files if row["kind"] == "file" else folders)[absolute] = key
         return files, folders
 
-    def match_target(self, target, files, folders, candidate_dirs):
+    def candidate_dirs(self, files, folders):
+        dirs = collections.defaultdict(list)
+        roots = {r.path for r in self.roots}
+        for absolute, key in list(files.items()) + list(folders.items()):
+            parent = os.path.dirname(absolute)
+            while parent not in roots and parent != os.path.dirname(parent):
+                dirs[parent].append(key)
+                parent = os.path.dirname(parent)
+        return dirs
+
+    @staticmethod
+    def match_target(target, files, folders, candidate_dirs):
         """(kind, keys, inside) for a resolved path: a candidate, a file inside a candidate
         folder, or a folder below _support/<entry> holding candidates."""
         if target in files:
@@ -328,16 +394,6 @@ class Planner:
             return "prefix", sorted(set(candidate_dirs[target])), ""
         return None, [], ""
 
-    def candidate_dirs(self, files, folders):
-        dirs = collections.defaultdict(list)
-        roots = {r.path for r in self.roots}
-        for absolute, key in list(files.items()) + list(folders.items()):
-            parent = os.path.dirname(absolute)
-            while parent not in roots and parent != os.path.dirname(parent):
-                dirs[parent].append(key)
-                parent = os.path.dirname(parent)
-        return dirs
-
     def references(self):
         """Every token in readable files that resolves to a candidate or a folder of candidates."""
         files, folders = self.candidate_index()
@@ -351,20 +407,18 @@ class Planner:
                     if b"_support/" in data and (i, rel) not in self.rows:
                         self.review(i, rel, "unreadable", "binary or non-UTF-8 file cites _support/; not rewritten")
                     continue
-                if "_support/" not in text:
+                relative = self.scans_relative(rel)
+                if "_support/" not in text and not relative:
                     continue
                 for number, line in enumerate(text.splitlines(True), 1):
-                    if "_support/" not in line:
-                        continue
-                    for match in TOKEN_RE.finditer(line):
-                        spelled = match.group(1).rstrip(".")
-                        for base, target in self.resolutions(i, rel, spelled):
+                    for col, pre, path in tokens(line, relative):
+                        for base, target in self.resolutions(i, rel, pre, path):
                             kind, keys, inside = self.match_target(target, files, folders, candidate_dirs)
                             if kind:
                                 refs.append({
-                                    "root": i, "file": rel, "line": number, "col": match.start(1), "token": spelled,
-                                    "target": target, "base": base, "inside": inside, "kind": kind, "keys": keys,
-                                    "text": line,
+                                    "root": i, "file": rel, "line": number, "col": col, "pre": pre, "path": path,
+                                    "token": pre + path, "target": target, "base": base, "inside": inside,
+                                    "kind": kind, "keys": keys, "text": line,
                                 })
                                 break
         return refs
@@ -375,12 +429,10 @@ class Planner:
             return "ci"
         if HOOK_PATHS.search(rel):
             return "hook"
-        if rel.lower().endswith((".md", ".mdx")):
+        if rel.endswith(MARKDOWN):
             return "doc"
         package = self.roots[i].package_of(rel)
-        if package:
-            return f"package:{package}"
-        return "root"
+        return f"package:{package}" if package else "root"
 
     def classify(self, refs):
         callers = collections.defaultdict(set)
@@ -400,21 +452,33 @@ class Planner:
                 ):
                     continue  # a folder in CI is a test discovery: it calls the tests under it only
                 callers[key].add(self.caller_class(ref["root"], ref["file"]))
+        # a library or fixture is often sourced by name from its own folder, without a support path
+        for key, row in self.rows.items():
+            if row["kind"] == "file" and self.is_lib(row):
+                name = os.path.basename(row["source"])
+                for other, other_row in self.rows.items():
+                    if (other != key and other[0] == key[0] and other_row["kind"] == "file"
+                            and os.path.dirname(other[1]) == os.path.dirname(row["source"])
+                            and name in (self.content(*other) or "")):
+                        cites[other].add(key)
+                        cited_by[key].add(other)
         self.callers, self.cites, self.cited_by = callers, cites, cited_by
-        ordered = sorted(self.rows)
-        # tests follow what they test, and libraries and fixtures follow the tests that use them
+        self.dependents = []
         tests, libs = [], []
-        for key in ordered:
+        for key in sorted(self.rows):
             row = self.rows[key]
             if row["kind"] == "folder":
-                self.place_folder(key, row, refs)
+                self.place_folder(key, row)
+            elif self.infra_tree(row):
+                self.place_file(key, row)
             elif self.is_test(row):
                 tests.append(key)
             elif self.is_lib(row):
                 libs.append(key)
             else:
                 self.place_file(key, row)
-        for key in tests + libs:
+        self.dependents = tests + libs
+        for key in self.dependents:
             self.place_dependent(key, self.rows[key])
 
     @staticmethod
@@ -426,38 +490,30 @@ class Planner:
         name = os.path.basename(row["source"]).lower()
         return ".lib." in name or "fixture" in name
 
+    def infra_tree(self, row):
+        entry = row["entry"]
+        if entry == "scripts" or row["kind"] != "file":
+            return False
+        root = self.roots[row["root"]]
+        return entry in cl.IAC_FAMILY or any(r.endswith(".tf") for r in root.files if r.startswith(f"_support/{entry}/"))
+
     def subject_of(self, key):
         row = self.rows[key]
         match = TEST_NAME.match(os.path.basename(row["source"]))
         if not match:
             return None
-        if match.group("stem2"):
-            subject_name = match.group("stem2")
-        else:
-            subject_name = match.group("stem") + match.group("ext")
-        subject = (row["root"], os.path.join(os.path.dirname(row["source"]), subject_name).replace(os.sep, "/"))
+        name = match.group("stem2") or match.group("stem") + match.group("ext")
+        subject = (row["root"], os.path.join(os.path.dirname(row["source"]), name).replace(os.sep, "/"))
         return subject if subject in self.rows else None
 
     def place_dependent(self, key, row):
         subject = self.subject_of(key) if self.is_test(row) else None
-        if subject:
+        if subject and not self.is_lib(self.rows[subject]):
             dest = self.rows[subject]["destination"]
             if dest:
-                self.set_dest(key, "R1", os.path.join(os.path.dirname(dest), os.path.basename(row["source"])))
-            else:
-                self.set_review(key, "R1", "subject has no destination")
-            return
-        if self.is_test(row):
-            related = self.cites.get(key, set())
-        else:
-            # a library is often sourced by name from its own folder, without a support path
-            name = os.path.basename(row["source"])
-            related = set(self.cited_by.get(key, set())) | {
-                other for other in self.rows
-                if other != key and other[0] == key[0] and self.rows[other]["kind"] == "file"
-                and os.path.dirname(other[1]) == os.path.dirname(row["source"])
-                and name in (self.content(*other) or "")
-            }
+                return self.set_dest(key, "R1", os.path.join(os.path.dirname(dest), os.path.basename(row["source"])))
+            return self.set_review(key, "R1", "subject has no destination")
+        related = self.cites.get(key, set()) if self.is_test(row) else self.cited_by.get(key, set())
         dirs = collections.Counter()
         for other in sorted(related):
             dest = self.rows[other]["destination"] if other in self.rows else None
@@ -466,29 +522,22 @@ class Planner:
         if dirs:
             top = max(dirs.values())
             directory = sorted(d for d, n in dirs.items() if n == top)[0]
-            self.set_dest(key, "R3", os.path.join(directory, os.path.basename(row["source"])))
-            return
-        self.place_file(key, row)
+            return self.set_dest(key, "R3", os.path.join(directory, os.path.basename(row["source"])))
+        return self.place_file(key, row)
 
     def place_file(self, key, row):
+        if not self.infra_tree(row):
+            return self.place_code(key, row)
         i = row["root"]
         root = self.roots[i]
         homes = self.homes(i)
-        sub = row["subpath"]
-        entry = row["entry"]
-        infra_tree = entry != "scripts" and (
-            entry in cl.IAC_FAMILY or any(r.endswith(".tf") for r in root.files if r.startswith(f"_support/{entry}/"))
-        )
-        if not infra_tree:
-            return self.place_code(key, row)
-        # R2: a tree of the infrastructure family moves whole
         if not root.is_git:
             return self.set_review(key, "R2", "no repository: infrastructure goes in a repository")
         if os.path.splitext(row["source"])[1].lower() in {".json", ".yaml", ".yml"} and not self.cited_anywhere(key):
             return self.set_review(key, "R2", "unreferenced: no tracked file cites it by path or name")
-        if entry in IAC_HOMES:
-            return self.set_dest(key, "R2", os.path.join(homes["infra"], sub))
-        return self.set_dest(key, "R2", os.path.join(homes["infra"], entry, sub))
+        if row["entry"] in IAC_HOMES:
+            return self.set_dest(key, "R2", os.path.join(homes["infra"], row["subpath"]))
+        return self.set_dest(key, "R2", os.path.join(homes["infra"], row["entry"], row["subpath"]))
 
     def place_code(self, key, row):
         i = row["root"]
@@ -497,14 +546,14 @@ class Planner:
         sub = row["subpath"]
         classes = self.callers.get(key, set())
         code = {c for c in classes if c != "doc"}
-        packages = sorted(c[len("package:"):] for c in code if c.startswith("package:"))
+        packages = sorted({c[len("package:"):] for c in code if c.startswith("package:")})
         first = sub.split("/")[0] if "/" in sub else None
         by_name = [p for p in root.packages if os.path.basename(p) == first] if first else []
         if not root.is_git:
             if not classes and self.one_off(row):
                 return self.set_dest(key, "R9", self.session_dest(row))
             return self.set_review(key, "R4-R8", "no repository: code goes in the repository that uses it")
-        if code and all(c.startswith("package:") for c in code) and len(set(packages)) == 1:
+        if code and all(c.startswith("package:") for c in code) and len(packages) == 1:
             package = packages[0]
             rest = sub.split("/", 1)[1] if first and os.path.basename(package) == first else sub
             return self.set_dest(key, "R4", os.path.join(package, self.package_dir(i, package), rest))
@@ -531,8 +580,9 @@ class Planner:
     @staticmethod
     def one_off(row):
         name = os.path.basename(row["source"])
-        tokens = set(re.split(r"[-_.]", name.lower()))
-        return bool(tokens & ONE_OFF_WORDS) or bool(KEY_RE.search(name))
+        if set(re.split(r"[-_.]", name.lower())) & ONE_OFF_WORDS:
+            return True
+        return any(m.group(1).lower() not in NOT_KEYS for m in KEY_RE.finditer(name))
 
     def session_dest(self, row):
         root = self.roots[row["root"]]
@@ -541,19 +591,20 @@ class Planner:
         stem = kebab(os.path.splitext(os.path.basename(row["source"]))[0])
         return os.path.join("_support/sessions", f"{date}-{stem}", os.path.basename(row["source"]))
 
-    def cited_anywhere(self, key):
-        i, rel = key
-        name = os.path.basename(rel)
-        for j in range(len(self.roots)):
-            for other in self.readable_files(j):
-                if (j, other) == key:
-                    continue
-                text = self.content(j, other)
-                if text and (rel in text or name in text):
-                    return True
-        return False
+    def corpus(self):
+        if not hasattr(self, "_corpus"):
+            self._corpus = [
+                ((j, rel), self.content(j, rel) or "")
+                for j in range(len(self.roots)) for rel in self.readable_files(j)
+            ]
+        return self._corpus
 
-    def place_folder(self, key, row, refs):
+    def cited_anywhere(self, key):
+        rel = key[1]
+        name = os.path.basename(rel)
+        return any(other != key and (rel in text or name in text) for other, text in self.corpus())
+
+    def place_folder(self, key, row):
         i = row["root"]
         root = self.roots[i]
         homes = self.homes(i)
@@ -565,8 +616,7 @@ class Planner:
                 return self.set_review(key, "F2", "runtime path: code or configuration cites it: " + ", ".join(citing[:5]))
         if name in LEGACY_EVIDENCE:
             del self.rows[key]
-            self.place_evidence(i, base, name)
-            return
+            return self.place_evidence(i, base, name)
         if name in LEGACY_DATA:
             return self.set_dest(key, "F4", f"_support/data/{oldest_mtime(root.abs(base))}-{kebab(name)}")
         files = [r for r in root.files if r.startswith(base + "/")]
@@ -578,97 +628,84 @@ class Planner:
         """Non-comment lines of code or configuration whose support path resolves into folder."""
         found = []
         needle = "_support/" + os.path.basename(folder)
-        for j in range(len(self.roots)):
-            for rel in self.readable_files(j):
-                extension = os.path.splitext(rel)[1].lower()
-                if extension not in cl.CODE_EXTENSIONS and extension not in RUNTIME_CONFIG_EXTENSIONS:
+        for (j, rel), text in self.corpus():
+            extension = os.path.splitext(rel)[1].lower()
+            if extension not in cl.CODE_EXTENSIONS and extension not in RUNTIME_CONFIG_EXTENSIONS:
+                continue
+            if needle not in text:
+                continue
+            comment = cl.COMMENT_BY_EXTENSION.get(extension)
+            for number, line in enumerate(text.splitlines(), 1):
+                if needle not in line or (comment and comment.match(line)):
                     continue
-                text = self.content(j, rel)
-                if not text or needle not in text:
-                    continue
-                comment = cl.COMMENT_BY_EXTENSION.get(extension)
-                for number, line in enumerate(text.splitlines(), 1):
-                    if needle not in line or (comment and comment.match(line)):
-                        continue
-                    hits = [
-                        target for match in TOKEN_RE.finditer(line)
-                        for _, target in self.resolutions(j, rel, match.group(1).rstrip("."))
-                    ]
-                    if any(t == folder or t.startswith(folder + os.sep) for t in hits):
-                        found.append(f"{os.path.basename(self.roots[j].path)}/{rel}:{number}")
-                        break
+                hits = [t for _, pre, path in tokens(line, False) for _, t in self.resolutions(j, rel, pre, path)]
+                if any(t == folder or t.startswith(folder + os.sep) for t in hits):
+                    found.append(f"{os.path.basename(self.roots[j].path)}/{rel}:{number}")
+                    break
         return sorted(found)
 
     def place_evidence(self, i, base, name):
         root = self.roots[i]
-        path = root.abs(base)
         loose = []
-        for child in sorted(os.listdir(path)):
+        for child in sorted(os.listdir(root.abs(base))):
             child_rel = f"{base}/{child}"
             if os.path.isdir(root.abs(child_rel)):
                 match = DATE_RE.search(child)
                 date = match.group(0) if match else oldest_mtime(root.abs(child_rel))
                 work = kebab(DATE_RE.sub("", child, count=1)) or kebab(name)
-                files = [r for r in root.files if r.startswith(child_rel + "/")]
                 key = (i, child_rel)
-                self.rows[key] = {
-                    "root": i, "source": child_rel, "kind": "folder", "tracked": any(r in root.tracked for r in files),
-                    "subpath": "", "entry": name, "rule": None, "destination": None, "notes": [], "override": False,
-                }
-                if self.rows[key]["tracked"]:
-                    self.set_review(key, "F3", "tracked: moving it into an ignored folder would drop it from Git; remove it from the tree with the archive tag instead")
-                else:
-                    self.set_dest(key, "F3", f"_support/workspace/{date}-{work}/evidence")
+                self.rows[key] = self.new_row(i, child_rel, "folder", name)
+                self.set_dest(key, "F3", f"_support/workspace/{date}-{work}/evidence")
             elif child not in cl.IGNORED_NAMES:
                 loose.append(child_rel)
         if loose:
             date = min(oldest_mtime(root.abs(r)) for r in loose)
             for rel in loose:
                 key = (i, rel)
-                self.rows[key] = {
-                    "root": i, "source": rel, "kind": "file", "tracked": rel in root.tracked, "subpath": "",
-                    "entry": name, "rule": None, "destination": None, "notes": [], "override": False,
-                }
-                if self.rows[key]["tracked"]:
-                    self.set_review(key, "F3", "tracked: remove it from the tree with the archive tag instead")
-                else:
-                    self.set_dest(key, "F3", f"_support/workspace/{date}-legacy-{kebab(name)}/evidence/{os.path.basename(rel)}")
+                self.rows[key] = self.new_row(i, rel, "file", name)
+                self.set_dest(key, "F3", f"_support/workspace/{date}-legacy-{kebab(name)}/evidence/{os.path.basename(rel)}")
+
+    def override_for(self, row):
+        root = self.roots[row["root"]]
+        for spec, dest in self.overrides:
+            if spec == row["source"] or os.path.abspath(spec) == root.abs(row["source"]):
+                self.used_overrides.add(spec)
+                return os.path.normpath(dest).replace(os.sep, "/")
+        return None
 
     def set_dest(self, key, rule, dest):
         row = self.rows[key]
+        override = self.override_for(row)
         row["rule"] = rule
-        row["destination"] = os.path.normpath(dest).replace(os.sep, "/")
+        row["destination"] = override or os.path.normpath(dest).replace(os.sep, "/")
+        row["override"] = bool(override)
 
     def set_review(self, key, rule, reason):
         row = self.rows[key]
+        override = self.override_for(row)
         row["rule"] = rule
+        if override:
+            row["destination"], row["override"] = override, True
+            return
         row["destination"] = None
         self.review(row["root"], row["source"], rule, reason)
 
-    # ---- overrides, collisions, notes ---------------------------------------------
-    def apply_overrides(self):
-        for spec, dest in self.overrides:
-            hits = [k for k, r in self.rows.items()
-                    if r["source"] == spec or self.roots[r["root"]].abs(r["source"]) == os.path.abspath(spec)]
-            if not hits:
-                raise SystemExit(fail(f"--override names no planned row: {spec}"))
-            for key in hits:
-                row = self.rows[key]
-                row["destination"] = os.path.normpath(dest).replace(os.sep, "/")
-                row["override"] = True
-                row["rule"] = row["rule"] or "override"
-                self.reviews = [r for r in self.reviews if not (r["root"] == key[0] and r["path"] == row["source"])]
-        if self.homes_override:
-            for key, row in self.rows.items():
-                rule = row["rule"] or ""
-                category = "tools" if rule in ("R5", "R6", "R7", "R8") else "infra" if rule == "R2" else "docs" if rule == "F5" else None
-                if category in self.homes_override:
-                    row["override"] = True
-            for i, root in enumerate(self.roots):
-                merged = dict(root.layout)
-                merged.update(self.homes_override)
-                parts = [f"{k} at {merged[k]}" for k in ("docs", "tools", "infra") if k in merged]
-                self.layout_lines.append({"root": i, "line": "Layout: " + " · ".join(parts)})
+    # ---- guards after classification ------------------------------------------------
+    def guard(self):
+        """Tracked rows going into ignored folders, then collisions; dependents follow."""
+        for i, root in enumerate(self.roots):
+            tracked = {r["destination"]: k for k, r in self.rows.items()
+                       if r["root"] == i and r["tracked"] and r["destination"] and not r["override"]}
+            for dest in sorted(root.ignored(sorted(tracked))):
+                self.set_review(tracked[dest], self.rows[tracked[dest]]["rule"],
+                                f"tracked: {dest} is ignored, so the move would drop it from Git; "
+                                "remove it from the tree with the archive tag instead")
+        self.mark_collisions()
+        for key in self.dependents:
+            row = self.rows[key]
+            if not row["override"] and row["rule"] in ("R1", "R3"):
+                self.place_dependent(key, row)
+        self.mark_collisions()
 
     def mark_collisions(self):
         seen = collections.defaultdict(list)
@@ -676,13 +713,14 @@ class Planner:
             row = self.rows[key]
             if row["destination"]:
                 seen[(row["root"], row["destination"])].append(key)
-        for (i, dest), keys in seen.items():
-            exists = os.path.lexists(self.roots[i].abs(dest))
-            if exists or len(keys) > 1:
+        for (i, dest), keys in sorted(seen.items()):
+            if os.path.lexists(self.roots[i].abs(dest)) or len(keys) > 1:
                 for key in keys:
                     row = self.rows[key]
                     row["notes"].append("collision")
-                    self.set_review(key, row["rule"], f"collision at {dest}")
+                    row["override"] = False
+                    row["destination"] = None
+                    self.review(row["root"], row["source"], row["rule"], f"collision at {dest}")
 
     def mark_same_names(self):
         for key in sorted(self.rows):
@@ -690,15 +728,44 @@ class Planner:
             if row["kind"] != "file":
                 continue
             root = self.roots[row["root"]]
-            stem = os.path.splitext(os.path.basename(row["source"]))[0]
+            stem, ext = os.path.splitext(os.path.basename(row["source"]))
             for rel in sorted(root.tracked):
-                if rel.startswith("_support/") or HISTORY_RE.search(rel) or rel == row["source"]:
+                if rel.startswith("_support/") or HISTORY_RE.search(rel):
                     continue
-                if os.path.splitext(os.path.basename(rel))[0] == stem and os.path.splitext(rel)[1] != os.path.splitext(row["source"])[1]:
+                other_stem, other_ext = os.path.splitext(os.path.basename(rel))
+                if other_stem == stem and other_ext != ext:
                     row["notes"].append(f"same name elsewhere: {rel}")
                     break
 
+    def apply_homes(self):
+        if not self.homes_override:
+            return
+        for row in self.rows.values():
+            rule = row["rule"] or ""
+            category = "tools" if rule in ("R5", "R6", "R7", "R8") else "infra" if rule == "R2" else "docs" if rule == "F5" else None
+            if category in self.homes_override and row["destination"]:
+                row["override"] = True
+        for i, root in enumerate(self.roots):
+            merged = dict(root.layout)
+            merged.update(self.homes_override)
+            parts = [f"{k} at {merged[k]}" for k in ("docs", "tools", "infra") if k in merged]
+            self.layout_lines.append({"root": i, "line": "Layout: " + " · ".join(parts)})
+
     # ---- rewrites ----------------------------------------------------------------
+    def new_location(self, i, rel):
+        """Where a file of root i will be after the plan: its row's destination, the
+        destination of a moving folder that holds it, or where it is."""
+        row = self.rows.get((i, rel))
+        if row and row["destination"]:
+            return row["destination"]
+        parent = os.path.dirname(rel)
+        while parent:
+            row = self.rows.get((i, parent))
+            if row and row["destination"] and row["kind"] == "folder":
+                return os.path.join(row["destination"], os.path.relpath(rel, parent)).replace(os.sep, "/")
+            parent = os.path.dirname(parent)
+        return rel
+
     def new_abs(self, key):
         row = self.rows.get(key)
         if not row or not row["destination"]:
@@ -706,7 +773,7 @@ class Planner:
         return self.roots[row["root"]].abs(row["destination"])
 
     def build_rewrites(self, refs):
-        files, folders = self.candidate_index()
+        done = set()
         for ref in sorted(refs, key=lambda r: (r["root"], r["file"], r["line"], r["col"])):
             i = ref["root"]
             root = self.roots[i]
@@ -719,20 +786,51 @@ class Planner:
             else:
                 new_target = self.prefix_destination(ref["target"], ref["keys"])
                 if new_target is None:
+                    dirs = sorted({os.path.dirname(self.rows[k]["destination"]) if self.rows[k]["destination"] else "review"
+                                   for k in ref["keys"]})
                     self.review(i, f"{ref['file']}:{ref['line']}", "prefix",
-                                f"{ref['token']} covers files with different destinations: "
-                                + ", ".join(sorted({os.path.dirname(self.rows[k]['destination']) if self.rows[k]['destination'] else 'review' for k in ref['keys']})))
+                                f"{ref['token']} covers files with different destinations: " + ", ".join(dirs))
                     continue
-            citing_key = (i, ref["file"])
-            citing_dir = os.path.dirname(root.abs(ref["file"]))
-            if citing_key in self.rows and self.rows[citing_key]["destination"]:
-                citing_dir = os.path.dirname(root.abs(self.rows[citing_key]["destination"]))
-            new_token = self.render(ref["token"], ref["base"], new_target, root, citing_dir)
+            citing_dir = os.path.dirname(root.abs(self.new_location(i, ref["file"])))
+            new_token = ref["pre"] + self.render(ref["path"], ref["base"], new_target, citing_dir, root)
+            done.add((i, ref["file"], ref["line"], ref["col"]))
             if new_token != ref["token"]:
-                self.rewrites.append({
-                    "root": i, "file": ref["file"], "line": ref["line"], "col": ref["col"],
-                    "sha256_line": sha256_bytes(ref["text"].encode()), "old": ref["token"], "new": new_token,
-                })
+                self.add_rewrite(i, ref["file"], ref["line"], ref["col"], ref["text"], ref["token"], new_token)
+        self.relocate_markdown(done)
+
+    def add_rewrite(self, i, rel, line, col, text, old, new):
+        self.rewrites.append({
+            "root": i, "file": rel, "line": line, "col": col,
+            "sha256_line": sha256_bytes(text.encode()), "old": old, "new": new,
+        })
+
+    def relocate_markdown(self, done):
+        """A moving Markdown file keeps its relative links pointing where they did."""
+        for i, root in enumerate(self.roots):
+            for rel in root.files:
+                if not rel.endswith(MARKDOWN) or NEVER_READ.search("/" + rel):
+                    continue
+                new_rel = self.new_location(i, rel)
+                if new_rel == rel:
+                    continue
+                text = self.content(i, rel)
+                if text is None:
+                    continue
+                old_dir = os.path.dirname(root.abs(rel))
+                new_dir = os.path.dirname(root.abs(new_rel))
+                for number, line in enumerate(text.splitlines(True), 1):
+                    for col, pre, path in tokens(line, True):
+                        if pre or (i, rel, number, col) in done or not (path.startswith("./") or path.startswith("../")):
+                            continue
+                        target = os.path.normpath(os.path.join(old_dir, path.split("*")[0].rstrip("/")))
+                        if not os.path.lexists(target):
+                            continue
+                        moved = self.new_location(i, os.path.relpath(target, root.path).replace(os.sep, "/")) \
+                            if target.startswith(root.path + os.sep) else None
+                        final = root.abs(moved) if moved else target
+                        new_path = self.render(path, "file", final, new_dir, root)
+                        if new_path != path:
+                            self.add_rewrite(i, rel, number, col, line, path, new_path)
 
     def prefix_destination(self, prefix, keys):
         base = None
@@ -743,54 +841,51 @@ class Planner:
             source = self.roots[row["root"]].abs(row["source"])
             rest = os.path.relpath(source, prefix)
             dest = self.roots[row["root"]].abs(row["destination"])
-            if not dest.endswith(os.sep + rest) and rest != ".":
+            if not dest.endswith(os.sep + rest):
                 return None
-            candidate = dest[: len(dest) - len(rest) - 1] if rest != "." else dest
+            candidate = dest[: len(dest) - len(rest) - 1]
             if base is None:
                 base = candidate
             elif base != candidate:
                 return None
-        # every listed file under the prefix must move with it
         moving = {self.roots[self.rows[k]["root"]].abs(self.rows[k]["source"]) for k in keys}
-        for item in cl.list_files(prefix):
+        for item in self.listing(prefix):
             if not any(item == m or item.startswith(m + os.sep) for m in moving):
                 return None
         return base
 
-    @staticmethod
-    def render(token, base, new_target, root, citing_dir):
-        """The new token, in the form the old one had."""
-        star = token.find("*")
-        head = token[:star] if star >= 0 else token
+    def render(self, path, base, new_target, citing_dir, root):
+        """The new path, in the form the old one had."""
+        star = path.find("*")
+        head = path[:star] if star >= 0 else path
         stripped = head.rstrip("/")
-        suffix = token[len(stripped):]
+        suffix = path[len(stripped):]
         dot = "./" if stripped.startswith("./") else ""
-        if base == "var":
-            var = re.match(r"^\$\{?\w+\}?/", stripped)
-            return var.group(0) + os.path.relpath(new_target, root.path).replace(os.sep, "/") + suffix
         if base == "file":
             rel = os.path.relpath(new_target, citing_dir).replace(os.sep, "/")
             return (dot if not rel.startswith("../") else "") + rel + suffix
+        if base.startswith("ws:"):
+            workspace = os.path.dirname(self.roots[int(base[3:])].path)
+            return os.path.relpath(new_target, workspace).replace(os.sep, "/") + suffix
         return dot + os.path.relpath(new_target, root.path).replace(os.sep, "/") + suffix
 
     def internal_paths(self):
+        """A moving script that finds files from its own folder: literals whose target changes."""
         files, _ = self.candidate_index()
         for key in sorted(self.rows):
             row = self.rows[key]
             if row["kind"] != "file" or not row["destination"]:
                 continue
             root = self.roots[row["root"]]
-            text = self.content(row["root"], row["source"]) if not NEVER_READ.search("/" + row["source"]) else None
-            if text is None:
-                text, _ = read_text_strict(root.abs(row["source"]))
+            text = self.content(row["root"], row["source"])
             if not text or not ANCHOR_RE.search(text):
                 continue
             old_dir = os.path.dirname(root.abs(row["source"]))
             new_dir = os.path.dirname(root.abs(row["destination"]))
             for number, line in enumerate(text.splitlines(), 1):
-                tokens = {m.start(1) for m in TOKEN_RE.finditer(line)}
+                covered = [(col, col + len(pre) + len(path)) for col, pre, path in tokens(line, False)]
                 for match in REL_LITERAL_RE.finditer(line):
-                    if match.start(1) in tokens:
+                    if any(a <= match.start(1) < b for a, b in covered):
                         continue  # a support path token: the rewrites already carry it
                     literal = match.group(1)
                     glued = match.start(1) > 0 and line[match.start(1) - 1] == "/"
@@ -809,7 +904,7 @@ class Planner:
     def build_index_lines(self):
         for key in sorted(self.rows):
             row = self.rows[key]
-            if row["rule"] in ("R4", "R5", "R6", "R7", "R8") and row["destination"] and not self.is_test(row):
+            if row["rule"] in TOOL_RULES and row["destination"] and not self.is_test(row):
                 self.index_lines.append({"root": row["root"], "line": f"- `{row['destination']}` — <what it is for> · run: <command> · test: <its test or none>"})
 
     # ---- output --------------------------------------------------------------------
@@ -817,8 +912,11 @@ class Planner:
         self.collect()
         refs = self.references()
         self.classify(refs)
-        self.apply_overrides()
-        self.mark_collisions()
+        self.guard()
+        self.apply_homes()
+        unused = sorted({spec for spec, _ in self.overrides} - self.used_overrides)
+        if unused:
+            raise SystemExit(fail("--override names no planned row: " + ", ".join(unused)))
         self.mark_same_names()
         self.build_rewrites(refs)
         self.internal_paths()
@@ -832,11 +930,12 @@ class Planner:
                 "override": row["override"], "fingerprint": fingerprint(self.roots[row["root"]].abs(row["source"])),
             })
         reviews = sorted({json.dumps(r, sort_keys=True) for r in self.reviews})
+        rewrites = sorted({json.dumps(r, sort_keys=True) for r in self.rewrites})
         return {
             "version": VERSION,
             "roots": [{"path": r.path, "head": r.head, "git": r.is_git} for r in self.roots],
             "rows": rows,
-            "rewrites": sorted(self.rewrites, key=lambda r: (r["root"], r["file"], r["line"], r["col"])),
+            "rewrites": sorted((json.loads(r) for r in rewrites), key=lambda r: (r["root"], r["file"], r["line"], r["col"])),
             "reviews": [json.loads(r) for r in reviews],
             "index_lines": self.index_lines,
             "layout_lines": self.layout_lines,
@@ -846,27 +945,20 @@ class Planner:
 def markdown(plan):
     lines = []
     for i, root in enumerate(plan["roots"]):
-        rows = [r for r in plan["rows"] if r["root"] == i]
-        lines.append(f"## {root['path']}")
-        lines.append("")
-        lines.append("| Source | Rule | Destination | Notes |")
-        lines.append("| --- | --- | --- | --- |")
-        for row in rows:
-            dest = row["destination"] or "review"
+        lines += [f"## {root['path']}", "", "| Source | Rule | Destination | Notes |", "| --- | --- | --- | --- |"]
+        for row in (r for r in plan["rows"] if r["root"] == i):
+            dest = f"`{row['destination']}`" if row["destination"] else "review"
             notes = "; ".join(row["notes"] + (["user override"] if row["override"] else []))
-            lines.append(f"| `{row['source']}` | {row['rule']} | {dest if dest == 'review' else '`' + dest + '`'} | {notes} |")
+            lines.append(f"| `{row['source']}` | {row['rule']} | {dest} | {notes} |")
         rewrites = [r for r in plan["rewrites"] if r["root"] == i]
-        lines.append("")
-        lines.append(f"Reference rewrites: {len(rewrites)} in {len({r['file'] for r in rewrites})} files.")
+        lines += ["", f"Reference rewrites: {len(rewrites)} in {len({r['file'] for r in rewrites})} files."]
         reviews = [r for r in plan["reviews"] if r["root"] == i]
         if reviews:
-            lines.append("")
-            lines.append("For review:")
-            lines.extend(f"- `{r['path']}` — {r['reason']}: {r['detail']}" for r in reviews)
+            lines += ["", "For review:"]
+            lines += [f"- `{r['path']}` — {r['reason']}: {r['detail']}" for r in reviews]
         for item in plan["layout_lines"]:
             if item["root"] == i:
-                lines.append("")
-                lines.append(f"Index line to write: `{item['line']}`")
+                lines += ["", f"Index line to write: `{item['line']}`"]
         lines.append("")
     return "\n".join(lines)
 
@@ -909,95 +1001,107 @@ def root_path(plan, i):
     return plan["roots"][i]["path"]
 
 
-def is_ignored(root, rel):
-    result = git(root, "check-ignore", "-q", "--", rel)
-    return result is not None and result.returncode == 0
+def write_lines(path, lines):
+    with open(path, "r+b") as handle:  # in place, so the file keeps its mode
+        handle.seek(0)
+        handle.write("".join(lines).encode("utf-8"))
+        handle.truncate()
 
 
-def cmd_apply(args):
-    plan = load(args.plan)
+def save_undo(path, undo):
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(undo, handle, indent=2, sort_keys=True, ensure_ascii=False)
+
+
+def validate(plan):
+    """Errors that make apply refuse, and the current lines of each file it rewrites."""
     errors = []
-    for i, root in enumerate(plan["roots"]):
+    for root in plan["roots"]:
         if root["git"]:
             head = git(root["path"], "rev-parse", "HEAD")
             current = head.stdout.strip() if head is not None and head.returncode == 0 else None
             if current != root["head"]:
                 errors.append(f"{root['path']}: HEAD is {current}, the plan was made at {root['head']}")
-    moves = [r for r in plan["rows"] if r["destination"]]
-    for row in moves:
-        source = os.path.join(root_path(plan, row["root"]), row["source"])
-        if fingerprint(source) != row["fingerprint"]:
-            errors.append(f"{row['source']}: changed since the plan")
-        if os.path.lexists(os.path.join(root_path(plan, row["root"]), row["destination"])):
-            errors.append(f"{row['destination']}: destination exists")
-    by_file = collections.defaultdict(list)
-    for rewrite in plan["rewrites"]:
-        by_file[(rewrite["root"], rewrite["file"])].append(rewrite)
-    originals = {}
-    for (i, rel), items in sorted(by_file.items()):
-        path = os.path.join(root_path(plan, i), rel)
-        data = read_bytes(path)
-        try:
-            lines = data.decode("utf-8").splitlines(True) if data is not None else None
-        except UnicodeDecodeError:
-            lines = None
-        if lines is None:
-            errors.append(f"{rel}: unreadable")
+    for row in plan["rows"]:
+        if not row["destination"]:
             continue
-        originals[(i, rel)] = lines
-        for item in items:
-            if item["line"] > len(lines) or sha256_bytes(lines[item["line"] - 1].encode()) != item["sha256_line"]:
-                errors.append(f"{rel}:{item['line']}: line changed since the plan")
+        base = root_path(plan, row["root"])
+        if fingerprint(os.path.join(base, row["source"])) != row["fingerprint"]:
+            errors.append(f"{row['source']}: changed since the plan")
+        if os.path.lexists(os.path.join(base, row["destination"])):
+            errors.append(f"{row['destination']}: destination exists")
+    originals = {}
+    for item in plan["rewrites"]:
+        key = (item["root"], item["file"])
+        if key not in originals:
+            text = read_text_strict(os.path.join(root_path(plan, item["root"]), item["file"]))
+            originals[key] = text.splitlines(True) if text is not None else None
+        lines = originals[key]
+        if lines is None:
+            errors.append(f"{item['file']}: unreadable")
+            continue
+        line = lines[item["line"] - 1] if item["line"] <= len(lines) else ""
+        if sha256_bytes(line.encode()) != item["sha256_line"] or line[item["col"]:item["col"] + len(item["old"])] != item["old"]:
+            errors.append(f"{item['file']}:{item['line']}: line changed since the plan")
+    return sorted(set(errors)), originals
+
+
+def cmd_apply(args):
+    plan = load(args.plan)
+    errors, originals = validate(plan)
     if errors:
         for error in errors:
             print(f"refused: {error}", file=sys.stderr)
         return 1
-    undo = {"plan": os.path.abspath(args.plan), "rewrites": [], "moves": [], "removed_dirs": []}
-    for (i, rel), items in sorted(by_file.items()):
-        lines = originals[(i, rel)]
-        for number in sorted({it["line"] for it in items}):
-            line = lines[number - 1]
-            for item in sorted((it for it in items if it["line"] == number), key=lambda it: -it["col"]):
-                start = item["col"]
-                if line[start:start + len(item["old"])] != item["old"]:
-                    print(f"refused mid-way: {rel}:{number} token moved", file=sys.stderr)
-                    return 1
-                line = line[:start] + item["new"] + line[start + len(item["old"]):]
-            undo["rewrites"].append({"root": i, "file": rel, "line": number, "before": lines[number - 1], "after": line})
-            lines[number - 1] = line
-        path = os.path.join(root_path(plan, i), rel)
-        with open(path, "r+b") as handle:
-            handle.seek(0)
-            handle.write("".join(lines).encode("utf-8"))
-            handle.truncate()
-    for row in sorted(moves, key=lambda r: (r["root"], r["source"])):
-        root = root_path(plan, row["root"])
-        source = os.path.join(root, row["source"])
-        dest = os.path.join(root, row["destination"])
-        os.makedirs(os.path.dirname(dest), exist_ok=True)
-        used_git = False
-        if row["tracked"] and row["kind"] == "file" and not is_ignored(root, row["destination"]):
-            result = git(root, "mv", "--", row["source"], row["destination"])
-            used_git = result is not None and result.returncode == 0
-            if not used_git:
-                print(f"git mv failed for {row['source']}: {result.stderr.strip() if result else ''}", file=sys.stderr)
-                return 1
-        else:
-            os.replace(source, dest)
-        undo["moves"].append({"root": row["root"], "source": row["source"], "destination": row["destination"], "git": used_git})
-        parent = os.path.dirname(source)
-        while os.path.basename(parent) != "_support" and parent.startswith(root + os.sep):
-            try:
+    undo_path = args.plan + ".undo.json"
+    undo = {"rewrites": [], "moves": [], "removed_dirs": [], "created_dirs": []}
+    save_undo(undo_path, undo)  # from here on, every step is recorded before the next one
+    by_file = collections.defaultdict(list)
+    for item in plan["rewrites"]:
+        by_file[(item["root"], item["file"])].append(item)
+    try:
+        for (i, rel), items in sorted(by_file.items()):
+            lines = originals[(i, rel)]
+            before = list(lines)
+            for item in sorted(items, key=lambda it: (it["line"], -it["col"])):
+                line = lines[item["line"] - 1]
+                lines[item["line"] - 1] = line[:item["col"]] + item["new"] + line[item["col"] + len(item["old"]):]
+            write_lines(os.path.join(root_path(plan, i), rel), lines)
+            for number in sorted({it["line"] for it in items}):
+                undo["rewrites"].append({"root": i, "file": rel, "line": number,
+                                         "before": before[number - 1], "after": lines[number - 1]})
+            save_undo(undo_path, undo)
+        moves = sorted((r for r in plan["rows"] if r["destination"]), key=lambda r: (r["root"], r["source"]))
+        for row in moves:
+            root = root_path(plan, row["root"])
+            source = os.path.join(root, row["source"])
+            dest = os.path.join(root, row["destination"])
+            missing = []
+            parent = os.path.dirname(dest)
+            while not os.path.isdir(parent):
+                missing.append(parent)
+                parent = os.path.dirname(parent)
+            os.makedirs(os.path.dirname(dest), exist_ok=True)
+            undo["created_dirs"].extend({"root": row["root"], "dir": os.path.relpath(d, root)} for d in reversed(missing))
+            if row["tracked"]:
+                result = git(root, "mv", "--", row["source"], row["destination"])
+                if result is None or result.returncode != 0:
+                    raise RuntimeError(f"git mv {row['source']}: {result.stderr.strip() if result else 'failed'}")
+            else:
+                os.replace(source, dest)
+            undo["moves"].append({"root": row["root"], "source": row["source"], "destination": row["destination"], "git": bool(row["tracked"])})
+            parent = os.path.dirname(source)
+            while os.path.basename(parent) != "_support" and parent.startswith(root + os.sep):
                 if os.listdir(parent):
                     break
                 os.rmdir(parent)
                 undo["removed_dirs"].append({"root": row["root"], "dir": os.path.relpath(parent, root)})
-            except OSError:
-                break
-            parent = os.path.dirname(parent)
-    undo_path = args.plan + ".undo.json"
-    with open(undo_path, "w", encoding="utf-8") as handle:
-        json.dump(undo, handle, indent=2, sort_keys=True, ensure_ascii=False)
+                parent = os.path.dirname(parent)
+            save_undo(undo_path, undo)
+    except (OSError, RuntimeError) as error:
+        save_undo(undo_path, undo)
+        print(f"apply stopped: {error}; undo what it did with: plan_layout.py undo --plan {args.plan}", file=sys.stderr)
+        return 1
     print(f"moved {len(undo['moves'])}, rewrote {len(undo['rewrites'])} lines; undo record: {undo_path}")
     for review in plan["reviews"]:
         print(f"review: {review['path']} — {review['reason']}: {review['detail']}")
@@ -1006,35 +1110,44 @@ def cmd_apply(args):
 
 def cmd_verify(args):
     plan = load(args.plan)
-    residual = []
     roots = [p["path"] for p in plan["roots"]]
-    moved = collections.defaultdict(set)
+    gone = set()
+    moved_markdown = []
     for row in plan["rows"]:
-        if row["destination"]:
-            moved[row["root"]].add(os.path.join(roots[row["root"]], row["source"]))
-    gone = {i: {m for m in paths if not os.path.lexists(m)} for i, paths in moved.items()}
-    gone_dirs = set()
-    for paths in gone.values():
-        for item in paths:
-            parent = os.path.dirname(item)
-            while parent not in roots and parent != os.path.dirname(parent):
-                if not os.path.lexists(parent):
-                    gone_dirs.add(parent)
+        if not row["destination"]:
+            continue
+        source = os.path.join(roots[row["root"]], row["source"])
+        if not os.path.lexists(source):
+            gone.add(source)
+            parent = os.path.dirname(source)
+            while parent not in roots and parent != os.path.dirname(parent) and not os.path.lexists(parent):
+                gone.add(parent)
                 parent = os.path.dirname(parent)
-    all_gone = set().union(*gone.values()) | gone_dirs if gone else set()
+        dest = os.path.join(roots[row["root"]], row["destination"])
+        moved_markdown += [(row["root"], f) for f in ([dest] if os.path.isfile(dest) else cl.list_files(dest))
+                           if f.endswith(MARKDOWN)]
+    residual = []
     planner = Planner(roots, [], {})
     for i in range(len(roots)):
         for rel in planner.readable_files(i):
             text = planner.content(i, rel)
-            if not text or "_support/" not in text:
+            relative = planner.scans_relative(rel)
+            if not text or ("_support/" not in text and not relative):
                 continue
             for number, line in enumerate(text.splitlines(), 1):
-                for match in TOKEN_RE.finditer(line):
-                    targets = [t for _, t in planner.resolutions(i, rel, match.group(1).rstrip("."))]
-                    if targets and not any(os.path.lexists(t) for t in targets) and any(t in all_gone for t in targets):
-                        residual.append(f"{roots[i]}/{rel}:{number}: {match.group(1)}")
+                for _, pre, path in tokens(line, relative):
+                    targets = [t for _, t in planner.resolutions(i, rel, pre, path)]
+                    if targets and not any(os.path.lexists(t) for t in targets) and any(t in gone for t in targets):
+                        residual.append(f"{roots[i]}/{rel}:{number}: {pre}{path}")
+    for i, path in moved_markdown:
+        text = read_text_strict(path) or ""
+        for number, line in enumerate(text.splitlines(), 1):
+            for _, pre, link in tokens(line, True):
+                if not pre and link.startswith("../") and not os.path.lexists(
+                        os.path.normpath(os.path.join(os.path.dirname(path), link.split("*")[0].rstrip("/")))):
+                    residual.append(f"{path}:{number}: {link} points at nothing")
     for i, root in enumerate(plan["roots"]):
-        tools = [r for r in plan["rows"] if r["root"] == i and r["rule"] in ("R4", "R5", "R6", "R7", "R8") and r["destination"]
+        tools = [r for r in plan["rows"] if r["root"] == i and r["rule"] in TOOL_RULES and r["destination"]
                  and not TEST_NAME.match(os.path.basename(r["source"]))]
         if not tools:
             continue
@@ -1043,10 +1156,8 @@ def cmd_verify(args):
             residual.append(f"{root['path']}: moved tools and no index; create _support/docs/README.md with a line per tool")
             continue
         text = cl.read_text(index)
-        for row in tools:
-            if os.path.basename(row["destination"]) not in text:
-                residual.append(f"{index}: no line for {row['destination']}")
-    for item in residual:
+        residual += [f"{index}: no line for {r['destination']}" for r in tools if os.path.basename(r["destination"]) not in text]
+    for item in sorted(set(residual)):
         print(item)
     return 1 if residual else 0
 
@@ -1064,37 +1175,31 @@ def cmd_undo(args):
         os.makedirs(os.path.join(root_path(plan, removed["root"]), removed["dir"]), exist_ok=True)
     for move in reversed(undo["moves"]):
         root = root_path(plan, move["root"])
-        os.makedirs(os.path.dirname(os.path.join(root, move["source"])), exist_ok=True)
         if move["git"]:
             result = git(root, "mv", "--", move["destination"], move["source"])
             if result is None or result.returncode != 0:
                 conflicts.append(f"git mv back failed for {move['destination']}")
         else:
             os.replace(os.path.join(root, move["destination"]), os.path.join(root, move["source"]))
-        parent = os.path.dirname(os.path.join(root, move["destination"]))
-        while parent.startswith(root + os.sep):
-            try:
-                if os.listdir(parent):
-                    break
-                os.rmdir(parent)
-            except OSError:
-                break
-            parent = os.path.dirname(parent)
+    for created in reversed(undo["created_dirs"]):
+        path = os.path.join(root_path(plan, created["root"]), created["dir"])
+        try:
+            if os.path.isdir(path) and not os.listdir(path):
+                os.rmdir(path)
+        except OSError:
+            pass
     by_file = collections.defaultdict(list)
     for item in undo["rewrites"]:
         by_file[(item["root"], item["file"])].append(item)
     for (i, rel), items in sorted(by_file.items()):
         path = os.path.join(root_path(plan, i), rel)
-        lines = read_bytes(path).decode("utf-8").splitlines(True)
+        lines = (read_text_strict(path) or "").splitlines(True)
         for item in items:
-            if lines[item["line"] - 1] == item["after"]:
+            if item["line"] <= len(lines) and lines[item["line"] - 1] == item["after"]:
                 lines[item["line"] - 1] = item["before"]
             else:
                 conflicts.append(f"{rel}:{item['line']} changed after apply; left as is")
-        with open(path, "r+b") as handle:
-            handle.seek(0)
-            handle.write("".join(lines).encode("utf-8"))
-            handle.truncate()
+        write_lines(path, lines)
     for conflict in conflicts:
         print(conflict, file=sys.stderr)
     if not conflicts:
@@ -1116,8 +1221,7 @@ def main(argv=None):
     plan.add_argument("--json", action="store_true")
     plan.add_argument("--out")
     for name in ("apply", "verify", "undo"):
-        command = sub.add_parser(name)
-        command.add_argument("--plan", required=True)
+        sub.add_parser(name).add_argument("--plan", required=True)
     args = parser.parse_args(argv)
     return {"plan": cmd_plan, "apply": cmd_apply, "verify": cmd_verify, "undo": cmd_undo}[args.command](args)
 

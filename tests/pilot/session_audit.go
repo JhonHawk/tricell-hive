@@ -1316,12 +1316,16 @@ func auditCriteria(s auditSession, base string) []criterionAssessment {
 var (
 	reviewQuestionTitle = regexp.MustCompile(`(?i)revisi[oó]n de c[oó]digo|code review`)
 	nativeReviewOption  = regexp.MustCompile(`(?i)/review\b|codex review`)
+	// The options of the question that picks the review mechanism name at least one
+	// mechanism: the agent, the host's native review or no dedicated review.
+	reviewMechanismOption = regexp.MustCompile(`(?i)hive-review-code|/review\b|codex review|no dedicated review|sin revisi[oó]n dedicada`)
 )
 
 // reviewQuestionNativeOption checks, on Codex, that the code review question
 // offers the host's native review: a decision title line naming a code review,
-// or a card question doing so, whose options include hive-review-code. A report
-// that only mentions a review is not a question.
+// or a card question doing so, whose options name a review mechanism. A report
+// that only mentions a review, or a decision about applying a review's findings,
+// is not that question.
 func reviewQuestionNativeOption(s auditSession) criterionAssessment {
 	c := criterionAssessment{Criterion: "review_question_native_option", Status: "not_observed", Evidence: []string{}}
 	if s.Host != "codex" {
@@ -1329,7 +1333,7 @@ func reviewQuestionNativeOption(s auditSession) criterionAssessment {
 	}
 	var failed, passed []string
 	judge := func(e traceEvent, title, options string) {
-		if !reviewQuestionTitle.MatchString(title) && !strings.Contains(options, "hive-review-code") {
+		if !reviewQuestionTitle.MatchString(title) || !reviewMechanismOption.MatchString(options) {
 			return
 		}
 		if nativeReviewOption.MatchString(options) {
@@ -1343,9 +1347,7 @@ func reviewQuestionNativeOption(s auditSession) criterionAssessment {
 		case e.Kind == "text" && e.Role == "assistant":
 			for _, block := range decisionBlocks(e.Text) {
 				title, rest, _ := strings.Cut(block, "\n")
-				if reviewQuestionTitle.MatchString(title) || strings.Contains(rest, "hive-review-code") {
-					judge(e, title, rest)
-				}
+				judge(e, title, rest)
 			}
 		case e.Kind == "question" && len(e.Input) > 0:
 			var in struct {

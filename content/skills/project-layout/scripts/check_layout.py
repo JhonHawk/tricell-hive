@@ -99,12 +99,12 @@ class Finding:
         }
 
 
-def git(root, *args):
+def git(root, *args, input=None):
     env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     env["GIT_TERMINAL_PROMPT"] = "0"
     try:
         return subprocess.run(
-            ["git", "-C", root, *args], text=True, capture_output=True, env=env, timeout=60
+            ["git", "-C", root, *args], text=True, capture_output=True, env=env, timeout=60, input=input
         )
     except (OSError, subprocess.SubprocessError):
         return None
@@ -180,15 +180,28 @@ def is_dependency_dir(parent, name):
     return name in GATED and has_manifest(parent, GATED[name])
 
 
-def under_dependency(path, top):
-    """Whether a path below top crosses a dependency or build output folder."""
+def under_dependency(path, top, gated=True):
+    """Whether a path below top crosses a dependency or build output folder. Inside Git,
+    pass gated=False: Git already dropped ignored output, so a `build/` it lists is source."""
     rel = os.path.relpath(path, top)
     parent = top
     for name in rel.split(os.sep)[:-1]:
-        if is_dependency_dir(parent, name):
+        if name in PRUNE or (gated and is_dependency_dir(parent, name)):
             return True
         parent = os.path.join(parent, name)
     return False
+
+
+def walk_pruned(base):
+    found = []
+    for dirpath, dirnames, filenames in os.walk(base):
+        dirnames[:] = sorted(
+            d for d in dirnames
+            if d not in IGNORED_NAMES and not is_dependency_dir(dirpath, d)
+            and not os.path.exists(os.path.join(dirpath, d, ".git"))
+        )
+        found.extend(os.path.join(dirpath, n) for n in sorted(filenames) if n not in IGNORED_NAMES)
+    return found
 
 
 def list_files(base):
@@ -204,36 +217,32 @@ def _list_real(base):
         return []
     top = git_toplevel(base)
     if top is None:
-        found = []
-        for dirpath, dirnames, filenames in os.walk(base):
-            dirnames[:] = sorted(
-                d for d in dirnames
-                if d not in IGNORED_NAMES and not is_dependency_dir(dirpath, d)
-                and not os.path.exists(os.path.join(dirpath, d, ".git"))
-            )
-            found.extend(os.path.join(dirpath, n) for n in sorted(filenames) if n not in IGNORED_NAMES)
-        return found
+        return walk_pruned(base)
     rel_base = os.path.relpath(base, top)
     prefix = "" if rel_base == "." else rel_base + "/"
     paths = set()
     listed = git(top, "ls-files", "-z", "--cached", "--others", "--exclude-standard", "--", rel_base)
     if listed is not None and listed.returncode == 0:
-        paths.update(p for p in listed.stdout.split("\0") if p)
+        paths.update(p for p in listed.stdout.split("\0") if p and not p.endswith("/"))
     # The convention keeps unversioned material ignored under _support/: list it too.
+    # --directory names an ignored folder without walking it, such as node_modules.
     if "_support" in rel_base.split(os.sep):
         specs = [rel_base]
     else:
         specs = [f"{prefix}_support", f":(glob){prefix}**/_support/**"]
-    ignored = git(top, "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--", *specs)
+    ignored = git(top, "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--directory", "--", *specs)
     if ignored is not None and ignored.returncode == 0:
-        paths.update(p for p in ignored.stdout.split("\0") if p)
+        for entry in (p for p in ignored.stdout.split("\0") if p):
+            if entry.endswith("/"):
+                folder = os.path.join(top, entry.rstrip("/"))
+                if not under_dependency(os.path.join(folder, "x"), top) and os.path.basename(folder) not in PRUNE:
+                    paths.update(os.path.relpath(f, top) for f in walk_pruned(folder))
+            else:
+                paths.add(entry)
     found = []
     for rel in sorted(paths):
-        if rel.endswith("/"):
-            continue  # a nested repository
         path = os.path.join(top, rel)
-        name = os.path.basename(rel)
-        if name in IGNORED_NAMES or not os.path.isfile(path) or under_dependency(path, top):
+        if os.path.basename(rel) in IGNORED_NAMES or not os.path.isfile(path) or under_dependency(path, top, gated=False):
             continue
         found.append(path)
     return found

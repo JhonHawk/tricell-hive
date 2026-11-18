@@ -303,5 +303,143 @@ class ApplyLayoutTest(Fixture, unittest.TestCase):
         self.assertIn("echo other session", ci.read_text())
 
 
+def small_repo(repo):
+    repo.mkdir(parents=True)
+    git(repo, "init", "-q", "-b", "main")
+    git(repo, "config", "user.email", "t@example.invalid")
+    git(repo, "config", "user.name", "t")
+    write(repo, ".gitignore", "_support/backups/\n_support/data/\n_support/workspace/\n")
+    write(repo, ".github/workflows/ci.yml", "steps:\n  - run: find _support/scripts -name '*.test.sh'\n")
+    return repo
+
+
+def commit(repo):
+    git(repo, "add", "-A")
+    git(repo, "commit", "-q", "-m", "x")
+
+
+class ReviewFindingsTest(Fixture, unittest.TestCase):
+    def run_cmd(self, command, plan_file):
+        return subprocess.run(["python3", "-I", str(SCRIPT), command, "--plan", str(plan_file)], text=True, capture_output=True)
+
+    def rewrites(self, plan):
+        return {(r["file"], r["old"], r["new"]) for r in plan["rewrites"]}
+
+    def test_references_after_a_substitution_and_relative_markdown_links(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, "run.sh", 'bash "$(git rev-parse --show-toplevel)/_support/scripts/deploy.sh"\nbash "$DIR"/_support/scripts/deploy.sh\n')
+        write(repo, ".github/workflows/deploy.yml", "steps:\n  - run: _support/scripts/deploy.sh\n")
+        write(repo, "_support/scripts/deploy.sh", "echo\n")
+        write(repo, "_support/infrastructure/main.tf", "x\n")
+        write(repo, "_support/docs/ops.md", "[main](../infrastructure/main.tf)\n")
+        commit(repo)
+        plan = self.plan_json(repo)
+        pairs = self.rewrites(plan)
+        self.assertIn(("run.sh", "$(git rev-parse --show-toplevel)/_support/scripts/deploy.sh", "$(git rev-parse --show-toplevel)/scripts/ci/deploy.sh"), pairs)
+        self.assertIn(("run.sh", '"$DIR"/_support/scripts/deploy.sh', '"$DIR"/scripts/ci/deploy.sh'), pairs)
+        self.assertIn(("_support/docs/ops.md", "../infrastructure/main.tf", "../../infra/main.tf"), pairs)
+
+    def test_a_code_folder_named_sessions_is_not_history(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, "src/sessions/start.sh", "bash _support/scripts/deploy.sh\n")
+        write(repo, "_support/scripts/deploy.sh", "echo\n")
+        commit(repo)
+        self.assertIn(("src/sessions/start.sh", "_support/scripts/deploy.sh", "scripts/deploy.sh"), self.rewrites(self.plan_json(repo)))
+
+    def test_a_failed_apply_leaves_an_undo_record(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, ".github/workflows/deploy.yml", "steps:\n  - run: _support/scripts/deploy.sh\n")
+        write(repo, "_support/scripts/deploy.sh", "echo\n")
+        write(repo, "scripts/keep.sh", "echo\n")
+        commit(repo)
+        before = (git(repo, "status", "--porcelain").stdout, git(repo, "diff").stdout)
+        plan_file = repo.parent / "plan.json"
+        self.plan(repo, extra=["--out", str(plan_file)])
+        (repo / "scripts").chmod(0o555)  # the move into scripts/ci/ fails after the rewrites
+        self.addCleanup((repo / "scripts").chmod, 0o755)
+        result = self.run_cmd("apply", plan_file)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("undo", result.stderr)
+        self.assertTrue(Path(str(plan_file) + ".undo.json").exists())
+        (repo / "scripts").chmod(0o755)
+        self.assertEqual(self.run_cmd("undo", plan_file).returncode, 0)
+        self.assertEqual((git(repo, "status", "--porcelain").stdout, git(repo, "diff").stdout), before)
+
+    def test_tracked_folders_rename_and_never_drop_out_of_git(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, "_support/contracts/api.md", "[spec](../openspec/x.md)\n")
+        write(repo, "_support/openspec/x.md", "# x\n")
+        write(repo, "_support/backups/db.dump", "dump\n")
+        commit(repo)
+        git(repo, "add", "-f", "_support/backups/db.dump")
+        git(repo, "commit", "-q", "-m", "tracked backup")
+        plan_file = repo.parent / "plan.json"
+        plan = json.loads(self.plan(repo, extra=["--out", str(plan_file)]).stdout)
+        self.assertIn(("_support/contracts/api.md", "../openspec/x.md", "../../openspec/x.md"), self.rewrites(plan))
+        backups = [r for r in plan["rows"] if r["source"] == "_support/backups"][0]
+        self.assertIsNone(backups["destination"])
+        self.assertTrue(any(v["path"] == "_support/backups" and "ignored" in v["detail"] for v in plan["reviews"]))
+        self.assertEqual(self.run_cmd("apply", plan_file).returncode, 0)
+        status = git(repo, "status", "--porcelain").stdout
+        self.assertRegex(status, r"(?m)^RM? _support/contracts/api\.md -> _support/docs/contracts/api\.md$")
+        self.assertEqual(self.run_cmd("verify", plan_file).returncode, 0, self.run_cmd("verify", plan_file).stdout)
+
+    def test_another_root_cited_by_its_folder_name(self):
+        ws = self.tmp() / "ws"
+        mono = small_repo(ws / "mono")
+        write(mono, ".github/workflows/deploy.yml", "steps:\n  - run: _support/scripts/x.sh\n")
+        write(mono, "_support/scripts/x.sh", "echo\n")
+        commit(mono)
+        specs = small_repo(ws / "specs")
+        write(specs, "docs/run.md", "Run `mono/_support/scripts/x.sh`.\n")
+        commit(specs)
+        plan = self.plan_json(mono, specs)
+        self.assertIn(("docs/run.md", "mono/_support/scripts/x.sh", "mono/scripts/ci/x.sh"),
+                      {(r["file"], r["old"], r["new"]) for r in plan["rewrites"] if r["root"] == 1})
+
+    def test_a_test_of_a_library_and_the_library_follow_ci(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, "_support/scripts/common.lib.sh", "echo\n")
+        write(repo, "_support/scripts/common.lib.test.sh", ". ./common.lib.sh\n")
+        commit(repo)
+        plan = self.plan_json(repo)
+        self.assertEqual(self.dest(plan, "_support/scripts/common.lib.test.sh")[0], "scripts/ci/common.lib.test.sh")
+        self.assertEqual(self.dest(plan, "_support/scripts/common.lib.sh")[0], "scripts/ci/common.lib.sh")
+
+    def test_an_override_carries_the_test_along(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, ".github/workflows/deploy.yml", "steps:\n  - run: _support/scripts/deploy.sh\n")
+        write(repo, "_support/scripts/deploy.sh", "echo\n")
+        write(repo, "_support/scripts/deploy.test.sh", "echo\n")
+        commit(repo)
+        plan = self.plan_json(repo, extra=["--override", "_support/scripts/deploy.sh=tools/release/deploy.sh"])
+        self.assertEqual(self.dest(plan, "_support/scripts/deploy.test.sh")[0], "tools/release/deploy.test.sh")
+
+    def test_a_tracked_build_folder_is_a_caller(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, "package.json", "{}\n")
+        write(repo, "build/release.sh", "bash _support/scripts/sign.sh\n")
+        write(repo, "_support/scripts/sign.sh", "echo\n")
+        commit(repo)
+        self.assertIn(("build/release.sh", "_support/scripts/sign.sh", "scripts/sign.sh"), self.rewrites(self.plan_json(repo)))
+
+    def test_version_names_are_not_one_off_and_loose_files_are_files(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, "_support/scripts/setup-node-18.sh", "echo\n")
+        write(repo, "_support/scripts/load-COM-645.sh", "echo\n")
+        write(repo, "_support/notes.txt", "x\n")
+        commit(repo)
+        plan = self.plan_json(repo)
+        self.assertEqual(self.dest(plan, "_support/scripts/setup-node-18.sh")[1], "R10")
+        self.assertEqual(self.dest(plan, "_support/scripts/load-COM-645.sh")[1], "R9")
+        self.assertEqual([r["kind"] for r in plan["rows"] if r["source"] == "_support/notes.txt"], ["file"])
+
+    @staticmethod
+    def dest(plan, source):
+        rows = [r for r in plan["rows"] if r["source"] == source]
+        assert rows, f"no row for {source}"
+        return rows[0]["destination"], rows[0]["rule"]
+
+
 if __name__ == "__main__":
     unittest.main()
