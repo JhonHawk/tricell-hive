@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | Completado · PR #506, merge c1691248 |
 | Tracker | none |
 | Git | tricell-hive · base `development` en `8e71ca4b` · rama `feat/determinism-candidates` |
 
