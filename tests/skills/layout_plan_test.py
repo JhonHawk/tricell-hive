@@ -384,21 +384,37 @@ class ApplyLayoutTest(Fixture, unittest.TestCase):
                             and "now excluded" in r["detail"] and "scripts/ci/" in r["detail"]
                             for r in plan["reviews"]), plan["reviews"])
 
+    def test_a_dockerfile_ignore_and_a_gcloud_include_read_from_where_their_tools_do(self):
+        repo = monorepo(self.tmp() / "shop")
+        write(repo, "apps/backend/Dockerfile.dockerignore", "_support\n")  # built with the repository root as context
+        write(repo, ".gitignore", (repo / ".gitignore").read_text() + "/_support/scripts/rollback.sh\n")
+        write(repo, ".gcloudignore", "#!include:.gitignore\n")
+        commit(repo)
+        reviews = [r for r in json.loads(self.planned(repo).read_text())["reviews"] if r["reason"] == "build contents"]
+        self.assertTrue(any(r["path"] == "apps/backend/Dockerfile.dockerignore" and "infra/," in r["detail"]
+                            for r in reviews), reviews)
+        self.assertTrue(any(r["path"] == ".gcloudignore" and "now included" in r["detail"] and "scripts/ops/" in r["detail"]
+                            for r in reviews), reviews)
+
     def test_ignored_files_left_in_a_moved_folder_are_reported(self):
         repo = monorepo(self.tmp() / "shop")
         write(repo, ".gitignore", (repo / ".gitignore").read_text() + ".terraform/\n")
         commit(repo)
         write(repo, "_support/infrastructure/terraform/environments/qa/.terraform/terraform.tfstate", "{}\n")
+        write(repo, "_support/infrastructure/terraform/prod.auto.tfvars", "secret = 1\n")  # ignored, and the plan moves it
+        write(repo, ".git/info/exclude", "*.auto.tfvars\n")
         plan_file = self.planned(repo)
         plan = json.loads(plan_file.read_text())
         stay = [r for r in plan["reviews"] if r["reason"] == "ignored files stay"]
         self.assertTrue(any(r["path"] == "_support/infrastructure/terraform" and ".terraform" in r["detail"]
                             for r in stay), plan["reviews"])
+        if any(r["source"] == "_support/infrastructure/terraform/prod.auto.tfvars" and r["destination"] for r in plan["rows"]):
+            self.assertFalse([r for r in stay if "prod.auto.tfvars" in r["detail"]], stay)
         self.assertEqual(self.run_cmd("apply", plan_file).returncode, 0)
         self.index_tools(repo)
         result = self.run_cmd("verify", plan_file)
         self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertIn("note: _support/infrastructure/terraform still holds 1 file Git ignores", result.stdout)
+        self.assertIn("note: _support/infrastructure/terraform still holds 1 entry Git ignores", result.stdout)
 
     def test_a_reference_the_user_keeps_stays_and_passes_verify(self):
         repo = monorepo(self.tmp() / "shop")
@@ -409,12 +425,16 @@ class ApplyLayoutTest(Fixture, unittest.TestCase):
         self.assertFalse([r for r in plan["rewrites"] if r["file"] == ".github/scripts/select.mjs"])
         self.assertEqual(self.run_cmd("apply", plan_file).returncode, 0)
         self.index_tools(repo)
+        selector = repo / ".github/scripts/select.mjs"
+        selector.write_text("// a line added after the plan\n" + selector.read_text())
         result = self.run_cmd("verify", plan_file)
         self.assertEqual(result.returncode, 0, result.stdout)
-        self.assertIn("_support/scripts/verify-push.sh", (repo / ".github/scripts/select.mjs").read_text())
-        result = self.plan(repo, extra=["--keep-ref", "nothing.txt"], check=False)
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("--keep-ref names no reference: nothing.txt", result.stderr)
+        self.assertIn("_support/scripts/verify-push.sh", selector.read_text())
+        for spec in ("nothing.txt", ""):
+            result = self.plan(repo, extra=["--keep-ref", spec], check=False)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("--keep-ref", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
 
     def test_undo_restores_the_tree_and_keeps_other_work(self):
         repo = monorepo(self.tmp() / "shop")
