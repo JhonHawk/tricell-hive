@@ -205,6 +205,17 @@ class PlanLayoutTest(Fixture, unittest.TestCase):
         self.assertEqual(self.dest(plan, "_support/scripts/seed-abc-12.cjs")[1], "R9")
         self.assertIsNone(self.dest(plan, "_support/scripts/helper.sh")[0])
 
+    def test_runtime_citations_count_only_for_the_folder_they_reach(self):
+        ws = self.tmp() / "ws"
+        write(ws, "_support/evidence/2026-01-02-abc-1-x/a.txt", "x\n")
+        repo = monorepo(ws / "shop")  # its report.ts reads its own _support/reports, not the workspace's
+        write(ws, "_support/reports/2026-01-05-run/out.txt", "x\n")
+        plan = self.plan_json(ws, repo)
+        workspace = [r for r in plan["rows"] if r["root"] == 0]
+        self.assertEqual({(r["source"], r["rule"]) for r in workspace},
+                         {("_support/evidence/2026-01-02-abc-1-x", "F3"), ("_support/reports/2026-01-05-run", "F3")})
+        self.assertIn((1, "_support/reports", "F2"), {(r["root"], r["path"], r["reason"]) for r in plan["reviews"]})
+
     def test_plan_changes_nothing(self):
         repo = monorepo(self.tmp() / "shop")
         before = git(repo, "status", "--porcelain", "--ignored").stdout

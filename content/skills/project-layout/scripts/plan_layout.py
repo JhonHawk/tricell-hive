@@ -560,7 +560,7 @@ class Planner:
         name = row["entry"]
         base = row["source"]
         if name in LEGACY_EVIDENCE + LEGACY_DATA:
-            citing = self.runtime_citations(name)
+            citing = self.runtime_citations(root.abs(base))
             if citing:
                 return self.set_review(key, "F2", "runtime path: code or configuration cites it: " + ", ".join(citing[:5]))
         if name in LEGACY_EVIDENCE:
@@ -574,9 +574,10 @@ class Planner:
             return self.set_dest(key, "F5", os.path.join(homes["docs"], name))
         return self.set_review(key, "F6", "no rule for this folder; classify it by hand")
 
-    def runtime_citations(self, name):
+    def runtime_citations(self, folder):
+        """Non-comment lines of code or configuration whose support path resolves into folder."""
         found = []
-        needle = f"_support/{name}"
+        needle = "_support/" + os.path.basename(folder)
         for j in range(len(self.roots)):
             for rel in self.readable_files(j):
                 extension = os.path.splitext(rel)[1].lower()
@@ -587,7 +588,13 @@ class Planner:
                     continue
                 comment = cl.COMMENT_BY_EXTENSION.get(extension)
                 for number, line in enumerate(text.splitlines(), 1):
-                    if needle in line and not (comment and comment.match(line)):
+                    if needle not in line or (comment and comment.match(line)):
+                        continue
+                    hits = [
+                        target for match in TOKEN_RE.finditer(line)
+                        for _, target in self.resolutions(j, rel, match.group(1).rstrip("."))
+                    ]
+                    if any(t == folder or t.startswith(folder + os.sep) for t in hits):
                         found.append(f"{os.path.basename(self.roots[j].path)}/{rel}:{number}")
                         break
         return sorted(found)
@@ -786,7 +793,12 @@ class Planner:
                     if match.start(1) in tokens:
                         continue  # a support path token: the rewrites already carry it
                     literal = match.group(1)
+                    glued = match.start(1) > 0 and line[match.start(1) - 1] == "/"
+                    if "/" not in literal and not glued:
+                        continue  # a bare `..`, such as a comparison or a string, is no path
                     before = os.path.normpath(os.path.join(old_dir, literal))
+                    if not os.path.lexists(before):
+                        continue  # it names nothing today, so it is no path to this tree
                     expected = self.new_abs(files[before]) if before in files else before
                     after = os.path.normpath(os.path.join(new_dir, literal))
                     if expected and after != expected:
