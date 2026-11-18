@@ -37,6 +37,9 @@ type auditSession struct {
 	Model           string
 	ModelConfigured bool
 	Subagent        bool
+	// QuestionOffered: the host listed its waiting question tool in a mode
+	// that allows it (Codex additional_tools in Default or Plan mode).
+	QuestionOffered bool
 	First, Last     string
 	Trace           traceReport
 	Turn            []int
@@ -185,9 +188,11 @@ func claudePromptContent(raw json.RawMessage) bool {
 // --- Codex rollout ---
 
 type codexBuilder struct {
-	s      auditSession
-	turn   int
-	msgSeq int
+	s          auditSession
+	turn       int
+	msgSeq     int
+	toolListed bool
+	modeAllows bool
 }
 
 func (b *codexBuilder) add(e traceEvent) {
@@ -229,6 +234,10 @@ func loadCodexSession(data []byte) (auditSession, error) {
 				b.s.Model = str(p["model"])
 				b.s.ModelConfigured = b.s.Model != ""
 			}
+			// request_user_input says it is "only available in Default or Plan mode".
+			if mode := str(object(p["collaboration_mode"])["mode"]); mode == "default" || mode == "plan" {
+				b.modeAllows = true
+			}
 		case "event_msg":
 			if str(p["type"]) == "task_started" {
 				b.turn++
@@ -243,12 +252,17 @@ func loadCodexSession(data []byte) (auditSession, error) {
 	if b.s.Model == "" {
 		b.s.Model = "not_observed"
 	}
+	b.s.QuestionOffered = b.toolListed && b.modeAllows
 	b.s.First, b.s.Last = tr.first, tr.last
 	return b.s, nil
 }
 
 func (b *codexBuilder) codexItem(line int, p map[string]any) {
 	switch str(p["type"]) {
+	case "additional_tools":
+		if listsTool(p["tools"], "request_user_input") {
+			b.toolListed = true
+		}
 	case "message":
 		if str(p["role"]) != "assistant" {
 			return
@@ -289,6 +303,17 @@ func (b *codexBuilder) codexItem(line int, p map[string]any) {
 	case "custom_tool_call_output":
 		b.codexExecOutput(line, str(p["call_id"]), list(p["output"]))
 	}
+}
+
+// listsTool reports whether a tool list, or a namespace inside it, names the tool.
+func listsTool(v any, name string) bool {
+	for _, raw := range list(v) {
+		tool := object(raw)
+		if str(tool["name"]) == name || listsTool(tool["tools"], name) {
+			return true
+		}
+	}
+	return false
 }
 
 func codexMemoryTool(name string) bool {
@@ -986,7 +1011,7 @@ func existingAuditCriteria(s auditSession, base string) []criterionAssessment {
 // title line "D<n> — ..." and at least one option line "A - (★) ...".
 var (
 	roundTitleLine  = regexp.MustCompile(`(?m)^\s*[#>*\s]*D\d+\s*[—–-]`)
-	roundOptionStar = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\s*[-—–]\s*\**\s*\(★\)`)
+	roundOptionStar = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\s*[-—–·]\s*\**\s*\(★\)`)
 	// grokNoUser is the result Grok gives a question when no user can answer.
 	grokNoUser = regexp.MustCompile(`(?i)^\s*no user is available`)
 	// claudeRejected matches the tool errors that mean the user turned the card
@@ -1073,7 +1098,7 @@ func textRoundWithoutCard(s auditSession) criterionAssessment {
 			anyQuestion = true
 		}
 	}
-	if !anyQuestion {
+	if !anyQuestion && !s.QuestionOffered {
 		return c
 	}
 	unattended := unattendedActivation(events)
@@ -1285,7 +1310,84 @@ func skillNamedAsReason(s auditSession) criterionAssessment {
 }
 
 func auditCriteria(s auditSession, base string) []criterionAssessment {
-	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s))
+	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s), reviewQuestionNativeOption(s))
+}
+
+var (
+	reviewQuestionTitle = regexp.MustCompile(`(?i)revisi[oó]n de c[oó]digo|code review`)
+	nativeReviewOption  = regexp.MustCompile(`(?i)/review\b|codex review`)
+)
+
+// reviewQuestionNativeOption checks, on Codex, that the code review question
+// offers the host's native review: a decision title line naming a code review,
+// or a card question doing so, whose options include hive-review-code. A report
+// that only mentions a review is not a question.
+func reviewQuestionNativeOption(s auditSession) criterionAssessment {
+	c := criterionAssessment{Criterion: "review_question_native_option", Status: "not_observed", Evidence: []string{}}
+	if s.Host != "codex" {
+		return c
+	}
+	var failed, passed []string
+	judge := func(e traceEvent, title, options string) {
+		if !reviewQuestionTitle.MatchString(title) && !strings.Contains(options, "hive-review-code") {
+			return
+		}
+		if nativeReviewOption.MatchString(options) {
+			passed = append(passed, regressionEvidence(e))
+		} else {
+			failed = append(failed, regressionEvidence(e))
+		}
+	}
+	for _, e := range s.Trace.Events {
+		switch {
+		case e.Kind == "text" && e.Role == "assistant":
+			for _, block := range decisionBlocks(e.Text) {
+				title, rest, _ := strings.Cut(block, "\n")
+				if reviewQuestionTitle.MatchString(title) || strings.Contains(rest, "hive-review-code") {
+					judge(e, title, rest)
+				}
+			}
+		case e.Kind == "question" && len(e.Input) > 0:
+			var in struct {
+				Questions []struct {
+					Question string
+					Options  []struct{ Label, Description string }
+				}
+			}
+			if json.Unmarshal(e.Input, &in) != nil {
+				continue
+			}
+			for _, q := range in.Questions {
+				var opts []string
+				for _, o := range q.Options {
+					opts = append(opts, o.Label+" "+o.Description)
+				}
+				judge(e, q.Question, strings.Join(opts, "\n"))
+			}
+		}
+	}
+	switch {
+	case len(failed) > 0:
+		c.Status, c.Evidence = "fail", failed
+	case len(passed) > 0:
+		c.Status, c.Evidence = "pass", passed
+	}
+	return c
+}
+
+// decisionBlocks splits a message into its decisions, each from its title line
+// (`D<n> — …`) to the next title line or the end.
+func decisionBlocks(text string) []string {
+	idx := roundTitleLine.FindAllStringIndex(text, -1)
+	var blocks []string
+	for i, loc := range idx {
+		end := len(text)
+		if i+1 < len(idx) {
+			end = idx[i+1][0]
+		}
+		blocks = append(blocks, strings.TrimLeft(text[loc[0]:end], "\n"))
+	}
+	return blocks
 }
 
 func auditSessionFile(path, host string, opts auditOptions) (auditReport, error) {
