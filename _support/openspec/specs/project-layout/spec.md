@@ -126,7 +126,7 @@ Git SHALL be initialized at a declared workspace root only through `workspace-re
 
 ### Requirement: The planner leaves in place what the user keeps and what other projects own
 
-The placement planner SHALL leave where it is each item the user keeps, through its own option and never through an edited plan, together with every row under a kept folder and the test of a kept file, with no destination, no question and no reference rewrite, and SHALL refuse a kept path that names no row. A dependency folder the repository commits, such as Go's `vendor/` beside `go.mod`, SHALL never count as one of its packages.
+The placement planner SHALL leave where it is each item the user keeps, through its own option and never through an edited plan, together with every row under a kept folder and the tests and libraries only kept files use, with no destination, no question and no reference rewrite; SHALL ask about a kept test whose subject moves; and SHALL refuse a kept path that names no row or that an override also names. A dependency folder the repository commits, such as Go's `vendor/` beside `go.mod`, SHALL never count as one of its packages.
 
 #### Scenario: An item the user keeps
 
