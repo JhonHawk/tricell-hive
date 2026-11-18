@@ -8,7 +8,7 @@ Base: tricell-hive `development` en `9f67fead` (2026-11-17). Rama `feat/project-
 - [x] `git mv content/skills/flow-close/references/artifact-layout.md content/skills/project-layout/references/layout.md`, ampliado con la raíz, el índice y su línea `Layout:` que declara las casas propias del proyecto y manda sobre los destinos por defecto, `data/`, el código fuera de `_support/` y la prohibición para el código de la aplicación; conserva el encabezado «Retain evidence» y su ancla.
 - [x] `references/script-lifecycle.md`: dueño de los niveles 0, 1 y 3; los niveles 2 y 4 enlazan a flow-close «Candidates» y a defect-fix punto 5. flow-close «Candidates» suma un solo enlace a él.
 - [x] Actualizar en el mismo commit cada consumidor de `artifact-layout` y `docs-cleanup`: `content/guidance/global.md` (enlace y la excepción de AC9 en una frase), `content/guidance/README.md`, `content/agents/**`, `content/skills/**`, `AGENTS.md:53`, `_support/docs/harness-engineering/rule-enforcers.md:25` (ruta de `archive_sessions.py`), `_support/docs/architecture/instruction-resources.md`, `tests/content/reading_footprint_test.go` (nuevas rutas en `added`), `tests/skills/workspace_archive_test.py`, `tests/fixtures/workspace-conventions/README.md`; en `tests/pilot/session_audit.go:1237` se conserva `docs-cleanup` en la regex de transcripts y se suman `project-layout|workspace-repo`.
-- [x] `CHANGELOG.md` `[Unreleased]`: el renombre como cambio menor con nota de migración (`/docs-cleanup` pasa a `/project-layout`).
+- [x] `CHANGELOG.md` `[Unreleased]`: la entrada de `docs-cleanup`, aún no publicada, pasa a describir `project-layout` y se agrega `workspace-repo`; sin nota de migración porque `docs-cleanup` nunca salió en un release.
 
 **Closes:** AC1, AC2, AC3, AC9, AC13
 
@@ -84,8 +84,8 @@ Base: tricell-hive `development` en `9f67fead` (2026-11-17). Rama `feat/project-
 
 ### T5 — Documentación de arquitectura y del repo
 
-- [ ] `_support/docs/architecture/workspace-and-artifacts.md` (layouts, coordinador, ciclo de vida, por qué la convención vuelve a una skill propia), `repository-and-distribution.md` si lista skills, `rule-enforcers.md` (filas de `check_layout.py` junto a las de `hive doctor`).
-- [ ] `llms.txt` nombra `project-layout` y `workspace-repo` (`README.md` solo lista flows).
+- [x] `_support/docs/architecture/workspace-and-artifacts.md` (layouts, coordinador, ciclo de vida, por qué la convención vuelve a una skill propia), `repository-and-distribution.md` si lista skills, `rule-enforcers.md` (filas de `check_layout.py` junto a las de `hive doctor`).
+- [x] `llms.txt` nombra `project-layout` y `workspace-repo` (`README.md` solo lista flows).
 
 **Closes:** AC14
 
@@ -99,7 +99,7 @@ Base: tricell-hive `development` en `9f67fead` (2026-11-17). Rama `feat/project-
 
 ### T6 — Sitio
 
-- [ ] `site/src/content/docs/skills.md`, `index.mdx` y `flows/close.md`: las dos skills y los enlaces nuevos; describen el comportamiento y enlazan la skill, sin copiar reglas.
+- [x] `site/src/content/docs/skills.md`, `index.mdx` y `flows/close.md`: las dos skills y los enlaces nuevos; describen el comportamiento y enlazan la skill, sin copiar reglas.
 
 **Closes:** AC14
 
@@ -179,3 +179,5 @@ Sin parada de validación humana: la entrega es `ready`, que se detiene con el P
 2026-11-18 — T8 · 220bb97c · unverified: none
 2026-11-18 — T1 · fd85bd49 · unverified: none
 2026-11-18 — T2 · fd85bd49 · unverified: AC7 behavior in a real session pending observation
+2026-11-18 — T5 · 6a2f43aa · unverified: none
+2026-11-18 — T6 · 6a2f43aa · unverified: site lint and build run with the full suite
