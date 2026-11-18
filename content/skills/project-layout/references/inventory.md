@@ -1,6 +1,6 @@
 # Inventory
 
-Read at [docs-cleanup](../SKILL.md) step 2, at step 5 before pruning a living document or writing a promoted conclusion, and from flow-close when its close promotes one. It sets what the inventory lists, what it never proposes to remove, and how a conclusion is promoted; the classes are those of that step 3.
+Read at [project-layout](../SKILL.md) step 2, at step 5 before pruning a living document or writing a promoted conclusion, and from flow-close when its close promotes one. It sets what the inventory lists, what it never proposes to remove, and how a conclusion is promoted; the classes are those of that step 3.
 
 Limit the inventory to the repositories and folders the request covers, and do not bulk-read unrelated logs or sensitive files. Check each item's ownership, sensitivity and whether its work is explicitly closed; preserve and report what stays uncertain.
 
@@ -10,9 +10,9 @@ List every entry of each support home: the `_support/` folder at the root of the
 
 - `docs/`: living knowledge; its documents are candidates only for moving or for pruning as [Living documentation](#living-documentation) sets.
 - `sessions/`: execution history; a folder whose records all read closed can be archived, as [archive](archive.md) sets.
-- `workspace/`: ignored working material, including earlier manifests of this skill; an item there is removed only with the positive evidence [docs-cleanup](../SKILL.md) step 5 sets.
-- `evidence/`: legacy material, which Hive no longer creates; apply the test of [Retain evidence](../../flow-close/references/artifact-layout.md#retain-evidence) to each item.
-- Folders and files of earlier layouts, such as `plan/`, `spec/`, `reports/`, `archive/`, `assets/`, a `PROJECT.md`, a `premise.md` or a `README.md`: current knowledge, which stays or moves to `docs/`, or a record of past work, which is classified like `sessions/` or `evidence/`. Classify by content as harness-audit's [project layout](../../harness-audit/references/project-layout.md) HA-PL-03 does.
+- `workspace/`: ignored working material, including earlier manifests of this skill; an item there is removed only with the positive evidence [project-layout](../SKILL.md) step 5 sets.
+- `evidence/`: legacy material, which Hive no longer creates; apply the test of [Retain evidence](../../project-layout/references/layout.md#retain-evidence) to each item.
+- Folders and files of earlier layouts, such as `plan/`, `spec/`, `reports/`, `archive/`, `assets/`, a `PROJECT.md`, a `premise.md` or a `README.md`: current knowledge, which stays or moves to `docs/`, or a record of past work, which is classified like `sessions/` or `evidence/`. Classify by content as [migrate](migrate.md) HA-PL-03 does.
 
 ## Documentation homes
 
@@ -32,7 +32,7 @@ Never propose removing these; list each with its path and size, and name it amon
 
 ## Promote a conclusion
 
-Reconcile the conclusion with current sources and with the durable document that will hold it, then update that canonical home rather than writing a second one, with the fields [Retain evidence](../../flow-close/references/artifact-layout.md#retain-evidence) sets. Link the originating record when it stays, and mark the conclusions it replaces as historical or superseded, so no two live policies remain. When records of one work are reorganized, prefer descriptive work-prefixed file names, internal stages or a `reports/` subfolder to parallel sessions.
+Reconcile the conclusion with current sources and with the durable document that will hold it, then update that canonical home rather than writing a second one, with the fields [Retain evidence](../../project-layout/references/layout.md#retain-evidence) sets. Link the originating record when it stays, and mark the conclusions it replaces as historical or superseded, so no two live policies remain. When records of one work are reorganized, prefer descriptive work-prefixed file names, internal stages or a `reports/` subfolder to parallel sessions.
 
 ## Living documentation
 
