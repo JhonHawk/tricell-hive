@@ -8,7 +8,7 @@ The vanilla-versus-Hive evaluation keeps its own scoring in `_support/sessions/2
 
 Host and version, model and effort, repository, the task as written and its type (question, small fix, multi-step feature, review), start and end time, quota or tokens when the host shows them, user interventions, the Hive commit deployed when the session started (sessions keep the skills they loaded at start; Codex and OpenCode reload the global guidance in an open session), and contamination sources (continued session, host memory, Engram, the repository's `## Hive`, files on disk).
 
-Before a session counts toward a recurrence, record its model, served or, when the served model cannot be seen, configured and named as such, and check that it belongs to the support floor in [model-floor.md](model-floor.md); a session outside the floor does not count. Added 2026-11-08 (Claude Code session `9105935a-510e-475a-94b7-77663bda657a`, model support floor plan).
+Before a session counts toward a recurrence, record its model, served or, when the served model cannot be seen, configured and named as such, and check that it belongs to the support floor in [model-floor.md](model-floor.md); a session outside the floor does not count, and a model no row lists is handled as that page's «Two sets» sets. Added 2026-11-08 (Claude Code session `9105935a-510e-475a-94b7-77663bda657a`, model support floor plan).
 
 ## 2. Vetoes
 

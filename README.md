@@ -29,7 +29,7 @@ settings have explicit read conditions. Installing a reference makes it availabl
 or followed. This organization does not establish reliability for any model family.
 The guidance is written for the role-profile models listed in the
 [support floor](_support/docs/harness-engineering/model-floor.md); the floor's smaller
-Haiku and flash-class candidates are not a writing target, but their observed failures count toward corrections.
+Haiku and flash-class candidates and the maintainer's main-session models are not a writing target, but their observed failures count toward corrections.
 
 OpenCode V2 also receives an **optional, inactive context loader** at user scope in
 `<OpenCodeHome>/hive/context-loader/{index.js,context-loader.json}`, outside
