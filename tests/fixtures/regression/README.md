@@ -15,7 +15,7 @@ Each folder holds one deterministic criterion from `tests/pilot/regression.go`, 
 
 ## Add a case
 
-New cases are no longer added for session findings; see the Measurement section of the root `AGENTS.md`. This procedure remains as the record of how the existing cases were built. A criterion that reads real session transcripts belongs to `go run ./tests/pilot --audit-session` instead: its fixtures live in `tests/fixtures/sessions/`, in each host's transcript format rather than the pilots' streamed output, and follow steps 2, 4 and 6 above with their own test.
+New cases are no longer added for session findings; see the Measurement section of the root `AGENTS.md`. This procedure remains as the record of how the existing cases were built. A criterion that reads real session transcripts belongs to `go run ./tests/pilot --audit-session` instead: its fixtures live in `tests/fixtures/sessions/`, in each host's transcript format rather than the pilots' streamed output, and follow steps 2, 4 and 6 below with their own test.
 
 1. **Name the finding.** Record the session (host, session ID, line numbers, date) and the guidance rule it breaks. Confirm the trace model in `tests/pilot/trace.go` can express it; if it cannot, state why in the change and record the gap in the tracker instead of adding a fixture.
 2. **Locate without printing.** Find the lines with `jq` that outputs only line numbers, event types, and tool names, or with `rg -c`/`rg -l`. Never run a command that prints whole transcript lines, and never read `tool_result` payloads. If the session read a secret, do not open its transcript: rebuild the shape from the recorded tool, key name, and path.

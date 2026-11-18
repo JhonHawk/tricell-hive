@@ -25,7 +25,7 @@ Which of Hive's rules a mechanism enforces, and which still rest on prose. A rul
 | Session archives move with their records | `content/skills/docs-cleanup/references/archive.md` | `content/skills/docs-cleanup/scripts/archive_sessions.py` | prevents | enforced |
 | No broad `git add`, no read of a secret's content, a question after its detail, cited IDs glossed, no bare URLs, ticket IDs not packed in prose, merged branches deleted | global guidance «Secrets» and «Questions and routes»; `content/skills/flow-close/SKILL.md` | `tests/pilot/regression.go` | detects | enforced |
 | A round goes through the permitted waiting card, not only in text | global guidance «Questions and routes» | `tests/pilot/session_audit.go` (`text_round_without_card`) | detects | enforced |
-| Close deletes the merged branch before its report | `content/skills/flow-close/SKILL.md` step 5 | `tests/pilot/session_audit.go` (`close_before_branch_cleanup`) | detects | enforced |
+| Close deletes the merged branch before its report in the closes that defer no step; at a completion point the report comes first | `content/skills/flow-close/SKILL.md` step 5 | `tests/pilot/session_audit.go` (`close_before_branch_cleanup`, flags for review only) | detects | judgment |
 | A reason states its effect, not the instruction that requires it | global guidance «Questions and routes» | `tests/pilot/session_audit.go` (`skill_named_as_reason`, flags for review only) | detects | judgment |
 | Choose the smallest sufficient investigation, plan and verification | global guidance «Proportionality» | none | — | judgment |
 | Ask only for a choice that is the user's | global guidance «Questions and routes» | none | — | judgment |

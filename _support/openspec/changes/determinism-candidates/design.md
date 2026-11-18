@@ -37,7 +37,7 @@
    - cuando el resultado de la última pregunta del turno antes de la ronda está vacío o expiró: la guía global pide entonces la ronda en texto;
    - en un rollout de subagente (`session_meta.source.subagent`);
    - en una sesión sin ninguna llamada a herramienta de preguntas.
-2. `close_before_branch_cleanup` — Tras un `gh pr merge` exitoso sin `--delete-branch`: `fail` cuando un mensaje del asistente cuya primera línea en negrita empieza por `Cierre` o `Close` llega antes del primer comando que borra una rama (`git branch -d/-D`, `git push … --delete`, `cleanup_branches.py … --apply`). `not_observed` cuando no hay ningún borrado después; ese caso lo cubre `merged_branch_deleted`.
+2. `close_before_branch_cleanup` — Tras cada merge exitoso (`gh pr merge` sin `--delete-branch`, o `git merge` seguido del push de la base): `review`, nunca `fail` (D11 A), cuando un mensaje del asistente cuya primera línea en negrita empieza por `Cierre` o `Close` llega antes del primer comando que borra una rama, porque en el punto de completitud `flow-close` prescribe ese orden cuando queda una rama fusionada por borrar (corre los pasos 1, 3, 6 y 7 y deja 2, 4 y 5 pendientes), y solo los cierres que no difieren nada (el de seguimiento, el abandonado, el de limpieza de un despliegue, la higiene, el fin de sesión y el no supervisado) deben borrar antes del informe. Cuenta como borrado `git branch -d/-D`, `git push … --delete` o `cleanup_branches.py … --apply`. `not_observed` cuando no hay ningún borrado después; ese caso lo cubre `merged_branch_deleted`.
 3. `skill_named_as_reason` — `review`, nunca `fail`: una oración del asistente que nombra una skill de Hive (`flow-*`, `git-workflow`, `harness-audit`, `docs-cleanup`, `create-issue`, `create-prd`) junto a un verbo de exigencia (`pide`, `exige`, `establece`, `requires`, `asks`, `sets`). No corre cuando el `cwd` es el repositorio de Hive, donde nombrar una skill es legítimo porque el trabajo la cambia.
 
 **Fixtures.** Van en `tests/fixtures/sessions/<criterio-o-adaptador>/<host>-<formato>-<pass|fail>.jsonl` (`claude-project`, `codex-rollout`, `grok-updates`), con su propio test, porque `--host codex` y `--host grok` en `tests/fixtures/regression/` ya significan los formatos de los pilotos (`codex exec --json`, `grok -p`). Se sanean como fija `tests/fixtures/regression/README.md`. No son casos de regresión de una corrección de la guía: son las pruebas de una herramienta que sí recibe sesiones reales.
@@ -48,7 +48,7 @@ La rúbrica (`session-review-rubric.md`) gana una sección inicial:
 
 1. Correr la auditoría sobre cada sesión a revisar.
 2. Leer los `candidate/` de los proyectos de Engram, con una búsqueda por tema en cada proyecto.
-3. Leer las transcripciones solo donde un criterio marcó `fail` o `review`.
+3. Leer las transcripciones solo donde un criterio marcó `fail` o `review`. Un `review` de `close_before_branch_cleanup` es falla solo cuando ese cierre era de los que no difieren nada, o cuando su pie no ofrece la limpieza pendiente como respuesta.
 
 Un candidato que aparece en tres proyectos se vuelve candidato de Hive. Cada seguimiento gana una línea `Enforceable: <mecanismo> | judgment`, decidida con la prueba de cuatro condiciones de la propuesta. Además se corrige la fila «An empty or timed-out card gets one line, not the round repeated» (2026-10-31), que contradice la regla vigente: una tarjeta que se cerró sola recibe la ronda escrita en texto.
 

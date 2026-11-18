@@ -354,7 +354,13 @@ func noBroadGitAddCheck(r result, uncertainDir func(abs string) bool) criterionA
 					rel = filepath.ToSlash(rel)
 					switch {
 					case err != nil || rel == ".." || strings.HasPrefix(rel, "../"):
-						// outside the fixture root; not judged.
+						// outside the fixture root; not judged in pilots. The
+						// real-session audit (uncertainDir set) cannot judge it
+						// either and asks for review.
+						if uncertainDir != nil {
+							review = true
+							c.Evidence = append(c.Evidence, regressionEvidence(e))
+						}
 					case rel == ".":
 						// resolves to the repository root, e.g. `git add ..` from a subdirectory.
 						broad = true

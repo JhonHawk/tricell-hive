@@ -131,6 +131,7 @@ func loadClaudeSession(data []byte) (auditSession, error) {
 		var ev struct {
 			Type, Timestamp, Cwd string
 			IsMeta, IsSidechain  bool
+			IsCompactSummary     bool
 			Message              struct{ Content json.RawMessage }
 		}
 		if json.Unmarshal(scan.Bytes(), &ev) != nil {
@@ -140,7 +141,7 @@ func loadClaudeSession(data []byte) (auditSession, error) {
 		if s.Cwd == "" {
 			s.Cwd = ev.Cwd
 		}
-		if ev.Type == "user" && !ev.IsMeta && !ev.IsSidechain && claudePromptContent(ev.Message.Content) {
+		if ev.Type == "user" && !ev.IsMeta && !ev.IsSidechain && !ev.IsCompactSummary && claudePromptContent(ev.Message.Content) {
 			starts = append(starts, line)
 		}
 	}
@@ -160,18 +161,21 @@ func loadClaudeSession(data []byte) (auditSession, error) {
 }
 
 // claudePromptContent reports whether a user line's content is a typed prompt
-// (a string, or blocks that are not all tool results).
+// (a string, or blocks that are not all tool results). The interruption notice
+// Claude Code writes is not a prompt, and neither is a compact summary (the
+// caller checks isCompactSummary).
 func claudePromptContent(raw json.RawMessage) bool {
+	const interrupted = "[Request interrupted"
 	var str string
 	if json.Unmarshal(raw, &str) == nil {
-		return strings.TrimSpace(str) != ""
+		return strings.TrimSpace(str) != "" && !strings.HasPrefix(strings.TrimSpace(str), interrupted)
 	}
-	var blocks []struct{ Type string }
+	var blocks []struct{ Type, Text string }
 	if json.Unmarshal(raw, &blocks) != nil {
 		return false
 	}
 	for _, b := range blocks {
-		if b.Type == "text" || b.Type == "image" {
+		if b.Type == "image" || (b.Type == "text" && !strings.HasPrefix(strings.TrimSpace(b.Text), interrupted)) {
 			return true
 		}
 	}
@@ -301,7 +305,7 @@ type codexCall struct {
 }
 
 func (b *codexBuilder) codexExec(line int, id, js string) {
-	calls := scanCodexExec(js)
+	calls, ambiguous := scanCodexExec(js)
 	idx := 0
 	for _, c := range calls {
 		switch {
@@ -309,7 +313,7 @@ func (b *codexBuilder) codexExec(line int, id, js string) {
 			continue
 		case c.name == "exec_command":
 			e := traceEvent{Line: line, Kind: "shell", Tool: "exec_command", ID: fmt.Sprintf("%s#%d", id, idx), Message: "codex-call-" + id}
-			if c.hasLiteral && !c.interpolate {
+			if c.hasLiteral && !c.interpolate && !ambiguous {
 				e.Command = c.literal
 			} else {
 				e.CommandWithheld = true
@@ -393,12 +397,9 @@ func (b *codexBuilder) codexExecOutput(line int, id string, items []any) {
 			shellCount++
 		}
 	}
-	allZero := strings.HasPrefix(header, "Script completed")
-	for _, r := range results {
-		if r.rejected || !r.hasCode || r.code != 0 {
-			allZero = false
-		}
-	}
+	// Success is known only when the block reports one exit code per command.
+	// Truncated output, or a command still running that returns a session ID,
+	// leaves it unknown.
 	paired := len(results) == shellCount
 	shellN := 0
 	for _, i := range execIdx {
@@ -411,9 +412,6 @@ func (b *codexBuilder) codexExecOutput(line int, id string, items []any) {
 				r := results[shellN]
 				ok := !r.rejected && r.hasCode && r.code == 0
 				success, text = &ok, r.output
-			} else if allZero {
-				ok := true
-				success = &ok
 			}
 			shellN++
 		default:
@@ -433,15 +431,18 @@ func (b *codexBuilder) codexExecOutput(line int, id string, items []any) {
 // argument (apply_patch) or of the cmd property (exec_command), accepting
 // double quotes, single quotes and backticks. A template literal with ${...}
 // interpolation is reported as interpolated.
-func scanCodexExec(js string) []codexCall {
+func scanCodexExec(js string) ([]codexCall, bool) {
 	var calls []codexCall
 	i := 0
+	var prev byte
 	for i < len(js) {
 		c := js[i]
 		switch {
+		case c == ' ' || c == '\t' || c == '\n' || c == '\r':
+			i++
 		case c == '"' || c == '\'' || c == '`':
-			_, end, _ := jsLiteral(js, i)
-			i = end
+			_, i, _ = jsLiteral(js, i)
+			prev = '"'
 		case c == '/' && i+1 < len(js) && js[i+1] == '/':
 			for i < len(js) && js[i] != '\n' {
 				i++
@@ -449,9 +450,15 @@ func scanCodexExec(js string) []codexCall {
 		case c == '/' && i+1 < len(js) && js[i+1] == '*':
 			end := strings.Index(js[i+2:], "*/")
 			if end < 0 {
-				return calls
+				return fallbackCodexCalls(js), true
 			}
 			i += end + 4
+		case c == '/' && regexAllowed(prev):
+			end, ok := skipJSRegex(js, i)
+			if !ok {
+				return fallbackCodexCalls(js), true
+			}
+			i, prev = end, 'a'
 		case strings.HasPrefix(js[i:], "tools.") && (i == 0 || !isJSIdent(js[i-1])):
 			j := i + len("tools.")
 			k := j
@@ -467,17 +474,133 @@ func scanCodexExec(js string) []codexCall {
 					call.literal, call.hasLiteral, call.interpolate = jsFirstArgLiteral(js, k+1)
 				}
 				calls = append(calls, call)
-				i = k + 1
+				i, prev = k+1, '('
 				continue
 			}
-			i = k
+			i, prev = k, 'a'
 		default:
+			prev = c
 			i++
 		}
+	}
+	return calls, false
+}
+
+var toolsCallPattern = regexp.MustCompile(`\btools\.([A-Za-z_][A-Za-z0-9_]*)\(`)
+
+// fallbackCodexCalls lists the calls of a block the scanner cannot tokenize
+// (for example a regular expression literal that never closes). Their commands
+// are not extracted: a wrong guess would put text from the wrong place into a
+// criterion.
+func fallbackCodexCalls(js string) []codexCall {
+	var calls []codexCall
+	for _, m := range toolsCallPattern.FindAllStringSubmatch(js, -1) {
+		calls = append(calls, codexCall{name: m[1]})
 	}
 	return calls
 }
 
+// regexAllowed reports whether a "/" after the last significant byte prev
+// starts a regular expression literal rather than a division.
+func regexAllowed(prev byte) bool {
+	switch prev {
+	case 0, '(', ',', '=', ':', '[', '!', '&', '|', '?', '{', '}', ';', '+', '-', '*', '%', '<', '>', '~', '^':
+		return true
+	}
+	return false
+}
+
+// skipJSRegex returns the index after the regular expression literal and its
+// flags that starts at js[i]; false when it does not close on its line.
+func skipJSRegex(js string, i int) (int, bool) {
+	inClass := false
+	for j := i + 1; j < len(js); j++ {
+		switch js[j] {
+		case '\\':
+			j++
+		case '\n':
+			return 0, false
+		case '[':
+			inClass = true
+		case ']':
+			inClass = false
+		case '/':
+			if !inClass {
+				j++
+				for j < len(js) && isJSIdent(js[j]) {
+					j++
+				}
+				return j, true
+			}
+		}
+	}
+	return 0, false
+}
+
+func skipJSSpace(js string, i int) int {
+	for i < len(js) {
+		switch {
+		case js[i] == ' ' || js[i] == '\t' || js[i] == '\n' || js[i] == '\r':
+			i++
+		case strings.HasPrefix(js[i:], "//"):
+			for i < len(js) && js[i] != '\n' {
+				i++
+			}
+		case strings.HasPrefix(js[i:], "/*"):
+			end := strings.Index(js[i+2:], "*/")
+			if end < 0 {
+				return len(js)
+			}
+			i += end + 4
+		default:
+			return i
+		}
+	}
+	return i
+}
+
+// skipJSExpr returns the index of the "," or "}" that ends the property value
+// starting at js[i], skipping nested brackets, strings and regular expression
+// literals; false when the text cannot be tokenized.
+func skipJSExpr(js string, i int) (int, bool) {
+	depth := 0
+	var prev byte
+	for i < len(js) {
+		c := js[i]
+		switch {
+		case c == ' ' || c == '\t' || c == '\n' || c == '\r':
+			i++
+		case c == '"' || c == '\'' || c == '`':
+			_, i, _ = jsLiteral(js, i)
+			prev = '"'
+		case strings.HasPrefix(js[i:], "//") || strings.HasPrefix(js[i:], "/*"):
+			i = skipJSSpace(js, i)
+		case c == '/' && regexAllowed(prev):
+			end, ok := skipJSRegex(js, i)
+			if !ok {
+				return 0, false
+			}
+			i, prev = end, 'a'
+		case c == '{' || c == '[' || c == '(':
+			depth++
+			prev = c
+			i++
+		case c == '}' || c == ']' || c == ')':
+			if depth == 0 {
+				return i, true
+			}
+			depth--
+			prev = c
+			i++
+		case c == ',' && depth == 0:
+			return i, true
+		default:
+			prev = c
+			i++
+		}
+	}
+	return 0, false
+}
 func isJSIdent(c byte) bool {
 	return c == '_' || c == '$' || (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }
@@ -553,57 +676,61 @@ func jsLiteral(js string, i int) (value string, end int, interpolated bool) {
 // starts at or after js[i] and returns its string literal value. A property
 // that is not a plain literal (a variable, a concatenation) is not literal.
 func jsObjectLiteral(js string, i int, key string) (value string, ok, interpolated bool) {
-	for i < len(js) && (js[i] == ' ' || js[i] == '\n' || js[i] == '\t') {
-		i++
-	}
+	i = skipJSSpace(js, i)
 	if i >= len(js) || js[i] != '{' {
 		return "", false, false
 	}
-	depth := 0
-	for j := i; j < len(js); {
-		c := js[j]
+	j := i + 1
+	for {
+		j = skipJSSpace(js, j)
+		if j >= len(js) || js[j] == '}' {
+			return "", false, false
+		}
+		if js[j] == ',' {
+			j++
+			continue
+		}
+		var name string
 		switch {
-		case c == '"' || c == '\'' || c == '`':
-			_, j, _ = jsLiteral(js, j)
-		case c == '{' || c == '[' || c == '(':
-			depth++
-			j++
-		case c == '}' || c == ']' || c == ')':
-			depth--
-			if depth <= 0 {
-				return "", false, false
-			}
-			j++
-		case depth == 1 && strings.HasPrefix(js[j:], key) && (j == 0 || !isJSIdent(js[j-1])) && (j+len(key) >= len(js) || !isJSIdent(js[j+len(key)])):
-			k := j + len(key)
-			for k < len(js) && (js[k] == ' ' || js[k] == '\n' || js[k] == '\t') {
+		case js[j] == '"' || js[j] == '\'' || js[j] == '`':
+			name, j, _ = jsLiteral(js, j)
+		case isJSIdent(js[j]):
+			k := j
+			for k < len(js) && isJSIdent(js[k]) {
 				k++
 			}
-			if k >= len(js) || js[k] != ':' {
+			name, j = js[j:k], k
+		default:
+			// A spread or a computed key could hide the property.
+			return "", false, false
+		}
+		j = skipJSSpace(js, j)
+		if j >= len(js) || js[j] != ':' {
+			// Shorthand property: the value is a variable.
+			if name == key {
 				return "", false, false
 			}
-			k++
-			for k < len(js) && (js[k] == ' ' || js[k] == '\n' || js[k] == '\t') {
-				k++
-			}
-			if k >= len(js) || (js[k] != '"' && js[k] != '\'' && js[k] != '`') {
+			continue
+		}
+		j = skipJSSpace(js, j+1)
+		if name == key {
+			if j >= len(js) || (js[j] != '"' && js[j] != '\'' && js[j] != '`') {
 				return "", false, false
 			}
-			v, end, interp := jsLiteral(js, k)
-			for end < len(js) && (js[end] == ' ' || js[end] == '\n' || js[end] == '\t') {
-				end++
-			}
-			if end < len(js) && js[end] == '+' {
+			v, end, interp := jsLiteral(js, j)
+			end = skipJSSpace(js, end)
+			if end < len(js) && js[end] != ',' && js[end] != '}' {
 				return "", false, false
 			}
 			return v, true, interp
-		default:
-			j++
 		}
+		end, good := skipJSExpr(js, j)
+		if !good {
+			return "", false, false
+		}
+		j = end
 	}
-	return "", false, false
 }
-
 func jsFirstArgLiteral(js string, i int) (value string, ok, interpolated bool) {
 	for i < len(js) && (js[i] == ' ' || js[i] == '\n' || js[i] == '\t') {
 		i++
@@ -615,7 +742,7 @@ func jsFirstArgLiteral(js string, i int) (value string, ok, interpolated bool) {
 	for end < len(js) && (js[end] == ' ' || js[end] == '\n' || js[end] == '\t') {
 		end++
 	}
-	if end < len(js) && js[end] == '+' {
+	if end < len(js) && js[end] != ',' && js[end] != ')' {
 		return "", false, false
 	}
 	return v, true, interp
@@ -730,7 +857,12 @@ func loadGrokSession(data []byte, path string) (auditSession, error) {
 				}
 			}
 			if s.Trace.Events[i].Kind == "question" {
-				text = str(object(out["UserAnswered"])["message"])
+				// Only a UserAnswered result of a completed call is an answer or
+				// a card that closed by itself; a decline (UserDeclined, a failed
+				// call) is the user leaving the card unanswered.
+				answered := object(out["UserAnswered"])
+				ok = ok && answered != nil
+				text = str(answered["message"])
 			}
 			s.Trace.Events[i].Success = &ok
 			add(traceEvent{Line: line, Kind: "tool_result", ID: id, Text: text, Success: &ok, Message: s.Trace.Events[i].Message})
@@ -834,8 +966,10 @@ func existingAuditCriteria(s auditSession, base string) []criterionAssessment {
 	for i, c := range criteria {
 		if c.Criterion == "no_broad_git_add" {
 			criteria[i] = noBroadGitAddCheck(r, func(abs string) bool {
+				// Without the historical inventory, a path that is a directory
+				// now, or that no longer exists, cannot be judged.
 				info, err := os.Stat(abs)
-				return err == nil && info.IsDir()
+				return err != nil || info.IsDir()
 			})
 		}
 	}
@@ -853,30 +987,71 @@ func existingAuditCriteria(s auditSession, base string) []criterionAssessment {
 var (
 	roundTitleLine  = regexp.MustCompile(`(?m)^\s*[#>*\s]*D\d+\s*[—–-]`)
 	roundOptionStar = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\s*[-—–]\s*\**\s*\(★\)`)
-	emptyCardResult = regexp.MustCompile(`(?i)timed out|timeout|time out|expired|no user is available|non-interactive`)
+	// grokNoUser is the result Grok gives a question when no user can answer.
+	grokNoUser = regexp.MustCompile(`(?i)^\s*no user is available`)
+	// claudeRejected matches the tool errors that mean the user turned the card
+	// down, which is not a card that closed by itself.
+	claudeRejected = regexp.MustCompile(`(?i)doesn't want|does not want|rejected|declined|dismiss|denied|interrupted|cancel`)
 )
 
 func isTextRound(text string) bool {
 	return roundTitleLine.MatchString(text) && roundOptionStar.MatchString(text)
 }
 
-// emptyCardOutput reports a native question result that carries no answer
-// because the card closed by itself: an empty output, an empty answers object,
-// or a timeout or no-user message. A declined or dismissed card is not empty:
-// the user left it unanswered and the round must not be written out.
-func emptyCardOutput(text string) bool {
-	trimmed := strings.TrimSpace(text)
-	if trimmed == "" || emptyCardResult.MatchString(trimmed) {
-		return true
-	}
-	var v map[string]any
-	if json.Unmarshal([]byte(trimmed), &v) == nil {
+// emptyCardResult reports whether a native question result is a card that
+// closed by itself, in each host's own result shape; it never looks at what the
+// user typed. Codex: an empty output, an empty answers object or a timeout
+// status (that last shape is not observed in this machine's rollouts). Claude:
+// an empty result or a tool error that is not a rejection. Grok: the "no user
+// is available" result of a completed call. A decline or a dismissal is the
+// user leaving the card unanswered, so the round must not be written out.
+func emptyCardResult(host string, e traceEvent) bool {
+	text := strings.TrimSpace(e.Text)
+	switch host {
+	case "codex":
+		if text == "" {
+			return true
+		}
+		var v map[string]any
+		if json.Unmarshal([]byte(text), &v) != nil {
+			return false
+		}
 		if answers, ok := v["answers"]; ok {
 			m := object(answers)
 			return answers == nil || (m != nil && len(m) == 0)
 		}
+		status := strings.ToLower(str(v["status"]))
+		return status == "timeout" || status == "timed_out"
+	case "claude":
+		if e.Success == nil {
+			return false
+		}
+		if *e.Success {
+			return text == ""
+		}
+		return !claudeRejected.MatchString(text)
+	case "grok":
+		return e.Success != nil && *e.Success && grokNoUser.MatchString(text)
 	}
 	return false
+}
+
+// unattendedActivation returns the index of the first event that activates
+// unattended delegation (a call of its skill, or a read of its SKILL.md), or
+// -1. From there the guidance asks for decision rounds in text.
+func unattendedActivation(events []traceEvent) int {
+	const marker = "unattended-delegation/SKILL.md"
+	for i, e := range events {
+		switch {
+		case e.Kind == "skill_invocation" && e.Text == "unattended-delegation":
+			return i
+		case (e.Kind == "read" || e.Kind == "search") && strings.Contains(filepath.ToSlash(e.Path), marker):
+			return i
+		case e.Kind == "shell" && strings.Contains(e.Command, marker):
+			return i
+		}
+	}
+	return -1
 }
 
 // textRoundWithoutCard fails when an assistant message writes a decision round
@@ -901,9 +1076,13 @@ func textRoundWithoutCard(s auditSession) criterionAssessment {
 	if !anyQuestion {
 		return c
 	}
+	unattended := unattendedActivation(events)
 	var failed, passed []string
 	for ri, e := range events {
 		if e.Kind != "text" || e.Role != "assistant" || !isTextRound(e.Text) {
+			continue
+		}
+		if unattended >= 0 && ri > unattended {
 			continue
 		}
 		turn := s.Turn[ri]
@@ -922,7 +1101,7 @@ func textRoundWithoutCard(s auditSession) criterionAssessment {
 		if answered {
 			continue
 		}
-		if lastQ >= 0 && cardResultIsEmpty(events, lastQ, ri) {
+		if lastQ >= 0 && cardResultIsEmpty(s.Host, events, lastQ, ri) {
 			continue
 		}
 		failed = append(failed, regressionEvidence(e))
@@ -938,10 +1117,10 @@ func textRoundWithoutCard(s auditSession) criterionAssessment {
 
 // cardResultIsEmpty reports whether the question at qi has a result before ri
 // and that result is empty or timed out.
-func cardResultIsEmpty(events []traceEvent, qi, ri int) bool {
+func cardResultIsEmpty(host string, events []traceEvent, qi, ri int) bool {
 	for i := qi + 1; i < ri; i++ {
 		if events[i].Kind == "tool_result" && events[i].ID == events[qi].ID {
-			return emptyCardOutput(events[i].Text)
+			return emptyCardResult(host, events[i])
 		}
 	}
 	return false
@@ -959,53 +1138,98 @@ func isCloseReport(text string) bool {
 	return false
 }
 
-// closeBeforeBranchCleanup fails when, after a successful `gh pr merge` that
-// does not delete the branch, an assistant message whose first line is a bold
-// «Cierre» or «Close» heading comes before the first command that deletes a
-// branch. It is not observed without a later deletion: merged_branch_deleted
-// covers that case.
-func closeBeforeBranchCleanup(s auditSession) criterionAssessment {
-	c := criterionAssessment{Criterion: "close_before_branch_cleanup", Status: "not_observed", Evidence: []string{}}
-	events := s.Trace.Events
-	merge := -1
+// closeBeforeCleanupStatus is the status of a close report that comes before
+// the branch cleanup. It is the single place that decides it (user decision
+// D11: review, never fail).
+const closeBeforeCleanupStatus = "review"
+
+// auditMerges returns the indexes of the events that complete a merge without
+// deleting the branch: a successful `gh pr merge` without --delete-branch, or a
+// successful `git merge` followed by a successful `git push` that names base.
+// A command whose success is unknown is not a merge.
+func auditMerges(events []traceEvent, base string) []int {
+	var merges []int
+	pendingGitMerge := false
 	for i, e := range events {
 		if e.Kind != "shell" || e.Success == nil || !*e.Success {
 			continue
 		}
 		for _, args := range shellSegments(e.Command, 0) {
 			if isGhPrSubcommand(args, "merge") && !ghPrMergeDeletesBranch(args) {
-				merge = i
+				merges = append(merges, i)
+				continue
+			}
+			isGit, sub, _ := gitInvocation(args, "")
+			if !isGit || sub >= len(args) {
+				continue
+			}
+			switch args[sub] {
+			case "merge":
+				pendingGitMerge = true
+			case "push":
+				if pendingGitMerge && pushTargetsBase(args[sub+1:], base) {
+					merges = append(merges, i)
+					pendingGitMerge = false
+				}
 			}
 		}
 	}
-	if merge < 0 {
-		return c
-	}
-	deletion := -1
-	for i := merge + 1; i < len(events) && deletion < 0; i++ {
-		e := events[i]
-		if e.Kind != "shell" || e.Success == nil || !*e.Success {
+	return merges
+}
+
+// closeBeforeBranchCleanup checks every successful merge that does not delete
+// its branch (a `gh pr merge` without --delete-branch, or a local `git merge`
+// followed by a push of the base; a command whose success is unknown is not a
+// merge). When an assistant message whose first line is a bold «Cierre» or
+// «Close» heading comes after the merge and before the first command that
+// deletes a branch, the status is review, never fail: flow-close prescribes
+// that order at a completion point while a merged branch remains to delete, and
+// only its closes without deferral must delete first, which a transcript alone
+// cannot tell apart. A merge with no later deletion is not observed:
+// merged_branch_deleted covers that case. closeBeforeCleanupStatus is the one
+// place that decides the status.
+func closeBeforeBranchCleanup(s auditSession, base string) criterionAssessment {
+	c := criterionAssessment{Criterion: "close_before_branch_cleanup", Status: "not_observed", Evidence: []string{}}
+	events := s.Trace.Events
+	var flagged, cleaned []string
+	seen := map[string]bool{}
+	for _, merge := range auditMerges(events, base) {
+		deletion := -1
+		for i := merge + 1; i < len(events) && deletion < 0; i++ {
+			e := events[i]
+			if e.Kind != "shell" || e.Success == nil || !*e.Success {
+				continue
+			}
+			for _, args := range shellSegments(e.Command, 0) {
+				if auditBranchDeletion(args) {
+					deletion = i
+					break
+				}
+			}
+		}
+		if deletion < 0 {
 			continue
 		}
-		for _, args := range shellSegments(e.Command, 0) {
-			if auditBranchDeletion(args) {
-				deletion = i
-				break
+		found := false
+		for i := merge + 1; i < deletion; i++ {
+			if events[i].Kind == "text" && events[i].Role == "assistant" && isCloseReport(events[i].Text) {
+				found = true
+				if ev := regressionEvidence(events[i]); !seen[ev] {
+					seen[ev] = true
+					flagged = append(flagged, ev)
+				}
 			}
 		}
-	}
-	if deletion < 0 {
-		return c
-	}
-	for i := merge + 1; i < deletion; i++ {
-		if events[i].Kind == "text" && events[i].Role == "assistant" && isCloseReport(events[i].Text) {
-			c.Status = "fail"
-			c.Evidence = []string{regressionEvidence(events[i])}
-			return c
+		if !found {
+			cleaned = append(cleaned, regressionEvidence(events[deletion]))
 		}
 	}
-	c.Status = "pass"
-	c.Evidence = []string{regressionEvidence(events[deletion])}
+	switch {
+	case len(flagged) > 0:
+		c.Status, c.Evidence = closeBeforeCleanupStatus, flagged
+	case len(cleaned) > 0:
+		c.Status, c.Evidence = "pass", cleaned
+	}
 	return c
 }
 
@@ -1061,7 +1285,7 @@ func skillNamedAsReason(s auditSession) criterionAssessment {
 }
 
 func auditCriteria(s auditSession, base string) []criterionAssessment {
-	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s), skillNamedAsReason(s))
+	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s))
 }
 
 func auditSessionFile(path, host string, opts auditOptions) (auditReport, error) {

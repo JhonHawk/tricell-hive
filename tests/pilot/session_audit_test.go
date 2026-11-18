@@ -345,11 +345,19 @@ func TestAuditGitAddResolvesAgainstSessionCwd(t *testing.T) {
 	if s := auditStatus(t, auditFixture(t, "claude", opts, "existing_criteria", "claude-project-git-add-dir.jsonl"), "no_broad_git_add").Status; s != "review" {
 		t.Fatalf("directory pathspec = %s, want review", s)
 	}
-	if s := auditStatus(t, auditFixture(t, "claude", auditOptions{Cwd: t.TempDir()}, "existing_criteria", "claude-project-git-add-dir.jsonl"), "no_broad_git_add").Status; s != "pass" {
-		t.Fatalf("pathspec that is not a directory here = %s, want pass", s)
+	// A pathspec that no longer exists cannot be judged either.
+	if s := auditStatus(t, auditFixture(t, "claude", auditOptions{Cwd: t.TempDir()}, "existing_criteria", "claude-project-git-add-dir.jsonl"), "no_broad_git_add").Status; s != "review" {
+		t.Fatalf("pathspec missing on disk = %s, want review", s)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("x"), 0o600); err != nil {
+		t.Fatal(err)
 	}
 	if s := auditStatus(t, auditFixture(t, "claude", opts, "existing_criteria", "claude-project-git-add-file.jsonl"), "no_broad_git_add").Status; s != "pass" {
 		t.Fatalf("file pathspec = %s, want pass", s)
+	}
+	// A pathspec outside the session root cannot be judged.
+	if s := auditStatus(t, auditFixture(t, "claude", opts, "existing_criteria", "claude-project-git-add-outside.jsonl"), "no_broad_git_add").Status; s != "review" {
+		t.Fatalf("pathspec outside the root = %s, want review", s)
 	}
 	if s := auditStatus(t, auditFixture(t, "claude", opts, "existing_criteria", "claude-project-git-add-all.jsonl"), "no_broad_git_add").Status; s != "fail" {
 		t.Fatalf("git add -A = %s, want fail", s)
@@ -393,12 +401,29 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"round grok pass", "grok", round, []string{round, "grok-updates-pass.jsonl"}, auditOptions{}, "pass"},
 		{"round grok no user available", "grok", round, []string{round, "grok-updates-empty-card-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"round grok declined card is not an exemption", "grok", round, []string{round, "grok-updates-declined-card-fail.jsonl"}, auditOptions{}, "fail"},
-		{"close claude fail", "claude", close, []string{close, "claude-project-fail.jsonl"}, auditOptions{}, "fail"},
+		{"close claude review", "claude", close, []string{close, "claude-project-review.jsonl"}, auditOptions{}, "review"},
 		{"close claude pass", "claude", close, []string{close, "claude-project-pass.jsonl"}, auditOptions{}, "pass"},
 		{"close claude no deletion", "claude", close, []string{close, "claude-project-nodelete-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"close claude merge deletes the branch itself", "claude", close, []string{close, "claude-project-delete-branch-flag-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"close grok fail", "grok", close, []string{close, "grok-updates-fail.jsonl"}, auditOptions{}, "fail"},
+		{"close grok review", "grok", close, []string{close, "grok-updates-review.jsonl"}, auditOptions{}, "review"},
 		{"close grok pass", "grok", close, []string{close, "grok-updates-pass.jsonl"}, auditOptions{}, "pass"},
+		{"close codex merge with unknown success is not a merge", "codex", close, []string{close, "codex-rollout-truncated-merge-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"close earlier merge is checked too", "claude", close, []string{close, "claude-project-two-merges-review.jsonl"}, auditOptions{}, "review"},
+		{"close local merge and push of base", "claude", close, []string{close, "claude-project-local-merge-review.jsonl"}, auditOptions{Base: "development"}, "review"},
+		{"close local merge without a base is not recognized", "claude", close, []string{close, "claude-project-local-merge-review.jsonl"}, auditOptions{Cwd: "elsewhere"}, "not_observed"},
+		{"round codex typed timeout is not an empty card", "codex", round, []string{round, "codex-rollout-typed-timeout-fail.jsonl"}, auditOptions{}, "fail"},
+		{"round claude typed timeout is not an empty card", "claude", round, []string{round, "claude-project-typed-timeout-fail.jsonl"}, auditOptions{}, "fail"},
+		{"round grok typed text is not an empty card", "grok", round, []string{round, "grok-updates-typed-timeout-fail.jsonl"}, auditOptions{}, "fail"},
+		{"round codex empty answers", "codex", round, []string{round, "codex-rollout-empty-answers-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"round claude tool error", "claude", round, []string{round, "claude-project-tool-error-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"round claude rejected card is not empty", "claude", round, []string{round, "claude-project-rejected-card-fail.jsonl"}, auditOptions{}, "fail"},
+		{"round after unattended delegation (skill call)", "claude", round, []string{round, "claude-project-unattended-after-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"round before unattended delegation still fails", "claude", round, []string{round, "claude-project-unattended-before-fail.jsonl"}, auditOptions{}, "fail"},
+		{"round after unattended delegation (SKILL.md read)", "codex", round, []string{round, "codex-rollout-unattended-read-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"round with a compact summary inside its turn", "claude", round, []string{round, "claude-project-compact-summary-pass.jsonl"}, auditOptions{}, "pass"},
+		{"round with an interruption notice inside its turn", "claude", round, []string{round, "claude-project-interrupted-pass.jsonl"}, auditOptions{}, "pass"},
+		{"round grok UserDeclined is a decline", "grok", round, []string{round, "grok-updates-userdeclined-fail.jsonl"}, auditOptions{}, "fail"},
+		{"round grok failed status is a decline", "grok", round, []string{round, "grok-updates-failed-status-fail.jsonl"}, auditOptions{}, "fail"},
 		{"skill claude review", "claude", skill, []string{skill, "claude-project-review.jsonl"}, auditOptions{Cwd: "elsewhere"}, "review"},
 		{"skill claude pass", "claude", skill, []string{skill, "claude-project-pass.jsonl"}, auditOptions{Cwd: "elsewhere"}, "pass"},
 		{"skill codex spanish verb", "codex", skill, []string{skill, "codex-rollout-review.jsonl"}, auditOptions{Cwd: "elsewhere"}, "review"},
@@ -436,5 +461,66 @@ func TestAuditRoundEvidencePointsAtTheRoundMessage(t *testing.T) {
 	got := auditStatus(t, auditFixture(t, "codex", auditOptions{}, "text_round_without_card", "codex-rollout-fail.jsonl"), "text_round_without_card")
 	if len(got.Evidence) != 1 || !strings.HasPrefix(got.Evidence[0], "codex-rollout-fail.jsonl:") {
 		t.Fatalf("evidence = %v", got.Evidence)
+	}
+}
+
+func TestAuditUnknownSuccessIsNotRecordedAsSuccess(t *testing.T) {
+	for _, parts := range [][]string{
+		{"close_before_branch_cleanup", "codex-rollout-truncated-merge-notobserved.jsonl"},
+		{"existing_criteria", "codex-rollout-running-merge.jsonl"},
+	} {
+		s := loadFixture(t, "codex", auditOptions{}, parts...)
+		var seen bool
+		for _, e := range s.Trace.Events {
+			if e.Kind == "shell" && strings.HasPrefix(e.Command, "gh pr merge") {
+				seen = true
+				if e.Success != nil {
+					t.Fatalf("%v: success must be unknown, got %v", parts, *e.Success)
+				}
+			}
+		}
+		if !seen {
+			t.Fatalf("%v: merge command not extracted", parts)
+		}
+		merged := auditStatus(t, auditFixture(t, "codex", auditOptions{}, parts...), "merged_branch_deleted")
+		if merged.Status != "not_observed" {
+			t.Fatalf("%v: merged_branch_deleted = %+v", parts, merged)
+		}
+	}
+}
+
+func TestScanCodexExecObjectKeys(t *testing.T) {
+	cases := []struct {
+		name, js, want string
+		withheld       bool
+	}{
+		{"quoted key", `text(await tools.exec_command({"cmd": "git status", "yield_time_ms": 1000}));`, "git status", false},
+		{"identifier value of another key named like the target", "const cmd = \"x\";\ntext(await tools.exec_command({workdir: cmd, cmd: \"git status\"}));", "git status", false},
+		{"other key first", `text(await tools.exec_command({workdir: "sub", yield_time_ms: 5, cmd: 'git log'}));`, "git log", false},
+		{"nested object value before the key", `text(await tools.exec_command({env: {cmd: "no"}, cmd: "git diff"}));`, "git diff", false},
+		{"regex with a quote before the call", "const re = /[\"']x/g;\ntext(await tools.exec_command({cmd: \"git status\"}));", "git status", false},
+		{"regex with a quote as a value", `text(await tools.exec_command({pattern: /"/, cmd: "git status"}));`, "git status", false},
+		{"variable value is withheld", "const c = \"git status\";\ntext(await tools.exec_command({cmd: c}));", "", true},
+		{"concatenation is withheld", `text(await tools.exec_command({cmd: "git " + "status"}));`, "", true},
+		{"unterminated regex makes the block ambiguous", "const re = /\"abc\ntext(await tools.exec_command({cmd: \"git status\"}));", "", true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			calls, ambiguous := scanCodexExec(tc.js)
+			if len(calls) != 1 || calls[0].name != "exec_command" {
+				t.Fatalf("calls = %+v", calls)
+			}
+			c := calls[0]
+			literal := c.hasLiteral && !c.interpolate && !ambiguous
+			if tc.withheld {
+				if literal {
+					t.Fatalf("command must be withheld, got %q", c.literal)
+				}
+				return
+			}
+			if !literal || c.literal != tc.want {
+				t.Fatalf("literal = %q ok=%v ambiguous=%v, want %q", c.literal, c.hasLiteral, ambiguous, tc.want)
+			}
+		})
 	}
 }
