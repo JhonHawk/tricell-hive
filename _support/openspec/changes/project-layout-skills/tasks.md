@@ -4,11 +4,11 @@ Base: tricell-hive `development` en `9f67fead` (2026-11-17). Rama `feat/project-
 
 ### T1 — `project-layout` existe y todos sus consumidores apuntan a ella
 
-- [ ] `git mv content/skills/docs-cleanup content/skills/project-layout`; `SKILL.md` con `name: project-layout`, descripción que cubre convención, check, organizar y migrar, y el router de los tres modos; el procedimiento de limpieza se conserva entero.
-- [ ] `git mv content/skills/flow-close/references/artifact-layout.md content/skills/project-layout/references/layout.md`, ampliado con la raíz, el índice y su línea `Layout:` que declara las casas propias del proyecto y manda sobre los destinos por defecto, `data/`, el código fuera de `_support/` y la prohibición para el código de la aplicación; conserva el encabezado «Retain evidence» y su ancla.
-- [ ] `references/script-lifecycle.md`: dueño de los niveles 0, 1 y 3; los niveles 2 y 4 enlazan a flow-close «Candidates» y a defect-fix punto 5. flow-close «Candidates» suma un solo enlace a él.
-- [ ] Actualizar en el mismo commit cada consumidor de `artifact-layout` y `docs-cleanup`: `content/guidance/global.md` (enlace y la excepción de AC9 en una frase), `content/guidance/README.md`, `content/agents/**`, `content/skills/**`, `AGENTS.md:53`, `_support/docs/harness-engineering/rule-enforcers.md:25` (ruta de `archive_sessions.py`), `_support/docs/architecture/instruction-resources.md`, `tests/content/reading_footprint_test.go` (nuevas rutas en `added`), `tests/skills/workspace_archive_test.py`, `tests/fixtures/workspace-conventions/README.md`; en `tests/pilot/session_audit.go:1237` se conserva `docs-cleanup` en la regex de transcripts y se suman `project-layout|workspace-repo`.
-- [ ] `CHANGELOG.md` `[Unreleased]`: el renombre como cambio menor con nota de migración (`/docs-cleanup` pasa a `/project-layout`).
+- [x] `git mv content/skills/docs-cleanup content/skills/project-layout`; `SKILL.md` con `name: project-layout`, descripción que cubre convención, check, organizar y migrar, y el router de los tres modos; el procedimiento de limpieza se conserva entero.
+- [x] `git mv content/skills/flow-close/references/artifact-layout.md content/skills/project-layout/references/layout.md`, ampliado con la raíz, el índice y su línea `Layout:` que declara las casas propias del proyecto y manda sobre los destinos por defecto, `data/`, el código fuera de `_support/` y la prohibición para el código de la aplicación; conserva el encabezado «Retain evidence» y su ancla.
+- [x] `references/script-lifecycle.md`: dueño de los niveles 0, 1 y 3; los niveles 2 y 4 enlazan a flow-close «Candidates» y a defect-fix punto 5. flow-close «Candidates» suma un solo enlace a él.
+- [x] Actualizar en el mismo commit cada consumidor de `artifact-layout` y `docs-cleanup`: `content/guidance/global.md` (enlace y la excepción de AC9 en una frase), `content/guidance/README.md`, `content/agents/**`, `content/skills/**`, `AGENTS.md:53`, `_support/docs/harness-engineering/rule-enforcers.md:25` (ruta de `archive_sessions.py`), `_support/docs/architecture/instruction-resources.md`, `tests/content/reading_footprint_test.go` (nuevas rutas en `added`), `tests/skills/workspace_archive_test.py`, `tests/fixtures/workspace-conventions/README.md`; en `tests/pilot/session_audit.go:1237` se conserva `docs-cleanup` en la regex de transcripts y se suman `project-layout|workspace-repo`.
+- [x] `CHANGELOG.md` `[Unreleased]`: el renombre como cambio menor con nota de migración (`/docs-cleanup` pasa a `/project-layout`).
 
 **Closes:** AC1, AC2, AC3, AC9, AC13
 
@@ -26,9 +26,9 @@ Base: tricell-hive `development` en `9f67fead` (2026-11-17). Rama `feat/project-
 
 ### T2 — El layout sale de harness-audit
 
-- [ ] Mover HA-PL-01…05 y el manifiesto de migración a `content/skills/project-layout/references/migrate.md`, con la pregunta del hub de cuatro opciones, la propuesta de `_support/docs` (D16) y la escritura de la línea `Layout:` del índice cuando el usuario la declina, el test de viabilidad y la parte compartida de una migración (texto en `design.md` «Insumos copiados de memoria»).
-- [ ] Borrar `harness-audit/references/project-layout.md`. Su paso 4 apunta a `project-layout`; el modo de onboarding (`SKILL.md:35`) lee HA-PL-01 en `migrate.md`; se corrige «workspace section, which `hive doctor` does not check» para el caso del coordinador; la descripción de harness-audit y `content/agents/review/hive-review-harness.md:3` dejan de ofrecer preparar la migración de layout y nombran `project-layout`.
-- [ ] `tests/skills/harness_audit_rules_test.py`: `DEPLOYED` suma `content/skills/project-layout`; las filas HA-PL de `harness-audit-rules.md` siguen activas y su columna de casa dice `project-layout`.
+- [x] Mover HA-PL-01…05 y el manifiesto de migración a `content/skills/project-layout/references/migrate.md`, con la pregunta del hub de cuatro opciones, la propuesta de `_support/docs` (D16) y la escritura de la línea `Layout:` del índice cuando el usuario la declina, el test de viabilidad y la parte compartida de una migración (texto en `design.md` «Insumos copiados de memoria»).
+- [x] Borrar `harness-audit/references/project-layout.md`. Su paso 4 apunta a `project-layout`; el modo de onboarding (`SKILL.md:35`) lee HA-PL-01 en `migrate.md`; se corrige «workspace section, which `hive doctor` does not check» para el caso del coordinador; la descripción de harness-audit y `content/agents/review/hive-review-harness.md:3` dejan de ofrecer preparar la migración de layout y nombran `project-layout`.
+- [x] `tests/skills/harness_audit_rules_test.py`: `DEPLOYED` suma `content/skills/project-layout`; las filas HA-PL de `harness-audit-rules.md` siguen activas y su columna de casa dice `project-layout`.
 
 **Closes:** AC6, AC7, AC13
 
@@ -85,23 +85,23 @@ Base: tricell-hive `development` en `9f67fead` (2026-11-17). Rama `feat/project-
 ### T5 — Documentación de arquitectura y del repo
 
 - [ ] `_support/docs/architecture/workspace-and-artifacts.md` (layouts, coordinador, ciclo de vida, por qué la convención vuelve a una skill propia), `repository-and-distribution.md` si lista skills, `rule-enforcers.md` (filas de `check_layout.py` junto a las de `hive doctor`).
-- [ ] `README.md` y `llms.txt` nombran `project-layout` y `workspace-repo`.
+- [ ] `llms.txt` nombra `project-layout` y `workspace-repo` (`README.md` solo lista flows).
 
-**Closes:** AC11
+**Closes:** AC14
 
 **Depends on:** T1, T2, T4
 
-**Locations:** `_support/docs/**`, `README.md`, `llms.txt`
+**Locations:** `_support/docs/**`, `llms.txt`
 
 **Execution:** hilo principal
 
-**Verification:** `go test ./tests/content/...` (incluye `rule_enforcers_test`) pasa; `rg -l docs-cleanup README.md llms.txt AGENTS.md` vacío.
+**Verification:** `go test ./tests/content/...` (incluye `rule_enforcers_test`) pasa; `rg -l docs-cleanup llms.txt AGENTS.md` vacío.
 
 ### T6 — Sitio
 
 - [ ] `site/src/content/docs/skills.md`, `index.mdx` y `flows/close.md`: las dos skills y los enlaces nuevos; describen el comportamiento y enlazan la skill, sin copiar reglas.
 
-**Closes:** AC11
+**Closes:** AC14
 
 **Depends on:** T1, T4
 
@@ -127,8 +127,8 @@ Base: tricell-hive `development` en `9f67fead` (2026-11-17). Rama `feat/project-
 
 ### T8 — Viewer y doctor con un coordinador
 
-- [ ] Test de caracterización de `timelineProjectKey` para un workspace con trabajos guardados: la clave no cambia con `git init` sin remoto y cambia, con 409 `project_identity_changed`, al agregar `origin`.
-- [ ] Test de `hive doctor` con un coordinador cuyo `.gitignore` incluye `HIVE.local.md` y cuyos hijos están ignorados.
+- [x] Test de caracterización de `timelineProjectKey` para un workspace con trabajos guardados: la clave no cambia con `git init` sin remoto y cambia, con 409 `project_identity_changed`, al agregar `origin`.
+- [x] Test de `hive doctor` con un coordinador cuyo `.gitignore` incluye `HIVE.local.md` y cuyos hijos están ignorados.
 
 **Closes:** AC10
 
@@ -176,3 +176,6 @@ Sin parada de validación humana: la entrega es `ready`, que se detiene con el P
 
 2026-11-18 — Revisión: AC13 (línea `Layout:`) suma a T1, T2 y T3.
 2026-11-18 — Plan escrito y revisado: T1 y T2 originales unidas en T1 para que los tests no se rompan entre tareas; numeración nueva.
+2026-11-18 — T8 · 220bb97c · unverified: none
+2026-11-18 — T1 · fd85bd49 · unverified: none
+2026-11-18 — T2 · fd85bd49 · unverified: AC7 behavior in a real session pending observation
