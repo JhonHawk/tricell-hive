@@ -196,6 +196,24 @@ class PlanLayoutTest(Fixture, unittest.TestCase):
         plain = self.plan_json(repo)
         self.assertEqual(plain["layout_lines"], [])
 
+    def test_kept_rows_stay_where_they_are(self):
+        repo = monorepo(self.tmp() / "shop")
+        keeps = ["_support/scripts/detect-changes.sh", "_support/infrastructure", "_support/evidence/2026-01-02-abc-1-x"]
+        plan = self.plan_json(repo, extra=[a for k in keeps for a in ("--keep", k)])
+        kept = {r["source"] for r in plan["rows"] if "kept by user" in r["notes"]}
+        self.assertEqual(kept, {
+            "_support/scripts/detect-changes.sh", "_support/scripts/detect-changes.test.sh",
+            "_support/infrastructure/terraform/main.tf", "_support/infrastructure/terraform/environments/qa/x.tfvars.example",
+            "_support/infrastructure/backend/iam/unused-policy.json", "_support/evidence/2026-01-02-abc-1-x",
+        })
+        self.assertTrue(all(r["destination"] is None for r in plan["rows"] if r["source"] in kept))
+        self.assertFalse({r["path"] for r in plan["reviews"]} & kept)
+        self.assertFalse([r for r in plan["rewrites"] if "detect-changes.sh" in r["old"]])
+        self.assertEqual(self.dest(plan, "_support/scripts/verify-push.sh")[0], "scripts/hooks/verify-push.sh")
+        unknown = self.plan(repo, extra=["--keep", "_support/nothing"], check=False)
+        self.assertNotEqual(unknown.returncode, 0)
+        self.assertIn("_support/nothing", unknown.stderr)
+
     def test_workspace_root_without_git_places_no_code(self):
         base = self.tmp() / "ws"
         write(base, "_support/scripts/seed-abc-12.cjs", "x\n")

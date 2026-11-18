@@ -2,7 +2,7 @@
 """Plan, apply, verify and undo the moves project-layout makes, deterministically.
 
   plan_layout.py [plan] --root DIR [--root DIR ...] [--override SRC=DEST ...]
-                 [--home tools|infra|docs=PATH ...] [--json] [--out FILE]
+                 [--keep SRC ...] [--home tools|infra|docs=PATH ...] [--json] [--out FILE]
   plan_layout.py apply  --plan FILE      move, rewrite references, write FILE.undo.json
   plan_layout.py verify --plan FILE      fail while a current reference to a moved path remains
   plan_layout.py undo   --plan FILE      reverse exactly what apply recorded
@@ -220,10 +220,12 @@ class Root:
 
 
 class Planner:
-    def __init__(self, roots, overrides, homes):
+    def __init__(self, roots, overrides, homes, keeps=()):
         self.roots = [Root(r) for r in roots]
         self.overrides = overrides
         self.used_overrides = set()
+        self.keeps = list(keeps)
+        self.used_keeps = set()
         self.homes_override = homes
         self.rows = {}  # (root index, source) -> row
         self.reviews = []
@@ -511,6 +513,8 @@ class Planner:
         subject = self.subject_of(key) if self.is_test(row) else None
         if subject and not self.is_lib(self.rows[subject]):
             dest = self.rows[subject]["destination"]
+            if "kept by user" in self.rows[subject]["notes"]:
+                return self.set_kept(key, "R1")
             if dest:
                 return self.set_dest(key, "R1", os.path.join(os.path.dirname(dest), os.path.basename(row["source"])))
             return self.set_review(key, "R1", "subject has no destination")
@@ -674,8 +678,26 @@ class Planner:
                 return os.path.normpath(dest).replace(os.sep, "/")
         return None
 
+    def keep_for(self, row):
+        """Whether the user keeps this row where it is: its source, or a folder holding it."""
+        root = self.roots[row["root"]]
+        source = root.abs(row["source"])
+        for spec in self.keeps:
+            path = os.path.abspath(spec) if os.path.isabs(spec) else root.abs(os.path.normpath(spec))
+            if source == path or source.startswith(path.rstrip(os.sep) + os.sep):
+                self.used_keeps.add(spec)
+                return True
+        return False
+
+    def set_kept(self, key, rule):
+        row = self.rows[key]
+        row["rule"], row["destination"], row["override"] = rule, None, False
+        row["notes"].append("kept by user")
+
     def set_dest(self, key, rule, dest):
         row = self.rows[key]
+        if self.keep_for(row):
+            return self.set_kept(key, rule)
         override = self.override_for(row)
         row["rule"] = rule
         row["destination"] = override or os.path.normpath(dest).replace(os.sep, "/")
@@ -683,6 +705,8 @@ class Planner:
 
     def set_review(self, key, rule, reason):
         row = self.rows[key]
+        if self.keep_for(row):
+            return self.set_kept(key, rule)
         override = self.override_for(row)
         row["rule"] = rule
         if override:
@@ -918,6 +942,9 @@ class Planner:
         unused = sorted({spec for spec, _ in self.overrides} - self.used_overrides)
         if unused:
             raise SystemExit(fail("--override names no planned row: " + ", ".join(unused)))
+        unused = sorted(set(self.keeps) - self.used_keeps)
+        if unused:
+            raise SystemExit(fail("--keep names no planned row: " + ", ".join(unused)))
         self.mark_same_names()
         self.build_rewrites(refs)
         self.internal_paths()
@@ -948,7 +975,7 @@ def markdown(plan):
     for i, root in enumerate(plan["roots"]):
         lines += [f"## {root['path']}", "", "| Source | Rule | Destination | Notes |", "| --- | --- | --- | --- |"]
         for row in (r for r in plan["rows"] if r["root"] == i):
-            dest = f"`{row['destination']}`" if row["destination"] else "review"
+            dest = f"`{row['destination']}`" if row["destination"] else "kept" if "kept by user" in row["notes"] else "review"
             notes = "; ".join(row["notes"] + (["user override"] if row["override"] else []))
             lines.append(f"| `{row['source']}` | {row['rule']} | {dest} | {notes} |")
         rewrites = [r for r in plan["rewrites"] if r["root"] == i]
@@ -979,7 +1006,7 @@ def cmd_plan(args):
     for root in args.root:
         if not os.path.isdir(root):
             return fail(f"not a directory: {root}")
-    plan = Planner(args.root, overrides, homes).plan()
+    plan = Planner(args.root, overrides, homes, args.keep or []).plan()
     text = json.dumps(plan, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
     if args.out:
         with open(args.out, "w", encoding="utf-8") as handle:
@@ -1230,6 +1257,7 @@ def main(argv=None):
     plan = sub.add_parser("plan", help="print the plan; changes nothing")
     plan.add_argument("--root", action="append", required=True)
     plan.add_argument("--override", action="append", metavar="SRC=DEST")
+    plan.add_argument("--keep", action="append", metavar="SRC", help="leave this row, or every row under this folder, where it is")
     plan.add_argument("--home", action="append", metavar="KEY=PATH")
     plan.add_argument("--json", action="store_true")
     plan.add_argument("--out")
