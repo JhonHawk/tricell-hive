@@ -22,7 +22,7 @@ Which of Hive's rules a mechanism enforces, and which still rest on prose. A rul
 | A PRD keeps its sections and rule entries | `content/skills/create-prd/SKILL.md` | `content/skills/create-prd/scripts/check_prd.py` | prevents | enforced |
 | A ticket keeps the sections of its type | `content/skills/create-issue/SKILL.md` | `content/skills/create-issue/scripts/check_issue.py` | prevents | enforced |
 | A project's verification contract names real commands | `content/skills/flow-verify/references/project-verification.md` | `content/skills/flow-verify/scripts/check_contract.py` | prevents | enforced |
-| Session archives move with their records | `content/skills/docs-cleanup/references/archive.md` | `content/skills/docs-cleanup/scripts/archive_sessions.py` | prevents | enforced |
+| Session archives move with their records | `content/skills/project-layout/references/archive.md` | `content/skills/project-layout/scripts/archive_sessions.py` | prevents | enforced |
 | No broad `git add`, no read of a secret's content, a question after its detail, cited IDs glossed, no bare URLs, ticket IDs not packed in prose, merged branches deleted | global guidance «Secrets» and «Questions and routes»; `content/skills/flow-close/SKILL.md` | `tests/pilot/regression.go` | detects | enforced |
 | A round goes through the permitted waiting card, not only in text | global guidance «Questions and routes» | `tests/pilot/session_audit.go` (`text_round_without_card`) | detects | enforced |
 | Close deletes the merged branch before its report in the closes that defer no step; at a completion point the report comes first | `content/skills/flow-close/SKILL.md` step 5 | `tests/pilot/session_audit.go` (`close_before_branch_cleanup`, flags for review only) | detects | judgment |

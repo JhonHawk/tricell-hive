@@ -123,7 +123,7 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 		skills + "flow-build/SKILL.md", skills + "flow-verify/SKILL.md", skills + "flow-close/SKILL.md",
 		skills + "flow-build/references/delegation.md",
 		skills + "flow-plan/references/plan-handoff.md", skills + "flow-plan/references/business-rules.md",
-		skills + "flow-close/references/artifact-layout.md", skills + "flow-close/references/support-material.md",
+		skills + "project-layout/references/layout.md", skills + "flow-close/references/support-material.md",
 		skills + "flow-verify/references/project-verification.md", skills + "flow-verify/references/suppression-review.md",
 		"content/agents/review/hive-review-plan.md", "content/agents/development/hive-build-backend.md",
 		"content/agents/quality/hive-verify-task.md", "content/agents/review/hive-review-code.md",
@@ -140,6 +140,7 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 		skills + "flow-verify/references/suppression-review.md":   true,
 		"content/agents/development/hive-build-owner.md":          true,
 		skills + "flow-verify/scripts/check_contract.py":          true,
+		skills + "project-layout/references/layout.md":            true,
 	}
 	for _, scenario := range []struct {
 		name, predicate string
