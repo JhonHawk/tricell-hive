@@ -1389,10 +1389,18 @@ func reviewQuestionNativeOption(s auditSession) criterionAssessment {
 		return c
 	}
 	var failed, passed []string
-	// mechanisms is where the options name a review mechanism; names is where an
-	// option is named (a card's label, not its description).
+	// mechanisms holds one option per line, where an option names its review
+	// mechanism; names is where an option is named (a card's label, not its
+	// description). The question picks a mechanism when at least two options name
+	// one: a decision about applying a review's findings names one at most.
 	judge := func(e traceEvent, title, mechanisms, names string) {
-		if !reviewQuestionTitle.MatchString(title) || !reviewMechanismOption.MatchString(mechanisms) {
+		named := 0
+		for _, option := range strings.Split(mechanisms, "\n") {
+			if reviewMechanismOption.MatchString(option) {
+				named++
+			}
+		}
+		if !reviewQuestionTitle.MatchString(title) || named < 2 {
 			return
 		}
 		if nativeReviewOption.MatchString(names) {
