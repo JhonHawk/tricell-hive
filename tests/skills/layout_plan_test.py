@@ -549,6 +549,25 @@ class SecondReviewTest(Fixture, unittest.TestCase):
         details = [r["detail"] for r in plan["reviews"] if r["path"] == "_support/scripts/deploy.test.sh"]
         self.assertEqual(details, ["subject has no destination"], details)
 
+    def test_a_dependent_neither_lands_in_an_ignored_path_nor_takes_an_overridden_one(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, ".gitignore", "_support/workspace/\nscripts/ci/*.test.sh\n")
+        write(repo, ".github/workflows/deploy.yml", "steps:\n  - run: _support/scripts/deploy.sh\n")
+        write(repo, "_support/scripts/deploy.sh", "echo\n")
+        write(repo, "_support/scripts/deploy.test.sh", "echo\n")
+        write(repo, "_support/scripts/other.sh", "echo\n")
+        git(repo, "add", "-f", "_support/scripts/deploy.test.sh")
+        commit(repo)
+        plan = self.plan_json(repo)
+        self.assertIsNone(PlanLayoutTest.dest(plan, "_support/scripts/deploy.test.sh")[0])
+        git(repo, "rm", "-q", "--cached", ".gitignore")
+        write(repo, ".gitignore", "_support/workspace/\n")
+        commit(repo)
+        plan = self.plan_json(repo, extra=["--override", "_support/scripts/other.sh=scripts/ci/deploy.test.sh"])
+        other = [r for r in plan["rows"] if r["source"] == "_support/scripts/other.sh"][0]
+        self.assertEqual((other["destination"], other["override"]), ("scripts/ci/deploy.test.sh", True))
+        self.assertIsNone(PlanLayoutTest.dest(plan, "_support/scripts/deploy.test.sh")[0])
+
     def test_undo_never_empties_a_file_it_cannot_read(self):
         repo = small_repo(self.tmp() / "r")
         write(repo, ".github/workflows/deploy.yml", "steps:\n  - run: _support/scripts/x.sh\n")

@@ -736,38 +736,46 @@ class Planner:
 
     # ---- guards after classification ------------------------------------------------
     def guard(self):
-        """Tracked rows going into ignored folders, then collisions; dependents follow."""
+        """Tracked rows going into ignored folders, then collisions: first for the rows
+        placed on their own, then, once their subjects and users are settled, for the
+        tests and libraries placed beside them. A dependent never displaces a row
+        already settled: on a shared destination only the dependent goes to review."""
+        dependents = set(self.dependents)
+        settled = [k for k in sorted(self.rows) if k not in dependents]
+        self.guard_ignored(settled)
+        self.mark_collisions(settled, settled)
+        for key in self.dependents:
+            row = self.rows[key]
+            if not row["override"] and row["rule"] in ("R1", "R3"):
+                self.place_dependent(key, row)
+        later = [k for k in self.dependents if k in self.rows]
+        self.guard_ignored(later)
+        self.mark_collisions(sorted(self.rows), later)
+
+    def guard_ignored(self, keys):
         for i, root in enumerate(self.roots):
-            tracked = {r["destination"]: k for k, r in self.rows.items()
-                       if r["root"] == i and r["tracked"] and r["destination"] and not r["override"]}
+            tracked = {self.rows[k]["destination"]: k for k in keys
+                       if self.rows[k]["root"] == i and self.rows[k]["tracked"]
+                       and self.rows[k]["destination"] and not self.rows[k]["override"]}
             for dest in sorted(root.ignored(sorted(tracked))):
                 self.set_review(tracked[dest], self.rows[tracked[dest]]["rule"],
                                 f"tracked: {dest} is ignored, so the move would drop it from Git; "
                                 "remove it from the tree with the archive tag instead")
-        self.mark_collisions()
-        for key in self.dependents:
-            row = self.rows[key]
-            if not row["override"] and row["rule"] in ("R1", "R3"):
-                self.forget_collision(key)
-                self.place_dependent(key, row)
-        self.mark_collisions()
 
-    def forget_collision(self, key):
-        """Drop what mark_collisions recorded for a row about to be placed again."""
-        row = self.rows[key]
-        row["notes"] = [n for n in row["notes"] if n != "collision"]
-        self.reviews = [r for r in self.reviews if not (r["root"] == row["root"] and r["path"] == row["source"]
-                                                        and r["detail"].startswith("collision at "))]
-
-    def mark_collisions(self):
+    def mark_collisions(self, claimants, movable):
+        """Send to review the rows of movable whose destination exists or is shared
+        with another claimant."""
+        movable = set(movable)
         seen = collections.defaultdict(list)
-        for key in sorted(self.rows):
+        for key in claimants:
             row = self.rows[key]
             if row["destination"]:
                 seen[(row["root"], row["destination"])].append(key)
         for (i, dest), keys in sorted(seen.items()):
             if os.path.lexists(self.roots[i].abs(dest)) or len(keys) > 1:
                 for key in keys:
+                    if key not in movable:
+                        continue
                     row = self.rows[key]
                     row["notes"].append("collision")
                     row["override"] = False
