@@ -96,11 +96,16 @@ class CheckLayoutTest(unittest.TestCase):
         write(repo, "_support/secrets/token.txt", "x\n")
         write(repo, "_support/data/dump.sql", "x\n")
         write(repo, "_support/workspace/.gitkeep", "")
-        commit_all(repo, force=["_support/secrets/token.txt", "_support/data/dump.sql", "_support/workspace/.gitkeep"])
+        write(repo, "_support/workspace/notes.md", "x\n")
+        write(repo, "_support/scripts/ci.sh", "echo\n")
+        write(repo, "HIVE.local.md", "- `_support/scripts/ci.sh` 2026-11-18\n")
+        commit_all(repo, force=["_support/secrets/token.txt", "_support/data/dump.sql", "_support/workspace/.gitkeep", "_support/workspace/notes.md", "_support/scripts/ci.sh"])
         result = self.run_check(repo)
         self.assertEqual(result.returncode, 1)
         self.assertFinding(result, "LAYOUT-02", fragment="token.txt")
         self.assertFinding(result, "LAYOUT-02", fragment="dump.sql")
+        self.assertFinding(result, "LAYOUT-02", fragment="notes.md")
+        self.assertFinding(result, "LAYOUT-02", fragment="ci.sh")
         self.assertNotIn(".gitkeep", result.stdout)
 
     def test_layout_03_code_cites_support_and_exemptions(self):
