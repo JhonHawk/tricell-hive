@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build · plan revisado 2026-11-18 |
+| Estado | Completado · PR #508, merge 88864d84 |
 | Tracker | Sin ticket |
 | Git | tricell-hive · base `development` en `9f67fead` · rama propuesta `feat/project-layout-skills` |
 
