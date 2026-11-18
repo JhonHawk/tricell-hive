@@ -349,6 +349,9 @@ func runProcess(cmd *exec.Cmd, limit time.Duration) (int, string) {
 	}
 }
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "e2e" {
+		os.Exit(e2eMain(os.Args[2:], os.Stdout, os.Stderr))
+	}
 	if len(os.Args) > 1 && os.Args[1] == "qualify" {
 		os.Exit(qualifyMain(os.Args[2:], os.Stdout, os.Stderr))
 	}
@@ -375,7 +378,14 @@ func main() {
 	codexBypass := flag.Bool("codex-bypass-sandbox", false, "use the user-authorized native Codex approval/sandbox bypass for this invocation")
 	memoryStore := flag.String("memory-store", "", "disposable-container or default bound store")
 	nativeDataRoot := flag.String("native-data-root", "", "container tmpfs root for native data")
+	auditSession := flag.String("audit-session", "", "audit a real session transcript (with --host claude|codex|grok) and print the criteria as JSON; runs no model")
+	auditBase := flag.String("base", "", "base branch for --audit-session; default: Base branch of the session cwd AGENTS.md")
+	auditCwd := flag.String("cwd", "", "working directory for --audit-session when the session's repository has moved; default: the cwd the transcript records")
 	flag.Parse()
+	if *auditSession != "" {
+		must(auditSessionMain(*auditSession, *host, auditOptions{Base: *auditBase, Cwd: *auditCwd}, os.Stdout))
+		return
+	}
 	_, containerErr := os.Stat("/.dockerenv")
 	must(validateFlashContainer(*memoryStore, *nativeDataRoot, os.Environ(), containerErr == nil || os.Getenv("HIVE_PILOT_CONTAINER") == "1"))
 	if *memoryStore != "" && *suite != flashSuite {

@@ -26,7 +26,7 @@ Canonical procedural homes under `content/`:
 - `skills/flow-verify/SKILL.md` and its conditional `references/ui-verification.md`: verification, review, UI checks and proportional capture coverage. Publication consumers point here for those checks instead of restating a second capture policy.
 - `guidance/global.md` «Questions and routes»: the decision format (`Situation:`, `If you choose it:` and `I recommend` lines) and the finding format, the reasons shown to the user, stated as effects and never as what an instruction the agent follows requires, except one the user or their project wrote, the context line and waiting line of a decision, result, blocker or closing message, and the next-step block between flows: which flow commands it offers, the single actions asked directly instead, and the compaction reply at plan → build and after a close.
 - `guidance/global.md` «Scope and authorization»: effects beyond this machine, critical effects, third-party requests and delegation authority; «Scope changes»: a change the user asks for, or the work finds it needs, while work is open.
-- `guidance/global.md` «Delivery»: the delivery mode and the code-review question, their recommendation and the effects each answer authorizes; `skills/git-workflow/SKILL.md` performs those effects, including the reviews after the push, and reads Git and pull-request state through its `scripts/git_state.py`.
+- `guidance/global.md` «Delivery»: the delivery mode and the code-review question, their recommendation and the effects each answer authorizes; `skills/git-workflow/SKILL.md` performs those effects, including the reviews after the push, and reads Git and pull-request state through its `scripts/git_state.py`; its conditional `references/pr-captures.md` owns the before and after captures of the pull request body, their upload and the public-repository rule. The before captures themselves belong to `skills/flow-verify/references/ui-verification.md`.
 - `guidance/global.md` «Project settings», «Language», «Secrets», «Evidence» and «Persistent memory»: the rules that used to live in `hive-core` references (dissolved into the global guidance in `5e6e8907`).
 - `skills/flow-build/references/delegation.md`: before deciding whether a child does a piece of work, in any flow, briefing it or waiting for it; `skills/flow-build/SKILL.md`: when the turn may end during a build, and the `tasks.md` checkpoint, written with `skills/flow-plan/scripts/tasks.py`.
 - `skills/flow-build/references/defect-fix.md`: before the first edit of a defect fix, and when a plan weighs the approaches to one; read from `flow-build` step 2, «Reuse before writing» and «Tests», `flow-verify` step 3, `flow-deploy/references/urgent-fixes.md` and `hive-review-code`. `skills/flow-build/references/stored-data.md`: before a change to stored data; `skills/flow-build/references/security-boundaries.md`: when a change touches untrusted input, permissions, process execution or data exposure.
@@ -34,6 +34,11 @@ Canonical procedural homes under `content/`:
 - `skills/flow-close/SKILL.md` «Final report» and «Findings»: the report of a work item and the severity, grouping and recording of findings; its `references/support-material.md`: the inventory of the work's own support material, what would be deleted, and the actions the user answers at close.
 - `skills/docs-cleanup/SKILL.md`: cleaning up, pruning and reorganizing existing documentation and support material in a repository, a declared workspace or a monorepo, with or without Hive, through an inventory, a manifest, one confirmation and an archive tag per repository; its `references/inventory.md` sets the homes it lists, the protected items, the promotion of a conclusion and the pruning of a living document, and its `references/archive.md` with `scripts/archive_sessions.py` the archive of closed sessions. flow-close, artifact layout and harness-audit link to it instead of restating it.
 - `skills/flow-close/references/artifact-layout.md`: before writing or cleaning support artifacts; basic placement remains global.
+- `skills/flow-build/references/e2e-coordination.md`: explicit bounded coordination through existing flows, the local-owner exception, exact-head verification, replacement and integration. Global guidance keeps only its activation/authority invariant; research, plan, build, verify, close, unattended-delegation, git-workflow and the owner role link to it when the mode applies.
+- `skills/flow-plan/references/execution-record.md`: the multiunit record, CLI and versioned state contract owned by `flow-plan/scripts/tasks.py`, read by E2E coordination and Build for that checkpoint. The record is local ignored state, not a second versioned plan or proof of execution.
+- `skills/flow-verify/references/project-verification.md`: the project-owned Launch/Doctor/Drive/Evidence/Cleanup index and feature map; Plan and Build read it when verification capabilities change, Verify before its real-path walk. Its `assets/project-verification.json` and `scripts/check_contract.py` initialize without overwrite and validate structure without running commands.
+- `skills/flow-verify/references/suppression-review.md`: inventory and justified dispositions for added or widened suppressions, skipped checks and configuration exclusions. Verify supplies it to every selected review mechanism; `hive-review-code` links to the same procedure. Missing native coverage remains unverified.
+
 
 Activity and role consumers link directly to required resources. The global core
 does not delegate authorization, preservation or secrets to a selector. The
@@ -69,53 +74,70 @@ Current delivery selects hosts and scope and ships the complete skill catalogue.
 
 ## Declared reading footprint
 
-`tests/content/reading_footprint_test.go` reports every selected source and counts
-its UTF-8 bytes and Unicode characters once per scenario. It compares editorial
-baseline A (`d5164f71`) to working-tree B; C uses the same canonical files with
-the optional loader active. This is a declared source union, not an observed
-request, cumulative session cost or proof that references were read. Missing
-required files fail measurement. The size quota of a `SKILL.md` is set by
-harness-audit HA-SK-02 and checked by `tests/content/skill_size_test.go`.
+`tests/content/reading_footprint_test.go` reports source unions in UTF-8 bytes and
+Unicode characters, counting a file once per scenario. Each test prints its
+predicate and complete file list. These are declared reading requirements, not
+observed requests, cumulative session cost, tokens or proof that a host read them.
 
-The predicates and full file lists are in `TestGuidanceReadingFootprint`:
+`TestGuidanceReadingFootprint` retains the identifiable legacy scenarios:
+`global-only`, `simple-query`, `question` and `plan-build-cycle`, with baseline
+`d5164f71`. The last is an entrypoint/role subset, not a complete count of its
+conditional references. Do not describe that subset as the full build cost.
 
-- **Simple query:** factual reply without an activity, decision, delegation or
-  artifact. B reads global plus reporting, which the scenario counts; A has reporting in global.
-- **Question:** standalone user decision, with a waiting card or text. Add
-  questions to that common union; neither scenario invokes a whole activity.
-- **Plan/build cycle:** retained backend runtime plan, settings and hold/review
-  decision, read-only plan reviewer, delegated backend implementer and task
-  verifier, local tests, then pause through Close. Include the selected
-  Plan/Build/Close entrypoints, the Verify entrypoint and its review-and-gates
-  and runtime-gates references (stage handoff from Build), Research's planning exploration criterion,
-  plan format/review, settings/change records, delivery decisions, verification,
-  delegation, artifact layout, questions/option scope/reporting and the three
-  role sources.
-  No UI, security/data migration, deployment, Git execution or incidental finding
-  is assumed, so their conditional procedures are not added.
+`TestRequiredProcedureReadingFootprint` adds explicit required-procedure scenarios:
 
-Snapshot measured on 2026-10-23 at `2d89940e` (source files can change; rerun the test):
+- `plan-build-required`: retained backend plan, delegated implementation and
+  independent reviews, project verification and a hold/pause close. It includes
+  the selected procedural references. No UI, external service, migration,
+  defect correction or unattended authority is assumed.
+- `e2e`: the same backend work with an explicit multiunit grant, local owners,
+  correction, replacement, independent verification and authorized Git
+  integration. It adds the coordination, execution-record, defect-fix and Git
+  procedures and owner role. UI, data migration, deployment and unattended
+  authority remain outside this scenario.
+- `executable-resources`: the task/plan, verification-contract, Git and cleanup
+  helpers, measured separately. Executing a helper does not imply the model
+  reads its source; its bytes never enter the mandatory prose union by inference.
 
-| Scenario | A bytes | B/C bytes | Byte change |
+These comparisons use baseline `15b2e402`: pre-existing paths are measured on
+both sides with the same list, and new sources are reported separately. Prose,
+references and executable code have separate totals. Moving text into a required
+reference is not a reduction in the required union. Missing required files fail;
+there is no aggregate byte quota. `skill_size_test.go` retains the 16,000-byte
+limit for each skill entrypoint and each reference.
+
+The historical 2026-10-23 snapshot at `2d89940e` reported 33,710 B for global and
+229,774 B for its then-selected plan/build union. Its source list differs from
+these scenarios, so it is not a comparable savings baseline.
+
+Measurement for `bounded-e2e-coordination`, 2026-11-17, one source snapshot
+against `15b2e402` (rerun `go test ./tests/content -run Footprint -count=1 -v`):
+
+| Scope | Baseline bytes | Candidate bytes | Change |
 | --- | ---: | ---: | ---: |
-| Global alone | 46,912 | 33,710 | -28.14% |
-| Simple query | 46,912 | 49,107 | +4.68% |
-| Question | 46,912 | 59,365 | +26.55% |
-| Plan/build cycle | 173,839 | 229,774 | +32.18% |
+| Global | 52,219 | 52,673 | +454 |
+| Legacy plan/build subset, same paths | 130,562 | 132,415 | +1,853 |
+| Required plan/build, pre-existing paths | 168,348 | 171,237 | +2,889 |
+| Required plan/build, new sources | 0 | 7,407 | +7,407 |
+| E2E, pre-existing paths | 190,649 | 194,322 | +3,673 |
+| E2E, new sources | 0 | 29,866 | +29,866 |
+| Executable helpers, pre-existing paths | 67,544 | 96,964 | +29,420 |
+| Executable helpers, new sources | 0 | 8,319 | +8,319 |
 
-The global decrease is not total-context savings: reporting, which the
-simple-query scenario counts, already makes that union larger than A's, and the
-declared cycle grows. Under the current rule a short direct answer with no
-citation or relay reads only the global file, the first row. C's plan-review injection
-adds no unique source to that cycle, but delivery wrappers, repetition and timing
-can change actual requests. The measurement includes raw source frontmatter;
-it excludes native skill/role discovery metadata and rendering, plugin metadata
-and wrappers, repeated reads/copies across readers and requests, project inputs,
-history and host policies. It does not convert bytes to measured tokens.
-Actual delivery, token usage and task outcomes need native observations; the
-bounded pilot is future evidence, not a claim of small-model reliability. It has
-not run and remains blocked on verifying safe, exact memory cleanup; source and
-callback checks do not resolve that separate prerequisite.
+The candidate E2E union is 224,188 B, including 65,476 B of references.
+The complete distributed Markdown inventory (all `content/**/*.md`, not a reading
+scenario) grew from 558,726 to 592,573 B; distributed Python grew from 194,684 to
+232,423 B. Those inventories use Git blobs at the baseline and filesystem bytes
+for the candidate, excluding caches. This adds capabilities and reading cost;
+it is not a net prose reduction. Excluding scripts does not remove the 33,847 B
+Markdown increase. Each entrypoint and reference remains under 16,000 B.
+
+Native discovery metadata, rendering, plugin wrappers, repeated reads across
+requests or agents, project inputs, history and host policy are excluded.
+Optional loader injection can change delivery timing and repetition without
+adding a unique canonical source. Native observations must establish reading,
+model identity and outcomes independently; one bounded run does not qualify a
+model or prove cross-host reliability.
 
 ## Vendored upstream material
 

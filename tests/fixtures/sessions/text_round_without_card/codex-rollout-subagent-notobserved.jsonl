@@ -1,0 +1,10 @@
+{"timestamp":"2026-01-01T11:00:01.000Z","type":"session_meta","payload":{"id":"00000000-0000-0000-0000-000000000001","cwd":"project","source":{"subagent":{"thread_spawn":{"depth":1}}}}}
+{"timestamp":"2026-01-01T11:00:02.000Z","type":"turn_context","payload":{"model":"gpt-example","cwd":"project"}}
+{"timestamp":"2026-01-01T11:00:03.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t2"}}
+{"timestamp":"2026-01-01T11:00:04.000Z","type":"response_item","payload":{"type":"function_call","name":"request_user_input","call_id":"call_1","arguments":"{\"questions\": [{\"id\": \"d1\", \"header\": \"Delivery\", \"question\": \"D1 \\u2014 Which delivery mode?\", \"options\": [{\"label\": \"A - (\\u2605) Interactive\", \"description\": \"x\"}, {\"label\": \"B - Automatic\", \"description\": \"y\"}]}]}"}}
+{"timestamp":"2026-01-01T11:00:05.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"call_1","output":"{\"answers\":{\"d1\":{\"answers\":[\"A\"]}}}"}}
+{"timestamp":"2026-01-01T11:00:06.000Z","type":"response_item","payload":{"type":"message","role":"assistant","id":"msg2","phase":"commentary","content":[{"type":"output_text","text":"Working on it."}]}}
+{"timestamp":"2026-01-01T11:00:07.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t6"}}
+{"timestamp":"2026-01-01T11:00:08.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t7"}}
+{"timestamp":"2026-01-01T11:00:09.000Z","type":"response_item","payload":{"type":"message","role":"assistant","id":"msg3","phase":"final_answer","content":[{"type":"output_text","text":"**Plan · EXAMPLE · ready**\n\nD1 — Which delivery mode?\n\nSituation: the change touches one example file.\n\nA - (★) Interactive\nIf you choose it: you validate before the push.\n\nB - Automatic\nIf you choose it: it pushes without stopping.\n\nI recommend A: you can judge the result yourself.\n\nWaiting for D1."}]}}
+{"timestamp":"2026-01-01T11:00:10.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t9"}}

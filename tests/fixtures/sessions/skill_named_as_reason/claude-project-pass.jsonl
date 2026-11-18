@@ -1,0 +1,2 @@
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Continue."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"I stop before the push because the change alters a screen you have to judge. I ran flow-build earlier."}]}}

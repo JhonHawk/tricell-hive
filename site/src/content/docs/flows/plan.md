@@ -48,6 +48,8 @@ When the ticket or your request asks for the change in a named environment, the 
 
 A change folder stays on disk while the work runs and is committed with the code it plans: on the work's branch before the push when the specs live in the same repository, or in the specs repository when the work reaches its completion point. When that repository declares `Delivery: direct-base`, the folder is edited in its main checkout, with no branch or worktree, and a paused plan is committed there. Tasks still open after the merge do not hold it back; [Close](/flows/close/) records them and archives the folder.
 
+For explicitly delegated E2E work, the plan binds the objective, acceptance criteria, delivery endpoint, permitted effects, isolation and stopping conditions. The coordinator tracks independent units and their evidence; the [coordination procedure](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-build/references/e2e-coordination.md) defines the handoffs and recovery.
+
 ## Revising a plan in progress
 
 When a written plan changes during planning or the build, the agent updates in one pass every place the change folder states the change: proposal, design, the tasks' text, `Closes:` and verification, and the spec delta. It marks the new item with `Replaces:`, or a dropped criterion with `Retired:`, reopens the tasks the revision invalidates, and runs the check, which also reports a criterion that names no `Observed in:` place, until it is clean. When a criterion or the delta changed, the plan reviewer (`hive-review-plan`) reviews it once more, one round per revision. The revision is recorded in the progress section and the agent tells you in one line. The steps are in the [flow-plan skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/SKILL.md).
@@ -75,7 +77,7 @@ The agent summarizes the plan in the message: the objective with the files and a
 No. A change whose how leaves you no decision goes from Research to Build in the same turn.
 
 ### Does a ready plan mean the agent may start building?
-No. Your reply starts Build, unless you asked beforehand to build after the plan without stopping, or unattended delegation is active.
+No. Your reply starts Build, unless you asked beforehand to build after the plan without stopping, unattended delegation is active, or an explicit [E2E coordination](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-build/references/e2e-coordination.md) grant covers the continuation.
 
 ### Where is the exact rule?
 Source: [content/skills/flow-plan/SKILL.md](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/SKILL.md)

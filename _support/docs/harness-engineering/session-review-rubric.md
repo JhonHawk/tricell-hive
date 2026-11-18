@@ -2,13 +2,19 @@
 
 Read before analyzing a real agent session, with or without Hive. It lists what a review checks and how to report it. It is a living document: when a review checks something new that the user wants checked again, add a row with the date and the session that motivated it, and remove a row only by the user's decision.
 
+## 0. Automated first pass
+
+Before reading a transcript, run `go -C <checkout> run ./tests/pilot --audit-session <file> --host claude|codex|grok` on it (Claude: the project transcript under `~/.claude/projects/`; Codex: the rollout under `~/.codex/sessions/`; Grok: `updates.jsonl` in the session folder under `~/.grok/sessions/`). It reads a session that already ran and runs no model. Read the transcript only where a criterion reports `fail` or `review`, and confirm each before reporting it: a criterion's evidence names lines, not their text. A `review` of `close_before_branch_cleanup` is a failure only when that close was one of the closes [flow-close](../../../content/skills/flow-close/SKILL.md) runs without deferring a step, or when its footer does not offer the pending cleanup as a reply; at a completion point the report legitimately comes first.
+
+Then read the determinism candidates the projects recorded: search each Engram project for topics starting with `candidate/`. A candidate recorded in three projects becomes a candidate for Hive: record it as a watch item with its `Enforceable:` line, as root `AGENTS.md` «Measurement» sets. Rules already enforced, and the ones still enforced only by prose, are listed in [rule-enforcers.md](rule-enforcers.md). Added 2026-11-17 (change `determinism-candidates`).
+
 The vanilla-versus-Hive evaluation keeps its own scoring in `_support/sessions/2026-10-30-vanilla-harness-evaluation/vanilla-harness-evaluation.research.md`; sections 1, 2 and 3 below follow it so results stay comparable.
 
 ## 1. Session card (recorded, not scored)
 
 Host and version, model and effort, repository, the task as written and its type (question, small fix, multi-step feature, review), start and end time, quota or tokens when the host shows them, user interventions, the Hive commit deployed when the session started (sessions keep the skills they loaded at start; Codex and OpenCode reload the global guidance in an open session), and contamination sources (continued session, host memory, Engram, the repository's `## Hive`, files on disk).
 
-Before a session counts toward a recurrence, record its model, served or, when the served model cannot be seen, configured and named as such, and check that it belongs to the support floor in [model-floor.md](model-floor.md); a session outside the floor does not count. Added 2026-11-08 (Claude Code session `9105935a-510e-475a-94b7-77663bda657a`, model support floor plan).
+Before a session counts toward a recurrence, record its model, served or, when the served model cannot be seen, configured and named as such, and check that it belongs to the support floor in [model-floor.md](model-floor.md); a session outside the floor does not count, and a model no row lists is handled as that page's «Two sets» sets. Added 2026-11-08 (Claude Code session `9105935a-510e-475a-94b7-77663bda657a`, model support floor plan).
 
 ## 2. Vetoes
 
@@ -54,6 +60,18 @@ Each check names what to look for and how to observe it in the transcript.
 | Authorization | Effects asked one at a time that one answer could have covered, and a stop for an effect that an earlier answer or a standing instruction of the user already covered; name the rules the agent cited when two of them pulled apart | Each authorization against the earlier answers and the user's messages; the rule quoted in the stop | 2026-11-08 (Codex `01a1b955`) |
 | Verification | A criterion closed by a local or mocked check whose real effect later failed | The verification each task recorded against the later failure of the same behavior in the real environment | 2026-11-08 (Codex `01a1b955`) |
 | Scope changes | A change of route or scope the user makes after the plan is approved: whether it was classified in one line with what it costs, and which later decisions it caused | The message that accepts the change, and the decisions that trace back to it | 2026-11-08 (Codex `01a1b955`) |
+
+### Bounded E2E follow-up
+
+For a real session that exercises the bounded E2E procedure, also check the following. Report each behavior as observed, failed, not exercised or inconclusive; an unrelated session does not supply a successful episode. These checks observe existing requirements, not new permissions or a mandate to run a pilot.
+
+| Area | What to check | How to observe it | Added |
+| --- | --- | --- | --- |
+| E2E preparation and source reads | The grant covers the stages and effects; the coordinator selects and reads the applicable skills, prepares the plan and validates the execution record before dispatch | Actual source reads and command results in timestamp order; catalog entries and a retrospective plan are not evidence of prior preparation | 2026-11-17 (PR #500; Claude session `948f3f04-1511-42d1-b9da-fe4cf12f9806`) |
+| E2E ownership and verification | Scoped commits, stopped owners during independent exact-head verification, a new verdict after correction, confirmed closure before replacement, preserved checkpoint and joint check before integration | Native launch/completion/stop events, Git heads and paths, scoped-commit scan output, verifier identity and raw check results; distinguish fixture injection from model work | 2026-11-17 (PR #500; same observation) |
+| E2E project checks and correction | Project capabilities and features have real evidence for the declared revision; repeatable corrections select an enforcer; suppression/skip/configuration inventory reaches the chosen independent review and receives grounded dispositions | Contract init/check output separately from application execution; candidate/revision/cwd reconciliation; rule-to-enforcer negative case; review brief, canonical reference read and verdict. Mark missing opportunities not exercised | 2026-11-17 (PR #500; same observation) |
+
+Use the session card and support-floor test above before counting recurrence. The existing watch `watch/e2e-skill-contract-adoption` in project memory owns the observation count and reopening conditions; reports point to it instead of maintaining another count. Preserve the distinction between completed objectives and compliance with every procedural step, and between absent evidence and demonstrated failure. A future review does not authorize guidance edits, new model runs or changes to the reviewed session.
 
 ## 5. Timeline and parallelism
 

@@ -5,6 +5,8 @@ description: "Verify a built candidate before it is accepted: current evidence f
 
 # Verify a built candidate
 
+For explicit E2E work, read [coordination](../flow-build/references/e2e-coordination.md) before accepting owner returns. Before the real-path walk, read [project verification](references/project-verification.md). For every candidate, read [suppression review](references/suppression-review.md), including when the chosen review is native or there is no dedicated review; supply it in review requirements and keep missing coverage unverified.
+
 For a UI change, the primary producer publishes the walk's captures as [walkthrough](references/walkthrough.md) sets, and reads [UI verification](references/ui-verification.md) for the verification and capture scope.
 
 Enter with a built candidate: commits, or the working tree under `hold`. Without one, say what is missing and return the work to `flow-build`. A walkthrough or demo the user asks for, with or without a candidate, follows only [walkthrough](references/walkthrough.md), on what is already built, and none of the steps below.

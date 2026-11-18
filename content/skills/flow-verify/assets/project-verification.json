@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "targets": [
+    {
+      "id": "project",
+      "cwd": ".",
+      "capabilities": {
+        "launch": {
+          "status": "unverified", "reason": null, "references": [],
+          "requirements": [], "effects": [], "success": null, "evidence": null
+        },
+        "doctor": {
+          "status": "unverified", "reason": null, "references": [],
+          "requirements": [], "effects": [], "success": null, "evidence": null
+        },
+        "drive": {
+          "status": "unverified", "reason": null, "references": [],
+          "requirements": [], "effects": [], "success": null, "evidence": null
+        },
+        "evidence": {
+          "status": "unverified", "reason": null, "references": [],
+          "requirements": [], "effects": [], "success": null, "evidence": null
+        },
+        "cleanup": {
+          "status": "unverified", "reason": null, "references": [],
+          "requirements": [], "effects": [], "success": null, "evidence": null
+        }
+      },
+      "features": []
+    }
+  ]
+}
