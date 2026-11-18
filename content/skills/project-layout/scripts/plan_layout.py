@@ -27,8 +27,6 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import check_layout as cl  # noqa: E402  (python3 -I leaves the script's folder off sys.path)
 
 VERSION = 1
-# Names in check_layout.GATED that hold dependencies rather than build output.
-DEPENDENCY_DIRS = ("vendor", "deps")
 KEPT, KEPT_WITH = "kept by user", "kept with the kept files that use it"
 MANIFESTS = (
     "package.json", "go.mod", "pyproject.toml", "setup.py", "composer.json", "Gemfile", "pom.xml",
@@ -184,20 +182,9 @@ class Root:
                 continue
             name = os.path.basename(rel)
             directory = os.path.dirname(rel)
-            if directory and (name in MANIFESTS or name.endswith(MANIFEST_SUFFIXES)) and not self.in_dependencies(directory):
+            if directory and (name in MANIFESTS or name.endswith(MANIFEST_SUFFIXES)) and not cl.under_vendored(self.abs(rel), self.path):
                 found.add(directory)
         return sorted(found)
-
-    def in_dependencies(self, rel):
-        """Whether a folder lies in a committed dependency folder, such as Go's vendor/
-        beside go.mod, which holds other projects' manifests. Build output a repository
-        commits, such as build/, is its own source and still counts."""
-        parent = self.path
-        for name in rel.split("/"):
-            if name in cl.PRUNE or (name in DEPENDENCY_DIRS and cl.is_dependency_dir(parent, name)):
-                return True
-            parent = os.path.join(parent, name)
-        return False
 
     def package_of(self, rel):
         best = None
@@ -723,8 +710,8 @@ class Planner:
         row["notes"].append(KEPT_WITH if follows else KEPT)
 
     @staticmethod
-    def is_kept(row):
-        return KEPT in row["notes"] or KEPT_WITH in row["notes"]
+    def is_kept(row, by_user=False):
+        return KEPT in row["notes"] or (not by_user and KEPT_WITH in row["notes"])
 
     def set_dest(self, key, rule, dest):
         row = self.rows[key]
@@ -761,8 +748,16 @@ class Planner:
         for key in self.dependents:
             row = self.rows[key]
             if not row["override"] and row["rule"] in ("R1", "R3"):
+                self.forget_collision(key)
                 self.place_dependent(key, row)
         self.mark_collisions()
+
+    def forget_collision(self, key):
+        """Drop what mark_collisions recorded for a row about to be placed again."""
+        row = self.rows[key]
+        row["notes"] = [n for n in row["notes"] if n != "collision"]
+        self.reviews = [r for r in self.reviews if not (r["root"] == row["root"] and r["path"] == row["source"]
+                                                        and r["detail"].startswith("collision at "))]
 
     def mark_collisions(self):
         seen = collections.defaultdict(list)
@@ -783,7 +778,7 @@ class Planner:
         """A kept test whose subject moves may run it by a path that breaks: ask."""
         for key in sorted(self.rows):
             row = self.rows[key]
-            if KEPT not in row["notes"] or not self.is_test(row):
+            if not self.is_kept(row, by_user=True) or not self.is_test(row):
                 continue
             subject = self.subject_of(key)
             if subject and self.rows[subject]["destination"]:
@@ -1023,7 +1018,7 @@ def markdown(plan):
     for i, root in enumerate(plan["roots"]):
         lines += [f"## {root['path']}", "", "| Source | Rule | Destination | Notes |", "| --- | --- | --- | --- |"]
         for row in (r for r in plan["rows"] if r["root"] == i):
-            dest = f"`{row['destination']}`" if row["destination"] else "kept" if any(n.startswith("kept") for n in row["notes"]) else "review"
+            dest = f"`{row['destination']}`" if row["destination"] else "kept" if Planner.is_kept(row) else "review"
             notes = "; ".join(row["notes"] + (["user override"] if row["override"] else []))
             lines.append(f"| `{row['source']}` | {row['rule']} | {dest} | {notes} |")
         rewrites = [r for r in plan["rewrites"] if r["root"] == i]

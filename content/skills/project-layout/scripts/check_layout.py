@@ -59,6 +59,8 @@ GATED = {
     "obj": ("*.csproj", "*.fsproj"),
     "deps": ("mix.exs",),
 }
+# The GATED names that hold other projects' code rather than build output.
+DEPENDENCY_NAMES = ("vendor", "deps")
 IAC_EXTENSIONS = {".tf", ".tfvars", ".hcl"}
 IAC_FAMILY = {"infra", "infrastructure", "terraform", "deployments", "aws", "gcp", "azure", "iam", "cloud"}
 CONFIG_EXTENSIONS = {".json", ".yaml", ".yml"}
@@ -180,16 +182,27 @@ def is_dependency_dir(parent, name):
     return name in GATED and has_manifest(parent, GATED[name])
 
 
-def under_dependency(path, top, gated=True):
-    """Whether a path below top crosses a dependency or build output folder. Inside Git,
-    pass gated=False: Git already dropped ignored output, so a `build/` it lists is source."""
+def _crosses(path, top, test):
     rel = os.path.relpath(path, top)
     parent = top
     for name in rel.split(os.sep)[:-1]:
-        if name in PRUNE or (gated and is_dependency_dir(parent, name)):
+        if test(parent, name):
             return True
         parent = os.path.join(parent, name)
     return False
+
+
+def under_dependency(path, top, gated=True):
+    """Whether a path below top crosses a dependency or build output folder. Inside Git,
+    pass gated=False: Git already dropped ignored output, so a `build/` it lists is source."""
+    return _crosses(path, top, lambda parent, name: name in PRUNE or (gated and is_dependency_dir(parent, name)))
+
+
+def under_vendored(path, top):
+    """Whether a path below top crosses a folder of other projects' code, even one the
+    repository commits, such as Go's `vendor/` beside `go.mod`. Build output it commits,
+    such as `build/`, is its own source and does not count."""
+    return _crosses(path, top, lambda parent, name: name in PRUNE or (name in DEPENDENCY_NAMES and is_dependency_dir(parent, name)))
 
 
 def walk_pruned(base):

@@ -534,6 +534,21 @@ class SecondReviewTest(Fixture, unittest.TestCase):
         dest = [r["destination"] for r in self.plan_json(other)["rows"] if r["source"] == "_support/scripts/web/x.sh"][0]
         self.assertTrue((dest or "").startswith("build/web/"), dest)
 
+    def test_a_replaced_dependent_drops_its_old_collision(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, ".github/workflows/deploy.yml", "steps:\n  - run: _support/scripts/deploy.sh\n")
+        write(repo, "scripts/ci/deploy.sh", "echo old\n")
+        write(repo, "scripts/ci/deploy.test.sh", "echo old\n")
+        write(repo, "_support/scripts/deploy.sh", "echo\n")
+        write(repo, "_support/scripts/deploy.test.sh", "echo\n")
+        commit(repo)
+        plan = self.plan_json(repo)
+        row = [r for r in plan["rows"] if r["source"] == "_support/scripts/deploy.test.sh"][0]
+        self.assertIsNone(row["destination"])
+        self.assertNotIn("collision", row["notes"])
+        details = [r["detail"] for r in plan["reviews"] if r["path"] == "_support/scripts/deploy.test.sh"]
+        self.assertEqual(details, ["subject has no destination"], details)
+
     def test_undo_never_empties_a_file_it_cannot_read(self):
         repo = small_repo(self.tmp() / "r")
         write(repo, ".github/workflows/deploy.yml", "steps:\n  - run: _support/scripts/x.sh\n")
