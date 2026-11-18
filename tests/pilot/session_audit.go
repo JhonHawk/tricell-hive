@@ -1019,15 +1019,20 @@ var (
 	claudeRejected = regexp.MustCompile(`(?i)doesn't want|does not want|rejected|declined|dismiss|denied|interrupted|cancel`)
 )
 
-// tableDecisionCell is a table cell that opens with a decision ID, such as
-// "**D1 · Which rows?**"; a round written as a table has one in a row whose
-// other cells hold the options, one of them starred.
-var tableDecisionCell = regexp.MustCompile(`^[\s*_]*D\d+\b`)
+// A round written as a table has, per decision, a row with a cell that opens
+// with the decision ID, such as "**D1 · Which rows?**" or a bare "D1" followed by
+// the question's cell, and at least two option cells, such as "**A ★** — …" and
+// "**B** — …", one of them starred.
+var (
+	tableDecisionCell = regexp.MustCompile(`^[\s*_]*D\d+\b`)
+	tableBareID       = regexp.MustCompile(`^[\s*_]*D\d+[\s*_]*$`)
+	tableOptionCell   = regexp.MustCompile(`^[\s*_]*[A-Z]\b[\s*_]*(\(?★|[-—–·])`)
+)
 
-// tableRounds returns the rows of a Markdown table that write a decision: a
-// cell that opens with a decision ID and another cell with the star. Each row
-// is its title cell, then its other cells one per line. A table of findings
-// (H1…) and a sentence that cites an answer, such as "D2 A ★", are not rows.
+// tableRounds returns the rows of a Markdown table that write a decision, each
+// as its title, then its option cells one per line. A table of findings (H1…),
+// a recap row with one answered option, such as "| D1 | A ★ interactive |", and
+// a sentence that cites an answer, such as "D2 A ★", are not rounds.
 func tableRounds(text string) []string {
 	var rows []string
 	for _, line := range strings.Split(text, "\n") {
@@ -1036,22 +1041,33 @@ func tableRounds(text string) []string {
 			continue
 		}
 		cells := strings.Split(strings.Trim(line, "|"), "|")
-		title, starred := -1, false
+		title := -1
 		for i, cell := range cells {
-			if title < 0 && tableDecisionCell.MatchString(cell) {
+			if tableDecisionCell.MatchString(cell) {
 				title = i
-			} else if strings.Contains(cell, "★") {
-				starred = true
+				break
 			}
 		}
-		if title < 0 || !starred {
+		if title < 0 {
 			continue
 		}
-		rest := append(append([]string{}, cells[:title]...), cells[title+1:]...)
-		for i := range rest {
-			rest[i] = strings.TrimSpace(rest[i])
+		heading, next := strings.TrimSpace(cells[title]), title+1
+		if tableBareID.MatchString(cells[title]) && next < len(cells) {
+			heading += " " + strings.TrimSpace(cells[next])
+			next++
 		}
-		rows = append(rows, strings.TrimSpace(cells[title])+"\n"+strings.Join(rest, "\n"))
+		var options []string
+		starred := false
+		for _, cell := range cells[next:] {
+			if tableOptionCell.MatchString(cell) {
+				options = append(options, strings.TrimSpace(cell))
+				starred = starred || strings.Contains(cell, "★")
+			}
+		}
+		if len(options) < 2 || !starred {
+			continue
+		}
+		rows = append(rows, heading+"\n"+strings.Join(options, "\n"))
 	}
 	return rows
 }
@@ -1373,11 +1389,13 @@ func reviewQuestionNativeOption(s auditSession) criterionAssessment {
 		return c
 	}
 	var failed, passed []string
-	judge := func(e traceEvent, title, options string) {
-		if !reviewQuestionTitle.MatchString(title) || !reviewMechanismOption.MatchString(options) {
+	// mechanisms is where the options name a review mechanism; names is where an
+	// option is named (a card's label, not its description).
+	judge := func(e traceEvent, title, mechanisms, names string) {
+		if !reviewQuestionTitle.MatchString(title) || !reviewMechanismOption.MatchString(mechanisms) {
 			return
 		}
-		if nativeReviewOption.MatchString(options) {
+		if nativeReviewOption.MatchString(names) {
 			passed = append(passed, regressionEvidence(e))
 		} else {
 			failed = append(failed, regressionEvidence(e))
@@ -1388,11 +1406,12 @@ func reviewQuestionNativeOption(s auditSession) criterionAssessment {
 		case e.Kind == "text" && e.Role == "assistant":
 			for _, block := range decisionBlocks(e.Text) {
 				title, rest, _ := strings.Cut(block, "\n")
-				judge(e, title, strings.Join(optionLine.FindAllString(rest, -1), "\n"))
+				options := strings.Join(optionLine.FindAllString(rest, -1), "\n")
+				judge(e, title, options, options)
 			}
 			for _, row := range tableRounds(e.Text) {
 				title, cells, _ := strings.Cut(row, "\n")
-				judge(e, title, cells)
+				judge(e, title, cells, cells)
 			}
 		case e.Kind == "question" && len(e.Input) > 0:
 			var in struct {
@@ -1405,11 +1424,12 @@ func reviewQuestionNativeOption(s auditSession) criterionAssessment {
 				continue
 			}
 			for _, q := range in.Questions {
-				var opts []string
+				var full, labels []string
 				for _, o := range q.Options {
-					opts = append(opts, o.Label)
+					full = append(full, o.Label+" "+o.Description)
+					labels = append(labels, o.Label)
 				}
-				judge(e, q.Question, strings.Join(opts, "\n"))
+				judge(e, q.Question, strings.Join(full, "\n"), strings.Join(labels, "\n"))
 			}
 		}
 	}
