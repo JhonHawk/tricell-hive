@@ -1027,8 +1027,8 @@ var (
 	tableDecisionCell = regexp.MustCompile(`^[\s*_]*D\d+\b`)
 	tableBareID       = regexp.MustCompile(`^[\s*_]*D\d+[\s*_]*$`)
 	// An option opens with its letter and a separator; "." and ":" count only
-	// before a space, so "E.g." is not an option.
-	tableOptionCell = regexp.MustCompile(`^[\s*_]*([A-Z])\b[\s*_]*(\(?★|[-—–·)]|[.:](\s|$))`)
+	// before a space, markup or the star, so "E.g." is not an option but "**A.**" is.
+	tableOptionCell = regexp.MustCompile(`^[\s*_]*([A-Z])\b[\s*_]*(\(?★|[-—–·)]|[.:]([\s*_(★]|$))`)
 	tableLineBreak  = regexp.MustCompile(`(?i)<br\s*/?>`)
 )
 
@@ -1403,7 +1403,8 @@ func reviewQuestionNativeOption(s auditSession) criterionAssessment {
 	// mechanisms holds one option per line, where an option names its review
 	// mechanism; names is where an option is named (a card's label, not its
 	// description). The question picks a mechanism when at least two options name
-	// one: a decision about applying a review's findings names one at most.
+	// one and its title is not about a review's findings, whose options may name
+	// a mechanism too.
 	judge := func(e traceEvent, title, mechanisms, names string) {
 		named := 0
 		for _, option := range strings.Split(mechanisms, "\n") {
