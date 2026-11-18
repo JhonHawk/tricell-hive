@@ -44,7 +44,7 @@ def monorepo(repo, backend="backend", web="web"):
           "jobs:\n  t:\n    env:\n      TF_ROOT: _support/infrastructure/terraform\n    steps:\n"
           "      - run: _support/scripts/detect-changes.sh \"$base\"\n"
           "      - run: find _support/scripts -name '*.test.sh' -exec bash {} \\;\n")
-    write(repo, "lefthook.yml", "pre-push:\n  commands:\n    v:\n      run: ./_support/scripts/verify-push.sh\n")
+    write(repo, "lefthook.yml", b"pre-push:\r\n  commands:\r\n    v:\r\n      run: ./_support/scripts/verify-push.sh\r\n")
     write(repo, "_support/docs/README.md", "# Index\n\n- [Runbook](runbook.md) when rolling back\n")
     write(repo, "_support/docs/runbook.md", f"Run `_support/scripts/rollback.sh qa`, then `_support/scripts/{backend}/set-key.sh`.\n")
     write(repo, "site/package.json", "{}\n")
@@ -55,7 +55,7 @@ def monorepo(repo, backend="backend", web="web"):
     write(repo, "_support/scripts/detect-changes.sh", "case \"$f\" in\n  x) echo;;\nesac\r\necho done\r\n", 0o755)
     write(repo, "_support/scripts/detect-changes.test.sh", ". \"$(dirname \"$0\")/release-fixture.lib.sh\"\n")
     write(repo, "_support/scripts/release-fixture.lib.sh", "echo lib\n")
-    write(repo, "_support/scripts/deploy-workflows.test.sh", "bash \"$REPO_ROOT/_support/scripts/detect-changes.sh\"\n")
+    write(repo, "_support/scripts/deploy-workflows.test.sh", "bash \"$REPO_ROOT/_support/scripts/detect-changes.sh\"\n", 0o755)
     write(repo, "_support/scripts/verify-push.sh", "echo push\n", 0o755)
     write(repo, "_support/scripts/rollback.sh",
           "HERE=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")\" && pwd)\"\ncat \"$HERE/../docs/runbook.md\"\n", 0o755)
@@ -83,7 +83,7 @@ def monorepo(repo, backend="backend", web="web"):
     return repo
 
 
-class PlanLayoutTest(unittest.TestCase):
+class Fixture:
     def tmp(self):
         d = tempfile.TemporaryDirectory()
         self.addCleanup(d.cleanup)
@@ -101,6 +101,9 @@ class PlanLayoutTest(unittest.TestCase):
     def plan_json(self, *roots, extra=()):
         return json.loads(self.plan(*roots, extra=extra).stdout)
 
+
+
+class PlanLayoutTest(Fixture, unittest.TestCase):
     @staticmethod
     def dest(plan, source):
         rows = [r for r in plan["rows"] if r["source"] == source]
@@ -209,6 +212,84 @@ class PlanLayoutTest(unittest.TestCase):
         self.plan(repo)
         self.assertEqual(git(repo, "status", "--porcelain", "--ignored").stdout, before)
         self.assertEqual(sorted(str(p) for p in repo.rglob("*") if ".git" not in p.parts), listing)
+
+
+
+class ApplyLayoutTest(Fixture, unittest.TestCase):
+    def run_cmd(self, command, plan_file):
+        return subprocess.run(["python3", "-I", str(SCRIPT), command, "--plan", str(plan_file)], text=True, capture_output=True)
+
+    def planned(self, repo, *extra):
+        plan_file = repo.parent / "plan.json"
+        self.plan(repo, extra=["--out", str(plan_file), *extra])
+        return plan_file
+
+    def state(self, repo):
+        return (git(repo, "status", "--porcelain", "--ignored").stdout, git(repo, "diff").stdout, git(repo, "diff", "--cached").stdout)
+
+    def test_apply_moves_rewrites_and_never_commits(self):
+        repo = monorepo(self.tmp() / "shop")
+        head = git(repo, "rev-parse", "HEAD").stdout
+        plan_file = self.planned(repo)
+        result = self.run_cmd("apply", plan_file)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(git(repo, "rev-parse", "HEAD").stdout, head)
+        self.assertTrue((repo / "apps/backend/scripts/contracts-check.sh").exists())
+        self.assertIn("bash scripts/contracts-check.sh", (repo / "apps/backend/package.json").read_text())
+        self.assertTrue((repo / "_support/workspace/2026-01-02-abc-1-x/evidence/shot.png").exists())
+        self.assertFalse((repo / "_support/evidence/2026-01-02-abc-1-x").exists())
+        self.assertIn(b"./scripts/hooks/verify-push.sh\r\n", (repo / "lefthook.yml").read_bytes())
+        self.assertTrue(os.access(repo / "scripts/ci/deploy-workflows.test.sh", os.X_OK))
+        self.assertIn("$REPO_ROOT/scripts/ci/detect-changes.sh", (repo / "scripts/ci/deploy-workflows.test.sh").read_text())
+        self.assertIn("_support/scripts/detect-changes.sh", (repo / "openspec/changes/archive/2026-01-01-x/tasks.md").read_text())
+        for old in ("_support/scripts/detect-changes.sh", "_support/scripts/verify-push.sh", "_support/infrastructure/terraform"):
+            hits = git(repo, "grep", "-n", "-F", old, "--", ".", ":!openspec/changes/archive", check=False).stdout
+            self.assertEqual(hits, "", old)
+
+    def test_verify_wants_index_lines_and_an_index(self):
+        repo = monorepo(self.tmp() / "shop")
+        plan_file = self.planned(repo)
+        self.assertEqual(self.run_cmd("apply", plan_file).returncode, 0)
+        result = self.run_cmd("verify", plan_file)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("no line for scripts/ci/detect-changes.sh", result.stdout)
+        index = repo / "_support/docs/README.md"
+        names = ["contracts-check.sh", "set-key.sh", "check-i18n.mts", "detect-changes.sh", "verify-push.sh", "rollback.sh"]
+        index.write_text(index.read_text() + "".join(f"- `{n}` — tool\n" for n in names))
+        result = self.run_cmd("verify", plan_file)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        index.unlink()
+        result = self.run_cmd("verify", plan_file)
+        self.assertIn("no index", result.stdout)
+
+    def test_apply_refuses_a_stale_plan_or_a_taken_destination(self):
+        repo = monorepo(self.tmp() / "shop")
+        plan_file = self.planned(repo)
+        (repo / "_support/scripts/verify-push.sh").write_text("echo changed\n")
+        before = self.state(repo)
+        result = self.run_cmd("apply", plan_file)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("changed since the plan", result.stderr)
+        self.assertEqual(self.state(repo), before)
+        repo2 = monorepo(self.tmp() / "store")
+        plan_file = self.planned(repo2)
+        write(repo2, "scripts/ci/detect-changes.sh", "taken\n")
+        result = self.run_cmd("apply", plan_file)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("destination exists", result.stderr)
+
+    def test_undo_restores_the_tree_and_keeps_other_work(self):
+        repo = monorepo(self.tmp() / "shop")
+        ci = repo / ".github/workflows/ci.yml"
+        ci.write_text(ci.read_text() + "      - run: echo other session\n")  # another work's uncommitted edit
+        before = self.state(repo)
+        plan_file = self.planned(repo)
+        self.assertEqual(self.run_cmd("apply", plan_file).returncode, 0)
+        self.assertNotEqual(self.state(repo), before)
+        result = self.run_cmd("undo", plan_file)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.state(repo), before)
+        self.assertIn("echo other session", ci.read_text())
 
 
 if __name__ == "__main__":

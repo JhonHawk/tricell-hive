@@ -75,6 +75,7 @@ plan_layout.py undo --plan FILE
 
 **Llamadores.** Son los archivos de las raíces que contienen un token de referencia que resuelve al candidato. Los tokens se definen en **Reescrituras**.
 - Se excluyen los registros históricos: `openspec/changes/archive/`, `_support/openspec/changes/archive/`, `sessions/`, `_support/sessions/`, `evidence/`, `_support/evidence/`, `_support/workspace/` y `CHANGELOG*`.
+- También se excluyen las listas de ignorados (`.gitignore`, `.ignore`, `.dockerignore`, `.prettierignore` y cualquier `*ignore`): nombran patrones, no rutas que algo use, así que una entrada vieja ahí no rompe nada.
 - Un candidato no cuenta como llamador para clasificar a otro. Sus referencias sí se reescriben.
 - Una referencia de prefijo o glob en un archivo `ci` cuenta como llamador `ci` solo de las pruebas que cubre, porque es un descubrimiento de pruebas, como el `find _support/scripts -name '*.test.sh'`.
 

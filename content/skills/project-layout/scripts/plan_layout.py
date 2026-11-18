@@ -211,9 +211,10 @@ class Planner:
 
     # ---- reading -------------------------------------------------------------
     def readable_files(self, i):
+        """Files whose support paths are references: not history, secrets, data or ignore lists."""
         root = self.roots[i]
         for rel in root.files:
-            if NEVER_READ.search("/" + rel) or HISTORY_RE.search(rel):
+            if NEVER_READ.search("/" + rel) or HISTORY_RE.search(rel) or os.path.basename(rel).endswith("ignore"):
                 continue
             yield rel
 
