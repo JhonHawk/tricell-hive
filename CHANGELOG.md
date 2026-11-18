@@ -83,6 +83,13 @@ raise the minor or the patch version.
   verification round fixes a defect at its cause, and the code review checks
   both. Build's stored-data and security rules moved to references of their
   own.
+  Its placement planner sends each script, Terraform file and legacy folder
+  under `_support/` to the same destination on every run, from who calls it:
+  a package's `scripts/`, `scripts/ci/`, `scripts/hooks/`, `scripts/ops/` or
+  `infra/`, reusing the folders a project already has. It rewrites the
+  references to what it moves, lists the ones it cannot rewrite safely, and
+  undoes exactly what it applied. Its check ignores dependency and build
+  folders of every language and fails on code kept under `_support/`.
 
 - Research audits a codebase when you ask for it, or for what to improve in
   it. It reads the project's check commands and decision records first,

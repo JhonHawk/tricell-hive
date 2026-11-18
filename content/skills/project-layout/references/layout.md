@@ -6,7 +6,7 @@ Read before writing or cleaning a support artifact, a script or an operation's d
 
 ## Read the project's layout
 
-Before choosing a destination, find the project's index: `_support/docs/README.md`, otherwise `docs/README.md`, otherwise the path an `Index: <path>` line of the root `AGENTS.md` names. It lists, one line each, the documents, runbooks and internal tools in force and when to read or use each. A `Layout:` line at its head, `Layout: docs at <path> · tools at <path>` with either key optional, declares the homes this project keeps instead of the defaults below; follow it over them. A project without an index or a `Layout:` line uses the defaults. Add a line to the index for each document, runbook or internal tool the work creates, and never declare a `Layout:` line yourself: [migrate](migrate.md) writes it when the user declines moving a home.
+Before choosing a destination, find the project's index: `_support/docs/README.md`, otherwise `docs/README.md`, otherwise the path an `Index: <path>` line of the root `AGENTS.md` names. It lists, one line each, the documents, runbooks and internal tools in force and when to read or use each. A `Layout:` line at its head, `Layout: docs at <path> · tools at <path> · infra at <path>` with each key optional, declares the homes this project keeps instead of the defaults below; follow it over them. A project without an index or a `Layout:` line uses the defaults. Add a line to the index for each document, runbook or internal tool the work creates, and never declare a `Layout:` line yourself: it is written only from the user's answer, by [migrate](migrate.md) when the user declines moving a home, or from the line the placement planner prints when the user changes a planned home.
 
 ## Identify the work
 
@@ -30,13 +30,18 @@ Create only the folders and records the work needs. One work item shares its ide
 
 **Actions:** choose by who runs it, as [script lifecycle](script-lifecycle.md) sets:
 
-- Code that every clone or CI needs goes in the code of the repository whose code or data it uses, in the folder that repository already uses for it, such as `scripts/` or `tools/` beside a backend's database code, or its infrastructure folder; never under `_support/`, which holds no code another clone needs. Add its line to the index.
+- Code that every clone or CI needs goes in the code of the repository whose code or data it uses, never under `_support/`, which holds no code another clone needs, and never in a workspace root that is not a repository. Add its line to the index. Its folder comes from who runs it, reusing the folder or the equivalent group the repository already has:
+  - code that one package runs, from its manifest, its code or its tests: that package's `scripts/`, `script/` or `tools/`, the first that exists, otherwise `scripts/`;
+  - code CI runs: `<tools>/ci/`; code a Git hook runs: `<tools>/hooks/`; a procedure a runbook tells people to run: `<tools>/ops/`; other shared tooling: `<tools>/`. `<tools>` is the `tools at` home, otherwise the first of `scripts`, `script`, `tools` or `hack` at the repository root, otherwise `scripts`; an existing `cicd`, `pipeline` or `pipelines` folder stands for `ci`, `git-hooks` or `githooks` for `hooks`, and `operations` or `runbooks` for `ops`;
+  - infrastructure as code (Terraform, cloud bootstrap and policies): the `infra at` home, otherwise the first of `infra`, `infrastructure`, `terraform` or `deployments`, otherwise `infra/`.
+
+  For code and folders already under `_support/`, the [placement planner](../scripts/plan_layout.py) computes these destinations with their full rule order, the reference rewrites and the items no rule places; never choose them by hand.
 - A script run once against shared data, such as a backfill, a repair or a cutover, stays in its work's `sessions/YYYY-MM-DD-<work>/` folder with its output, its revert and a `<work>.report.md` that says what it changed.
 - A helper only this machine needs is a local script under `scripts/`.
 - Anything else is scratch.
 
 Code never depends on the work material under `_support/` (`workspace/`, `data/`, `scripts/`, `secrets/`, `sessions/`, and any legacy `evidence/` or `reports/` folder), which a fresh clone does not have, and the running application never reads `_support/` at all: a path it needs, such as a log or a report folder, is its own configuration. Tooling may read the versioned knowledge in `_support/docs` and `_support/openspec`.
-- A work's verification material, such as walk outputs, captures and raw CI, cloud or tool output, goes in its `workspace/YYYY-MM-DD-<work>/` folder and is retained as [Retain evidence](#retain-evidence) sets. Do not create an `evidence/` folder; an existing one is legacy material, cleaned up on request with [project-layout](../SKILL.md).
+- A work's verification material, such as walk outputs, captures and raw CI, cloud or tool output, goes in its `workspace/YYYY-MM-DD-<work>/` folder and is retained as [Retain evidence](#retain-evidence) sets. Do not create an `evidence/` folder; an existing one is legacy material, cleaned up on request with [project-layout](../SKILL.md), whose planner moves each untracked subfolder to `workspace/<date>-<work>/evidence/` and curates it there.
 
 **Condition:** producing UI review images or recordings.
 
