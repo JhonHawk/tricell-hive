@@ -20,7 +20,9 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import sys
+import tempfile
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -79,6 +81,10 @@ ANCHOR_RE = re.compile(r"BASH_SOURCE|dirname \"?\$0|\$\(dirname|__dirname|import
 REL_LITERAL_RE = re.compile(r"(?<![\w.])((?:\.\./)*\.\.(?:/[\w.@-]+)*)(?![\w.])")
 MAX_READ = 5 * 1024 * 1024
 TOOL_RULES = ("R4", "R5", "R6", "R7", "R8")
+# Files that decide what a build or a published package takes from their folder.
+BUILD_IGNORES = (".dockerignore", ".gcloudignore", ".vercelignore", ".npmignore", ".helmignore")
+GLOB_CHARS = re.compile(r"[*?\[]")
+KEEP_REF_RE = re.compile(r"^(?P<path>.+?)(?::(?P<line>\d+))?$")
 
 
 def fail(message):
@@ -88,6 +94,117 @@ def fail(message):
 
 def git(root, *args, **kwargs):
     return cl.git(root, *args, **kwargs)
+
+
+def is_build_ignore(rel):
+    name = os.path.basename(rel)
+    return name in BUILD_IGNORES or name.endswith(".dockerignore")
+
+
+def ignore_base(ignore_file):
+    """The folder an exclusion file's patterns start from. A `<name>.dockerignore` sits beside its
+    Dockerfile but applies to the build context, which a monorepo sets to the repository root."""
+    name = os.path.basename(ignore_file)
+    return "" if name.endswith(".dockerignore") and name != ".dockerignore" else os.path.dirname(ignore_file)
+
+
+def exclusion_lines(path, seen=()):
+    """The patterns of an exclusion file as (negated, pattern), Docker's anchored to their base;
+    a `.gcloudignore` also takes the lines of each file its `#!include:` lines name."""
+    name = os.path.basename(path)
+    docker = name.endswith(".dockerignore")
+    lines = []
+    for raw in cl.read_text(path).splitlines():
+        line = raw.strip()
+        if name == ".gcloudignore" and line.startswith("#!include:"):
+            included = os.path.normpath(os.path.join(os.path.dirname(path), line[len("#!include:"):].strip()))
+            if included not in seen:
+                lines += exclusion_lines(included, (*seen, path))
+            continue
+        if not line or line.startswith("#"):
+            continue
+        negated = line.startswith("!")
+        line = line[1:].strip() if negated else line
+        if docker:  # Docker reads every pattern from the context root; Git's form for that is a leading slash
+            line = "/" + re.sub(r"^(?:\./|/)+", "", line)
+        lines.append((negated, line))
+    return lines
+
+
+def excluded_by(path, probes):
+    """The probes (paths relative to the exclusion file's folder) it leaves out, matched by
+    Git's own ignore rules in an empty repository. One difference with Docker: a `!` line
+    cannot bring back a file under a folder an earlier line excludes."""
+    if not probes:
+        return set()
+    scratch = tempfile.mkdtemp(prefix="plan-layout-")
+    try:
+        init = cl.git(scratch, "init", "-q")
+        if init is None or init.returncode != 0:
+            raise SystemExit(fail(f"cannot check {path}: git init failed in a temporary folder"))
+        patterns = os.path.join(scratch, "exclude")
+        with open(patterns, "w", encoding="utf-8") as handle:
+            handle.writelines(("!" if negated else "") + line + "\n" for negated, line in exclusion_lines(path))
+        result = cl.git(scratch, "-c", f"core.excludesFile={patterns}", "check-ignore", "--no-index", "-z", "--stdin",
+                        input="\0".join(sorted(set(probes))) + "\0")
+        if result is None or result.returncode not in (0, 1):  # 1: nothing matched
+            raise SystemExit(fail(f"cannot check {path}: {result.stderr.strip() if result else 'git check-ignore failed'}"))
+        return {item for item in result.stdout.split("\0") if item}
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+
+
+def under(rel, base):
+    """rel relative to the folder base, or None when it lies outside it."""
+    if not base:
+        return rel
+    return rel[len(base) + 1:] if rel.startswith(base + "/") else None
+
+
+def build_status(root, ignore_file, paths):
+    """For each root-relative path: True when the exclusion file leaves it out of its build.
+    A path outside the file's folder is not in that build, so it counts as left out. A folder
+    path ending in / is probed through a child, since Git matches a folder pattern only then."""
+    base = ignore_base(ignore_file)
+    probes = {p: under(p.rstrip("/"), base) for p in paths}
+    asked = {p: (local + "/.layout-probe" if p.endswith("/") else local) for p, local in probes.items() if local}
+    left_out = excluded_by(os.path.join(root, ignore_file), list(asked.values()))
+    return {p: (asked[p] in left_out if p in asked else True) for p in paths}
+
+
+def names_path(lines, ignore_file, dest, new_folder):
+    """Whether the exclusion file's lines name dest or a folder of it the move created:
+    whoever wrote that line decided about the new path."""
+    base = ignore_base(ignore_file)
+    accepted = {dest.rstrip("/")}
+    if new_folder:
+        parent = os.path.dirname(dest.rstrip("/"))
+        while parent and (parent == new_folder or parent.startswith(new_folder + "/")):
+            accepted.add(parent)
+            parent = os.path.dirname(parent)
+    accepted = {under(a, base) for a in accepted} - {None}
+    for _, line in lines:
+        clean = re.sub(r"^(?:\./|/)+", "", line).rstrip("/")
+        if clean in accepted and not GLOB_CHARS.search(clean):
+            return True
+    return False
+
+
+def left_ignored(root, folder):
+    """What Git ignores under folder, a wholly ignored folder as one entry."""
+    result = git(root, "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--directory", "--", folder)
+    if result is None or result.returncode != 0:
+        return []
+    found = sorted(item for item in result.stdout.split("\0") if item)
+    return [p for p in found if not any(q != p and q.endswith("/") and p.startswith(q) for q in found)]
+
+
+def line_hash(line):
+    return sha256_bytes(line.rstrip("\r\n").encode())
+
+
+def plural(n, one, many):
+    return f"{n} {one if n == 1 else many}"
 
 
 def sha256_bytes(data):
@@ -221,12 +338,19 @@ class Root:
 
 
 class Planner:
-    def __init__(self, roots, overrides, homes, keeps=()):
+    def __init__(self, roots, overrides, homes, keeps=(), keep_refs=()):
         self.roots = [Root(r) for r in roots]
         self.overrides = overrides
         self.used_overrides = set()
         self.keeps = list(keeps)
         self.used_keeps = set()
+        self.keep_refs = []  # (spec, path, line or None)
+        for spec in keep_refs:
+            match = KEEP_REF_RE.match(spec)
+            self.keep_refs.append((spec, os.path.abspath(match["path"]) if os.path.isabs(match["path"])
+                                   else os.path.normpath(match["path"]), int(match["line"]) if match["line"] else None))
+        self.used_keep_refs = set()
+        self.kept_refs = set()  # (root index, citing file, sha256 of the kept line or None for the whole file)
         self.homes_override = homes
         self.rows = {}  # (root index, source) -> row
         self.reviews = []
@@ -695,6 +819,17 @@ class Planner:
                 return True
         return False
 
+    def kept_ref(self, i, rel, line, text):
+        """Whether the user keeps the reference on this line as it is (--keep-ref FILE[:LINE]).
+        A kept line is recorded by its text, so lines added above it later do not lose it."""
+        source = self.roots[i].abs(rel)
+        for spec, path, wanted in self.keep_refs:
+            if source == (path if os.path.isabs(path) else self.roots[i].abs(path)) and wanted in (None, line):
+                self.used_keep_refs.add(spec)
+                self.kept_refs.add((i, self.new_location(i, rel), line_hash(text) if wanted else None))
+                return True
+        return False
+
     def set_kept(self, key, rule, follows=False):
         """Keep a row in place: one the user kept, or with follows, one that goes where
         kept files are (the test of a kept file, what only kept files use), which an
@@ -760,6 +895,98 @@ class Planner:
                 self.set_review(tracked[dest], self.rows[tracked[dest]]["rule"],
                                 f"tracked: {dest} is ignored, so the move would drop it from Git; "
                                 "remove it from the tree with the archive tag instead")
+
+    def guard_builds(self):
+        """A move that changes what a build or a published package takes: each moving row
+        whose source and destination differ in an exclusion file's verdict keeps its
+        destination, records that verdict for verify, and the plan asks about the new
+        folders, one question per exclusion file and direction."""
+        for i, root in enumerate(self.roots):
+            ignore_files = [rel for rel in root.files if is_build_ignore(rel)]
+            moving = [k for k in sorted(self.rows) if k[0] == i and self.rows[k]["destination"]]
+            for ignore_file in ignore_files:
+                paths = {}
+                for key in moving:
+                    row = self.rows[key]
+                    suffix = "/" if row["kind"] != "file" else ""
+                    paths[key] = (row["source"] + suffix, row["destination"] + suffix)
+                status = build_status(root.path, ignore_file, sorted({p for pair in paths.values() for p in pair}))
+                changed = collections.defaultdict(set)
+                for key, (source, dest) in paths.items():
+                    if status[source] == status[dest]:
+                        continue
+                    row = self.rows[key]
+                    new = self.new_folder(root, row["destination"], row["kind"] != "file")
+                    row.setdefault("builds", []).append({"file": ignore_file, "excluded": status[source], "new_folder": new})
+                    changed[status[dest]].add((new or row["destination"]) + ("/" if new else ""))
+                if changed[False]:
+                    self.review(i, ignore_file, "build contents",
+                                "now included: " + ", ".join(sorted(changed[False]))
+                                + f"; add each one the build must not take to {ignore_file}, or name it with ! to keep it")
+                if changed[True]:
+                    self.review(i, ignore_file, "build contents",
+                                "now excluded: " + ", ".join(sorted(changed[True]))
+                                + f"; the build loses them: change {ignore_file}, or name each one in it to keep the change")
+
+    def staying(self, i, root, entry):
+        """The part of an ignored entry the plan does not move. A folder Git lists as one entry
+        is opened when the plan moves a file inside it, so only the files that stay are named."""
+        path = entry.rstrip("/")
+        if self.moves(i, path):
+            return []
+        if not entry.endswith("/") or not any(k[0] == i and r["destination"] and k[1].startswith(path + "/")
+                                              for k, r in self.rows.items()):
+            return [entry]
+        result = git(root.path, "ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--", path)
+        files = [f for f in result.stdout.split("\0") if f] if result is not None and result.returncode == 0 else []
+        return [f for f in files if not self.moves(i, f)]
+
+    def moves(self, i, rel):
+        """Whether the plan moves rel, itself or with a folder that holds it."""
+        while rel:
+            row = self.rows.get((i, rel))
+            if row and row["destination"]:
+                return True
+            rel = os.path.dirname(rel)
+        return False
+
+    @staticmethod
+    def new_folder(root, dest, is_folder):
+        """The highest folder of dest that does not exist yet, which the move creates."""
+        parts = dest.split("/")
+        for n in range(1, len(parts) + (1 if is_folder else 0)):
+            candidate = "/".join(parts[:n])
+            if not os.path.lexists(root.abs(candidate)):
+                return candidate
+        return None
+
+    def report_left_ignored(self):
+        """Files Git ignores stay behind when the move empties their folder of tracked files."""
+        for i, root in enumerate(self.roots):
+            if not root.is_git:
+                continue
+            moving = {r["source"] for k, r in self.rows.items()
+                      if k[0] == i and r["destination"] and r["tracked"] and r["kind"] == "file"}
+            folders = set()
+            for source in moving:
+                parent = os.path.dirname(source)
+                while parent and parent != "_support":
+                    folders.add(parent)
+                    parent = os.path.dirname(parent)
+            holding = set()  # folders that keep a tracked file the plan does not move
+            for tracked in root.tracked:
+                if tracked not in moving:
+                    parent = os.path.dirname(tracked)
+                    while parent and parent not in holding:
+                        holding.add(parent)
+                        parent = os.path.dirname(parent)
+            emptied = folders - holding
+            for folder in sorted(f for f in emptied if not any(f.startswith(e + "/") for e in emptied)):
+                left = [p for entry in left_ignored(root.path, folder) for p in self.staying(i, root, entry)]
+                if left:
+                    self.review(i, folder, "ignored files stay",
+                                f"Git ignores {plural(len(left), 'entry', 'entries')} that stay at {folder} after the move, "
+                                f"such as {', '.join(left[:3])}: move or delete them by hand")
 
     def mark_collisions(self, claimants, movable):
         """Send to review the claimants of a destination that exists or is shared. On a
@@ -855,6 +1082,9 @@ class Planner:
         for ref in sorted(refs, key=lambda r: (r["root"], r["file"], r["line"], r["col"])):
             i = ref["root"]
             root = self.roots[i]
+            if self.kept_ref(i, ref["file"], ref["line"], ref["text"]):
+                done.add((i, ref["file"], ref["line"], ref["col"]))
+                continue
             if ref["kind"] == "literal":
                 new_target = self.new_abs(ref["keys"][0])
                 if new_target is None and ref["keys"][0] in self.rows and self.is_kept(self.rows[ref["keys"][0]]):
@@ -903,6 +1133,8 @@ class Planner:
                 for number, line in enumerate(text.splitlines(True), 1):
                     for col, pre, path in tokens(line, True):
                         if pre or (i, rel, number, col) in done or not (path.startswith("./") or path.startswith("../")):
+                            continue
+                        if self.kept_ref(i, rel, number, line):
                             continue
                         target = os.path.normpath(os.path.join(old_dir, path.split("*")[0].rstrip("/")))
                         if not os.path.lexists(target):
@@ -1002,9 +1234,14 @@ class Planner:
         unused = sorted(set(self.keeps) - self.used_keeps)
         if unused:
             raise SystemExit(fail("--keep names no planned row: " + ", ".join(unused)))
+        self.guard_builds()
+        self.report_left_ignored()
         self.mark_split_tests()
         self.mark_same_names()
         self.build_rewrites(refs)
+        unused = sorted({spec for spec, _, _ in self.keep_refs} - self.used_keep_refs)
+        if unused:
+            raise SystemExit(fail("--keep-ref names no reference: " + ", ".join(unused)))
         self.internal_paths()
         self.build_index_lines()
         rows = []
@@ -1014,6 +1251,7 @@ class Planner:
                 "root": row["root"], "source": row["source"], "kind": row["kind"], "tracked": row["tracked"],
                 "rule": row["rule"], "destination": row["destination"], "notes": sorted(set(row["notes"])),
                 "override": row["override"], "fingerprint": fingerprint(self.roots[row["root"]].abs(row["source"])),
+                **({"builds": sorted(row["builds"], key=lambda b: b["file"])} if row.get("builds") else {}),
             })
         reviews = sorted({json.dumps(r, sort_keys=True) for r in self.reviews})
         rewrites = sorted({json.dumps(r, sort_keys=True) for r in self.rewrites})
@@ -1025,6 +1263,8 @@ class Planner:
             "reviews": [json.loads(r) for r in reviews],
             "index_lines": self.index_lines,
             "layout_lines": self.layout_lines,
+            "kept_refs": [{"root": i, "file": rel, "sha256_line": digest}
+                          for i, rel, digest in sorted(self.kept_refs, key=lambda k: (k[0], k[1], k[2] or ""))],
         }
 
 
@@ -1061,10 +1301,13 @@ def cmd_plan(args):
         if key not in ("tools", "infra", "docs") or not value:
             return fail(f"--home needs tools|infra|docs=PATH: {spec}")
         homes[key] = cl.norm_path(value)
+    for spec in args.keep_ref or []:
+        if not KEEP_REF_RE.match(spec):
+            return fail(f"--keep-ref needs FILE[:LINE]: {spec!r}")
     for root in args.root:
         if not os.path.isdir(root):
             return fail(f"not a directory: {root}")
-    plan = Planner(args.root, overrides, homes, args.keep or []).plan()
+    plan = Planner(args.root, overrides, homes, args.keep or [], args.keep_ref or []).plan()
     text = json.dumps(plan, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
     if args.out:
         with open(args.out, "w", encoding="utf-8") as handle:
@@ -1214,8 +1457,13 @@ def cmd_verify(args):
             for f in ([dest] if os.path.isfile(dest) else cl.list_files(dest)):
                 if f.endswith(MARKDOWN):
                     old = source if f == dest else os.path.join(source, os.path.relpath(f, dest))
-                    moved_markdown.append((f, os.path.dirname(old)))
+                    moved_markdown.append((f, os.path.dirname(old), row["root"]))
     residual = []
+    kept = {(k["root"], k["file"], k["sha256_line"]) for k in plan.get("kept_refs", [])}
+
+    def is_kept(i, rel, line):
+        return (i, rel, None) in kept or (i, rel, line_hash(line)) in kept
+
     planner = Planner(roots, [], {})
     for i in range(len(roots)):
         for rel in planner.readable_files(i):
@@ -1224,13 +1472,17 @@ def cmd_verify(args):
             if not text or ("_support/" not in text and not relative):
                 continue
             for number, line in enumerate(text.splitlines(), 1):
+                if is_kept(i, rel, line):
+                    continue
                 for _, pre, path in tokens(line, relative):
                     targets = [t for _, t in planner.resolutions(i, rel, pre, path)]
                     if targets and not any(os.path.lexists(t) for t in targets) and any(t in gone for t in targets):
                         residual.append(f"{roots[i]}/{rel}:{number}: {pre}{path}")
-    for path, old_dir in moved_markdown:
+    for path, old_dir, owner in moved_markdown:
         text = read_text_strict(path) or ""
         for number, line in enumerate(text.splitlines(), 1):
+            if is_kept(owner, os.path.relpath(path, roots[owner]).replace(os.sep, "/"), line):
+                continue
             for _, pre, link in tokens(line, True):
                 if pre or not link.startswith("../"):
                     continue
@@ -1251,9 +1503,39 @@ def cmd_verify(args):
             continue
         text = cl.read_text(index)
         residual += [f"{index}: no line for {r['destination']}" for r in tools if os.path.basename(r["destination"]) not in text]
+    residual += build_residuals(plan)
     for item in sorted(set(residual)):
         print(item)
+    for review in plan["reviews"]:
+        if review["reason"] != "ignored files stay":
+            continue
+        left = left_ignored(root_path(plan, review["root"]), review["path"])
+        if left:
+            print(f"note: {review['path']} still holds {plural(len(left), 'entry', 'entries')} Git ignores, "
+                  f"such as {', '.join(left[:3])}")
     return 1 if residual else 0
+
+
+def build_residuals(plan):
+    """Moved rows an exclusion file now judges otherwise than their source, unless a line
+    of it names the new path."""
+    by_file = collections.defaultdict(list)
+    for row in plan["rows"]:
+        for build in row.get("builds", []):
+            suffix = "/" if row["kind"] != "file" else ""
+            by_file[(row["root"], build["file"])].append((row["destination"] + suffix, build))
+    residual = []
+    for (i, ignore_file), items in sorted(by_file.items()):
+        root = root_path(plan, i)
+        status = build_status(root, ignore_file, sorted({dest for dest, _ in items}))
+        lines = exclusion_lines(os.path.join(root, ignore_file))
+        for dest, build in items:
+            if status[dest] == build["excluded"] or names_path(lines, ignore_file, dest, build["new_folder"]):
+                continue
+            verdict = "no longer excludes" if build["excluded"] else "now excludes"
+            residual.append(f"{root}/{ignore_file} {verdict} {dest.rstrip('/')}: change it back, "
+                            f"or name {build['new_folder'] or dest.rstrip('/')} in it to keep the change")
+    return residual
 
 
 def cmd_undo(args):
@@ -1316,6 +1598,8 @@ def main(argv=None):
     plan.add_argument("--root", action="append", required=True)
     plan.add_argument("--override", action="append", metavar="SRC=DEST")
     plan.add_argument("--keep", action="append", metavar="SRC", help="leave this row, or every row under this folder, where it is")
+    plan.add_argument("--keep-ref", action="append", metavar="FILE[:LINE]",
+                      help="leave the references in this file, or on this line, as they are; verify accepts them")
     plan.add_argument("--home", action="append", metavar="KEY=PATH")
     plan.add_argument("--json", action="store_true")
     plan.add_argument("--out")

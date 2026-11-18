@@ -140,6 +140,32 @@ The placement planner SHALL leave where it is each item the user keeps, through 
 - **WHEN** the planner runs
 - **THEN** it does not send the script into `vendor/acme/`
 
+### Requirement: A move keeps what each build and package takes, and reports what Git ignores
+
+The placement planner SHALL read each `.dockerignore` (or `<name>.dockerignore`), `.gcloudignore`, `.vercelignore`, `.npmignore` and `.helmignore` for the paths under its folder (a `<name>.dockerignore` from the repository root, the build context a monorepo uses, and a `.gcloudignore` together with the files its `#!include:` lines name), and for each move whose destination it leaves in or out of its build differently than the source, SHALL keep the move, ask about the new folders in one review per file and direction, and record that verdict; its verification SHALL fail while such a file judges the moved item otherwise than its source, unless a line of it names the destination or a folder the move created. The planner SHALL list, as a review, the files Git ignores in a folder the move empties of tracked files, and its verification SHALL list those still left there without failing.
+
+#### Scenario: Terraform leaves a Docker exclusion
+
+- **GIVEN** a `.dockerignore` that excludes `_support` and Terraform under `_support/infrastructure/terraform/`
+- **WHEN** the planner sends it to `infra/terraform/` and the plan is applied
+- **THEN** the plan asks about `infra/` for `.dockerignore`, and the verification fails until `.dockerignore` excludes `infra/` or names it
+
+#### Scenario: A provider cache left behind
+
+- **GIVEN** an ignored `.terraform/` beside the Terraform files that move
+- **WHEN** the planner runs and the plan is applied
+- **THEN** the plan lists the ignored file in a review of the emptied folder, and the verification notes it without failing
+
+### Requirement: A reference the user keeps stays and passes verification
+
+The placement planner SHALL leave unchanged each reference in a file, or on a line, the user keeps through its own option, without a rewrite or a review, SHALL record it in the plan so that the verification does not count it, and SHALL refuse a kept reference that matches none.
+
+#### Scenario: A CI selector that matches old paths on purpose
+
+- **GIVEN** a CI script that still names `_support/scripts/verify-push.sh` to classify renames
+- **WHEN** the planner runs with `--keep-ref` for that line and the plan is applied
+- **THEN** the line keeps the old path, the verification does not report it, and a `--keep-ref` that matches no reference is refused
+
 ### Requirement: A move repairs the references to what it moves
 
 When the planner's plan is applied, each current reference to a moved path SHALL be rewritten in the form it had, relative to the repository, to the citing file or to the workspace; a prefix or glob that covers files with different destinations, and a script's own relative path whose depth changes, SHALL be reported for review instead; references in historical records SHALL stay unchanged; references inside the moved files SHALL be rewritten too; the apply SHALL refuse a stale plan or an existing destination without moving anything, SHALL never commit, SHALL record what it did so that an undo reverses exactly that and keeps unrelated local changes, and its verification SHALL fail while a current reference to an old path remains.

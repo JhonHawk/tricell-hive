@@ -351,6 +351,94 @@ class ApplyLayoutTest(Fixture, unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("destination exists", result.stderr)
 
+    TOOLS = ["contracts-check.sh", "set-key.sh", "check-i18n.mts", "detect-changes.sh", "verify-push.sh", "rollback.sh"]
+
+    def index_tools(self, repo):
+        index = repo / "_support/docs/README.md"
+        index.write_text(index.read_text() + "".join(f"- `{n}` — tool\n" for n in self.TOOLS))
+
+    def test_a_move_out_of_a_docker_exclusion_is_reviewed_until_the_file_names_it(self):
+        repo = monorepo(self.tmp() / "shop")
+        write(repo, ".dockerignore", "_support\nnode_modules\n")
+        commit(repo)
+        plan_file = self.planned(repo)
+        plan = json.loads(plan_file.read_text())
+        builds = [r for r in plan["reviews"] if r["reason"] == "build contents"]
+        self.assertTrue(any(r["path"] == ".dockerignore" and "infra/," in r["detail"]
+                            and "now included" in r["detail"] for r in builds), builds)
+        self.assertEqual(self.run_cmd("apply", plan_file).returncode, 0)
+        self.index_tools(repo)
+        result = self.run_cmd("verify", plan_file)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn(".dockerignore no longer excludes infra/terraform/main.tf", result.stdout)
+        (repo / ".dockerignore").write_text("_support\nnode_modules\ninfra/\nscripts/\n!apps/backend/scripts\n!apps/web/scripts\n")
+        result = self.run_cmd("verify", plan_file)
+        self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_a_move_into_a_package_exclusion_is_reviewed(self):
+        repo = monorepo(self.tmp() / "shop")
+        write(repo, ".npmignore", "/scripts/\n")
+        commit(repo)
+        plan = json.loads(self.planned(repo).read_text())
+        self.assertTrue(any(r["reason"] == "build contents" and r["path"] == ".npmignore"
+                            and "now excluded" in r["detail"] and "scripts/ci/" in r["detail"]
+                            for r in plan["reviews"]), plan["reviews"])
+
+    def test_a_dockerfile_ignore_and_a_gcloud_include_read_from_where_their_tools_do(self):
+        repo = monorepo(self.tmp() / "shop")
+        write(repo, "apps/backend/Dockerfile.dockerignore", "_support\n")  # built with the repository root as context
+        write(repo, ".gitignore", (repo / ".gitignore").read_text() + "/_support/scripts/rollback.sh\n")
+        write(repo, ".gcloudignore", "#!include:.gitignore\n")
+        commit(repo)
+        reviews = [r for r in json.loads(self.planned(repo).read_text())["reviews"] if r["reason"] == "build contents"]
+        self.assertTrue(any(r["path"] == "apps/backend/Dockerfile.dockerignore" and "infra/," in r["detail"]
+                            for r in reviews), reviews)
+        self.assertTrue(any(r["path"] == ".gcloudignore" and "now included" in r["detail"] and "scripts/ops/" in r["detail"]
+                            for r in reviews), reviews)
+
+    def test_ignored_files_left_in_a_moved_folder_are_reported(self):
+        repo = monorepo(self.tmp() / "shop")
+        write(repo, ".gitignore", (repo / ".gitignore").read_text() + ".terraform/\n")
+        commit(repo)
+        write(repo, "_support/infrastructure/terraform/environments/qa/.terraform/terraform.tfstate", "{}\n")
+        # ignored, and the plan moves them: one beside tracked files, one alone in its folder
+        write(repo, "_support/infrastructure/terraform/prod.auto.tfvars", "secret = 1\n")
+        write(repo, "_support/infrastructure/terraform/secrets/qa.auto.tfvars", "secret = 2\n")
+        write(repo, ".git/info/exclude", "*.auto.tfvars\n")
+        plan_file = self.planned(repo)
+        plan = json.loads(plan_file.read_text())
+        stay = [r for r in plan["reviews"] if r["reason"] == "ignored files stay"]
+        self.assertTrue(any(r["path"] == "_support/infrastructure/terraform" and ".terraform" in r["detail"]
+                            for r in stay), plan["reviews"])
+        for name, listed in (("prod.auto.tfvars", "prod.auto.tfvars"), ("secrets/qa.auto.tfvars", "secrets/")):
+            if any(r["source"] == f"_support/infrastructure/terraform/{name}" and r["destination"] for r in plan["rows"]):
+                self.assertFalse([r for r in stay if listed in r["detail"]], stay)
+        self.assertEqual(self.run_cmd("apply", plan_file).returncode, 0)
+        self.index_tools(repo)
+        result = self.run_cmd("verify", plan_file)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("note: _support/infrastructure/terraform still holds 1 entry Git ignores", result.stdout)
+
+    def test_a_reference_the_user_keeps_stays_and_passes_verify(self):
+        repo = monorepo(self.tmp() / "shop")
+        write(repo, ".github/scripts/select.mjs", "const OLD = '_support/scripts/verify-push.sh'\n")
+        commit(repo)
+        plan_file = self.planned(repo, "--keep-ref", ".github/scripts/select.mjs:1")
+        plan = json.loads(plan_file.read_text())
+        self.assertFalse([r for r in plan["rewrites"] if r["file"] == ".github/scripts/select.mjs"])
+        self.assertEqual(self.run_cmd("apply", plan_file).returncode, 0)
+        self.index_tools(repo)
+        selector = repo / ".github/scripts/select.mjs"
+        selector.write_text("// a line added after the plan\n" + selector.read_text())
+        result = self.run_cmd("verify", plan_file)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("_support/scripts/verify-push.sh", selector.read_text())
+        for spec in ("nothing.txt", ""):
+            result = self.plan(repo, extra=["--keep-ref", spec], check=False)
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("--keep-ref", result.stderr)
+            self.assertNotIn("Traceback", result.stderr)
+
     def test_undo_restores_the_tree_and_keeps_other_work(self):
         repo = monorepo(self.tmp() / "shop")
         ci = repo / ".github/workflows/ci.yml"

@@ -92,7 +92,12 @@ raise the minor or the patch version.
   folders of every language and fails on code kept under `_support/`.
   An item you choose to keep stays where it is with `--keep`, with the
   tests beside it, and a committed `vendor/` library is never taken for
-  one of your packages.
+  one of your packages. A move that changes what a Docker build or a
+  published package takes, through `.dockerignore`, `.gcloudignore`,
+  `.vercelignore`, `.npmignore` or `.helmignore`, is reported, and its
+  verification fails until that file is settled; files Git ignores that a
+  move leaves behind are listed; and a reference you keep on purpose stays
+  as it is with `--keep-ref`.
 
 - Research audits a codebase when you ask for it, or for what to improve in
   it. It reads the project's check commands and decision records first,
