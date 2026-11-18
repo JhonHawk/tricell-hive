@@ -748,9 +748,8 @@ class Planner:
             row = self.rows[key]
             if not row["override"] and row["rule"] in ("R1", "R3"):
                 self.place_dependent(key, row)
-        later = [k for k in self.dependents if k in self.rows]
-        self.guard_ignored(later)
-        self.mark_collisions(sorted(self.rows), later)
+        self.guard_ignored(self.dependents)
+        self.mark_collisions(sorted(self.rows), self.dependents)
 
     def guard_ignored(self, keys):
         for i, root in enumerate(self.roots):
@@ -763,8 +762,9 @@ class Planner:
                                 "remove it from the tree with the archive tag instead")
 
     def mark_collisions(self, claimants, movable):
-        """Send to review the rows of movable whose destination exists or is shared
-        with another claimant."""
+        """Send to review the claimants of a destination that exists or is shared. On a
+        shared one, a single row with the user's --override keeps it and the others go;
+        otherwise only the rows of movable go, and every row when none is movable."""
         movable = set(movable)
         seen = collections.defaultdict(list)
         for key in claimants:
@@ -772,15 +772,22 @@ class Planner:
             if row["destination"]:
                 seen[(row["root"], row["destination"])].append(key)
         for (i, dest), keys in sorted(seen.items()):
-            if os.path.lexists(self.roots[i].abs(dest)) or len(keys) > 1:
-                for key in keys:
-                    if key not in movable:
-                        continue
-                    row = self.rows[key]
-                    row["notes"].append("collision")
-                    row["override"] = False
-                    row["destination"] = None
-                    self.review(row["root"], row["source"], row["rule"], f"collision at {dest}")
+            exists = os.path.lexists(self.roots[i].abs(dest))
+            if not exists and len(keys) == 1:
+                continue
+            chosen = [k for k in keys if self.rows[k]["override"]]
+            if not exists and len(chosen) == 1:
+                losers = [k for k in keys if k not in chosen]
+            elif chosen and not exists:
+                losers = keys
+            else:
+                losers = [k for k in keys if k in movable] or keys
+            for key in losers:
+                row = self.rows[key]
+                row["notes"].append("collision")
+                row["override"] = False
+                row["destination"] = None
+                self.review(row["root"], row["source"], row["rule"], f"collision at {dest}")
 
     def mark_split_tests(self):
         """A kept test whose subject moves may run it by a path that breaks: ask."""

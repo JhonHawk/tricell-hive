@@ -568,6 +568,17 @@ class SecondReviewTest(Fixture, unittest.TestCase):
         self.assertEqual((other["destination"], other["override"]), ("scripts/ci/deploy.test.sh", True))
         self.assertIsNone(PlanLayoutTest.dest(plan, "_support/scripts/deploy.test.sh")[0])
 
+    def test_a_user_override_wins_a_shared_destination(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, ".github/workflows/deploy.yml", "steps:\n  - run: _support/scripts/deploy.sh\n  - run: _support/scripts/other.sh\n")
+        for name in ("deploy.sh", "deploy.test.sh", "other.sh"):
+            write(repo, f"_support/scripts/{name}", "echo\n")
+        commit(repo)
+        plan = self.plan_json(repo, extra=["--override", "_support/scripts/deploy.test.sh=scripts/ci/other.sh"])
+        test = [r for r in plan["rows"] if r["source"] == "_support/scripts/deploy.test.sh"][0]
+        self.assertEqual((test["destination"], test["override"]), ("scripts/ci/other.sh", True))
+        self.assertIsNone(PlanLayoutTest.dest(plan, "_support/scripts/other.sh")[0])
+
     def test_undo_never_empties_a_file_it_cannot_read(self):
         repo = small_repo(self.tmp() / "r")
         write(repo, ".github/workflows/deploy.yml", "steps:\n  - run: _support/scripts/x.sh\n")
