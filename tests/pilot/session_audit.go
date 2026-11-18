@@ -1021,12 +1021,13 @@ var (
 
 // A round written as a table has, per decision, a row with a cell that opens
 // with the decision ID, such as "**D1 · Which rows?**" or a bare "D1" followed by
-// the question's cell, and at least two option cells, such as "**A ★** — …" and
-// "**B** — …", one of them starred.
+// the question's cell, and at least two options, such as "**A ★** — …" and
+// "**B** — …" or "A) (★) …", in cells of their own or split by <br>, one starred.
 var (
 	tableDecisionCell = regexp.MustCompile(`^[\s*_]*D\d+\b`)
 	tableBareID       = regexp.MustCompile(`^[\s*_]*D\d+[\s*_]*$`)
-	tableOptionCell   = regexp.MustCompile(`^[\s*_]*[A-Z]\b[\s*_]*(\(?★|[-—–·])`)
+	tableOptionCell   = regexp.MustCompile(`^[\s*_]*[A-Z]\b[\s*_]*(\(?★|[-—–·).:])`)
+	tableLineBreak    = regexp.MustCompile(`(?i)<br\s*/?>`)
 )
 
 // tableRounds returns the rows of a Markdown table that write a decision, each
@@ -1059,9 +1060,11 @@ func tableRounds(text string) []string {
 		var options []string
 		starred := false
 		for _, cell := range cells[next:] {
-			if tableOptionCell.MatchString(cell) {
-				options = append(options, strings.TrimSpace(cell))
-				starred = starred || strings.Contains(cell, "★")
+			for _, part := range tableLineBreak.Split(cell, -1) {
+				if tableOptionCell.MatchString(part) {
+					options = append(options, strings.TrimSpace(part))
+					starred = starred || strings.Contains(part, "★")
+				}
 			}
 		}
 		if len(options) < 2 || !starred {
@@ -1367,7 +1370,8 @@ func auditCriteria(s auditSession, base string) []criterionAssessment {
 }
 
 var (
-	reviewQuestionTitle = regexp.MustCompile(`(?i)revisi[oó]n de c[oó]digo|code review`)
+	// The title names a review; the options decide whether it picks a mechanism.
+	reviewQuestionTitle = regexp.MustCompile(`(?i)\brevisi[oó]n\b|\breview\b`)
 	nativeReviewOption  = regexp.MustCompile(`(?i)/review\b|codex review|revisi[oó]n nativa|native review|\bnativ[ae]\s*:`)
 	// The options of the question that picks the review mechanism name at least one
 	// mechanism: the agent, the host's native review or no dedicated review.
