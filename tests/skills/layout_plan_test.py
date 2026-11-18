@@ -203,16 +203,33 @@ class PlanLayoutTest(Fixture, unittest.TestCase):
         kept = {r["source"] for r in plan["rows"] if "kept by user" in r["notes"]}
         self.assertEqual(kept, {
             "_support/scripts/detect-changes.sh", "_support/scripts/detect-changes.test.sh",
+            "_support/scripts/release-fixture.lib.sh", "_support/scripts/deploy-workflows.test.sh",
             "_support/infrastructure/terraform/main.tf", "_support/infrastructure/terraform/environments/qa/x.tfvars.example",
             "_support/infrastructure/backend/iam/unused-policy.json", "_support/evidence/2026-01-02-abc-1-x",
         })
         self.assertTrue(all(r["destination"] is None for r in plan["rows"] if r["source"] in kept))
         self.assertFalse({r["path"] for r in plan["reviews"]} & kept)
+        self.assertFalse([r for r in plan["reviews"] if "_support/infrastructure" in r["detail"] or "release-fixture" in r["path"]], plan["reviews"])
         self.assertFalse([r for r in plan["rewrites"] if "detect-changes.sh" in r["old"]])
         self.assertEqual(self.dest(plan, "_support/scripts/verify-push.sh")[0], "scripts/hooks/verify-push.sh")
         unknown = self.plan(repo, extra=["--keep", "_support/nothing"], check=False)
         self.assertNotEqual(unknown.returncode, 0)
         self.assertIn("_support/nothing", unknown.stderr)
+
+    def test_a_kept_folder_asks_nothing_and_a_kept_test_flags_its_moving_subject(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, ".github/workflows/deploy.yml", "steps:\n  - run: _support/scripts/deploy.sh\n")
+        write(repo, "_support/scripts/deploy.sh", "echo\n")
+        write(repo, "_support/scripts/deploy.test.sh", "bash \"$(dirname \"$0\")/deploy.sh\"\n")
+        write(repo, "_support/tools/run.py", "print()\n")
+        write(repo, "_support/tools/notes.md", "# notes\n")
+        commit(repo)
+        plan = self.plan_json(repo, extra=["--keep", "_support/tools", "--keep", "_support/scripts/deploy.test.sh"])
+        self.assertFalse([r for r in plan["reviews"] if r["path"].startswith("_support/tools")], plan["reviews"])
+        self.assertIn("_support/scripts/deploy.test.sh", {r["path"] for r in plan["reviews"]})
+        both = self.plan(repo, extra=["--keep", "_support/scripts/deploy.sh", "--override", "_support/scripts/deploy.sh=x/deploy.sh"], check=False)
+        self.assertNotEqual(both.returncode, 0)
+        self.assertIn("--keep and --override", both.stderr)
 
     def test_workspace_root_without_git_places_no_code(self):
         base = self.tmp() / "ws"
@@ -481,6 +498,14 @@ class SecondReviewTest(Fixture, unittest.TestCase):
         commit(repo)
         dest = [r["destination"] for r in self.plan_json(repo)["rows"] if r["source"] == "_support/scripts/acme/check.sh"][0]
         self.assertFalse((dest or "").startswith("vendor/"), dest)
+        # a committed build/ is source inside Git, so its manifest is still a package
+        other = small_repo(self.tmp() / "b")
+        write(other, "package.json", "{}\n")
+        write(other, "build/web/package.json", "{}\n")
+        write(other, "_support/scripts/web/x.sh", "echo\n")
+        commit(other)
+        dest = [r["destination"] for r in self.plan_json(other)["rows"] if r["source"] == "_support/scripts/web/x.sh"][0]
+        self.assertTrue((dest or "").startswith("build/web/"), dest)
 
     def test_undo_never_empties_a_file_it_cannot_read(self):
         repo = small_repo(self.tmp() / "r")

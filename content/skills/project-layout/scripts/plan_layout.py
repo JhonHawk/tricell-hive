@@ -27,6 +27,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import check_layout as cl  # noqa: E402  (python3 -I leaves the script's folder off sys.path)
 
 VERSION = 1
+# Names in check_layout.GATED that hold dependencies rather than build output.
+DEPENDENCY_DIRS = ("vendor", "deps")
 MANIFESTS = (
     "package.json", "go.mod", "pyproject.toml", "setup.py", "composer.json", "Gemfile", "pom.xml",
     "build.gradle", "build.gradle.kts", "Cargo.toml", "pubspec.yaml", "mix.exs",
@@ -179,15 +181,22 @@ class Root:
         for rel in self.files:
             if rel.startswith("_support/") or HISTORY_RE.search(rel):
                 continue
-            # A committed dependency folder, such as Go's vendor/ beside go.mod, holds
-            # other projects' manifests, not this project's packages.
-            if cl.under_dependency(self.abs(rel), self.path, gated=True):
-                continue
             name = os.path.basename(rel)
             directory = os.path.dirname(rel)
-            if directory and (name in MANIFESTS or name.endswith(MANIFEST_SUFFIXES)):
+            if directory and (name in MANIFESTS or name.endswith(MANIFEST_SUFFIXES)) and not self.in_dependencies(directory):
                 found.add(directory)
         return sorted(found)
+
+    def in_dependencies(self, rel):
+        """Whether a folder lies in a committed dependency folder, such as Go's vendor/
+        beside go.mod, which holds other projects' manifests. Build output a repository
+        commits, such as build/, is its own source and still counts."""
+        parent = self.path
+        for name in rel.split("/"):
+            if name in cl.PRUNE or (name in DEPENDENCY_DIRS and cl.is_dependency_dir(parent, name)):
+                return True
+            parent = os.path.join(parent, name)
+        return False
 
     def package_of(self, rel):
         best = None
@@ -325,7 +334,7 @@ class Planner:
             return
         if any((i, r) in self.rows for r in files):
             rest = [r for r in files if (i, r) not in self.rows]
-            if rest:
+            if rest and not self.kept_path(i, base):
                 self.review(i, base, "no rule", f"{len(rest)} other files stay; classify them by hand")
             return
         self.rows[(i, base)] = self.new_row(i, base, "folder", name)
@@ -532,6 +541,8 @@ class Planner:
             top = max(dirs.values())
             directory = sorted(d for d, n in dirs.items() if n == top)[0]
             return self.set_dest(key, "R3", os.path.join(directory, os.path.basename(row["source"])))
+        if any(other in self.rows and "kept by user" in self.rows[other]["notes"] for other in related):
+            return self.set_kept(key, "R3")  # what only kept files use stays with them
         return self.place_file(key, row)
 
     def place_file(self, key, row):
@@ -684,8 +695,11 @@ class Planner:
 
     def keep_for(self, row):
         """Whether the user keeps this row where it is: its source, or a folder holding it."""
-        root = self.roots[row["root"]]
-        source = root.abs(row["source"])
+        return self.kept_path(row["root"], row["source"])
+
+    def kept_path(self, i, rel):
+        root = self.roots[i]
+        source = root.abs(rel)
         for spec in self.keeps:
             path = os.path.abspath(spec) if os.path.isabs(spec) else root.abs(os.path.normpath(spec))
             if source == path or source.startswith(path.rstrip(os.sep) + os.sep):
@@ -695,6 +709,8 @@ class Planner:
 
     def set_kept(self, key, rule):
         row = self.rows[key]
+        if self.override_for(row):
+            raise SystemExit(fail(f"--keep and --override both name {row['source']}: choose one"))
         row["rule"], row["destination"], row["override"] = rule, None, False
         row["notes"].append("kept by user")
 
@@ -750,6 +766,17 @@ class Planner:
                     row["override"] = False
                     row["destination"] = None
                     self.review(row["root"], row["source"], row["rule"], f"collision at {dest}")
+
+    def mark_split_tests(self):
+        """A kept test whose subject moves may run it by a path that breaks: ask."""
+        for key in sorted(self.rows):
+            row = self.rows[key]
+            if "kept by user" not in row["notes"] or not self.is_test(row):
+                continue
+            subject = self.subject_of(key)
+            if subject and self.rows[subject]["destination"]:
+                self.review(row["root"], row["source"], "kept test",
+                            f"its subject moves to {self.rows[subject]['destination']}; keep both or move both")
 
     def mark_same_names(self):
         for key in sorted(self.rows):
@@ -814,6 +841,8 @@ class Planner:
                     new_target = os.path.join(new_target, ref["inside"])
             else:
                 new_target = self.prefix_destination(ref["target"], ref["keys"])
+                if new_target is None and all(not self.rows[k]["destination"] and "kept by user" in self.rows[k]["notes"] for k in ref["keys"]):
+                    continue  # nothing under it moves
                 if new_target is None:
                     dirs = sorted({os.path.dirname(self.rows[k]["destination"]) if self.rows[k]["destination"] else "review"
                                    for k in ref["keys"]})
@@ -949,6 +978,7 @@ class Planner:
         unused = sorted(set(self.keeps) - self.used_keeps)
         if unused:
             raise SystemExit(fail("--keep names no planned row: " + ", ".join(unused)))
+        self.mark_split_tests()
         self.mark_same_names()
         self.build_rewrites(refs)
         self.internal_paths()
