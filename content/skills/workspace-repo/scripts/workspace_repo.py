@@ -55,7 +55,7 @@ def parse_repo_args(root, items):
     for item in items:
         path, _, remote = item.partition("=")
         path = norm_path(path)
-        if not path or path.startswith("/") or ".." in path.split("/"):
+        if not safe_relative(path):
             raise Failure(f"--repo path must be relative to the root: {item}")
         child = os.path.join(root, path)
         if not os.path.isdir(child):
@@ -66,10 +66,25 @@ def parse_repo_args(root, items):
             remote = result.stdout.strip() if result.returncode == 0 else ""
         if not remote:
             raise Failure(f"{path} has no remote.origin.url; pass --repo {path}=<remote>")
-        result = git(child, "symbolic-ref", "--short", "HEAD")
-        base = result.stdout.strip() if result.returncode == 0 else "—"
-        repos.append({"path": path, "remote": remote, "base": base})
+        repos.append({"path": path, "remote": remote, "base": base_branch_of(child)})
     return repos
+
+
+def base_branch_of(child):
+    """The repository's base branch: its `## Hive` Base branch, else origin's
+    default branch; never the branch checked out right now."""
+    for line in hive_lines(read_text(os.path.join(child, "AGENTS.md"))):
+        match = re.match(r"^-\s*Base branch:\s*(\S+)\s*$", line)
+        if match:
+            return match.group(1)
+    result = git(child, "symbolic-ref", "--short", "refs/remotes/origin/HEAD")
+    if result.returncode == 0 and result.stdout.strip().startswith("origin/"):
+        return result.stdout.strip()[len("origin/"):]
+    return "—"
+
+
+def safe_relative(path):
+    return bool(path) and not path.startswith("/") and ".." not in path.split("/") and not path.startswith("-")
 
 
 def merge_lines(existing, wanted):
@@ -86,32 +101,76 @@ def merge_lines(existing, wanted):
     return (text + "\n" if text else ""), added
 
 
-def hive_section(args):
-    lines = ["## Hive", "", f"- Project: {args.project}", f"- Base branch: {args.base_branch}",
-             f"- Tracker: {args.tracker or '<tracker>'}"]
-    if args.direct_base:
-        lines.append("- Delivery: direct-base")
-    lines.append(f"- Specs: {args.specs}")
-    return "\n".join(lines) + "\n"
+SECTION_RE = r"^##\s+{}\s*$"
 
 
-def repositories_section(repos, previous_roles):
-    lines = ["## Repositories", "", TABLE_HEADER, TABLE_RULE]
-    for repo in repos:
-        role = previous_roles.get(repo["path"], "—")
-        name = os.path.basename(repo["path"])
-        lines.append(f"| {name} | {repo['path']} | {repo['remote']} | {repo['base']} | {role} |")
-    return "\n".join(lines) + "\n"
+def section_bounds(lines, names):
+    """Start and end line of the first `## <name>` section, its ### subsections included."""
+    pattern = re.compile(SECTION_RE.format("(?:" + "|".join(map(re.escape, names)) + ")"))
+    start = next((i for i, l in enumerate(lines) if pattern.match(l)), None)
+    if start is None:
+        return None, None
+    end = next((i for i in range(start + 1, len(lines)) if re.match(r"^#{1,2}\s", lines[i])), len(lines))
+    return start, end
 
 
-def replace_section(text, heading, section):
-    """Replace the section that starts with `heading`, or append it; keep all other text."""
+def hive_lines(text):
     lines = text.splitlines()
-    start = next((i for i, l in enumerate(lines) if re.match(rf"^{re.escape(heading)}\s*$", l)), None)
+    start, end = section_bounds(lines, ["Hive"])
+    return [] if start is None else lines[start:end]
+
+
+def hive_section(args, existing_section):
+    """Set Project, Base branch, Tracker, Specs and, when asked, Delivery; keep every other line."""
+    wanted = {"Project": args.project, "Base branch": args.base_branch, "Specs": args.specs}
+    if args.tracker:
+        wanted["Tracker"] = args.tracker
+    if args.direct_base:
+        wanted["Delivery"] = "direct-base"
+    lines = existing_section or ["## Hive", ""]
+    out, seen = [], set()
+    for line in lines:
+        match = re.match(r"^-\s*([^:]+):", line)
+        key = match.group(1).strip() if match else None
+        if key in wanted and key not in seen:
+            out.append(f"- {key}: {wanted[key]}")
+            seen.add(key)
+        else:
+            out.append(line)
+    missing = [k for k in ("Project", "Base branch", "Tracker", "Delivery", "Specs") if k in wanted and k not in seen]
+    if missing:
+        insert_at = max((i for i, l in enumerate(out) if l.startswith("- ")), default=len(out) - 1) + 1
+        if "Tracker" not in wanted and "Tracker" not in seen:
+            missing.insert(2 if len(missing) >= 2 else len(missing), "Tracker")
+            wanted["Tracker"] = "<tracker>"
+        out[insert_at:insert_at] = [f"- {k}: {wanted[k]}" for k in missing]
+    return "\n".join(out).rstrip("\n") + "\n"
+
+
+def repositories_section(heading, repos, previous_rows):
+    """Rows passed with --repo replace their row; every other existing row stays."""
+    rows = {norm_path(r.get("path", "")): r for r in previous_rows}
+    order = [norm_path(r.get("path", "")) for r in previous_rows]
+    for repo in repos:
+        old = rows.get(repo["path"], {})
+        rows[repo["path"]] = {"repo": old.get("repo") or os.path.basename(repo["path"]), "path": repo["path"],
+                              "remote": repo["remote"], "base": repo["base"], "role": old.get("role") or "—"}
+        if repo["path"] not in order:
+            order.append(repo["path"])
+    lines = [heading, "", TABLE_HEADER, TABLE_RULE]
+    for path in order:
+        r = rows[path]
+        lines.append(f"| {r.get('repo') or os.path.basename(path)} | {path} | {r.get('remote', '')} | {r.get('base') or '—'} | {r.get('role') or '—'} |")
+    return "\n".join(lines) + "\n"
+
+
+def replace_section(text, names, section):
+    """Replace the first `## <name>` section, its ### subsections included, or append it; keep all other text."""
+    lines = text.splitlines()
+    start, end = section_bounds(lines, names)
     if start is None:
         body = text.rstrip("\n")
         return (body + "\n\n" if body else "") + section
-    end = next((i for i in range(start + 1, len(lines)) if re.match(r"^#{1,2}\s", lines[i])), len(lines))
     before = "\n".join(lines[:start]).rstrip("\n")
     after = "\n".join(lines[end:]).lstrip("\n")
     out = (before + "\n\n" if before else "") + section
@@ -158,18 +217,20 @@ def build_plan(args):
     existing = read_text(agents_path) if os.path.exists(agents_path) else ""
     if not existing:
         existing = f"# {args.project}\n\nRead `_support/docs/README.md` first.\n"
-    previous_roles = {}
-    for row in parse_repositories(existing):
-        previous_roles[norm_path(row.get("path", ""))] = row.get("role", "—") or "—"
-    text = replace_section(existing, "## Hive", hive_section(args))
-    text = replace_section(text, "## Repositories", repositories_section(repos, previous_roles))
+    lines = existing.splitlines()
+    start, _ = section_bounds(lines, ["Repositories", "Repositorios"])
+    heading = lines[start].strip() if start is not None else "## Repositories"
+    text = replace_section(existing, ["Hive"], hive_section(args, hive_lines(existing)))
+    text = replace_section(text, ["Repositories", "Repositorios"], repositories_section(heading, repos, parse_repositories(existing)))
     files["AGENTS.md"] = text
     index = os.path.join(root, "_support", "docs", "README.md")
     if not os.path.exists(index):
         files["_support/docs/README.md"] = f"# {args.project} documentation index\n\nOne line per document, runbook and internal tool, with when to read or use it.\n"
-    openspec = os.path.join(root, "_support", "openspec")
+    if not safe_relative(norm_path(args.specs)):
+        raise Failure(f"--specs must be a path relative to the root: {args.specs}")
+    openspec = os.path.join(root, norm_path(args.specs))
     if not os.path.isdir(openspec) or not os.listdir(openspec):
-        files[os.path.join(args.specs, ".gitkeep")] = ""
+        files[os.path.join(norm_path(args.specs), ".gitkeep")] = ""
     return root, files
 
 
@@ -204,7 +265,8 @@ def cmd_plan(args, apply=False):
     if result.returncode != 0:
         raise Failure(f"git init failed: {result.stderr.strip()}")
     print(f"git init -b {args.base_branch}: done")
-    print("Next (not run): git -C", root, "add -A && git -C", root, 'commit -m "chore: workspace coordinator"')
+    print("Next (not run): commit these paths through git-workflow's git_state.py, naming each one:")
+    print("  python3 -I <git-workflow-dir>/scripts/git_state.py commit --repo " + root + ' -m "chore: workspace coordinator" ' + " ".join(sorted(files)))
     print("A remote is not created and nothing is pushed; adding `origin` later changes the viewer project key.")
     return 0
 
@@ -218,6 +280,14 @@ def cmd_setup(args):
     for row in rows:
         rel, remote = norm_path(row.get("path", "")), row.get("remote", "").strip()
         child = os.path.join(root, rel)
+        if not safe_relative(rel) or not os.path.realpath(child).startswith(os.path.realpath(root) + os.sep):
+            print(f"error {rel}: path must stay inside the workspace root", file=sys.stderr)
+            failed = True
+            continue
+        if remote.startswith("-"):
+            print(f"error {rel}: remote must not start with '-'", file=sys.stderr)
+            failed = True
+            continue
         if os.path.isdir(os.path.join(child, ".git")) or (os.path.isdir(child) and os.listdir(child)):
             print(f"skip {rel}: already present")
             continue
@@ -225,7 +295,7 @@ def cmd_setup(args):
             print(f"skip {rel}: no remote in the table")
             failed = True
             continue
-        result = git(root, "clone", "-q", remote, child)
+        result = git(root, "clone", "-q", "--", remote, child)
         if result.returncode != 0:
             print(f"error {rel}: clone failed: {result.stderr.strip()}", file=sys.stderr)
             failed = True

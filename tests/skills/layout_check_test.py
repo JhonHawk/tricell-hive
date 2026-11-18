@@ -79,6 +79,17 @@ class CheckLayoutTest(unittest.TestCase):
         self.assertFinding(result, "LAYOUT-01", fragment="seed.sh")
         self.assertNotIn("named.sh", result.stdout)
 
+    def test_layout_01_a_longer_name_does_not_register_a_prefix(self):
+        repo = self.tmp() / "r"
+        clean_repo(repo)
+        write(repo, "_support/scripts/seed.sh", "echo\n")
+        write(repo, "_support/scripts/db/x.sh", "echo\n")
+        write(repo, "HIVE.local.md", "- `_support/scripts/seed.sh.old` and `_support/scripts/dbtools.sh` 2026-11-18\n")
+        result = self.run_check(repo)
+        self.assertEqual(result.returncode, 1)
+        self.assertFinding(result, "LAYOUT-01", fragment="seed.sh")
+        self.assertFinding(result, "LAYOUT-01", fragment="x.sh")
+
     def test_layout_02_tracked_under_untracked_homes(self):
         repo = self.tmp() / "r"
         clean_repo(repo)
@@ -103,14 +114,16 @@ class CheckLayoutTest(unittest.TestCase):
         write(repo, "ci.yml", "paths: _support/openspec\n")
         write(repo, "scripts/check_specs.sh", "ls _support/openspec/specs _support/docs/README.md\n")
         write(repo, "scripts/run.sh", "node load.js \\\n  --input _support/data/rows.csv\n")
+        write(repo, "tests/fixture_test.py", "open('_support/workspace/x')\n")
         write(repo, "src/documented.ts", "// see _support/scripts/old.sh, retired\n/* _support/workspace/x */\nexport const a = 1\n")
         commit_all(repo)
         result = self.run_check(repo)
-        self.assertEqual(result.returncode, 1)
-        self.assertFinding(result, "LAYOUT-03", fragment="bad.py:2")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertFinding(result, "LAYOUT-03", "review", "bad.py:2")
         self.assertNotIn("check_specs.sh", result.stdout)
         self.assertNotIn("documented.ts", result.stdout)
-        self.assertFinding(result, "LAYOUT-03", fragment="run.sh:2")
+        self.assertNotIn("fixture_test.py", result.stdout)
+        self.assertFinding(result, "LAYOUT-03", "review", "run.sh:2")
         lines = [l for l in result.stdout.splitlines() if l.startswith("LAYOUT-03")]
         self.assertEqual(len(lines), 2, lines)
 
@@ -142,6 +155,15 @@ class CheckLayoutTest(unittest.TestCase):
         self.assertFinding(result, "LAYOUT-05", fragment="orphan.md")
         self.assertFinding(result, "LAYOUT-05", fragment="gone.md")
         self.assertNotIn("example.com", result.stdout)
+
+    def test_layout_05_accepts_angle_encoded_scheme_and_site_links(self):
+        repo = self.tmp() / "r"
+        clean_repo(repo)
+        write(repo, "_support/docs/my guide.md", "# G\n")
+        write(repo, "_support/docs/README.md", "# Index\n\n- [Spaced](<my guide.md>)\n- [Encoded](my%20guide.md)\n- [Site](/viewer/)\n- [Editor](vscode://file/x)\n")
+        result = self.run_check(repo)
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertNotIn("LAYOUT-05", result.stdout)
 
     def test_no_index_is_review_only(self):
         d = self.tmp() / "plain"

@@ -4,8 +4,9 @@
 Rules (see references/layout.md):
   LAYOUT-01  script under _support/scripts/ that HIVE.local.md does not name
   LAYOUT-02  tracked file under _support/{scripts,secrets,workspace,data}
-  LAYOUT-03  tracked code file outside _support/ whose code (not a comment) cites
-             work material: _support/{workspace,data,scripts,secrets,sessions,evidence,reports}
+  LAYOUT-03  tracked code file outside _support/, not a test, whose code (not a comment)
+             cites work material: _support/{workspace,data,scripts,secrets,sessions,evidence,reports}
+             (review: a script cannot tell application code from a tool that manages _support/)
   LAYOUT-04  top-level _support/ entry outside the convention (review)
   LAYOUT-05  document missing from the index, broken index link, tool not indexed
   LAYOUT-06  coordinator table row whose repo is missing, has another remote,
@@ -23,6 +24,7 @@ import os
 import re
 import subprocess
 import sys
+from urllib.parse import unquote
 
 CODE_EXTENSIONS = {
     ".js", ".mjs", ".cjs", ".ts", ".mts", ".tsx", ".jsx", ".py", ".go", ".rb",
@@ -34,7 +36,9 @@ SUPPORT_CHILDREN = {
 }
 UNTRACKED_SUPPORT = ("scripts", "secrets", "workspace", "data")
 IGNORED_NAMES = {"__pycache__", ".DS_Store"}
-LINK_RE = re.compile(r"\]\(([^)\s]+)")
+LINK_RE = re.compile(r"\]\((<[^>]+>|[^)\s]+)")
+SCHEME_RE = re.compile(r"^(?:[a-zA-Z][a-zA-Z0-9+.-]*:|#|/)")
+TEST_PATH_RE = re.compile(r"(?:^|/)(?:tests?|__tests__|spec|e2e)/|[._-](?:test|spec)\.[a-z]+$|_test\.[a-z]+$|(?:^|/)test_[^/]*$")
 # Code may read versioned knowledge (_support/docs, _support/openspec); it must not
 # depend on work material, which a fresh clone does not have.
 WORK_MATERIAL_RE = re.compile(r"_support/(?:workspace|data|scripts|secrets|sessions|evidence|reports)\b")
@@ -142,10 +146,12 @@ def check_scripts(root, out):
     if not os.path.isdir(scripts):
         return
     local = read_text(os.path.join(root, "HIVE.local.md"))
+    named = set(re.findall(r"_support/scripts/([^\s`'\")\]]+)", local))
+    named = {n.rstrip("/.,;:") for n in named}
     for path in walk_files(scripts):
-        rel = os.path.relpath(path, scripts)
-        top = rel.split(os.sep)[0]
-        if f"_support/scripts/{rel}" in local or f"_support/scripts/{top}" in local:
+        rel = os.path.relpath(path, scripts).replace(os.sep, "/")
+        top = rel.split("/")[0]
+        if rel in named or top in named:
             continue
         out.append(Finding(
             "LAYOUT-01", "fail", os.path.join(root, "_support", "scripts", rel),
@@ -175,15 +181,15 @@ def check_tracked(root, out):
         if parts[0] == ".engram":
             continue
         extension = os.path.splitext(rel)[1].lower()
-        if extension not in CODE_EXTENSIONS:
+        if extension not in CODE_EXTENSIONS or TEST_PATH_RE.search(rel):
             continue
         comment = COMMENT_BY_EXTENSION.get(extension)
         for number, text in enumerate(read_text(os.path.join(root, rel)).splitlines(), 1):
             if not (comment and comment.match(text)) and WORK_MATERIAL_RE.search(text):
                 out.append(Finding(
-                    "LAYOUT-03", "fail", os.path.join(root, f"{rel}:{number}"),
-                    "code depends on work material under _support/",
-                    "remove the dependency on _support/; keep what the code needs in the repository's own code or configuration",
+                    "LAYOUT-03", "review", os.path.join(root, f"{rel}:{number}"),
+                    "code cites work material under _support/",
+                    "when this is application code or a tool every clone runs, remove the dependency and keep what it needs in its own code or configuration; a tool that manages _support/ itself may keep it",
                 ))
                 break
 
@@ -218,9 +224,11 @@ def check_index(root, index, layout, out):
                 f"add a line for it to {os.path.relpath(index, root)} saying when to read it",
             ))
     for target in LINK_RE.findall(index_text):
-        if re.match(r"^(https?:|mailto:|#)", target):
+        if target.startswith("<") and target.endswith(">"):
+            target = target[1:-1]
+        if SCHEME_RE.match(target):
             continue
-        clean = target.split("#")[0].split("?")[0]
+        clean = unquote(target.split("#")[0].split("?")[0])
         if clean and not os.path.exists(os.path.join(index_dir, clean)):
             out.append(Finding(
                 "LAYOUT-05", "fail", index, f"index link to a missing file: {target}",

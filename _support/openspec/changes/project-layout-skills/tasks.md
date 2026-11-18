@@ -49,7 +49,7 @@ Base: tricell-hive `development` en `9f67fead` (2026-11-17). Rama `feat/project-
 - [x] Script con las siete reglas de `design.md` «check_layout.py», que busca el índice en el orden definido y lee su línea `Layout:` antes de aplicarlas, y su test con fixtures temporales: un caso por regla, uno por exención de la regla 3, uno con solo `docs/README.md` y `Layout: docs at docs/ · tools at scripts/`, el mismo sin la línea (regla 7), uno con `Index:` en `AGENTS.md`, y un fixture limpio.
 - [x] Corrida de solo lectura sobre cam, carvento, fleetsystem y facti; registrar en el checkpoint los hallazgos contra la lista de «Verified context» de `proposal.md`.
 
-**Closes:** AC4, AC5, AC13
+**Closes:** AC5, AC13, AC15
 
 **Depends on:** T1
 
@@ -113,9 +113,9 @@ Base: tricell-hive `development` en `9f67fead` (2026-11-17). Rama `feat/project-
 
 ### T7 — Delta y coherencia del cambio
 
-- [ ] Revisar el delta `specs/project-layout/spec.md` contra lo construido.
+- [x] Revisar el delta `specs/project-layout/spec.md` contra lo construido.
 
-**Closes:** AC2, AC4, AC7, AC8, AC9
+**Closes:** AC2, AC7, AC8, AC9, AC15
 
 **Depends on:** T1, T2, T3, T4
 
@@ -194,3 +194,4 @@ Sin parada de validación humana: la entrega es `ready`, que se detiene con el P
 2026-11-18 — T6 · 6a2f43aa · unverified: site lint and build run with the full suite
 2026-11-18 — T3 · fc8099f6 · unverified: none
 2026-11-18 — T4 · fc8099f6 · unverified: none
+2026-11-18 — T7 · 001d9b61 · unverified: none

@@ -45,6 +45,7 @@ class WorkspaceRepoTest(unittest.TestCase):
             git(child, "init", "-q", "-b", "main")
             git(child, "remote", "add", "origin", str(remote))
             (child / "f.txt").write_text(f"{NEEDLE if name == 'a' else 'plain'}\n")
+            (child / "AGENTS.md").write_text("# child\n\n## Hive\n\n- Base branch: main\n")
             self.remotes[name] = str(remote)
         (self.ws / "HIVE.local.md").write_text("- local fact 2026-11-18\n")
         (self.ws / ".engram").mkdir()
@@ -105,6 +106,49 @@ class WorkspaceRepoTest(unittest.TestCase):
         shutil.rmtree(self.ws / ".git")
         self.apply("--direct-base")
         self.assertIn("- Delivery: direct-base", (self.ws / "AGENTS.md").read_text())
+
+    def test_base_column_is_the_base_branch_not_the_checked_out_one(self):
+        git(self.ws / "a", "checkout", "-q", "-b", "feat/x")
+        self.apply()
+        text = (self.ws / "AGENTS.md").read_text()
+        self.assertIn("| a | a | " + self.remotes["a"] + " | main | — |", text)
+        self.assertNotIn("feat/x", text)
+
+    def test_existing_hive_keys_rows_and_spanish_heading_are_kept(self):
+        (self.ws / "AGENTS.md").write_text(
+            "# ws\n\n## Hive\n\n- Project: old\n- Environments: dev → prod\n- Delivery: direct-base\n\n### Notes\n\nkeep me\n\n"
+            "## Repositorios\n\n| Repo | Path | Remote | Base | Role |\n| --- | --- | --- | --- | --- |\n"
+            "| web | web | https://example.invalid/web.git | develop | UI |\n| a | a | old-remote | main | API |\n")
+        result = self.run_script("plan", "--root", str(self.ws), "--project", "demo", "--tracker", "T", "--repo", "a")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        out = result.stdout
+        self.assertIn("- Environments: dev → prod", out)
+        self.assertIn("- Delivery: direct-base", out)
+        self.assertIn("### Notes", out)
+        self.assertIn("keep me", out)
+        self.assertIn("- Project: demo", out)
+        self.assertIn("| web | web | https://example.invalid/web.git | develop | UI |", out)
+        self.assertIn("| a | a | " + self.remotes["a"] + " | main | API |", out)
+        self.assertIn("## Repositorios", out)
+        self.assertNotIn("## Repositories", out)
+
+    def test_setup_refuses_paths_outside_and_option_remotes(self):
+        (self.ws / "AGENTS.md").write_text(
+            "# ws\n\n## Repositories\n\n| Repo | Path | Remote | Base | Role |\n| --- | --- | --- | --- | --- |\n"
+            "| out | ../outside | " + self.remotes["a"] + " | main | — |\n| opt | opt | --upload-pack=touch /tmp/x | main | — |\n")
+        result = self.run_script("setup", "--root", str(self.ws))
+        self.assertEqual(result.returncode, 1)
+        self.assertFalse((self.base / "outside").exists())
+        self.assertFalse((self.ws / "opt").exists())
+        self.assertIn("inside the workspace root", result.stderr)
+        self.assertIn("must not start with '-'", result.stderr)
+
+    def test_apply_points_to_git_state_and_specs_must_be_relative(self):
+        result = self.apply()
+        self.assertIn("git_state.py commit", result.stdout)
+        self.assertNotIn("add -A", result.stdout)
+        bad = self.run_script("plan", "--root", str(self.ws), "--project", "demo", "--specs", "/abs/openspec")
+        self.assertEqual(bad.returncode, 1)
 
     def test_existing_agents_text_is_preserved(self):
         (self.ws / "AGENTS.md").write_text(

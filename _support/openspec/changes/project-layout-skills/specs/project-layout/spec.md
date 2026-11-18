@@ -46,7 +46,7 @@ The layout convention SHALL define the levels of a script (disposable, run once,
 
 ### Requirement: The layout is checked without judgment
 
-`project-layout` SHALL ship a script that, read-only, reports each unregistered local script, each tracked file under `_support/{scripts,secrets,workspace,data}`, each tracked code file outside `_support/` in a line that is not a comment line cites work material under `_support/` (its documentation and change records may be read; configuration and documentation files are exempt), each top-level `_support/` entry outside the convention, each document missing from the index, each broken index link, and, in a workspace repository, each listed repository that is missing, has another remote, is not ignored or is not re-included for search; each finding SHALL state its correction.
+`project-layout` SHALL ship a script that, read-only, reports each unregistered local script, each tracked file under `_support/{scripts,secrets,workspace,data}`, and, for review without failing, each tracked code file outside `_support/` and outside tests that in a line that is not a comment line cites work material under `_support/` (its documentation and change records may be read; configuration and documentation files are exempt), each top-level `_support/` entry outside the convention, each document missing from the index, each broken index link, and, in a workspace repository, each listed repository that is missing, has another remote, is not ignored or is not re-included for search; each finding SHALL state its correction.
 
 #### Scenario: An unregistered local script
 
