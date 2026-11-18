@@ -29,6 +29,7 @@ import check_layout as cl  # noqa: E402  (python3 -I leaves the script's folder 
 VERSION = 1
 # Names in check_layout.GATED that hold dependencies rather than build output.
 DEPENDENCY_DIRS = ("vendor", "deps")
+KEPT, KEPT_WITH = "kept by user", "kept with the kept files that use it"
 MANIFESTS = (
     "package.json", "go.mod", "pyproject.toml", "setup.py", "composer.json", "Gemfile", "pom.xml",
     "build.gradle", "build.gradle.kts", "Cargo.toml", "pubspec.yaml", "mix.exs",
@@ -526,8 +527,8 @@ class Planner:
         subject = self.subject_of(key) if self.is_test(row) else None
         if subject and not self.is_lib(self.rows[subject]):
             dest = self.rows[subject]["destination"]
-            if "kept by user" in self.rows[subject]["notes"]:
-                return self.set_kept(key, "R1")
+            if self.is_kept(self.rows[subject]):
+                return self.set_kept(key, "R1", follows=True)
             if dest:
                 return self.set_dest(key, "R1", os.path.join(os.path.dirname(dest), os.path.basename(row["source"])))
             return self.set_review(key, "R1", "subject has no destination")
@@ -541,8 +542,8 @@ class Planner:
             top = max(dirs.values())
             directory = sorted(d for d, n in dirs.items() if n == top)[0]
             return self.set_dest(key, "R3", os.path.join(directory, os.path.basename(row["source"])))
-        if any(other in self.rows and "kept by user" in self.rows[other]["notes"] for other in related):
-            return self.set_kept(key, "R3")  # what only kept files use stays with them
+        if related and all(other in self.rows and self.is_kept(self.rows[other]) for other in related):
+            return self.set_kept(key, "R3", follows=True)  # what only kept files use stays with them
         return self.place_file(key, row)
 
     def place_file(self, key, row):
@@ -707,12 +708,23 @@ class Planner:
                 return True
         return False
 
-    def set_kept(self, key, rule):
+    def set_kept(self, key, rule, follows=False):
+        """Keep a row in place: one the user kept, or with follows, one that goes where
+        kept files are (the test of a kept file, what only kept files use), which an
+        override still moves."""
         row = self.rows[key]
-        if self.override_for(row):
+        override = self.override_for(row)
+        if override and not follows:
             raise SystemExit(fail(f"--keep and --override both name {row['source']}: choose one"))
+        if override:
+            row["rule"], row["destination"], row["override"] = rule, override, True
+            return
         row["rule"], row["destination"], row["override"] = rule, None, False
-        row["notes"].append("kept by user")
+        row["notes"].append(KEPT_WITH if follows else KEPT)
+
+    @staticmethod
+    def is_kept(row):
+        return KEPT in row["notes"] or KEPT_WITH in row["notes"]
 
     def set_dest(self, key, rule, dest):
         row = self.rows[key]
@@ -771,7 +783,7 @@ class Planner:
         """A kept test whose subject moves may run it by a path that breaks: ask."""
         for key in sorted(self.rows):
             row = self.rows[key]
-            if "kept by user" not in row["notes"] or not self.is_test(row):
+            if KEPT not in row["notes"] or not self.is_test(row):
                 continue
             subject = self.subject_of(key)
             if subject and self.rows[subject]["destination"]:
@@ -835,14 +847,16 @@ class Planner:
             root = self.roots[i]
             if ref["kind"] == "literal":
                 new_target = self.new_abs(ref["keys"][0])
+                if new_target is None and ref["keys"][0] in self.rows and self.is_kept(self.rows[ref["keys"][0]]):
+                    new_target = root.abs(ref["keys"][0][1])  # it stays; the citing file may move
                 if new_target is None:
                     continue
                 if ref["inside"]:
                     new_target = os.path.join(new_target, ref["inside"])
             else:
                 new_target = self.prefix_destination(ref["target"], ref["keys"])
-                if new_target is None and all(not self.rows[k]["destination"] and "kept by user" in self.rows[k]["notes"] for k in ref["keys"]):
-                    continue  # nothing under it moves
+                if new_target is None and all(not self.rows[k]["destination"] and self.is_kept(self.rows[k]) for k in ref["keys"]):
+                    new_target = ref["target"]  # nothing under it moves; the citing file may
                 if new_target is None:
                     dirs = sorted({os.path.dirname(self.rows[k]["destination"]) if self.rows[k]["destination"] else "review"
                                    for k in ref["keys"]})
@@ -1009,7 +1023,7 @@ def markdown(plan):
     for i, root in enumerate(plan["roots"]):
         lines += [f"## {root['path']}", "", "| Source | Rule | Destination | Notes |", "| --- | --- | --- | --- |"]
         for row in (r for r in plan["rows"] if r["root"] == i):
-            dest = f"`{row['destination']}`" if row["destination"] else "kept" if "kept by user" in row["notes"] else "review"
+            dest = f"`{row['destination']}`" if row["destination"] else "kept" if any(n.startswith("kept") for n in row["notes"]) else "review"
             notes = "; ".join(row["notes"] + (["user override"] if row["override"] else []))
             lines.append(f"| `{row['source']}` | {row['rule']} | {dest} | {notes} |")
         rewrites = [r for r in plan["rewrites"] if r["root"] == i]

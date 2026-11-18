@@ -200,7 +200,7 @@ class PlanLayoutTest(Fixture, unittest.TestCase):
         repo = monorepo(self.tmp() / "shop")
         keeps = ["_support/scripts/detect-changes.sh", "_support/infrastructure", "_support/evidence/2026-01-02-abc-1-x"]
         plan = self.plan_json(repo, extra=[a for k in keeps for a in ("--keep", k)])
-        kept = {r["source"] for r in plan["rows"] if "kept by user" in r["notes"]}
+        kept = {r["source"] for r in plan["rows"] if any(n.startswith("kept") for n in r["notes"])}
         self.assertEqual(kept, {
             "_support/scripts/detect-changes.sh", "_support/scripts/detect-changes.test.sh",
             "_support/scripts/release-fixture.lib.sh", "_support/scripts/deploy-workflows.test.sh",
@@ -230,6 +230,33 @@ class PlanLayoutTest(Fixture, unittest.TestCase):
         both = self.plan(repo, extra=["--keep", "_support/scripts/deploy.sh", "--override", "_support/scripts/deploy.sh=x/deploy.sh"], check=False)
         self.assertNotEqual(both.returncode, 0)
         self.assertIn("--keep and --override", both.stderr)
+
+    def test_what_follows_a_kept_file_yields_to_an_override_and_needs_every_user_kept(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, ".github/workflows/deploy.yml", "steps:\n  - run: _support/scripts/deploy.sh\n")
+        write(repo, "_support/scripts/deploy.sh", ". \"$(dirname \"$0\")/common.lib.sh\"\n")
+        write(repo, "_support/scripts/common.lib.sh", "echo\n")
+        write(repo, "_support/scripts/deploy.test.sh", "echo\n")
+        commit(repo)
+        keep = ["--keep", "_support/scripts/deploy.sh"]
+        plan = self.plan_json(repo, extra=keep + ["--override", "_support/scripts/common.lib.sh=scripts/lib/common.lib.sh",
+                                                  "--override", "_support/scripts/deploy.test.sh=tests/deploy.test.sh"])
+        self.assertEqual(self.dest(plan, "_support/scripts/common.lib.sh")[0], "scripts/lib/common.lib.sh")
+        self.assertEqual(self.dest(plan, "_support/scripts/deploy.test.sh")[0], "tests/deploy.test.sh")
+        write(repo, "_support/scripts/other.sh", ". \"$(dirname \"$0\")/common.lib.sh\"\n")
+        commit(repo)
+        plan = self.plan_json(repo, extra=keep)
+        lib = [r for r in plan["rows"] if r["source"] == "_support/scripts/common.lib.sh"][0]
+        self.assertFalse([n for n in lib["notes"] if n.startswith("kept")], lib)
+
+    def test_a_moving_file_keeps_its_path_to_a_kept_folder(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, "_support/scripts/a.sh", 'ls "$DIR"/../../_support/tools/\n')
+        write(repo, "_support/tools/run.py", "print()\n")
+        commit(repo)
+        plan = self.plan_json(repo, extra=["--keep", "_support/tools", "--override", "_support/scripts/a.sh=a.sh"])
+        news = [r["new"] for r in plan["rewrites"] if r["file"] == "_support/scripts/a.sh"]
+        self.assertEqual(news, ['"$DIR"/_support/tools/'], plan["rewrites"])
 
     def test_workspace_root_without_git_places_no_code(self):
         base = self.tmp() / "ws"
