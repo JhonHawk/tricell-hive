@@ -146,7 +146,7 @@ Base: tricell-hive `development` en `9f67fead` (2026-11-17). Rama `feat/project-
 
 ### T9 — Artifact «Skills de Hive»
 
-- [ ] Publicar la versión con `project-layout` y `workspace-repo` cuando el PR se abre, como estado propuesto, y marcarla integrada cuando el usuario lo integre.
+- [x] Publicar la versión con `project-layout` y `workspace-repo` cuando el PR se abre, como estado propuesto, y marcarla integrada cuando el usuario lo integre.
 
 **Closes:** AC12
 
@@ -173,15 +173,18 @@ Sin parada de validación humana: la entrega es `ready`, que se detiene con el P
 ## Checkpoint
 
 - Updated: 2026-11-18
-- Stage: build · T7 delta + full suite
-- Last commit: fc8099f6
+- Stage: verify · ready stop
+- Last commit: 610f7765
 - Open findings: none
-- Next: T7 check, full suite, hive update --dry-run, /code-review, push, PR, T9 artifact
+- Next: user merges PR #508; then close: archive change, refresh install, artifact to integrated
 
 ### Evidence
 
 - AC5 read-only check_layout on 16 real roots · cam 10 LAYOUT-01; carvento-monorepo 46 LAYOUT-02; facti-2020-new 65, facti-backend-client 16 LAYOUT-02; facti LAYOUT-03 cancel-payment-complements.js and global-emision.js; fleetsystem evidence/ and migration-data/ LAYOUT-04, no LAYOUT-01 · fc8099f6
 - before captures: none (no UI)
+- full suite: go vet ok, go test ok except known flake TestE2ESetupDeadlinesOwnDescendantsAndPipes, python unittest ok, site check/lint/build ok · 610f7765
+- /code-review: 10 findings fixed in f994d453 · plan reviews 4 rounds applied
+- no PR CI on development (workflow only for master)
 
 ## Review status and progress
 
@@ -195,3 +198,4 @@ Sin parada de validación humana: la entrega es `ready`, que se detiene con el P
 2026-11-18 — T3 · fc8099f6 · unverified: none
 2026-11-18 — T4 · fc8099f6 · unverified: none
 2026-11-18 — T7 · 001d9b61 · unverified: none
+2026-11-18 — T9 · uncommitted · unverified: artifact shows the PR as open; mark it integrated after the merge
