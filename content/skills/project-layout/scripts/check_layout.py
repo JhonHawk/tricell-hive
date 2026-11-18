@@ -265,12 +265,34 @@ def tracked_files(root):
     return [p for p in result.stdout.split("\0") if p]
 
 
-def check_tracked(root, out):
-    tracked = tracked_files(root)
+def code_under_support(tracked):
+    """Tracked code or infrastructure under _support/ that LAYOUT-08 reports, sorted."""
     tf_entries = {
         rel.split("/")[1] for rel in tracked
         if rel.startswith("_support/") and rel.count("/") > 1 and os.path.splitext(rel)[1] == ".tf"
     }
+    found = []
+    for rel in tracked:
+        parts = rel.split("/")
+        if parts[0] != "_support" or len(parts) <= 2:
+            continue
+        if parts[1] in NOT_CODE_HOMES or parts[1] in UNTRACKED_SUPPORT:
+            continue
+        extension = os.path.splitext(rel)[1].lower()
+        infra_tree = parts[1] in IAC_FAMILY or parts[1] in tf_entries
+        if extension in CODE_EXTENSIONS or extension in IAC_EXTENSIONS or (infra_tree and extension in CONFIG_EXTENSIONS):
+            found.append(rel)
+    return sorted(found)
+
+
+def check_tracked(root, out):
+    tracked = tracked_files(root)
+    for rel in code_under_support(tracked):
+        out.append(Finding(
+            "LAYOUT-08", "fail", os.path.join(root, rel),
+            "tracked code or infrastructure under _support/",
+            f"run plan_layout.py plan --root {root} and move it with the project's code",
+        ))
     for rel in tracked:
         parts = rel.split("/")
         if parts[0] == "_support":
@@ -280,15 +302,6 @@ def check_tracked(root, out):
                     f"tracked file under _support/{parts[1]}/ (never versioned)",
                     f"git rm --cached it and ignore _support/{parts[1]}/",
                 ))
-            elif len(parts) > 2 and parts[1] not in NOT_CODE_HOMES and parts[1] not in UNTRACKED_SUPPORT:
-                extension = os.path.splitext(rel)[1].lower()
-                infra_tree = parts[1] in IAC_FAMILY or parts[1] in tf_entries
-                if extension in CODE_EXTENSIONS or extension in IAC_EXTENSIONS or (infra_tree and extension in CONFIG_EXTENSIONS):
-                    out.append(Finding(
-                        "LAYOUT-08", "fail", os.path.join(root, rel),
-                        "tracked code or infrastructure under _support/",
-                        f"run plan_layout.py plan --root {root} and move it with the project's code",
-                    ))
             continue
         if parts[0] == ".engram":
             continue

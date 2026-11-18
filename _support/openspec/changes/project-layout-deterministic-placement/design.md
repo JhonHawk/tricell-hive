@@ -76,7 +76,7 @@ plan_layout.py undo --plan FILE
 **Llamadores.** Son los archivos de las raíces que contienen un token de referencia que resuelve al candidato. Los tokens se definen en **Reescrituras**.
 - Se excluyen los registros históricos: `openspec/changes/archive/`, `_support/openspec/changes/archive/`, `sessions/`, `_support/sessions/`, `evidence/`, `_support/evidence/`, `_support/workspace/` y `CHANGELOG*`.
 - Un candidato no cuenta como llamador para clasificar a otro. Sus referencias sí se reescriben.
-- Una referencia de prefijo o glob en un archivo `ci` cuenta como llamador `ci` de cada candidato que cubre, como el `find _support/scripts -name '*.test.sh'`.
+- Una referencia de prefijo o glob en un archivo `ci` cuenta como llamador `ci` solo de las pruebas que cubre, porque es un descubrimiento de pruebas, como el `find _support/scripts -name '*.test.sh'`.
 
 **Prueba.** Un nombre `*.test.*`, `*.spec.*`, `*_test.*` o `test_*`. Su sujeto es el mismo nombre sin el marcador, en el mismo directorio.
 
@@ -150,7 +150,15 @@ Casos:
 
 Todo va ordenado y sin fechas de ejecución. El texto es una tabla Markdown para el manifiesto. Mismas entradas, misma salida byte a byte.
 
-**Overrides.** `--override src=dest` reemplaza el destino y marca la fila `override: user`. Si cambia la casa de una categoría (todas las filas de R5–R8 bajo otra raíz, R2 bajo otra casa, F5 bajo otra casa de docs), el plan añade a `layout_lines` la clave `tools at`, `infra at` o `docs at`. Es la única vía por la que nace una línea `Layout:` (H26).
+**Overrides.**
+- `--override src=dest` reemplaza el destino de una fila y la marca `override: user`.
+- `--home tools=<path>`, `--home infra=<path>` o `--home docs=<path>` cambia la casa de toda una categoría (R5–R8, R2 o F5), marca sus filas como `override: user` y añade a `layout_lines` la línea `Layout:` completa de esa raíz: sus claves existentes más la nueva, en el orden docs, tools, infra.
+
+Es la única vía por la que nace una línea `Layout:` (H26).
+
+**Raíz sin Git.** En una raíz que no es repositorio, como la raíz de un workspace, solo aplican R9, F3, F4, F5 y F6. Un archivo que R2 o R4–R8 colocarían sale como `review` (`no repository`), porque el código va en un repositorio y no en la raíz del workspace.
+
+**R3, precisión.** Los candidatos relacionados con una prueba sin sujeto son los que ella cita. Los de un `*.lib.*` o fixture son los candidatos que lo citan.
 
 **apply.**
 1. Revalida todo y se niega sin tocar nada ante el primer fallo:
