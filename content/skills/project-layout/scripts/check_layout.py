@@ -38,7 +38,16 @@ LINK_RE = re.compile(r"\]\(([^)\s]+)")
 # Code may read versioned knowledge (_support/docs, _support/openspec); it must not
 # depend on work material, which a fresh clone does not have.
 WORK_MATERIAL_RE = re.compile(r"_support/(?:workspace|data|scripts|secrets|sessions|evidence|reports)\b")
-COMMENT_RE = re.compile(r"^\s*(?://|/\*|\*|#|--)")
+# Whole-line comment markers by language, so a shell flag line such as
+# `  --input _support/data/x` is still code.
+HASH_COMMENT = re.compile(r"^\s*#")
+C_COMMENT = re.compile(r"^\s*(?://|/\*|\*)")
+SQL_COMMENT = re.compile(r"^\s*--")
+COMMENT_BY_EXTENSION = {
+    **{ext: HASH_COMMENT for ext in (".py", ".rb", ".sh", ".ps1")},
+    **{ext: C_COMMENT for ext in (".js", ".mjs", ".cjs", ".ts", ".mts", ".tsx", ".jsx", ".go", ".php", ".java", ".kt", ".cs")},
+    ".sql": SQL_COMMENT,
+}
 
 
 class Finding:
@@ -165,10 +174,12 @@ def check_tracked(root, out):
             continue
         if parts[0] == ".engram":
             continue
-        if os.path.splitext(rel)[1].lower() not in CODE_EXTENSIONS:
+        extension = os.path.splitext(rel)[1].lower()
+        if extension not in CODE_EXTENSIONS:
             continue
+        comment = COMMENT_BY_EXTENSION.get(extension)
         for number, text in enumerate(read_text(os.path.join(root, rel)).splitlines(), 1):
-            if not COMMENT_RE.match(text) and WORK_MATERIAL_RE.search(text):
+            if not (comment and comment.match(text)) and WORK_MATERIAL_RE.search(text):
                 out.append(Finding(
                     "LAYOUT-03", "fail", os.path.join(root, f"{rel}:{number}"),
                     "code depends on work material under _support/",

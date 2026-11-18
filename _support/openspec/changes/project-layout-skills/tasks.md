@@ -46,8 +46,8 @@ Base: tricell-hive `development` en `9f67fead` (2026-11-17). Rama `feat/project-
 
 ### T3 — `check_layout.py`
 
-- [ ] Script con las siete reglas de `design.md` «check_layout.py», que busca el índice en el orden definido y lee su línea `Layout:` antes de aplicarlas, y su test con fixtures temporales: un caso por regla, uno por exención de la regla 3, uno con solo `docs/README.md` y `Layout: docs at docs/ · tools at scripts/`, el mismo sin la línea (regla 7), uno con `Index:` en `AGENTS.md`, y un fixture limpio.
-- [ ] Corrida de solo lectura sobre cam, carvento, fleetsystem y facti; registrar en el checkpoint los hallazgos contra la lista de «Verified context» de `proposal.md`.
+- [x] Script con las siete reglas de `design.md` «check_layout.py», que busca el índice en el orden definido y lee su línea `Layout:` antes de aplicarlas, y su test con fixtures temporales: un caso por regla, uno por exención de la regla 3, uno con solo `docs/README.md` y `Layout: docs at docs/ · tools at scripts/`, el mismo sin la línea (regla 7), uno con `Index:` en `AGENTS.md`, y un fixture limpio.
+- [x] Corrida de solo lectura sobre cam, carvento, fleetsystem y facti; registrar en el checkpoint los hallazgos contra la lista de «Verified context» de `proposal.md`.
 
 **Closes:** AC4, AC5, AC13
 
@@ -65,8 +65,8 @@ Base: tricell-hive `development` en `9f67fead` (2026-11-17). Rama `feat/project-
 
 ### T4 — `workspace-repo`
 
-- [ ] `content/skills/workspace-repo/SKILL.md` con el procedimiento de `design.md`, las preguntas del `Tracker` y de `Delivery: direct-base`, el aviso sobre la clave del viewer antes de agregar `origin`, el ascenso del repo de specs como paso manual, y sus limitaciones declaradas.
-- [ ] `scripts/workspace_repo.py` (plan por defecto, `--apply` con `--tracker` y `--direct-base` explícitos, modo setup que clona lo que falta de la tabla) y su test con un workspace temporal de dos hijos, un repo de specs y un `HIVE.local.md`.
+- [x] `content/skills/workspace-repo/SKILL.md` con el procedimiento de `design.md`, las preguntas del `Tracker` y de `Delivery: direct-base`, el aviso sobre la clave del viewer antes de agregar `origin`, el ascenso del repo de specs como paso manual, y sus limitaciones declaradas.
+- [x] `scripts/workspace_repo.py` (plan por defecto, `--apply` con `--tracker` y `--direct-base` explícitos, modo setup que clona lo que falta de la tabla) y su test con un workspace temporal de dos hijos, un repo de specs y un `HIVE.local.md`.
 
 **Closes:** AC8, AC10
 
@@ -172,6 +172,17 @@ Sin parada de validación humana: la entrega es `ready`, que se detiene con el P
 
 ## Checkpoint
 
+- Updated: 2026-11-18
+- Stage: build · T7 delta + full suite
+- Last commit: fc8099f6
+- Open findings: none
+- Next: T7 check, full suite, hive update --dry-run, /code-review, push, PR, T9 artifact
+
+### Evidence
+
+- AC5 read-only check_layout on 16 real roots · cam 10 LAYOUT-01; carvento-monorepo 46 LAYOUT-02; facti-2020-new 65, facti-backend-client 16 LAYOUT-02; facti LAYOUT-03 cancel-payment-complements.js and global-emision.js; fleetsystem evidence/ and migration-data/ LAYOUT-04, no LAYOUT-01 · fc8099f6
+- before captures: none (no UI)
+
 ## Review status and progress
 
 2026-11-18 — Revisión: AC13 (línea `Layout:`) suma a T1, T2 y T3.
@@ -181,3 +192,5 @@ Sin parada de validación humana: la entrega es `ready`, que se detiene con el P
 2026-11-18 — T2 · fd85bd49 · unverified: AC7 behavior in a real session pending observation
 2026-11-18 — T5 · 6a2f43aa · unverified: none
 2026-11-18 — T6 · 6a2f43aa · unverified: site lint and build run with the full suite
+2026-11-18 — T3 · fc8099f6 · unverified: none
+2026-11-18 — T4 · fc8099f6 · unverified: none

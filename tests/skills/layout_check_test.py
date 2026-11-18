@@ -102,6 +102,7 @@ class CheckLayoutTest(unittest.TestCase):
         write(repo, "README.md", "see _support/docs\n")
         write(repo, "ci.yml", "paths: _support/openspec\n")
         write(repo, "scripts/check_specs.sh", "ls _support/openspec/specs _support/docs/README.md\n")
+        write(repo, "scripts/run.sh", "node load.js \\\n  --input _support/data/rows.csv\n")
         write(repo, "src/documented.ts", "// see _support/scripts/old.sh, retired\n/* _support/workspace/x */\nexport const a = 1\n")
         commit_all(repo)
         result = self.run_check(repo)
@@ -109,8 +110,9 @@ class CheckLayoutTest(unittest.TestCase):
         self.assertFinding(result, "LAYOUT-03", fragment="bad.py:2")
         self.assertNotIn("check_specs.sh", result.stdout)
         self.assertNotIn("documented.ts", result.stdout)
+        self.assertFinding(result, "LAYOUT-03", fragment="run.sh:2")
         lines = [l for l in result.stdout.splitlines() if l.startswith("LAYOUT-03")]
-        self.assertEqual(len(lines), 1, lines)
+        self.assertEqual(len(lines), 2, lines)
 
     def test_layout_03_exempt_files_alone_pass(self):
         repo = self.tmp() / "r"
