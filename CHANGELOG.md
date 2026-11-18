@@ -90,6 +90,9 @@ raise the minor or the patch version.
   references to what it moves, lists the ones it cannot rewrite safely, and
   undoes exactly what it applied. Its check ignores dependency and build
   folders of every language and fails on code kept under `_support/`.
+  An item you choose to keep stays where it is with `--keep`, with the
+  tests beside it, and a committed `vendor/` library is never taken for
+  one of your packages.
 
 - Research audits a codebase when you ask for it, or for what to improve in
   it. It reads the project's check commands and decision records first,

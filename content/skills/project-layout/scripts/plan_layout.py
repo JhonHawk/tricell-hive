@@ -2,7 +2,7 @@
 """Plan, apply, verify and undo the moves project-layout makes, deterministically.
 
   plan_layout.py [plan] --root DIR [--root DIR ...] [--override SRC=DEST ...]
-                 [--home tools|infra|docs=PATH ...] [--json] [--out FILE]
+                 [--keep SRC ...] [--home tools|infra|docs=PATH ...] [--json] [--out FILE]
   plan_layout.py apply  --plan FILE      move, rewrite references, write FILE.undo.json
   plan_layout.py verify --plan FILE      fail while a current reference to a moved path remains
   plan_layout.py undo   --plan FILE      reverse exactly what apply recorded
@@ -27,6 +27,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import check_layout as cl  # noqa: E402  (python3 -I leaves the script's folder off sys.path)
 
 VERSION = 1
+# Names in check_layout.GATED that hold dependencies rather than build output.
+DEPENDENCY_DIRS = ("vendor", "deps")
+KEPT, KEPT_WITH = "kept by user", "kept with the kept files that use it"
 MANIFESTS = (
     "package.json", "go.mod", "pyproject.toml", "setup.py", "composer.json", "Gemfile", "pom.xml",
     "build.gradle", "build.gradle.kts", "Cargo.toml", "pubspec.yaml", "mix.exs",
@@ -181,9 +184,20 @@ class Root:
                 continue
             name = os.path.basename(rel)
             directory = os.path.dirname(rel)
-            if directory and (name in MANIFESTS or name.endswith(MANIFEST_SUFFIXES)):
+            if directory and (name in MANIFESTS or name.endswith(MANIFEST_SUFFIXES)) and not self.in_dependencies(directory):
                 found.add(directory)
         return sorted(found)
+
+    def in_dependencies(self, rel):
+        """Whether a folder lies in a committed dependency folder, such as Go's vendor/
+        beside go.mod, which holds other projects' manifests. Build output a repository
+        commits, such as build/, is its own source and still counts."""
+        parent = self.path
+        for name in rel.split("/"):
+            if name in cl.PRUNE or (name in DEPENDENCY_DIRS and cl.is_dependency_dir(parent, name)):
+                return True
+            parent = os.path.join(parent, name)
+        return False
 
     def package_of(self, rel):
         best = None
@@ -220,10 +234,12 @@ class Root:
 
 
 class Planner:
-    def __init__(self, roots, overrides, homes):
+    def __init__(self, roots, overrides, homes, keeps=()):
         self.roots = [Root(r) for r in roots]
         self.overrides = overrides
         self.used_overrides = set()
+        self.keeps = list(keeps)
+        self.used_keeps = set()
         self.homes_override = homes
         self.rows = {}  # (root index, source) -> row
         self.reviews = []
@@ -319,7 +335,7 @@ class Planner:
             return
         if any((i, r) in self.rows for r in files):
             rest = [r for r in files if (i, r) not in self.rows]
-            if rest:
+            if rest and not self.kept_path(i, base):
                 self.review(i, base, "no rule", f"{len(rest)} other files stay; classify them by hand")
             return
         self.rows[(i, base)] = self.new_row(i, base, "folder", name)
@@ -511,6 +527,8 @@ class Planner:
         subject = self.subject_of(key) if self.is_test(row) else None
         if subject and not self.is_lib(self.rows[subject]):
             dest = self.rows[subject]["destination"]
+            if self.is_kept(self.rows[subject]):
+                return self.set_kept(key, "R1", follows=True)
             if dest:
                 return self.set_dest(key, "R1", os.path.join(os.path.dirname(dest), os.path.basename(row["source"])))
             return self.set_review(key, "R1", "subject has no destination")
@@ -524,6 +542,8 @@ class Planner:
             top = max(dirs.values())
             directory = sorted(d for d, n in dirs.items() if n == top)[0]
             return self.set_dest(key, "R3", os.path.join(directory, os.path.basename(row["source"])))
+        if related and all(other in self.rows and self.is_kept(self.rows[other]) for other in related):
+            return self.set_kept(key, "R3", follows=True)  # what only kept files use stays with them
         return self.place_file(key, row)
 
     def place_file(self, key, row):
@@ -674,8 +694,42 @@ class Planner:
                 return os.path.normpath(dest).replace(os.sep, "/")
         return None
 
+    def keep_for(self, row):
+        """Whether the user keeps this row where it is: its source, or a folder holding it."""
+        return self.kept_path(row["root"], row["source"])
+
+    def kept_path(self, i, rel):
+        root = self.roots[i]
+        source = root.abs(rel)
+        for spec in self.keeps:
+            path = os.path.abspath(spec) if os.path.isabs(spec) else root.abs(os.path.normpath(spec))
+            if source == path or source.startswith(path.rstrip(os.sep) + os.sep):
+                self.used_keeps.add(spec)
+                return True
+        return False
+
+    def set_kept(self, key, rule, follows=False):
+        """Keep a row in place: one the user kept, or with follows, one that goes where
+        kept files are (the test of a kept file, what only kept files use), which an
+        override still moves."""
+        row = self.rows[key]
+        override = self.override_for(row)
+        if override and not follows:
+            raise SystemExit(fail(f"--keep and --override both name {row['source']}: choose one"))
+        if override:
+            row["rule"], row["destination"], row["override"] = rule, override, True
+            return
+        row["rule"], row["destination"], row["override"] = rule, None, False
+        row["notes"].append(KEPT_WITH if follows else KEPT)
+
+    @staticmethod
+    def is_kept(row):
+        return KEPT in row["notes"] or KEPT_WITH in row["notes"]
+
     def set_dest(self, key, rule, dest):
         row = self.rows[key]
+        if self.keep_for(row):
+            return self.set_kept(key, rule)
         override = self.override_for(row)
         row["rule"] = rule
         row["destination"] = override or os.path.normpath(dest).replace(os.sep, "/")
@@ -683,6 +737,8 @@ class Planner:
 
     def set_review(self, key, rule, reason):
         row = self.rows[key]
+        if self.keep_for(row):
+            return self.set_kept(key, rule)
         override = self.override_for(row)
         row["rule"] = rule
         if override:
@@ -722,6 +778,17 @@ class Planner:
                     row["override"] = False
                     row["destination"] = None
                     self.review(row["root"], row["source"], row["rule"], f"collision at {dest}")
+
+    def mark_split_tests(self):
+        """A kept test whose subject moves may run it by a path that breaks: ask."""
+        for key in sorted(self.rows):
+            row = self.rows[key]
+            if KEPT not in row["notes"] or not self.is_test(row):
+                continue
+            subject = self.subject_of(key)
+            if subject and self.rows[subject]["destination"]:
+                self.review(row["root"], row["source"], "kept test",
+                            f"its subject moves to {self.rows[subject]['destination']}; keep both or move both")
 
     def mark_same_names(self):
         for key in sorted(self.rows):
@@ -780,12 +847,16 @@ class Planner:
             root = self.roots[i]
             if ref["kind"] == "literal":
                 new_target = self.new_abs(ref["keys"][0])
+                if new_target is None and ref["keys"][0] in self.rows and self.is_kept(self.rows[ref["keys"][0]]):
+                    new_target = root.abs(ref["keys"][0][1])  # it stays; the citing file may move
                 if new_target is None:
                     continue
                 if ref["inside"]:
                     new_target = os.path.join(new_target, ref["inside"])
             else:
                 new_target = self.prefix_destination(ref["target"], ref["keys"])
+                if new_target is None and all(not self.rows[k]["destination"] and self.is_kept(self.rows[k]) for k in ref["keys"]):
+                    new_target = ref["target"]  # nothing under it moves; the citing file may
                 if new_target is None:
                     dirs = sorted({os.path.dirname(self.rows[k]["destination"]) if self.rows[k]["destination"] else "review"
                                    for k in ref["keys"]})
@@ -918,6 +989,10 @@ class Planner:
         unused = sorted({spec for spec, _ in self.overrides} - self.used_overrides)
         if unused:
             raise SystemExit(fail("--override names no planned row: " + ", ".join(unused)))
+        unused = sorted(set(self.keeps) - self.used_keeps)
+        if unused:
+            raise SystemExit(fail("--keep names no planned row: " + ", ".join(unused)))
+        self.mark_split_tests()
         self.mark_same_names()
         self.build_rewrites(refs)
         self.internal_paths()
@@ -948,7 +1023,7 @@ def markdown(plan):
     for i, root in enumerate(plan["roots"]):
         lines += [f"## {root['path']}", "", "| Source | Rule | Destination | Notes |", "| --- | --- | --- | --- |"]
         for row in (r for r in plan["rows"] if r["root"] == i):
-            dest = f"`{row['destination']}`" if row["destination"] else "review"
+            dest = f"`{row['destination']}`" if row["destination"] else "kept" if any(n.startswith("kept") for n in row["notes"]) else "review"
             notes = "; ".join(row["notes"] + (["user override"] if row["override"] else []))
             lines.append(f"| `{row['source']}` | {row['rule']} | {dest} | {notes} |")
         rewrites = [r for r in plan["rewrites"] if r["root"] == i]
@@ -979,7 +1054,7 @@ def cmd_plan(args):
     for root in args.root:
         if not os.path.isdir(root):
             return fail(f"not a directory: {root}")
-    plan = Planner(args.root, overrides, homes).plan()
+    plan = Planner(args.root, overrides, homes, args.keep or []).plan()
     text = json.dumps(plan, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
     if args.out:
         with open(args.out, "w", encoding="utf-8") as handle:
@@ -1230,6 +1305,7 @@ def main(argv=None):
     plan = sub.add_parser("plan", help="print the plan; changes nothing")
     plan.add_argument("--root", action="append", required=True)
     plan.add_argument("--override", action="append", metavar="SRC=DEST")
+    plan.add_argument("--keep", action="append", metavar="SRC", help="leave this row, or every row under this folder, where it is")
     plan.add_argument("--home", action="append", metavar="KEY=PATH")
     plan.add_argument("--json", action="store_true")
     plan.add_argument("--out")

@@ -124,6 +124,22 @@ Git SHALL be initialized at a declared workspace root only through `workspace-re
 - **WHEN** the planner runs
 - **THEN** it sends it to `_support/workspace/2026-01-02-abc-1-login/evidence/` and removes nothing
 
+### Requirement: The planner leaves in place what the user keeps and what other projects own
+
+The placement planner SHALL leave where it is each item the user keeps, through its own option and never through an edited plan, together with every row under a kept folder and the tests and libraries only kept files use, with no destination, no question and no reference rewrite; SHALL ask about a kept test whose subject moves; and SHALL refuse a kept path that names no row or that an override also names. A dependency folder the repository commits, such as Go's `vendor/` beside `go.mod`, SHALL never count as one of its packages.
+
+#### Scenario: An item the user keeps
+
+- **GIVEN** the user keeps `_support/scripts/detect-changes.sh` and `_support/infrastructure/`
+- **WHEN** the planner runs with `--keep` for each
+- **THEN** those rows and the script's test have no destination and the note «kept by user», no question and no reference rewrite, and a `--keep` that names no row is refused
+
+#### Scenario: A committed vendor library
+
+- **GIVEN** a Go repository that commits `vendor/acme/composer.json` and has `_support/scripts/acme/check.sh`
+- **WHEN** the planner runs
+- **THEN** it does not send the script into `vendor/acme/`
+
 ### Requirement: A move repairs the references to what it moves
 
 When the planner's plan is applied, each current reference to a moved path SHALL be rewritten in the form it had, relative to the repository, to the citing file or to the workspace; a prefix or glob that covers files with different destinations, and a script's own relative path whose depth changes, SHALL be reported for review instead; references in historical records SHALL stay unchanged; references inside the moved files SHALL be rewritten too; the apply SHALL refuse a stale plan or an existing destination without moving anything, SHALL never commit, SHALL record what it did so that an undo reverses exactly that and keeps unrelated local changes, and its verification SHALL fail while a current reference to an old path remains.
