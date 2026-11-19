@@ -131,6 +131,7 @@ func loadClaudeSession(data []byte) (auditSession, error) {
 	var starts []int
 	s.Prompts = map[int]string{}
 	var tr timeRange
+	sawMain, sawSide := false, false
 	line := 0
 	scan := auditScanner(data)
 	for scan.Scan() {
@@ -148,6 +149,10 @@ func loadClaudeSession(data []byte) (auditSession, error) {
 		if s.Cwd == "" {
 			s.Cwd = ev.Cwd
 		}
+		if ev.Type == "user" || ev.Type == "assistant" {
+			sawSide = sawSide || ev.IsSidechain
+			sawMain = sawMain || !ev.IsSidechain
+		}
 		if ev.Type == "user" && !ev.IsMeta && !ev.IsSidechain && !ev.IsCompactSummary && claudePromptContent(ev.Message.Content) {
 			starts = append(starts, line)
 			s.Prompts[len(starts)] = claudePromptText(ev.Message.Content)
@@ -156,6 +161,8 @@ func loadClaudeSession(data []byte) (auditSession, error) {
 	if err := scan.Err(); err != nil {
 		return s, fmt.Errorf("claude transcript: %w", err)
 	}
+	// A child's transcript holds only sidechain messages.
+	s.Subagent = sawSide && !sawMain
 	s.First, s.Last = tr.first, tr.last
 	s.Turn = make([]int, len(s.Trace.Events))
 	for i, e := range s.Trace.Events {
@@ -364,7 +371,7 @@ type codexCall struct {
 
 func (b *codexBuilder) codexExec(line int, id, js string) {
 	calls, ambiguous := scanCodexExec(js)
-	idx := 0
+	idx, spawns := 0, 0
 	for _, c := range calls {
 		switch {
 		case c.name == "write_stdin":
@@ -383,8 +390,12 @@ func (b *codexBuilder) codexExec(line int, id, js string) {
 			e := traceEvent{Line: line, Kind: "tool", Tool: c.name, ID: fmt.Sprintf("%s#%d", id, idx), Message: "codex-call-" + id}
 			e.Memory = codexMemoryTool(c.name)
 			if c.name == "spawn_agent" {
-				// The role a child runs is all a criterion needs from its brief.
-				e.Text = strings.Join(hiveRoleName.FindAllString(js, -1), " ")
+				// The role a child runs is all a criterion needs from its brief;
+				// the k-th spawn of a block gets the k-th role it names.
+				if roles := spawnRole.FindAllStringSubmatch(js, -1); spawns < len(roles) {
+					e.Text = roles[spawns][1]
+				}
+				spawns++
 			}
 			b.add(e)
 		}
@@ -825,6 +836,7 @@ func loadGrokSession(data []byte, path string) (auditSession, error) {
 			s.Model, s.ModelConfigured = sum.CurrentModelID, true
 		}
 	}
+	s.Prompts = map[int]string{}
 	var tr timeRange
 	turn, inTurn := 0, false
 	var pendingText strings.Builder
@@ -867,6 +879,7 @@ func loadGrokSession(data []byte, path string) (auditSession, error) {
 				turn++
 				inTurn = true
 			}
+			s.Prompts[turn] += str(object(u["content"])["text"])
 		case "turn_completed":
 			flush()
 			inTurn = false
