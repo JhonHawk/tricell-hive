@@ -58,7 +58,7 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 
 ### T4 — Hogar de trackers y caché de estados
 
-- [ ] `hive-rule-trackers` con referencias por servicio; transiciones leídas antes de mover; caché `tracker/states/<tracker>/<clave>` en Engram.
+- [x] `hive-rule-trackers` con referencias por servicio; transiciones leídas antes de mover; caché `tracker/states/<tracker>/<clave>` en Engram.
 
 **Closes:** AC9, AC10
 
@@ -76,7 +76,7 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 
 ### T5 — Evidencia en el ticket antes de limpiar
 
-- [ ] El cierre documenta el ticket con sus evidencias antes de cualquier limpieza.
+- [x] El cierre documenta el ticket con sus evidencias antes de cualquier limpieza.
 
 **Closes:** AC11
 
@@ -227,3 +227,5 @@ En cada parada de validación: el diff de la unidad, el tamaño de `global.md`, 
 2026-11-19 — T1 · 5b9b9b3a · unverified: none
 2026-11-19 — T2 · 4e9a8fe1 · unverified: AC5 (Codex round through request_user_input) waits for a real Codex session after deploy
 2026-11-19 — T3 · 2cbc0706 · unverified: AC6 real-session half waits for a session after deploy
+2026-11-19 — T4 · 84f3ea4c · unverified: AC9-AC10 wait for a real session that moves a ticket
+2026-11-19 — T5 · 84f3ea4c · unverified: AC11 waits for a real close
