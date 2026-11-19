@@ -44,7 +44,7 @@ When the work had captures in the viewer, Close finishes it first; see [Viewer](
 
 ## How it ends
 
-With the footer, which offers closing only while something is left to run. Your reply, including choosing to close, decides what runs next. The exact steps, the severity scale for findings and the branch cleanup rules are in the [flow-close skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/SKILL.md) and its [branch cleanup reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/references/branch-cleanup.md).
+With the footer, which offers closing only while something is left to run. Your reply, including choosing to close, decides what runs next. The exact steps are in the [flow-close skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/SKILL.md), which links the [close modes](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-rule-close-modes/SKILL.md), the severity scale for findings in the [close report](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-rule-close-report/SKILL.md), and the branch cleanup rules in its [branch cleanup reference](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-close/references/branch-cleanup.md).
 
 ## What it does not do
 

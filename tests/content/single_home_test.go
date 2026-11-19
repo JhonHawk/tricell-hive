@@ -33,6 +33,13 @@ var homePhrases = []homePhrase{
 	{"Name the cause before you edit", "content/skills/hive-rule-defect-fix/SKILL.md", false},
 	// Repeated today: flow-research and flow-figma-design.
 	{"yourself that the host has a connection that can write", "content/skills/hive-rule-design-stage/SKILL.md", false},
+	{"Never bypass branch protection, required reviews or required checks", "content/skills/hive-rule-merge-gate/SKILL.md", true},
+	{"A human reviewer holds the merge in every delivery mode", "content/skills/hive-rule-merge-gate/SKILL.md", true},
+	{"Treat an assigned or requested reviewer's comments as review findings", "content/skills/hive-rule-pr-reviews/SKILL.md", true},
+	{"receive changes only through the declared promotion path", "content/skills/hive-rule-promotion-path/SKILL.md", true},
+	{"Close a work item once", "content/skills/hive-rule-close-modes/SKILL.md", true},
+	{"A finding is a defect the work found but did not fix", "content/skills/hive-rule-close-report/SKILL.md", true},
+	{"A candidate is a repetition the work did not turn into a mechanism", "content/skills/hive-rule-close-report/SKILL.md", true},
 }
 
 // homeProblems returns one line per active phrase whose files under

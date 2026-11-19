@@ -1,0 +1,15 @@
+---
+name: hive-rule-pr-reviews
+description: "Hive rule leaf: read when the CI wait of a pull request ends. Read its checks and reviews once, answer each comment, and fix only the blocking findings in one round."
+disable-model-invocation: true
+---
+
+# Answer the reviewers
+
+Read when the CI wait of a pull request ends, before its merge or its `ready` stop.
+
+When the CI wait ends, read the pull request's checks once, and its reviews, review comments and comments once through REST with `gh api --paginate` (`repos/<owner>/<repo>/pulls/<n>/reviews`, `.../pulls/<n>/comments` and `.../issues/<n>/comments`), whose `user.type` tells a bot apart; the [state read](../git-workflow/SKILL.md) gives each item's `user_type`, `on_head` and `after_since`. Treat an assigned or requested reviewer's comments as review findings. Read each against the code before changing anything, and ask in the thread when one is unclear before implementing any. Apply the blocking comments first and the rest in any order, verifying each; push back with evidence when the code already does what a comment asks or the request would break stated behavior. Reply in each thread with what changed or why not. Those replies and the pushes carrying fixes run under the pull request's delivery authorization, when the user asks or when you check its state; never poll for comments.
+
+- A review bot is an account whose `user.type` is `Bot`, or a machine account that only the review automation read at [git-workflow step 6](../git-workflow/SKILL.md) posts as; an account a person also uses is not a bot. Its review counts only when its `commit_id` is the head commit; its review comment only when its `original_commit_id` is the head commit, or when it replies in a thread (`in_reply_to_id`) and was created after this work's last push; and its other comments only when created or edited after that push (`updated_at`), whose time you note when you push; older bot output and the checks of earlier commits change nothing, while an open human thread still applies. Check each bot finding against the code before changing anything, and reply with the reason to each one you dismiss. A failing check of a bot that is not a required check is a finding, not a CI failure.
+- Findings from bots and checks after the push get one round of fixes with [flow-verify step 3](../flow-verify/SKILL.md)'s definition of blocking, and without its second review: fix only the blocking ones, with an `Unreviewed: <reason>` line in each fix commit; the rest go to the close's findings, and a finding on a fix commit is reported without another round. After pushing the fixes, wait for CI on the new head commit again before the merge or the `ready` stop, and handle a failure as [merge gate](../hive-rule-merge-gate/SKILL.md) sets.
+- A commit on the pull request's branch that this work did not make, such as a bot's autofix, is handled as [foreign commits](../hive-rule-foreign-commits/SKILL.md) sets.

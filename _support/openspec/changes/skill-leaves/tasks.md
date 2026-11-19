@@ -132,7 +132,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 ### T5 — Se extraen las hojas de `global.md`
 
-- [ ] Existen `decision-format`, `question-channel`, `report-endings`, `delivery-ask`, `foreign-commits`, `local-record`, `test-accounts`, `ticket-state`, `scope-changes` y `project-settings`, partidas según D11. `global.md` conserva los invariantes de `design.md`.
+- [x] Existen `decision-format`, `question-channel`, `report-endings`, `delivery-ask`, `foreign-commits`, `local-record`, `test-accounts`, `ticket-state`, `scope-changes` y `project-settings`, partidas según D11. `global.md` conserva los invariantes de `design.md`.
 
 **Closes:** AC4, AC5, AC7
 
@@ -504,3 +504,4 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 2026-11-18 — T1 · addf3256 · unverified: AC4 of question-card-alone (rule survives a refresh) is moot: the trial paragraph is gone
 2026-11-18 — T2 · 549b1583 · unverified: hive doctor end to end and a rollback to an older stored release not run; covered through Status and desiredResources
 2026-11-18 — T4 · c33681da · unverified: none
+2026-11-19 — T5 · dff232ad · unverified: flow-deploy citations and its ticket-state link wait for T8; README, llms.txt and _support/docs wait for T9

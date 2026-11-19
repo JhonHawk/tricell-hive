@@ -129,6 +129,7 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 		skills + "hive-rule-decision-format/SKILL.md", skills + "hive-rule-question-channel/SKILL.md",
 		skills + "hive-rule-delivery-ask/SKILL.md", skills + "hive-rule-project-settings/SKILL.md",
 		skills + "hive-rule-ticket-state/SKILL.md",
+		skills + "hive-rule-close-modes/SKILL.md", skills + "hive-rule-close-hygiene/SKILL.md", skills + "hive-rule-close-report/SKILL.md",
 		skills + "flow-research/SKILL.md", skills + "flow-plan/SKILL.md",
 		skills + "flow-build/SKILL.md", skills + "flow-verify/SKILL.md", skills + "flow-close/SKILL.md",
 		skills + "flow-build/references/delegation.md",
@@ -142,6 +143,7 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 		skills+"flow-build/references/e2e-coordination.md", skills+"flow-plan/references/execution-record.md",
 		skills+"flow-build/references/defect-fix.md", skills+"git-workflow/SKILL.md",
 		skills+"flow-close/references/branch-cleanup.md", "content/agents/development/hive-build-owner.md",
+		skills+"hive-rule-merge-gate/SKILL.md", skills+"hive-rule-pr-reviews/SKILL.md",
 	)
 	added := map[string]bool{
 		skills + "hive-rule-decision-format/SKILL.md":             true,
@@ -149,6 +151,11 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 		skills + "hive-rule-delivery-ask/SKILL.md":                true,
 		skills + "hive-rule-project-settings/SKILL.md":            true,
 		skills + "hive-rule-ticket-state/SKILL.md":                true,
+		skills + "hive-rule-close-modes/SKILL.md":                 true,
+		skills + "hive-rule-close-hygiene/SKILL.md":               true,
+		skills + "hive-rule-close-report/SKILL.md":                true,
+		skills + "hive-rule-merge-gate/SKILL.md":                  true,
+		skills + "hive-rule-pr-reviews/SKILL.md":                  true,
 		skills + "flow-build/references/e2e-coordination.md":      true,
 		skills + "flow-plan/references/execution-record.md":       true,
 		skills + "flow-verify/references/project-verification.md": true,

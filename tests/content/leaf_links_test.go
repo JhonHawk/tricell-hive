@@ -24,7 +24,18 @@ var leafLinks = []leafLink{
 	{"hive-rule-ticket-state", "content/skills/flow-build/SKILL.md", true},
 	{"hive-rule-ticket-state", "content/skills/flow-close/SKILL.md", true},
 	{"hive-rule-ticket-state", "content/skills/flow-deploy/SKILL.md", false},
-	{"hive-rule-close-modes", "content/skills/flow-close/SKILL.md", false},
+	{"hive-rule-close-modes", "content/skills/flow-close/SKILL.md", true},
+	{"hive-rule-close-hygiene", "content/skills/flow-close/SKILL.md", true},
+	{"hive-rule-close-report", "content/skills/flow-close/SKILL.md", true},
+	{"hive-rule-close-footer", "content/skills/flow-close/SKILL.md", true},
+	{"hive-rule-close-report", "content/skills/git-workflow/SKILL.md", true},
+	{"hive-rule-close-report", "content/skills/unattended-delegation/SKILL.md", true},
+	{"hive-rule-merge-gate", "content/skills/git-workflow/SKILL.md", true},
+	{"hive-rule-merge-gate", "content/skills/flow-verify/SKILL.md", true},
+	{"hive-rule-merge-gate", "content/skills/flow-deploy/SKILL.md", true},
+	{"hive-rule-pr-reviews", "content/skills/git-workflow/SKILL.md", true},
+	{"hive-rule-promotion-path", "content/skills/git-workflow/SKILL.md", true},
+	{"hive-rule-promotion-path", "content/skills/flow-deploy/SKILL.md", true},
 }
 
 func linkProblems(root string, links []leafLink) []string {
