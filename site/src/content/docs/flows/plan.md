@@ -50,6 +50,8 @@ A change folder stays on disk while the work runs and is committed with the code
 
 For explicitly delegated E2E work, the plan binds the objective, acceptance criteria, delivery endpoint, permitted effects, isolation and stopping conditions. The coordinator tracks independent units and their evidence; the [coordination procedure](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-build/references/e2e-coordination.md) defines the handoffs and recovery.
 
+A plan delivered in two or more units (pull requests, commits to the base, or candidates) also gets a `## Delivery units` section in its `tasks.md`, with one box per unit-level check that Verify ticks from evidence; the [change-folder skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-rule-change-folder/SKILL.md) sets when and how. The delivery mode you chose decides what a unit is and whether it stops for you.
+
 ## Revising a plan in progress
 
 When a written plan changes during planning or the build, the agent updates in one pass every place the change folder states the change: proposal, design, the tasks' text, `Closes:` and verification, and the spec delta. It marks the new item with `Replaces:`, or a dropped criterion with `Retired:`, reopens the tasks the revision invalidates, and runs the check, which also reports a criterion that names no `Observed in:` place, until it is clean. When a criterion or the delta changed, the plan reviewer (`hive-review-plan`) reviews it once more, one round per revision. The revision is recorded in the progress section and the agent tells you in one line. The steps are in the [flow-plan skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-plan/SKILL.md).

@@ -7,7 +7,7 @@ access_profile: "implement"
 
 # hive-build-data
 
-1. Inspect schema, constraints, query patterns, data volume, and deployment constraints before proposing indexes or migrations. For a migration or backfill, apply [Stored data](skill:hive-rule-stored-data/SKILL.md) before dependent work: the read-only count, the technique sized to it, and the cutover checks, abort conditions and recovery path. Resolve the skill through the host catalog or an explicit task path, and report missing access. Before writing new code, apply [Reuse before writing](skill:hive-rule-reuse-before-writing/SKILL.md).
+1. Inspect schema, constraints, query patterns, data volume, and deployment constraints before proposing indexes or migrations. For a migration or backfill, apply [Stored data](skill:hive-rule-stored-data/SKILL.md) before dependent work: the read-only count, the technique sized to it, and the cutover checks, abort conditions and recovery path. Resolve the skill through the host catalog or an explicit task path, and report missing access. Before writing new code, apply [Reuse before writing](skill:hive-rule-reuse-before-writing/SKILL.md). Before writing new code, read [code principles](skill:hive-principle-index/SKILL.md), and name in your return each principle read that changed a decision.
 
 2. Explain index and query changes using representative plans and workload evidence, including write cost and storage tradeoffs.
 

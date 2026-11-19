@@ -322,7 +322,7 @@ func loadRelease(o Options, stateDir string) (Release, error) {
 	return r, validateRelease(r)
 }
 
-var resourceExtensions = map[string]bool{".md": true, ".html": true, ".py": true, ".sh": true, ".json": true, ".ts": true, ".mjs": true, ".astro": true, ".mdx": true, ".css": true, ".yaml": true, ".yml": true}
+var resourceExtensions = map[string]bool{".md": true, ".html": true, ".py": true, ".sh": true, ".json": true, ".ts": true, ".mjs": true, ".astro": true, ".mdx": true, ".css": true, ".yaml": true, ".yml": true, ".tsv": true}
 
 func collectResources(source, root string, out *[]string) error {
 	if err := target.Safe(root); err != nil {
@@ -367,7 +367,7 @@ func validSource(source string) bool {
 	if regexp.MustCompile(`^content/agents/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\.md$`).MatchString(source) {
 		return true
 	}
-	return regexp.MustCompile(`^content/skills/[a-z0-9]+(-[a-z0-9]+)*/(SKILL\.md|(references|scripts|assets|playbooks)/([A-Za-z0-9][A-Za-z0-9._-]*/)*(\.gitignore|[A-Za-z0-9][A-Za-z0-9._-]*\.(md|html|py|sh|json|ts|mjs|astro|mdx|css|yaml|yml)))$`).MatchString(source)
+	return regexp.MustCompile(`^content/skills/[a-z0-9]+(-[a-z0-9]+)*/(SKILL\.md|(references|scripts|assets|playbooks)/([A-Za-z0-9][A-Za-z0-9._-]*/)*(\.gitignore|[A-Za-z0-9][A-Za-z0-9._-]*\.(md|html|py|sh|json|ts|mjs|astro|mdx|css|yaml|yml|tsv)))$`).MatchString(source)
 }
 func releaseSources(r *Release) []string {
 	sources := []string{}

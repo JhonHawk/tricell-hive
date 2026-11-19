@@ -26,6 +26,19 @@ var homePhrases = []homePhrase{
 	{"is done when its changes are integrated", "content/skills/hive-rule-ticket-state/SKILL.md"},
 	{"adds, replaces or cancels a business rule, record it in", "content/skills/hive-rule-business-rules/SKILL.md"},
 	{"Name the cause before you edit", "content/skills/hive-rule-defect-fix/SKILL.md"},
+	{"a state the code must never hold cannot be written down", "content/skills/hive-principle-type-system-discipline/SKILL.md"},
+	{"Inside the boundary, trust the types", "content/skills/hive-principle-boundary-discipline/SKILL.md"},
+	{"Put the domain rules in a data structure", "content/skills/hive-principle-model-the-domain/SKILL.md"},
+	{"Derive each step from the state that exists now", "content/skills/hive-principle-make-operations-idempotent/SKILL.md"},
+	{"move them to the new one in the same change", "content/skills/hive-principle-migrate-callers-then-delete-legacy-apis/SKILL.md"},
+	{"Reader load has two axes", "content/skills/hive-principle-minimize-reader-load/SKILL.md"},
+	{"whether they need one shared target", "content/skills/hive-principle-separate-before-serializing-shared-state/SKILL.md"},
+	{"Write the decision before the run", "content/skills/hive-principle-explain-the-number/SKILL.md"},
+	{"propose the cheap always-on signal", "content/skills/hive-rule-defect-fix/SKILL.md"},
+	{"write the premise as one sentence", "content/skills/hive-rule-defect-fix/SKILL.md"},
+	{"Keep a test that fails when the behavior its users observe breaks", "content/skills/hive-rule-tests/SKILL.md"},
+	{"Remove dead code, redundant validators and stub references", "content/skills/hive-rule-reuse-before-writing/SKILL.md"},
+	{"with no layer, abstraction or parameter the request does not need", "content/skills/hive-rule-reuse-before-writing/SKILL.md"},
 	{"yourself that the host has a connection that can write", "content/skills/hive-rule-design-stage/SKILL.md"},
 	{"Never bypass branch protection, required reviews or required checks", "content/skills/hive-rule-merge-gate/SKILL.md"},
 	{"A human reviewer holds the merge in every delivery mode", "content/skills/hive-rule-merge-gate/SKILL.md"},
@@ -70,6 +83,8 @@ var homePhrases = []homePhrase{
 	{"Name the one fact the change is safe because of", "content/skills/hive-rule-blast-radius/SKILL.md"},
 	{"Write so a tired engineer understands on the first read", "content/skills/hive-rule-prose/SKILL.md"},
 	{"Break this change. Prove each finding with a run against the real code", "content/skills/hive-rule-interrogate/SKILL.md"},
+	{"single-line row per decision and one per external effect", "content/skills/unattended-delegation/SKILL.md"},
+	{"A plan delivered in two or more units", "content/skills/hive-rule-change-folder/SKILL.md"},
 }
 
 // homeProblems returns one line per phrase whose files under

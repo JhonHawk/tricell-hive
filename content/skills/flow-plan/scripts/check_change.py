@@ -24,7 +24,13 @@ Reads proposal.md, tasks.md, design.md and specs/**/*.md and prints one
   its last **Observed in:** (also `**Observed in**:` or `Observed in:`); an empty
   marker, a dash or a `<…>` placeholder that is not a link is no place; not
   checked with --archive;
-- with --archive, each unchecked `- [ ]` box of tasks.md, then their count.
+- without --archive, a malformed unit heading or box under `## Delivery units` in
+  tasks.md: headings `### E<n> — <unit> · depends on: <…> · files: <…>` (or
+  `· depends on: … · files: …`); boxes `unit: <command>`, `live: <scenario> · pass:
+  <predicate>`, `perf: <metric> · base: <value> · fail: <threshold>` (or `falla:`);
+  a predicate written `n/a: <reason>` replaces pass, base and threshold;
+- with --archive, each unchecked `- [ ]` box of tasks.md, then their count; a
+  delivery-unit box written `n/a: <reason>` is not counted.
 
 Exit status: 0 when nothing is printed, 1 when something is, 2 when the folder,
 its proposal.md or its tasks.md cannot be read. It only reads.
@@ -59,6 +65,19 @@ UNCHECKED = re.compile(r"^\s*[-*]\s+\[ \]\s*(.*)$")
 PROGRESS_HEADING = re.compile(r"^##\s.*(progress|progreso|avance)|^##\s+checkpoint\s*$", re.IGNORECASE)
 BUSINESS_RULES_HEADING = re.compile(r"^##\s+Business rules\s*$")
 LEVEL2_HEADING = re.compile(r"^##\s")
+UNITS_HEADING = re.compile(r"^##\s+Delivery units\s*$")
+UNIT_HEADING = re.compile(r"^###\s")
+UNIT_TITLE = re.compile(
+    r"^###\s+E\d+\s+[—–-]\s+\S.*?\s+·\s+(?:depende de|depends on):\s+\S.*?\s+·\s+(?:archivos|files):\s+\S.*$"
+)
+BOX_LINE = re.compile(r"^\s*[-*]\s+\[[ xX]\]\s*(.*)$")
+NOT_APPLICABLE = re.compile(r"n/a:\s*\S", re.IGNORECASE)
+FIELD = r"\s+·\s+{}:\s+(?![Nn]/[Aa]:)\S"
+UNIT_BOX = re.compile(r"^unit:\s+(?![Nn]/[Aa]:)\S")
+LIVE_BOX = re.compile(r"^live:\s+\S.*" + FIELD.format("pass") + r".*$")
+PERF_BOX = re.compile(
+    r"^perf:\s+\S.*" + FIELD.format("base") + r".*" + FIELD.format("(?:falla|fail)") + r".*$"
+)
 
 BR_NONE = re.compile(r"^None:\s+\S")
 BR_TICKET_SECTION = re.compile(r"^ticket section:\s+[^·]+?\s+·\s+\S.*$")
@@ -228,6 +247,54 @@ def observed_findings(proposal, old):
     ]
 
 
+def delivery_units(lines):
+    """Return [(line number, text)] of the lines inside `## Delivery units`."""
+    inside, found = False, []
+    for n, line in enumerate(lines, 1):
+        if LEVEL2_HEADING.match(line):
+            inside = bool(UNITS_HEADING.match(line))
+        elif inside:
+            found.append((n, line))
+    return found
+
+
+def box_is_not_applicable(text):
+    """A `live:` or `perf:` box whose whole predicate is `n/a: <reason>`."""
+    kind, _, rest = text.partition(":")
+    return kind.strip() in ("live", "perf") and bool(NOT_APPLICABLE.match(rest.strip()))
+
+
+def delivery_unit_findings(tasks):
+    findings = []
+    for n, line in delivery_units(tasks):
+        if UNIT_HEADING.match(line):
+            if not UNIT_TITLE.match(line.strip()):
+                findings.append(
+                    f"tasks.md:{n}: invalid delivery unit heading, expected "
+                    f"`### E<n> — <unit> · depends on: <…> · files: <…>`: {line.strip()}"
+                )
+            continue
+        box = BOX_LINE.match(line)
+        if not box:
+            continue
+        text = box.group(1).strip()
+        if box_is_not_applicable(text):
+            continue
+        if text.startswith("unit:"):
+            ok, expected = UNIT_BOX.match(text), "unit: <command>"
+        elif text.startswith("live:"):
+            ok, expected = LIVE_BOX.match(text), "live: <scenario> · pass: <predicate>, or live: n/a: <reason>"
+        elif text.startswith("perf:"):
+            ok = PERF_BOX.match(text)
+            expected = "perf: <metric> · base: <value> · fail: <threshold>, or perf: n/a: <reason>"
+        else:
+            findings.append(f"tasks.md:{n}: delivery unit box must start with unit:, live: or perf:: {text}")
+            continue
+        if not ok:
+            findings.append(f"tasks.md:{n}: invalid delivery unit box, expected `{expected}`: {text}")
+    return findings
+
+
 def valid_business_rule_line(trimmed):
     if BR_NONE.match(trimmed) or BR_TICKET_SECTION.match(trimmed) or BR_TICKET_WRITE.match(trimmed):
         return True, ""
@@ -309,12 +376,15 @@ def main(argv):
         findings += observed_findings(docs["proposal.md"], old)
         findings += business_rules_findings(docs["proposal.md"])
         findings += execution_findings(folder, docs["tasks.md"])
+        findings += delivery_unit_findings(docs["tasks.md"])
     findings += stale_mentions(docs, old)
     if "--archive" in argv:
+        resolved = {n for n, line in delivery_units(docs["tasks.md"])
+                    if (m := UNCHECKED.match(line)) and box_is_not_applicable(m.group(1).strip())}
         boxes = [
             f"tasks.md:{n}: unchecked box: {m.group(1).strip()}"
             for n, line in enumerate(docs["tasks.md"], 1)
-            if (m := UNCHECKED.match(line))
+            if (m := UNCHECKED.match(line)) and n not in resolved
         ]
         if boxes:
             findings += boxes

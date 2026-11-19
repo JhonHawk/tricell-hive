@@ -324,7 +324,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 ### T10 — El PR 1 se verifica, se revisa, se valida, se entrega y se despliega
 
-- [ ] El candidato pasa:
+- [x] El candidato pasa:
   - La suite completa.
   - Una instalación de prueba en los 7 hosts.
   - Una prueba de reversión: el contenido revertido se aplica con el binario actual y luego se recompila.
@@ -352,7 +352,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 ### T11 — Fase 2: principios, índice de principios y `hive-typescript`
 
-- [ ] Existen `hive-principle-index`, las 8 hojas de principio nuevas y `hive-typescript`, y las tres fusiones están hechas. El informe final de build y la revisión de código nombran, en una línea, cada principio leído que cambió una decisión.
+- [x] Existen `hive-principle-index`, las 8 hojas de principio nuevas y `hive-typescript`, y las tres fusiones están hechas. El informe final de build y la revisión de código nombran, en una línea, cada principio leído que cambió una decisión.
 
 **Closes:** AC11
 
@@ -371,7 +371,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 ### T15 — Fase 2: registro de decisiones, casillas por unidad de entrega y lo que no está escrito
 
-- [ ] Existen las tres piezas:
+- [x] Existen las tres piezas:
   - **Registro de decisiones.** El registro TSV del trabajo desatendido y de la coordinación E2E, con su formato en un solo hogar.
   - **Casillas por unidad de entrega.** La sección `## Delivery units` con la gramática de `design.md`, que `check_change.py` valida.
   - **Lo que no está escrito.** El campo opcional `--unwritten` del checkpoint, que se pide al pausar.
@@ -447,11 +447,11 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 ## Checkpoint
 
 - Updated: 2026-11-19
-- Stage: verify · T10: user validated (D22 A); pushing PR 1
-- Last commit: ed42fcae
+- Stage: build · PR 1 merged 48e608a6 and installed; PR 2 on feat/skill-leaves-principles
+- Last commit: 48e608a6
 - Open findings: none
-- Next: Push, PR, merge, rebuild hive, refresh install, then T11
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/skill-leaves · feat/skill-leaves
+- Next: T11 in child
+- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/skill-leaves · feat/skill-leaves-principles
 
 ### Evidence
 
@@ -468,6 +468,7 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 - suppression inventory: none added (no skip, nolint, noqa, ts-ignore in diff); 6 task-history comments removed (no-comments)
 - full suite on 678c53fc: go test ./... exit 0, go vet exit 0, python 245 tests OK
 - after fixes 70a01c93: tests/content ok, tests/pilot ok (alone), check_change exit 0
+- post-merge install: hive rebuilt from 48e608a6; 61 hive-rule leaves, Codex yaml, 13 playbooks installed, flow-research removed · 48e608a6
 
 ## Review status and progress
 
@@ -517,3 +518,6 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 2026-11-19 — T14 · 8b89ed0d · unverified: interrogate never run against another provider's agent; AC15's read before /code-review is checked in T10
 2026-11-19 — T9 · 678c53fc · unverified: AC12: like-for-like union −3,944 B; full union with git-commit and merge-gate +2,479 B; site build not run (dependencies not installed)
 2026-11-19 — Revisión por D23 A y D24 A: AC18 reemplaza AC5 (≤32,000 bytes con el índice) y AC19 reemplaza AC12 (comparación pareja). No invalida tareas.
+2026-11-19 — T10 · 48e608a6 · unverified: site build not run (no dependencies); AC8 and AC14 real sessions wait for T12
+2026-11-19 — T11 · c7635929 · unverified: installed copy checked in T12
+2026-11-19 — T15 · b64292ad · unverified: AC16 real unattended and E2E runs wait for T12

@@ -35,6 +35,8 @@
 - **D22 A** — ¿Se aprueba el PR 1? Sí: push, PR, merge en `development` y refresco local.
 - **D23 A** — ¿Cómo se cierra el tamaño de `global.md`? AC18 sube el límite a 32,000 bytes contando el índice, porque salieron 61 hojas y no ~38. Reemplaza AC5.
 - **D24 A** — ¿Cómo se lee el footprint? Con la comparación pareja (−3,944 bytes), y el total con las hojas nuevas (+2,479) aparte. AC19 reemplaza AC12.
+- **D25 A** — ¿Se aprueba el PR 2? Sí: push, PR, merge en `development` y refresco local.
+- **D26 A** — ¿Cómo se cierra la observación en sesiones reales? Se cierra el trabajo tras el merge; AC8, AC14 y AC16 quedan no verificados y un pendiente en memoria guarda la auditoría para cuando el usuario la pida.
 - **Supuestos.**
   - Se suman los playbooks `refactor` y `perf`, adaptados de pstack.
   - Las etapas siguen siendo comandos y el playbook solo las ordena.

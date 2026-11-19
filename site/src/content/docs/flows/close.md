@@ -61,7 +61,7 @@ With the footer, which offers closing only while something is left to run. Your 
 ## FAQ
 
 ### What if I only want to stop for now?
-Say you are pausing. The plan stays on disk. Unless the delivery is `hold`, it is committed on the work's branch when its specs live in the same repository and that branch exists, or in a specs repository that declares `direct-base`; otherwise the report lists it as pending with the rest of what is open.
+Say you are pausing. The pause also records in the plan's checkpoint what no file holds yet (see the [checkpoint skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-rule-checkpoint/SKILL.md)), and makes no `wip:` commit. The plan stays on disk. Unless the delivery is `hold`, it is committed on the work's branch when its specs live in the same repository and that branch exists, or in a specs repository that declares `direct-base`; otherwise the report lists it as pending with the rest of what is open.
 
 ### Does Close mean the work is shipped?
 It means the work reached its completion point, for example merged into the base branch. Promotion to other environments is [Deploy](/flows/deploy/).

@@ -29,6 +29,8 @@ A rule that applies at one moment, such as staging a commit, moving a ticket or 
 
 Each leaf is marked so a host does not offer it for automatic selection. Claude Code reads that mark from the leaf; for Codex the manager generates a policy file, `agents/openai.yaml`, beside each leaf; Antigravity lists the leaves in its catalog with a one-line description. For the other hosts Hive has not verified a hiding mechanism, so they may list the leaves too. See [Host limits](/host-limits/) for what each host does no matter what a skill says.
 
+Code principles are leaves too. The [principles index](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-principle-index/SKILL.md) lists each one with the moment it applies, and the build and code review steps link it. The [TypeScript skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-typescript/SKILL.md) is the exception: it stays visible to the host and loads when you work on `.ts` or `.tsx` files.
+
 ## Supporting skills
 
 - [Shared rules (global guidance)](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md): how the agent asks you a decision, handles a change you request mid-work, asks before an effect beyond your machine, and reads the repository's `## Hive` settings; it is always loaded and every flow uses it. It keeps the boundaries that must hold in every session and indexes the rule leaves for the rest.

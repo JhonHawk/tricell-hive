@@ -6,7 +6,7 @@ Usage:
   python3 -I tasks.py <change-folder> done T<n> --commit <sha>|none --unverified "<text>|none"
   python3 -I tasks.py <change-folder> checkpoint --stage <stage> --step <step> --commit <sha>|none
           --next "<action>" [--finding "<ID: decision>"]... [--check "<command> · <result> · <commit>"]...
-          [--worktree "<path> · <branch>"]
+          [--worktree "<path> · <branch>"] [--unwritten "<text>|none"]
 
 A task is a `### T<n> — <title>` heading; its boxes are the `- [ ]` and `- [x]`
 lines up to the next `##` or `###` heading.
@@ -20,6 +20,9 @@ lines up to the next `##` or `###` heading.
   Next, then `- Worktree: <path> · <branch>` when --worktree was given now or before,
   followed by `### Evidence`. Existing evidence lines and the Worktree line are kept;
   each --check adds one, a new --worktree replaces it and --worktree none removes it.
+  --unwritten writes `- Unwritten: <text>` (what no file holds yet, asked at a pause) after
+  the Worktree line; later calls keep it, a new value replaces it, `none` removes it.
+  Boxes under `## Delivery units` belong to no task: `done` never ticks them.
 
 Optional: execution init/check/update/validate-handoff (see ../references/execution-record.md).
 
@@ -192,6 +195,7 @@ def cmd_done(lines, args):
 def cmd_checkpoint(lines, args):
     kept = []
     worktree = args.worktree
+    unwritten = args.unwritten
     execution = None
     existing = section_bounds(lines, CHECKPOINT)
     if existing:
@@ -202,6 +206,8 @@ def cmd_checkpoint(lines, args):
                 execution = line
             elif worktree is None and not inside and line.startswith("- Worktree: "):
                 worktree = line[len("- Worktree: "):]
+            elif unwritten is None and not inside and line.startswith("- Unwritten: "):
+                unwritten = line[len("- Unwritten: "):]
             elif EVIDENCE.match(line):
                 inside = True
             elif HEADING.match(line):
@@ -222,6 +228,7 @@ def cmd_checkpoint(lines, args):
         f"- Open findings: {findings}",
         f"- Next: {args.next}",
         *([f"- Worktree: {worktree}"] if worktree and worktree != "none" else []),
+        *([f"- Unwritten: {unwritten}"] if unwritten and unwritten != "none" else []),
         *([execution] if execution else []),
         "",
         "### Evidence",
@@ -656,7 +663,7 @@ def link_execution(folder, record):
     bounds = section_bounds(lines, CHECKPOINT)
     if not bounds:
         lines, _ = cmd_checkpoint(lines, SimpleNamespace(stage="build", step="E2E", commit="uncommitted",
-                                                       next="dispatch units", finding=[], check=[], worktree=None))
+                                                       next="dispatch units", finding=[], check=[], worktree=None, unwritten=None))
         bounds = section_bounds(lines, CHECKPOINT)
     lines.insert(bounds[0] + 2, pointer)
     write(path, lines)
@@ -726,6 +733,7 @@ def build_parser():
     cp.add_argument("--finding", action="append", default=[], type=single_line)
     cp.add_argument("--check", action="append", default=[], type=single_line)
     cp.add_argument("--worktree", type=single_line, help="'<path> · <branch>' of the work's worktree, kept by later calls; 'none' removes it")
+    cp.add_argument("--unwritten", type=single_line, help="what no file holds yet, asked at a pause, kept by later calls; 'none' removes it")
     execution = sub.add_parser("execution", help="coordinator-owned local execution record")
     operations = execution.add_subparsers(dest="operation", required=True)
     for name in ("init", "check", "update", "validate-handoff"):
