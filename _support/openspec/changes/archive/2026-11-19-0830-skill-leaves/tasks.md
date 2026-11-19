@@ -413,7 +413,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 ### T12 — El PR 2 se entrega y se observan sesiones reales
 
-- [ ] Se entrega el PR 2, con `/code-review` y tu validación. Un informe de sesiones reales posteriores al despliegue del PR 1 cubre AC8.
+- [x] Se entrega el PR 2, con `/code-review` y tu validación. Un informe de sesiones reales posteriores al despliegue del PR 1 cubre AC8.
 
 **Closes:** AC8, AC11, AC14, AC16, AC17
 
@@ -447,10 +447,10 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 ## Checkpoint
 
 - Updated: 2026-11-19
-- Stage: build · PR 1 merged 48e608a6 and installed; PR 2 on feat/skill-leaves-principles
-- Last commit: 48e608a6
+- Stage: close · Completion point: PR 1 48e608a6 and PR 2 0aace9ff merged and installed; close steps 2, 4 and 5 pending
+- Last commit: 0aace9ff
 - Open findings: none
-- Next: T11 in child
+- Next: On «close»: support-material question, archive the change folder, remove worktree, branches and scratch
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/skill-leaves · feat/skill-leaves-principles
 
 ### Evidence
@@ -521,3 +521,4 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 2026-11-19 — T10 · 48e608a6 · unverified: site build not run (no dependencies); AC8 and AC14 real sessions wait for T12
 2026-11-19 — T11 · c7635929 · unverified: installed copy checked in T12
 2026-11-19 — T15 · b64292ad · unverified: AC16 real unattended and E2E runs wait for T12
+2026-11-19 — T12 · 0aace9ff · unverified: AC8, AC14 and AC16 real-session audit deferred by D26 A; site build not run
