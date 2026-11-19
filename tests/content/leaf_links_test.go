@@ -90,7 +90,7 @@ var leafLinks = []leafLink{
 	{"hive-rule-blast-radius", "content/skills/flow-verify/SKILL.md"},
 	{"hive-rule-prose", "content/skills/flow-verify/SKILL.md"},
 	{"hive-rule-prose", "content/skills/hive-rule-git-commit/SKILL.md"},
-	{"hive-rule-interrogate", "content/skills/hive-rule-delivery-ask/SKILL.md"},
+	{"hive-rule-interrogate", "content/skills/flow-verify/SKILL.md"},
 	{"hive-rule-verification-floor", "content/skills/flow-build/SKILL.md"},
 	{"hive-rule-verification-floor", "content/skills/flow-verify/SKILL.md"},
 	{"hive-rule-verification-floor", "content/skills/flow-plan/SKILL.md"},

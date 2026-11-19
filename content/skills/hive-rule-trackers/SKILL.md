@@ -1,12 +1,12 @@
 ---
 name: hive-rule-trackers
-description: "Hive rule leaf: read after ticket state decides a move, and before a comment or an attachment on a ticket. Live transitions, the states cache, evidence, and each tracker's commands."
+description: "Hive rule leaf: read after ticket state decides a move, and before a comment, attachment or worklog on a ticket. Transitions, states cache, evidence, time, and each tracker's commands."
 disable-model-invocation: true
 ---
 
 # Moving, commenting on and attaching to a ticket
 
-[Ticket state](../hive-rule-ticket-state/SKILL.md) decides when a ticket moves; this leaf sets how. Act through the tracker's own CLI or tool, as its reference sets, and read that tool's current help for the exact flags: [Jira](references/jira.md), [Linear](references/linear.md), [GitHub](references/github.md). For another tracker, apply the same steps with its own tool.
+[Ticket state](../hive-rule-ticket-state/SKILL.md) decides when a ticket moves; this leaf sets how. Act through the first tool that can make the write, in this order: the tracker's CLI, the host's authenticated MCP tool for it, then its REST API with the user's global token through the reference's script, which never shows the token; read each tool's current help for the exact flags: [Jira](references/jira.md), [Linear](references/linear.md), [GitHub](references/github.md). For another tracker, apply the same steps with its own tool.
 
 ## Move
 
@@ -22,3 +22,7 @@ disable-model-invocation: true
 - Evidence of a work item, such as before and after captures, the output of its tests and links to its pull request, reaches the ticket before any step that removes it, as [flow-close](../flow-close/SKILL.md) sets: attached through the tracker's tool where it uploads files, otherwise linked from the pull request, or listed in the comment for the user to attach. Never commit a capture to link it. A public repository or tracker gets an image only as [PR captures](../git-workflow/references/pr-captures.md) authorizes it.
 - Never attach or paste a secret value, an account identifier or a capture that shows one: crop it, or leave it out and say so in the comment.
 - Read the comment or the attachment list back.
+
+## Time
+
+When [ticket state](../hive-rule-ticket-state/SKILL.md) says to write or update a ticket's time, measure and write it as [time](references/time.md) sets.
