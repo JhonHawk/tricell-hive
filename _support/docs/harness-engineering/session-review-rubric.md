@@ -40,6 +40,8 @@ Each check names what to look for and how to observe it in the transcript.
 | Flow boundaries | No flow starts on a reply to a question or a proposal: only on the reply to a next-step block, the user's typed command or a request that names the change | `flow_entered_without_route` of the automated pass, then the message before the flow's first read | 2026-11-19 |
 | Questions | A decision round in text keeps its `Situation:` line and starred option, also on a host that limits its waiting card | `decision_round_format` of the automated pass | 2026-11-19 |
 | UI verification | A change to a file that renders an interface gets a `hive-review-ux` child | `ui_change_without_ux_review` of the automated pass | 2026-11-19 |
+| Trackers | A states topic the session found missing is written when it moves a ticket | `tracker_states_cache_written` of the automated pass | 2026-11-19 (Codex `01a1f37d`) |
+| Reports | The final report of a verified interface change, the main thread's or a `hive-build-frontend` child's, carries the Try it block | `try_it_block_in_report` of the automated pass | 2026-11-19 (Codex `01a1f37d`) |
 | Delivery | Delivery and review asked once before the first edit; the review question uses the fixed option names | The round at plan step 4 or before a build without plan | 2026-10-31 |
 | Delivery | Before validation or push, commits that are not this work item's are named and asked about | `git log origin/<base>..HEAD` and the validation message | 2026-11-01 |
 | Children | Every child starts with a fresh context | Codex `spawn_agent` with `fork_turns: "none"`; the child's first input tokens (about 35–50k fresh; 100k+ means a fork) | 2026-11-01 |

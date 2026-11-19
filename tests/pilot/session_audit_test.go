@@ -391,7 +391,19 @@ func TestAuditNewCriteria(t *testing.T) {
 	const review = "review_question_native_option"
 	const leaf = "leaf_read_before_action"
 	const route, format, ux = "flow_entered_without_route", "decision_round_format", "ui_change_without_ux_review"
+	const cache, tryIt = "tracker_states_cache_written", "try_it_block_in_report"
 	cases := []newCriterionCase{
+		{"cache codex search empty, move, no write", "codex", cache, []string{cache, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
+		{"cache codex written after the move", "codex", cache, []string{cache, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
+		{"cache codex search found the topic", "codex", cache, []string{cache, "codex-rollout-found-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"cache claude search empty, move, no write", "claude", cache, []string{cache, "claude-project-fail.jsonl"}, auditOptions{}, "fail"},
+		{"cache claude written through the engram CLI", "claude", cache, []string{cache, "claude-project-cli-save-pass.jsonl"}, auditOptions{}, "pass"},
+		{"try it codex final report without the block", "codex", tryIt, []string{tryIt, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
+		{"try it codex final report with the block", "codex", tryIt, []string{tryIt, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
+		{"try it codex frontend child, report without the block", "codex", tryIt, []string{tryIt, "codex-rollout-child-fail.jsonl"}, auditOptions{}, "fail"},
+		{"try it codex UI edit without verify", "codex", tryIt, []string{tryIt, "codex-rollout-noverify-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"try it claude final report with the block", "claude", tryIt, []string{tryIt, "claude-project-pass.jsonl"}, auditOptions{}, "pass"},
+		{"try it claude final report without the block", "claude", tryIt, []string{tryIt, "claude-project-fail.jsonl"}, auditOptions{}, "fail"},
 		{"route codex reply to a proposal starts build", "codex", route, []string{route, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
 		{"route codex reply to a next-step block", "codex", route, []string{route, "codex-rollout-block-pass.jsonl"}, auditOptions{}, "pass"},
 		{"route codex typed command after a proposal", "codex", route, []string{route, "codex-rollout-typed-pass.jsonl"}, auditOptions{}, "pass"},
