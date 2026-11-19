@@ -37,7 +37,7 @@ memory stores and services are untouched.
 | pi-subagents | Pi delegated children | Pi | pi-subagents docs (`pi install npm:pi-subagents`) | Upstream validation covers only Pi 0.86.1 on Linux x64; undoing only an added entry (#29) needs Pi's native gate |
 | `agent-browser` | Browser automation for UI review and in-vivo checks | All seven | agent-browser README (`brew install agent-browser`, `npm install -g agent-browser`, `agent-browser install`) | Installable after consent on macOS arm64 (Homebrew) and Linux amd64 (Node 24+, writable npm prefix); manual elsewhere |
 | CodeGraph | A queryable code graph (symbols, callers, impact) through an MCP server and CLI; the `hive-core` evidence-tools reference says when to use it, when to run `codegraph sync -q`, and what to confirm | Claude, Codex, Cursor, OpenCode | CodeGraph README (`github.com/colbymchenry/codegraph`; `codegraph install` writes each host's MCP entry and its own instruction block) | Its installer writes several hosts' configuration, which Hive does not run; manual-only, with no recipe |
-| Codex question card (`codex-question-card`) | Codex's synchronous question card in Default mode, so decisions are asked through a card that waits instead of text | Codex | Codex CLI (`codex features enable default_mode_request_user_input`, `codex features disable …`, `codex features list`); feature at stage "under development" in `rust-v0.163.0`, not in the official configuration reference | Executable after consent when `codex` is on `PATH` and `codex features list` reports the feature, selected by default in interactive installs; manual when `codex` is missing, too old, or the home is synthetic |
+| Codex question card (`codex-question-card`) | Codex's synchronous question card in Default mode, so questions the host permits can use a card that waits | Codex | Codex CLI (`codex features enable default_mode_request_user_input`, `codex features disable …`, `codex features list`); feature at stage "under development" in `rust-v0.163.0`, not in the official configuration reference | Executable after consent when `codex` is on `PATH` and `codex features list` reports the feature, selected by default in interactive installs; manual when `codex` is missing, too old, or the home is synthetic |
 | Codex wait floor (`codex-wait-floor`) | Keeps a parent agent from waking every 60 seconds while a delegated child works, by raising Codex's minimum and default wait under `[features.multi_agent_v2]` | Codex 0.164.0 or later | Codex source, tag `rust-v0.164.0` (`github.com/openai/codex`); not in the official configuration reference | Not manual: Hive writes the lines after consent, selected by default in interactive `install` and `hive update` while unapplied; not offered with an older Codex, without `codex`, or under a synthetic home |
 
 The Codex question card recipe runs one local command, Codex's own
@@ -48,8 +48,9 @@ as verified and never writes it. With the flag, Codex registers the card in
 Default mode and the model waits for the answer; the TUI auto-resolves an
 untouched card with empty answers after 60 s hidden plus 60 s of visible
 countdown, and any key pressed in the card cancels the countdown (observed in
-the `rust-v0.163.0` sources). Hive's question rule already asks a timed-out
-question again in text. Codex warns that under-development features may change;
+the `rust-v0.163.0` sources). The host's current instructions govern what follows
+an unanswered card; see [Questions and routes](../../../content/guidance/global.md#questions-and-routes).
+Codex warns that under-development features may change;
 `codex features disable default_mode_request_user_input` turns it off.
 Installations made before this capability enable it by hand with the same
 command, which `hive doctor` names.
