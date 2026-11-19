@@ -555,3 +555,40 @@ func TestScanCodexExecObjectKeys(t *testing.T) {
 		})
 	}
 }
+
+func TestLeafReadBeforeActionEdgeCases(t *testing.T) {
+	no := false
+	sess := func(events ...traceEvent) auditSession { return auditSession{Trace: traceReport{Events: events}} }
+	cases := []struct {
+		name string
+		s    auditSession
+		want string
+	}{
+		{"helper commit without a read fails", sess(
+			traceEvent{Line: 1, Kind: "shell", Command: "python3 -I /x/git-workflow/scripts/git_state.py commit --repo /r -m msg a.go"},
+		), "fail"},
+		{"leaf named only in a commit message is no read", sess(
+			traceEvent{Line: 1, Kind: "shell", Command: `git commit -m "see hive-rule-git-commit/SKILL.md" a.go`},
+		), "fail"},
+		{"a failed read is no read", sess(
+			traceEvent{Line: 1, Kind: "read", ID: "r1", Path: "/s/hive-rule-git-commit/SKILL.md"},
+			traceEvent{Line: 2, Kind: "tool_result", ID: "r1", Success: &no},
+			traceEvent{Line: 3, Kind: "shell", Command: "git add a.go"},
+		), "fail"},
+		{"creating a ticket with a state is not a move", sess(
+			traceEvent{Line: 1, Kind: "tool", Tool: "mcp__linear__save_issue", Input: []byte(`{"title":"x","state":"Backlog"}`)},
+		), "not_observed"},
+		{"gh -R issue close is a move", sess(
+			traceEvent{Line: 1, Kind: "shell", Command: "gh -R owner/repo issue close 12"},
+		), "fail"},
+		{"cat of the leaf before the helper commit passes", sess(
+			traceEvent{Line: 1, Kind: "shell", Command: "cat /s/hive-rule-git-commit/SKILL.md"},
+			traceEvent{Line: 2, Kind: "shell", Command: "python3 -I /x/git_state.py commit -m m a.go"},
+		), "pass"},
+	}
+	for _, tc := range cases {
+		if got := leafReadBeforeAction(tc.s).Status; got != tc.want {
+			t.Errorf("%s: status %s, want %s", tc.name, got, tc.want)
+		}
+	}
+}

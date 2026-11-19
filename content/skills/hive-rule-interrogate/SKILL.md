@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Adversarial review by another provider
 
-Read only when the review answer for this work item chose `Adversarial: interrogate` ([delivery questions](../hive-rule-delivery-ask/SKILL.md) sets the option). Choosing it authorizes the spend of another provider's quota for this work item and no other. It runs in addition to the code review the user chose, never in its place, and under the delivery mode in force like every other review of the candidate.
+Read only when the user answered yes to the adversarial review for this work item, a decision [delivery questions](../hive-rule-delivery-ask/SKILL.md) sets. That yes authorizes the spend of another provider's quota for this work item and no other. It runs in addition to the code review the user chose, never in its place, and under the delivery mode in force like every other review of the candidate.
 
 ## Limits
 

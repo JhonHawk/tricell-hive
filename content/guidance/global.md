@@ -121,7 +121,7 @@ A rule leaf is a skill the model does not load on its own. At the moment a line 
 - **Before a review, for narrating comments:** [no comments](skill:hive-rule-no-comments/SKILL.md).
 - **Before a review, for impact beyond the diff:** [blast radius](skill:hive-rule-blast-radius/SKILL.md).
 - **Before a commit message, pull request text or documentation:** [prose](skill:hive-rule-prose/SKILL.md).
-- **When the review answer chose `Adversarial: interrogate`:** [interrogate](skill:hive-rule-interrogate/SKILL.md).
+- **When the user chose an adversarial review for this work item:** [interrogate](skill:hive-rule-interrogate/SKILL.md).
 
 ## Support folder (`_support`)
 

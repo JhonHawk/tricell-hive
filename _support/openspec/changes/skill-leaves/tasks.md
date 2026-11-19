@@ -302,7 +302,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 ### T9 — Auditoría, footprint, documentación y sitio siguen a las hojas
 
-- [ ] `--audit-session` tiene un criterio de lectura de la hoja antes de la acción. El footprint mide las hojas, y la documentación y el sitio las describen.
+- [x] `--audit-session` tiene un criterio de lectura de la hoja antes de la acción. El footprint mide las hojas, y la documentación y el sitio las describen.
 
 **Closes:** AC8, AC10, AC12
 
@@ -447,10 +447,10 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 ## Checkpoint
 
 - Updated: 2026-11-19
-- Stage: build · T8 next
-- Last commit: f5f68b6c
-- Open findings: global.md 30,957 bytes > AC5 30,000 after 55 index lines; trim conditions or ask the user to revise AC5 before PR 1
-- Next: T8 in child
+- Stage: verify · T10: suite and /code-review running; leaves no-comments, blast-radius, prose and suppression review read before the review
+- Last commit: 5a958cd7
+- Open findings: none
+- Next: Read suite and review results, fix one round, validation stop (interactive) with AC5 and AC12 decisions
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/skill-leaves · feat/skill-leaves
 
 ### Evidence
@@ -463,6 +463,9 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 - PR #491 merged addf3256; trial ref, branch and worktree removed; question-card-alone archived 0a1aab75
 - canary Codex cam 01a1f20a · pass · c33681da
 - canary Claude Code cam a9f82c64 · pass: cat of leaf 05:06:19Z before first commit 05:11:39Z via git_state.py, no broad git add · c33681da
+- synthetic-home install (claude, codex, antigravity) of candidate: 61 leaves, Codex openai.yaml, 13 playbooks, 61 Antigravity links · pass · 5a958cd7
+- revert rehearsal: development applied with candidate binary removes leaves and yaml, restores flow-research; development binary dry-run on that state: no changes · pass
+- suppression inventory: none added (no skip, nolint, noqa, ts-ignore in diff); 6 task-history comments removed (no-comments)
 
 ## Review status and progress
 
@@ -510,3 +513,4 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 2026-11-19 — T8 · eb134916 · unverified: promotion commit listing stays in flow-deploy (different rule than foreign-commits); site pages for figma/deploy wait for T9
 2026-11-19 — T13 · 8de4a4a5 · unverified: AC14's real hive-mode session waits for T12; tests/fixtures/qualification/suite.json kept as history
 2026-11-19 — T14 · 8b89ed0d · unverified: interrogate never run against another provider's agent; AC15's read before /code-review is checked in T10
+2026-11-19 — T9 · 678c53fc · unverified: AC12: like-for-like union −3,944 B; full union with git-commit and merge-gate +2,479 B; site build not run (dependencies not installed)

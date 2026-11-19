@@ -372,15 +372,15 @@ your go-ahead for the next one, it ends by naming that command.
 flowchart TD
     Entry{"What is needed?"}
     Entry -->|Status or what's next| Status["hive-mode (status)"]
-    Entry -->|Any request to do work, a question or a ticket| Hive mode["hive-mode"]
+    Entry -->|Any request to do work, a question or a ticket| HiveMode["hive-mode"]
     Entry -.->|You ask for a plan| Plan["flow-plan"]
 
-    Status -->|User picks a ticket| Hive mode
-    Hive mode -->|New or recomposed screen| Figma["flow-figma-design"]
+    Status -->|User picks a ticket| HiveMode
+    HiveMode -->|New or recomposed screen| Figma["flow-figma-design"]
     Figma -->|Example approved| Plan
-    Hive mode -->|The how has a decision for you| Plan
-    Hive mode -->|The how is settled| Build
-    Hive mode -->|An analysis| Findings["Findings, no flow recommended"]
+    HiveMode -->|The how has a decision for you| Plan
+    HiveMode -->|The how is settled| Build
+    HiveMode -->|An analysis| Findings["Findings, no flow recommended"]
     Plan --> Build["flow-build<br/><small>tasks · first rendered view (walkthrough)</small>"]
     Build --> Verify["flow-verify<br/><small>suite · UX review · code review · validation (walkthrough)</small>"]
     Build -->|Mechanical change| Close
@@ -394,7 +394,7 @@ flowchart TD
 
     classDef activity fill:#eaf0f6,stroke:#496580,color:#172b3a
     classDef rules fill:#f6f3e8,stroke:#8a7a45,color:#3a321a
-    class Status,Hive mode,Figma,Plan,Build,Verify,Close,Deploy activity
+    class Status,HiveMode,Figma,Plan,Build,Verify,Close,Deploy activity
     class Rules rules
 ```
 

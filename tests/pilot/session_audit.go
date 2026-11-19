@@ -1528,17 +1528,48 @@ const (
 	leafQuestionRound = "hive-rule-question-channel"
 )
 
-// namesLeaf reports whether a read, shell or tool call names the leaf's file.
-// A read is any call whose input names it: the Read tool's path, or a shell
-// command such as cat, sed or head on it.
-func namesLeaf(e traceEvent, leaf string) bool {
-	if e.Kind != "read" && e.Kind != "shell" && e.Kind != "tool" {
+// leafReadVerb names the shell programs that print a file, so a command that
+// only mentions a leaf's path, such as a commit message, is not a read.
+var leafReadVerb = regexp.MustCompile(`^(cat|sed|head|tail|less|more|bat|nl|awk|grep|rg)$`)
+
+// namesLeaf reports whether a call read the leaf's file: the Read tool on its
+// path, a shell segment whose program prints files and names the path, or
+// another tool whose input names it. A call whose result failed is no read.
+func namesLeaf(e traceEvent, leaf string, failed map[string]bool) bool {
+	if e.ID != "" && failed[e.ID] {
 		return false
 	}
-	return strings.Contains(e.Path+"\n"+e.Command+"\n"+string(e.Input), leaf+"/SKILL.md")
+	target := leaf + "/SKILL.md"
+	switch e.Kind {
+	case "read":
+		return strings.Contains(e.Path, target)
+	case "tool":
+		return strings.Contains(e.Path+"\n"+string(e.Input), target)
+	case "shell":
+		for _, args := range shellSegments(e.Command, 0) {
+			if len(args) > 1 && leafReadVerb.MatchString(filepath.Base(args[0])) && strings.Contains(strings.Join(args[1:], " "), target) {
+				return true
+			}
+		}
+	}
+	return false
 }
 
-var ticketMoveTool = regexp.MustCompile(`(?i)(?:save|update|edit)_issue$|transition`)
+// failedCalls returns the IDs of calls whose result reports a failure.
+func failedCalls(events []traceEvent) map[string]bool {
+	failed := map[string]bool{}
+	for _, e := range events {
+		if e.Kind == "tool_result" && e.ID != "" && e.Success != nil && !*e.Success {
+			failed[e.ID] = true
+		}
+	}
+	return failed
+}
+
+// ticketMoveTool matches tracker tools that change an existing ticket; a call
+// counts only when it names that ticket and sets a state, so creating a ticket
+// is not a move.
+var ticketMoveTool = regexp.MustCompile(`(?i)(?:save|update|edit)_issue$|issue_write$|transition`)
 
 // leafActionsIn lists the actions of an event that a leaf governs: a git add or
 // commit, a ticket move (gh issue close, reopen or a label edit, gh project
@@ -1559,7 +1590,13 @@ func leafActionsIn(e traceEvent, cwd string) []leafAction {
 		in := decodeInput(e)
 		_, hasState := in["state"]
 		_, hasStatus := in["status"]
-		if strings.Contains(strings.ToLower(e.Tool), "transition") || hasState || hasStatus {
+		named := false
+		for _, key := range []string{"id", "issue", "issue_id", "issueId", "issue_number", "number", "key"} {
+			if _, ok := in[key]; ok {
+				named = true
+			}
+		}
+		if strings.Contains(strings.ToLower(e.Tool), "transition") || (named && (hasState || hasStatus)) {
 			out = append(out, leafAction{class: "ticket move", leaf: leafTicketState})
 		}
 	case "shell":
@@ -1567,14 +1604,23 @@ func leafActionsIn(e traceEvent, cwd string) []leafAction {
 		for _, args := range shellSegments(e.Command, 0) {
 			joined := strings.Join(args, " ")
 			for _, leaf := range []string{leafGitCommit, leafTicketState, leafQuestionRound} {
-				if strings.Contains(joined, leaf+"/SKILL.md") {
+				if len(args) > 1 && leafReadVerb.MatchString(filepath.Base(args[0])) && strings.Contains(joined, leaf+"/SKILL.md") {
 					read[leaf] = true
 				}
 			}
+			isCommit := false
 			if isGit, sub, _ := gitInvocation(args, cwd); isGit && sub < len(args) && (args[sub] == "add" || args[sub] == "commit") {
+				isCommit = true
+			}
+			for i, a := range args {
+				if filepath.Base(a) == "git_state.py" && i+1 < len(args) && args[i+1] == "commit" {
+					isCommit = true
+				}
+			}
+			if isCommit {
 				out = append(out, leafAction{class: "git add or commit", leaf: leafGitCommit, readInCommand: read[leafGitCommit]})
 			}
-			if len(args) > 2 && filepath.Base(args[0]) == "gh" && ticketMoveShell(args[1:]) {
+			if len(args) > 2 && filepath.Base(args[0]) == "gh" && ticketMoveShell(ghSubcommand(args[1:])) {
 				out = append(out, leafAction{class: "ticket move", leaf: leafTicketState, readInCommand: read[leafTicketState]})
 			}
 		}
@@ -1582,7 +1628,23 @@ func leafActionsIn(e traceEvent, cwd string) []leafAction {
 	return out
 }
 
+// ghSubcommand drops gh's global flags, such as -R owner/repo, before its
+// command.
+func ghSubcommand(args []string) []string {
+	for len(args) > 0 && strings.HasPrefix(args[0], "-") {
+		if (args[0] == "-R" || args[0] == "--repo") && len(args) > 1 {
+			args = args[2:]
+			continue
+		}
+		args = args[1:]
+	}
+	return args
+}
+
 func ticketMoveShell(args []string) bool {
+	if len(args) < 2 {
+		return false
+	}
 	switch {
 	case args[0] == "issue" && (args[1] == "close" || args[1] == "reopen"):
 		return true
@@ -1609,6 +1671,7 @@ func ticketMoveShell(args []string) bool {
 func leafReadBeforeAction(s auditSession) criterionAssessment {
 	c := criterionAssessment{Criterion: "leaf_read_before_action", Status: "not_observed", Evidence: []string{}}
 	seen := map[string]bool{}
+	failedIDs := failedCalls(s.Trace.Events)
 	var failed, review, passed []string
 	for i, e := range s.Trace.Events {
 		for _, a := range leafActionsIn(e, s.Cwd) {
@@ -1618,7 +1681,7 @@ func leafReadBeforeAction(s auditSession) criterionAssessment {
 			seen[a.class] = true
 			read, withheld := a.readInCommand, false
 			for _, prior := range s.Trace.Events[:i] {
-				if namesLeaf(prior, a.leaf) {
+				if namesLeaf(prior, a.leaf, failedIDs) {
 					read = true
 					break
 				}
