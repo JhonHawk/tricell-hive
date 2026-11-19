@@ -1,17 +1,22 @@
 package main
 
-import "regexp"
+import (
+	"regexp"
+	"strings"
+)
 
 var (
-	// proseQuestion is one question in prose: a Spanish ¿…? or an English
-	// sentence that ends in a question mark, from a line start or a sentence end.
-	proseQuestion = regexp.MustCompile(`(?m)¿[^?¿\n]*\?|(?:^|[.!:]\s+)[^.!?¿\n]*\?`)
+	// sentenceEnd ends a sentence: a stop followed by a space. A dot inside a
+	// word, as in a file name, does not end it.
+	sentenceEnd = regexp.MustCompile(`([.!?:])\s+`)
 	// alternatives offers the user options, "x o y" or "x or y".
 	alternatives = regexp.MustCompile(`(?i)\s(?:o|u|or)\s`)
+	// confirmation asks a yes or no about one option, such as «¿Confirmas…?».
+	confirmation = regexp.MustCompile(`(?i)\b(?:confirm[ao]s?|confirm|apruebas|approve|aceptas|accept)\b`)
 	// sessionChoice names what a session question decides: the delivery mode,
 	// the code review or the security review. It is always a round; another
 	// choice in prose may be a question about what the user wants.
-	sessionChoice = regexp.MustCompile("(?i)\\bentrega\\b|revisi[oó]n (?:de )?(?:c[oó]digo|seguridad)|\\bdelivery\\b|\\b(?:code|security) review\\b|`(?:interactive|automatic|ready|hold|direct-base)`|\\b(?:interactive|direct-base)\\b")
+	sessionChoice = regexp.MustCompile("(?i)\\bentrega\\b|revisi[oó]n (?:del? )?(?:c[oó]digo|seguridad)|/code-review|\\bdelivery\\b|\\b(?:code|security) review\\b|`(?:interactive|automatic|ready|hold|direct-base)`|\\b(?:interactive|direct-base)\\b")
 	fencedCode    = regexp.MustCompile("(?s)```.*?```")
 	// nextStepBlock is the block that ends a report, from its ▶ heading on.
 	nextStepBlock = regexp.MustCompile(`(?s)[^\n]*▶.*$`)
@@ -21,9 +26,10 @@ var (
 // alternatives in prose, or a session question asked as a yes or no.
 func proseChoices(text string) (choices []string, session bool) {
 	text = nextStepBlock.ReplaceAllString(fencedCode.ReplaceAllString(text, ""), "")
-	for _, q := range proseQuestion.FindAllString(text, -1) {
-		isSession := sessionChoice.MatchString(q)
-		if alternatives.MatchString(q) || isSession {
+	for _, q := range proseQuestions(text) {
+		offers := alternatives.MatchString(q)
+		isSession := sessionChoice.MatchString(q) && (offers || confirmation.MatchString(q))
+		if offers || isSession {
 			choices = append(choices, q)
 			session = session || isSession
 		}
@@ -31,12 +37,34 @@ func proseChoices(text string) (choices []string, session bool) {
 	return choices, session
 }
 
+// proseQuestions returns each sentence of the text that ends in a question
+// mark, from its ¿ when it has one. A round's title line asks its own question;
+// text_round_without_card judges the round, so its title is skipped.
+func proseQuestions(text string) []string {
+	var out []string
+	for _, line := range strings.Split(text, "\n") {
+		if roundTitleLine.MatchString(line) {
+			continue
+		}
+		for _, s := range strings.Split(sentenceEnd.ReplaceAllString(line, "$1\n"), "\n") {
+			s = strings.TrimSpace(s)
+			if !strings.HasSuffix(s, "?") {
+				continue
+			}
+			if i := strings.LastIndex(s, "¿"); i >= 0 {
+				s = s[i:]
+			}
+			out = append(out, s)
+		}
+	}
+	return out
+}
+
 // proseChoiceWithoutCard checks the choices asked in prose while a waiting card
 // is available and none follows in that turn. A delivery, review or security
 // choice is a session question, so it fails; any other choice may be a question
-// about what the user wants, so it is flagged for review. A round in the full
-// text format, which text_round_without_card judges, and the text a card that
-// closed empty requires, are not judged here.
+// about what the user wants, so it is flagged for review. The text the last
+// card of the turn requires when it closed empty is not judged.
 func proseChoiceWithoutCard(s auditSession) criterionAssessment {
 	c := criterionAssessment{Criterion: "prose_choice_without_card", Status: "not_observed", Evidence: []string{}}
 	if child(s) {
@@ -58,9 +86,6 @@ func proseChoiceWithoutCard(s auditSession) criterionAssessment {
 		if e.Kind != "text" || e.Role != "assistant" || (unattended >= 0 && i > unattended) {
 			continue
 		}
-		if asks, _ := roundFormat(e.Text); asks {
-			continue
-		}
 		choices, session := proseChoices(e.Text)
 		if len(choices) == 0 || cardFollowsOrClosedEmpty(s, i) {
 			continue
@@ -79,17 +104,19 @@ func proseChoiceWithoutCard(s auditSession) criterionAssessment {
 }
 
 // cardFollowsOrClosedEmpty reports whether a question follows the message at i
-// in its turn, or an earlier card of that turn closed empty, which lets the
-// round be written in the text.
+// in its turn, or the last card before it in that turn closed empty, which lets
+// the round be written in the text, as text_round_without_card reads it.
 func cardFollowsOrClosedEmpty(s auditSession, i int) bool {
 	events := s.Trace.Events
+	last := -1
 	for j := range events {
 		if events[j].Kind != "question" || s.Turn[j] != s.Turn[i] {
 			continue
 		}
-		if j > i || cardResultIsEmpty(s.Host, events, j, i) {
+		if j > i {
 			return true
 		}
+		last = j
 	}
-	return false
+	return last >= 0 && cardResultIsEmpty(s.Host, events, last, i)
 }
