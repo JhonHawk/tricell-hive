@@ -14,4 +14,4 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the work changes store
 
 **Handoffs.** A bug whose cause is bad data continues here from [bugfix](bugfix.md); a code restructuring the migration needs is separate [refactor](refactor.md) work, as [scope changes](../../hive-rule-scope-changes/SKILL.md) sets.
 
-**Leaves.** [stored data](../../hive-rule-stored-data/SKILL.md), [external facts](../../hive-rule-external-facts/SKILL.md), [effects round](../../hive-rule-external-effects/SKILL.md), [test accounts](../../hive-rule-test-accounts/SKILL.md), [security boundaries](../../hive-rule-security-boundaries/SKILL.md) when the data is exposed or crosses a trust boundary.
+**Leaves.** [verification floor](../../hive-rule-verification-floor/SKILL.md), [stored data](../../hive-rule-stored-data/SKILL.md), [external facts](../../hive-rule-external-facts/SKILL.md), [effects round](../../hive-rule-external-effects/SKILL.md), [test accounts](../../hive-rule-test-accounts/SKILL.md), [security boundaries](../../hive-rule-security-boundaries/SKILL.md) when the data is exposed or crosses a trust boundary.

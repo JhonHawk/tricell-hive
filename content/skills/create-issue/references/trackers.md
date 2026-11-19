@@ -1,6 +1,6 @@
 # Trackers
 
-Read before the first write to a tracker, at [create-issue](../SKILL.md) step 8, and when a ticket is marked as blocked at its step 6. It names each tracker's own concept; perform the action through the tracker's own CLI or tool, and read that tool's current help for the exact command, since its options change between versions.
+Read before the first write to a tracker, at [create-issue](../SKILL.md) step 8, and when a ticket is marked as blocked at its step 6. Each tracker's commands are in the references of [trackers](../../hive-rule-trackers/SKILL.md): [Jira](../../hive-rule-trackers/references/jira.md), [Linear](../../hive-rule-trackers/references/linear.md) and [GitHub](../../hive-rule-trackers/references/github.md). It names each tracker's own concept; perform the action through the tracker's own CLI or tool, and read that tool's current help for the exact command, since its options change between versions.
 
 ## Before writing
 

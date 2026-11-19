@@ -13,4 +13,4 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when a production defect ca
 
 **Handoffs.** Work the incident exposes beyond the fix, such as a missing guard or a refactor, is separate work, as [scope changes](../../hive-rule-scope-changes/SKILL.md) sets.
 
-**Leaves.** [urgent fixes](../../flow-deploy/references/urgent-fixes.md), [defect fix](../../hive-rule-defect-fix/SKILL.md), [promotion path](../../hive-rule-promotion-path/SKILL.md), [foreign commits](../../hive-rule-foreign-commits/SKILL.md), [merge gate](../../hive-rule-merge-gate/SKILL.md).
+**Leaves.** [verification floor](../../hive-rule-verification-floor/SKILL.md), [urgent fixes](../../flow-deploy/references/urgent-fixes.md), [defect fix](../../hive-rule-defect-fix/SKILL.md), [promotion path](../../hive-rule-promotion-path/SKILL.md), [foreign commits](../../hive-rule-foreign-commits/SKILL.md), [merge gate](../../hive-rule-merge-gate/SKILL.md).

@@ -13,4 +13,4 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the work adds a screen
 
 **Handoffs.** Behavior with no screen change is [feature](feature.md); a broken screen the user wants fixed at its cause is [bugfix](bugfix.md). Either is a scope change, as [scope changes](../../hive-rule-scope-changes/SKILL.md) sets.
 
-**Leaves.** [viewer](../../hive-rule-viewer/SKILL.md), [open the viewer](../../hive-rule-viewer-open/SKILL.md), [close the viewer](../../hive-rule-viewer-close/SKILL.md), [tests](../../hive-rule-tests/SKILL.md), [checks](../../hive-rule-checks/SKILL.md).
+**Leaves.** [verification floor](../../hive-rule-verification-floor/SKILL.md), [viewer](../../hive-rule-viewer/SKILL.md), [open the viewer](../../hive-rule-viewer-open/SKILL.md), [close the viewer](../../hive-rule-viewer-close/SKILL.md), [tests](../../hive-rule-tests/SKILL.md), [checks](../../hive-rule-checks/SKILL.md).

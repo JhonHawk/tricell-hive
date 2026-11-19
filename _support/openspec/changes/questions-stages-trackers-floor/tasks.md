@@ -58,7 +58,7 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 
 ### T4 — Hogar de trackers y caché de estados
 
-- [ ] `hive-rule-trackers` con referencias por servicio; transiciones leídas antes de mover; caché `tracker/states/<tracker>/<clave>` en Engram.
+- [x] `hive-rule-trackers` con referencias por servicio; transiciones leídas antes de mover; caché `tracker/states/<tracker>/<clave>` en Engram.
 
 **Closes:** AC9, AC10
 
@@ -76,7 +76,7 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 
 ### T5 — Evidencia en el ticket antes de limpiar
 
-- [ ] El cierre documenta el ticket con sus evidencias antes de cualquier limpieza.
+- [x] El cierre documenta el ticket con sus evidencias antes de cualquier limpieza.
 
 **Closes:** AC11
 
@@ -94,7 +94,7 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 
 ### T6 — Hoja del piso de pruebas
 
-- [ ] `hive-rule-verification-floor` fija lo que siempre corre por tipo de cambio y la enlazan plan, build, verify y los playbooks.
+- [x] `hive-rule-verification-floor` fija lo que siempre corre por tipo de cambio y la enlazan plan, build, verify y los playbooks.
 
 **Closes:** AC12
 
@@ -112,7 +112,7 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 
 ### T7 — Evidencia y «Pruébalo tú» en el reporte
 
-- [ ] El reporte final lleva la salida fallando y pasando y el bloque «Pruébalo tú» en todo modo.
+- [x] El reporte final lleva la salida fallando y pasando y el bloque «Pruébalo tú» en todo modo.
 
 **Closes:** AC13
 
@@ -130,7 +130,7 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 
 ### T8 — README, llms.txt y sitio
 
-- [ ] La documentación para personas describe la revisión y la seguridad nuevas.
+- [x] La documentación para personas describe la revisión y la seguridad nuevas.
 
 **Closes:** AC14
 
@@ -180,15 +180,15 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 
 ### E3 — PR trackers y evidencia · depends on: E2 · files: content/skills/hive-rule-trackers/, content/skills/flow-close/, content/guidance/global.md
 
-- [ ] unit: go -C <repo> test ./tests/content
+- [x] unit: go -C <repo> test ./tests/content
 - [ ] live: una sesión real que mueva un ticket de Jira con estados en español · pass: lee transiciones, mueve a «En curso» y deja la caché en Engram
-- [ ] perf: n/a: sin ruta de rendimiento
+- [x] perf: n/a: sin ruta de rendimiento
 
 ### E4 — PR piso de pruebas · depends on: E3 · files: content/skills/hive-rule-verification-floor/, content/skills/flow-*, README.md, site/
 
-- [ ] unit: go -C <repo> test ./tests/content && python3 -m unittest discover -s tests/skills -p '*_test.py'
+- [x] unit: go -C <repo> test ./tests/content && python3 -m unittest discover -s tests/skills -p '*_test.py'
 - [ ] live: auditar una entrega hold real de UI tras el despliegue · pass: AC3 en pass, el reporte trae la salida fallando y pasando y «Pruébalo tú»
-- [ ] perf: tamaño de global.md · base: 30,800 bytes · fail: más de 32,000 bytes
+- [x] perf: tamaño de global.md · base: 30,800 bytes · fail: más de 32,000 bytes
 
 Las casillas `live` se marcan en T9, después de los merges; ninguna unidad espera la casilla `live` de la anterior.
 
@@ -206,11 +206,11 @@ En cada parada de validación: el diff de la unidad, el tamaño de `global.md`, 
 ## Checkpoint
 
 - Updated: 2026-11-19
-- Stage: flow-verify · E2 validation stop
-- Last commit: ac5a75d2
+- Stage: flow-verify · E3+E4 joint validation stop
+- Last commit: 0e3fa537
 - Open findings: none
-- Next: user validates E2, then push and PR
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/questions-floor · feat/questions-and-stages
+- Next: user validates E3+E4 together; then merge E3 then E4, deploy, close
+- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/questions-floor · feat/tracker-home
 
 ### Evidence
 
@@ -220,6 +220,9 @@ En cada parada de validación: el diff de la unidad, el tamaño de `global.md`, 
 - audit rollout 01a1f2f5 · 3 new criteria fail · db6a98bd
 - go test full suite (pilot alone) · pass · E2
 - global.md 30,888 bytes (≤32,000)
+- full suite E3+E4 · pass
+- site build · pass
+- global.md 31,444 bytes (≤32,000)
 
 ## Review status and progress
 
@@ -227,3 +230,8 @@ En cada parada de validación: el diff de la unidad, el tamaño de `global.md`, 
 2026-11-19 — T1 · 5b9b9b3a · unverified: none
 2026-11-19 — T2 · 4e9a8fe1 · unverified: AC5 (Codex round through request_user_input) waits for a real Codex session after deploy
 2026-11-19 — T3 · 2cbc0706 · unverified: AC6 real-session half waits for a session after deploy
+2026-11-19 — T4 · 84f3ea4c · unverified: AC9-AC10 wait for a real session that moves a ticket
+2026-11-19 — T5 · 84f3ea4c · unverified: AC11 waits for a real close
+2026-11-19 — T6 · 6d177c29 · unverified: AC13 waits for a real hold delivery after deploy
+2026-11-19 — T7 · 6d177c29 · unverified: AC13 waits for a real hold delivery after deploy
+2026-11-19 — T8 · 57a7fbdb · unverified: none

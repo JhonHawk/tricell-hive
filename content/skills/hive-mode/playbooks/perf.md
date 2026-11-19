@@ -15,4 +15,4 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the goal is a measured
 
 **Handoffs.** A defect the profiling exposes is separate work, a finding or a [bugfix](bugfix.md); a restructuring the speedup needs is a [refactor](refactor.md), as [scope changes](../../hive-rule-scope-changes/SKILL.md) sets.
 
-**Leaves.** [checks](../../hive-rule-checks/SKILL.md), [tests](../../hive-rule-tests/SKILL.md), [checkpoint](../../hive-rule-checkpoint/SKILL.md), [external effects](../../hive-rule-external-effects/SKILL.md).
+**Leaves.** [verification floor](../../hive-rule-verification-floor/SKILL.md), [checks](../../hive-rule-checks/SKILL.md), [tests](../../hive-rule-tests/SKILL.md), [checkpoint](../../hive-rule-checkpoint/SKILL.md), [external effects](../../hive-rule-external-effects/SKILL.md).

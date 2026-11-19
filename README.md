@@ -438,8 +438,11 @@ lists where each flow loops.
   implements authorized work. It ends at a built candidate and hands it to Verify.
 - [Verify](https://hive.tricell.tech/flows/verify/) ([skill](content/skills/flow-verify/SKILL.md)) checks the candidate at a level
   your delivery, review and UI answers and your request set: affected tests, runtime and UI
-  checks, the full suite and the dedicated review, a security review only when you
-  ask for it, and your validation through a walkthrough, and then integrates it.
+  checks, the full suite and the code review every change that is not mechanical
+  gets, a security review recommended when the change touches a security
+  boundary, and your validation through a walkthrough, and then integrates it.
+  The checks that always run for each kind of change hold in every delivery
+  mode, and the final report ends with how to try the change yourself.
 - [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) moves the ticket, writes the work's business rules to it and reports at
   integration, also when a project declares a later completion point in its
   `Completion` key, then ends with a footer that lists replies from the context, such as

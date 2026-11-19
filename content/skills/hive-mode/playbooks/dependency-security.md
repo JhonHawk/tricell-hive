@@ -4,7 +4,7 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the user asks whether 
 
 **Stages.** `hive-mode` alone, read-only; the fixes run afterward in each affected project's own session, with the playbook of their kind. **Leaves.** [delegation](../../hive-rule-delegation/SKILL.md), [local write](../../hive-rule-local-write/SKILL.md), [security boundaries](../../hive-rule-security-boundaries/SKILL.md) for the fix.
 
-Adding or updating a package or tool in a project is not this sweep: before it, run the package check of the global guidance's «Scope and authorization» (`check_package.py` of [flow-build](../../flow-build/SKILL.md)), then plan it as a [feature](feature.md) or [infra-ci](infra-ci.md) change. Reviewing a change's security boundaries is the `hive-review-security` role's, on request.
+Adding or updating a package or tool in a project is not this sweep: before it, run the package check of the global guidance's «Scope and authorization» (`check_package.py` of [flow-build](../../flow-build/SKILL.md)), then plan it as a [feature](feature.md) or [infra-ci](infra-ci.md) change. Reviewing a change's security boundaries is the `hive-review-security` role's, recommended as [delivery questions](../../hive-rule-delivery-ask/SKILL.md) sets.
 
 Answer "does this advisory affect us, and where?" with evidence for each repository. The sweep is read-only: it changes no repository, dependency, tracker or deployment, except for the entries of the current project's `HIVE.local.md` and of the machine file that [local write](../../hive-rule-local-write/SKILL.md) authorizes. Fixes run afterward, in each project's own session.
 
@@ -25,7 +25,7 @@ Before delegating, read [delegation](../../hive-rule-delegation/SKILL.md). Reque
    - Run no install, audit, networked scan, Git fetch or checkout; web lookups carry only advisory IDs and public package names; never print a file that may hold secrets.
    - Report what cannot be seen from the repository, such as deployed versions, images behind a digest or hosting settings.
 4. **Check the deciding claims.** Open the locators behind each affected or mitigated verdict, as [hive-mode step 4](../SKILL.md) sets.
-5. **Assess reachability where it sets priority.** For an affected application whose exposure depends on how the code reaches the vulnerable path, mark that in the report and offer a reachability assessment by a `hive-review-security` child, which runs only if the user asks; it traces untrusted input to that path without exploiting anything, under the same limits on commands and web lookups as step 3, given the application, the advisory and its conditions. When the user asks for it, run that child and update the application's verdict and priority in a follow-up report.
+5. **Assess reachability where it sets priority.** For an affected application whose exposure depends on how the code reaches the vulnerable path, mark that in the report and offer a reachability assessment by a `hive-review-security` child, which runs when the user asks for it or accepts it; it traces untrusted input to that path without exploiting anything, under the same limits on commands and web lookups as step 3, given the application, the advisory and its conditions. When the user asks for it or accepts it, run that child and update the application's verdict and priority in a follow-up report.
 
 ## Report
 

@@ -14,4 +14,4 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the user reports a def
 
 **Handoffs.** A fix whose cause is stored data continues as [data-change](data-change.md); a restructuring the fix would need is separate [refactor](refactor.md) work, as [scope changes](../../hive-rule-scope-changes/SKILL.md) sets.
 
-**Leaves.** [defect fix](../../hive-rule-defect-fix/SKILL.md), [tests](../../hive-rule-tests/SKILL.md), [no test runner](../../hive-rule-tests-no-runner/SKILL.md), [checks](../../hive-rule-checks/SKILL.md), [suppression review](../../hive-rule-suppression-review/SKILL.md).
+**Leaves.** [verification floor](../../hive-rule-verification-floor/SKILL.md), [defect fix](../../hive-rule-defect-fix/SKILL.md), [tests](../../hive-rule-tests/SKILL.md), [no test runner](../../hive-rule-tests-no-runner/SKILL.md), [checks](../../hive-rule-checks/SKILL.md), [suppression review](../../hive-rule-suppression-review/SKILL.md).
