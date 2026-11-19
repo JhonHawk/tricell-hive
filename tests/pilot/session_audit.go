@@ -1238,13 +1238,7 @@ func textRoundWithoutCard(s auditSession) criterionAssessment {
 		return c
 	}
 	events := s.Trace.Events
-	anyQuestion := false
-	for _, e := range events {
-		if e.Kind == "question" {
-			anyQuestion = true
-		}
-	}
-	if !anyQuestion && !s.QuestionOffered {
+	if !cardAvailable(s) {
 		return c
 	}
 	unattended := unattendedActivation(events)
@@ -1256,23 +1250,11 @@ func textRoundWithoutCard(s auditSession) criterionAssessment {
 		if unattended >= 0 && ri > unattended {
 			continue
 		}
-		turn := s.Turn[ri]
-		answered, lastQ := false, -1
-		for i := range events {
-			if events[i].Kind != "question" || s.Turn[i] != turn {
-				continue
-			}
-			if i > ri {
-				answered = true
-				passed = append(passed, regressionEvidence(events[i]))
-				break
-			}
-			lastQ = i
-		}
-		if answered {
+		if q := cardAfterInTurn(s, ri); q >= 0 {
+			passed = append(passed, regressionEvidence(events[q]))
 			continue
 		}
-		if lastQ >= 0 && cardResultIsEmpty(s.Host, events, lastQ, ri) {
+		if lastQ := cardBeforeInTurn(s, ri); lastQ >= 0 && cardResultIsEmpty(s.Host, events, lastQ, ri) {
 			continue
 		}
 		failed = append(failed, regressionEvidence(e))
@@ -1284,6 +1266,28 @@ func textRoundWithoutCard(s auditSession) criterionAssessment {
 		c.Status, c.Evidence = "pass", passed
 	}
 	return c
+}
+
+// cardAfterInTurn returns the first question card after the event at i in its
+// turn, or -1.
+func cardAfterInTurn(s auditSession, i int) int {
+	for j := i + 1; j < len(s.Trace.Events) && s.Turn[j] == s.Turn[i]; j++ {
+		if s.Trace.Events[j].Kind == "question" {
+			return j
+		}
+	}
+	return -1
+}
+
+// cardBeforeInTurn returns the last question card before the event at i in its
+// turn, or -1.
+func cardBeforeInTurn(s auditSession, i int) int {
+	for j := i - 1; j >= 0 && s.Turn[j] == s.Turn[i]; j-- {
+		if s.Trace.Events[j].Kind == "question" {
+			return j
+		}
+	}
+	return -1
 }
 
 // cardResultIsEmpty reports whether the question at qi has a result before ri

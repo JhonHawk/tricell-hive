@@ -18,6 +18,8 @@ var (
 	// choice in prose may be a question about what the user wants.
 	sessionChoice = regexp.MustCompile("(?i)\\bentrega\\b|revisi[oó]n (?:del? )?(?:c[oó]digo|seguridad)|/code-review|\\bdelivery\\b|\\b(?:code|security) review\\b|`(?:interactive|automatic|ready|hold|direct-base)`|\\b(?:interactive|direct-base)\\b")
 	fencedCode    = regexp.MustCompile("(?s)```.*?```")
+	// spanishQuestion is a ¿…? question, which may wrap a line.
+	spanishQuestion = regexp.MustCompile(`¿[^?¿]*\?`)
 	// nextStepBlock is the block that ends a report, from its ▶ heading on.
 	nextStepBlock = regexp.MustCompile(`(?s)[^\n]*▶.*$`)
 )
@@ -26,6 +28,7 @@ var (
 // alternatives in prose, or a session question asked as a yes or no.
 func proseChoices(text string) (choices []string, session bool) {
 	text = nextStepBlock.ReplaceAllString(fencedCode.ReplaceAllString(text, ""), "")
+	text = spanishQuestion.ReplaceAllStringFunc(text, func(q string) string { return strings.ReplaceAll(q, "\n", " ") })
 	for _, q := range proseQuestions(text) {
 		offers := alternatives.MatchString(q)
 		isSession := sessionChoice.MatchString(q) && (offers || confirmation.MatchString(q))
@@ -71,17 +74,18 @@ func proseChoiceWithoutCard(s auditSession) criterionAssessment {
 		return c
 	}
 	events := s.Trace.Events
-	offered := s.QuestionOffered
-	for _, e := range events {
-		if e.Kind == "question" {
-			offered = true
-		}
-	}
-	if !offered {
+	if !cardAvailable(s) {
 		return c
 	}
 	unattended := unattendedActivation(events)
-	var failed, review []string
+	var failed, review, passed []string
+	for _, e := range events {
+		// A card that carries a session question is the positive evidence.
+		if e.Kind == "question" && sessionChoice.MatchString(string(e.Input)+" "+e.Text) {
+			passed = append(passed, regressionEvidence(e))
+			break
+		}
+	}
 	for i, e := range events {
 		if e.Kind != "text" || e.Role != "assistant" || (unattended >= 0 && i > unattended) {
 			continue
@@ -100,23 +104,30 @@ func proseChoiceWithoutCard(s auditSession) criterionAssessment {
 		c.Status, c.Evidence = "review", review
 		return c
 	}
-	return statusOf(c, failed, nil)
+	return statusOf(c, failed, passed)
+}
+
+// cardAvailable reports whether the session could ask through a waiting card:
+// the host offered it, or the session used one.
+func cardAvailable(s auditSession) bool {
+	if s.QuestionOffered {
+		return true
+	}
+	for _, e := range s.Trace.Events {
+		if e.Kind == "question" {
+			return true
+		}
+	}
+	return false
 }
 
 // cardFollowsOrClosedEmpty reports whether a question follows the message at i
 // in its turn, or the last card before it in that turn closed empty, which lets
 // the round be written in the text, as text_round_without_card reads it.
 func cardFollowsOrClosedEmpty(s auditSession, i int) bool {
-	events := s.Trace.Events
-	last := -1
-	for j := range events {
-		if events[j].Kind != "question" || s.Turn[j] != s.Turn[i] {
-			continue
-		}
-		if j > i {
-			return true
-		}
-		last = j
+	if cardAfterInTurn(s, i) >= 0 {
+		return true
 	}
-	return last >= 0 && cardResultIsEmpty(s.Host, events, last, i)
+	last := cardBeforeInTurn(s, i)
+	return last >= 0 && cardResultIsEmpty(s.Host, s.Trace.Events, last, i)
 }
