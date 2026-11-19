@@ -1,6 +1,6 @@
 ---
 name: hive-rule-interrogate
-description: "Hive rule leaf: read only when the user said yes to an adversarial review for this work item. Runs another provider's agent to break the candidate and keeps only findings that a rerun reproduces."
+description: "Hive rule leaf: read before the adversarial review question and when the user picked an agent. Lists other providers' agents; runs one to break the candidate, keeping findings a rerun reproduces."
 disable-model-invocation: true
 ---
 

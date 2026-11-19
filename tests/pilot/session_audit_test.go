@@ -445,6 +445,8 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"round codex card listed outside Default or Plan", "codex", round, []string{round, "codex-rollout-offered-execute-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"round codex written as a table", "codex", round, []string{round, "codex-rollout-table-fail.jsonl"}, auditOptions{}, "fail"},
 		{"round codex session question under a fixed header", "codex", round, []string{round, "codex-rollout-fixed-header-fail.jsonl"}, auditOptions{}, "fail"},
+		{"round codex fixed header in another case", "codex", round, []string{round, "codex-rollout-header-case-fail.jsonl"}, auditOptions{}, "fail"},
+		{"round codex review report heading with reply letters", "codex", round, []string{round, "codex-rollout-review-report-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"review question under the fixed header", "codex", review, []string{review, "codex-rollout-fixed-header-pass.jsonl"}, auditOptions{}, "pass"},
 		{"round codex findings table and a cited answer", "codex", round, []string{round, "codex-rollout-table-notround-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"review question without the native review", "codex", review, []string{review, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},

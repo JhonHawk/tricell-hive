@@ -71,8 +71,9 @@ verified.
 - A Default-mode waiting card left untouched closes after about 120 seconds:
   60 seconds hidden, then a 60-second visible countdown. Pressing a key in the
   card stops that. Esc interrupts the turn. The feature
-  `default_mode_request_user_input` enables the tool in Default mode, but does
-  not override the mode's restrictions. `hive doctor` reports its state.
+  `default_mode_request_user_input` enables the tool in Default mode, and
+  `hive doctor` reports its state. A card that closes by itself brings the
+  round back in the chat with its full format.
 - Hive does not send the same pending question through both an asynchronous
   tool and a waiting card. An acceptance receipt is not your answer.
   The procedure is in the

@@ -40,7 +40,7 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 
 ### T3 — Paso entre etapas, preguntas de sesión y revisión adversarial
 
-- [ ] Ninguna respuesta a una pregunta arranca un flujo; las preguntas de sesión van sin ID; la revisión no se recomienda «sin revisión» salvo en mecánico; `interrogate` deja elegir el proveedor.
+- [x] Ninguna respuesta a una pregunta arranca un flujo; las preguntas de sesión van sin ID; la revisión no se recomienda «sin revisión» salvo en mecánico; `interrogate` deja elegir el proveedor.
 
 **Closes:** AC6, AC7, AC8
 
@@ -224,3 +224,4 @@ En cada parada de validación: el diff de la unidad, el tamaño de `global.md`, 
 2026-11-19 — Plan escrito.
 2026-11-19 — T1 · 5b9b9b3a · unverified: none
 2026-11-19 — T2 · 4e9a8fe1 · unverified: AC5 (Codex round through request_user_input) waits for a real Codex session after deploy
+2026-11-19 — T3 · 2cbc0706 · unverified: AC6 real-session half waits for a session after deploy

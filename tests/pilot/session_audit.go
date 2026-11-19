@@ -1063,7 +1063,9 @@ func existingAuditCriteria(s auditSession, base string) []criterionAssessment {
 // title line "D<n> — ...", or a session question's fixed header such as
 // "**Review** — ...", and at least one option line "A - (★) ...".
 var (
-	roundTitleLine  = regexp.MustCompile(`(?m)^\s*[#>*\s]*(?:D\d+|(?:Entrega|Delivery|Revisi[oó]n(?: adversarial)?|Review|Adversarial review)\**)\s*[—–-]`)
+	// A session question's header counts only on a title that asks, ending in
+	// "?", so a report heading such as "**Review** — Completed" is not a round.
+	roundTitleLine  = regexp.MustCompile(`(?mi)^\s*[#>*\s]*(?:D\d+\s*[—–-]|(?:` + sessionHeaderNames + `)\**\s*[—–-][^\n]*\?)`)
 	roundOptionStar = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\s*[-—–·]\s*\**\s*\(★\)`)
 	// grokNoUser is the result Grok gives a question when no user can answer.
 	grokNoUser = regexp.MustCompile(`(?i)^\s*no user is available`)

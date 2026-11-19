@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+// sessionHeaderNames are the fixed headers of the session questions, in the
+// languages Hive's sessions use, matched case-insensitively.
+const sessionHeaderNames = `Entrega|Delivery|Revisi[oó]n(?: adversarial)?|Review|Adversarial review`
+
 var (
 	// flowSkillRead names the installed SKILL.md of a flow that a next-step
 	// block starts, under a host's skills folder such as ~/.agents/skills; a
@@ -28,7 +32,7 @@ var (
 	// "- **D1 · Delivery.** I recommend hold" or "**Review** — I recommend …",
 	// in the first person. A recap or an analysis that cites a decision and
 	// what a rule recommends is not a round.
-	looseRoundLine = regexp.MustCompile(`(?mi)^[\s#>*-]*\**\s*(?:D\d+|Entrega|Delivery|Revisi[oó]n(?: adversarial)?|Review|Adversarial review)\b\**\s*[·—–:.-][^\n]*(?:\brecomiendo\b|\bI recommend\b)[^\n]*(?:\belige\b|\bchoose\b|\bsi prefieres\b|\bif you prefer\b|\bor\b|\bo\b)`)
+	looseRoundLine = regexp.MustCompile(`(?mi)^[\s#>*-]*\**\s*(?:D\d+|` + sessionHeaderNames + `)\b\**\s*[·—–:.-][^\n]*(?:\brecomiendo\b|\bI recommend\b)[^\n]*(?:\belige\b|\bchoose\b|\bsi prefieres\b|\bif you prefer\b|\bor\b|\bo\b)`)
 	situationLine  = regexp.MustCompile(`(?mi)^[\s*_>]*(?:situation|situaci[oó]n)\s*:`)
 	// uiSource is a file that renders an interface; tests are not.
 	uiSource   = regexp.MustCompile(`(?i)\.(?:tsx|jsx|vue|svelte|css|scss|html)$`)
