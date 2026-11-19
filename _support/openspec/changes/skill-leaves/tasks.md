@@ -229,7 +229,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 ### T13 — `flow-research` pasa a `hive-mode`, con sus 13 playbooks
 
-- [ ] Existe `content/skills/hive-mode/`: su `SKILL.md` (11,000 bytes o menos) y `playbooks/<tipo>.md` para los 13 tipos de `design.md`, de 7,000 bytes o menos cada uno. Ya no existe `flow-research`.
+- [x] Existe `content/skills/hive-mode/`: su `SKILL.md` (11,000 bytes o menos) y `playbooks/<tipo>.md` para los 13 tipos de `design.md`, de 7,000 bytes o menos cada uno. Ya no existe `flow-research`.
 
 **Closes:** AC14, AC17
 
@@ -508,3 +508,4 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 2026-11-19 — T6 · 9eda7fa9 · unverified: close-modes is not linked from git-workflow step 10 (would exceed 9,000 bytes); flow-close still reached there by name
 2026-11-19 — T7 · f5f68b6c · unverified: global.md is 30,957 bytes, over AC5's 30,000 with more index lines to come; settled before PR 1
 2026-11-19 — T8 · eb134916 · unverified: promotion commit listing stays in flow-deploy (different rule than foreign-commits); site pages for figma/deploy wait for T9
+2026-11-19 — T13 · 8de4a4a5 · unverified: AC14's real hive-mode session waits for T12; tests/fixtures/qualification/suite.json kept as history

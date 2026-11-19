@@ -89,6 +89,12 @@ var leafLinks = []leafLink{
 	// Links of T13: hive-mode reaches the design-stage and report-endings rules through leaves.
 	{"hive-rule-design-stage", "content/skills/hive-mode/SKILL.md", true},
 	{"hive-rule-report-endings", "content/skills/hive-mode/SKILL.md", true},
+	// Links of T14: verify reads the complements before the review; interrogate is offered by the review question.
+	{"hive-rule-no-comments", "content/skills/flow-verify/SKILL.md", true},
+	{"hive-rule-blast-radius", "content/skills/flow-verify/SKILL.md", true},
+	{"hive-rule-prose", "content/skills/flow-verify/SKILL.md", true},
+	{"hive-rule-prose", "content/skills/hive-rule-git-commit/SKILL.md", true},
+	{"hive-rule-interrogate", "content/skills/hive-rule-delivery-ask/SKILL.md", true},
 	{"hive-rule-unattended-effects", "content/skills/unattended-delegation/SKILL.md", true},
 	{"hive-rule-defect-fix", "content/agents/review/hive-review-code.md", true},
 	{"hive-rule-review-evidence", "content/agents/review/hive-review-code.md", true},

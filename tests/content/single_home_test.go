@@ -75,6 +75,11 @@ var homePhrases = []homePhrase{
 	{"Draw two or three examples only for a screen the user names", "content/skills/hive-rule-design-stage/SKILL.md", true},
 	// Leaves of T13: the three report endings of an analysis, a ticket assessment and a close.
 	{"Three reports end differently", "content/skills/hive-rule-report-endings/SKILL.md", true},
+	// Leaves of T14: the verify complements.
+	{"Delete every Kill", "content/skills/hive-rule-no-comments/SKILL.md", true},
+	{"Name the one fact the change is safe because of", "content/skills/hive-rule-blast-radius/SKILL.md", true},
+	{"Write so a tired engineer understands on the first read", "content/skills/hive-rule-prose/SKILL.md", true},
+	{"Break this change. Prove each finding with a run against the real code", "content/skills/hive-rule-interrogate/SKILL.md", true},
 }
 
 // homeProblems returns one line per active phrase whose files under

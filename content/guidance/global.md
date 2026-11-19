@@ -118,6 +118,10 @@ A rule leaf is a small skill the model does not load on its own. Each line below
 - **Before the review of any candidate:** [weakened checks](skill:hive-rule-suppression-review/SKILL.md).
 - **When you route a screen change toward a Figma design, or choose how many examples to draw:** [design stage](skill:hive-rule-design-stage/SKILL.md).
 - **Before you take an effect in unattended work:** [unattended effects](skill:hive-rule-unattended-effects/SKILL.md).
+- **Before the review of a candidate, to remove narrating comments:** [no comments](skill:hive-rule-no-comments/SKILL.md).
+- **Before the review of a candidate, to check what it can break beyond the diff:** [blast radius](skill:hive-rule-blast-radius/SKILL.md).
+- **Before you write a commit message, pull request text or documentation:** [prose](skill:hive-rule-prose/SKILL.md).
+- **When the review answer chose `Adversarial: interrogate`:** [interrogate](skill:hive-rule-interrogate/SKILL.md).
 
 ## Support folder (`_support`)
 
