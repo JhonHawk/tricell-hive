@@ -84,6 +84,7 @@ A rule leaf is a skill the model does not load on its own. At the moment a line 
 - **When the user changes open work, or before proposing a ticket:** [scope changes](skill:hive-rule-scope-changes/SKILL.md).
 - **Before reading or asking for a `## Hive` key:** [project settings](skill:hive-rule-project-settings/SKILL.md).
 - **Before new code, or when a plan weighs approaches:** [reuse before writing](skill:hive-rule-reuse-before-writing/SKILL.md).
+- **When a plan picks each task's checks, at a build's start and at verify's entry:** [verification floor](skill:hive-rule-verification-floor/SKILL.md).
 - **Before writing, changing or deleting a test, or when a check fails:** [tests](skill:hive-rule-tests/SKILL.md).
 - **Without a test runner, before a defect fix or consequential logic:** [no test runner](skill:hive-rule-tests-no-runner/SKILL.md).
 - **Before the first edit of a defect fix:** [defect fix](skill:hive-rule-defect-fix/SKILL.md).

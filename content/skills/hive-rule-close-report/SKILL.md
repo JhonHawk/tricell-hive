@@ -13,7 +13,7 @@ Read when you write the final report of a close or classify a finding.
 Report the whole work item in one message, each part only when it has content:
 
 - **Integrated:** what changed and where: the pull request, the commits, the ticket's state; for a pull request left open, its head commit, the base commit its current-base check passed on, and the CI result.
-- **Resolved:** each acceptance criterion with how it was shown, and the corrections the user asked for.
+- **Resolved:** each acceptance criterion with how it was shown, the corrections the user asked for, and the defect's proof and the try-it block the [verification floor](../hive-rule-verification-floor/SKILL.md) sets.
 - **Omitted:** each check that was skipped or could not run, with its reason, including the CI-only jobs.
 - **Repaired:** the local environment repairs made, such as reinstalled dependencies or seeded data.
 - **Support material:** each item with its path and the action applied, or listed as pending, as [support material](../flow-close/references/support-material.md) sets.

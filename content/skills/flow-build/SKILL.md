@@ -5,7 +5,7 @@ description: Implement or resume authorized code or configuration work; reconcil
 
 # Implement authorized work
 
-Keep a checkpoint as [checkpoint](../hive-rule-checkpoint/SKILL.md) sets, written at the start and after each task. After a compaction, resume from it, the active skill and one `git status`; read code again only before editing it.
+Read the [verification floor](../hive-rule-verification-floor/SKILL.md) at the start: it sets what always runs for the change's kind, in every delivery mode. Keep a checkpoint as [checkpoint](../hive-rule-checkpoint/SKILL.md) sets, written at the start and after each task. After a compaction, resume from it, the active skill and one `git status`; read code again only before editing it.
 
 For explicit E2E work, read [coordination](references/e2e-coordination.md) before dispatch; for its multiunit checkpoint, read [execution record](../flow-plan/references/execution-record.md). When adding or changing project verification commands or feature coverage, read [project verification](../hive-rule-project-verification/SKILL.md).
 

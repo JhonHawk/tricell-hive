@@ -14,4 +14,4 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the work adds or exten
 
 **Handoffs.** A request that turns out to need a new or recomposed screen goes to `ui-change`; a defect found along the way is a separate topic, or `bugfix` when the user asks for its fix. Either is a scope change, as [scope changes](../../hive-rule-scope-changes/SKILL.md) sets.
 
-**Leaves.** [change folder](../../hive-rule-change-folder/SKILL.md), [checks](../../hive-rule-checks/SKILL.md), [project settings](../../hive-rule-project-settings/SKILL.md) when a `## Hive` key is needed.
+**Leaves.** [verification floor](../../hive-rule-verification-floor/SKILL.md), [change folder](../../hive-rule-change-folder/SKILL.md), [checks](../../hive-rule-checks/SKILL.md), [project settings](../../hive-rule-project-settings/SKILL.md) when a `## Hive` key is needed.
