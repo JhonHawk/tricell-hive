@@ -124,7 +124,7 @@ func baselinePath(path string) string {
 // Compare the same pre-existing sources on both sides; new sources are separate.
 // The legacy scenario above remains identifiable rather than being silently expanded.
 func TestRequiredProcedureReadingFootprint(t *testing.T) {
-	const base = "15b2e402"
+	const base = "2bb96478"
 	root, err := filepath.Abs("../..")
 	if err != nil {
 		t.Fatal(err)
@@ -147,6 +147,8 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 		skills + "hive-rule-reuse-before-writing/SKILL.md", skills + "hive-rule-tests/SKILL.md", skills + "hive-rule-checkpoint/SKILL.md",
 		skills + "hive-rule-checks/SKILL.md", skills + "hive-rule-change-folder/SKILL.md", skills + "hive-rule-review-findings/SKILL.md",
 		skills + "hive-rule-review-evidence/SKILL.md",
+		// skill-leaves T9: the leaves the plan/build read conditions also select.
+		skills + "hive-rule-report-endings/SKILL.md", skills + "hive-rule-git-commit/SKILL.md", skills + "hive-rule-merge-gate/SKILL.md",
 		"content/agents/review/hive-review-plan.md", "content/agents/development/hive-build-backend.md",
 		"content/agents/quality/hive-verify-task.md", "content/agents/review/hive-review-code.md",
 	}
@@ -154,41 +156,24 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 		skills+"flow-build/references/e2e-coordination.md", skills+"flow-plan/references/execution-record.md",
 		skills+"hive-rule-defect-fix/SKILL.md", skills+"git-workflow/SKILL.md",
 		skills+"flow-close/references/branch-cleanup.md", "content/agents/development/hive-build-owner.md",
-		skills+"hive-rule-merge-gate/SKILL.md", skills+"hive-rule-pr-reviews/SKILL.md",
+		skills+"hive-rule-pr-reviews/SKILL.md",
 	)
-	added := map[string]bool{
-		skills + "hive-rule-decision-format/SKILL.md":             true,
-		skills + "hive-rule-question-channel/SKILL.md":            true,
-		skills + "hive-rule-delivery-ask/SKILL.md":                true,
-		skills + "hive-rule-project-settings/SKILL.md":            true,
-		skills + "hive-rule-ticket-state/SKILL.md":                true,
-		skills + "hive-rule-close-modes/SKILL.md":                 true,
-		skills + "hive-rule-close-hygiene/SKILL.md":               true,
-		skills + "hive-rule-close-report/SKILL.md":                true,
-		skills + "hive-rule-merge-gate/SKILL.md":                  true,
-		skills + "hive-rule-pr-reviews/SKILL.md":                  true,
-		skills + "flow-build/references/e2e-coordination.md":      true,
-		skills + "flow-plan/references/execution-record.md":       true,
-		skills + "hive-rule-delegation/SKILL.md":                  true,
-		skills + "hive-rule-child-brief/SKILL.md":                 true,
-		skills + "hive-rule-reviewer-brief/SKILL.md":              true,
-		skills + "hive-rule-business-rules/SKILL.md":              true,
-		skills + "hive-rule-business-record/SKILL.md":             true,
-		skills + "hive-rule-business-ticket/SKILL.md":             true,
-		skills + "hive-rule-project-verification/SKILL.md":        true,
-		skills + "hive-rule-project-verification-format/SKILL.md": true,
-		skills + "hive-rule-suppression-review/SKILL.md":          true,
-		skills + "hive-rule-reuse-before-writing/SKILL.md":        true,
-		skills + "hive-rule-tests/SKILL.md":                       true,
-		skills + "hive-rule-checkpoint/SKILL.md":                  true,
-		skills + "hive-rule-checks/SKILL.md":                      true,
-		skills + "hive-rule-change-folder/SKILL.md":               true,
-		skills + "hive-rule-review-findings/SKILL.md":             true,
-		skills + "hive-rule-review-evidence/SKILL.md":             true,
-		skills + "hive-rule-defect-fix/SKILL.md":                  true,
-		"content/agents/development/hive-build-owner.md":          true,
-		skills + "flow-verify/scripts/check_contract.py":          true,
-		skills + "project-layout/references/layout.md":            true,
+	// baselineCycle is the plan-build-required list as 2bb96478 declared it: the
+	// sources the same scenario read before the rules moved into leaves.
+	baselineCycle := []string{
+		"content/guidance/global.md",
+		skills + "flow-research/SKILL.md", skills + "flow-plan/SKILL.md",
+		skills + "flow-build/SKILL.md", skills + "flow-verify/SKILL.md", skills + "flow-close/SKILL.md",
+		skills + "flow-build/references/delegation.md",
+		skills + "flow-plan/references/plan-handoff.md", skills + "flow-plan/references/business-rules.md",
+		skills + "project-layout/references/layout.md", skills + "flow-close/references/support-material.md",
+		skills + "flow-verify/references/project-verification.md", skills + "flow-verify/references/suppression-review.md",
+		"content/agents/review/hive-review-plan.md", "content/agents/development/hive-build-backend.md",
+		"content/agents/quality/hive-verify-task.md", "content/agents/review/hive-review-code.md",
+	}
+	// A source is new when its baseline path does not exist at the base commit.
+	added := func(path string) bool {
+		return exec.Command("git", "-C", root, "cat-file", "-e", base+":"+baselinePath(path)).Run() != nil
 	}
 	for _, scenario := range []struct {
 		name, predicate string
@@ -216,7 +201,7 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 				} else {
 					prose += len(data)
 				}
-				if added[path] {
+				if added(path) {
 					fresh += len(data)
 					t.Logf("new %s %s: %d B", kind, path, len(data))
 				} else {
@@ -234,6 +219,33 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 				t.Fatal(err)
 			}
 			t.Logf("same-path baseline %s: %d B -> %d B (%+d); new sources %d B; total %d B; prose %d B; references %d B; executable code %d B", base, before, comparable, comparable-before, fresh, comparable+fresh, prose, references, code)
+			if scenario.name == "plan-build-required" {
+				declared, err := readingUnion(baselineCycle, func(path string) ([]byte, error) {
+					return exec.Command("git", "-C", root, "show", base+":"+path).Output()
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				// The baseline reads files that no longer exist; the candidate reads
+				// their rules through leaves, which the new-source line above reports apart.
+				// git-commit and merge-gate select moments the baseline list never read
+				// (it held no git-workflow), so they are reported apart too and the
+				// comparison with the baseline is made without them.
+				extra := 0
+				for _, path := range []string{skills + "hive-rule-git-commit/SKILL.md", skills + "hive-rule-merge-gate/SKILL.md"} {
+					data, err := os.ReadFile(filepath.Join(root, path))
+					if err != nil {
+						t.Fatal(err)
+					}
+					extra += len(data)
+				}
+				like := comparable + fresh - extra
+				t.Logf("plan/build union at %s (its declared list): %d B; candidate with every selected leaf: %d B (%+d B, %+.2f%%), of which new sources %d B", base, declared.bytes, comparable+fresh, comparable+fresh-declared.bytes, 100*float64(comparable+fresh-declared.bytes)/float64(declared.bytes), fresh)
+				t.Logf("moments the baseline list did not read (git-commit, merge-gate): %d B; candidate without them: %d B (%+d B, %+.2f%%)", extra, like, like-declared.bytes, 100*float64(like-declared.bytes)/float64(declared.bytes))
+				if like > declared.bytes {
+					t.Errorf("plan-build-required union without the moments the baseline did not read is %d B, not below the baseline %d B", like, declared.bytes)
+				}
+			}
 		})
 	}
 	t.Log("Explicit source unions, not transitive loading or observed tokens. Excludes native metadata/rendering, repeated reads, project inputs, history and host policies. Executable resources are measured separately, not presumed read by a model. No aggregate quota; each entrypoint/reference retains its 16000-byte check.")

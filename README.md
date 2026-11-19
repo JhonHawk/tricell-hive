@@ -27,6 +27,22 @@ explanations and messages with external links or IDs; greetings and short direct
 answers need no reference read. Questions, delegation, artifact details and project
 settings have explicit read conditions. Installing a reference makes it available, not necessarily read
 or followed. This organization does not establish reliability for any model family.
+
+**Entry router, playbooks and rule leaves.** Every request to do work enters
+[hive-mode](content/skills/hive-mode/SKILL.md), which opens at most one of 13
+[playbooks](content/skills/hive-mode/playbooks/) for its kind of work. The
+rules that apply at one moment, such as staging a commit, moving a ticket or asking a
+round of questions, live in small `hive-rule-*` skills called rule leaves. The
+[«Rule leaves» index](content/guidance/global.md) of the global guidance names the
+moment that requires each one, and the flow steps link them where they apply. A leaf
+is read as a file at that moment; it is not invoked as a skill. Each leaf is marked
+`disable-model-invocation: true`, which Claude Code reads; for Codex the manager
+generates a hidden-skill policy file, `agents/openai.yaml`, next to each leaf and
+removes it when the leaf stops being hidden; Antigravity lists the leaves in its skill
+catalog with a one-line description. For the other hosts no hiding mechanism is
+verified, so they may list the leaves. A leaf installed is not proof that a session
+read it; `go run ./tests/pilot --audit-session` checks, for a real session, that the
+leaf of a commit, a ticket move or a question card was read before that action.
 The guidance is written for the role-profile models listed in the
 [support floor](_support/docs/harness-engineering/model-floor.md); the floor's smaller
 Haiku and flash-class candidates and the maintainer's main-session models are not a writing target, but their observed failures count toward corrections.
