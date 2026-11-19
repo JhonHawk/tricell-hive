@@ -168,9 +168,9 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 
 ### E1 — PR criterios del auditor · depends on: none · files: tests/pilot/, tests/fixtures/sessions/, _support/docs/
 
-- [ ] unit: go -C <repo> test ./tests/pilot
-- [ ] live: auditar el rollout 01a1f2f5 · pass: los tres criterios nuevos o ajustados dan fail
-- [ ] perf: n/a: el auditor no tiene ruta de rendimiento que cambie
+- [x] unit: go -C <repo> test ./tests/pilot
+- [x] live: auditar el rollout 01a1f2f5 · pass: los tres criterios nuevos o ajustados dan fail
+- [x] perf: n/a: el auditor no tiene ruta de rendimiento que cambie
 
 ### E2 — PR preguntas y etapas · depends on: E1 · files: content/skills/hive-rule-questions/, content/skills/hive-mode/, content/guidance/global.md, tests/
 
@@ -206,15 +206,18 @@ En cada parada de validación: el diff de la unidad, el tamaño de `global.md`, 
 ## Checkpoint
 
 - Updated: 2026-11-19
-- Stage: flow-build · T1
-- Last commit: 262b64e2
+- Stage: flow-verify · E1 validation stop
+- Last commit: db6a98bd
 - Open findings: none
-- Next: T1: auditor criteria
+- Next: user validates E1, then push and PR
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/questions-floor · feat/audit-cam19-criteria
 
 ### Evidence
 
 - before captures: none (no interface change)
+- go test -count=1 ./tests/pilot · pass · db6a98bd
+- go test ./tests/content ./tooling/... ./integrations/... · pass · db6a98bd
+- audit rollout 01a1f2f5 · 3 new criteria fail · db6a98bd
 
 ## Review status and progress
 
