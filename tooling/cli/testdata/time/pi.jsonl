@@ -1,0 +1,7 @@
+{"type":"session","version":3,"id":"p","timestamp":"2026-01-01T10:00:00.000Z","cwd":"/project"}
+{"type":"message","id":"i","timestamp":"2026-01-01T10:00:00.000Z","message":{"role":"user","content":[{"type":"text","text":"start"}]}}
+{"type":"message","id":"i","timestamp":"2026-01-01T10:00:10.000Z","message":{"role":"assistant","stopReason":"toolUse","content":[{"type":"toolCall","id":"b1","name":"bash","arguments":{"command":"gh pr checks 3 --watch"}}]}}
+{"type":"message","id":"i","timestamp":"2026-01-01T10:05:10.000Z","message":{"role":"toolResult","toolCallId":"b1","toolName":"bash","content":[{"type":"text","text":"done"}]}}
+{"type":"message","id":"i","timestamp":"2026-01-01T10:05:20.000Z","message":{"role":"assistant","stopReason":"stop","content":[{"type":"text","text":"ok"}]}}
+{"type":"message","id":"i","timestamp":"2026-01-01T10:06:20.000Z","message":{"role":"user","content":[{"type":"text","text":"next"}]}}
+{"type":"message","id":"i","timestamp":"2026-01-01T10:06:50.000Z","message":{"role":"assistant","stopReason":"stop","content":[{"type":"text","text":"done"}]}}

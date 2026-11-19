@@ -18,6 +18,10 @@ import (
 func main() {
 	if err := run(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, "hive:", err)
+		var ee *exitError
+		if errors.As(err, &ee) {
+			os.Exit(ee.code)
+		}
 		os.Exit(1)
 	}
 }
@@ -80,6 +84,8 @@ func run(args []string) error {
 		return runProject(rest)
 	case "view":
 		return runView(rest, os.Stdout, realViewDeps())
+	case "time":
+		return runTime(rest, os.Stdout)
 	case "tui":
 		return runInterfaceCommand(rest)
 	case "hook":
@@ -103,6 +109,7 @@ func printHelp() {
 	fmt.Println("hive doctor [--home DIR] [--state-dir DIR] [--project DIR]  (read-only diagnostics: CLIs, installation, sessions, integrations, project)\nhive models [--home DIR] [--state-dir DIR]  (read-only effective model and effort per role)")
 	fmt.Println("hive models set --host H (--role R | --group G) [--model M] [--effort E] [--home DIR] [--state-dir DIR] [--dry-run | --out FILE]\nhive models reset --host H ((--role R | --group G) [--only model|effort] | --all) [--home DIR] [--state-dir DIR] [--dry-run | --out FILE]  (override a role's or a group's model or effort; reset returns to the release's values)")
 	printViewHelp(os.Stdout)
+	fmt.Println("hive time [--since RFC3339] [--factor 1..3] [--host claude-code|codex|grok|pi (--session-file FILE | --session ID)] [--home DIR] [--state-dir DIR]  (active time of the current session read from its transcript, as JSON)")
 	fmt.Println("hive project set [--project DIR] --set 'Key: value'... [--unset Key...] [--dry-run]  (edit the ## Hive section of the repository's AGENTS.md after confirmation)")
 }
 
