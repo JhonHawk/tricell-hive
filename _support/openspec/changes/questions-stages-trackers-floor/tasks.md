@@ -206,11 +206,11 @@ En cada parada de validación: el diff de la unidad, el tamaño de `global.md`, 
 ## Checkpoint
 
 - Updated: 2026-11-19
-- Stage: flow-verify · E2 validation stop
-- Last commit: ac5a75d2
+- Stage: flow-build · T4
+- Last commit: 8bbd9a35
 - Open findings: none
-- Next: user validates E2, then push and PR
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/questions-floor · feat/questions-and-stages
+- Next: T4: tracker home
+- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/questions-floor · feat/tracker-home
 
 ### Evidence
 

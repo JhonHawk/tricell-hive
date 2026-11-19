@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Ticket state
 
-Read before you move, comment on, search or finish a ticket. The tracker writes this leaf names are authorized by the global guidance's «Scope and authorization».
+Read before you move, comment on, search or finish a ticket. The tracker writes this leaf names are authorized by the global guidance's «Scope and authorization». This leaf sets when; [trackers](../hive-rule-trackers/SKILL.md) sets how to move, comment and attach.
 
 - A ticket is done when its changes are integrated into the base branch; move it then, to the state the project uses for that, in the tracker [project settings](../hive-rule-project-settings/SKILL.md) assigns to its key.
 - Before implementing a tracked ticket, move it to the in-progress state, except for an operational task, as «Scope and authorization» sets; do not start one already there unless the user confirms it is yours.
