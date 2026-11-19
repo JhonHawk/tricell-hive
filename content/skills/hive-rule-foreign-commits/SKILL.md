@@ -12,4 +12,4 @@ Read before the validation, or before the push when the delivery mode does not s
 - A commit on the pull request's branch that this work did not make, such as a bot's autofix, is one of those commits; it is not this work's push.
 - The same check covers a change folder committed in another repository that declares `Delivery: direct-base`, before its push, and a change folder committed with the work's delivery.
 
-Ask the question as [decision format](../hive-rule-decision-format/SKILL.md) sets.
+Ask the question as [decision format](../hive-rule-questions/SKILL.md) sets.

@@ -66,7 +66,7 @@ Close with coverage: targets, entry points, hosts, native outputs used, what was
 
 ## Ask
 
-In one round, following [decision format](../hive-rule-decision-format/SKILL.md) and [asking a round](../hive-rule-question-channel/SKILL.md), ask the decisions the findings need:
+In one round, following [decision format](../hive-rule-questions/SKILL.md) and [asking a round](../hive-rule-questions/SKILL.md), ask the decisions the findings need:
 
 - each HA-IF-08 choice of which version to keep and each conflict with a global layer;
 - each standing grant written in prose, to remove or keep as a stated exception;

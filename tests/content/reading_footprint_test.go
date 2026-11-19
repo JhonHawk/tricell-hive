@@ -53,7 +53,7 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 	// Predicates are explicit scenarios, not a transitive inventory of links.
 	common := []string{global}
 	// The question rules live in rule leaves the index and the flow steps link.
-	question := []string{global, skills + "hive-rule-decision-format/SKILL.md", skills + "hive-rule-question-channel/SKILL.md"}
+	question := []string{global, skills + "hive-rule-questions/SKILL.md"}
 	cycle := append(append([]string{}, question...),
 		skills+"hive-rule-delivery-ask/SKILL.md", skills+"hive-rule-project-settings/SKILL.md", skills+"hive-rule-ticket-state/SKILL.md",
 		skills+"flow-plan/SKILL.md", skills+"flow-build/SKILL.md", skills+"flow-close/SKILL.md",
@@ -65,8 +65,7 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 	// Minimal skills (skills-rebuild): sources absent from the baseline commit.
 	moved := map[string]bool{
 		skills + "flow-verify/SKILL.md":                true,
-		skills + "hive-rule-decision-format/SKILL.md":  true,
-		skills + "hive-rule-question-channel/SKILL.md": true,
+		skills + "hive-rule-questions/SKILL.md":        true,
 		skills + "hive-rule-delivery-ask/SKILL.md":     true,
 		skills + "hive-rule-project-settings/SKILL.md": true,
 		skills + "hive-rule-ticket-state/SKILL.md":     true,
@@ -132,7 +131,7 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 	skills := "content/skills/"
 	cycle := []string{
 		"content/guidance/global.md",
-		skills + "hive-rule-decision-format/SKILL.md", skills + "hive-rule-question-channel/SKILL.md",
+		skills + "hive-rule-questions/SKILL.md",
 		skills + "hive-rule-delivery-ask/SKILL.md", skills + "hive-rule-project-settings/SKILL.md",
 		skills + "hive-rule-ticket-state/SKILL.md",
 		skills + "hive-rule-close-modes/SKILL.md", skills + "hive-rule-close-hygiene/SKILL.md", skills + "hive-rule-close-report/SKILL.md",

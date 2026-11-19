@@ -10,7 +10,7 @@ Every migration, in either direction, follows the same order: separate current k
 
 ## Questions a migration asks
 
-Ask them in the round of the manifest, as [decision format](../../hive-rule-decision-format/SKILL.md) sets:
+Ask them in the round of the manifest, as [decision format](../../hive-rule-questions/SKILL.md) sets:
 
 - **Knowledge hub**, when `Specs` is missing, does not resolve, or differs between repositories of one project: the detected specs repository; the repository that owns the contracts, usually the backend; a workspace repository created with workspace-repo; or `_support` of the workspace only. Say what each leaves outside Git.
 - **Documentation home**, when a repository keeps its living documentation outside `_support/docs`, such as a root `docs/`: propose moving it to `_support/docs`, with the links each move updates. When the user declines, keep it, and write at the head of its index the line `Layout: docs at <path>`, keeping any key the line already has, creating `<path>/README.md` when it has no index and pointing the root `AGENTS.md` at it with an `Index: <path>` line when the index is not `_support/docs/README.md` or `docs/README.md`.

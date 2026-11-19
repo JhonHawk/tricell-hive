@@ -30,7 +30,11 @@ const (
 
 // leafSizeExceptions names each leaf whose single rule cannot fit the common
 // limit without rewording it; each stays at or under leafExceptionSizeLimit.
-var leafSizeExceptions = map[string]bool{}
+var leafSizeExceptions = map[string]bool{
+	// One home for every question to the user: format, channel per host and a
+	// card that comes back unanswered, so no host reads only part of it.
+	"hive-rule-questions": true,
+}
 
 // playbookKinds is the closed set of playbooks of hive-mode, one file each.
 var playbookKinds = []string{

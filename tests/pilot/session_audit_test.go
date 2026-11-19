@@ -429,6 +429,7 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"leaf claude card without the read", "claude", leaf, []string{leaf, "claude-project-question-fail.jsonl"}, auditOptions{}, "fail"},
 		{"leaf claude no governed action", "claude", leaf, []string{leaf, "claude-project-notexercised.jsonl"}, auditOptions{}, "not_observed"},
 		{"leaf codex reads before git and card", "codex", leaf, []string{leaf, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
+		{"leaf codex reads the single questions leaf", "codex", leaf, []string{leaf, "codex-rollout-questions-leaf-pass.jsonl"}, auditOptions{}, "pass"},
 		{"leaf codex git add without the read", "codex", leaf, []string{leaf, "codex-rollout-git-fail.jsonl"}, auditOptions{}, "fail"},
 		{"leaf codex card without the read", "codex", leaf, []string{leaf, "codex-rollout-question-fail.jsonl"}, auditOptions{}, "fail"},
 		{"leaf codex no governed action", "codex", leaf, []string{leaf, "codex-rollout-notexercised.jsonl"}, auditOptions{}, "not_observed"},

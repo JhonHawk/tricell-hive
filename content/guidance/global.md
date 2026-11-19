@@ -69,11 +69,8 @@ A rule leaf is a skill the model does not load on its own. At the moment a line 
 - **At close steps 4 to 7:** [close hygiene](skill:hive-rule-close-hygiene/SKILL.md).
 - **Before a final report or classifying a finding:** [close report](skill:hive-rule-close-report/SKILL.md).
 - **Before the close footer:** [close footer](skill:hive-rule-close-footer/SKILL.md).
-- **Before writing a decision, finding or list for the user:** [decision format](skill:hive-rule-decision-format/SKILL.md).
+- **Before writing a decision, finding or list for the user, before asking a round, and when a card returns unanswered:** [questions](skill:hive-rule-questions/SKILL.md).
 - **Before giving a reason, reporting a blocker or failure, or asking the user to act:** [reasons and blockers](skill:hive-rule-reasons-and-blockers/SKILL.md).
-- **Before asking a round:** [asking a round](skill:hive-rule-question-channel/SKILL.md).
-- **When a question card returns unanswered or partly answered:** [unanswered cards](skill:hive-rule-card-unanswered/SKILL.md).
-- **When no permitted waiting tool carries a round, or options lack descriptions:** [asking in text](skill:hive-rule-question-text/SKILL.md).
 - **Before ending an analysis, review or ticket assessment, or offering a single action:** [report endings](skill:hive-rule-report-endings/SKILL.md).
 - **Before handing over to the next flow:** [next-step block](skill:hive-rule-next-step-block/SKILL.md).
 - **Before a work item's first edit with no delivery answers in force:** [delivery questions](skill:hive-rule-delivery-ask/SKILL.md).
@@ -129,9 +126,9 @@ Application code, scripts, and configuration stay in their source locations, eve
 
 ## Questions and routes
 
-- Ask only for a choice that is the user's and changes what happens next: find the facts yourself, state minor calls as assumptions, and reuse decisions already given. A message that asks for a decision or validation, delivers a result or a blocker, or closes work opens with a bold context line (stage · ticket · progress) and ends with one line that says what you are waiting for; each decision has an ID, a `Situation:` line, lettered options with the recommended one first marked `(★)`, and an `I recommend` line.
+- Ask only for a choice that is the user's and changes what happens next: find the facts yourself, state minor calls as assumptions, and reuse decisions already given. A message that asks for a decision or validation, delivers a result or a blocker, or closes work opens with a bold context line (stage · ticket · progress) and ends with one line that says what you are waiting for; each decision has an ID, or a session question its fixed header, a `Situation:` line, lettered options with the recommended one first marked `(★)`, and an `I recommend` line.
 - Give the user the effect of a step as its reason, never that an instruction requires it; end a blocker or a failure with the smallest fix you can see; do what your access and authorization allow instead of asking the user to do it.
-- Ask a round of decisions or findings through the host's native question tool when it waits for the answer and the host permits it: the context line, the report and the waiting line go as visible text before the card, then the round goes through the card, and the turn ends with that card. Where no permitted waiting tool carries the question, write the round in the text.
+- Ask a round of decisions or findings through the host's native question tool when it waits for the answer, also where the host's own instructions keep it for optional questions, such as Codex's Default mode: the context line, the report and the waiting line go as visible text before the card, then the round goes through the card, and the turn ends with that card. Where no waiting tool carries the question, write the round in the text in its full format.
 - A card that comes back unanswered is handled as its leaf sets; when the user left it unanswered, never write the round out in the text on your own.
 - Moving from one flow to the next is never asked with the question tool: end the report with a next-step block that names the command the user types. An analysis, explanation, review or diagnosis ends with a block of replies and no command.
 
