@@ -31,7 +31,7 @@ var homePhrases = []homePhrase{
 	// Repeated today: flow-build and flow-verify.
 	{"adds, replaces or cancels a business rule, record it in", "content/skills/hive-rule-business-rules/SKILL.md", true},
 	{"Name the cause before you edit", "content/skills/hive-rule-defect-fix/SKILL.md", true},
-	// Repeated on the base: the entry router (then another name) and flow-figma-design. T13 removed the router's copy.
+	// Repeated on the base: the entry router (then another name) and flow-figma-design.
 	{"yourself that the host has a connection that can write", "content/skills/hive-rule-design-stage/SKILL.md", true},
 	{"Never bypass branch protection, required reviews or required checks", "content/skills/hive-rule-merge-gate/SKILL.md", true},
 	{"A human reviewer holds the merge in every delivery mode", "content/skills/hive-rule-merge-gate/SKILL.md", true},
@@ -40,7 +40,6 @@ var homePhrases = []homePhrase{
 	{"Close a work item once", "content/skills/hive-rule-close-modes/SKILL.md", true},
 	{"A finding is a defect the work found but did not fix", "content/skills/hive-rule-close-report/SKILL.md", true},
 	{"A candidate is a repetition the work did not turn into a mechanism", "content/skills/hive-rule-close-report/SKILL.md", true},
-	// Leaves of T7: the moment rules of flow-plan, flow-build and flow-verify and their references.
 	{"Take the first rung that fully does what the task needs", "content/skills/hive-rule-reuse-before-writing/SKILL.md", true},
 	{"Name the realistic change to the code that would make it fail", "content/skills/hive-rule-tests/SKILL.md", true},
 	{"pin its current behavior for those callers with a check through the real path", "content/skills/hive-rule-tests-no-runner/SKILL.md", true},
@@ -70,12 +69,9 @@ var homePhrases = []homePhrase{
 	{"take a read-only count of the affected records in each environment the change reaches", "content/skills/hive-rule-stored-data/SKILL.md", true},
 	{"Keep data apart from executable syntax", "content/skills/hive-rule-security-boundaries/SKILL.md", true},
 	{"A green check alone does not establish that a suppressed failure is fixed", "content/skills/hive-rule-suppression-review/SKILL.md", true},
-	// Leaves of T8: figma design stage (its phrase above activates with T13) and unattended effects.
 	{"is allowed when it is reversible or made reversible first and disrupts no other component", "content/skills/hive-rule-unattended-effects/SKILL.md", true},
 	{"Draw two or three examples only for a screen the user names", "content/skills/hive-rule-design-stage/SKILL.md", true},
-	// Leaves of T13: the three report endings of an analysis, a ticket assessment and a close.
 	{"Three reports end differently", "content/skills/hive-rule-report-endings/SKILL.md", true},
-	// Leaves of T14: the verify complements.
 	{"Delete every Kill", "content/skills/hive-rule-no-comments/SKILL.md", true},
 	{"Name the one fact the change is safe because of", "content/skills/hive-rule-blast-radius/SKILL.md", true},
 	{"Write so a tired engineer understands on the first read", "content/skills/hive-rule-prose/SKILL.md", true},

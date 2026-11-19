@@ -143,11 +143,9 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 		skills + "hive-rule-business-rules/SKILL.md", skills + "hive-rule-business-record/SKILL.md", skills + "hive-rule-business-ticket/SKILL.md",
 		skills + "project-layout/references/layout.md", skills + "flow-close/references/support-material.md",
 		skills + "hive-rule-project-verification/SKILL.md", skills + "hive-rule-project-verification-format/SKILL.md", skills + "hive-rule-suppression-review/SKILL.md",
-		// Moved out of flow-plan, flow-build and flow-verify by skill-leaves T7: the moment rules the scenario reads.
 		skills + "hive-rule-reuse-before-writing/SKILL.md", skills + "hive-rule-tests/SKILL.md", skills + "hive-rule-checkpoint/SKILL.md",
 		skills + "hive-rule-checks/SKILL.md", skills + "hive-rule-change-folder/SKILL.md", skills + "hive-rule-review-findings/SKILL.md",
 		skills + "hive-rule-review-evidence/SKILL.md",
-		// skill-leaves T9: the leaves the plan/build read conditions also select.
 		skills + "hive-rule-report-endings/SKILL.md", skills + "hive-rule-git-commit/SKILL.md", skills + "hive-rule-merge-gate/SKILL.md",
 		"content/agents/review/hive-review-plan.md", "content/agents/development/hive-build-backend.md",
 		"content/agents/quality/hive-verify-task.md", "content/agents/review/hive-review-code.md",

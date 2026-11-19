@@ -17,7 +17,7 @@ type leafLink struct {
 	active bool
 }
 
-// leafLinks is the "linked from" column of the change skill-leaves design.
+// leafLinks lists, per leaf, the files that link it at the step where its rule applies.
 var leafLinks = []leafLink{
 	{"hive-rule-git-commit", "content/skills/flow-build/SKILL.md", true},
 	{"hive-rule-git-commit", "content/skills/git-workflow/SKILL.md", true},
@@ -36,7 +36,6 @@ var leafLinks = []leafLink{
 	{"hive-rule-pr-reviews", "content/skills/git-workflow/SKILL.md", true},
 	{"hive-rule-promotion-path", "content/skills/git-workflow/SKILL.md", true},
 	{"hive-rule-promotion-path", "content/skills/flow-deploy/SKILL.md", true},
-	// Links of T7, from the flows that own the step where each leaf applies.
 	{"hive-rule-reuse-before-writing", "content/skills/flow-build/SKILL.md", true},
 	{"hive-rule-reuse-before-writing", "content/skills/flow-plan/SKILL.md", true},
 	{"hive-rule-tests", "content/skills/flow-build/SKILL.md", true},
@@ -81,15 +80,12 @@ var leafLinks = []leafLink{
 	{"hive-rule-stored-data", "content/skills/flow-deploy/SKILL.md", true},
 	{"hive-rule-security-boundaries", "content/skills/flow-build/SKILL.md", true},
 	{"hive-rule-suppression-review", "content/skills/flow-verify/SKILL.md", true},
-	// Links of T8: deploy, figma and unattended reach the shared rules through leaves.
 	{"hive-rule-scope-changes", "content/skills/flow-deploy/SKILL.md", true},
 	{"hive-rule-project-settings", "content/skills/flow-deploy/SKILL.md", true},
 	{"hive-rule-test-accounts", "content/skills/flow-deploy/references/deployment-checks.md", true},
 	{"hive-rule-design-stage", "content/skills/flow-figma-design/SKILL.md", true},
-	// Links of T13: hive-mode reaches the design-stage and report-endings rules through leaves.
 	{"hive-rule-design-stage", "content/skills/hive-mode/SKILL.md", true},
 	{"hive-rule-report-endings", "content/skills/hive-mode/SKILL.md", true},
-	// Links of T14: verify reads the complements before the review; interrogate is offered by the review question.
 	{"hive-rule-no-comments", "content/skills/flow-verify/SKILL.md", true},
 	{"hive-rule-blast-radius", "content/skills/flow-verify/SKILL.md", true},
 	{"hive-rule-prose", "content/skills/flow-verify/SKILL.md", true},
