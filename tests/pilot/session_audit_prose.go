@@ -22,8 +22,10 @@ var (
 	// past a blank line.
 	spanishQuestion = regexp.MustCompile(`¿(?:[^?¿\n]|\n[^?¿\n])*\?`)
 	// sessionCard is the header or the question of a card that asks a session
-	// question: the delivery, the code review or the security review.
-	sessionCard = regexp.MustCompile(`(?i)^\W*(?:entrega|delivery|revisi[oó]n|review|seguridad|security)\b|\bentrega\b|revisi[oó]n (?:del? )?(?:c[oó]digo|seguridad)|\b(?:code|security) review\b|\bdelivery mode\b`)
+	// question: the delivery, the code review or the security review. A header
+	// counts only when it is the session question's name alone, so «Revisión
+	// del plan» on a findings card does not.
+	sessionCard = regexp.MustCompile(`(?i)^\W*(?:entrega|delivery|revisi[oó]n|review|seguridad|security)\W*$|\bentrega\b|revisi[oó]n (?:del? )?(?:c[oó]digo|seguridad)|\b(?:code|security) review\b|\bdelivery mode\b`)
 	// nextStepBlock is the block that ends a report, from its ▶ heading on.
 	nextStepBlock = regexp.MustCompile(`(?s)[^\n]*▶.*$`)
 )

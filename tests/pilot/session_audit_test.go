@@ -401,6 +401,7 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"prose choice wrapped over two lines", "codex", prose, []string{prose, "codex-rollout-wrapped-fail.jsonl"}, auditOptions{}, "fail"},
 		{"prose choice with an unclosed ¿ across paragraphs", "codex", prose, []string{prose, "codex-rollout-unclosed-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"prose choice card about something else", "codex", prose, []string{prose, "codex-rollout-other-card-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"prose choice findings card headed Revisión", "codex", prose, []string{prose, "codex-rollout-findings-card-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"prose choice english after the context line", "codex", prose, []string{prose, "codex-rollout-english-context-line-fail.jsonl"}, auditOptions{}, "fail"},
 		{"prose choice yes-no review question", "codex", prose, []string{prose, "codex-rollout-yes-no-review-fail.jsonl"}, auditOptions{}, "fail"},
 		{"prose choice ordinary word ready", "codex", prose, []string{prose, "codex-rollout-ready-word-review.jsonl"}, auditOptions{}, "review"},
