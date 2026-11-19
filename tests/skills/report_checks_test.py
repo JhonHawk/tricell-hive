@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Behavioral invariants for the flow-report checker."""
+"""Behavioral invariants for the create-report checker."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-CHECKER = ROOT / "content/skills/flow-report/scripts/self_check.py"
+CHECKER = ROOT / "content/skills/create-report/scripts/self_check.py"
 
 
 class ReportChecksTest(unittest.TestCase):

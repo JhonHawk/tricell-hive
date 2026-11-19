@@ -142,7 +142,7 @@ raise the minor or the patch version.
   already worked in recent Claude Code and Codex sessions, after asking which
   facts to keep; its extraction script masks every value before printing.
 - Figma design stage: for a new or rearranged screen whose composition is open,
-  `flow-research` recommends the optional `flow-figma-design` stage in its
+  `hive-mode` recommends the optional `flow-figma-design` stage in its
   next-step block, also after assessing a ticket, when the host can write to
   Figma. The stage draws proposals as frames in the design file the app's
   `DESIGN.md` declares (or one you name), loads the design system first, warns
@@ -178,6 +178,28 @@ raise the minor or the patch version.
 
 ### Changed
 
+- `hive-mode` replaces `flow-research`, and `/flow-research` is gone. It
+  settles what the work is, picks at most one of 13 playbooks for its kind,
+  such as `bugfix`, `ui-change` or `deliverable`, and sends the work to
+  `flow-build` or `flow-plan`. It edits no file. The plan records the
+  playbook in its `Playbook` field.
+- The rules that applied only at one moment moved out of the global guidance
+  and the flow skills into 61 hidden rule leaves, `hive-rule-*`. The global
+  guidance keeps the invariants and an index that names when to read each
+  leaf. A host does not list the leaves as skills; Codex gets an
+  `agents/openai.yaml` that turns off their implicit invocation.
+- Eight hidden code principles, `hive-principle-*`, and the visible
+  `hive-typescript` skill for `.ts` and `.tsx` files. Build and code review
+  name the principles that changed a decision.
+- Verify reads the no-comments, blast-radius and prose leaves before any
+  review, and offers an adversarial review as its own yes or no decision per
+  work item.
+- Unattended and E2E work log each decision and external effect, with how to
+  undo it, in `decisions.tsv` under the work's folder in `workspace/`.
+- A plan can split its tasks into delivery units under `## Delivery units`
+  in `tasks.md`, each with its unit, live and performance checks.
+- A pause records what no file holds yet with `tasks.py checkpoint
+  --unwritten` instead of a `wip:` commit.
 - Close asks about a work's own support material with what it would delete
   first, each file with its size and reason and the total, and names old
   versioned material it finds, such as an `evidence/` folder, in one line
@@ -251,17 +273,22 @@ raise the minor or the patch version.
   keeps them until that project is reinstalled.
   - `flow-walkthrough` → the walkthrough reference of `flow-verify`, which also
     answers a walkthrough or demo you ask for.
-  - `flow-status` → the status mode of `flow-research`: ask for the status or
-    what comes next, or type `/flow-research status`; `/flow-status` is gone.
-  - `security-advisory` → the advisory sweep of `flow-research`.
+  - `flow-status` → the `ticket-status` playbook of `hive-mode`: ask for the
+    status or what comes next; `/flow-status` is gone.
+  - `security-advisory` → the `dependency-security` playbook of `hive-mode`.
   - `local-instructions` → the local instructions mode of `harness-audit`.
   - `engram-init-workspace` → the Engram workspace mode of `harness-audit`,
     still only on explicit request.
   - `workspace-conventions` → the support maintenance reference of
     `flow-close`, with `artifact-layout.md`, `archive.md` and the archive
     helper.
-  - `starlight-docs-site` → the docs-site mode of `flow-report`, with its
+  - `starlight-docs-site` → the docs-site mode of `create-report`, with its
     assets under `assets/starlight/`.
+- `flow-report` is renamed `create-report`, next to `create-issue` and
+  `create-prd`: each skill that makes a deliverable starts with `create-`.
+  Type `/create-report`; `/flow-report` is gone. Reports that opt in to
+  external assets keep the `flow-report-assets` meta tag, so existing reports
+  pass the checker unchanged.
 
 ### Migration
 

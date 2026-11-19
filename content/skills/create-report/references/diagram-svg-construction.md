@@ -5,7 +5,7 @@
 Read before writing or changing SVG markup in a report: the CSS-class skin (§3), the embedding, marker, node, label, legend and zone primitives (§4), the mandatory connector rules (§5) and the accessible SVG contract (§8). When to draw, type selection, the layout budget, anti-patterns and the pre-output checklist are in [the diagram grammar](diagram-grammar.md) (§1, §2, §6, §7, §9), which shares this numbering.
 
 > Adapted from [cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design)
-> (v2.3.2, MIT) and re-skinned onto the flow-report baseline tokens (`baseline.html`). It covers
+> (v2.3.2, MIT) and re-skinned onto the create-report baseline tokens (`baseline.html`). It covers
 > static inline SVG only: no Mermaid/draw.io import, animation, or PNG/SVG export.
 
 ## 3. Skin — color lives in CSS classes, never in attributes
