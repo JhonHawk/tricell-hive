@@ -31,7 +31,8 @@ var homePhrases = []homePhrase{
 	// Repeated today: flow-build and flow-verify.
 	{"adds, replaces or cancels a business rule, record it in", "content/skills/hive-rule-business-rules/SKILL.md", true},
 	{"Name the cause before you edit", "content/skills/hive-rule-defect-fix/SKILL.md", true},
-	// Repeated today: flow-research and flow-figma-design.
+	// Repeated today: flow-research and flow-figma-design. Stays inactive until T13
+	// removes flow-research's copy, which T8 does not edit.
 	{"yourself that the host has a connection that can write", "content/skills/hive-rule-design-stage/SKILL.md", false},
 	{"Never bypass branch protection, required reviews or required checks", "content/skills/hive-rule-merge-gate/SKILL.md", true},
 	{"A human reviewer holds the merge in every delivery mode", "content/skills/hive-rule-merge-gate/SKILL.md", true},
@@ -70,6 +71,9 @@ var homePhrases = []homePhrase{
 	{"take a read-only count of the affected records in each environment the change reaches", "content/skills/hive-rule-stored-data/SKILL.md", true},
 	{"Keep data apart from executable syntax", "content/skills/hive-rule-security-boundaries/SKILL.md", true},
 	{"A green check alone does not establish that a suppressed failure is fixed", "content/skills/hive-rule-suppression-review/SKILL.md", true},
+	// Leaves of T8: figma design stage (its phrase above activates with T13) and unattended effects.
+	{"is allowed when it is reversible or made reversible first and disrupts no other component", "content/skills/hive-rule-unattended-effects/SKILL.md", true},
+	{"Draw two or three examples only for a screen the user names", "content/skills/hive-rule-design-stage/SKILL.md", true},
 }
 
 // homeProblems returns one line per active phrase whose files under

@@ -116,6 +116,8 @@ A rule leaf is a small skill the model does not load on its own. Each line below
 - **Before a change to stored data:** [stored data](skill:hive-rule-stored-data/SKILL.md).
 - **When a change touches untrusted input, permissions, process execution or data exposure:** [security boundaries](skill:hive-rule-security-boundaries/SKILL.md).
 - **Before the review of any candidate:** [weakened checks](skill:hive-rule-suppression-review/SKILL.md).
+- **When you route a screen change toward a Figma design, or choose how many examples to draw:** [design stage](skill:hive-rule-design-stage/SKILL.md).
+- **Before you take an effect in unattended work:** [unattended effects](skill:hive-rule-unattended-effects/SKILL.md).
 
 ## Support folder (`_support`)
 

@@ -23,7 +23,7 @@ var leafLinks = []leafLink{
 	{"hive-rule-git-commit", "content/skills/git-workflow/SKILL.md", true},
 	{"hive-rule-ticket-state", "content/skills/flow-build/SKILL.md", true},
 	{"hive-rule-ticket-state", "content/skills/flow-close/SKILL.md", true},
-	{"hive-rule-ticket-state", "content/skills/flow-deploy/SKILL.md", false},
+	{"hive-rule-ticket-state", "content/skills/flow-deploy/SKILL.md", true},
 	{"hive-rule-close-modes", "content/skills/flow-close/SKILL.md", true},
 	{"hive-rule-close-hygiene", "content/skills/flow-close/SKILL.md", true},
 	{"hive-rule-close-report", "content/skills/flow-close/SKILL.md", true},
@@ -81,6 +81,14 @@ var leafLinks = []leafLink{
 	{"hive-rule-stored-data", "content/skills/flow-deploy/SKILL.md", true},
 	{"hive-rule-security-boundaries", "content/skills/flow-build/SKILL.md", true},
 	{"hive-rule-suppression-review", "content/skills/flow-verify/SKILL.md", true},
+	// Links of T8: deploy, figma and unattended reach the shared rules through leaves.
+	{"hive-rule-scope-changes", "content/skills/flow-deploy/SKILL.md", true},
+	{"hive-rule-project-settings", "content/skills/flow-deploy/SKILL.md", true},
+	{"hive-rule-test-accounts", "content/skills/flow-deploy/references/deployment-checks.md", true},
+	{"hive-rule-design-stage", "content/skills/flow-figma-design/SKILL.md", true},
+	// flow-research links the design-stage leaf when T13 removes its copy of the offer rule.
+	{"hive-rule-design-stage", "content/skills/flow-research/SKILL.md", false},
+	{"hive-rule-unattended-effects", "content/skills/unattended-delegation/SKILL.md", true},
 	{"hive-rule-defect-fix", "content/agents/review/hive-review-code.md", true},
 	{"hive-rule-review-evidence", "content/agents/review/hive-review-code.md", true},
 	{"hive-rule-suppression-review", "content/agents/review/hive-review-code.md", true},

@@ -176,7 +176,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 ### T7 — Se extraen las hojas de `flow-plan`, `flow-build` y `flow-verify`
 
-- [ ] Existen las hojas de la tabla de `design.md` cuyas fuentes son plan, build, verify y sus referencias, y cada flujo las enlaza en su paso.
+- [x] Existen las hojas de la tabla de `design.md` cuyas fuentes son plan, build, verify y sus referencias, y cada flujo las enlaza en su paso.
 
 **Closes:** AC4, AC6, AC7
 
@@ -446,11 +446,11 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 
 ## Checkpoint
 
-- Updated: 2026-11-18
-- Stage: build · T5 in child
-- Last commit: c33681da
-- Open findings: none
-- Next: Check T5's diff and tests, commit, then T6
+- Updated: 2026-11-19
+- Stage: build · T8 next
+- Last commit: f5f68b6c
+- Open findings: global.md 30,957 bytes > AC5 30,000 after 55 index lines; trim conditions or ask the user to revise AC5 before PR 1
+- Next: T8 in child
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/skill-leaves · feat/skill-leaves
 
 ### Evidence
@@ -506,3 +506,4 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 2026-11-18 — T4 · c33681da · unverified: none
 2026-11-19 — T5 · dff232ad · unverified: flow-deploy citations and its ticket-state link wait for T8; README, llms.txt and _support/docs wait for T9
 2026-11-19 — T6 · 9eda7fa9 · unverified: close-modes is not linked from git-workflow step 10 (would exceed 9,000 bytes); flow-close still reached there by name
+2026-11-19 — T7 · f5f68b6c · unverified: global.md is 30,957 bytes, over AC5's 30,000 with more index lines to come; settled before PR 1
