@@ -64,7 +64,10 @@ verified.
   Codex's Default-mode instructions reserve the card for optional questions and
   ask required input as a concise question in chat. In a session observed on
   2026-11-19 (Codex 0.170.0) that form lost the decision format, so Hive asks
-  every round of decisions through `request_user_input` when the mode offers it.
+  every round of decisions through `request_user_input` when the mode offers it,
+  the delivery and review questions included: a choice asked as a question in
+  the chat, such as "interactive or hold?", counts as a round asked the wrong
+  way.
   Without the card, the round goes in the chat with its full format: ID, options
   with their consequences and the recommended one marked (★). An unanswered card
   grants no permission.
