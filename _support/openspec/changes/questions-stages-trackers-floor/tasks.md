@@ -2,15 +2,15 @@
 
 Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1 → E4, porque E2, E3 y E4 tocan `global.md`. Las tareas corren en el hilo principal: son reescrituras de reglas que dependen de leer el conjunto, y sus escrituras se solapan en `global.md` y en los enlaces. La documentación del sitio de cada unidad puede ir a un hijo `hive-write-docs` cuando pase de 3 archivos.
 
-### T1 — Criterios del auditor para CAM-19
+### T1 — Criterios del auditor para la sesión del 2026-11-19
 
-- [ ] `--audit-session` detecta la entrada a un flujo sin bloque, la ronda de decisiones en texto sin formato ni tarjeta, y un cambio de interfaz verificado sin `hive-review-ux`.
+- [x] `--audit-session` detecta la entrada a un flujo sin bloque, la ronda de decisiones en texto sin formato ni tarjeta, y un cambio de interfaz verificado sin `hive-review-ux`.
 
 **Closes:** AC1, AC2, AC3
 
 **Depends on:** none
 
-**Locations:** `tests/pilot/session_audit.go` y sus pruebas, `tests/fixtures/sessions/<criterio>/` (fixtures mínimos derivados de CAM-19, sin nombres ni claves del proyecto privado), `_support/docs/harness-engineering/session-review-rubric.md`, `_support/docs/harness-engineering/rule-enforcers.md`
+**Locations:** `tests/pilot/session_audit.go` y sus pruebas, `tests/fixtures/sessions/<criterio>/` (fixtures mínimos derivados del rollout 01a1f2f5, sin nombres ni claves del proyecto), `_support/docs/harness-engineering/session-review-rubric.md`, `_support/docs/harness-engineering/rule-enforcers.md`
 
 **Execution:** main thread
 
@@ -169,7 +169,7 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 ### E1 — PR criterios del auditor · depends on: none · files: tests/pilot/, tests/fixtures/sessions/, _support/docs/
 
 - [ ] unit: go -C <repo> test ./tests/pilot
-- [ ] live: auditar el rollout 01a1f2f5 de CAM-19 · pass: los tres criterios nuevos o ajustados dan fail
+- [ ] live: auditar el rollout 01a1f2f5 · pass: los tres criterios nuevos o ajustados dan fail
 - [ ] perf: n/a: el auditor no tiene ruta de rendimiento que cambie
 
 ### E2 — PR preguntas y etapas · depends on: E1 · files: content/skills/hive-rule-questions/, content/skills/hive-mode/, content/guidance/global.md, tests/
@@ -181,7 +181,7 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 ### E3 — PR trackers y evidencia · depends on: E2 · files: content/skills/hive-rule-trackers/, content/skills/flow-close/, content/guidance/global.md
 
 - [ ] unit: go -C <repo> test ./tests/content
-- [ ] live: una sesión real que mueva un ticket de Jira de cam · pass: lee transiciones, mueve a «En curso» y deja la caché en Engram
+- [ ] live: una sesión real que mueva un ticket de Jira con estados en español · pass: lee transiciones, mueve a «En curso» y deja la caché en Engram
 - [ ] perf: n/a: sin ruta de rendimiento
 
 ### E4 — PR piso de pruebas · depends on: E3 · files: content/skills/hive-rule-verification-floor/, content/skills/flow-*, README.md, site/
@@ -201,7 +201,7 @@ Las casillas `live` se marcan en T9, después de los merges; ninguna unidad espe
 | Code review | Each unit, before the validation stop | Claude Code `/code-review` | The review answer |
 | Adversarial review | Each unit, after the code review | `interrogate` con el proveedor elegido | La respuesta «sí» y la elección de proveedor |
 
-En cada parada de validación: el diff de la unidad, el tamaño de `global.md`, la salida del auditor sobre el rollout de CAM-19 y los lugares revisados que pide `AGENTS.md`.
+En cada parada de validación: el diff de la unidad, el tamaño de `global.md`, la salida del auditor sobre el rollout 01a1f2f5 y los lugares revisados que pide `AGENTS.md`.
 
 ## Checkpoint
 
@@ -219,3 +219,4 @@ En cada parada de validación: el diff de la unidad, el tamaño de `global.md`, 
 ## Review status and progress
 
 2026-11-19 — Plan escrito.
+2026-11-19 — T1 · 5b9b9b3a · unverified: none

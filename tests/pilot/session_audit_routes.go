@@ -7,26 +7,23 @@ import (
 	"strings"
 )
 
-// Criteria from the Codex session of 2026-11-19 (CAM-19): build entered on a
-// reply to a proposal, a delivery round written as bullets, and a screen fix
-// verified without the UX reviewer.
-
 var (
-	// flowSkillRead names the SKILL.md of a flow that a next-step block starts.
-	flowSkillRead = regexp.MustCompile(`(?:^|[/\s"'])(flow-build|flow-plan|flow-figma-design)/SKILL\.md`)
+	// flowSkillRead names the installed SKILL.md of a flow that a next-step
+	// block starts, under a host's skills folder such as ~/.agents/skills; a
+	// read of the repository's own content/skills is research, not a start.
+	flowSkillRead = regexp.MustCompile(`/\.[a-z]+/skills/(flow-build|flow-plan|flow-figma-design)/SKILL\.md`)
 	// flowCommand is a flow's command in any host's syntax, as a next-step block
 	// writes it or the user types it.
 	flowCommand = regexp.MustCompile(`(?:^|[\s\x60(])(?:[/$@]|/skill:)flow-(?:build|plan|figma-design|verify|close|deploy)\b`)
 	// asksTheUser marks a message that waits on the user's answer or approval.
-	asksTheUser = regexp.MustCompile(`(?i)\?|aprobaci[oó]n|approval|approve|confirm`)
-	// looseRoundTitle is a decision written with its ID at the start of a line,
-	// in any separator, such as "- **D1 · Delivery.**".
-	looseRoundTitle = regexp.MustCompile(`(?m)^[\s#>*-]*\**\s*D\d+\b\**\s*[·—–:.-]`)
-	// sessionHeader is a session question under its fixed header, such as
-	// "**Delivery** — …" or "**Revisión adversarial** · …".
-	sessionHeader = regexp.MustCompile(`(?m)^[\s#>*-]*\*\*\s*(?:Entrega|Delivery|Revisi[oó]n(?: adversarial)?|Review|Adversarial review)\s*\**\s*[·—–:.-]`)
-	recommends    = regexp.MustCompile(`(?i)\brecomiend|\brecommend`)
-	situationLine = regexp.MustCompile(`(?mi)^[\s*_>]*(?:situation|situaci[oó]n)\s*:`)
+	asksTheUser = regexp.MustCompile(`(?i)\?|aprobaci[oó]n|approval|approve`)
+	// looseRoundLine is a decision asked in one line: its ID or a session
+	// question's fixed header at the start, then its recommendation, such as
+	// "- **D1 · Delivery.** I recommend hold" or "**Review** — I recommend …",
+	// in the first person. A recap or an analysis that cites a decision and
+	// what a rule recommends is not a round.
+	looseRoundLine = regexp.MustCompile(`(?mi)^[\s#>*-]*\**\s*(?:D\d+|Entrega|Delivery|Revisi[oó]n(?: adversarial)?|Review|Adversarial review)\b\**\s*[·—–:.-][^\n]*(?:\brecomiendo\b|\bI recommend\b|\(recommended\)|\(recomendad[ao]\))`)
+	situationLine  = regexp.MustCompile(`(?mi)^[\s*_>]*(?:situation|situaci[oó]n)\s*:`)
 	// uiSource is a file that renders an interface; tests are not.
 	uiSource     = regexp.MustCompile(`(?i)\.(?:tsx|jsx|vue|svelte|css|scss|html)$`)
 	testSource   = regexp.MustCompile(`(?i)(?:^|/)(?:e2e|tests?|__tests__)/|\.(?:test|spec|e2e)\.`)
@@ -37,7 +34,7 @@ var (
 // in the full format or not: a decision ID or a session question's fixed header
 // at the start of a line, with a recommendation.
 func isLooseRound(text string) bool {
-	return (looseRoundTitle.MatchString(text) || sessionHeader.MatchString(text)) && recommends.MatchString(text)
+	return looseRoundLine.MatchString(text)
 }
 
 func fullRoundFormat(text string) bool {
@@ -140,7 +137,7 @@ func uiChangeWithoutUXReview(s auditSession) criterionAssessment {
 	for i := range s.Trace.Events {
 		e := &s.Trace.Events[i]
 		path := filepath.ToSlash(e.Path)
-		if edit == nil && e.Kind == "write" && uiSource.MatchString(path) && !testSource.MatchString(path) {
+		if edit == nil && e.Kind == "write" && uiSource.MatchString(path) && !testSource.MatchString(path) && inProject(path, s.Cwd) {
 			edit = e
 		}
 		if review == nil && launchesUXReview(*e) {
@@ -156,6 +153,16 @@ func uiChangeWithoutUXReview(s auditSession) criterionAssessment {
 		c.Status, c.Evidence = "pass", []string{regressionEvidence(*review)}
 	}
 	return c
+}
+
+// inProject reports whether a written path belongs to the session's project:
+// relative, or under its working directory. A page written to a temporary
+// folder is not the project's interface.
+func inProject(path, cwd string) bool {
+	if !filepath.IsAbs(path) {
+		return true
+	}
+	return cwd != "" && strings.HasPrefix(path, filepath.ToSlash(cwd)+"/")
 }
 
 func launchesUXReview(e traceEvent) bool {
