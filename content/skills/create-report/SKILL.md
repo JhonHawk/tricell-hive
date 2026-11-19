@@ -1,5 +1,5 @@
 ---
-name: flow-report
+name: create-report
 description: Create a visual HTML report, printable paper, comparison, explainer, or deck when the requested deliverable needs presentation layout, or scaffold, extend or audit a Starlight documentation site, such as a user manual or a spec site. Not for resumable research notes, plans, or routine Markdown findings.
 ---
 

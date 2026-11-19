@@ -29,17 +29,17 @@ Usage:
 
 ---
 Adapted from https://github.com/cathrynlavery/diagram-design
-(scripts/verify-geometry.py, v2.3.2, MIT) for the flow-report skill.
+(scripts/verify-geometry.py, v2.3.2, MIT) for the create-report skill.
 Local changes:
   - Node/mask overlap checks are now scoped per `<svg>...</svg>` block
-    instead of running across the whole document. A flow-report HTML file
+    instead of running across the whole document. A create-report HTML file
     can embed several diagrams plus surrounding report markup (tables,
     prose, nav) in one file, where upstream always ships exactly one
     diagram per HTML file — without scoping, a label mask in one diagram
     could spuriously "overlap" a node in a different diagram that merely
     shares nearby coordinates in its own, unrelated viewBox.
   - `--all` still walks a shipped `assets/*.html` directory for parity with
-    upstream's CLI shape, but flow-report ships no bundled example assets;
+    upstream's CLI shape, but create-report ships no bundled example assets;
     pass explicit file paths instead.
   - Everything else (shape heuristics, paint-order logic, CLI exit code) is
     unchanged from upstream.
@@ -114,7 +114,7 @@ def svg_spans(source: str) -> list[tuple[int, int]]:
     """Character (start, end) spans of every `<svg>...</svg>` block.
 
     Used to scope overlap checks to a single diagram at a time - a
-    flow-report HTML file can embed multiple `<svg>` diagrams side by side
+    create-report HTML file can embed multiple `<svg>` diagrams side by side
     with report markup around them.
     """
     return [(match.start(), match.end()) for match in SVG_BLOCK_RE.finditer(source)]

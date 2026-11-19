@@ -1,7 +1,7 @@
 # Diagram Grammar — inline SVG diagrams inside reports
 
 > Adapted from [cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design)
-> (v2.3.2, MIT) and re-skinned onto the flow-report baseline tokens (`baseline.html`). It covers
+> (v2.3.2, MIT) and re-skinned onto the create-report baseline tokens (`baseline.html`). It covers
 > static inline SVG only: no Mermaid/draw.io import, animation, or PNG/SVG export.
 
 Diagrams follow the report's own design system — never the upstream default skin, never

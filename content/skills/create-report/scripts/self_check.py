@@ -2,7 +2,7 @@
 # Adapted diagram-design resources: ../references/license-diagram-design.md
 """Self-check a generated diagram HTML file, with no third-party deps.
 
-Ships inside the flow-report skill so an installed agent can verify its own
+Ships inside the create-report skill so an installed agent can verify its own
 output:
 
     python3 scripts/self_check.py my-report.html
@@ -17,10 +17,10 @@ itself.
 ---
 Adapted from https://github.com/cathrynlavery/diagram-design
 (skills/diagram-design/scripts/self_check.py, v2.3.2, MIT) for the
-flow-report skill. Local changes:
+create-report skill. Local changes:
   - Removed the fonts.googleapis.com stylesheet exemption. Upstream
     allowlisted one specific remote Google Fonts URL as an acceptable
-    external reference; flow-report HTML must open offline and pass the
+    external reference; create-report HTML must open offline and pass the
     Artifacts CSP, so ANY external link/script/img/font reference is now a
     failure, no exceptions.
   - Removed the motion-contract code path entirely (`canonical_controller`,
@@ -29,19 +29,19 @@ flow-report skill. Local changes:
     tracking field on the parser, and the now-orphaned `<style>` text
     capture (`styles`/`_in_style`) that only ever fed the reduced-motion CSS
     check). Motion is deliberately un-adopted by diagram-svg-construction.md (§3, Motion) and
-    flow-report ships no `template-motion.html`, so upstream's "any
+    create-report ships no `template-motion.html`, so upstream's "any
     `<script>` implies the canonical motion controller" assumption is wrong
     for us: a real report ships page-level `<script>` (the baseline
     skeleton's modal/TOC/deck-nav JS) and would otherwise RuntimeError on
     `canonical_controller()`'s missing template on every run.
   - Removed the "at least one accessible SVG" requirement. Upstream validates
     single-diagram files, where a missing SVG means a broken deliverable;
-    flow-report runs this script on EVERY report, and a diagram-free report
+    create-report runs this script on EVERY report, and a diagram-free report
     (tables/prose only) is legitimate. The full accessible-SVG contract still
     applies to every non-decorative SVG that IS present.
   - `<script>` is now scoped instead: a `<script>` OUTSIDE every `<svg>` is
     page JS and passes; a `<script>` INSIDE an `<svg>` fails cleanly
-    ("diagrams are static under the flow-report grammar") instead of
+    ("diagrams are static under the create-report grammar") instead of
     crashing.
   - CLI, exit codes, the accessible-SVG contract, and the single-file safety
     checks are otherwise unchanged from upstream.
@@ -216,7 +216,7 @@ def check_scripts(parser: DiagramParser, errors: list[str]) -> None:
         if script["in_svg"]:
             errors.append(
                 f"script {number} is inside an <svg> diagram: diagrams are static "
-                "under the flow-report grammar"
+                "under the create-report grammar"
             )
 
 

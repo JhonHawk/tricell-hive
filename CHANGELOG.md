@@ -260,8 +260,13 @@ raise the minor or the patch version.
   - `workspace-conventions` → the support maintenance reference of
     `flow-close`, with `artifact-layout.md`, `archive.md` and the archive
     helper.
-  - `starlight-docs-site` → the docs-site mode of `flow-report`, with its
+  - `starlight-docs-site` → the docs-site mode of `create-report`, with its
     assets under `assets/starlight/`.
+- `flow-report` is renamed `create-report`, next to `create-issue` and
+  `create-prd`: each skill that makes a deliverable starts with `create-`.
+  Type `/create-report`; `/flow-report` is gone. Reports that opt in to
+  external assets keep the `flow-report-assets` meta tag, so existing reports
+  pass the checker unchanged.
 
 ### Migration
 

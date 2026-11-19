@@ -5,7 +5,7 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the product the user a
 **Stages.** `hive-mode` settles what the deliverable is, for whom and why, then continues in the same turn into the skill for its kind:
 - A requirement document (PRD, functional requirements, business rules of a module or feature, or the validation of one someone else wrote): [create-prd](../../create-prd/SKILL.md), which reads the source and asks its own questions.
 - A design in Figma, such as replicating a screen there: [flow-figma-design](../../flow-figma-design/SKILL.md), after the connection check of [design stage](../../hive-rule-design-stage/SKILL.md); without a connection, report it as the blocker. The stage does not report the design done before the user approves it.
-- A visual HTML report, a printable paper, a comparison, an explainer, a deck, or a documentation site: [flow-report](../../flow-report/SKILL.md).
+- A visual HTML report, a printable paper, a comparison, an explainer, a deck, or a documentation site: [create-report](../../create-report/SKILL.md).
 - A ticket or a breakdown of work into tickets: [create-issue](../../create-issue/SKILL.md).
 
 **Specific to a deliverable**

@@ -4,35 +4,36 @@
 <meta charset="UTF-8">
 <!-- Keep this viewport tag: it drives the <720px responsive collapse below. -->
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>flow-report skeleton — explainer archetype</title>
+<title>create-report skeleton — review archetype</title>
 <!--
   ============================================================================
-  flow-report SKELETON — EXPLAINER archetype
+  create-report SKELETON — REVIEW archetype
   ============================================================================
-  For TEACHING a concept, subsystem, or decision to a reader who doesn't
-  hold the context: mental model first, then progressive depth the reader
-  opens on demand. Status reporting is the document archetype
-  (baseline.html); comparing options is skeleton-comparison.html; a diff
-  verdict is skeleton-review.html.
+  A VERDICT over a code diff: per-file annotated hunks, severity-coded
+  findings, and a requested-changes checklist. Code diffs and PR writeups
+  only. Spec reviews, mock reviews, and findings inventories use the
+  document archetype (baseline.html) — their section contract is owned by
+  the calling flow skill, not by this file.
 
   HOW TO USE
-  - Copy this file, then ADAPT: the reading order is the contract — mental
-    model (diagram) -> how it works (collapsibles, shallow to deep) ->
-    usage by example (tabs) -> gotchas -> FAQ -> glossary -> sources.
-    Delete sections the topic doesn't need.
-  - The inline SVG here is a deliberately MINIMAL but grammar-compliant
-    diagram (2 nodes, 1 connector, masked label, legend). For a real
-    diagram, read references/diagram-grammar.md (type selection, the 4px grid) and
-    references/diagram-svg-construction.md (connector rules, the
-    accessible-SVG contract) — all mandatory. Verify with scripts/verify_geometry.py + self_check.py.
+  - Copy this file, then ADAPT: one section per changed file; real hunks in
+    the diff tables; one annotation row per finding, interleaved right
+    after the lines it concerns. Collapse long unchanged runs in a
+    <details class="fold"> between hunk tables.
+  - Severity vocabulary is fixed: blocking (red) / nit (amber) / nice
+    (blue). The masthead counters, the annotation chips, and the checklist
+    all use the same three families — never invent a fourth.
   - Keep the DESIGN SYSTEM (:root tokens + type scale) intact unless you
     have a reason. That is what makes outputs consistent.
-  - Self-contained always: all CSS in <style>, all JS in one <script>, all
-    imagery inline SVG. No CDN <link>/<script> that can 404 offline.
+  - Self-contained always: all CSS in <style>; no JS here — anchors and
+    native <details> carry the interactivity.
 
-  LEGIBILITY BASELINE (non-negotiable — see flow-report SKILL.md rule)
-  - 18px/1.6 base, 16px <720px. THE SHELL IS THE MEASURE. Code blocks are
-    data grids and sit at 15px mono; explanation prose never does.
+  LEGIBILITY BASELINE (non-negotiable — see create-report SKILL.md rule)
+  - Page prose 18px/1.6 (16px <720px). The DIFF is a data grid and sits at
+    14.5px mono — the one sanctioned exception; annotation prose NEVER
+    inherits the code size: it stays ≥17px sans.
+  - The diff scrolls horizontally inside its own container (.diffwrap);
+    the page body never scrolls horizontally.
   ============================================================================
 -->
 <script>
@@ -125,7 +126,7 @@
   /* .framed — dashed box for DATA: tables, stat strips, diagrams, code.
      Four background gradients = four dashed edges, fully tunable via
      --dash/--gap. Corner brackets come from two pseudo-elements. */
-  nav.toc,.diagram{position:relative}
+  nav.files{position:relative}
   .framed{
     position:relative; padding:22px 24px; border-radius:0;
     background-image:
@@ -140,7 +141,7 @@
   /* corner brackets — four L marks, never a continuous rule. Each pseudo spans
      the box width but paints only at its two corners (2 gradients each side:
      one vertical tick, one horizontal tick). --br tunes the arm length. */
-  nav.toc::before,.diagram::before,nav.toc::after,.diagram::after,
+  nav.files::before,nav.files::after,
   .framed::before,.framed::after{
     content:""; position:absolute; left:-1px; right:-1px; height:var(--br); pointer-events:none;
     background-image:
@@ -149,9 +150,9 @@
     background-size:1px 100%, 1px 100%, var(--br) 1px, var(--br) 1px;
     background-repeat:no-repeat;
   }
-  nav.toc::before,.diagram::before,
+  nav.files::before,
   .framed::before{top:-1px; background-position:0 0, 100% 0, 0 0, 100% 0}
-  nav.toc::after,.diagram::after,
+  nav.files::after,
   .framed::after{bottom:-1px; background-position:0 100%, 100% 100%, 0 100%, 100% 100%}
   /* framed title, sitting on the top edge: [ LIKE THIS ] */
   .framed > .frame-t{
@@ -204,23 +205,37 @@
   .tldr strong{color:var(--ink)}
   .meta{font-family:var(--mono); font-size:13px; color:var(--muted); margin-top:20px;
     display:flex; flex-wrap:wrap; gap:8px 26px}
+  /* overall verdict badge: exactly one of .ap (approve) / .rc (request-changes) */
+  .verdict{display:inline-block; font-family:var(--mono); font-size:13px; font-weight:700;
+    letter-spacing:.06em; padding:5px 13px; border-radius:var(--r-sm); border:1px solid transparent; vertical-align:middle}
+  .verdict.ap{background:var(--green-bg); color:var(--green); border-color:var(--green-line)}
+  .verdict.rc{background:var(--red-bg); color:var(--red); border-color:var(--red-line)}
 
   /* ---- prose & headings ---- */
   h2{font-size:25px; line-height:1.2; letter-spacing:-.008em; margin:54px 0 16px; padding-top:22px;
     font-weight:650; counter-increment:sec;
     background-image:repeating-linear-gradient(to right, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
     background-size:100% 1px; background-repeat:no-repeat;background-position:0 0}
-  h2::before{content:counter(sec,decimal-leading-zero); font-family:var(--mono); font-size:.62em;
-    font-weight:600; color:var(--accent); margin-right:.85em; letter-spacing:.06em; vertical-align:.12em}
-  h3{font-size:19px; margin:30px 0 10px; font-weight:600}
+  h2 code{font-size:.8em}
   p{margin:12px 0}
   a{color:var(--accent); text-decoration:none; border-bottom:1px solid var(--accent-line)}
   a:hover{border-bottom-color:var(--accent)}
   code,.mono{font-family:var(--mono); font-size:.84em;
     background:var(--paper-2); border:1px solid var(--line-soft); padding:.5px 5px; border-radius:var(--r-sm)}
 
-  /* ---- table of contents ---- */
-  nav.toc{padding:22px 24px; margin:28px 0;
+  /* ---- severity counters (stat strip recolored as blocking/nit/nice) ---- */
+  .stats{display:grid; grid-template-columns:repeat(3,1fr); gap:0; margin:26px 0; border-left:1px solid var(--line)}
+  .stat{padding:18px 22px; border-right:1px solid var(--line)}
+  .stat:last-child{border-right:none}
+  .stat .n{font-size:38px; font-weight:700; line-height:1; font-family:var(--mono);
+    letter-spacing:-.02em}
+  .stat .l{font-size:13px; line-height:1.4; color:var(--muted); margin-top:9px}
+.stat.red .n{color:var(--red)}
+.stat.amber .n{color:var(--amber)}
+.stat.blue .n{color:var(--blue)}
+
+  /* ---- changed-files nav: mono rows, +n −m, anchor links ---- */
+  nav.files{margin:24px 0; padding:14px 0;
     background-image:
       repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
       repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
@@ -228,72 +243,60 @@
       repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
     background-size:100% 1px, 100% 1px, 1px 100%, 1px 100%;
     background-position:0 0, 0 100%, 0 0, 100% 0; background-repeat:no-repeat;}
-  nav.toc strong{font-size:13px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted)}
-  nav.toc ul{margin:10px 0 0; padding-left:20px; columns:2; column-gap:40px}
-  nav.toc li{margin:5px 0}
+  nav.files a{display:flex; justify-content:space-between; gap:16px; padding:9px 20px; border-bottom:none;
+    font-family:var(--mono); font-size:14px}
+  nav.files a:hover{background:var(--hover)}
+  nav.files .counts{white-space:nowrap; color:var(--muted)}
+  .plus{color:var(--green); font-weight:600} .minus{color:var(--red); font-weight:600}
 
-  /* ---- concept diagram (skin per diagram-svg-construction.md §3) ---- */
-  .diagram{background-image:
-      repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
-      repeating-linear-gradient(to right,  var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
-      repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap))),
-      repeating-linear-gradient(to bottom, var(--rule) 0 var(--dash), transparent var(--dash) calc(var(--dash) + var(--gap)));
-    background-size:100% 1px, 100% 1px, 1px 100%, 1px 100%;
-    background-position:0 0, 0 100%, 0 0, 100% 0; background-repeat:no-repeat;
-    border-radius:0;
-    padding:20px; overflow-x:auto; margin:18px 0}
-  .diagram svg{display:block; width:100%; height:auto; min-width:640px}
-  .diagram figcaption{font-family:var(--mono); font-size:12px; color:var(--muted); margin-top:10px}
+  /* ---- diff: two line-number gutters + code, inside a scroll container ----
+     14.5px mono is the sanctioned data-grid size for diffs; the page body
+     never scrolls horizontally — .diffwrap does. */
+  .diffwrap{background:var(--paper); border:1px solid var(--line); border-radius:var(--r-sm); overflow-x:auto; margin:16px 0}
+  table.diff{width:100%; border-collapse:collapse; font-family:var(--mono);
+    font-size:14.5px; line-height:1.55}
+  table.diff td{padding:1.5px 12px; vertical-align:top}
+  td.ln{width:44px; min-width:44px; text-align:right; color:var(--faint); font-size:12.5px;
+    white-space:nowrap; user-select:none; border-right:1px solid var(--line-soft)}
+  td.ln + td.ln{border-right-color:var(--line)}
+  td.src{white-space:pre; width:100%}
+  tr.del{background:var(--red-bg)}
+  tr.add{background:var(--green-bg)}
+  tr.hunk td{background:var(--paper-2); color:var(--accent); font-size:12.5px; padding:6px 12px;
+    border-top:1px solid var(--line-soft); border-bottom:1px solid var(--line-soft)}
+  details.fold summary{cursor:pointer; list-style:none; font-family:var(--mono);
+    font-size:12.5px; color:var(--muted); background:var(--paper-2); padding:7px 20px;
+    border-top:1px dashed var(--line); border-bottom:1px dashed var(--line)}
+  details.fold summary:hover{color:var(--ink)}
+  details.fold[open] summary{border-bottom-style:solid}
 
-  /* ---- collapsible deep-dive sections ---- */
-  details.sec{background:var(--paper); border:1px solid var(--line); border-radius:var(--r-sm); margin:16px 0; padding:0 24px}
-  details.sec>summary{cursor:pointer; list-style:none; font-weight:600; font-size:19px;
-    padding:16px 28px 16px 0; position:relative}
-  details.sec>summary::-webkit-details-marker{display:none}
-  details.sec>summary::after{content:""; position:absolute; right:4px; top:50%; width:9px; height:9px;
-    border-right:2px solid var(--muted); border-bottom:2px solid var(--muted);
-    transform:translateY(-70%) rotate(45deg); transition:transform .15s ease}
-  details.sec[open]>summary::after{transform:translateY(-30%) rotate(225deg)}
-  details.sec .body{border-top:1px solid var(--line-soft); padding:6px 0 20px}
+  /* ---- margin annotations: full-width rows interleaved in the diff.
+     Serif prose at 17px — a finding never inherits the 14.5px code size. */
+  tr.ann td{padding:8px 12px; background:var(--paper)}
+  .ann-inner{border-left:4px solid var(--gray); border-radius:0 var(--r-sm) var(--r-sm) 0;
+    padding:12px 16px; background:var(--paper-2)}
+  .ann-inner .sev{display:inline-block; font-family:var(--mono); font-size:11.5px;
+    font-weight:700; letter-spacing:.05em; padding:2px 8px; border-radius:5px; border:1px solid transparent;
+    margin-bottom:7px}
+  .ann-inner .note{font-family:var(--sans); font-size:17px; line-height:1.55;
+    white-space:normal; color:var(--ink-soft); margin:0}
+  .ann-inner .note code{white-space:nowrap}
+  tr.ann.blocking .ann-inner{border-left-color:var(--red); background:var(--red-bg)}
+  tr.ann.blocking .sev{background:var(--paper); color:var(--red); border-color:var(--red-line)}
+  tr.ann.nit .ann-inner{border-left-color:var(--amber); background:var(--amber-bg)}
+  tr.ann.nit .sev{background:var(--paper); color:var(--amber); border-color:var(--amber-line)}
+  tr.ann.nice .ann-inner{border-left-color:var(--blue); background:var(--blue-bg)}
+  tr.ann.nice .sev{background:var(--paper); color:var(--blue); border-color:var(--blue-line)}
 
-  /* ---- two-column: prose beside annotated code (collapses <720px) ---- */
-  .duo{display:grid; grid-template-columns:1fr 1fr; gap:28px; align-items:start; margin:14px 0}
-
-  /* ---- code blocks + tabs. 15px mono is the data-grid size; explanation
-     prose never inherits it. Token colors come from the page palette —
-     no highlight library, classes are hand-applied where they teach. ---- */
-  pre.code{font-family:var(--mono); font-size:15px; line-height:1.6;
-    background:var(--paper-2); border:1px solid var(--line-soft); border-radius:var(--r-sm);
-    padding:14px 18px; overflow-x:auto; margin:12px 0; white-space:pre}
-  .tok-kw{color:var(--accent); font-weight:600}
-  .tok-str{color:var(--green)}
-  .tok-com{color:var(--faint); font-style:italic}
-  .tabs{background:var(--paper); border:1px solid var(--line); border-radius:var(--r-sm); margin:18px 0; overflow:hidden}
-  .tabbar{display:flex; gap:2px; background:var(--paper-2); border-bottom:1px solid var(--line); padding:6px 8px 0}
-  .tab{font-family:var(--mono); font-size:13px; font-weight:600; color:var(--muted);
-    background:none; border:1px solid transparent; border-bottom:none; border-radius:var(--r-sm) var(--r-sm) 0 0;
-    padding:8px 14px; cursor:pointer}
-  .tab:hover{color:var(--ink)}
-  .tab[aria-selected="true"]{background:var(--paper); border-color:var(--line); color:var(--accent);
-    position:relative; top:1px}
-  .panel{padding:4px 18px 14px}
-  .panel pre.code{border:none; background:var(--paper); margin:0; padding:10px 0}
-
-  /* ---- gotchas table ---- */
-  table{width:100%; border-collapse:collapse; margin:18px 0; font-size:16px; background:var(--paper);
-    border:1px solid var(--line); border-radius:var(--r-sm); overflow:hidden}
-  thead th{background:var(--paper-2); text-align:left; padding:12px 13px; font-size:12px; letter-spacing:.05em;
-    text-transform:uppercase; color:var(--muted); font-weight:600; border-bottom:1px solid var(--line)}
-  tbody td{padding:12px 13px; border-bottom:1px solid var(--line-soft); vertical-align:top; line-height:1.45}
-  tbody tr:last-child td{border-bottom:none}
-
-  /* ---- FAQ + glossary + sources ---- */
-  details.faq{border-bottom:1px solid var(--line-soft); padding:10px 0}
-  details.faq summary{cursor:pointer; font-weight:600; list-style-position:outside}
-  details.faq p{color:var(--ink-soft); margin:10px 0 4px}
-  dl.gloss dt{font-weight:600; margin-top:14px}
-  dl.gloss dd{margin:2px 0 0 0; color:var(--ink-soft)}
-  ul.src{font-family:var(--mono); font-size:14px; line-height:1.9}
+  /* ---- requested-changes checklist (CSS boxes, not form controls) ---- */
+  ul.checklist{list-style:none; margin:16px 0; padding:0}
+  ul.checklist li{position:relative; padding-left:32px; margin:12px 0; line-height:1.5}
+  ul.checklist li::before{content:""; position:absolute; left:0; top:4px; width:15px; height:15px;
+    border:1.5px solid var(--muted); border-radius:4px; background:var(--paper)}
+  ul.checklist .sev{font-family:var(--mono); font-size:11.5px; font-weight:700;
+    padding:1px 7px; border-radius:5px; border:1px solid; margin-right:6px}
+  .sev-blocking{background:var(--red-bg); color:var(--red); border-color:var(--red-line)}
+  .sev-nit{background:var(--amber-bg); color:var(--amber); border-color:var(--amber-line)}
 
   /* ---- provenance footer ---- */
   details.prov{margin-top:60px; padding-top:20px;
@@ -303,14 +306,14 @@
   details.prov p{margin-top:12px; line-height:1.6}
   details.prov code{background:var(--paper)}
 
-  /* ---- responsive collapse ---- */
+  /* ---- responsive collapse (diff tables keep their grid + h-scroll) ---- */
   @media(max-width:720px){
     body{font-size:16px}
     .wrap{padding:36px 18px 64px}
     h1{font-size:27px}
     h2{font-size:22px}
-    nav.toc ul{columns:1}
-    .duo{grid-template-columns:1fr}
+    .stats{gap:10px} .stat{padding:14px 16px} .stat .n{font-size:32px}
+    nav.files a{flex-direction:column; gap:2px}
   }
   /* ---- diagrams: framed, and colored by TOKEN (never hard-coded hex) ----
      SVG presentation attributes cannot read var(), so diagram color lives in
@@ -384,180 +387,110 @@
 <body>
 <div class="wrap">
 
-  <!-- ===== MASTHEAD: the TL;DR is the whole explanation in one sentence —
-       a reader who stops here should still leave with the right model. -->
+  <!-- ===== MASTHEAD: verdict-first. The TL;DR states the verdict and the
+       single most important reason; the badge is .ap or .rc — exactly one. -->
   <header class="masthead">
     <div class="masthead-top">
       <div>
-      <p class="kicker">Group · Project · Explainer</p>
-      <h1>How the subsystem works, named in plain language</h1>
+      <p class="kicker">Group · Project · Code review</p>
+      <h1>PR #123 — one-line description of the change <span class="verdict rc">REQUEST CHANGES</span></h1>
       </div>
       <button class="theme-t" id="theme-t" type="button" aria-live="polite">Theme</button>
     </div>
     <div class="tldr">
-      <strong>In one sentence:</strong> the concept's mental model stated plainly —
-      what it is, what it talks to, and the one thing people get wrong about it.
+      <strong>Verdict:</strong> request changes — one sentence naming the single
+      most important reason (the blocking finding), before any detail.
     </div>
     <div class="meta">
       <span>Date 2026-01-01</span>
-      <span>Audience: who this teaches</span>
-      <span>Source: code / spec it explains</span>
+      <span>Branch: feat/example → development</span>
+      <span>2 files · +15 −5</span>
     </div>
   </header>
 
-  <nav class="toc">
-    <strong>Contents</strong>
-    <ul>
-      <li><a href="#model">01 · The mental model</a></li>
-      <li><a href="#how">02 · How it works</a></li>
-      <li><a href="#usage">03 · Usage by example</a></li>
-      <li><a href="#gotchas">04 · Gotchas</a></li>
-      <li><a href="#faq">05 · FAQ</a></li>
-      <li><a href="#gloss">06 · Glossary &amp; sources</a></li>
-    </ul>
-  </nav>
-
-  <!-- ===== 1 · MENTAL MODEL: one diagram, then the paragraph that reads it.
-       This SVG is the minimal grammar-compliant form (2 nodes, 1 connector,
-       masked label, bottom legend). Real diagrams: follow
-       references/diagram-grammar.md (draw only when the visual beats a
-       paragraph, 4px grid) and diagram-svg-construction.md (orthogonal
-       connectors, ≤2 accent elements). -->
-  <h2 id="model">The mental model</h2>
-  <p>One short paragraph that primes the diagram: name the two roles and the
-    single relationship the reader must hold on to.</p>
-  <figure class="diagram">
-    <div class="scroll-x">
-    <svg viewBox="0 0 640 216" role="img" aria-labelledby="exp-title exp-desc">
-      <title id="exp-title">Concept A reading from Concept B</title>
-      <desc id="exp-desc">The focal component Concept A reads its state from the supporting component Concept B.</desc>
-      <defs>
-        <!-- context-stroke makes ONE marker inherit whatever stroke its path
-             carries, so arrowheads follow the theme with no per-color copy -->
-        <marker id="arrow" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
-          <polygon points="0 0, 8 3, 0 6" fill="context-stroke"/>
-        </marker>
-      </defs>
-      <rect class="d-bg" width="100%" height="100%"/>
-      <!-- arrows before boxes (z-order); endpoints share the y axis, so a
-           plain line is legal — anything else needs orthogonal elbows -->
-      <line class="d-arrow" x1="240" y1="104" x2="400" y2="104" marker-end="url(#arrow)"/>
-      <!-- arrow label: opaque page-colored mask, 8px visible gap above the line -->
-      <rect class="d-mask" x="300" y="84" width="40" height="12" rx="2"/>
-      <text class="d-alabel" x="320" y="93" text-anchor="middle">READS</text>
-      <!-- focal node (accent — 1-2 accents max per diagram) -->
-      <rect class="d-focal" x="64" y="72" width="176" height="64" rx="6"/>
-      <rect class="d-mask" x="69" y="66" width="34" height="12"/>
-      <rect class="d-tag" x="72" y="66" width="28" height="12" rx="2"/>
-      <text class="d-tagtext" x="86" y="75" text-anchor="middle">SVC</text>
-      <text class="d-label" x="152" y="102" text-anchor="middle">Concept A</text>
-      <text class="d-sub" x="152" y="117" text-anchor="middle">domain.core</text>
-      <!-- supporting node (plain ink treatment) -->
-      <rect class="d-node" x="400" y="72" width="176" height="64" rx="6"/>
-      <rect class="d-mask" x="405" y="66" width="34" height="12"/>
-      <rect class="d-tag ink" x="408" y="66" width="28" height="12" rx="2"/>
-      <text class="d-tagtext ink" x="422" y="75" text-anchor="middle">API</text>
-      <text class="d-label" x="488" y="102" text-anchor="middle">Concept B</text>
-      <text class="d-sub" x="488" y="117" text-anchor="middle">adapter:out</text>
-      <!-- legend: bottom strip, covers exactly the treatments used -->
-      <line class="d-legend-rule" x1="32" y1="176" x2="608" y2="176"/>
-      <text class="d-alabel" x="32" y="192">LEGEND</text>
-      <rect class="d-focal" x="104" y="184" width="16" height="9" rx="2"/>
-      <text class="d-alabel" x="128" y="192">focal</text>
-      <rect class="d-node" x="200" y="184" width="16" height="9" rx="2"/>
-      <text class="d-alabel" x="224" y="192">component</text>
-      <line class="d-arrow" x1="328" y1="188" x2="356" y2="188" marker-end="url(#arrow)"/>
-      <text class="d-alabel" x="368" y="192">reads from</text>
-    </svg>
-    </div>
-    <figcaption>One-line reading of the diagram: A pulls from B, never the reverse.</figcaption>
-  </figure>
-
-  <!-- ===== 2 · HOW IT WORKS: collapsibles ordered shallow -> deep.
-       First one open — the reader lands on substance, not a wall of chevrons. -->
-  <h2 id="how">How it works</h2>
-  <details class="sec" open>
-    <summary>The happy path, end to end</summary>
-    <div class="body">
-      <div class="duo">
-        <div>
-          <p>Prose column: walk the flow in reading order. Keep each step tied to
-            the line of code beside it — the pairing is the point of the layout.</p>
-          <p>Second paragraph if the step needs a caveat or a "why".</p>
-        </div>
-        <pre class="code"><span class="tok-com">// annotated snippet — real code, trimmed</span>
-<span class="tok-kw">export function</span> handle(input) {
-  <span class="tok-kw">const</span> state = store.read(input.key);
-  <span class="tok-com">// the step the prose is explaining</span>
-  <span class="tok-kw">return</span> apply(state, <span class="tok-str">"policy"</span>);
-}</pre>
-      </div>
-    </div>
-  </details>
-  <details class="sec">
-    <summary>What happens on failure</summary>
-    <div class="body">
-      <p>Deeper material the first-pass reader can skip. Same two-column pattern
-        inside if code helps; plain prose if it doesn't.</p>
-    </div>
-  </details>
-  <details class="sec">
-    <summary>Why it is shaped this way (history / constraints)</summary>
-    <div class="body">
-      <p>The design-rationale layer: the constraint that forced the shape, and
-        what would have to change for the shape to change.</p>
-    </div>
-  </details>
-
-  <!-- ===== 3 · USAGE BY EXAMPLE: tabbed code block, one scenario per tab ===== -->
-  <h2 id="usage">Usage by example</h2>
-  <div class="tabs">
-    <div class="tabbar" role="tablist">
-      <button class="tab" role="tab" aria-selected="true">basic.ts</button>
-      <button class="tab" role="tab" aria-selected="false">with-options.ts</button>
-      <button class="tab" role="tab" aria-selected="false">error-handling.ts</button>
-    </div>
-    <div class="panel"><pre class="code"><span class="tok-com">// the minimal call — what most readers came for</span>
-<span class="tok-kw">const</span> result = subsystem.run(<span class="tok-str">"input"</span>);</pre></div>
-    <div class="panel" hidden><pre class="code"><span class="tok-com">// the same call with the two options that matter</span>
-<span class="tok-kw">const</span> result = subsystem.run(<span class="tok-str">"input"</span>, { retry: <span class="tok-kw">true</span> });</pre></div>
-    <div class="panel" hidden><pre class="code"><span class="tok-kw">try</span> { subsystem.run(<span class="tok-str">"input"</span>); }
-<span class="tok-kw">catch</span> (err) { <span class="tok-com">// the error type callers actually see</span> }</pre></div>
+  <!-- ===== SEVERITY COUNTERS: same three families as the annotations ===== -->
+  <div class="stats">
+    <div class="stat red"><div class="n">1</div><div class="l">Blocking — must fix before merge</div></div>
+    <div class="stat amber"><div class="n">1</div><div class="l">Nit — fix or explicitly decline</div></div>
+    <div class="stat blue"><div class="n">1</div><div class="l">Nice to have — follow-up material</div></div>
   </div>
 
-  <!-- ===== 4 · GOTCHAS: one row per edge case — the section readers return to ===== -->
-  <h2 id="gotchas">Gotchas</h2>
-  <table>
-    <thead><tr><th>Edge case</th><th>What happens</th><th>What to do instead</th></tr></thead>
-    <tbody>
-      <tr><td>The surprising input</td><td>The wrong-looking but by-design behavior</td><td>The correct call or guard</td></tr>
-      <tr><td>The tempting misuse</td><td>Why it breaks, one sentence</td><td>The sanctioned alternative</td></tr>
-    </tbody>
-  </table>
+  <!-- ===== CHANGED FILES: anchors into the per-file sections below ===== -->
+  <nav class="files">
+    <a href="#f-session"><span>src/auth/session.ts</span>
+      <span class="counts"><span class="plus">+12</span> <span class="minus">−4</span></span></a>
+    <a href="#f-middleware"><span>src/auth/middleware.ts</span>
+      <span class="counts"><span class="plus">+3</span> <span class="minus">−1</span></span></a>
+  </nav>
 
-  <!-- ===== 5 · FAQ ===== -->
-  <h2 id="faq">FAQ</h2>
-  <details class="faq">
-    <summary>The question people actually ask first?</summary>
-    <p>A direct answer, two sentences max, linking into the sections above.</p>
-  </details>
-  <details class="faq">
-    <summary>The second question?</summary>
-    <p>Same shape. Delete the FAQ entirely if nothing has been asked twice.</p>
-  </details>
+  <!-- ===== PER-FILE SECTION: hunk tables + interleaved annotation rows.
+       An annotation row sits immediately AFTER the lines it concerns.
+       Long unchanged runs go in a <details class="fold"> BETWEEN tables. -->
+  <h2 id="f-session"><code>src/auth/session.ts</code></h2>
+  <div class="diffwrap">
+    <table class="diff">
+      <tr class="hunk"><td colspan="3">@@ -40,7 +40,9 @@ function createSession(user: User)</td></tr>
+      <tr><td class="ln">40</td><td class="ln">40</td><td class="src">  const token = signToken(user.id);</td></tr>
+      <tr class="del"><td class="ln">41</td><td class="ln"></td><td class="src">- const ttl = 60 * 60 * 24 * 30;</td></tr>
+      <tr class="add"><td class="ln"></td><td class="ln">41</td><td class="src">+ const ttl = config.session.ttlSeconds;</td></tr>
+      <tr class="add"><td class="ln"></td><td class="ln">42</td><td class="src">+ assertPositive(ttl);</td></tr>
+      <tr class="ann blocking"><td colspan="3"><div class="ann-inner">
+        <span class="sev">BLOCKING</span>
+        <p class="note">The finding, stated as a concrete failure scenario: what input
+          or state produces what wrong outcome. Reference code as
+          <code>src/auth/session.ts:41</code> and name the fix you expect.</p>
+      </div></td></tr>
+      <tr><td class="ln">43</td><td class="ln">44</td><td class="src">  return store.persist(token, ttl);</td></tr>
+    </table>
+    <details class="fold">
+      <summary>… 18 unchanged lines</summary>
+      <table class="diff">
+        <tr><td class="ln">44</td><td class="ln">45</td><td class="src">  // collapsed context lines, shown on demand</td></tr>
+        <tr><td class="ln">45</td><td class="ln">46</td><td class="src">  // …</td></tr>
+      </table>
+    </details>
+    <table class="diff">
+      <tr class="hunk"><td colspan="3">@@ -62,4 +64,6 @@ function refreshSession(token: string)</td></tr>
+      <tr><td class="ln">62</td><td class="ln">64</td><td class="src">  const session = store.find(token);</td></tr>
+      <tr class="add"><td class="ln"></td><td class="ln">65</td><td class="src">+ if (!session) throw new SessionError("not found");</td></tr>
+      <tr class="ann nit"><td colspan="3"><div class="ann-inner">
+        <span class="sev">NIT</span>
+        <p class="note">A small, non-blocking improvement — style, naming, a simpler
+          construct. The author may fix it or decline it explicitly.</p>
+      </div></td></tr>
+      <tr><td class="ln">63</td><td class="ln">66</td><td class="src">  return session.extend();</td></tr>
+    </table>
+  </div>
 
-  <!-- ===== 6 · GLOSSARY & SOURCES ===== -->
-  <h2 id="gloss">Glossary &amp; sources</h2>
-  <dl class="gloss">
-    <dt>Term</dt><dd>Definition in the project's vocabulary, one line.</dd>
-    <dt>Second term</dt><dd>Only terms this page actually uses — not a domain dictionary.</dd>
-  </dl>
-  <h3>Sources</h3>
-  <ul class="src">
-    <li>src/domain/core.ts — the implementation explained above</li>
-    <li>commit abc1234 — where the current shape landed</li>
-    <li>spec/subsystem.md — the contract it implements</li>
+  <h2 id="f-middleware"><code>src/auth/middleware.ts</code></h2>
+  <div class="diffwrap">
+    <table class="diff">
+      <tr class="hunk"><td colspan="3">@@ -12,3 +12,5 @@ export function requireAuth()</td></tr>
+      <tr class="del"><td class="ln">12</td><td class="ln"></td><td class="src">- return (req, res, next) =&gt; next();</td></tr>
+      <tr class="add"><td class="ln"></td><td class="ln">12</td><td class="src">+ return (req, res, next) =&gt; {</td></tr>
+      <tr class="add"><td class="ln"></td><td class="ln">13</td><td class="src">+   verify(req.headers.authorization);</td></tr>
+      <tr class="add"><td class="ln"></td><td class="ln">14</td><td class="src">+   next();</td></tr>
+      <tr class="ann nice"><td colspan="3"><div class="ann-inner">
+        <span class="sev">NICE TO HAVE</span>
+        <p class="note">A follow-up-grade observation: worth recording, not worth
+          holding the merge for. These land in the close report, never in the
+          requested-changes list.</p>
+      </div></td></tr>
+    </table>
+  </div>
+
+  <!-- ===== REQUESTED CHANGES: only blocking + accepted nits — never the
+       nice-to-haves. One checkbox per concrete action. -->
+  <h2 id="requested">Requested changes</h2>
+  <ul class="checklist">
+    <li><span class="sev sev-blocking">BLOCKING</span> The one concrete action that
+      clears the blocking finding, phrased as a change, not a complaint.</li>
+    <li><span class="sev sev-nit">NIT</span> The nit, phrased the same way — or delete
+      this row if the author declines it.</li>
   </ul>
+
+  <p><strong>Verdict recap:</strong> one line restating the verdict and what flips it —
+    "approve once the blocking item above is fixed; nits at the author's discretion."</p>
 
   <!-- ===== PROVENANCE FOOTER (always last) ===== -->
   <details class="prov" open>
@@ -565,12 +498,11 @@
     <p>
       <strong>Generated:</strong> 2026-01-01 ·
       <strong>Prompt:</strong> "truncated source prompt" ·
-      <strong>Files referenced:</strong> <code>src/domain/core.ts</code>
+      <strong>Diff reviewed:</strong> <code>git diff development...feat/example</code>
     </p>
   </details>
 
 </div>
-
 <script>
 /* ============================================================================
    THEME TOGGLE — light <-> dark, persisted. Print always forces light in CSS,
@@ -592,22 +524,6 @@
   });
 })();
 
-
-
-/* Tab switcher — the only JS on the page. Each .tabs block is independent:
-   the Nth .tab shows the Nth .panel. Keep it this small. */
-document.querySelectorAll(".tabs").forEach(function(tabs){
-  var btns = tabs.querySelectorAll(".tab");
-  var panels = tabs.querySelectorAll(".panel");
-  btns.forEach(function(btn, i){
-    btn.addEventListener("click", function(){
-      btns.forEach(function(b, j){
-        b.setAttribute("aria-selected", i === j ? "true" : "false");
-        panels[j].hidden = i !== j;
-      });
-    });
-  });
-});
 
 /* Print integrity: a collapsed <details> loses its content in the PDF. Open
    every one before printing and restore the reader's state afterwards. The
