@@ -139,6 +139,8 @@ func runTime(args []string, w io.Writer) error {
 	facts := readTimeFile(host, file)
 	if facts.first.IsZero() {
 		facts.markPartial("the session file holds no timed event")
+	} else if !since.IsZero() && !since.Before(facts.last) {
+		facts.markPartial("--since is not before the session's last event")
 	}
 	if facts.partial {
 		res.Result = "partial"

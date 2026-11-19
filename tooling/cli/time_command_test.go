@@ -126,6 +126,35 @@ func TestTimeCodexPastedMarkupEndsTheUserWait(t *testing.T) {
 	}
 }
 
+func TestTimeCodexWakeUpEndsTheIdleSpan(t *testing.T) {
+	// The turn ends at 10:01:00, Codex continues a goal by itself at 10:30:00 and
+	// the person writes at 11:01:00: one wait of 3600 s.
+	lines := []string{
+		`{"timestamp":"2026-01-01T10:00:00Z","type":"event_msg","payload":{"type":"task_started"}}`,
+		`{"timestamp":"2026-01-01T10:01:00Z","type":"event_msg","payload":{"type":"task_complete"}}`,
+		`{"timestamp":"2026-01-01T10:30:00Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"<codex_internal_context source=\"goal\">Continue</codex_internal_context>"}]}}`,
+		`{"timestamp":"2026-01-01T10:30:01Z","type":"event_msg","payload":{"type":"task_started"}}`,
+		`{"timestamp":"2026-01-01T10:30:02Z","type":"event_msg","payload":{"type":"task_complete"}}`,
+		`{"timestamp":"2026-01-01T11:01:00Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"sigue"}]}}`,
+		`{"timestamp":"2026-01-01T11:02:00Z","type":"event_msg","payload":{"type":"task_complete"}}`,
+	}
+	path := filepath.Join(t.TempDir(), "rollout-x-01a00000-0000-7000-8000-000000000003.jsonl")
+	if err := os.WriteFile(path, []byte(strings.Join(lines, "\n")+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	r := runTimeJSON(t, "--session-file", path, "--host", "codex")
+	if r.UserWaitSeconds < 3600-2 {
+		t.Fatalf("user wait %d, want the hour away", r.UserWaitSeconds)
+	}
+}
+
+func TestTimeSinceAfterTheLastEventIsPartial(t *testing.T) {
+	r := runTimeJSON(t, "--session-file", filepath.Join("testdata", "time", "codex.jsonl"), "--host", "codex", "--since", "2030-01-01T00:00:00Z")
+	if r.Result != "partial" {
+		t.Fatalf("result %q, want partial", r.Result)
+	}
+}
+
 func TestTimeUnreadableLineIsPartial(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("testdata", "time", "codex.jsonl"))
 	if err != nil {

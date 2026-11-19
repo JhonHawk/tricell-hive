@@ -10,6 +10,9 @@ var (
 	statesTopic = regexp.MustCompile(`tracker/states/`)
 	// noMemories is Engram's answer to a search that found nothing.
 	noMemories = regexp.MustCompile(`(?i)no memories found`)
+	// readOnlyTool is a tracker tool that only reads, such as one that lists a
+	// ticket's transitions; its name may still contain "transition".
+	readOnlyTool = regexp.MustCompile(`(?i)(?:^|_)(?:get|list|read|search|fetch|view)[A-Z_]`)
 	// acliTransition is acli's ticket move, which leafActionsIn does not know.
 	acliTransition = regexp.MustCompile(`\bacli\s+jira\s+workitem\s+transition\b`)
 	// memoryWrite is a write to persistent memory, by tool or by Engram's CLI.
@@ -76,7 +79,7 @@ func movesTicket(e traceEvent, cwd string) bool {
 	if e.Kind == "shell" && acliTransition.MatchString(e.Command) {
 		return true
 	}
-	if e.Kind == "tool" && e.Memory {
+	if e.Kind == "tool" && (e.Memory || readOnlyTool.MatchString(e.Tool)) {
 		return false
 	}
 	for _, a := range leafActionsIn(e, cwd) {

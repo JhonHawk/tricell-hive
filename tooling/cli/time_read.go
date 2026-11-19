@@ -349,14 +349,14 @@ type codexPending struct {
 	ci       bool
 }
 
-// codexHumanText says whether a user message is one a person typed: Codex
-// injects its context and the instruction files as user messages that open
-// with markup or the instruction heading.
 // codexMachinePrefixes open the user-role messages Codex injects itself. Any
 // other user text is a person's, including the tags Codex wraps a person's
-// image, review action or card answer in.
+// image, review action or card answer in. Codex's own wake-up after an ended
+// turn (<codex_internal_context>, a goal continuation or a daemon recovery)
+// also ends the wait: the agent sat idle until then, as it does for a person.
 var codexMachinePrefixes = []string{"# AGENTS.md instructions", "<environment_context", "<skill", "<user_instructions", "<turn_aborted"}
 
+// codexHumanText says whether a user message is one a person typed.
 func codexHumanText(text string) bool {
 	t := strings.TrimSpace(text)
 	if t == "" {
