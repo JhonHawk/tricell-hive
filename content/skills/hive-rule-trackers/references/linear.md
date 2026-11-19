@@ -11,3 +11,5 @@ Read from [trackers](../SKILL.md) for a ticket whose key the `## Hive` assigns t
 | Attach | `prepare_attachment_upload`, then `create_attachment_from_upload`; or embed an uploaded file in the comment as `prepare_file_upload` returns it |
 
 Categories: a state's `type` is `backlog` or `unstarted` for to do, `started` for in progress, `completed` for done, and `canceled` for other. Linear lets an issue move to any state of its team, so the transition read of [trackers](../SKILL.md) step 2 is the team's list of states.
+
+Time: no native time tracking; write nothing about time, as [time](time.md) sets.

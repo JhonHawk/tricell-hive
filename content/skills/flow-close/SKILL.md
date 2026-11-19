@@ -17,5 +17,5 @@ To clean up, prune, reorganize, curate or archive existing docs or support mater
 4. Close an integrated change folder as [close hygiene](../hive-rule-close-hygiene/SKILL.md#archive-the-change-folder) sets.
 5. Clean up the branches and worktrees of each repository the work touched as [close hygiene](../hive-rule-close-hygiene/SKILL.md#clean-up) sets.
 6. Write the final report as [Final report](../hive-rule-close-report/SKILL.md#final-report) sets.
-7. Write the outcome to persistent memory, the account index rows as [test accounts](../hive-rule-test-accounts/SKILL.md) sets, the pending-work records as [Pending work](../hive-rule-close-hygiene/SKILL.md#pending-work) sets, and each candidate's record as [Candidates](../hive-rule-close-report/SKILL.md#candidates) sets.
+7. Write the outcome to persistent memory, the account index rows as [test accounts](../hive-rule-test-accounts/SKILL.md) sets, the pending-work records as [Pending work](../hive-rule-close-hygiene/SKILL.md#pending-work) sets, each candidate's record as [Candidates](../hive-rule-close-report/SKILL.md#candidates) sets, and each ticket's time record as [time](../hive-rule-trackers/references/time.md) sets.
 8. End with the close footer as [close footer](../hive-rule-close-footer/SKILL.md) sets.

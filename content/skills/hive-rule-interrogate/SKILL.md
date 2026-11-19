@@ -1,22 +1,22 @@
 ---
 name: hive-rule-interrogate
-description: "Hive rule leaf: read before the adversarial review question and when the user picked an agent. Lists other providers' agents; runs one to break the candidate, keeping findings a rerun reproduces."
+description: "Hive rule leaf: read when the user asks for a review by another provider's agent. Lists those agents, runs the one picked to break the candidate, keeps findings a rerun reproduces."
 disable-model-invocation: true
 ---
 
 # Adversarial review by another provider
 
-Read before the adversarial review question, for its «Availability», and when the user chose an agent for this work item's adversarial review, a decision [delivery questions](../hive-rule-delivery-ask/SKILL.md) sets. That choice authorizes the spend of another provider's quota for this work item and no other. It runs in addition to the code review the user chose, never in its place, and under the delivery mode in force like every other review of the candidate.
+Read only when the user explicitly asks for a review of the candidate by another provider's agent; never offer, suggest or prepare it otherwise. The user's pick of an agent authorizes the spend of another provider's quota for this work item and no other. It runs in addition to the code review the user chose, never in its place, and under the delivery mode in force like every other review of the candidate.
 
 ## Limits
 
 - At most one run on the candidate, and one more after the round of fixes that followed it. The answer is never reused for another work item.
 - In unattended work, run it only when an amount was authorized beforehand for this spend, and stay within it.
-- Send the other provider only the scope's diff and the intent. Include no secret value, no account identifier and no ticket key.
+- Send the other provider only the scope's diff and the intent. Include no secret value, no account identifier, no ticket key and no path of a secret location.
 
 ## Availability
 
-The reviewer is a command-line agent of a provider other than the one you run in, such as Codex, Claude Code, Cursor Agent, Grok or Antigravity. Before the adversarial question, list each one that is installed (`command -v`) and signed in, checked with that agent's own status or `--help` output, and offer each as an option for the user to pick. Run the one chosen. When none is available, report the option as unavailable, say why, and run only the chosen review. Never install or sign in on your own initiative.
+The reviewer is a command-line agent of a provider other than the one you run in, such as Codex, Claude Code, Cursor Agent, Grok or Antigravity. Once the user asks for this review, list each one that is installed (`command -v`) and signed in, checked with that agent's own status or `--help` output, and offer each as an option for the user to pick. Run the one chosen. When none is available, report the option as unavailable, say why, and run only the chosen review. Never install or sign in on your own initiative.
 
 ## Run
 

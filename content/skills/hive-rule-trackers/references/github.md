@@ -11,3 +11,5 @@ Read from [trackers](../SKILL.md) for a ticket whose key the `## Hive` assigns t
 | Attach | `gh issue artifact create <number> -R <owner>/<repo> --attach <file>#<alt text>` for a capture, `--body-file <file>` for text such as test output; where the command or issue artifacts are not available, link the evidence from the pull request body, as [PR captures](../../git-workflow/references/pr-captures.md) sets, or list it in the comment for the user to attach |
 
 Categories: a closed issue is done and an open one to do, unless the board's status option says in progress; record the board's option names when the project uses one.
+
+Time: no native time tracking; write nothing about time, as [time](time.md) sets.
