@@ -15,7 +15,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 ### T1 — El trial #491 se cierra con la evidencia medida y se integra
 
-- [ ] `question-card-alone` registra la medición del 2026-11-18 y un criterio de muestra nuevo que reemplaza el anterior. El PR #491, actualizado con `development`, está integrado. El párrafo del trial ya no está en `AGENTS.md`, `refs/hive/trial-join` está borrada y la instalación local está refrescada desde `development`.
+- [x] `question-card-alone` registra la medición del 2026-11-18 y un criterio de muestra nuevo que reemplaza el anterior. El PR #491, actualizado con `development`, está integrado. El párrafo del trial ya no está en `AGENTS.md`, `refs/hive/trial-join` está borrada y la instalación local está refrescada desde `development`.
 
 **Closes:** AC1
 
@@ -75,7 +75,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 ### T3 — Los tests fijan los invariantes, el hogar único y los enlaces requeridos
 
-- [ ] `tests/content` tiene el test de hojas, el de frases de un solo hogar y el de enlaces requeridos.
+- [x] `tests/content` tiene el test de hojas, el de frases de un solo hogar y el de enlaces requeridos.
 
 **Closes:** AC3, AC4, AC7
 
@@ -447,8 +447,17 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 ## Checkpoint
 
 - Updated: 2026-11-18
-- Stage: plan
-- Next: revisión del plan por AC16, luego la aprobación; luego T1
+- Stage: build · T1 awaiting validation; T2 in child; T3 done
+- Last commit: e9561ec4
+- Open findings: none
+- Next: T1: user validation, push and merge PR #491; then T4 after T2
+- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/skill-leaves · feat/skill-leaves
+
+### Evidence
+
+- go test ./tests/content (leaf, home, links) · pass · e9561ec4
+- trial branch: go test ./... · 1 flaky pilot failure (TestE2ESetupDeadlinesOwnDescendantsAndPipes/github-token), passes 3/3 alone on trial and base · 4ba449e5
+- before captures: none (no UI)
 
 ## Review status and progress
 
@@ -486,3 +495,5 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 2026-11-18 — Tercera revisión del plan (AC16 y T15): 3 P1, 6 P2 y 4 P3. Corregidos: observación de AC16 en T12 (H38); pausa con `--unwritten` opcional y lectura del checkpoint al pausar (H39); deltas de spec (H40); gramática de casillas y rechazo que hoy es falso (H41); condición de uso (H42); ruta y escritor del registro (H43); playbook a lo sumo uno, con ruta general (H44); registro del playbook elegido (H45); listas y comandos (H46 a H48); resultados fuera del texto de la casilla (H49). Va al usuario: si los efectos comparten el registro (H37, D19).
 2026-11-18 — D19 A: decisiones y efectos externos comparten `decisions.tsv`. Se agrega al delta de `workflow-lifecycle` el requisito «Decision log for unattended and coordinated work».
 2026-11-18 — Cuarta revisión (matriz, AC17 y D19): 1 P1, 6 P2 y 3 P3, todos aplicados. El merge de un PR ajeno pide tu instrucción en todos los modos (H50). Pausa sin commit `wip:` (H51). Test de AC17 con comillas invertidas y frase fija (H52). `ready` y `hold` en `urgent-fixes.md`, por T8 (H53). Un solo hogar para el playbook elegido, sin `--playbook` (H54). Filas de efectos en AC16 y T12 (H55). Ubicaciones del registro (H56). Matriz en T10 y T12 (H57). Gramática y encabezado `## Delivery units` (H58 y H59).
+2026-11-18 — T3 · e9561ec4 · unverified: AC4 and AC7 stay inactive until each extraction task activates its phrases and links
+2026-11-18 — T1 · addf3256 · unverified: AC4 of question-card-alone (rule survives a refresh) is moot: the trial paragraph is gone

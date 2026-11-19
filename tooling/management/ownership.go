@@ -75,6 +75,11 @@ func normalizeState(s *State) error {
 				return fmt.Errorf("invalid recorded hook")
 			}
 		}
+		if generatedSkillPolicy(r.Target.Source) {
+			if err := validRecordedSkillPolicy(r); err != nil {
+				return err
+			}
+		}
 		if s.Version == 1 {
 			if r.Target.Host == "" || len(r.Consumers) != 0 || r.Target.Kind == "symlink" {
 				return fmt.Errorf("invalid legacy ownership")
@@ -146,6 +151,11 @@ func desiredResources(c target.Config, hosts []string, state State, action strin
 	if action == "install" && len(releases) > 0 {
 		rel = releases[0]
 	}
+	policies, err := skillPolicyTargets(bindings, state, rel)
+	if err != nil {
+		return nil, err
+	}
+	bindings = append(bindings, policies...)
 	parts, err := antigravityRuleTargets(c, hosts, state, rel)
 	if err != nil {
 		return nil, err

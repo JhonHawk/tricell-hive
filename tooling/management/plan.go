@@ -230,6 +230,9 @@ func loadRelease(o Options, stateDir string) (Release, error) {
 		if err != nil {
 			return r, err
 		}
+		if err := rejectHandWrittenPolicies(paths); err != nil {
+			return r, err
+		}
 		sources := []string{GlobalSource}
 		for _, path := range paths {
 			relative, err := filepath.Rel(o.Source, path)
@@ -730,6 +733,11 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 	if g.Target.Kind == "skill" || g.Target.Kind == "agent" || g.Target.Kind == "plugin" {
 		r.Mode = payloadMode(p.Release, g.Target.Source)
 	}
+	if generatedSkillPolicy(g.Target.Source) {
+		// The file is generated, so it takes the mode of the entry it belongs to.
+		entry, _ := strings.CutSuffix(g.Target.Source, "/"+codex.SkillPolicyFile)
+		r.Mode = payloadMode(p.Release, entry+"/SKILL.md")
+	}
 	if g.Target.Kind == "hook" {
 		r.Mode = 0644
 	}
@@ -760,6 +768,14 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 			r.Leading = initialLeading(p.Config, g.Target, s.Data)
 		}
 	case "skill":
+		if generatedSkillPolicy(g.Target.Source) {
+			body, err := renderSkillPolicy(g.Target, p)
+			if err != nil {
+				return nil, err
+			}
+			r.Managed = body
+			break
+		}
 		r.Managed = payload(p.Release, g.Target.Source)
 	case "plugin":
 		if g.Target.Source != opencode.ContextLoaderSource || p.Config.Scope != "user" {
@@ -1148,6 +1164,11 @@ func Status(o Options) ([]StatusEntry, error) {
 	if err != nil {
 		return nil, err
 	}
+	policies, err := skillPolicyTargets(ts, state, nil)
+	if err != nil {
+		return nil, err
+	}
+	ts = append(ts, policies...)
 	ruleParts, err := antigravityRuleTargets(c, h, state, nil)
 	if err != nil {
 		return nil, err
