@@ -352,7 +352,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 ### T11 — Fase 2: principios, índice de principios y `hive-typescript`
 
-- [ ] Existen `hive-principle-index`, las 8 hojas de principio nuevas y `hive-typescript`, y las tres fusiones están hechas. El informe final de build y la revisión de código nombran, en una línea, cada principio leído que cambió una decisión.
+- [x] Existen `hive-principle-index`, las 8 hojas de principio nuevas y `hive-typescript`, y las tres fusiones están hechas. El informe final de build y la revisión de código nombran, en una línea, cada principio leído que cambió una decisión.
 
 **Closes:** AC11
 
@@ -519,3 +519,4 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 2026-11-19 — T9 · 678c53fc · unverified: AC12: like-for-like union −3,944 B; full union with git-commit and merge-gate +2,479 B; site build not run (dependencies not installed)
 2026-11-19 — Revisión por D23 A y D24 A: AC18 reemplaza AC5 (≤32,000 bytes con el índice) y AC19 reemplaza AC12 (comparación pareja). No invalida tareas.
 2026-11-19 — T10 · 48e608a6 · unverified: site build not run (no dependencies); AC8 and AC14 real sessions wait for T12
+2026-11-19 — T11 · c7635929 · unverified: installed copy checked in T12

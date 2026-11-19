@@ -22,6 +22,16 @@
 
 **Verification:** <the command or observation, and its expected result>
 
+## Delivery units
+
+<!-- Optional: keep this section only when the plan ships in two or more delivery units (PRs, commits to the base under direct-base, or candidates under hold); delete it otherwise. Boxes here belong to no task, so `scripts/tasks.py done` never ticks them; flow-verify ticks a box by hand when its check passes and records the result under `### Evidence`, not in the box. `n/a: <reason>` replaces the predicate of a box that does not apply. -->
+
+### E1 — <PR, commit or candidate> · depende de: <E<m>, or ninguna> · archivos: <paths>
+
+- [ ] unit: <command>
+- [ ] live: <scenario> · pass: <predicate>
+- [ ] perf: <metric> · base: <measured value> · falla: <threshold>
+
 ## Verification and human review
 
 | Check | When and where | Evidence | Authorization |
@@ -35,7 +45,7 @@
 
 ## Checkpoint
 
-<Written by `scripts/tasks.py checkpoint`: Updated, Stage, Last commit, Open findings, Next, Worktree when the work has one (`- Worktree: <path> · <branch>`), then `### Evidence` with the checks recorded so far.>
+<Written by `scripts/tasks.py checkpoint`: Updated, Stage, Last commit, Open findings, Next, Worktree when the work has one (`- Worktree: <path> · <branch>`), Unwritten at a pause (`--unwritten`), then `### Evidence` with the checks recorded so far.>
 
 ## Review status and progress
 

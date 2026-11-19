@@ -204,6 +204,51 @@ class TasksScriptTest(unittest.TestCase):
             self.assertEqual(fourth.returncode, 0, fourth.stderr)
             self.assertNotIn("- Worktree:", self.text(change))
 
+    def test_checkpoint_keeps_unwritten_until_replaced_or_none(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            change = self.folder(tmp)
+            first = self.checkpoint(change, "build", "T1", "run T2", "--unwritten", "the retry idea for T4")
+            self.assertEqual(first.returncode, 0, first.stderr)
+            self.assertIn("- Unwritten: the retry idea for T4", self.text(change))
+
+            second = self.checkpoint(change, "build", "T2", "run T3")
+            self.assertEqual(second.returncode, 0, second.stderr)
+            text = self.text(change)
+            self.assertEqual(text.count("- Unwritten:"), 1)
+            self.assertIn("- Unwritten: the retry idea for T4", text)
+
+            third = self.checkpoint(change, "build", "T3", "run T4", "--unwritten", "another thought")
+            text = self.text(change)
+            self.assertEqual(text.count("- Unwritten:"), 1)
+            self.assertIn("- Unwritten: another thought", text)
+
+            fourth = self.checkpoint(change, "build", "T4", "close", "--unwritten", "none")
+            self.assertEqual(fourth.returncode, 0, fourth.stderr)
+            self.assertNotIn("Unwritten", self.text(change))
+
+    def test_checkpoint_without_unwritten_is_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            change = self.folder(tmp)
+            self.checkpoint(change, "build", "T1", "run T2")
+            self.assertNotIn("Unwritten", self.text(change))
+
+    def test_done_never_ticks_delivery_unit_boxes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            change = self.folder(tmp)
+            path = change / "tasks.md"
+            text = path.read_text().replace(
+                "## Review status",
+                "## Delivery units\n\n### E1 — PR 1 · depende de: ninguna · archivos: a.py\n\n"
+                "- [ ] unit: make test\n- [ ] live: go · pass: ok\n\n## Review status",
+            )
+            path.write_text(text)
+            done = self.run_tasks(change, "done", "T4", "--commit", "abc1234", "--unverified", "none")
+            self.assertEqual(done.returncode, 0, done.stderr)
+            after = path.read_text()
+            self.assertIn("- [ ] unit: make test", after)
+            self.assertIn("- [ ] live: go · pass: ok", after)
+            self.assertIn("- [x] delta", after)
+
     def test_check_change_exits_0_when_the_checkpoint_names_a_replaced_decision(self):
         proposal = textwrap.dedent(
             """\

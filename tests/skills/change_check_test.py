@@ -268,6 +268,88 @@ class ChangeCheckTest(unittest.TestCase):
             result = self.run_check(self.folder(tmp, proposal=proposal), "--archive")
             self.assertNotIn("Observed in", result.stdout)
 
+    UNITS = """
+    ## Delivery units
+
+    ### E1 — PR 1 · depende de: ninguna · archivos: a.py, b.py
+
+    - [ ] unit: python3 -m unittest
+    - [ ] live: open the page · pass: the button renders
+    - [ ] perf: p95 latency · base: 120ms · falla: 200ms
+
+    ### E2 — PR 2 · depends on: E1 · files: c.py
+
+    - [ ] live: n/a: no interaction changes
+    - [ ] perf: n/a: no hot path changes
+    - [ ] perf: p95 latency · base: 120ms · fail: 200ms
+    """
+
+    def units_folder(self, tmp, units):
+        tasks = textwrap.dedent(TASKS).replace("## Review status", textwrap.dedent(units).lstrip() + "\n## Review status")
+        return self.folder(tmp, tasks=tasks)
+
+    def test_valid_delivery_units_pass_in_both_languages(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.units_folder(tmp, self.UNITS))
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_live_box_without_pass_is_rejected_with_its_line(self):
+        units = self.UNITS.replace(" · pass: the button renders", "")
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.units_folder(tmp, units))
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("tasks.md:17:", result.stdout)
+            self.assertEqual(len(result.stdout.splitlines()), 1, result.stdout)
+
+    def test_perf_box_without_base_or_threshold_is_rejected(self):
+        for broken in ("p95 latency · falla: 200ms", "p95 latency · base: 120ms", "p95 latency"):
+            units = self.UNITS.replace("p95 latency · base: 120ms · falla: 200ms", broken)
+            with tempfile.TemporaryDirectory() as tmp:
+                result = self.run_check(self.units_folder(tmp, units))
+                self.assertEqual(result.returncode, 1, broken)
+                self.assertIn("tasks.md:18:", result.stdout)
+
+    def test_unit_box_needs_a_command_and_unknown_kinds_are_rejected(self):
+        for broken in ("- [ ] unit:", "- [ ] manual: look at it"):
+            units = self.UNITS.replace("- [ ] unit: python3 -m unittest", broken)
+            with tempfile.TemporaryDirectory() as tmp:
+                result = self.run_check(self.units_folder(tmp, units))
+                self.assertEqual(result.returncode, 1, broken)
+                self.assertIn("tasks.md:16:", result.stdout)
+
+    def test_unit_heading_needs_its_dependencies_and_files(self):
+        units = self.UNITS.replace(" · archivos: a.py, b.py", "")
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.units_folder(tmp, units))
+            self.assertEqual(result.returncode, 1)
+            self.assertIn("tasks.md:14:", result.stdout)
+
+    def test_n_a_needs_a_reason(self):
+        units = self.UNITS.replace("live: n/a: no interaction changes", "live: n/a:")
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.units_folder(tmp, units))
+            self.assertEqual(result.returncode, 1)
+
+    def test_archive_does_not_count_n_a_boxes_as_unchecked(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.units_folder(tmp, self.UNITS), "--archive")
+            self.assertEqual(result.returncode, 1)
+            lines = result.stdout.splitlines()
+            self.assertEqual(sum("unchecked box:" in l for l in lines), 5, result.stdout)
+            self.assertNotIn("n/a", result.stdout)
+            self.assertEqual(lines[-1], "5 unchecked boxes")
+
+    def test_archive_does_not_validate_the_unit_grammar(self):
+        units = self.UNITS.replace(" · pass: the button renders", "")
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.units_folder(tmp, units), "--archive")
+            self.assertNotIn("live:", result.stdout.replace("unchecked box: live:", ""))
+
+    def test_a_folder_without_units_is_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.folder(tmp), "--archive")
+            self.assertEqual(result.stdout.splitlines()[-1], "1 unchecked box")
+
     def test_unreadable_folder_exits_2(self):
         with tempfile.TemporaryDirectory() as tmp:
             result = self.run_check(Path(tmp) / "missing")
