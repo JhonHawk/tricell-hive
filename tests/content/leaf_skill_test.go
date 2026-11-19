@@ -31,8 +31,9 @@ const (
 // leafSizeExceptions names each leaf whose single rule cannot fit the common
 // limit without rewording it; each stays at or under leafExceptionSizeLimit.
 var leafSizeExceptions = map[string]bool{
-	// One home for every question to the user: format, channel per host and a
-	// card that comes back unanswered, so no host reads only part of it.
+	// One home for every question to the user: what to ask, the format and the
+	// channel per host, read together before any round; the unanswered card,
+	// a moment of its own, is its reference.
 	"hive-rule-questions": true,
 }
 

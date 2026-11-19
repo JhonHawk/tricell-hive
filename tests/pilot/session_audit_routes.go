@@ -200,15 +200,8 @@ func decisionRoundFormat(s auditSession) criterionAssessment {
 		if !asks {
 			continue
 		}
-		carded := false
-		for j := i + 1; j < len(events) && s.Turn[j] == s.Turn[i]; j++ {
-			if events[j].Kind == "question" {
-				carded = true
-				break
-			}
-		}
 		switch {
-		case carded:
+		case cardAfterInTurn(s, i) >= 0:
 		case full:
 			passed = append(passed, regressionEvidence(e))
 		default:
