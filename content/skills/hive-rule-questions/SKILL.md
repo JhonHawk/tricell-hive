@@ -29,20 +29,9 @@ disable-model-invocation: true
 
 - Asking only in the text where the card applies is a failure, a decision asked as a prose question included, such as "interactive or hold?": delivery, review and every other decision go through the card.
 - Through the card: write first, as visible text, the context line, the report the round needs and the waiting line, never the decisions themselves; then, with no tool call between, ask each decision or finding as one question, in one call up to the tool's limit (four on Claude Code, three on Codex) or consecutive calls with no message between. The turn ends with the card.
-- Each question stands alone: it opens with the stage, the ticket and the ID or header with the title, and carries the situation; each label is `A - (★) <two to five words>`; each description is the `If you choose it:` text, or the option's effect in one line, the starred one ending with the recommendation's reason and what stays uncertain. Show artifact options in the preview or a code block.
+- Each question stands alone: it opens with the stage, the ticket and the ID or header with the title, and carries the situation; each label is `A - (★) <two to five words>`; each description is the `If you choose it:` text, or the option's effect in one line, the starred one ending with the recommendation's reason and what stays uncertain. Show artifact options, such as sketches or code, in the preview, otherwise in a code block.
 - One tool per pending question: never repeat it through an asynchronous and a waiting tool, nor send another card while one waits. A receipt is not an answer. A plain acceptance, such as "ok", "dale" or "con los recomendados", applies the starred options of the decisions the user was shown; free text still answers, and a decision a reply leaves out, or one not shown, stays open.
 
 ## A card returns unanswered
 
-Follow the host's required response first. The answers the card did return stand; ask none of the round's remaining cards first.
-
-- **A card that carried the round alone closed by itself:** an empty answer or a timeout with no rejection, as a Codex card after about 120 seconds. Write in one message every open decision and finding of the round in full, those not yet asked included, ending with a waiting line saying "ok" applies every starred option and a reply such as `D2 B` changes one.
-- **A card after a round written in the text** comes back empty: add one line that the card closed and names the decisions still open.
-- **The user left it:** a rejection, dismissal or decline, also as an error or after the host's own timeout; the host ended the turn with the card open; a request to talk; answers to only some questions; or free text that adds, removes or replaces a decision or an option. Never write the round out on your own; act on what they said, first fit:
-  1. Answers by ID or a plain acceptance: apply them and ask the rest through the card again.
-  2. The cancel was a mistake, or they ask for the questions: ask the same round again, same IDs.
-  3. The direction or the premise changed, or a decision or an option was added, removed or replaced: rework those decisions and ask them as a new round with new IDs.
-  4. Drop the questions: drop them, except one a later step cannot do without, asked again with that reason.
-  5. Another subject or question: answer it and end with one line naming the decisions still open and how to get them back; ask them through the card when the user says so or asks to continue work that needs them.
-
-  With nothing said about the decisions yet, reply with that one line alone. A decision asked again keeps its ID, after one line naming which return. Later rounds still go through the card.
+When a card comes back without answers, read and follow [unanswered card](references/unanswered.md) before you write anything.
