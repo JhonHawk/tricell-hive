@@ -1,6 +1,6 @@
 ---
 name: harness-audit
-description: Audit coding-agent instruction files (AGENTS.md and CLAUDE.md at workspace, repository, and nested package levels), skills, and subagent definitions for harness-engineering quality, run native static validators, ask the decisions the findings need, and apply the accepted outcomes in the current project. Use when asked to audit, review, prune, fix, or check agent instructions, skills, or agents, to set up or update a repository's Hive settings section (onboarding a project to Hive), to explain what a host loads from an entry directory, including its memory, or why sessions behave differently by where they start, to find and clean host memory and Engram records that restate the guidance in use, to prepare a project's migration to the `openspec` change-record layout, to create or curate the HIVE.local.md files of a project and of this machine or record how the project runs here (not one fact verified during other work), or, only on explicit request, to initialize or diagnose an Engram workspace identity.
+description: Audit coding-agent instruction files (AGENTS.md and CLAUDE.md at workspace, repository, and nested package levels), skills, and subagent definitions for harness-engineering quality, run native static validators, ask the decisions the findings need, and apply the accepted outcomes in the current project; a project's layout and its migration belong to project-layout. Use when asked to audit, review, prune, fix, or check agent instructions, skills, or agents, to set up or update a repository's Hive settings section (onboarding a project to Hive), to explain what a host loads from an entry directory, including its memory, or why sessions behave differently by where they start, to find and clean host memory and Engram records that restate the guidance in use, to create or curate the HIVE.local.md files of a project and of this machine or record how the project runs here (not one fact verified during other work), or, only on explicit request, to initialize or diagnose an Engram workspace identity.
 ---
 
 # Harness audit
@@ -9,11 +9,11 @@ When the user asks to create, bootstrap, review or prune `HIVE.local.md`, or to 
 
 Audit what coding-agent hosts actually load and whether each instruction, skill, or agent earns its place. Report findings with evidence, ask the decisions they need, and, after the user's answer, apply the accepted outcomes in the current project as [apply](references/apply.md) sets.
 
-A role launched read-only, such as `hive-review-harness`, or a delegated auditor edits nothing: it returns findings, decisions and any migration manifest to its parent, which asks and applies. In the main thread, write only what [apply](references/apply.md) allows after the user's answer, the entries of the project's `HIVE.local.md` and of the machine file that the global guidance's «Local instructions» authorizes, plus an approved migration manifest, whose mechanical entries run through [docs-cleanup](../docs-cleanup/SKILL.md), stopping at `manual` and `ask` entries. Do not edit configuration outside the project or trackers; the machine file of «Local instructions» is not configuration.
+A role launched read-only, such as `hive-review-harness`, or a delegated auditor edits nothing: it returns findings and decisions to its parent, which asks and applies. In the main thread, write only what [apply](references/apply.md) allows after the user's answer, the entries of the project's `HIVE.local.md` and of the machine file that the global guidance's «Local instructions» authorizes, plus an approved migration manifest, whose mechanical entries run through [project-layout](../project-layout/SKILL.md), stopping at `manual` and `ask` entries. Do not edit configuration outside the project or trackers; the machine file of «Local instructions» is not configuration.
 
 ## Scope
 
-Before applying an outcome that writes `Specs`, creates a specs directory, or creates or continues a change record, read [change folder](../flow-plan/SKILL.md#change-folder); before writing or cleaning supporting artifacts, read [artifact layout and retention](../flow-close/references/artifact-layout.md). An audit that applies nothing needs neither.
+Before applying an outcome that writes `Specs`, creates a specs directory, or creates or continues a change record, read [change folder](../flow-plan/SKILL.md#change-folder); before writing or cleaning supporting artifacts, read [layout and retention](../project-layout/references/layout.md). An audit that applies nothing needs neither.
 
 Establish before reading deeply:
 
@@ -27,12 +27,12 @@ Establish before reading deeply:
 1. For instruction files, read [hierarchy](references/hierarchy.md) and compute the effective set per host and entry point before judging any single file. When the project's sessions start at more than one entry point, or the caller asks why sessions behave differently by where they start, or asks to audit or clean memory, read [memory](references/memory.md) too: it covers HA-HI-08 to HA-HI-11, and for a memory request every host in use and the project's Engram records, even from a single entry point. Then read [instruction files](references/instruction-files.md) and apply its admission test and rules.
 2. For skills or agents, read [skills and agents](references/skills-and-agents.md), together with the project's own authoring conventions.
 3. Before running any native tool, relying on its output, or asserting version-sensitive loading behavior, read [native tools](references/native-tools.md); to check or update a project's `HIVE.local.md` and `_support/secrets/` invariants deterministically, use [local_instructions.py](scripts/local_instructions.py).
-4. For a project's repositories, or when the caller asks to prepare a layout migration, read [project layout](references/project-layout.md) and include its migration manifest.
+4. For a project's layout or a layout migration, use [project-layout](../project-layout/SKILL.md) instead of this audit; the onboarding below reads only its check of `Specs`.
 5. Before proposing `delete`, `demote`, or `soften`, or reporting `already lean`, for any artifact type, read [instruction files](references/instruction-files.md) for HA-IF-10, HA-IF-13, and HA-IF-14, and recover the rule's rationale (HA-IF-10).
 6. Report in the format below. Prefer fewer findings: report each `high` and `medium` finding in full, and group `low` and `info` findings by rule ID with a count.
 7. Ask the decisions as [Ask](#ask) sets; after the user's answer, read [apply](references/apply.md).
 
-When the caller asks only to set up or update a repository's `## Hive` section, such as onboarding a project to Hive, limit the audit to HA-IF-17 and HA-PL-01 for each repository it names and for the workspace section when sessions start there, and to the prose those rules relocate; then continue at step 6.
+When the caller asks only to set up or update a repository's `## Hive` section, such as onboarding a project to Hive, limit the audit to HA-IF-17 and to HA-PL-01 of project-layout's [migrate](../project-layout/references/migrate.md) for each repository it names and for the workspace section when sessions start there, which `hive doctor` checks only when the workspace is a repository, and to the prose those rules relocate; then continue at step 6.
 
 ## Outcomes
 

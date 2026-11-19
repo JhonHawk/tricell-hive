@@ -37,6 +37,9 @@ type auditSession struct {
 	Model           string
 	ModelConfigured bool
 	Subagent        bool
+	// QuestionOffered: the host listed its waiting question tool in a mode
+	// that allows it (Codex additional_tools in Default or Plan mode).
+	QuestionOffered bool
 	First, Last     string
 	Trace           traceReport
 	Turn            []int
@@ -185,9 +188,11 @@ func claudePromptContent(raw json.RawMessage) bool {
 // --- Codex rollout ---
 
 type codexBuilder struct {
-	s      auditSession
-	turn   int
-	msgSeq int
+	s          auditSession
+	turn       int
+	msgSeq     int
+	toolListed bool
+	modeAllows bool
 }
 
 func (b *codexBuilder) add(e traceEvent) {
@@ -229,6 +234,10 @@ func loadCodexSession(data []byte) (auditSession, error) {
 				b.s.Model = str(p["model"])
 				b.s.ModelConfigured = b.s.Model != ""
 			}
+			// request_user_input says it is "only available in Default or Plan mode".
+			if mode := str(object(p["collaboration_mode"])["mode"]); mode == "default" || mode == "plan" {
+				b.modeAllows = true
+			}
 		case "event_msg":
 			if str(p["type"]) == "task_started" {
 				b.turn++
@@ -243,12 +252,17 @@ func loadCodexSession(data []byte) (auditSession, error) {
 	if b.s.Model == "" {
 		b.s.Model = "not_observed"
 	}
+	b.s.QuestionOffered = b.toolListed && b.modeAllows
 	b.s.First, b.s.Last = tr.first, tr.last
 	return b.s, nil
 }
 
 func (b *codexBuilder) codexItem(line int, p map[string]any) {
 	switch str(p["type"]) {
+	case "additional_tools":
+		if listsTool(p["tools"], "request_user_input") {
+			b.toolListed = true
+		}
 	case "message":
 		if str(p["role"]) != "assistant" {
 			return
@@ -289,6 +303,17 @@ func (b *codexBuilder) codexItem(line int, p map[string]any) {
 	case "custom_tool_call_output":
 		b.codexExecOutput(line, str(p["call_id"]), list(p["output"]))
 	}
+}
+
+// listsTool reports whether a tool list, or a namespace inside it, names the tool.
+func listsTool(v any, name string) bool {
+	for _, raw := range list(v) {
+		tool := object(raw)
+		if str(tool["name"]) == name || listsTool(tool["tools"], name) {
+			return true
+		}
+	}
+	return false
 }
 
 func codexMemoryTool(name string) bool {
@@ -986,7 +1011,7 @@ func existingAuditCriteria(s auditSession, base string) []criterionAssessment {
 // title line "D<n> — ..." and at least one option line "A - (★) ...".
 var (
 	roundTitleLine  = regexp.MustCompile(`(?m)^\s*[#>*\s]*D\d+\s*[—–-]`)
-	roundOptionStar = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\s*[-—–]\s*\**\s*\(★\)`)
+	roundOptionStar = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\s*[-—–·]\s*\**\s*\(★\)`)
 	// grokNoUser is the result Grok gives a question when no user can answer.
 	grokNoUser = regexp.MustCompile(`(?i)^\s*no user is available`)
 	// claudeRejected matches the tool errors that mean the user turned the card
@@ -994,8 +1019,69 @@ var (
 	claudeRejected = regexp.MustCompile(`(?i)doesn't want|does not want|rejected|declined|dismiss|denied|interrupted|cancel`)
 )
 
+// A round written as a table has, per decision, a row with a cell that opens
+// with the decision ID, such as "**D1 · Which rows?**" or a bare "D1" followed by
+// the question's cell, and at least two options, such as "**A ★** — …" and
+// "**B** — …" or "A) (★) …", in cells of their own or split by <br>, one starred.
+var (
+	tableDecisionCell = regexp.MustCompile(`^[\s*_]*D\d+\b`)
+	tableBareID       = regexp.MustCompile(`^[\s*_]*D\d+[\s*_]*$`)
+	// An option opens with its letter and a separator; "." and ":" count only
+	// before a space, markup or the star, so "E.g." is not an option but "**A.**" is.
+	tableOptionCell = regexp.MustCompile(`^[\s*_]*([A-Z])\b[\s*_]*(\(?★|[-—–·)]|[.:]([\s*_(★]|$))`)
+	tableLineBreak  = regexp.MustCompile(`(?i)<br\s*/?>`)
+)
+
+// tableRounds returns the rows of a Markdown table that write a decision, each
+// as its title, then its option cells one per line. A table of findings (H1…),
+// a recap row with one answered option, such as "| D1 | A ★ interactive |", and
+// a sentence that cites an answer, such as "D2 A ★", are not rounds.
+func tableRounds(text string) []string {
+	var rows []string
+	for _, line := range strings.Split(text, "\n") {
+		line = strings.TrimSpace(line)
+		if !strings.HasPrefix(line, "|") {
+			continue
+		}
+		cells := strings.Split(strings.Trim(line, "|"), "|")
+		title := -1
+		for i, cell := range cells {
+			if tableDecisionCell.MatchString(cell) {
+				title = i
+				break
+			}
+		}
+		if title < 0 {
+			continue
+		}
+		heading, next := strings.TrimSpace(cells[title]), title+1
+		if tableBareID.MatchString(cells[title]) && next < len(cells) {
+			heading += " " + strings.TrimSpace(cells[next])
+			next++
+		}
+		var options []string
+		letters := map[string]bool{}
+		starred := false
+		for _, cell := range cells[next:] {
+			for _, part := range tableLineBreak.Split(cell, -1) {
+				if m := tableOptionCell.FindStringSubmatch(part); m != nil {
+					options = append(options, strings.TrimSpace(part))
+					letters[m[1]] = true
+					starred = starred || strings.Contains(part, "★")
+				}
+			}
+		}
+		// A round lists its options from A; a note that opens with another letter is not one.
+		if !letters["A"] || !letters["B"] || !starred {
+			continue
+		}
+		rows = append(rows, heading+"\n"+strings.Join(options, "\n"))
+	}
+	return rows
+}
+
 func isTextRound(text string) bool {
-	return roundTitleLine.MatchString(text) && roundOptionStar.MatchString(text)
+	return roundTitleLine.MatchString(text) && roundOptionStar.MatchString(text) || len(tableRounds(text)) > 0
 }
 
 // emptyCardResult reports whether a native question result is a card that
@@ -1073,7 +1159,7 @@ func textRoundWithoutCard(s auditSession) criterionAssessment {
 			anyQuestion = true
 		}
 	}
-	if !anyQuestion {
+	if !anyQuestion && !s.QuestionOffered {
 		return c
 	}
 	unattended := unattendedActivation(events)
@@ -1234,7 +1320,7 @@ func closeBeforeBranchCleanup(s auditSession, base string) criterionAssessment {
 }
 
 var (
-	hiveSkillName = regexp.MustCompile(`\b(?:flow-[a-z][a-z-]*|git-workflow|harness-audit|docs-cleanup|create-issue|create-prd)\b`)
+	hiveSkillName = regexp.MustCompile(`\b(?:flow-[a-z][a-z-]*|git-workflow|harness-audit|docs-cleanup|project-layout|workspace-repo|create-issue|create-prd)\b`)
 	demandVerb    = regexp.MustCompile(`(?i)\b(?:pide|piden|exige|exigen|establece|establecen|requires?|asks?|sets?)\b`)
 	sentenceBreak = regexp.MustCompile(`[.!?]+\s+|\n+`)
 )
@@ -1285,7 +1371,110 @@ func skillNamedAsReason(s auditSession) criterionAssessment {
 }
 
 func auditCriteria(s auditSession, base string) []criterionAssessment {
-	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s))
+	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s), reviewQuestionNativeOption(s))
+}
+
+var (
+	// The title names a review; the options decide whether it picks a mechanism.
+	reviewQuestionTitle = regexp.MustCompile(`(?i)\brevisi(?:[oó]n|ones)\b|\breview(?:s|ers?)?\b`)
+	// A decision about a review's findings is not the question that picks it.
+	reviewFindingsTitle = regexp.MustCompile(`(?i)hallazgo|finding`)
+	nativeReviewOption  = regexp.MustCompile(`(?i)/review\b|codex review|revisi[oó]n nativa|native review|\bnativ[ae]\s*:`)
+	// The options of the question that picks the review mechanism name at least one
+	// mechanism: the agent, the host's native review or no dedicated review.
+	reviewMechanismOption = regexp.MustCompile(`(?i)hive-review-code|/review\b|codex review|revisi[oó]n nativa|native review|no dedicated review|sin revisi[oó]n dedicada`)
+	// optionLine is a decision's option line written as text, such as
+	// "A - (★) Accept" or "- **B · Keep**"; its Situation, "If you choose it" and
+	// recommendation lines are not options.
+	optionLine = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\**\s*[-—–·].*$`)
+)
+
+// reviewQuestionNativeOption checks, on Codex, that the code review question
+// offers the host's native review: a decision title line naming a code review,
+// or a card question doing so, whose options name a review mechanism. A report
+// that only mentions a review, or a decision about applying a review's findings,
+// is not that question.
+func reviewQuestionNativeOption(s auditSession) criterionAssessment {
+	c := criterionAssessment{Criterion: "review_question_native_option", Status: "not_observed", Evidence: []string{}}
+	if s.Host != "codex" {
+		return c
+	}
+	var failed, passed []string
+	// mechanisms holds one option per line, where an option names its review
+	// mechanism; names is where an option is named (a card's label, not its
+	// description). The question picks a mechanism when at least two options name
+	// one and its title is not about a review's findings, whose options may name
+	// a mechanism too.
+	judge := func(e traceEvent, title, mechanisms, names string) {
+		named := 0
+		for _, option := range strings.Split(mechanisms, "\n") {
+			if reviewMechanismOption.MatchString(option) {
+				named++
+			}
+		}
+		if !reviewQuestionTitle.MatchString(title) || reviewFindingsTitle.MatchString(title) || named < 2 {
+			return
+		}
+		if nativeReviewOption.MatchString(names) {
+			passed = append(passed, regressionEvidence(e))
+		} else {
+			failed = append(failed, regressionEvidence(e))
+		}
+	}
+	for _, e := range s.Trace.Events {
+		switch {
+		case e.Kind == "text" && e.Role == "assistant":
+			for _, block := range decisionBlocks(e.Text) {
+				title, rest, _ := strings.Cut(block, "\n")
+				options := strings.Join(optionLine.FindAllString(rest, -1), "\n")
+				judge(e, title, options, options)
+			}
+			for _, row := range tableRounds(e.Text) {
+				title, cells, _ := strings.Cut(row, "\n")
+				judge(e, title, cells, cells)
+			}
+		case e.Kind == "question" && len(e.Input) > 0:
+			var in struct {
+				Questions []struct {
+					Question string
+					Options  []struct{ Label, Description string }
+				}
+			}
+			if json.Unmarshal(e.Input, &in) != nil {
+				continue
+			}
+			for _, q := range in.Questions {
+				var full, labels []string
+				for _, o := range q.Options {
+					full = append(full, o.Label+" "+o.Description)
+					labels = append(labels, o.Label)
+				}
+				judge(e, q.Question, strings.Join(full, "\n"), strings.Join(labels, "\n"))
+			}
+		}
+	}
+	switch {
+	case len(failed) > 0:
+		c.Status, c.Evidence = "fail", failed
+	case len(passed) > 0:
+		c.Status, c.Evidence = "pass", passed
+	}
+	return c
+}
+
+// decisionBlocks splits a message into its decisions, each from its title line
+// (`D<n> — …`) to the next title line or the end.
+func decisionBlocks(text string) []string {
+	idx := roundTitleLine.FindAllStringIndex(text, -1)
+	var blocks []string
+	for i, loc := range idx {
+		end := len(text)
+		if i+1 < len(idx) {
+			end = idx[i+1][0]
+		}
+		blocks = append(blocks, strings.TrimLeft(text[loc[0]:end], "\n"))
+	}
+	return blocks
 }
 
 func auditSessionFile(path, host string, opts auditOptions) (auditReport, error) {

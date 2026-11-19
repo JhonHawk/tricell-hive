@@ -1,6 +1,6 @@
 ---
 name: flow-close
-description: Close a work item and its session hygiene. Use when a work item reaches its completion point, is abandoned or is paused; when an operational task ends; when the user ends the session; or when the user asks for session hygiene, such as "haz higiene"; not to clean up, prune or reorganize existing docs or support material, which docs-cleanup does. Closes the change record, cleans merged branches, task temporaries and processes, proposes what to do with the work's support material, and reports the outcome with a close footer whose reply starts any cleanup left.
+description: Close a work item and its session hygiene. Use when a work item reaches its completion point, is abandoned or is paused; when an operational task ends; when the user ends the session; or when the user asks for session hygiene, such as "haz higiene"; not to clean up, prune or reorganize existing docs or support material, which project-layout does. Closes the change record, cleans merged branches, task temporaries and processes, proposes what to do with the work's support material, and reports the outcome with a close footer whose reply starts any cleanup left.
 ---
 
 # Close a work item and the session
@@ -9,7 +9,7 @@ For explicit E2E work, read [coordination](../flow-build/references/e2e-coordina
 
 The completion point is the merge into the base branch. When the delivery is `ready`, or a human reviewer's approval is pending, the open pull request is the completion point, reached at the stop [git-workflow step 8](../git-workflow/SKILL.md) sets: the ticket stays in progress, and a later session that finds it merged runs a follow-up close.
 
-To clean up, prune, reorganize, curate or archive existing docs or support material, or to apply a layout migration, use [docs-cleanup](../docs-cleanup/SKILL.md) instead of these steps.
+To clean up, prune, reorganize, curate or archive existing docs or support material, or to check or migrate a project's layout, use [project-layout](../project-layout/SKILL.md) instead of these steps.
 
 The close also runs when an operational task ends, as the global guidance's «Proportionality» defines it, and when the user abandons the work; a step with nothing to act on, such as the ticket move of work that was not integrated, is skipped. Work delivered under `hold` gets no full close until it is delivered later, at that delivery's completion point; until then, when its verified working tree is reported, it closes as a pause: step 1 pauses its viewer session, step 2 lists its support material without asking or acting on it, step 5 stops the processes and containers it started and keeps everything else, step 6 reports what is pending and step 7 records it, with no footer. Work paused outside `hold`, such as a plan paused before its build, closes the same way, and also commits its change folder as [git-workflow step 4](../git-workflow/SKILL.md) sets for a pause.
 
@@ -58,7 +58,7 @@ A finding is a defect the work found but did not fix: a review finding below P1,
 
 ## Candidates
 
-A candidate is a repetition the work did not turn into a mechanism under [defect fix](../flow-build/references/defect-fix.md) point 5: an inline script or command chain the work ran two or more times for the same purpose, such as the same link check or hash comparison, or a correction the user gave twice in the work. The report lists each one on one line, with what repeated, how many times and the mechanism that point would choose, and asks nothing about it; a work with none has no such part.
+A candidate is a repetition the work did not turn into a mechanism under [defect fix](../flow-build/references/defect-fix.md) point 5: an inline script or command chain the work ran two or more times for the same purpose, such as the same link check or hash comparison, or a correction the user gave twice in the work. The report lists each one on one line, with what repeated, how many times and the mechanism that point would choose, and asks nothing about it; a work with none has no such part. [Script lifecycle](../project-layout/references/script-lifecycle.md) sets where a script goes at each level.
 
 At step 7, search the project's persistent memory for each candidate by the terms of its purpose, then create or update one record under the topic `candidate/<tool>-<target>` in kebab case, such as `candidate/link-check-docs`, with the sessions that saw it, their dates and its count. A candidate seen in two sessions or more is offered in the close footer; it is not a finding, since it is no defect.
 

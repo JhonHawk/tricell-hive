@@ -833,3 +833,46 @@ func TestDoctorProjectLocalInstructionsAndSecrets(t *testing.T) {
 		}
 	})
 }
+
+// A workspace coordinator repository ignores its child repositories and its
+// local support folders; doctor checks its own section and is not blocked by
+// the nested child repositories or an ignored HIVE.local.md.
+func TestDoctorProjectWorkspaceCoordinatorRepository(t *testing.T) {
+	root := projectRepoWithSpecs(t, `# Workspace
+
+## Hive
+
+- Project: demo
+- Base branch: main
+- Tracker: GitHub Issues · org/demo
+- Specs: _support/openspec
+- Delivery: direct-base
+
+## Repositories
+
+| Repo | Path | Remote | Base | Role |
+| --- | --- | --- | --- | --- |
+| backend | demo-backend | https://github.example/org/demo-backend.git | main | API |
+`)
+	ignore := "/demo-backend/\n/HIVE.local.md\n/_support/workspace/\n/_support/data/\n/_support/scripts/\n/_support/secrets/\n"
+	if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte(ignore), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	child := filepath.Join(root, "demo-backend")
+	if err := os.MkdirAll(child, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, child, "init", "-q", "-b", "main")
+	if err := os.WriteFile(filepath.Join(root, "HIVE.local.md"), []byte("Per-machine facts.\n\n- demo runs on port 3000 · 2026-11-18\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "_support", "scripts"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	sec := collectProject(root, doctorDeps{})
+	text := projectText(t, root)
+	if sec.Blocking {
+		t.Fatalf("coordinator repository has blocking findings:\n%s", text)
+	}
+	mustContain(t, text, "Delivery: direct-base")
+}

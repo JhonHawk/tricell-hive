@@ -23,16 +23,28 @@ raise the minor or the patch version.
   enforcement mechanism and a negative check; reviews inventory weakened checks
   and assess each candidate against evidence.
 
-- `docs-cleanup` is a skill for cleaning up, pruning or reorganizing the
-  documentation, architecture notes, evidence and support material of a
-  repository, a workspace or a monorepo, with or without Hive. It lists every
-  support folder and documentation folder by content, with what cites each
-  item, writes the plan as a manifest, shows what it would remove, move,
-  promote or update, and acts only after you confirm. It prunes a current
-  document only when a newer source contradicts it, never touches secrets,
-  current specs, change records, decision records, worktrees, backups or
-  dumps, and tags each repository's state before removing anything, so any
-  file can be restored. It replaces Close's support maintenance reference.
+- `project-layout` is a skill that holds a project's layout convention and
+  applies it to a repository, a workspace or a monorepo, with or without Hive.
+  The convention says where each document, script and data set belongs: code
+  that every clone needs lives in the repository that owns it, never in
+  `_support/`; a script run once against shared data stays in its session with
+  its output and its revert; an operation's data goes in `_support/data/`; and
+  an index lists what the project has, with a `Layout:` line for the homes a
+  project keeps on purpose. A script climbs from disposable to internal tool
+  only on evidence. Its check reports, with the correction, what does not
+  follow the convention, and its cleanup and migration list every support and
+  documentation folder by content, write the plan as a manifest and act only
+  after you confirm. It prunes a current document only when a newer source
+  contradicts it, never touches secrets, current specs, change records,
+  decision records, worktrees, backups, dumps or operation data, and tags each
+  repository's state before removing anything, so any file can be restored. It
+  replaces Close's support maintenance reference and Close's layout reference,
+  and takes over harness-audit's layout checks.
+- `workspace-repo` is a skill that turns a workspace of several repositories
+  into a coordinator repository, on your request: it versions the workspace's
+  guidance, its repository table and its knowledge, keeps each repository an
+  independent clone inside it that a search from the root still finds, and
+  clones what a coordinator lists. It never creates a remote or pushes.
 - Verification evidence is no longer kept in Git: it stays in the work's
   unversioned folder, the merged pull request is the record, and only
   measurements, rehearsals and reviews that later work reuses move into the
@@ -71,6 +83,21 @@ raise the minor or the patch version.
   verification round fixes a defect at its cause, and the code review checks
   both. Build's stored-data and security rules moved to references of their
   own.
+  Its placement planner sends each script, Terraform file and legacy folder
+  under `_support/` to the same destination on every run, from who calls it:
+  a package's `scripts/`, `scripts/ci/`, `scripts/hooks/`, `scripts/ops/` or
+  `infra/`, reusing the folders a project already has. It rewrites the
+  references to what it moves, lists the ones it cannot rewrite safely, and
+  undoes exactly what it applied. Its check ignores dependency and build
+  folders of every language and fails on code kept under `_support/`.
+  An item you choose to keep stays where it is with `--keep`, with the
+  tests beside it, and a committed `vendor/` library is never taken for
+  one of your packages. A move that changes what a Docker build or a
+  published package takes, through `.dockerignore`, `.gcloudignore`,
+  `.vercelignore`, `.npmignore` or `.helmignore`, is reported, and its
+  verification fails until that file is settled; files Git ignores that a
+  move leaves behind are listed; and a reference you keep on purpose stays
+  as it is with `--keep-ref`.
 
 - Research audits a codebase when you ask for it, or for what to improve in
   it. It reads the project's check commands and decision records first,
@@ -154,8 +181,8 @@ raise the minor or the patch version.
 - Close asks about a work's own support material with what it would delete
   first, each file with its size and reason and the total, and names old
   versioned material it finds, such as an `evidence/` folder, in one line
-  with the `docs-cleanup` command instead of acting on it. Cleaning up
-  material earlier work left moved from Close to `docs-cleanup`.
+  with the `project-layout` command instead of acting on it. Cleaning up
+  material earlier work left moved from Close to `project-layout`.
 - Research offers the Figma design stage only when your project's Figma file is
   known: you named it in the conversation, your app's `DESIGN.md` declares it,
   or the project's memory records it. The offer names that file and passes its

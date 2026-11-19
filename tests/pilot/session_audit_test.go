@@ -388,6 +388,7 @@ func hiveLikeDir(t *testing.T) string {
 
 func TestAuditNewCriteria(t *testing.T) {
 	const round, close, skill = "text_round_without_card", "close_before_branch_cleanup", "skill_named_as_reason"
+	const review = "review_question_native_option"
 	cases := []newCriterionCase{
 		{"round claude fail", "claude", round, []string{round, "claude-project-fail.jsonl"}, auditOptions{}, "fail"},
 		{"round claude pass", "claude", round, []string{round, "claude-project-pass.jsonl"}, auditOptions{}, "pass"},
@@ -397,6 +398,26 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"round codex pass", "codex", round, []string{round, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
 		{"round codex empty card before round", "codex", round, []string{round, "codex-rollout-empty-card-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"round codex subagent", "codex", round, []string{round, "codex-rollout-subagent-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"round codex card listed in additional_tools", "codex", round, []string{round, "codex-rollout-offered-fail.jsonl"}, auditOptions{}, "fail"},
+		{"round codex card listed outside Default or Plan", "codex", round, []string{round, "codex-rollout-offered-execute-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"round codex written as a table", "codex", round, []string{round, "codex-rollout-table-fail.jsonl"}, auditOptions{}, "fail"},
+		{"round codex findings table and a cited answer", "codex", round, []string{round, "codex-rollout-table-notround-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"review question without the native review", "codex", review, []string{review, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
+		{"review native named only outside the options", "codex", review, []string{review, "codex-rollout-situation-fail.jsonl"}, auditOptions{}, "fail"},
+		{"review table offering the native review", "codex", review, []string{review, "codex-rollout-table-pass.jsonl"}, auditOptions{}, "pass"},
+		{"review card naming the mechanisms only in descriptions", "codex", review, []string{review, "codex-rollout-card-description-fail.jsonl"}, auditOptions{}, "fail"},
+		{"review table naming the native review in a situation cell", "codex", review, []string{review, "codex-rollout-table-situation-fail.jsonl"}, auditOptions{}, "fail"},
+		{"review table with a separate ID column", "codex", review, []string{review, "codex-rollout-table-idcolumn-pass.jsonl"}, auditOptions{}, "pass"},
+		{"review findings card mentioning the agent", "codex", review, []string{review, "codex-rollout-findings-card-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"review question titled with a bare review", "codex", review, []string{review, "codex-rollout-bare-title-fail.jsonl"}, auditOptions{}, "fail"},
+		{"round codex table with A) options split by <br>", "codex", round, []string{round, "codex-rollout-table-parens-fail.jsonl"}, auditOptions{}, "fail"},
+		{"round codex table with A. and B: options", "codex", round, []string{round, "codex-rollout-table-punctuation-fail.jsonl"}, auditOptions{}, "fail"},
+		{"round codex table with bold **A.** options", "codex", round, []string{round, "codex-rollout-table-bold-letters-fail.jsonl"}, auditOptions{}, "fail"},
+		{"review findings decision naming two mechanisms", "codex", review, []string{review, "codex-rollout-findings-mechanisms-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"review question with a plural title", "codex", review, []string{review, "codex-rollout-plural-title-fail.jsonl"}, auditOptions{}, "fail"},
+		{"review card with the native review", "codex", review, []string{review, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
+		{"close report mentioning a review", "codex", review, []string{review, "codex-rollout-close-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"decision about applying review findings", "codex", review, []string{review, "codex-rollout-findings-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"round grok fail", "grok", round, []string{round, "grok-updates-fail.jsonl"}, auditOptions{}, "fail"},
 		{"round grok pass", "grok", round, []string{round, "grok-updates-pass.jsonl"}, auditOptions{}, "pass"},
 		{"round grok no user available", "grok", round, []string{round, "grok-updates-empty-card-notobserved.jsonl"}, auditOptions{}, "not_observed"},
