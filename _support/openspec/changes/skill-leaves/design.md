@@ -160,7 +160,7 @@ Las hojas se leen en el paso de `flow-verify` previo a la revisión:
 - **`hive-rule-blast-radius`.** Busca qué rompe el cambio fuera del diff y prueba con código real el hecho que lo hace seguro.
 - **`hive-rule-prose`.** Junta `unslop` y `technical-writing` para el texto del PR, los commits y la documentación. También la enlaza `hive-rule-git-commit`, así que se lee al escribir el mensaje de commit en build y no solo en verify.
 - **`hive-typescript`.** El índice de principios la enlaza con la condición «al editar `.ts` o `.tsx`». Así no depende de que el modelo la elija en los hosts sin `paths`.
-- **`hive-rule-interrogate`.** Se lee solo cuando la respuesta de revisión eligió esa opción. La hoja de la pregunta de entrega la ofrece como «Adversarial: interrogate» y dice que gasta cuota de otro proveedor, así que elegirla autoriza ese gasto para el trabajo.
+- **`hive-rule-interrogate`.** Se lee solo cuando el usuario dijo que sí a la revisión adversarial de ese trabajo. La hoja de la pregunta de entrega la pregunta en la misma ronda que la revisión, como una decisión aparte de sí o no por trabajo (la revisión de código encontró que, como cuarta opción de la pregunta de revisión, se reutilizaba en toda la sesión). Dice que gasta cuota de otro proveedor, así que decir que sí autoriza ese gasto para ese trabajo.
 
 ### Fase 2
 

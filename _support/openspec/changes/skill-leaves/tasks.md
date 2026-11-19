@@ -447,10 +447,10 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 ## Checkpoint
 
 - Updated: 2026-11-19
-- Stage: verify · T10: suite and /code-review running; leaves no-comments, blast-radius, prose and suppression review read before the review
-- Last commit: 5a958cd7
-- Open findings: none
-- Next: Read suite and review results, fix one round, validation stop (interactive) with AC5 and AC12 decisions
+- Stage: verify · T10: review fix round 70a01c93 committed; limited second review running
+- Last commit: 70a01c93
+- Open findings: AC5: global.md 30,795 bytes > 30,000 (61 index lines); to the user at validation; AC12: like-for-like −3,944 B, full union +2,479 B; to the user at validation; code review P3: phase-2 branches in leaf_skill_test kept on purpose (T11 adds those skills)
+- Next: Read second review; validation stop with AC5 and AC12
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/skill-leaves · feat/skill-leaves
 
 ### Evidence
@@ -466,6 +466,8 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 - synthetic-home install (claude, codex, antigravity) of candidate: 61 leaves, Codex openai.yaml, 13 playbooks, 61 Antigravity links · pass · 5a958cd7
 - revert rehearsal: development applied with candidate binary removes leaves and yaml, restores flow-research; development binary dry-run on that state: no changes · pass
 - suppression inventory: none added (no skip, nolint, noqa, ts-ignore in diff); 6 task-history comments removed (no-comments)
+- full suite on 678c53fc: go test ./... exit 0, go vet exit 0, python 245 tests OK
+- after fixes 70a01c93: tests/content ok, tests/pilot ok (alone), check_change exit 0
 
 ## Review status and progress
 

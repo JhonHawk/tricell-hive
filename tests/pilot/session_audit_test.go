@@ -571,8 +571,7 @@ func TestLeafReadBeforeActionEdgeCases(t *testing.T) {
 			traceEvent{Line: 1, Kind: "shell", Command: `git commit -m "see hive-rule-git-commit/SKILL.md" a.go`},
 		), "fail"},
 		{"a failed read is no read", sess(
-			traceEvent{Line: 1, Kind: "read", ID: "r1", Path: "/s/hive-rule-git-commit/SKILL.md"},
-			traceEvent{Line: 2, Kind: "tool_result", ID: "r1", Success: &no},
+			traceEvent{Line: 1, Kind: "read", ID: "r1", Path: "/s/hive-rule-git-commit/SKILL.md", Success: &no},
 			traceEvent{Line: 3, Kind: "shell", Command: "git add a.go"},
 		), "fail"},
 		{"creating a ticket with a state is not a move", sess(
@@ -580,6 +579,16 @@ func TestLeafReadBeforeActionEdgeCases(t *testing.T) {
 		), "not_observed"},
 		{"gh -R issue close is a move", sess(
 			traceEvent{Line: 1, Kind: "shell", Command: "gh -R owner/repo issue close 12"},
+		), "fail"},
+		{"helper commit with --repo before commit is seen", sess(
+			traceEvent{Line: 1, Kind: "shell", Command: "python3 -I /x/git_state.py --repo /r commit -m m a.go"},
+		), "fail"},
+		{"a heredoc naming the leaf is no read", sess(
+			traceEvent{Line: 1, Kind: "shell", Command: "cat > /tmp/m <<'EOF'\nsee hive-rule-git-commit/SKILL.md\nEOF"},
+			traceEvent{Line: 2, Kind: "shell", Command: "git commit -F /tmp/m a.go"},
+		), "fail"},
+		{"a GitLab-style update by iid is a move", sess(
+			traceEvent{Line: 1, Kind: "tool", Tool: "update_issue", Input: []byte(`{"issue_iid":5,"state":"closed"}`)},
 		), "fail"},
 		{"cat of the leaf before the helper commit passes", sess(
 			traceEvent{Line: 1, Kind: "shell", Command: "cat /s/hive-rule-git-commit/SKILL.md"},

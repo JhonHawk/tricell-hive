@@ -1532,11 +1532,26 @@ const (
 // only mentions a leaf's path, such as a commit message, is not a read.
 var leafReadVerb = regexp.MustCompile(`^(cat|sed|head|tail|less|more|bat|nl|awk|grep|rg)$`)
 
+// shellReadsLeaf reports whether a shell segment prints the leaf's file: its
+// program prints files, it names the path, and it redirects nothing, so a
+// heredoc or a commit message that mentions the path is no read.
+func shellReadsLeaf(args []string, leaf string) bool {
+	if len(args) < 2 || !leafReadVerb.MatchString(filepath.Base(args[0])) {
+		return false
+	}
+	for _, a := range args[1:] {
+		if strings.HasPrefix(a, ">") || strings.HasPrefix(a, "<<") {
+			return false
+		}
+	}
+	return strings.Contains(strings.Join(args[1:], " "), leaf+"/SKILL.md")
+}
+
 // namesLeaf reports whether a call read the leaf's file: the Read tool on its
-// path, a shell segment whose program prints files and names the path, or
-// another tool whose input names it. A call whose result failed is no read.
-func namesLeaf(e traceEvent, leaf string, failed map[string]bool) bool {
-	if e.ID != "" && failed[e.ID] {
+// path, a shell segment shellReadsLeaf accepts, or another tool whose input
+// names it. A call the trace marks as failed is no read.
+func namesLeaf(e traceEvent, leaf string) bool {
+	if e.Success != nil && !*e.Success {
 		return false
 	}
 	target := leaf + "/SKILL.md"
@@ -1547,23 +1562,12 @@ func namesLeaf(e traceEvent, leaf string, failed map[string]bool) bool {
 		return strings.Contains(e.Path+"\n"+string(e.Input), target)
 	case "shell":
 		for _, args := range shellSegments(e.Command, 0) {
-			if len(args) > 1 && leafReadVerb.MatchString(filepath.Base(args[0])) && strings.Contains(strings.Join(args[1:], " "), target) {
+			if shellReadsLeaf(args, leaf) {
 				return true
 			}
 		}
 	}
 	return false
-}
-
-// failedCalls returns the IDs of calls whose result reports a failure.
-func failedCalls(events []traceEvent) map[string]bool {
-	failed := map[string]bool{}
-	for _, e := range events {
-		if e.Kind == "tool_result" && e.ID != "" && e.Success != nil && !*e.Success {
-			failed[e.ID] = true
-		}
-	}
-	return failed
 }
 
 // ticketMoveTool matches tracker tools that change an existing ticket; a call
@@ -1572,10 +1576,11 @@ func failedCalls(events []traceEvent) map[string]bool {
 var ticketMoveTool = regexp.MustCompile(`(?i)(?:save|update|edit)_issue$|issue_write$|transition`)
 
 // leafActionsIn lists the actions of an event that a leaf governs: a git add or
-// commit, a ticket move (gh issue close, reopen or a label edit, gh project
-// item-edit, a tracker tool that sets a state or transitions), or a question
-// card. A shell command is split into segments, so a read earlier in the same
-// command counts as before.
+// commit, also through git_state.py's commit command; a ticket move (gh issue
+// close, reopen or a label edit and gh project item-edit, after gh's global
+// flags, or a tracker tool that names an existing ticket and sets its state,
+// or transitions it); or a question card. A shell command is split into
+// segments, so a read earlier in the same command counts as before.
 func leafActionsIn(e traceEvent, cwd string) []leafAction {
 	var out []leafAction
 	switch e.Kind {
@@ -1591,7 +1596,7 @@ func leafActionsIn(e traceEvent, cwd string) []leafAction {
 		_, hasState := in["state"]
 		_, hasStatus := in["status"]
 		named := false
-		for _, key := range []string{"id", "issue", "issue_id", "issueId", "issue_number", "number", "key"} {
+		for _, key := range []string{"id", "identifier", "issue", "issue_id", "issueId", "issue_iid", "issue_number", "issueIdOrKey", "number", "key"} {
 			if _, ok := in[key]; ok {
 				named = true
 			}
@@ -1613,8 +1618,13 @@ func leafActionsIn(e traceEvent, cwd string) []leafAction {
 				isCommit = true
 			}
 			for i, a := range args {
-				if filepath.Base(a) == "git_state.py" && i+1 < len(args) && args[i+1] == "commit" {
-					isCommit = true
+				if filepath.Base(a) != "git_state.py" {
+					continue
+				}
+				for _, rest := range args[i+1:] {
+					if rest == "commit" {
+						isCommit = true
+					}
 				}
 			}
 			if isCommit {
@@ -1667,11 +1677,10 @@ func ticketMoveShell(args []string) bool {
 // in it); pass when every observed class was read; not_observed ("not
 // exercised") when the session has no such action. Only the first action of a
 // class is checked, so a read lost to a compaction is not seen. Reads are
-// matched by the leaf's directory name in a Read path or shell command text.
+// those namesLeaf accepts.
 func leafReadBeforeAction(s auditSession) criterionAssessment {
 	c := criterionAssessment{Criterion: "leaf_read_before_action", Status: "not_observed", Evidence: []string{}}
 	seen := map[string]bool{}
-	failedIDs := failedCalls(s.Trace.Events)
 	var failed, review, passed []string
 	for i, e := range s.Trace.Events {
 		for _, a := range leafActionsIn(e, s.Cwd) {
@@ -1681,7 +1690,7 @@ func leafReadBeforeAction(s auditSession) criterionAssessment {
 			seen[a.class] = true
 			read, withheld := a.readInCommand, false
 			for _, prior := range s.Trace.Events[:i] {
-				if namesLeaf(prior, a.leaf, failedIDs) {
+				if namesLeaf(prior, a.leaf) {
 					read = true
 					break
 				}

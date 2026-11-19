@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Write plain technical text
 
-Read before you write a commit message, a pull request title or body, or documentation. In verify, check the pull request text and documentation again; never amend a commit to fix its message. Write so a tired engineer understands on the first read.
+Read before you write a commit message, a pull request title or body, or documentation. In verify, check the documentation again; never amend a commit to fix its message. Write so a tired engineer understands on the first read.
 
 ## Cut the patterns
 
