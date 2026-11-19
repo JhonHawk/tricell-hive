@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Draft · listo para revisión del usuario |
+| Estado | In build · E1 integrado (#523), E2 en PR |
 | Tracker | ninguno (lote de ajustes de la revisión de sesiones del 2026-11-19; `engram:tricell-hive/pending/session-review-adjustments`) |
 | Git | tricell-hive · `development` en `81d5b4f1` · ramas `feat/hive-time`, `feat/ticket-worklog` |
 | Playbook | ninguno (`/flow-plan` tecleado por el usuario) |

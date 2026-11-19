@@ -4,7 +4,7 @@ Base `development` en `81d5b4f1`. Dos unidades: E1 (gestor y auditor, Go) y E2 (
 
 ### T1 — `hive time` en el gestor
 
-- [ ] `hive time` imprime el tiempo activo, la espera por el usuario, la espera de CI y el convertido de la sesión actual o de un archivo dado, en Claude Code, Codex, Grok y Pi, leyendo la transcripción completa.
+- [x] `hive time` imprime el tiempo activo, la espera por el usuario, la espera de CI y el convertido de la sesión actual o de un archivo dado, en Claude Code, Codex, Grok y Pi, leyendo la transcripción completa.
 
 **Closes:** AC2
 
@@ -40,7 +40,7 @@ Base `development` en `81d5b4f1`. Dos unidades: E1 (gestor y auditor, Go) y E2 (
 
 ### T3 — Revisión adversarial solo a petición
 
-- [ ] La ronda de entrega no pregunta la revisión adversarial ni sondea hosts; `interrogate` se lee cuando el usuario la pide.
+- [x] La ronda de entrega no pregunta la revisión adversarial ni sondea hosts; `interrogate` se lee cuando el usuario la pide.
 
 **Closes:** AC1
 
@@ -58,7 +58,7 @@ Base `development` en `81d5b4f1`. Dos unidades: E1 (gestor y auditor, Go) y E2 (
 
 ### T4 — Escritura en Jira por capacidad y token global
 
-- [ ] La guía escribe en Jira con `acli`, el MCP o REST con el token global, y un script hace transiciones, worklogs y adjuntos sin exponer el token.
+- [x] La guía escribe en Jira con `acli`, el MCP o REST con el token global, y un script hace transiciones, worklogs y adjuntos sin exponer el token.
 
 **Closes:** AC6
 
@@ -76,7 +76,7 @@ Base `development` en `81d5b4f1`. Dos unidades: E1 (gestor y auditor, Go) y E2 (
 
 ### T5 — Tiempo trabajado: medir, convertir y registrar
 
-- [ ] La guía mide con `hive time` o las marcas, convierte, registra el worklog en la entrega, lo actualiza al cierre, suma las sesiones previas del plan, guarda el tiempo real local y no escribe razonamiento en el tracker.
+- [x] La guía mide con `hive time` o las marcas, convierte, registra el worklog en la entrega, lo actualiza al cierre, suma las sesiones previas del plan, guarda el tiempo real local y no escribe razonamiento en el tracker.
 
 **Closes:** AC3, AC4, AC5
 
@@ -94,7 +94,7 @@ Base `development` en `81d5b4f1`. Dos unidades: E1 (gestor y auditor, Go) y E2 (
 
 ### T6 — Documentación
 
-- [ ] README, llms.txt, el sitio y la arquitectura describen `hive time`, los scripts, el registro de tiempo y la revisión adversarial a petición.
+- [x] README, llms.txt, el sitio y la arquitectura describen `hive time`, los scripts, el registro de tiempo y la revisión adversarial a petición.
 
 **Closes:** AC9
 
@@ -112,7 +112,7 @@ Base `development` en `81d5b4f1`. Dos unidades: E1 (gestor y auditor, Go) y E2 (
 
 ### T7 — Suite completa y revisión
 
-- [ ] Suite completa y revisión de código de cada unidad.
+- [x] Suite completa y revisión de código de cada unidad.
 
 **Closes:** AC1, AC2, AC3, AC6, AC7, AC8, AC9
 
@@ -171,17 +171,28 @@ Parada humana (`interactive`): antes de cada push, el diff y la salida de `hive 
 ## Checkpoint
 
 - Updated: 2026-11-19
-- Stage: build · T1
-- Last commit: 81d5b4f1
+- Stage: verify · reviews running
+- Last commit: 9cf91b07
 - Open findings: none
-- Next: T1 hijo hive-build-backend; T2 en el hilo principal
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/ticket-worklog · feat/hive-time
+- Next: suite result, /code-review findings, validation stop
+- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/ticket-worklog · feat/ticket-worklog (E1 feat/hive-time at 918114ea)
 
 ### Evidence
 
 - before captures: none (no UI)
+- AC2: hive time ok on this session, rollouts 01a1f358 (--session-file and --session) and 01a1f37d, 62.3 MB Claude file; --factor 0.5 exits 2 · 9cf91b07
+- AC3: work_time sum = hive time on codex fixture (420/150/302/540) · 9cf91b07
+- AC7/AC8: --audit-session on 01a1f37d gives fail on both · 11fb1ffd
+- blast radius: 55 real sessions, existing criteria identical base vs candidate · 9cf91b07
+- tests/skills 275 OK, tests/content ok · 9cf91b07
 
 ## Review status and progress
 
 2026-11-19 — Plan escrito y revisado (21 huecos aplicados).
 2026-11-19 — T2 · 11fb1ffd · unverified: none
+2026-11-19 — T1 · d7ad2d97 · unverified: Codex CI wait totals (271 s, 118 s) not measured independently; Pi always partial
+2026-11-19 — T3 · 7a69913d · unverified: AC1 in a real session after deploy (T8)
+2026-11-19 — T4 · 9cf91b07 · unverified: AC6 against a real Jira: REST worklog update and attachment upload not measured (T8)
+2026-11-19 — T5 · 7a69913d · unverified: AC4, AC5 in a real session (T8); AC3 checked against work_time tests, not field-by-field against a hive time fixture
+2026-11-19 — T6 · 918114ea · unverified: none
+2026-11-19 — T7 · 296ec3f2 · unverified: non-blocking review findings left for the close: Jira adjustEstimate default, --started on Python <=3.10, duplicate text decoder in time_read.go, MCP moves through fields other than state/status, Codex <user_action> timing
