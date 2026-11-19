@@ -71,6 +71,20 @@ class WorkTimeTest(unittest.TestCase):
         self.assertEqual(out["ci_wait_seconds"], 120)
         self.assertEqual(out["converted_seconds"], 18 * 60)
 
+    def test_ci_that_starts_before_the_window_is_clipped(self):
+        # CI 10:00-10:20, ticket from 10:05: 15 min of CI inside a 25 min window.
+        for event, at in (("ci-start", "10:00"), ("start", "10:05"), ("ci-end", "10:20"), ("wait", "10:30")):
+            self.mark(event, f"2026-01-01T{at}:00Z")
+        out = json.loads(self.run_script("sum", str(self.marks)).stdout)
+        self.assertEqual(out["active_seconds"], 25 * 60)
+        self.assertEqual(out["ci_wait_seconds"], 15 * 60)
+
+    def test_half_seconds_round_away_from_zero_like_hive_time(self):
+        self.mark("start", "2026-01-01T10:00:00Z")
+        self.mark("wait", "2026-01-01T10:30:00.500000Z")
+        out = json.loads(self.run_script("sum", str(self.marks), "--factor", "1").stdout)
+        self.assertEqual(out["active_seconds"], 1801)
+
     def test_factor_outside_one_to_three_is_refused(self):
         self.mark("start", "2026-01-01T10:00:00Z")
         self.assertEqual(self.run_script("sum", str(self.marks), "--factor", "4").returncode, 2)
