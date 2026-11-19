@@ -1088,12 +1088,12 @@ func existingAuditCriteria(s auditSession, base string) []criterionAssessment {
 // --- criteria that exist only for real sessions ---
 
 // roundTitleLine and roundOptionStar define a decision round written as text: a
-// title line "D<n> — ...", or a session question's fixed header such as
+// title line "D<n> — ..." or "D<n> · ...", or a session question's fixed header such as
 // "**Review** — ...", and at least one option line "A - (★) ...".
 var (
 	// A session question's header counts only on a title that asks, ending in
 	// "?", so a report heading such as "**Review** — Completed" is not a round.
-	roundTitleLine  = regexp.MustCompile(`(?mi)^\s*[#>*\s]*(?:D\d+\s*[—–-]|(?:` + sessionHeaderNames + `)\**\s*[—–-][^\n]*\?)`)
+	roundTitleLine  = regexp.MustCompile(`(?mi)^\s*[#>*\s]*(?:D\d+\s*[—–·-]|(?:` + sessionHeaderNames + `)\**\s*[—–-][^\n]*\?)`)
 	roundOptionStar = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\s*[-—–·]\s*\**\s*\(★\)`)
 	// grokNoUser is the result Grok gives a question when no user can answer.
 	grokNoUser = regexp.MustCompile(`(?i)^\s*no user is available`)
@@ -1455,7 +1455,7 @@ func skillNamedAsReason(s auditSession) criterionAssessment {
 
 func auditCriteria(s auditSession, base string) []criterionAssessment {
 	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s), reviewQuestionNativeOption(s), leafReadBeforeAction(s),
-		flowEnteredWithoutRoute(s), decisionRoundFormat(s), uiChangeWithoutUXReview(s), trackerStatesCacheWritten(s), tryItBlockInReport(s))
+		flowEnteredWithoutRoute(s), decisionRoundFormat(s), uiChangeWithoutUXReview(s), trackerStatesCacheWritten(s), tryItBlockInReport(s), proseChoiceWithoutCard(s))
 }
 
 var (

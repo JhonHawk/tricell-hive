@@ -392,7 +392,15 @@ func TestAuditNewCriteria(t *testing.T) {
 	const leaf = "leaf_read_before_action"
 	const route, format, ux = "flow_entered_without_route", "decision_round_format", "ui_change_without_ux_review"
 	const cache, tryIt = "tracker_states_cache_written", "try_it_block_in_report"
+	const prose = "prose_choice_without_card"
 	cases := []newCriterionCase{
+		{"round codex title with a middle dot", "codex", round, []string{round, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
+		{"format codex title with a middle dot", "codex", format, []string{format, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
+		{"prose choice codex without the card", "codex", prose, []string{prose, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
+		{"prose choice codex asked through the card", "codex", prose, []string{prose, "codex-rollout-card-pass.jsonl"}, auditOptions{}, "pass"},
+		{"prose choice codex plain yes-no question", "codex", prose, []string{prose, "codex-rollout-plain-question-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"prose choice codex about what the user wants", "codex", prose, []string{prose, "codex-rollout-intent-review.jsonl"}, auditOptions{}, "review"},
+		{"prose choice codex card not offered", "codex", prose, []string{prose, "codex-rollout-not-offered-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"cache codex search empty, move, no write", "codex", cache, []string{cache, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
 		{"cache codex written after the move", "codex", cache, []string{cache, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
 		{"cache codex search found the topic", "codex", cache, []string{cache, "codex-rollout-found-notobserved.jsonl"}, auditOptions{}, "not_observed"},
