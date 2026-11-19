@@ -392,7 +392,24 @@ func TestAuditNewCriteria(t *testing.T) {
 	const leaf = "leaf_read_before_action"
 	const route, format, ux = "flow_entered_without_route", "decision_round_format", "ui_change_without_ux_review"
 	const cache, tryIt = "tracker_states_cache_written", "try_it_block_in_report"
+	const prose = "prose_choice_without_card"
 	cases := []newCriterionCase{
+		{"round codex title with a middle dot", "codex", round, []string{round, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
+		{"format codex title with a middle dot", "codex", format, []string{format, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
+		{"prose choice codex without the card", "codex", prose, []string{prose, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
+		{"prose choice codex asked through the card", "codex", prose, []string{prose, "codex-rollout-card-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"prose choice english after the context line", "codex", prose, []string{prose, "codex-rollout-english-context-line-fail.jsonl"}, auditOptions{}, "fail"},
+		{"prose choice yes-no review question", "codex", prose, []string{prose, "codex-rollout-yes-no-review-fail.jsonl"}, auditOptions{}, "fail"},
+		{"prose choice ordinary word ready", "codex", prose, []string{prose, "codex-rollout-ready-word-review.jsonl"}, auditOptions{}, "review"},
+		{"prose choice before a next-step block", "codex", prose, []string{prose, "codex-rollout-next-step-block-fail.jsonl"}, auditOptions{}, "fail"},
+		{"prose choice in a full-format text round", "codex", prose, []string{prose, "codex-rollout-full-round-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"prose choice after another question", "codex", prose, []string{prose, "codex-rollout-after-question-fail.jsonl"}, auditOptions{}, "fail"},
+		{"prose session word without a choice", "codex", prose, []string{prose, "codex-rollout-session-word-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"prose choice naming /code-review", "codex", prose, []string{prose, "codex-rollout-code-review-slash-fail.jsonl"}, auditOptions{}, "fail"},
+		{"prose delivery choice after a lettered block", "codex", prose, []string{prose, "codex-rollout-round-plus-delivery-fail.jsonl"}, auditOptions{}, "fail"},
+		{"prose choice codex plain yes-no question", "codex", prose, []string{prose, "codex-rollout-plain-question-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"prose choice codex about what the user wants", "codex", prose, []string{prose, "codex-rollout-intent-review.jsonl"}, auditOptions{}, "review"},
+		{"prose choice codex card not offered", "codex", prose, []string{prose, "codex-rollout-not-offered-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"cache codex search empty, move, no write", "codex", cache, []string{cache, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
 		{"cache codex written after the move", "codex", cache, []string{cache, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
 		{"cache codex search found the topic", "codex", cache, []string{cache, "codex-rollout-found-notobserved.jsonl"}, auditOptions{}, "not_observed"},
