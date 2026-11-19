@@ -17,6 +17,7 @@ Distributable content lives in `content/` and `integrations/`; the manager is in
 - `hive voice list|set|off`: list the voices, select one, or turn it off (see the manager contract above)
 - `hive project set`: edit the `## Hive` section of a repository's `AGENTS.md` after confirmation; the section holds facts, and `hive doctor` exits non-zero on a blocking finding in it
 - `hive releases`: list the retained release snapshots
+- `hive time`: print, as JSON, an agent session's active time, its waits for the user and on remote CI, and the time converted for a ticket's worklog
 - [Agent delivery](_support/docs/architecture/agent-delivery.md): canonical roles, native profiles, and per-host delegation limits
 
 ## Guidance
