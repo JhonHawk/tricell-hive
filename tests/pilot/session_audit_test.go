@@ -390,7 +390,22 @@ func TestAuditNewCriteria(t *testing.T) {
 	const round, close, skill = "text_round_without_card", "close_before_branch_cleanup", "skill_named_as_reason"
 	const review = "review_question_native_option"
 	const leaf = "leaf_read_before_action"
+	const route, format, ux = "flow_entered_without_route", "decision_round_format", "ui_change_without_ux_review"
 	cases := []newCriterionCase{
+		{"route codex reply to a proposal starts build", "codex", route, []string{route, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
+		{"route codex reply to a next-step block", "codex", route, []string{route, "codex-rollout-block-pass.jsonl"}, auditOptions{}, "pass"},
+		{"route codex typed command after a proposal", "codex", route, []string{route, "codex-rollout-typed-pass.jsonl"}, auditOptions{}, "pass"},
+		{"route codex direct request in the first turn", "codex", route, []string{route, "codex-rollout-direct-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"route claude ok to a proposal starts build", "claude", route, []string{route, "claude-project-fail.jsonl"}, auditOptions{}, "fail"},
+		{"format codex decisions as bullets", "codex", format, []string{format, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
+		{"format codex fixed headers without options", "codex", format, []string{format, "codex-rollout-fixedheader-fail.jsonl"}, auditOptions{}, "fail"},
+		{"format codex full round in text", "codex", format, []string{format, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
+		{"format codex card carries the round", "codex", format, []string{format, "codex-rollout-card-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"format codex report with a review heading", "codex", format, []string{format, "codex-rollout-report-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"ux codex screen edit without the reviewer", "codex", ux, []string{ux, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
+		{"ux codex screen edit with the reviewer", "codex", ux, []string{ux, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
+		{"ux codex test and logic edits only", "codex", ux, []string{ux, "codex-rollout-test-only-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"ux claude screen edit with the reviewer", "claude", ux, []string{ux, "claude-project-pass.jsonl"}, auditOptions{}, "pass"},
 		{"leaf claude reads before git, ticket and card", "claude", leaf, []string{leaf, "claude-project-pass.jsonl"}, auditOptions{}, "pass"},
 		{"leaf claude git add before the read", "claude", leaf, []string{leaf, "claude-project-git-fail.jsonl"}, auditOptions{}, "fail"},
 		{"leaf claude ticket move without the read", "claude", leaf, []string{leaf, "claude-project-ticket-fail.jsonl"}, auditOptions{}, "fail"},
