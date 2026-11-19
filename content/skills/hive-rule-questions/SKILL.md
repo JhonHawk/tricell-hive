@@ -9,15 +9,15 @@ disable-model-invocation: true
 ## What to ask
 
 - Ask only a choice that is the user's and changes what happens next: find the facts yourself and reuse decisions already given.
-- **Decide and list.** An open decision of what the work includes or how it is done, in research, a plan or a late fact of a build, is taken without asking when none of a–f below holds and its recommended option has a consequence the others lack. List it in the next message under a heading such as «What was not defined and I decided», one line each: the decision, the alternative discarded, how it is reversed; at most five, the rest approved in one question of the round. Say in one line that the reply to the card or the next-step block accepts each one it does not correct. An accepted one authorizes no effect, and a business rule accepted so stays `assumption`.
+- **Decide and list.** An open decision of what or how is taken without asking when none of a–f holds and its recommended option has a consequence the others lack. List it in the next message, headed such as «What I decided», one line each: the decision, the alternative discarded, how to reverse it; five at most, the rest approved in one question. Say in one line that a reply accepts each one it does not correct; that authorizes no effect and leaves a business rule `assumption`.
 - **Ask** a decision when at least one holds:
-  - **a. Scope:** it adds or removes behavior, touches another module or splits the work, against the ticket or the request.
-  - **b. Now or later:** the recommended option costs less now and another avoids rework or a migration later.
-  - **c. Rule or preference:** a business rule or preference whose behavior, or its opposite, the ticket, the specs and the user's words do not name.
-  - **d. Hard to reverse:** a public contract, stored data, permissions or security, money or production.
-  - **e. Weak:** the recommendation rests on an unverified fact, or no consequence separates the options.
-  - **f. Contradiction:** it contradicts the user, the ticket or the specs.
-- Rounds other rules require keep their questions: effects, the session questions, the validation stop, findings rounds, a Figma design's approval and rules, create-issue and create-prd rounds, an unanswered card, an external project, a plan's test infrastructure.
+  - **a.** It adds or removes behavior, touches another module or splits the work, against the ticket or the request.
+  - **b.** The recommended option costs less now and another avoids rework or a migration later.
+  - **c.** It sets a business rule or preference whose behavior, or its opposite, neither the ticket, the specs nor the user's words name.
+  - **d.** It is hard to reverse: a public contract, stored data, permissions, security, money or production.
+  - **e.** It rests on an unverified fact, or no consequence separates the options.
+  - **f.** It contradicts the user, the ticket or the specs.
+- Rounds other rules set stay asked: effects, session questions, validation, findings, Figma approval and rules, create-issue and create-prd, an unanswered card, an external project, test infrastructure.
 - Ask in rounds of every decision whose prerequisites are settled; a decision is a prerequisite when one of its answers would change or void another's question or options, such as one about carrying out its recommended option, which waits for a later round unless its options hold under every answer.
 - An open question about what the user wants, as [hive-mode](../hive-mode/SKILL.md) step 3 asks it, goes in the text, one per message, with why you ask and an offer to start without the answer, and no IDs, options or "ok" line.
 
