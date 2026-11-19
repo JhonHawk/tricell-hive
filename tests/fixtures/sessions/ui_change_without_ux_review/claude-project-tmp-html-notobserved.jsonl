@@ -1,0 +1,4 @@
+{"type": "user", "message": {"role": "user", "content": "draw a report"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "w1", "name": "Write", "input": {"file_path": "/tmp/scratch/report.html", "content": "<p>x</p>"}}]}, "timestamp": "2026-01-01T11:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "w1", "content": "ok", "is_error": false}]}, "timestamp": "2026-01-01T11:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_3", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "Done."}]}, "timestamp": "2026-01-01T11:00:04.000Z", "cwd": "/work/project", "isSidechain": false}

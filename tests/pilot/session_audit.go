@@ -37,12 +37,18 @@ type auditSession struct {
 	Model           string
 	ModelConfigured bool
 	Subagent        bool
+	// Sidechain: a Claude Code child transcript, which holds only sidechain
+	// messages. Only the newer criteria skip it; the older ones keep judging it.
+	Sidechain bool
 	// QuestionOffered: the host listed its waiting question tool in a mode
 	// that allows it (Codex additional_tools in Default or Plan mode).
 	QuestionOffered bool
-	First, Last     string
-	Trace           traceReport
-	Turn            []int
+	// Prompts holds, per turn, the text the user typed to open it (injected
+	// context excluded), so a criterion can tell a reply from a typed command.
+	Prompts     map[int]string
+	First, Last string
+	Trace       traceReport
+	Turn        []int
 }
 
 type auditReport struct {
@@ -126,7 +132,9 @@ func loadClaudeSession(data []byte) (auditSession, error) {
 	}
 	s.Model = s.Trace.Model
 	var starts []int
+	s.Prompts = map[int]string{}
 	var tr timeRange
+	sawMain, sawSide := false, false
 	line := 0
 	scan := auditScanner(data)
 	for scan.Scan() {
@@ -144,13 +152,19 @@ func loadClaudeSession(data []byte) (auditSession, error) {
 		if s.Cwd == "" {
 			s.Cwd = ev.Cwd
 		}
+		if ev.Type == "user" || ev.Type == "assistant" {
+			sawSide = sawSide || ev.IsSidechain
+			sawMain = sawMain || !ev.IsSidechain
+		}
 		if ev.Type == "user" && !ev.IsMeta && !ev.IsSidechain && !ev.IsCompactSummary && claudePromptContent(ev.Message.Content) {
 			starts = append(starts, line)
+			s.Prompts[len(starts)] = claudePromptText(ev.Message.Content)
 		}
 	}
 	if err := scan.Err(); err != nil {
 		return s, fmt.Errorf("claude transcript: %w", err)
 	}
+	s.Sidechain = sawSide && !sawMain
 	s.First, s.Last = tr.first, tr.last
 	s.Turn = make([]int, len(s.Trace.Events))
 	for i, e := range s.Trace.Events {
@@ -185,6 +199,25 @@ func claudePromptContent(raw json.RawMessage) bool {
 	return false
 }
 
+// claudePromptText returns the typed text of a user prompt's content.
+func claudePromptText(raw json.RawMessage) string {
+	var text string
+	if json.Unmarshal(raw, &text) == nil {
+		return text
+	}
+	var blocks []struct{ Type, Text string }
+	if json.Unmarshal(raw, &blocks) != nil {
+		return ""
+	}
+	var parts []string
+	for _, b := range blocks {
+		if b.Type == "text" {
+			parts = append(parts, b.Text)
+		}
+	}
+	return strings.Join(parts, "\n")
+}
+
 // --- Codex rollout ---
 
 type codexBuilder struct {
@@ -202,6 +235,7 @@ func (b *codexBuilder) add(e traceEvent) {
 
 func loadCodexSession(data []byte) (auditSession, error) {
 	b := &codexBuilder{}
+	b.s.Prompts = map[int]string{}
 	b.s.Trace = traceReport{Model: "not_observed", ModelAtInit: "not_observed"}
 	var tr timeRange
 	line := 0
@@ -264,14 +298,22 @@ func (b *codexBuilder) codexItem(line int, p map[string]any) {
 			b.toolListed = true
 		}
 	case "message":
-		if str(p["role"]) != "assistant" {
-			return
-		}
 		var parts []string
 		for _, raw := range list(p["content"]) {
 			if t := str(object(raw)["text"]); t != "" {
 				parts = append(parts, t)
 			}
+		}
+		if str(p["role"]) == "user" {
+			// Codex injects its context and the instruction files as user
+			// messages that open with markup or a heading; they are not typed.
+			if text := strings.TrimSpace(strings.Join(parts, "\n")); text != "" && !strings.HasPrefix(text, "<") && !strings.HasPrefix(text, "# ") {
+				b.s.Prompts[b.turn] = strings.TrimSpace(b.s.Prompts[b.turn] + "\n" + text)
+			}
+			return
+		}
+		if str(p["role"]) != "assistant" {
+			return
 		}
 		b.msgSeq++
 		key := str(p["id"])
@@ -331,7 +373,7 @@ type codexCall struct {
 
 func (b *codexBuilder) codexExec(line int, id, js string) {
 	calls, ambiguous := scanCodexExec(js)
-	idx := 0
+	idx, spawns := 0, 0
 	for _, c := range calls {
 		switch {
 		case c.name == "write_stdin":
@@ -349,6 +391,14 @@ func (b *codexBuilder) codexExec(line int, id, js string) {
 		default:
 			e := traceEvent{Line: line, Kind: "tool", Tool: c.name, ID: fmt.Sprintf("%s#%d", id, idx), Message: "codex-call-" + id}
 			e.Memory = codexMemoryTool(c.name)
+			if c.name == "spawn_agent" {
+				// The role a child runs is all a criterion needs from its brief;
+				// the k-th spawn of a block gets the k-th role it names.
+				if roles := spawnRole.FindAllStringSubmatch(js, -1); spawns < len(roles) {
+					e.Text = roles[spawns][1]
+				}
+				spawns++
+			}
 			b.add(e)
 		}
 		idx++
@@ -788,6 +838,7 @@ func loadGrokSession(data []byte, path string) (auditSession, error) {
 			s.Model, s.ModelConfigured = sum.CurrentModelID, true
 		}
 	}
+	s.Prompts = map[int]string{}
 	var tr timeRange
 	turn, inTurn := 0, false
 	var pendingText strings.Builder
@@ -830,6 +881,7 @@ func loadGrokSession(data []byte, path string) (auditSession, error) {
 				turn++
 				inTurn = true
 			}
+			s.Prompts[turn] += str(object(u["content"])["text"])
 		case "turn_completed":
 			flush()
 			inTurn = false
@@ -1371,7 +1423,8 @@ func skillNamedAsReason(s auditSession) criterionAssessment {
 }
 
 func auditCriteria(s auditSession, base string) []criterionAssessment {
-	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s), reviewQuestionNativeOption(s), leafReadBeforeAction(s))
+	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s), reviewQuestionNativeOption(s), leafReadBeforeAction(s),
+		flowEnteredWithoutRoute(s), decisionRoundFormat(s), uiChangeWithoutUXReview(s))
 }
 
 var (

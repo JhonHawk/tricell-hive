@@ -1,0 +1,6 @@
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000aa", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t2"}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "go"}]}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m4", "content": [{"type": "output_text", "text": "**Build · EX-1 · delivery**\n\nD1 — Which delivery mode?\n\nSituation: the change touches one example file.\n\nA - Interactive\nIf you choose it: you validate before the push.\n\nB - Hold\nIf you choose it: nothing is published.\n\nI recommend A: you see it first.\n\nWaiting for D1."}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t5"}}
