@@ -37,6 +37,9 @@ type auditSession struct {
 	Model           string
 	ModelConfigured bool
 	Subagent        bool
+	// Sidechain: a Claude Code child transcript, which holds only sidechain
+	// messages. Only the newer criteria skip it; the older ones keep judging it.
+	Sidechain bool
 	// QuestionOffered: the host listed its waiting question tool in a mode
 	// that allows it (Codex additional_tools in Default or Plan mode).
 	QuestionOffered bool
@@ -161,8 +164,7 @@ func loadClaudeSession(data []byte) (auditSession, error) {
 	if err := scan.Err(); err != nil {
 		return s, fmt.Errorf("claude transcript: %w", err)
 	}
-	// A child's transcript holds only sidechain messages.
-	s.Subagent = sawSide && !sawMain
+	s.Sidechain = sawSide && !sawMain
 	s.First, s.Last = tr.first, tr.last
 	s.Turn = make([]int, len(s.Trace.Events))
 	for i, e := range s.Trace.Events {

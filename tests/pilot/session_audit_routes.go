@@ -36,6 +36,15 @@ var (
 	// notAppSource holds pages that render no app screen: support material,
 	// reports and documents.
 	notAppSource = regexp.MustCompile(`(?i)(?:^|/)(?:_support|reports?|docs)/`)
+	// readCommand is a shell command that prints a file, as a skill load does;
+	// a test or a listing of the path is not a read.
+	readCommand = regexp.MustCompile(`(?:^|[\s;&|(])(?:cat|sed|head|tail|nl|bat|less|more|awk|rg|grep)\b`)
+	// inPlaceEdit opens a shell segment that rewrites its file arguments, and
+	// redirectTarget is the file a segment's output is written into.
+	inPlaceEdit    = regexp.MustCompile(`^\s*(?:sed\s+-i|perl\s+-\w*i|tee\b)`)
+	redirectTarget = regexp.MustCompile(`(?:^|[^2&>])>>?\s*([^&\s>|;]+)`)
+	commandParts   = regexp.MustCompile(`&&|\|\||[;|\n]`)
+	fileArgument   = regexp.MustCompile(`[\w./()\[\]@-]+\.\w+`)
 	// spawnRole is the role a spawn call names, such as agent_type: "hive-review-ux".
 	spawnRole = regexp.MustCompile(`spawn_agent\(\s*\{[^}]*?\b(?:agent_type|subagent_type|agent|role)\s*:\s*["'\x60](hive-[a-z-]+)`)
 )
@@ -59,9 +68,24 @@ func readsFlowSkill(e traceEvent) bool {
 	case "read", "search":
 		return flowSkillRead.MatchString(filepath.ToSlash(e.Path))
 	case "shell":
-		return flowSkillRead.MatchString(e.Command)
+		return flowSkillRead.MatchString(e.Command) && readCommand.MatchString(e.Command)
 	}
 	return false
+}
+
+// child reports whether a transcript belongs to a delegated child, whose
+// parent owns the questions, the routes and the reviews.
+func child(s auditSession) bool { return s.Subagent || s.Sidechain }
+
+// succeeded reports whether the call at i did not end in an error, such as a
+// tool call the user rejected.
+func succeeded(events []traceEvent, i int) bool {
+	for j := i + 1; j < len(events); j++ {
+		if events[j].Kind == "tool_result" && events[j].ID == events[i].ID {
+			return events[j].Success == nil || *events[j].Success
+		}
+	}
+	return true
 }
 
 // flowEnteredWithoutRoute checks how a flow's skill came to be loaded. It
@@ -74,7 +98,7 @@ func readsFlowSkill(e traceEvent) bool {
 // first turn is the direct continuation and is not judged.
 func flowEnteredWithoutRoute(s auditSession) criterionAssessment {
 	c := criterionAssessment{Criterion: "flow_entered_without_route", Status: "not_observed", Evidence: []string{}}
-	if s.Subagent {
+	if child(s) {
 		return c
 	}
 	events := s.Trace.Events
@@ -91,7 +115,9 @@ func flowEnteredWithoutRoute(s auditSession) criterionAssessment {
 			if s.Turn[j] == turn && events[j].Kind == "question" && card < 0 {
 				card = j
 			}
-			if s.Turn[j] < turn && events[j].Kind == "text" && events[j].Role == "assistant" {
+			// The agent's last output before this turn: its message, or a card
+			// whose answer arrives as the prompt of this turn.
+			if s.Turn[j] < turn && (events[j].Kind == "question" || events[j].Kind == "text" && events[j].Role == "assistant") {
 				prev = j
 				break
 			}
@@ -103,9 +129,9 @@ func flowEnteredWithoutRoute(s auditSession) criterionAssessment {
 		case card >= 0:
 			failed = append(failed, fmt.Sprintf("%s after the card at line %d", regressionEvidence(e), events[card].Line))
 		case prev < 0:
-		case strings.Contains(events[prev].Text, "▶") || flowCommand.MatchString(events[prev].Text):
+		case events[prev].Kind == "text" && (strings.Contains(events[prev].Text, "▶") || flowCommand.MatchString(events[prev].Text)):
 			passed = append(passed, regressionEvidence(e)+" after a next-step block")
-		case asksTheUser.MatchString(codeOrLink.ReplaceAllString(events[prev].Text, "")):
+		case events[prev].Kind == "question" || asksTheUser.MatchString(codeOrLink.ReplaceAllString(events[prev].Text, "")):
 			line := fmt.Sprintf("%s after the question at line %d", regressionEvidence(e), events[prev].Line)
 			if bareReply.MatchString(prompt) {
 				failed = append(failed, line)
@@ -121,19 +147,53 @@ func flowEnteredWithoutRoute(s auditSession) criterionAssessment {
 	return statusOf(c, failed, passed)
 }
 
-// decisionRoundFormat fails when a message asks decisions in text without the
-// full format (a Situation line and the starred option) and no question card
-// follows it in its turn. A round the card carries is judged by
+// roundFormat reports, for a message, whether it asks decisions in text and
+// whether every one of them has the full format. A decision is a block under a
+// "D<n> —" title with lettered options, a row of a table round, or a loose
+// one-line round; each needs its own Situation line and starred option.
+func roundFormat(text string) (asks, full bool) {
+	full = true
+	if isLooseRound(text) || len(tableRounds(text)) > 0 {
+		asks, full = true, false
+	}
+	for _, block := range decisionBlocks(text) {
+		if !lettered(block) {
+			continue
+		}
+		asks = true
+		full = full && fullRoundFormat(block)
+	}
+	return asks, full
+}
+
+// lettered reports whether a block lists options A and B on lines of their own.
+func lettered(block string) bool {
+	letters := map[byte]bool{}
+	for _, line := range optionLine.FindAllString(block, -1) {
+		if l := strings.TrimLeft(line, " \t\r\n#>*-"); l != "" {
+			letters[l[0]] = true
+		}
+	}
+	return letters['A'] && letters['B']
+}
+
+// decisionRoundFormat fails when a message asks decisions in text and one of
+// them lacks the full format (a Situation line and the starred option), and no
+// question card follows it in its turn. A round the card carries is judged by
 // text_round_without_card instead.
 func decisionRoundFormat(s auditSession) criterionAssessment {
 	c := criterionAssessment{Criterion: "decision_round_format", Status: "not_observed", Evidence: []string{}}
-	if s.Subagent {
+	if child(s) {
 		return c
 	}
 	events := s.Trace.Events
 	var failed, passed []string
 	for i, e := range events {
-		if e.Kind != "text" || e.Role != "assistant" || !(isTextRound(e.Text) || isLooseRound(e.Text)) {
+		if e.Kind != "text" || e.Role != "assistant" {
+			continue
+		}
+		asks, full := roundFormat(e.Text)
+		if !asks {
 			continue
 		}
 		carded := false
@@ -145,7 +205,7 @@ func decisionRoundFormat(s auditSession) criterionAssessment {
 		}
 		switch {
 		case carded:
-		case fullRoundFormat(e.Text):
+		case full:
 			passed = append(passed, regressionEvidence(e))
 		default:
 			failed = append(failed, regressionEvidence(e))
@@ -159,14 +219,17 @@ func decisionRoundFormat(s auditSession) criterionAssessment {
 // judged: its parent owns the review.
 func uiChangeWithoutUXReview(s auditSession) criterionAssessment {
 	c := criterionAssessment{Criterion: "ui_change_without_ux_review", Status: "not_observed", Evidence: []string{}}
-	if s.Subagent {
+	if child(s) {
 		return c
 	}
+	events := s.Trace.Events
 	var edit, review *traceEvent
-	for i := range s.Trace.Events {
-		e := &s.Trace.Events[i]
-		path := filepath.ToSlash(e.Path)
-		if edit == nil && e.Kind == "write" && uiSource.MatchString(path) && !testSource.MatchString(path) && !notAppSource.MatchString(path) && inProject(path, s.Cwd) {
+	for i := range events {
+		e := &events[i]
+		if !succeeded(events, i) {
+			continue
+		}
+		if edit == nil && editsInterface(*e, s.Cwd) {
 			edit = e
 		}
 		if review == nil && launchesUXReview(*e) {
@@ -184,14 +247,49 @@ func uiChangeWithoutUXReview(s auditSession) criterionAssessment {
 	return c
 }
 
+// editsInterface reports whether an event writes a file of the project that
+// renders an interface: a write call, or a shell command that rewrites one.
+func editsInterface(e traceEvent, cwd string) bool {
+	var paths []string
+	switch {
+	case e.Kind == "write":
+		paths = []string{e.Path}
+	case e.Kind == "shell":
+		paths = shellWrites(e.Command)
+	}
+	for _, p := range paths {
+		p = filepath.ToSlash(p)
+		if uiSource.MatchString(p) && !testSource.MatchString(p) && !notAppSource.MatchString(p) && inProject(p, cwd) {
+			return true
+		}
+	}
+	return false
+}
+
+// shellWrites returns the files a shell command writes: the arguments of an
+// in-place edit or of tee, and the target of each output redirection.
+func shellWrites(cmd string) []string {
+	var paths []string
+	for _, seg := range commandParts.Split(cmd, -1) {
+		if inPlaceEdit.MatchString(seg) {
+			paths = append(paths, fileArgument.FindAllString(seg, -1)...)
+		}
+		for _, m := range redirectTarget.FindAllStringSubmatch(seg, -1) {
+			paths = append(paths, m[1])
+		}
+	}
+	return paths
+}
+
 // inProject reports whether a written path belongs to the session's project:
 // relative, or under its working directory. A page written to a temporary
 // folder is not the project's interface.
 func inProject(path, cwd string) bool {
-	if !filepath.IsAbs(path) {
-		return true
+	clean := filepath.Clean(path)
+	if !filepath.IsAbs(clean) {
+		return !strings.HasPrefix(clean, "..")
 	}
-	return cwd != "" && strings.HasPrefix(path, filepath.ToSlash(cwd)+"/")
+	return cwd != "" && strings.HasPrefix(clean, filepath.Clean(cwd)+string(filepath.Separator))
 }
 
 func launchesUXReview(e traceEvent) bool {
