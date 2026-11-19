@@ -134,7 +134,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 - [x] Existen `decision-format`, `question-channel`, `report-endings`, `delivery-ask`, `foreign-commits`, `local-record`, `test-accounts`, `ticket-state`, `scope-changes` y `project-settings`, partidas según D11. `global.md` conserva los invariantes de `design.md`.
 
-**Closes:** AC4, AC5, AC7
+**Closes:** AC4, AC18, AC7
 
 **Depends on:** T1, T4
 
@@ -304,7 +304,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 - [x] `--audit-session` tiene un criterio de lectura de la hoja antes de la acción. El footprint mide las hojas, y la documentación y el sitio las describen.
 
-**Closes:** AC8, AC10, AC12
+**Closes:** AC8, AC10, AC19
 
 **Depends on:** T14
 
@@ -333,7 +333,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
   Después se publica, se integra y se refresca la instalación local.
 
-**Closes:** AC2, AC5, AC6, AC10, AC14, AC15, AC17
+**Closes:** AC2, AC18, AC6, AC10, AC14, AC15, AC17
 
 **Depends on:** T9
 
@@ -447,10 +447,10 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 ## Checkpoint
 
 - Updated: 2026-11-19
-- Stage: verify · T10: review fix round 70a01c93 committed; limited second review running
-- Last commit: 70a01c93
-- Open findings: AC5: global.md 30,795 bytes > 30,000 (61 index lines); to the user at validation; AC12: like-for-like −3,944 B, full union +2,479 B; to the user at validation; code review P3: phase-2 branches in leaf_skill_test kept on purpose (T11 adds those skills)
-- Next: Read second review; validation stop with AC5 and AC12
+- Stage: verify · T10: user validated (D22 A); pushing PR 1
+- Last commit: ed42fcae
+- Open findings: none
+- Next: Push, PR, merge, rebuild hive, refresh install, then T11
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/skill-leaves · feat/skill-leaves
 
 ### Evidence
@@ -516,3 +516,4 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 2026-11-19 — T13 · 8de4a4a5 · unverified: AC14's real hive-mode session waits for T12; tests/fixtures/qualification/suite.json kept as history
 2026-11-19 — T14 · 8b89ed0d · unverified: interrogate never run against another provider's agent; AC15's read before /code-review is checked in T10
 2026-11-19 — T9 · 678c53fc · unverified: AC12: like-for-like union −3,944 B; full union with git-commit and merge-gate +2,479 B; site build not run (dependencies not installed)
+2026-11-19 — Revisión por D23 A y D24 A: AC18 reemplaza AC5 (≤32,000 bytes con el índice) y AC19 reemplaza AC12 (comparación pareja). No invalida tareas.

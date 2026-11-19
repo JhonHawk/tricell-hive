@@ -32,6 +32,9 @@
 - **Compatibilidad (2026-11-18)** — El usuario pide considerar la compatibilidad con los modos de entrega. Se agregan la matriz de `design.md` y AC17.
 - **Tarea añadida (2026-11-18)** — Pasan a la fase 2 tres prácticas de traspaso de pstack: el registro TSV de decisiones, las casillas por PR y lo que no está escrito al pausar. El usuario respondió «va» a la propuesta.
 - **D18 A** — ¿Cómo se publica la hoja canario? Se instala localmente desde el commit del PR 1 en su worktree, sin merge. `development` no cambia hasta el PR 1 completo.
+- **D22 A** — ¿Se aprueba el PR 1? Sí: push, PR, merge en `development` y refresco local.
+- **D23 A** — ¿Cómo se cierra el tamaño de `global.md`? AC18 sube el límite a 32,000 bytes contando el índice, porque salieron 61 hojas y no ~38. Reemplaza AC5.
+- **D24 A** — ¿Cómo se lee el footprint? Con la comparación pareja (−3,944 bytes), y el total con las hojas nuevas (+2,479) aparte. AC19 reemplaza AC12.
 - **Supuestos.**
   - Se suman los playbooks `refactor` y `perf`, adaptados de pstack.
   - Las etapas siguen siendo comandos y el playbook solo las ordena.
@@ -100,6 +103,8 @@ Fuera:
 - AC17 — Ningún playbook ni hoja fija o sustituye el modo de entrega. Cada parada, push, PR, merge y promoción que nombran remite al modo en vigor. La matriz de «Compatibilidad con los modos de entrega» de `design.md` se cumple en los 13 playbooks y en las piezas de AC15 y AC16.
   - false today because no existen los playbooks ni las piezas
   - Observed in: un test de contenido y la revisión de código de T10 y T12 contra la matriz. El test rechaza los nombres de modo entre comillas invertidas (`interactive`, `automatic`, `ready`, `direct-base`, `hold`) en los playbooks, salvo en la frase fija, escrita en inglés en los playbooks: «under the delivery mode in force».
+- AC18 — **Replaces:** AC5. `global.md` pesa 32,000 bytes o menos, contando el índice «Rule leaves», y conserva enteras las secciones de autorización, secretos, preservación y alcance, la lectura de `HIVE.local.md` al inicio de la sesión y los modos de entrega. · false today because pesa 52,769 bytes en la base · Observed in: `wc -c content/guidance/global.md` y la revisión del diff
+- AC19 — **Replaces:** AC12. La lectura obligatoria del escenario plan/build, contando los mismos momentos de lectura que contaba la base `2bb96478`, baja respecto de esa base. El total con las hojas de momentos que la base no contaba (commit y merge) se reporta aparte. · false today because es la línea base · Observed in: `go test ./tests/content -run Footprint -count=1 -v`
 - AC13 — La hoja canario `hive-rule-git-commit`, instalada oculta, se lee como archivo antes del primer `git add` en una sesión real de Claude Code y en una de Codex. · false today because la hoja no existe · Observed in: el registro de esas sesiones en esta máquina
 - AC9 — El chequeo HA-SK-04 de `harness-audit` acepta `disable-model-invocation` y el `agents/openai.yaml` de Codex en las skills que Hive distribuye como hojas, y sigue marcando otros campos exclusivos de un host. · false today because HA-SK-04 marca `disable-model-invocation` y `paths` · Observed in: `content/skills/harness-audit/references/skills-and-agents.md` y una auditoría de `content/`
 - AC10 — `README.md`, `llms.txt`, la página de skills del sitio e `instruction-resources.md` describen las hojas, el índice y su soporte por host. · false today because no existen las hojas · Observed in: el sitio construido localmente (`npm --prefix site run build`) y los dos archivos
