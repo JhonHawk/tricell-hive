@@ -8,16 +8,16 @@ disable-model-invocation: true
 
 ## What to ask
 
-- Ask only a choice that is the user's and changes what happens next: find the facts yourself and reuse decisions already given.
+- Ask only a choice that is the user's and changes what happens next: find the facts yourself and reuse decisions given.
 - **Decide and list.** An open decision of what or how is taken without asking when none of a–f holds and its recommended option has a consequence the others lack. List it in the next message, headed such as «What I decided», one line each: the decision, the alternative discarded, how to reverse it; five at most, the rest approved in one question. Say in one line that a reply accepts each one it does not correct; that authorizes no effect and leaves a business rule `assumption`.
 - **Ask** a decision when at least one holds:
   - **a.** It adds or removes behavior, touches another module or splits the work, against the ticket or the request.
   - **b.** The recommended option costs less now and another avoids rework or a migration later.
-  - **c.** It sets a business rule or preference whose behavior, or its opposite, neither the ticket, the specs nor the user's words name.
+  - **c.** It sets a business rule or preference that no behavior the ticket, the specs or the user's words name requires.
   - **d.** It is hard to reverse: a public contract, stored data, permissions, security, money or production.
   - **e.** It rests on an unverified fact, or no consequence separates the options.
   - **f.** It contradicts the user, the ticket or the specs.
-- Rounds other rules set stay asked: effects, session questions, validation, findings, Figma approval and rules, create-issue and create-prd, an unanswered card, an external project, test infrastructure.
+- Rounds other rules set stay asked: effects, session questions, validation, findings, Figma approval and `proposed` rules, a plan's approach, create-issue and create-prd, an unanswered card, an external project, test infrastructure.
 - Ask in rounds of every decision whose prerequisites are settled; a decision is a prerequisite when one of its answers would change or void another's question or options, such as one about carrying out its recommended option, which waits for a later round unless its options hold under every answer.
 - An open question about what the user wants, as [hive-mode](../hive-mode/SKILL.md) step 3 asks it, goes in the text, one per message, with why you ask and an offer to start without the answer, and no IDs, options or "ok" line.
 

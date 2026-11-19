@@ -35,12 +35,12 @@ Before step 1, open [investigate](playbooks/investigate.md) when the user asks t
 
 ## Assess a chosen ticket
 
-When the user picks a ticket, write the report in these blocks, in order, headed in the session language:
+For a chosen ticket, write the report in these blocks, in order, headed in the session language:
 
 1. **Summary:** **impact** (what uses what it changes, found by searching its literal values and direct callers, and whether it touches production), **complexity** (the files, modules and contracts it changes), **dependencies** (the tickets it waits on or blocks).
 2. **Verdict:** ready or not, naming by number each check of the ready list of [ticket types](../create-issue/references/ticket-types.md) it fails with what is missing, each contradicting spec, and missing access or answers. A failed check or a contradicting spec means not ready.
 3. **Proposed criteria**, when it has none.
-4. **Decided**, as [questions](../hive-rule-questions/SKILL.md) «Decide and list» sets; then the card with what its a–f send to the user.
+4. **Decided**, as [questions](../hive-rule-questions/SKILL.md) «Decide and list» sets; then the card with what a–f send.
 
 Settle a not-ready ticket's scope here: the plan settles how, never what enters. Step 5's ending closes this message when nothing is asked, else the one after the answers.
 
