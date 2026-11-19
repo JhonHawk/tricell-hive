@@ -43,6 +43,9 @@ verified.
   you, not a hang.
 - While a card is open it covers the screen (an open Claude Code issue), so each
   card carries the context needed to answer on its own.
+- Each round of decisions comes in the card alone, after the agent's report.
+  Dismissing the card with Esc stops the turn, and what the agent does next
+  depends on what you write: see «If you cancel a card» below.
 - A session isolated in a worktree has its `Edit` and `Write` of the main
   checkout refused, and so are compound shell commands such as Git inside
   `$(…)`, with an error that says it cannot verify they stay in the worktree
@@ -57,16 +60,22 @@ verified.
 
 ## Codex
 
-- **Question cards close by themselves.** In Default mode a card that you do not
-  touch resolves with no answer after about 120 seconds: 60 seconds hidden, then a
-  60-second visible countdown. Pressing a key in the card stops that. When it
-  closes, Hive's rule is that the decisions are already in the message above it, so
-  answer there (for example `D2 B`); the agent opens no further card for that round.
-  A round of more than three decisions comes as consecutive cards, one after another.
-- Question cards in Default mode need a Codex feature that is off by default,
-  `default_mode_request_user_input`. Without it, the agent writes the options in
-  the message instead of a card. `hive doctor` shows the state of this and of the
-  wait setting below.
+- **The current mode decides how a question is asked.** Codex 0.169.0's
+  Default-mode instructions reserve the waiting card for optional questions.
+  Required input and permission requests use a concise question in chat, without
+  a multiple-choice block. Decisions still include their alternatives, consequences
+  and recommendation with its reason in the permitted form. An unanswered
+  optional card lets the agent continue with its best judgment; it does not grant
+  permission.
+- A Default-mode waiting card left untouched closes after about 120 seconds:
+  60 seconds hidden, then a 60-second visible countdown. Pressing a key in the
+  card stops that. Esc interrupts the turn. The feature
+  `default_mode_request_user_input` enables the tool in Default mode, but does
+  not override the mode's restrictions. `hive doctor` reports its state.
+- Hive does not send the same pending question through both an asynchronous
+  tool and a waiting card. An acceptance receipt is not your answer.
+  The procedure is in the global guidance's
+  [Questions and routes](https://github.com/JhonHawk/tricell-hive/blob/development/content/guidance/global.md#questions-and-routes).
 - A helper role that declares a read-only sandbox can still run with the session's
   sandbox (observed on Codex 0.163.0). Hive therefore relies on the role's text, not
   the sandbox, to keep such helpers read-only.
@@ -79,7 +88,8 @@ verified.
 
 - Its question card closes after 1800 seconds by default, and a close by timeout
   counts as a decline. The `toolset.ask_user_question.timeout_enabled` setting
-  controls that.
+  controls that. After a decline the agent reminds you in one line which
+  decisions are still open and waits for what you say.
 - Helper roles keep the model written in the installed role file even when the
   session runs another one (observed). The agent can still mistake this for
   inheritance, so if it asks you about which model a verifier used, point it to the
@@ -88,8 +98,9 @@ verified.
 ## Pi
 
 - Pi has no built-in question tool. Cards exist only if you install the
-  third-party `rpiv-ask-user-question` extension; without it the agent writes the
-  full options in the message and you answer in text.
+  third-party `rpiv-ask-user-question` extension, and then each round comes in the
+  card alone; without it the agent writes the full options in the message and you
+  answer in text.
 - Helper roles need the `pi-subagents` package. Hive declares it with
   `pi install npm:pi-subagents` when you install for Pi, and leaves an existing
   pin alone. It also sets `"toolActivation": "eager"` in
@@ -101,7 +112,8 @@ verified.
 ## OpenCode
 
 - Dismissing a question card interrupts the whole turn. Answer it, or reply in
-  text if you would rather not stop the work.
+  text if you would rather not stop the work; after a dismissal, see «If you
+  cancel a card» below.
 - Text sent together with a card can be lost, so each card stands on its own
   with its context.
 - Roles run on your session's model and variant; per-role effort settings have no
@@ -120,7 +132,8 @@ verified.
   agent then gives a generic helper the role's contract, and read-only holds only
   because the brief says so, not because the host enforces it.
 - Its question card has no description field and no "Recommended" mark, so
-  the effect of each option is written in its label. Whether the agent keeps
+  the effect of each option is written in its label and the round is also
+  written in full in the message before the card. Whether the agent keeps
   working while a card is open is not settled: the binary waits and the
   documentation says otherwise.
 - Helper roles run on your session's model.
@@ -152,6 +165,32 @@ verified.
    was only to the global instructions; Codex 0.166 also reloaded them once,
    but restart it when in doubt.
 2. Run `hive doctor` to see what Hive can check on your machine.
-3. If a card closes before you answer, reply in the chat with the decision ID
-   and letter. The decisions are also written in the message, and the next
-   decision still comes in a card.
+3. If a card closes before you answer, the agent follows the host's current
+   instructions. Codex Default mode continues after an unanswered optional
+   question. Where the host leaves the response to Hive, a card that closes
+   empty gets its open decisions in chat; on Cursor they are already above the
+   card, and on Grok Build a timeout counts as a decline and gets a reminder.
+
+## If you cancel a card
+
+When you cancel a question card yourself, the agent does not paste the questions
+into the chat. The host's current restrictions still govern re-asking and
+response format; where it leaves those choices to Hive, the agent acts on what
+you write next:
+
+- You answer by ID (for example `D4 A, D5 B`) or write "ok": those answers
+  apply, and anything still open is asked again in a card.
+- You say it was a mistake, or ask for the questions again: the same card
+  comes back.
+- You say the work is going the wrong way, or your free text changes a question
+  or one of its options: the agent drops the questions that touches, rethinks
+  them with what you said, and asks a new round.
+- You tell it to drop the questions: it drops them, and asks one again only
+  if a later step cannot go on without it.
+- You change the subject or ask something that leaves the questions as they
+  were: the agent answers, reminds you in one line which decisions are still
+  open, and asks them again when you say so.
+- You have said nothing about the open decisions yet (you declined and the
+  turn went on, answered only part of the card, or chose to talk without saying
+  about what): one line names the open decisions and tells you to say "ask
+  again" for the card, or what to change.
