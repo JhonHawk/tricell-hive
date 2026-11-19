@@ -1093,6 +1093,8 @@ func existingAuditCriteria(s auditSession, base string) []criterionAssessment {
 var (
 	// A session question's header counts only on a title that asks, ending in
 	// "?", so a report heading such as "**Review** — Completed" is not a round.
+	// Only a D<n> title takes the middle dot: the context line of a message,
+	// "**Review · ticket · is it done?**", uses it too.
 	roundTitleLine  = regexp.MustCompile(`(?mi)^\s*[#>*\s]*(?:D\d+\s*[—–·-]|(?:` + sessionHeaderNames + `)\**\s*[—–-][^\n]*\?)`)
 	roundOptionStar = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\s*[-—–·]\s*\**\s*\(★\)`)
 	// grokNoUser is the result Grok gives a question when no user can answer.
