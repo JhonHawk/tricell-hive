@@ -43,6 +43,10 @@ catalog with a one-line description. For the other hosts no hiding mechanism is
 verified, so they may list the leaves. A leaf installed is not proof that a session
 read it; `go run ./tests/pilot --audit-session` checks, for a real session, that the
 leaf of a commit, a ticket move or a question card was read before that action.
+Code principles follow the same pattern: the hidden
+[`hive-principle-index`](content/skills/hive-principle-index/SKILL.md) lists each
+principle with the moment it applies, and the visible
+[`hive-typescript`](content/skills/hive-typescript/SKILL.md) skill loads for `.ts` and `.tsx` files.
 The guidance is written for the role-profile models listed in the
 [support floor](_support/docs/harness-engineering/model-floor.md); the floor's smaller
 Haiku and flash-class candidates and the maintainer's main-session models are not a writing target, but their observed failures count toward corrections.
