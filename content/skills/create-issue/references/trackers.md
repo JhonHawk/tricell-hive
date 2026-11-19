@@ -4,7 +4,7 @@ Read before the first write to a tracker, at [create-issue](../SKILL.md) step 8,
 
 ## Before writing
 
-Read what the authenticated account may do in the target: create a ticket, set its type and labels, relate it to another, comment, and edit a ticket someone else wrote. A tracker can drop a field the account may not set without reporting an error, so name before the write each field you will not be able to set. New tickets go in the primary tracker: the `Tracker` that the `## Hive` of the repository the session works in declares, as the global guidance's «Project settings» sets, unless the user names another tracker or repository for the ticket.
+Read what the authenticated account may do in the target: create a ticket, set its type and labels, relate it to another, comment, and edit a ticket someone else wrote. A tracker can drop a field the account may not set without reporting an error, so name before the write each field you will not be able to set. New tickets go in the primary tracker: the `Tracker` that the `## Hive` of the repository the session works in declares, as [project settings](../../hive-rule-project-settings/SKILL.md) sets, unless the user names another tracker or repository for the ticket.
 
 ## Type
 

@@ -915,7 +915,7 @@ func TestAssessFlowsWiresNoExecutionPrepOnlyForQuestionCases(t *testing.T) {
 }
 
 // Breaks if the writes criterion stops exempting the root HIVE.local.md and its
-// exclude entry, which the global guidance's «Local instructions» authorizes in
+// exclude entry, which the hive-rule-local-write leaf authorizes in
 // any flow, or starts exempting a sibling Markdown file.
 func TestAssessFlowsAllowsLocalInstructionsWrites(t *testing.T) {
 	for _, tc := range []struct {
@@ -937,7 +937,7 @@ func TestAssessFlowsAllowsLocalInstructionsWrites(t *testing.T) {
 }
 
 // Breaks if the external-writes criterion stops exempting the machine file of
-// «Local instructions», or starts exempting a sibling file in its folder.
+// the hive-rule-local-write leaf, or starts exempting a sibling file in its folder.
 func TestAssessFlowsAllowsMachineFileWrite(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)

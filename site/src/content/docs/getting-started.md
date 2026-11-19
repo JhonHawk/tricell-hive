@@ -50,7 +50,7 @@ or `interactive` is retired: it answers no question, the agent asks it each sess
 and the old value only informs the recommended option. `hive doctor` warns
 about those lines.
 Each key's meaning and accepted values are in
-[project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md).
+[project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-rule-project-settings/SKILL.md).
 `hive project set` edits the section for you after a confirmation, and the
 [harness audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/SKILL.md)
 can create or update it for you: ask it to set up your repository's Hive section,

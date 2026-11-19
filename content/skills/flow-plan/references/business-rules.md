@@ -38,7 +38,7 @@ Besides the rules, the record holds the ticket's control lines, `ticket section:
 Write the record in the same turn, in any flow, when one of these happens:
 
 - The user decides a rule no source stated, or one that replaces a stated or recorded rule: write it `approved`, and the replaced rule `cancelled`.
-- The main thread adopts a rule without asking: write it `assumption` and state it in the next message to the user, where a reply can turn it into a decision. A rule that fails the test of `assumption` above is asked as a decision, as the global guidance's «Questions and routes» sets, never assumed.
+- The main thread adopts a rule without asking: write it `assumption` and state it in the next message to the user, where a reply can turn it into a decision. A rule that fails the test of `assumption` above is asked as a decision, as [decision format](../../hive-rule-decision-format/SKILL.md) sets, never assumed.
 - A child reports a rule it had to assume to finish its task: check it against the sources, record it the same way and state it. A child never writes the record, the ticket or the design file; the brief of a child that builds or draws asks it to report each such rule.
 - A flow starts after research: write as `approved` each rule the user decided in research that no source states. Research itself writes no record and no ticket.
 
@@ -50,7 +50,7 @@ The main thread writes the record's rules to the work's ticket at three moments,
 
 1. when the user approves a design example, at step 7 of [flow-figma-design](../../flow-figma-design/SKILL.md);
 2. when the build starts, with the ticket's move to in progress, at step 1 of [flow-build](../../flow-build/SKILL.md);
-3. at the work item's completion point, at step 3 of [flow-close](../../flow-close/SKILL.md), which defines that point.
+3. at the work item's completion point, at step 3 of [flow-close](../../flow-close/SKILL.md), at the point [ticket state](../../hive-rule-ticket-state/SKILL.md) defines.
 
 Write nothing to a tracker when the work names no ticket or was abandoned; the close then lists the record's rules in its final report. An operational task writes only when its request's deliverable is the design and names its ticket, or when the user asks.
 

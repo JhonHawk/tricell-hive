@@ -961,7 +961,7 @@ func shellSearchSafe(tool string, args []string) bool {
 }
 
 // isAccountIndex reports whether p is the account index ACCOUNTS.md directly
-// under _support/secrets/. The global guidance's «Test accounts» keeps no
+// under _support/secrets/. The hive-rule-test-accounts leaf keeps no
 // values in it and lets it be read or searched, so S5 does not count that.
 func isAccountIndex(p string) bool {
 	slash := filepath.ToSlash(p)
@@ -1174,7 +1174,7 @@ func trailingIDListChar(r rune) bool {
 }
 
 // glossedBefore reports whether the ID at field[start:end] is glossed by the
-// plain words before it: the global guidance's list-point form, where a point
+// plain words before it: the list-point form of the hive-rule-decision-format leaf, where a point
 // opens with what it is and cites its ID last, in parentheses, such as
 // "**Move the plan summary to the top** (D2)". The ID must sit inside a
 // parenthesis that holds only IDs, option letters and separators, and the

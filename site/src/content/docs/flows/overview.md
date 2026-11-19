@@ -29,7 +29,7 @@ Around them:
 
 ## Where the work loops
 
-When you ask for something that would change work already open, the agent first says what kind of change it is and where the work goes: a correction, an added task, a new change or a separate topic. That classification lives in the [global guidance](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md).
+When you ask for something that would change work already open, the agent first says what kind of change it is and where the work goes: a correction, an added task, a new change or a separate topic. That classification lives in the [scope changes rule](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-rule-scope-changes/SKILL.md).
 
 | Flow | Where it iterates | Where the work returns |
 | --- | --- | --- |

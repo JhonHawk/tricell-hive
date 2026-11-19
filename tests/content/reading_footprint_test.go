@@ -52,8 +52,10 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 	const skills = "content/skills/"
 	// Predicates are explicit scenarios, not a transitive inventory of links.
 	common := []string{global}
-	question := common
+	// The question rules live in rule leaves the index and the flow steps link.
+	question := []string{global, skills + "hive-rule-decision-format/SKILL.md", skills + "hive-rule-question-channel/SKILL.md"}
 	cycle := append(append([]string{}, question...),
+		skills+"hive-rule-delivery-ask/SKILL.md", skills+"hive-rule-project-settings/SKILL.md", skills+"hive-rule-ticket-state/SKILL.md",
 		skills+"flow-plan/SKILL.md", skills+"flow-build/SKILL.md", skills+"flow-close/SKILL.md",
 		skills+"flow-research/SKILL.md", skills+"flow-verify/SKILL.md",
 		"content/agents/review/hive-review-plan.md",
@@ -62,7 +64,12 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 	)
 	// Minimal skills (skills-rebuild): sources absent from the baseline commit.
 	moved := map[string]bool{
-		skills + "flow-verify/SKILL.md": true,
+		skills + "flow-verify/SKILL.md":                true,
+		skills + "hive-rule-decision-format/SKILL.md":  true,
+		skills + "hive-rule-question-channel/SKILL.md": true,
+		skills + "hive-rule-delivery-ask/SKILL.md":     true,
+		skills + "hive-rule-project-settings/SKILL.md": true,
+		skills + "hive-rule-ticket-state/SKILL.md":     true,
 	}
 	scenarios := []struct {
 		name, predicate string
@@ -119,6 +126,9 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 	skills := "content/skills/"
 	cycle := []string{
 		"content/guidance/global.md",
+		skills + "hive-rule-decision-format/SKILL.md", skills + "hive-rule-question-channel/SKILL.md",
+		skills + "hive-rule-delivery-ask/SKILL.md", skills + "hive-rule-project-settings/SKILL.md",
+		skills + "hive-rule-ticket-state/SKILL.md",
 		skills + "flow-research/SKILL.md", skills + "flow-plan/SKILL.md",
 		skills + "flow-build/SKILL.md", skills + "flow-verify/SKILL.md", skills + "flow-close/SKILL.md",
 		skills + "flow-build/references/delegation.md",
@@ -134,6 +144,11 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 		skills+"flow-close/references/branch-cleanup.md", "content/agents/development/hive-build-owner.md",
 	)
 	added := map[string]bool{
+		skills + "hive-rule-decision-format/SKILL.md":             true,
+		skills + "hive-rule-question-channel/SKILL.md":            true,
+		skills + "hive-rule-delivery-ask/SKILL.md":                true,
+		skills + "hive-rule-project-settings/SKILL.md":            true,
+		skills + "hive-rule-ticket-state/SKILL.md":                true,
 		skills + "flow-build/references/e2e-coordination.md":      true,
 		skills + "flow-plan/references/execution-record.md":       true,
 		skills + "flow-verify/references/project-verification.md": true,

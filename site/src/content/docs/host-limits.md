@@ -74,8 +74,8 @@ verified.
   not override the mode's restrictions. `hive doctor` reports its state.
 - Hive does not send the same pending question through both an asynchronous
   tool and a waiting card. An acceptance receipt is not your answer.
-  The procedure is in the global guidance's
-  [Questions and routes](https://github.com/JhonHawk/tricell-hive/blob/development/content/guidance/global.md#questions-and-routes).
+  The procedure is in the
+  [asking a round rule](https://github.com/JhonHawk/tricell-hive/blob/development/content/skills/hive-rule-question-channel/SKILL.md).
 - A helper role that declares a read-only sandbox can still run with the session's
   sandbox (observed on Codex 0.163.0). Hive therefore relies on the role's text, not
   the sandbox, to keep such helpers read-only.

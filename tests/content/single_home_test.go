@@ -26,8 +26,8 @@ type homePhrase struct {
 var homePhrases = []homePhrase{
 	{"Never run `git add -A`", "content/skills/hive-rule-git-commit/SKILL.md", true},
 	// Repeated today: global.md «Delivery» and git-workflow.
-	{"Before the validation, or before the push when the mode", "content/skills/hive-rule-foreign-commits/SKILL.md", false},
-	{"is done when its changes are integrated", "content/skills/hive-rule-ticket-state/SKILL.md", false},
+	{"Before the validation, or before the push when the mode", "content/skills/hive-rule-foreign-commits/SKILL.md", true},
+	{"is done when its changes are integrated", "content/skills/hive-rule-ticket-state/SKILL.md", true},
 	// Repeated today: flow-build and flow-verify.
 	{"adds, replaces or cancels a business rule, record it in", "content/skills/hive-rule-business-rules/SKILL.md", false},
 	{"Name the cause before you edit", "content/skills/hive-rule-defect-fix/SKILL.md", false},

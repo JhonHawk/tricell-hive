@@ -566,8 +566,8 @@ func machineFileWrite(p string) bool {
 	return p == filepath.Join(config, "hive", "HIVE.local.md") || p == filepath.Join(config, ".git", "info", "exclude")
 }
 
-// localInstructionsWrite reports whether p is a write the global guidance's
-// «Local instructions» authorizes in any flow: the root HIVE.local.md and the
+// localInstructionsWrite reports whether p is a write the hive-rule-local-write
+// leaf authorizes in any flow: the root HIVE.local.md and the
 // exclude entry that keeps Git from tracking it.
 func localInstructionsWrite(p string) bool {
 	return p == "HIVE.local.md" || p == ".git/info/exclude"

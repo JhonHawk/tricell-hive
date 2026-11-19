@@ -444,23 +444,24 @@ func TestHiveSectionGitNotFoundIsAnErrorNotAFinding(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 // projectSettingsSection returns the canonical settings declaration, split into
-// prose lines and lines inside fenced code blocks. It lives in the global
-// guidance, which every session loads.
+// prose lines and lines inside fenced code blocks. It lives in the rule leaf
+// hive-rule-project-settings, which the global guidance's index names.
 func projectSettingsSection(t *testing.T) (prose, code []string) {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join("..", "..", "content", "guidance", "global.md"))
+	data, err := os.ReadFile(filepath.Join("..", "..", "content", "skills", "hive-rule-project-settings", "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	in, fenced := false, false
-	for _, line := range strings.Split(string(data), "\n") {
+	text := string(data)
+	if strings.HasPrefix(text, "---\n") {
+		if end := strings.Index(text[4:], "\n---\n"); end >= 0 {
+			text = text[4+end+5:]
+		}
+	}
+	fenced := false
+	for _, line := range strings.Split(text, "\n") {
 		trimmed := strings.TrimSpace(line)
 		switch {
-		case !fenced && strings.HasPrefix(line, "## "):
-			in = strings.TrimSpace(strings.TrimPrefix(line, "## ")) == "Project settings"
-			continue
-		case !in:
-			continue
 		case strings.HasPrefix(trimmed, "```"):
 			fenced = !fenced
 		case fenced:
@@ -490,7 +491,7 @@ func TestHiveSettingKeysAppearInTheGuidance(t *testing.T) {
 			}
 		}
 		if !ok {
-			t.Errorf("key %q is not the start of any backtick-quoted text in the canonical «Project settings» declaration of global.md", k.Name)
+			t.Errorf("key %q is not the start of any backtick-quoted text in the canonical «Project settings» declaration of hive-rule-project-settings", k.Name)
 		}
 	}
 }
@@ -509,7 +510,7 @@ func TestHiveSettingKeysCoverTheGuidanceExample(t *testing.T) {
 		}
 		seen++
 		if !knownHiveKey(strings.TrimSpace(name)) {
-			t.Errorf("the example in global.md «Project settings» uses key %q, which hiveSettingKeys does not know", strings.TrimSpace(name))
+			t.Errorf("the example in hive-rule-project-settings uses key %q, which hiveSettingKeys does not know", strings.TrimSpace(name))
 		}
 	}
 	if seen == 0 {
@@ -550,7 +551,7 @@ func TestRetiredHiveKeysMatchTheGuidance(t *testing.T) {
 		}
 	}
 	if line == "" {
-		t.Fatal("global.md «Project settings» has no line starting \"Retired keys:\"")
+		t.Fatal("hive-rule-project-settings has no line starting \"Retired keys:\"")
 	}
 	var sentence string
 	sentence, _, _ = strings.Cut(line, ".")

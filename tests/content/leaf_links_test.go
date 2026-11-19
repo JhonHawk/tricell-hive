@@ -21,8 +21,8 @@ type leafLink struct {
 var leafLinks = []leafLink{
 	{"hive-rule-git-commit", "content/skills/flow-build/SKILL.md", true},
 	{"hive-rule-git-commit", "content/skills/git-workflow/SKILL.md", true},
-	{"hive-rule-ticket-state", "content/skills/flow-build/SKILL.md", false},
-	{"hive-rule-ticket-state", "content/skills/flow-close/SKILL.md", false},
+	{"hive-rule-ticket-state", "content/skills/flow-build/SKILL.md", true},
+	{"hive-rule-ticket-state", "content/skills/flow-close/SKILL.md", true},
 	{"hive-rule-ticket-state", "content/skills/flow-deploy/SKILL.md", false},
 	{"hive-rule-close-modes", "content/skills/flow-close/SKILL.md", false},
 }

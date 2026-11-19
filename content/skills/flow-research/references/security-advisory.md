@@ -2,7 +2,7 @@
 
 Read from [flow-research](../SKILL.md) when the user asks whether a published security advisory, CVE or package compromise affects their projects, or asks for an exposure sweep across repositories. This sweep replaces research's steps 0 to 5 and ends as «After the report» sets. It is not for reviewing a change's security boundaries, which `hive-review-security` does on request, nor for checking a package before installing it, which the global guidance's package check covers.
 
-Answer "does this advisory affect us, and where?" with evidence for each repository. The sweep is read-only: it changes no repository, dependency, tracker or deployment, except for the entries of the current project's `HIVE.local.md` and of the machine file that the global guidance's «Local instructions» authorizes. Fixes run afterward, in each project's own session.
+Answer "does this advisory affect us, and where?" with evidence for each repository. The sweep is read-only: it changes no repository, dependency, tracker or deployment, except for the entries of the current project's `HIVE.local.md` and of the machine file that [local write](../../hive-rule-local-write/SKILL.md) authorizes. Fixes run afterward, in each project's own session.
 
 ## Frame the sweep
 

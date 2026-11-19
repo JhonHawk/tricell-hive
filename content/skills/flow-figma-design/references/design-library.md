@@ -47,7 +47,7 @@ Ask in step 6's round, once per work, one decision that covers each of these tha
 - a library is bound, and it has no `**Design library:**` field, or one that names a Figma library other than the bound one;
 - a file was resolved or a library bound, and the app has no `DESIGN.md`, or it has no `## Hive` section.
 
-A field that names a file or a library of another design tool stays as it is: ask nothing about it. Show in the decision each value exactly as it will be written, beside the value it replaces when the field already holds one. In the same round, when that `DESIGN.md` has a `## Hive` section and no delivery answer is in force for its repository, ask the delivery question as the global guidance's «Delivery» sets for a mechanical change, worded to hold under either answer.
+A field that names a file or a library of another design tool stays as it is: ask nothing about it. Show in the decision each value exactly as it will be written, beside the value it replaces when the field already holds one. In the same round, when that `DESIGN.md` has a `## Hive` section and no delivery answer is in force for its repository, ask the delivery question as [delivery questions](../../hive-rule-delivery-ask/SKILL.md) sets for a mechanical change, worded to hold under either answer.
 
 On a no, write `record: <the fields asked> · declined <date>` in `examples.md`, so the work does not ask again.
 

@@ -1,0 +1,15 @@
+---
+name: hive-rule-ticket-state
+description: "Hive rule leaf: read before moving, commenting on, searching or finishing a ticket. Sets when a ticket is in progress or done, the completion point, and several trackers."
+disable-model-invocation: true
+---
+
+# Ticket state
+
+Read before you move, comment on, search or finish a ticket. The tracker writes this leaf names are authorized by the global guidance's «Scope and authorization».
+
+- A ticket is done when its changes are integrated into the base branch; move it then, to the state the project uses for that, in the tracker [project settings](../hive-rule-project-settings/SKILL.md) assigns to its key.
+- Before implementing a tracked ticket, move it to the in-progress state, except for an operational task, as «Scope and authorization» sets; do not start one already there unless the user confirms it is yours.
+- The completion point is the merge into the base branch. When the delivery is `ready`, or a human reviewer's approval is pending, the open pull request is the completion point, reached at the stop [git-workflow step 8](../git-workflow/SKILL.md) sets: the ticket stays in progress, and a later session that finds it merged runs a follow-up close.
+- When the repository's `## Hive` declares `Completion`, a later completion point, the ticket moves to the state its tracker's value declares once the deployment verifies that the ref holds its change, as [flow-deploy](../flow-deploy/SKILL.md) sets.
+- With `Other trackers`, every rule that reads, searches, moves or comments a ticket, or writes its business rules, uses all declared trackers: read and search in each, and move and comment each ticket, and write its business rules, in the tracker that declares its key prefix, the primary one for a key no tracker declares, including both tickets when one work item has one in each. Create new tickets only in the primary tracker. A declared tracker carries the same write authorization as the primary one.
