@@ -352,9 +352,22 @@ type codexPending struct {
 // codexHumanText says whether a user message is one a person typed: Codex
 // injects its context and the instruction files as user messages that open
 // with markup or the instruction heading.
+// codexMachinePrefixes open the user-role messages Codex injects itself. Any
+// other user text is a person's, including the tags Codex wraps a person's
+// image, review action or card answer in.
+var codexMachinePrefixes = []string{"# AGENTS.md instructions", "<environment_context", "<skill", "<user_instructions", "<turn_aborted"}
+
 func codexHumanText(text string) bool {
 	t := strings.TrimSpace(text)
-	return t != "" && !strings.HasPrefix(t, "<") && !strings.HasPrefix(t, "# AGENTS.md instructions")
+	if t == "" {
+		return false
+	}
+	for _, prefix := range codexMachinePrefixes {
+		if strings.HasPrefix(t, prefix) {
+			return false
+		}
+	}
+	return true
 }
 
 func newCodexTimeReader(f *timeFacts) func([]byte) error {

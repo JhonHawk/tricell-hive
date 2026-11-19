@@ -10,10 +10,8 @@ var (
 	statesTopic = regexp.MustCompile(`tracker/states/`)
 	// noMemories is Engram's answer to a search that found nothing.
 	noMemories = regexp.MustCompile(`(?i)no memories found`)
-	// ticketMove is a command that changes a ticket's state.
-	ticketMove = regexp.MustCompile(`\bacli\s+jira\s+workitem\s+transition\b|\bgh\s+issue\s+(?:close|reopen|edit)\b`)
-	// moveTool is an MCP tool that changes a ticket's state.
-	moveTool = regexp.MustCompile(`(?i)transition.*issue|issue.*transition|save_issue|update_issue`)
+	// acliTransition is acli's ticket move, which leafActionsIn does not know.
+	acliTransition = regexp.MustCompile(`\bacli\s+jira\s+workitem\s+transition\b`)
 	// memoryWrite is a write to persistent memory, by tool or by Engram's CLI.
 	memoryWriteTool = regexp.MustCompile(`(?i)mem_save|mem_update`)
 	memoryWriteCLI  = regexp.MustCompile(`\bengram\s+save\b`)
@@ -51,9 +49,7 @@ func trackerStatesCacheWritten(s auditSession) criterionAssessment {
 			written = true
 		case (e.Kind == "shell" || e.Kind == "exec_item") && memoryWriteCLI.MatchString(e.Command) && statesTopic.MatchString(e.Command):
 			written = true
-		case missing && move == nil && (e.Kind == "shell" || e.Kind == "exec_item") && ticketMove.MatchString(e.Command):
-			move = e
-		case missing && move == nil && (e.Kind == "tool" || e.Kind == "mcp_call") && !e.Memory && moveTool.MatchString(e.Tool):
+		case missing && move == nil && movesTicket(*e, s.Cwd):
 			move = e
 		}
 	}
@@ -65,6 +61,30 @@ func trackerStatesCacheWritten(s auditSession) criterionAssessment {
 		c.Status, c.Evidence = "fail", []string{regressionEvidence(*move)}
 	}
 	return c
+}
+
+// movesTicket reports whether an event changes a ticket's state: acli's
+// transition, or what leafActionsIn counts as a ticket move, read the same way
+// from Codex's completed MCP calls and executed commands.
+func movesTicket(e traceEvent, cwd string) bool {
+	switch e.Kind {
+	case "mcp_call":
+		e.Kind = "tool"
+	case "exec_item":
+		e.Kind = "shell"
+	}
+	if e.Kind == "shell" && acliTransition.MatchString(e.Command) {
+		return true
+	}
+	if e.Kind == "tool" && e.Memory {
+		return false
+	}
+	for _, a := range leafActionsIn(e, cwd) {
+		if a.class == "ticket move" {
+			return true
+		}
+	}
+	return false
 }
 
 // launchesRole reports whether an event starts a child of the role, which

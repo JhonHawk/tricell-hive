@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -90,6 +91,38 @@ func TestTimeTruncatedFileIsPartial(t *testing.T) {
 	r := runTimeJSON(t, "--session-file", filepath.Join("testdata", "time", "claude-truncated.jsonl"), "--host", "claude-code")
 	if r.Result != "partial" || r.Note == "" {
 		t.Fatalf("result %q note %q, want partial with a note", r.Result, r.Note)
+	}
+}
+
+func TestTimeFileWithoutTimedEventsIsPartial(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "rollout-x-01a00000-0000-7000-8000-000000000001.jsonl")
+	if err := os.WriteFile(path, []byte("{\"type\":\"session_meta\",\"payload\":{}}\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	r := runTimeJSON(t, "--session-file", path, "--host", "codex")
+	if r.Result != "partial" || r.ActiveSeconds != 0 {
+		t.Fatalf("result %q active %d, want partial", r.Result, r.ActiveSeconds)
+	}
+}
+
+func TestTimeCodexPastedMarkupEndsTheUserWait(t *testing.T) {
+	// The turn ends at 10:01:00 and the person pastes an HTML page at 10:31:00:
+	// 1800 s of user wait, not active time.
+	lines := []string{
+		`{"timestamp":"2026-01-01T10:00:00Z","type":"event_msg","payload":{"type":"task_started"}}`,
+		`{"timestamp":"2026-01-01T10:00:30Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"Done."}]}}`,
+		`{"timestamp":"2026-01-01T10:01:00Z","type":"event_msg","payload":{"type":"task_complete"}}`,
+		`{"timestamp":"2026-01-01T10:31:00Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"<!DOCTYPE html><p>error</p>"}]}}`,
+		`{"timestamp":"2026-01-01T10:31:05Z","type":"event_msg","payload":{"type":"task_started"}}`,
+		`{"timestamp":"2026-01-01T10:32:00Z","type":"event_msg","payload":{"type":"task_complete"}}`,
+	}
+	path := filepath.Join(t.TempDir(), "rollout-x-01a00000-0000-7000-8000-000000000002.jsonl")
+	if err := os.WriteFile(path, []byte(strings.Join(lines, "\n")+"\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	r := runTimeJSON(t, "--session-file", path, "--host", "codex")
+	if r.UserWaitSeconds != 1800 || r.ActiveSeconds != 120 {
+		t.Fatalf("user wait %d active %d, want 1800 and 120", r.UserWaitSeconds, r.ActiveSeconds)
 	}
 }
 
