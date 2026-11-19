@@ -46,7 +46,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 ### T2 — El manager genera el `agents/openai.yaml` de Codex para las hojas ocultas
 
-- [ ] Una skill con `disable-model-invocation: true` recibe un `agents/openai.yaml` generado, con `policy.allow_implicit_invocation: false`, registrado como destino administrado. Las demás skills no cambian.
+- [x] Una skill con `disable-model-invocation: true` recibe un `agents/openai.yaml` generado, con `policy.allow_implicit_invocation: false`, registrado como destino administrado. Las demás skills no cambian.
 
 **Closes:** AC2
 
@@ -497,3 +497,4 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 2026-11-18 — Cuarta revisión (matriz, AC17 y D19): 1 P1, 6 P2 y 3 P3, todos aplicados. El merge de un PR ajeno pide tu instrucción en todos los modos (H50). Pausa sin commit `wip:` (H51). Test de AC17 con comillas invertidas y frase fija (H52). `ready` y `hold` en `urgent-fixes.md`, por T8 (H53). Un solo hogar para el playbook elegido, sin `--playbook` (H54). Filas de efectos en AC16 y T12 (H55). Ubicaciones del registro (H56). Matriz en T10 y T12 (H57). Gramática y encabezado `## Delivery units` (H58 y H59).
 2026-11-18 — T3 · e9561ec4 · unverified: AC4 and AC7 stay inactive until each extraction task activates its phrases and links
 2026-11-18 — T1 · addf3256 · unverified: AC4 of question-card-alone (rule survives a refresh) is moot: the trial paragraph is gone
+2026-11-18 — T2 · 549b1583 · unverified: hive doctor end to end and a rollback to an older stored release not run; covered through Status and desiredResources

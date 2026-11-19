@@ -24,7 +24,7 @@ type homePhrase struct {
 // marked "repeated today" appear in two or more files on the base branch, so
 // the test fails there once the phrase is active and its copies remain.
 var homePhrases = []homePhrase{
-	{"Never run `git add -A`", "content/skills/hive-rule-git-commit/SKILL.md", false},
+	{"Never run `git add -A`", "content/skills/hive-rule-git-commit/SKILL.md", true},
 	// Repeated today: global.md «Delivery» and git-workflow.
 	{"Before the validation, or before the push when the mode", "content/skills/hive-rule-foreign-commits/SKILL.md", false},
 	{"is done when its changes are integrated", "content/skills/hive-rule-ticket-state/SKILL.md", false},

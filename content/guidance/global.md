@@ -73,6 +73,12 @@ These rules hold in every mode, including unattended delegation.
 - For an investigation one bounded lookup cannot answer (a bounded lookup is one search plus at most 3 file or source reads), a failure the user reports without asking for the fix, or assessing a ticket before working on it, read and use `flow-research`; for the project's status or backlog, its status report.
 - A large read returns a whole document or more than 100 lines, such as a source file, a documentation page from Context7 or the web, a log or an unfiltered listing; a filtered read, such as a search with few matches, a section of a file or a command that selects its fields, is not. A risky change is one to a contract, stored data or a migration, security or permissions, money, concurrency or a dependency. Before deciding whether a child does a piece of work, in any flow, read [delegation](skill:flow-build/references/delegation.md).
 
+## Rule leaves
+
+A rule leaf is a small skill the model does not load on its own. Each line below names one and the moment it applies: at that moment, read the leaf's file whole and follow it; do not invoke it as a skill, since a host may refuse a hidden skill. A flow step that needs a leaf links it too.
+
+- **Before any `git add` or commit:** read the file [git commit](skill:hive-rule-git-commit/SKILL.md).
+
 ## Support folder (`_support`)
 
 Application code, scripts, and configuration stay in their source locations, even when an agent wrote them, except the local scripts «Local instructions» sets. Supporting artifacts that are not change records go in one support home: `<repo>/_support/` for one repository, the declared `<workspace>/_support/` for work across repositories, or one at a monorepo's root; never infer a workspace from a parent folder, and do not initialize Git there unless the user asks [workspace-repo](skill:workspace-repo/SKILL.md) to make the workspace a repository. Before writing or cleaning a support artifact, read [layout and retention](skill:project-layout/references/layout.md). Scratch belongs in the host's temporary location, never the repository root; unique work is not scratch. Local retention is not versioning; eligibility for Git is not authorization to commit or push.
