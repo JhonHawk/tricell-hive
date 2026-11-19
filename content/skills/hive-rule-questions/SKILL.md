@@ -34,4 +34,4 @@ disable-model-invocation: true
 
 ## A card returns unanswered
 
-When a card comes back without answers, read and follow [unanswered card](references/unanswered.md) before you write anything.
+When a card comes back without answers, follow the host's required response, then read and follow [unanswered card](references/unanswered.md).

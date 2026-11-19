@@ -18,8 +18,12 @@ var (
 	// choice in prose may be a question about what the user wants.
 	sessionChoice = regexp.MustCompile("(?i)\\bentrega\\b|revisi[oó]n (?:del? )?(?:c[oó]digo|seguridad)|/code-review|\\bdelivery\\b|\\b(?:code|security) review\\b|`(?:interactive|automatic|ready|hold|direct-base)`|\\b(?:interactive|direct-base)\\b")
 	fencedCode    = regexp.MustCompile("(?s)```.*?```")
-	// spanishQuestion is a ¿…? question, which may wrap a line.
-	spanishQuestion = regexp.MustCompile(`¿[^?¿]*\?`)
+	// spanishQuestion is a ¿…? question, which may wrap a line but never runs
+	// past a blank line.
+	spanishQuestion = regexp.MustCompile(`¿(?:[^?¿\n]|\n[^?¿\n])*\?`)
+	// sessionCard is the header or the question of a card that asks a session
+	// question: the delivery, the code review or the security review.
+	sessionCard = regexp.MustCompile(`(?i)^\W*(?:entrega|delivery|revisi[oó]n|review|seguridad|security)\b|\bentrega\b|revisi[oó]n (?:del? )?(?:c[oó]digo|seguridad)|\b(?:code|security) review\b|\bdelivery mode\b`)
 	// nextStepBlock is the block that ends a report, from its ▶ heading on.
 	nextStepBlock = regexp.MustCompile(`(?s)[^\n]*▶.*$`)
 )
@@ -79,9 +83,12 @@ func proseChoiceWithoutCard(s auditSession) criterionAssessment {
 	}
 	unattended := unattendedActivation(events)
 	var failed, review, passed []string
-	for _, e := range events {
+	for i, e := range events {
 		// A card that carries a session question is the positive evidence.
-		if e.Kind == "question" && sessionChoice.MatchString(string(e.Input)+" "+e.Text) {
+		if unattended >= 0 && i > unattended {
+			break
+		}
+		if e.Kind == "question" && asksSessionQuestion(e) {
 			passed = append(passed, regressionEvidence(e))
 			break
 		}
@@ -105,6 +112,19 @@ func proseChoiceWithoutCard(s auditSession) criterionAssessment {
 		return c
 	}
 	return statusOf(c, failed, passed)
+}
+
+// asksSessionQuestion reports whether a card's header or question, not its
+// option descriptions, asks the delivery, the code review or the security
+// review.
+func asksSessionQuestion(e traceEvent) bool {
+	for _, raw := range list(decodeInput(e)["questions"]) {
+		q := object(raw)
+		if sessionCard.MatchString(str(q["header"])) || sessionCard.MatchString(str(q["question"])) {
+			return true
+		}
+	}
+	return false
 }
 
 // cardAvailable reports whether the session could ask through a waiting card:
