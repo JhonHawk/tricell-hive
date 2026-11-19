@@ -59,68 +59,68 @@ These rules hold in every mode, including unattended delegation.
 
 ## Rule leaves
 
-A rule leaf is a small skill the model does not load on its own. Each line below names the moment a leaf applies and links it: at that moment, read that file whole and follow it; do not invoke it as a skill, since a host may refuse a hidden skill. A flow step that needs a leaf links it too.
+A rule leaf is a skill the model does not load on its own. At the moment a line names, read the linked file whole and follow it; never invoke it as a skill, which a host may refuse. Flow steps link their leaves too.
 
 - **Before any `git add` or commit:** [git commit](skill:hive-rule-git-commit/SKILL.md).
-- **After you push a pull request and before you merge it or stop it as `ready`:** [merge gate](skill:hive-rule-merge-gate/SKILL.md).
-- **When the CI wait of a pull request ends:** [PR reviews](skill:hive-rule-pr-reviews/SKILL.md).
-- **Before a push, merge or branch that touches an environment branch after the base, such as `qa` or `production`:** [promotion path](skill:hive-rule-promotion-path/SKILL.md).
+- **After a push, before a merge or a `ready` stop:** [merge gate](skill:hive-rule-merge-gate/SKILL.md).
+- **When a pull request's CI wait ends:** [PR reviews](skill:hive-rule-pr-reviews/SKILL.md).
+- **Before a push, merge or branch on an environment branch after the base:** [promotion path](skill:hive-rule-promotion-path/SKILL.md).
 - **When a close starts:** [close modes](skill:hive-rule-close-modes/SKILL.md).
-- **At steps 4 to 7 of a close, to archive the change folder, clean up or record pending work:** [close hygiene](skill:hive-rule-close-hygiene/SKILL.md).
-- **Before you write a final report or classify a finding:** [close report](skill:hive-rule-close-report/SKILL.md).
-- **Before you end a final report with the close footer:** [close footer](skill:hive-rule-close-footer/SKILL.md).
-- **Before you write a decision, a finding or a list of points for the user:** [decision format](skill:hive-rule-decision-format/SKILL.md).
-- **Before you give the user a reason, report a blocker or a failure, or ask them to run a command, validate or take a step:** [reasons and blockers](skill:hive-rule-reasons-and-blockers/SKILL.md).
-- **Before you ask a round of decisions or findings:** [asking a round](skill:hive-rule-question-channel/SKILL.md).
-- **When a question card comes back unanswered, closed or only partly answered:** [unanswered cards](skill:hive-rule-card-unanswered/SKILL.md).
-- **When no permitted waiting question tool carries the question, or the card has no option descriptions:** [asking in text](skill:hive-rule-question-text/SKILL.md).
-- **Before you end an analysis, explanation, review, diagnosis or ticket assessment, or offer a single action:** [report endings](skill:hive-rule-report-endings/SKILL.md).
-- **Before you end a report that hands over to the next flow:** [next-step block](skill:hive-rule-next-step-block/SKILL.md).
-- **Before the first edit of a work item, when no delivery answers are in force:** [delivery questions](skill:hive-rule-delivery-ask/SKILL.md).
-- **Before the validation or the push, when the branch may carry commits that are not this work item's:** [foreign commits](skill:hive-rule-foreign-commits/SKILL.md).
-- **Before you add, update or mark stale an entry of a `HIVE.local.md` file:** [local record](skill:hive-rule-local-record/SKILL.md).
-- **Before you write, ignore, mark stale or prune a `HIVE.local.md` file; it authorizes that write in any flow:** [local write](skill:hive-rule-local-write/SKILL.md).
-- **Before you name, write, change or run a local script of a `HIVE.local.md`:** [local script](skill:hive-rule-local-script/SKILL.md).
-- **Before a check that signs in or uses records the environment already holds:** [test accounts](skill:hive-rule-test-accounts/SKILL.md).
-- **Before you move, comment on, search or finish a ticket:** [ticket state](skill:hive-rule-ticket-state/SKILL.md).
-- **When the user asks for something that changes open work, or before you propose a ticket:** [scope changes](skill:hive-rule-scope-changes/SKILL.md).
-- **Before you read, resolve or ask for a key of a repository's `## Hive` section:** [project settings](skill:hive-rule-project-settings/SKILL.md).
-- **Before you write new code, or when a plan weighs approaches:** [reuse before writing](skill:hive-rule-reuse-before-writing/SKILL.md).
-- **Before you write, change or delete a test, or when a check fails:** [tests](skill:hive-rule-tests/SKILL.md).
-- **In a repository or package without tests, before you edit a defect fix or consequential logic:** [no test runner](skill:hive-rule-tests-no-runner/SKILL.md).
+- **At close steps 4 to 7:** [close hygiene](skill:hive-rule-close-hygiene/SKILL.md).
+- **Before a final report or classifying a finding:** [close report](skill:hive-rule-close-report/SKILL.md).
+- **Before the close footer:** [close footer](skill:hive-rule-close-footer/SKILL.md).
+- **Before writing a decision, finding or list for the user:** [decision format](skill:hive-rule-decision-format/SKILL.md).
+- **Before giving a reason, reporting a blocker or failure, or asking the user to act:** [reasons and blockers](skill:hive-rule-reasons-and-blockers/SKILL.md).
+- **Before asking a round:** [asking a round](skill:hive-rule-question-channel/SKILL.md).
+- **When a question card returns unanswered or partly answered:** [unanswered cards](skill:hive-rule-card-unanswered/SKILL.md).
+- **When no permitted waiting tool carries a round, or options lack descriptions:** [asking in text](skill:hive-rule-question-text/SKILL.md).
+- **Before ending an analysis, review or ticket assessment, or offering a single action:** [report endings](skill:hive-rule-report-endings/SKILL.md).
+- **Before handing over to the next flow:** [next-step block](skill:hive-rule-next-step-block/SKILL.md).
+- **Before a work item's first edit with no delivery answers in force:** [delivery questions](skill:hive-rule-delivery-ask/SKILL.md).
+- **Before validation or push, with commits not this work item's:** [foreign commits](skill:hive-rule-foreign-commits/SKILL.md).
+- **Before adding, updating or marking stale a `HIVE.local.md` entry:** [local record](skill:hive-rule-local-record/SKILL.md).
+- **Before writing, ignoring or pruning a `HIVE.local.md` file (authorized in any flow):** [local write](skill:hive-rule-local-write/SKILL.md).
+- **Before naming, writing or running a local script:** [local script](skill:hive-rule-local-script/SKILL.md).
+- **Before a check that signs in or uses existing records:** [test accounts](skill:hive-rule-test-accounts/SKILL.md).
+- **Before moving, commenting on, searching or finishing a ticket:** [ticket state](skill:hive-rule-ticket-state/SKILL.md).
+- **When the user changes open work, or before proposing a ticket:** [scope changes](skill:hive-rule-scope-changes/SKILL.md).
+- **Before reading or asking for a `## Hive` key:** [project settings](skill:hive-rule-project-settings/SKILL.md).
+- **Before new code, or when a plan weighs approaches:** [reuse before writing](skill:hive-rule-reuse-before-writing/SKILL.md).
+- **Before writing, changing or deleting a test, or when a check fails:** [tests](skill:hive-rule-tests/SKILL.md).
+- **Without a test runner, before a defect fix or consequential logic:** [no test runner](skill:hive-rule-tests-no-runner/SKILL.md).
 - **Before the first edit of a defect fix:** [defect fix](skill:hive-rule-defect-fix/SKILL.md).
-- **Before you decide whether a child does a piece of work:** [delegation](skill:hive-rule-delegation/SKILL.md).
-- **Before you brief a child, pick its role or wait for it:** [child brief](skill:hive-rule-child-brief/SKILL.md).
-- **Before you brief a reviewing or verifying child:** [reviewer brief](skill:hive-rule-reviewer-brief/SKILL.md).
-- **When a decision or an assumption adds, replaces or cancels a business rule, or a work item closes its rules:** [business rules](skill:hive-rule-business-rules/SKILL.md).
-- **Before you write or change a line of a business-rule record:** [rule record](skill:hive-rule-business-record/SKILL.md).
-- **Before you write a work item's business rules to its ticket:** [ticket write](skill:hive-rule-business-ticket/SKILL.md).
-- **When a plan's approach reads or changes an external system:** [external facts](skill:hive-rule-external-facts/SKILL.md).
-- **Before you plan or take an effect on an external system:** [effects round](skill:hive-rule-external-effects/SKILL.md).
-- **When you plan a change to a screen:** [UI decisions](skill:hive-rule-ui-plan/SKILL.md).
-- **When a plan's work folder holds the `examples.md` of a Figma design:** [approved example](skill:hive-rule-ui-example/SKILL.md).
-- **Before you verify, capture or review a UI change:** [UI verification](skill:hive-rule-ui-verification/SKILL.md).
-- **Before the first edit of an existing screen in a build:** [before captures](skill:hive-rule-before-captures/SKILL.md).
-- **When you review the UX of a UI change:** [accessibility audit](skill:hive-rule-a11y-audit/SKILL.md).
-- **When a build or verify captures an interface, or the user asks for a walkthrough:** [walkthrough](skill:hive-rule-walkthrough/SKILL.md).
-- **At the first UI capture of a session, and after a compaction:** [viewer](skill:hive-rule-viewer/SKILL.md).
-- **At a stop where the user reviews UI captures:** [open the viewer](skill:hive-rule-viewer-open/SKILL.md).
-- **When you close a work with viewer captures, or manage a viewer work:** [close the viewer](skill:hive-rule-viewer-close/SKILL.md).
+- **Before deciding whether a child does a piece of work:** [delegation](skill:hive-rule-delegation/SKILL.md).
+- **Before briefing or waiting for a child:** [child brief](skill:hive-rule-child-brief/SKILL.md).
+- **Before briefing a reviewing or verifying child:** [reviewer brief](skill:hive-rule-reviewer-brief/SKILL.md).
+- **When a business rule is added, replaced or cancelled, or a work item closes its rules:** [business rules](skill:hive-rule-business-rules/SKILL.md).
+- **Before editing a business-rule record line:** [rule record](skill:hive-rule-business-record/SKILL.md).
+- **Before writing business rules to a ticket:** [ticket write](skill:hive-rule-business-ticket/SKILL.md).
+- **When an approach reads or changes an external system:** [external facts](skill:hive-rule-external-facts/SKILL.md).
+- **Before planning or taking an external effect:** [effects round](skill:hive-rule-external-effects/SKILL.md).
+- **When planning a screen change:** [UI decisions](skill:hive-rule-ui-plan/SKILL.md).
+- **When the work folder holds a Figma `examples.md`:** [approved example](skill:hive-rule-ui-example/SKILL.md).
+- **Before verifying, capturing or reviewing a UI change:** [UI verification](skill:hive-rule-ui-verification/SKILL.md).
+- **Before the first edit of an existing screen:** [before captures](skill:hive-rule-before-captures/SKILL.md).
+- **When reviewing a UI change's UX:** [accessibility audit](skill:hive-rule-a11y-audit/SKILL.md).
+- **When an interface is captured, or a walkthrough is asked for:** [walkthrough](skill:hive-rule-walkthrough/SKILL.md).
+- **At a session's first UI capture, and after a compaction:** [viewer](skill:hive-rule-viewer/SKILL.md).
+- **At a stop where the user reviews captures:** [open the viewer](skill:hive-rule-viewer-open/SKILL.md).
+- **When closing a work with captures, or managing a viewer work:** [close the viewer](skill:hive-rule-viewer-close/SKILL.md).
 - **When a plan needs a change folder, or a written plan changes:** [change folder](skill:hive-rule-change-folder/SKILL.md).
-- **At the start of a build or verify, after a compaction, and when you pause:** [checkpoint](skill:hive-rule-checkpoint/SKILL.md).
-- **Before you run or repeat a check, when a build's tasks are done, and before the push:** [checks](skill:hive-rule-checks/SKILL.md).
-- **When the user's answer and the reviews of a verify are in:** [review findings](skill:hive-rule-review-findings/SKILL.md).
-- **Before you treat a code finding as confirmed:** [review evidence](skill:hive-rule-review-evidence/SKILL.md).
-- **When you add or change a project verification command or journey:** [project verification](skill:hive-rule-project-verification/SKILL.md).
-- **When you write or check the project verification JSON:** [verification format](skill:hive-rule-project-verification-format/SKILL.md).
+- **At a build or verify's start, after a compaction, and at a pause:** [checkpoint](skill:hive-rule-checkpoint/SKILL.md).
+- **Before running or repeating a check, after a build's last task, and before the push:** [checks](skill:hive-rule-checks/SKILL.md).
+- **When a verify's reviews and the user's answer are in:** [review findings](skill:hive-rule-review-findings/SKILL.md).
+- **Before treating a code finding as confirmed:** [review evidence](skill:hive-rule-review-evidence/SKILL.md).
+- **When adding or changing a project verification command:** [project verification](skill:hive-rule-project-verification/SKILL.md).
+- **When writing or checking the project verification JSON:** [verification format](skill:hive-rule-project-verification-format/SKILL.md).
 - **Before a change to stored data:** [stored data](skill:hive-rule-stored-data/SKILL.md).
 - **When a change touches untrusted input, permissions, process execution or data exposure:** [security boundaries](skill:hive-rule-security-boundaries/SKILL.md).
-- **Before the review of any candidate:** [weakened checks](skill:hive-rule-suppression-review/SKILL.md).
-- **When you route a screen change toward a Figma design, or choose how many examples to draw:** [design stage](skill:hive-rule-design-stage/SKILL.md).
-- **Before you take an effect in unattended work:** [unattended effects](skill:hive-rule-unattended-effects/SKILL.md).
-- **Before the review of a candidate, to remove narrating comments:** [no comments](skill:hive-rule-no-comments/SKILL.md).
-- **Before the review of a candidate, to check what it can break beyond the diff:** [blast radius](skill:hive-rule-blast-radius/SKILL.md).
-- **Before you write a commit message, pull request text or documentation:** [prose](skill:hive-rule-prose/SKILL.md).
+- **Before reviewing any candidate:** [weakened checks](skill:hive-rule-suppression-review/SKILL.md).
+- **When routing a screen change to Figma, or choosing how many examples:** [design stage](skill:hive-rule-design-stage/SKILL.md).
+- **Before an effect in unattended work:** [unattended effects](skill:hive-rule-unattended-effects/SKILL.md).
+- **Before a review, for narrating comments:** [no comments](skill:hive-rule-no-comments/SKILL.md).
+- **Before a review, for impact beyond the diff:** [blast radius](skill:hive-rule-blast-radius/SKILL.md).
+- **Before a commit message, pull request text or documentation:** [prose](skill:hive-rule-prose/SKILL.md).
 - **When the review answer chose `Adversarial: interrogate`:** [interrogate](skill:hive-rule-interrogate/SKILL.md).
 
 ## Support folder (`_support`)

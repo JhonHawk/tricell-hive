@@ -275,7 +275,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 ### T14 — `flow-verify` suma los complementos de pstack
 
-- [ ] Existen `hive-rule-no-comments`, `hive-rule-blast-radius`, `hive-rule-prose` y `hive-rule-interrogate`. `flow-verify` lee las tres primeras en el paso previo a la revisión. La hoja de la pregunta de entrega ofrece «Adversarial: interrogate» y dice que gasta cuota de otro proveedor.
+- [x] Existen `hive-rule-no-comments`, `hive-rule-blast-radius`, `hive-rule-prose` y `hive-rule-interrogate`. `flow-verify` lee las tres primeras en el paso previo a la revisión. La hoja de la pregunta de entrega ofrece «Adversarial: interrogate» y dice que gasta cuota de otro proveedor.
 
 **Closes:** AC15, AC17
 
@@ -509,3 +509,4 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 2026-11-19 — T7 · f5f68b6c · unverified: global.md is 30,957 bytes, over AC5's 30,000 with more index lines to come; settled before PR 1
 2026-11-19 — T8 · eb134916 · unverified: promotion commit listing stays in flow-deploy (different rule than foreign-commits); site pages for figma/deploy wait for T9
 2026-11-19 — T13 · 8de4a4a5 · unverified: AC14's real hive-mode session waits for T12; tests/fixtures/qualification/suite.json kept as history
+2026-11-19 — T14 · 8b89ed0d · unverified: interrogate never run against another provider's agent; AC15's read before /code-review is checked in T10
