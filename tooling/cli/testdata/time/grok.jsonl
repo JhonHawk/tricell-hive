@@ -1,0 +1,12 @@
+{"timestamp":1767261600,"method":"session/update","params":{"sessionId":"g","update":{"sessionUpdate":"user_message_chunk","content":{"type":"text","text":"hi"},"_meta":{"promptIndex":0}}}}
+{"timestamp":1767261605,"method":"session/update","params":{"sessionId":"g","update":{"sessionUpdate":"tool_call","toolCallId":"q1","title":"ask_user_question","rawInput":{"questions":[]}}}}
+{"timestamp":1767261635,"method":"session/update","params":{"sessionId":"g","update":{"sessionUpdate":"tool_call_update","toolCallId":"q1","status":"completed","rawOutput":{"UserAnswered":{"message":"ok"}}}}}
+{"timestamp":1767261640,"method":"session/update","params":{"sessionId":"g","update":{"sessionUpdate":"tool_call","toolCallId":"s1","title":"run_command","rawInput":{"command":"gh run watch 123 --exit-status"}}}}
+{"timestamp":1767261641,"method":"session/update","params":{"sessionId":"g","update":{"sessionUpdate":"task_backgrounded","tool_call_id":"s1","task_id":"k1"}}}
+{"timestamp":1767261941,"method":"session/update","params":{"sessionId":"g","update":{"sessionUpdate":"task_completed","task_snapshot":{"task_id":"k1"}}}}
+{"timestamp":1767261945,"method":"session/update","params":{"sessionId":"g","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"checks passed"}}}}
+{"timestamp":1767261950,"method":"session/update","params":{"sessionId":"g","update":{"sessionUpdate":"turn_completed","stop_reason":"end_turn"}}}
+{"timestamp":1767262010,"method":"session/update","params":{"sessionId":"g","update":{"sessionUpdate":"user_message_chunk","content":{"type":"text","text":"<system-reminder>\nWhile you were idle, 1 background subagent completed\n</system-reminder>"},"_meta":{"promptIndex":1,"hideFromScrollback":true,"syntheticPrompt":true}}}}
+{"timestamp":1767262020,"method":"session/update","params":{"sessionId":"g","update":{"sessionUpdate":"turn_completed","stop_reason":"end_turn"}}}
+{"timestamp":1767262080,"method":"session/update","params":{"sessionId":"g","update":{"sessionUpdate":"user_message_chunk","content":{"type":"text","text":"more"},"_meta":{"promptIndex":2}},"_meta":{"agentTimestampMs":1767262080000}}}
+{"timestamp":1767262090,"method":"session/update","params":{"sessionId":"g","update":{"sessionUpdate":"turn_completed","stop_reason":"end_turn"}}}

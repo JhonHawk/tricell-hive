@@ -334,6 +334,10 @@ hive doctor
 hive models
 ```
 
+`hive time` prints, as JSON, the current agent session's active time, the time
+it spent waiting for you and on remote CI, and that time converted for a
+ticket's worklog; the agents use it to record the time worked on Jira tickets.
+
 **Releases.** `hive releases` lists the release snapshots Hive keeps.
 
 **Recover.** An interrupted operation blocks further plans until recovery runs:

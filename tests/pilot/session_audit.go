@@ -273,8 +273,11 @@ func loadCodexSession(data []byte) (auditSession, error) {
 				b.modeAllows = true
 			}
 		case "event_msg":
-			if str(p["type"]) == "task_started" {
+			switch str(p["type"]) {
+			case "task_started":
 				b.turn++
+			case "item_completed":
+				b.codexCompletedItem(line, object(p["item"]))
 			}
 		case "response_item":
 			b.codexItem(line, p)
@@ -344,6 +347,31 @@ func (b *codexBuilder) codexItem(line int, p map[string]any) {
 		}
 	case "custom_tool_call_output":
 		b.codexExecOutput(line, str(p["call_id"]), list(p["output"]))
+	}
+}
+
+// codexCompletedItem records what Codex reports after an exec block's call
+// ran: an MCP call with its arguments and result, which the block's source
+// cannot give, and the command a shell call executed, interpolation resolved.
+// They get kinds of their own so the criteria that read calls from the block
+// do not count them twice.
+func (b *codexBuilder) codexCompletedItem(line int, item map[string]any) {
+	switch str(item["type"]) {
+	case "McpToolCall":
+		args, _ := json.Marshal(item["arguments"])
+		var parts []string
+		for _, raw := range list(object(item["result"])["content"]) {
+			parts = append(parts, str(object(raw)["text"]))
+		}
+		e := traceEvent{Line: line, Kind: "mcp_call", Tool: "mcp__" + str(item["server"]) + "__" + str(item["tool"]), Input: args, Text: strings.Join(parts, "\n")}
+		e.Memory = codexMemoryTool(e.Tool)
+		b.add(e)
+	case "CommandExecution":
+		argv := list(item["command"])
+		if len(argv) == 0 {
+			return
+		}
+		b.add(traceEvent{Line: line, Kind: "exec_item", Command: str(argv[len(argv)-1])})
 	}
 }
 
@@ -1427,7 +1455,7 @@ func skillNamedAsReason(s auditSession) criterionAssessment {
 
 func auditCriteria(s auditSession, base string) []criterionAssessment {
 	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s), reviewQuestionNativeOption(s), leafReadBeforeAction(s),
-		flowEnteredWithoutRoute(s), decisionRoundFormat(s), uiChangeWithoutUXReview(s))
+		flowEnteredWithoutRoute(s), decisionRoundFormat(s), uiChangeWithoutUXReview(s), trackerStatesCacheWritten(s), tryItBlockInReport(s))
 }
 
 var (
