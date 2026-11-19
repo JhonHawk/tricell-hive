@@ -45,6 +45,6 @@ It is not for reviewing a change, and not for checking a package before you inst
 ## FAQ
 
 ### Is a security review part of every change?
-No. Ask for it when a change touches a security boundary or you want a second look.
+No. The agent recommends it for each change that touches a security boundary and runs it when you accept; you can also ask for it on any change.
 
 Source: [content/agents/review/hive-review-security.md](https://github.com/JhonHawk/tricell-hive/blob/master/content/agents/review/hive-review-security.md)

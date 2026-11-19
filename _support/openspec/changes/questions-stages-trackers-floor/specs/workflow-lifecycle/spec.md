@@ -86,7 +86,7 @@ Every move from one flow to the next SHALL end the report with the next-step blo
 
 ### Requirement: Session questions carry fixed headers
 
-The delivery mode, the code review mechanism and the adversarial review question SHALL carry a fixed header in the session language instead of a decision ID, with the rest of the decision format. A mechanical change SHALL get no code review question; every other change SHALL get a code review, so the question SHALL offer only review mechanisms, also under `Delivery: direct-base`. The adversarial review SHALL list the installed and signed-in agents of other providers for the user to choose.
+The delivery mode, the code review mechanism, the adversarial review and the security review questions SHALL carry a fixed header in the session language instead of a decision ID, with the rest of the decision format. A mechanical change SHALL get no code review question; every other change SHALL get a code review, so the question SHALL offer only review mechanisms, also under `Delivery: direct-base`. The adversarial review SHALL list the installed and signed-in agents of other providers for the user to choose.
 
 #### Scenario: Delivery round of a UI fix
 
@@ -96,7 +96,7 @@ The delivery mode, the code review mechanism and the adversarial review question
 
 ### Requirement: Tracker states are discovered and cached
 
-Before moving a ticket, the agent SHALL read that ticket's available transitions from its tracker, and SHALL take the equivalent state when a transition fails. It SHALL keep the names and categories of the project's states in the Engram topic `tracker/states/<tracker>/<prefix>`, where `<prefix>` is the project's key prefix plus the ticket type when the workflow differs by type, written when it discovers them or after a failed transition, and SHALL use it to choose the state, never in place of the live read.
+Before moving a ticket, the agent SHALL read that ticket's available transitions through the tracker's authenticated tool when it lists them, SHALL move to the state the project uses for that purpose by its exact name, and SHALL report a blocker instead of picking among states that share a category when none is recorded for that purpose. It SHALL keep the names and categories of the project's states in the Engram topic `tracker/states/<tracker>/<prefix>`, where `<prefix>` is the project's key prefix plus the ticket type when the workflow differs by type, written when it discovers them or after a failed transition, and SHALL use it to choose the state, never in place of the live read.
 
 #### Scenario: A localized workflow
 
@@ -106,7 +106,7 @@ Before moving a ticket, the agent SHALL read that ticket's available transitions
 
 ### Requirement: A ticket is documented with evidence before cleanup
 
-At a work item's close, the agent SHALL document its ticket with the evidence the work produced, such as captures and test output, before any step that removes support material, temporary files or worktrees.
+At a work item's close that removes material, the agent SHALL document its ticket with the evidence the work produced, such as captures and test output, before any step that removes support material, temporary files or worktrees; a close of paused or `hold` work SHALL publish none.
 
 #### Scenario: Captures before cleanup
 
@@ -116,7 +116,7 @@ At a work item's close, the agent SHALL document its ticket with the evidence th
 
 ### Requirement: Verification floor by kind of change
 
-One rule SHALL set, per kind of change (mechanical, defect fix, feature, UI, risky, performance), the checks that always run, linking each check's own rule. The code review SHALL run on every non-mechanical change. A security review SHALL be recommended for a risky change that touches a security boundary.
+One rule SHALL set, per kind of change (mechanical, defect fix, feature, UI, risky, performance), the checks that always run, linking each check's own rule. The code review SHALL run on every non-mechanical change. A security review SHALL be recommended through its own session question for each work item that touches a security boundary, and SHALL run when the user accepts it.
 
 #### Scenario: A UI defect fix under hold
 

@@ -130,7 +130,7 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 
 ### T8 — README, llms.txt y sitio
 
-- [ ] La documentación para personas describe la revisión y la seguridad nuevas.
+- [x] La documentación para personas describe la revisión y la seguridad nuevas.
 
 **Closes:** AC14
 
@@ -231,3 +231,4 @@ En cada parada de validación: el diff de la unidad, el tamaño de `global.md`, 
 2026-11-19 — T5 · 84f3ea4c · unverified: AC11 waits for a real close
 2026-11-19 — T6 · 6d177c29 · unverified: AC13 waits for a real hold delivery after deploy
 2026-11-19 — T7 · 6d177c29 · unverified: AC13 waits for a real hold delivery after deploy
+2026-11-19 — T8 · 57a7fbdb · unverified: none
