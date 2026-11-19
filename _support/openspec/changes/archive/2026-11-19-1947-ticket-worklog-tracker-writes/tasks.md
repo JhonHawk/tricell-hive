@@ -150,13 +150,13 @@ Base `development` en `81d5b4f1`. Dos unidades: E1 (gestor y auditor, Go) y E2 (
 
 ### E1 — PR gestor y auditor · depends on: none · files: tooling/cli/, tests/pilot/, tests/fixtures/sessions/, _support/docs/harness-engineering/
 
-- [ ] unit: `go -C <repo> test ./tooling/... ./tests/pilot`
-- [ ] live: `hive time` en esta sesión, sobre los dos rollouts y sobre la transcripción de 59.5 MB · pass: `result: ok` y espera humana ±1 min de la medición a mano
+- [x] unit: `go -C <repo> test ./tooling/... ./tests/pilot`
+- [x] live: `hive time` en esta sesión, sobre los dos rollouts y sobre la transcripción de 59.5 MB · pass: `result: ok` y espera humana ±1 min de la medición a mano
 
 ### E2 — PR guía, scripts y documentación · depends on: E1 · files: content/, tests/content/, tests/skills/, site/, README.md, llms.txt, _support/docs/architecture/
 
-- [ ] unit: `go -C <repo> test ./tests/content` y `python3 -m unittest discover -s tests/skills -p '*_test.py'`
-- [ ] live: guía instalada tras `hive update` · pass: `rg` confirma `references/time.md`, el orden por capacidad y la ausencia de la pregunta adversarial en `~/.agents/skills/`
+- [x] unit: `go -C <repo> test ./tests/content` y `python3 -m unittest discover -s tests/skills -p '*_test.py'`
+- [x] live: guía instalada tras `hive update` · pass: `rg` confirma `references/time.md`, el orden por capacidad y la ausencia de la pregunta adversarial en `~/.agents/skills/`
 
 ## Verification and human review
 
@@ -171,11 +171,11 @@ Parada humana (`interactive`): antes de cada push, el diff y la salida de `hive 
 ## Checkpoint
 
 - Updated: 2026-11-19
-- Stage: verify · reviews running
-- Last commit: 9cf91b07
+- Stage: close · archive
+- Last commit: 2f456f75
 - Open findings: none
-- Next: suite result, /code-review findings, validation stop
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/ticket-worklog · feat/ticket-worklog (E1 feat/hive-time at 918114ea)
+- Next: archive decision (T8 open)
+- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/ticket-worklog · docs/archive-ticket-worklog
 
 ### Evidence
 
@@ -185,6 +185,10 @@ Parada humana (`interactive`): antes de cada push, el diff y la salida de `hive 
 - AC7/AC8: --audit-session on 01a1f37d gives fail on both · 11fb1ffd
 - blast radius: 55 real sessions, existing criteria identical base vs candidate · 9cf91b07
 - tests/skills 275 OK, tests/content ok · 9cf91b07
+- E1 unit: go test ./tooling/... ./tests/pilot ok · a610d1e4
+- E1 live: hive time ok on this session, 01a1f358, 01a1f37d and the 62.3 MB transcript (the 59.5 MB one also ok); waits match hand measurement · a610d1e4
+- E2 unit: tests/content ok, tests/skills 275+ OK · 296ec3f2
+- E2 live: installed time.md, jira_rest.py, capability order, no adversarial in delivery-ask after hive update from 2f456f75 · 2f456f75
 
 ## Review status and progress
 
