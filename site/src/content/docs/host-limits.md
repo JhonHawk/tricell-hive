@@ -60,22 +60,24 @@ verified.
 
 ## Codex
 
-- **The current mode decides how a question is asked.** Codex 0.169.0's
-  Default-mode instructions reserve the waiting card for optional questions.
-  Required input and permission requests use a concise question in chat, without
-  a multiple-choice block. Decisions still include their alternatives, consequences
-  and recommendation with its reason in the permitted form. An unanswered
-  optional card lets the agent continue with its best judgment; it does not grant
-  permission.
+- **Hive asks its decisions through the waiting card, also in Default mode.**
+  Codex's Default-mode instructions reserve the card for optional questions and
+  ask required input as a concise question in chat. In a session observed on
+  2026-11-19 (Codex 0.170.0) that form lost the decision format, so Hive asks
+  every round of decisions through `request_user_input` when the mode offers it.
+  Without the card, the round goes in the chat with its full format: ID, options
+  with their consequences and the recommended one marked (★). An unanswered card
+  grants no permission.
 - A Default-mode waiting card left untouched closes after about 120 seconds:
   60 seconds hidden, then a 60-second visible countdown. Pressing a key in the
   card stops that. Esc interrupts the turn. The feature
-  `default_mode_request_user_input` enables the tool in Default mode, but does
-  not override the mode's restrictions. `hive doctor` reports its state.
+  `default_mode_request_user_input` enables the tool in Default mode, and
+  `hive doctor` reports its state. A card that closes by itself brings the
+  round back in the chat with its full format.
 - Hive does not send the same pending question through both an asynchronous
   tool and a waiting card. An acceptance receipt is not your answer.
   The procedure is in the
-  [asking a round rule](https://github.com/JhonHawk/tricell-hive/blob/development/content/skills/hive-rule-question-channel/SKILL.md).
+  [questions rule](https://github.com/JhonHawk/tricell-hive/blob/development/content/skills/hive-rule-questions/SKILL.md).
 - A helper role that declares a read-only sandbox can still run with the session's
   sandbox (observed on Codex 0.163.0). Hive therefore relies on the role's text, not
   the sandbox, to keep such helpers read-only.

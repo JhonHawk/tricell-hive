@@ -1060,9 +1060,12 @@ func existingAuditCriteria(s auditSession, base string) []criterionAssessment {
 // --- criteria that exist only for real sessions ---
 
 // roundTitleLine and roundOptionStar define a decision round written as text: a
-// title line "D<n> — ..." and at least one option line "A - (★) ...".
+// title line "D<n> — ...", or a session question's fixed header such as
+// "**Review** — ...", and at least one option line "A - (★) ...".
 var (
-	roundTitleLine  = regexp.MustCompile(`(?m)^\s*[#>*\s]*D\d+\s*[—–-]`)
+	// A session question's header counts only on a title that asks, ending in
+	// "?", so a report heading such as "**Review** — Completed" is not a round.
+	roundTitleLine  = regexp.MustCompile(`(?mi)^\s*[#>*\s]*(?:D\d+\s*[—–-]|(?:` + sessionHeaderNames + `)\**\s*[—–-][^\n]*\?)`)
 	roundOptionStar = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\s*[-—–·]\s*\**\s*\(★\)`)
 	// grokNoUser is the result Grok gives a question when no user can answer.
 	grokNoUser = regexp.MustCompile(`(?i)^\s*no user is available`)
@@ -1578,8 +1581,21 @@ type leafAction struct {
 const (
 	leafGitCommit     = "hive-rule-git-commit"
 	leafTicketState   = "hive-rule-ticket-state"
-	leafQuestionRound = "hive-rule-question-channel"
+	leafQuestionRound = "hive-rule-questions"
 )
+
+// leafFormerNames lists the names a leaf had before, so transcripts of
+// sessions that ran the earlier guidance are judged by the leaf they read.
+var leafFormerNames = map[string][]string{leafQuestionRound: {"hive-rule-question-channel"}}
+
+// leafPaths returns the SKILL.md paths that count as reading a leaf.
+func leafPaths(leaf string) []string {
+	paths := []string{leaf + "/SKILL.md"}
+	for _, name := range leafFormerNames[leaf] {
+		paths = append(paths, name+"/SKILL.md")
+	}
+	return paths
+}
 
 // leafReadVerb names the shell programs that print a file, so a command that
 // only mentions a leaf's path, such as a commit message, is not a read.
@@ -1607,16 +1623,21 @@ func namesLeaf(e traceEvent, leaf string) bool {
 	if e.Success != nil && !*e.Success {
 		return false
 	}
-	target := leaf + "/SKILL.md"
-	switch e.Kind {
-	case "read":
-		return strings.Contains(e.Path, target)
-	case "tool":
-		return strings.Contains(e.Path+"\n"+string(e.Input), target)
-	case "shell":
-		for _, args := range shellSegments(e.Command, 0) {
-			if shellReadsLeaf(args, leaf) {
+	for _, target := range leafPaths(leaf) {
+		switch e.Kind {
+		case "read":
+			if strings.Contains(e.Path, target) {
 				return true
+			}
+		case "tool":
+			if strings.Contains(e.Path+"\n"+string(e.Input), target) {
+				return true
+			}
+		case "shell":
+			for _, args := range shellSegments(e.Command, 0) {
+				if shellReadsLeaf(args, strings.TrimSuffix(target, "/SKILL.md")) {
+					return true
+				}
 			}
 		}
 	}
@@ -1662,8 +1683,10 @@ func leafActionsIn(e traceEvent, cwd string) []leafAction {
 		for _, args := range shellSegments(e.Command, 0) {
 			joined := strings.Join(args, " ")
 			for _, leaf := range []string{leafGitCommit, leafTicketState, leafQuestionRound} {
-				if len(args) > 1 && leafReadVerb.MatchString(filepath.Base(args[0])) && strings.Contains(joined, leaf+"/SKILL.md") {
-					read[leaf] = true
+				for _, target := range leafPaths(leaf) {
+					if len(args) > 1 && leafReadVerb.MatchString(filepath.Base(args[0])) && strings.Contains(joined, target) {
+						read[leaf] = true
+					}
 				}
 			}
 			isCommit := false

@@ -22,7 +22,7 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 
 ### T2 — Hoja única de preguntas
 
-- [ ] `hive-rule-questions` reemplaza las cuatro hojas de preguntas, con el canal por host incluido Codex Default por `request_user_input`.
+- [x] `hive-rule-questions` reemplaza las cuatro hojas de preguntas, con el canal por host incluido Codex Default por `request_user_input`.
 
 **Closes:** AC4, AC5
 
@@ -40,7 +40,7 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 
 ### T3 — Paso entre etapas, preguntas de sesión y revisión adversarial
 
-- [ ] Ninguna respuesta a una pregunta arranca un flujo; las preguntas de sesión van sin ID; la revisión no se recomienda «sin revisión» salvo en mecánico; `interrogate` deja elegir el proveedor.
+- [x] Ninguna respuesta a una pregunta arranca un flujo; las preguntas de sesión van sin ID; la revisión no se recomienda «sin revisión» salvo en mecánico; `interrogate` deja elegir el proveedor.
 
 **Closes:** AC6, AC7, AC8
 
@@ -174,9 +174,9 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 
 ### E2 — PR preguntas y etapas · depends on: E1 · files: content/skills/hive-rule-questions/, content/skills/hive-mode/, content/guidance/global.md, tests/
 
-- [ ] unit: go -C <repo> test ./tests/content ./tests/pilot
+- [x] unit: go -C <repo> test ./tests/content ./tests/pilot
 - [ ] live: auditar la primera sesión real de Codex y de Claude Code tras el despliegue · pass: AC1 y AC2 en pass y una ronda por tarjeta que espera
-- [ ] perf: tamaño de global.md · base: 30,800 bytes · fail: más de 32,000 bytes
+- [x] perf: tamaño de global.md · base: 30,800 bytes · fail: más de 32,000 bytes
 
 ### E3 — PR trackers y evidencia · depends on: E2 · files: content/skills/hive-rule-trackers/, content/skills/flow-close/, content/guidance/global.md
 
@@ -206,11 +206,11 @@ En cada parada de validación: el diff de la unidad, el tamaño de `global.md`, 
 ## Checkpoint
 
 - Updated: 2026-11-19
-- Stage: flow-verify · E1 validation stop
-- Last commit: db6a98bd
+- Stage: flow-verify · E2 validation stop
+- Last commit: ac5a75d2
 - Open findings: none
-- Next: user validates E1, then push and PR
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/questions-floor · feat/audit-cam19-criteria
+- Next: user validates E2, then push and PR
+- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/questions-floor · feat/questions-and-stages
 
 ### Evidence
 
@@ -218,8 +218,12 @@ En cada parada de validación: el diff de la unidad, el tamaño de `global.md`, 
 - go test -count=1 ./tests/pilot · pass · db6a98bd
 - go test ./tests/content ./tooling/... ./integrations/... · pass · db6a98bd
 - audit rollout 01a1f2f5 · 3 new criteria fail · db6a98bd
+- go test full suite (pilot alone) · pass · E2
+- global.md 30,888 bytes (≤32,000)
 
 ## Review status and progress
 
 2026-11-19 — Plan escrito.
 2026-11-19 — T1 · 5b9b9b3a · unverified: none
+2026-11-19 — T2 · 4e9a8fe1 · unverified: AC5 (Codex round through request_user_input) waits for a real Codex session after deploy
+2026-11-19 — T3 · 2cbc0706 · unverified: AC6 real-session half waits for a session after deploy

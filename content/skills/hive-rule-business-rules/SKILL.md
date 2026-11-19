@@ -19,7 +19,7 @@ A rule is **stated** when the request, the ticket, in its description, its crite
 When a decision, or a rule you or a child assumed, adds, replaces or cancels a business rule, record it in the same turn, in any flow, as the matching case sets; write the record when one of these happens:
 
 - The user decides a rule no source stated, or one that replaces a stated or recorded rule: write it `approved`, and the replaced rule `cancelled`.
-- The main thread adopts a rule without asking: write it `assumption` and state it in the next message to the user, where a reply can turn it into a decision. A rule that fails the test of `assumption` above is asked as a decision, as [decision format](../hive-rule-decision-format/SKILL.md) sets, never assumed.
+- The main thread adopts a rule without asking: write it `assumption` and state it in the next message to the user, where a reply can turn it into a decision. A rule that fails the test of `assumption` above is asked as a decision, as [decision format](../hive-rule-questions/SKILL.md) sets, never assumed.
 - A child reports a rule it had to assume to finish its task: check it against the sources, record it the same way and state it. A child never writes the record, the ticket or the design file; the brief of a child that builds or draws asks it to report each such rule.
 - A flow starts after research: write as `approved` each rule the user decided in research that no source states. Research itself writes no record and no ticket.
 

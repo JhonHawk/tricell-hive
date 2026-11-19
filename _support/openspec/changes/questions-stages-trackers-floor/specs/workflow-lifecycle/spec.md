@@ -75,7 +75,7 @@ Before the code review, `flow-verify` SHALL read the leaves that remove narratin
 
 ### Requirement: Moving between stages shows the next-step block
 
-Every move from one flow to the next SHALL end the report with the next-step block and its command, except the continuations its rule names. A reply to a question or the acceptance of a proposal SHALL only define or redirect scope and SHALL NOT start a flow. Research SHALL continue into build in the same turn only when the user's own request named the change and its target.
+Every move from one flow to the next SHALL end the report with the next-step block and its command, except the continuations its rule names. A reply to a question or the acceptance of a proposal SHALL only define or redirect scope and SHALL NOT start a flow by itself, except a fix the close footer or a findings round sends and a continuation the user's own request set. Research SHALL continue into build in the same turn only when the user's own request named the change and its target.
 
 #### Scenario: A ticket picked for research
 
@@ -86,7 +86,7 @@ Every move from one flow to the next SHALL end the report with the next-step blo
 
 ### Requirement: Session questions carry fixed headers
 
-The delivery mode, the code review mechanism and the adversarial review question SHALL carry a fixed header in the session language instead of a decision ID, with the rest of the decision format. The code review question SHALL offer no-review only for a mechanical change. The adversarial review SHALL list the installed and signed-in agents of other providers for the user to choose.
+The delivery mode, the code review mechanism and the adversarial review question SHALL carry a fixed header in the session language instead of a decision ID, with the rest of the decision format. A mechanical change SHALL get no code review question; every other change SHALL get a code review, so the question SHALL offer only review mechanisms, also under `Delivery: direct-base`. The adversarial review SHALL list the installed and signed-in agents of other providers for the user to choose.
 
 #### Scenario: Delivery round of a UI fix
 

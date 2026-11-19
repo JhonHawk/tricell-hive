@@ -13,4 +13,4 @@ Read before you write a message that gives the reason for a step, reports a bloc
 - Before asking the user to run a command or take a step, check whether your access and the authorization you already have let you do it, including the command's own documented non-interactive options; when they do, do it instead. Ask the user only for what you cannot do that way, such as a sign-in through a browser or a device, and ask an authorization the guidance requires as a decision. Never give for the user a confirmation the guidance requires from them.
 - A request for validation or a manual action says what to check and how, with concrete targets such as a URL, a command or an account (never a secret), what you already verified, and what each answer lets you do next. When checking the change through its real path needs an effect you may not take alone, such as sending a real email or making a payment, offer that check as an option.
 
-A decision is written as [decision format](../hive-rule-decision-format/SKILL.md) sets.
+A decision is written as [decision format](../hive-rule-questions/SKILL.md) sets.
