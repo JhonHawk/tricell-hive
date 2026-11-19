@@ -180,15 +180,15 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 
 ### E3 — PR trackers y evidencia · depends on: E2 · files: content/skills/hive-rule-trackers/, content/skills/flow-close/, content/guidance/global.md
 
-- [ ] unit: go -C <repo> test ./tests/content
+- [x] unit: go -C <repo> test ./tests/content
 - [ ] live: una sesión real que mueva un ticket de Jira con estados en español · pass: lee transiciones, mueve a «En curso» y deja la caché en Engram
-- [ ] perf: n/a: sin ruta de rendimiento
+- [x] perf: n/a: sin ruta de rendimiento
 
 ### E4 — PR piso de pruebas · depends on: E3 · files: content/skills/hive-rule-verification-floor/, content/skills/flow-*, README.md, site/
 
-- [ ] unit: go -C <repo> test ./tests/content && python3 -m unittest discover -s tests/skills -p '*_test.py'
+- [x] unit: go -C <repo> test ./tests/content && python3 -m unittest discover -s tests/skills -p '*_test.py'
 - [ ] live: auditar una entrega hold real de UI tras el despliegue · pass: AC3 en pass, el reporte trae la salida fallando y pasando y «Pruébalo tú»
-- [ ] perf: tamaño de global.md · base: 30,800 bytes · fail: más de 32,000 bytes
+- [x] perf: tamaño de global.md · base: 30,800 bytes · fail: más de 32,000 bytes
 
 Las casillas `live` se marcan en T9, después de los merges; ninguna unidad espera la casilla `live` de la anterior.
 
@@ -206,10 +206,10 @@ En cada parada de validación: el diff de la unidad, el tamaño de `global.md`, 
 ## Checkpoint
 
 - Updated: 2026-11-19
-- Stage: flow-build · T4
-- Last commit: 8bbd9a35
+- Stage: flow-verify · E3+E4 joint validation stop
+- Last commit: 0e3fa537
 - Open findings: none
-- Next: T4: tracker home
+- Next: user validates E3+E4 together; then merge E3 then E4, deploy, close
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/questions-floor · feat/tracker-home
 
 ### Evidence
@@ -220,6 +220,9 @@ En cada parada de validación: el diff de la unidad, el tamaño de `global.md`, 
 - audit rollout 01a1f2f5 · 3 new criteria fail · db6a98bd
 - go test full suite (pilot alone) · pass · E2
 - global.md 30,888 bytes (≤32,000)
+- full suite E3+E4 · pass
+- site build · pass
+- global.md 31,444 bytes (≤32,000)
 
 ## Review status and progress
 
