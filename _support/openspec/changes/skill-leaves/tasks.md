@@ -110,7 +110,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 ### T4 — El índice, la hoja canario y HA-SK-04
 
-- [ ] `global.md` tiene la sección «Rule leaves» con su formato y una sola hoja, `hive-rule-git-commit`, extraída de `git-workflow` y enlazada desde el paso de commit de `flow-build`. HA-SK-04 acepta las hojas de Hive.
+- [x] `global.md` tiene la sección «Rule leaves» con su formato y una sola hoja, `hive-rule-git-commit`, extraída de `git-workflow` y enlazada desde el paso de commit de `flow-build`. HA-SK-04 acepta las hojas de Hive.
 
 **Closes:** AC9, AC13
 
@@ -447,10 +447,10 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 ## Checkpoint
 
 - Updated: 2026-11-18
-- Stage: build · T1 awaiting validation; T2 in child; T3 done
-- Last commit: e9561ec4
+- Stage: build · T5 in child
+- Last commit: c33681da
 - Open findings: none
-- Next: T1: user validation, push and merge PR #491; then T4 after T2
+- Next: Check T5's diff and tests, commit, then T6
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/skill-leaves · feat/skill-leaves
 
 ### Evidence
@@ -458,6 +458,11 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 - go test ./tests/content (leaf, home, links) · pass · e9561ec4
 - trial branch: go test ./... · 1 flaky pilot failure (TestE2ESetupDeadlinesOwnDescendantsAndPipes/github-token), passes 3/3 alone on trial and base · 4ba449e5
 - before captures: none (no UI)
+- go test ./tests/content and tooling/management release checks · pass · c33681da
+- hive rebuilt from worktree (backup: scratchpad/hive.backup-before-canary) and applied c33681da · leaf, agents/openai.yaml and Claude link installed · c33681da
+- PR #491 merged addf3256; trial ref, branch and worktree removed; question-card-alone archived 0a1aab75
+- canary Codex cam 01a1f20a · pass · c33681da
+- canary Claude Code cam a9f82c64 · pass: cat of leaf 05:06:19Z before first commit 05:11:39Z via git_state.py, no broad git add · c33681da
 
 ## Review status and progress
 
@@ -498,3 +503,4 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 2026-11-18 — T3 · e9561ec4 · unverified: AC4 and AC7 stay inactive until each extraction task activates its phrases and links
 2026-11-18 — T1 · addf3256 · unverified: AC4 of question-card-alone (rule survives a refresh) is moot: the trial paragraph is gone
 2026-11-18 — T2 · 549b1583 · unverified: hive doctor end to end and a rollback to an older stored release not run; covered through Status and desiredResources
+2026-11-18 — T4 · c33681da · unverified: none
