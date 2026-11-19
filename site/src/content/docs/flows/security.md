@@ -11,7 +11,7 @@ The [hive-review-security](https://github.com/JhonHawk/tricell-hive/blob/master/
 
 ### When it runs
 
-Only when you ask for it. The agent does not start it by itself and your answer to the code review question does not count as asking. Once you ask, [Verify](/flows/verify/) runs it on the candidate at the start of verification, before you are asked to validate. You can also ask for it on a change that is already merged.
+When you ask for it, or accept it when the agent recommends it for a change that touches authentication, authorization, untrusted input, process execution, secrets, cryptography, dependencies or data exposure. The agent does not start it without your answer, and your answer to the code review question does not count as one. Once you accept, [Verify](/flows/verify/) runs it on the candidate at the start of verification, before you are asked to validate. You can also ask for it on a change that is already merged.
 
 Example requests:
 
@@ -26,7 +26,7 @@ A report of findings by priority, each with the conditions that make it exploita
 
 ## Checking an advisory
 
-Use the [dependency-security playbook](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-mode/playbooks/dependency-security.md) of the Hive mode skill when a CVE, a published advisory or a package compromise makes you ask whether it affects your projects. It reads the advisory from a primary source, inspects the repositories you name without changing them, and reports for each one whether it is affected, mitigated, not affected or unknown, with the file and line that show it. If an application's exposure depends on how its code reaches the vulnerable path, it offers a reachability assessment by the security reviewer, which runs only if you ask. Fixes then happen in each project's own session.
+Use the [dependency-security playbook](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-mode/playbooks/dependency-security.md) of the Hive mode skill when a CVE, a published advisory or a package compromise makes you ask whether it affects your projects. It reads the advisory from a primary source, inspects the repositories you name without changing them, and reports for each one whether it is affected, mitigated, not affected or unknown, with the file and line that show it. If an application's exposure depends on how its code reaches the vulnerable path, it offers a reachability assessment by the security reviewer, which runs when you ask for it or accept it. Fixes then happen in each project's own session.
 
 Example request:
 

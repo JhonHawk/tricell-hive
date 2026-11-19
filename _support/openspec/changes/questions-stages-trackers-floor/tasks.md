@@ -94,7 +94,7 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 
 ### T6 — Hoja del piso de pruebas
 
-- [ ] `hive-rule-verification-floor` fija lo que siempre corre por tipo de cambio y la enlazan plan, build, verify y los playbooks.
+- [x] `hive-rule-verification-floor` fija lo que siempre corre por tipo de cambio y la enlazan plan, build, verify y los playbooks.
 
 **Closes:** AC12
 
@@ -112,7 +112,7 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 
 ### T7 — Evidencia y «Pruébalo tú» en el reporte
 
-- [ ] El reporte final lleva la salida fallando y pasando y el bloque «Pruébalo tú» en todo modo.
+- [x] El reporte final lleva la salida fallando y pasando y el bloque «Pruébalo tú» en todo modo.
 
 **Closes:** AC13
 
@@ -229,3 +229,5 @@ En cada parada de validación: el diff de la unidad, el tamaño de `global.md`, 
 2026-11-19 — T3 · 2cbc0706 · unverified: AC6 real-session half waits for a session after deploy
 2026-11-19 — T4 · 84f3ea4c · unverified: AC9-AC10 wait for a real session that moves a ticket
 2026-11-19 — T5 · 84f3ea4c · unverified: AC11 waits for a real close
+2026-11-19 — T6 · 6d177c29 · unverified: AC13 waits for a real hold delivery after deploy
+2026-11-19 — T7 · 6d177c29 · unverified: AC13 waits for a real hold delivery after deploy
