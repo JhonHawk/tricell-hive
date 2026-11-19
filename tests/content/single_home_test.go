@@ -83,6 +83,8 @@ var homePhrases = []homePhrase{
 	{"Name the one fact the change is safe because of", "content/skills/hive-rule-blast-radius/SKILL.md"},
 	{"Write so a tired engineer understands on the first read", "content/skills/hive-rule-prose/SKILL.md"},
 	{"Break this change. Prove each finding with a run against the real code", "content/skills/hive-rule-interrogate/SKILL.md"},
+	{"single-line row per decision and one per external effect", "content/skills/unattended-delegation/SKILL.md"},
+	{"A plan delivered in two or more units", "content/skills/hive-rule-change-folder/SKILL.md"},
 }
 
 // homeProblems returns one line per phrase whose files under
