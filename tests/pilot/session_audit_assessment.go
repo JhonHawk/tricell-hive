@@ -26,6 +26,9 @@ var (
 	// ticketStatusRead is the playbook that reports a ticket's status, not an
 	// assessment of it.
 	ticketStatusRead = regexp.MustCompile(`hive-mode/playbooks/ticket-status\.md`)
+	// hiveModeCommand is the hive-mode command typed as the prompt; the host
+	// injects the skill, so no event of the turn loads it.
+	hiveModeCommand  = regexp.MustCompile(`(?:^|[\s>(\x60])(?:[/$@]|/skill:)hive-mode\b`)
 	recommendedLabel = regexp.MustCompile(`(?i)\(★\)|\((?:recommended|recomendad[oa])\)`)
 )
 
@@ -91,12 +94,15 @@ func ticketAssessmentEnding(s auditSession) criterionAssessment {
 			turns[turn] = st
 			order = append(order, turn)
 		}
+		if st.load < 0 && hiveModeCommand.MatchString(s.Prompts[turn]) {
+			st.load = i
+		}
 		switch {
 		case readsTicketStatus(e):
 			st.status = true
 		case st.load < 0 && loadsHiveMode(e):
 			st.load = i
-		case st.load >= 0 && e.Kind == "question" && st.card < 0:
+		case st.load >= 0 && e.Kind == "question":
 			st.card = i
 		case st.load >= 0 && e.Kind == "text" && e.Role == "assistant":
 			st.closing = i
@@ -109,7 +115,7 @@ func ticketAssessmentEnding(s auditSession) criterionAssessment {
 		if st.load < 0 || st.status || st.closing < 0 && st.card < 0 || !namesTicket(prompt) || flowCommand.MatchString(prompt) {
 			continue
 		}
-		if st.card >= 0 {
+		if st.card > st.closing {
 			passed = append(passed, regressionEvidence(events[st.card])+" card")
 			continue
 		}
