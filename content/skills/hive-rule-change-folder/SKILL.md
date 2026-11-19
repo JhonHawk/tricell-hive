@@ -6,11 +6,11 @@ disable-model-invocation: true
 
 # Change folder and plan revisions
 
-Read when the plan needs a change folder, or a written plan changes.
+Read when the plan needs a change folder or a written plan changes.
 
 ## Change folder
 
-Write `<Specs>/changes/<change-id>/` in English kebab-case, starting with the ticket key if any, else a short slug. Earlier change folders in the repository are context, not a model: the templates and this leaf set the shape and the ceremony, such as one `hive-review-plan` child, even when earlier folders record more. Copy each template from [assets/change-folder/](../flow-plan/assets/change-folder/), fill it, delete its comments and inapplicable sections:
+Write `<Specs>/changes/<change-id>/` in English kebab-case, starting with the ticket key if any, else a short slug. Earlier change folders in the repository are context, not a model: the templates and this leaf set the shape and the ceremony, such as one `hive-review-plan` child, even when earlier folders record more. Copy each template from [assets/change-folder/](../flow-plan/assets/change-folder/), fill it, delete its comments and unused sections:
 
 - `proposal.md`: the request and the ticket's criteria quoted, the user's decisions, the business rules the work adopts ([business rules](../hive-rule-business-rules/SKILL.md)), the scope, the numbered criteria, the prerequisites, each external fact with its measurement, each class of effect with its answer, the delivery decisions;
 - `tasks.md`: the tasks with checkboxes, each with its `Closes:` line and check, and the verification of the whole change;
@@ -23,9 +23,9 @@ Write `<Specs>/changes/<change-id>/` in English kebab-case, starting with the ti
 
 ## Revise a plan in progress
 
-This applies when a written plan changes during planning or the build: a decision replaced, a criterion changed, added or dropped, a task added or changed, or a delta change. A change of outcome is a new change ([scope](../hive-rule-scope-changes/SKILL.md)).
+This applies when a written plan changes during planning or the build: a decision replaced, a criterion changed, added or dropped, a task added or changed, or a delta changed. A new outcome is a new change ([scope](../hive-rule-scope-changes/SKILL.md)).
 
-1. Edit in the same pass every place in the folder that states what changed: the proposal's sections and criteria, `design.md`, each task's text, `Closes:`, test approach and verification, and the delta. Mark the new decision or criterion with `**Replaces:** <old IDs>`; keep a dropped criterion's line and add `**Retired:** <reason>`; never delete the old line. Both markers stay in English. A decision that adds, replaces or cancels a business rule also updates its record ([business rules](../hive-rule-business-rules/SKILL.md)).
+1. Edit in the same pass every place in the folder that states what changed: the proposal's sections and criteria, `design.md`, each task's text, `Closes:`, test approach and verification, and the delta. Put `**Replaces:** <old IDs>` on the new decision's or criterion's own line; keep a dropped criterion's line and put `**Retired:** <reason>` on that same line; never delete the old line. Both markers stay English. A decision that adds, replaces or cancels a business rule also updates its record ([business rules](../hive-rule-business-rules/SKILL.md)).
 2. Reopen each `[x]` task it invalidates.
 3. Run `python3 <flow-plan-dir>/scripts/check_change.py <change-folder>` ([script](../flow-plan/scripts/check_change.py)): it checks criteria coverage, `Observed in:` places, replaced/retired IDs, `## Business rules` grammar and delivery-unit boxes; fix each line it prints until it exits 0.
 4. When the revision changes a criterion or the delta, have one `hive-review-plan` child review the revised folder ([brief](../hive-rule-reviewer-brief/SKILL.md)): one round per revision. A surviving gap goes to the user as a decision.

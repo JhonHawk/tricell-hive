@@ -371,7 +371,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 ### T15 — Fase 2: registro de decisiones, casillas por unidad de entrega y lo que no está escrito
 
-- [ ] Existen las tres piezas:
+- [x] Existen las tres piezas:
   - **Registro de decisiones.** El registro TSV del trabajo desatendido y de la coordinación E2E, con su formato en un solo hogar.
   - **Casillas por unidad de entrega.** La sección `## Delivery units` con la gramática de `design.md`, que `check_change.py` valida.
   - **Lo que no está escrito.** El campo opcional `--unwritten` del checkpoint, que se pide al pausar.
@@ -520,3 +520,4 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 2026-11-19 — Revisión por D23 A y D24 A: AC18 reemplaza AC5 (≤32,000 bytes con el índice) y AC19 reemplaza AC12 (comparación pareja). No invalida tareas.
 2026-11-19 — T10 · 48e608a6 · unverified: site build not run (no dependencies); AC8 and AC14 real sessions wait for T12
 2026-11-19 — T11 · c7635929 · unverified: installed copy checked in T12
+2026-11-19 — T15 · b64292ad · unverified: AC16 real unattended and E2E runs wait for T12

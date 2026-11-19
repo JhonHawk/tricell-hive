@@ -26,11 +26,11 @@
 
 <!-- Optional: keep this section only when the plan ships in two or more delivery units (PRs, commits to the base under direct-base, or candidates under hold); delete it otherwise. Boxes here belong to no task, so `scripts/tasks.py done` never ticks them; flow-verify ticks a box by hand when its check passes and records the result under `### Evidence`, not in the box. `n/a: <reason>` replaces the predicate of a box that does not apply. -->
 
-### E1 — <PR, commit or candidate> · depende de: <E<m>, or ninguna> · archivos: <paths>
+### E1 — <PR, commit or candidate> · depends on: <E<m>, or none> · files: <paths>
 
 - [ ] unit: <command>
 - [ ] live: <scenario> · pass: <predicate>
-- [ ] perf: <metric> · base: <measured value> · falla: <threshold>
+- [ ] perf: <metric> · base: <measured value> · fail: <threshold>
 
 ## Verification and human review
 

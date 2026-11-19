@@ -73,7 +73,7 @@ UNIT_TITLE = re.compile(
 BOX_LINE = re.compile(r"^\s*[-*]\s+\[[ xX]\]\s*(.*)$")
 NOT_APPLICABLE = re.compile(r"n/a:\s*\S")
 FIELD = r"\s+·\s+{}:\s+\S"
-UNIT_BOX = re.compile(r"^unit:\s+\S")
+UNIT_BOX = re.compile(r"^unit:\s+(?!n/a:)\S")
 LIVE_BOX = re.compile(r"^live:\s+\S.*" + FIELD.format("pass") + r".*$")
 PERF_BOX = re.compile(
     r"^perf:\s+\S.*" + FIELD.format("base") + r".*" + FIELD.format("(?:falla|fail)") + r".*$"
@@ -259,11 +259,9 @@ def delivery_units(lines):
 
 
 def box_is_not_applicable(text):
-    """A box reads `n/a: <reason>` right after its kind, or as the value of one of its fields."""
+    """A `live:` or `perf:` box whose whole predicate is `n/a: <reason>`."""
     kind, _, rest = text.partition(":")
-    return bool(re.match(r"^\s*n/a:\s*\S", rest)) or bool(
-        re.search(r"·\s+(?:pass|base|falla|fail):\s+n/a:\s*\S", text)
-    ) and kind in ("live", "perf")
+    return kind.strip() in ("live", "perf") and bool(NOT_APPLICABLE.match(rest.strip()))
 
 
 def delivery_unit_findings(tasks):
