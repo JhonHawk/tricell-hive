@@ -87,15 +87,15 @@ The size check SHALL report the global core separately from explicit simple-quer
 - **THEN** the report separates the methodology change from the before/after measurement on matching paths and reports new sources explicitly.
 
 ### Requirement: Layered global core with owning skills
-The global core (`content/guidance/global.md`) SHALL hold every rule that applies in any flow or outside one, such as authorization, preservation, secrets, questions and routes, delivery, project settings, persistent memory and scope changes, because each host loads it with its system instructions and keeps it after compaction. Each read pointer in it SHALL state literally when to read its target, naming an observable act or event, such as "Before a commit, pull request, or merge, read …". A procedure that belongs to one activity SHALL live in the skill that owns that activity, or in a reference that skill links with its read condition, each with one canonical home. No rule SHALL depend on a model choosing to load a skill from its description; there is no shared core skill.
+The global core (`content/guidance/global.md`) SHALL hold the invariants that must act in any flow or outside one without another file being read: authorization and critical effects, including the tracker writes, the close-cleanup authorization and the immediate escalation of a P0, a security finding or an exposed secret, preservation, secrets, basic artifact placement, the current-project boundary, the session-start read of local instructions, the delivery modes and what each authorizes, and the minimal line of each question rule. It SHALL also hold an index, «Rule leaves», with one line per rule leaf that states literally when to read it, naming an observable act or event, and links the leaf. A rule that applies at an identifiable moment SHALL live in exactly one rule leaf, and every flow step where it applies SHALL link that leaf. A procedure that belongs to one activity SHALL live in the skill that owns that activity, or in a reference that skill links with its read condition, each with one canonical home. No rule SHALL depend on a model choosing to load a skill from its description.
 
 #### Scenario: A rule moved out of the global core
-- **WHEN** a procedure moves from the global core to an owning skill
-- **THEN** the global core keeps the rule's minimal invariant, or a literal read condition for it, and the procedure text appears once under `content/`, in its destination.
+- **WHEN** a rule moves from the global core to a rule leaf
+- **THEN** the global core keeps its minimal invariant, when it must act unread, and an index line with its read condition, and the rule text appears once under `content/`, in the leaf.
 
 #### Scenario: A host that never selects an activity skill
 - **WHEN** a supported host lists the activity skills but the model selects none of them
-- **THEN** authorization, preservation, secret handling, questions, delivery and basic artifact placement still act from the global core, and every procedure the agent needs is reached through a read condition stated in the global core or in the active skill.
+- **THEN** authorization, preservation, secret handling, basic artifact placement and the minimal question rule still act from the global core, and every rule leaf the agent needs is reached through the index or a flow step's link.
 
 ### Requirement: Antigravity global core in size-bounded always-on rules
 For the Antigravity host, Hive SHALL deliver the global core as one or more Hive-owned rule files `<AntigravityHome>/rules/hive-NN.md` under the resolved `~/.gemini/config`, each beginning with the frontmatter `trigger: always_on` and each at or below 24,000 bytes, because Antigravity truncates every rule file above that size, the global ones included. The parts SHALL be cut only at `##` headings outside fenced code blocks, in order, so that their managed texts joined in order reproduce the rewritten global core; a section that alone exceeds the limit SHALL fail the plan with an error naming it. The voice block SHALL appear only in the first part, and setting or changing the voice SHALL change only that part. Hive SHALL NOT write `~/.gemini/GEMINI.md` for this host.
@@ -128,3 +128,14 @@ Temporary installation SHALL require its own covered effect, preserve the curren
 #### Scenario: Deadline or incomplete return
 - **WHEN** the deadline is reached or a required behavior is not observed
 - **THEN** the case stops its model work and known process groups, preserves necessary evidence, reports failed/blocked/inconclusive as supported, and launches no second attempt without renewed authorization.
+
+### Requirement: Rule leaves hidden from model invocation
+Each rule leaf (`hive-rule-*`) and principle leaf (`hive-principle-*`, except the index) SHALL be a skill whose frontmatter sets `disable-model-invocation: true`, whose description is one line of at most 200 characters, and whose `SKILL.md` is at most 4,000 bytes, or at most 7,000 bytes when the content test names it as an exception. The language leaf `hive-typescript` SHALL stay model-invocable, with `paths` for TypeScript files, and `hive-principle-index` SHALL link it with the condition of editing those files. Every rule leaf SHALL appear exactly once in the global core's index, and every principle leaf once in `hive-principle-index`. A leaf SHALL be read by the path its index line or flow link gives, never through a host's skill-invocation tool.
+
+#### Scenario: A leaf missing its switch
+- **WHEN** a leaf skill lacks `disable-model-invocation: true` or is listed twice in an index
+- **THEN** `go test ./tests/content/...` fails and names the leaf.
+
+#### Scenario: A rule restated outside its leaf
+- **WHEN** a key phrase registered for a rule leaf appears in a second file under `content/`
+- **THEN** the single-home test fails and names both files.

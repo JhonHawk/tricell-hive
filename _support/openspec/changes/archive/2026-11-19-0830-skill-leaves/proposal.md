@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Borrador · plan escrito, pendiente de revisión, entrega y aprobación |
+| Estado | Completado · PR #515 merge 48e608a6, PR #516 merge 0aace9ff |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `2bb96478` · rama de prueba `feat/question-card-alone` en `6adebe35` (PR #491) · rama propuesta: `feat/skill-leaves` (PR 1, proceso) y `feat/skill-leaves-principles` (PR 2, principios) |
 
