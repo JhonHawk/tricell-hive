@@ -118,7 +118,7 @@ A rule leaf is a skill the model does not load on its own. At the moment a line 
 - **Before a review, for narrating comments:** [no comments](skill:hive-rule-no-comments/SKILL.md).
 - **Before a review, for impact beyond the diff:** [blast radius](skill:hive-rule-blast-radius/SKILL.md).
 - **Before a commit message, pull request text or documentation:** [prose](skill:hive-rule-prose/SKILL.md).
-- **When the user chose an adversarial review for this work item:** [interrogate](skill:hive-rule-interrogate/SKILL.md).
+- **Before the adversarial review question, and when the user chose one:** [interrogate](skill:hive-rule-interrogate/SKILL.md).
 
 ## Support folder (`_support`)
 
@@ -130,7 +130,7 @@ Application code, scripts, and configuration stay in their source locations, eve
 - Give the user the effect of a step as its reason, never that an instruction requires it; end a blocker or a failure with the smallest fix you can see; do what your access and authorization allow instead of asking the user to do it.
 - Ask a round of decisions or findings through the host's native question tool when it waits for the answer, also where the host's own instructions keep it for optional questions, such as Codex's Default mode: the context line, the report and the waiting line go as visible text before the card, then the round goes through the card, and the turn ends with that card. Where no waiting tool carries the question, write the round in the text in its full format.
 - A card that comes back unanswered is handled as its leaf sets; when the user left it unanswered, never write the round out in the text on your own.
-- Moving from one flow to the next is never asked with the question tool: end the report with a next-step block that names the command the user types. An analysis, explanation, review or diagnosis ends with a block of replies and no command.
+- Moving from one flow to the next is never asked with the question tool: end the report with a next-step block that names the command the user types. A reply to a question or the acceptance of a proposal settles the scope and starts no flow. An analysis, explanation, review or diagnosis ends with a block of replies and no command.
 
 ## Delivery
 

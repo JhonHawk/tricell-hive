@@ -22,7 +22,7 @@ Base `development` en `262b64e2`. Cada unidad va en su rama y su PR, en orden E1
 
 ### T2 — Hoja única de preguntas
 
-- [ ] `hive-rule-questions` reemplaza las cuatro hojas de preguntas, con el canal por host incluido Codex Default por `request_user_input`.
+- [x] `hive-rule-questions` reemplaza las cuatro hojas de preguntas, con el canal por host incluido Codex Default por `request_user_input`.
 
 **Closes:** AC4, AC5
 
@@ -223,3 +223,4 @@ En cada parada de validación: el diff de la unidad, el tamaño de `global.md`, 
 
 2026-11-19 — Plan escrito.
 2026-11-19 — T1 · 5b9b9b3a · unverified: none
+2026-11-19 — T2 · 4e9a8fe1 · unverified: AC5 (Codex round through request_user_input) waits for a real Codex session after deploy

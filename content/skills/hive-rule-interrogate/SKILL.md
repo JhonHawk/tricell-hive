@@ -6,7 +6,7 @@ disable-model-invocation: true
 
 # Adversarial review by another provider
 
-Read only when the user answered yes to the adversarial review for this work item, a decision [delivery questions](../hive-rule-delivery-ask/SKILL.md) sets. That yes authorizes the spend of another provider's quota for this work item and no other. It runs in addition to the code review the user chose, never in its place, and under the delivery mode in force like every other review of the candidate.
+Read before the adversarial review question, for its «Availability», and when the user chose an agent for this work item's adversarial review, a decision [delivery questions](../hive-rule-delivery-ask/SKILL.md) sets. That choice authorizes the spend of another provider's quota for this work item and no other. It runs in addition to the code review the user chose, never in its place, and under the delivery mode in force like every other review of the candidate.
 
 ## Limits
 
@@ -16,7 +16,7 @@ Read only when the user answered yes to the adversarial review for this work ite
 
 ## Availability
 
-The reviewer is the command-line agent of a provider other than the one you run in: Codex from Claude Code, Claude from Codex. Check that it is installed (`command -v`) and signed in, using that agent's own status or `--help` output. When it is missing or has no session, report the option as unavailable, say why, and run only the chosen review. Never install or sign in on your own initiative.
+The reviewer is a command-line agent of a provider other than the one you run in, such as Codex, Claude Code, Cursor Agent, Grok or Antigravity. Before the adversarial question, list each one that is installed (`command -v`) and signed in, checked with that agent's own status or `--help` output, and offer each as an option for the user to pick. Run the one chosen. When none is available, report the option as unavailable, say why, and run only the chosen review. Never install or sign in on your own initiative.
 
 ## Run
 
