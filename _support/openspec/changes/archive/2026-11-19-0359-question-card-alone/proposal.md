@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | In build |
+| Estado | Completado · PR #491, merge addf3256 |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `c35c3424` · ramas propuestas: `chore/trial-refresh-line` (una línea de `AGENTS.md`, se integra antes de la prueba) y `feat/question-card-alone` (la regla, sin integrar hasta cerrar la prueba) |
 
