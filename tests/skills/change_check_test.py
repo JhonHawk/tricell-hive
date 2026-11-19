@@ -331,21 +331,25 @@ class ChangeCheckTest(unittest.TestCase):
             self.assertEqual(result.returncode, 1)
 
     def test_n_a_only_replaces_a_whole_live_or_perf_predicate(self):
-        for bad in ("- [ ] manual: n/a: not a kind", "- [ ] unit: n/a: no command",
-                    "- [ ] perf: p95 · base: n/a: none", "- [ ] perf: p95 · falla: n/a: none"):
+        for bad in ("- [ ] manual: n/a: not a kind", "- [ ] unit: n/a: no command", "- [ ] unit: N/A: none",
+                    "- [ ] perf: p95 · base: n/a: none · falla: 200ms", "- [ ] live: login · pass: n/a: nothing"):
             units = self.UNITS.replace("- [ ] live: n/a: no interaction changes", bad)
             with self.subTest(box=bad), tempfile.TemporaryDirectory() as tmp:
                 result = self.run_check(self.units_folder(tmp, units))
                 self.assertEqual(result.returncode, 1, result.stdout)
 
-    def test_archive_counts_a_perf_box_with_an_n_a_field_as_unchecked(self):
+    def test_archive_lists_an_unticked_perf_box(self):
         units = self.UNITS.replace("- [ ] live: n/a: no interaction changes",
-                                   "- [ ] perf: p95 · base: n/a: none yet · falla: 200ms")
-        with tempfile.TemporaryDirectory() as tmp:
-            plain = self.run_check(self.units_folder(tmp, self.UNITS), "--archive").stdout
+                                   "- [ ] perf: p95 · base: 120ms · falla: 200ms")
         with tempfile.TemporaryDirectory() as tmp:
             changed = self.run_check(self.units_folder(tmp, units), "--archive").stdout
-        self.assertNotEqual(plain, changed)
+        self.assertIn("perf: p95 · base: 120ms · falla: 200ms", changed)
+
+    def test_upper_case_n_a_replaces_a_whole_predicate(self):
+        units = self.UNITS.replace("- [ ] live: n/a: no interaction changes", "- [ ] live: N/A: no interaction changes")
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.units_folder(tmp, units))
+            self.assertEqual(result.stdout, "")
 
     def test_archive_does_not_count_n_a_boxes_as_unchecked(self):
         with tempfile.TemporaryDirectory() as tmp:

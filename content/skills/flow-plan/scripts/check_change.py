@@ -25,9 +25,9 @@ Reads proposal.md, tasks.md, design.md and specs/**/*.md and prints one
   marker, a dash or a `<…>` placeholder that is not a link is no place; not
   checked with --archive;
 - without --archive, a malformed unit heading or box under `## Delivery units` in
-  tasks.md: headings `### E<n> — <unit> · depende de: <…> · archivos: <…>` (or
+  tasks.md: headings `### E<n> — <unit> · depends on: <…> · files: <…>` (or
   `· depends on: … · files: …`); boxes `unit: <command>`, `live: <scenario> · pass:
-  <predicate>`, `perf: <metric> · base: <value> · falla: <threshold>` (or `fail:`);
+  <predicate>`, `perf: <metric> · base: <value> · fail: <threshold>` (or `falla:`);
   a predicate written `n/a: <reason>` replaces pass, base and threshold;
 - with --archive, each unchecked `- [ ]` box of tasks.md, then their count; a
   delivery-unit box written `n/a: <reason>` is not counted.
@@ -71,9 +71,9 @@ UNIT_TITLE = re.compile(
     r"^###\s+E\d+\s+[—–-]\s+\S.*?\s+·\s+(?:depende de|depends on):\s+\S.*?\s+·\s+(?:archivos|files):\s+\S.*$"
 )
 BOX_LINE = re.compile(r"^\s*[-*]\s+\[[ xX]\]\s*(.*)$")
-NOT_APPLICABLE = re.compile(r"n/a:\s*\S")
-FIELD = r"\s+·\s+{}:\s+\S"
-UNIT_BOX = re.compile(r"^unit:\s+(?!n/a:)\S")
+NOT_APPLICABLE = re.compile(r"n/a:\s*\S", re.IGNORECASE)
+FIELD = r"\s+·\s+{}:\s+(?![Nn]/[Aa]:)\S"
+UNIT_BOX = re.compile(r"^unit:\s+(?![Nn]/[Aa]:)\S")
 LIVE_BOX = re.compile(r"^live:\s+\S.*" + FIELD.format("pass") + r".*$")
 PERF_BOX = re.compile(
     r"^perf:\s+\S.*" + FIELD.format("base") + r".*" + FIELD.format("(?:falla|fail)") + r".*$"
@@ -271,7 +271,7 @@ def delivery_unit_findings(tasks):
             if not UNIT_TITLE.match(line.strip()):
                 findings.append(
                     f"tasks.md:{n}: invalid delivery unit heading, expected "
-                    f"`### E<n> — <unit> · depende de: <…> · archivos: <…>`: {line.strip()}"
+                    f"`### E<n> — <unit> · depends on: <…> · files: <…>`: {line.strip()}"
                 )
             continue
         box = BOX_LINE.match(line)
@@ -286,7 +286,7 @@ def delivery_unit_findings(tasks):
             ok, expected = LIVE_BOX.match(text), "live: <scenario> · pass: <predicate>, or live: n/a: <reason>"
         elif text.startswith("perf:"):
             ok = PERF_BOX.match(text)
-            expected = "perf: <metric> · base: <value> · falla: <threshold>, or perf: n/a: <reason>"
+            expected = "perf: <metric> · base: <value> · fail: <threshold>, or perf: n/a: <reason>"
         else:
             findings.append(f"tasks.md:{n}: delivery unit box must start with unit:, live: or perf:: {text}")
             continue
