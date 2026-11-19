@@ -9,7 +9,7 @@ Read from [trackers](../SKILL.md) when [ticket state](../../hive-rule-ticket-sta
 3. **No transcript.** Run `hive time` once when work on a ticket starts; when it prints anything but `"result":"ok"`, keep marks for this session instead with [work_time.py](../scripts/work_time.py) `mark <file> <event>` (`python3 -I`), in a file named after the work in the host's temporary location: `start` at the first message on the ticket, `wait` before each message that waits for the user, `resume` at the user's reply, `ci-start` and `ci-end` around a remote CI or deployment wait. `sum <file>` prints the same fields.
 4. **Earlier sessions.** The work state in persistent memory lists, for each session that worked the ticket, its host, its session ID and the time of its first message on the ticket, or the result of `sum` for a session that kept marks: the plan-ready write adds the planning session, and a pause or a close adds its own. Measure each listed ID again with `hive time --host <host> --session <id> --since <time>`, and add every `converted_seconds`.
 
-User waits are the only time subtracted; builds, tests, remote CI and children count. The factor is 2.0 for the agent's work and 1 for remote CI and deployment waits; `--factor` changes it only after a recalibration the user approved, never above 3.
+User waits are the only time subtracted; builds, tests, remote CI and children count. The factor is 2.0 for the agent's work and 1 for remote CI waits: `hive time` recognizes `gh pr checks --watch` and `gh run watch`, and marks recognize each `ci-start` and `ci-end` pair, which may also enclose a remote deployment wait; `--factor` changes it only after a recalibration the user approved, never above 3.
 
 ## Write
 

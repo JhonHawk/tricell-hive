@@ -55,6 +55,22 @@ class WorkTimeTest(unittest.TestCase):
         out = json.loads(self.run_script("sum", str(self.marks), "--since", "2026-01-01T09:30:00Z").stdout)
         self.assertEqual(out["active_seconds"], 20 * 60)
 
+    def test_rounding_matches_hive_time(self):
+        # 1800 s at factor 1.1 is 1980 s in floating point plus a hair: 33 minutes, not 34.
+        self.mark("start", "2026-01-01T10:00:00Z")
+        self.mark("wait", "2026-01-01T10:30:00Z")
+        out = json.loads(self.run_script("sum", str(self.marks), "--factor", "1.1").stdout)
+        self.assertEqual(out["converted_seconds"], 1980)
+
+    def test_ci_that_encloses_a_user_wait_counts_only_outside_it(self):
+        # CI 10:05-10:37 encloses the wait 10:06-10:36: 2 min of CI, 10 min active.
+        for event, at in (("start", "10:00"), ("ci-start", "10:05"), ("wait", "10:06"), ("resume", "10:36"), ("ci-end", "10:37"), ("wait", "10:40")):
+            self.mark(event, f"2026-01-01T{at}:00Z")
+        out = json.loads(self.run_script("sum", str(self.marks)).stdout)
+        self.assertEqual(out["active_seconds"], 600)
+        self.assertEqual(out["ci_wait_seconds"], 120)
+        self.assertEqual(out["converted_seconds"], 18 * 60)
+
     def test_factor_outside_one_to_three_is_refused(self):
         self.mark("start", "2026-01-01T10:00:00Z")
         self.assertEqual(self.run_script("sum", str(self.marks), "--factor", "4").returncode, 2)

@@ -1,6 +1,6 @@
 # Jira
 
-Read from [trackers](../SKILL.md) for a ticket whose key the `## Hive` assigns to Jira. Use the Atlassian CLI `acli` 1.3, then the host's Atlassian MCP tool when it is authenticated and has the capability, then [jira_rest.py](../scripts/jira_rest.py) (`python3 -I`), which reads the user's token from `~/.config/hive/secrets/jira-api-token` and the account and site from `acli jira auth status`. Read `acli jira workitem <command> --help` before the first use in a session, since flags change between releases. When the script exits 3, ask the user to create the token file as its message says; never create it, read it or pass its path to another agent.
+Read from [trackers](../SKILL.md) for a ticket whose key the `## Hive` assigns to Jira. Use the Atlassian CLI `acli` 1.3, then the host's Atlassian MCP tool when it is authenticated and has the capability, then [jira_rest.py](../scripts/jira_rest.py) (`python3 -I`), which reads the user's token from `~/.config/hive/secrets/jira-api-token` (under `$XDG_CONFIG_HOME` when it is an absolute path) and the account and site from `acli jira auth status`. Read `acli jira workitem <command> --help` before the first use in a session, since flags change between releases. When the script exits 3, ask the user to create the token file as its message says; never create it, read it or pass its path to another agent.
 
 | Step | Command |
 | --- | --- |

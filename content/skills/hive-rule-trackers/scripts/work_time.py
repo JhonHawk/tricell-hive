@@ -59,6 +59,21 @@ def load(path: Path) -> list[tuple[str, datetime]]:
     return sorted(marks, key=lambda m: m[1])
 
 
+def span_length(spans, first, last) -> float:
+    """Seconds covered by the spans, clipped to [first, last], overlaps merged."""
+    clipped = sorted((max(a, first), min(b, last)) for a, b in spans if min(b, last) > max(a, first))
+    total, end = 0.0, None
+    for a, b in clipped:
+        if end is not None and a < end:
+            if b > end:
+                total += (b - end).total_seconds()
+                end = b
+            continue
+        total += (b - a).total_seconds()
+        end = b
+    return total
+
+
 def total(path: Path, factor: float, since: str | None) -> dict:
     marks = load(path)
     if since:
@@ -68,7 +83,7 @@ def total(path: Path, factor: float, since: str | None) -> dict:
     if not starts:
         raise SystemExit(f"{path}: no start mark in the window")
     first, last = starts[0], marks[-1][1]
-    waits = ci = 0.0
+    waits, ci = [], []
     wait_at = ci_at = None
     for event, moment in marks:
         if moment < first:
@@ -76,24 +91,26 @@ def total(path: Path, factor: float, since: str | None) -> dict:
         if event == "wait":
             wait_at = wait_at or moment
         elif event == "resume" and wait_at:
-            waits += (moment - wait_at).total_seconds()
+            waits.append((wait_at, moment))
             wait_at = None
         elif event == "ci-start":
             ci_at = ci_at or moment
         elif event == "ci-end" and ci_at:
-            ci += (moment - ci_at).total_seconds()
+            ci.append((ci_at, moment))
             ci_at = None
     if wait_at:  # a wait still open at the last mark ends the window there
         last = wait_at
-    active = max(0, round((last - first).total_seconds() - waits))
-    ci_seconds = min(active, round(ci))
-    converted = math.ceil(((active - ci_seconds) * factor + ci_seconds) / 60) * 60
+    # As in hive time: CI time is the CI spans' union with the waits, minus the waits.
+    user = span_length(waits, first, last)
+    ci_seconds = round(span_length(waits + ci, first, last) - user)
+    active = max(0, round((last - first).total_seconds() - user))
+    converted = math.ceil(((active - ci_seconds) * factor + ci_seconds) / 60 - 1e-9) * 60
     return {
         "result": "ok",
         "since": first.isoformat().replace("+00:00", "Z"),
         "until": last.isoformat().replace("+00:00", "Z"),
         "active_seconds": active,
-        "user_wait_seconds": round(waits),
+        "user_wait_seconds": round(user),
         "ci_wait_seconds": ci_seconds,
         "factor": factor,
         "converted_seconds": converted,
