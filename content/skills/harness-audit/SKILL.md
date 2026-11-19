@@ -13,7 +13,7 @@ A role launched read-only, such as `hive-review-harness`, or a delegated auditor
 
 ## Scope
 
-Before applying an outcome that writes `Specs`, creates a specs directory, or creates or continues a change record, read [change folder](../flow-plan/SKILL.md#change-folder); before writing or cleaning supporting artifacts, read [layout and retention](../project-layout/references/layout.md). An audit that applies nothing needs neither.
+Before applying an outcome that writes `Specs`, creates a specs directory, or creates or continues a change record, read [change folder](../hive-rule-change-folder/SKILL.md#change-folder); before writing or cleaning supporting artifacts, read [layout and retention](../project-layout/references/layout.md). An audit that applies nothing needs neither.
 
 Establish before reading deeply:
 

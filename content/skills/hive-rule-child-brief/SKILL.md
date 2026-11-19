@@ -1,0 +1,22 @@
+---
+name: hive-rule-child-brief
+description: "Hive rule leaf: read before briefing a child, picking its role or waiting for it. What every brief carries, how to wait, who commits, worktrees, build children."
+disable-model-invocation: true
+---
+
+# Child brief
+
+Read before briefing a child, building its role or waiting for it, in any flow.
+
+## Every child
+
+- Brief it with the decision its result informs, what it covers (its aspects, targets or task), what is already settled, and when to stop; a role that names its own inputs, such as `hive-verify-task` (the change folder, the task ID and the diff base), also gets those. A reviewer's brief follows [Reviewer brief](../hive-rule-reviewer-brief/SKILL.md) instead, with nothing settled about the work it reviews. Any child that signs in, reviewer or not, also gets the rows of the accounts it uses, as [test accounts](../hive-rule-test-accounts/SKILL.md) sets. Any child that starts, serves or tests the project, or uses its environments, reviewer or not, also gets the paths of the machine file and of the project's `HIVE.local.md` (the main checkout's in a worktree), with the detail of each entry with a pointer that its task needs, read by the main thread from persistent memory, and reports the facts it verified or found stale, as [local record](../hive-rule-local-record/SKILL.md) sets.
+- Wait for children with the host's wait tool, which returns when a child finishes or sends a message; never with a loop of sleeps and status checks.
+- Except for an explicitly assigned `hive-build-owner` under the [local owner boundary](../flow-build/references/e2e-coordination.md#local-owner-boundary), a child does not commit; the main thread owns ordinary child commits. For every child, the main thread checks returned evidence, not assertions, before using it.
+- An ordinary child works in the main thread's checkout and never creates a worktree. E2E owners and their independent verifiers use the assigned checkout under [E2E coordination](../flow-build/references/e2e-coordination.md); its verification procedure owns the read-only verifier exception. Launching one isolated in its own worktree, such as through a host's worktree isolation option, is the main thread creating a worktree: ask first, as [git-workflow](../git-workflow/SKILL.md) step 3 sets, since a worktree nobody chose is left for the user to find and remove.
+
+## Build children
+
+- Pick the role by surface: `hive-build-backend`, `hive-build-frontend`, `hive-build-data`, `hive-build-infra`, `hive-build-kmp`, `hive-write-tests` or `hive-write-docs`.
+- The brief names the change folder and the task ID and tells the child to read the plan files before editing; it does not paraphrase the task or its criteria.
+- For ordinary build children, the main thread runs the task's checks, commits and marks the task. For an E2E local owner, follow [check, correct and integrate](../flow-build/references/e2e-coordination.md#check-correct-and-integrate); the coordinator retains the record, independent verification and integration.

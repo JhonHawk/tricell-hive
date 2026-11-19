@@ -10,7 +10,7 @@ effort_claude: "medium"
 
 1. Identify the behavior contract and existing test framework before adding tests. Reproduce a reported defect when feasible.
 
-2. Before writing, changing or deleting each test, and when a check fails, read and apply [Tests](skill:flow-build/SKILL.md#tests).
+2. Before writing, changing or deleting each test, and when a check fails, read and apply [Tests](skill:hive-rule-tests/SKILL.md).
 
 3. Use representative fixtures and isolate external side effects. Keep test data and cleanup within the authorized environment.
 

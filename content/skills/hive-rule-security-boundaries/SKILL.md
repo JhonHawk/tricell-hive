@@ -1,3 +1,9 @@
+---
+name: hive-rule-security-boundaries
+description: "Hive rule leaf: read when a change touches untrusted input, permissions, process execution or data exposure. Authorize at the trusted boundary, keep data apart from syntax, keep secrets out."
+disable-model-invocation: true
+---
+
 # Security boundaries
 
 Read when the change touches untrusted input, permissions, process execution or data exposure, and apply:

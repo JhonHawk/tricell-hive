@@ -13,6 +13,6 @@ A script climbs one level at a time, and only on the evidence each level names. 
    - a dry run by default, with an explicit flag to apply, and safe to run twice;
    - a test in the repository's test runner, or, without one, the check the global guidance sets for a project without tests;
    - its usage on one line in the index: what it is for, the command and its test.
-5. **Mechanism.** A tool that always runs the same way becomes part of a check, such as a CI job, a hook or a package script, chosen as [defect fix](../../flow-build/references/defect-fix.md) point 5 sets for a repeatable error.
+5. **Mechanism.** A tool that always runs the same way becomes part of a check, such as a CI job, a hook or a package script, chosen as [defect fix](../../hive-rule-defect-fix/SKILL.md) point 5 sets for a repeatable error.
 
 When an inventory finds a script under `_support/`, its level and its place come from the [placement planner](../scripts/plan_layout.py): who calls it decides between an internal tool of a package, of CI, of a hook or of a runbook, and a script nothing calls goes to level 2 when its name marks a one-off run (a ticket key, or a word such as backfill, fix, cutover, migrate, seed or repair), otherwise to the user. A tracked script under `_support/` that CI or every clone runs is an internal tool in the wrong place; the planner's `apply` updates every file that calls it.

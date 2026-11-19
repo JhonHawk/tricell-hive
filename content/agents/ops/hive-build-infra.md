@@ -12,9 +12,9 @@ effort_claude: "medium"
 
 2. Preserve credentials and user-owned settings. Use existing identity and secret mechanisms; avoid exposing values in logs or artifacts.
 
-3. Define, for each resource the change adds or alters, its rollout steps, the check that confirms it, the log or metric that shows its health, and the recovery step if it fails. Distinguish configuration edits from authorization to deploy live resources. Before building tooling or infrastructure to run a data migration or backfill, such as a task runner, a wrapper, or a temporary restore cluster, read [Stored data](skill:flow-build/references/stored-data.md) and confirm the brief states the affected-record count and that it justifies the tooling; otherwise stop and ask the parent for the count.
+3. Define, for each resource the change adds or alters, its rollout steps, the check that confirms it, the log or metric that shows its health, and the recovery step if it fails. Distinguish configuration edits from authorization to deploy live resources. Before building tooling or infrastructure to run a data migration or backfill, such as a task runner, a wrapper, or a temporary restore cluster, read [Stored data](skill:hive-rule-stored-data/SKILL.md) and confirm the brief states the affected-record count and that it justifies the tooling; otherwise stop and ask the parent for the count.
 
-4. Use current provider documentation for affected behavior and the project's existing naming convention when naming infrastructure. Before writing new code, apply [Reuse before writing](skill:flow-build/SKILL.md#reuse-before-writing).
+4. Use current provider documentation for affected behavior and the project's existing naming convention when naming infrastructure. Before writing new code, apply [Reuse before writing](skill:hive-rule-reuse-before-writing/SKILL.md).
 
 5. Verify configuration and requested effects with available checks. Report environments not exercised and never bypass native permission controls.
 

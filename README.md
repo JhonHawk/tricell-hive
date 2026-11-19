@@ -534,7 +534,7 @@ flow's brief (research, plan, build, verify, delivery, close, collab or local), 
 names every operation with its flows, `--section rules` prints the shared rules,
 and `--operation NAME` narrows to one operation.
 JSON inputs use `--json FILE` or `--json -`. The
-[walkthrough reference](content/skills/flow-verify/references/walkthrough.md) owns the agent's
+[walkthrough reference](content/skills/hive-rule-walkthrough/SKILL.md) owns the agent's
 procedure; the [viewer manual](https://hive.tricell.tech/viewer/) explains how to
 read and manage published work.
 

@@ -157,7 +157,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 ### T6 — Se extraen las hojas de `git-workflow` y `flow-close`
 
-- [ ] Existen `merge-gate`, `promotion-path`, `close-modes`, `close-hygiene` y `close-report`, y `flow-close` abre con `hive-rule-close-modes`.
+- [x] Existen `merge-gate`, `promotion-path`, `close-modes`, `close-hygiene` y `close-report`, y `flow-close` abre con `hive-rule-close-modes`.
 
 **Closes:** AC4, AC6, AC7
 
@@ -505,3 +505,4 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 2026-11-18 — T2 · 549b1583 · unverified: hive doctor end to end and a rollback to an older stored release not run; covered through Status and desiredResources
 2026-11-18 — T4 · c33681da · unverified: none
 2026-11-19 — T5 · dff232ad · unverified: flow-deploy citations and its ticket-state link wait for T8; README, llms.txt and _support/docs wait for T9
+2026-11-19 — T6 · 9eda7fa9 · unverified: close-modes is not linked from git-workflow step 10 (would exceed 9,000 bytes); flow-close still reached there by name

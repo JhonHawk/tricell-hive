@@ -1,3 +1,9 @@
+---
+name: hive-rule-stored-data
+description: "Hive rule leaf: read before a change to stored data, in any flow. Count affected records first, migrate what the code stops reading, define cutover checks and recovery."
+disable-model-invocation: true
+---
+
 # Stored data
 
 Read before a change to stored data, in any flow.

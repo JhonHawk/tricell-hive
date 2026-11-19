@@ -9,7 +9,7 @@ When documentation should live as a maintained, searchable Starlight site, read 
 
 Before writing the support deliverable, read [layout and retention](../project-layout/references/layout.md).
 
-Use this skill when the requested deliverable benefits from an explicit visual or printable presentation. A request to save findings for later does not by itself call for HTML: keep resumable research in a Markdown work record, placed where that reference puts research records. Preserve an explicitly requested format. Keep ordinary answers, status updates, and ordinary handoffs out of HTML; viewer publication belongs to [walkthrough](../flow-verify/references/walkthrough.md), not these report assets. The rules for chat replies are [decision format](../hive-rule-decision-format/SKILL.md) and [asking a round](../hive-rule-question-channel/SKILL.md).
+Use this skill when the requested deliverable benefits from an explicit visual or printable presentation. A request to save findings for later does not by itself call for HTML: keep resumable research in a Markdown work record, placed where that reference puts research records. Preserve an explicitly requested format. Keep ordinary answers, status updates, and ordinary handoffs out of HTML; viewer publication belongs to [walkthrough](../hive-rule-walkthrough/SKILL.md), not these report assets. The rules for chat replies are [decision format](../hive-rule-decision-format/SKILL.md) and [asking a round](../hive-rule-question-channel/SKILL.md).
 
 Choose the asset that matches what the reader receives:
 

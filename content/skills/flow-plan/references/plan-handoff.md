@@ -11,7 +11,7 @@ A saved change folder holds the detail and the user may not open it, so summariz
 3. The decisions in force, and the minor calls (as [decision format](../../hive-rule-decision-format/SKILL.md) defines them) taken without asking with their reasons.
 4. For a change to a screen, the sketch of each changed region before and after from the `UI` section of `design.md`, with its components and states; for a region with an approved example, the example's record in place of its after sketch. Check that each sketch matches the text that describes it, such as two actions drawn side by side when the text says so.
 5. Each task on one line, with what it delivers and who executes it.
-6. The prerequisites still unmet, with who provides each, and each external fact written as not measured, with the task that meets it first, as [outside the repository](outside-the-repository.md) sets.
+6. The prerequisites still unmet, with who provides each, and each external fact written as not measured, with the task that meets it first, as [outside the repository](../../hive-rule-external-facts/SKILL.md) sets.
 7. The verification: the tests, the UI walk and review, and the code review.
 8. The delivery mode, with the validation stop and the endpoint after it.
 9. Each class of effect with its answer (approved, refused or unanswered), its target, ceiling and tasks, what remains open or unauthorized, and the change folder path or that the plan lives in the conversation.
@@ -23,7 +23,7 @@ End the summary with the [next-step block](../../hive-rule-next-step-block/SKILL
 - Recommend building unless something blocks it, and say in the block that typing the build command approves the criteria shown, by their IDs with a gloss, such as "approves AC1–AC4 (export, permissions and audit)": `/flow-build <change folder>` in the host's syntax, or, for a plan kept in the conversation, `/flow-build` with the ticket key or a short description of the work.
 - Recommend stopping with the plan ready only for a named blocker, such as an open decision, an unmet prerequisite or the user's statement not to implement now, and say which; that the user asked for a plan is not a blocker.
 
-A correction to a criterion or a sketch is not approval: [revise the plan](../SKILL.md#revise-a-plan-in-progress), show the revised criteria or sketch, and end with the build route again.
+A correction to a criterion or a sketch is not approval: [revise the plan](../../hive-rule-change-folder/SKILL.md#revise-a-plan-in-progress), show the revised criteria or sketch, and end with the build route again.
 
 Continue to `flow-build` in the same turn when the explicit [E2E grant](../../flow-build/references/e2e-coordination.md) covers it, the user's own message asked beforehand to build after the plan without stopping, or [unattended delegation](../../unattended-delegation/SKILL.md) is active and its objective reaches the build. Show the summary the same way, then continue.
 
