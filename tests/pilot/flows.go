@@ -545,7 +545,7 @@ func verifyResourceNameContract(dir string) criterionAssessment {
 func flowLoadingSkills(id string) []string {
 	switch id {
 	case "smoke", "conventions-smoke":
-		return []string{"flow-research", "flow-plan", "flow-build", "git-workflow"}
+		return []string{"hive-mode", "flow-plan", "flow-build", "git-workflow"}
 	case "deployed-smoke":
 		return []string{"flow-report", "harness-audit", "unattended-delegation", "flow-close", "flow-verify"}
 	default:
@@ -566,8 +566,8 @@ func machineFileWrite(p string) bool {
 	return p == filepath.Join(config, "hive", "HIVE.local.md") || p == filepath.Join(config, ".git", "info", "exclude")
 }
 
-// localInstructionsWrite reports whether p is a write the global guidance's
-// «Local instructions» authorizes in any flow: the root HIVE.local.md and the
+// localInstructionsWrite reports whether p is a write the hive-rule-local-write
+// leaf authorizes in any flow: the root HIVE.local.md and the
 // exclude entry that keeps Git from tracking it.
 func localInstructionsWrite(p string) bool {
 	return p == "HIVE.local.md" || p == ".git/info/exclude"

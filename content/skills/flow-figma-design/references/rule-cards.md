@@ -1,6 +1,6 @@
 # Rule cards
 
-Read at step 5 of [flow-figma-design](../SKILL.md), once the first review is reconciled, to draw the rule cards; at its step 7, when the user answers a rule; and from any later flow when a rule a card shows changes or a decision contradicts an approved frame. [Business rules](../../flow-plan/references/business-rules.md) defines a business rule, the line that records it and its statuses.
+Read at step 5 of [flow-figma-design](../SKILL.md), once the first review is reconciled, to draw the rule cards; at its step 7, when the user answers a rule; and from any later flow when a rule a card shows changes or a decision contradicts an approved frame. [Business rules](../../hive-rule-business-rules/SKILL.md) defines a business rule, the line that records it and its statuses.
 
 A rule card is an annotation beside a frame that lists the business rules shaping that screen which the frame does not say by itself, so a reader of the design file finds them without the ticket or the conversation. It is not part of the interface.
 
@@ -26,7 +26,7 @@ Draw them after the first review's findings are fixed and its unsettled rules re
 - Put on a card no row that repeats the frame's text and no rule of another screen.
 - Add one `card: <screen> · <node>` line per card to the example's record, where those lines stay.
 
-Then the one follow-up review of step 5 covers the cards together with the corrected frames, and runs for the cards alone when no frame was corrected; its brief gives each card's node, as [Reviewer brief](../../flow-build/references/delegation.md#reviewer-brief) sets. Fix what holds. The cards get no further review.
+Then the one follow-up review of step 5 covers the cards together with the corrected frames, and runs for the cards alone when no frame was corrected; its brief gives each card's node, as [Reviewer brief](../../hive-rule-reviewer-brief/SKILL.md) sets. Fix what holds. The cards get no further review.
 
 ## When the user answers a rule
 
@@ -34,14 +34,14 @@ At step 7, in the same turn the record's line becomes `approved`, rewrite that r
 
 ## After the design stage
 
-When a later flow records a change to a rule a card shows, as [business rules](../../flow-plan/references/business-rules.md) sets, the main thread also does one of these in the same turn:
+When a later flow records a change to a rule a card shows, as [business rules](../../hive-rule-business-rules/SKILL.md) sets, the main thread also does one of these in the same turn:
 
 - With a connection that can write to that Figma file, correct the card: mark the earlier row as cancelled, with the date and the reason, and add a row for the rule that replaces it; never delete the earlier row. Change only the card nodes the example's record lists in its `card:` lines, which the global guidance's «Scope and authorization» authorizes without a question. Never change a frame or any other node from outside the design stage.
 - Without that connection, without those `card:` lines where the flow runs, or when the write fails, add `card stale: <screen> · <rule>` to the work's rule record.
 
 When a decision contradicts what an approved frame itself shows, such as a region, an action, a state or a text of the frame, add `frame stale: <node> · <rule>` to the work's rule record and say so in that turn's message. The build follows the decision, and no flow redraws the frame outside the design stage. The close names each `card stale:` and `frame stale:` line in its final report, as left open.
 
-When [flow-figma-design](../SKILL.md) runs again for that work, read those lines and the record's `cancelled` rules, wherever the rule record now lives, before drawing; correct the cards and the frames they name; and name each line you corrected in the stage's report. The plan's revision then removes those lines, as [business rules](../../flow-plan/references/business-rules.md) sets; for work without a change folder, remove them from the checkpoint file yourself.
+When [flow-figma-design](../SKILL.md) runs again for that work, read those lines and the record's `cancelled` rules, wherever the rule record now lives, before drawing; correct the cards and the frames they name; and name each line you corrected in the stage's report. The plan's revision then removes those lines, as the [rule record](../../hive-rule-business-record/SKILL.md) sets; for work without a change folder, remove them from the checkpoint file yourself.
 
 ## Special cases
 

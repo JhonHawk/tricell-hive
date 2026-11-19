@@ -10,7 +10,7 @@ Git is initialized at a workspace root only through this skill and only on the u
 When the user asks to set up a coordinator they already cloned, run `python3 -I <workspace-repo-dir>/scripts/workspace_repo.py setup --root <root>` ([workspace repo](scripts/workspace_repo.py)), which clones each repository of the table that is missing, report what it cloned, and stop.
 
 1. **Assess, changing nothing.** Confirm with the user the workspace root and its repositories when no `AGENTS.md` declares them, never inferring them from a parent folder. For each child repository record its path, its `origin` remote and its current branch, and which one holds `Specs`. Record what the root already holds: `AGENTS.md`, `CLAUDE.md`, `HIVE.local.md`, `.engram/`, `_support/`. Read [migrate](../project-layout/references/migrate.md) and apply its viability test: when the repositories pass it, recommend a monorepo instead. Run the check of [project-layout](../project-layout/SKILL.md) on the root and on each child, and run `workspace_repo.py plan` with each `--repo <path>=<remote>`; it prints what apply would write and writes nothing.
-2. **Ask one round** with the assessment, as the global guidance's «Questions and routes» sets:
+2. **Ask one round** with the assessment, as [decision format](../hive-rule-decision-format/SKILL.md) sets:
    - whether to create the coordinator, or the monorepo when the viability test passes;
    - its tracker, proposing the one its children share, since `hive doctor` requires it in the coordinator's `## Hive`;
    - whether its `## Hive` declares `Delivery: direct-base`, recommended so that knowledge and change records are committed straight to the coordinator's base; say it is the only value that authorizes those commits without asking;

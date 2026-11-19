@@ -1,0 +1,17 @@
+---
+name: hive-rule-viewer-close
+description: "Hive rule leaf: read at the close of a work with viewer captures, or when asked to rename, archive, restore, pin or delete a viewer work. Close or sync it, keep its inputs, ask before delete."
+disable-model-invocation: true
+---
+
+# Close and manage a viewer work
+
+Read at the work's completion phase when it has captures, and when the user asks to rename, archive, restore, pin or delete a viewer work.
+
+## Close and input hygiene
+
+At the work's completion phase, as [flow-close](../flow-close/SKILL.md) step 1 sets, and only for a work with captures: run `hive view work close --outcome completed|abandoned --reason TEXT` for integrated or abandoned work. For a work that waits, run `hive view work sync --stage STAGE --state in_review|paused|awaiting_validation --reason TEXT` instead, with the stage of its last capture: `in_review` while its open pull request waits for the user's merge or a human reviewer, `paused` for a pause. Both read the work back; never close an already closed work again, and never infer a close from a document's status. Remove the task's disposable capture inputs only after that readback confirms the work and no capture reply is still `queued`; what to keep, and for how long, is set by [artifact retention](../project-layout/references/layout.md), and a capture whose uploaded copy is not in a merged pull request body is never a disposable input.
+
+## Manage a work
+
+Renaming, archiving, restoring, pinning, unpinning and deleting run in the authenticated viewer or through `hive view work rename|archive|restore|pin|unpin|delete`, which act as `local_viewer` and take no identity flags. Run one only when the user asks for that action on a named work, once per request. `delete` removes the work and its evidence: ask it as a critical effect every time, even when the user named the work (the one exception to the global guidance's «unless the user asks for it on a named target»), and pass `--confirm` with the same work ID. Never use `local_viewer` in a publication command, and never expose viewer credentials or access fragments in evidence.

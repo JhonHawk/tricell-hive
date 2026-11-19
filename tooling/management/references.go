@@ -22,7 +22,7 @@ var slugDropped = regexp.MustCompile(`[^\p{L}\p{M}\p{N}\p{Pc} -]`)
 
 func instructionMarkdown(source string) bool {
 	return strings.HasSuffix(source, ".md") && (source == GlobalSource || strings.HasPrefix(source, "content/agents/") ||
-		(strings.HasPrefix(source, "content/skills/") && (strings.HasSuffix(source, "/SKILL.md") || strings.Contains(source, "/references/"))))
+		(strings.HasPrefix(source, "content/skills/") && (strings.HasSuffix(source, "/SKILL.md") || (strings.Contains(source, "/references/") || strings.Contains(source, "/playbooks/")))))
 }
 
 // headingAnchors returns the anchors that a Markdown file's headings define

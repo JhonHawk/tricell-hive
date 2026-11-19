@@ -53,8 +53,8 @@ KNOWN_SECRET_RE = re.compile(
 )
 REQUIRED_EXCLUDES = ("HIVE.local.md", "_support/secrets/", "_support/scripts/")
 DEFAULT_HEADER = (
-    "Per-machine facts of this repository, untracked, kept by agents under the global guidance's "
-    "«Local instructions»; facts that hold in any project live in ~/.config/hive/HIVE.local.md.\n"
+    "Per-machine facts of this repository, untracked, kept by agents under the Hive "
+    "local-instructions rules; facts that hold in any project live in ~/.config/hive/HIVE.local.md.\n"
 )
 
 

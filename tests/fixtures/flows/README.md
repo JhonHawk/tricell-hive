@@ -17,14 +17,14 @@ pilot (design.md "Comparación a ciegas"): a fixture `AGENTS.md` declares a
 local `Tracker` under `## Hive` so the guidance's backlog-report rule applies,
 `BACKLOG.md` holds open tickets across a few product modules, and the prompt
 only asks for project status and backlog contents — no implementation. It
-expects `flow-research` and is scored by the same `regressionCriteria` every
+expects `hive-mode` and is scored by the same `regressionCriteria` every
 flows case gets, including `ticket_ids_not_packed_in_prose`.
 
 `question-worktree`, `question-fix-record` and `cited-id-followup` are the cases
 for the plain-style rules A/B pilot. Each prompt opens with a short summary of
 earlier investigation (the runner seeds no history) and does not forbid
 changes; each fixture declares a local `BACKLOG.md` tracker under `## Hive` and
-expects `flow-research`. The two question cases ask whether work may start
+expects `hive-mode`. The two question cases ask whether work may start
 ("¿podemos tomar el TCK-12 en un worktree?", "¿puedes arreglar este registro?")
 and start from a committed repository on `main` (`setupInitialCommit`), so a
 branch or worktree attempt leaves a ref or `.git/worktrees/` entry. They get one

@@ -33,7 +33,7 @@ func qualifySmallSuite() qualifySuite {
 		Tasks: []qualifyTask{
 			{ID: "t1", Group: "authorization", Files: map[string]string{"README.md": "# x\n"}, Cwd: ".", InitialCommit: true, Prompt: "¿Cómo arreglaríamos esto?", Split: "heldback", CompareNone: true, NoActionExpected: true,
 				Checks: qualifyChecks{GitUnchanged: true, NoNewCommit: true, CommandsMustNot: []string{"git commit", "git push"}}},
-			{ID: "t2", Group: "routing", Case: "research", Split: "tuning", ExpectSkill: "flow-research",
+			{ID: "t2", Group: "routing", Case: "research", Split: "tuning", ExpectSkill: "hive-mode",
 				Checks: qualifyChecks{AnswerMustNot: []string{`(?i)implement(é|ado)`}, Criteria: map[string][]string{"cited_id_glossed": {"pass", "not_observed"}}}},
 		},
 	}
@@ -124,7 +124,7 @@ func TestQualifySuiteRealFileModifiedCopiesRejected(t *testing.T) {
 		}, "heldback"},
 		{"compare-none-with-expect-skill", func(s *qualifySuite) {
 			i := firstIndex(*s, func(task qualifyTask) bool { return task.CompareNone })
-			s.Tasks[i].ExpectSkill = "flow-research"
+			s.Tasks[i].ExpectSkill = "hive-mode"
 		}, "compare_none"},
 		{"case-build", func(s *qualifySuite) {
 			i := firstIndex(*s, func(task qualifyTask) bool { return task.Case != "" })

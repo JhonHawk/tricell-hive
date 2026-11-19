@@ -9,11 +9,11 @@ When the user asks to create, bootstrap, review or prune `HIVE.local.md`, or to 
 
 Audit what coding-agent hosts actually load and whether each instruction, skill, or agent earns its place. Report findings with evidence, ask the decisions they need, and, after the user's answer, apply the accepted outcomes in the current project as [apply](references/apply.md) sets.
 
-A role launched read-only, such as `hive-review-harness`, or a delegated auditor edits nothing: it returns findings and decisions to its parent, which asks and applies. In the main thread, write only what [apply](references/apply.md) allows after the user's answer, the entries of the project's `HIVE.local.md` and of the machine file that the global guidance's «Local instructions» authorizes, plus an approved migration manifest, whose mechanical entries run through [project-layout](../project-layout/SKILL.md), stopping at `manual` and `ask` entries. Do not edit configuration outside the project or trackers; the machine file of «Local instructions» is not configuration.
+A role launched read-only, such as `hive-review-harness`, or a delegated auditor edits nothing: it returns findings and decisions to its parent, which asks and applies. In the main thread, write only what [apply](references/apply.md) allows after the user's answer, the entries of the project's `HIVE.local.md` and of the machine file that [local write](../hive-rule-local-write/SKILL.md) authorizes, plus an approved migration manifest, whose mechanical entries run through [project-layout](../project-layout/SKILL.md), stopping at `manual` and `ask` entries. Do not edit configuration outside the project or trackers; the machine file of [local write](../hive-rule-local-write/SKILL.md) is not configuration.
 
 ## Scope
 
-Before applying an outcome that writes `Specs`, creates a specs directory, or creates or continues a change record, read [change folder](../flow-plan/SKILL.md#change-folder); before writing or cleaning supporting artifacts, read [layout and retention](../project-layout/references/layout.md). An audit that applies nothing needs neither.
+Before applying an outcome that writes `Specs`, creates a specs directory, or creates or continues a change record, read [change folder](../hive-rule-change-folder/SKILL.md#change-folder); before writing or cleaning supporting artifacts, read [layout and retention](../project-layout/references/layout.md). An audit that applies nothing needs neither.
 
 Establish before reading deeply:
 
@@ -66,7 +66,7 @@ Close with coverage: targets, entry points, hosts, native outputs used, what was
 
 ## Ask
 
-In one round, following the global guidance's «Questions and routes», ask the decisions the findings need:
+In one round, following [decision format](../hive-rule-decision-format/SKILL.md) and [asking a round](../hive-rule-question-channel/SKILL.md), ask the decisions the findings need:
 
 - each HA-IF-08 choice of which version to keep and each conflict with a global layer;
 - each standing grant written in prose, to remove or keep as a stated exception;
@@ -74,6 +74,6 @@ In one round, following the global guidance's «Questions and routes», ask the 
 - each memory entry to change, grouped by host and store, with every deletion named one by one;
 - which outcomes to apply. Exception to one question per decision: group these as one option per group of findings, each with its files.
 
-When the applied edits will end in a Git delivery in a code repository, add to that round the delivery and review questions that «Delivery» does not let you reuse from earlier in the session; they must be answered before the first edit. Apply nothing before the answers.
+When the applied edits will end in a Git delivery in a code repository, add to that round the delivery and review questions that [delivery questions](../hive-rule-delivery-ask/SKILL.md) does not let you reuse from earlier in the session; they must be answered before the first edit. Apply nothing before the answers.
 
 Under [unattended delegation](../unattended-delegation/SKILL.md), leave unapplied and report the decisions that belong to the user: which version of a rule to keep, a conflict with a global layer, and each standing grant in prose.

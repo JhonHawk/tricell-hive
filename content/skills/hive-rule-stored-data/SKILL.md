@@ -1,0 +1,13 @@
+---
+name: hive-rule-stored-data
+description: "Hive rule leaf: read before a change to stored data, in any flow. Count affected records first, migrate what the code stops reading, define cutover checks and recovery."
+disable-model-invocation: true
+---
+
+# Stored data
+
+Read before a change to stored data, in any flow.
+
+- Before choosing a technique, take a read-only count of the affected records in each environment the change reaches, and record it. Scale the technique to that count: a few records need one targeted update in an authorized window; a count of zero needs no migration.
+- Migrate or remove the stored values the new code stops reading, as a task of the same change.
+- Before running a change to stored data, define its cutover checks, the conditions that abort it, and its recovery path, and verify that the backup or restore it relies on exists. Rolling back code or schema does not restore transformed or deleted data; when reversal cannot recover it, choose a validated restore or a fix-forward.

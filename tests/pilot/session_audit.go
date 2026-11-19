@@ -1371,7 +1371,7 @@ func skillNamedAsReason(s auditSession) criterionAssessment {
 }
 
 func auditCriteria(s auditSession, base string) []criterionAssessment {
-	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s), reviewQuestionNativeOption(s))
+	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s), reviewQuestionNativeOption(s), leafReadBeforeAction(s))
 }
 
 var (
@@ -1510,4 +1510,212 @@ func auditSessionMain(path, host string, opts auditOptions, stdout io.Writer) er
 	}
 	_, err = fmt.Fprintln(stdout, string(out))
 	return err
+}
+
+// --- leaf_read_before_action ---
+
+// leafAction is a moment the guidance's rule leaves name: the first one of its
+// class in a session needs the leaf's file read before it.
+type leafAction struct {
+	class, leaf string
+	// readInCommand: an earlier segment of the same shell command names the leaf.
+	readInCommand bool
+}
+
+const (
+	leafGitCommit     = "hive-rule-git-commit"
+	leafTicketState   = "hive-rule-ticket-state"
+	leafQuestionRound = "hive-rule-question-channel"
+)
+
+// leafReadVerb names the shell programs that print a file, so a command that
+// only mentions a leaf's path, such as a commit message, is not a read.
+var leafReadVerb = regexp.MustCompile(`^(cat|sed|head|tail|less|more|bat|nl|awk|grep|rg)$`)
+
+// shellReadsLeaf reports whether a shell segment prints the leaf's file: its
+// program prints files, it names the path, and it redirects nothing, so a
+// heredoc or a commit message that mentions the path is no read.
+func shellReadsLeaf(args []string, leaf string) bool {
+	if len(args) < 2 || !leafReadVerb.MatchString(filepath.Base(args[0])) {
+		return false
+	}
+	for _, a := range args[1:] {
+		if strings.HasPrefix(a, ">") || strings.HasPrefix(a, "<<") {
+			return false
+		}
+	}
+	return strings.Contains(strings.Join(args[1:], " "), leaf+"/SKILL.md")
+}
+
+// namesLeaf reports whether a call read the leaf's file: the Read tool on its
+// path, a shell segment shellReadsLeaf accepts, or another tool whose input
+// names it. A call the trace marks as failed is no read.
+func namesLeaf(e traceEvent, leaf string) bool {
+	if e.Success != nil && !*e.Success {
+		return false
+	}
+	target := leaf + "/SKILL.md"
+	switch e.Kind {
+	case "read":
+		return strings.Contains(e.Path, target)
+	case "tool":
+		return strings.Contains(e.Path+"\n"+string(e.Input), target)
+	case "shell":
+		for _, args := range shellSegments(e.Command, 0) {
+			if shellReadsLeaf(args, leaf) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// ticketMoveTool matches tracker tools that change an existing ticket; a call
+// counts only when it names that ticket and sets a state, so creating a ticket
+// is not a move.
+var ticketMoveTool = regexp.MustCompile(`(?i)(?:save|update|edit)_issue$|issue_write$|transition`)
+
+// leafActionsIn lists the actions of an event that a leaf governs: a git add or
+// commit, also through git_state.py's commit command; a ticket move (gh issue
+// close, reopen or a label edit and gh project item-edit, after gh's global
+// flags, or a tracker tool that names an existing ticket and sets its state,
+// or transitions it); or a question card. A shell command is split into
+// segments, so a read earlier in the same command counts as before.
+func leafActionsIn(e traceEvent, cwd string) []leafAction {
+	var out []leafAction
+	switch e.Kind {
+	case "question":
+		if !e.Memory {
+			out = append(out, leafAction{class: "question round", leaf: leafQuestionRound})
+		}
+	case "tool":
+		if !ticketMoveTool.MatchString(e.Tool) {
+			return nil
+		}
+		in := decodeInput(e)
+		_, hasState := in["state"]
+		_, hasStatus := in["status"]
+		named := false
+		for _, key := range []string{"id", "identifier", "issue", "issue_id", "issueId", "issue_iid", "issue_number", "issueIdOrKey", "number", "key"} {
+			if _, ok := in[key]; ok {
+				named = true
+			}
+		}
+		if strings.Contains(strings.ToLower(e.Tool), "transition") || (named && (hasState || hasStatus)) {
+			out = append(out, leafAction{class: "ticket move", leaf: leafTicketState})
+		}
+	case "shell":
+		read := map[string]bool{}
+		for _, args := range shellSegments(e.Command, 0) {
+			joined := strings.Join(args, " ")
+			for _, leaf := range []string{leafGitCommit, leafTicketState, leafQuestionRound} {
+				if len(args) > 1 && leafReadVerb.MatchString(filepath.Base(args[0])) && strings.Contains(joined, leaf+"/SKILL.md") {
+					read[leaf] = true
+				}
+			}
+			isCommit := false
+			if isGit, sub, _ := gitInvocation(args, cwd); isGit && sub < len(args) && (args[sub] == "add" || args[sub] == "commit") {
+				isCommit = true
+			}
+			for i, a := range args {
+				if filepath.Base(a) != "git_state.py" {
+					continue
+				}
+				for _, rest := range args[i+1:] {
+					if rest == "commit" {
+						isCommit = true
+					}
+				}
+			}
+			if isCommit {
+				out = append(out, leafAction{class: "git add or commit", leaf: leafGitCommit, readInCommand: read[leafGitCommit]})
+			}
+			if len(args) > 2 && filepath.Base(args[0]) == "gh" && ticketMoveShell(ghSubcommand(args[1:])) {
+				out = append(out, leafAction{class: "ticket move", leaf: leafTicketState, readInCommand: read[leafTicketState]})
+			}
+		}
+	}
+	return out
+}
+
+// ghSubcommand drops gh's global flags, such as -R owner/repo, before its
+// command.
+func ghSubcommand(args []string) []string {
+	for len(args) > 0 && strings.HasPrefix(args[0], "-") {
+		if (args[0] == "-R" || args[0] == "--repo") && len(args) > 1 {
+			args = args[2:]
+			continue
+		}
+		args = args[1:]
+	}
+	return args
+}
+
+func ticketMoveShell(args []string) bool {
+	if len(args) < 2 {
+		return false
+	}
+	switch {
+	case args[0] == "issue" && (args[1] == "close" || args[1] == "reopen"):
+		return true
+	case args[0] == "issue" && args[1] == "edit":
+		for _, a := range args[2:] {
+			if strings.HasPrefix(a, "--add-label") || strings.HasPrefix(a, "--remove-label") {
+				return true
+			}
+		}
+	case args[0] == "project" && args[1] == "item-edit":
+		return true
+	}
+	return false
+}
+
+// leafReadBeforeAction checks that, before the first action of each class a
+// rule leaf governs, the transcript shows a read of that leaf's SKILL.md.
+// Status: fail when an observed action has no read before it; review when the
+// only gap is a shell command the host withheld before it (the read could be
+// in it); pass when every observed class was read; not_observed ("not
+// exercised") when the session has no such action. Only the first action of a
+// class is checked, so a read lost to a compaction is not seen. Reads are
+// those namesLeaf accepts.
+func leafReadBeforeAction(s auditSession) criterionAssessment {
+	c := criterionAssessment{Criterion: "leaf_read_before_action", Status: "not_observed", Evidence: []string{}}
+	seen := map[string]bool{}
+	var failed, review, passed []string
+	for i, e := range s.Trace.Events {
+		for _, a := range leafActionsIn(e, s.Cwd) {
+			if seen[a.class] {
+				continue
+			}
+			seen[a.class] = true
+			read, withheld := a.readInCommand, false
+			for _, prior := range s.Trace.Events[:i] {
+				if namesLeaf(prior, a.leaf) {
+					read = true
+					break
+				}
+				if prior.Kind == "shell" && prior.CommandWithheld {
+					withheld = true
+				}
+			}
+			line := regressionEvidence(e) + " " + a.class + " (" + a.leaf + ")"
+			switch {
+			case read:
+				passed = append(passed, line)
+			case withheld:
+				review = append(review, line)
+			default:
+				failed = append(failed, line)
+			}
+		}
+	}
+	switch {
+	case len(failed) > 0:
+		c.Status, c.Evidence = "fail", failed
+	case len(review) > 0:
+		c.Status, c.Evidence = "review", review
+	case len(passed) > 0:
+		c.Status, c.Evidence = "pass", passed
+	}
+	return c
 }

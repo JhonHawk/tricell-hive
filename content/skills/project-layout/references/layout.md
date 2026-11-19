@@ -19,12 +19,12 @@ Create only the folders and records the work needs. One work item shares its ide
 **Actions:** use the established support home, or an existing documented destination such as a documentation repository, resolving an ambiguous scope before writing shared artifacts, and select by purpose:
 
 - `docs/<topic>/`: living knowledge, conventions, and durable decisions, updated in place; living documents need no date. Procedures that were run and will be run again, such as a rollback, a restore or a cutover, go in `docs/runbooks/`.
-- `sessions/YYYY-MM-DD-<work>/`: retained records that belong to no change, such as research or a report requested on its own. Before writing, identify the artifact type and complete destination path, reusing the existing work session. Even a small task or single file belongs there rather than the repository root; the one exception is `HIVE.local.md`, kept at the repository or workspace root as the global guidance's «Local instructions» sets.
+- `sessions/YYYY-MM-DD-<work>/`: retained records that belong to no change, such as research or a report requested on its own. Before writing, identify the artifact type and complete destination path, reusing the existing work session. Even a small task or single file belongs there rather than the repository root; the one exception is `HIVE.local.md`, kept at the repository or workspace root as [local write](../../hive-rule-local-write/SKILL.md) sets.
 - `workspace/YYYY-MM-DD-<work>/`: ignored by Git, for material the user may open or whose versioning is undecided: working documents, images, temporary information, and files a tool or later session must find again, such as saved state, including a loop's `loop-state.md`.
 - Scratch, reproducible material nobody needs after the task (temporary files, shell helpers, intermediate output, throwaway checkouts), goes where the host keeps temporary work: its scratch or session directory, otherwise the system temporary directory; never the repository root, and never for anything the user should read or reuse. Material holding the only copy of work, such as unintegrated source edits, uncommitted changes in a checkout, or unique evidence, is not scratch: keep it in its source location, the host's native mechanism, or a location the user approves.
-- `secrets/`: never versioned, the folder at mode `0700` and its files at `0600`, holding the secret files and the account index `ACCOUNTS.md` that the global guidance's «Test accounts» sets.
+- `secrets/`: never versioned, the folder at mode `0700` and its files at `0600`, holding the secret files and the account index `ACCOUNTS.md` that [test accounts](../../hive-rule-test-accounts/SKILL.md) sets.
 - `data/`: never versioned and protected, one `data/YYYY-MM-DD-<work>/` folder per operation for its inputs and outputs, such as a dump, an export or a migration's files; it may hold the only copy of data, so only the user's answer removes it.
-- `scripts/`: never versioned, the local scripts that `HIVE.local.md` names, as the global guidance's «Local instructions» sets.
+- `scripts/`: never versioned, the local scripts that `HIVE.local.md` names, as [local script](../../hive-rule-local-script/SKILL.md) sets.
 
 **Condition:** the material is code: a script, a check, a seed, a migration, infrastructure.
 
@@ -45,7 +45,7 @@ Code never depends on the work material under `_support/` (`workspace/`, `data/`
 
 **Condition:** producing UI review images or recordings.
 
-**Actions:** put images and recordings in `workspace/YYYY-MM-DD-<work>/images/`, and a build's before captures in its `images/before/`. Publish UI captures using [walkthrough](../../flow-verify/references/walkthrough.md); its [readback checks](../../flow-verify/references/viewer-publication.md#close-and-input-hygiene) precede removing the disposable upload inputs, which never include a capture that [Retain evidence](#retain-evidence) keeps. Link current output from the handoff.
+**Actions:** put images and recordings in `workspace/YYYY-MM-DD-<work>/images/`, and a build's before captures in its `images/before/`. Publish UI captures using [walkthrough](../../hive-rule-walkthrough/SKILL.md); its [readback checks](../../hive-rule-viewer-close/SKILL.md) precede removing the disposable upload inputs, which never include a capture that [Retain evidence](#retain-evidence) keeps. Link current output from the handoff.
 
 Keep source plans, user-selected output, unique evidence of work not yet integrated, uncommitted work and anything with uncertain ownership. Keep failed or unconfirmed upload inputs, and all inputs for paused work. Walkthrough pages generated before the standalone fallback was removed are kept as they are, never deleted or rewritten by that removal. Retention does not authorize publication, and nothing expires by age.
 

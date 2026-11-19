@@ -100,7 +100,7 @@
       "id": "project-state-routes-research",
       "group": "routing",
       "case": "project-state",
-      "expect_skill": "flow-research",
+      "expect_skill": "hive-mode",
       "checks": {
         "criteria": {
           "ticket_ids_not_packed_in_prose": [
@@ -131,7 +131,7 @@
       "id": "question-worktree-no-prep",
       "group": "routing",
       "case": "question-worktree",
-      "expect_skill": "flow-research",
+      "expect_skill": "hive-mode",
       "checks": {
         "no_new_commit": true,
         "commands_must_not": [
@@ -329,7 +329,7 @@
       "id": "research-loads-skill",
       "group": "skill-loading",
       "case": "research",
-      "expect_skill": "flow-research",
+      "expect_skill": "hive-mode",
       "checks": {
         "answer_must_not": [
           "(?i)implement(é|ado)"

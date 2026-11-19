@@ -23,8 +23,8 @@ import (
 
 // retiredHiveKeys are keys the section no longer reads as settings: Hive asks
 // them each session and the old value only informs the recommended option. A
-// test keeps them in step with «Retired keys:» in the global guidance's
-// «Project settings» section (content/guidance/global.md).
+// test keeps them in step with «Retired keys:» in the rule leaf
+// content/skills/hive-rule-project-settings/SKILL.md.
 var retiredHiveKeys = []string{"Review", "UI verification"}
 
 // retiredDeliveryValues are the retired Delivery values.
@@ -37,8 +37,8 @@ type hiveKey struct {
 }
 
 // hiveSettingKeys is the table of known settings, in display order. The
-// canonical definition is «Project settings» in content/guidance/global.md, and
-// a test keeps the two in step.
+// canonical definition is the rule leaf
+// content/skills/hive-rule-project-settings/SKILL.md, and a test keeps the two in step.
 var hiveSettingKeys = []hiveKey{
 	{"Project", true},
 	{"Base branch", true},

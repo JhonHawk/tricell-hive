@@ -7,6 +7,7 @@
 | Status | <Draft · Ready for flow-build · In build · Completed> |
 | Tracker | <ticket link · state · priority · related tickets, or none> |
 | Git | <repository, base branch and commit, proposed branch> |
+| Playbook | <the playbook `hive-mode` opened, such as bugfix or feature, or none> |
 
 ## Decisions
 

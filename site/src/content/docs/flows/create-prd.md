@@ -7,7 +7,7 @@ Create PRD writes the requirement document of a module or feature: what it must 
 
 ## When to use
 
-Ask for a requirement document, a PRD, or the functional requirements or business rules of a module or feature. Hand over a requirement document to validate or complete, or ask whether one is ready for development. [Research](/flows/research/) hands the request over when its deliverable is such a document, and the skill then asks its own questions.
+Ask for a requirement document, a PRD, or the functional requirements or business rules of a module or feature. Hand over a requirement document to validate or complete, or ask whether one is ready for development. [Hive mode](/flows/hive-mode/) hands the request over when its deliverable is such a document, and the skill then asks its own questions.
 
 Example requests:
 
@@ -50,7 +50,7 @@ It reports the document's link or path, its version and state, what holds the ne
 
 ## Related flows
 
-- [Research](/flows/research/) sends a request for a requirement document here.
+- [Hive mode](/flows/hive-mode/) sends a request for a requirement document here.
 - [Create issue](/flows/create-issue/) writes the tickets of an approved document.
 - [Figma design](/flows/figma-design/) draws its screens, and [Plan](/flows/plan/) settles how it is built.
 

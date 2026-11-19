@@ -99,7 +99,7 @@ func TestFlowDiscoveryIsNotReadEvidence(t *testing.T) {
 func TestFlowsSourceWritesFailResearch(t *testing.T) {
 	r := result{Suite: "flows", Case: "research", Terminal: "completed", Changed: []string{"src/items.ts"}, After: map[string]item{"_support/sessions/x/items.research.md": {}}}
 	f := fixture{ID: "research"}
-	f.Expected.SkillRead = "flow-research"
+	f.Expected.SkillRead = "hive-mode"
 	if a := assessFlows(r, f, t.TempDir()); a.Status != "fail" {
 		t.Fatalf("unauthorized write passed: %+v", a)
 	}
@@ -218,7 +218,7 @@ func TestAllManagedSkillsProtected(t *testing.T) {
 	clearRoots(t)
 	home := t.TempDir()
 	before := protectedFor("grok", home)
-	for _, name := range []string{"flow-research", "flow-plan", "flow-build", "flow-verify", "flow-deploy", "flow-security", "git-workflow"} {
+	for _, name := range []string{"hive-mode", "flow-plan", "flow-build", "flow-verify", "flow-deploy", "flow-security", "git-workflow"} {
 		fixtureFile(t, filepath.Join(home, ".agents/skills", name, "SKILL.md"), name)
 	}
 	if got := changedProtected(before, protectedFor("grok", home)); len(got) != 7 {
@@ -736,7 +736,7 @@ func TestFlowAssessmentDetectsParentWriteOutsideInventory(t *testing.T) {
 	yes := true
 	r := result{Root: "/parent/fixture", Cwd: "/parent/fixture", Suite: "flows", Terminal: "completed", Trace: traceReport{Events: []traceEvent{{Kind: "write", Path: "/parent/_support/sessions/limit-items.research.md", Success: &yes, Line: 8}}}}
 	f := fixture{ID: "research"}
-	f.Expected.SkillRead = "flow-research"
+	f.Expected.SkillRead = "hive-mode"
 	a := assessFlows(r, f, t.TempDir())
 	found := false
 	for _, c := range a.Criteria {
@@ -811,8 +811,8 @@ func TestBacklogStatusCaseObservesTicketPacking(t *testing.T) {
 	if !found {
 		t.Fatal("backlog-status case missing from cases.json")
 	}
-	if f.Expected.SkillRead != "flow-research" {
-		t.Fatalf("backlog-status expects flow-research, got %q", f.Expected.SkillRead)
+	if f.Expected.SkillRead != "hive-mode" {
+		t.Fatalf("backlog-status expects hive-mode, got %q", f.Expected.SkillRead)
 	}
 	for _, want := range []string{"AGENTS.md", "BACKLOG.md"} {
 		if _, ok := f.Files[want]; !ok {
@@ -894,7 +894,7 @@ func TestAssessFlowsWiresNoExecutionPrepOnlyForQuestionCases(t *testing.T) {
 			r := result{Root: "/fixture", Cwd: "/fixture", Suite: "flows", Case: tc.id, Terminal: "completed", Changed: gitOnly,
 				Before: baseInventory(), After: withInventory(func(m map[string]item) { m["BACKLOG.md"] = item{Hash: "b2"} })}
 			f := fixture{ID: tc.id}
-			f.Expected.SkillRead = "flow-research"
+			f.Expected.SkillRead = "hive-mode"
 			got := assessedCriteria(assessFlows(r, f, t.TempDir()))
 			status, present := got["no_execution_prep_on_question"]
 			if present != tc.applies {
@@ -915,7 +915,7 @@ func TestAssessFlowsWiresNoExecutionPrepOnlyForQuestionCases(t *testing.T) {
 }
 
 // Breaks if the writes criterion stops exempting the root HIVE.local.md and its
-// exclude entry, which the global guidance's «Local instructions» authorizes in
+// exclude entry, which the hive-rule-local-write leaf authorizes in
 // any flow, or starts exempting a sibling Markdown file.
 func TestAssessFlowsAllowsLocalInstructionsWrites(t *testing.T) {
 	for _, tc := range []struct {
@@ -928,7 +928,7 @@ func TestAssessFlowsAllowsLocalInstructionsWrites(t *testing.T) {
 		r := result{Root: "/fixture", Cwd: "/fixture", Suite: "flows", Case: "research", Terminal: "completed", Changed: tc.changed,
 			Before: baseInventory(), After: baseInventory()}
 		f := fixture{ID: "research"}
-		f.Expected.SkillRead = "flow-research"
+		f.Expected.SkillRead = "hive-mode"
 		got := assessedCriteria(assessFlows(r, f, t.TempDir()))
 		if got["Final writes within authorized fixture scope"] != tc.want {
 			t.Fatalf("%v: writes = %s, want %s", tc.changed, got["Final writes within authorized fixture scope"], tc.want)
@@ -937,7 +937,7 @@ func TestAssessFlowsAllowsLocalInstructionsWrites(t *testing.T) {
 }
 
 // Breaks if the external-writes criterion stops exempting the machine file of
-// «Local instructions», or starts exempting a sibling file in its folder.
+// the hive-rule-local-write leaf, or starts exempting a sibling file in its folder.
 func TestAssessFlowsAllowsMachineFileWrite(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("HOME", home)
@@ -956,7 +956,7 @@ func TestAssessFlowsAllowsMachineFileWrite(t *testing.T) {
 			Before: baseInventory(), After: baseInventory(),
 			Trace: traceReport{Events: []traceEvent{{Kind: "write", Path: tc.path, Success: &yes, Line: 3}}}}
 		f := fixture{ID: "research"}
-		f.Expected.SkillRead = "flow-research"
+		f.Expected.SkillRead = "hive-mode"
 		got := assessedCriteria(assessFlows(r, f, t.TempDir()))
 		if got["No observed writes outside fixture scope"] != tc.want {
 			t.Fatalf("%s: external writes = %s, want %s", tc.path, got["No observed writes outside fixture scope"], tc.want)
@@ -970,7 +970,7 @@ func TestAssessFlowsCitedIDGlossedUsesFixturePrompt(t *testing.T) {
 	r := result{Root: "/fixture", Cwd: "/fixture", Suite: "flows", Case: "cited-id-followup", Terminal: "completed",
 		Trace: traceReport{Events: []traceEvent{assistantText(1, "m1", "Con eso, D2-A queda descartada.")}}}
 	f := fixture{ID: "cited-id-followup", Prompt: followupPrompt}
-	f.Expected.SkillRead = "flow-research"
+	f.Expected.SkillRead = "hive-mode"
 	if got := assessedCriteria(assessFlows(r, f, t.TempDir()))["cited_id_glossed"]; got != "fail" {
 		t.Fatalf("with prompt: %s, want fail", got)
 	}
@@ -1010,7 +1010,7 @@ func TestQuestionAndFollowupCasesContract(t *testing.T) {
 		if !ok {
 			t.Fatalf("missing case %q", id)
 		}
-		if f.Expected.SkillRead != "flow-research" {
+		if f.Expected.SkillRead != "hive-mode" {
 			t.Errorf("%s expects %q", id, f.Expected.SkillRead)
 		}
 		agents := f.Files["AGENTS.md"]

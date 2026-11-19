@@ -389,7 +389,17 @@ func hiveLikeDir(t *testing.T) string {
 func TestAuditNewCriteria(t *testing.T) {
 	const round, close, skill = "text_round_without_card", "close_before_branch_cleanup", "skill_named_as_reason"
 	const review = "review_question_native_option"
+	const leaf = "leaf_read_before_action"
 	cases := []newCriterionCase{
+		{"leaf claude reads before git, ticket and card", "claude", leaf, []string{leaf, "claude-project-pass.jsonl"}, auditOptions{}, "pass"},
+		{"leaf claude git add before the read", "claude", leaf, []string{leaf, "claude-project-git-fail.jsonl"}, auditOptions{}, "fail"},
+		{"leaf claude ticket move without the read", "claude", leaf, []string{leaf, "claude-project-ticket-fail.jsonl"}, auditOptions{}, "fail"},
+		{"leaf claude card without the read", "claude", leaf, []string{leaf, "claude-project-question-fail.jsonl"}, auditOptions{}, "fail"},
+		{"leaf claude no governed action", "claude", leaf, []string{leaf, "claude-project-notexercised.jsonl"}, auditOptions{}, "not_observed"},
+		{"leaf codex reads before git and card", "codex", leaf, []string{leaf, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
+		{"leaf codex git add without the read", "codex", leaf, []string{leaf, "codex-rollout-git-fail.jsonl"}, auditOptions{}, "fail"},
+		{"leaf codex card without the read", "codex", leaf, []string{leaf, "codex-rollout-question-fail.jsonl"}, auditOptions{}, "fail"},
+		{"leaf codex no governed action", "codex", leaf, []string{leaf, "codex-rollout-notexercised.jsonl"}, auditOptions{}, "not_observed"},
 		{"round claude fail", "claude", round, []string{round, "claude-project-fail.jsonl"}, auditOptions{}, "fail"},
 		{"round claude pass", "claude", round, []string{round, "claude-project-pass.jsonl"}, auditOptions{}, "pass"},
 		{"round claude no card in session", "claude", round, []string{round, "claude-project-nocard-notobserved.jsonl"}, auditOptions{}, "not_observed"},
@@ -543,5 +553,51 @@ func TestScanCodexExecObjectKeys(t *testing.T) {
 				t.Fatalf("literal = %q ok=%v ambiguous=%v, want %q", c.literal, c.hasLiteral, ambiguous, tc.want)
 			}
 		})
+	}
+}
+
+func TestLeafReadBeforeActionEdgeCases(t *testing.T) {
+	no := false
+	sess := func(events ...traceEvent) auditSession { return auditSession{Trace: traceReport{Events: events}} }
+	cases := []struct {
+		name string
+		s    auditSession
+		want string
+	}{
+		{"helper commit without a read fails", sess(
+			traceEvent{Line: 1, Kind: "shell", Command: "python3 -I /x/git-workflow/scripts/git_state.py commit --repo /r -m msg a.go"},
+		), "fail"},
+		{"leaf named only in a commit message is no read", sess(
+			traceEvent{Line: 1, Kind: "shell", Command: `git commit -m "see hive-rule-git-commit/SKILL.md" a.go`},
+		), "fail"},
+		{"a failed read is no read", sess(
+			traceEvent{Line: 1, Kind: "read", ID: "r1", Path: "/s/hive-rule-git-commit/SKILL.md", Success: &no},
+			traceEvent{Line: 3, Kind: "shell", Command: "git add a.go"},
+		), "fail"},
+		{"creating a ticket with a state is not a move", sess(
+			traceEvent{Line: 1, Kind: "tool", Tool: "mcp__linear__save_issue", Input: []byte(`{"title":"x","state":"Backlog"}`)},
+		), "not_observed"},
+		{"gh -R issue close is a move", sess(
+			traceEvent{Line: 1, Kind: "shell", Command: "gh -R owner/repo issue close 12"},
+		), "fail"},
+		{"helper commit with --repo before commit is seen", sess(
+			traceEvent{Line: 1, Kind: "shell", Command: "python3 -I /x/git_state.py --repo /r commit -m m a.go"},
+		), "fail"},
+		{"a heredoc naming the leaf is no read", sess(
+			traceEvent{Line: 1, Kind: "shell", Command: "cat > /tmp/m <<'EOF'\nsee hive-rule-git-commit/SKILL.md\nEOF"},
+			traceEvent{Line: 2, Kind: "shell", Command: "git commit -F /tmp/m a.go"},
+		), "fail"},
+		{"a GitLab-style update by iid is a move", sess(
+			traceEvent{Line: 1, Kind: "tool", Tool: "update_issue", Input: []byte(`{"issue_iid":5,"state":"closed"}`)},
+		), "fail"},
+		{"cat of the leaf before the helper commit passes", sess(
+			traceEvent{Line: 1, Kind: "shell", Command: "cat /s/hive-rule-git-commit/SKILL.md"},
+			traceEvent{Line: 2, Kind: "shell", Command: "python3 -I /x/git_state.py commit -m m a.go"},
+		), "pass"},
+	}
+	for _, tc := range cases {
+		if got := leafReadBeforeAction(tc.s).Status; got != tc.want {
+			t.Errorf("%s: status %s, want %s", tc.name, got, tc.want)
+		}
 	}
 }
