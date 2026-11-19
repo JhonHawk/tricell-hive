@@ -151,7 +151,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 **Changes:** se mueve el texto sin cambiar su significado. Se fusiona cada copia con su hoja y la copia se quita. Las autorizaciones de las líneas 20, 21 y 32 y la línea de commit de «Secrets» se quedan enteras.
 
 **Verification:**
-- `wc -c content/guidance/global.md` da 30,000 bytes o menos.
+- `wc -c content/guidance/global.md` da 32,000 bytes o menos, contando el índice «Rule leaves» (AC18).
 - `rg -n "«(Questions and routes|Local instructions|Delivery|Test accounts|Project settings|Scope changes)»" content site` solo devuelve citas que siguen siendo verdad.
 - `go test ./...` pasa, con las frases y los enlaces de estas hojas activos.
 
@@ -320,7 +320,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 **Verification:**
 - `go test ./...`, `go vet ./...` y `npm --prefix site run build` terminan con código 0.
 - El criterio nuevo pasa y falla en dos fixtures.
-- `go test ./tests/content -run Footprint -count=1 -v` reporta el plan/build con las hojas por debajo de la línea base.
+- `go test ./tests/content -run Footprint -count=1 -v` reporta el plan/build, sin las hojas de commit y merge que la base no leía, por debajo de la línea base `2bb96478`, y el total con ellas aparte (AC19).
 
 ### T10 — El PR 1 se verifica, se revisa, se valida, se entrega y se despliega
 
