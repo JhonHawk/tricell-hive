@@ -434,7 +434,7 @@ func verifyAndCleanupAuthSymlink(path string) (stillSymlink bool, warning string
 // run. Observed on OpenCode v2.0.22 with a shadow HOME: when the working
 // directory sits under the real home, OpenCode also watches and loads the real
 // ~/.claude/skills, ~/.agents/skills and ~/.opencode/skill(s) (smoke run 3
-// loaded flow-research from the real ~/.agents/skills); with the same shadow
+// loaded hive-mode from the real ~/.agents/skills); with the same shadow
 // home and a working directory outside the real home only the shadow's paths
 // appear. HOME, OPENCODE_TEST_HOME and the XDG variables do not change this,
 // and OPENCODE_DISABLE_PROJECT_CONFIG=1 would also drop the fixture's own

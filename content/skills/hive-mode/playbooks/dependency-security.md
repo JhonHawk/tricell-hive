@@ -1,6 +1,10 @@
-# Security advisory exposure
+# Playbook: dependency-security
 
-Read from [flow-research](../SKILL.md) when the user asks whether a published security advisory, CVE or package compromise affects their projects, or asks for an exposure sweep across repositories. This sweep replaces research's steps 0 to 5 and ends as «After the report» sets. It is not for reviewing a change's security boundaries, which `hive-review-security` does on request, nor for checking a package before installing it, which the global guidance's package check covers.
+Read from [hive-mode](../SKILL.md#pick-the-playbook) when the user asks whether a published security advisory, CVE or package compromise affects their projects, or asks for an exposure sweep across repositories. This sweep replaces the router's steps 0 to 5 and ends as «After the report» sets.
+
+**Stages.** `hive-mode` alone, read-only; the fixes run afterward in each affected project's own session, with the playbook of their kind. **Leaves.** [delegation](../../hive-rule-delegation/SKILL.md), [local write](../../hive-rule-local-write/SKILL.md), [security boundaries](../../hive-rule-security-boundaries/SKILL.md) for the fix.
+
+Adding or updating a package or tool in a project is not this sweep: before it, run the package check of the global guidance's «Scope and authorization» (`check_package.py` of [flow-build](../../flow-build/SKILL.md)), then plan it as a [feature](feature.md) or [infra-ci](infra-ci.md) change. Reviewing a change's security boundaries is the `hive-review-security` role's, on request.
 
 Answer "does this advisory affect us, and where?" with evidence for each repository. The sweep is read-only: it changes no repository, dependency, tracker or deployment, except for the entries of the current project's `HIVE.local.md` and of the machine file that [local write](../../hive-rule-local-write/SKILL.md) authorizes. Fixes run afterward, in each project's own session.
 
@@ -20,7 +24,7 @@ Before delegating, read [delegation](../../hive-rule-delegation/SKILL.md). Reque
    - Record whether the advisory's conditions appear, such as a configuration flag, a feature in use or the platform.
    - Run no install, audit, networked scan, Git fetch or checkout; web lookups carry only advisory IDs and public package names; never print a file that may hold secrets.
    - Report what cannot be seen from the repository, such as deployed versions, images behind a digest or hosting settings.
-4. **Check the deciding claims.** Open the locators behind each affected or mitigated verdict, as [flow-research step 4](../SKILL.md) sets.
+4. **Check the deciding claims.** Open the locators behind each affected or mitigated verdict, as [hive-mode step 4](../SKILL.md) sets.
 5. **Assess reachability where it sets priority.** For an affected application whose exposure depends on how the code reaches the vulnerable path, mark that in the report and offer a reachability assessment by a `hive-review-security` child, which runs only if the user asks; it traces untrusted input to that path without exploiting anything, under the same limits on commands and web lookups as step 3, given the application, the advisory and its conditions. When the user asks for it, run that child and update the application's verdict and priority in a follow-up report.
 
 ## Report
@@ -36,4 +40,4 @@ State the coverage: repositories and branches read, sources consulted, and what 
 
 ## After the report
 
-The fixes belong to each project's own session, under the global rule on changing only the current project: report, for each affected project, the fixed version or mitigation it needs as a finding for that session. When the current project is affected, end with the next-step block that [flow-research step 5](../SKILL.md) sets, with the fix as one of its alternatives.
+The fixes belong to each project's own session, under the global rule on changing only the current project: report, for each affected project, the fixed version or mitigation it needs as a finding for that session. When the current project is affected, end with the next-step block that [hive-mode step 5](../SKILL.md) sets, with the fix as one of its alternatives.

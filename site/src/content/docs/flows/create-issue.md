@@ -7,7 +7,7 @@ Create issue writes the ticket for work that will be done later, by someone else
 
 ## When to use
 
-Ask for a ticket, an issue, an epic, or a breakdown of work into tickets. Ask whether a ticket is ready, or to review or complete one. The skill also starts when you answer that a finding or a separate topic becomes a ticket, in [Research](/flows/research/) or at the [close](/flows/close/). The agent proposes a ticket only for work that will not be done in the current session or with its context; work it can finish now is fixed instead.
+Ask for a ticket, an issue, an epic, or a breakdown of work into tickets. Ask whether a ticket is ready, or to review or complete one. The skill also starts when you answer that a finding or a separate topic becomes a ticket, in [Hive mode](/flows/hive-mode/) or at the [close](/flows/close/). The agent proposes a ticket only for work that will not be done in the current session or with its context; work it can finish now is fixed instead.
 
 It is not the way a ticket changes state, receives the work's pending-work comment, or receives its business rules. Those writes belong to the flow that causes them, and they are unchanged.
 
@@ -39,7 +39,7 @@ The procedure for each part lives in the skill's references: [ticket types](http
 
 ## How it ends
 
-Used on its own, it reports each ticket with its link, whether it is ready or blocked, and the assumptions it carries, then offers the next step as a reply, such as researching or planning the ticket. Creating a ticket starts no work on it. Followed from [Research](/flows/research/) or [Close](/flows/close/), it returns to that flow at its next step.
+Used on its own, it reports each ticket with its link, whether it is ready or blocked, and the assumptions it carries, then offers the next step as a reply, such as researching or planning the ticket. Creating a ticket starts no work on it. Followed from [Hive mode](/flows/hive-mode/) or [Close](/flows/close/), it returns to that flow at its next step.
 
 ## What it does not do
 
@@ -50,7 +50,7 @@ Used on its own, it reports each ticket with its link, whether it is ready or bl
 
 ## Related flows
 
-- [Research](/flows/research/) checks for an existing ticket before it proposes one, and follows the skill once you answer that a finding becomes a ticket.
+- [Hive mode](/flows/hive-mode/) checks for an existing ticket before it proposes one, and follows the skill once you answer that a finding becomes a ticket.
 - [Close](/flows/close/) asks, for each defect the work found but did not fix, whether to open a ticket, and follows the skill when you answer yes.
 - [Changes and loops](/flows/overview/) maps where each flow returns the work.
 

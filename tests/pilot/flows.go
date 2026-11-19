@@ -545,7 +545,7 @@ func verifyResourceNameContract(dir string) criterionAssessment {
 func flowLoadingSkills(id string) []string {
 	switch id {
 	case "smoke", "conventions-smoke":
-		return []string{"flow-research", "flow-plan", "flow-build", "git-workflow"}
+		return []string{"hive-mode", "flow-plan", "flow-build", "git-workflow"}
 	case "deployed-smoke":
 		return []string{"flow-report", "harness-audit", "unattended-delegation", "flow-close", "flow-verify"}
 	default:

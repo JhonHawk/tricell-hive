@@ -240,7 +240,7 @@ func loadRelease(o Options, stateDir string) (Release, error) {
 				return r, err
 			}
 			sources = append(sources, filepath.ToSlash(relative))
-			for _, leaf := range []string{"references", "scripts", "assets"} {
+			for _, leaf := range []string{"references", "scripts", "assets", "playbooks"} {
 				root := filepath.Join(filepath.Dir(path), leaf)
 				if err := collectResources(o.Source, root, &sources); err != nil {
 					return r, err
@@ -367,7 +367,7 @@ func validSource(source string) bool {
 	if regexp.MustCompile(`^content/agents/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\.md$`).MatchString(source) {
 		return true
 	}
-	return regexp.MustCompile(`^content/skills/[a-z0-9]+(-[a-z0-9]+)*/(SKILL\.md|(references|scripts|assets)/([A-Za-z0-9][A-Za-z0-9._-]*/)*(\.gitignore|[A-Za-z0-9][A-Za-z0-9._-]*\.(md|html|py|sh|json|ts|mjs|astro|mdx|css|yaml|yml)))$`).MatchString(source)
+	return regexp.MustCompile(`^content/skills/[a-z0-9]+(-[a-z0-9]+)*/(SKILL\.md|(references|scripts|assets|playbooks)/([A-Za-z0-9][A-Za-z0-9._-]*/)*(\.gitignore|[A-Za-z0-9][A-Za-z0-9._-]*\.(md|html|py|sh|json|ts|mjs|astro|mdx|css|yaml|yml)))$`).MatchString(source)
 }
 func releaseSources(r *Release) []string {
 	sources := []string{}

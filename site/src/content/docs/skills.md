@@ -11,8 +11,8 @@ hold the canonical rules.
 
 For where each flow loops and where a requested change returns the work, see the [changes and loops overview](/flows/overview/).
 
-- [Status](/flows/status/), a mode of Research: report the backlog and unfinished work, read-only, and recommend what to take next.
-- [Research](/flows/research/): investigate an uncertain question and report evidence, or audit the codebase for what to improve.
+- [Status](/flows/status/), a playbook of Hive mode: report the backlog and unfinished work, read-only, and recommend what to take next.
+- [Hive mode](/flows/hive-mode/): investigate an uncertain question and report evidence, or audit the codebase for what to improve.
 - [Figma design](/flows/figma-design/): optionally draw a new screen in Figma, reviewed before you see it, and record the approved example.
 - [Plan](/flows/plan/): settle consequential decisions and define verifiable work.
 - [Build](/flows/build/): implement authorized changes and hand over a built candidate.
@@ -31,7 +31,7 @@ For where each flow loops and where a requested change returns the work, see the
 - [Starlight documentation sites, a mode of Visual reports](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-report/references/docs-site.md): scaffold, extend, or audit maintained documentation sites.
 - [Harness audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/SKILL.md): audit agent instructions, skills, and role definitions, and the memory each host loads by where a session starts, including host memory and Engram records that restate the rules of Hive or the project, ask the decisions the findings need, and apply what you accept in the current project, including creating or updating a repository's `## Hive` section.
 - [Local instructions, a mode of Harness audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/references/local-instructions.md): create or prune the project's `HIVE.local.md` and the machine file `~/.config/hive/HIVE.local.md` from what already worked in recent sessions, after asking you which facts to keep.
-- [Security advisories, a mode of Research](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/references/security-advisory.md): check whether a published advisory affects your repositories, without changing them.
+- [Security advisories, a playbook of Hive mode](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-mode/playbooks/dependency-security.md): check whether a published advisory affects your repositories, without changing them.
 - [Test audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/test-audit/SKILL.md): trim one area's tests to one owning test per behavior, removing duplicates and tests tied to how the code is written, and prove with a separate review and deliberate code changes that nothing lost its only test.
 - [UI criteria](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-ui-criteria/SKILL.md): find a project's component library, its installed version and its customization layer, keep them in a verified `DESIGN.md`, and give design, build and review work measurable screen criteria that never override the project's own design system.
 - [Walkthrough, part of Verify](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-rule-walkthrough/SKILL.md): publish UI captures and their iteration to the [viewer](/viewer/), and walk a built screen for you to validate.

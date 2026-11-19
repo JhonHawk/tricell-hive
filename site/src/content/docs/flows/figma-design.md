@@ -7,9 +7,9 @@ Figma design settles what a screen looks like before the work is planned. The ag
 
 ## When to use
 
-[Research](/flows/research/) recommends this stage in its next-step block, naming your Figma file, when the host has a connection that can write to Figma, that file is known (you named it in the conversation, your app's `DESIGN.md` declares it, or the project's memory records it), and the work brings a new screen, even one whose layout your existing screens already set and even when the change would otherwise go straight to Build, or changes an existing screen by adding, removing or moving a region whose composition nothing fixes. That holds after assessing a ticket too. A change that keeps the screen's layout, such as a button, a copy, a field or a column, gets no recommendation, and neither does work that runs [unattended](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md). You can also type the command yourself, or ask for a design as the deliverable, such as replicating a screen in Figma.
+[Hive mode](/flows/hive-mode/) recommends this stage in its next-step block, naming your Figma file, when the host has a connection that can write to Figma, that file is known (you named it in the conversation, your app's `DESIGN.md` declares it, or the project's memory records it), and the work brings a new screen, even one whose layout your existing screens already set and even when the change would otherwise go straight to Build, or changes an existing screen by adding, removing or moving a region whose composition nothing fixes. That holds after assessing a ticket too. A change that keeps the screen's layout, such as a button, a copy, a field or a column, gets no recommendation, and neither does work that runs [unattended](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md). You can also type the command yourself, or ask for a design as the deliverable, such as replicating a screen in Figma.
 
-Without a Figma connection, or without a known Figma file, Research does not offer the stage: the work goes from Research to [Plan](/flows/plan/), which draws its sketches in text. Typing the command yourself still runs it, and it asks you for the file.
+Without a Figma connection, or without a known Figma file, Hive mode does not offer the stage: the work goes from Hive mode to [Plan](/flows/plan/), which draws its sketches in text. Typing the command yourself still runs it, and it asks you for the file.
 
 Example requests:
 
@@ -40,9 +40,9 @@ Typing the command, or choosing the stage in the next-step block, is your instru
 
 ## How it ends
 
-When a rule would add a capability you did not ask for, change data or settings other screens use, or change a permission, the agent stops drawing the screens it shapes, asks the approval of the others, and ends with the command to start [Research](/flows/research/) for those rules; when the stage runs again, it picks up its record and draws only the stopped screens.
+When a rule would add a capability you did not ask for, change data or settings other screens use, or change a permission, the agent stops drawing the screens it shapes, asks the approval of the others, and ends with the command to start [Hive mode](/flows/hive-mode/) for those rules; when the stage runs again, it picks up its record and draws only the stopped screens.
 
-Once every screen is approved, the agent ends with the command to start [Plan](/flows/plan/), naming the approved example; it offers [Build](/flows/build/) instead only when Research had offered Build too, the approved screens add no region you had not asked for, no `DESIGN.md` entry is still waiting to be written, and no rule is still waiting for your answer. If you said yes to recording a convention in `DESIGN.md`, or the file and the library could not be written because the app has no `DESIGN.md`, the plan includes the task that writes it, delivered with the change. When the design itself was the deliverable, the work is not reported as done before you approve the example, and it then runs [Close](/flows/close/), which closes it as an operational task and names each `DESIGN.md` entry still pending; the delivery of the two fields the stage wrote is its own and does not change that close.
+Once every screen is approved, the agent ends with the command to start [Plan](/flows/plan/), naming the approved example; it offers [Build](/flows/build/) instead only when Hive mode had offered Build too, the approved screens add no region you had not asked for, no `DESIGN.md` entry is still waiting to be written, and no rule is still waiting for your answer. If you said yes to recording a convention in `DESIGN.md`, or the file and the library could not be written because the app has no `DESIGN.md`, the plan includes the task that writes it, delivered with the change. When the design itself was the deliverable, the work is not reported as done before you approve the example, and it then runs [Close](/flows/close/), which closes it as an operational task and names each `DESIGN.md` entry still pending; the delivery of the two fields the stage wrote is its own and does not change that close.
 
 ## What it does not do
 
@@ -53,7 +53,7 @@ Once every screen is approved, the agent ends with the command to start [Plan](/
 
 ## Related flows
 
-- [Research](/flows/research/) recommends the stage, and continues into it in the same turn when your request's deliverable is the design.
+- [Hive mode](/flows/hive-mode/) recommends the stage, and continues into it in the same turn when your request's deliverable is the design.
 - [Plan](/flows/plan/) follows and takes the approved example as the screen's reference.
 - [Build](/flows/build/) and [Verify](/flows/verify/) compare the built screen against that example.
 

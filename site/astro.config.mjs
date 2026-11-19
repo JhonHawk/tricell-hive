@@ -76,7 +76,7 @@ export default defineConfig({
             { label: "Overview", slug: "skills" },
             { label: "Changes and loops", slug: "flows/overview" },
             { slug: "flows/status" },
-            { slug: "flows/research" },
+            { slug: "flows/hive-mode" },
             { slug: "flows/figma-design" },
             { slug: "flows/plan" },
             { slug: "flows/build" },

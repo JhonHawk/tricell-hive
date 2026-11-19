@@ -607,7 +607,7 @@ func TestQualifyScoreCodexReportsEachModelAsConfigured(t *testing.T) {
 
 func TestQualifyScoreSkillReadRateAndBatchRoundTrip(t *testing.T) {
 	s := qsSuite(t, 1)
-	s.Tasks[0].ExpectSkill = "flow-research"
+	s.Tasks[0].ExpectSkill = "hive-mode"
 	s.Tasks[0].CompareNone = false // expect_skill is incompatible with compare_none
 	s.Tasks[0].Checks = qualifyChecks{}
 	e := newQSEnv(t, qsClaudeBatch())

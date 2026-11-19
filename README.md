@@ -344,10 +344,10 @@ covers exact revision selection.
 Start where the request belongs. These are available routes, not a mandatory
 sequence for every task. Authorization and preservation apply throughout.
 
-Start each flow by typing its command, such as `/flow-research status` or `/flow-plan COM-833`
+Start each flow by typing its command, such as `/hive-mode status` or `/flow-plan COM-833`
 (`$flow-plan` in Codex, `/skill:flow-plan` in Pi, `@flow-plan` in OpenCode). A typed
 command loads the skill whole for that flow, which the host's automatic selection does
-not guarantee. A request to do work does not need a command: it enters Research, which
+not guarantee. A request to do work does not need a command: it enters Hive mode, which
 continues into Build in the same turn when the request is complete, unless it brings a
 new screen and the host can write to Figma, when it offers Figma design first. Where a flow needs
 your go-ahead for the next one, it ends by naming that command.
@@ -355,16 +355,16 @@ your go-ahead for the next one, it ends by naming that command.
 ```mermaid
 flowchart TD
     Entry{"What is needed?"}
-    Entry -->|Status or what's next| Status["flow-research (status)"]
-    Entry -->|Any request to do work, a question or a ticket| Research["flow-research"]
+    Entry -->|Status or what's next| Status["hive-mode (status)"]
+    Entry -->|Any request to do work, a question or a ticket| Hive mode["hive-mode"]
     Entry -.->|You ask for a plan| Plan["flow-plan"]
 
-    Status -->|User picks a ticket| Research
-    Research -->|New or recomposed screen| Figma["flow-figma-design"]
+    Status -->|User picks a ticket| Hive mode
+    Hive mode -->|New or recomposed screen| Figma["flow-figma-design"]
     Figma -->|Example approved| Plan
-    Research -->|The how has a decision for you| Plan
-    Research -->|The how is settled| Build
-    Research -->|An analysis| Findings["Findings, no flow recommended"]
+    Hive mode -->|The how has a decision for you| Plan
+    Hive mode -->|The how is settled| Build
+    Hive mode -->|An analysis| Findings["Findings, no flow recommended"]
     Plan --> Build["flow-build<br/><small>tasks · first rendered view (walkthrough)</small>"]
     Build --> Verify["flow-verify<br/><small>suite · UX review · code review · validation (walkthrough)</small>"]
     Build -->|Mechanical change| Close
@@ -378,7 +378,7 @@ flowchart TD
 
     classDef activity fill:#eaf0f6,stroke:#496580,color:#172b3a
     classDef rules fill:#f6f3e8,stroke:#8a7a45,color:#3a321a
-    class Status,Research,Figma,Plan,Build,Verify,Close,Deploy activity
+    class Status,Hive mode,Figma,Plan,Build,Verify,Close,Deploy activity
     class Rules rules
 ```
 
@@ -388,18 +388,20 @@ work, and gets its own destination when it is a separate topic; the [shared guid
 classifies it, and the [flows overview](https://hive.tricell.tech/flows/overview/)
 lists where each flow loops.
 
-- Status, a mode of Research ([reference](content/skills/flow-research/references/status.md)), reports the backlog grouped by
+- Status, a playbook of Hive mode ([reference](content/skills/hive-mode/playbooks/ticket-status.md)), reports the backlog grouped by
   module and the unfinished local work, and recommends what to take next. It is read-only.
-- [Research](https://hive.tricell.tech/flows/research/) ([skill](content/skills/flow-research/SKILL.md)) is the entry for every
+- [Hive mode](https://hive.tricell.tech/flows/hive-mode/) ([skill](content/skills/hive-mode/SKILL.md)) is the entry for every
   request to do work: it settles what you need, reading before it asks and asking one
   open question at a time. A complete request is checked and done, or continues into
   Build in the same turn, except a new screen it offers to Figma design first; Plan comes only when the how has a decision for you or the work
   cannot be finished from your request and the `git diff`. It also turns uncertainty into
   a supported answer, assesses a ticket you pick, and audits the codebase for what to
-  improve when you ask. An analysis ends at its findings
+  improve when you ask. It also classifies the work into one of 13 playbooks
+  (`content/skills/hive-mode/playbooks/`), each naming the order of the stages and what
+  is specific to its kind, or follows the general route when none fits. An analysis ends at its findings
   with no flow recommended. It does not publish to the viewer.
 - [Figma design](https://hive.tricell.tech/flows/figma-design/) ([skill](content/skills/flow-figma-design/SKILL.md)) is an optional
-  stage between Research and Plan for a new or recomposed screen: it draws one example
+  stage between Hive mode and Plan for a new or recomposed screen: it draws one example
   as frames in the project's Figma file, following your existing screens, has a reviewer
   agent check it, asks you to approve or correct the completed set once, and records
   the approved examples that
@@ -407,7 +409,7 @@ lists where each flow loops.
   business rules it does not say. A work's business rules are written to its ticket
   when you approve the example, when the build starts and at the close. It draws alternatives only for a screen you
   name. Applicable mobile frames are ready before approval; corrections return only
-  the affected screens for approval. Research recommends it only when the host can
+  the affected screens for approval. Hive mode recommends it only when the host can
   write to Figma. It does not publish to the viewer.
 - [Plan](https://hive.tricell.tech/flows/plan/) ([skill](content/skills/flow-plan/SKILL.md)) settles the how: it presents two or
   three approaches before the tasks, resolves the decisions that are yours, and
@@ -488,7 +490,7 @@ Verify publish a batch of captures of one screen with one command, `hive view
 work capture --stage build|verify --view-title SCREEN --image FILE[:caption]`;
 it opens the work and stage when needed, links the current commit and numbers
 each later capture of the same title as `SCREEN · #N`, superseding the previous
-one. Plan and Research publish nothing, and a flow without captures creates no
+one. Plan and Hive mode publish nothing, and a flow without captures creates no
 work. A stable key and retained work ID keep two works separate within one
 native session; `work list` lists them. The binary still offers stage, task,
 evidence and Markdown publication (`work open|sync|evidence|tasks|publish`) as

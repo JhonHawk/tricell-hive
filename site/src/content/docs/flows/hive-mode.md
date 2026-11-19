@@ -1,9 +1,9 @@
 ---
-title: Research
+title: Hive mode
 description: The entry for every request to do work, which settles what you need and then answers, builds or plans; also investigates a question with evidence.
 ---
 
-Research settles what the work is; [Plan](/flows/plan/) settles how. Every request to do work enters here, so the agent understands what you need before it builds anything, and it is also where you ask a question and get an answer backed by evidence. It reads your code, documents and project state, then reports what it found and how sure it is.
+Hive mode settles what the work is; [Plan](/flows/plan/) settles how. Every request to do work enters here, so the agent understands what you need before it builds anything, and it is also where you ask a question and get an answer backed by evidence. It reads your code, documents and project state, then reports what it found and how sure it is.
 
 ## When it starts
 
@@ -17,7 +17,7 @@ It starts on any request to do work, with no command to type, and when the next 
 - You pick a ticket to work on and want it assessed first.
 - You ask it to audit the codebase, or to find what to improve in it, as [Auditing a codebase](#auditing-a-codebase) describes.
 
-A single lookup that answers the question needs no investigation: the agent reports the answer with its source and any doubt. The project's status or backlog runs as Research's [Status](/flows/status/) mode, and whether a published security advisory affects your repositories as its advisory sweep ([Security review](/flows/security/) describes it).
+A single lookup that answers the question needs no investigation: the agent reports the answer with its source and any doubt. The project's status or backlog runs as Hive mode's [Status](/flows/status/) playbook, and whether a published security advisory affects your repositories as its advisory sweep ([Security review](/flows/security/) describes it).
 
 Example requests:
 
@@ -27,6 +27,15 @@ Compare the two queue libraries we could use and tell me which fits this project
 Assess COM-833 before I start it.
 Audit this codebase and tell me what is worth improving.
 ```
+
+## Playbooks
+
+After it plays your request back, the agent classifies the work and opens at most one playbook, a short page that orders the stages for that kind of work and names what is specific to it. The 13 kinds are `feature`, `ui-change`, `bugfix`, `hotfix`, `data-change`, `dependency-security`, `infra-ci`, `investigate`, `ticket-status`, `deliverable`, `pr-review-deploy`, `refactor` and `perf`. When none fits, or the work is large and crosses several kinds, it follows the general route described on this page.
+
+- The stages stay commands (Figma design, Plan, Build, Verify, Close, Deploy); a playbook only orders them and adds the steps of its kind, such as a failing reproduction first in `bugfix`, or a baseline and a threshold before the first change in `perf`.
+- A playbook never picks your delivery mode: each stop, push, pull request, merge and promotion it names happens under the delivery mode in force.
+- Changing playbook in the middle of the work, such as an investigation that confirms a defect you want fixed, is an explicit handoff that the agent states in one line as a change of scope, never a silent jump.
+- The chosen playbook is recorded in the `Playbook` field of the plan's `proposal.md`, or in a `- Playbook:` line of the checkpoint file when the work has no change folder, so each later stage reads it from there.
 
 ## What it asks you
 
@@ -62,7 +71,7 @@ Outside that grant, your reply starts only the flow it names. No flow needs a ti
 
 ## Auditing a codebase
 
-When you ask for an audit of the codebase, or for what to improve in it, without a single question, Research sweeps the repository instead of answering one question. It changes no file.
+When you ask for an audit of the codebase, or for what to improve in it, without a single question, Hive mode sweeps the repository instead of answering one question. It changes no file.
 
 - It first reads how the project checks itself (the build, test, lint and type-check commands from its CI or scripts) and the decision records it keeps, such as ADRs or specs, so a tradeoff the team already decided is not reported as a problem. A repository with no way to tell whether the code works gets that as its first finding. It runs your tests or a dependency audit only when you ask, since tests can write files and an audit command reaches an outside service, and some send it your dependency list.
 - It audits correctness, security, performance, tests, debt and architecture, dependencies, tooling, docs and direction, starting from the files that change most, or only the categories or area you name. Large audits are split across helper agents by group of categories.
@@ -73,17 +82,17 @@ It ends at the findings, like any analysis. You can ask for tickets for the find
 
 ## Related flows
 
-- [Status](/flows/status/) reports the backlog; Research takes the one ticket you pick from it.
+- [Status](/flows/status/) reports the backlog; Hive mode takes the one ticket you pick from it.
 - [Figma design](/flows/figma-design/) is the optional step it recommends before Plan for a new or recomposed screen.
 - [Build](/flows/build/) follows in the same turn when the how is settled, unless a new screen goes to Figma design first; [Plan](/flows/plan/) follows when it has a decision for you.
 
 ## FAQ
 
-### Does research give the agent permission to implement the fix?
+### Does Hive mode give the agent permission to implement the fix?
 No for a question, an investigation or a recommendation. A request to do work, once its what is clear and its how leaves you no decision, does continue into Build.
 
 ### Will it write a report file?
 Only if you ask for one. By default the findings stay in the chat, and nothing goes to the viewer.
 
 ### Where is the exact rule?
-Source: [content/skills/flow-research/SKILL.md](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/SKILL.md)
+Source: [content/skills/hive-mode/SKILL.md](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-mode/SKILL.md)

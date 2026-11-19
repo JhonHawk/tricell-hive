@@ -16,7 +16,7 @@ A child does the work for the first of these reasons that applies; when none app
 
 1. **Independence: every review.** Every review or verification Hive launches, by a `hive-review-*` or `hive-verify-*` role, always runs in a child, never in the main thread, because the context that produced the work biases its review. The cost of that child does not decide. A code review by the host's native command, when the user chose it in the delivery round, runs as that command runs. The checks the main thread runs for each task are not a review.
 2. **Cost: large work the session would carry.** What the main thread reads or writes rides along in each of its later calls, while a fresh child starts at tens of thousands of tokens and returns a short summary. Delegate:
-   - in research, each aspect as [flow-research step 4](../flow-research/SKILL.md) sets;
+   - in research, each aspect as [hive-mode step 4](../hive-mode/SKILL.md) sets;
    - in a build, a task that needs more than 5 large reads or edits more than 3 files, when its interface is settled and its writes do not overlap files another task in progress writes;
    - in any other flow, a check or collection that needs more than 5 large reads.
 

@@ -20,14 +20,26 @@ const (
 	leafExceptionSizeLimit = 7000
 	leafDescriptionLimit   = 200
 	playbookSizeLimit      = 7000
-	ruleLeavesHeading      = "## Rule leaves"
-	principleIndexName     = "hive-principle-index"
-	languageLeafName       = "hive-typescript"
+	// playbookModePhrase is the fixed phrase through which a playbook refers to
+	// the delivery mode: it never fixes or replaces the mode itself.
+	playbookModePhrase = "under the delivery mode in force"
+	ruleLeavesHeading  = "## Rule leaves"
+	principleIndexName = "hive-principle-index"
+	languageLeafName   = "hive-typescript"
 )
 
 // leafSizeExceptions names each leaf whose single rule cannot fit the common
 // limit without rewording it; each stays at or under leafExceptionSizeLimit.
 var leafSizeExceptions = map[string]bool{}
+
+// playbookKinds is the closed set of playbooks of hive-mode, one file each.
+var playbookKinds = []string{
+	"bugfix", "data-change", "deliverable", "dependency-security", "feature",
+	"hotfix", "infra-ci", "investigate", "perf", "pr-review-deploy",
+	"refactor", "ticket-status", "ui-change",
+}
+
+var deliveryModeNamePattern = regexp.MustCompile("`(interactive|automatic|ready|direct-base|hold)`")
 
 var leafLinkPattern = regexp.MustCompile(`(hive-rule-[a-z0-9-]+|hive-principle-[a-z0-9-]+|hive-typescript)/SKILL\.md`)
 
@@ -156,14 +168,45 @@ func leafProblems(root string) []string {
 	}
 
 	playbooks, _ := filepath.Glob(filepath.Join(skillsDir, "hive-mode", "playbooks", "*.md"))
+	present := map[string]bool{}
 	for _, path := range playbooks {
+		present[strings.TrimSuffix(filepath.Base(path), ".md")] = true
 		info, err := os.Stat(path)
 		if err == nil && info.Size() > playbookSizeLimit {
 			problems = append(problems, fmt.Sprintf("playbook %s is %d bytes, limit %d", filepath.Base(path), info.Size(), playbookSizeLimit))
 		}
+		if data, err := os.ReadFile(path); err == nil {
+			for _, mode := range playbookModeNames(string(data)) {
+				problems = append(problems, fmt.Sprintf("playbook %s names the delivery mode %s outside the phrase %q", filepath.Base(path), mode, playbookModePhrase))
+			}
+		}
+	}
+	wanted := map[string]bool{}
+	for _, kind := range playbookKinds {
+		wanted[kind] = true
+		if !present[kind] {
+			problems = append(problems, fmt.Sprintf("hive-mode/playbooks lacks %s.md", kind))
+		}
+	}
+	for kind := range present {
+		if !wanted[kind] {
+			problems = append(problems, fmt.Sprintf("hive-mode/playbooks holds %s.md, which is not one of the %d playbooks", kind, len(playbookKinds)))
+		}
 	}
 	sort.Strings(problems)
 	return problems
+}
+
+// playbookModeNames returns each delivery mode a playbook names in backticks
+// outside the fixed phrase. A playbook refers to the mode in force and never
+// fixes or replaces it, so it carries no mode name of its own.
+func playbookModeNames(text string) []string {
+	text = strings.ReplaceAll(text, playbookModePhrase, "")
+	var names []string
+	for _, match := range deliveryModeNamePattern.FindAllStringSubmatch(text, -1) {
+		names = append(names, match[0])
+	}
+	return names
 }
 
 // frontmatterBlock returns the frontmatter text, starting with a newline, or
@@ -209,6 +252,8 @@ func TestLeafSkillInvariantsCatchViolations(t *testing.T) {
 	writeFile(t, filepath.Join(skills, "hive-rule-big", "SKILL.md"), leafDoc("hive-rule-big", "disable-model-invocation: true\n")+strings.Repeat("x", leafSizeLimit))
 	writeFile(t, filepath.Join(skills, languageLeafName, "SKILL.md"), leafDoc(languageLeafName, "disable-model-invocation: true\n"))
 	writeFile(t, filepath.Join(skills, "hive-mode", "playbooks", "bugfix.md"), strings.Repeat("y", playbookSizeLimit+1))
+	writeFile(t, filepath.Join(skills, "hive-mode", "playbooks", "hotfix.md"), "Push "+playbookModePhrase+", then stop in `hold`.\n")
+	writeFile(t, filepath.Join(skills, "hive-mode", "playbooks", "extra.md"), "Not one of the playbooks.\n")
 
 	got := strings.Join(leafProblems(root), "\n")
 	for _, want := range []string{
@@ -221,9 +266,21 @@ func TestLeafSkillInvariantsCatchViolations(t *testing.T) {
 		"hive-typescript: frontmatter has no `paths`",
 		"hive-typescript: hive-principle-index has no SKILL.md",
 		"playbook bugfix.md is",
+		"playbook hotfix.md names the delivery mode `hold` outside the phrase",
+		"hive-mode/playbooks holds extra.md",
+		"hive-mode/playbooks lacks feature.md",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing problem %q in:\n%s", want, got)
 		}
+	}
+}
+
+func TestPlaybookModeNames(t *testing.T) {
+	if got := playbookModeNames("Stops " + playbookModePhrase + "; no `hold` here."); len(got) != 1 || got[0] != "`hold`" {
+		t.Errorf("want only `hold`, got %v", got)
+	}
+	if got := playbookModeNames("Pushes " + playbookModePhrase + ". The mode is automatic."); len(got) != 0 {
+		t.Errorf("the phrase and a bare word are allowed, got %v", got)
 	}
 }

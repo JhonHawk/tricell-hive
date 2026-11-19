@@ -1,6 +1,6 @@
 # Code audit
 
-Read from [flow-research](../SKILL.md) when the user asks to audit a codebase, or to find what to improve in it, without naming one question to answer. The audit adds to research's steps and replaces none: it sets step 1's aspects, the brief of step 4's children and the report of step 5. It changes no repository file.
+Read from [hive-mode](../SKILL.md) and its [investigate](../playbooks/investigate.md) playbook when the user asks to audit a codebase, or to find what to improve in it, without naming one question to answer. The audit adds to the router's steps and replaces none: it sets step 1's aspects, the brief of step 4's children and the report of step 5. It changes no repository file.
 
 ## Scope
 
@@ -12,7 +12,7 @@ Read from [flow-research](../SKILL.md) when the user asks to audit a codebase, o
    - the rejections in force, as [Rejections](#rejections) sets.
 
    When the repository has no command that tells whether the code works, such as no test runner and no build check, that is the first finding, ranked ahead of any change it would protect.
-3. **Aspects.** List in the message, as research step 1 sets, one aspect per group of categories: correctness and security; performance and dependencies; tests and tooling; debt, architecture and docs; direction. An aspect goes to a `hive-research` child only when research step 4 sends it to one; the main thread reads the rest. A child's brief adds to [delegation](../../hive-rule-delegation/SKILL.md): this file's path with the headings of its categories and of [Finding format](#finding-format); the recon facts that bound the search, including the directories to skip; each tradeoff a decision record settles and each rejection in force, so the child does not report them; and that it returns at most 20 findings, strongest first, with the count of the rest per category, and edits nothing.
+3. **Aspects.** List in the message, as the router's step 1 sets, one aspect per group of categories: correctness and security; performance and dependencies; tests and tooling; debt, architecture and docs; direction. An aspect goes to a `hive-research` child only when research step 4 sends it to one; the main thread reads the rest. A child's brief adds to [delegation](../../hive-rule-delegation/SKILL.md): this file's path with the headings of its categories and of [Finding format](#finding-format); the recon facts that bound the search, including the directories to skip; each tradeoff a decision record settles and each rejection in force, so the child does not report them; and that it returns at most 20 findings, strongest first, with the count of the rest per category, and edits nothing.
 4. **Read-only checks.** Run only a type check and a linter in a form that writes nothing, such as `tsc --noEmit` or a linter without its fix option, in a repository of the current project; a project script that builds, writes or fixes is not run. Run the test suite, which can write snapshots or fixtures, a dependency audit command, such as `npm audit`, `pip-audit`, `cargo audit` or `govulncheck`, which reaches an outside service for its advisories and, for some, sends the dependency list there, or any code of a repository outside the current project, only when the user asks for it in this audit, and name each one skipped in the coverage. Never install, format or write. A check that spends money or quota, changes a shared resource or runs over 30 minutes follows the global guidance's «Scope and authorization».
 
 ## Categories
@@ -61,14 +61,14 @@ Put first, whatever their impact, the findings that unblock others, such as a ve
 
 ## Report
 
-Write research step 5's report as:
+Write the report of the router's step 5 as:
 
 1. A table of at most 15 findings, in the order [Ranking](#ranking) sets: ID, title, category, impact, effort, fix risk, confidence and first location; then the remaining findings as a count per category.
 2. When the audit covers direction, up to four direction findings, apart from the table: options for the user to weigh, not problems ranked against defects. Report none when the repository grounds none.
 3. The dependencies between findings.
 4. The coverage: the categories and directories audited, each child with its status, the commands run, what was not audited, the findings dropped in vetting by reason, and the rejections in force that suppressed a finding.
 
-End with research step 5's block for an analysis. Its replies include: creating tickets for the findings the user picks; investigating or planning one of them; fixing now a confirmed defect, as research step 5 sets; rejecting findings, which records them; and stopping. A finding gets a ticket when the ticket rule of [scope changes](../../hive-rule-scope-changes/SKILL.md) covers it, and each one is a single ticket created as [create-issue](../../create-issue/SKILL.md) sets. Its body also stands alone for someone who never saw this session: the finding's fields, its locations with the audited commit, and the commands from the recon that check the fix. Two exceptions to that skill's limits apply here. Those locations go in the ticket's evidence, all of them, not in its hint. And a picked finding stays one ticket, never a parent with children, even when its locations span repositories. A P0 or security finding with a concrete failure scenario, or an exposed secret, is escalated at once, as «Scope and authorization» sets, not held for the table.
+End with the block of the router's step 5 for an analysis. Its replies include: creating tickets for the findings the user picks; investigating or planning one of them; fixing now a confirmed defect, as the router's step 5 sets; rejecting findings, which records them; and stopping. A finding gets a ticket when the ticket rule of [scope changes](../../hive-rule-scope-changes/SKILL.md) covers it, and each one is a single ticket created as [create-issue](../../create-issue/SKILL.md) sets. Its body also stands alone for someone who never saw this session: the finding's fields, its locations with the audited commit, and the commands from the recon that check the fix. Two exceptions to that skill's limits apply here. Those locations go in the ticket's evidence, all of them, not in its hint. And a picked finding stays one ticket, never a parent with children, even when its locations span repositories. A P0 or security finding with a concrete failure scenario, or an exposed secret, is escalated at once, as «Scope and authorization» sets, not held for the table.
 
 ## Rejections
 

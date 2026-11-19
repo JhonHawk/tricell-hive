@@ -26,7 +26,7 @@ A report of findings by priority, each with the conditions that make it exploita
 
 ## Checking an advisory
 
-Use the [security advisory mode](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-research/references/security-advisory.md) of the Research skill when a CVE, a published advisory or a package compromise makes you ask whether it affects your projects. It reads the advisory from a primary source, inspects the repositories you name without changing them, and reports for each one whether it is affected, mitigated, not affected or unknown, with the file and line that show it. If an application's exposure depends on how its code reaches the vulnerable path, it offers a reachability assessment by the security reviewer, which runs only if you ask. Fixes then happen in each project's own session.
+Use the [dependency-security playbook](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-mode/playbooks/dependency-security.md) of the Hive mode skill when a CVE, a published advisory or a package compromise makes you ask whether it affects your projects. It reads the advisory from a primary source, inspects the repositories you name without changing them, and reports for each one whether it is affected, mitigated, not affected or unknown, with the file and line that show it. If an application's exposure depends on how its code reaches the vulnerable path, it offers a reachability assessment by the security reviewer, which runs only if you ask. Fixes then happen in each project's own session.
 
 Example request:
 
@@ -40,7 +40,7 @@ It is not for reviewing a change, and not for checking a package before you inst
 
 - [Verify](/flows/verify/) is where a requested security review runs.
 - [Build](/flows/build/) mentions the review when a change crosses a boundary.
-- [Research](/flows/research/) is the method the advisory sweep follows.
+- [Hive mode](/flows/hive-mode/) is the method the advisory sweep follows.
 
 ## FAQ
 

@@ -67,8 +67,8 @@ func TestSourceShellReadRequiresMatchingOutputAndPaths(t *testing.T) {
 }
 
 func TestPartialSkillReadDoesNotPassFailedCommand(t *testing.T) {
-	path := "/home/.agents/skills/flow-research/SKILL.md"
-	body := "---\nname: flow-research\ndescription: Research\n---\n# Research\nEvidence.\ncat: /missing: No such file or directory"
+	path := "/home/.agents/skills/hive-mode/SKILL.md"
+	body := "---\nname: hive-mode\ndescription: Research\n---\n# Research\nEvidence.\ncat: /missing: No such file or directory"
 	for _, tc := range []struct {
 		command, output string
 		want            bool
@@ -85,12 +85,12 @@ func TestPartialSkillReadDoesNotPassFailedCommand(t *testing.T) {
 			{Kind: "shell", ID: "cmd", Command: tc.command, Success: &no},
 			{Kind: "tool_result", ID: "cmd", Text: tc.output, Success: &no},
 		}}}
-		got := observeSkill(r, "flow-research")
+		got := observeSkill(r, "hive-mode")
 		if (got.PartialRead != nil) != tc.want || got.Read.Status == "pass" {
 			t.Fatalf("unexpected observation: %+v for %s", got, tc.command)
 		}
 		r.Trace.Events[1].ID = "other"
-		if observeSkill(r, "flow-research").PartialRead != nil {
+		if observeSkill(r, "hive-mode").PartialRead != nil {
 			t.Fatal("uncorrelated result accepted")
 		}
 	}

@@ -57,7 +57,7 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 	cycle := append(append([]string{}, question...),
 		skills+"hive-rule-delivery-ask/SKILL.md", skills+"hive-rule-project-settings/SKILL.md", skills+"hive-rule-ticket-state/SKILL.md",
 		skills+"flow-plan/SKILL.md", skills+"flow-build/SKILL.md", skills+"flow-close/SKILL.md",
-		skills+"flow-research/SKILL.md", skills+"flow-verify/SKILL.md",
+		skills+"hive-mode/SKILL.md", skills+"flow-verify/SKILL.md",
 		"content/agents/review/hive-review-plan.md",
 		"content/agents/development/hive-build-backend.md",
 		"content/agents/quality/hive-verify-task.md",
@@ -104,7 +104,7 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 				return size
 			}
 			before := measure("A d5164f71", baseline, func(path string) ([]byte, error) {
-				return exec.Command("git", "show", "d5164f71:"+path).Output()
+				return exec.Command("git", "show", "d5164f71:"+baselinePath(path)).Output()
 			})
 			after := measure("B working tree", scenario.paths, func(path string) ([]byte, error) {
 				return os.ReadFile("../../" + path)
@@ -113,6 +113,12 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 		})
 	}
 	t.Log("C uses B's canonical sources; mapped plan-review injection adds no unique source to this cycle. Raw source frontmatter is counted. This is not per-request context or actual tokens. Native rendering and skill/role discovery metadata, plugin metadata/wrappers, repeated text across readers/requests, history, project inputs and host policy are not measured. Pilots must observe delivery and token usage separately.")
+}
+
+// baselinePath maps a current path to the path it had at a baseline commit:
+// hive-mode was flow-research there, so its entry compares with the old one.
+func baselinePath(path string) string {
+	return strings.Replace(path, "content/skills/hive-mode/", "content/skills/flow-research/", 1)
 }
 
 // Compare the same pre-existing sources on both sides; new sources are separate.
@@ -130,7 +136,7 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 		skills + "hive-rule-delivery-ask/SKILL.md", skills + "hive-rule-project-settings/SKILL.md",
 		skills + "hive-rule-ticket-state/SKILL.md",
 		skills + "hive-rule-close-modes/SKILL.md", skills + "hive-rule-close-hygiene/SKILL.md", skills + "hive-rule-close-report/SKILL.md",
-		skills + "flow-research/SKILL.md", skills + "flow-plan/SKILL.md",
+		skills + "hive-mode/SKILL.md", skills + "flow-plan/SKILL.md",
 		skills + "flow-build/SKILL.md", skills + "flow-verify/SKILL.md", skills + "flow-close/SKILL.md",
 		skills + "hive-rule-delegation/SKILL.md", skills + "hive-rule-child-brief/SKILL.md", skills + "hive-rule-reviewer-brief/SKILL.md",
 		skills + "flow-plan/references/plan-handoff.md",
@@ -214,7 +220,7 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 					fresh += len(data)
 					t.Logf("new %s %s: %d B", kind, path, len(data))
 				} else {
-					old, err := exec.Command("git", "-C", root, "show", base+":"+path).Output()
+					old, err := exec.Command("git", "-C", root, "show", base+":"+baselinePath(path)).Output()
 					if err != nil {
 						return nil, fmt.Errorf("baseline %s: %w", path, err)
 					}

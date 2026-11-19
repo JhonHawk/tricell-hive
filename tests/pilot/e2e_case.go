@@ -516,7 +516,7 @@ func runE2E(output, model, attempt, installation string, budget e2eBudget, repor
 		return err
 	}
 	memory.report.RuntimeMemoryToolReadSeen = observedMemoryRead(r.Trace.Events)
-	for _, name := range []string{"flow-research", "flow-plan", "flow-build", "flow-verify", "flow-close", "git-workflow"} {
+	for _, name := range []string{"hive-mode", "flow-plan", "flow-build", "flow-verify", "flow-close", "git-workflow"} {
 		if err := e2eWrite(filepath.Join(output, name+"-source-observation.json"), observeSkill(r, name)); err != nil {
 			return err
 		}

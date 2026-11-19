@@ -7,7 +7,7 @@ Deploy is a stage of its own, after the change is integrated. One run can carry 
 
 ## When to use
 
-Use Deploy when you ask to promote or deploy, or to promote the integrated fix of an urgent production defect, as [urgent fixes](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/references/urgent-fixes.md) defines one. It starts from commits already on the base branch. A defect whose fix is not integrated yet goes first to [Research](/flows/research/) while its cause is unknown, or to [Build](/flows/build/) once it is known.
+Use Deploy when you ask to promote or deploy, or to promote the integrated fix of an urgent production defect, as [urgent fixes](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-deploy/references/urgent-fixes.md) defines one. It starts from commits already on the base branch. A defect whose fix is not integrated yet goes first to [Hive mode](/flows/hive-mode/) while its cause is unknown, or to [Build](/flows/build/) once it is known.
 
 Example requests:
 

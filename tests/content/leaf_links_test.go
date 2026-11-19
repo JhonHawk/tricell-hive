@@ -86,8 +86,9 @@ var leafLinks = []leafLink{
 	{"hive-rule-project-settings", "content/skills/flow-deploy/SKILL.md", true},
 	{"hive-rule-test-accounts", "content/skills/flow-deploy/references/deployment-checks.md", true},
 	{"hive-rule-design-stage", "content/skills/flow-figma-design/SKILL.md", true},
-	// flow-research links the design-stage leaf when T13 removes its copy of the offer rule.
-	{"hive-rule-design-stage", "content/skills/flow-research/SKILL.md", false},
+	// Links of T13: hive-mode reaches the design-stage and report-endings rules through leaves.
+	{"hive-rule-design-stage", "content/skills/hive-mode/SKILL.md", true},
+	{"hive-rule-report-endings", "content/skills/hive-mode/SKILL.md", true},
 	{"hive-rule-unattended-effects", "content/skills/unattended-delegation/SKILL.md", true},
 	{"hive-rule-defect-fix", "content/agents/review/hive-review-code.md", true},
 	{"hive-rule-review-evidence", "content/agents/review/hive-review-code.md", true},

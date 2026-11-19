@@ -207,7 +207,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
 
 ### T8 — Se extraen las hojas de figma, deploy y unattended, y se cierran sus enlaces
 
-- [ ] Existen `design-stage` y `unattended-effects`. `flow-figma-design` pesa 9,000 bytes o menos. Deploy, figma y unattended enlazan las hojas comunes en lugar de repetirlas.
+- [x] Existen `design-stage` y `unattended-effects`. `flow-figma-design` pesa 9,000 bytes o menos. Deploy, figma y unattended enlazan las hojas comunes en lugar de repetirlas.
 
 **Closes:** AC4, AC6, AC7, AC17
 
@@ -245,7 +245,7 @@ El hilo principal fija el contrato: la lista de hojas, el formato del índice y 
   - `tests/pilot/`: `flows.go`, `flows_test.go`, `protected.go`, `e2e_case.go`, `guidance_variant.go`, `session_audit.go`, `qualify_score_test.go`, `qualify_suite_test.go` y `shell_reads_test.go`.
   - `tests/fixtures/flows/cases.json` y su `README.md`.
   - `content/skills/flow-plan/assets/change-folder/proposal.md` (campo `Playbook`).
-  - `tests/content/reading_footprint_test.go` y `leaf_skill_test.go`, que también rechaza los nombres de modo entre comillas invertidas en los playbooks, salvo en la frase fija «según el modo de entrega en vigor» (AC17). Lleva un caso sembrado: un playbook que nombra un modo fuera de esa frase, y el test falla.
+  - `tests/content/reading_footprint_test.go` y `leaf_skill_test.go`, que también rechaza los nombres de modo entre comillas invertidas en los playbooks, salvo en la frase fija «under the delivery mode in force» (AC17). Lleva un caso sembrado: un playbook que nombra un modo fuera de esa frase, y el test falla.
 - **Bloques MODIFIED, solo con el cambio de nombre:**
   - `workflow-lifecycle` «Tickets are created through one procedure».
   - `workflow-lifecycle` «Requirement documents are written and validated through one procedure».
@@ -507,3 +507,4 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 2026-11-19 — T5 · dff232ad · unverified: flow-deploy citations and its ticket-state link wait for T8; README, llms.txt and _support/docs wait for T9
 2026-11-19 — T6 · 9eda7fa9 · unverified: close-modes is not linked from git-workflow step 10 (would exceed 9,000 bytes); flow-close still reached there by name
 2026-11-19 — T7 · f5f68b6c · unverified: global.md is 30,957 bytes, over AC5's 30,000 with more index lines to come; settled before PR 1
+2026-11-19 — T8 · eb134916 · unverified: promotion commit listing stays in flow-deploy (different rule than foreign-commits); site pages for figma/deploy wait for T9
