@@ -16,9 +16,10 @@ permissions:
   contents: read
 
 concurrency:
-  group: tests-${{ github.ref }}
-  # A newer push to a pull request replaces its run; every push to
-  # development keeps its own run.
+  # A newer push to a pull request replaces its run. Each push to
+  # development gets its own group, since a group keeps one pending run and
+  # cancels the one before it.
+  group: tests-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -30,6 +31,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # tests/content reads earlier commits with git show.
+          fetch-depth: 0
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
