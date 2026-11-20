@@ -18,13 +18,6 @@ raise the minor or the patch version.
   and wakes the agent in 5- to 10-minute stretches when the host signals only
   on exit. `--audit-session` gains `unbounded_background_wait`, which fails a
   Claude Code or Grok background loop with `sleep` and no deadline.
-
-### Changed
-
-- In `--audit-session`, `merged_branch_deleted` fails only when a close report
-  follows the last merge with no branch deletion; a session still open, such
-  as one in the middle of a promotion, now reads as review.
-
 - `integrations/agents` tests now cover the error paths of agent parsing,
   CRLF frontmatter, and the escaping of control characters in Codex TOML,
   which no test caught before.
@@ -227,6 +220,9 @@ raise the minor or the patch version.
 
 ### Changed
 
+- In `--audit-session`, `merged_branch_deleted` fails only when a close report
+  follows the last merge with no branch deletion; a session still open, such
+  as one in the middle of a promotion, now reads as review.
 - `flow-figma-design` and `hive-ui-criteria` are now one skill, `create-design`,
   with four entries: draw a screen, correct frames, review an existing design
   (a Figma link or an image, drawing nothing) and create or refresh `DESIGN.md`.

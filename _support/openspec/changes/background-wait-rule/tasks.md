@@ -98,10 +98,10 @@ El sitio no cambia: ninguna página describe esperas fuera de CI.
 ## Checkpoint
 
 - Updated: 2026-11-20
-- Stage: build · fix round on T2 (child)
-- Last commit: 95fbdfb3
-- Open findings: H1 delta review P2-1/P2-2/P3-1/P3-2 · fixing in build
-- Next: On the fix: verify, commit with design/spec/proposal, rerun the full suite, then flow-verify
+- Stage: verify · 3 (fix round)
+- Last commit: 582be0ff
+- Open findings: CR1-6 bounded waits read as fail · fixing (simplified deadline rule); CR7 /bin/sleep and nested sleep missed · fixing; CR8 CHANGELOG Changed heading · fixed; CR9 leaf deadline vs stretches wording · fixed; CR10 merge located by evidence string · non-blocking, close findings
+- Next: On child return: verify, commit fix round (detector + leaf/spec/design/CHANGELOG), focused re-review of the fixes' diff, push/PR/merge
 
 ### Evidence
 
@@ -110,6 +110,13 @@ El sitio no cambia: ninguna página describe esperas fuera de CI.
 - go test ./tests/pilot/... · pass · 99e3ee80
 - audit copy: unbounded_background_wait fail :3855 · 99e3ee80
 - go vet ./... && go test ./... · pass · 95fbdfb3
+- go vet ./... && go test ./... · pass · 582be0ff
+- audit copy: unbounded_background_wait fail :3855, merged_branch_deleted review · 582be0ff
+- AC1 audit copy unbounded_background_wait fail :3855 · 582be0ff
+- AC2 audit copy merged_branch_deleted review · 582be0ff
+- AC3/AC5 audit CLI on fixtures: unbounded fail (claude, grok), timeout-wrap/seq/while-condition pass, timeout-body fail · 582be0ff
+- comments: 0 deleted, all Go doc comments kept (declared limits); suppressions: none
+- blast radius: real-session path only; pilot detector unchanged, go test ./... pass (rung 4); README/llms need no change
 
 ## Estado de la revisión y avance
 

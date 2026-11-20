@@ -613,6 +613,16 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"wait claude a C-style for with a constant condition", "claude", wait, []string{"unbounded_background_wait", "claude-project-c-style-always-true-fail.jsonl"}, auditOptions{}, "fail"},
 		{"wait claude a C-style for without a condition", "claude", wait, []string{"unbounded_background_wait", "claude-project-c-style-empty-fail.jsonl"}, auditOptions{}, "fail"},
 		{"wait claude a counter limit in the while condition", "claude", wait, []string{"unbounded_background_wait", "claude-project-while-condition-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a SECONDS test inside an if in the body", "claude", wait, []string{"unbounded_background_wait", "claude-project-seconds-if-in-body-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a SECONDS test followed by a brace group", "claude", wait, []string{"unbounded_background_wait", "claude-project-seconds-brace-exit-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a decrementing counter in the condition", "claude", wait, []string{"unbounded_background_wait", "claude-project-decrement-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude the limit on the left of the comparison", "claude", wait, []string{"unbounded_background_wait", "claude-project-limit-first-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude SECONDS compared with an or-exit", "claude", wait, []string{"unbounded_background_wait", "claude-project-seconds-or-exit-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a C-style for with spaces", "claude", wait, []string{"unbounded_background_wait", "claude-project-c-style-spaced-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude timeout after then", "claude", wait, []string{"unbounded_background_wait", "claude-project-then-timeout-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a counter inside a double-bracket and", "claude", wait, []string{"unbounded_background_wait", "claude-project-double-bracket-and-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude /bin/sleep in a negated condition loop", "claude", wait, []string{"unbounded_background_wait", "claude-project-absolute-sleep-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude an outer loop whose only sleep is in a timeout-wrapped inner loop", "claude", wait, []string{"unbounded_background_wait", "claude-project-outer-nested-timeout-fail.jsonl"}, auditOptions{}, "fail"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

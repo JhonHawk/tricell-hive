@@ -20,8 +20,10 @@ var (
 		regexp.MustCompile(`^\(\(\s*(?:\+\+|--)?(\w+)\s*(?:\+\+|--|[-+*]?=)`),
 		regexp.MustCompile("^let\\s+[\"']?(\\w+)"),
 	}
-	// cStyleVariable is the variable a C-style for initializes.
+	// cStyleVariable is the variable a C-style for initializes when it is glued to the parentheses.
 	cStyleVariable = regexp.MustCompile(`^\(\((\w+)`)
+	// nestedSleep is a sleep inside a quoted script, such as bash -c or ssh.
+	nestedSleep = regexp.MustCompile(`(?:^|[\s;&|({])(?:\S*/)?sleep(?:\s|$)`)
 	// elapsedOperand is a comparison operand that reads the clock directly.
 	elapsedOperand = regexp.MustCompile(`SECONDS|date \+%s|\$\(\(`)
 	// waitKeywords precede a command inside a compound command.
@@ -90,20 +92,30 @@ type openLoop struct {
 	sleeps      bool
 }
 
-// scanWaitLoops walks the segments of one script. A loop whose script sits in
-// a segment that starts with timeout or gtimeout (`timeout 600 bash -c '...'`)
-// is bounded by it, passed down as wrapped; a timeout inside a loop body is
-// not a deadline for the loop.
+// scanWaitLoops walks the segments of one script. A loop is a wait loop when
+// its body holds a sleep at any depth. Its deadline is a leading timeout that
+// wraps its script (passed down as wrapped), a finite for, or a comparison of
+// a counter or the clock anywhere in its condition or body. A timeout inside a
+// loop body, or around a nested inner loop, is not a deadline for the loop.
 func scanWaitLoops(segs [][]string, wrapped bool, depth int, withDeadline, without *int) {
 	segs = peelLoopStarts(segs)
 	counters := counterVariables(segs)
 	var stack []*openLoop
+	markSleep := func() {
+		for _, l := range stack {
+			l.sleeps = true
+		}
+	}
 	for i, seg := range segs {
-		if depth < 3 {
-			for _, token := range seg[1:] {
-				if strings.ContainsAny(token, " \n;") && waitLoopWord.MatchString(token) {
-					scanWaitLoops(shellSegments(token, 0), wrapped || leadsWithTimeout(seg), depth+1, withDeadline, without)
-				}
+		for _, token := range seg[1:] {
+			if !strings.ContainsAny(token, " \n;") {
+				continue
+			}
+			if nestedSleep.MatchString(token) {
+				markSleep()
+			}
+			if depth < 3 && waitLoopWord.MatchString(token) {
+				scanWaitLoops(shellSegments(token, 0), wrapped || leadsWithTimeout(commandOf(seg)), depth+1, withDeadline, without)
 			}
 		}
 		first := strings.TrimRight(seg[0], "&)")
@@ -131,18 +143,16 @@ func scanWaitLoops(segs [][]string, wrapped bool, depth int, withDeadline, witho
 			}
 			continue
 		}
-		if cmd := commandOf(seg); len(cmd) > 0 && cmd[0] == "sleep" {
-			for _, l := range stack {
-				l.sleeps = true
-			}
+		if cmd := commandOf(seg); len(cmd) > 0 && filepath.Base(cmd[0]) == "sleep" {
+			markSleep()
 		}
 	}
 }
 
-// leadsWithTimeout reports whether the segment's command is timeout or
-// gtimeout, after leading variable assignments and nohup.
-func leadsWithTimeout(seg []string) bool {
-	for _, t := range seg {
+// leadsWithTimeout reports whether the command is timeout or gtimeout, after
+// leading variable assignments and nohup.
+func leadsWithTimeout(cmd []string) bool {
+	for _, t := range cmd {
 		if strings.Contains(t, "=") || t == "nohup" {
 			continue
 		}
@@ -175,46 +185,40 @@ func counterVariables(segs [][]string) map[string]bool {
 	return names
 }
 
-// loopHasDeadline applies the three kinds of deadline that hold without a
-// timeout wrapper: a finite for list, a counter or the clock compared in the
-// loop condition, and such a comparison in the body that leads to exit or break.
+// loopHasDeadline applies the deadlines that hold without a timeout wrapper: a
+// for over a finite list or with a counter condition, and a comparison of a
+// counter or the clock in any segment of the loop's condition or body.
 func loopHasDeadline(segs [][]string, l *openLoop, end int, counters map[string]bool) bool {
 	header := segs[l.start:l.doAt]
-	switch header[0][0] {
-	case "for":
-		h := header[0]
+	if h := header[0]; h[0] == "for" {
 		switch {
 		case len(h) > 1 && strings.HasPrefix(h[1], "(("):
-			if len(header) != 3 {
-				return false
+			if len(header) == 3 {
+				withVariable := map[string]bool{}
+				for name := range counters {
+					withVariable[name] = true
+				}
+				name := ""
+				if m := cStyleVariable.FindStringSubmatch(h[1]); m != nil {
+					name = m[1]
+				} else if h[1] == "((" && len(h) > 2 {
+					name = strings.SplitN(h[2], "=", 2)[0]
+				}
+				if name != "" {
+					withVariable[name] = true
+				}
+				if comparesToLimit(append([]string{"(("}, header[1]...), withVariable) {
+					return true
+				}
 			}
-			withVariable := map[string]bool{}
-			for name := range counters {
-				withVariable[name] = true
-			}
-			if m := cStyleVariable.FindStringSubmatch(h[1]); m != nil {
-				withVariable[m[1]] = true
-			}
-			return comparesToLimit(append([]string{"(("}, header[1]...), false, withVariable)
 		case len(h) > 2 && h[2] == "in":
 			return len(h) > 3
-		}
-		return true
-	case "while":
-		for _, h := range header {
-			if comparesToLimit(h, false, counters) {
-				return true
-			}
-		}
-	case "until":
-		for _, h := range header {
-			if comparesToLimit(h, true, counters) {
-				return true
-			}
+		case len(h) <= 2:
+			return true
 		}
 	}
-	for j := l.doAt; j < end; j++ {
-		if comparesToLimit(segs[j], true, counters) && leadsToExit(segs, j, end) {
+	for j := l.start; j < end; j++ {
+		if comparesToLimit(segs[j], counters) {
 			return true
 		}
 	}
@@ -222,63 +226,36 @@ func loopHasDeadline(segs [][]string, l *openLoop, end int, counters map[string]
 }
 
 // comparesToLimit reports whether a test segment compares the clock or a
-// counter with a limit. upper selects -ge, -gt, >= and >; otherwise -lt, -le,
-// <= and <. A segment that only prints the value is not a test.
-func comparesToLimit(seg []string, upper bool, counters map[string]bool) bool {
+// counter with something, in either direction. A segment that only prints the
+// value is not a test.
+func comparesToLimit(seg []string, counters map[string]bool) bool {
 	cmd := commandOf(seg)
 	if len(cmd) == 0 {
 		return false
 	}
 	arithmetic := strings.HasPrefix(cmd[0], "((")
-	if cmd[0] != "[" && cmd[0] != "[[" && cmd[0] != "test" && !arithmetic {
+	last := cmd[len(cmd)-1]
+	if cmd[0] != "[" && cmd[0] != "[[" && cmd[0] != "test" && !arithmetic && last != "]" && last != "]]" {
 		return false
 	}
-	text := " " + strings.Join(cmd, " ") + " "
-	ops := []string{" -lt ", " -le "}
-	if upper {
-		ops = []string{" -ge ", " -gt "}
-	}
-	if arithmetic || cmd[0] == "[[" {
-		if upper {
-			ops = append(ops, ">=", ">")
-		} else {
-			ops = append(ops, "<=", "<")
-		}
-	}
 	compared := false
-	for _, op := range ops {
-		compared = compared || strings.Contains(text, op)
+	for _, t := range cmd {
+		switch t {
+		case "-lt", "-le", "-gt", "-ge", "<", "<=", ">", ">=":
+			compared = true
+		default:
+			compared = compared || (arithmetic && strings.ContainsAny(t, "<>"))
+		}
 	}
 	if !compared {
 		return false
 	}
+	text := " " + strings.Join(cmd, " ") + " "
 	if elapsedOperand.MatchString(text) {
 		return true
 	}
 	for name := range counters {
 		if regexp.MustCompile(`\$\{?`+name+`\b`).MatchString(text) || (arithmetic && regexp.MustCompile(`\b`+name+`\b`).MatchString(text)) {
-			return true
-		}
-	}
-	return false
-}
-
-// leadsToExit reports whether the test at segs[j] ends the script or the loop
-// when it holds: the branch of an if, or the command joined to it with && or ||.
-func leadsToExit(segs [][]string, j, end int) bool {
-	exits := func(seg []string) bool {
-		cmd := commandOf(seg)
-		return len(cmd) > 0 && (cmd[0] == "exit" || cmd[0] == "break")
-	}
-	if segs[j][0] != "if" && segs[j][0] != "elif" {
-		return j+1 < end && exits(segs[j+1])
-	}
-	for k := j + 1; k < end; k++ {
-		switch segs[k][0] {
-		case "fi", "else", "elif":
-			return false
-		}
-		if exits(segs[k]) {
 			return true
 		}
 	}
