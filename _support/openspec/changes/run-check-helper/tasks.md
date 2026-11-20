@@ -6,7 +6,7 @@ Los commits de este cambio nombran la observación que lo originó: Codex 0.170.
 
 ### T1 — Script `run_check.py`
 
-- [ ] El script corre un comando con su salida a un log con tope, imprime el final fuera del log y devuelve el código del comando.
+- [x] El script corre un comando con su salida a un log con tope, imprime el final fuera del log y devuelve el código del comando.
 
 **Closes:** AC1, AC2
 
@@ -40,7 +40,7 @@ También se corre con `/usr/bin/python3` (3.9) y a mano sobre `go -C <worktree> 
 
 ### T2 — La hoja exige el helper
 
-- [ ] `hive-rule-checks` manda correr con `run_check.py` un check cuya salida se guarda, su referencia explica el uso y el respaldo, e `instruction-resources.md` lo nombra.
+- [x] `hive-rule-checks` manda correr con `run_check.py` un check cuya salida se guarda, su referencia explica el uso y el respaldo, e `instruction-resources.md` lo nombra.
 
 **Closes:** AC3
 
@@ -58,7 +58,7 @@ También se corre con `/usr/bin/python3` (3.9) y a mano sobre `go -C <worktree> 
 
 ### T3 — Criterio `self_feeding_log` del auditor
 
-- [ ] El auditor marca `fail` un comando cuyo bloque redirigido a un archivo lo lee en un `trap` o dentro del bloque, también en un `exec` de Codex interpolado.
+- [x] El auditor marca `fail` un comando cuyo bloque redirigido a un archivo lo lee en un `trap` o dentro del bloque, también en un `exec` de Codex interpolado.
 
 **Closes:** AC4
 
@@ -92,7 +92,7 @@ La salida de los otros criterios sobre `01a1f5d4` no cambia.
 
 ### T4 — Enforcers, rúbrica y changelog
 
-- [ ] `rule-enforcers.md`, la rúbrica y `CHANGELOG.md` reflejan el helper y el criterio.
+- [x] `rule-enforcers.md`, la rúbrica y `CHANGELOG.md` reflejan el helper y el criterio.
 
 **Closes:** AC3, AC4
 
@@ -123,14 +123,29 @@ Sin parada de validación (entrega `automatic`). La adopción del helper en sesi
 ## Checkpoint
 
 - Updated: 2026-11-19
-- Stage: build · start
-- Last commit: 9b9450c5
+- Stage: verify · push
+- Last commit: 1aa389b
 - Open findings: none
-- Next: T3 in a hive-build-backend child; T1, T2, T4 in the main thread
+- Next: push, PR, merge, deploy, close
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/run-check · feat/run-check-helper
 
 ### Evidence
 
 - before captures: none (no screen change)
+- go test ./... via run_check: all ok except the known flaky TestE2ESetupDeadlinesOwnDescendantsAndPipes; tests/pilot rerun ok @b93a6b5a
+- python3 -m unittest tests/skills: 294 ok @b93a6b5a
+- go vet ./... ok
+- local CI: only master-source-branch (PRs to master); CI-only, not applicable
+- audit 01a1f5d4 self_feeding_log=fail 13 lines (535 first); bf678880 not_observed; other criteria unchanged vs base
+- audit 01a1f5d4 self_feeding_log=fail 13 lines after the token→word rename @ae8be52
+- go test ./... via run_check exit 0; unittest tests/skills 296 OK; go vet ok @379e15c
+- audit 01a1f5d4 self_feeding_log fail 13 lines (535 first) @379e15c
+- go test ./... via run_check exit 0; unittest tests/skills 297 OK; go vet ok @1aa389b
+- audit 01a1f5d4 self_feeding_log fail 13 lines; other criteria unchanged @1aa389b
 
 ## Review status and progress
+
+2026-11-19 — T1 · 5c5b1b29 · unverified: none
+2026-11-19 — T2 · b5af0fcb · unverified: adopción en sesiones reales (watch/self-feeding-check-log)
+2026-11-19 — T3 · ae8be52 · unverified: none
+2026-11-19 — T4 · b93a6b5a · unverified: none

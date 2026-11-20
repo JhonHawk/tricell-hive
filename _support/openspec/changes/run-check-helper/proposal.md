@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Listo para flow-build |
+| Estado | En entrega |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `9b9450c5` · rama propuesta `feat/run-check-helper` |
 | Playbook | ninguno (`/flow-plan` tecleado por el usuario) |
@@ -67,3 +67,4 @@ None: the tasks take no effect on an external system.
 ## Review status and progress
 
 2026-11-19 — Plan escrito. Revisión `hive-review-plan` (2 P1, 6 P2, 8 P3), todo aplicado: el auditor lee el `exec` interpolado de Codex en `CommandTemplate` (F1); el detalle va a `references/run-check.md` por la huella de lectura (F2); pipes con `PIPESTATUS` siguen (F3); el criterio detecta auto-alimentación real con más fixtures (F4); comportamiento del script fijado y probado (F5, F6); fixtures sintéticos (F7); respaldo sin `python3` (F8); AC3 se observa en el candidato, AC4 nombra la línea 535, nueve usos, ruta completa de `bf678880`, commits con la observación, `<hive-rule-checks-dir>`, tope de 64 MiB, `site/` sin cambio con su razón. `check_change.py` sale con 0. Estado: listo para `flow-build`.
+2026-11-20 — Build T1–T4 (`5c5b1b2`…`ae8be52`). `/code-review` (5 importantes) y `hive-review-security` (1 P2, 8 P3): corregidos en `66b1364` y `379e15c` el `--grep` inválido, el comando huérfano si el helper muere por SIGKILL (guardián con pipe), la señal durante el arranque y cuatro de precisión del detector. Segunda revisión: 3 importantes corregidos en local con prueba (`449b39c`, `1aa389b`, con `Unreviewed:`): guardián con doble fork para no bloquear a un comando que espera a todos sus hijos, cierre de descriptores por `/dev/fd`, 127 si falla el arranque, marcadores iguales para la misma interpolación y objetivo de redirección con espacio. Hallazgos de cierre (no bloqueantes): estados 2 y 125 que coinciden con los de otras herramientas; `--grep` con retroceso exponencial ignora señales; el temporal puede caer en el directorio actual; los logs quedan hasta el cierre; consejo sobre datos en `bash -c`; señal antes de `Popen` lanza igual el comando; `--grep ''` muestra el inicio; detector: nombres como subcadena, here-strings, `while`/`if`/funciones en `trap`, `exec >&N` en texto citado, `<` y `>|` cortan la búsqueda, tiempo cuadrático con llaves sin pareja. `TestE2ESetupDeadlinesOwnDescendantsAndPipes` sigue siendo intermitente en la base.
