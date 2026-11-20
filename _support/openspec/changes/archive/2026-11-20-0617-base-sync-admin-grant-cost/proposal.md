@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Listo para flow-build |
+| Estado | Completado · PR #532, merge 2f7b7f6a |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `8a4443a2` · rama `feat/base-sync-admin-grant` en `.claude/worktrees/base-sync` |
 | Playbook | ninguno (revisión de sesión, luego `/flow-plan` tecleado por el usuario) |
@@ -28,7 +28,7 @@
 - **Supuesto** — El permiso cubre un pull request cuyos checks requeridos pasaron o que no tiene ninguno (el PR 31 de specs no tenía). Un revisor que aprobó un commit anterior y volvió a ser pedido sigue reteniendo: gana la petición. Descartado: solo PR con checks; que gane la aprobación vieja. Se revierte en la hoja.
 - **Supuesto** — El script hace el `fetch` y el avance de la base antes de planear la limpieza, para que una rama mezclada solo en `origin` cuente como mezclada; con la base en otro checkout o sin checkout principal, no la mueve. Corre `status` y `merge` en el checkout principal aunque `--repo` sea un worktree, con `--no-overwrite-ignore`, y cuenta como cambio local un archivo ignorado que lo que llega empieza a seguir. Descartado: avanzar después de borrar. Se revierte moviendo el paso.
 - **Supuesto** — En Grok, el uso por turno del padre incluye el de sus hijos: el auditor resta el `usage.json` de cada hijo de `subagents/*/meta.json` (buscado en todas las carpetas de `~/.grok/sessions/`) y marca `per_turn_with_children` cuando falta alguno. En Codex cuenta un `token_count` solo cuando su total cambió. Una «lectura de Hive» es solo de una skill instalada bajo una carpeta oculta del usuario (como `~/.agents/skills/`), no de `content/skills/` del repositorio. Descartado: sumar el uso del padre tal cual. Se revierte en el auditor.
-- **Nota de medición** — D2 relaja la regla que `a57af495` endureció tras el push directo a `production` de cam Grok `01a11cbc`. La única observación es de un modelo fuera del floor, así que la relajación descansa en la decisión del usuario, como «Measurement» de `AGENTS.md` permite; las exclusiones de la rama de producción, el push directo y la desviación de promoción cubren ese incidente. Se compararon pstack (permisos por conjunto declarado y por sesión, pausa en despliegues), la forma anterior de Hive (por repositorio) y la actual (por bypass) antes de recomendar.
+- **Nota de medición** — D2 relaja la regla que `a57af495` endureció tras el push directo a `production` de cam Grok `01a11cbc`. La única observación es una sesión de un modelo del floor (`grok-4.7-build-fast`, como modelo de las sesiones del usuario; este plan lo dio por error como fuera del floor), y relajar una regla es decisión del usuario, como «Measurement» de `AGENTS.md` fija; las exclusiones de la rama de producción, el push directo y la desviación de promoción cubren ese incidente. Se compararon pstack (permisos por conjunto declarado y por sesión, pausa en despliegues), la forma anterior de Hive (por repositorio) y la actual (por bypass) antes de recomendar.
 
 ## Business rules
 
@@ -38,7 +38,7 @@ None: the work adopts no business rule beyond what its ticket and documentation 
 
 > D1–D3 «Script (★)», «Toda la sesión (★)», «Medir primero (★)» — usuario, 2026-11-19, tras la revisión de la sesión en fleetsystem: «La higiene no esta contemplando descargar cambios del repositorio; se perdio el hecho de poder conservar un permiso y retulizarlo durante la sesión, por ejemplo el --admin; El tema de esa sesión fue de infra/devops, pero se volvio larguisima».
 
-Origen: sesión Grok Build `01a1f5fc-60ea-7971-8d04-ca82a187fa9e` en fleetsystem (FSR-928, `grok-4.7-build-fast` high, fuera del floor), 2026-11-19 16:45–22:08 CST.
+Origen: sesión Grok Build `01a1f5fc-60ea-7971-8d04-ca82a187fa9e` en fleetsystem (FSR-928, `grok-4.7-build-fast` high, en el floor como modelo de las sesiones del usuario), 2026-11-19 16:45–22:08 CST.
 - Al cerrar, el checkout de specs quedó 20 commits detrás de `origin/master` y el usuario pidió «haz el pull de cambios».
 - El usuario autorizó `--admin` para el PR 291 del backend a las 18:59 y tuvo que repetirlo a las 20:53 para el PR 31 de specs.
 - La sesión hizo 599 llamadas al modelo con 70.8 M de tokens de entrada (unos $32.5 en total); restando los 12 hijos (189 llamadas, 15.7 M), el hilo principal hizo 410 llamadas con 55.1 M. Cerca del 25 % de sus llamadas a herramientas leyeron reglas o corrieron scripts de Hive, y hubo 5 compactaciones.

@@ -2,7 +2,7 @@
 
 Base: `development` en `8a4443a2`, rama `feat/base-sync-admin-grant` en `.claude/worktrees/base-sync`. T3 edita más de 3 archivos del auditor (loaders de las tres hosts, el bloque nuevo, pruebas y fixtures) y va a un hijo `hive-build-backend`; su interfaz queda fijada en `design.md` («Bloque `main_thread_cost` del auditor»). T1 y T2 editan como máximo 3 archivos cada una y quedan en el hilo principal mientras el hijo trabaja, porque sus archivos no se cruzan. T4 va después de T1–T3 porque documenta lo que dejan; T5 va al final porque usa el bloque de T3.
 
-Los commits nombran la observación que originó el cambio: Grok Build, `grok-4.7-build-fast` high (fuera del floor), sesión `01a1f5fc-60ea-7971-8d04-ca82a187fa9e` en fleetsystem, 2026-11-19: base de specs 20 commits atrás tras el cierre, `--admin` pedido dos veces y un hilo principal de 599 llamadas.
+Los commits nombran la observación que originó el cambio: Grok Build, `grok-4.7-build-fast` high (en el floor como modelo de las sesiones del usuario; los commits dicen por error «outside the floor»), sesión `01a1f5fc-60ea-7971-8d04-ca82a187fa9e` en fleetsystem, 2026-11-19: base de specs 20 commits atrás tras el cierre, `--admin` pedido dos veces y un hilo principal de 599 llamadas.
 
 ### T1 — Base local al día en `cleanup_branches.py`
 
