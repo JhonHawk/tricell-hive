@@ -24,7 +24,52 @@ var (
 	// accepts in place of the arrow.
 	boldQuestion = regexp.MustCompile(`\*\*[^*\n]*\?[^*\n]*\*\*`)
 	singleLetter = regexp.MustCompile(`^[A-Z]$`)
+	// tempPath is the host's temporary location, where an analysis may keep
+	// scratch files without becoming a work turn.
+	tempPath = regexp.MustCompile(`^(?:/private)?/(?:tmp|var/folders)/|^/var/tmp/|/scratchpad/|^\$\{?TMPDIR\b`)
 )
+
+// reportMinLines is the fewest non-blank lines a last text needs to be read as
+// a report that owes the reply block; a shorter one is a plain answer.
+const reportMinLines = 6
+
+// workEvent reports whether the event at i changed a file outside the host's
+// temporary location or delivered work. A write the host refused changed
+// nothing. A shell command whose text the trace withheld counts as work, so
+// its turn is not judged; one the trace keeps as a template, as Codex does for
+// a JavaScript literal, is read with each interpolated value unknown.
+func workEvent(events []traceEvent, i int) bool {
+	e := events[i]
+	switch e.Kind {
+	case "write", "delete":
+		return succeeded(events, i) && !tempPath.MatchString(filepath.ToSlash(e.Path))
+	case "shell":
+		if e.Command == "" && e.CommandTemplate == "" {
+			return e.CommandWithheld
+		}
+		return shellWork(e.Command + "\n" + e.CommandTemplate)
+	}
+	return false
+}
+
+// bareReport reports whether a last text is a report of reportMinLines or more
+// non-blank lines that ends with no reply block: no ▶ anywhere, no flow
+// command, and no question in bold among its last lines.
+func bareReport(text string) bool {
+	if strings.Contains(text, "▶") || flowCommand.MatchString(text) {
+		return false
+	}
+	var lines []string
+	for _, l := range strings.Split(text, "\n") {
+		if strings.TrimSpace(l) != "" {
+			lines = append(lines, l)
+		}
+	}
+	if len(lines) < reportMinLines {
+		return false
+	}
+	return !boldQuestion.MatchString(strings.Join(lines[len(lines)-3:], "\n"))
+}
 
 func readsReportEndings(e traceEvent) bool {
 	switch e.Kind {
@@ -185,19 +230,24 @@ func endingExempt(text string) bool {
 	return flowCommand.MatchString(trailingReplyList(text).tail)
 }
 
-// analysisReplyBlock checks how a main-session turn ends when it offers the
-// user replies. The last assistant text of each turn fails when it ends with
-// italic-labeled list items or with lettered items and no ▶ or bold question
-// heading; the evidence says whether the installed report-endings rule was
-// read earlier. A turn that ends with a question card or a flow command, a
-// decision round written in text and a child session are not judged.
+// analysisReplyBlock checks how a main-session turn ends. The last assistant
+// text of each turn fails when it ends with italic-labeled list items or with
+// lettered items and no ▶ or bold question heading, or when it offers no
+// replies at all in a report (bareReport) of a turn that loaded hive-mode,
+// changed no file and delivered nothing; the evidence says whether the installed report-endings
+// rule was read earlier. A turn that ends with a question card or a flow
+// command, a decision round written in text and a child session are not
+// judged.
 func analysisReplyBlock(s auditSession) criterionAssessment {
 	c := criterionAssessment{Criterion: "analysis_reply_block", Status: "not_observed", Evidence: []string{}}
 	if child(s) {
 		return c
 	}
 	events := s.Trace.Events
-	type turnState struct{ text, card int }
+	type turnState struct {
+		text, card   int
+		worked, hive bool
+	}
 	turns := map[int]*turnState{}
 	var order []int
 	read := -1
@@ -209,6 +259,8 @@ func analysisReplyBlock(s auditSession) criterionAssessment {
 			turns[turn] = st
 			order = append(order, turn)
 		}
+		st.worked = st.worked || workEvent(events, i)
+		st.hive = st.hive || loadsHiveMode(e)
 		switch {
 		case e.Kind == "question":
 			st.card = i
@@ -228,17 +280,20 @@ func analysisReplyBlock(s auditSession) criterionAssessment {
 		if endingExempt(e.Text) || isTextRound(e.Text) {
 			continue
 		}
+		rule := "report-endings rule not read"
+		if read >= 0 && read < st.text {
+			rule = "report-endings rule was read"
+		}
 		bad, listed := replyListWithoutBlock(e.Text)
 		if !listed {
+			if st.hive && !st.worked && bareReport(e.Text) {
+				failed = append(failed, fmt.Sprintf("%s analysis ends without a reply block; %s", regressionEvidence(e), rule))
+			}
 			continue
 		}
 		if !bad {
 			passed = append(passed, regressionEvidence(e)+" reply block")
 			continue
-		}
-		rule := "report-endings rule not read"
-		if read >= 0 && read < st.text {
-			rule = "report-endings rule was read"
 		}
 		failed = append(failed, fmt.Sprintf("%s replies listed without the reply block; %s", regressionEvidence(e), rule))
 	}
