@@ -395,6 +395,7 @@ func TestAuditNewCriteria(t *testing.T) {
 	const prose = "prose_choice_without_card"
 	const assess = "ticket_assessment_ending"
 	const feed = "self_feeding_log"
+	const reply = "analysis_reply_block"
 	cases := []newCriterionCase{
 		{"round codex title with a middle dot", "codex", round, []string{round, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
 		{"format codex title with a middle dot", "codex", format, []string{format, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
@@ -561,6 +562,20 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"feed claude reader before the stdout restore", "claude", feed, []string{feed, "claude-project-reader-before-restore-fail.jsonl"}, auditOptions{}, "fail"},
 		{"feed claude reader after the stdout restore", "claude", feed, []string{feed, "claude-project-reader-after-restore-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"feed claude pattern inside a python heredoc", "claude", feed, []string{feed, "claude-project-python-heredoc-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"reply claude italic bullets without letters", "claude", reply, []string{reply, "claude-project-italic-bullets-fail.jsonl"}, auditOptions{}, "fail"},
+		{"reply claude italic bullets after reading the rule", "claude", reply, []string{reply, "claude-project-italic-read-fail.jsonl"}, auditOptions{}, "fail"},
+		{"reply claude heading with the arrow and letters", "claude", reply, []string{reply, "claude-project-lettered-block-pass.jsonl"}, auditOptions{}, "pass"},
+		{"reply claude bold question heading and letters", "claude", reply, []string{reply, "claude-project-bold-question-pass.jsonl"}, auditOptions{}, "pass"},
+		{"reply claude letters without a heading", "claude", reply, []string{reply, "claude-project-letters-no-heading-fail.jsonl"}, auditOptions{}, "fail"},
+		{"reply claude report ending in bold-labeled findings", "claude", reply, []string{reply, "claude-project-bold-findings-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"reply claude decision round written in text", "claude", reply, []string{reply, "claude-project-text-round-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"reply claude ending with flow commands", "claude", reply, []string{reply, "claude-project-flow-command-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"reply claude an earlier turn ended badly", "claude", reply, []string{reply, "claude-project-earlier-turn-fail.jsonl"}, auditOptions{}, "fail"},
+		{"reply claude sidechain transcript is not judged", "claude", reply, []string{reply, "claude-project-sidechain-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"reply codex italic bullets", "codex", reply, []string{reply, "codex-rollout-italic-fail.jsonl"}, auditOptions{}, "fail"},
+		{"reply codex lettered block", "codex", reply, []string{reply, "codex-rollout-lettered-pass.jsonl"}, auditOptions{}, "pass"},
+		{"reply grok italic bullets", "grok", reply, []string{reply, "grok-updates-italic-fail.jsonl"}, auditOptions{}, "fail"},
+		{"reply grok lettered block", "grok", reply, []string{reply, "grok-updates-lettered-pass.jsonl"}, auditOptions{}, "pass"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -796,5 +811,18 @@ func TestAuditMainThreadCostLeavesTheCriteriaAlone(t *testing.T) {
 	}
 	if strings.Contains(string(v["criteria"]), "main_thread_cost") {
 		t.Fatalf("criteria mention main_thread_cost: %s", v["criteria"])
+	}
+}
+
+func TestAnalysisReplyBlockEvidenceSaysIfTheRuleWasRead(t *testing.T) {
+	const reply = "analysis_reply_block"
+	for _, tc := range []struct{ file, want string }{
+		{"claude-project-italic-bullets-fail.jsonl", "not read"},
+		{"claude-project-italic-read-fail.jsonl", "was read"},
+	} {
+		got := auditStatus(t, auditFixture(t, "claude", auditOptions{}, reply, tc.file), reply)
+		if got.Status != "fail" || len(got.Evidence) != 1 || !strings.Contains(got.Evidence[0], tc.want) || !strings.HasPrefix(got.Evidence[0], tc.file+":") {
+			t.Fatalf("%s: %+v, want one fail evidence line at the file containing %q", tc.file, got, tc.want)
+		}
 	}
 }
