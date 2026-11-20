@@ -98,10 +98,10 @@ El sitio no cambia: ninguna página describe esperas fuera de CI.
 ## Checkpoint
 
 - Updated: 2026-11-20
-- Stage: verify · 3 (fix round)
-- Last commit: 582be0ff
-- Open findings: CR1-6 bounded waits read as fail · fixing (simplified deadline rule); CR7 /bin/sleep and nested sleep missed · fixing; CR8 CHANGELOG Changed heading · fixed; CR9 leaf deadline vs stretches wording · fixed; CR10 merge located by evidence string · non-blocking, close findings
-- Next: On child return: verify, commit fix round (detector + leaf/spec/design/CHANGELOG), focused re-review of the fixes' diff, push/PR/merge
+- Stage: verify · 3 (local fixes after second review)
+- Last commit: fcf899b9
+- Open findings: CR2-1..9 detector edge cases · local fix in progress, commit gets Unreviewed line; CR2-10 regex compiled per segment · non-blocking, close findings; CR10 merge located by evidence string · non-blocking, close findings
+- Next: On child return: verify, commit with Unreviewed: line, push, PR, merge gate, hive update, AC4, flow-close
 
 ### Evidence
 
@@ -117,6 +117,8 @@ El sitio no cambia: ninguna página describe esperas fuera de CI.
 - AC3/AC5 audit CLI on fixtures: unbounded fail (claude, grok), timeout-wrap/seq/while-condition pass, timeout-body fail · 582be0ff
 - comments: 0 deleted, all Go doc comments kept (declared limits); suppressions: none
 - blast radius: real-session path only; pilot detector unchanged, go test ./... pass (rung 4); README/llms need no change
+- go vet ./... && go test ./... · pass · fcf899b9
+- audit copy: unbounded fail :3855, merged review · fcf899b9
 
 ## Estado de la revisión y avance
 

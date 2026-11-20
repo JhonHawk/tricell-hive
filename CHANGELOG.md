@@ -220,6 +220,16 @@ raise the minor or the patch version.
 
 ### Changed
 
+- The close no longer archives a change folder or commits the support items
+  the user keeps in Git: it records them under `archive-pending/<change-id>`
+  and discards checkpoint-only edits. A hygiene request archives every folder
+  still under `changes/` on the base, in the order each reached it, and applies
+  the recorded support actions in one delivery, asking only the delivery
+  question when none is in force (`flow-close/references/batch-archive.md`).
+  This replaces one archive pull request per work. Plans and the planless
+  spec-delta path read the pending deltas, and the status report counts the
+  pending archives. Specs in another repository keep archiving at the close.
+
 - In `--audit-session`, `merged_branch_deleted` fails only when a close report
   follows the last merge with no branch deletion; a session still open, such
   as one in the middle of a promotion, now reads as review.
