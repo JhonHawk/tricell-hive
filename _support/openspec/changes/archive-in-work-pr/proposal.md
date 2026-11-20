@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | In build |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` @ a5691ef8 · rama `feat/archive-in-work-pr` (worktree `.claude/worktrees/archive-in-work-pr`) |
 | Playbook | feature |
@@ -23,6 +23,7 @@
 - **D14 A** — ¿Archivado por lotes en su propio PR en vez de dentro del PR de cada trabajo? Sí: el cierre ya no archiva ni commitea material de soporte; lo registra como pendiente en memoria, y la entrada de higiene de `flow-close` («haz higiene») archiva todos los change folders pendientes del repositorio y aplica las acciones de soporte pendientes en una rama desde la base y un PR. `flow-plan` lee los deltas pendientes de las capabilities que toca. **Replaces:** D9 A, D10 B, D11 A, D12 A
 - **supuesto** — El repositorio es la fuente de verdad de lo pendiente: un change folder que sigue en `<Specs>/changes/` en la base está pendiente de archivo; la memoria guarda, un registro por cambio en `archive-pending/<change-id>` (fuera de `pending/`, que es trabajo dejado abierto a propósito, y para que dos cierres en paralelo no se pisen), lo que el repositorio no muestra: PR, commit del merge y acciones de soporte. Una carpeta sin registro se archiva solo si el usuario confirma que su trabajo está integrado. Alternativa descartada: un registro único `pending/archives`. Se revierte quitando la reconciliación del lote.
 - **D15 A** — ¿Qué hace el cierre con las líneas del checkpoint escritas después del último push? Las descarta con `git restore` cuando solo tocan el checkpoint del change folder; el cuerpo del PR y la memoria guardan ese resultado.
+- **supuesto** — La segunda revisión mostró que mover al checkout principal las demás ediciones del folder posteriores al merge bloquea el avance rápido de la base. El cierre descarta con `git restore` todas las ediciones sin commit del folder tras el merge, y nombra en el informe las que tocan más que el checkpoint. Alternativa descartada: moverlas o guardarlas como parche en el registro. Se revierte quitando esa frase de `hive-rule-close-hygiene` «Clean up».
 - **D16 A** — ¿Cómo se autoriza la entrega del lote de higiene sin respuesta de entrega vigente? Pregunta solo el modo de entrega antes de su primer cambio (el lote es mecánico, sin pregunta de revisión); bajo `hold` deja todo pendiente, bajo `direct-base` hace push a la base, en los demás modos abre un PR.
 - **D17 A** — ¿Specs en otro repositorio también pasa al lote? No: sigue archivando en el cierre como dice el `Delivery` de ese repositorio.
 - **D18 A** — ¿El reporte de estado lista los archivados pendientes? Sí, una línea con su número y la respuesta «haz higiene».
