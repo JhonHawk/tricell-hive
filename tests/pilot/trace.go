@@ -25,6 +25,10 @@ type traceEvent struct {
 	Path            string `json:"path,omitempty"`
 	Command         string `json:"command,omitempty"`
 	CommandWithheld bool   `json:"command_withheld,omitempty"`
+	// CommandTemplate is the text of a Codex exec command whose literal
+	// interpolates JavaScript values (${...}), which are left out. Command stays
+	// empty for such a command, so only a criterion that reads this field sees it.
+	CommandTemplate string `json:"command_template,omitempty"`
 	Text            string `json:"text,omitempty"`
 	// Role distinguishes assistant-authored text from other roles (Claude/Grok
 	// synthetic "user" messages, Pi's toolResult-role message_end) so a

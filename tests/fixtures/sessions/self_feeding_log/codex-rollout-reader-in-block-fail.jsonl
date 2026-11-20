@@ -1,0 +1,8 @@
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "run the checks"}]}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "custom_tool_call", "name": "exec", "call_id": "c1", "input": "const p=\"/work/project\";text(await tools.exec_command({cmd:`cd ${p} && bash <<'SH'\nset -eu\nci_log=$(mktemp -t build-check)\n{\n  make unit\n  rg -n FAIL \"$ci_log\"\n} >\"$ci_log\" 2>&1\nSH`,yield_time_ms:1000}))"}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "custom_tool_call_output", "call_id": "c1", "output": [{"type": "input_text", "text": "Script completed"}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m9", "content": [{"type": "output_text", "text": "Done."}]}}
+{"timestamp": "2026-01-01T11:00:08.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
