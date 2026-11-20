@@ -150,10 +150,10 @@ La revisión humana es la decisión de fusión tras leer `trial.md`.
 ## Checkpoint
 
 - Updated: 2026-11-20
-- Stage: paused · trial pending; PR #554 open
-- Last commit: a19000d2 (rebased onto development 277a139a)
+- Stage: paused · trial audited, waiting on the user's merge decision; PR #554 open
+- Last commit: 860b73cf (development 059868cd merged in)
 - Open findings: none
-- Next: audit the user's trial sessions vs baseline (T7, AC7), then the user decides merge
+- Next: the user decides merge, rework or discard after reading trial.md (T7); #29 regression signal on Claude
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/global-guidance-slimming · refactor/global-guidance-slimming
 
 ### Evidence
@@ -166,6 +166,9 @@ La revisión humana es la decisión de fusión tras leer `trial.md`.
 - 14:25 the other session's refresh deployed development 277a139a over the branch; sessions started 14:25–14:30 ran development, not the branch, and do not count for T7
 - go test ./... · exit 0 · rebased branch (global 28,593 B)
 - hive apply transaction 2b0b51ad · branch a19000d2 installed on all hosts
+- go test ./... · exit 0 · 860b73cf (development with #557 merged in)
+- hive apply transaction a8a959b7 · branch 860b73cf installed on all hosts
+- trial audit 2026-11-20 17:50: 2 Claude + 9 Grok sessions; AC7 (a) no regression; (b) #29 fails in both Claude sessions
 
 ## Review status and progress
 
