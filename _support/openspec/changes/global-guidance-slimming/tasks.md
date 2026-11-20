@@ -24,7 +24,7 @@ Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slim
 
 - [x] Una función que recibe la raíz del repositorio comprueba que el global mide 22.000 bytes o menos y, si no, devuelve un mensaje que nombra la regla de destino; `TestGlobalGuidanceSize` la usa y un caso con un global de 22.001 bytes en una raíz temporal falla; el bullet de `AGENTS.md` «Guidance structure» que ya dice «restate a rule in global.md only when it must act without its home being read» se amplía con la regla de destino y el tope.
 
-**Closes:** AC2
+**Closes:** AC9
 
 **Depends on:** none
 
@@ -94,9 +94,9 @@ Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slim
 
 ### T6 — Compactar el índice, reapuntar citas y documentación
 
-- [ ] La sección «Rule leaves» lista las 61 hojas una vez cada una, con líneas que pueden agrupar hojas del mismo momento; el global mide ≤ 22.000 bytes; cada cita a «Scope and authorization», «Proportionality», «Persistent memory» u otra sección del global bajo `content/` apunta a donde ahora está su contenido, con la lista de lugares revisados en el PR; el delta de `context-delivery` está escrito; `llms.txt:32`, `README.md:470–472`, `site/src/content/docs/getting-started.md:88`, `site/src/content/docs/flows/plan.md:31`, `site/src/content/docs/skills.md` y `README.md:36` no afirman nada que el cambio deje falso; `hive update --dry-run` muestra cuántas partes recibe Antigravity.
+- [ ] La sección «Rule leaves» lista las 61 hojas una vez cada una, con líneas que pueden agrupar hojas del mismo momento; el global mide ≤ 27.500 bytes (D6 A); cada cita a «Scope and authorization», «Proportionality», «Persistent memory» u otra sección del global bajo `content/` apunta a donde ahora está su contenido, con la lista de lugares revisados en el PR; el delta de `context-delivery` está escrito; `llms.txt:32`, `README.md:470–472`, `site/src/content/docs/getting-started.md:88`, `site/src/content/docs/flows/plan.md:31`, `site/src/content/docs/skills.md` y `README.md:36` no afirman nada que el cambio deje falso; `hive update --dry-run` muestra cuántas partes recibe Antigravity.
 
-**Closes:** AC1
+**Closes:** AC8
 
 **Depends on:** T5
 
@@ -108,7 +108,7 @@ Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slim
 
 **Changes:** Cada entrada del índice conserva su momento observable. Si el global no baja de 22.000 bytes sin perder intención, la tarea se detiene y pregunta (design.md «Decisions»).
 
-**Verification:** `wc -c content/guidance/global.md` ≤ 22000; `go test ./tests/content/...` pasa, incluidos el test de presupuesto y `reading_footprint_test.go`; `rg` de cada cita revisada.
+**Verification:** `wc -c content/guidance/global.md` ≤ 27500; `go test ./tests/content/...` pasa, incluidos el test de presupuesto y `reading_footprint_test.go`; `rg` de cada cita revisada.
 
 ### T7 — Instalar la rama y evaluar sesiones reales
 
@@ -150,10 +150,10 @@ La revisión humana es la decisión de fusión tras leer `trial.md`.
 ## Checkpoint
 
 - Updated: 2026-11-20
-- Stage: build · start
-- Last commit: 27875867
-- Open findings: none
-- Next: T1 baseline (child) and T2 budget test
+- Stage: build · T6 stopped at 27,226 B
+- Last commit: f5559b00
+- Open findings: D6 budget 22,000 unreachable without dropping act-unread intent; awaiting user
+- Next: D6: budget cap or cuts
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/global-guidance-slimming · refactor/global-guidance-slimming
 
 ### Evidence

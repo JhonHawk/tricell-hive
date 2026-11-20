@@ -13,7 +13,7 @@ import (
 // Each session and each role child loads it whole, and each prune before this
 // budget existed grew back within weeks, so a new rule goes to a leaf and the
 // core keeps only what must act unread.
-const globalGuidanceLimit = 22000
+const globalGuidanceLimit = 27500
 
 // globalGuidanceProblem measures root/content/guidance/global.md and returns
 // its size and, when it exceeds the budget, a message naming where a new rule

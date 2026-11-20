@@ -18,6 +18,8 @@ El usuario eligió A y pidió evaluar cada regla con el esquema «vivir en un pr
 - **Tras la revisión del plan (2026-11-20).** Las definiciones transversales (efecto crítico, lectura grande, cambio riesgoso, tarea operativa), la pregunta por un proyecto externo y las prohibiciones de limpieza que actúan a mitad del trabajo se quedan en el global, porque otras reglas las usan sin leer una hoja o porque ninguna hoja se lee en su momento. Cinco hojas destino ya estaban en el límite de 4.000 bytes. El ahorro estimado baja de ~12 KB a ~9 KB y el resultado ronda los 22–23 KB; si T6 no llega a 22.000 bytes sin perder intención, se detiene y pregunta (subir el tope o elegir qué más mover), en vez de recortar intención para cumplir la cifra.
 - **Datos de la prueba.** El repositorio es público: las filas por sesión (rutas e IDs de otros proyectos) van a `_support/workspace/2026-11-20-global-slimming-trial/`, ignorada por Git; `trial.md` en esta carpeta solo lleva totales.
 
+- **Tope final (D6 A, build).** El recorte sin pérdida de intención llegó a 27.226 bytes: el índice de 61 enlaces no baja de ~7,1 KB y el resto son invariantes. El tope queda en 27.500 bytes; llegar a 22.000 exigía el índice mínimo o mover invariantes que la especificación pone en el núcleo.
+
 ## Mapa de reglas
 
 Numeración de la lista medida el 2026-11-20 sobre 27875867 (bytes actuales entre paréntesis).
