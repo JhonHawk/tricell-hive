@@ -12,8 +12,6 @@ raise the minor or the patch version.
 
 ### Added
 
-- The `tests` GitHub workflow runs `go vet ./...`, `go test ./...` and the
-  Python skill tests on every pull request and every push to `development`.
 - `integrations/agents` tests now cover the error paths of agent parsing,
   CRLF frontmatter, and the escaping of control characters in Codex TOML,
   which no test caught before.
@@ -364,6 +362,12 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- `get-hive.sh` requires `gzip` before any request. GNU tar runs it to read
+  the package, so on a Linux host without `gzip` the installer used to fail
+  at the archive check with a message that did not name the missing tool.
+- The viewer reads a state file again when an atomic replace lands between
+  its open and its stat. Concurrent first registrations on Linux failed with
+  `invalid_storage` (issue #545).
 - Guidance now delegates supported mechanical checks to the existing validators
   instead of repeating their recipes, while retaining required inputs, permissions,
   preservation rules, semantic review and handling for unsupported cases.

@@ -12,11 +12,10 @@ needs access to the Go modules unless they are already cached.
 
 ## Run the full local test suite
 
-The `tests` workflow (`.github/workflows/tests.yml`) runs the three commands
-below on every pull request and on every push to `development`. The other
-workflow is the `source-branch` check on pull requests to `master`, described in
-[Branches and commits](#branches-and-commits). Contributors also run the suite
-locally before proposing a change:
+The repository runs no tests in CI; its only GitHub workflow is the
+`source-branch` check on pull requests to `master`, described in
+[Branches and commits](#branches-and-commits). Contributors run the suite locally
+before proposing a change:
 
 ```sh
 go vet ./...

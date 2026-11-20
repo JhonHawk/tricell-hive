@@ -54,7 +54,7 @@ En cada lane, el orden es fijo: agregar o extender los keepers con las asercione
 
 - [x] Un workflow nuevo corre la suite en cada pull request y en cada push a `development`
 
-**Closes:** AC4
+**Closes:** ninguno: su criterio se retiró por D4 y el workflow se borró en esta misma rama
 
 **Depends on:** none
 
@@ -98,9 +98,9 @@ En cada lane, el orden es fijo: agregar o extender los keepers con las asercione
 
 ### T5 — Documentos que el cambio deja desactualizados
 
-- [x] Ningún documento dice que el CI no corre tests ni nombra un test borrado
+- [ ] Ningún documento nombra un test borrado, los documentos del CI conservan su texto previo, y el CHANGELOG registra el cambio
 
-**Closes:** AC5
+**Closes:** AC6
 
 **Depends on:** T2, T3
 
@@ -108,9 +108,9 @@ En cada lane, el orden es fijo: agregar o extender los keepers con las asercione
 
 **Execution:** main thread
 
-**Changes:** `CONTRIBUTING.md:15-18` y `deployment-manager.md:694` pasan a decir que el workflow `tests.yml` corre `go vet`, `go test` y los tests de Python en cada PR y push a `development`, y que se corren en local antes de proponer el cambio. `agent-delivery.md:27` nombra el keeper que reemplaza a `TestOpenCodeRolesRequestOfferedVariants`. Se agrega una entrada en `[Unreleased]` de `CHANGELOG.md`. README.md y llms.txt no cambian.
+**Changes:** `agent-delivery.md:27` nombra el keeper que reemplaza a `TestOpenCodeRolesRequestOfferedVariants`. `CONTRIBUTING.md` y `deployment-manager.md` conservan el texto de la base, que dice que el repositorio no corre tests en CI (D4). `README.md` y `installer.md` nombran `gzip` entre los requisitos del instalador (H7). `CHANGELOG.md` gana entradas en `[Unreleased]`: las pruebas nuevas y la auditoría, y los fixes de `get-hive.sh` y del viewer. `llms.txt` no cambia. **Replaces:** the earlier T5 changes, which documented the tests workflow
 
-**Verification:** `rg -n 'runs no tests in CI|TestOpenCodeRolesRequestOfferedVariants' <worktree>` sin resultados fuera de `_support/openspec/changes/`.
+**Verification:** `rg -n 'TestOpenCodeRolesRequestOfferedVariants|tests\.yml' <worktree>` sin resultados fuera de `_support/openspec/changes/`; `git diff origin/development -- CONTRIBUTING.md _support/docs/architecture/deployment-manager.md` vacío.
 
 ## Verification and human review
 
@@ -118,7 +118,6 @@ En cada lane, el orden es fijo: agregar o extender los keepers con las asercione
 | --- | --- | --- | --- |
 | Tests of each task | When the task closes, locally | El comando de verificación de la tarea pasa | Covered by the implementation |
 | Full suite | Final candidate, locally | `go vet ./...`, `go test ./...`, `python3 -m unittest discover -s tests/skills -p '*_test.py'` con `umask 022` | Covered by the implementation |
-| CI | El PR de este trabajo | El check del workflow nuevo en verde | La respuesta de delivery |
 | Code review | Final candidate, before the push | Claude Code `/code-review` | The review answer |
 | Security review | Final candidate, before the push | `hive-review-security` sobre `.github/workflows/tests.yml` | The security review answer |
 
