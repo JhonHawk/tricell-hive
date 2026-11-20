@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | En curso · entrega `automatic` |
+| Estado | Completado · PR #538, 46d461e0 |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `d3d2b46c` · rama `fix/build-spec-delta` |
 | Playbook | feature (hallazgo H10 de #537, cambio sin plan) |
