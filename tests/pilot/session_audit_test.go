@@ -574,6 +574,12 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"reply claude sidechain transcript is not judged", "claude", reply, []string{reply, "claude-project-sidechain-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"reply codex italic bullets", "codex", reply, []string{reply, "codex-rollout-italic-fail.jsonl"}, auditOptions{}, "fail"},
 		{"reply codex lettered block", "codex", reply, []string{reply, "codex-rollout-lettered-pass.jsonl"}, auditOptions{}, "pass"},
+		{"reply codex report ending with no replies", "codex", reply, []string{reply, "codex-rollout-no-replies-fail.jsonl"}, auditOptions{}, "fail"},
+		{"reply codex scratch write in /tmp keeps it an analysis", "codex", reply, []string{reply, "codex-rollout-temp-write-fail.jsonl"}, auditOptions{}, "fail"},
+		{"reply codex short answer is not judged", "codex", reply, []string{reply, "codex-rollout-short-answer-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"reply codex turn that patched a file is not judged", "codex", reply, []string{reply, "codex-rollout-edit-turn-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"reply claude turn that wrote a file is not judged", "claude", reply, []string{reply, "claude-project-write-turn-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"reply codex bare report in a turn without hive-mode is not judged", "codex", reply, []string{reply, "codex-rollout-no-hive-mode-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"reply grok italic bullets", "grok", reply, []string{reply, "grok-updates-italic-fail.jsonl"}, auditOptions{}, "fail"},
 		{"reply grok lettered block", "grok", reply, []string{reply, "grok-updates-lettered-pass.jsonl"}, auditOptions{}, "pass"},
 	}
@@ -819,8 +825,11 @@ func TestAnalysisReplyBlockEvidenceSaysIfTheRuleWasRead(t *testing.T) {
 	for _, tc := range []struct{ file, want string }{
 		{"claude-project-italic-bullets-fail.jsonl", "not read"},
 		{"claude-project-italic-read-fail.jsonl", "was read"},
+		{"codex-rollout-no-replies-fail.jsonl", "without a reply block; report-endings rule was read"},
+		{"codex-rollout-temp-write-fail.jsonl", "without a reply block; report-endings rule not read"},
 	} {
-		got := auditStatus(t, auditFixture(t, "claude", auditOptions{}, reply, tc.file), reply)
+		host := strings.SplitN(tc.file, "-", 2)[0]
+		got := auditStatus(t, auditFixture(t, host, auditOptions{}, reply, tc.file), reply)
 		if got.Status != "fail" || len(got.Evidence) != 1 || !strings.Contains(got.Evidence[0], tc.want) || !strings.HasPrefix(got.Evidence[0], tc.file+":") {
 			t.Fatalf("%s: %+v, want one fail evidence line at the file containing %q", tc.file, got, tc.want)
 		}
