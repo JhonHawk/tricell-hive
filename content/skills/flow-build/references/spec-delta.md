@@ -1,0 +1,8 @@
+# Spec delta without a plan
+
+Read before the first edit of a change built without a plan that changes a behavior an existing `<Specs>/specs/<capability>/spec.md` describes, once the delivery and review questions are answered. The spec itself is never edited by hand: the close merges the change's delta into it, so the spec keeps a record of each change.
+
+1. Write the change folder as [change folder](../../hive-rule-change-folder/SKILL.md#change-folder) sets, before any other edit: `proposal.md` from its template, keeping its header table, `Status` included, since the close needs it to archive the folder, and each section that applies, with the request quoted, the user's decisions, the `Playbook` field and the numbered criteria; `tasks.md` with each task's `Closes:` line and check; and the `specs/<capability>/spec.md` delta that holds the changed requirement. Write no `design.md`.
+2. Launch no `hive-review-plan` child for this folder, neither when it is written nor when a revision changes it: a change small enough to skip the plan also skips its review. A risky task still gets the task check of [flow-build](../SKILL.md) step 3.
+3. Run `python3 -I <flow-plan-dir>/scripts/check_change.py <folder>` ([check](../../flow-plan/scripts/check_change.py)) and fix each line it prints until it exits 0, before the first edit of the code or guidance.
+4. Build the change as [flow-build](../SKILL.md) sets for work with a change folder: record each task with `tasks.py`, and leave the archive and the delta merge to `flow-close`.
