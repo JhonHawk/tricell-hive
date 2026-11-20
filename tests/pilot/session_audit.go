@@ -413,6 +413,9 @@ func (b *codexBuilder) codexExec(line int, id, js string) {
 				e.Command = c.literal
 			} else {
 				e.CommandWithheld = true
+				if c.hasLiteral && c.interpolate && !ambiguous {
+					e.CommandTemplate = c.literal
+				}
 			}
 			b.add(e)
 		case c.name == "apply_patch":
@@ -1462,7 +1465,7 @@ func skillNamedAsReason(s auditSession) criterionAssessment {
 
 func auditCriteria(s auditSession, base string) []criterionAssessment {
 	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s), reviewQuestionNativeOption(s), leafReadBeforeAction(s),
-		flowEnteredWithoutRoute(s), decisionRoundFormat(s), uiChangeWithoutUXReview(s), trackerStatesCacheWritten(s), tryItBlockInReport(s), proseChoiceWithoutCard(s), ticketAssessmentEnding(s))
+		flowEnteredWithoutRoute(s), decisionRoundFormat(s), uiChangeWithoutUXReview(s), trackerStatesCacheWritten(s), tryItBlockInReport(s), proseChoiceWithoutCard(s), ticketAssessmentEnding(s), selfFeedingLog(s))
 }
 
 var (

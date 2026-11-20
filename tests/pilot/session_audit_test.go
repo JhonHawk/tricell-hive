@@ -394,6 +394,7 @@ func TestAuditNewCriteria(t *testing.T) {
 	const cache, tryIt = "tracker_states_cache_written", "try_it_block_in_report"
 	const prose = "prose_choice_without_card"
 	const assess = "ticket_assessment_ending"
+	const feed = "self_feeding_log"
 	cases := []newCriterionCase{
 		{"round codex title with a middle dot", "codex", round, []string{round, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
 		{"format codex title with a middle dot", "codex", format, []string{format, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
@@ -546,6 +547,14 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"assessment claude ends with a card", "claude", assess, []string{assess, "claude-project-card-pass.jsonl"}, auditOptions{}, "pass"},
 		{"assessment claude ends with the answers block", "claude", assess, []string{assess, "claude-project-answers-block-pass.jsonl"}, auditOptions{}, "pass"},
 		{"assessment claude turn that follows a flow command", "claude", assess, []string{assess, "claude-project-flow-command-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"feed codex interpolated block with a trap that tails its log", "codex", feed, []string{feed, "codex-rollout-interpolated-trap-fail.jsonl"}, auditOptions{}, "fail"},
+		{"feed codex reader inside the redirected block", "codex", feed, []string{feed, "codex-rollout-reader-in-block-fail.jsonl"}, auditOptions{}, "fail"},
+		{"feed claude exec redirect with a trap that cats the file", "claude", feed, []string{feed, "claude-project-exec-trap-fail.jsonl"}, auditOptions{}, "fail"},
+		{"feed claude simple command redirect with a trap", "claude", feed, []string{feed, "claude-project-simple-trap-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"feed claude block redirect then a tail after an or", "claude", feed, []string{feed, "claude-project-or-tail-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"feed claude output in one command, tail in another", "claude", feed, []string{feed, "claude-project-two-commands-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"feed claude run_check helper", "claude", feed, []string{feed, "claude-project-run-check-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"feed claude pattern inside a python heredoc", "claude", feed, []string{feed, "claude-project-python-heredoc-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
