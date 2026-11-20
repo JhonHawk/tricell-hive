@@ -33,8 +33,8 @@ Línea en «Rule leaves» de la guía global, junto a la de checks: `- **Before 
 - Es un bucle de espera si el comando tiene `while`, `until` o `for` junto con `sleep`.
 - Hay plazo en tres casos, detectados con `shellSegments` y no por subcadena:
   - `timeout` o `gtimeout` es el primer comando de un segmento que contiene el bucle, por ejemplo `timeout 600 bash -c '…'`; un `timeout` dentro del cuerpo no cuenta;
-  - el bucle es un `for` sobre una lista finita (`$(seq …)` o `{a..b}`);
-  - `$SECONDS`, `date +%s` o un contador aritmético aparecen en una comparación (`-ge`, `-gt`, `>=`, `>`) que lleva a `exit` o `break`. Leerlos solo para imprimir no cuenta.
+  - el bucle es un `for` sobre una lista finita (cualquier lista no vacía, incluidas `$(seq …)` y `{a..b}`) o un `for ((…))` con condición;
+  - `$SECONDS`, `date +%s` o un contador aritmético aparecen en una comparación (`-ge`, `-gt`, `>=`, `>`), sea en la condición del propio `while`/`until`, sea en una prueba del cuerpo que lleva a `exit` o `break`. Leerlos solo para imprimir no cuenta. La condición del bucle se añadió durante el build: sin ella, un `while [ $i -lt 60 ]` bien acotado daba `fail`.
 - El estado es `fail` para un bucle sin plazo (evidencia: la línea), `pass` si todos los bucles tienen plazo, y `not_observed` si no hubo bucles en segundo plano o si la sesión es de Codex. No hay estado `review`: Claude y Grok no ocultan el comando.
 - Los fixtures usan la estructura real de cada host con valores sintéticos: ni perfiles, ni IDs de cuenta o de app, ni organizaciones de otros proyectos.
 

@@ -14,8 +14,8 @@ Before starting a polling loop or a background command that waits on a process o
 
 `go run ./tests/pilot --audit-session` SHALL report `unbounded_background_wait` for Claude Code and Grok sessions. A background shell command is one launched with `run_in_background` on Claude Code or with `block_until_ms` set to 0 on Grok. The criterion SHALL fail when such a command holds a `while`, `until` or `for` loop with `sleep` and has no deadline. A deadline SHALL be one of these:
 - `timeout` or `gtimeout` as the first command of the segment that holds the loop; a `timeout` inside the loop body SHALL NOT count;
-- a `for` loop over a finite list;
-- `$SECONDS`, `date +%s` or a counter compared to a limit in a test that leads to `exit` or `break`.
+- a `for` loop over a finite list, or a C-style `for` with a condition;
+- `$SECONDS`, `date +%s` or a counter compared to a limit in the loop's own condition, or in a test inside the loop that leads to `exit` or `break`.
 
 The criterion SHALL report pass when every such loop has a deadline, and not_observed when there is none. It SHALL report not_observed for Codex sessions.
 
