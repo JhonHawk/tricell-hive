@@ -22,6 +22,7 @@ type homePhrase struct {
 // its only home under content/.
 var homePhrases = []homePhrase{
 	{"Never run `git add -A`", "content/skills/hive-rule-git-commit/SKILL.md"},
+	{"five at most, the rest approved in one question", "content/skills/hive-rule-questions/SKILL.md"},
 	{"Before the validation, or before the push when the mode", "content/skills/hive-rule-foreign-commits/SKILL.md"},
 	{"is done when its changes are integrated", "content/skills/hive-rule-ticket-state/SKILL.md"},
 	{"adds, replaces or cancels a business rule, record it in", "content/skills/hive-rule-business-rules/SKILL.md"},

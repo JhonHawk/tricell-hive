@@ -61,6 +61,7 @@ type auditReport struct {
 	FirstTimestamp  string                `json:"first_timestamp"`
 	LastTimestamp   string                `json:"last_timestamp"`
 	Criteria        []criterionAssessment `json:"criteria"`
+	CardAnswers     cardAnswers           `json:"card_answers"`
 }
 
 const auditTimeLayout = "2006-01-02T15:04:05.000Z"
@@ -1461,7 +1462,7 @@ func skillNamedAsReason(s auditSession) criterionAssessment {
 
 func auditCriteria(s auditSession, base string) []criterionAssessment {
 	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s), reviewQuestionNativeOption(s), leafReadBeforeAction(s),
-		flowEnteredWithoutRoute(s), decisionRoundFormat(s), uiChangeWithoutUXReview(s), trackerStatesCacheWritten(s), tryItBlockInReport(s), proseChoiceWithoutCard(s))
+		flowEnteredWithoutRoute(s), decisionRoundFormat(s), uiChangeWithoutUXReview(s), trackerStatesCacheWritten(s), tryItBlockInReport(s), proseChoiceWithoutCard(s), ticketAssessmentEnding(s))
 }
 
 var (
@@ -1584,7 +1585,7 @@ func auditSessionFile(path, host string, opts auditOptions) (auditReport, error)
 	}
 	return auditReport{
 		Host: host, File: path, Cwd: s.Cwd, Model: s.Model, ModelConfigured: s.ModelConfigured, Subagent: s.Subagent,
-		FirstTimestamp: s.First, LastTimestamp: s.Last, Criteria: criteria,
+		FirstTimestamp: s.First, LastTimestamp: s.Last, Criteria: criteria, CardAnswers: cardAnswersOf(s),
 	}, nil
 }
 

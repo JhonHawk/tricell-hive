@@ -8,7 +8,17 @@ disable-model-invocation: true
 
 ## What to ask
 
-- Ask only a choice that is the user's and changes what happens next: find the facts yourself, state minor calls as assumptions (a minor call leaves scope, contracts, stored data, cost and reversibility unchanged under every option), and reuse decisions already given. Ask in rounds of every decision whose prerequisites are settled; a decision is a prerequisite when one of its answers would change or void another's question or options, such as one about carrying out its recommended option, which waits for a later round unless its options hold under every answer.
+- Ask only a choice that is the user's and changes what happens next: find the facts yourself and reuse decisions given.
+- **Decide and list.** An open decision of what or how is taken without asking when none of a–f holds and its recommended option has a consequence the others lack. List it in the next message, headed such as «What I decided», one line each: the decision, the alternative discarded, how to reverse it; five at most, the rest approved in one question. Say in one line that a reply accepts each one it does not correct; that authorizes no effect and leaves a business rule `assumption`.
+- **Ask** a decision when at least one holds:
+  - **a.** It adds or removes behavior, touches another module or splits the work, against the ticket or the request.
+  - **b.** The recommended option costs less now and another avoids rework or a migration later.
+  - **c.** It sets a business rule or preference that no behavior the ticket, the specs or the user's words name requires.
+  - **d.** It is hard to reverse: a public contract, stored data, permissions, security, money or production.
+  - **e.** It rests on an unverified fact, or no consequence separates the options.
+  - **f.** It contradicts the user, the ticket or the specs.
+- Rounds other rules set stay asked: effects, session questions, validation, findings, Figma approval and `proposed` rules, a plan's approach, create-issue and create-prd, an unanswered card, an external project, test infrastructure.
+- Ask in rounds of every decision whose prerequisites are settled; a decision is a prerequisite when one of its answers would change or void another's question or options, such as one about carrying out its recommended option, which waits for a later round unless its options hold under every answer.
 - An open question about what the user wants, as [hive-mode](../hive-mode/SKILL.md) step 3 asks it, goes in the text, one per message, with why you ask and an offer to start without the answer, and no IDs, options or "ok" line.
 
 ## Format
@@ -30,7 +40,7 @@ disable-model-invocation: true
 - Asking only in the text where the card applies is a failure, a decision asked as a prose question included, such as "interactive or hold?": delivery, review and every other decision go through the card.
 - Through the card: write first, as visible text, the context line, the report the round needs and the waiting line, never the decisions themselves; then, with no tool call between, ask each decision or finding as one question, in one call up to the tool's limit (four on Claude Code, three on Codex) or consecutive calls with no message between. The turn ends with the card.
 - Each question stands alone: it opens with the stage, the ticket and the ID or header with the title, and carries the situation; each label is `A - (★) <two to five words>`; each description is the `If you choose it:` text, or the option's effect in one line, the starred one ending with the recommendation's reason and what stays uncertain. Show artifact options, such as sketches or code, in the preview, otherwise in a code block.
-- One tool per pending question: never repeat it through an asynchronous and a waiting tool, nor send another card while one waits. A receipt is not an answer. A plain acceptance, such as "ok", "dale" or "con los recomendados", applies the starred options of the decisions the user was shown; free text still answers, and a decision a reply leaves out, or one not shown, stays open.
+- One tool per pending question: never repeat it through an asynchronous and a waiting tool, nor send another card while one waits. A receipt is not an answer. A plain acceptance, such as "ok", "dale" or "con los recomendados", applies the starred options of the decisions the user was shown; free text still answers, and an asked decision a reply leaves out, or one not shown, stays open; a listed one follows «Decide and list».
 
 ## A card returns unanswered
 

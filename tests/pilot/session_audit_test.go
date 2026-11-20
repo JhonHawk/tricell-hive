@@ -393,6 +393,7 @@ func TestAuditNewCriteria(t *testing.T) {
 	const route, format, ux = "flow_entered_without_route", "decision_round_format", "ui_change_without_ux_review"
 	const cache, tryIt = "tracker_states_cache_written", "try_it_block_in_report"
 	const prose = "prose_choice_without_card"
+	const assess = "ticket_assessment_ending"
 	cases := []newCriterionCase{
 		{"round codex title with a middle dot", "codex", round, []string{round, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
 		{"format codex title with a middle dot", "codex", format, []string{format, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
@@ -432,6 +433,9 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"route codex typed command after a proposal", "codex", route, []string{route, "codex-rollout-typed-pass.jsonl"}, auditOptions{}, "pass"},
 		{"route codex direct request in the first turn", "codex", route, []string{route, "codex-rollout-direct-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"route claude ok to a proposal starts build", "claude", route, []string{route, "claude-project-fail.jsonl"}, auditOptions{}, "fail"},
+		{"assessment claude card answered, then a bare ending", "claude", assess, []string{assess, "claude-project-card-then-bare-fail.jsonl"}, auditOptions{}, "fail"},
+		{"assessment claude typed /hive-mode command", "claude", assess, []string{assess, "claude-project-typed-command-fail.jsonl"}, auditOptions{}, "fail"},
+		{"assessment claude prompt only mentions /hive-mode", "claude", assess, []string{assess, "claude-project-mentioned-command-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"format codex decisions as bullets", "codex", format, []string{format, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
 		{"format codex fixed headers without options", "codex", format, []string{format, "codex-rollout-fixedheader-fail.jsonl"}, auditOptions{}, "fail"},
 		{"format codex full round in text", "codex", format, []string{format, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
@@ -530,6 +534,18 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"skill claude review", "claude", skill, []string{skill, "claude-project-review.jsonl"}, auditOptions{Cwd: "elsewhere"}, "review"},
 		{"skill claude pass", "claude", skill, []string{skill, "claude-project-pass.jsonl"}, auditOptions{Cwd: "elsewhere"}, "pass"},
 		{"skill codex spanish verb", "codex", skill, []string{skill, "codex-rollout-review.jsonl"}, auditOptions{Cwd: "elsewhere"}, "review"},
+		{"assessment codex ends without a card, block or command", "codex", assess, []string{assess, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
+		{"assessment codex ends with the next-step block", "codex", assess, []string{assess, "codex-rollout-block-pass.jsonl"}, auditOptions{}, "pass"},
+		{"assessment codex ends with a card", "codex", assess, []string{assess, "codex-rollout-card-pass.jsonl"}, auditOptions{}, "pass"},
+		{"assessment codex ends with an open question in text", "codex", assess, []string{assess, "codex-rollout-open-question-review.jsonl"}, auditOptions{}, "review"},
+		{"assessment codex ticket without hive-mode", "codex", assess, []string{assess, "codex-rollout-no-hive-mode-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"assessment codex ticket-status playbook", "codex", assess, []string{assess, "codex-rollout-ticket-status-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"assessment codex standard prefix is not a ticket", "codex", assess, []string{assess, "codex-rollout-standard-prefix-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"assessment codex github issue number", "codex", assess, []string{assess, "codex-rollout-github-issue-fail.jsonl"}, auditOptions{}, "fail"},
+		{"assessment claude skill call, no ending", "claude", assess, []string{assess, "claude-project-fail.jsonl"}, auditOptions{}, "fail"},
+		{"assessment claude ends with a card", "claude", assess, []string{assess, "claude-project-card-pass.jsonl"}, auditOptions{}, "pass"},
+		{"assessment claude ends with the answers block", "claude", assess, []string{assess, "claude-project-answers-block-pass.jsonl"}, auditOptions{}, "pass"},
+		{"assessment claude turn that follows a flow command", "claude", assess, []string{assess, "claude-project-flow-command-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -671,5 +687,48 @@ func TestLeafReadBeforeActionEdgeCases(t *testing.T) {
 		if got := leafReadBeforeAction(tc.s).Status; got != tc.want {
 			t.Errorf("%s: status %s, want %s", tc.name, got, tc.want)
 		}
+	}
+}
+
+func TestAuditCardAnswers(t *testing.T) {
+	cases := []struct {
+		name, host, file    string
+		answered, recommend int
+	}{
+		{"claude answered with an option", "claude", "claude-project-answered-pass.jsonl", 2, 1},
+		{"claude user-has-answered form", "claude", "claude-project-user-has-answered-pass.jsonl", 2, 2},
+		{"claude free text is not an option", "claude", "claude-project-free-text.jsonl", 1, 0},
+		{"claude empty card", "claude", "claude-project-empty.jsonl", 0, 0},
+		{"claude multiple choice is not counted", "claude", "claude-project-multiselect.jsonl", 0, 0},
+		{"codex answered with Recommended and recomendado labels", "codex", "codex-rollout-answered-pass.jsonl", 3, 2},
+		{"codex empty answers", "codex", "codex-rollout-empty.jsonl", 0, 0},
+		{"codex free text and a missing answer", "codex", "codex-rollout-free-text.jsonl", 1, 1},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rep := auditFixture(t, tc.host, auditOptions{}, "card_answers", tc.file)
+			if rep.CardAnswers.Answered != tc.answered || rep.CardAnswers.Recommended != tc.recommend {
+				t.Fatalf("card_answers = %+v, want answered %d recommended %d", rep.CardAnswers, tc.answered, tc.recommend)
+			}
+			for _, c := range rep.Criteria {
+				if c.Criterion == "card_answers" || c.Criterion == "card_star_share" {
+					t.Fatalf("card answers must stay out of the criteria list: %+v", c)
+				}
+			}
+		})
+	}
+}
+
+func TestAuditCardAnswersAppearInTheJSONReport(t *testing.T) {
+	var out bytes.Buffer
+	if err := auditSessionMain(sessionFixture("card_answers", "claude-project-answered-pass.jsonl"), "claude", auditOptions{}, &out); err != nil {
+		t.Fatal(err)
+	}
+	var v map[string]json.RawMessage
+	if err := json.Unmarshal(out.Bytes(), &v); err != nil {
+		t.Fatal(err)
+	}
+	if got := string(v["card_answers"]); !strings.Contains(got, `"answered": 2`) || !strings.Contains(got, `"recommended": 1`) {
+		t.Fatalf("card_answers = %s", got)
 	}
 }

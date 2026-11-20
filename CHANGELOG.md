@@ -12,6 +12,17 @@ raise the minor or the patch version.
 
 ### Added
 
+- Agents take an open decision without asking when its recommended option
+  wins with a consequence the others lack and none of six criteria holds:
+  scope, a cheaper now against rework later, a business rule nothing names,
+  something hard to reverse, a recommendation on an unverified fact, or a
+  contradiction. They list each one, at most five, with the alternative
+  discarded and how to reverse it, and the reply accepts the ones it does not
+  correct. A chosen ticket's assessment is written in blocks: summary, a
+  verdict naming each failed readiness check, proposed criteria, the decisions
+  taken, and a card with only what the criteria send to the user. The session
+  auditor gains `ticket_assessment_ending` and an informational count of cards
+  answered with the recommended option.
 - Explicit E2E coordination gives the coordinator responsibility for independent
   deliverables through the authorized endpoint. Assigned local owners may commit
   in their own branches and worktrees; independent verification binds each head,

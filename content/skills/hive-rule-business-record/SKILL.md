@@ -15,7 +15,7 @@ Each work item has one rule record, a list of lines in this format:
 Write the rule in plain words a reader outside the conversation understands, never as a decision ID alone. The status is one of:
 
 - `proposed`: the user has not decided it yet.
-- `assumption`: adopted without asking, which is allowed only when every option leaves the scope, a contract, stored data, the cost, reversibility and who may act unchanged.
+- `assumption`: adopted without asking, which is allowed only when none of the criteria a–f of [questions](../hive-rule-questions/SKILL.md) «What to ask» holds; a reply that accepts the list leaves it `assumption`.
 - `scope`: it changes the scope, as step 5 of [flow-figma-design](../flow-figma-design/SKILL.md) sets.
 - `approved <date>: <answer>`: the user decided it.
 - `stated: <source>`: a source already says it. Only an example's record holds this status, for its rule card, as [rule cards](../flow-figma-design/references/rule-cards.md) sets; the plan does not copy these lines.

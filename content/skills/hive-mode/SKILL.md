@@ -22,7 +22,7 @@ Before step 1, open [investigate](playbooks/investigate.md) when the user asks t
    - Name each system the decision touches and whether you searched it.
    - Open the source of each claim that decides the answer instead of recalling it. Resolve conflicting sources by date, version, scope and direct observation; missing delivery evidence means delivery is not verified, not that it did not happen.
 5. **Close the what.** Report the answer, its evidence and what remains uncertain, and play back what you understood, marking what the user said apart from what you propose. Then:
-   - When the user picked a ticket for research without asking for a change, and the findings confirm work it asks for, end with the next-step block toward `flow-plan`, or toward `flow-build` when that work is a small understood change (the global guidance's «Proportionality»), unless the design stage below sends it to its own next-step block, and never continue into build in the same turn. Every other analysis, explanation, review, diagnosis or assessment without a requested change ends as [report endings](../hive-rule-report-endings/SKILL.md) sets.
+   - When the user picked a ticket for research without asking for a change, and the findings confirm work it asks for, end, after «Assess a chosen ticket», with the next-step block toward `flow-plan`, or toward `flow-build` when that work is a small understood change (the global guidance's «Proportionality»), unless the design stage below sends it to its own next-step block, and never continue into build in the same turn. Every other analysis, explanation, review, diagnosis or assessment without a requested change ends as [report endings](../hive-rule-report-endings/SKILL.md) sets.
    - When the user's own request asked for a change and named it with its target, not whether or how to make one, and its how leaves no decision for them and could be finished from the request and `git diff` alone, continue into `flow-build` in the same turn, except for a new screen that the design stage below sends to its next-step block. A reply to your question, or the acceptance of a proposal you made, settles or redirects the scope and never starts a flow by itself: close the what again and end with the next-step block, unless the user's own request already set one of this step's continuations, such as a design in Figma.
    - When the request's deliverable is a design in Figma, continue into `flow-figma-design` or report the blocker; when it is a requirement document, follow `create-prd`; both as step 0 sets, whether or not step 3 asked questions.
    - Otherwise, end with the route to `flow-plan` and its reason, unless the design stage below sends the work to its next-step block.
@@ -35,7 +35,14 @@ Before step 1, open [investigate](playbooks/investigate.md) when the user asks t
 
 ## Assess a chosen ticket
 
-When the user picks a ticket, add to the report its **impact** (what uses what it changes, found by searching its literal values and direct callers, and whether it touches production), **complexity** (the files, modules and contracts it changes), **readiness** (settled criteria and decisions, and the access or answers missing) and **dependencies** (the tickets it waits on or blocks). Judge its readiness with the ready list of [ticket types](../create-issue/references/ticket-types.md). A ticket that fails that list, or that the specs contradict, is not ready: settle its scope here, in rounds, before step 5.
+For a chosen ticket, write the report in these blocks, in order, headed in the session language:
+
+1. **Summary:** **impact** (what uses what it changes, found by searching its literal values and direct callers, and whether it touches production), **complexity** (the files, modules and contracts it changes), **dependencies** (the tickets it waits on or blocks).
+2. **Verdict:** ready or not, naming by number each check of the ready list of [ticket types](../create-issue/references/ticket-types.md) it fails with what is missing, each contradicting spec, and missing access or answers. A failed check or a contradicting spec means not ready.
+3. **Proposed criteria**, when it has none.
+4. **Decided**, as [questions](../hive-rule-questions/SKILL.md) «Decide and list» sets; then the card with what a–f send.
+
+Settle a not-ready ticket's scope here: the plan settles how, never what enters. Step 5's ending closes this message when nothing is asked, else the one after the answers.
 
 ## Pick the playbook
 
