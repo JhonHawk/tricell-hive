@@ -1,6 +1,6 @@
 # Branch cleanup
 
-Read by [flow-close](../SKILL.md) at its cleanup step, and by a hygiene request. The global guidance’s «Preservation» authorizes removing merged branches and their clean worktrees; this procedure grants no other effect.
+Read by [flow-close](../SKILL.md) at its cleanup step, and by a hygiene request. The global guidance’s «Preservation» authorizes removing merged branches and their clean worktrees, and the fast-forward of the base that the helper makes under the conditions below; this procedure grants no other effect.
 
 ## Scope and inputs
 
@@ -20,10 +20,12 @@ If an input cannot be established, keep the affected candidates and report why; 
 
 Run `python3 -I <flow-close-dir>/scripts/cleanup_branches.py --repo <absolute-repo> --base <base>` with the inputs above, repeating each flag for each value. With no eligible candidates, there is nothing to apply. Read the returned `worktrees` and `branches`, including every `keep` reason, before repeating the invocation with `--apply` and the same inputs.
 
+With `--apply`, the helper first fetches the base from `origin` and fast-forwards the base of the repository's main checkout, even when `--repo` names a linked worktree, only when that checkout is on the base, its base has no commits missing from `origin`, and no incoming file is changed, untracked or ignored there; otherwise `base_update` keeps it and gives the reason and the files. Never update the base another way, such as `git pull`, which can rebase, or a merge over local changes.
+
 The helper owns the mechanical checks and removal order. It must retain uncommitted or untracked work, unique ignored material, a busy worktree or one whose process check fails, protected/active branches, and branches still checked out outside a removable worktree. Only ignored build/dependency files, allowlisted generated caches or copies already preserved in the main checkout are disposable; untracked files never qualify. Squash/rebase deletion requires the merged PR head to match each copy being removed; never force worktree removal or delete later/unmerged commits.
 
 If the helper is unavailable, perform only the authorized cleanup whose inputs and preservation conditions above you can establish manually; a missing check keeps the affected work. Do not bypass a helper refusal. Preserve the remote-before-local branch deletion order, using safe local deletion except for a verified squash/rebase merge.
 
 ## Report
 
-Report the repositories checked, `removed_worktrees`, `deleted_branches`, each retained item with its reason, and any `errors`. A nonzero exit or partial result is not a completed cleanup.
+Report the repositories checked, `removed_worktrees`, `deleted_branches`, `base_update` (the commits the base advanced, or why it stayed with its files), each retained item with its reason, and any `errors`. A nonzero exit or partial result is not a completed cleanup.

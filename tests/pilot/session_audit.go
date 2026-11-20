@@ -26,6 +26,9 @@ type auditOptions struct {
 	// Cwd overrides the working directory read from the transcript (--cwd),
 	// for a session whose repository has moved since it ran.
 	Cwd string
+	// GrokSessionsRoot is the folder that holds Grok's project folders, where a
+	// child's usage.json is looked up (default ~/.grok/sessions).
+	GrokSessionsRoot string
 }
 
 // auditSession is a transcript normalized to the pilot trace model. Turn[i] is
@@ -49,6 +52,8 @@ type auditSession struct {
 	First, Last string
 	Trace       traceReport
 	Turn        []int
+	// Cost is the informational main-thread cost block; no criterion reads it.
+	Cost mainThreadCost
 }
 
 type auditReport struct {
@@ -62,6 +67,7 @@ type auditReport struct {
 	LastTimestamp   string                `json:"last_timestamp"`
 	Criteria        []criterionAssessment `json:"criteria"`
 	CardAnswers     cardAnswers           `json:"card_answers"`
+	MainThreadCost  mainThreadCost        `json:"main_thread_cost"`
 }
 
 const auditTimeLayout = "2006-01-02T15:04:05.000Z"
@@ -105,17 +111,22 @@ func loadAuditSession(path, host string, opts auditOptions) (auditSession, error
 		return auditSession{}, err
 	}
 	var s auditSession
+	var cost mainThreadCost
 	switch host {
 	case "claude":
 		s, err = loadClaudeSession(data)
+		cost = claudeCost(data)
 	case "codex":
 		s, err = loadCodexSession(data)
+		cost = codexCost(data)
 	default:
 		s, err = loadGrokSession(data, path)
+		cost = grokCost(data, path, opts.GrokSessionsRoot)
 	}
 	if err != nil {
 		return auditSession{}, err
 	}
+	s.Cost = cost
 	s.Host, s.File = host, path
 	if opts.Cwd != "" {
 		s.Cwd = opts.Cwd
@@ -1602,7 +1613,7 @@ func auditSessionFile(path, host string, opts auditOptions) (auditReport, error)
 	}
 	return auditReport{
 		Host: host, File: path, Cwd: s.Cwd, Model: s.Model, ModelConfigured: s.ModelConfigured, Subagent: s.Subagent,
-		FirstTimestamp: s.First, LastTimestamp: s.Last, Criteria: criteria, CardAnswers: cardAnswersOf(s),
+		FirstTimestamp: s.First, LastTimestamp: s.Last, Criteria: criteria, CardAnswers: cardAnswersOf(s), MainThreadCost: s.Cost,
 	}, nil
 }
 

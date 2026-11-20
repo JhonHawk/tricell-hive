@@ -747,3 +747,54 @@ func TestAuditCardAnswersAppearInTheJSONReport(t *testing.T) {
 		t.Fatalf("card_answers = %s", got)
 	}
 }
+
+func TestAuditMainThreadCost(t *testing.T) {
+	grokRoot := sessionFixture("main_thread_cost", "grok-sessions")
+	cases := []struct {
+		name, host, file string
+		want             mainThreadCost
+	}{
+		{"claude counts a message once and skips sidechain lines", "claude", "claude.jsonl", mainThreadCost{
+			ModelCalls: 2, InputTokens: 480, CachedTokens: 350, PeakContext: 320, UsageSource: "per_call", Compactions: 1,
+			ToolCalls: 4, HiveReads: 1, HiveScripts: 1, ByTool: map[string]int{"Read": 3, "Bash": 1}}},
+		{"codex counts a token_count only when the total changed", "codex", "codex.jsonl", mainThreadCost{
+			ModelCalls: 2, InputTokens: 350, CachedTokens: 140, PeakContext: 250, UsageSource: "per_call", Compactions: 1,
+			ToolCalls: 5, HiveReads: 2, HiveScripts: 1, ByTool: map[string]int{"exec": 4, "exec_command": 1}, RepeatedUsageEvents: 1}},
+		{"grok subtracts a child found in another project folder", "grok", "grok-sessions/%2Frepo/parent-ok/updates.jsonl", mainThreadCost{
+			ModelCalls: 5, InputTokens: 2700, CachedTokens: 800, UsageSource: "per_turn", Compactions: 1,
+			ToolCalls: 5, HiveReads: 2, HiveScripts: 1, ByTool: map[string]int{"read_file": 2, "run_terminal_command": 3}}},
+		{"grok keeps the parent total when a child's usage is missing", "grok", "grok-sessions/%2Frepo/parent-missing/updates.jsonl", mainThreadCost{
+			ModelCalls: 7, InputTokens: 3000, CachedTokens: 900, UsageSource: "per_turn_with_children", Compactions: 1,
+			ToolCalls: 5, HiveReads: 2, HiveScripts: 1, ByTool: map[string]int{"read_file": 2, "run_terminal_command": 3}}},
+		{"grok without usage reports none", "grok", "grok-sessions/%2Frepo/parent-none/updates.jsonl", mainThreadCost{
+			UsageSource: "none", ByTool: map[string]int{}}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			rep := auditFixture(t, tc.host, auditOptions{GrokSessionsRoot: grokRoot}, "main_thread_cost", filepath.FromSlash(tc.file))
+			got, want := rep.MainThreadCost, tc.want
+			gj, _ := json.Marshal(got)
+			wj, _ := json.Marshal(want)
+			if string(gj) != string(wj) {
+				t.Fatalf("main_thread_cost = %s\nwant %s", gj, wj)
+			}
+		})
+	}
+}
+
+func TestAuditMainThreadCostLeavesTheCriteriaAlone(t *testing.T) {
+	var out bytes.Buffer
+	if err := auditSessionMain(sessionFixture("main_thread_cost", "claude.jsonl"), "claude", auditOptions{}, &out); err != nil {
+		t.Fatal(err)
+	}
+	var v map[string]json.RawMessage
+	if err := json.Unmarshal(out.Bytes(), &v); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(v["main_thread_cost"]), `"model_calls": 2`) {
+		t.Fatalf("main_thread_cost = %s", v["main_thread_cost"])
+	}
+	if strings.Contains(string(v["criteria"]), "main_thread_cost") {
+		t.Fatalf("criteria mention main_thread_cost: %s", v["criteria"])
+	}
+}

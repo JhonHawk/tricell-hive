@@ -35,6 +35,9 @@ var leafSizeExceptions = map[string]bool{
 	// channel per host, read together before any round; the unanswered card,
 	// a moment of its own, is its reference.
 	"hive-rule-questions": true,
+	// One moment, the merge: the CI wait, the current base, the reviewer hold
+	// and the bypass grants that can lift it, read together before merging.
+	"hive-rule-merge-gate": true,
 }
 
 // playbookKinds is the closed set of playbooks of hive-mode, one file each.
