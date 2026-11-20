@@ -21,7 +21,7 @@ Which of Hive's rules a mechanism enforces, and which still rest on prose. A rul
 | An admin-merge grant lasts the session within its exclusions | `content/skills/hive-rule-merge-gate/SKILL.md` | none | — | judgment |
 | A change folder covers its criteria and its business rules follow their grammar | `content/skills/flow-plan/SKILL.md` | `content/skills/flow-plan/scripts/check_change.py`, `content/skills/flow-plan/scripts/business_rules.py` | prevents | enforced |
 | A task's record and the build's checkpoint keep their format | `content/skills/flow-build/SKILL.md` | `content/skills/flow-plan/scripts/tasks.py` | prevents | enforced |
-| Deltas merge into the specs before a change folder is archived | `content/skills/flow-close/SKILL.md` step 4 | `content/skills/flow-close/scripts/apply_deltas.py` | prevents | enforced |
+| Deltas merge into the specs before a change folder is archived | `content/skills/flow-close/references/batch-archive.md` | `content/skills/flow-close/scripts/apply_deltas.py` | prevents | enforced |
 | A PRD keeps its sections and rule entries | `content/skills/create-prd/SKILL.md` | `content/skills/create-prd/scripts/check_prd.py` | prevents | enforced |
 | A ticket keeps the sections of its type | `content/skills/create-issue/SKILL.md` | `content/skills/create-issue/scripts/check_issue.py` | prevents | enforced |
 | A project's verification contract names real commands | `content/skills/hive-rule-project-verification/SKILL.md` | `content/skills/flow-verify/scripts/check_contract.py` | prevents | enforced |

@@ -455,11 +455,12 @@ lists where each flow loops.
 - [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) moves the ticket, writes the work's business rules to it and reports at
   integration, also when a project declares a later completion point in its
   `Completion` key, then ends with a footer that lists replies from the context, such as
-  closing or resolving a finding. The support-material decision, the record archive and the cleanup run on
+  closing or resolving a finding. The support-material decision and the cleanup run on
   your reply, when you start other work or when the session ends: the work's resources,
   plus your earlier merged branches and their clean worktrees in each repository the work
-  touched; with nothing to decide, archive or clean up, they run at once and closing is
-  not offered. A pause commits the change folder where the specs repository allows it, and a
+  touched; with nothing to decide or clean up, they run at once and closing is
+  not offered. The change record is recorded as waiting for its archive; a hygiene
+  request archives every waiting record in one delivery. A pause commits the change folder where the specs repository allows it, and a
   promotion not yet made keeps nothing. Unfinished work is preserved.
 - [Deploy](https://hive.tricell.tech/flows/deploy/) ([skill](content/skills/flow-deploy/SKILL.md)) is a separate stage after
   integration: it promotes through the declared environments and checks what is
