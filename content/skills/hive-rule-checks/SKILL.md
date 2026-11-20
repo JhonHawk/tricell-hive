@@ -16,6 +16,10 @@ Read each check's result from the exit status of the check command itself. When 
 
 A round of fixes is every fix made for the failures, corrections and findings known when the round starts, such as the round of [review findings](../hive-rule-review-findings/SKILL.md). In any flow, after each fix of a round, run first the tests of the edited files' packages or folders, then each failing test alone when those tests do not include it, and each failing check that is not a test run, such as a lint or a build. Once the round's last fix is in, run the checks the first paragraph requires, the full suite when the fixes' scope is not known; never the full suite after each fix.
 
+## Long checks
+
+A check that spends money or third-party quota, changes shared or remote resources, or runs over 30 minutes needs the user's confirmation first. Estimate a check's duration from evidence, such as a previous run, the same job's time in CI or a timed partial run, never from an unmeasured guess. With no evidence, a check that needs no other confirmation starts in the background, and you ask whether to continue once it has run 30 minutes (a child reports it to its parent instead, and unattended work follows its delegation's ceiling).
+
 ## Local CI
 
 Reproduce the repository's CI: read its workflow files and run locally every job that needs no external service, secret or deployment, for the packages the change touches and those that depend on them. Report the jobs that need an external service, a secret or a deployment by name as CI-only. A build does it when every task is done, recording the commands, relevant output, checked commit and any uncommitted changes, and the configuration and environment the checks depend on in the existing checkpoint. Before the push, `flow-verify` ensures passing evidence covers every such job, applying Check reuse to run missing or invalidated checks.

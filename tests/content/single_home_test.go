@@ -88,6 +88,12 @@ var homePhrases = []homePhrase{
 	{"A plan delivered in two or more units", "content/skills/hive-rule-change-folder/SKILL.md"},
 	{"weaken, skip or remove a guard to reach done", "content/skills/hive-rule-loops/SKILL.md"},
 	{"A `timeout` on one command inside the loop bounds one iteration, not the wait", "content/skills/hive-rule-background-wait/SKILL.md"},
+	{"never from an unmeasured guess", "content/skills/hive-rule-checks/SKILL.md"},
+	{"then its REST API with the user's global token", "content/skills/hive-rule-trackers/SKILL.md"},
+	{"belongs to that work: fix it without asking or opening a ticket", "content/skills/hive-rule-reasons-and-blockers/SKILL.md"},
+	{"though it changes a description the task did not create", "content/skills/hive-rule-ticket-state/SKILL.md"},
+	{"use the main checkout's file", "content/skills/hive-rule-local-write/references/worktree.md"},
+	{"gets no second report", "content/skills/hive-rule-checkpoint/SKILL.md"},
 }
 
 // homeProblems returns one line per phrase whose files under
