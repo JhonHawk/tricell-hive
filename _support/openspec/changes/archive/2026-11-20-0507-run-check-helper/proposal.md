@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | En entrega |
+| Estado | Completado · PR #530, merge bd1bbcc1 |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `9b9450c5` · rama propuesta `feat/run-check-helper` |
 | Playbook | ninguno (`/flow-plan` tecleado por el usuario) |
