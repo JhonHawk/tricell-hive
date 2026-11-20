@@ -7,6 +7,10 @@
 | Git | tricell-hive · base `development` en `d3d2b46c` · rama `fix/build-spec-delta` |
 | Playbook | feature (hallazgo H10 de #537, cambio sin plan) |
 
+## Request
+
+> «a» — resolver ahora el hallazgo H10 de #537: `flow-build` no dice qué hacer cuando un cambio pequeño sin plan altera un comportamiento descrito en una spec.
+
 ## Decisions
 
 2026-11-20

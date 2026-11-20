@@ -8,11 +8,15 @@ Base: `development` en `d3d2b46c`, rama `fix/build-spec-delta`. Cambio sin plan;
 
 **Closes:** AC1, AC2, AC4.
 
+**Verification:** lectura de `flow-build` y `references/spec-delta.md`; `go test ./tests/content -run TestRequiredProcedureReadingFootprint`.
+
 ### T2 — Playbook en `hive-mode` y su delta
 
 - [x] `hive-mode` registra el playbook en el `proposal.md` de cualquier carpeta de cambio; el delta de «Entry router with playbooks» lo dice.
 
 **Closes:** AC3.
+
+**Verification:** lectura de `hive-mode` «Record» y del delta; `go test ./tests/content`.
 
 ## Progreso
 

@@ -35,7 +35,7 @@ After it plays your request back, the agent classifies the work and opens at mos
 - The stages stay commands (Figma design, Plan, Build, Verify, Close, Deploy); a playbook only orders them and adds the steps of its kind, such as a failing reproduction first in `bugfix`, or a baseline and a threshold before the first change in `perf`.
 - A playbook never picks your delivery mode: each stop, push, pull request, merge and promotion it names happens under the delivery mode in force.
 - Changing playbook in the middle of the work, such as an investigation that confirms a defect you want fixed, is an explicit handoff that the agent states in one line as a change of scope, never a silent jump.
-- The chosen playbook is recorded in the `Playbook` field of the plan's `proposal.md`, or in a `- Playbook:` line of the checkpoint file when the work has no change folder, so each later stage reads it from there.
+- The chosen playbook is recorded in the `Playbook` field of the change folder's `proposal.md`, or in a `- Playbook:` line of the checkpoint file when the work has no change folder, so each later stage reads it from there.
 
 ## What it asks you
 
