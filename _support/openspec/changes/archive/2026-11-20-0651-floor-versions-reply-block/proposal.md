@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Listo para flow-build |
+| Estado | Completado · PR #535, merge 43e1e33e |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `1cdb5af7` · rama `feat/floor-versions-reply-block` en `.claude/worktrees/floor-versions` |
 | Playbook | ninguno (investigación en la conversación, luego `/flow-plan` tecleado por el usuario) |
