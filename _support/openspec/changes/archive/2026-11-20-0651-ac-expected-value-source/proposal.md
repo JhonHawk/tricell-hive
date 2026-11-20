@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | En curso · entrega `automatic` |
+| Estado | Completado · PR #534, bdc2bb26 |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `1cdb5af7` · rama `feat/ac-expected-value-source` |
 | Playbook | feature (cambio pequeño sin plan, `/flow-build`) |
