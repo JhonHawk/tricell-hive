@@ -162,8 +162,6 @@ func TestProfilesRejectWrongPiToolRestrictionType(t *testing.T) {
 	}
 }
 
-// Cursor and Antigravity inherit the session's effort, so a profile that names
-// one is rejected on either host.
 func TestProfilesRejectEffortOnHostsThatInheritIt(t *testing.T) {
 	cases := []struct{ name, old, new string }{
 		{"cursor", `"execution": {"model": "inherit"}, "reasoning": {"model": "inherit"}, "inherit": {"model": "inherit"}`,
@@ -195,7 +193,6 @@ func TestProfilesRejectAntigravityAccessKeys(t *testing.T) {
 	}
 }
 
-// Cursor accepts only the boolean `readonly: true` as an observe restriction.
 func TestProfilesRejectCursorReadonlyThatIsNotTrue(t *testing.T) {
 	for _, c := range []struct{ name, value string }{
 		{"false", `false`},
@@ -255,7 +252,6 @@ func TestProfilesRejectUnknownHost(t *testing.T) {
 	}
 }
 
-// parseRoleSource is a role source whose frontmatter is front, with a body.
 func parseRoleSource(front string) []byte {
 	return []byte("---\n" + front + "---\nBody\n")
 }
@@ -293,8 +289,6 @@ func TestParseRejectsInvalidRoleSources(t *testing.T) {
 	}
 }
 
-// Parse accepts CRLF line endings in the frontmatter and reads the same role
-// as with LF.
 func TestParseAcceptsCRLFFrontmatter(t *testing.T) {
 	const source = "content/agents/design/test-agent.md"
 	front := parseValidFront + "effort: \"low\"\n"

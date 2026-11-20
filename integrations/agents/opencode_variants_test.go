@@ -102,14 +102,12 @@ func TestOpenCodeModelOnlyOverrideMapsAgainstNewModel(t *testing.T) {
 		o                *ModelOverride
 		want             string
 	}{
-		// Without an override the role's effort maps to the release model's variants.
 		{"no override medium", "medium", nil, flash + "#high"},
 		{"no override xhigh", "xhigh", nil, flash + "#max"},
 		// With a model override the role's effort maps against the rendered model,
 		// not the release's: flash keeps low, pro offers high and max only.
 		{"new model xhigh", "xhigh", &ModelOverride{Model: pro}, pro + "#max"},
 		{"new model low", "low", &ModelOverride{Model: pro}, pro + "#high"},
-		// An unlisted model keeps the role's effort unmapped.
 		{"unlisted model", "medium", &ModelOverride{Model: "x/y"}, "x/y#medium"},
 	} {
 		t.Run(c.name, func(t *testing.T) {

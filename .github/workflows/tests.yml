@@ -1,8 +1,9 @@
 # Runs the local suite that CONTRIBUTING.md lists on every pull request and
 # on every push to development. The token is read-only through
 # `permissions`, and the workflow reads no secret. Keep `pull_request`:
-# `pull_request_target` would run a fork's code with the base's access. The job must not be named `source-branch`: the
-# master ruleset requires that check from master-source-branch.yml only.
+# `pull_request_target` would run a fork's code with the base's access.
+# The job must not be named `source-branch`: the master ruleset requires
+# that check from master-source-branch.yml only.
 # Actions are pinned by commit SHA; the comment names the release.
 name: tests
 

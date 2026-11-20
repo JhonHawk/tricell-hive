@@ -150,7 +150,6 @@ func TestRenderOverrideChangesOnlyTheOverriddenLines(t *testing.T) {
 		t.Fatalf("override changed more than model and effort:\n%s\nwant\n%s", out, want)
 	}
 
-	// Cursor renders a model override in place of its inherited model.
 	base, err = Render(resolveSource, data, profiles, "cursor", "/skills", nil)
 	if err != nil {
 		t.Fatal(err)
