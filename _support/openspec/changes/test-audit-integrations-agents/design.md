@@ -16,4 +16,10 @@ Hay un solo enfoque razonable: el de la skill `test-audit`. Cada lane va en orde
 
 ## CI
 
-Un solo workflow, `tests.yml`, con un job que corre los mismos tres comandos de `CONTRIBUTING.md`. Se usa `pull_request` y no `pull_request_target`, para que el código del PR corra sin acceso a secretos ni token con escritura. El nombre del job no puede ser `source-branch`, porque el ruleset de `master` exige ese check solo de `master-source-branch.yml`. Volverlo un check obligatorio en el ruleset queda fuera de este trabajo.
+**Retired:** D4. Se agregó un workflow `tests.yml` que corría la suite en Linux, y el usuario decidió quitarlo: la suite sigue siendo un paso local.
+
+## Fixes que mostró la suite en Linux
+
+- **H7:** GNU tar llama a `gzip` para `-z`, así que `get-hive.sh` lo exige antes de cualquier request.
+- **H8:** el `curl` de Linux quita el userinfo de `%{url_effective}`. El caso del test se salta solo en Linux, y el issue #543 sigue la regla.
+- **H10:** `ValidateState` lee sin lock por diseño. `readStateFileAttempt` reintenta cuando un rename atómico deja sin enlaces el inodo abierto. Las otras dos instancias del patrón en `tooling/cli` (`readPrivateWorkFile` y `readSafeMapFile`) quedan como hallazgos.

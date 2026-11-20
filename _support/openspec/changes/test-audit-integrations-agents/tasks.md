@@ -1,6 +1,6 @@
 # Tasks
 
-Base `development` en `d3d2b46c`; rama `test/audit-integrations-agents` en el worktree `.claude/worktrees/test-audit-agents`, con esta change folder copiada dentro (otra sesión usa la checkout principal). Los lanes corren uno tras otro en ese worktree (test-audit paso 6): primero A, dueño de los helpers compartidos, después B. Cada lane lo ejecuta un hijo `hive-write-tests`, porque son más de 3 archivos o decenas de tests con evidencia por mutante; el hilo principal corre los checks y hace commit. T3 es independiente de los lanes y la hace el hilo principal (dos archivos). T4 la hace un hijo `hive-review-code` (revisión), y las mutaciones el hilo principal.
+Base `development` en `d3d2b46c`; rama `test/audit-integrations-agents` en el worktree `.claude/worktrees/test-audit-agents`, con esta change folder copiada dentro (otra sesión usa la checkout principal). Los lanes corren uno tras otro en ese worktree (test-audit paso 6): primero A, dueño de los helpers compartidos, después B. Cada lane lo ejecuta un hijo `hive-write-tests`, porque son más de 3 archivos o decenas de tests con evidencia por mutante; el hilo principal corre los checks y hace commit. T3 agregó el workflow de CI, que D4 quitó después. T6 y T7 arreglan los defectos que la suite mostró en Linux. T4 la hace un hijo `hive-review-code` (revisión), y las mutaciones el hilo principal.
 
 En cada lane, el orden es fijo: agregar o extender los keepers con las aserciones trasladadas y aplicar las reparaciones F, correrlos y verlos pasar, y solo entonces borrar los tests que absorben. Nunca se edita un archivo mientras un `go test` lee el mismo checkout. Ningún archivo mutado se commitea.
 
@@ -52,7 +52,7 @@ En cada lane, el orden es fijo: agregar o extender los keepers con las asercione
 
 ### T3 — Workflow de CI que corre la suite
 
-- [x] Un workflow nuevo corre la suite en cada pull request y en cada push a `development`
+- [x] Un workflow nuevo corre la suite en cada pull request y en cada push a `development` **Retired:** D4. El workflow se agregó en 3d07cb81 y se quitó en 8d01b652.
 
 **Closes:** ninguno: su criterio se retiró por D4 y el workflow se borró en esta misma rama
 
@@ -98,19 +98,56 @@ En cada lane, el orden es fijo: agregar o extender los keepers con las asercione
 
 ### T5 — Documentos que el cambio deja desactualizados
 
-- [ ] Ningún documento nombra un test borrado, los documentos del CI conservan su texto previo, y el CHANGELOG registra el cambio
+- [x] Ningún documento nombra un test borrado, los documentos del CI conservan su texto previo, y el CHANGELOG registra el cambio
 
 **Closes:** AC6
 
-**Depends on:** T2, T3
+**Depends on:** T2
 
-**Locations:** `CONTRIBUTING.md`, `CHANGELOG.md`, `_support/docs/architecture/deployment-manager.md`, `_support/docs/architecture/agent-delivery.md`
+**Locations:** `CHANGELOG.md`, `_support/docs/architecture/agent-delivery.md`, `README.md`, `_support/docs/architecture/installer.md`; `CONTRIBUTING.md` y `_support/docs/architecture/deployment-manager.md` vuelven al texto de la base
 
 **Execution:** main thread
 
 **Changes:** `agent-delivery.md:27` nombra el keeper que reemplaza a `TestOpenCodeRolesRequestOfferedVariants`. `CONTRIBUTING.md` y `deployment-manager.md` conservan el texto de la base, que dice que el repositorio no corre tests en CI (D4). `README.md` y `installer.md` nombran `gzip` entre los requisitos del instalador (H7). `CHANGELOG.md` gana entradas en `[Unreleased]`: las pruebas nuevas y la auditoría, y los fixes de `get-hive.sh` y del viewer. `llms.txt` no cambia. **Replaces:** the earlier T5 changes, which documented the tests workflow
 
 **Verification:** `rg -n 'TestOpenCodeRolesRequestOfferedVariants|tests\.yml' <worktree>` sin resultados fuera de `_support/openspec/changes/`; `git diff origin/development -- CONTRIBUTING.md _support/docs/architecture/deployment-manager.md` vacío.
+
+
+### T6 — `get-hive.sh` exige `gzip` (H7)
+
+- [x] El instalador nombra `gzip` cuando falta, antes de cualquier request
+
+**Closes:** AC7
+
+**Depends on:** none
+
+**Locations:** `get-hive.sh`, `tooling/distribution/get_hive_test.go`, `README.md`, `_support/docs/architecture/installer.md`
+
+**Execution:** main thread
+
+**Test approach:** tdd: la fila `missing gzip` se vio fallar en la base (macOS) y pasar con el fix. El salto de H8 en Linux, con el issue #543, va en el mismo archivo de test.
+
+**Changes:** `gzip` entra en el bucle `need_command` y en la lista `needed` del test. README e `installer.md` lo nombran entre los requisitos.
+
+**Verification:** `go test ./tooling/distribution -run 'TestGetHiveRejectsDisallowedRedirectHosts|TestGetHiveNamesAMissingRequirementBeforeAnyRequest'` pasa.
+
+### T7 — El lector de estado del viewer reintenta cuando un reemplazo atómico cae después del open (H9, H10)
+
+- [x] Los registros concurrentes ya no fallan con `invalid_storage` en Linux
+
+**Closes:** AC8
+
+**Depends on:** none
+
+**Locations:** `tooling/viewer/state_v3.go`, `tooling/viewer/registry_test.go`
+
+**Execution:** main thread
+
+**Test approach:** tdd. El test concurrente que ya existía es el dueño. Ahora muestra la salida de cada helper, y se vio fallar en Linux antes del fix (3 de 3 tandas de 300) y pasar después (5 de 5). Un test determinista necesitaría un hook solo para tests entre `Open` y `Stat`, que la regla de tests rechaza.
+
+**Changes:** `readStateFileAttempt` reintenta, dentro de sus 3 intentos, cuando el inodo abierto quedó con `nlink` 0. Los enlaces, los archivos que no son regulares y los demasiado grandes se siguen rechazando.
+
+**Verification:** el binario de test linux/arm64 de `tooling/viewer`, corrido en un contenedor `debian:bookworm-slim` con `-test.run '^TestRegistryConcurrentProcessesLoseNoEntry$' -test.count=300`, pasa en 5 de 5 tandas; `go test ./tooling/viewer` pasa en macOS.
 
 ## Verification and human review
 
@@ -119,15 +156,15 @@ En cada lane, el orden es fijo: agregar o extender los keepers con las asercione
 | Tests of each task | When the task closes, locally | El comando de verificación de la tarea pasa | Covered by the implementation |
 | Full suite | Final candidate, locally | `go vet ./...`, `go test ./...`, `python3 -m unittest discover -s tests/skills -p '*_test.py'` con `umask 022` | Covered by the implementation |
 | Code review | Final candidate, before the push | Claude Code `/code-review` | The review answer |
-| Security review | Final candidate, before the push | `hive-review-security` sobre `.github/workflows/tests.yml` | The security review answer |
+| Security review | Final candidate, before the push | `hive-review-security` sobre el workflow (hecha antes de D4) y sobre `get-hive.sh` y `tooling/viewer/state_v3.go` | The security review answer |
 
 ## Checkpoint
 
 - Updated: 2026-11-20
-- Stage: verify · push and PR
-- Last commit: ca62f5f5
-- Open findings: H3 nit: go test default 10m per-package timeout vs tooling/cli 364s local · close findings; H4 nit: Codex focused effort equals execution effort in synthetic profiles · close findings; H5 nit: TestOpenCodeModelOnlyOverrideMapsAgainstNewModel name narrower than its rows · close findings; H6 P3 pre-existing: any PR could add a job named source-branch · close findings
-- Next: push, open PR, wait CI (AC4), merge
+- Stage: verify · security review of fixes, then push and merge
+- Last commit: 8d01b652
+- Open findings: H11 P3 pre-existing: readPrivateWorkFile and readSafeMapFile in tooling/cli reject a file replaced after open, same pattern as #545 · close findings
+- Next: wait hive-review-security on get-hive.sh and state_v3.go, commit folder, push, merge
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/test-audit-agents · test/audit-integrations-agents
 
 ### Evidence
@@ -135,6 +172,8 @@ En cada lane, el orden es fijo: agregar o extender los keepers con las asercione
 - baseline: go test -count=1 ./... pass 4m51s; python unittest pass 1m12s; HEAD 087efdf0 (area identical to d3d2b46c)
 - local CI at d973aeaf: go vet ./... ok; go test -count=1 ./... ok 6m7s; python unittest 314 OK; f14303da changes only comments (agents pkg ok, actionlint 0)
 - review round: /code-review 3 blocking fixed in 0cd9b573 (fetch-depth, concurrency group, CHANGELOG heading); hive-review-security no security finding; re-review of 0cd9b573 no findings; merged origin/development 3e3102e4, tests/content + agents ok
+- full local suite at 8d01b652: go vet ok; go test ./... ok 4m51s; python 314 OK. Earlier evidence (d973aeaf/0cd9b573) covers the earlier candidate only
+- fix review of 91f68c56 0978f5f2 bc60e226 21dac832: no findings; Linux skip accepted
 
 ## Review status and progress
 
@@ -143,3 +182,6 @@ En cada lane, el orden es fijo: agregar o extender los keepers con las asercione
 2026-11-20 — T2 · 3da9b3fd · unverified: none; G6 low row does not catch offered[0] (xhigh and no-override rows do); K15 fails management at model_override_test.go:149 before :153
 2026-11-20 — T5 · d83c615a · unverified: none
 2026-11-20 — T4 · d973aeaf · unverified: none
+2026-11-20 — T5 · 8d01b652 · unverified: none
+2026-11-20 — T6 · 91f68c56 · unverified: none; H8 skip 21dac832 with issue #543
+2026-11-20 — T7 · 0978f5f2 · unverified: none; Linux evidence from a local container, not CI (D4)
