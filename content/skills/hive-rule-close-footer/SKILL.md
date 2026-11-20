@@ -16,6 +16,7 @@ End the final report with [the next-step block](../hive-rule-next-step-block/SKI
 - **Explain a finding or a result**, naming it.
 - **Turn a candidate into a mechanism**, naming it: only for a candidate whose record counts two sessions or more; it enters `flow-build` as **Resolve findings now** does.
 - **Find the next ticket**, as **Find the next ticket** below sets, run only when the user picks it.
+- **Hygiene**, with the count of pending archives: delivers them as [batch archive](../flow-close/references/batch-archive.md) sets; only while one is pending.
 - **Continue** with what remains of the work, naming it, such as the next phase of a plan in progress.
 
 **See the findings** shows one table, after checking each finding for an existing ticket as [create-issue](../create-issue/SKILL.md) step 2 sets:

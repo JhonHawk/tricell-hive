@@ -20,7 +20,7 @@ Report the whole work item in one message, each part only when it has content:
 - **Support material:** each item with its path and the action applied, or listed as pending, as [support material](../flow-close/references/support-material.md) sets.
 - **Findings:** the defects not fixed, as [Findings](#findings) sets.
 - **Candidates:** the work's repetitions, as [Candidates](#candidates) sets.
-- **Next:** what remains, with who owns it, and what comes next, such as the merge left to the user and review bots or base CI still pending.
+- **Next:** what remains, with who owns it, and what comes next, such as the merge left to the user, review bots or base CI still pending, and the pending archives with the hygiene reply.
 
 When the user asks to keep or share this report, or it exceeds what fits on one screen, offer a `create-report` page as one reply of the close footer.
 
