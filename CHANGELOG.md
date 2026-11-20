@@ -12,6 +12,12 @@ raise the minor or the patch version.
 
 ### Added
 
+- `hive-rule-checks/scripts/run_check.py` runs a check whose output is saved:
+  it writes the whole output to a log under a 64 MiB cap, closes the log and
+  only then shows its last lines, and exits with the check's own status. The
+  checks leaf requires it, and the session auditor gains `self_feeding_log`,
+  which fails a shell command whose trap or block reads the file the block
+  redirects into, the pattern that once grew a local CI log to 1.53 TB.
 - Agents take an open decision without asking when its recommended option
   wins with a consequence the others lack and none of six criteria holds:
   scope, a cheaper now against rework later, a business rule nothing names,
