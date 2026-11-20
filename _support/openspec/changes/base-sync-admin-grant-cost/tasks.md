@@ -6,7 +6,7 @@ Los commits nombran la observación que originó el cambio: Grok Build, `grok-4.
 
 ### T1 — Base local al día en `cleanup_branches.py`
 
-- [ ] Con `--apply`, el script hace `fetch` de la base y la avanza con `merge --ff-only` en el checkout principal cuando es seguro, y reporta `base_update` en el plan.
+- [x] Con `--apply`, el script hace `fetch` de la base y la avanza con `merge --ff-only` en el checkout principal cuando es seguro, y reporta `base_update` en el plan.
 
 **Closes:** AC1, AC2
 
@@ -35,7 +35,7 @@ Los commits nombran la observación que originó el cambio: Grok Build, `grok-4.
 
 ### T2 — Permiso de admin-merge por sesión en `hive-rule-merge-gate`
 
-- [ ] La hoja deja que un permiso explícito de admin-merge valga el resto de la sesión dentro de los límites de D2 y D4, y el global ya no lo contradice.
+- [x] La hoja deja que un permiso explícito de admin-merge valga el resto de la sesión dentro de los límites de D2 y D4, y el global ya no lo contradice.
 
 **Closes:** AC7, AC4
 
@@ -53,7 +53,7 @@ Los commits nombran la observación que originó el cambio: Grok Build, `grok-4.
 
 ### T3 — Bloque `main_thread_cost` en `--audit-session`
 
-- [ ] `--audit-session` da el desglose del hilo principal para Claude, Codex y Grok.
+- [x] `--audit-session` da el desglose del hilo principal para Claude, Codex y Grok.
 
 **Closes:** AC8
 
@@ -71,7 +71,7 @@ Los commits nombran la observación que originó el cambio: Grok Build, `grok-4.
 
 ### T4 — Documentación
 
-- [ ] La referencia de limpieza, la rúbrica, `rule-enforcers.md`, el sitio y el changelog dicen lo que cambió.
+- [x] La referencia de limpieza, la rúbrica, `rule-enforcers.md`, el sitio y el changelog dicen lo que cambió.
 
 **Closes:** AC1, AC7
 
@@ -87,7 +87,7 @@ Los commits nombran la observación que originó el cambio: Grok Build, `grok-4.
 
 ### T5 — Medición de 3 sesiones
 
-- [ ] El reporte final da el desglose de 3 sesiones reales con `main_thread_cost`.
+- [x] El reporte final da el desglose de 3 sesiones reales con `main_thread_cost`.
 
 **Closes:** AC6
 
@@ -116,15 +116,28 @@ Sin parada de validación (`automatic`).
 
 ## Checkpoint
 
-- Updated: 2026-11-19
-- Stage: build · T1 and T3 started
-- Last commit: 8a4443a2
+- Updated: 2026-11-20
+- Stage: verify · integrate: push, PR, merge
+- Last commit: 6cdd97f3
 - Open findings: none
-- Next: T1 tdd in main thread; T3 in hive-build-backend child; then T2
+- Next: merge PR, deploy, flow-close
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/base-sync · feat/base-sync-admin-grant
 
 ### Evidence
 
 - before captures: none (no screen)
+- go -C <wt> test ./... · all ok except tests/pilot TestE2ESetupDeadlinesOwnDescendantsAndPipes (flaky: alone 0/5 on branch, 2/5 on base 8a4443a2); tests/pilot rerun ok · 8b98762c
+- go -C <wt> vet ./... · ok · 8b98762c
+- python3 -m unittest discover -s <wt>/tests/skills -p '*_test.py' · 309 OK · 8b98762c
+- python3 -m unittest discover -s <wt>/tests/skills -p '*_test.py' · 314 OK · 6cdd97f3
+- go -C <wt> test ./... and vet ./... · ok · 078c694d
 
 ## Review status and progress
+
+2026-11-19 — T1 · 77fea812 · unverified: none
+2026-11-19 — T3 · d15a21e0 · unverified: AC8: the Grok session kept running after the plan; 413 calls and 55,650,173 tokens today (602 and 71,338,192 minus the 12 children's 189 and 15,688,019), not the 410 and 55,115,725 measured at planning
+2026-11-19 — T4 · 10229e74 · unverified: none
+2026-11-19 — T5 · uncommitted · unverified: none
+2026-11-19 — T2 · 8b98762c · unverified: AC4: needs a real session after the deploy; AC7 checked on the source, the installed copy is the old text until the deploy
+
+2026-11-20 — Revisiones: /code-review (4 importantes corregidos en f7626f7a, dde37c16, b209989f), hive-review-security (P1 tag origin/<base>, P2 borrado de qa, P2 check sin reportar; corregidos en 734e7c09, 078c694d), segunda /code-review sobre 8b98762c..078c694d (ls-remote por sufijo y fetch tapado por tag corregidos en 6cdd97f3, Unreviewed:). Hallazgos P3 y las decisiones F7 y F9 quedan para el cierre.
