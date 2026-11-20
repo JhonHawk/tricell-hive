@@ -579,6 +579,7 @@ func scanCodexExec(js string) ([]codexCall, bool) {
 					call.literal, call.hasLiteral, call.interpolate = jsObjectLiteral(js, k+1, "cmd")
 				case "apply_patch":
 					call.literal, call.hasLiteral, call.interpolate = jsFirstArgLiteral(js, k+1)
+					call.literal = interpHole.ReplaceAllString(call.literal, "")
 				}
 				calls = append(calls, call)
 				i, prev = k+1, '('
@@ -712,13 +713,18 @@ func isJSIdent(c byte) bool {
 	return c == '_' || c == '$' || (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')
 }
 
+// interpHole matches the placeholder jsLiteral writes for each interpolation.
+var interpHole = regexp.MustCompile(`__INTERP_[0-9]+__`)
+
 // jsLiteral decodes the string or template literal opening at js[i] and
 // returns its value, the index after its closing quote and whether a template
-// interpolation was seen (the value then stops at the interpolation).
+// interpolation was seen; each interpolation becomes a distinct placeholder
+// word, __INTERP_<n>__.
 func jsLiteral(js string, i int) (value string, end int, interpolated bool) {
 	quote := js[i]
 	var sb strings.Builder
 	j := i + 1
+	holes := 0
 	for j < len(js) {
 		c := js[j]
 		switch {
@@ -755,6 +761,8 @@ func jsLiteral(js string, i int) (value string, end int, interpolated bool) {
 			return sb.String(), j + 1, interpolated
 		case quote == '`' && c == '$' && j+1 < len(js) && js[j+1] == '{':
 			interpolated = true
+			fmt.Fprintf(&sb, "__INTERP_%d__", holes)
+			holes++
 			depth := 1
 			j += 2
 			for j < len(js) && depth > 0 {

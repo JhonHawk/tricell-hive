@@ -39,12 +39,49 @@ var (
 	// A reader of a file; the command must stand where a command can start.
 	readerCmd = regexp.MustCompile(`(?:^|[\n;&|(){!]|\b(?:then|do|else)\b)\s*(?:sudo\s+)?(?:tail|head|cat|grep|egrep|fgrep|rg|sed|less)\b`)
 	trapCmd   = regexp.MustCompile(`(?:^|[\n;&|(){]|\b(?:then|do|else)\b)\s*trap\s+`)
-	execRedir = regexp.MustCompile(`(?:^|[\n;&|(){]|\b(?:then|do|else)\b)\s*exec\s+(?:&>>?|[0-9]*>>?)\s*`)
-	// What follows the closing } or ) of a block: its redirection.
-	blockRedir = regexp.MustCompile(`^\s*(?:&>>?|[0-9]*>>?)\s*`)
+	execCmd   = regexp.MustCompile(`(?:^|[\n;&|(){]|\b(?:then|do|else)\b)\s*exec\s+`)
+	// One redirection operator: group 1 is &> or &>>, group 2 the file
+	// descriptor, group 3 > or >>, group 4 the & of a duplication such as 2>&1.
+	redirOp    = regexp.MustCompile(`^[ \t]*(?:(&>>?)|([0-9]*)(>>?)(&)?)`)
 	identOnly  = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*$`)
-	restoreOut = regexp.MustCompile(`exec\s+[0-9]*>&[0-9-]`)
+	restoreOut = regexp.MustCompile(`exec\s+1?>&[0-9-]`)
 )
+
+// stdoutRedirects walks every redirection word that starts at i and returns
+// the files that receive standard output, as feedTarget words, and the index
+// after the last redirection. A file descriptor other than 1 and a
+// duplication such as 2>&1 send no standard output to a file.
+func stdoutRedirects(text string, i int) (words, keys []string, end int) {
+	end = i
+	for end < len(text) {
+		m := redirOp.FindStringSubmatchIndex(text[end:])
+		if m == nil {
+			break
+		}
+		pos := end + m[1]
+		fd := ""
+		if m[4] >= 0 {
+			fd = text[end+m[4] : end+m[5]]
+		}
+		stdout := m[2] >= 0 || fd == "" || fd == "1"
+		if m[2] < 0 && m[8] >= 0 {
+			for pos < len(text) && !strings.ContainsRune(" \t\n;&|<>()", rune(text[pos])) {
+				pos++
+			}
+			end = pos
+			continue
+		}
+		word, key, next := feedTarget(text, pos)
+		if next == pos {
+			break
+		}
+		if stdout && word != "" {
+			words, keys = append(words, word), append(keys, key)
+		}
+		end = next
+	}
+	return words, keys, end
+}
 
 // selfFeedingCommand reads the text of one shell command, with no
 // interpretation of variables: a file is its literal path or the name of the
@@ -54,41 +91,37 @@ func selfFeedingCommand(text string) bool {
 	mask := shellMask(text)
 	traps := trapBodies(text, mask)
 
-	for _, m := range execRedir.FindAllStringIndex(text, -1) {
+	for _, m := range execCmd.FindAllStringIndex(text, -1) {
 		if mask[kwStart(text, m[0])] {
 			continue
 		}
-		target, key, end := feedTarget(text, m[1])
-		if target == "" {
-			continue
-		}
+		words, keys, end := stdoutRedirects(text, m[1])
 		rest := text[end:]
-		reads := readsFile(traps, key, target)
-		if !restoreOut.MatchString(rest) && readsFile([]string{rest}, key, target) {
-			reads = true
+		if loc := restoreOut.FindStringIndex(rest); loc != nil {
+			rest = rest[:loc[0]]
 		}
-		if reads {
-			return true
+		for k, word := range words {
+			if readsFile(traps, keys[k], word) || readsFile([]string{rest}, keys[k], word) {
+				return true
+			}
 		}
 	}
 	for i := 0; i < len(text); i++ {
 		if mask[i] || (text[i] != '}' && text[i] != ')') {
 			continue
 		}
-		loc := blockRedir.FindStringIndex(text[i+1:])
-		if loc == nil {
-			continue
-		}
-		target, key, _ := feedTarget(text, i+1+loc[1])
-		if target == "" {
+		words, keys, _ := stdoutRedirects(text, i+1)
+		if len(words) == 0 {
 			continue
 		}
 		open := matchingOpen(text, mask, i)
 		if open < 0 {
 			continue
 		}
-		if readsFile(traps, key, target) || readsFile([]string{text[open+1 : i]}, key, target) {
-			return true
+		for k, word := range words {
+			if readsFile(traps, keys[k], word) || readsFile([]string{text[open+1 : i]}, keys[k], word) {
+				return true
+			}
 		}
 	}
 	return false
