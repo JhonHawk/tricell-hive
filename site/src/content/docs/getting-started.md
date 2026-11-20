@@ -105,7 +105,7 @@ Implement the agreed change locally and verify it. Do not commit or publish.
 If a CLI behaves differently from what these pages describe, check [Host limits](/host-limits/).
 
 Start with [Hive mode](/flows/hive-mode/) when facts are missing,
-[Figma design](/flows/figma-design/) for a new screen you want to see first,
+[Create design](/flows/create-design/) for a new screen you want to see first,
 [Plan](/flows/plan/) for consequential decisions, or [Build](/flows/build/) for an authorized change.
 [Close](/flows/close/) records the result and cleans up the session.
 [Create issue](/flows/create-issue/) writes a ticket for work that will be done later or by someone else.

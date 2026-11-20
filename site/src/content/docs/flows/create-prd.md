@@ -3,7 +3,7 @@ title: Create PRD
 description: Write a requirement document for a module or feature, restructure one someone else wrote, update it with its author's answers, or review it against the code, so development builds from rules it does not have to decide.
 ---
 
-Create PRD writes the requirement document of a module or feature: what it must do and why, as rules that development can build without deciding a business rule on its own. It holds no screen design, which [Figma design](/flows/figma-design/) draws, no technical how, which [Plan](/flows/plan/) settles, no ticket, which [Create issue](/flows/create-issue/) writes, and no schedule. The skill covers four uses: a new document, one that someone else wrote, an update with the author's answers, and a technical review against the code. It runs in the main conversation, with or without the repository, and changes no application code.
+Create PRD writes the requirement document of a module or feature: what it must do and why, as rules that development can build without deciding a business rule on its own. It holds no screen design, which [Create design](/flows/create-design/) draws, no technical how, which [Plan](/flows/plan/) settles, no ticket, which [Create issue](/flows/create-issue/) writes, and no schedule. The skill covers four uses: a new document, one that someone else wrote, an update with the author's answers, and a technical review against the code. It runs in the main conversation, with or without the repository, and changes no application code.
 
 ## When to use
 
@@ -52,7 +52,7 @@ It reports the document's link or path, its version and state, what holds the ne
 
 - [Hive mode](/flows/hive-mode/) sends a request for a requirement document here.
 - [Create issue](/flows/create-issue/) writes the tickets of an approved document.
-- [Figma design](/flows/figma-design/) draws its screens, and [Plan](/flows/plan/) settles how it is built.
+- [Create design](/flows/create-design/) draws its screens, and [Plan](/flows/plan/) settles how it is built.
 
 ## FAQ
 

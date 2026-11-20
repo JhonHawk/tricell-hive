@@ -214,6 +214,13 @@ raise the minor or the patch version.
 
 ### Changed
 
+- `flow-figma-design` and `hive-ui-criteria` are now one skill, `create-design`,
+  with four entries: draw a screen, correct frames, review an existing design
+  (a Figma link or an image, drawing nothing) and create or refresh `DESIGN.md`.
+  A mobile-only app is drawn once at 440 px, a yes to recording the Figma file
+  or library stays pending for the plan to write, and the site page moves from
+  `flows/figma-design/` to `flows/create-design/`, which redirects.
+
 - The `integrations/agents` tests were audited: 17 tests that repeated a
   contract another test already proves were removed or folded into it, and 5
   that passed with the guarded code broken now check that code. Each change

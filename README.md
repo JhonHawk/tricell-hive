@@ -373,7 +373,7 @@ Start each flow by typing its command, such as `/hive-mode status` or `/flow-pla
 command loads the skill whole for that flow, which the host's automatic selection does
 not guarantee. A request to do work does not need a command: it enters Hive mode, which
 continues into Build in the same turn when the request is complete, unless it brings a
-new screen and the host can write to Figma, when it offers Figma design first. Where a flow needs
+new screen and the host can write to Figma, when it offers Create design first. Where a flow needs
 your go-ahead for the next one, it ends by naming that command.
 
 ```mermaid
@@ -384,7 +384,7 @@ flowchart TD
     Entry -.->|You ask for a plan| Plan["flow-plan"]
 
     Status -->|User picks a ticket| HiveMode
-    HiveMode -->|New or recomposed screen| Figma["flow-figma-design"]
+    HiveMode -->|New or recomposed screen| Figma["create-design"]
     Figma -->|Example approved| Plan
     HiveMode -->|The how has a decision for you| Plan
     HiveMode -->|The how is settled| Build
@@ -417,14 +417,14 @@ lists where each flow loops.
 - [Hive mode](https://hive.tricell.tech/flows/hive-mode/) ([skill](content/skills/hive-mode/SKILL.md)) is the entry for every
   request to do work: it settles what you need, reading before it asks and asking one
   open question at a time. A complete request is checked and done, or continues into
-  Build in the same turn, except a new screen it offers to Figma design first; Plan comes only when the how has a decision for you or the work
+  Build in the same turn, except a new screen it offers to Create design first; Plan comes only when the how has a decision for you or the work
   cannot be finished from your request and the `git diff`. It also turns uncertainty into
   a supported answer, assesses a ticket you pick, and audits the codebase for what to
   improve when you ask. It also classifies the work into one of 13 playbooks
   (`content/skills/hive-mode/playbooks/`), each naming the order of the stages and what
   is specific to its kind, or follows the general route when none fits. An analysis ends at its findings
   with no flow recommended. It does not publish to the viewer.
-- [Figma design](https://hive.tricell.tech/flows/figma-design/) ([skill](content/skills/flow-figma-design/SKILL.md)) is an optional
+- [Create design](https://hive.tricell.tech/flows/create-design/) ([skill](content/skills/create-design/SKILL.md)) is an optional
   stage between Hive mode and Plan for a new or recomposed screen: it draws one example
   as frames in the project's Figma file, following your existing screens, has a reviewer
   agent check it, asks you to approve or correct the completed set once, and records
@@ -434,7 +434,12 @@ lists where each flow loops.
   when you approve the example, when the build starts and at the close. It draws alternatives only for a screen you
   name. Applicable mobile frames are ready before approval; corrections return only
   the affected screens for approval. Hive mode recommends it only when the host can
-  write to Figma. It does not publish to the viewer.
+  write to Figma. A web app is drawn at its desktop width plus 440 px when served on
+  mobile; an app that runs only on mobile is drawn once at 440 px. A yes to recording the
+  Figma file or library in `DESIGN.md` stays pending and the plan writes it. The same skill
+  also corrects frames you name, reviews a design someone else drew (a Figma link or an
+  image; a reviewer agent returns findings and a verdict, and nothing is drawn), and creates
+  or refreshes `DESIGN.md`. It does not publish to the viewer.
 - [Plan](https://hive.tricell.tech/flows/plan/) ([skill](content/skills/flow-plan/SKILL.md)) settles the how: it presents two or
   three approaches before the tasks, resolves the decisions that are yours, and
   defines contracts, verifiable tasks, and acceptance criteria.
