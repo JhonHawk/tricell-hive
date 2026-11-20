@@ -20,6 +20,8 @@ var (
 		regexp.MustCompile(`^\(\(\s*(?:\+\+|--)?(\w+)\s*(?:\+\+|--|[-+*]?=)`),
 		regexp.MustCompile("^let\\s+[\"']?(\\w+)"),
 	}
+	// cStyleVariable is the variable a C-style for initializes.
+	cStyleVariable = regexp.MustCompile(`^\(\((\w+)`)
 	// elapsedOperand is a comparison operand that reads the clock directly.
 	elapsedOperand = regexp.MustCompile(`SECONDS|date \+%s|\$\(\(`)
 	// waitKeywords precede a command inside a compound command.
@@ -93,6 +95,7 @@ type openLoop struct {
 // is bounded by it, passed down as wrapped; a timeout inside a loop body is
 // not a deadline for the loop.
 func scanWaitLoops(segs [][]string, wrapped bool, depth int, withDeadline, without *int) {
+	segs = peelLoopStarts(segs)
 	counters := counterVariables(segs)
 	var stack []*openLoop
 	for i, seg := range segs {
@@ -103,7 +106,7 @@ func scanWaitLoops(segs [][]string, wrapped bool, depth int, withDeadline, witho
 				}
 			}
 		}
-		first := strings.TrimRight(seg[0], "&")
+		first := strings.TrimRight(seg[0], "&)")
 		switch first {
 		case "while", "until", "for":
 			stack = append(stack, &openLoop{start: i, doAt: -1})
@@ -182,7 +185,17 @@ func loopHasDeadline(segs [][]string, l *openLoop, end int, counters map[string]
 		h := header[0]
 		switch {
 		case len(h) > 1 && strings.HasPrefix(h[1], "(("):
-			return len(header) == 3
+			if len(header) != 3 {
+				return false
+			}
+			withVariable := map[string]bool{}
+			for name := range counters {
+				withVariable[name] = true
+			}
+			if m := cStyleVariable.FindStringSubmatch(h[1]); m != nil {
+				withVariable[m[1]] = true
+			}
+			return comparesToLimit(append([]string{"(("}, header[1]...), false, withVariable)
 		case len(h) > 2 && h[2] == "in":
 			return len(h) > 3
 		}
@@ -270,4 +283,40 @@ func leadsToExit(segs [][]string, j, end int) bool {
 		}
 	}
 	return false
+}
+
+// peelLoopStarts puts a loop that starts after a keyword or a group opener,
+// such as `then while :`, `(while :` or `{ until ...`, at the head of its own
+// segment, so the scan finds it.
+func peelLoopStarts(segs [][]string) [][]string {
+	isLoop := func(t string) bool { return t == "while" || t == "until" || t == "for" }
+	out := make([][]string, 0, len(segs))
+	for _, seg := range segs {
+		seg = append([]string(nil), seg...)
+		for len(seg) > 0 {
+			head := seg[0]
+			switch {
+			case head == "(" || head == "{":
+				seg = seg[1:]
+				continue
+			case strings.HasPrefix(head, "(") && isLoop(head[1:]):
+				seg[0] = head[1:]
+			case (head == "then" || head == "do" || head == "else" || head == "elif" || head == "!") && len(seg) > 1:
+				next := strings.TrimLeft(seg[1], "({")
+				if next == "" && len(seg) > 2 {
+					next = seg[2]
+				}
+				if isLoop(next) {
+					out = append(out, seg[:1])
+					seg = seg[1:]
+					continue
+				}
+			}
+			break
+		}
+		if len(seg) > 0 {
+			out = append(out, seg)
+		}
+	}
+	return out
 }

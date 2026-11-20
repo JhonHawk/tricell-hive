@@ -93,3 +93,6 @@ None: the tasks take no effect on an external system.
 - Se añaden el CHANGELOG, la frase de la rúbrica y la fila de rule-enforcers.
 - D2 queda acotada.
 - La punta de la rama de adelgazamiento pasa a `089cd08b` y se registra la observación para el commit.
+
+2026-11-20 — Revisión durante el build: la delta y design.md cuentan como plazo también la condición del propio bucle y un `for ((…))` con condición. Sin eso, un `while [ $i -lt 60 ]` acotado daba fail. No invalida tareas.
+2026-11-20 — Revisión de la delta (hive-review-plan, 0 P0/P1, 2 P2 y 2 P3): el bucle se reconoce después de then/do/(/{; el for C-style exige comparar con un límite; fixtures nuevos; operadores corregidos en design.md; `|| true` y el tiempo leído antes del bucle quedan como límites aceptados.

@@ -4,7 +4,7 @@ Base `development` en `27875867`, rama `feat/background-wait-rule`. T1 y T4 corr
 
 ### T1 — Hoja `hive-rule-background-wait` y su línea en la guía global
 
-- [ ] La hoja existe con las cinco reglas de `design.md` y el índice de hojas la enlaza en el momento de lanzar una espera.
+- [x] La hoja existe con las cinco reglas de `design.md` y el índice de hojas la enlaza en el momento de lanzar una espera.
 
 **Closes:** AC4
 
@@ -22,7 +22,7 @@ Base `development` en `27875867`, rama `feat/background-wait-rule`. T1 y T4 corr
 
 ### T2 — Criterio `unbounded_background_wait`
 
-- [ ] `--audit-session` reporta el criterio para Claude Code y Grok, y da `not_observed` en Codex.
+- [x] `--audit-session` reporta el criterio para Claude Code y Grok, y da `not_observed` en Codex.
 
 **Closes:** AC1, AC3, AC5
 
@@ -48,7 +48,7 @@ Base `development` en `27875867`, rama `feat/background-wait-rule`. T1 y T4 corr
 
 ### T3 — `merged_branch_deleted` da fail solo después de un cierre
 
-- [ ] En la auditoría, una sesión sin mensaje de cierre después de su último merge da `review`, y una con cierre y sin borrado sigue dando `fail`.
+- [x] En la auditoría, una sesión sin mensaje de cierre después de su último merge da `review`, y una con cierre y sin borrado sigue dando `fail`.
 
 **Closes:** AC2
 
@@ -66,7 +66,7 @@ Base `development` en `27875867`, rama `feat/background-wait-rule`. T1 y T4 corr
 
 ### T4 — Rúbrica, registro de enforcers y CHANGELOG
 
-- [ ] La rúbrica y `rule-enforcers.md` tienen la fila del criterio nuevo. La rúbrica explica cómo leer el `review` de `merged_branch_deleted`, la fila de limpieza de ramas nombra `session_audit.go`, y `CHANGELOG.md` tiene su entrada.
+- [x] La rúbrica y `rule-enforcers.md` tienen la fila del criterio nuevo. La rúbrica explica cómo leer el `review` de `merged_branch_deleted`, la fila de limpieza de ramas nombra `session_audit.go`, y `CHANGELOG.md` tiene su entrada.
 
 **Closes:** none
 
@@ -98,13 +98,22 @@ El sitio no cambia: ninguna página describe esperas fuera de CI.
 ## Checkpoint
 
 - Updated: 2026-11-20
-- Stage: build · T1
-- Last commit: 27875867
-- Open findings: none
-- Next: T1 leaf + global line; launch T2 child
+- Stage: build · fix round on T2 (child)
+- Last commit: 95fbdfb3
+- Open findings: H1 delta review P2-1/P2-2/P3-1/P3-2 · fixing in build
+- Next: On the fix: verify, commit with design/spec/proposal, rerun the full suite, then flow-verify
 
 ### Evidence
 
 - before captures: none (no screen)
+- go test ./tests/content/... · pass · 95075c97
+- go test ./tests/pilot/... · pass · 99e3ee80
+- audit copy: unbounded_background_wait fail :3855 · 99e3ee80
+- go vet ./... && go test ./... · pass · 95fbdfb3
 
 ## Estado de la revisión y avance
+
+2026-11-20 — T1 · 95075c97 · unverified: AC4 is observed in the installed guidance after hive update, after integration
+2026-11-20 — T2 · 99e3ee80 · unverified: none
+2026-11-20 — T3 · 86d12e91 · unverified: none
+2026-11-20 — T4 · 95fbdfb3 · unverified: none

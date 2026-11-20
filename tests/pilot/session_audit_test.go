@@ -607,6 +607,12 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"wait grok block_until_ms above 0", "grok", wait, []string{"unbounded_background_wait", "grok-updates-blocking-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"wait grok no block_until_ms", "grok", wait, []string{"unbounded_background_wait", "grok-updates-no-block-field-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"wait codex the host does not mark a background command", "codex", wait, []string{"unbounded_background_wait", "codex-rollout-unbounded-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"wait claude a loop after then", "claude", wait, []string{"unbounded_background_wait", "claude-project-then-while-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude a loop in a subshell", "claude", wait, []string{"unbounded_background_wait", "claude-project-subshell-while-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude a C-style for with a counter limit", "claude", wait, []string{"unbounded_background_wait", "claude-project-c-style-limit-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a C-style for with a constant condition", "claude", wait, []string{"unbounded_background_wait", "claude-project-c-style-always-true-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude a C-style for without a condition", "claude", wait, []string{"unbounded_background_wait", "claude-project-c-style-empty-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude a counter limit in the while condition", "claude", wait, []string{"unbounded_background_wait", "claude-project-while-condition-pass.jsonl"}, auditOptions{}, "pass"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
