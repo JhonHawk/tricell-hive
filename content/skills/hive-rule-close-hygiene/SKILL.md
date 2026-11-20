@@ -6,11 +6,11 @@ disable-model-invocation: true
 
 # Archive, clean up and record pending work
 
-Read at steps 4 to 7 of [flow-close](../flow-close/SKILL.md), and before the first push of a work's branch that holds a change folder for its archive.
+Read at steps 4 to 7 of [flow-close](../flow-close/SKILL.md), and for an archive before a work's first push.
 
 ## Archive the change folder
 
-Read [archive](references/archive.md) and follow it: it sets when a change folder is archived, before the first push of the work's branch or at the close, and how.
+Read and follow [archive](references/archive.md): when and how a change folder is archived.
 
 ## Clean up
 
