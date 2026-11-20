@@ -88,11 +88,11 @@ Retirada sin hacer: tras la ronda de fixes de verify, este change folder se arch
 
 ### T6 — El cierre registra el archivado y el soporte como pendientes
 
-- [ ] `hive-rule-close-hygiene` (título, `description` y «Archive the change folder»): con Specs en el repositorio del trabajo, el cierre no archiva; escribe el registro de memoria `archive-pending/<change-id>` (carpeta, PR, commit de merge, acciones de soporte) y descarta con `git restore` las ediciones sin commit que solo tocan el checkpoint (D15 A); con Specs en otro repositorio archiva como hoy (D17 A)
-- [ ] `hive-rule-close-footer` gana la respuesta «haz higiene» con el número de archivados pendientes, y `hive-rule-close-report` la nombra en «Next» para los cierres que terminan sin pie
-- [ ] `flow-close/references/branch-cleanup.md`: un archivado pendiente no es un cierre pendiente
-- [ ] `flow-close/references/support-material.md`: las eliminaciones se aplican en el cierre; commit, archive y promote se registran en `archive-pending/<change-id>`, sin rama, con los ítems de un worktree movidos a la misma ruta del checkout principal
-- [ ] `flow-close/SKILL.md` pasos 2 y 4, `hive-rule-close-modes` (paso 4 corre de inmediato) y `git-workflow` paso 4 («with the close's archive» pasa al lote de higiene)
+- [x] `hive-rule-close-hygiene` (título, `description` y «Archive the change folder»): con Specs en el repositorio del trabajo, el cierre no archiva; escribe el registro de memoria `archive-pending/<change-id>` (carpeta, PR, commit de merge, acciones de soporte) y descarta con `git restore` las ediciones sin commit que solo tocan el checkpoint (D15 A); con Specs en otro repositorio archiva como hoy (D17 A)
+- [x] `hive-rule-close-footer` gana la respuesta «haz higiene» con el número de archivados pendientes, y `hive-rule-close-report` la nombra en «Next» para los cierres que terminan sin pie
+- [x] `flow-close/references/branch-cleanup.md`: un archivado pendiente no es un cierre pendiente
+- [x] `flow-close/references/support-material.md`: las eliminaciones se aplican en el cierre; commit, archive y promote se registran en `archive-pending/<change-id>`, sin rama, con los ítems de un worktree movidos a la misma ruta del checkout principal
+- [x] `flow-close/SKILL.md` pasos 2 y 4, `hive-rule-close-modes` (paso 4 corre de inmediato) y `git-workflow` paso 4 («with the close's archive» pasa al lote de higiene)
 
 **Closes:** AC4
 
@@ -108,9 +108,9 @@ Retirada sin hacer: tras la ronda de fixes de verify, este change folder se arch
 
 ### T7 — La higiene entrega los pendientes por lotes
 
-- [ ] Referencia nueva `flow-close/references/batch-archive.md`: listar los change folders que siguen en `<Specs>/changes/` de la base y reconciliarlos con los registros `archive-pending/*` (sin registro: solo con confirmación del usuario; desatendido, pendiente), saltar los que ya archiva un PR de higiene abierto, `check_change.py --archive` con una sola ronda para tareas sin marcar, una rama desde la base creada en el checkout que tiene los ítems de soporte, `apply_deltas.py` en orden de llegada con `--detail "<PR, merge commit>"` y un minuto UTC nuevo entre carpetas que cambian el mismo requisito, las acciones de soporte registradas, la entrega bajo el modo vigente (sin respuesta, solo la pregunta de entrega; `hold` deja todo pendiente; `direct-base` push a la base; los demás un PR, D16 A), y vaciar cada registro cuando su archivado llega a la base
-- [ ] `hive-mode/playbooks/ticket-status.md` lista el número de archivados pendientes con la respuesta «haz higiene» (D18 A)
-- [ ] `flow-close/SKILL.md` la enlaza para una petición de higiene
+- [x] Referencia nueva `flow-close/references/batch-archive.md`: listar los change folders que siguen en `<Specs>/changes/` de la base y reconciliarlos con los registros `archive-pending/*` (sin registro: solo con confirmación del usuario; desatendido, pendiente), saltar los que ya archiva un PR de higiene abierto, `check_change.py --archive` con una sola ronda para tareas sin marcar, una rama desde la base creada en el checkout que tiene los ítems de soporte, `apply_deltas.py` en orden de llegada con `--detail "<PR, merge commit>"` y un minuto UTC nuevo entre carpetas que cambian el mismo requisito, las acciones de soporte registradas, la entrega bajo el modo vigente (sin respuesta, solo la pregunta de entrega; `hold` deja todo pendiente; `direct-base` push a la base; los demás un PR, D16 A), y vaciar cada registro cuando su archivado llega a la base
+- [x] `hive-mode/playbooks/ticket-status.md` lista el número de archivados pendientes con la respuesta «haz higiene» (D18 A)
+- [x] `flow-close/SKILL.md` la enlaza para una petición de higiene
 
 **Closes:** AC5
 
@@ -126,8 +126,8 @@ Retirada sin hacer: tras la ronda de fixes de verify, este change folder se arch
 
 ### T8 — El plan lee los deltas pendientes
 
-- [ ] `flow-plan/SKILL.md` paso 1 lee también los deltas de los change folders que siguen en `<Specs>/changes/` de la base para las capabilities que toca, y escribe su delta contra el spec con ellos aplicados; «Where the plan lives» deja de decir «since the close merges its delta»
-- [ ] `flow-build/references/spec-delta.md` lee los mismos deltas pendientes antes de escribir el suyo
+- [x] `flow-plan/SKILL.md` paso 1 lee también los deltas de los change folders que siguen en `<Specs>/changes/` de la base para las capabilities que toca, y escribe su delta contra el spec con ellos aplicados; «Where the plan lives» deja de decir «since the close merges its delta»
+- [x] `flow-build/references/spec-delta.md` lee los mismos deltas pendientes antes de escribir el suyo
 
 **Closes:** AC6
 
@@ -143,9 +143,9 @@ Retirada sin hacer: tras la ronda de fixes de verify, este change folder se arch
 
 ### T9 — Sitio, documentación y changelog
 
-- [ ] `site/src/content/docs/flows/close.md`, `flows/plan.md` y `flows/overview.md`, `README.md` y `llms.txt` describen el pendiente y el lote de «haz higiene»; `project-layout/references/layout.md` (línea 56), `_support/docs/architecture/instruction-resources.md` y `workspace-and-artifacts.md` apuntan a la casa nueva
-- [ ] `_support/docs/harness-engineering/rule-enforcers.md`: la fila «Deltas merge into the specs before a change folder is archived» apunta a `batch-archive.md`
-- [ ] `CHANGELOG.md` «Unreleased» lo anota en «Changed»
+- [x] `site/src/content/docs/flows/close.md`, `flows/plan.md` y `flows/overview.md`, `README.md` y `llms.txt` describen el pendiente y el lote de «haz higiene»; `project-layout/references/layout.md` (línea 56), `_support/docs/architecture/instruction-resources.md` y `workspace-and-artifacts.md` apuntan a la casa nueva
+- [x] `_support/docs/harness-engineering/rule-enforcers.md`: la fila «Deltas merge into the specs before a change folder is archived» apunta a `batch-archive.md`
+- [x] `CHANGELOG.md` «Unreleased» lo anota en «Changed»
 
 **Closes:** AC7
 
@@ -161,7 +161,7 @@ Retirada sin hacer: tras la ronda de fixes de verify, este change folder se arch
 
 ### T10 — Este cambio deja su propio archivado pendiente
 
-- [ ] El change folder de este cambio no se archiva en su PR; en el cierre de seguimiento, cuando el usuario fusione, queda registrado en `pending/archives` y lo entrega la siguiente petición de higiene
+- [x] El change folder de este cambio no se archiva en su PR; en el cierre de seguimiento, cuando el usuario fusione, queda registrado en `pending/archives` y lo entrega la siguiente petición de higiene
 
 **Closes:** AC4, AC5
 
@@ -188,15 +188,20 @@ Sin parada de validación: la entrega es `ready`, que se detiene con el PR abier
 ## Checkpoint
 
 - Updated: 2026-11-20
-- Stage: plan revised (D14 A) · ready for flow-build
-- Last commit: f18f1977
+- Stage: verify · push · push and ready stop
+- Last commit: b8d24d8e
 - Open findings: none
-- Next: T6
+- Next: push, PR non-draft, ready stop; follow-up close records this folder's archive (AC4)
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/archive-in-work-pr · feat/archive-in-work-pr
 
 ### Evidence
 
 - before captures: none (no screen)
+- go test ./... · exit 0 · 72a9f0f0
+- python3 -m unittest discover -s tests/skills · OK · 72a9f0f0
+- go test ./tests/content/... · ok, footprint -400 B · e8748481
+- go test ./... · exit 0 · 07877b32 (footprint -158 B)
+- go test ./tests/content/... · ok, footprint -129 B · b8d24d8e
 
 ## Review status and progress
 
@@ -208,3 +213,10 @@ Sin parada de validación: la entrega es `ready`, que se detiene con el PR abier
 2026-11-20 — T4 · 46e22039 · unverified: footprint test over baseline
 2026-11-20 — D13: el presupuesto de lectura del ciclo bloqueó el enfoque; D14 A lo reemplaza por lotes. T1–T4 revertidos en f18f1977; T1–T5 retiradas; T6–T10 nuevas.
 2026-11-20 — Segunda revisión del plan aplicada; D15–D18 A.
+2026-11-20 — T6 · c0f92d09 · unverified: AC4 observed only at this change's follow-up close
+2026-11-20 — T7 · c0f92d09 · unverified: AC5 observed only at the first hygiene request after install
+2026-11-20 — T8 · b20dcbd0 · unverified: AC6 in a real plan on a capability with a pending delta
+2026-11-20 — T9 · 72a9f0f0 · unverified: none
+2026-11-20 — T10 · uncommitted · unverified: AC4 at the follow-up close, AC5 at the first hygiene request
+2026-11-20 — verify: /code-review halló 9 importantes y 1 menor (registro sobrescrito, ediciones del folder tras el merge, orden por fecha de rama, registros sin vaciar en ready, soporte sin change folder, textos contradictorios, ítems en worktree, restore antes del inventario, carpetas que dependen de una retenida); todos corregidos en 07877b32. Segunda revisión limitada al diff de los fixes en curso.
+2026-11-20 — verify: segunda /code-review (limitada a 07877b32) halló 5 importantes y 3 menores (registro con acciones nunca borrado, mover ediciones bloqueaba el avance de la base, retención de dependientes incompleta, puntero sin destino, restore solo con worktree; textos y conteo); corregidos en b8d24d8e con línea Unreviewed. Global sin cambios.
