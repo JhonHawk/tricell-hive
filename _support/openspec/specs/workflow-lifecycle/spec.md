@@ -78,7 +78,7 @@ A UI change's `hive-review-ux` child SHALL receive, with the walk's captures, th
 
 ### Requirement: Archived change order within a day
 
-Closing an integrated change folder SHALL move it to `<Specs>/changes/archive/YYYY-MM-DD-HHMM-<change-id>/`, with the UTC date and 24-hour time of the archive, so that two changes archived the same day keep their order. The spec-delta check SHALL require the delta of the latest folder of each requirement, ordering same-day folders by that time when both carry it, and SHALL accept either delta only when their order is unknown: on the same day when a folder has no time or both carry the same time, or when a folder without a time, which carries the local date of the older convention, and a timed one are at most a day apart. A requirement that one delta lists more than once SHALL be reported while that folder holds the latest delta of the requirement, and its blocks SHALL take part in no comparison.
+Archiving a change folder SHALL move it to `<Specs>/changes/archive/YYYY-MM-DD-HHMM-<change-id>/`, with the UTC date and 24-hour time of the archive, so that two changes archived the same day keep their order. The spec-delta check SHALL require the delta of the latest folder of each requirement, ordering same-day folders by that time when both carry it, and SHALL accept either delta only when their order is unknown: on the same day when a folder has no time or both carry the same time, or when a folder without a time, which carries the local date of the older convention, and a timed one are at most a day apart. A requirement that one delta lists more than once SHALL be reported while that folder holds the latest delta of the requirement, and its blocks SHALL take part in no comparison.
 
 #### Scenario: Two changes archived the same day
 
@@ -174,40 +174,40 @@ A revision of a written plan that has a change folder SHALL edit in the same pas
 - **THEN** the check prints the file and line and exits 1
 
 ### Requirement: Archive confirms unchecked tasks
-Before merging a change folder's deltas into the specs and moving it to the archive, the close SHALL run the coherence check with `--archive` and fix each coherence line it prints; a delivery-unit box whose predicate reads `n/a: <reason>` SHALL count as resolved; when the check lists unchecked task boxes, the close SHALL show their count and ask whether to archive anyway before moving the folder, and a close under unattended delegation SHALL leave the folder unarchived and record it as pending.
+Before merging a change folder's deltas into the specs and moving it to the archive, the hygiene batch SHALL run the coherence check with `--archive` and fix each coherence line it prints; a delivery-unit box whose predicate reads `n/a: <reason>` SHALL count as resolved; when the check lists unchecked task boxes, the batch SHALL show their count and ask whether to archive anyway before moving the folder, and a batch under unattended delegation SHALL leave the folder unarchived and pending.
 
 #### Scenario: Unchecked boxes remain at archive
-- **GIVEN** an integrated change folder whose `tasks.md` holds unchecked boxes
-- **WHEN** the close runs the check with `--archive`
-- **THEN** the close shows the number of unchecked boxes and asks before archiving, and the folder moves only on the user's answer
+- **GIVEN** a pending change folder whose `tasks.md` holds unchecked boxes
+- **WHEN** the hygiene batch runs the check with `--archive`
+- **THEN** it shows the number of unchecked boxes and asks before archiving, and the folder moves only on the user's answer
 
 #### Scenario: An unattended close with unchecked boxes
-- **GIVEN** a close running under unattended delegation and a folder with unchecked boxes
+- **GIVEN** a hygiene batch running under unattended delegation and a folder with unchecked boxes
 - **WHEN** the check lists them
-- **THEN** the folder stays unarchived and is recorded as pending
+- **THEN** the folder stays unarchived and pending
 
 #### Scenario: A delivery-unit box that does not apply
 - **GIVEN** a `## Delivery units` box `- [ ] perf: n/a: no hot path changes`
-- **WHEN** the close runs the check with `--archive`
+- **WHEN** the hygiene batch runs the check with `--archive`
 - **THEN** that box is not counted as unchecked
 
 ### Requirement: Deltas merge deterministically at archive
-The close SHALL preview the merge of a change folder's deltas with `apply_deltas.py` before applying it, and SHALL apply it with `--apply`, which merges every delta into its capability spec, marks `proposal.md` completed and moves the folder to the archive. The merge SHALL refuse and write nothing when a MODIFIED requirement is missing from the spec, an ADDED requirement is already present with other text, a delta lists a requirement twice, a delta modifies a new capability, a delta has no operations, a spec has no `## Requirements` section, or the archive target exists. A scenario that a MODIFIED requirement drops SHALL be listed in the preview and named in the close report, and SHALL NOT block the merge.
+The hygiene batch SHALL preview the merge of a change folder's deltas with `apply_deltas.py` before applying it, and SHALL apply it with `--apply`, which merges every delta into its capability spec, marks `proposal.md` completed and moves the folder to the archive. The merge SHALL refuse and write nothing when a MODIFIED requirement is missing from the spec, an ADDED requirement is already present with other text, a delta lists a requirement twice, a delta modifies a new capability, a delta has no operations, a spec has no `## Requirements` section, or the archive target exists. A scenario that a MODIFIED requirement drops SHALL be listed in the preview and named in the batch's report, and SHALL NOT block the merge.
 
 #### Scenario: A modified requirement the spec lacks
 - **GIVEN** a delta that modifies a requirement the capability spec does not contain
-- **WHEN** the close runs the merge script
+- **WHEN** the hygiene batch runs the merge script
 - **THEN** it refuses with exit 1 and the specs and the change folder stay unchanged
 
 #### Scenario: Preview before applying
-- **GIVEN** an integrated change folder with valid deltas
-- **WHEN** the close runs the script without `--apply`
+- **GIVEN** a pending change folder with valid deltas
+- **WHEN** the hygiene batch runs the script without `--apply`
 - **THEN** it prints each operation per capability and the archive target, and writes nothing
 
 #### Scenario: A modified requirement drops a scenario
 - **GIVEN** a delta whose MODIFIED requirement omits a scenario the spec has
-- **WHEN** the close previews and applies the merge
-- **THEN** the preview lists the dropped scenario, the merge proceeds, and the close report names it
+- **WHEN** the hygiene batch previews and applies the merge
+- **THEN** the preview lists the dropped scenario, the merge proceeds, and the batch's report names it
 
 ### Requirement: Git and pull-request state read in one call
 Before comparing a work branch with its base, before merging and when reading a pull request's reviews, the agent SHALL read the Git and pull-request state with `git-workflow/scripts/git_state.py` when `python3` runs it, and SHALL fall back to the skill's manual commands when the script is missing or exits 2. Invoked without a subcommand, the script SHALL fetch before any comparison when asked to and report no comparison when that fetch fails; report the commits on the branch that the base lacks with their author without deciding which belong to the work; report whether the local head and the pushed head contain the base; read the pull request, its checks and its reviews and comments once each through REST, without waiting for CI or polling; report for each review and comment its author type, whether it is on the pull request's head commit and whether it is later than the push time the agent passes, without deciding whether it still applies; keep the Git fields when the pull-request source fails; never prompt for credentials; bound each command's time; run no shell; and change nothing but the remote-tracking refs a fetch updates. Invoked as `git_state.py commit`, the script SHALL reject wildcard or whole-tree flags (`-a`, `-A`, `.`), hook-skipping flags (`--no-verify`, `-n`) and directory paths, record pre-existing staged paths, temporarily register untracked target files with `git add -N` (rolling them back on failure), scan the target paths' diff for secrets, enforce the `Unreviewed: <reason>` trailer when `--unreviewed-fix` is passed, run `git commit --only -- <paths>`, and verify that pre-existing staged paths outside `<paths>` remain staged. The skill SHALL keep applying the head-commit and push-time filter only to review bots, and an open human thread SHALL still apply.
@@ -1487,3 +1487,24 @@ In `go run ./tests/pilot --audit-session`, `merged_branch_deleted` SHALL fail on
 - **GIVEN** a real session whose last merge is the promotion pull request from `development` to `qa`, with no close report after it
 - **WHEN** the session audit reads it
 - **THEN** `merged_branch_deleted` reports review, not fail
+
+### Requirement: Archives are delivered in a hygiene batch
+When `Specs` is in the work's repository, the close of an integrated work SHALL NOT archive its change folder nor commit the support material the user chose to commit, archive or promote; it SHALL record them in persistent memory, one record per work under the topic `archive-pending/<id>`, where the id is the change-id, else the ticket key or a short slug, with the folder, the work's pull request and merge commit and each support action, SHALL discard with `git restore` the folder's uncommitted edits left after the merge, naming those that touch more than its checkpoint, and its report and footer SHALL name how many archives are pending and the hygiene reply that delivers them. Deleting support material SHALL stay at the close. When `Specs` is in another repository, the close SHALL keep archiving there as that repository's `Delivery` sets. A hygiene request SHALL treat as pending each change folder still under `<Specs>/changes/` on the base that has a record, or whose work the user confirms integrated, skipping one that an open hygiene pull request already archives; SHALL archive them on one branch from the base in the order each reached the base; SHALL apply the recorded support actions on that branch; and SHALL deliver it once under the delivery mode in force for that repository, asking only the delivery question when none is in force, leaving everything pending under `hold` and pushing to the base under `direct-base`. It SHALL remove from each record what its delivery carried once that delivery reaches the base, soft-delete a record left with nothing, and leave pending each folder whose delta changes a requirement that a folder left pending adds or changes. A folder without a record SHALL stay pending under unattended delegation.
+
+#### Scenario: A close leaves its archive pending
+- **GIVEN** a work integrated into the base with a change folder and a support record the user chose to commit
+- **WHEN** the close runs
+- **THEN** no branch or pull request is opened for them, the record `archive-pending/<change-id>` lists both, and the report names the pending count and the hygiene reply
+
+#### Scenario: A hygiene request delivers two pending archives
+- **GIVEN** two change folders still under `<Specs>/changes/` on the base, the second written while the first was pending
+- **WHEN** the user asks for hygiene
+- **THEN** one branch archives the first and then the second, one delivery carries them, and their records are emptied once the archive reaches the base
+
+### Requirement: Plans read pending deltas
+Before planning a change to a capability, the plan SHALL read the deltas of the change folders still under `<Specs>/changes/` that change that capability, since the capability spec does not hold them until a hygiene batch archives them, and SHALL write its own delta against the spec with those deltas applied.
+
+#### Scenario: A plan on a capability with a pending delta
+- **GIVEN** a pending change folder whose delta modifies a requirement of a capability
+- **WHEN** a new plan changes the same requirement
+- **THEN** its delta starts from the requirement as the pending delta leaves it

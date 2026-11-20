@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | In build |
+| Estado | Completado · PR #557, merge 059868cd |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` @ a5691ef8 · rama `feat/archive-in-work-pr` (worktree `.claude/worktrees/archive-in-work-pr`) |
 | Playbook | feature |
