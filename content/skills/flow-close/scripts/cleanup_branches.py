@@ -8,7 +8,12 @@ Usage:
 
 By default runs in dry-run mode and prints a JSON plan of `worktrees` and
 `branches` with their action (`remove_worktree`, `delete_branch`, or `keep`)
-and reason. With `--apply`, executes only the safe removals and deletions.
+and reason, and `base_update` with what would happen to the base in the main
+checkout (`fast_forward`, `current` or `keep`, judged from the refs already
+fetched). With `--apply`, it first fetches the base from origin and
+fast-forwards the main checkout's base when that checkout is on it, has no
+commits missing from origin, and no incoming file is changed, untracked or
+ignored there; then it executes only the safe removals and deletions.
 """
 
 import argparse
@@ -393,6 +398,99 @@ def apply_cleanup(repo, plan):
     }
 
 
+def main_checkout_of(repo):
+    worktrees = parse_worktrees(repo)
+    if worktrees and not worktrees[0].get("bare"):
+        return worktrees[0]["path"]
+    return None
+
+
+def status_paths(checkout):
+    """Paths the checkout holds locally: changed, staged, untracked or ignored.
+
+    With -uall, git lists each untracked or ignored file, not its folder.
+    """
+    code, out, err = run_git(checkout, "status", "--porcelain=v1", "-z", "-uall", "--ignored")
+    if code != 0:
+        raise RuntimeError(err or "git status failed")
+    paths, tokens = set(), out.split("\0")
+    i = 0
+    while i < len(tokens):
+        entry = tokens[i]
+        i += 1
+        if len(entry) < 4:
+            continue
+        paths.add(entry[3:])
+        if entry[0] in "RC":
+            paths.add(tokens[i])
+            i += 1
+    return paths
+
+
+def plan_base(main_checkout, base):
+    """Decide, without changing anything, whether the base can be fast-forwarded."""
+    if not main_checkout:
+        return {"action": "keep", "checkout": None, "reason": "no main checkout"}
+    entry = {"checkout": main_checkout}
+    remote_ref = f"refs/remotes/origin/{base}"
+    code, out, _ = run_git(main_checkout, "rev-parse", "--verify", "--quiet", remote_ref)
+    if code != 0:
+        return {**entry, "action": "keep", "reason": f"no origin/{base}"}
+    remote = out.strip()
+    code, out, _ = run_git(main_checkout, "symbolic-ref", "--quiet", "--short", "HEAD")
+    current = out.strip() if code == 0 else ""
+    if current != base:
+        return {**entry, "action": "keep", "reason": f"main checkout on {current or 'a detached HEAD'}"}
+    _, out, _ = run_git(main_checkout, "rev-parse", "HEAD")
+    head = out.strip()
+    counts = {}
+    for name, span in (("ahead", f"{remote_ref}..HEAD"), ("behind", f"HEAD..{remote_ref}")):
+        code, out, err = run_git(main_checkout, "rev-list", "--count", span)
+        if code != 0:
+            return {**entry, "action": "keep", "reason": err or "git rev-list failed"}
+        counts[name] = int(out.strip())
+    if counts["ahead"]:
+        return {**entry, "action": "keep", "reason": f"local {base} has {counts['ahead']} commits not on origin"}
+    if not counts["behind"]:
+        return {**entry, "action": "current", "from": head, "to": head, "commits": 0}
+    code, out, err = run_git(main_checkout, "diff", "--name-only", "-z", "HEAD", remote_ref)
+    if code != 0:
+        return {**entry, "action": "keep", "reason": err or "git diff failed"}
+    incoming = {p for p in out.split("\0") if p}
+    try:
+        clashes = sorted(incoming & status_paths(main_checkout))
+    except RuntimeError as exc:
+        return {**entry, "action": "keep", "reason": str(exc)}
+    if clashes:
+        return {**entry, "action": "keep", "reason": "incoming changes touch local files", "paths": clashes}
+    return {**entry, "action": "fast_forward", "from": head, "to": remote, "commits": counts["behind"]}
+
+
+def update_base(repo, base):
+    """Fetch the base and fast-forward the main checkout when plan_base allows it.
+
+    Returns the base entry and an error message, or None when nothing failed.
+    """
+    checkout = main_checkout_of(repo)
+    if not checkout:
+        return plan_base(None, base), None
+    code, _, _ = run_git(checkout, "remote", "get-url", "origin")
+    if code != 0:
+        return {"action": "keep", "checkout": checkout, "reason": "no origin remote"}, None
+    code, _, err = run_git(checkout, "fetch", "--quiet", "origin", base)
+    if code != 0:
+        reason = f"git fetch origin {base} failed: {err}"
+        return {"action": "keep", "checkout": checkout, "reason": reason}, reason
+    entry = plan_base(checkout, base)
+    if entry["action"] != "fast_forward":
+        return entry, None
+    code, _, err = run_git(checkout, "merge", "--ff-only", "--no-overwrite-ignore", f"origin/{base}")
+    if code != 0:
+        reason = f"git merge --ff-only origin/{base} failed: {err}"
+        return {**entry, "action": "keep", "reason": reason}, reason
+    return entry, None
+
+
 def parse_merged_pr_arg(items):
     result = {}
     for item in items or []:
@@ -417,6 +515,10 @@ def main(argv=None):
 
     try:
         merged_prs = parse_merged_pr_arg(args.merged_pr)
+        if args.apply:
+            base_update, base_error = update_base(args.repo, args.base)
+        else:
+            base_update, base_error = plan_base(main_checkout_of(args.repo), args.base), None
         plan = plan_cleanup(
             args.repo,
             base=args.base,
@@ -430,8 +532,12 @@ def main(argv=None):
         print(json.dumps({"ok": False, "error": str(exc)}), file=sys.stderr)
         return 2
 
+    plan["base_update"] = base_update
     if args.apply:
         applied = apply_cleanup(args.repo, plan)
+        if base_error:
+            applied["errors"].insert(0, base_error)
+            applied["ok"] = False
         plan["applied"] = applied
         print(json.dumps(plan, indent=2))
         return 0 if applied["ok"] else 1

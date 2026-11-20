@@ -1,4 +1,6 @@
+import contextlib
 import importlib.util
+import io
 import json
 import os
 import pathlib
@@ -175,6 +177,158 @@ class CleanupBranchesTests(unittest.TestCase):
         self.assertNotIn("feat/locked", applied["deleted_branches"])
         remote = self.git(self.main_repo, "ls-remote", "--heads", "origin", "feat/locked")
         self.assertTrue(remote, "remote branch must survive a failed worktree removal")
+
+
+class BaseFastForwardTests(unittest.TestCase):
+    """The close brings the main checkout's base up to origin when that is safe."""
+
+    tearDown = CleanupBranchesTests.tearDown
+    git = CleanupBranchesTests.git
+
+    def setUp(self):
+        CleanupBranchesTests.setUp(self)
+        self.other = self.tmp / "other"
+        self.git(self.tmp, "clone", "-q", str(self.origin), str(self.other))
+
+    def push_upstream(self, path, text):
+        target = self.other / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(text)
+        self.git(self.other, "add", "-f", path)
+        self.git(self.other, "commit", "-q", "-m", f"upstream {path}")
+        self.git(self.other, "push", "-q", "origin", "development")
+        return self.git(self.other, "rev-parse", "HEAD")
+
+    def run_main(self, *args):
+        mod = load_module()
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = mod.main(["--repo", str(self.main_repo), "--base", "development", *args])
+        return code, json.loads(out.getvalue())
+
+    def head(self):
+        return self.git(self.main_repo, "rev-parse", "HEAD")
+
+    def test_base_behind_and_clean_is_fast_forwarded(self):
+        before = self.head()
+        self.push_upstream("one.txt", "1\n")
+        tip = self.push_upstream("two.txt", "2\n")
+        code, plan = self.run_main("--apply")
+        self.assertEqual(code, 0, plan)
+        self.assertEqual(plan["base_update"]["action"], "fast_forward", plan["base_update"])
+        self.assertEqual(plan["base_update"]["commits"], 2)
+        self.assertEqual(plan["base_update"]["from"], before)
+        self.assertEqual(plan["base_update"]["to"], tip)
+        self.assertEqual(self.head(), tip)
+
+    def test_base_already_current(self):
+        code, plan = self.run_main("--apply")
+        self.assertEqual(code, 0, plan)
+        self.assertEqual(plan["base_update"]["action"], "current", plan["base_update"])
+
+    def test_incoming_change_to_a_modified_file_keeps_the_base(self):
+        before = self.head()
+        self.push_upstream("app.txt", "upstream\n")
+        (self.main_repo / "app.txt").write_text("local\n")
+        code, plan = self.run_main("--apply")
+        self.assertEqual(plan["base_update"]["action"], "keep", plan["base_update"])
+        self.assertIn("app.txt", plan["base_update"]["paths"])
+        self.assertEqual(self.head(), before)
+        self.assertEqual((self.main_repo / "app.txt").read_text(), "local\n")
+
+    def test_incoming_file_matching_an_untracked_file_keeps_the_base(self):
+        before = self.head()
+        self.push_upstream("notes.txt", "upstream\n")
+        (self.main_repo / "notes.txt").write_text("mine\n")
+        code, plan = self.run_main("--apply")
+        self.assertEqual(plan["base_update"]["action"], "keep", plan["base_update"])
+        self.assertIn("notes.txt", plan["base_update"]["paths"])
+        self.assertEqual(self.head(), before)
+        self.assertEqual((self.main_repo / "notes.txt").read_text(), "mine\n")
+
+    def test_incoming_file_that_is_ignored_locally_keeps_the_base(self):
+        before = self.head()
+        self.push_upstream(".env", "PORT=1\n")
+        code, plan = self.run_main("--apply")
+        self.assertEqual(plan["base_update"]["action"], "keep", plan["base_update"])
+        self.assertIn(".env", plan["base_update"]["paths"])
+        self.assertEqual(self.head(), before)
+        self.assertEqual((self.main_repo / ".env").read_text(), "PORT=3000\n")
+
+    def test_incoming_file_inside_an_ignored_local_folder_keeps_the_base(self):
+        before = self.head()
+        self.push_upstream("node_modules/pkg.js", "upstream\n")
+        (self.main_repo / "node_modules").mkdir()
+        (self.main_repo / "node_modules" / "pkg.js").write_text("local\n")
+        code, plan = self.run_main("--apply")
+        self.assertEqual(plan["base_update"]["action"], "keep", plan["base_update"])
+        self.assertIn("node_modules/pkg.js", plan["base_update"]["paths"])
+        self.assertEqual(self.head(), before)
+        self.assertEqual((self.main_repo / "node_modules" / "pkg.js").read_text(), "local\n")
+
+    def test_unrelated_local_change_survives_the_fast_forward(self):
+        tip = self.push_upstream("one.txt", "1\n")
+        (self.main_repo / "app.txt").write_text("local\n")
+        code, plan = self.run_main("--apply")
+        self.assertEqual(plan["base_update"]["action"], "fast_forward", plan["base_update"])
+        self.assertEqual(self.head(), tip)
+        self.assertEqual((self.main_repo / "app.txt").read_text(), "local\n")
+
+    def test_local_base_with_own_commits_is_kept(self):
+        self.push_upstream("one.txt", "1\n")
+        (self.main_repo / "mine.txt").write_text("x\n")
+        self.git(self.main_repo, "add", "mine.txt")
+        self.git(self.main_repo, "commit", "-q", "-m", "local only")
+        before = self.head()
+        code, plan = self.run_main("--apply")
+        self.assertEqual(plan["base_update"]["action"], "keep", plan["base_update"])
+        self.assertIn("not on origin", plan["base_update"]["reason"])
+        self.assertEqual(self.head(), before)
+
+    def test_main_checkout_on_another_branch_is_kept(self):
+        self.push_upstream("one.txt", "1\n")
+        self.git(self.main_repo, "switch", "-q", "-c", "feat/elsewhere")
+        code, plan = self.run_main("--apply")
+        self.assertEqual(plan["base_update"]["action"], "keep", plan["base_update"])
+        self.assertIn("feat/elsewhere", plan["base_update"]["reason"])
+        self.assertEqual(self.git(self.main_repo, "branch", "--show-current"), "feat/elsewhere")
+
+    def test_repo_given_as_linked_worktree_moves_the_main_checkout(self):
+        wt = self.tmp / "wt-linked"
+        self.git(self.main_repo, "worktree", "add", "-q", "-b", "feat/linked", str(wt), "development")
+        wt_head = self.git(wt, "rev-parse", "HEAD")
+        tip = self.push_upstream("one.txt", "1\n")
+        mod = load_module()
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            mod.main(["--repo", str(wt), "--base", "development", "--apply"])
+        plan = json.loads(out.getvalue())
+        self.assertEqual(plan["base_update"]["action"], "fast_forward", plan["base_update"])
+        self.assertEqual(self.head(), tip)
+        self.assertEqual(self.git(wt, "rev-parse", "HEAD"), wt_head)
+
+    def test_branch_merged_only_upstream_is_deleted_after_the_fast_forward(self):
+        self.git(self.other, "switch", "-q", "-c", "feat/up")
+        (self.other / "up.txt").write_text("u\n")
+        self.git(self.other, "add", "up.txt")
+        self.git(self.other, "commit", "-q", "-m", "up")
+        self.git(self.other, "push", "-q", "origin", "feat/up")
+        self.git(self.other, "switch", "-q", "development")
+        self.git(self.other, "merge", "-q", "--no-ff", "--no-edit", "feat/up")
+        self.git(self.other, "push", "-q", "origin", "development")
+        self.git(self.main_repo, "fetch", "-q", "origin", "feat/up:feat/up")
+        code, plan = self.run_main("--apply", "--candidate", "feat/up")
+        self.assertEqual(plan["base_update"]["action"], "fast_forward", plan["base_update"])
+        self.assertIn("feat/up", plan["applied"]["deleted_branches"], plan)
+
+    def test_dry_run_neither_fetches_nor_moves(self):
+        before = self.head()
+        self.push_upstream("one.txt", "1\n")
+        code, plan = self.run_main()
+        self.assertEqual(code, 0, plan)
+        self.assertEqual(plan["base_update"]["action"], "current", plan["base_update"])
+        self.assertEqual(self.head(), before)
+        self.assertEqual(self.git(self.main_repo, "rev-parse", "origin/development"), before)
 
 
 if __name__ == "__main__":
