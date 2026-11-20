@@ -71,6 +71,9 @@ func stdoutRedirects(text string, i int) (words, keys []string, end int) {
 			end = pos
 			continue
 		}
+		for pos < len(text) && (text[pos] == ' ' || text[pos] == '\t') {
+			pos++
+		}
 		word, key, next := feedTarget(text, pos)
 		if next == pos {
 			break

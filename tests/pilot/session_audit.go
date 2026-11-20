@@ -724,7 +724,7 @@ func jsLiteral(js string, i int) (value string, end int, interpolated bool) {
 	quote := js[i]
 	var sb strings.Builder
 	j := i + 1
-	holes := 0
+	holes := map[string]int{}
 	for j < len(js) {
 		c := js[j]
 		switch {
@@ -761,10 +761,9 @@ func jsLiteral(js string, i int) (value string, end int, interpolated bool) {
 			return sb.String(), j + 1, interpolated
 		case quote == '`' && c == '$' && j+1 < len(js) && js[j+1] == '{':
 			interpolated = true
-			fmt.Fprintf(&sb, "__INTERP_%d__", holes)
-			holes++
 			depth := 1
 			j += 2
+			start := j
 			for j < len(js) && depth > 0 {
 				switch js[j] {
 				case '{':
@@ -779,6 +778,13 @@ func jsLiteral(js string, i int) (value string, end int, interpolated bool) {
 					j++
 				}
 			}
+			expr := strings.TrimSpace(js[start:max(start, j-1)])
+			n, seen := holes[expr]
+			if !seen {
+				n = len(holes)
+				holes[expr] = n
+			}
+			fmt.Fprintf(&sb, "__INTERP_%d__", n)
 		default:
 			sb.WriteByte(c)
 			j++

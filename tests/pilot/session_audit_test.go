@@ -554,6 +554,7 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"feed claude block redirect then a tail after an or", "claude", feed, []string{feed, "claude-project-or-tail-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"feed claude output in one command, tail in another", "claude", feed, []string{feed, "claude-project-two-commands-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"feed claude run_check helper", "claude", feed, []string{feed, "claude-project-run-check-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"feed codex the same interpolation is the same file", "codex", feed, []string{feed, "codex-rollout-interpolated-same-fail.jsonl"}, auditOptions{}, "fail"},
 		{"feed codex distinct interpolations are different files", "codex", feed, []string{feed, "codex-rollout-interpolated-distinct-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"feed claude stderr-only exec redirect", "claude", feed, []string{feed, "claude-project-stderr-exec-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"feed claude exec saves fd 3 then redirects stdout", "claude", feed, []string{feed, "claude-project-fd3-save-fail.jsonl"}, auditOptions{}, "fail"},
