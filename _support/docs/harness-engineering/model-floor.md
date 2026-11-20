@@ -23,16 +23,19 @@ A model belongs to the floor by its identity, whatever host runs it:
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | claude | `opus` | `high` | `reasoning`, `verifier` | yes | provisional | none | — |
 | claude | `sonnet` | `high` | `execution`, `focused` | yes | provisional | none | — |
-| codex | `gpt-6.1-sol` | `medium`, `high` | `execution`, `reasoning`, `verifier` | yes | provisional | none | — |
+| codex | `gpt-6.2-sol` | `medium`, `high`, `max` | `execution`, `reasoning`, `verifier`; user's main session, 2026-11-17 | yes | provisional | none | — |
 | codex | `gpt-6.1-terra` | `medium` | `focused` | yes | provisional | none | — |
-| grok | `grok-4.6` | — | `verifier` | yes | provisional | none | — |
+| grok | `grok-4.7` | — | `verifier` | yes | provisional | none | — |
 | opencode | `opencode-go/claude-haiku-5-5` | `high` | floor of 2026-10-11 (`flashModels`) | no | provisional | none | — |
 | opencode | `opencode-go/deepseek-v4.1-flash` | `high` | floor of 2026-10-11 (`flashModels`) | no | provisional | none | — |
 | opencode | `opencode-go/qwen3.8-flash` | `medium` | floor of 2026-10-11 (`flashModels`) | no | provisional | none | — |
 | opencode | `opencode-go/glm-5.3-flash` | `high` | floor of 2026-10-11 (`flashModels`) | no | provisional | none | — |
 | codex | `gpt-6-astra` | `high` | user's main session, 2026-11-17 | no | provisional | none | — |
-| codex | `gpt-6.2-sol` | `medium` | user's main session, 2026-11-17 | no | provisional | none | — |
+| codex | `gpt-6.1-sol` | `medium`, `high` | `execution`, `reasoning`, `verifier` until 2026-11-20 | no | provisional | none | — |
+| grok | `grok-4.6` | — | `verifier` until 2026-11-20 | no | provisional | none | — |
 | grok | `grok-4.7-build-fast` | `high` | user's main session, 2026-11-17 | no | provisional | none | — |
+
+Row changes: on 2026-11-20 the Codex profiles moved from `gpt-6.1-sol` to `gpt-6.2-sol` and the Grok `verifier` from `grok-4.6` to `grok-4.7`, the versions the user runs; the old models stay on the floor, out of the writing target, and observations already counted on them stay counted.
 
 A row is **provisional** until a qualification run passes; **Verified** then records its date and **Reference** the reference model of that run.
 
