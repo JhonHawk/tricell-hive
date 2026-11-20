@@ -691,7 +691,7 @@ Only directories confirmed created by Hive are cleanup candidates, and only empt
 
 ## Verification
 
-The repository runs no tests in CI: verification runs locally, once on the final candidate of a change. Its only GitHub workflow checks the source branch of pull requests to `master` ([CONTRIBUTING.md](../../../CONTRIBUTING.md#branches-and-commits)).
+Verification runs locally, once on the final candidate of a change, and the `tests` workflow (`.github/workflows/tests.yml`) runs the same commands on every pull request and every push to `development`. The other GitHub workflow checks the source branch of pull requests to `master` ([CONTRIBUTING.md](../../../CONTRIBUTING.md#branches-and-commits)).
 
 ```sh
 go vet ./...

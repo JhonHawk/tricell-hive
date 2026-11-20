@@ -12,6 +12,19 @@ raise the minor or the patch version.
 
 ### Added
 
+- The `tests` GitHub workflow runs `go vet ./...`, `go test ./...` and the
+  Python skill tests on every pull request and every push to `development`.
+- `integrations/agents` tests now cover the error paths of agent parsing,
+  CRLF frontmatter, and the escaping of control characters in Codex TOML,
+  which no test caught before.
+
+### Changed
+
+- The `integrations/agents` tests were audited: 17 tests that repeated a
+  contract another test already proves were removed or folded into it, and 5
+  that passed with the guarded code broken now check that code. Each change
+  is proven by a mutation recorded in the change folder's `ledger.md`.
+
 - `--audit-session` gains `analysis_reply_block`, which fails a turn that
   ends an analysis with replies listed under italic labels, or with lettered
   options and no question heading, and says whether the report-endings rule
