@@ -437,8 +437,8 @@ def plan_base(main_checkout, base):
     if code != 0:
         return {**entry, "action": "keep", "reason": f"no origin/{base}"}
     remote = out.strip()
-    code, out, _ = run_git(main_checkout, "symbolic-ref", "--quiet", "--short", "HEAD")
-    current = out.strip() if code == 0 else ""
+    code, out, _ = run_git(main_checkout, "symbolic-ref", "--quiet", "HEAD")
+    current = out.strip().removeprefix("refs/heads/") if code == 0 else ""
     if current != base:
         return {**entry, "action": "keep", "reason": f"main checkout on {current or 'a detached HEAD'}"}
     _, out, _ = run_git(main_checkout, "rev-parse", "HEAD")
@@ -477,11 +477,11 @@ def update_base(repo, base):
     code, _, _ = run_git(checkout, "remote", "get-url", "origin")
     if code != 0:
         return {"action": "keep", "checkout": checkout, "reason": "no origin remote"}, None
-    code, _, err = run_git(checkout, "ls-remote", "--exit-code", "--heads", "origin", base)
+    code, _, err = run_git(checkout, "ls-remote", "--exit-code", "origin", f"refs/heads/{base}")
     if code == 2:
         return {"action": "keep", "checkout": checkout, "reason": f"no origin/{base}"}, None
     if code == 0:
-        code, _, err = run_git(checkout, "fetch", "--quiet", "origin", base)
+        code, _, err = run_git(checkout, "fetch", "--quiet", "origin", f"+refs/heads/{base}:refs/remotes/origin/{base}")
     if code != 0:
         reason = f"cannot fetch origin/{base}: {err}"
         return {"action": "keep", "checkout": checkout, "reason": reason}, reason
@@ -492,7 +492,7 @@ def update_base(repo, base):
     # origin/<base> would resolve a tag of that name first.
     code, _, err = run_git(checkout, "merge", "--ff-only", "--no-overwrite-ignore", entry["to"])
     if code != 0:
-        reason = f"git merge --ff-only origin/{base} failed: {err}"
+        reason = f"git merge --ff-only {entry['to']} failed: {err}"
         return {**entry, "action": "keep", "reason": reason}, reason
     return entry, None
 

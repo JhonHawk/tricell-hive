@@ -196,7 +196,7 @@ class BaseFastForwardTests(unittest.TestCase):
         target.write_text(text)
         self.git(self.other, "add", "-f", path)
         self.git(self.other, "commit", "-q", "-m", f"upstream {path}")
-        self.git(self.other, "push", "-q", "origin", "development")
+        self.git(self.other, "push", "-q", "origin", "HEAD:refs/heads/development")
         return self.git(self.other, "rev-parse", "HEAD")
 
     def run_main(self, *args):
@@ -364,6 +364,24 @@ class BaseFastForwardTests(unittest.TestCase):
         self.assertEqual(plan["base_update"]["action"], "fast_forward", plan["base_update"])
         self.assertNotIn("qa", plan["applied"]["deleted_branches"], plan)
         self.assertTrue(self.git(self.main_repo, "ls-remote", "--heads", "origin", "qa"))
+
+    def test_base_missing_on_origin_with_a_branch_ending_in_its_name_is_kept(self):
+        self.git(self.main_repo, "push", "-q", "origin", "development:refs/heads/release/trunk")
+        mod = load_module()
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = mod.main(["--repo", str(self.main_repo), "--base", "trunk", "--apply"])
+        plan = json.loads(out.getvalue())
+        self.assertEqual(code, 0, plan)
+        self.assertIn("no origin/trunk", plan["base_update"]["reason"])
+
+    def test_remote_tag_named_like_the_base_does_not_hide_the_branch(self):
+        self.git(self.other, "tag", "development")
+        self.git(self.other, "push", "-q", "origin", "refs/tags/development")
+        tip = self.push_upstream("one.txt", "1\n")
+        code, plan = self.run_main("--apply")
+        self.assertEqual(plan["base_update"]["action"], "fast_forward", plan["base_update"])
+        self.assertEqual(self.head(), tip)
 
     def test_dry_run_neither_fetches_nor_moves(self):
         before = self.head()
