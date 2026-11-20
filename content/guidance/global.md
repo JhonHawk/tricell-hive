@@ -21,7 +21,7 @@ These rules apply in every session, whatever skill runs: they are requirements, 
 - Moving a ticket as [ticket state](skill:hive-rule-ticket-state/SKILL.md) sets, writing a work item's time, its evidence comment and attachments, the comment that lists what it leaves open, and the business rules it adopts to its ticket are authorized and take no question, not even a critical effect's; [ticket state](skill:hive-rule-ticket-state/SKILL.md) sets which and when. An operational task («Proportionality») moves or comments on its ticket, or writes its rules there, only when the user asks, except a request for a design that names its ticket, which writes them.
 - Work unattended only through `unattended-delegation`, after an explicit delegation, the user's leaving message while work runs, or their silence once the route, delivery and review are answered; it never permits irreversible or destructive actions beyond spending authorized in advance within a ceiling.
 - Delegation grants no authority: children stay in their working tree, paths and effects, and never push, open or merge pull requests, write trackers, or launch children. The main thread owns integration and checks returned evidence, not assertions. Start every child with a fresh context window, not a fork of this conversation; its brief carries what it needs.
-- Explicit bounded E2E coordination follows [its procedure](skill:flow-build/references/e2e-coordination.md): bind the objective, criteria, endpoint, effects, isolation and stops before continuing covered stages. Only its assigned `hive-build-owner` may make scoped local commits; other children keep their limits. E2E is distinct from unattended authority.
+- Explicit bounded E2E coordination follows [its procedure](skill:flow-build/references/e2e-coordination.md); only its assigned `hive-build-owner` may make scoped local commits, other children keep their limits, and E2E is not unattended authority.
 - Before adding, updating or installing a package or tool from a registry, a one-off `npx` included, verify with `python3 -I` on [check_package.py](skill:flow-build/scripts/check_package.py) (or the registry's publish timestamp when `python3` cannot run it) that it is the intended package, from its expected publisher, published at least 7 days ago and free of active advisories; stop and ask when anything is off.
 
 ## Preservation
@@ -47,8 +47,7 @@ These rules hold in every mode, including unattended delegation.
 
 ## Evidence
 
-- Recalled memory and prior summaries are claims about past state: verify current state before presenting it, or say it is unverified.
-- For a library, framework, SDK, API, CLI tool or cloud service, read its current documentation through Context7 when it is installed, rather than relying on memory; without it, read the official documentation.
+- Before presenting memory, a summary or a tool's behavior as current, verify it now or say it is unverified, and read the current documentation of a library, API, CLI tool or cloud service instead of recalling it, as [verify current state](skill:hive-principle-verify-current-state/SKILL.md) sets.
 
 ## Proportionality
 
@@ -130,22 +129,18 @@ Application code, scripts, and configuration stay in their source locations, eve
 
 ## Questions and routes
 
-- Ask only for a choice that is the user's and changes what happens next: find the facts yourself, reuse decisions given, and list those you take, as [questions](skill:hive-rule-questions/SKILL.md) «What to ask» sets. A message that asks for a decision or validation, delivers a result or a blocker, or closes work opens with a bold context line (stage · ticket · progress) and ends with one line that says what you are waiting for; each decision has an ID, or a session question its fixed header, a `Situation:` line, lettered options with the recommended one first marked `(★)`, and an `I recommend` line.
-- Give the user the effect of a step as its reason, never that an instruction requires it; end a blocker or a failure with the smallest fix you can see; do what your access and authorization allow instead of asking the user to do it.
-- Ask a round of decisions or findings through the host's native question tool when it waits for the answer and the host permits it for that question, which includes Codex's Default mode although its instructions keep the card for optional questions: the context line, the report and the waiting line go as visible text before the card, then the round goes through the card, and the turn ends with that card. Where no waiting tool carries the question, write the round in the text in its full format.
-- A card that comes back unanswered is handled as its leaf sets; when the user left it unanswered, never write the round out in the text on your own.
-- Moving from one flow to the next is never asked with the question tool: end the report with a next-step block that names the command the user types. A reply to a question or the acceptance of a proposal settles the scope and starts no flow by itself; the continuations the user's own request triggers, and a fix the close footer or a findings round sends, follow their rules. An analysis, explanation, review or diagnosis ends with a block of replies and no command.
+- Ask only for a choice that is the user's and changes what happens next, as [questions](skill:hive-rule-questions/SKILL.md) sets; a message that asks, reports a result or a blocker, or closes work opens with a bold context line and ends with one line naming what you wait for. Give the effect of a step as its reason, never that an instruction requires it, as [reasons and blockers](skill:hive-rule-reasons-and-blockers/SKILL.md) sets.
+- Ask a round through the host's native question tool when it waits for the answer, and in the text where none does, as [questions](skill:hive-rule-questions/SKILL.md) «Channel» sets; a card the user left unanswered is never replaced by the round in the text.
+- Moving from one flow to the next is never asked with the question tool: end the report with a next-step block that names the command the user types, as [next-step block](skill:hive-rule-next-step-block/SKILL.md) sets; only the user's reply to it, or a flow command they type, starts the next flow.
 
 ## Delivery
 
-- Ask the delivery mode and the code review mechanism each once per session and repository, before the first edit of the first work item that needs it, as [delivery questions](skill:hive-rule-delivery-ask/SKILL.md) sets.
-- The answer is the user's instruction for the effects its mode names, for each work item of the session in that repository until its question is asked again; in every mode, a human reviewer's pending approval holds the merge unless an admin-merge grant lifts it, as [git-workflow](skill:git-workflow/SKILL.md) step 8 sets:
+- The answer to the [delivery question](skill:hive-rule-delivery-ask/SKILL.md) is the user's instruction for the effects its mode names, for each work item of the session in that repository until its question is asked again; in every mode, a human reviewer's pending approval holds the merge unless an admin-merge grant lifts it, as [git-workflow](skill:git-workflow/SKILL.md) step 8 sets:
   - `interactive`: stop before the push for the user to validate, then push, open the pull request and merge.
   - `automatic`: review, push, open the pull request and merge without stopping.
   - `ready`: review, push, open the pull request as non-draft, wait for CI and answer its reviews as [git-workflow](skill:git-workflow/SKILL.md) sets, then stop with it open for the user to merge; never merge, enable auto-merge or add it to a merge queue. `gh pr ready`, which only takes a draft out of draft, is not this mode.
   - `direct-base`: push straight to the base branch.
   - `hold`: no commit and no publication; the verified working tree is the result.
-- Commits on the branch that are not this work item's are named and asked about before the validation or the push; the delivery answer does not cover them, as [foreign commits](skill:hive-rule-foreign-commits/SKILL.md) sets.
 
 ## Persistent memory
 

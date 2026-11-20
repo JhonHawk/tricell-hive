@@ -16,6 +16,7 @@ Read before writing new code in a task and before reviewing a diff. Each line na
 - **Shaping or reviewing code that is hard to trace, with layers that only forward or state that is hard to follow:** read [minimize reader load](../hive-principle-minimize-reader-load/SKILL.md).
 - **Two or more actors could write the same file, branch, key or object:** read [separate before serializing shared state](../hive-principle-separate-before-serializing-shared-state/SKILL.md).
 - **Before measuring, or before reporting or acting on a measured number:** read [explain the number](../hive-principle-explain-the-number/SKILL.md).
+- **Before presenting memory, a summary or a tool's behavior as current, or answering about a library, framework, SDK, API, CLI tool or cloud service:** read [verify current state](../hive-principle-verify-current-state/SKILL.md).
 - **When editing `.ts` or `.tsx`:** read [TypeScript](../hive-typescript/SKILL.md).
 
 Three principles live inside rule leaves that already apply at their moment, so this index only points to them:
