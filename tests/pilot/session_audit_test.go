@@ -395,6 +395,7 @@ func TestAuditNewCriteria(t *testing.T) {
 	const prose = "prose_choice_without_card"
 	const assess = "ticket_assessment_ending"
 	const feed = "self_feeding_log"
+	const reply = "analysis_reply_block"
 	cases := []newCriterionCase{
 		{"round codex title with a middle dot", "codex", round, []string{round, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
 		{"format codex title with a middle dot", "codex", format, []string{format, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
@@ -561,6 +562,20 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"feed claude reader before the stdout restore", "claude", feed, []string{feed, "claude-project-reader-before-restore-fail.jsonl"}, auditOptions{}, "fail"},
 		{"feed claude reader after the stdout restore", "claude", feed, []string{feed, "claude-project-reader-after-restore-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"feed claude pattern inside a python heredoc", "claude", feed, []string{feed, "claude-project-python-heredoc-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"reply claude italic bullets without letters", "claude", reply, []string{reply, "claude-project-italic-bullets-fail.jsonl"}, auditOptions{}, "fail"},
+		{"reply claude italic bullets after reading the rule", "claude", reply, []string{reply, "claude-project-italic-read-fail.jsonl"}, auditOptions{}, "fail"},
+		{"reply claude heading with the arrow and letters", "claude", reply, []string{reply, "claude-project-lettered-block-pass.jsonl"}, auditOptions{}, "pass"},
+		{"reply claude bold question heading and letters", "claude", reply, []string{reply, "claude-project-bold-question-pass.jsonl"}, auditOptions{}, "pass"},
+		{"reply claude letters without a heading", "claude", reply, []string{reply, "claude-project-letters-no-heading-fail.jsonl"}, auditOptions{}, "fail"},
+		{"reply claude report ending in bold-labeled findings", "claude", reply, []string{reply, "claude-project-bold-findings-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"reply claude decision round written in text", "claude", reply, []string{reply, "claude-project-text-round-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"reply claude ending with flow commands", "claude", reply, []string{reply, "claude-project-flow-command-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"reply claude an earlier turn ended badly", "claude", reply, []string{reply, "claude-project-earlier-turn-fail.jsonl"}, auditOptions{}, "fail"},
+		{"reply claude sidechain transcript is not judged", "claude", reply, []string{reply, "claude-project-sidechain-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"reply codex italic bullets", "codex", reply, []string{reply, "codex-rollout-italic-fail.jsonl"}, auditOptions{}, "fail"},
+		{"reply codex lettered block", "codex", reply, []string{reply, "codex-rollout-lettered-pass.jsonl"}, auditOptions{}, "pass"},
+		{"reply grok italic bullets", "grok", reply, []string{reply, "grok-updates-italic-fail.jsonl"}, auditOptions{}, "fail"},
+		{"reply grok lettered block", "grok", reply, []string{reply, "grok-updates-lettered-pass.jsonl"}, auditOptions{}, "pass"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -796,5 +811,50 @@ func TestAuditMainThreadCostLeavesTheCriteriaAlone(t *testing.T) {
 	}
 	if strings.Contains(string(v["criteria"]), "main_thread_cost") {
 		t.Fatalf("criteria mention main_thread_cost: %s", v["criteria"])
+	}
+}
+
+func TestAnalysisReplyBlockEvidenceSaysIfTheRuleWasRead(t *testing.T) {
+	const reply = "analysis_reply_block"
+	for _, tc := range []struct{ file, want string }{
+		{"claude-project-italic-bullets-fail.jsonl", "not read"},
+		{"claude-project-italic-read-fail.jsonl", "was read"},
+	} {
+		got := auditStatus(t, auditFixture(t, "claude", auditOptions{}, reply, tc.file), reply)
+		if got.Status != "fail" || len(got.Evidence) != 1 || !strings.Contains(got.Evidence[0], tc.want) || !strings.HasPrefix(got.Evidence[0], tc.file+":") {
+			t.Fatalf("%s: %+v, want one fail evidence line at the file containing %q", tc.file, got, tc.want)
+		}
+	}
+}
+
+// TestReplyListShapes pins how the end of an analysis is read: where the list
+// starts, which heading counts and which bullets are not replies.
+func TestReplyListShapes(t *testing.T) {
+	for _, tc := range []struct {
+		name         string
+		text         string
+		bad, listed  bool
+		exemptEnding bool
+	}{
+		{"italic replies before a waiting line", "Findings.\n\n- *fix it* — patch it\n- *leave it* — no change\n\nWaiting for your reply.", true, true, false},
+		{"italic replies split by blank lines", "Findings.\n\n- *fix it* — patch it\n\n- *leave it* — no change", true, true, false},
+		{"lettered options under a bold question", "Body.\n\n**▶ How do we continue?**\n- **A** (★) Close\n- **B** See the findings", false, true, false},
+		{"bold letters without a heading", "Body.\n\n- **A** Close\n- **B** See the findings", true, true, false},
+		{"a bold question far above does not head the list", "**Why does the loader read twice?**\n\nIt reads twice.\n\nSo:\n\nA — fix it\nB — leave it", true, true, false},
+		{"hyphenated words are not letters", "Next:\n\n- E-mail the owner\n- X-ray the logs", false, false, false},
+		{"paths in underscores are not italic labels", "Updated:\n\n- _support/docs/a_b.md updated\n- _support/openspec/x_y.md added", false, false, false},
+		{"a flow command in the body does not exempt the ending", "This would go through /flow-plan later.\n\n- *fix it* — patch it\n- *leave it* — no change", true, true, false},
+		{"a next-step block with the command between heading and replies", "Report.\n\n---\n**▶ Next step: plan (recommended)**\nDecisions remain.\n\n`/flow-plan the change`\n\nOther replies:\n- A - Record the cases.\n- B - Open a ticket.", false, true, true},
+		{"a flow command in the ending exempts it", "Done.\n\n---\n**▶ Next step: plan**\n\n`/flow-plan the change`\n\n- **A** compact first\n- **B** change the plan", false, true, true},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			bad, listed := replyListWithoutBlock(tc.text)
+			if bad != tc.bad || listed != tc.listed {
+				t.Fatalf("replyListWithoutBlock = bad %v listed %v, want bad %v listed %v", bad, listed, tc.bad, tc.listed)
+			}
+			if got := endingExempt(tc.text); got != tc.exemptEnding {
+				t.Fatalf("endingExempt = %v, want %v", got, tc.exemptEnding)
+			}
+		})
 	}
 }
