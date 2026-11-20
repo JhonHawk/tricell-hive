@@ -321,6 +321,17 @@ class BaseFastForwardTests(unittest.TestCase):
         self.assertEqual(plan["base_update"]["action"], "fast_forward", plan["base_update"])
         self.assertIn("feat/up", plan["applied"]["deleted_branches"], plan)
 
+    def test_base_missing_on_origin_is_kept_without_an_error(self):
+        mod = load_module()
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = mod.main(["--repo", str(self.main_repo), "--base", "trunk", "--apply"])
+        plan = json.loads(out.getvalue())
+        self.assertEqual(code, 0, plan)
+        self.assertEqual(plan["base_update"]["action"], "keep", plan["base_update"])
+        self.assertIn("no origin/trunk", plan["base_update"]["reason"])
+        self.assertTrue(plan["applied"]["ok"], plan["applied"])
+
     def test_dry_run_neither_fetches_nor_moves(self):
         before = self.head()
         self.push_upstream("one.txt", "1\n")

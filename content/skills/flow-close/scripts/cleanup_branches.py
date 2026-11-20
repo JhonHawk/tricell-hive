@@ -477,9 +477,13 @@ def update_base(repo, base):
     code, _, _ = run_git(checkout, "remote", "get-url", "origin")
     if code != 0:
         return {"action": "keep", "checkout": checkout, "reason": "no origin remote"}, None
-    code, _, err = run_git(checkout, "fetch", "--quiet", "origin", base)
+    code, _, err = run_git(checkout, "ls-remote", "--exit-code", "--heads", "origin", base)
+    if code == 2:
+        return {"action": "keep", "checkout": checkout, "reason": f"no origin/{base}"}, None
+    if code == 0:
+        code, _, err = run_git(checkout, "fetch", "--quiet", "origin", base)
     if code != 0:
-        reason = f"git fetch origin {base} failed: {err}"
+        reason = f"cannot fetch origin/{base}: {err}"
         return {"action": "keep", "checkout": checkout, "reason": reason}, reason
     entry = plan_base(checkout, base)
     if entry["action"] != "fast_forward":
