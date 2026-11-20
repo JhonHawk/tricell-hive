@@ -435,6 +435,7 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"route claude ok to a proposal starts build", "claude", route, []string{route, "claude-project-fail.jsonl"}, auditOptions{}, "fail"},
 		{"assessment claude card answered, then a bare ending", "claude", assess, []string{assess, "claude-project-card-then-bare-fail.jsonl"}, auditOptions{}, "fail"},
 		{"assessment claude typed /hive-mode command", "claude", assess, []string{assess, "claude-project-typed-command-fail.jsonl"}, auditOptions{}, "fail"},
+		{"assessment claude prompt only mentions /hive-mode", "claude", assess, []string{assess, "claude-project-mentioned-command-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"format codex decisions as bullets", "codex", format, []string{format, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
 		{"format codex fixed headers without options", "codex", format, []string{format, "codex-rollout-fixedheader-fail.jsonl"}, auditOptions{}, "fail"},
 		{"format codex full round in text", "codex", format, []string{format, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},

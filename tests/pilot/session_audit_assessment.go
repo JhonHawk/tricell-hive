@@ -26,9 +26,9 @@ var (
 	// ticketStatusRead is the playbook that reports a ticket's status, not an
 	// assessment of it.
 	ticketStatusRead = regexp.MustCompile(`hive-mode/playbooks/ticket-status\.md`)
-	// hiveModeCommand is the hive-mode command typed as the prompt; the host
-	// injects the skill, so no event of the turn loads it.
-	hiveModeCommand  = regexp.MustCompile(`(?:^|[\s>(\x60])(?:[/$@]|/skill:)hive-mode\b`)
+	// hiveModeCommand is the hive-mode command typed at the start of the
+	// prompt; the host injects the skill, so no event of the turn loads it.
+	hiveModeCommand  = regexp.MustCompile(`^\s*(?:<command-message>[^<]*</command-message>\s*)?(?:<command-name>)?(?:[/$@]|/skill:)hive-mode(?:\s|<|$)`)
 	recommendedLabel = regexp.MustCompile(`(?i)\(★\)|\((?:recommended|recomendad[oa])\)`)
 )
 
