@@ -14,10 +14,12 @@ var (
 	reportEndingsRead = regexp.MustCompile(`/\.[a-z]+/skills/hive-rule-report-endings/SKILL\.md`)
 	listItem          = regexp.MustCompile(`^\s*(?:[-*+]|\d+[.)])\s+(.*)$`)
 	// letterItem is an option written with a letter, as the reply block sets:
-	// "A — …", "B) …", "- **C** — …".
-	letterItem = regexp.MustCompile(`^\s*(?:[-*+]\s+)?(?:\*\*)?[A-Z](?:\*\*)?\s*(?:[—–.)\-:]|\s\()`)
-	// italicLabel opens a list item whose label is in italics, not bold.
-	italicLabel = regexp.MustCompile(`^(?:\*([^*\s][^*]*)\*|_([^_\s][^_]*)_)`)
+	// "A — …", "B) …", "- **C** …". A letter joined to a word, as in "E-mail",
+	// is not one.
+	letterItem = regexp.MustCompile(`^\s*(?:[-*+]\s+)?(?:\*\*([A-Z])\*\*(?:\s|$)|([A-Z])(?:\s*[—–]\s|\s+-\s|[.):]\s|\s\())`)
+	// italicLabel opens a list item whose label is in italics, not bold; an
+	// underscore label holds no slash, so a path such as _support/x is not one.
+	italicLabel = regexp.MustCompile(`^(?:\*([^*\s][^*]*)\*|_([^_\s/][^_/]*)_)(?:\s|[:.,;—–-]|$)`)
 	// boldQuestion is a heading line that asks in bold, which the reply block
 	// accepts in place of the arrow.
 	boldQuestion = regexp.MustCompile(`\*\*[^*\n]*\?[^*\n]*\*\*`)
@@ -34,58 +36,153 @@ func readsReportEndings(e traceEvent) bool {
 	return false
 }
 
-// trailingReplyList returns the list items a text ends with and the text above
-// them. Indented lines continue the item above; a blank or other line stops.
-func trailingReplyList(text string) (items []string, above string) {
+// replyEnding is how a text ends when it offers replies: the list items, the
+// lines above them that may head the list (after the last --- rule, or the
+// two just above it), and the tail from that heading to the end.
+type replyEnding struct {
+	items   []string
+	heading string
+	tail    string
+}
+
+func isReplyItem(l string) bool { return listItem.MatchString(l) || letterItem.MatchString(l) }
+
+// trailingReplyList reads the list a text ends with. A short closing
+// paragraph after it, such as the waiting line, is skipped; indented lines
+// continue the item above, and blank lines between items do not end the list.
+func trailingReplyList(text string) replyEnding {
 	lines := strings.Split(strings.TrimRight(text, " \t\r\n"), "\n")
-	first := len(lines)
-	for i := len(lines) - 1; i >= 0; i-- {
+	end := len(lines)
+	if blank := lastBlank(lines); blank > 0 && end-blank-1 <= 2 && !anyItem(lines[blank+1:]) && isReplyItem(lastNonBlank(lines[:blank])) {
+		end = blank
+	}
+	first := end
+	for i := end - 1; i >= 0; i-- {
 		l := lines[i]
 		switch {
-		case listItem.MatchString(l) || letterItem.MatchString(l):
-			items = append([]string{l}, items...)
+		case isReplyItem(l):
 			first = i
+		case strings.TrimSpace(l) == "" && isReplyItem(lastNonBlank(lines[:i])):
 		case strings.TrimSpace(l) != "" && (strings.HasPrefix(l, " ") || strings.HasPrefix(l, "\t")):
 		default:
-			return items, strings.Join(lines[:first], "\n")
+			i = -1
 		}
 	}
-	return items, strings.Join(lines[:first], "\n")
+	var ending replyEnding
+	for _, l := range lines[first:end] {
+		if isReplyItem(l) {
+			ending.items = append(ending.items, l)
+		}
+	}
+	// The ending is what follows the last --- rule above the list, as the
+	// next-step block and the close footer write it; without a rule, it is the
+	// up to two non-blank lines just above the list.
+	top := -1
+	for i := first - 1; i >= 0; i-- {
+		if strings.TrimSpace(lines[i]) == "---" {
+			top = i + 1
+			break
+		}
+	}
+	if top < 0 {
+		top = first
+		for n := 0; top > 0 && n < 2; {
+			top--
+			if strings.TrimSpace(lines[top]) != "" {
+				n++
+			}
+		}
+	}
+	ending.heading = strings.Join(lines[top:first], "\n")
+	// The tail starts at a ▶ heading or a rule when one opens the ending,
+	// otherwise at the list: a body sentence above it is not part of it.
+	start := first
+	for i := top; i < first; i++ {
+		if strings.Contains(lines[i], "▶") || (i == top && i > 0 && strings.TrimSpace(lines[i-1]) == "---") {
+			start = i
+			break
+		}
+	}
+	ending.tail = strings.Join(lines[start:], "\n")
+	return ending
+}
+
+func lastBlank(lines []string) int {
+	for i := len(lines) - 1; i >= 0; i-- {
+		if strings.TrimSpace(lines[i]) == "" {
+			return i
+		}
+	}
+	return -1
+}
+
+func lastNonBlank(lines []string) string {
+	for i := len(lines) - 1; i >= 0; i-- {
+		if strings.TrimSpace(lines[i]) != "" {
+			return lines[i]
+		}
+	}
+	return ""
+}
+
+func anyItem(lines []string) bool {
+	for _, l := range lines {
+		if isReplyItem(l) {
+			return true
+		}
+	}
+	return false
+}
+
+// letteredRun counts the items lettered A, B, C… in order from A.
+func letteredRun(items []string) int {
+	n := 0
+	for _, l := range items {
+		m := letterItem.FindStringSubmatch(l)
+		if m == nil {
+			continue
+		}
+		if m[1]+m[2] != string(rune('A'+n)) {
+			return n
+		}
+		n++
+	}
+	return n
 }
 
 // replyListWithoutBlock reports whether a text ends with replies offered as a
 // list the reply block does not allow: two or more items labeled in italics
 // by something other than a single letter, or lettered items with neither a
-// ▶ nor a bold question above them. listed tells whether it ends with such a
-// list at all.
+// ▶ nor a bold question in the lines just above them. listed tells whether it
+// ends with such a list at all.
 func replyListWithoutBlock(text string) (bad, listed bool) {
-	items, above := trailingReplyList(text)
-	if len(items) < 2 {
+	ending := trailingReplyList(text)
+	if len(ending.items) < 2 {
 		return false, false
 	}
-	lettered := 0
-	for _, l := range items {
-		if letterItem.MatchString(l) {
-			lettered++
-		}
-	}
-	if lettered >= 2 {
-		return !strings.Contains(above, "▶") && !boldQuestion.MatchString(above), true
+	if letteredRun(ending.items) >= 2 {
+		return !strings.Contains(ending.heading, "▶") && !boldQuestion.MatchString(ending.heading), true
 	}
 	labeled := 0
-	for _, l := range items {
+	for _, l := range ending.items {
 		m := listItem.FindStringSubmatch(l)
 		if m == nil {
 			continue
 		}
 		if e := italicLabel.FindStringSubmatch(strings.TrimSpace(m[1])); e != nil {
-			label := e[1] + e[2]
-			if !singleLetter.MatchString(strings.TrimSpace(label)) {
+			if !singleLetter.MatchString(strings.TrimSpace(e[1] + e[2])) {
 				labeled++
 			}
 		}
 	}
 	return labeled >= 2, labeled >= 2
+}
+
+// endingExempt reports whether a text's ending hands over to a flow, which
+// the next-step block governs: a flow command in the lines that head its
+// final list, in the list itself or after it.
+func endingExempt(text string) bool {
+	return flowCommand.MatchString(trailingReplyList(text).tail)
 }
 
 // analysisReplyBlock checks how a main-session turn ends when it offers the
@@ -128,7 +225,7 @@ func analysisReplyBlock(s auditSession) criterionAssessment {
 			continue
 		}
 		e := events[st.text]
-		if flowCommand.MatchString(e.Text) || isTextRound(e.Text) {
+		if endingExempt(e.Text) || isTextRound(e.Text) {
 			continue
 		}
 		bad, listed := replyListWithoutBlock(e.Text)
