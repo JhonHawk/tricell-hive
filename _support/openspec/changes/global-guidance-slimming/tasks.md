@@ -150,10 +150,10 @@ La revisión humana es la decisión de fusión tras leer `trial.md`.
 ## Checkpoint
 
 - Updated: 2026-11-20
-- Stage: build · T7 branch installed
-- Last commit: 2e6e3514
+- Stage: paused · trial pending; PR #554 open
+- Last commit: 02a3e20a
 - Open findings: none
-- Next: flow-verify: /code-review, push, PR ready; trial sessions pending
+- Next: audit the user's trial sessions vs baseline (T7, AC7), then the user decides merge
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/global-guidance-slimming · refactor/global-guidance-slimming
 
 ### Evidence
@@ -161,6 +161,8 @@ La revisión humana es la decisión de fusión tras leer `trial.md`.
 - before captures: none (no screen)
 - go test ./... · exit 0 in 239 s · 2e6e3514
 - hive apply transaction 0d5d4d42 · branch 2e6e3514 installed on all 7 hosts
+- go test ./... · exit 0 in 251 s · 02a3e20a
+- hive apply · branch 02a3e20a installed on all hosts
 
 ## Review status and progress
 
