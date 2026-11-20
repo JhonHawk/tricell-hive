@@ -1,32 +1,25 @@
 ## ADDED Requirements
 
-### Requirement: Change records travel in the work's pull request
-When the work's delivery commits and `Specs` is in the work's repository, the archive of its change folder and the support material the user chose to commit, archive or promote SHALL be commits of the work's branch, made after verify's round of fixes and before its first push, and before the local CI evidence that push needs. Under `interactive` the support-material decision and the question to archive with unchecked tasks SHALL join verify's validation round; under `automatic` and `ready`, which do not stop before the push, the recommended action of each support item SHALL be applied and reported with how to revert it, and a folder with unchecked tasks SHALL stay unarchived for the close. Checkpoint lines written after the archive SHALL be committed with the next fix commit; those left after the last push SHALL NOT be committed, and the close SHALL discard them when they only touch the checkpoint of the archived folder. The archive SHALL mark the proposal completed with the branch name as its detail. The close SHALL archive on a new branch from the base only a change folder its work branch did not archive: when the work kept unchecked tasks and the user declined to archive, the delivery was `automatic` or `ready`, or the work ran under unattended delegation, when the work was integrated without its archive, or under `hold`; and SHALL commit there only support material decided after the push. When `Specs` is in another repository, the change folder SHALL be archived at the close and delivered as that repository's `Delivery` sets. Deleting support material SHALL stay at the close. A fix after the push that changes a requirement the archived folder merged SHALL edit the spec and that folder's delta together. When bringing in the base adds a later archived folder that changes a requirement this branch's archived folder also changes, the branch SHALL rename its folder to the current UTC time and rewrite its delta of that requirement to the resolved spec block, before the push or the merge.
+### Requirement: Archives are delivered in a hygiene batch
+When `Specs` is in the work's repository, the close of an integrated work SHALL NOT archive its change folder nor commit the support material the user chose to commit, archive or promote; it SHALL record them in persistent memory, one record per change under the topic `archive-pending/<change-id>`, with the folder, the work's pull request and merge commit and each support action, SHALL discard with `git restore` the uncommitted edits that touch only the folder's checkpoint, and its report and footer SHALL name how many archives are pending and the hygiene reply that delivers them. Deleting support material SHALL stay at the close. When `Specs` is in another repository, the close SHALL keep archiving there as that repository's `Delivery` sets. A hygiene request SHALL treat as pending each change folder still under `<Specs>/changes/` on the base that has a record, or whose work the user confirms integrated, skipping one that an open hygiene pull request already archives; SHALL archive them on one branch from the base in the order each reached the base; SHALL apply the recorded support actions on that branch; and SHALL deliver it once under the delivery mode in force for that repository, asking only the delivery question when none is in force, leaving everything pending under `hold` and pushing to the base under `direct-base`. It SHALL empty each record once its archive reaches the base. A folder without a record SHALL stay pending under unattended delegation.
 
-#### Scenario: A finished change archives on its own branch
-- **GIVEN** a change folder whose tasks are all checked and a delivery that commits
-- **WHEN** verify reaches the push
-- **THEN** the work's branch holds the merged deltas and the archived folder before the push, and the close opens no branch for the archive
-
-#### Scenario: Support material decided before the push
-- **GIVEN** a work with a curated session record the user chooses to commit
-- **WHEN** verify reaches the push
-- **THEN** the record is a commit of the work's branch, and the close asks only about deletions and material created after the push
-
-#### Scenario: Unchecked tasks under a delivery that does not stop
-- **GIVEN** a change folder with an unchecked task and the `ready` delivery
-- **WHEN** verify reaches the push
-- **THEN** the folder is not archived and nothing is asked, and the close archives it on a new branch from the base
-
-#### Scenario: Checkpoint lines after the last push
-- **GIVEN** an archived folder whose `tasks.md` gained checkpoint lines after the last push
-- **WHEN** the close runs its cleanup
-- **THEN** it discards those lines and opens no branch for them
-
-#### Scenario: A work integrated without its archive
-- **GIVEN** a change folder still under `changes/` after its pull request was merged
+#### Scenario: A close leaves its archive pending
+- **GIVEN** a work integrated into the base with a change folder and a support record the user chose to commit
 - **WHEN** the close runs
-- **THEN** it archives the folder on a new branch from the base, delivered as the work's delivery mode sets
+- **THEN** no branch or pull request is opened for them, the record `archive-pending/<change-id>` lists both, and the report names the pending count and the hygiene reply
+
+#### Scenario: A hygiene request delivers two pending archives
+- **GIVEN** two change folders still under `<Specs>/changes/` on the base, the second written while the first was pending
+- **WHEN** the user asks for hygiene
+- **THEN** one branch archives the first and then the second, one delivery carries them, and their records are emptied once the archive reaches the base
+
+### Requirement: Plans read pending deltas
+Before planning a change to a capability, the plan SHALL read the deltas of the change folders still under `<Specs>/changes/` that change that capability, since the capability spec does not hold them until a hygiene batch archives them, and SHALL write its own delta against the spec with those deltas applied.
+
+#### Scenario: A plan on a capability with a pending delta
+- **GIVEN** a pending change folder whose delta modifies a requirement of a capability
+- **WHEN** a new plan changes the same requirement
+- **THEN** its delta starts from the requirement as the pending delta leaves it
 
 ## MODIFIED Requirements
 
@@ -53,37 +46,37 @@ Archiving a change folder SHALL move it to `<Specs>/changes/archive/YYYY-MM-DD-H
 - **THEN** the check reports nothing for that requirement
 
 ### Requirement: Archive confirms unchecked tasks
-Before merging a change folder's deltas into the specs and moving it to the archive, the archive step, before the push of the work's branch or at the close for an exception, SHALL run the coherence check with `--archive` and fix each coherence line it prints; a delivery-unit box whose predicate reads `n/a: <reason>` SHALL count as resolved; when the check lists unchecked task boxes, the step SHALL show their count and ask whether to archive anyway before moving the folder, and under unattended delegation SHALL leave the folder unarchived and record it as pending.
+Before merging a change folder's deltas into the specs and moving it to the archive, the hygiene batch SHALL run the coherence check with `--archive` and fix each coherence line it prints; a delivery-unit box whose predicate reads `n/a: <reason>` SHALL count as resolved; when the check lists unchecked task boxes, the batch SHALL show their count and ask whether to archive anyway before moving the folder, and a batch under unattended delegation SHALL leave the folder unarchived and pending.
 
 #### Scenario: Unchecked boxes remain at archive
-- **GIVEN** a change folder whose `tasks.md` holds unchecked boxes
-- **WHEN** the archive step runs the check with `--archive`
+- **GIVEN** a pending change folder whose `tasks.md` holds unchecked boxes
+- **WHEN** the hygiene batch runs the check with `--archive`
 - **THEN** it shows the number of unchecked boxes and asks before archiving, and the folder moves only on the user's answer
 
 #### Scenario: An unattended close with unchecked boxes
-- **GIVEN** an archive step running under unattended delegation and a folder with unchecked boxes
+- **GIVEN** a hygiene batch running under unattended delegation and a folder with unchecked boxes
 - **WHEN** the check lists them
-- **THEN** the folder stays unarchived and is recorded as pending
+- **THEN** the folder stays unarchived and pending
 
 #### Scenario: A delivery-unit box that does not apply
 - **GIVEN** a `## Delivery units` box `- [ ] perf: n/a: no hot path changes`
-- **WHEN** the archive step runs the check with `--archive`
+- **WHEN** the hygiene batch runs the check with `--archive`
 - **THEN** that box is not counted as unchecked
 
 ### Requirement: Deltas merge deterministically at archive
-The archive step SHALL preview the merge of a change folder's deltas with `apply_deltas.py` before applying it, and SHALL apply it with `--apply`, which merges every delta into its capability spec, marks `proposal.md` completed and moves the folder to the archive. The merge SHALL refuse and write nothing when a MODIFIED requirement is missing from the spec, an ADDED requirement is already present with other text, a delta lists a requirement twice, a delta modifies a new capability, a delta has no operations, a spec has no `## Requirements` section, or the archive target exists. A scenario that a MODIFIED requirement drops SHALL be listed in the preview and named in the work's final report, and SHALL NOT block the merge.
+The hygiene batch SHALL preview the merge of a change folder's deltas with `apply_deltas.py` before applying it, and SHALL apply it with `--apply`, which merges every delta into its capability spec, marks `proposal.md` completed and moves the folder to the archive. The merge SHALL refuse and write nothing when a MODIFIED requirement is missing from the spec, an ADDED requirement is already present with other text, a delta lists a requirement twice, a delta modifies a new capability, a delta has no operations, a spec has no `## Requirements` section, or the archive target exists. A scenario that a MODIFIED requirement drops SHALL be listed in the preview and named in the batch's report, and SHALL NOT block the merge.
 
 #### Scenario: A modified requirement the spec lacks
 - **GIVEN** a delta that modifies a requirement the capability spec does not contain
-- **WHEN** the archive step runs the merge script
+- **WHEN** the hygiene batch runs the merge script
 - **THEN** it refuses with exit 1 and the specs and the change folder stay unchanged
 
 #### Scenario: Preview before applying
-- **GIVEN** a change folder with valid deltas
-- **WHEN** the archive step runs the script without `--apply`
+- **GIVEN** a pending change folder with valid deltas
+- **WHEN** the hygiene batch runs the script without `--apply`
 - **THEN** it prints each operation per capability and the archive target, and writes nothing
 
 #### Scenario: A modified requirement drops a scenario
 - **GIVEN** a delta whose MODIFIED requirement omits a scenario the spec has
-- **WHEN** the archive step previews and applies the merge
-- **THEN** the preview lists the dropped scenario, the merge proceeds, and the final report names it
+- **WHEN** the hygiene batch previews and applies the merge
+- **THEN** the preview lists the dropped scenario, the merge proceeds, and the batch's report names it
