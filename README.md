@@ -46,7 +46,7 @@ leaf of a commit, a ticket move or a question card was read before that action.
 Code principles follow the same pattern: the hidden
 [`hive-principle-index`](content/skills/hive-principle-index/SKILL.md) lists each
 principle with the moment it applies, and the visible
-[`hive-typescript`](content/skills/hive-typescript/SKILL.md) skill loads for `.ts` and `.tsx` files.
+[`hive-typescript`](content/skills/hive-typescript/SKILL.md) skill covers `.ts` and `.tsx` files; the agent reads it when its description or the index sends it there, not automatically.
 The guidance is written for the role-profile models listed in the
 [support floor](_support/docs/harness-engineering/model-floor.md); the floor's smaller
 Haiku and flash-class candidates and the maintainer's main-session models are not a writing target, but their observed failures count toward corrections.
