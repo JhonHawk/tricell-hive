@@ -220,6 +220,15 @@ raise the minor or the patch version.
 
 ### Changed
 
+- A change folder is archived on the work's branch before its first push, so
+  the merged deltas and the archived folder travel in the work's pull request
+  instead of a second one after the merge. The support material the work keeps
+  in Git (commit, archive, promote) is settled at the same point: asked in the
+  validation round under `interactive`, applied with how to revert it under
+  `automatic` and `ready`. The close archives only a folder left unarchived
+  (unchecked tasks, integrated without archive, `hold`, specs in another
+  repository) and still asks the deletions.
+
 - In `--audit-session`, `merged_branch_deleted` fails only when a close report
   follows the last merge with no branch deletion; a session still open, such
   as one in the middle of a promotion, now reads as review.
