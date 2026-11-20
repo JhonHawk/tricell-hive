@@ -1,6 +1,7 @@
 package agents
 
 import (
+	"errors"
 	"strings"
 	"testing"
 )
@@ -93,17 +94,6 @@ func TestResolveOverrideReplacesModelAndEffort(t *testing.T) {
 	}
 }
 
-func TestResolveOverrideNilAndEmptyAreDifferent(t *testing.T) {
-	profiles := syntheticProfiles(t)
-	_, base, err := Resolve(resolveSource, resolveRole("reasoning", ""), profiles, "claude", nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, _, err := Resolve(resolveSource, resolveRole("reasoning", ""), profiles, "claude", &ModelOverride{}); err == nil {
-		t.Fatalf("an empty override was accepted; nil gives %+v", base)
-	}
-}
-
 func TestResolveOverrideRejectsInvalidValues(t *testing.T) {
 	profiles := syntheticProfiles(t)
 	for _, c := range []struct {
@@ -113,9 +103,12 @@ func TestResolveOverrideRejectsInvalidValues(t *testing.T) {
 		{"grok", ModelOverride{Effort: "high"}},
 		{"claude", ModelOverride{Model: "a b"}},
 		{"claude", ModelOverride{Effort: "bogus"}},
+		{"claude", ModelOverride{}},
 	} {
-		if _, _, err := Resolve(resolveSource, resolveRole("execution", ""), profiles, c.host, &c.o); err == nil {
-			t.Errorf("Resolve(%s, %+v) accepted an invalid override", c.host, c.o)
+		_, _, err := Resolve(resolveSource, resolveRole("execution", ""), profiles, c.host, &c.o)
+		var oe *OverrideError
+		if !errors.As(err, &oe) {
+			t.Errorf("Resolve(%s, %+v) = %v, want an *OverrideError", c.host, c.o, err)
 		}
 	}
 }
@@ -141,39 +134,6 @@ func TestResolveOverrideOpenCodeEffortNeedsAModel(t *testing.T) {
 	}
 }
 
-func TestRenderOverrideWritesEachHostsFields(t *testing.T) {
-	profiles := syntheticProfiles(t)
-	data := resolveRole("execution", "")
-	for _, c := range []struct {
-		host string
-		o    ModelOverride
-		want []string
-	}{
-		{"claude", ModelOverride{"opus", "max"}, []string{`model: "opus"`, `effort: "max"`}},
-		{"codex", ModelOverride{"gpt-x", "high"}, []string{`model = "gpt-x"`, `model_reasoning_effort = "high"`}},
-		{"pi", ModelOverride{"p/m", "xhigh"}, []string{`model: "p/m"`, `thinking: "xhigh"`}},
-		{"opencode", ModelOverride{"o/m", "low"}, []string{`model: "o/m#low"`}},
-		{"opencode", ModelOverride{Effort: "high"}, []string{`model: "syn-oc/exec#high"`}},
-		{"grok", ModelOverride{Model: "g"}, []string{`model: "g"`}},
-		{"cursor", ModelOverride{Model: "c"}, []string{`model: "c"`}},
-		{"antigravity", ModelOverride{Model: "pro"}, []string{`model: "pro"`}},
-	} {
-		o := c.o
-		out, err := Render(resolveSource, data, profiles, c.host, "/skills", &o)
-		if err != nil {
-			t.Fatalf("Render(%s): %v", c.host, err)
-		}
-		for _, want := range c.want {
-			if !strings.Contains(string(out), want+"\n") {
-				t.Errorf("Render(%s, %+v) has no line %q:\n%s", c.host, c.o, want, out)
-			}
-		}
-		if c.host == "opencode" && strings.Count(string(out), "#") != 1 {
-			t.Errorf("Render(opencode) stacked variants:\n%s", out)
-		}
-	}
-}
-
 func TestRenderOverrideChangesOnlyTheOverriddenLines(t *testing.T) {
 	profiles := syntheticProfiles(t)
 	data := resolveRole("execution", "")
@@ -188,5 +148,18 @@ func TestRenderOverrideChangesOnlyTheOverriddenLines(t *testing.T) {
 	want := strings.NewReplacer(`model: "syn-claude-exec"`, `model: "opus"`, `effort: "medium"`, `effort: "max"`).Replace(string(base))
 	if string(out) != want {
 		t.Fatalf("override changed more than model and effort:\n%s\nwant\n%s", out, want)
+	}
+
+	base, err = Render(resolveSource, data, profiles, "cursor", "/skills", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err = Render(resolveSource, data, profiles, "cursor", "/skills", &ModelOverride{Model: "c"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want = strings.Replace(string(base), `model: "inherit"`, `model: "c"`, 1)
+	if want == string(base) || string(out) != want {
+		t.Fatalf("cursor override:\n%s\nwant\n%s", out, want)
 	}
 }

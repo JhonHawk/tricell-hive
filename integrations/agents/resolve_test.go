@@ -32,9 +32,21 @@ func TestResolveReturnsProfileModelAndProfileEffort(t *testing.T) {
 		{"opencode", "inherit", Model{"syn-oc/inherit#max", ""}},
 		{"cursor", "reasoning", Model{"inherit", ""}},
 		{"antigravity", "reasoning", Model{"inherit", ""}},
+		{"claude", "verifier", Model{"syn-claude-verify", "xhigh"}},
+		{"codex", "verifier", Model{"syn-codex-verify", "xhigh"}},
+		{"pi", "verifier", Model{"syn-pi/verify", "xhigh"}},
+		{"opencode", "verifier", Model{"syn-oc/verify#xhigh", ""}},
+		{"grok", "verifier", Model{"syn-grok-verify", ""}},
+		{"cursor", "verifier", Model{"inherit", ""}},
+		{"antigravity", "verifier", Model{"inherit", ""}},
 	}
 	for _, c := range cases {
-		profile, m, err := Resolve(resolveSource, resolveRole(c.profile, ""), profiles, c.host, nil)
+		source, data := resolveSource, resolveRole(c.profile, "")
+		if c.profile == "verifier" {
+			// The shipped verifier role file exercises the parse path too.
+			source, data = syntheticRole(t, "synthetic-verifier")
+		}
+		profile, m, err := Resolve(source, data, profiles, c.host, nil)
 		if err != nil {
 			t.Fatalf("Resolve(%s/%s): %v", c.host, c.profile, err)
 		}
@@ -100,6 +112,9 @@ func threeProfiles(t *testing.T) []byte {
 	return editProfiles(t, func(_ string, models map[string]any) { delete(models, "verifier") })
 }
 
+// The focused profile resolves like execution on every host, except that
+// Codex has its own model. Expected values are literals, so a fault that
+// treats both profiles alike on one host cannot cancel itself out.
 func TestResolveFocusedProfilePreservesHostAndRoleEffort(t *testing.T) {
 	profiles := editProfiles(t, func(host string, models map[string]any) {
 		models["focused"] = models["execution"]
@@ -107,19 +122,36 @@ func TestResolveFocusedProfilePreservesHostAndRoleEffort(t *testing.T) {
 			models["focused"] = map[string]any{"model": "syn-codex-focused", "effort": "medium"}
 		}
 	})
-	for _, host := range []string{"claude", "codex", "grok", "pi", "opencode", "cursor", "antigravity"} {
-		for _, effort := range []string{"", "low", "medium"} {
-			_, want, err := Resolve(resolveSource, resolveRole("execution", effort), profiles, host, nil)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if host == "codex" {
-				want.Model = "syn-codex-focused"
-			}
-			_, got, err := Resolve(resolveSource, resolveRole("focused", effort), profiles, host, nil)
-			if err != nil || got != want {
-				t.Fatalf("Resolve(%s/focused, %q) = %+v, %v; want %+v", host, effort, got, err, want)
-			}
+	cases := []struct {
+		host, effort string
+		want         Model
+	}{
+		{"claude", "", Model{"syn-claude-exec", "medium"}},
+		{"claude", "low", Model{"syn-claude-exec", "low"}},
+		{"claude", "medium", Model{"syn-claude-exec", "medium"}},
+		{"codex", "", Model{"syn-codex-focused", "medium"}},
+		{"codex", "low", Model{"syn-codex-focused", "low"}},
+		{"codex", "medium", Model{"syn-codex-focused", "medium"}},
+		{"grok", "", Model{}},
+		{"grok", "low", Model{}},
+		{"grok", "medium", Model{}},
+		{"pi", "", Model{"syn-pi/exec", "medium"}},
+		{"pi", "low", Model{"syn-pi/exec", "low"}},
+		{"pi", "medium", Model{"syn-pi/exec", "medium"}},
+		{"opencode", "", Model{"syn-oc/exec#medium", ""}},
+		{"opencode", "low", Model{"syn-oc/exec#low", ""}},
+		{"opencode", "medium", Model{"syn-oc/exec#medium", ""}},
+		{"cursor", "", Model{"inherit", ""}},
+		{"cursor", "low", Model{"inherit", ""}},
+		{"cursor", "medium", Model{"inherit", ""}},
+		{"antigravity", "", Model{"inherit", ""}},
+		{"antigravity", "low", Model{"inherit", ""}},
+		{"antigravity", "medium", Model{"inherit", ""}},
+	}
+	for _, c := range cases {
+		profile, got, err := Resolve(resolveSource, resolveRole("focused", c.effort), profiles, c.host, nil)
+		if err != nil || profile != "focused" || got != c.want {
+			t.Fatalf("Resolve(%s/focused, %q) = %q %+v, %v; want focused %+v", c.host, c.effort, profile, got, err, c.want)
 		}
 	}
 }
@@ -131,11 +163,17 @@ func TestReadProfilesValidatesVerifierLikeOtherProfiles(t *testing.T) {
 	if _, err := ReadProfiles(ok); err != nil {
 		t.Fatalf("four-profile hosts rejected: %v", err)
 	}
+	// Only Claude carries the bogus effort: on a host that inherits effort,
+	// the "inherited effort" rule would reject it and hide the validity check.
 	badEffort := editProfiles(t, func(host string, models map[string]any) {
-		models["verifier"] = map[string]any{"model": "m", "effort": "bogus"}
+		if host == "claude" {
+			models["verifier"] = map[string]any{"model": "m", "effort": "bogus"}
+		} else {
+			models["verifier"] = map[string]any{"model": "inherit"}
+		}
 	})
-	if _, err := ReadProfiles(badEffort); err == nil {
-		t.Fatal("verifier with invalid effort accepted")
+	if _, err := ReadProfiles(badEffort); err == nil || !strings.Contains(err.Error(), "invalid effort for claude") {
+		t.Fatalf("verifier with invalid effort: err = %v, want invalid effort for claude", err)
 	}
 	grokEffort := editProfiles(t, func(host string, models map[string]any) {
 		if host == "grok" {
@@ -155,60 +193,15 @@ func TestReadProfilesValidatesVerifierLikeOtherProfiles(t *testing.T) {
 	}
 }
 
-func TestReadProfilesStillAcceptsThreeProfileHosts(t *testing.T) {
-	if _, err := ReadProfiles(threeProfiles(t)); err != nil {
-		t.Fatalf("three-profile snapshot rejected: %v", err)
-	}
-}
-
-func TestParseAcceptsVerifierModelProfile(t *testing.T) {
-	r, err := Parse(resolveSource, resolveRole("verifier", ""))
-	if err != nil || r.ModelProfile != "verifier" {
-		t.Fatalf("Parse(verifier) = %+v, %v", r, err)
-	}
-}
-
 func TestResolveVerifierAgainstThreeProfilesNamesHostAndProfile(t *testing.T) {
 	profiles := threeProfiles(t)
+	if _, err := ReadProfiles(profiles); err != nil {
+		t.Fatalf("three-profile snapshot rejected: %v", err)
+	}
 	for _, host := range allHosts {
 		_, _, err := Resolve(resolveSource, resolveRole("verifier", ""), profiles, host, nil)
 		if err == nil || !strings.Contains(err.Error(), host) || !strings.Contains(err.Error(), "verifier") {
 			t.Fatalf("Resolve(%s) error = %v, want one naming host and verifier", host, err)
-		}
-	}
-}
-
-func TestRepositoryProfilesDeclareVerifierOnAllHosts(t *testing.T) {
-	p, err := ReadProfiles(repositoryProfiles(t))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(p.Hosts) != 7 {
-		t.Fatalf("hosts = %d, want 7", len(p.Hosts))
-	}
-	for host, h := range p.Hosts {
-		if _, ok := h.Models["verifier"]; !ok {
-			t.Errorf("%s lacks a verifier profile", host)
-		}
-	}
-}
-
-func TestResolveVerifierRoleAgainstSyntheticProfiles(t *testing.T) {
-	source, data := syntheticRole(t, "synthetic-verifier")
-	profiles := syntheticProfiles(t)
-	cases := []struct{ host, model, effort string }{
-		{"claude", "syn-claude-verify", "xhigh"},
-		{"codex", "syn-codex-verify", "xhigh"},
-		{"pi", "syn-pi/verify", "xhigh"},
-		{"opencode", "syn-oc/verify#xhigh", ""},
-		{"grok", "syn-grok-verify", ""},
-		{"cursor", "inherit", ""},
-		{"antigravity", "inherit", ""},
-	}
-	for _, c := range cases {
-		profile, m, err := Resolve(source, data, profiles, c.host, nil)
-		if err != nil || profile != "verifier" || m.Model != c.model || m.Effort != c.effort {
-			t.Errorf("Resolve(%s) = %q, %+v, %v; want verifier, %s/%q", c.host, profile, m, err, c.model, c.effort)
 		}
 	}
 }

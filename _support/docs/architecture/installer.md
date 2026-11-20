@@ -31,7 +31,7 @@ curl -fsSL https://hive.tricell.tech/install.sh | sh -s -- --version 0.1.0 --hos
 
 `https://hive.tricell.tech/install.sh` redirects to `get-hive.sh` on `master`.
 The script automates the manual steps below with the same checks and needs
-`curl`, `tar`, `shasum` or `sha256sum`, and basic POSIX utilities (`mktemp`,
+`curl`, `tar`, `gzip` (GNU tar runs it to read the `.tar.gz` package), `shasum` or `sha256sum`, and basic POSIX utilities (`mktemp`,
 `uname`, `find`, `wc`, `mv`, `rm`, `rmdir`, `mkdir`); it checks for them before
 any download. `--help` prints its usage. It:
 

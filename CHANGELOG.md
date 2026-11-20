@@ -12,6 +12,10 @@ raise the minor or the patch version.
 
 ### Added
 
+- `integrations/agents` tests now cover the error paths of agent parsing,
+  CRLF frontmatter, and the escaping of control characters in Codex TOML,
+  which no test caught before.
+
 - `--audit-session` gains `analysis_reply_block`, which fails a turn that
   ends an analysis with replies listed under italic labels, or with lettered
   options and no question heading, and says whether the report-endings rule
@@ -210,6 +214,11 @@ raise the minor or the patch version.
 
 ### Changed
 
+- The `integrations/agents` tests were audited: 17 tests that repeated a
+  contract another test already proves were removed or folded into it, and 5
+  that passed with the guarded code broken now check that code. Each change
+  is proven by a mutation recorded in the change folder's `ledger.md`.
+
 - Codex's execution, reasoning and verifier roles run `gpt-6.2-sol`, and the
   Grok verifier runs `grok-4.7`. The model floor keeps `gpt-6.1-sol` and
   `grok-4.6` outside the writing target.
@@ -353,6 +362,12 @@ raise the minor or the patch version.
 
 ### Fixed
 
+- `get-hive.sh` requires `gzip` before any request. GNU tar runs it to read
+  the package, so on a Linux host without `gzip` the installer used to fail
+  at the archive check with a message that did not name the missing tool.
+- The viewer reads a state file again when an atomic replace lands between
+  its open and its stat. Concurrent first registrations on Linux failed with
+  `invalid_storage` (issue #545).
 - Guidance now delegates supported mechanical checks to the existing validators
   instead of repeating their recipes, while retaining required inputs, permissions,
   preservation rules, semantic review and handling for unsupported cases.

@@ -116,7 +116,10 @@ func readStateFileAttempt(path string, limit int64, attempts int) ([]byte, error
 		return nil, err
 	}
 	stat, ok := after.Sys().(*syscall.Stat_t)
-	if !os.SameFile(before, after) && attempts > 1 {
+	// An atomic replace that lands after the open leaves the opened inode with
+	// no link: the path now names the new file, so read it again.
+	replaced := ok && stat.Nlink == 0
+	if (!os.SameFile(before, after) || replaced) && attempts > 1 {
 		f.Close()
 		return readStateFileAttempt(path, limit, attempts-1)
 	}
