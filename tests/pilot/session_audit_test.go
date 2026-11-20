@@ -579,6 +579,7 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"reply codex short answer is not judged", "codex", reply, []string{reply, "codex-rollout-short-answer-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"reply codex turn that patched a file is not judged", "codex", reply, []string{reply, "codex-rollout-edit-turn-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"reply claude turn that wrote a file is not judged", "claude", reply, []string{reply, "claude-project-write-turn-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"reply claude refused write keeps it an analysis", "claude", reply, []string{reply, "claude-project-denied-write-fail.jsonl"}, auditOptions{}, "fail"},
 		{"reply codex bare report in a turn without hive-mode is not judged", "codex", reply, []string{reply, "codex-rollout-no-hive-mode-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"reply grok italic bullets", "grok", reply, []string{reply, "grok-updates-italic-fail.jsonl"}, auditOptions{}, "fail"},
 		{"reply grok lettered block", "grok", reply, []string{reply, "grok-updates-lettered-pass.jsonl"}, auditOptions{}, "pass"},
@@ -865,5 +866,39 @@ func TestReplyListShapes(t *testing.T) {
 				t.Fatalf("endingExempt = %v, want %v", got, tc.exemptEnding)
 			}
 		})
+	}
+}
+
+// TestShellWork pins which shell commands make a turn a work turn for the
+// no-reply-block branch of analysis_reply_block.
+func TestShellWork(t *testing.T) {
+	for _, tc := range []struct {
+		command string
+		work    bool
+	}{
+		{"awk '$3 > 100 {print}' data.tsv", false},
+		{`jq 'select(.n > 5)' a.json`, false},
+		{`python3 -c "print(a > b)"`, false},
+		{"rg -n foo src > /tmp/ex/hits.txt", false},
+		{"ffprobe clip.mp4 > /private/var/folders/xx/T/probe.txt", false},
+		{"cd /tmp/ex-frames && ffprobe clip.mp4 > probe.txt", false},
+		{"rm /tmp/kin/a.jpg && rmdir /tmp/kin", false},
+		{"cat a.go > src/b.go", true},
+		{"sed -i 's/x/y/' src/a.go", true},
+		{"sed -i.bak 's/x/y/' /tmp/a.txt", false},
+		{"echo x | tee notes.md", true},
+		{"cp a.go src/a.go", true},
+		{"mv /tmp/a.go src/a.go", true},
+		{`mkdir -p "$work/images"`, true},
+		{"git apply fix.patch", true},
+		{"git -c core.hooksPath=x commit -m x", true},
+		{"git --no-pager push origin x", true},
+		{"python3 -I scripts/git_state.py commit --repo . -m x -- a.go", true},
+		{"gh pr create --fill", true},
+		{"git log --oneline -3", false},
+	} {
+		if got := shellWork(tc.command); got != tc.work {
+			t.Errorf("shellWork(%q) = %v, want %v", tc.command, got, tc.work)
+		}
 	}
 }
