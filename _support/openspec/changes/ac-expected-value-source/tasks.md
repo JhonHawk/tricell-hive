@@ -10,6 +10,11 @@ Base: `development` en `1cdb5af7`, rama `feat/ac-expected-value-source`. Cambio 
 
 ### T2 — Spec y sitio
 
-- [x] La spec `workflow-lifecycle` y su delta en este registro, más `site/src/content/docs/flows/plan.md`.
+- [x] El delta de la spec `workflow-lifecycle` en este registro, que el cierre aplica con `apply_deltas.py`, más `site/src/content/docs/flows/plan.md`.
 
 **Closes:** AC2.
+
+## Progreso
+
+2026-11-20 — T1 · 2a2a43b1 · unverified: none
+2026-11-20 — T2 · 2a2a43b1 · unverified: none

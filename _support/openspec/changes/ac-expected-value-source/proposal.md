@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Completado · entrega `automatic` |
+| Estado | En curso · entrega `automatic` |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `1cdb5af7` · rama `feat/ac-expected-value-source` |
 | Playbook | feature (cambio pequeño sin plan, `/flow-build`) |
@@ -12,7 +12,7 @@
 2026-11-20
 - **D1 A** — ¿Cómo cerramos el hueco del oráculo independiente? En `flow-plan` «Acceptance criteria», la observación de un criterio que muestra datos nombra el valor esperado y una fuente que no corre el código bajo prueba (el seed o una consulta). Descartado: B (una consulta extra a la API o a la base en cada recorrido de verify), C (volver a lanzar `hive-verify-change` por defecto, revirtiendo la decisión del 2026-10-18), D (sin cambio, con watch item). Engram: `decision/ac-independent-oracle`.
 - **Entrega** `automatic` · **Revisión** nativa `/code-review` · sin revisión de seguridad.
-- **Supuesto** — Para no superar la línea base de `TestRequiredProcedureReadingFootprint` (le quedaba 1 B), se quitan de `flow-plan` dos repeticiones: la frase que reafirma que una tarea operativa conserva su plan en la conversación (ya está en la guía global, «Proportionality») y el puntero «asked as asking a round» del paso 4 (las hojas `hive-rule-delivery-ask` y `hive-rule-external-effects` ya apuntan a `questions`). Se revierte restaurando ambas frases.
+- **Supuesto** — Para no superar la línea base de `TestRequiredProcedureReadingFootprint` (le quedaba 1 B), se quitan del paso 4 de `flow-plan` dos frases repetidas: el puntero «asked as asking a round» (las hojas `hive-rule-delivery-ask` y `hive-rule-external-effects` ya apuntan a `questions`) y «A UI change is always verified as `flow-verify` sets…» (lo fijan el piso de verificación y `flow-verify` paso 2; la pregunta de verificación de UI que reemplazaba ya no existe). Descartado: quitar la frase de la tarea operativa, que la revisión mostró que no es solo una repetición, porque es la que impide que una tarea operativa que toca datos cumpla la condición de cambio riesgoso (`global.md:57`). Se revierte restaurando ambas frases.
 
 ## Why
 
@@ -21,7 +21,7 @@ El artículo «5 tips for writing good agentic tests» (e2e.com, 2026-11-13) y l
 ## Acceptance criteria
 
 - AC1 — `flow-plan` «Acceptance criteria» pide, para la observación de datos, el valor esperado y una fuente que no corre el código bajo prueba · falso hoy porque la sección no lo menciona · Observed in: `content/skills/flow-plan/SKILL.md`
-- AC2 — La spec `workflow-lifecycle` «Criteria close on the real effect» y la página `site/.../flows/plan.md` dicen lo mismo, y la spec tiene un escenario de un reporte · falso hoy porque ninguna de las dos lo dice · Observed in: `_support/openspec/specs/workflow-lifecycle/spec.md` y `site/src/content/docs/flows/plan.md`
+- AC2 — La spec `workflow-lifecycle` «Criteria close on the real effect» y la página `site/.../flows/plan.md` dicen lo mismo, y la spec tiene un escenario de un reporte · falso hoy porque ninguna de las dos lo dice · Observed in: el delta `specs/workflow-lifecycle/spec.md` de esta carpeta, que el cierre aplica a la spec, y `site/src/content/docs/flows/plan.md`
 - AC3 — La lectura requerida de plan y build no supera la línea base · falso si el cambio solo agregara texto · Observed in: `go test ./tests/content -run TestRequiredProcedureReadingFootprint`
 
 ## Places checked without change
