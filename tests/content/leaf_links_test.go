@@ -64,7 +64,7 @@ var leafLinks = []leafLink{
 	{"hive-rule-before-captures", "content/skills/flow-build/SKILL.md"},
 	{"hive-rule-walkthrough", "content/skills/flow-build/SKILL.md"},
 	{"hive-rule-walkthrough", "content/skills/flow-verify/SKILL.md"},
-	{"hive-rule-viewer-open", "content/skills/flow-build/SKILL.md"},
+	{"hive-rule-viewer-open", "content/skills/flow-build/references/first-view.md"},
 	{"hive-rule-viewer-open", "content/skills/flow-verify/SKILL.md"},
 	{"hive-rule-viewer-close", "content/skills/flow-close/SKILL.md"},
 	{"hive-rule-change-folder", "content/skills/flow-plan/SKILL.md"},
