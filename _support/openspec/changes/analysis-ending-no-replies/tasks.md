@@ -4,7 +4,7 @@ Base `development` en `0c7381c5`, rama `fix/analysis-ending-no-replies`. Todo en
 
 ### T1 — La rama nueva de `analysis_reply_block` con sus pruebas
 
-- [ ] `analysis_reply_block` falla un análisis de 6 o más líneas que termina sin respuestas en un turno sin escrituras, y no evalúa los finales cortos ni los turnos de trabajo
+- [x] `analysis_reply_block` falla un análisis de 6 o más líneas que termina sin respuestas en un turno sin escrituras, y no evalúa los finales cortos ni los turnos de trabajo
 
 **Closes:** AC1, AC2
 
@@ -22,7 +22,7 @@ Base `development` en `0c7381c5`, rama `fix/analysis-ending-no-replies`. Todo en
 
 ### T2 — Medición sobre sesiones reales y documentación
 
-- [ ] El conteo sobre las sesiones reales recientes queda registrado y la spec, `rule-enforcers.md`, la rúbrica y el changelog nombran la rama nueva
+- [x] El conteo sobre las sesiones reales recientes queda registrado y la spec, `rule-enforcers.md`, la rúbrica y el changelog nombran la rama nueva
 
 **Closes:** AC3
 
@@ -49,13 +49,20 @@ Base `development` en `0c7381c5`, rama `fix/analysis-ending-no-replies`. Todo en
 ## Checkpoint
 
 - Updated: 2026-11-20
-- Stage: flow-build · T1
-- Last commit: 0c7381c5
+- Stage: flow-build · local CI
+- Last commit: 917a5b20
 - Open findings: none
-- Next: T1: fixtures and failing tests
+- Next: flow-verify
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/analysis-ending-no-replies · fix/analysis-ending-no-replies
 
 ### Evidence
 
+- go vet ./... · pass · 917a5b20
+- go test ./... · pass, 22 packages · b9935a58 tree
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · pass, 314 tests · b9935a58 tree
 
 ## Review status and progress
+
+2026-11-20 — T1 · b9935a58 · unverified: none
+2026-11-20 — T2 · 917a5b20 · unverified: CAM-25 flag is a clarifying question the rule may accept; analyses in later turns of a research are not seen
+2026-11-20 — Medición (AC3): 249 sesiones reales del 2026-11-13 al 2026-11-20 (191 de Codex en `~/.codex/sessions`, 58 de Claude Code en `~/.claude/projects`), auditadas con el binario de `917a5b20`. La rama nueva marca 5 finales: kin `01a1f7d9` línea 69, CAM-20 `01a1f5d4` línea 64, CAM-25 `01a1f5f6` línea 89, una respuesta de Jira de fleetsystem (línea 84) y una revisión adversarial (línea 107). La rama de la lista sigue con 4 fallos y 204 aprobados, igual que antes del cambio.
