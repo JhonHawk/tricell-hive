@@ -623,6 +623,17 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"wait claude a counter inside a double-bracket and", "claude", wait, []string{"unbounded_background_wait", "claude-project-double-bracket-and-pass.jsonl"}, auditOptions{}, "pass"},
 		{"wait claude /bin/sleep in a negated condition loop", "claude", wait, []string{"unbounded_background_wait", "claude-project-absolute-sleep-fail.jsonl"}, auditOptions{}, "fail"},
 		{"wait claude an outer loop whose only sleep is in a timeout-wrapped inner loop", "claude", wait, []string{"unbounded_background_wait", "claude-project-outer-nested-timeout-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude a loop after a background command", "claude", wait, []string{"unbounded_background_wait", "claude-project-background-before-loop-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude an unbounded outer loop around a bounded inner loop", "claude", wait, []string{"unbounded_background_wait", "claude-project-nested-inner-bounded-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude a counter compared with -eq", "claude", wait, []string{"unbounded_background_wait", "claude-project-counter-eq-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a counter compared with == in arithmetic", "claude", wait, []string{"unbounded_background_wait", "claude-project-counter-arith-eq-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a loop keyword in a heredoc line", "claude", wait, []string{"unbounded_background_wait", "claude-project-heredoc-for-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude a variable named MAX_SECONDS is not the clock", "claude", wait, []string{"unbounded_background_wait", "claude-project-max-seconds-name-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude a C-style for with do on the same line", "claude", wait, []string{"unbounded_background_wait", "claude-project-c-style-do-glued-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a sleep inside an echoed sentence", "claude", wait, []string{"unbounded_background_wait", "claude-project-echoed-sleep-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"wait claude a loop inside an echoed sentence", "claude", wait, []string{"unbounded_background_wait", "claude-project-echoed-loop-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"wait claude timeout after env", "claude", wait, []string{"unbounded_background_wait", "claude-project-env-timeout-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a sleep in a subshell", "claude", wait, []string{"unbounded_background_wait", "claude-project-subshell-sleep-fail.jsonl"}, auditOptions{}, "fail"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
