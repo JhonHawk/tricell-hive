@@ -86,6 +86,7 @@ var homePhrases = []homePhrase{
 	{"Break this change. Prove each finding with a run against the real code", "content/skills/hive-rule-interrogate/SKILL.md"},
 	{"single-line row per decision and one per external effect", "content/skills/unattended-delegation/SKILL.md"},
 	{"A plan delivered in two or more units", "content/skills/hive-rule-change-folder/SKILL.md"},
+	{"weaken, skip or remove a guard to reach done", "content/skills/hive-rule-loops/SKILL.md"},
 }
 
 // homeProblems returns one line per phrase whose files under

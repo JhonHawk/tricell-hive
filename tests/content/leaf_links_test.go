@@ -97,6 +97,8 @@ var leafLinks = []leafLink{
 	{"hive-rule-trackers", "content/skills/hive-rule-ticket-state/SKILL.md"},
 	{"hive-rule-trackers", "content/skills/flow-close/SKILL.md"},
 	{"hive-rule-unattended-effects", "content/skills/unattended-delegation/SKILL.md"},
+	{"hive-rule-loops", "content/skills/unattended-delegation/SKILL.md"},
+	{"hive-rule-loops", "content/skills/hive-mode/playbooks/perf.md"},
 	{"unattended-delegation", "content/skills/flow-build/references/e2e-coordination.md"},
 	{"unattended-delegation", "content/skills/hive-rule-unattended-effects/SKILL.md"},
 	{"hive-rule-checkpoint", "content/skills/hive-rule-close-modes/SKILL.md"},
