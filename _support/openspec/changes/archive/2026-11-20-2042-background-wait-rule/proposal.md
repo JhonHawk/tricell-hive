@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Borrador · plan en revisión |
+| Estado | Completado · PR #555, 277a139a |
 | Tracker | ninguno |
 | Git | `JhonHawk/tricell-hive` · base `development` en `27875867` · rama propuesta `feat/background-wait-rule` |
 | Playbook | feature |
