@@ -205,7 +205,7 @@ raise the minor or the patch version.
 ### Changed
 
 - A user's grant to merge with `--admin` lasts the session for the work's pull
-  requests whose required checks passed, and lifts a reviewer's hold whose
+  requests whose required checks passed, or whose base requires none, and lifts a reviewer's hold whose
   approval is on an earlier commit; it never covers the production branch, a
   direct push, a promotion-path deviation, a requested reviewer or requested
   changes.
