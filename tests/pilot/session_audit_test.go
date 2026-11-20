@@ -306,6 +306,13 @@ func TestAuditMergedBranchDeletedCountsCleanupScriptApply(t *testing.T) {
 	}
 }
 
+func TestAuditMergedBranchDeletedWithoutCloseIsReview(t *testing.T) {
+	got := auditStatus(t, auditFixture(t, "claude", auditOptions{}, "existing_criteria", "claude-project-merged-no-close-review.jsonl"), "merged_branch_deleted")
+	if got.Status != "review" || len(got.Evidence) != 2 || !strings.Contains(got.Evidence[1], "no close report after the last merge") {
+		t.Fatalf("a merge with no close after it must be review: %+v", got)
+	}
+}
+
 func TestAuditLocalMergeNeedsBase(t *testing.T) {
 	without := auditStatus(t, auditFixture(t, "claude", auditOptions{Cwd: t.TempDir()}, "existing_criteria", "claude-project-local-merge.jsonl"), "merged_branch_deleted")
 	if without.Status != "not_observed" || len(without.Evidence) != 1 || !strings.Contains(without.Evidence[0], "base branch") {
