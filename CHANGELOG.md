@@ -21,14 +21,6 @@ raise the minor or the patch version.
   skills and runs of their scripts, for Claude, Codex and Grok, without the
   children's usage.
 
-### Changed
-
-- A user's grant to merge with `--admin` lasts the session for the work's pull
-  requests whose required checks passed, and lifts a reviewer's hold whose
-  approval is on an earlier commit; it never covers the production branch, a
-  direct push, a promotion-path deviation, a requested reviewer or requested
-  changes.
-
 - `hive-rule-checks/scripts/run_check.py` runs a check whose output is saved:
   it writes the whole output to a log under a 64 MiB cap, closes the log and
   only then shows its last lines, and exits with the check's own status. The
@@ -211,6 +203,12 @@ raise the minor or the patch version.
   the close, not redrawn.
 
 ### Changed
+
+- A user's grant to merge with `--admin` lasts the session for the work's pull
+  requests whose required checks passed, and lifts a reviewer's hold whose
+  approval is on an earlier commit; it never covers the production branch, a
+  direct push, a promotion-path deviation, a requested reviewer or requested
+  changes.
 
 - `hive-mode` replaces `flow-research`, and `/flow-research` is gone. It
   settles what the work is, picks at most one of 13 playbooks for its kind,
