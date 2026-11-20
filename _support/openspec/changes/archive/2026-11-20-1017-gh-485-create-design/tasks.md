@@ -124,10 +124,10 @@ Recorrido humano: leer `content/skills/create-design/SKILL.md` y `references/rev
 ## Checkpoint
 
 - Updated: 2026-11-20
-- Stage: flow-build · local CI
-- Last commit: 18690a94
-- Open findings: none
-- Next: flow-verify
+- Stage: flow-verify · second review (fix diff)
+- Last commit: e152d372
+- Open findings: H-nit: readsFlowSkill counts any create-design load as a flow start (review/DESIGN.md entries) · close findings
+- Next: judge second review, push, PR, merge, refresh install, flow-close
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/create-design · feat/create-design
 
 ### Evidence
@@ -138,6 +138,8 @@ Recorrido humano: leer `content/skills/create-design/SKILL.md` y `references/rev
 - rg old names outside history · none · 18690a94
 - check_change.py · exit 0 · 18690a94
 - CI workflows: only master-source-branch.yml (PR source guard), not applicable
+- go vet ./... && go test ./... · pass · e152d372
+- site npm run build · pass · e152d372
 
 ## Review status and progress
 

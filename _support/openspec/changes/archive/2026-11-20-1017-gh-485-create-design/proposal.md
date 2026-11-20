@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | En build · desde el 2026-11-20 |
+| Estado | Completado · PR #551, ca9dd6d1 |
 | Tracker | [JhonHawk/tricell-hive#485](https://github.com/JhonHawk/tricell-hive/issues/485) · abierta · enhancement · relacionada: #475 (resuelta en la práctica, sin cerrar) |
 | Git | `JhonHawk/tricell-hive` · base `development` en `34e58d40` · rama propuesta `feat/create-design` |
 | Playbook | ninguno (plan pedido con `/flow-plan` sobre la issue) |
