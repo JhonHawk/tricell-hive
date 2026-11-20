@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | En entrega |
+| Estado | Completado · PR #528, merge a849a2e3 |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `a0e9b280` · rama propuesta `feat/assumed-decisions-ticket-blocks` |
 | Playbook | ninguno (`/flow-plan` tecleado por el usuario) |
