@@ -1111,7 +1111,34 @@ func existingAuditCriteria(s auditSession, base string) []criterionAssessment {
 	if base == "" && merged.Status == "not_observed" && hasLocalGitMerge(s.Trace.Events) {
 		merged.Evidence = []string{"base branch unknown: pass --base or declare Base branch in the AGENTS.md ## Hive section of the session cwd"}
 	}
-	return append(criteria, merged)
+	return append(criteria, mergedWithoutCloseIsReview(s.Trace.Events, merged))
+}
+
+// mergedWithoutCloseIsReview turns a merged_branch_deleted fail into review
+// when no assistant close report follows the last merge: the session may still
+// be open or that merge a promotion, and a branch is left only after a close.
+// The fail evidence is the last merge's own event, which locates it.
+func mergedWithoutCloseIsReview(events []traceEvent, merged criterionAssessment) criterionAssessment {
+	if merged.Status != "fail" || len(merged.Evidence) == 0 {
+		return merged
+	}
+	mergeAt := -1
+	for i, e := range events {
+		if regressionEvidence(e) == merged.Evidence[0] {
+			mergeAt = i
+		}
+	}
+	if mergeAt < 0 {
+		return merged
+	}
+	for _, e := range events[mergeAt+1:] {
+		if e.Kind == "text" && e.Role == "assistant" && isCloseReport(e.Text) {
+			return merged
+		}
+	}
+	merged.Status = "review"
+	merged.Evidence = append(merged.Evidence, "no close report after the last merge: the session may be open or the merge a promotion")
+	return merged
 }
 
 // --- criteria that exist only for real sessions ---
@@ -1490,7 +1517,7 @@ func skillNamedAsReason(s auditSession) criterionAssessment {
 
 func auditCriteria(s auditSession, base string) []criterionAssessment {
 	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s), reviewQuestionNativeOption(s), leafReadBeforeAction(s),
-		flowEnteredWithoutRoute(s), decisionRoundFormat(s), uiChangeWithoutUXReview(s), trackerStatesCacheWritten(s), tryItBlockInReport(s), proseChoiceWithoutCard(s), ticketAssessmentEnding(s), selfFeedingLog(s), analysisReplyBlock(s))
+		flowEnteredWithoutRoute(s), decisionRoundFormat(s), uiChangeWithoutUXReview(s), trackerStatesCacheWritten(s), tryItBlockInReport(s), proseChoiceWithoutCard(s), ticketAssessmentEnding(s), selfFeedingLog(s), analysisReplyBlock(s), unboundedBackgroundWait(s))
 }
 
 var (

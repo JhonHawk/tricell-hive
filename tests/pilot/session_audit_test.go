@@ -306,6 +306,13 @@ func TestAuditMergedBranchDeletedCountsCleanupScriptApply(t *testing.T) {
 	}
 }
 
+func TestAuditMergedBranchDeletedWithoutCloseIsReview(t *testing.T) {
+	got := auditStatus(t, auditFixture(t, "claude", auditOptions{}, "existing_criteria", "claude-project-merged-no-close-review.jsonl"), "merged_branch_deleted")
+	if got.Status != "review" || len(got.Evidence) != 2 || !strings.Contains(got.Evidence[1], "no close report after the last merge") {
+		t.Fatalf("a merge with no close after it must be review: %+v", got)
+	}
+}
+
 func TestAuditLocalMergeNeedsBase(t *testing.T) {
 	without := auditStatus(t, auditFixture(t, "claude", auditOptions{Cwd: t.TempDir()}, "existing_criteria", "claude-project-local-merge.jsonl"), "merged_branch_deleted")
 	if without.Status != "not_observed" || len(without.Evidence) != 1 || !strings.Contains(without.Evidence[0], "base branch") {
@@ -396,6 +403,7 @@ func TestAuditNewCriteria(t *testing.T) {
 	const assess = "ticket_assessment_ending"
 	const feed = "self_feeding_log"
 	const reply = "analysis_reply_block"
+	const wait = "unbounded_background_wait"
 	cases := []newCriterionCase{
 		{"round codex title with a middle dot", "codex", round, []string{round, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
 		{"format codex title with a middle dot", "codex", format, []string{format, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
@@ -583,6 +591,49 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"reply codex bare report in a turn without hive-mode is not judged", "codex", reply, []string{reply, "codex-rollout-no-hive-mode-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"reply grok italic bullets", "grok", reply, []string{reply, "grok-updates-italic-fail.jsonl"}, auditOptions{}, "fail"},
 		{"reply grok lettered block", "grok", reply, []string{reply, "grok-updates-lettered-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a background loop with sleep and no deadline", "claude", wait, []string{"unbounded_background_wait", "claude-project-unbounded-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude timeout wrapping the loop", "claude", wait, []string{"unbounded_background_wait", "claude-project-timeout-wrap-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude timeout only inside the loop body", "claude", wait, []string{"unbounded_background_wait", "claude-project-timeout-body-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude a for loop over a finite list", "claude", wait, []string{"unbounded_background_wait", "claude-project-seq-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a counter compared to a limit that exits", "claude", wait, []string{"unbounded_background_wait", "claude-project-counter-exit-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude SECONDS only printed", "claude", wait, []string{"unbounded_background_wait", "claude-project-seconds-print-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude SECONDS compared in the until condition", "claude", wait, []string{"unbounded_background_wait", "claude-project-seconds-limit-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a foreground loop", "claude", wait, []string{"unbounded_background_wait", "claude-project-foreground-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"wait claude run_in_background false", "claude", wait, []string{"unbounded_background_wait", "claude-project-background-false-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"wait claude a background command without a loop", "claude", wait, []string{"unbounded_background_wait", "claude-project-no-loop-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"wait grok a loop with block_until_ms 0 and no deadline", "grok", wait, []string{"unbounded_background_wait", "grok-updates-unbounded-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait grok timeout wrapping the loop", "grok", wait, []string{"unbounded_background_wait", "grok-updates-timeout-wrap-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait grok a counter compared to a limit that exits", "grok", wait, []string{"unbounded_background_wait", "grok-updates-counter-exit-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait grok block_until_ms above 0", "grok", wait, []string{"unbounded_background_wait", "grok-updates-blocking-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"wait grok no block_until_ms", "grok", wait, []string{"unbounded_background_wait", "grok-updates-no-block-field-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"wait codex the host does not mark a background command", "codex", wait, []string{"unbounded_background_wait", "codex-rollout-unbounded-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"wait claude a loop after then", "claude", wait, []string{"unbounded_background_wait", "claude-project-then-while-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude a loop in a subshell", "claude", wait, []string{"unbounded_background_wait", "claude-project-subshell-while-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude a C-style for with a counter limit", "claude", wait, []string{"unbounded_background_wait", "claude-project-c-style-limit-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a C-style for with a constant condition", "claude", wait, []string{"unbounded_background_wait", "claude-project-c-style-always-true-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude a C-style for without a condition", "claude", wait, []string{"unbounded_background_wait", "claude-project-c-style-empty-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude a counter limit in the while condition", "claude", wait, []string{"unbounded_background_wait", "claude-project-while-condition-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a SECONDS test inside an if in the body", "claude", wait, []string{"unbounded_background_wait", "claude-project-seconds-if-in-body-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a SECONDS test followed by a brace group", "claude", wait, []string{"unbounded_background_wait", "claude-project-seconds-brace-exit-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a decrementing counter in the condition", "claude", wait, []string{"unbounded_background_wait", "claude-project-decrement-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude the limit on the left of the comparison", "claude", wait, []string{"unbounded_background_wait", "claude-project-limit-first-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude SECONDS compared with an or-exit", "claude", wait, []string{"unbounded_background_wait", "claude-project-seconds-or-exit-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a C-style for with spaces", "claude", wait, []string{"unbounded_background_wait", "claude-project-c-style-spaced-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude timeout after then", "claude", wait, []string{"unbounded_background_wait", "claude-project-then-timeout-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a counter inside a double-bracket and", "claude", wait, []string{"unbounded_background_wait", "claude-project-double-bracket-and-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude /bin/sleep in a negated condition loop", "claude", wait, []string{"unbounded_background_wait", "claude-project-absolute-sleep-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude an outer loop whose only sleep is in a timeout-wrapped inner loop", "claude", wait, []string{"unbounded_background_wait", "claude-project-outer-nested-timeout-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude a loop after a background command", "claude", wait, []string{"unbounded_background_wait", "claude-project-background-before-loop-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude an unbounded outer loop around a bounded inner loop", "claude", wait, []string{"unbounded_background_wait", "claude-project-nested-inner-bounded-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude a counter compared with -eq", "claude", wait, []string{"unbounded_background_wait", "claude-project-counter-eq-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a counter compared with == in arithmetic", "claude", wait, []string{"unbounded_background_wait", "claude-project-counter-arith-eq-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a loop keyword in a heredoc line", "claude", wait, []string{"unbounded_background_wait", "claude-project-heredoc-for-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude a variable named MAX_SECONDS is not the clock", "claude", wait, []string{"unbounded_background_wait", "claude-project-max-seconds-name-fail.jsonl"}, auditOptions{}, "fail"},
+		{"wait claude a C-style for with do on the same line", "claude", wait, []string{"unbounded_background_wait", "claude-project-c-style-do-glued-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a sleep inside an echoed sentence", "claude", wait, []string{"unbounded_background_wait", "claude-project-echoed-sleep-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"wait claude a loop inside an echoed sentence", "claude", wait, []string{"unbounded_background_wait", "claude-project-echoed-loop-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"wait claude timeout after env", "claude", wait, []string{"unbounded_background_wait", "claude-project-env-timeout-pass.jsonl"}, auditOptions{}, "pass"},
+		{"wait claude a sleep in a subshell", "claude", wait, []string{"unbounded_background_wait", "claude-project-subshell-sleep-fail.jsonl"}, auditOptions{}, "fail"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -942,6 +993,16 @@ func TestShellWork(t *testing.T) {
 		withheld := []traceEvent{{Kind: "shell", CommandWithheld: true, CommandTemplate: tc.template}}
 		if got := workEvent(withheld, 0); got != tc.work {
 			t.Errorf("workEvent(withheld, template %q) = %v, want %v", tc.template, got, tc.work)
+		}
+	}
+}
+
+func TestAuditUnboundedBackgroundWaitEvidencePointsAtTheLaunch(t *testing.T) {
+	for host, want := range map[string]string{"claude": ".jsonl:2 shell", "grok": ".jsonl:2 shell"} {
+		name := map[string]string{"claude": "claude-project-unbounded-fail.jsonl", "grok": "grok-updates-unbounded-fail.jsonl"}[host]
+		got := auditStatus(t, auditFixture(t, host, auditOptions{}, "unbounded_background_wait", name), "unbounded_background_wait")
+		if len(got.Evidence) != 1 || !strings.Contains(got.Evidence[0], want) {
+			t.Fatalf("%s evidence = %v, want it to contain %q", host, got.Evidence, want)
 		}
 	}
 }

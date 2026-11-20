@@ -1,0 +1,14 @@
+---
+name: hive-rule-background-wait
+description: "Hive rule leaf: read before starting a polling loop or a background command that waits on a process or an external job. Sets how the wait ends, its deadline and its stretches."
+disable-model-invocation: true
+---
+
+# Background waits
+
+Read before you start a polling loop or a background command that waits on a process or an external job, such as a deploy, a cloud build or a long local run. A CI wait follows [merge gate](../hive-rule-merge-gate/SKILL.md); a wait on a child follows [child brief](../hive-rule-child-brief/SKILL.md).
+
+1. **Prefer a blocking command.** Use a command that blocks until the job reaches a final state and exits with its status, such as a watch mode with an exit-status flag or the provider's `wait` command, before writing a loop.
+2. **End on every outcome.** A loop you write ends on success, on failure, on a target that does not exist yet, on a process that hangs and on output it does not recognize. Unrecognized output exits non-zero and prints what it saw. Compare a structured field, such as one JSON value, or an exit status, not free text. When you must match text, run the query once first and check the pattern against its real output, including extra lines such as a pagination token. A query that reports the job does not exist yet has not finished: keep waiting on the same command.
+3. **Give each run of the wait a deadline.** Wrap the loop in `timeout <seconds>`, or count iterations or elapsed seconds and exit with the last state seen when the count passes its limit. A `timeout` on one command inside the loop bounds one iteration, not the wait.
+4. **Wake in stretches.** When the host wakes you only when the command exits, that deadline is what wakes you: set it to 5 to 10 minutes, never a 30- or 60-second slice. On each wake, read the job's state. While it advances, rerun the same command for another stretch. After two stretches in a row with no progress, stop and report a blocker with the last state seen.
