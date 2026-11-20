@@ -341,7 +341,7 @@ main() {
     valid_version "$version" || fail "invalid version: $version"
   fi
 
-  for tool in curl tar mktemp uname find wc mv rm rmdir mkdir; do
+  for tool in curl tar gzip mktemp uname find wc mv rm rmdir mkdir; do
     need_command "$tool"
   done
   if ! command -v shasum >/dev/null 2>&1 && ! command -v sha256sum >/dev/null 2>&1; then

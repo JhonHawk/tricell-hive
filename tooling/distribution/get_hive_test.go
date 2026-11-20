@@ -1276,7 +1276,7 @@ func TestGetHiveMapsPlatformNames(t *testing.T) {
 }
 
 func TestGetHiveNamesAMissingRequirementBeforeAnyRequest(t *testing.T) {
-	needed := []string{"curl", "tar", "mktemp", "uname", "find", "wc", "mv", "rm", "rmdir", "mkdir", "shasum", "sha256sum"}
+	needed := []string{"curl", "tar", "gzip", "mktemp", "uname", "find", "wc", "mv", "rm", "rmdir", "mkdir", "shasum", "sha256sum"}
 	support := []string{"ls", "tr", "cat", "dirname", "sleep", "sh"} // used by the fixtures, not by the script
 	linkTools := func(t *testing.T, dir string, names []string, skip map[string]bool) {
 		for _, name := range names {
@@ -1300,7 +1300,7 @@ func TestGetHiveNamesAMissingRequirementBeforeAnyRequest(t *testing.T) {
 				t.Fatalf("the restricted PATH is not sufficient: exit %d\nstderr:\n%s", res.code, res.stderr)
 			}
 		})
-		for _, missing := range []string{"curl", "tar", "mktemp", "uname", "find", "wc"} {
+		for _, missing := range []string{"curl", "tar", "gzip", "mktemp", "uname", "find", "wc"} {
 			t.Run("missing "+missing, func(t *testing.T) {
 				e := newGhEnv(t)
 				tools := t.TempDir()
