@@ -211,10 +211,13 @@ raise the minor or the patch version.
 - Codex's execution, reasoning and verifier roles run `gpt-6.2-sol`, and the
   Grok verifier runs `grok-4.7`. The model floor keeps `gpt-6.1-sol` and
   `grok-4.6` outside the writing target.
-- An acceptance criterion whose observation reads data, such as a count or
-  records, names the expected value and a source that does not run the code
-  under test, such as the seed or a query, so the walk can tell right data
-  from data that only looks right.
+- An acceptance criterion whose observation reads data, such as a count, a
+  total, records or a generated file, names the expected value and a source
+  that does not run the code under test, such as the seed or a database
+  query, and the walk closes it only when the two match.
+- A plan that changes a behavior an existing spec describes writes a change
+  folder, whose spec delta the close merges, instead of editing the spec
+  directly, which the spec-delta test rejects.
 - A user's grant to merge with `--admin` lasts the session for the work's pull
   requests whose required checks passed, or whose base requires none, and lifts a reviewer's hold whose
   approval is on an earlier commit; it never covers the production branch, a
