@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | En build |
+| Estado | Completado · PR #542, merge 3f2e8bfc |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `0c7381c5` · rama `fix/analysis-ending-no-replies` en `.claude/worktrees/analysis-ending-no-replies` |
 | Playbook | ninguno (revisión de una sesión real, luego `/flow-build` tecleado por el usuario) |
