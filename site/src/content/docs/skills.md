@@ -33,7 +33,7 @@ Code principles are leaves too. The [principles index](https://github.com/JhonHa
 
 ## Supporting skills
 
-- [Shared rules (global guidance)](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md): how the agent asks you a decision, handles a change you request mid-work, asks before an effect beyond your machine, and reads the repository's `## Hive` settings; it is always loaded and every flow uses it. It keeps the boundaries that must hold in every session and indexes the rule leaves for the rest.
+- [Shared rules (global guidance)](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md): it is always loaded and every flow uses it. It keeps the boundaries that must hold in every session (authorization, preservation, secrets, artifact placement, delivery modes) and indexes the rule leaves for the rest, such as how the agent asks you a decision, handles a change you request mid-work and reads the repository's `## Hive` settings.
 - [Git workflow](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/git-workflow/SKILL.md): prepare authorized Git delivery while preserving unrelated work and scanning target paths before committing.
 - [Visual reports](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/create-report/SKILL.md): present a report, comparison, or explainer as a designed page.
 - [Starlight documentation sites, a mode of Visual reports](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/create-report/references/docs-site.md): scaffold, extend, or audit maintained documentation sites.

@@ -468,8 +468,9 @@ lists where each flow loops.
   state once the condition holds and no functional walk is pending in that environment.
 
 The [shared guidance](content/guidance/global.md) keeps the authorization,
-preservation, secrets, evidence, questions and routes, project settings, memory
-and artifact-placement rules every session needs; each flow's procedure lives in its skill. Local edits, commits, publication,
+preservation, secrets, artifact-placement, delivery-mode and memory rules every
+session needs, with one line each for evidence and questions and routes, and
+indexes the rule leaves that hold the rest; each flow's procedure lives in its skill. Local edits, commits, publication,
 merges, and deployments are distinct effects; a plan or skill selection does not
 provide authorization for them.
 

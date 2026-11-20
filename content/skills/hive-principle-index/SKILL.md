@@ -1,12 +1,12 @@
 ---
 name: hive-principle-index
-description: "Hive principle index: read before writing or reviewing code. One line per code principle with the moment it applies; read only the leaves whose moment you are in."
+description: "Hive principle index: read before writing or reviewing code, or when a line names your moment. One line per principle with the moment it applies; read only the leaves whose moment you are in."
 disable-model-invocation: true
 ---
 
 # Code principles
 
-Read before writing new code in a task and before reviewing a diff. Each line names the observable moment a principle applies; read the leaf only when you are at that moment, as a file by its path, never through a skill-invocation tool. A principle never fixes a delivery mode and never outranks the project's own rules. Name in your report each principle you read that changed a decision, and none otherwise.
+Read before writing new code in a task, before reviewing a diff, and at any other moment a line below names, such as presenting memory as current in an answer. Each line names the observable moment a principle applies; read the leaf only when you are at that moment, as a file by its path, never through a skill-invocation tool. A principle never fixes a delivery mode and never outranks the project's own rules. Name in your report each principle you read that changed a decision, and none otherwise.
 
 - **Designing a type or a function signature, or writing statically typed code:** read [type system discipline](../hive-principle-type-system-discipline/SKILL.md).
 - **Adding validation, error handling or a framework or transport adapter:** read [boundary discipline](../hive-principle-boundary-discipline/SKILL.md).

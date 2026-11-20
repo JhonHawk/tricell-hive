@@ -4,7 +4,7 @@ Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slim
 
 ### T1 — Línea base del auditor sobre sesiones previas
 
-- [ ] `_support/workspace/2026-11-20-global-slimming-trial/baseline.md` (ignorado por Git) registra, por sesión real hecha con el global actual en esta máquina, host, modelo, commit de contenido instalado y el estado de cada criterio de `--audit-session`; `trial.md` en esta carpeta lleva solo los totales por host y criterio (sesiones observadas, fallos, `review`, `not_observed`).
+- [x] `_support/workspace/2026-11-20-global-slimming-trial/baseline.md` (ignorado por Git) registra, por sesión real hecha con el global actual en esta máquina, host, modelo, commit de contenido instalado y el estado de cada criterio de `--audit-session`; `trial.md` en esta carpeta lleva solo los totales por host y criterio (sesiones observadas, fallos, `review`, `not_observed`).
 
 **Closes:** AC7
 
@@ -22,7 +22,7 @@ Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slim
 
 ### T2 — Test de presupuesto y regla de destino
 
-- [ ] Una función que recibe la raíz del repositorio comprueba que el global mide 22.000 bytes o menos y, si no, devuelve un mensaje que nombra la regla de destino; `TestGlobalGuidanceSize` la usa y un caso con un global de 22.001 bytes en una raíz temporal falla; el bullet de `AGENTS.md` «Guidance structure» que ya dice «restate a rule in global.md only when it must act without its home being read» se amplía con la regla de destino y el tope.
+- [x] Una función que recibe la raíz del repositorio comprueba que el global mide 22.000 bytes o menos y, si no, devuelve un mensaje que nombra la regla de destino; `TestGlobalGuidanceSize` la usa y un caso con un global de 22.001 bytes en una raíz temporal falla; el bullet de `AGENTS.md` «Guidance structure» que ya dice «restate a rule in global.md only when it must act without its home being read» se amplía con la regla de destino y el tope.
 
 **Closes:** AC2
 
@@ -40,7 +40,7 @@ Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slim
 
 ### T3 — Mover procedimiento a sus hojas
 
-- [ ] Las filas del «Mapa de reglas» de `design.md` con destino en una hoja o referencia (#7 → `hive-rule-checks`, #11 → `hive-rule-trackers`, #12 → `hive-rule-reasons-and-blockers`, #14 → `hive-rule-ticket-state`, #29 → `hive-rule-local-write/references/worktree.md`, #45 → `hive-rule-checkpoint`) tienen su texto allí una sola vez; el global conserva para cada una la línea que el mapa le asigna y el enlace; cada hoja sigue bajo su límite de `leaf_skill_test.go`.
+- [x] Las filas del «Mapa de reglas» de `design.md` con destino en una hoja o referencia (#7 → `hive-rule-checks`, #11 → `hive-rule-trackers`, #12 → `hive-rule-reasons-and-blockers`, #14 → `hive-rule-ticket-state`, #29 → `hive-rule-local-write/references/worktree.md`, #45 → `hive-rule-checkpoint`) tienen su texto allí una sola vez; el global conserva para cada una la línea que el mapa le asigna y el enlace; cada hoja sigue bajo su límite de `leaf_skill_test.go`.
 
 **Closes:** AC3
 
@@ -58,7 +58,7 @@ Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slim
 
 ### T4 — Quitar las copias de reglas que ya viven en su hoja
 
-- [ ] Las filas #37–42 y #44 del mapa quedan como línea mínima o solo entrada del índice; #17 y #23 quedan en una línea que conserva su autorización o prohibición; `single_home_test.go` registra la frase clave de cada una en su hogar.
+- [x] Las filas #37–42 y #44 del mapa quedan como línea mínima o solo entrada del índice; #17 y #23 quedan en una línea que conserva su autorización o prohibición; `single_home_test.go` registra la frase clave de cada una en su hogar.
 
 **Closes:** AC4
 
@@ -76,7 +76,7 @@ Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slim
 
 ### T5 — Principio de evidencia
 
-- [ ] Existe `content/skills/hive-principle-verify-current-state/SKILL.md` (oculto, ≤ 4.000 bytes, con su aviso de origen si toma material de pstack), `hive-principle-index` lo enlaza con su momento, el global conserva una línea de invariante que lo enlaza y nombra el momento (antes de presentar memoria, un resumen o el comportamiento de una herramienta como actual), y la primera frase de #32 se elimina porque `hive-rule-reuse-before-writing` peldaño 1 ya la dice.
+- [x] Existe `content/skills/hive-principle-verify-current-state/SKILL.md` (oculto, ≤ 4.000 bytes, con su aviso de origen si toma material de pstack), `hive-principle-index` lo enlaza con su momento, el global conserva una línea de invariante que lo enlaza y nombra el momento (antes de presentar memoria, un resumen o el comportamiento de una herramienta como actual), y la primera frase de #32 se elimina porque `hive-rule-reuse-before-writing` peldaño 1 ya la dice.
 
 **Closes:** AC5
 
@@ -164,3 +164,8 @@ La revisión humana es la decisión de fusión tras leer `trial.md`.
 
 2026-11-20 — plan escrito.
 2026-11-20 — revisión del plan (hive-review-plan): 8 P1, 6 P2, 3 P3. Aplicadas: test de presupuesto omitido hasta T6; hojas en su límite (destinos cambiados o referencia nueva); 38 citas a reapuntar en T6; AC1 sobre el archivo fuente; filas por sesión en `_support/workspace/` (repo público); AC7 con denominador, estados, modelo, commit y lista de reglas movidas; cláusulas del hook de compactación y definiciones transversales en el global; #17 y #23 con su línea; AC6 retirado; documentación completa; T2 con función y fixture; el hijo de T1 no escribe. D5 A respondida.
+2026-11-20 — T2 · df7209b8 · unverified: TestGlobalGuidanceSize fails until T6 by design
+2026-11-20 — T1 · f88e5697 · unverified: no Claude baseline (all period sessions ran in tricell-hive); gpt-6.2-astra sessions excluded pending floor confirmation
+2026-11-20 — T3 · f2f691ee · unverified: tooling release validation not yet run (runs at local CI); instruction-resources.md does not yet list references/worktree.md (T6)
+2026-11-20 — T4 · 0eff79dc · unverified: none
+2026-11-20 — T5 · 0eff79dc · unverified: first sentence of #32 kept: reuse rung 1 covers only code, not investigation, plan and verification
