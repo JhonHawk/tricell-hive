@@ -151,7 +151,7 @@ La revisión humana es la decisión de fusión tras leer `trial.md`.
 
 - Updated: 2026-11-20
 - Stage: paused · trial pending; PR #554 open
-- Last commit: 02a3e20a
+- Last commit: a19000d2 (rebased onto development 277a139a)
 - Open findings: none
 - Next: audit the user's trial sessions vs baseline (T7, AC7), then the user decides merge
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/global-guidance-slimming · refactor/global-guidance-slimming
@@ -163,6 +163,9 @@ La revisión humana es la decisión de fusión tras leer `trial.md`.
 - hive apply transaction 0d5d4d42 · branch 2e6e3514 installed on all 7 hosts
 - go test ./... · exit 0 in 251 s · 02a3e20a
 - hive apply · branch 02a3e20a installed on all hosts
+- 14:25 the other session's refresh deployed development 277a139a over the branch; sessions started 14:25–14:30 ran development, not the branch, and do not count for T7
+- go test ./... · exit 0 · rebased branch (global 28,593 B)
+- hive apply transaction 2b0b51ad · branch a19000d2 installed on all hosts
 
 ## Review status and progress
 
