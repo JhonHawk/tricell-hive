@@ -7,7 +7,7 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the goal is a measured
 **Specific to a performance goal**
 - Fix the goal as a number before changing anything: the metric, the method that measures it, the baseline measured on the unchanged code, and the threshold that counts as done. A goal without a baseline and a threshold is not yet a criterion.
 - Measure where the cost is instead of guessing. Take the baseline and every later measurement the same way, on the real path with data of realistic volume, as [acceptance criteria](../../flow-plan/SKILL.md#acceptance-criteria) sets for a criterion's real effect.
-- Change and measure in cycles as [loops](../../hive-rule-loops/SKILL.md) sets, so each gain is attributed to one change, with the existing checks of the code the loop changes among its guards.
+- Change and measure in cycles as [loops](../../hive-rule-loops/SKILL.md) sets, so each gain is attributed to one change.
 - A result is reported with its numbers: baseline, final value, threshold, method and what was not measured. Record each measurement as evidence in the checkpoint ([checkpoint](../../hive-rule-checkpoint/SKILL.md)).
 - Behavior must stay the same: the existing checks pass unchanged ([tests](../../hive-rule-tests/SKILL.md)). A speedup bought by dropping a check, a validation or a result is a behavior change.
 - Measurements that only read an outside system are read-only; one that loads or changes it is an effect planned as [effects round](../../hive-rule-external-effects/SKILL.md) sets, since it can spend quota or disturb a shared resource.
