@@ -1,6 +1,6 @@
 ---
 name: hive-rule-design-stage
-description: "Hive rule leaf: read when routing a screen change toward a Figma design, or at the file and example steps of the stage. Sets the connection check, the offer, the file and one example per screen."
+description: "Hive rule leaf: read when routing a screen change toward create-design, or at the file and example steps of the stage. Sets the connection check, the offer, the file and one example per screen."
 disable-model-invocation: true
 ---
 

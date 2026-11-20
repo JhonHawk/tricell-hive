@@ -37,7 +37,7 @@ Place this work's sections in one row with their tops aligned, 200 px apart. On 
 
 ## What this work did not create
 
-Never move into a section, move or rename a node this work did not create. The frames a request names as its target are changed only as [A request for the design itself](../SKILL.md#a-request-for-the-design-itself) sets, and stay where they are; what this work creates beside them goes in its own sections. A rule card for one of those frames stays beside it, where [rule cards](rule-cards.md) places it, outside this work's sections. When those frames sit loose on the page, ask once, as a decision in step 6's round, whether to group them too; while [unattended delegation](../../unattended-delegation/SKILL.md) is active, do not ask it: leave them as they are and name them among what you report unresolved.
+Never move into a section, move or rename a node this work did not create. The frames a request names as its target are changed only as [A request for the design itself](special-cases.md#a-request-for-the-design-itself) sets, and stay where they are; what this work creates beside them goes in its own sections. A rule card for one of those frames stays beside it, where [rule cards](rule-cards.md) places it, outside this work's sections. When those frames sit loose on the page, ask once, as a decision in step 6's round, whether to group them too; while [unattended delegation](../../unattended-delegation/SKILL.md) is active, do not ask it: leave them as they are and name them among what you report unresolved.
 
 ## Record and removal
 
