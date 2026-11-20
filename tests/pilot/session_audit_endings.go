@@ -27,14 +27,6 @@ var (
 	// tempPath is the host's temporary location, where an analysis may keep
 	// scratch files without becoming a work turn.
 	tempPath = regexp.MustCompile(`^(?:/private)?/(?:tmp|var/folders)/|^/var/tmp/|/scratchpad/|^\$\{?TMPDIR\b`)
-	// quoted is a quoted shell argument.
-	quoted = regexp.MustCompile(`'[^']*'|"[^"]*"`)
-	// fileWriters change the files they name; inPlace marks an edit in place.
-	fileWriters = map[string]bool{"tee": true, "cp": true, "mv": true, "rm": true, "rmdir": true, "mkdir": true, "touch": true, "ln": true, "install": true, "truncate": true}
-	inPlace     = regexp.MustCompile(`^(?:-[a-zA-Z]*i\S*|--in-place\S*)$`)
-	// gitWork are the git subcommands that change the working tree, the
-	// history or a remote.
-	gitWork = map[string]bool{"commit": true, "push": true, "merge": true, "apply": true, "am": true, "checkout": true, "switch": true, "reset": true, "restore": true, "stash": true, "rm": true, "mv": true, "add": true, "rebase": true, "cherry-pick": true, "revert": true, "pull": true}
 )
 
 // reportMinLines is the fewest non-blank lines a last text needs to be read as
@@ -43,8 +35,9 @@ const reportMinLines = 6
 
 // workEvent reports whether the event at i changed a file outside the host's
 // temporary location or delivered work. A write the host refused changed
-// nothing; a shell command whose text the trace withheld counts as work, so
-// its turn is not judged.
+// nothing. A shell command whose text the trace withheld counts as work, so
+// its turn is not judged; one the trace keeps as a template, as Codex does for
+// a JavaScript literal, is read with each interpolated value unknown.
 func workEvent(events []traceEvent, i int) bool {
 	e := events[i]
 	switch e.Kind {
@@ -55,101 +48,6 @@ func workEvent(events []traceEvent, i int) bool {
 			return e.CommandWithheld
 		}
 		return shellWork(e.Command + "\n" + e.CommandTemplate)
-	}
-	return false
-}
-
-// shellWork reports whether a shell line writes outside the host's temporary
-// location or delivers work. It reads each simple command with its quoted
-// arguments masked, so a comparison inside an awk, jq or python3 -c program
-// is not a redirection, and it resolves a relative path against an earlier
-// cd to an absolute folder in the same line. A path it cannot resolve, such as
-// one built from a variable, counts as outside.
-func shellWork(command string) bool {
-	for _, p := range pythonWritePath.FindAllStringSubmatch(command, -1) {
-		if !tempPath.MatchString(p[1]) {
-			return true
-		}
-	}
-	masked := quoted.ReplaceAllStringFunc(command, func(q string) string {
-		inner := q[1 : len(q)-1]
-		if q[0] == '"' && inner != "" && !strings.ContainsAny(inner, " \t") {
-			return inner
-		}
-		return "Q"
-	})
-	cwd := ""
-	outside := func(p string) bool {
-		switch {
-		case p == "/dev/null" || strings.HasPrefix(p, "&"):
-			return false
-		case tempPath.MatchString(p):
-			return false
-		case strings.ContainsAny(p, "$`"), strings.HasPrefix(p, "/"), strings.HasPrefix(p, "~"), cwd == "":
-			return true
-		}
-		return !tempPath.MatchString(filepath.Join(cwd, p))
-	}
-	for _, segment := range commandParts.Split(masked, -1) {
-		for _, m := range redirectTarget.FindAllStringSubmatch(segment, -1) {
-			if outside(m[1]) {
-				return true
-			}
-		}
-		fields := strings.Fields(redirectTarget.ReplaceAllString(segment, " "))
-		for len(fields) > 0 && strings.Contains(fields[0], "=") {
-			fields = fields[1:]
-		}
-		if len(fields) == 0 {
-			continue
-		}
-		name, args := filepath.Base(fields[0]), fields[1:]
-		var operands []string
-		edit := false
-		for _, a := range args {
-			if inPlace.MatchString(a) {
-				edit = true
-			}
-			if !strings.HasPrefix(a, "-") && a != "Q" {
-				operands = append(operands, a)
-			}
-		}
-		switch {
-		case name == "cd" && len(operands) == 1 && strings.HasPrefix(operands[0], "/"):
-			cwd = operands[0]
-		case fileWriters[name], (name == "sed" || name == "perl") && edit:
-			for _, p := range operands {
-				if outside(p) {
-					return true
-				}
-			}
-		case name == "git":
-			for j := 0; j < len(args); j++ {
-				if args[j] == "-C" || args[j] == "-c" {
-					j++
-					continue
-				}
-				if !strings.HasPrefix(args[j], "-") {
-					if gitWork[args[j]] {
-						return true
-					}
-					break
-				}
-			}
-		case name == "gh" && len(args) >= 2 && args[0] == "pr" && (args[1] == "create" || args[1] == "merge"):
-			return true
-		case strings.Contains(segment, "git_state.py") && containsField(args, "commit"):
-			return true
-		}
-	}
-	return false
-}
-
-func containsField(fields []string, want string) bool {
-	for _, f := range fields {
-		if f == want {
-			return true
-		}
 	}
 	return false
 }

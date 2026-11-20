@@ -896,9 +896,52 @@ func TestShellWork(t *testing.T) {
 		{"python3 -I scripts/git_state.py commit --repo . -m x -- a.go", true},
 		{"gh pr create --fill", true},
 		{"git log --oneline -3", false},
+		{"bash -lc 'cd /repo && git commit -am fix && git push'", true},
+		{`jq "select(.n>5)" a.json`, false},
+		{`rg "->" src`, false},
+		{`sed -i -e "s/x/y/" /tmp/f`, false},
+		{"cp src/a.go /tmp/ex/a.go", false},
+		{"truncate -s 0 /tmp/x.log", false},
+		{"ln -s /repo/f /tmp/l", false},
+		{"mkdir -m 700 /tmp/x", false},
+		{"python3 - <<'PY'\nif a > b:\n    print(a)\nPY", false},
+		{"cat <<EOF > /tmp/n\ndon't\nEOF\nsed -i 's/x/y/' src/a.go", true},
+		{"go test ./... 2> build/errors.log", true},
+		{"make &> out.log", true},
+		{"go test ./... 2>&1 | tail -3", false},
+		{"cd /tmp/ex && cd ~/repo && echo x > notes.md", true},
+		{"find src -name '*.orig' -delete", true},
+		{"find src -name '*.go' -exec cat {} +", false},
+		{"env GIT_EDITOR=true git merge x", true},
+		{"(git push)", true},
+		{"sudo rm -rf build", true},
+		{"nohup git push &", true},
+		{"git stash list", false},
+		{"git clean -fdx", true},
+		{"git --git-dir /r/.git --work-tree /r commit -m x", true},
+		{"git branch -D x", true},
+		{"git branch --show-current", false},
+		{"git tag v1", true},
+		{"git tag -l", false},
+		{"git worktree add ../x", true},
+		{"echo 'unclosed", true},
 	} {
 		if got := shellWork(tc.command); got != tc.work {
 			t.Errorf("shellWork(%q) = %v, want %v", tc.command, got, tc.work)
+		}
+	}
+	for _, tc := range []struct {
+		template string
+		work     bool
+	}{
+		{"", true},
+		{"__INTERP_0__ > __INTERP_1__", true},
+		{"cat a.txt > __INTERP_0__/notes.md", true},
+		{"rg -n updateMe __INTERP_0__/apps/backend/src | head -30", false},
+	} {
+		withheld := []traceEvent{{Kind: "shell", CommandWithheld: true, CommandTemplate: tc.template}}
+		if got := workEvent(withheld, 0); got != tc.work {
+			t.Errorf("workEvent(withheld, template %q) = %v, want %v", tc.template, got, tc.work)
 		}
 	}
 }
