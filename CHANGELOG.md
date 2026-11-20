@@ -12,6 +12,19 @@ raise the minor or the patch version.
 
 ### Added
 
+- The rule leaf `hive-rule-background-wait` restores the rule the skills
+  rebuild dropped: a polling loop or background wait ends on every outcome,
+  including output it does not recognize, has a deadline for the whole wait,
+  and wakes the agent in 5- to 10-minute stretches when the host signals only
+  on exit. `--audit-session` gains `unbounded_background_wait`, which fails a
+  Claude Code or Grok background loop with `sleep` and no deadline.
+
+### Changed
+
+- In `--audit-session`, `merged_branch_deleted` fails only when a close report
+  follows the last merge with no branch deletion; a session still open, such
+  as one in the middle of a promotion, now reads as review.
+
 - `integrations/agents` tests now cover the error paths of agent parsing,
   CRLF frontmatter, and the escaping of control characters in Codex TOML,
   which no test caught before.
