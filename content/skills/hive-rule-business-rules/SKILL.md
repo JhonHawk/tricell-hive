@@ -23,7 +23,7 @@ When a decision, or a rule you or a child assumed, adds, replaces or cancels a b
 - A child reports a rule it had to assume to finish its task: check it against the sources, record it the same way and state it. A child never writes the record, the ticket or the design file; the brief of a child that builds or draws asks it to report each such rule.
 - A flow starts after research: write as `approved` each rule the user decided in research that no source states. Research itself writes no record and no ticket.
 
-When the rule that changes is on a rule card, or a decision contradicts an approved frame, also follow «After the design stage» of [rule cards](../flow-figma-design/references/rule-cards.md).
+When the rule that changes is on a rule card, or a decision contradicts an approved frame, also follow «After the design stage» of [rule cards](../create-design/references/rule-cards.md).
 
 ## Documentation in the repository
 
@@ -31,4 +31,4 @@ A rule that changes an observable behavior goes in the plan's spec delta, as [fl
 
 ## At the close
 
-Closing a work item's business rules means making write 3 of the [ticket write](../hive-rule-business-ticket/SKILL.md) when it applies and otherwise listing the record's rules in the final report. Either way, name in that report each `card stale:` and `frame stale:` line of the record, as «After the design stage» of [rule cards](../flow-figma-design/references/rule-cards.md) sets.
+Closing a work item's business rules means making write 3 of the [ticket write](../hive-rule-business-ticket/SKILL.md) when it applies and otherwise listing the record's rules in the final report. Either way, name in that report each `card stale:` and `frame stale:` line of the record, as «After the design stage» of [rule cards](../create-design/references/rule-cards.md) sets.

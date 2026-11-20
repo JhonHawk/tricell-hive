@@ -1,6 +1,6 @@
 # Refinement
 
-Guidance for improving a built screen. Nothing here is judged as a defect by the review. Work within the [precedence](../SKILL.md#precedence).
+Guidance for improving a built screen. Nothing here is judged as a defect by the review. Work within the [precedence](ui-criteria.md#precedence).
 
 ## Simplify
 

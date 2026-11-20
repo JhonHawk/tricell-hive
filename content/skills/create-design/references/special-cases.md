@@ -1,10 +1,10 @@
 # Special cases of the design stage
 
-Read by [flow-figma-design](../SKILL.md) when the request's deliverable is the design itself, and while unattended delegation is active.
+Read by [create-design](../SKILL.md) when the request's deliverable is the design itself, and while unattended delegation is active.
 
 ## A request for the design itself
 
-When the request's deliverable is the design, the request is the instruction: follow the same steps. When it names a page or frames as the target, draw there instead of on a page of the work's own: change, and never delete, the frames it names, and change or delete only what this work creates. Do not report the work as done before the user approves the example; a rule that changes the scope leaves it not done and ends as step 8 sets for it. After the approval, report the result with the example's record, name as pending each yes to recording a convention in `DESIGN.md`, and a `pending` file or library, since no plan follows to write it, and run [flow-close](../../flow-close/SKILL.md), which closes it as an operational task.
+When the request's deliverable is the design, the request is the instruction: follow the same steps. When it names a page or frames as the target, draw there instead of on a page of the work's own: change, and never delete, the frames it names, and change or delete only what this work creates. Do not report the work as done before the user approves the example; a rule that changes the scope leaves it not done and ends as step 8 sets for it. After the approval, report the result with the example's record, name as pending each yes to recording a convention in `DESIGN.md` and each yes to recording the file or the library, since no plan follows to write them, and run [flow-close](../../flow-close/SKILL.md), which closes it as an operational task.
 
 ## Unattended delegation
 

@@ -1,6 +1,6 @@
 # Canvas sections
 
-Read before the first drawing, at [flow-figma-design](../SKILL.md) step 5; again before placing a rule card, a reference image or a piece this work defines on the canvas; and when a step removes frames this work drew or the user asks for another grouping. A section is the design tool's own container for organizing a page, with a name shown on the canvas; it is not a frame and not a group.
+Read before the first drawing, at [create-design](../SKILL.md) step 5; again before placing a rule card, a reference image or a piece this work defines on the canvas; and when a step removes frames this work drew or the user asks for another grouping. A section is the design tool's own container for organizing a page, with a name shown on the canvas; it is not a frame and not a group.
 
 ## Nothing stays loose
 
@@ -27,7 +27,7 @@ Name each section `NN · <what it holds>`, such as `03 · Check-in flow`: a two-
 ## Inside a section
 
 - Place a flow's screens in one row, in the order the user meets them, with their tops aligned and the same gap between them. The gap holds a rule card with 40 px on each side, which is what [rule cards](rule-cards.md) needs to place one: 480 px while no card exists, and the widest card plus 80 px once the cards are drawn, moving this work's frames to the right when that is wider.
-- Place below a screen, aligned to its left edge, each other frame of that same screen: a state, an alternative example, and its 440 px frame.
+- Place below a screen, aligned to its left edge, each other frame of that same screen: a state, an alternative example and, for a web screen served on mobile, its 440 px frame. A screen of a mobile-only app is drawn once, at 440 px, so nothing sits below it for width.
 - A rule card sits where [rule cards](rule-cards.md) places it beside its frame; that place is inside the frame's section.
 - Resize the section to fit its content with 80 px of padding on every side, again after each node added, moved, redrawn or removed.
 
@@ -37,7 +37,7 @@ Place this work's sections in one row with their tops aligned, 200 px apart. On 
 
 ## What this work did not create
 
-Never move into a section, move or rename a node this work did not create. The frames a request names as its target are changed only as [A request for the design itself](../SKILL.md#a-request-for-the-design-itself) sets, and stay where they are; what this work creates beside them goes in its own sections. A rule card for one of those frames stays beside it, where [rule cards](rule-cards.md) places it, outside this work's sections. When those frames sit loose on the page, ask once, as a decision in step 6's round, whether to group them too; while [unattended delegation](../../unattended-delegation/SKILL.md) is active, do not ask it: leave them as they are and name them among what you report unresolved.
+Never move into a section, move or rename a node this work did not create. The frames a request names as its target are changed only as [A request for the design itself](special-cases.md#a-request-for-the-design-itself) sets, and stay where they are; what this work creates beside them goes in its own sections. A rule card for one of those frames stays beside it, where [rule cards](rule-cards.md) places it, outside this work's sections. When those frames sit loose on the page, ask once, as a decision in step 6's round, whether to group them too; while [unattended delegation](../../unattended-delegation/SKILL.md) is active, do not ask it: leave them as they are and name them among what you report unresolved.
 
 ## Record and removal
 

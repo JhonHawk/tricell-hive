@@ -1,6 +1,6 @@
 # Rule cards
 
-Read at step 5 of [flow-figma-design](../SKILL.md), once the first review is reconciled, to draw the rule cards; at its step 7, when the user answers a rule; and from any later flow when a rule a card shows changes or a decision contradicts an approved frame. [Business rules](../../hive-rule-business-rules/SKILL.md) defines a business rule, the line that records it and its statuses.
+Read at step 5 of [create-design](../SKILL.md), once the first review is reconciled, to draw the rule cards; at its step 7, when the user answers a rule; and from any later flow when a rule a card shows changes or a decision contradicts an approved frame. [Business rules](../../hive-rule-business-rules/SKILL.md) defines a business rule, the line that records it and its statuses.
 
 A rule card is an annotation beside a frame that lists the business rules shaping that screen which the frame does not say by itself, so a reader of the design file finds them without the ticket or the conversation. It is not part of the interface.
 
@@ -13,7 +13,7 @@ For each frame the work drew, take:
 
 Keep a rule only when its condition or its consequence is not written in the frame's visible text: leave out a rule that a label, a helper text or a message of the frame already says in full. Add each stated rule you keep to the record only when that screen has no line for it, as `rule: <the rule> · screen <name> · stated: <source> · found by drawer`.
 
-A frame with no rule to keep gets no card. A `scope` rule has stopped its screens, so it has no frame and no card. The 440 px frame of step 6 shares its screen's card: draw no second one. A screen drawn with alternatives gets one card per alternative.
+A frame with no rule to keep gets no card. A `scope` rule has stopped its screens, so it has no frame and no card. The 440 px frame of a web screen served on mobile shares its screen's card: draw no second one. A screen drawn with alternatives gets one card per alternative.
 
 ## Draw the cards
 
@@ -41,7 +41,7 @@ When a later flow records a change to a rule a card shows, as [business rules](.
 
 When a decision contradicts what an approved frame itself shows, such as a region, an action, a state or a text of the frame, add `frame stale: <node> · <rule>` to the work's rule record and say so in that turn's message. The build follows the decision, and no flow redraws the frame outside the design stage. The close names each `card stale:` and `frame stale:` line in its final report, as left open.
 
-When [flow-figma-design](../SKILL.md) runs again for that work, read those lines and the record's `cancelled` rules, wherever the rule record now lives, before drawing; correct the cards and the frames they name; and name each line you corrected in the stage's report. The plan's revision then removes those lines, as the [rule record](../../hive-rule-business-record/SKILL.md) sets; for work without a change folder, remove them from the checkpoint file yourself.
+When [create-design](../SKILL.md) runs again for that work, read those lines and the record's `cancelled` rules, wherever the rule record now lives, before drawing; correct the cards and the frames they name; and name each line you corrected in the stage's report. The plan's revision then removes those lines, as the [rule record](../../hive-rule-business-record/SKILL.md) sets; for work without a change folder, remove them from the checkpoint file yourself.
 
 ## Special cases
 

@@ -1,6 +1,6 @@
 # Example record and review
 
-Read at step 5 of [flow-figma-design](../SKILL.md) as soon as the frames are drawn, before the review and before asking anything: it sets the rules to list, the record to write and the review that follows.
+Read at step 5 of [create-design](../SKILL.md) as soon as the frames are drawn, before the review and before asking anything: it sets the rules to list, the record to write and the review that follows.
 
 ## Rules the frames show
 
