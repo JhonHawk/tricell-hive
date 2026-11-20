@@ -71,15 +71,28 @@ def guard_launcher(alive_fd):
     A helper killed by SIGKILL never runs its cleanup, and the host's group
     kill no longer reaches a command in its own session. The guard blocks on a
     pipe whose only writer is the helper; the kernel closes it when the helper
-    dies in any way, and the guard then kills the command's group.
+    dies in any way, and the guard then kills the command's group. It is forked
+    twice so that init adopts it: a command that waits for all its children
+    must not wait for the guard. Without a guard the check still runs.
     """
 
     def launch():
-        if os.fork() != 0:
+        try:
+            middle = os.fork()
+        except OSError:
+            return
+        if middle != 0:
+            os.waitpid(middle, 0)
             return
         try:
-            os.closerange(3, alive_fd)
-            os.closerange(alive_fd + 1, os.sysconf("SC_OPEN_MAX"))
+            if os.fork() != 0:
+                return
+            for fd in sorted(int(name) for name in os.listdir("/dev/fd")):
+                if fd > 2 and fd != alive_fd:
+                    try:
+                        os.close(fd)
+                    except OSError:
+                        pass
             null = os.open(os.devnull, os.O_RDWR)
             for fd in (0, 1, 2):
                 os.dup2(null, fd)
@@ -152,9 +165,10 @@ def run(args, command):
                 start_new_session=True,
                 preexec_fn=guard_launcher(alive_read),
             )
-        except OSError as err:
+        except (OSError, subprocess.SubprocessError) as err:
             os.close(log_fd)
-            print(f"run_check: cannot run {command[0]}: {err.strerror}", file=sys.stderr)
+            reason = getattr(err, "strerror", None) or str(err)
+            print(f"run_check: cannot run {command[0]}: {reason}", file=sys.stderr)
             return 127
         finally:
             os.close(alive_read)

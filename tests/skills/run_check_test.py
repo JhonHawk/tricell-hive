@@ -168,6 +168,21 @@ class RunCheckTest(unittest.TestCase):
             time.sleep(0.1)
         self.assertFalse(alive(pid), "command outlived a killed helper")
 
+    def test_command_that_reaps_all_its_children_finishes(self):
+        reaper = (
+            "import os, subprocess\n"
+            "subprocess.Popen(['true'])\n"
+            "while True:\n"
+            "    try:\n"
+            "        os.wait()\n"
+            "    except ChildProcessError:\n"
+            "        break\n"
+            "print('reaped')\n"
+        )
+        result = self.run_check("--", sys.executable, "-c", reaper, timeout=30)
+        self.assertEqual(result.returncode, 0)
+        self.assertIn(b"reaped", result.stdout)
+
     def test_default_log_is_created_in_the_temp_dir(self):
         result = subprocess.run(
             [sys.executable, "-I", str(SCRIPT), "--", "true"],
