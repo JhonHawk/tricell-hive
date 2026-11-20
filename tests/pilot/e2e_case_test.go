@@ -311,11 +311,12 @@ func TestE2ESetupDeadlinesOwnDescendantsAndPipes(t *testing.T) {
 			}
 			// Bound the RED run as well: a descendant's inherited pipe otherwise holds
 			// exec.Output indefinitely after CommandContext kills only its parent.
-			watchdog := time.AfterFunc(800*time.Millisecond, killOwned)
+			watchdog := time.AfterFunc(2*time.Second, killOwned)
 			defer watchdog.Stop()
 			defer killOwned()
 			started := time.Now()
-			deadline := started.Add(80 * time.Millisecond)
+			const budget = 300 * time.Millisecond
+			deadline := started.Add(budget)
 			var err error
 			switch stage {
 			case "github-status", "github-token":
@@ -330,7 +331,7 @@ func TestE2ESetupDeadlinesOwnDescendantsAndPipes(t *testing.T) {
 			if err == nil {
 				t.Fatal("unfinished setup accepted")
 			}
-			if elapsed > 500*time.Millisecond {
+			if elapsed > budget+420*time.Millisecond {
 				t.Errorf("setup exceeded remaining deadline while descendant held stdout: %s", elapsed)
 			}
 			for _, path := range []string{pidfile, parentfile} {
