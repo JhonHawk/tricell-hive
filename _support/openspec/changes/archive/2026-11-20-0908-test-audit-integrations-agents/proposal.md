@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Listo para flow-build |
+| Estado | Completado · PR #541, merge 1df3a2c0 |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `d3d2b46c` (el área auditada no cambia desde el baseline `5c49e24d`) · rama propuesta `test/audit-integrations-agents` en el worktree `.claude/worktrees/test-audit-agents`, porque otra sesión usa la checkout principal |
 | Playbook | test-audit (skill), sobre `flow-plan` |
