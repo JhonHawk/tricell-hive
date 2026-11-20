@@ -149,4 +149,18 @@ func TestRenderOverrideChangesOnlyTheOverriddenLines(t *testing.T) {
 	if string(out) != want {
 		t.Fatalf("override changed more than model and effort:\n%s\nwant\n%s", out, want)
 	}
+
+	// Cursor renders a model override in place of its inherited model.
+	base, err = Render(resolveSource, data, profiles, "cursor", "/skills", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out, err = Render(resolveSource, data, profiles, "cursor", "/skills", &ModelOverride{Model: "c"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want = strings.Replace(string(base), `model: "inherit"`, `model: "c"`, 1)
+	if want == string(base) || string(out) != want {
+		t.Fatalf("cursor override:\n%s\nwant\n%s", out, want)
+	}
 }
