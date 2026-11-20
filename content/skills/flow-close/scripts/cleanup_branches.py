@@ -488,7 +488,9 @@ def update_base(repo, base):
     entry = plan_base(checkout, base)
     if entry["action"] != "fast_forward":
         return entry, None
-    code, _, err = run_git(checkout, "merge", "--ff-only", "--no-overwrite-ignore", f"origin/{base}")
+    # Merge the exact commit plan_base checked: a short name such as
+    # origin/<base> would resolve a tag of that name first.
+    code, _, err = run_git(checkout, "merge", "--ff-only", "--no-overwrite-ignore", entry["to"])
     if code != 0:
         reason = f"git merge --ff-only origin/{base} failed: {err}"
         return {**entry, "action": "keep", "reason": reason}, reason
@@ -519,6 +521,9 @@ def main(argv=None):
 
     try:
         merged_prs = parse_merged_pr_arg(args.merged_pr)
+        # Read the protected environment branches before the fast-forward can
+        # change AGENTS.md, so --apply protects what the dry run protected.
+        env_branches = set(args.env_branch) | read_agents_env_branches(args.repo)
         if args.apply:
             base_update, base_error = update_base(args.repo, args.base)
         else:
@@ -526,7 +531,7 @@ def main(argv=None):
         plan = plan_cleanup(
             args.repo,
             base=args.base,
-            env_branches=args.env_branch,
+            env_branches=env_branches,
             active_branches=args.active_branch,
             open_pr_bases=args.open_pr_base,
             merged_prs=merged_prs,

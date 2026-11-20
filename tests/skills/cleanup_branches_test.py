@@ -332,6 +332,39 @@ class BaseFastForwardTests(unittest.TestCase):
         self.assertIn("no origin/trunk", plan["base_update"]["reason"])
         self.assertTrue(plan["applied"]["ok"], plan["applied"])
 
+    def test_tag_named_like_the_remote_base_does_not_redirect_the_fast_forward(self):
+        self.git(self.other, "switch", "-q", "-c", "side")
+        (self.other / "side.txt").write_text("side\n")
+        self.git(self.other, "add", "side.txt")
+        self.git(self.other, "commit", "-q", "-m", "side")
+        side = self.git(self.other, "rev-parse", "HEAD")
+        self.git(self.other, "switch", "-q", "development")
+        self.git(self.main_repo, "fetch", "-q", str(self.other), "side")
+        self.git(self.main_repo, "tag", "origin/development", side)
+        tip = self.push_upstream("one.txt", "1\n")
+        code, plan = self.run_main("--apply")
+        self.assertEqual(plan["base_update"]["action"], "fast_forward", plan["base_update"])
+        self.assertEqual(self.head(), tip)
+        self.assertFalse((self.main_repo / "side.txt").exists())
+
+    def test_environment_branches_are_read_before_the_fast_forward(self):
+        agents = self.main_repo / "AGENTS.md"
+        agents.write_text("## Hive\n\n- Base branch: development\n- Environments: development \u2192 qa\n")
+        self.git(self.main_repo, "add", "AGENTS.md")
+        self.git(self.main_repo, "commit", "-q", "-m", "hive settings")
+        self.git(self.main_repo, "push", "-q", "origin", "development")
+        self.git(self.main_repo, "branch", "qa", "development")
+        self.git(self.main_repo, "push", "-q", "origin", "qa")
+        qa = self.git(self.main_repo, "rev-parse", "qa")
+        self.git(self.other, "pull", "-q", "--ff-only", "origin", "development")
+        (self.other / "AGENTS.md").write_text("## Hive\n\n- Base branch: development\n")
+        self.git(self.other, "commit", "-q", "-am", "drop environments")
+        self.git(self.other, "push", "-q", "origin", "development")
+        code, plan = self.run_main("--apply", "--merged-pr", f"qa={qa}")
+        self.assertEqual(plan["base_update"]["action"], "fast_forward", plan["base_update"])
+        self.assertNotIn("qa", plan["applied"]["deleted_branches"], plan)
+        self.assertTrue(self.git(self.main_repo, "ls-remote", "--heads", "origin", "qa"))
+
     def test_dry_run_neither_fetches_nor_moves(self):
         before = self.head()
         self.push_upstream("one.txt", "1\n")
