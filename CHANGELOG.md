@@ -12,6 +12,10 @@ raise the minor or the patch version.
 
 ### Added
 
+- `--audit-session` gains `analysis_reply_block`, which fails a turn that
+  ends an analysis with replies listed under italic labels, or with lettered
+  options and no question heading, and says whether the report-endings rule
+  was read.
 - The close brings the local base up to date: `cleanup_branches.py --apply`
   fetches the base and fast-forwards the main checkout's copy when it is on
   the base and no incoming file is changed, untracked or ignored there, and
@@ -204,6 +208,9 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Codex's execution, reasoning and verifier roles run `gpt-6.2-sol`, and the
+  Grok verifier runs `grok-4.7`. The model floor keeps `gpt-6.1-sol` and
+  `grok-4.6` outside the writing target.
 - A user's grant to merge with `--admin` lasts the session for the work's pull
   requests whose required checks passed, or whose base requires none, and lifts a reviewer's hold whose
   approval is on an earlier commit; it never covers the production branch, a
