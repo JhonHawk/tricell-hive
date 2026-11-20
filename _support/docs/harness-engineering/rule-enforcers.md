@@ -16,6 +16,8 @@ Which of Hive's rules a mechanism enforces, and which still rest on prose. A rul
 | A package is at least 7 days old and free of active advisories | global guidance «Scope and authorization» | `content/skills/flow-build/scripts/check_package.py` | prevents | enforced |
 | A commit names its paths, keeps unrelated staged work and passes a secret scan | global guidance «Secrets» | `content/skills/git-workflow/scripts/git_state.py` | prevents | enforced |
 | Close deletes only merged branches and clean worktrees | `content/skills/flow-close/references/branch-cleanup.md` | `content/skills/flow-close/scripts/cleanup_branches.py` | prevents | enforced |
+| Close fast-forwards the local base only when nothing local is in the way | `content/skills/flow-close/references/branch-cleanup.md` | `content/skills/flow-close/scripts/cleanup_branches.py` (`base_update`) | prevents | enforced |
+| An admin-merge grant lasts the session within its exclusions | `content/skills/hive-rule-merge-gate/SKILL.md` | none | — | judgment |
 | A change folder covers its criteria and its business rules follow their grammar | `content/skills/flow-plan/SKILL.md` | `content/skills/flow-plan/scripts/check_change.py`, `content/skills/flow-plan/scripts/business_rules.py` | prevents | enforced |
 | A task's record and the build's checkpoint keep their format | `content/skills/flow-build/SKILL.md` | `content/skills/flow-plan/scripts/tasks.py` | prevents | enforced |
 | Deltas merge into the specs before a change folder is archived | `content/skills/flow-close/SKILL.md` step 4 | `content/skills/flow-close/scripts/apply_deltas.py` | prevents | enforced |

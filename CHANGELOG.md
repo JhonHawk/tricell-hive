@@ -12,6 +12,23 @@ raise the minor or the patch version.
 
 ### Added
 
+- The close brings the local base up to date: `cleanup_branches.py --apply`
+  fetches the base and fast-forwards the main checkout's copy when it is on
+  the base and no incoming file is changed, untracked or ignored there, and
+  reports why it left the base otherwise (`base_update`).
+- `--audit-session` reports `main_thread_cost`: the main thread's model calls,
+  input tokens, compactions and tool calls, with reads of installed Hive
+  skills and runs of their scripts, for Claude, Codex and Grok, without the
+  children's usage.
+
+### Changed
+
+- A user's grant to merge with `--admin` lasts the session for the work's pull
+  requests whose required checks passed, and lifts a reviewer's hold whose
+  approval is on an earlier commit; it never covers the production branch, a
+  direct push, a promotion-path deviation, a requested reviewer or requested
+  changes.
+
 - `hive-rule-checks/scripts/run_check.py` runs a check whose output is saved:
   it writes the whole output to a log under a 64 MiB cap, closes the log and
   only then shows its last lines, and exits with the check's own status. The
