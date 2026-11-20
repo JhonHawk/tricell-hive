@@ -49,10 +49,10 @@ Base `development` en `0c7381c5`, rama `fix/analysis-ending-no-replies`. Todo en
 ## Checkpoint
 
 - Updated: 2026-11-20
-- Stage: flow-build · local CI
-- Last commit: 917a5b20
+- Stage: flow-verify · code review
+- Last commit: 45147880
 - Open findings: none
-- Next: flow-verify
+- Next: read /code-review findings, then push and PR
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/analysis-ending-no-replies · fix/analysis-ending-no-replies
 
 ### Evidence
@@ -60,6 +60,7 @@ Base `development` en `0c7381c5`, rama `fix/analysis-ending-no-replies`. Todo en
 - go vet ./... · pass · 917a5b20
 - go test ./... · pass, 22 packages · b9935a58 tree
 - python3 -m unittest discover -s tests/skills -p '*_test.py' · pass, 314 tests · b9935a58 tree
+- blast radius: base vs candidate auditor over 249 real sessions · other criteria changed 0, analysis_reply_block changed 5 · 45147880
 
 ## Review status and progress
 
