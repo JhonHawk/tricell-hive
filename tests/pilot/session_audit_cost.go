@@ -146,6 +146,26 @@ func claudeCost(data []byte) mainThreadCost {
 	return c
 }
 
+// codexCallCommand returns the shell command of a Codex function_call, whose
+// arguments are a JSON string holding cmd or command as a string or an argv.
+func codexCallCommand(arguments string) string {
+	var args map[string]json.RawMessage
+	if json.Unmarshal([]byte(arguments), &args) != nil {
+		return ""
+	}
+	for _, key := range []string{"cmd", "command"} {
+		var text string
+		if json.Unmarshal(args[key], &text) == nil {
+			return text
+		}
+		var argv []string
+		if json.Unmarshal(args[key], &argv) == nil {
+			return strings.Join(argv, " ")
+		}
+	}
+	return ""
+}
+
 func codexCost(data []byte) mainThreadCost {
 	c := newCost()
 	lastTotal := ""
@@ -154,6 +174,7 @@ func codexCost(data []byte) mainThreadCost {
 			Type    string
 			Payload struct {
 				Type, Name, Input string
+				Arguments         string
 				Info              *struct {
 					Total json.RawMessage `json:"total_token_usage"`
 					Last  struct {
@@ -180,9 +201,11 @@ func codexCost(data []byte) mainThreadCost {
 				c.CachedTokens += p.Info.Last.Cached
 				c.PeakContext = max(c.PeakContext, p.Info.Last.Input)
 			}
-		case ev.Type == "response_item" && (p.Type == "function_call" || p.Type == "custom_tool_call"):
+		case ev.Type == "response_item" && p.Type == "custom_tool_call":
 			// An exec block's source holds the commands it runs.
 			c.toolCall(p.Name, "", p.Input)
+		case ev.Type == "response_item" && p.Type == "function_call":
+			c.toolCall(p.Name, "", codexCallCommand(p.Arguments))
 		}
 	})
 	if c.ModelCalls > 0 {

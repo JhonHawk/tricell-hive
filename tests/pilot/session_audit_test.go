@@ -759,7 +759,7 @@ func TestAuditMainThreadCost(t *testing.T) {
 			ToolCalls: 4, HiveReads: 1, HiveScripts: 1, ByTool: map[string]int{"Read": 3, "Bash": 1}}},
 		{"codex counts a token_count only when the total changed", "codex", "codex.jsonl", mainThreadCost{
 			ModelCalls: 2, InputTokens: 350, CachedTokens: 140, PeakContext: 250, UsageSource: "per_call", Compactions: 1,
-			ToolCalls: 4, HiveReads: 1, HiveScripts: 1, ByTool: map[string]int{"exec": 4}, RepeatedUsageEvents: 1}},
+			ToolCalls: 5, HiveReads: 2, HiveScripts: 1, ByTool: map[string]int{"exec": 4, "exec_command": 1}, RepeatedUsageEvents: 1}},
 		{"grok subtracts a child found in another project folder", "grok", "grok-sessions/%2Frepo/parent-ok/updates.jsonl", mainThreadCost{
 			ModelCalls: 5, InputTokens: 2700, CachedTokens: 800, UsageSource: "per_turn", Compactions: 1,
 			ToolCalls: 5, HiveReads: 2, HiveScripts: 1, ByTool: map[string]int{"read_file": 2, "run_terminal_command": 3}}},
