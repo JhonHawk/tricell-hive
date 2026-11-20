@@ -27,7 +27,7 @@ Name each section `NN · <what it holds>`, such as `03 · Check-in flow`: a two-
 ## Inside a section
 
 - Place a flow's screens in one row, in the order the user meets them, with their tops aligned and the same gap between them. The gap holds a rule card with 40 px on each side, which is what [rule cards](rule-cards.md) needs to place one: 480 px while no card exists, and the widest card plus 80 px once the cards are drawn, moving this work's frames to the right when that is wider.
-- Place below a screen, aligned to its left edge, each other frame of that same screen: a state, an alternative example, and its 440 px frame.
+- Place below a screen, aligned to its left edge, each other frame of that same screen: a state, an alternative example and, for a web screen served on mobile, its 440 px frame. A screen of a mobile-only app is drawn once, at 440 px, so nothing sits below it for width.
 - A rule card sits where [rule cards](rule-cards.md) places it beside its frame; that place is inside the frame's section.
 - Resize the section to fit its content with 80 px of padding on every side, again after each node added, moved, redrawn or removed.
 

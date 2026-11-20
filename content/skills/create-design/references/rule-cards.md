@@ -13,7 +13,7 @@ For each frame the work drew, take:
 
 Keep a rule only when its condition or its consequence is not written in the frame's visible text: leave out a rule that a label, a helper text or a message of the frame already says in full. Add each stated rule you keep to the record only when that screen has no line for it, as `rule: <the rule> · screen <name> · stated: <source> · found by drawer`.
 
-A frame with no rule to keep gets no card. A `scope` rule has stopped its screens, so it has no frame and no card. The 440 px frame of step 6 shares its screen's card: draw no second one. A screen drawn with alternatives gets one card per alternative.
+A frame with no rule to keep gets no card. A `scope` rule has stopped its screens, so it has no frame and no card. The 440 px frame of a web screen served on mobile shares its screen's card: draw no second one. A screen drawn with alternatives gets one card per alternative.
 
 ## Draw the cards
 

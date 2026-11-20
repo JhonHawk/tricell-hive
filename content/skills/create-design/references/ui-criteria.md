@@ -24,11 +24,11 @@ This section is the only home of the rule. When two sources disagree, the earlie
 2. the project's recorded decisions (the `## Hive` «Decisions» list of the record);
 3. the customization layer (theme or preset, CSS variables, wrapper components, copied component code);
 4. the library's defaults;
-5. this skill's defaults: the guide values in [criteria](criteria.md) that are not accessibility floors, such as the 44 px touch target.
+5. the defaults of these criteria: the guide values in [criteria](criteria.md) that are not accessibility floors, such as the 44 px touch target.
 
 Consequences:
 
-- A library default that is below a skill default holds. A 36 px library button is not a deviation from the 44 px guide value.
+- A library default that is below a default of these criteria holds. A 36 px library button is not a deviation from the 44 px guide value.
 - The accessibility floors in criteria sit outside levels 2 to 5: a recorded decision, the customization layer or a library default never excuses a floor failure in what the change builds or customizes.
 - An element the change reuses without modifying it (an unmodified library default, or a component the project customized earlier) that fails a floor is not a defect of the change: list it among the defects already there, with its reason.
 - With a declared accessibility requirement (level 1), such an element is still listed among the defects already there, but with its priority and marked as failing that requirement, so it reaches the user as a finding; the change's verdict still covers only what it introduced.

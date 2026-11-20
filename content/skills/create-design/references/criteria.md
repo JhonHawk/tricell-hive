@@ -1,6 +1,6 @@
 # Criteria
 
-Each check gives a threshold or an observation. A check marked **[measured]** is judged as a defect (P0 to P3) by the UX review when the change introduced it, subject to the precedence in [SKILL.md](ui-criteria.md#precedence). Unmarked items are design guidance and are never reported as defects.
+Each check gives a threshold or an observation. A check marked **[measured]** is judged as a defect (P0 to P3) by the UX review when the change introduced it, subject to the [precedence](ui-criteria.md#precedence). Unmarked items are design guidance and are never reported as defects.
 
 ## Screen modes
 

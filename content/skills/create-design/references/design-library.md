@@ -1,6 +1,6 @@
 # Design library
 
-Read at step 3 of [create-design](../SKILL.md), before step 4, whatever the app's `DESIGN.md` declares. This file is the only home of five rules: which records of the sibling screens to read, which Figma library the frames are drawn with, the inventory written before the first drawing, how each piece is drawn, and how the file and the library reach the app's `DESIGN.md`. [Design record](design-record.md) defines the two fields.
+Read at step 3 of [create-design](../SKILL.md), before step 4, whatever the app's `DESIGN.md` declares. This file is the only home of five rules: which records of the sibling screens to read, which Figma library the frames are drawn with, the inventory written before the first drawing, how each piece is drawn, and how a yes to recording the file and the library is kept for the plan. [Design record](design-record.md) defines the two fields.
 
 ## Sibling records
 
@@ -47,17 +47,10 @@ Ask in step 6's round, once per work, one decision that covers each of these tha
 - a library is bound, and it has no `**Design library:**` field, or one that names a Figma library other than the bound one;
 - a file was resolved or a library bound, and the app has no `DESIGN.md`, or it has no `## Hive` section.
 
-A field that names a file or a library of another design tool stays as it is: ask nothing about it. Show in the decision each value exactly as it will be written, beside the value it replaces when the field already holds one. In the same round, when that `DESIGN.md` has a `## Hive` section and no delivery answer is in force for its repository, ask the delivery question as [delivery questions](../../hive-rule-delivery-ask/SKILL.md) sets for a mechanical change, worded to hold under either answer.
+A field that names a file or a library of another design tool stays as it is: ask nothing about it. Show in the decision each value exactly as it will be written, beside the value it replaces when the field already holds one.
+
+A yes writes nothing in the repository and asks no delivery question, whether or not the app has a `DESIGN.md` with a `## Hive` section: write `record: <the fields asked> · pending` in `examples.md`, with each value as the decision showed it, and name it as pending in the report. The plan that follows adds the task that writes those fields, or the record with them when the app has none, as [UI decisions](../../hive-rule-ui-plan/SKILL.md) sets; a request whose deliverable is the design has no plan, and its close names the yes as pending.
 
 On a no, write `record: <the fields asked> · declined <date>` in `examples.md`, so the work does not ask again.
-
-On a yes, when that `DESIGN.md` has a `## Hive` section, in the turn of step 7:
-
-1. Write in that section only the fields the decision showed, `**Design file:**`, `**Design library:**` or both, in the format [design record](design-record.md) sets: add a field that is missing, replace the value of a field the decision showed as replaced, and change no other field or line. This is the one edit this stage makes in the repository.
-2. Show the change in the message.
-3. Deliver that edit at once, as [git-workflow](../../git-workflow/SKILL.md) sets under the delivery answer, as a mechanical change of its own, apart from any plan or build that follows: an edit left uncommitted is not carried to the branch a later stage works on. That delivery is the edit's own: it changes neither how the design work closes nor the state of its ticket, and after it do not run the close that git-workflow's last step sets. The stage goes on, and the work closes where step 8 or «A request for the design itself» sets; by then the edit is delivered, so a request whose deliverable is the design leaves no repository change to deliver. The user's yes, given with the values shown, is the validation an `interactive` delivery stops for. Under `hold`, leave the edit in the working tree and name it in the report.
-4. Write `record: <the fields written> · written <date>` in `examples.md`.
-
-On a yes, when the app has no `DESIGN.md`, or it has no `## Hive` section, write nothing in the repository: this stage does not create the record. Write `record: <the fields asked> · pending` in `examples.md`, and name it as pending in the report. A plan that follows writes the record with those fields, as [UI decisions](../../hive-rule-ui-plan/SKILL.md) sets.
 
 While [unattended delegation](../../unattended-delegation/SKILL.md) is active, ask none of the questions of this file: bind the library the conversation, the design record or detection gives without asking, bind none when the conversation gives more than one or detection leaves none or more than one, do not write `DESIGN.md`, and report as unresolved a file or library that `DESIGN.md` does not declare or declares differently.
