@@ -15,10 +15,11 @@ var (
 	// flowSkillRead names the installed SKILL.md of a flow that a next-step
 	// block starts, under a host's skills folder such as ~/.agents/skills; a
 	// read of the repository's own content/skills is research, not a start.
-	flowSkillRead = regexp.MustCompile(`/\.[a-z]+/skills/(flow-build|flow-plan|flow-figma-design)/SKILL\.md`)
+	flowSkillRead = regexp.MustCompile(`/\.[a-z]+/skills/(flow-build|flow-plan|flow-figma-design|create-design)/SKILL\.md`)
 	// flowCommand is a flow's command in any host's syntax, as a next-step block
-	// writes it or the user types it.
-	flowCommand = regexp.MustCompile(`(?:^|[\s\x60(>])(?:[/$@]|/skill:)flow-(?:build|plan|figma-design|verify|close|deploy)\b`)
+	// writes it or the user types it. flow-figma-design was create-design's
+	// name before it was renamed; sessions recorded before then keep it.
+	flowCommand = regexp.MustCompile(`(?:^|[\s\x60(>])(?:[/$@]|/skill:)(?:flow-(?:build|plan|figma-design|verify|close|deploy)|create-design)\b`)
 	// asksTheUser marks a message that waits on the user's answer or approval:
 	// a question mark that ends a sentence, outside code and links, or the
 	// words for approval.
@@ -68,7 +69,7 @@ func fullRoundFormat(text string) bool {
 func readsFlowSkill(e traceEvent) bool {
 	switch e.Kind {
 	case "skill_invocation":
-		return e.Text == "flow-build" || e.Text == "flow-plan" || e.Text == "flow-figma-design"
+		return e.Text == "flow-build" || e.Text == "flow-plan" || e.Text == "flow-figma-design" || e.Text == "create-design"
 	case "read", "search":
 		return flowSkillRead.MatchString(filepath.ToSlash(e.Path))
 	case "shell":
