@@ -125,15 +125,17 @@ En cada lane, el orden es fijo: agregar o extender los keepers con las asercione
 ## Checkpoint
 
 - Updated: 2026-11-20
-- Stage: build · local CI
-- Last commit: d973aeaf
-- Open findings: none
-- Next: local CI (go vet, go test ./..., python tests), then flow-verify
+- Stage: verify · push and PR
+- Last commit: ca62f5f5
+- Open findings: H3 nit: go test default 10m per-package timeout vs tooling/cli 364s local · close findings; H4 nit: Codex focused effort equals execution effort in synthetic profiles · close findings; H5 nit: TestOpenCodeModelOnlyOverrideMapsAgainstNewModel name narrower than its rows · close findings; H6 P3 pre-existing: any PR could add a job named source-branch · close findings
+- Next: push, open PR, wait CI (AC4), merge
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/test-audit-agents · test/audit-integrations-agents
 
 ### Evidence
 
 - baseline: go test -count=1 ./... pass 4m51s; python unittest pass 1m12s; HEAD 087efdf0 (area identical to d3d2b46c)
+- local CI at d973aeaf: go vet ./... ok; go test -count=1 ./... ok 6m7s; python unittest 314 OK; f14303da changes only comments (agents pkg ok, actionlint 0)
+- review round: /code-review 3 blocking fixed in 0cd9b573 (fetch-depth, concurrency group, CHANGELOG heading); hive-review-security no security finding; re-review of 0cd9b573 no findings; merged origin/development 3e3102e4, tests/content + agents ok
 
 ## Review status and progress
 
