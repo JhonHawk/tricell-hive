@@ -59,7 +59,7 @@ func roleText(t *testing.T, path string) string {
 }
 
 func TestUserScopeRolesAndBlocksLinkInstalledSkillPaths(t *testing.T) {
-	o := linkSetup(t, "claude", "codex", "grok", "pi", "opencode", "cursor")
+	o := linkSetup(t, "claude", "codex", "grok", "pi", "opencode", "cursor", "antigravity")
 	p := plan(t, "install", o)
 	apply(t, p)
 	want := "<" + filepath.Join(o.Home, ".agents", "skills", "flow-build", "references", "browser-automation.md") + ">"
