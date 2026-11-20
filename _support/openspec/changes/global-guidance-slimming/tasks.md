@@ -1,6 +1,6 @@
 # Tasks
 
-Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slimming` en un worktree bajo `.claude/worktrees/`. T1 recolecta con un hijo `hive-research` (solo lectura) y el hilo principal escribe sus informes; T2 a T6 corren en el hilo principal porque todas escriben `content/guidance/global.md` y deben mantener su coherencia; T7 empieza en el hilo principal y espera las sesiones del usuario. Hasta T6, las tareas verifican con `go test ./tests/content/... -skip TestGlobalGuidanceSize`, porque el test de presupuesto falla a propósito hasta que el global baje de 22.000 bytes.
+Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slimming` en un worktree bajo `.claude/worktrees/`. T1 recolecta con un hijo `hive-research` (solo lectura) y el hilo principal escribe sus informes; T2 a T6 corren en el hilo principal porque todas escriben `content/guidance/global.md` y deben mantener su coherencia; T7 empieza en el hilo principal y espera las sesiones del usuario. Hasta T6, las tareas verifican con `go test ./tests/content/... -skip TestGlobalGuidanceSize`, porque el test de presupuesto falla a propósito hasta T6.
 
 ### T1 — Línea base del auditor sobre sesiones previas
 
@@ -22,7 +22,7 @@ Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slim
 
 ### T2 — Test de presupuesto y regla de destino
 
-- [x] Una función que recibe la raíz del repositorio comprueba que el global mide 22.000 bytes o menos y, si no, devuelve un mensaje que nombra la regla de destino; `TestGlobalGuidanceSize` la usa y un caso con un global de 22.001 bytes en una raíz temporal falla; el bullet de `AGENTS.md` «Guidance structure» que ya dice «restate a rule in global.md only when it must act without its home being read» se amplía con la regla de destino y el tope.
+- [x] Una función que recibe la raíz del repositorio comprueba que el global mide 27.500 bytes o menos (D6 A; antes 22.000) y, si no, devuelve un mensaje que nombra la regla de destino; `TestGlobalGuidanceSize` la usa y un caso con un global de 27.501 bytes en una raíz temporal falla; el bullet de `AGENTS.md` «Guidance structure» que ya dice «restate a rule in global.md only when it must act without its home being read» se amplía con la regla de destino y el tope.
 
 **Closes:** AC9
 
@@ -36,7 +36,7 @@ Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slim
 
 **Changes:** La función sigue el patrón de `leafProblems` en `leaf_skill_test.go` (raíz como parámetro, caso con fixture). No cambia ningún otro test de presupuesto. `AGENTS.md` no gana un bullet nuevo: se edita el existente.
 
-**Verification:** el caso de 22.001 bytes falla con el mensaje esperado; `go test ./tests/content/ -run TestGlobalGuidanceSize` falla contra el global actual (32.148) y pasa al terminar T6.
+**Verification:** el caso de 27.501 bytes falla con el mensaje esperado; `go test ./tests/content/ -run TestGlobalGuidanceSize` falla contra el global actual (32.148) y pasa al terminar T6.
 
 ### T3 — Mover procedimiento a sus hojas
 
@@ -94,7 +94,7 @@ Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slim
 
 ### T6 — Compactar el índice, reapuntar citas y documentación
 
-- [ ] La sección «Rule leaves» lista las 61 hojas una vez cada una, con líneas que pueden agrupar hojas del mismo momento; el global mide ≤ 27.500 bytes (D6 A); cada cita a «Scope and authorization», «Proportionality», «Persistent memory» u otra sección del global bajo `content/` apunta a donde ahora está su contenido, con la lista de lugares revisados en el PR; el delta de `context-delivery` está escrito; `llms.txt:32`, `README.md:470–472`, `site/src/content/docs/getting-started.md:88`, `site/src/content/docs/flows/plan.md:31`, `site/src/content/docs/skills.md` y `README.md:36` no afirman nada que el cambio deje falso; `hive update --dry-run` muestra cuántas partes recibe Antigravity.
+- [x] La sección «Rule leaves» lista las 61 hojas una vez cada una, con líneas que pueden agrupar hojas del mismo momento; el global mide ≤ 27.500 bytes (D6 A); cada cita a «Scope and authorization», «Proportionality», «Persistent memory» u otra sección del global bajo `content/` apunta a donde ahora está su contenido, con la lista de lugares revisados en el PR; el delta de `context-delivery` está escrito; `llms.txt:32`, `README.md:470–472`, `site/src/content/docs/getting-started.md:88`, `site/src/content/docs/flows/plan.md:31`, `site/src/content/docs/skills.md` y `README.md:36` no afirman nada que el cambio deje falso; `hive update --dry-run` muestra cuántas partes recibe Antigravity.
 
 **Closes:** AC8
 
@@ -106,7 +106,7 @@ Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slim
 
 **Test approach:** check
 
-**Changes:** Cada entrada del índice conserva su momento observable. Si el global no baja de 22.000 bytes sin perder intención, la tarea se detiene y pregunta (design.md «Decisions»).
+**Changes:** Cada entrada del índice conserva su momento observable. La parada por tamaño ya se resolvió con D6 A (tope 27.500).
 
 **Verification:** `wc -c content/guidance/global.md` ≤ 27500; `go test ./tests/content/...` pasa, incluidos el test de presupuesto y `reading_footprint_test.go`; `rg` de cada cita revisada.
 
@@ -124,7 +124,7 @@ Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slim
 
 **Test approach:** check
 
-**Changes:** Instala desde el commit de la rama con `hive update --source <worktree> --out FILE` y `hive apply --plan FILE`, nombrando antes los commits que se despliegan; no fusiona. Tras cada maintainer refresh desde `development` durante la prueba, rebasa la rama sobre lo nuevo y la reinstala (D5 A). Al descartar, reinstala desde `development`. Para AC7 (b), lista cada regla movida con su detector del auditor o «revisión manual» y qué buscar.
+**Changes:** Instala desde el commit de la rama con `hive update --source <worktree> --out FILE` y `hive apply --plan FILE`, nombrando antes los commits que se despliegan; no fusiona. Tras cada rebase, una regla que `development` haya añadido al global se reescribe según la regla de destino, se corre `go test ./tests/content/...` y solo se reinstala si pasa; si no cabe en el tope, se detiene y pregunta. Tras cada maintainer refresh desde `development` durante la prueba, rebasa la rama sobre lo nuevo y la reinstala (D5 A). Al descartar, reinstala desde `development`. Para AC7 (b), lista cada regla movida con su detector del auditor o «revisión manual» y qué buscar.
 
 **Verification:** `trial.md` tiene la tabla de después, la lista de reglas movidas con su resultado, y cada regresión con su sesión en el archivo ignorado.
 
@@ -150,10 +150,10 @@ La revisión humana es la decisión de fusión tras leer `trial.md`.
 ## Checkpoint
 
 - Updated: 2026-11-20
-- Stage: build · T6 stopped at 27,226 B
-- Last commit: f5559b00
-- Open findings: D6 budget 22,000 unreachable without dropping act-unread intent; awaiting user
-- Next: D6: budget cap or cuts
+- Stage: build · T6 done
+- Last commit: 4e03441c
+- Open findings: none
+- Next: local CI, then T7 install branch, then flow-verify
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/global-guidance-slimming · refactor/global-guidance-slimming
 
 ### Evidence
@@ -169,3 +169,5 @@ La revisión humana es la decisión de fusión tras leer `trial.md`.
 2026-11-20 — T3 · f2f691ee · unverified: tooling release validation not yet run (runs at local CI); instruction-resources.md does not yet list references/worktree.md (T6)
 2026-11-20 — T4 · 0eff79dc · unverified: none
 2026-11-20 — T5 · 0eff79dc · unverified: first sentence of #32 kept: reuse rung 1 covers only code, not investigation, plan and verification
+2026-11-20 — T6 · 4e03441c · unverified: Antigravity installs in 2 parts (source would need ~21,000 B for one); global at 27,494 of 27,500 B
+2026-11-20 — D6 A: tope 27.500; AC1 y AC2 retirados por AC8 y AC9. T6 restauró en el global las líneas mínimas de preguntas que T4 había quitado (formato de decisión, arreglo más pequeño de un bloqueo, cierre de un análisis): 27.494 bytes. Segunda revisión del plan: 2 P1, 3 P2, 3 P3 aplicados (cifras de T2 y T6, parada resuelta, objetivo y título, regla de rebase en T7, fila del registro de enforcers).
