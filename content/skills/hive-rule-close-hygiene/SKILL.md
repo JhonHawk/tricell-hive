@@ -1,16 +1,16 @@
 ---
 name: hive-rule-close-hygiene
-description: "Hive rule leaf: read at steps 4 to 7 of a close. Archives the change folder, cleans branches and worktrees, and writes the pending-work records."
+description: "Hive rule leaf: read at steps 4 to 7 of a close, and before the first push of a branch with a change folder. Archives the folder, cleans branches and worktrees, records pending work."
 disable-model-invocation: true
 ---
 
 # Archive, clean up and record pending work
 
-Read at steps 4 to 7 of [flow-close](../flow-close/SKILL.md).
+Read at steps 4 to 7 of [flow-close](../flow-close/SKILL.md), and before the first push of a work's branch that holds a change folder for its archive.
 
 ## Archive the change folder
 
-Close an integrated change folder: run `python3 <flow-plan-dir>/scripts/check_change.py <folder> --archive` ([check](../flow-plan/scripts/check_change.py)) and fix each coherence line; for unchecked boxes, ask as a decision, with their count, whether to archive anyway; a no or an unattended close leaves it pending. Otherwise, on a new branch from the base, copy in the folder's uncommitted edits from the checkout or worktree holding them, run `python3 <flow-close-dir>/scripts/apply_deltas.py <folder> --specs <Specs> --detail "<PR, merge SHA>"` ([merge](../flow-close/scripts/apply_deltas.py)), fix each refusal, report each dropped scenario, then add `--apply`: it merges the deltas, marks the proposal completed and archives the folder. Once the archive commit holds those edits, `git restore` the folder in that source checkout; deliver the move with the items step 2's answer commits, archives or promotes, as the delivery says.
+Read [archive](references/archive.md) and follow it: it sets when a change folder is archived, before the first push of the work's branch or at the close, and how.
 
 ## Clean up
 
