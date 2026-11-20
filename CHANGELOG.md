@@ -222,6 +222,10 @@ raise the minor or the patch version.
   directly, which the spec-delta test rejects for any requirement that already
   has an archived delta. A change built without a plan does the same, writing
   its change folder from Plan's templates without a plan review.
+- Build's first rendered view of a screen change lives in
+  `flow-build/references/first-view.md`, read from step 4, which frees room
+  in the plan and build reading for the failing-check and «Proportionality»
+  pointers it had dropped.
 - A user's grant to merge with `--admin` lasts the session for the work's pull
   requests whose required checks passed, or whose base requires none, and lifts a reviewer's hold whose
   approval is on an earlier commit; it never covers the production branch, a

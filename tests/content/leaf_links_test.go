@@ -64,7 +64,7 @@ var leafLinks = []leafLink{
 	{"hive-rule-before-captures", "content/skills/flow-build/SKILL.md"},
 	{"hive-rule-walkthrough", "content/skills/flow-build/SKILL.md"},
 	{"hive-rule-walkthrough", "content/skills/flow-verify/SKILL.md"},
-	{"hive-rule-viewer-open", "content/skills/flow-build/SKILL.md"},
+	{"hive-rule-viewer-open", "content/skills/flow-build/references/first-view.md"},
 	{"hive-rule-viewer-open", "content/skills/flow-verify/SKILL.md"},
 	{"hive-rule-viewer-close", "content/skills/flow-close/SKILL.md"},
 	{"hive-rule-change-folder", "content/skills/flow-plan/SKILL.md"},
@@ -126,6 +126,16 @@ func linkProblems(root string, links []leafLink) []string {
 		}
 	}
 	return problems
+}
+
+func TestFlowBuildLinksFirstView(t *testing.T) {
+	data, err := os.ReadFile("../../content/skills/flow-build/SKILL.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "(references/first-view.md)") {
+		t.Error("content/skills/flow-build/SKILL.md does not link references/first-view.md")
+	}
 }
 
 func TestLeavesAreLinkedWhereTheyApply(t *testing.T) {
