@@ -4,14 +4,17 @@ Base: `development` en `d3d2b46c`, rama `fix/build-spec-delta`. Cambio sin plan;
 
 ### T1 — Puntero y referencia en `flow-build`
 
-- [ ] `flow-build` enlaza `references/spec-delta.md` con su condición y su paso 2 dice «When the work has a change folder»; la referencia y `instruction-resources.md` la describen.
+- [x] `flow-build` enlaza `references/spec-delta.md` con su condición y su paso 2 dice «When the work has a change folder»; la referencia y `instruction-resources.md` la describen.
 
 **Closes:** AC1, AC2, AC4.
 
 ### T2 — Playbook en `hive-mode` y su delta
 
-- [ ] `hive-mode` registra el playbook en el `proposal.md` de cualquier carpeta de cambio; el delta de «Entry router with playbooks» lo dice.
+- [x] `hive-mode` registra el playbook en el `proposal.md` de cualquier carpeta de cambio; el delta de «Entry router with playbooks» lo dice.
 
 **Closes:** AC3.
 
 ## Progreso
+
+2026-11-20 — T1 · 7c0d3899 · unverified: none
+2026-11-20 — T2 · 7c0d3899 · unverified: none
