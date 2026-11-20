@@ -315,7 +315,8 @@ func TestE2ESetupDeadlinesOwnDescendantsAndPipes(t *testing.T) {
 			defer watchdog.Stop()
 			defer killOwned()
 			started := time.Now()
-			deadline := started.Add(300 * time.Millisecond)
+			const budget = 300 * time.Millisecond
+			deadline := started.Add(budget)
 			var err error
 			switch stage {
 			case "github-status", "github-token":
@@ -330,7 +331,7 @@ func TestE2ESetupDeadlinesOwnDescendantsAndPipes(t *testing.T) {
 			if err == nil {
 				t.Fatal("unfinished setup accepted")
 			}
-			if elapsed > 1200*time.Millisecond {
+			if elapsed > budget+420*time.Millisecond {
 				t.Errorf("setup exceeded remaining deadline while descendant held stdout: %s", elapsed)
 			}
 			for _, path := range []string{pidfile, parentfile} {

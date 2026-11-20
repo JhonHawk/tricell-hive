@@ -217,7 +217,8 @@ raise the minor or the patch version.
   query, and the walk closes it only when the two match.
 - A plan that changes a behavior an existing spec describes writes a change
   folder, whose spec delta the close merges, instead of editing the spec
-  directly, which the spec-delta test rejects.
+  directly, which the spec-delta test rejects for any requirement that already
+  has an archived delta.
 - A user's grant to merge with `--admin` lasts the session for the work's pull
   requests whose required checks passed, or whose base requires none, and lifts a reviewer's hold whose
   approval is on an earlier commit; it never covers the production branch, a
