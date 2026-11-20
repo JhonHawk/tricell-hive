@@ -1,12 +1,12 @@
 ---
 name: hive-rule-reasons-and-blockers
-description: "Hive rule leaf: read before giving the user a reason, reporting a blocker, or asking them to run a command, validate or act. States reasons as effects and ends a blocker with its fix."
+description: "Hive rule leaf: read before giving the user a reason, reporting a blocker, asking them to act, or when a defect blocks authorized work. Reasons as effects; blockers end with a fix."
 disable-model-invocation: true
 ---
 
 # Reasons, blockers and requests to the user
 
-Read before you write a message that gives the reason for a step, reports a blocker or a failure, or asks the user to run a command, validate or take a step.
+Read before you write a message that gives the reason for a step, reports a blocker or a failure, or asks the user to run a command, validate or take a step, and when a defect blocks authorized work.
 
 - When a message to the user gives the reason for something you did, skipped, ask or stop for, in any part of it, such as a decision, the text around it, a report, a progress note, a stop or a blocker, state that reason as its effect on the user or their work: what the step protects, costs or risks, such as "forcing the deletion would lose the uncommitted changes in that worktree". Never give as the reason that an instruction you follow requires, allows or forbids it, whatever you call that instruction, such as a rule, a skill, a flow, the guidance or your instructions: neither "the flow-build rule requires it" nor "per the guidance"; when a rule makes you ask, say the effect that needs the answer, such as "this creates 85 resources at about USD 300 a month". The one exception is an instruction the user or their project wrote in their own files, never Hive's guidance, skills or roles, such as the project's `AGENTS.md`: it may be named as the reason, together with what it changes in this work, such as "your project asks for human validation of screens, so I stop before the push". Where no point requires a reason and you can state no effect, give none rather than invent one. This governs reasons, not mentions: commands, skill names and rules are still written where a point or a skill asks for them, and a rule may be named when the user asked about it or the work changes it.
 - A message that reports a blocker or a failure ends with how to resolve it: the smallest fix you can see, what it changes and what it needs. When your access and authorization already allow that fix, make it instead of reporting; when it needs the user's authorization or choice, ask it as a decision, the fix as the starred option.

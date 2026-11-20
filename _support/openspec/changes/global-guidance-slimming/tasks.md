@@ -22,9 +22,9 @@ Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slim
 
 ### T2 — Test de presupuesto y regla de destino
 
-- [x] Una función que recibe la raíz del repositorio comprueba que el global mide 27.500 bytes o menos (D6 A; antes 22.000) y, si no, devuelve un mensaje que nombra la regla de destino; `TestGlobalGuidanceSize` la usa y un caso con un global de 27.501 bytes en una raíz temporal falla; el bullet de `AGENTS.md` «Guidance structure» que ya dice «restate a rule in global.md only when it must act without its home being read» se amplía con la regla de destino y el tope.
+- [x] Una función que recibe la raíz del repositorio comprueba que el global mide 30.000 bytes o menos (D8; antes 28.000, 27.500 y 22.000) y, si no, devuelve un mensaje que nombra la regla de destino; `TestGlobalGuidanceSize` la usa y un caso con un global de 30.001 bytes en una raíz temporal falla; el bullet de `AGENTS.md` «Guidance structure» que ya dice «restate a rule in global.md only when it must act without its home being read» se amplía con la regla de destino y el tope.
 
-**Closes:** AC9
+**Closes:** AC13
 
 **Depends on:** none
 
@@ -36,7 +36,7 @@ Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slim
 
 **Changes:** La función sigue el patrón de `leafProblems` en `leaf_skill_test.go` (raíz como parámetro, caso con fixture). No cambia ningún otro test de presupuesto. `AGENTS.md` no gana un bullet nuevo: se edita el existente.
 
-**Verification:** el caso de 27.501 bytes falla con el mensaje esperado; `go test ./tests/content/ -run TestGlobalGuidanceSize` falla contra el global actual (32.148) y pasa al terminar T6.
+**Verification:** el caso de 30.001 bytes falla con el mensaje esperado; `go test ./tests/content/ -run TestGlobalGuidanceSize` falla contra el global actual (32.148) y pasa al terminar T6.
 
 ### T3 — Mover procedimiento a sus hojas
 
@@ -94,9 +94,9 @@ Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slim
 
 ### T6 — Compactar el índice, reapuntar citas y documentación
 
-- [x] La sección «Rule leaves» lista las 61 hojas una vez cada una, con líneas que pueden agrupar hojas del mismo momento; el global mide ≤ 27.500 bytes (D6 A); cada cita a «Scope and authorization», «Proportionality», «Persistent memory» u otra sección del global bajo `content/` apunta a donde ahora está su contenido, con la lista de lugares revisados en el PR; el delta de `context-delivery` está escrito; `llms.txt:32`, `README.md:470–472`, `site/src/content/docs/getting-started.md:88`, `site/src/content/docs/flows/plan.md:31`, `site/src/content/docs/skills.md` y `README.md:36` no afirman nada que el cambio deje falso; `hive update --dry-run` muestra cuántas partes recibe Antigravity.
+- [x] La sección «Rule leaves» lista las 61 hojas una vez cada una, con líneas que pueden agrupar hojas del mismo momento; el global mide ≤ 30.000 bytes (D8); cada cita a «Scope and authorization», «Proportionality», «Persistent memory» u otra sección del global bajo `content/` apunta a donde ahora está su contenido, con la lista de lugares revisados en el PR; el delta de `context-delivery` está escrito; `llms.txt:32`, `README.md:470–472`, `site/src/content/docs/getting-started.md:88`, `site/src/content/docs/flows/plan.md:31`, `site/src/content/docs/skills.md` y `README.md:36` no afirman nada que el cambio deje falso; `hive update --dry-run` muestra cuántas partes recibe Antigravity.
 
-**Closes:** AC8
+**Closes:** AC12
 
 **Depends on:** T5
 
@@ -106,9 +106,9 @@ Base: tricell-hive `development` @ 27875867; rama `refactor/global-guidance-slim
 
 **Test approach:** check
 
-**Changes:** Cada entrada del índice conserva su momento observable. La parada por tamaño ya se resolvió con D6 A (tope 27.500).
+**Changes:** Cada entrada del índice conserva su momento observable. La parada por tamaño ya se resolvió: tope final 30.000 (D8).
 
-**Verification:** `wc -c content/guidance/global.md` ≤ 27500; `go test ./tests/content/...` pasa, incluidos el test de presupuesto y `reading_footprint_test.go`; `rg` de cada cita revisada.
+**Verification:** `wc -c content/guidance/global.md` ≤ 30000; `go test ./tests/content/...` pasa, incluidos el test de presupuesto y `reading_footprint_test.go`; `rg` de cada cita revisada.
 
 ### T7 — Instalar la rama y evaluar sesiones reales
 
@@ -150,15 +150,17 @@ La revisión humana es la decisión de fusión tras leer `trial.md`.
 ## Checkpoint
 
 - Updated: 2026-11-20
-- Stage: build · T6 done
-- Last commit: 4e03441c
+- Stage: build · T7 branch installed
+- Last commit: 2e6e3514
 - Open findings: none
-- Next: local CI, then T7 install branch, then flow-verify
+- Next: flow-verify: /code-review, push, PR ready; trial sessions pending
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/global-guidance-slimming · refactor/global-guidance-slimming
 
 ### Evidence
 
 - before captures: none (no screen)
+- go test ./... · exit 0 in 239 s · 2e6e3514
+- hive apply transaction 0d5d4d42 · branch 2e6e3514 installed on all 7 hosts
 
 ## Review status and progress
 
@@ -171,3 +173,5 @@ La revisión humana es la decisión de fusión tras leer `trial.md`.
 2026-11-20 — T5 · 0eff79dc · unverified: first sentence of #32 kept: reuse rung 1 covers only code, not investigation, plan and verification
 2026-11-20 — T6 · 4e03441c · unverified: Antigravity installs in 2 parts (source would need ~21,000 B for one); global at 27,494 of 27,500 B
 2026-11-20 — D6 A: tope 27.500; AC1 y AC2 retirados por AC8 y AC9. T6 restauró en el global las líneas mínimas de preguntas que T4 había quitado (formato de decisión, arreglo más pequeño de un bloqueo, cierre de un análisis): 27.494 bytes. Segunda revisión del plan: 2 P1, 3 P2, 3 P3 aplicados (cifras de T2 y T6, parada resuelta, objetivo y título, regla de rebase en T7, fila del registro de enforcers).
+2026-11-20 — verify: /code-review halló 3 importantes (efectos críticos, tickets y continuaciones ensanchados al compactar) y 6 menores; corregidos en una ronda. D7 A: tope 28.000; AC8 y AC9 retirados por AC10 y AC11.
+2026-11-20 — verify: segunda revisión (/code-review) halló 4 importantes más de la misma causa (defecto, momentos de escrituras en tickets, alcance de la ronda de efectos, permiso del canal de preguntas) y 5 menores; restaurado el texto original y la línea de «Delivery». D8: tope 30.000; AC10 y AC11 retirados por AC12 y AC13. Global: 28.468 bytes.
