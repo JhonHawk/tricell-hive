@@ -10,7 +10,7 @@ Read before each write of a work item's business rules to its ticket: when the u
 
 The main thread writes the record's rules to the work's ticket at three moments, without asking the user:
 
-1. when the user approves a design example, at step 7 of [flow-figma-design](../flow-figma-design/SKILL.md);
+1. when the user approves a design example, at step 7 of [create-design](../create-design/SKILL.md);
 2. when the build starts, with the ticket's move to in progress, at step 1 of [flow-build](../flow-build/SKILL.md);
 3. at the work item's completion point, at step 3 of [flow-close](../flow-close/SKILL.md), at the point [ticket state](../hive-rule-ticket-state/SKILL.md) defines.
 
