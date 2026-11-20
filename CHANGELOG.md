@@ -15,7 +15,9 @@ raise the minor or the patch version.
 - `--audit-session` gains `analysis_reply_block`, which fails a turn that
   ends an analysis with replies listed under italic labels, or with lettered
   options and no question heading, and says whether the report-endings rule
-  was read.
+  was read. It also fails a turn that loaded `hive-mode` and ends a report of
+  six or more lines with no reply block at all, unless that turn wrote a file
+  or delivered work.
 - The close brings the local base up to date: `cleanup_branches.py --apply`
   fetches the base and fast-forwards the main checkout's copy when it is on
   the base and no incoming file is changed, untracked or ignored there, and
