@@ -17,11 +17,11 @@ Peldaño de reutilización: C reutiliza la entrada de higiene que `flow-close` y
 
 **Cierre (`flow-close`):**
 - Paso 2 (`support-material.md`): la decisión se pregunta como hoy. Las eliminaciones se aplican en el cierre; commit, archive y promote se registran como pendientes, sin rama. Los ítems de un worktree se mueven antes a la misma ruta del checkout principal, como hoy.
-- Paso 4 (`hive-rule-close-hygiene` «Archive the change folder»): no archiva; escribe o actualiza el registro `pending/archives` del proyecto (carpeta, PR, commit de merge, acciones de soporte) y el informe nombra el número de pendientes y la respuesta «haz higiene». Sin rama ni PR del cierre para esto, el paso 4 corre siempre de inmediato.
+- Paso 4 (`hive-rule-close-hygiene` «Archive the change folder»): no archiva; escribe o actualiza el registro `archive-pending/<change-id>` (título `Archive waiting:`) (carpeta, PR, commit de merge, acciones de soporte) y el informe nombra el número de pendientes y la respuesta «haz higiene». Sin rama ni PR del cierre para esto, el paso 4 corre siempre de inmediato.
 - `hive-rule-close-modes`: el paso 4 pasa a «Runs now» en la fila del punto de cierre; la fila de cierre inmediato deja de depender de él.
 
 **Higiene (`flow-close/references/batch-archive.md`, nueva), leída en una petición de higiene:**
-1. Lista los change folders que siguen en `<Specs>/changes/` en la base y los cruza con el registro `pending/archives`: uno sin registro se lista con su origen, para que el usuario confirme que su trabajo está integrado.
+1. Lista los change folders que siguen en `<Specs>/changes/` en la base y los cruza con los registros `archive-pending/*`: uno sin registro se lista con su origen, para que el usuario confirme que su trabajo está integrado.
 2. Corre `check_change.py --archive` en cada uno; las tareas sin marcar se preguntan en una sola ronda, con su número por carpeta; bajo delegación desatendida se quedan pendientes.
 3. Crea una rama desde la base y, en el orden en que cada carpeta llegó a la base, corre `apply_deltas.py <folder> --specs <Specs> --detail "<PR, merge commit>"` y `--apply`.
 4. Aplica las acciones de soporte del registro sobre los ítems que siguen existiendo.
