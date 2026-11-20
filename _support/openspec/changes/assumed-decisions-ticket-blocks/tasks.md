@@ -4,7 +4,7 @@ Base: `development` en `a0e9b280`, rama `feat/assumed-decisions-ticket-blocks` e
 
 ### T1 — Criterio `ticket_assessment_ending` del auditor
 
-- [ ] El auditor marca `fail` una evaluación de ticket que cierra el turno sin tarjeta, bloque ▶ ni comando de flujo; `pass` cuando cierra con tarjeta, con el bloque de siguiente paso o con el bloque de respuestas ▶; `review` cuando cierra con una pregunta abierta en texto; y `not_observed` sin evaluación de ticket.
+- [x] El auditor marca `fail` una evaluación de ticket que cierra el turno sin tarjeta, bloque ▶ ni comando de flujo; `pass` cuando cierra con tarjeta, con el bloque de siguiente paso o con el bloque de respuestas ▶; `review` cuando cierra con una pregunta abierta en texto; y `not_observed` sin evaluación de ticket.
 
 **Closes:** AC1, AC2
 
@@ -22,7 +22,7 @@ Base: `development` en `a0e9b280`, rama `feat/assumed-decisions-ticket-blocks` e
 
 ### T2 — Dato informativo `card_answers`
 
-- [ ] La salida del auditor trae, por sesión y fuera de `criteria`, cuántas tarjetas se contestaron con una opción y cuántas eligieron la recomendada.
+- [x] La salida del auditor trae, por sesión y fuera de `criteria`, cuántas tarjetas se contestaron con una opción y cuántas eligieron la recomendada.
 
 **Closes:** AC3
 
@@ -40,7 +40,7 @@ Base: `development` en `a0e9b280`, rama `feat/assumed-decisions-ticket-blocks` e
 
 ### T3 — Regla de supuestos y criterios a–f
 
-- [ ] `hive-rule-questions` «What to ask» define a–f con sus umbrales, a qué rondas no se aplican, la lista de supuestos y su aceptación; `global.md` y `plan-handoff.md` ya no hablan de «minor calls».
+- [x] `hive-rule-questions` «What to ask» define a–f con sus umbrales, a qué rondas no se aplican, la lista de supuestos y su aceptación; `global.md` y `plan-handoff.md` ya no hablan de «minor calls».
 
 **Closes:** AC4
 
@@ -58,7 +58,7 @@ Base: `development` en `a0e9b280`, rama `feat/assumed-decisions-ticket-blocks` e
 
 ### T4 — Prueba de `assumption` de las reglas de negocio
 
-- [ ] La prueba de `assumption` remite a a–f, y las hojas que la citan dejan de decir «minor call».
+- [x] La prueba de `assumption` remite a a–f, y las hojas que la citan dejan de decir «minor call».
 
 **Closes:** AC4, AC5
 
@@ -76,7 +76,7 @@ Base: `development` en `a0e9b280`, rama `feat/assumed-decisions-ticket-blocks` e
 
 ### T5 — Figma y plantilla del plan
 
-- [ ] La aprobación de Figma, su página y la plantilla `proposal.md` aplican la misma prueba y separan «Supuesto» (decisión) de la línea `assumption` (regla de negocio).
+- [x] La aprobación de Figma, su página y la plantilla `proposal.md` aplican la misma prueba y separan «Supuesto» (decisión) de la línea `assumption` (regla de negocio).
 
 **Closes:** AC5
 
@@ -94,7 +94,7 @@ Base: `development` en `a0e9b280`, rama `feat/assumed-decisions-ticket-blocks` e
 
 ### T6 — Evaluación de un ticket por bloques
 
-- [ ] `hive-mode` «Assess a chosen ticket» fija los bloques, el veredicto con los números de la lista que fallan, el orden y «el plan decide el cómo, nunca qué entra»; las páginas del sitio lo describen.
+- [x] `hive-mode` «Assess a chosen ticket» fija los bloques, el veredicto con los números de la lista que fallan, el orden y «el plan decide el cómo, nunca qué entra»; las páginas del sitio lo describen.
 
 **Closes:** AC6
 
@@ -112,7 +112,7 @@ Base: `development` en `a0e9b280`, rama `feat/assumed-decisions-ticket-blocks` e
 
 ### T7 — Rúbrica, enforcers y una sola casa
 
-- [ ] La rúbrica, `rule-enforcers.md` y `single_home_test.go` reflejan los dos comportamientos y el criterio nuevo.
+- [x] La rúbrica, `rule-enforcers.md` y `single_home_test.go` reflejan los dos comportamientos y el criterio nuevo.
 
 **Closes:** AC1, AC4
 
@@ -130,7 +130,7 @@ Base: `development` en `a0e9b280`, rama `feat/assumed-decisions-ticket-blocks` e
 
 ### T8 — Changelog
 
-- [ ] `CHANGELOG.md` tiene la entrada del cambio bajo `[Unreleased]`.
+- [x] `CHANGELOG.md` tiene la entrada del cambio bajo `[Unreleased]`.
 
 **Closes:** AC4, AC6
 
@@ -160,14 +160,29 @@ Sin parada de validación (entrega `automatic`). Queda abierto a propósito tras
 ## Checkpoint
 
 - Updated: 2026-11-19
-- Stage: build · start
-- Last commit: a0e9b280
+- Stage: verify · push
+- Last commit: 6f39a06
 - Open findings: none
-- Next: T1-T2 in a hive-build-backend child; T3-T8 in the main thread
+- Next: Push, PR to development, merge gate, merge, then flow-close and local refresh
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/assumed-decisions · feat/assumed-decisions-ticket-blocks
 
 ### Evidence
 
 - before captures: none (no screen change)
+- go -C <wt> test ./... exit 0 @6cb6ada
+- go -C <wt> vet ./... exit 0; gofmt -l clean @6cb6ada
+- local CI: the only workflow (master-source-branch) runs on PRs to master; CI-only, not applicable to development
+- audit 01a1f5d4 ticket_assessment_ending=fail L64, card_answers 4/3; bf678880 not_observed 49/43; 7ee42122 not_observed 4/3
+- go -C <wt> test ./... exit 0 and vet exit 0 @0584c28
+- go -C <wt> test ./... exit 0 @6f39a06 (flaky TestE2ESetupDeadlinesOwnDescendantsAndPipes fails 1/5 on base a0e9b280 too)
 
 ## Review status and progress
+
+2026-11-19 — T3 · f74ff1c · unverified: AC4 en una sesión real tras el despliegue
+2026-11-19 — T4 · 854408f9 · unverified: AC5 en una sesión real tras el despliegue
+2026-11-19 — T5 · 8ac65c95 · unverified: AC5 en una sesión real de Figma tras el despliegue
+2026-11-19 — T6 · 4892cc99 · unverified: AC6 en la primera evaluación real de un ticket tras el despliegue
+2026-11-19 — T1 · 4deeae30 · unverified: none
+2026-11-19 — T2 · 4deeae30 · unverified: none
+2026-11-19 — T7 · 6cb6ada7 · unverified: none
+2026-11-19 — T8 · ac73730 · unverified: none

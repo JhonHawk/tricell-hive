@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Listo para flow-build |
+| Estado | En entrega |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `a0e9b280` · rama propuesta `feat/assumed-decisions-ticket-blocks` |
 | Playbook | ninguno (`/flow-plan` tecleado por el usuario) |
@@ -75,3 +75,5 @@ None: the tasks take no effect on an external system.
 ## Review status and progress
 
 2026-11-19 — Plan escrito. Revisión `hive-review-plan` (2 P1, 10 P2, 6 P3), todo aplicado: cuarta línea de «minor call» en `hive-rule-ui-example` (T4); la prueba de `assumption` exige que no se cumpla ninguno de a–f, no solo c; delta MODIFIED de «Business rules that appear while drawing» y la página de Figma (T5); invariante de `global.md` sin lista parcial; un supuesto no es una decisión ni una autorización; a–f limitados al qué y al cómo, con las rondas exentas nombradas; finales permitidos (pregunta abierta → `review`, bloque de respuestas → `pass`); medición con «(Recommended)», sin tarjetas vacías; más fixtures; `rule-enforcers.md`, `single_home_test.go` y `CHANGELOG.md` (T7, T8); umbrales observables; «no listo» con los 8 puntos de la lista; detección de claves y de `hive-mode`. `check_change.py` sale con 0. Estado: listo para `flow-build`.
+2026-11-19 — Build T1–T8 (`f74ff1c`…`6cb6ada`). `/code-review` (4 importantes, 5 menores): corregidos los 4 importantes y 3 menores en `134f423` y `0584c28` (criterio c reformulado como «ninguna conducta nombrada la requiere», para que una regla implícita se pueda suponer; el enfoque del plan y las reglas `proposed` de Figma siguen preguntándose; `approval.md` remite a «Decide and list»; la tarjeta solo aprueba si cierra el turno; `/hive-mode` tecleado cuenta como carga). Quedan como hallazgos de cierre: ▶ o comando en cualquier parte del mensaje de cierre y `#N` sin la palabra «issue».
+2026-11-19 — Segunda revisión limitada a las correcciones (`6cb6ada..0584c28`): 1 importante corregido en `6f39a06` con su prueba (`/hive-mode` cuenta como carga solo al inicio del prompt; commit con `Unreviewed:`). Hallazgos de cierre no bloqueantes: `example-record.md:7` aún dice «that leaf's test» (debería apuntar al registro de reglas); comentario de `ticketAssessmentEnding` y filas de la rúbrica sin el caso del comando y de la tarjeta que no cierra; redacción de c con doble negación; «what a–f send» en `hive-mode` perdió su referente; el disparador del requisito de la spec dice «picks a ticket for research». `TestE2ESetupDeadlinesOwnDescendantsAndPipes` es intermitente también en la base (1 de 5 en `a0e9b280`); la suite completa pasó en `6f39a06`.
