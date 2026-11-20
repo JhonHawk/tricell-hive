@@ -46,7 +46,7 @@ Every criterion is one observable behavior, with the observation that would show
 
 When the ticket or your request asks for the change in a named environment, the plan includes the promotion to that environment as a task run through [Deploy](/flows/deploy/). Only your own request in the conversation counts as the instruction to deploy there; when only the ticket asks for it, the task asks you first, as Deploy does. Otherwise the plan has no promotion task, and promotions are grouped and run when you ask.
 
-A change folder stays on disk while the work runs and is committed with the code it plans: on the work's branch before the push when the specs live in the same repository, or in the specs repository when the work reaches its completion point. When that repository declares `Delivery: direct-base`, the folder is edited in its main checkout, with no branch or worktree, and a paused plan is committed there. Before the push, [Verify](/flows/verify/) folds it into the current requirements and archives it on the work's branch, so the pull request holds both; tasks still unchecked leave it for [Close](/flows/close/), which archives it on its own branch.
+A change folder stays on disk while the work runs and is committed with the code it plans: on the work's branch before the push when the specs live in the same repository, or in the specs repository when the work reaches its completion point. When that repository declares `Delivery: direct-base`, the folder is edited in its main checkout, with no branch or worktree, and a paused plan is committed there. Tasks still open after the merge do not hold it back; [Close](/flows/close/) records them and archives the folder.
 
 For explicitly delegated E2E work, the plan binds the objective, acceptance criteria, delivery endpoint, permitted effects, isolation and stopping conditions. The coordinator tracks independent units and their evidence; the [coordination procedure](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-build/references/e2e-coordination.md) defines the handoffs and recovery.
 
@@ -70,7 +70,7 @@ The agent summarizes the plan in the message: the objective with the files and a
 - Start from [Hive mode](/flows/hive-mode/) when you still need facts before planning.
 - [Create design](/flows/create-design/) comes first when a new screen needs an approved example.
 - Hand the finished plan to [Build](/flows/build/) by pointing it at the change folder.
-- [Verify](/flows/verify/) archives the change folder before the push; [Close](/flows/close/) archives the ones left behind.
+- [Close](/flows/close/) archives the change folder when the work is integrated.
 - If something new comes up while the plan is open, the agent classifies it first; see [changes and loops](/flows/overview/).
 
 ## FAQ
