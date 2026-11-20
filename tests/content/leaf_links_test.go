@@ -128,6 +128,16 @@ func linkProblems(root string, links []leafLink) []string {
 	return problems
 }
 
+func TestFlowBuildLinksFirstView(t *testing.T) {
+	data, err := os.ReadFile("../../content/skills/flow-build/SKILL.md")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "(references/first-view.md)") {
+		t.Error("content/skills/flow-build/SKILL.md does not link references/first-view.md")
+	}
+}
+
 func TestLeavesAreLinkedWhereTheyApply(t *testing.T) {
 	for _, problem := range linkProblems("../..", leafLinks) {
 		t.Error(problem)
