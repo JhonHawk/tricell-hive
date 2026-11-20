@@ -12,7 +12,7 @@ List what this work created or changed under the project's support home, in its 
 
 ## Before the push
 
-When the delivery commits, take the inventory before the first push of the work's branch and settle there the commit, archive and promote items, so they travel in its pull request: under `interactive`, ask them in verify's validation round, in the format below; under `automatic` or `ready`, apply each proposed action and report it with how to revert it; under unattended delegation, its step 5 answers. Commit them on the work's branch before the push. Deletions and kept items wait for the close.
+When the delivery commits, take the inventory before the first push of the work's branch and settle there the commit, archive and promote items: under `interactive`, ask them in verify's validation round, in the format below; under `automatic` or `ready`, apply each proposed action and report it with how to revert it; under unattended delegation, its step 5 answers. Commit them on the work's branch before the push. Deletions and kept items wait for the close.
 
 ## At the close
 
