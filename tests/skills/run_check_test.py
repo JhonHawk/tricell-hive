@@ -143,6 +143,31 @@ class RunCheckTest(unittest.TestCase):
             time.sleep(0.05)
         self.assertFalse(alive(pid), "command survived the helper")
 
+    def test_invalid_grep_is_refused_before_the_command_runs(self):
+        marker = self.dir / "ran"
+        result = self.run_check("--grep", "FAIL[", "--", "sh", "-c", f"touch {marker}")
+        self.assertEqual(result.returncode, 2)
+        self.assertFalse(marker.exists(), "the command ran despite the invalid pattern")
+
+    def test_command_dies_when_the_helper_is_killed(self):
+        pidfile = self.dir / "pid"
+        proc = subprocess.Popen(
+            [sys.executable, "-I", str(SCRIPT), "--log", str(self.log), "--", "sh", "-c", f"echo $$ > {pidfile}; exec sleep 60"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        deadline = time.monotonic() + 10
+        while not (pidfile.exists() and pidfile.read_text().strip()):
+            self.assertLess(time.monotonic(), deadline, "command never started")
+            time.sleep(0.05)
+        pid = int(pidfile.read_text())
+        proc.kill()
+        proc.wait(timeout=10)
+        deadline = time.monotonic() + 10
+        while alive(pid) and time.monotonic() < deadline:
+            time.sleep(0.1)
+        self.assertFalse(alive(pid), "command outlived a killed helper")
+
     def test_default_log_is_created_in_the_temp_dir(self):
         result = subprocess.run(
             [sys.executable, "-I", str(SCRIPT), "--", "true"],

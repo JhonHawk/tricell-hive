@@ -43,6 +43,11 @@ def parse(argv):
         parser.error("no command after --")
     if args.max_bytes <= 0 or args.tail <= 0:
         parser.error("--max-bytes and --tail must be positive")
+    if args.grep is not None:
+        try:
+            args.grep = re.compile(args.grep)
+        except re.error as err:
+            parser.error(f"--grep: {err}")
     return args, command
 
 
@@ -60,6 +65,33 @@ def kill_group(pgid, sig):
         pass
 
 
+def guard_launcher(alive_fd):
+    """Return a preexec hook that forks a guard into the command's new session.
+
+    A helper killed by SIGKILL never runs its cleanup, and the host's group
+    kill no longer reaches a command in its own session. The guard blocks on a
+    pipe whose only writer is the helper; the kernel closes it when the helper
+    dies in any way, and the guard then kills the command's group.
+    """
+
+    def launch():
+        if os.fork() != 0:
+            return
+        try:
+            os.closerange(3, alive_fd)
+            os.closerange(alive_fd + 1, os.sysconf("SC_OPEN_MAX"))
+            null = os.open(os.devnull, os.O_RDWR)
+            for fd in (0, 1, 2):
+                os.dup2(null, fd)
+            while os.read(alive_fd, 1):
+                pass
+            os.killpg(0, signal.SIGKILL)
+        finally:
+            os._exit(0)
+
+    return launch
+
+
 def end_of_log(path, lines):
     size = os.path.getsize(path)
     with open(path, "rb") as f:
@@ -70,8 +102,7 @@ def end_of_log(path, lines):
     return b"".join(data.splitlines(keepends=True)[-lines:])
 
 
-def matching_lines(path, pattern):
-    regex = re.compile(pattern)
+def matching_lines(path, regex):
     out, total = [], 0
     with open(path, "rb") as f:
         for raw in f:
@@ -110,6 +141,7 @@ def run(args, command):
     for sig in (signal.SIGINT, signal.SIGTERM, signal.SIGHUP):
         signal.signal(sig, forward)
 
+    alive_read, alive_write = os.pipe()
     try:
         try:
             proc = subprocess.Popen(
@@ -118,11 +150,16 @@ def run(args, command):
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 start_new_session=True,
+                preexec_fn=guard_launcher(alive_read),
             )
         except OSError as err:
             os.close(log_fd)
             print(f"run_check: cannot run {command[0]}: {err.strerror}", file=sys.stderr)
             return 127
+        finally:
+            os.close(alive_read)
+        if received:
+            kill_group(proc.pid, received[0])
 
         pipe = proc.stdout.fileno()
         written, capped, term_at, exited_at = 0, False, None, None
@@ -153,12 +190,13 @@ def run(args, command):
         if proc is not None:
             kill_group(proc.pid, signal.SIGKILL)
             proc.stdout.close()
-        try:
-            os.close(log_fd)
-        except OSError:
-            pass
+        for fd in (log_fd, alive_write):
+            try:
+                os.close(fd)
+            except OSError:
+                pass
 
-    if args.grep:
+    if args.grep is not None:
         show(matching_lines(log_path, args.grep))
     else:
         show(end_of_log(log_path, args.tail))
