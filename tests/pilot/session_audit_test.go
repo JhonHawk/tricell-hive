@@ -838,13 +838,13 @@ func TestReplyListShapes(t *testing.T) {
 	}{
 		{"italic replies before a waiting line", "Findings.\n\n- *fix it* — patch it\n- *leave it* — no change\n\nWaiting for your reply.", true, true, false},
 		{"italic replies split by blank lines", "Findings.\n\n- *fix it* — patch it\n\n- *leave it* — no change", true, true, false},
-		{"lettered options under a bold question", "Body.\n\n**▶ ¿Cómo seguimos?**\n- **A** (★) Cerrar\n- **B** Ver los hallazgos", false, true, false},
-		{"bold letters without a heading", "Body.\n\n- **A** Cerrar\n- **B** Ver los hallazgos", true, true, false},
+		{"lettered options under a bold question", "Body.\n\n**▶ How do we continue?**\n- **A** (★) Close\n- **B** See the findings", false, true, false},
+		{"bold letters without a heading", "Body.\n\n- **A** Close\n- **B** See the findings", true, true, false},
 		{"a bold question far above does not head the list", "**Why does the loader read twice?**\n\nIt reads twice.\n\nSo:\n\nA — fix it\nB — leave it", true, true, false},
 		{"hyphenated words are not letters", "Next:\n\n- E-mail the owner\n- X-ray the logs", false, false, false},
 		{"paths in underscores are not italic labels", "Updated:\n\n- _support/docs/a_b.md updated\n- _support/openspec/x_y.md added", false, false, false},
 		{"a flow command in the body does not exempt the ending", "This would go through /flow-plan later.\n\n- *fix it* — patch it\n- *leave it* — no change", true, true, false},
-		{"a next-step block with the command between heading and replies", "Report.\n\n---\n**▶ Siguiente paso: plan (recomendado)**\nQuedan decisiones.\n\n`/flow-plan the change`\n\nOtras respuestas:\n- A - Registrar los casos.\n- B - Crear un ticket.", false, true, true},
+		{"a next-step block with the command between heading and replies", "Report.\n\n---\n**▶ Next step: plan (recommended)**\nDecisions remain.\n\n`/flow-plan the change`\n\nOther replies:\n- A - Record the cases.\n- B - Open a ticket.", false, true, true},
 		{"a flow command in the ending exempts it", "Done.\n\n---\n**▶ Next step: plan**\n\n`/flow-plan the change`\n\n- **A** compact first\n- **B** change the plan", false, true, true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
