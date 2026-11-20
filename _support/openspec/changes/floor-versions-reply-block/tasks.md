@@ -6,7 +6,7 @@ Los commits de T2 nombran la observación: Claude Code, `claude-opus-5-5`, sesi�
 
 ### T1 — Perfiles y tabla del floor en las versiones de hoy
 
-- [ ] `agent-profiles.json` y la tabla de `model-floor.md` nombran `gpt-6.2-sol` y `grok-4.7` donde nombraban `gpt-6.1-sol` y `grok-4.6`, con las pruebas que leen los perfiles al día.
+- [x] `agent-profiles.json` y la tabla de `model-floor.md` nombran `gpt-6.2-sol` y `grok-4.7` donde nombraban `gpt-6.1-sol` y `grok-4.6`, con las pruebas que leen los perfiles al día.
 
 **Closes:** AC1, AC2, AC3
 
@@ -24,7 +24,7 @@ Los commits de T2 nombran la observación: Claude Code, `claude-opus-5-5`, sesi�
 
 ### T2 — Criterio `analysis_reply_block` del auditor
 
-- [ ] `--audit-session` marca el final de un turno que ofrece respuestas en una lista sin letras o sin encabezado `▶`.
+- [x] `--audit-session` marca el final de un turno que ofrece respuestas en una lista sin letras o sin encabezado `▶`.
 
 **Closes:** AC4
 
@@ -42,7 +42,7 @@ Los commits de T2 nombran la observación: Claude Code, `claude-opus-5-5`, sesi�
 
 ### T3 — Documentación
 
-- [ ] La rúbrica, `rule-enforcers.md` y el changelog dicen lo que cambió.
+- [x] La rúbrica, `rule-enforcers.md` y el changelog dicen lo que cambió.
 
 **Closes:** AC3, AC4
 
@@ -69,14 +69,24 @@ Sin parada de validación (`automatic`). Tras el merge: recompilar el binario y 
 ## Checkpoint
 
 - Updated: 2026-11-20
-- Stage: build · T1 and T2 started
-- Last commit: 1cdb5af7
+- Stage: verify · integrate
+- Last commit: 314b7317
 - Open findings: none
-- Next: T1 main thread; T2 hive-build-backend; then T3
+- Next: push, PR, merge; rebuild binary; deploy; read installed roles; flow-close
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/floor-versions · feat/floor-versions-reply-block
 
 ### Evidence
 
 - before captures: none (no screen)
+- go -C <wt> test ./tests/content/... ./integrations/... ./tooling/... · ok · 960b79d5
+- go -C <wt> test ./tests/pilot/... · ok · 9fa629a3
+- python3 -m unittest discover -s <wt>/tests/skills · OK · bc805892
+- go -C <wt> vet ./... · ok · bc805892
 
 ## Review status and progress
+
+2026-11-20 — T1 · 960b79d5 · unverified: AC1 and AC2: installed roles after rebuild and deploy
+2026-11-20 — T2 · 9fa629a3 · unverified: none
+2026-11-20 — T3 · bc805892 · unverified: none
+
+2026-11-20 — Revisiones: /code-review (3 importantes del detector y 5 menores corregidos en c8fbd249 y c9a3828b; las 40 sesiones recientes fallan solo en bc3b8e52 y en un bloque de siguiente paso sin encabezado de bd34920c:972); segunda /code-review sobre bc805892..c9a3828b: 5 importantes de precisión del detector (regla --- en el cuerpo, letras con puntuación, líneas de continuación, comando en el encabezado, listas del cuerpo unidas) y 5 menores, no bloqueantes, quedan para el cierre; textos de prueba en inglés y la referencia del floor corregidos.
