@@ -1,7 +1,7 @@
 # Runs the local suite that CONTRIBUTING.md lists on every pull request and
-# on every push to development. `pull_request` runs the pull request's code
-# with a read-only token and no secrets; do not switch to
-# `pull_request_target`. The job must not be named `source-branch`: the
+# on every push to development. The token is read-only through
+# `permissions`, and the workflow reads no secret. Keep `pull_request`:
+# `pull_request_target` would run a fork's code with the base's access. The job must not be named `source-branch`: the
 # master ruleset requires that check from master-source-branch.yml only.
 # Actions are pinned by commit SHA; the comment names the release.
 name: tests
@@ -16,7 +16,9 @@ permissions:
 
 concurrency:
   group: tests-${{ github.ref }}
-  cancel-in-progress: true
+  # A newer push to a pull request replaces its run; every push to
+  # development keeps its own run.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   suite:
