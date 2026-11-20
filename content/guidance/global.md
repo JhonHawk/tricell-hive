@@ -108,6 +108,7 @@ A rule leaf is a skill the model does not load on its own. At the moment a line 
 - **When a plan needs a change folder, or a written plan changes:** [change folder](skill:hive-rule-change-folder/SKILL.md).
 - **At a build or verify's start, after a compaction, and at a pause:** [checkpoint](skill:hive-rule-checkpoint/SKILL.md).
 - **Before running or repeating a check, after a build's last task, and before the push:** [checks](skill:hive-rule-checks/SKILL.md).
+- **Before a polling loop or a background wait on a process or job:** [background wait](skill:hive-rule-background-wait/SKILL.md).
 - **When a verify's reviews and the user's answer are in:** [review findings](skill:hive-rule-review-findings/SKILL.md).
 - **Before treating a code finding as confirmed:** [review evidence](skill:hive-rule-review-evidence/SKILL.md).
 - **When adding or changing a project verification command:** [project verification](skill:hive-rule-project-verification/SKILL.md).

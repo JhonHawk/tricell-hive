@@ -87,6 +87,7 @@ var homePhrases = []homePhrase{
 	{"single-line row per decision and one per external effect", "content/skills/unattended-delegation/SKILL.md"},
 	{"A plan delivered in two or more units", "content/skills/hive-rule-change-folder/SKILL.md"},
 	{"weaken, skip or remove a guard to reach done", "content/skills/hive-rule-loops/SKILL.md"},
+	{"A `timeout` on one command inside the loop bounds one iteration, not the wait", "content/skills/hive-rule-background-wait/SKILL.md"},
 }
 
 // homeProblems returns one line per phrase whose files under
