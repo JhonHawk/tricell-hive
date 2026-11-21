@@ -1,0 +1,9 @@
+{
+  "stage": [
+    "hive-core/references/verification-floor.md",
+    "hive-core/references/tests.md",
+    "hive-core/references/questions.md",
+    "hive-core/references/delivery-ask.md",
+    "flow-plan/references/plan-handoff.md"
+  ]
+}

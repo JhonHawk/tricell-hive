@@ -5,6 +5,8 @@ description: Implement or resume authorized code or configuration work; reconcil
 
 # Implement authorized work
 
+At entry, read `stage.md` in this skill's folder whole: it holds the leaves verification-floor, checkpoint, checks, tests, reuse-before-writing, delegation, git-commit, security-boundaries, stored-data, so do not read them again. If it is missing, read the linked leaves instead; if its last line is not its packet end line, read the rest.
+
 Read the [verification floor](../hive-core/references/verification-floor.md) at the start: it sets what always runs for the change's kind, in every delivery mode. Keep a checkpoint as [checkpoint](../hive-core/references/checkpoint.md) sets, written at the start and after each task. After a compaction, resume from it, the active skill and one `git status`; read code again only before editing it.
 
 For explicit E2E work, read [coordination](references/e2e-coordination.md) before dispatch; for its multiunit checkpoint, read [execution record](../flow-plan/references/execution-record.md). When adding or changing project verification commands or feature coverage, read [project verification](../hive-core/references/project-verification.md).

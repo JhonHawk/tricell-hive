@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -257,5 +258,91 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 			}
 		})
 	}
+	t.Run("plan-build-packets", func(t *testing.T) {
+		t.Logf("predicate: the plan-build-required route when each flow it enters reads its stage packet whole at entry; a source a packet holds is not read again")
+		packetReads := planBuildPacketReads(t, root, cycle)
+		if len(packetReads.reads) > planBuildPacketReadLimit {
+			t.Errorf("plan/build with packets declares %d file reads, over %d: %v", len(packetReads.reads), planBuildPacketReadLimit, packetReads.reads)
+		}
+		t.Logf("file reads: %d (without packets: %d)", len(packetReads.reads), len(cycle))
+		t.Logf("bytes without repetitions: %d B", packetReads.unique)
+		t.Logf("leaves the packets bring that the route did not read: %d B %v", packetReads.newBytes, packetReads.newLeaves)
+		t.Logf("bytes with repetitions (each packet counts its members again): %d B", packetReads.repeated)
+	})
 	t.Log("Explicit source unions, not transitive loading or observed tokens. Excludes native metadata/rendering, repeated reads, project inputs, history and host policies. Executable resources are measured separately, not presumed read by a model. No aggregate quota; each entrypoint/reference retains its 16000-byte check.")
+}
+
+// planBuildPacketReadLimit is the most file reads the plan/build route may
+// declare once its flows read stage packets (D6 A).
+const planBuildPacketReadLimit = 26
+
+// planBuildRouteFlows are the flows the plan/build route enters; each reads its
+// stage packets at entry.
+var planBuildRouteFlows = []string{"hive-mode", "flow-plan", "flow-build", "flow-verify", "flow-close"}
+
+type packetRoute struct {
+	reads            []string
+	unique, repeated int
+	newBytes         int
+	newLeaves        []string
+}
+
+// planBuildPacketReads replaces each source of the route that a packet of the
+// route's flows holds by that packet, read once. The packet's size is the sum
+// of its members plus one heading per member and its end line, before the
+// manager rewrites links. The comparison with the baseline stays on the route's
+// own sources: the leaves a packet adds and the repeated members are reported
+// apart and do not count against it.
+func planBuildPacketReads(t *testing.T, root string, route []string) packetRoute {
+	t.Helper()
+	skills := "content/skills/"
+	size := func(path string) int {
+		data, err := os.ReadFile(filepath.Join(root, path))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(data)
+	}
+	held := map[string]bool{}
+	var result packetRoute
+	for _, flow := range planBuildRouteFlows {
+		manifest := readStageManifest(t, flow)
+		keys := make([]string, 0, len(manifest))
+		for key := range manifest {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			members := manifest[key]
+			packet := len("<!-- hive packet end: " + key + " ·  -->\n")
+			for _, member := range members {
+				held[skills+member] = true
+				packet += size(skills+member) + len("## "+strings.TrimSuffix(member, ".md")+"\n\n") + len(member)
+			}
+			result.reads = append(result.reads, skills+flow+"/"+key+".md")
+			result.repeated += packet
+		}
+	}
+	inRoute := map[string]bool{}
+	for _, path := range route {
+		inRoute[path] = true
+		if !held[path] {
+			result.reads = append(result.reads, path)
+			result.repeated += size(path)
+		}
+	}
+	for path := range held {
+		result.unique += size(path)
+		if !inRoute[path] {
+			result.newBytes += size(path)
+			result.newLeaves = append(result.newLeaves, strings.TrimSuffix(filepath.Base(path), ".md"))
+		}
+	}
+	for _, path := range route {
+		if !held[path] {
+			result.unique += size(path)
+		}
+	}
+	sort.Strings(result.newLeaves)
+	return result
 }

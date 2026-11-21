@@ -5,6 +5,8 @@ description: Coordinate delegated unattended work with a bounded objective and e
 
 # Unattended delegation
 
+At entry, read `stage.md` in this skill's folder whole: it holds the leaves delivery-ask, external-effects, questions, delegation, unattended-effects, so do not read them again. If it is missing, read the linked leaves instead; if its last line is not its packet end line, read the rest.
+
 For explicit E2E work, read [coordination](../flow-build/references/e2e-coordination.md); E2E alone does not activate this skill.
 
 This skill grants no broader tools or host permissions; step 6's irreversible or destructive actions stay forbidden even when authorized.

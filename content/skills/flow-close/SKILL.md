@@ -5,6 +5,8 @@ description: Close a work item and its session hygiene. Use when a work item rea
 
 # Close a work item and the session
 
+At entry, read `stage.md` in this skill's folder whole: it holds the leaves close-modes, ticket-state, close-hygiene, close-report, business-rules, support-material, so do not read them again. If it is missing, read the linked leaves instead; if its last line is not its packet end line, read the rest.
+
 Read [close modes](../hive-core/references/close-modes.md) first: it sets which steps run now, which wait and how the close ends. For explicit E2E work, read [coordination](../flow-build/references/e2e-coordination.md) before closing units or cleaning their resources.
 
 Read [ticket state](../hive-core/references/ticket-state.md) first: it defines the completion point and the state of the ticket at it, including the `ready` stop and the follow-up close of a pull request that was merged later.

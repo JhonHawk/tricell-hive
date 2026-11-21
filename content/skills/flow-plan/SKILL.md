@@ -5,6 +5,8 @@ description: Prepare how a change is done by presenting its approaches, resolvin
 
 # Prepare an executable plan
 
+At entry, read `stage.md` in this skill's folder whole: it holds the leaves verification-floor, tests, questions, delivery-ask, plan-handoff, so do not read them again. If it is missing, read the linked leaves instead; if its last line is not its packet end line, read the rest.
+
 For explicit E2E work, read [coordination](../flow-build/references/e2e-coordination.md) before defining units and grants. When planning project checks or affected feature coverage, read [project verification](../hive-core/references/project-verification.md).
 
 1. Read the code, the `## Hive` settings and the existing specs the change touches, with the deltas of the change folders still under `<Specs>/changes/` on the base for those capabilities, which the specs do not hold until a hygiene batch archives them; write the plan's delta against them. A solution hint in the work's ticket is a claim to verify against the code, not a decision of the plan.
