@@ -8,10 +8,11 @@ import (
 )
 
 var (
-	// reportEndingsRead names the installed SKILL.md of hive-rule-report-endings
-	// under a host's hidden skills folder; a read of the repository's own
-	// content/skills is research.
-	reportEndingsRead = regexp.MustCompile(`/\.[a-z]+/skills/hive-rule-report-endings/SKILL\.md`)
+	// reportEndingsRead names the installed report-endings leaf under a host's
+	// hidden skills folder, in its path after the move to hive-core and in the
+	// one recorded sessions kept; a read of the repository's own content/skills
+	// is research.
+	reportEndingsRead = regexp.MustCompile(`/\.[a-z]+/skills/(?:` + regexp.QuoteMeta(oldLeafPrefix+"report-endings/SKILL.md") + `|hive-core/references/report-endings\.md)(?:$|[^\w./-])`)
 	listItem          = regexp.MustCompile(`^\s*(?:[-*+]|\d+[.)])\s+(.*)$`)
 	// letterItem is an option written with a letter, as the reply block sets:
 	// "A — …", "B) …", "- **C** …". A letter joined to a word, as in "E-mail",

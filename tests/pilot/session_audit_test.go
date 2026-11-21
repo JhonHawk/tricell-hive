@@ -481,6 +481,9 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"leaf codex reads the single questions leaf", "codex", leaf, []string{leaf, "codex-rollout-questions-leaf-pass.jsonl"}, auditOptions{}, "pass"},
 		{"leaf codex git add without the read", "codex", leaf, []string{leaf, "codex-rollout-git-fail.jsonl"}, auditOptions{}, "fail"},
 		{"leaf codex card without the read", "codex", leaf, []string{leaf, "codex-rollout-question-fail.jsonl"}, auditOptions{}, "fail"},
+		{"leaf claude reads the hive-core path before git, ticket and card", "claude", leaf, []string{leaf, "claude-project-core-path-pass.jsonl"}, auditOptions{}, "pass"},
+		{"leaf claude nested reference and hive-core SKILL.md are no leaf read", "claude", leaf, []string{leaf, "claude-project-core-nested-fail.jsonl"}, auditOptions{}, "fail"},
+		{"leaf codex shell read of the hive-core path before git and card", "codex", leaf, []string{leaf, "codex-rollout-core-path-pass.jsonl"}, auditOptions{}, "pass"},
 		{"leaf codex no governed action", "codex", leaf, []string{leaf, "codex-rollout-notexercised.jsonl"}, auditOptions{}, "not_observed"},
 		{"round claude fail", "claude", round, []string{round, "claude-project-fail.jsonl"}, auditOptions{}, "fail"},
 		{"round claude pass", "claude", round, []string{round, "claude-project-pass.jsonl"}, auditOptions{}, "pass"},
@@ -744,10 +747,10 @@ func TestLeafReadBeforeActionEdgeCases(t *testing.T) {
 			traceEvent{Line: 1, Kind: "shell", Command: "python3 -I /x/git-workflow/scripts/git_state.py commit --repo /r -m msg a.go"},
 		), "fail"},
 		{"leaf named only in a commit message is no read", sess(
-			traceEvent{Line: 1, Kind: "shell", Command: `git commit -m "see hive-rule-git-commit/SKILL.md" a.go`},
+			traceEvent{Line: 1, Kind: "shell", Command: "git commit -m \"see " + oldLeafPrefix + "git-commit/SKILL.md\" a.go"},
 		), "fail"},
 		{"a failed read is no read", sess(
-			traceEvent{Line: 1, Kind: "read", ID: "r1", Path: "/s/hive-rule-git-commit/SKILL.md", Success: &no},
+			traceEvent{Line: 1, Kind: "read", ID: "r1", Path: "/s/" + oldLeafPrefix + "git-commit/SKILL.md", Success: &no},
 			traceEvent{Line: 3, Kind: "shell", Command: "git add a.go"},
 		), "fail"},
 		{"creating a ticket with a state is not a move", sess(
@@ -760,14 +763,14 @@ func TestLeafReadBeforeActionEdgeCases(t *testing.T) {
 			traceEvent{Line: 1, Kind: "shell", Command: "python3 -I /x/git_state.py --repo /r commit -m m a.go"},
 		), "fail"},
 		{"a heredoc naming the leaf is no read", sess(
-			traceEvent{Line: 1, Kind: "shell", Command: "cat > /tmp/m <<'EOF'\nsee hive-rule-git-commit/SKILL.md\nEOF"},
+			traceEvent{Line: 1, Kind: "shell", Command: "cat > /tmp/m <<'EOF'\nsee " + oldLeafPrefix + "git-commit/SKILL.md\nEOF"},
 			traceEvent{Line: 2, Kind: "shell", Command: "git commit -F /tmp/m a.go"},
 		), "fail"},
 		{"a GitLab-style update by iid is a move", sess(
 			traceEvent{Line: 1, Kind: "tool", Tool: "update_issue", Input: []byte(`{"issue_iid":5,"state":"closed"}`)},
 		), "fail"},
 		{"cat of the leaf before the helper commit passes", sess(
-			traceEvent{Line: 1, Kind: "shell", Command: "cat /s/hive-rule-git-commit/SKILL.md"},
+			traceEvent{Line: 1, Kind: "shell", Command: "cat /s/" + oldLeafPrefix + "git-commit/SKILL.md"},
 			traceEvent{Line: 2, Kind: "shell", Command: "python3 -I /x/git_state.py commit -m m a.go"},
 		), "pass"},
 	}
@@ -1004,5 +1007,32 @@ func TestAuditUnboundedBackgroundWaitEvidencePointsAtTheLaunch(t *testing.T) {
 		if len(got.Evidence) != 1 || !strings.Contains(got.Evidence[0], want) {
 			t.Fatalf("%s evidence = %v, want it to contain %q", host, got.Evidence, want)
 		}
+	}
+}
+
+func TestLeafPathsOldAndNew(t *testing.T) {
+	old := "/h/.agents/skills/" + oldLeafPrefix + "report-endings/SKILL.md"
+	cur := "/h/.agents/skills/hive-core/references/report-endings.md"
+	nested := "/h/.agents/skills/hive-core/references/report-endings/extra.md"
+	core := "/h/.agents/skills/hive-core/SKILL.md"
+	for _, tc := range []struct {
+		path string
+		want bool
+	}{{old, true}, {cur, true}, {nested, false}, {core, false}} {
+		if got := readsReportEndings(traceEvent{Kind: "read", Path: tc.path}); got != tc.want {
+			t.Errorf("read %s: %v, want %v", tc.path, got, tc.want)
+		}
+		if got := readsReportEndings(traceEvent{Kind: "shell", Command: "sed -n 1,40p " + tc.path}); got != tc.want {
+			t.Errorf("shell %s: %v, want %v", tc.path, got, tc.want)
+		}
+		if got := hiveCall("Read", tc.path, ""); (got == "read") != (tc.want || tc.path == nested || tc.path == core) {
+			t.Errorf("cost read %s: %q", tc.path, got)
+		}
+	}
+	if namesLeaf(traceEvent{Kind: "read", Path: "/s/hive-core/references/git-commit/x.md"}, leafGitCommit) {
+		t.Error("a nested reference counted as the git-commit leaf")
+	}
+	if !namesLeaf(traceEvent{Kind: "read", Path: "/s/" + oldLeafPrefix + "question-channel/SKILL.md"}, leafQuestionRound) {
+		t.Error("the former questions name was not accepted")
 	}
 }

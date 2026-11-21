@@ -1668,24 +1668,36 @@ type leafAction struct {
 	readInCommand bool
 }
 
+// A leaf is named by its short name; the installed file is
+// hive-core/references/<name>.md, and sessions recorded before the move to
+// hive-core read <oldLeafPrefix><name>/SKILL.md.
 const (
-	leafGitCommit     = "hive-rule-git-commit"
-	leafTicketState   = "hive-rule-ticket-state"
-	leafQuestionRound = "hive-rule-questions"
+	leafGitCommit     = "git-commit"
+	leafTicketState   = "ticket-state"
+	leafQuestionRound = "questions"
+	oldLeafPrefix     = "hive-" + "rule-"
 )
 
-// leafFormerNames lists the names a leaf had before, so transcripts of
+// leafFormerNames lists the short names a leaf had before, so transcripts of
 // sessions that ran the earlier guidance are judged by the leaf they read.
-var leafFormerNames = map[string][]string{leafQuestionRound: {"hive-rule-question-channel"}}
+var leafFormerNames = map[string][]string{leafQuestionRound: {"question-channel"}}
 
-// leafPaths returns the SKILL.md paths that count as reading a leaf.
-func leafPaths(leaf string) []string {
-	paths := []string{leaf + "/SKILL.md"}
-	for _, name := range leafFormerNames[leaf] {
-		paths = append(paths, name+"/SKILL.md")
+// leafPathPattern matches the full path of a leaf's file: the old
+// <prefix><name>/SKILL.md or the current hive-core/references/<name>.md. The
+// path is compared whole, so a leaf's own nested reference
+// (references/<name>/<f>.md) and hive-core/SKILL.md are no leaf read.
+func leafPathPattern(leaf string) *regexp.Regexp {
+	names := append([]string{leaf}, leafFormerNames[leaf]...)
+	var alts []string
+	for _, n := range names {
+		alts = append(alts, regexp.QuoteMeta(oldLeafPrefix+n+"/SKILL.md"))
 	}
-	return paths
+	alts = append(alts, regexp.QuoteMeta("hive-core/references/"+leaf+".md"))
+	return regexp.MustCompile(`(?:^|[^\w.-])(?:` + strings.Join(alts, "|") + `)(?:$|[^\w./-])`)
 }
+
+// namesLeafPath reports whether text names the leaf's file by its full path.
+func namesLeafPath(text, leaf string) bool { return leafPathPattern(leaf).MatchString(text) }
 
 // leafReadVerb names the shell programs that print a file, so a command that
 // only mentions a leaf's path, such as a commit message, is not a read.
@@ -1703,7 +1715,7 @@ func shellReadsLeaf(args []string, leaf string) bool {
 			return false
 		}
 	}
-	return strings.Contains(strings.Join(args[1:], " "), leaf+"/SKILL.md")
+	return namesLeafPath(strings.Join(args[1:], " "), leaf)
 }
 
 // namesLeaf reports whether a call read the leaf's file: the Read tool on its
@@ -1713,21 +1725,15 @@ func namesLeaf(e traceEvent, leaf string) bool {
 	if e.Success != nil && !*e.Success {
 		return false
 	}
-	for _, target := range leafPaths(leaf) {
-		switch e.Kind {
-		case "read":
-			if strings.Contains(e.Path, target) {
+	switch e.Kind {
+	case "read":
+		return namesLeafPath(e.Path, leaf)
+	case "tool":
+		return namesLeafPath(e.Path+"\n"+string(e.Input), leaf)
+	case "shell":
+		for _, args := range shellSegments(e.Command, 0) {
+			if shellReadsLeaf(args, leaf) {
 				return true
-			}
-		case "tool":
-			if strings.Contains(e.Path+"\n"+string(e.Input), target) {
-				return true
-			}
-		case "shell":
-			for _, args := range shellSegments(e.Command, 0) {
-				if shellReadsLeaf(args, strings.TrimSuffix(target, "/SKILL.md")) {
-					return true
-				}
 			}
 		}
 	}
@@ -1771,12 +1777,9 @@ func leafActionsIn(e traceEvent, cwd string) []leafAction {
 	case "shell":
 		read := map[string]bool{}
 		for _, args := range shellSegments(e.Command, 0) {
-			joined := strings.Join(args, " ")
 			for _, leaf := range []string{leafGitCommit, leafTicketState, leafQuestionRound} {
-				for _, target := range leafPaths(leaf) {
-					if len(args) > 1 && leafReadVerb.MatchString(filepath.Base(args[0])) && strings.Contains(joined, target) {
-						read[leaf] = true
-					}
+				if shellReadsLeaf(args, leaf) {
+					read[leaf] = true
 				}
 			}
 			isCommit := false
