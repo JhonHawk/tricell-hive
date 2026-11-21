@@ -13,6 +13,8 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the work is to review 
 - Promotion follows [flow-deploy](../../flow-deploy/SKILL.md): its authorization per environment and the served-identity checks. Environment branches change only through the declared path ([promotion path](../../hive-rule-promotion-path/SKILL.md)).
 - A check that signs in reads the account index first ([test accounts](../../hive-rule-test-accounts/SKILL.md)).
 
+**Reporting.** When the work closes, `flow-close` writes its final report with the row of [close report](../../hive-rule-close-report/SKILL.md#variants) that the delivery mode in force picks, and the message ends in the close row of [report endings](../../hive-rule-report-endings/SKILL.md) that [close modes](../../hive-rule-close-modes/SKILL.md) sets; a promotion's cleanup close uses the deployment row of [close report](../../hive-rule-close-report/SKILL.md#variants).
+
 **Handoffs.** A defect the review confirms and the user wants fixed in this pull request is a correction in the same work; one that needs its own change is [bugfix](bugfix.md) or a separate topic, as [scope changes](../../hive-rule-scope-changes/SKILL.md) sets.
 
 **Leaves.** [merge gate](../../hive-rule-merge-gate/SKILL.md), [PR reviews](../../hive-rule-pr-reviews/SKILL.md), [review evidence](../../hive-rule-review-evidence/SKILL.md), [reviewer brief](../../hive-rule-reviewer-brief/SKILL.md), [weakened checks](../../hive-rule-suppression-review/SKILL.md), [foreign commits](../../hive-rule-foreign-commits/SKILL.md), [promotion path](../../hive-rule-promotion-path/SKILL.md).

@@ -13,4 +13,6 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the work restructures 
 - A bug found along the way is not fixed inside the refactor: it becomes separate work, a finding or a [bugfix](bugfix.md), as [scope changes](../../hive-rule-scope-changes/SKILL.md) sets, so the diff stays behavior-neutral and reviewable.
 - Each stop, push, pull request and merge happens under the delivery mode in force.
 
+**Reporting.** When the work closes, `flow-close` writes its final report with the row of [close report](../../hive-rule-close-report/SKILL.md#variants) that the delivery mode in force picks, and the message ends in the close row of [report endings](../../hive-rule-report-endings/SKILL.md) that [close modes](../../hive-rule-close-modes/SKILL.md) sets.
+
 **Leaves.** [verification floor](../../hive-rule-verification-floor/SKILL.md), [tests](../../hive-rule-tests/SKILL.md), [no test runner](../../hive-rule-tests-no-runner/SKILL.md), [reuse before writing](../../hive-rule-reuse-before-writing/SKILL.md), [checks](../../hive-rule-checks/SKILL.md), [weakened checks](../../hive-rule-suppression-review/SKILL.md), [scope changes](../../hive-rule-scope-changes/SKILL.md).

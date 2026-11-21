@@ -13,6 +13,7 @@ Which of Hive's rules a mechanism enforces, and which still rest on prose. A rul
 | Internal links and their anchors resolve | `_support/docs/architecture/instruction-resources.md` | `tooling/management/references.go` | prevents | enforced |
 | The floor table matches the role profiles | `_support/docs/harness-engineering/model-floor.md` | `tests/content/model_floor_test.go` | prevents | enforced |
 | The guidance's reading footprint stays within its budget | root `AGENTS.md` «Guidance structure» | `tests/content/reading_footprint_test.go` | prevents | enforced |
+| Every playbook links its row of `report-endings` and the row of `close-report` that the delivery mode in force picks, and `pr-review-deploy` links the deployment row | `content/skills/hive-mode/playbooks/` | `tests/content/leaf_skill_test.go` | prevents | enforced |
 | `HIVE.local.md` entries are dated, short and ignored by Git; the secret location keeps its modes | global guidance «Local instructions» and «Secrets» | `content/skills/harness-audit/scripts/local_instructions.py`, `tooling/cli/doctor_project.go` | prevents | enforced |
 | A package is at least 7 days old and free of active advisories | global guidance «Scope and authorization» | `content/skills/flow-build/scripts/check_package.py` | prevents | enforced |
 | A commit names its paths, keeps unrelated staged work and passes a secret scan | global guidance «Secrets» | `content/skills/git-workflow/scripts/git_state.py` | prevents | enforced |

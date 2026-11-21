@@ -4,6 +4,8 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the user asks for the 
 
 **Stages.** `hive-mode` alone, read-only. Choosing a ticket from the recommendations starts `hive-mode` for that ticket, and the user's reply is what starts it. **Leaves.** [delegation](../../hive-rule-delegation/SKILL.md), [report endings](../../hive-rule-report-endings/SKILL.md#the-next-step-block), [close hygiene](../../hive-rule-close-hygiene/SKILL.md#pending-work), [local write](../../hive-rule-local-write/SKILL.md).
 
+**Reporting.** The report ends in the hand-over row of [report endings](../../hive-rule-report-endings/SKILL.md); if the work later closes, its final report uses the row of [close report](../../hive-rule-close-report/SKILL.md#variants) that the delivery mode in force picks.
+
 This report is read-only, except for the writes [local write](../../hive-rule-local-write/SKILL.md) authorizes, and assesses no ticket in depth; the router does that, with its own steps, once the user picks one. Read only what the report needs: the `## Hive` section of the repository, the tracker, Git and the pending-work records in persistent memory.
 
 1. Collect, in parallel:

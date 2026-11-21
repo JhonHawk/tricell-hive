@@ -4,6 +4,8 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the user asks whether 
 
 **Stages.** `hive-mode` alone, read-only; the fixes run afterward in each affected project's own session, with the playbook of their kind. **Leaves.** [delegation](../../hive-rule-delegation/SKILL.md), [local write](../../hive-rule-local-write/SKILL.md), [security boundaries](../../hive-rule-security-boundaries/SKILL.md) for the fix.
 
+**Reporting.** The sweep's report ends in the analysis row of [report endings](../../hive-rule-report-endings/SKILL.md); a fix closes in its own project with the row of [close report](../../hive-rule-close-report/SKILL.md#variants) that the delivery mode in force picks.
+
 Adding or updating a package or tool in a project is not this sweep: before it, run the package check of the global guidance's «Scope and authorization» (`check_package.py` of [flow-build](../../flow-build/SKILL.md)), then plan it as a [feature](feature.md) or [infra-ci](infra-ci.md) change. Reviewing a change's security boundaries is the `hive-review-security` role's, recommended as [delivery questions](../../hive-rule-delivery-ask/SKILL.md) sets.
 
 Answer "does this advisory affect us, and where?" with evidence for each repository. The sweep is read-only: it changes no repository, dependency, tracker or deployment, except for the entries of the current project's `HIVE.local.md` and of the machine file that [local write](../../hive-rule-local-write/SKILL.md) authorizes. Fixes run afterward, in each project's own session.

@@ -27,9 +27,15 @@ const (
 	// playbookModePhrase is the fixed phrase through which a playbook refers to
 	// the delivery mode: it never fixes or replaces the mode itself.
 	playbookModePhrase = "under the delivery mode in force"
-	ruleLeavesHeading  = "## Rule leaves"
-	principleIndexName = "hive-principle-index"
-	languageLeafName   = "hive-typescript"
+	// The next three constants are what the reporting line of every playbook
+	// links: how its message ends and the final-report row that the delivery
+	// mode in force picks (AC7 of the reporting-family-leaves plan).
+	playbookEndingsLink = "hive-rule-report-endings/SKILL.md"
+	playbookReportLink  = "hive-rule-close-report/SKILL.md#variants"
+	playbookReportModes = "the delivery mode in force picks"
+	ruleLeavesHeading   = "## Rule leaves"
+	principleIndexName  = "hive-principle-index"
+	languageLeafName    = "hive-typescript"
 )
 
 // leafSizeExceptions names each leaf whose single rule cannot fit the common
@@ -194,7 +200,17 @@ func leafProblems(root string) []string {
 			problems = append(problems, fmt.Sprintf("playbook %s is %d bytes, limit %d", filepath.Base(path), info.Size(), playbookSizeLimit))
 		}
 		if data, err := os.ReadFile(path); err == nil {
-			for _, mode := range playbookModeNames(string(data)) {
+			text := string(data)
+			name := filepath.Base(path)
+			for _, want := range []string{playbookEndingsLink, playbookReportLink, playbookReportModes} {
+				if !strings.Contains(text, want) {
+					problems = append(problems, fmt.Sprintf("playbook %s lacks %q in its reporting line", name, want))
+				}
+			}
+			if name == "pr-review-deploy.md" && !strings.Contains(text, "deployment row of") {
+				problems = append(problems, fmt.Sprintf("playbook %s lacks the deployment row of close report", name))
+			}
+			for _, mode := range playbookModeNames(text) {
 				problems = append(problems, fmt.Sprintf("playbook %s names the delivery mode %s outside the phrase %q", filepath.Base(path), mode, playbookModePhrase))
 			}
 		}
@@ -284,6 +300,7 @@ func TestLeafSkillInvariantsCatchViolations(t *testing.T) {
 		"hive-typescript: frontmatter has no `paths`",
 		"hive-typescript: hive-principle-index has no SKILL.md",
 		"playbook bugfix.md is",
+		"playbook hotfix.md lacks \"hive-rule-report-endings/SKILL.md\" in its reporting line",
 		"playbook hotfix.md names the delivery mode `hold` outside the phrase",
 		"hive-mode/playbooks holds extra.md",
 		"hive-mode/playbooks lacks feature.md",
