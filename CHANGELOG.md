@@ -228,6 +228,15 @@ raise the minor or the patch version.
   lists one rule skill instead of 60, and the «Rule leaves» index of the global
   guidance stays the only router. Updating retires the `hive-rule-*` folders.
   Pull-request links and local notes that name an old path need the new one.
+- Eight flows read a stage packet at entry: `hive-mode`, `flow-plan`,
+  `flow-build`, `flow-verify` (one at entry and one at its reviews), `flow-close`,
+  `git-workflow`, `flow-deploy` and `unattended-delegation`. A flow's
+  `assets/stage.json` lists the leaves of each packet, and the manager writes
+  `<flow>/<key>.md` at install time with one heading per leaf and an end line.
+  The plan/build route declares 24 file reads instead of 39. A missing packet
+  falls back to the linked leaves, and a hand-written `stage*.md` in a skill is
+  rejected. `--audit-session` counts a packet read as a read of its leaves only
+  when the result holds every heading and the end line.
 - Reporting has two homes. `hive-rule-close-report` holds the final report with
   one row per variant (close at the completion point, pull request left open,
   deployment, `hold`, pause) and the findings round of the close;

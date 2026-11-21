@@ -169,7 +169,7 @@
 
 ### T6 — El manager genera los paquetes por etapa y la auditoría los reconoce
 
-- [ ] El manager genera un paquete por clave de cada `<flujo>/assets/stage.json`, como fija el delta de `versioned-installation`:
+- [x] El manager genera un paquete por clave de cada `<flujo>/assets/stage.json`, como fija el delta de `versioned-installation`:
   - lo registra y lo instala;
   - lo genera con la concatenación de sus miembros bajo `## <nombre>`;
   - reescribe sus enlaces y valida el paquete generado;
@@ -227,7 +227,7 @@
 
 ### T7 — Manifiestos, línea de entrada de cada flujo y huella
 
-- [ ] Los ocho flujos y la huella quedan así:
+- [x] Los ocho flujos y la huella quedan así:
   - cada uno tiene `assets/stage.json` con la membresía de `design.md`, recalculada sobre la base de E2;
   - la suma de miembros de cada paquete da ≤ 23,000 B, y el paquete ya generado ≤ 24,000 B en la prueba del manager;
   - cada flujo dice al entrar que lea su paquete entero, que no relea sus hojas y que, si falta, lea las hojas enlazadas;
@@ -336,9 +336,9 @@
 
 ### E1 — PR `refactor/hive-core-sheets` (T1–T5) · depends on: none · files: content/skills/hive-core/, content/, tests/content/, tests/pilot/, tests/skills/, tooling/, site/, _support/docs/, README.md, llms.txt, AGENTS.md, CHANGELOG.md
 
-- [ ] unit: go -C <worktree> test -count=1 ./... y python3 -I -m unittest discover -s <worktree>/tests/skills -p '*_test.py'
-- [ ] live: hive update --source <worktree> --dry-run con el binario del worktree · pass: retira las carpetas hive-rule-* y añade hive-core, sin cambios fuera de las rutas de E1, sus roles renderizados y los bloques globales
-- [ ] perf: n/a: mudanza sin cambio de lectura
+- [x] unit: go -C <worktree> test -count=1 ./... y python3 -I -m unittest discover -s <worktree>/tests/skills -p '*_test.py'
+- [x] live: hive update --source <worktree> --dry-run con el binario del worktree · pass: retira las carpetas hive-rule-* y añade hive-core, sin cambios fuera de las rutas de E1, sus roles renderizados y los bloques globales
+- [x] perf: n/a: mudanza sin cambio de lectura
 
 ### E2 — PR `feat/stage-packets` (T6, T7, T10 parte paquetes) · depends on: E1 · files: tooling/management/, content/skills/*/assets/stage.json, content/skills/*/SKILL.md, content/guidance/global.md, tests/content/, tests/pilot/, docs
 
@@ -368,11 +368,11 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: verify · E1 step 2 code review
-- Last commit: 13e8b55e
-- Open findings: none
-- Next: leer hallazgos de /code-review; una ronda de arreglos; push + PR E1 + merge gate. Al finalizar el build (tras E3), actualizar el artifact «Skills de Hive» https://claude.ai/artifact/77U7EN4pUTcEtiAijziLxE (pedido del usuario 2026-11-21)
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/hive-core-stage-packets · refactor/hive-core-sheets
+- Stage: build · E2 T6
+- Last commit: 89befa58
+- Open findings: E1 /code-review nits a cierre: link text [flow-build]/[flow-close] apunta a tests.md / close-hygiene.md (unattended-delegation:16, ticket-status.md:14, pre-existing); leaf_links_test acepta /<leaf>.md de cualquier skill; leafPathPattern recompila regex por evento; removePycache reporta motivo incorrecto al conservar; comentario leafReadBeforeAction obsoleto · decisión: findings del cierre
+- Next: E2/T6 manager stage packets (hive-build-infra + hive-verify-task). Al finalizar el build (tras E3), actualizar el artifact «Skills de Hive» https://claude.ai/artifact/77U7EN4pUTcEtiAijziLxE
+- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/hive-core-stage-packets · feat/stage-packets
 
 ### Evidence
 
@@ -382,6 +382,7 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 - AC16 sweep sobre el worktree: sin salida
 - dry-run E1 con binario del worktree: 708 archivos, 60 hive-rule retirados, un openai.yaml en hive-core
 - verify E1 paso 1: comentarios añadidos = doc comments (Keep); supresiones añadidas: ninguna; blast radius: hook de Grok cubre references/*.md; prueba real-content del manager resuelve cada enlace skill: (rung 4)
+- E1 integrado: PR #565 merge 89befa58 (2026-11-21); sin CI de PR ni de base (solo master-source-branch.yml)
 
 ## Review status and progress
 
@@ -390,3 +391,5 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 2026-11-21 — T2 · b9e17031 · unverified: none
 2026-11-21 — T5 · 000c57fe · unverified: none
 2026-11-21 — T4 · 70f07007 · unverified: AC2: se observa en la instalación local tras el refresco posterior a E3; hoy solo prueba del manager y dry-run (sustitutos)
+2026-11-21 — T6 · f6a984cb · unverified: AC5: instalación tras el refresco posterior a E3; fixtures de lectura construidos con la forma real (1\t…), no copiados de una transcripción
+2026-11-21 — T7 · 4ad914c9 · unverified: none
