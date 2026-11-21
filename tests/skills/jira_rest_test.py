@@ -11,7 +11,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "content/skills/hive-rule-trackers/scripts/jira_rest.py"
+SCRIPT = ROOT / "content/skills/hive-core/scripts/trackers/jira_rest.py"
 sys.dont_write_bytecode = True  # keep __pycache__ out of the distributed skill folder
 
 SAMPLE_VALUE = "tok-SECRET-0123456789"

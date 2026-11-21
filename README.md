@@ -32,15 +32,15 @@ or followed. This organization does not establish reliability for any model fami
 [hive-mode](content/skills/hive-mode/SKILL.md), which opens at most one of 13
 [playbooks](content/skills/hive-mode/playbooks/) for its kind of work. The
 rules that apply at one moment, such as staging a commit, moving a ticket or asking a
-round of questions, live in small `hive-rule-*` skills called rule leaves. The
+round of questions, live in small files called rule leaves, stored as `content/skills/hive-core/references/<name>.md`. The
 [«Rule leaves» index](content/guidance/global.md) of the global guidance names the
 moment that requires each one, and the flow steps link them where they apply. A leaf
-is read as a file at that moment; it is not invoked as a skill. Each leaf is marked
-`disable-model-invocation: true`, which Claude Code reads; for Codex the manager
-generates a hidden-skill policy file, `agents/openai.yaml`, next to each leaf and
-removes it when the leaf stops being hidden; Antigravity lists the leaves in its skill
-catalog with a one-line description. For the other hosts no hiding mechanism is
-verified, so they may list the leaves. A leaf installed is not proof that a session
+is read as a file at that moment; it is not invoked as a skill. The leaves belong to
+one hidden skill, `hive-core`, marked `disable-model-invocation: true`, which Claude
+Code reads; for Codex the manager generates a hidden-skill policy file,
+`agents/openai.yaml`, beside that skill; Antigravity lists the skill in its catalog
+with a one-line description. For the other hosts no hiding mechanism is verified, so
+they may list it. An update retires the earlier one-skill-per-leaf folders. A leaf installed is not proof that a session
 read it; `go run ./tests/pilot --audit-session` checks, for a real session, that the
 leaf of a commit, a ticket move or a question card was read before that action.
 Code principles follow the same pattern: the hidden
@@ -571,7 +571,7 @@ flow's brief (research, plan, build, verify, delivery, close, collab or local), 
 names every operation with its flows, `--section rules` prints the shared rules,
 and `--operation NAME` narrows to one operation.
 JSON inputs use `--json FILE` or `--json -`. The
-[walkthrough reference](content/skills/hive-rule-walkthrough/SKILL.md) owns the agent's
+[walkthrough reference](content/skills/hive-core/references/walkthrough.md) owns the agent's
 procedure; the [viewer manual](https://hive.tricell.tech/viewer/) explains how to
 read and manage published work.
 

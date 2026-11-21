@@ -217,7 +217,7 @@ func intensityLine(intensity string) string {
 }
 
 // validateVoiceName checks a user-chosen given name before it can reach a
-// generated instruction file (see content/skills/hive-rule-security-boundaries/SKILL.md: this is the one
+// generated instruction file (see content/skills/hive-core/references/security-boundaries.md: this is the one
 // external input the voice layer writes into such a file). Letters
 // (including accented ones), spaces, apostrophes and hyphens are accepted,
 // 1 to 40 characters, with at least one letter so a name of only spaces,

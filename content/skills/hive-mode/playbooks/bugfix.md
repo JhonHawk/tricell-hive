@@ -6,14 +6,14 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the user reports a def
 
 **Specific to a defect**
 - Show the failure first: a reproduction, or a regression test seen failing, before the first edit. The same check passes after the fix and is the evidence that the defect is gone.
-- Name the cause before editing and fix it there, not where the failure surfaced: [defect fix](../../hive-rule-defect-fix/SKILL.md) sets the cause, the search for the same fault elsewhere, what a workaround is and the earliest layer that should catch the error.
-- When a check fails, first decide whether the code or the check is wrong, as [tests](../../hive-rule-tests/SKILL.md) sets. In a repository or package without a test runner, [no test runner](../../hive-rule-tests-no-runner/SKILL.md) sets the direct checks.
+- Name the cause before editing and fix it there, not where the failure surfaced: [defect fix](../../hive-core/references/defect-fix.md) sets the cause, the search for the same fault elsewhere, what a workaround is and the earliest layer that should catch the error.
+- When a check fails, first decide whether the code or the check is wrong, as [tests](../../hive-core/references/tests.md) sets. In a repository or package without a test runner, [no test runner](../../hive-core/references/tests-no-runner.md) sets the direct checks.
 - Fixing the cause may be a choice the user owns, such as a contract or stored data change: report it before writing a workaround.
 - Other instances of the fault outside the files the work changes are findings, not edits.
 - Each stop, push, pull request and merge happens under the delivery mode in force.
 
-**Reporting.** When the work closes, `flow-close` writes its final report with the row of [close report](../../hive-rule-close-report/SKILL.md#variants) that the delivery mode in force picks, and the message ends in the close row of [report endings](../../hive-rule-report-endings/SKILL.md) that [close modes](../../hive-rule-close-modes/SKILL.md) sets.
+**Reporting.** When the work closes, `flow-close` writes its final report with the row of [close report](../../hive-core/references/close-report.md#variants) that the delivery mode in force picks, and the message ends in the close row of [report endings](../../hive-core/references/report-endings.md) that [close modes](../../hive-core/references/close-modes.md) sets.
 
-**Handoffs.** A fix whose cause is stored data continues as [data-change](data-change.md); a restructuring the fix would need is separate [refactor](refactor.md) work, as [scope changes](../../hive-rule-scope-changes/SKILL.md) sets.
+**Handoffs.** A fix whose cause is stored data continues as [data-change](data-change.md); a restructuring the fix would need is separate [refactor](refactor.md) work, as [scope changes](../../hive-core/references/scope-changes.md) sets.
 
-**Leaves.** [verification floor](../../hive-rule-verification-floor/SKILL.md), [defect fix](../../hive-rule-defect-fix/SKILL.md), [tests](../../hive-rule-tests/SKILL.md), [no test runner](../../hive-rule-tests-no-runner/SKILL.md), [checks](../../hive-rule-checks/SKILL.md), [suppression review](../../hive-rule-suppression-review/SKILL.md).
+**Leaves.** [verification floor](../../hive-core/references/verification-floor.md), [defect fix](../../hive-core/references/defect-fix.md), [tests](../../hive-core/references/tests.md), [no test runner](../../hive-core/references/tests-no-runner.md), [checks](../../hive-core/references/checks.md), [suppression review](../../hive-core/references/suppression-review.md).

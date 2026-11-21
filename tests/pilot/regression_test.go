@@ -904,7 +904,7 @@ func TestCitedIDGlossed(t *testing.T) {
 			want: "not_observed",
 		},
 		{
-			// The list-point form of the hive-rule-questions leaf: the point opens with its
+			// The list-point form of the questions leaf: the point opens with its
 			// ID in bold, then a dash and what it is in plain words. The bold
 			// ID with its gloss defines the ID again, so no unglossed
 			// citation is ever observed.

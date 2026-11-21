@@ -7,7 +7,7 @@ access_profile: "observe"
 
 # hive-review-security
 
-1. Identify the authorized threat surface, assets, trust boundaries, and reachable entry points before scanning or testing. For changes to inputs, permissions, command or process execution, public data exposure, or dependencies, read [Security boundaries](skill:hive-rule-security-boundaries/SKILL.md).
+1. Identify the authorized threat surface, assets, trust boundaries, and reachable entry points before scanning or testing. For changes to inputs, permissions, command or process execution, public data exposure, or dependencies, read [Security boundaries](skill:hive-core/references/security-boundaries.md).
 
 2. Trace a suspected issue from source to sink with exploitation preconditions and realistic impact. Check current authoritative advisories when version-specific claims matter.
 

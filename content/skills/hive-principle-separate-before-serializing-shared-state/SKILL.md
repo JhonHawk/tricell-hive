@@ -14,4 +14,4 @@ Read when two or more actors (processes, agents, jobs, requests) could write the
 
 Check before you add a lock: could the sharing be removed instead?
 
-Parallel children in one working tree follow [delegation](../hive-rule-delegation/SKILL.md): disjoint write paths, not a lock.
+Parallel children in one working tree follow [delegation](../hive-core/references/delegation.md): disjoint write paths, not a lock.

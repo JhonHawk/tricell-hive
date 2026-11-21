@@ -21,6 +21,6 @@ Read before writing new code in a task, before reviewing a diff, and at any othe
 
 Three principles live inside rule leaves that already apply at their moment, so this index only points to them:
 
-- **Fixing a defect, including the always-on signal and the shared premise of repeated failed fixes:** [defect fix](../hive-rule-defect-fix/SKILL.md).
-- **Writing or keeping a test, including whether it asserts behavior:** [Tests](../hive-rule-tests/SKILL.md).
-- **Deciding what to add, with removal and the smallest change first:** [Reuse before writing](../hive-rule-reuse-before-writing/SKILL.md).
+- **Fixing a defect, including the always-on signal and the shared premise of repeated failed fixes:** [defect fix](../hive-core/references/defect-fix.md).
+- **Writing or keeping a test, including whether it asserts behavior:** [Tests](../hive-core/references/tests.md).
+- **Deciding what to add, with removal and the smallest change first:** [Reuse before writing](../hive-core/references/reuse-before-writing.md).

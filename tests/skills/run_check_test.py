@@ -9,7 +9,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "content/skills/hive-rule-checks/scripts/run_check.py"
+SCRIPT = ROOT / "content/skills/hive-core/scripts/checks/run_check.py"
 sys.dont_write_bytecode = True  # keep __pycache__ out of the distributed skill folder
 
 
