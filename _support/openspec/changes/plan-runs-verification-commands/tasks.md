@@ -51,16 +51,20 @@ Tras integrar, la actualización local (`hive update --source`) instala el conte
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: build · tasks done
-- Last commit: b645ea7a
-- Open findings: none
-- Next: local CI, then flow-verify
+- Stage: verify · review fixes
+- Last commit: 33c4b85b
+- Open findings: code review 5 (throwaway test without project imports): close findings; code review 6 (throwaway cleanup on every exit): close findings
+- Next: limited re-review and full suite on 33c4b85b, then push, PR, merge, refresh
 
 ### Evidence
 
 - before captures: none (no interface)
 - go test ./tests/content/... · pass · b645ea7a
 - pnpm --dir site check/lint/build · pass · b645ea7a
+- go vet ./... && go test ./... · pass · a0b6f3d0
+- go test ./tests/content/... · pass · 33c4b85b
+- pnpm --dir site check/lint/build · pass · 33c4b85b
+- hive update --dry-run · accepted · a0b6f3d0
 
 ## Estado de la revisión y avance
 
