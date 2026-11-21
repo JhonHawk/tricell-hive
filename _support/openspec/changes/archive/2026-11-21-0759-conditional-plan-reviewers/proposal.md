@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | En verify |
+| Estado | Completado · PR #561, merge 65897f53 |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `49ef7757` · rama propuesta `feat/conditional-plan-reviewers` |
 | Playbook | ninguno |
