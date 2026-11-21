@@ -209,6 +209,20 @@ class ChangeCheckTest(unittest.TestCase):
             result = self.run_check(self.folder(tmp, tasks=outside))
             self.assertEqual(result.returncode, 1)
 
+    def test_checkpoint_rules_and_principles_lines_are_checked(self):
+        def with_lines(*extra):
+            block = "\n    ## Checkpoint\n\n    - Next: T2\n" + "".join(f"    {line}\n" for line in extra) + "\n    ## Review status and progress"
+            return TASKS.replace("\n    ## Review status and progress", block)
+        good = with_lines("- Rules: flow-build/stage.md · extra: defect-fix, tests", "- Principles: boundary-discipline, hive-typescript")
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.folder(tmp, tasks=good))
+            self.assertEqual(result.returncode, 0, result.stdout)
+        for bad in ("- Rules:", "- Rules: stage.md", "- Rules: flow-build/stage.md · extra:", "- Principles:", "- Principles: none, tests", "- Principles: Tests"):
+            with tempfile.TemporaryDirectory() as tmp:
+                result = self.run_check(self.folder(tmp, tasks=with_lines(bad)))
+                self.assertEqual(result.returncode, 1, bad)
+                self.assertIn(bad.strip(), result.stdout)
+
     def test_reports_an_active_criterion_without_its_observed_place(self):
         proposal = PROPOSAL.replace(" · **Observed in:** the exported file", "")
         with tempfile.TemporaryDirectory() as tmp:

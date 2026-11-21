@@ -12,7 +12,7 @@ Report the whole work item in one message, each part only when it has content:
 - **Omitted:** each check that was skipped or could not run, with its reason, including the CI-only jobs.
 - **Repaired:** the local environment repairs made, such as reinstalled dependencies or seeded data.
 - **Support material:** each item with its path and the action applied, or listed as pending, as [support material](../../flow-close/references/support-material.md) sets.
-- **Principles:** when `flow-build` handed it over in this work item, one line naming each code principle read that changed a decision, or none; otherwise leave the part out.
+- **Principles:** when `flow-build` handed it over in this work item, or the checkpoint holds its `Principles:` line, one line naming each code principle read that changed a decision, or none; otherwise leave the part out.
 - **Findings:** the defects not fixed, as [Findings](#findings) sets.
 - **Candidates:** the work's repetitions, as [Candidates](#candidates) sets.
 - **Next:** what remains, with who owns it, and what comes next, such as the merge left to the user, review bots or base CI still pending, and the pending archives with the hygiene reply.

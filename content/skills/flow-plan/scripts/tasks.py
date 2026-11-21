@@ -7,6 +7,7 @@ Usage:
   python3 -I tasks.py <change-folder> checkpoint --stage <stage> --step <step> --commit <sha>|none
           --next "<action>" [--finding "<ID: decision>"]... [--check "<command> · <result> · <commit>"]...
           [--worktree "<path> · <branch>"] [--unwritten "<text>|none"]
+          [--rules "<flow>/<packet>.md[ · extra: <leaf>, …]"|none] [--principles "<name>, …"|none]
 
 A task is a `### T<n> — <title>` heading; its boxes are the `- [ ]` and `- [x]`
 lines up to the next `##` or `###` heading.
@@ -22,6 +23,11 @@ lines up to the next `##` or `###` heading.
   each --check adds one, a new --worktree replaces it and --worktree none removes it.
   --unwritten writes `- Unwritten: <text>` (what no file holds yet, asked at a pause) after
   the Worktree line; later calls keep it, a new value replaces it, `none` removes it.
+  --rules writes `- Rules: <flow>/<packet>.md[ · extra: <leaves>]`, the stage packet the
+  flow read and the conditional leaves read besides it, kept and replaced like --worktree.
+  --principles writes `- Principles: <names>|none`, the code principles that changed a
+  decision: new names join the line's names without duplicates, `none` is written only
+  while the line holds no name and a name replaces it, and no value removes the line.
   Boxes under `## Delivery units` belong to no task: `done` never ticks them.
 
 Optional: execution init/check/update/validate-handoff (see ../references/execution-record.md).
@@ -192,10 +198,43 @@ def cmd_done(lines, args):
     return lines, f"✓ {task['id']} · {done}/{len(tasks)} · {task['title']}"
 
 
+RULES_VALUE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*/stage(?:-[a-z]+)?\.md(?: · extra: [a-z0-9]+(?:-[a-z0-9]+)*(?:, [a-z0-9]+(?:-[a-z0-9]+)*)*)?$")
+PRINCIPLE_NAME = r"[a-z0-9]+(?:-[a-z0-9]+)*"
+PRINCIPLES_VALUE = re.compile(rf"^(?:none|(?!none(?:,|$)){PRINCIPLE_NAME}(?:, (?!none(?:,|$)){PRINCIPLE_NAME})*)$")
+
+
+def rules_value(value):
+    value = single_line(value)
+    if value != "none" and not RULES_VALUE.match(value):
+        raise argparse.ArgumentTypeError("expected '<flow>/stage[-<name>].md[ · extra: <leaf>, …]' or 'none'")
+    return value
+
+
+def principles_value(value):
+    value = single_line(value)
+    if not PRINCIPLES_VALUE.match(value):
+        raise argparse.ArgumentTypeError("expected 'none' or principle names joined by ', '")
+    return value
+
+
+def merge_principles(current, given):
+    """Join the given names to the line's, without duplicates and in order of arrival;
+    `none` stands only while no name is known, and nothing removes the line."""
+    if given is None:
+        return current
+    names = [n for n in (current or "").split(", ") if n and n != "none"]
+    for name in given.split(", "):
+        if name != "none" and name not in names:
+            names.append(name)
+    return ", ".join(names) if names else "none"
+
+
 def cmd_checkpoint(lines, args):
     kept = []
     worktree = args.worktree
     unwritten = args.unwritten
+    rules = getattr(args, "rules", None)
+    principles = None
     execution = None
     existing = section_bounds(lines, CHECKPOINT)
     if existing:
@@ -208,12 +247,17 @@ def cmd_checkpoint(lines, args):
                 worktree = line[len("- Worktree: "):]
             elif unwritten is None and not inside and line.startswith("- Unwritten: "):
                 unwritten = line[len("- Unwritten: "):]
+            elif rules is None and not inside and line.startswith("- Rules: "):
+                rules = line[len("- Rules: "):]
+            elif not inside and line.startswith("- Principles: "):
+                principles = line[len("- Principles: "):]
             elif EVIDENCE.match(line):
                 inside = True
             elif HEADING.match(line):
                 inside = False
             elif inside and line.strip():
                 kept.append(line)
+    principles = merge_principles(principles, getattr(args, "principles", None))
     for check in args.check:
         entry = f"- {check}"
         if entry not in kept:
@@ -229,6 +273,8 @@ def cmd_checkpoint(lines, args):
         f"- Next: {args.next}",
         *([f"- Worktree: {worktree}"] if worktree and worktree != "none" else []),
         *([f"- Unwritten: {unwritten}"] if unwritten and unwritten != "none" else []),
+        *([f"- Rules: {rules}"] if rules and rules != "none" else []),
+        *([f"- Principles: {principles}"] if principles else []),
         *([execution] if execution else []),
         "",
         "### Evidence",
@@ -663,7 +709,8 @@ def link_execution(folder, record):
     bounds = section_bounds(lines, CHECKPOINT)
     if not bounds:
         lines, _ = cmd_checkpoint(lines, SimpleNamespace(stage="build", step="E2E", commit="uncommitted",
-                                                       next="dispatch units", finding=[], check=[], worktree=None, unwritten=None))
+                                                       next="dispatch units", finding=[], check=[], worktree=None, unwritten=None,
+                                                       rules=None, principles=None))
         bounds = section_bounds(lines, CHECKPOINT)
     lines.insert(bounds[0] + 2, pointer)
     write(path, lines)
@@ -734,6 +781,8 @@ def build_parser():
     cp.add_argument("--check", action="append", default=[], type=single_line)
     cp.add_argument("--worktree", type=single_line, help="'<path> · <branch>' of the work's worktree, kept by later calls; 'none' removes it")
     cp.add_argument("--unwritten", type=single_line, help="what no file holds yet, asked at a pause, kept by later calls; 'none' removes it")
+    cp.add_argument("--rules", type=rules_value, help="'<flow>/<packet>.md[ · extra: <leaf>, …]' the flow read, kept by later calls; 'none' removes it")
+    cp.add_argument("--principles", type=principles_value, help="principle names that changed a decision, joined by ', ', merged into the line; 'none' only while it has none")
     execution = sub.add_parser("execution", help="coordinator-owned local execution record")
     operations = execution.add_subparsers(dest="operation", required=True)
     for name in ("init", "check", "update", "validate-handoff"):
