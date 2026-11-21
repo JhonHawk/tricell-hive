@@ -2,7 +2,7 @@
 
 | Campo | Valor actual |
 | --- | --- |
-| Estado | Fase 0 hecha · F1: diseño híbrido estricto elegido (2026-10-30); pendiente el diagrama del flujo y las ceremonias |
+| Estado | Completado · sin PR; integrado por decisión del usuario (D5 B, D6 A), 2026-11-21 |
 | Tracker | Sin issue |
 | Git | Rama `refactor/flow-ceremony` desde `bb9604c5` · sin commits · no desplegar hasta que el usuario lo indique |
 | Verificación | Pruebas de contenido por fase · medición en sesiones reales en la fase 8 |
@@ -43,10 +43,10 @@ Ya hecho en la fase 0:
 ## Acceptance criteria
 
 - AC1: cada skill rehecha cumple el flujo objetivo de la fase 1, y cada regla de la línea base queda clasificada en el inventario de su fase (se queda, se acorta, se va, o pasa a otra parte), con su procedencia cuando la tiene.
-- AC2: ninguna regla de las categorías 1 (seguridad y preservación) o 2 (falla real) se pierde sin una decisión del usuario registrada.
+- AC2: ninguna regla de las categorías 1 (seguridad y preservación) o 2 (falla real) se pierde sin una decisión del usuario registrada. **Retired:** absorbido por cambios posteriores; archivado por decisión del usuario (D5 B y D6 A, 2026-11-21).
 - AC3: el plan decide la región de acciones de una pantalla que gana acciones, y el build muestra la primera vista renderizada de un layout nuevo o reorganizado, con un paso barato antes de construir que no dependa de la verificación final.
-- AC4: `go test ./...` y `tests/skills` pasan al cerrar cada fase, sin cascarones enlazados desde una skill ya rehecha.
-- AC5: antes de integrar, una medición en sesiones reales compara la versión nueva con la línea base y con la ronda vanilla en tickets comparables: cuota, tokens, duración, llamadas del hilo principal y defectos que llegaron a la validación.
+- AC4: `go test ./...` y `tests/skills` pasan al cerrar cada fase, sin cascarones enlazados desde una skill ya rehecha. **Retired:** absorbido por cambios posteriores; archivado por decisión del usuario (D5 B y D6 A, 2026-11-21).
+- AC5: antes de integrar, una medición en sesiones reales compara la versión nueva con la línea base y con la ronda vanilla en tickets comparables: cuota, tokens, duración, llamadas del hilo principal y defectos que llegaron a la validación. **Retired:** absorbido por cambios posteriores; archivado por decisión del usuario (D5 B y D6 A, 2026-11-21).
 
 ## Delivery
 

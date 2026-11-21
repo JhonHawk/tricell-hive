@@ -105,7 +105,7 @@ Una referencia compartida se rehace en la primera fase que la necesita y las sig
 ### F8 — Medición e integración
 
 - [ ] Desplegar la rama solo cuando el usuario lo indique.
-- [ ] Segunda ronda vanilla y sesiones con la versión nueva en tickets comparables; anotar las filas en la rúbrica (AC5).
+- [ ] Segunda ronda vanilla y sesiones con la versión nueva en tickets comparables; anotar las filas en la rúbrica (criterio retirado al archivar).
 - [ ] Protocolo de medición tomado de un curso MIT listado en `reference-sources.local.md` (conservar el aviso de licencia si se copia texto):
   - variantes sin Hive, con Hive completo y con Hive ligero sobre el mismo commit;
   - modelo, esfuerzo y herramientas fijos, y el orden de las variantes rotado;
