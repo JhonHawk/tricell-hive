@@ -88,6 +88,23 @@ var homePhrases = []homePhrase{
 	{"A plan delivered in two or more units", "content/skills/hive-rule-change-folder/SKILL.md"},
 	{"weaken, skip or remove a guard to reach done", "content/skills/hive-rule-loops/SKILL.md"},
 	{"A `timeout` on one command inside the loop bounds one iteration, not the wait", "content/skills/hive-rule-background-wait/SKILL.md"},
+	{"never from an unmeasured guess", "content/skills/hive-rule-checks/SKILL.md"},
+	{"then its REST API with the user's global token", "content/skills/hive-rule-trackers/SKILL.md"},
+	{"belongs to that work: fix it without asking or opening a ticket", "content/skills/hive-rule-reasons-and-blockers/SKILL.md"},
+	{"though it changes a description the task did not create", "content/skills/hive-rule-ticket-state/SKILL.md"},
+	{"use the main checkout's file", "content/skills/hive-rule-local-write/references/worktree.md"},
+	{"gets no second report", "content/skills/hive-rule-checkpoint/SKILL.md"},
+	{"Recalled memory and prior summaries are claims about past state", "content/skills/hive-principle-verify-current-state/SKILL.md"},
+	{"read its current documentation through Context7 when it is installed", "content/skills/hive-principle-verify-current-state/SKILL.md"},
+	{"Ask only a choice that is the user's and changes what happens next", "content/skills/hive-rule-questions/SKILL.md"},
+	{"Never give as the reason that an instruction you follow requires", "content/skills/hive-rule-reasons-and-blockers/SKILL.md"},
+	{"Asking only in the text where the card applies is a failure", "content/skills/hive-rule-questions/SKILL.md"},
+	{"Never write the round out on your own; act on what they said", "content/skills/hive-rule-questions/references/unanswered.md"},
+	{"is never asked with the question tool, because a card hides the report it closes", "content/skills/hive-rule-next-step-block/SKILL.md"},
+	{"Ask the delivery mode and the code review mechanism once per session and repository, in one round", "content/skills/hive-rule-delivery-ask/SKILL.md"},
+	{"name them with their count and the work they belong to, and ask whether they go in the same publication", "content/skills/hive-rule-foreign-commits/SKILL.md"},
+	{"Only an explicitly assigned `hive-build-owner` may build, test, fix and create local commits", "content/skills/flow-build/references/e2e-coordination.md"},
+	{"allows creating or changing it only through this mode", "content/skills/harness-audit/references/engram-workspace.md"},
 }
 
 // homeProblems returns one line per phrase whose files under

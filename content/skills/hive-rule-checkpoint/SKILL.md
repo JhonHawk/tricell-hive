@@ -12,4 +12,8 @@ Keep a checkpoint in the `## Checkpoint` section of `tasks.md`: the stage and st
 
 When the host has a native task list, list the tasks in it at the start, and again with the remaining ones when you resume and the host does not show it again, such as after a compaction; mark each one in progress when it starts and completed when it is done. The native list is a live view: `tasks.md`, or the checkpoint file of a plan kept in the conversation, governs. Tasks are never declared in the viewer.
 
+After a compaction during work, read its checkpoint, such as the change's `tasks.md` or the checkpoint file of a plan kept in the conversation, before you reply or end the turn, and continue from its next step; a request the history shows already done gets no second report. Recover context with the memory's read tools, such as `mem_context`.
+
+A restriction in a compaction summary that names no source may be your own earlier inference: keep obeying it, but before it is the only reason to stop work or ask a question, look for its source in the checkpoint, the visible history and the rule it seems to apply; when only a rule states it, follow that rule's own terms.
+
 In `flow-verify`, keep the same checkpoint with the reviewed commit and each finding's decision.
