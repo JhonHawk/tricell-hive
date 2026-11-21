@@ -104,10 +104,10 @@ Base `2eef1969` de `development`, rama `feat/close-cleans-at-completion`. T1 y T
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: verify · entry
-- Last commit: 5f59dea2
+- Stage: verify · 6 integrate
+- Last commit: 53f4ba24
 - Open findings: none
-- Next: flow-verify: code review /code-review, walk AC1-AC7
+- Next: push, PR, merge, hive update, flow-close
 - Rules: flow-build/stage.md
 - Principles: none
 
@@ -118,3 +118,8 @@ Base `2eef1969` de `development`, rama `feat/close-cleans-at-completion`. T1 y T
 - python3 -m unittest discover -s tests/skills -p '*_test.py' · OK 321 tests · 5f59dea2
 - pnpm --dir site build · exit 0 · bf451910
 - CI: master-source-branch.yml only gates PRs into master; not applicable
+- go test ./... · exit 0 · 53f4ba24
+- python3 -m unittest discover · OK 321 tests · 4d739708 (python unchanged since)
+- audit Codex 01a1f86e-f093 merged_branch_deleted=fail; Grok 01a1fb69 close_before_branch_cleanup=fail · 53f4ba24
+- helper on fleetsystem-frontend lists .worktrees/fsr-905-906-frontend · 50a4ccb6
+- /code-review 2 rounds: 6+4 important fixed (de6bda8e, 4d739708, 53f4ba24 Unreviewed); nits to close findings
