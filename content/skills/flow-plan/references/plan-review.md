@@ -20,7 +20,7 @@ Launch one `hive-review-plan` child per counted domain, together, before step 4'
 
 ## Each brief
 
-Brief each child as [reviewer brief](../../hive-rule-reviewer-brief/SKILL.md) sets, and add its domain, the questions of its row and the contracts it shares with the other counted domains, such as a payload, a schema or a rule another domain's tasks change. Tell each child to review its domain's tasks and those shared contracts. Give the role's whole-plan checks, the criteria, the external facts and the verification lines, to the first assignment in the table's order only, and tell the other children to skip them, so they are not run three times.
+Brief each child as [reviewer brief](../../hive-core/references/reviewer-brief.md) sets, and add its domain, the questions of its row and the contracts it shares with the other counted domains, such as a payload, a schema or a rule another domain's tasks change. Tell each child to review its domain's tasks and those shared contracts. Give the role's whole-plan checks, the criteria, the external facts and the verification lines, to the first assignment in the table's order only, and tell the other children to skip them, so they are not run three times.
 
 ## Reconcile
 
@@ -28,4 +28,4 @@ Merge a finding that several reviewers report into one, naming each reviewer. Th
 
 ## Reread a revision
 
-A reviewer rereads a revision, as [reviewer brief](../../hive-rule-reviewer-brief/SKILL.md) sets, when the revision changed the text, `Closes:` or verification of a task in its domain, or a criterion such a task closes. The first assignment also rereads a revision that changes a criterion, an external fact or a verification line. When a change belongs to no single domain, every reviewer rereads it.
+A reviewer rereads a revision, as [reviewer brief](../../hive-core/references/reviewer-brief.md) sets, when the revision changed the text, `Closes:` or verification of a task in its domain, or a criterion such a task closes. The first assignment also rereads a revision that changes a criterion, an external fact or a verification line. When a change belongs to no single domain, every reviewer rereads it.

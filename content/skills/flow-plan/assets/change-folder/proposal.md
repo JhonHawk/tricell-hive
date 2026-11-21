@@ -11,7 +11,7 @@
 
 ## Decisions
 
-<!-- One line per decision the user took, under its date: the decision ID and letter in bold, a dash, the question in plain words, and the answer and what it changes, such as "- **D62 B** — Who links each event to its stage? The server; the agent no longer declares it.". Readers outside the conversation do not know the IDs: no line here or in any other section relies on an ID alone. A decision taken without asking, as hive-rule-questions «Decide and list» sets, goes here too, marked with the session language's word for "assumption" in place of the ID, with the alternative discarded; a business rule taken that way also gets its `assumption` line under `## Business rules`. -->
+<!-- One line per decision the user took, under its date: the decision ID and letter in bold, a dash, the question in plain words, and the answer and what it changes, such as "- **D62 B** — Who links each event to its stage? The server; the agent no longer declares it.". Readers outside the conversation do not know the IDs: no line here or in any other section relies on an ID alone. A decision taken without asking, as «Decide and list» of the `questions` leaf sets, goes here too, marked with the session language's word for "assumption" in place of the ID, with the alternative discarded; a business rule taken that way also gets its `assumption` line under `## Business rules`. -->
 
 <date>
 - **<D<n> letter>** — <question?> <answer and what it changes>.

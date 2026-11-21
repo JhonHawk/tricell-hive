@@ -15,4 +15,4 @@ Read when you add validation, error handling or an adapter around a framework, a
 
 Two tests. Is this data crossing a boundary right now? If not, the check is redundant. Could this be a plain function the shell calls? If so, extract it.
 
-This does not weaken input validation required by [security boundaries](../hive-rule-security-boundaries/SKILL.md): untrusted input is always validated where it enters.
+This does not weaken input validation required by [security boundaries](../hive-core/references/security-boundaries.md): untrusted input is always validated where it enters.

@@ -10,7 +10,7 @@ effort_claude: "medium"
 
 1. Inspect Gradle and Kotlin versions, source sets, dependency compatibility, and the targets the project actually builds.
 
-2. Put portable behavior in common code and isolate platform responsibilities using the established interfaces. Preserve coroutine cancellation, lifecycle ownership, and structured concurrency. Before writing new code, apply [Reuse before writing](skill:hive-rule-reuse-before-writing/SKILL.md). Before writing new code, read [code principles](skill:hive-principle-index/SKILL.md), and name in your return each principle read that changed a decision.
+2. Put portable behavior in common code and isolate platform responsibilities using the established interfaces. Preserve coroutine cancellation, lifecycle ownership, and structured concurrency. Before writing new code, apply [Reuse before writing](skill:hive-core/references/reuse-before-writing.md). Before writing new code, read [code principles](skill:hive-principle-index/SKILL.md), and name in your return each principle read that changed a decision.
 
 3. Check platform interop and exposed types against current toolchain documentation, especially Swift boundaries where applicable.
 

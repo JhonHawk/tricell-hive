@@ -8,23 +8,23 @@ A saved change folder holds the detail and the user may not open it, so summariz
 
 1. The objective in one or two sentences, and the files and areas of the scope line [hive-mode](../../hive-mode/SKILL.md) step 5 sets, recounted from the plan; its stages and checks go in items 7 and 8. When research gave that line in this conversation and the file count differs by more than a quarter, or an area was added or removed, say what changed and why, such as "~42 files, not ~30: the retired contract's tests are removed"; without that line, give the count alone.
 2. The text of each acceptance criterion `AC<n>`, and the name of each requirement the delta adds, modifies or removes: they are the contract the user approves.
-3. The decisions in force and those taken without asking, as [questions](../../hive-rule-questions/SKILL.md) «Decide and list» sets.
+3. The decisions in force and those taken without asking, as [questions](../../hive-core/references/questions.md) «Decide and list» sets.
 4. For a change to a screen, the sketch of each changed region before and after from the `UI` section of `design.md`, with its components and states; for a region with an approved example, the example's record in place of its after sketch. Check that each sketch matches the text that describes it, such as two actions drawn side by side when the text says so.
 5. Each task on one line, with what it delivers and who executes it.
-6. The prerequisites still unmet, with who provides each, and each external fact written as not measured, with the task that meets it first, as [outside the repository](../../hive-rule-external-facts/SKILL.md) sets.
+6. The prerequisites still unmet, with who provides each, and each external fact written as not measured, with the task that meets it first, as [outside the repository](../../hive-core/references/external-facts.md) sets.
 7. The verification: the tests, the UI walk and review, and the code review, and each verification command not measured.
 8. The delivery mode, with the validation stop and the endpoint after it.
 9. Each class of effect with its answer (approved, refused or unanswered), its target, ceiling and tasks, what remains open or unauthorized, and the change folder path or that the plan lives in the conversation.
 
 ## Then end with the build route
 
-End the summary with the [next-step block](../../hive-rule-report-endings/SKILL.md#the-next-step-block), with its compaction reply for a build in the same session, never with a question card. The build route is a route, not a request for leave to proceed: a plan does not authorize implementation, and only the user's reply starts `flow-build`, except the plan-into-build continuation below.
+End the summary with the [next-step block](../../hive-core/references/report-endings.md#the-next-step-block), with its compaction reply for a build in the same session, never with a question card. The build route is a route, not a request for leave to proceed: a plan does not authorize implementation, and only the user's reply starts `flow-build`, except the plan-into-build continuation below.
 
 - Recommend building unless something blocks it, and say in the block that typing the build command approves the criteria shown, by their IDs with a gloss, such as "approves AC1–AC4 (export, permissions and audit)": `/flow-build <change folder>` in the host's syntax, or, for a plan kept in the conversation, `/flow-build` with the ticket key or a short description of the work.
 - Recommend stopping with the plan ready only for a named blocker, such as an open decision, an unmet prerequisite or the user's statement not to implement now, and say which; that the user asked for a plan is not a blocker.
 
-A correction to a criterion or a sketch is not approval: [revise the plan](../../hive-rule-change-folder/SKILL.md#revise-a-plan-in-progress), show the revised criteria or sketch, and end with the build route again.
+A correction to a criterion or a sketch is not approval: [revise the plan](../../hive-core/references/change-folder.md#revise-a-plan-in-progress), show the revised criteria or sketch, and end with the build route again.
 
-Show the summary the same way, then continue to `flow-build` when [same-turn continuations](../../hive-rule-report-endings/SKILL.md#same-turn-continuations) lets the plan continue.
+Show the summary the same way, then continue to `flow-build` when [same-turn continuations](../../hive-core/references/report-endings.md#same-turn-continuations) lets the plan continue.
 
 A change folder is committed with the code it plans, as [git-workflow step 4](../../git-workflow/SKILL.md) sets; until then it stays on disk.

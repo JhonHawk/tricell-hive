@@ -49,7 +49,7 @@ Ask in step 6's round, once per work, one decision that covers each of these tha
 
 A field that names a file or a library of another design tool stays as it is: ask nothing about it. Show in the decision each value exactly as it will be written, beside the value it replaces when the field already holds one.
 
-A yes writes nothing in the repository and asks no delivery question, whether or not the app has a `DESIGN.md` with a `## Hive` section: write `record: <the fields asked> · pending` in `examples.md`, with each value as the decision showed it, and name it as pending in the report. The plan that follows adds the task that writes those fields, or the record with them when the app has none, as [UI decisions](../../hive-rule-ui-plan/SKILL.md) sets; a request whose deliverable is the design has no plan, and its close names the yes as pending.
+A yes writes nothing in the repository and asks no delivery question, whether or not the app has a `DESIGN.md` with a `## Hive` section: write `record: <the fields asked> · pending` in `examples.md`, with each value as the decision showed it, and name it as pending in the report. The plan that follows adds the task that writes those fields, or the record with them when the app has none, as [UI decisions](../../hive-core/references/ui-plan.md) sets; a request whose deliverable is the design has no plan, and its close names the yes as pending.
 
 On a no, write `record: <the fields asked> · declined <date>` in `examples.md`, so the work does not ask again.
 
