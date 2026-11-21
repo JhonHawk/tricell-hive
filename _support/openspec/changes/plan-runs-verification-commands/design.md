@@ -24,7 +24,9 @@ En contra del cambio: correr la suite completa en cada plan cuesta tiempo (4 min
 - `reading_footprint_test.go` exige que lo que se lee entre plan y build quede por debajo de la línea base; el borrador la pasaba por 1123 B.
 - `leaf_skill_test.go` limita la hoja `hive-rule-change-folder` a 4000 B, y la hoja ya tenía 3999.
 
-Por eso la regla de volver a ejecutar en una revisión vive en `flow-plan` paso 3, y «Revise» paso 1 solo la apunta. Del paso 3 de «Revise» se quitó la frase que describía qué revisa `check_change.py`: el script imprime cada línea que falla, así que no se pierde ninguna instrucción. Las condiciones del borrador se conservan todas, salvo «una que falla en una prueba existente se registra con los nombres de las pruebas», que queda cubierta por «result».
+Por eso la regla de volver a ejecutar en una revisión vive en `flow-plan` paso 3, y «Revise» paso 1 solo la apunta. Del paso 3 de «Revise» se quitó la frase que describía qué revisa `check_change.py`; la misma descripción sigue en el spec `workflow-lifecycle` y en el sitio, y el script imprime cada línea que falla.
+
+El borrador de abajo queda reemplazado por el texto de `content/`. Quedan fuera del texto final: «passed to the runner by path», «locally or in CI» para la última corrida medida, el registro de los nombres de las pruebas que fallan, y «or in the summary of a plan kept in the conversation» en la frase de registro, porque «Where the plan lives» ya pone cada comando en ese resumen. El margen sobre la línea base de `reading_footprint_test.go` quedó en 12 B.
 
 En `flow-plan/SKILL.md`, al final del paso 3:
 

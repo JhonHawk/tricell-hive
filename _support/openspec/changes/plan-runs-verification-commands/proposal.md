@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Listo para flow-build |
+| Estado | En build |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `04a1f27b` · rama propuesta `feat/plan-runs-verification-commands` |
 | Playbook | ninguno |
@@ -78,4 +78,4 @@ None: the tasks take no effect on an external system.
 
 2026-11-21 — D2 A y D3 A registrados. Re-revisión retomando al mismo revisor (44 s, 137k tokens): los 13 hallazgos anteriores cerrados; 1 P2 nuevo (AC1 no cubría el límite de 5 minutos de D3) y 3 P3 (el umbral nombra la regla de 30 minutos que reemplaza al planear; redacción del servicio que el build levanta; el párrafo de costo cita D3), todos aplicados. Se acota «base de datos» a la que no es local (supuesto). Sin más rondas.
 
-Estado: listo para flow-build.
+2026-11-21 — Revisión durante el build: corrección del usuario (comandos en paralelo) y texto compactado por `reading_footprint_test.go` y `leaf_skill_test.go`; no invalidó tareas. Tercera ronda, retomando al mismo revisor (64 s, 161k tokens): 2 P2 (la forma más cercana solo cubría pruebas; faltaban «esperar a todos» y «los demás uno tras otro») y 3 P3 (actualizar la línea, la nota del diseño, esta línea de avance), aplicados en `flow-plan` paso 3 con el presupuesto medido (−12 B). Sin otra ronda: no cambió un criterio ni el delta.

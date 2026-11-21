@@ -4,7 +4,7 @@ Base `04a1f27b` de `development`, rama `feat/plan-runs-verification-commands`. T
 
 ### T1 — La regla en su hogar y sus punteros
 
-- [ ] `flow-plan` paso 3 pide ejecutar los comandos de verificación; «Revise», el revisor, la plantilla y `plan-handoff` lo apuntan; `single_home_test.go` protege la frase.
+- [x] `flow-plan` paso 3 pide ejecutar los comandos de verificación; «Revise», el revisor, la plantilla y `plan-handoff` lo apuntan; `single_home_test.go` protege la frase.
 
 **Closes:** AC1, AC2, AC3, AC4
 
@@ -22,7 +22,7 @@ Base `04a1f27b` de `development`, rama `feat/plan-runs-verification-commands`. T
 
 ### T2 — Spec, sitio y registros de revisión
 
-- [ ] El delta de `workflow-lifecycle`, la página del plan, la fila de la rúbrica y la fila de `rule-enforcers.md` describen la regla.
+- [x] El delta de `workflow-lifecycle`, la página del plan, la fila de la rúbrica y la fila de `rule-enforcers.md` describen la regla.
 
 **Closes:** AC1
 
@@ -51,13 +51,18 @@ Tras integrar, la actualización local (`hive update --source`) instala el conte
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: build · T1 start
-- Last commit: 04a1f27b
+- Stage: build · tasks done
+- Last commit: b645ea7a
 - Open findings: none
-- Next: T1: rule in flow-plan step 3 and pointers
+- Next: local CI, then flow-verify
 
 ### Evidence
 
 - before captures: none (no interface)
+- go test ./tests/content/... · pass · b645ea7a
+- pnpm --dir site check/lint/build · pass · b645ea7a
 
 ## Estado de la revisión y avance
+
+2026-11-21 — T1 · ccbfddf2 · unverified: AC1-AC3 are read in the installed files after hive update
+2026-11-21 — T2 · b645ea7a · unverified: none
