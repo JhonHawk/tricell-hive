@@ -28,7 +28,7 @@ Before the first edit of a fix for a defect, in a build task, a round of fixes, 
 
 ### Requirement: New code builds only on a sound base
 
-Before writing new code, and when a plan weighs approaches, the agent SHALL reuse what the codebase already has, such as a helper, component or pattern, only when it is a sound base. A base SHALL NOT count as sound when it is a workaround, such as one a comment marks or a guard the «Defects are fixed at their cause» requirement does not count as a fix; when it breaks the repository's `CODING_STANDARDS.md`, its lint configuration or a convention its documentation states; when using it needs a boolean flag or a branch inside it that only the new code turns on; or when the same logic lives elsewhere in the repository with diverging behavior. The agent SHALL NOT copy or extend such a base, and SHALL name it in the report with the condition it meets. Except for duplicated logic that diverges, whose unification changes what one set of callers observes, and for a workaround whose comment names its cause, which a user already accepted, it SHALL fix the base first, within the paths a child's brief names, keeping what the base's callers observe as a characterization test pins it, when that fix is a small understood change, and that fix SHALL count as part of the task, not as a module touched against the request; otherwise a plan SHALL offer that fix as an approach, and a build SHALL report it before building on it, a child to its parent, with the choice the «Defects are fixed at their cause» requirement gives for a cause, the base in its place; building on the base once the user accepts SHALL be marked, reported and proposed as a ticket as that requirement sets for a workaround. The code review SHALL check for new code that copies or extends a base that is not sound, taking that base's spread as the failure scenario, and SHALL NOT rate a fix of the base the rule has the author make first as a change the task did not ask for. The rule SHALL live in the `hive-core` rule leaf `reuse-before-writing`, and no other file of the distributed content SHALL restate its conditions.
+Before writing new code, and when a plan weighs approaches, the agent SHALL reuse what the codebase already has, such as a helper, component or pattern, only when it is a sound base. A base SHALL NOT count as sound when it is a workaround, such as one a comment marks or a guard the «Defects are fixed at their cause» requirement does not count as a fix; when it breaks the repository's `CODING_STANDARDS.md`, its lint configuration or a convention its documentation states; when using it needs a boolean flag or a branch inside it that only the new code turns on; or when the same logic lives elsewhere in the repository with diverging behavior. The agent SHALL name such a base in the report with the condition it meets, and SHALL NOT copy or extend it, except a workaround whose comment names its cause: the «Defects are fixed at their cause» requirement already reported that workaround and proposed a ticket for its cause, so the agent SHALL build on it without asking again, naming its ticket, and SHALL propose a ticket only when none exists. Except for duplicated logic that diverges, whose unification changes what one set of callers observes, it SHALL fix any other base first, within the paths a child's brief names, keeping what the base's callers observe as a characterization test pins it, when that fix is a small understood change, and that fix SHALL count as part of the task, not as a module touched against the request; otherwise a plan SHALL offer that fix as an approach, and a build SHALL report it before building on it, a child to its parent, with the choice the «Defects are fixed at their cause» requirement gives for a cause, the base in its place; building on the base once the user accepts SHALL be marked, reported and proposed as a ticket as that requirement sets for a workaround. The code review SHALL check for new code that copies or extends a base that is not sound, taking that base's spread as the failure scenario, and SHALL NOT rate a fix of the base the rule has the author make first as a change the task did not ask for. The rule SHALL live in the `hive-core` rule leaf `reuse-before-writing`, and no other file of the distributed content SHALL restate its conditions.
 
 #### Scenario: Copying an existing workaround
 
@@ -43,18 +43,19 @@ Before writing new code, and when a plan weighs approaches, the agent SHALL reus
 - **THEN** the agent first restructures the helper, with its output for the three views pinned by a characterization test, and the export view uses the restructured helper
 - **AND** no `isExport` flag is added to the helper
 
-#### Scenario: Duplicated logic that diverges, too large to fix in passing
+#### Scenario: Duplicated logic that diverges
 
-- **GIVEN** two modules compute a price total in different ways and a plan's new feature needs that total
-- **WHEN** the plan weighs approaches
-- **THEN** unifying the total first is one of the approaches the user chooses between
-- **AND** the plan does not silently copy either version
+- **GIVEN** two modules compute a price total in different ways and a new feature needs that total
+- **WHEN** a plan weighs approaches, or a build without a plan reaches that code, even when unifying them would take a few lines
+- **THEN** unifying the total first is offered to the user as an approach, or reported before building on either version
+- **AND** neither version is copied or unified silently
 
 #### Scenario: A workaround the user accepted earlier
 
-- **GIVEN** a retry whose comment names an upstream timeout as its cause, kept as a workaround the user accepted
+- **GIVEN** a retry whose comment names an upstream timeout as its cause, kept as a workaround under the «Defects are fixed at their cause» requirement, with a ticket for the cause
 - **WHEN** a new task in the same file would reuse that code
-- **THEN** the build does not remove the retry on its own and reports it before building on it
+- **THEN** the build neither removes the retry nor asks again whether to fix the cause, builds on it, and names the workaround and its ticket in the report
+- **AND** it proposes no second ticket for the same cause
 
 #### Scenario: A base that breaks the project's standards
 

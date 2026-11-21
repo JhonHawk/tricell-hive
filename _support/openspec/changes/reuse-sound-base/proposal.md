@@ -18,6 +18,8 @@
 
 - **D1 A** — ¿Cómo se paga el crecimiento de la unión de lectura plan/build (unos 800 B, con 17 B de margen)? Con una constante de asignación nueva en `reading_footprint_test.go`, igual a la medida tras T1 y con su comentario; no se recorta el texto de otras reglas.
 
+- **D2 A** — ¿Qué hace el build con un workaround ya aceptado, cuyo comentario nombra su causa? Lo nombra con su ticket, propone uno solo si no existe y construye encima sin volver a preguntar. Descartadas: preguntar siempre (B) y no construir nunca encima (C). Resuelve el hallazgo P2 del cierre; los dos P3 del spec se corrigen con ella.
+
 ## Business rules
 
 None: the work adopts no business rule beyond what its ticket and documentation state.
