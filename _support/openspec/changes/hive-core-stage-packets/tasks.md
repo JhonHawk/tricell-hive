@@ -12,7 +12,7 @@
 
 ### T1 — Mudar las hojas a `hive-core`, reescribir enlaces y menciones, y alinear el índice
 
-- [ ] La mudanza queda hecha y alineada:
+- [x] La mudanza queda hecha y alineada:
   - cada hoja es `content/skills/hive-core/references/<nombre>.md`, sin frontmatter, y su primera línea de cuerpo después del título empieza por «Read»;
   - no queda ningún directorio `hive-rule-*`, y `hive-core/SKILL.md` está oculto;
   - las referencias y los scripts propios de cada hoja están en `references/<nombre>/` y `scripts/<nombre>/`;
@@ -52,7 +52,7 @@
 
 ### T2 — Adaptar las pruebas de contenido y Python, y añadir la del disparador literal
 
-- [ ] Las pruebas de `tests/content/` enumeran las hojas en `hive-core/references/` y pasan. Una prueba nueva compara cada línea del índice con la primera línea de su hoja. Las pruebas Python usan las rutas nuevas de los scripts. `rule-enforcers.md` y `single_home_test.go` apuntan a los hogares nuevos.
+- [x] Las pruebas de `tests/content/` enumeran las hojas en `hive-core/references/` y pasan. Una prueba nueva compara cada línea del índice con la primera línea de su hoja. Las pruebas Python usan las rutas nuevas de los scripts. `rule-enforcers.md` y `single_home_test.go` apuntan a los hogares nuevos.
 
 **Closes:** AC11, AC3
 
@@ -81,7 +81,7 @@
 
 ### T3 — La auditoría de sesiones reconoce la ruta vieja y la nueva, por lectura y por shell
 
-- [ ] Los detectores reconocen la ruta nueva:
+- [x] Los detectores reconocen la ruta nueva:
   - `leaf_read_before_action`, `reportEndingsRead` y el conteo de costo reconocen `hive-core/references/<nombre>.md` además de `hive-rule-<nombre>/SKILL.md`, tanto con la herramienta de lectura como por shell;
   - `leafFormerNames` acepta los nombres viejos;
   - los fixtures viejos siguen pasando, y hay fixtures nuevos de lectura y de shell con la ruta nueva.
@@ -112,7 +112,7 @@
 
 ### T4 — El manager instala `hive-core`, retira las carpetas de hoja y limpia su `__pycache__`
 
-- [ ] Una prueba del manager sobre el contenido real, con un estado previo que registra las carpetas `hive-rule-*`, comprueba que el manager:
+- [x] Una prueba del manager sobre el contenido real, con un estado previo que registra las carpetas `hive-rule-*`, comprueba que el manager:
   - instala `hive-core` con sus `references/<nombre>/` y `scripts/<nombre>/`;
   - genera un solo `openai.yaml` de regla;
   - resuelve cada enlace `skill:` del bloque global;
@@ -143,11 +143,11 @@
 
 **Verification:**
 - `go -C <worktree> test -count=1 ./tooling/... ./integrations/...` termina con exit 0.
-- `bin=$(mktemp) && go -C <worktree> build -o "$bin" ./tooling/cli && "$bin" update --source <worktree> --dry-run`. Antes se nombran los commits que aún no están desplegados. El resultado retira las carpetas `hive-rule-*` y añade `hive-core`, y no cambia nada fuera de las rutas que toca E1, de los roles renderizados ni de los bloques globales de cada host.
+- `go -C <worktree> build -o <scratchpad>/bin/hive-e1 ./tooling/cli && <scratchpad>/bin/hive-e1 update --source <worktree> --dry-run` (el binario se niega a correr desde el directorio temporal del sistema). Antes se nombran los commits que aún no están desplegados. El resultado retira las carpetas `hive-rule-*` y añade `hive-core`, y no cambia nada fuera de las rutas que toca E1, de los roles renderizados ni de los bloques globales de cada host, salvo los archivos auxiliares que el manager genera a partir de ellas, como el cargador de OpenCode.
 
 ### T5 — Documentación, sitio y deltas de E1
 
-- [ ] Toda la documentación y el sitio usan las rutas y los nombres nuevos. `instruction-resources.md` describe `hive-core` como almacén y corrige su nota de `5e6e8907` y la de HA-HI-09. Los deltas de `context-delivery` y el MODIFIED del helper de checks en `workflow-lifecycle` coinciden con el comportamiento.
+- [x] Toda la documentación y el sitio usan las rutas y los nombres nuevos. `instruction-resources.md` describe `hive-core` como almacén y corrige su nota de `5e6e8907` y la de HA-HI-09. Los deltas de `context-delivery` y el MODIFIED del helper de checks en `workflow-lifecycle` coinciden con el comportamiento.
 
 **Closes:** AC16
 
@@ -368,15 +368,24 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: build · E1 T1
-- Last commit: 6fa78bfd
+- Stage: build · E1 T4 verify
+- Last commit: 000c57fe
 - Open findings: none
-- Next: T1 delegado a hive-build-infra en el worktree
+- Next: esperar hive-verify-task de T4; luego flow-verify de E1
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/hive-core-stage-packets · refactor/hive-core-sheets
 
 ### Evidence
 
 - base: go test ./... y python unittest exit 0 en 7f6277e0 (2026-11-21); global.md 28,459 B en 6fa78bfd
 - before captures: none (sin pantalla)
+- suite E1 @000c57fe (dirty: tasks.md): go vet exit 0; python unittest exit 0 (71 s); go test -count=1 ./... exit 0 (333 s)
+- AC16 sweep sobre el worktree: sin salida
+- dry-run E1 con binario del worktree: 708 archivos, 60 hive-rule retirados, un openai.yaml en hive-core
 
 ## Review status and progress
+
+2026-11-21 — T1 · c12051a9 · unverified: go test ./tests/content/... pasa solo tras T2
+2026-11-21 — T3 · be3462a1 · unverified: none
+2026-11-21 — T2 · b9e17031 · unverified: none
+2026-11-21 — T5 · 000c57fe · unverified: none
+2026-11-21 — T4 · 70f07007 · unverified: AC2: se observa en la instalación local tras el refresco posterior a E3; hoy solo prueba del manager y dry-run (sustitutos)
