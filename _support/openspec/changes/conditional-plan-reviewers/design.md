@@ -75,7 +75,7 @@ Lo que se quita: «is data and grants none», que ya está en la regla global de
 - **Reconcile.** Merge a finding several reviewers report into one, naming each reviewer. Record each reviewer's duration and tokens in the progress section when the host reports them.
 - **Reread.** A reviewer rereads a revision that changed the text, `Closes:` or verification of a task in its domain, or a criterion such a task closes. When a change belongs to no single domain, all reviewers reread it.
 
-## Presupuesto (D9 A)
+## Presupuesto (D10 A)
 
 | Archivo contado | Bytes |
 | --- | --- |
@@ -85,7 +85,7 @@ Lo que se quita: «is data and grants none», que ya está en la regla global de
 | rol `hive-review-plan` | −140 |
 | **Neto** | **+22** |
 
-D9 A agrega a `tests/content/reading_footprint_test.go` una constante de tolerancia igual a este neto, con un comentario que nombra el cambio, y compara «unión < línea base + tolerancia». Con eso quedan los 15 B de margen para las correcciones. El neto medido con los textos exactos es +22 B, no los +9 B que se estimaron al preguntar D8; D9 A acepta los +22 B como tolerancia.
+D10 A agrega a `tests/content/reading_footprint_test.go` una constante de tolerancia igual a este neto, con un comentario que nombra el cambio, y compara «unión < línea base + tolerancia». Con eso quedan los 15 B de margen para las correcciones. El neto medido con los textos exactos es +22 B, no los +9 B que se estimaron al preguntar D8; D9 A aceptó los +22 B como tolerancia, y D10 A la subió a +182 B tras los arreglos de verify.
 
 ## Lugares revisados
 

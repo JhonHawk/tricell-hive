@@ -4,7 +4,7 @@ Base `49ef7757` de `development`, rama `feat/conditional-plan-reviewers`. Todo c
 
 ### T1 — La referencia, el paso 5, «Revise» y los recortes
 
-- [x] `plan-review.md` existe con la tabla, el tope y la reconciliación; el paso 5 y «Revise» la apuntan; los recortes y la tolerancia de D9 mantienen el presupuesto.
+- [x] `plan-review.md` existe con la tabla, el tope y la reconciliación; el paso 5 y «Revise» la apuntan; los recortes y la tolerancia de D10 mantienen el presupuesto.
 
 **Closes:** AC1, AC2, AC3
 
@@ -22,7 +22,7 @@ Base `49ef7757` de `development`, rama `feat/conditional-plan-reviewers`. Todo c
 
 ### T2 — Spec, sitio, rúbrica y changelog
 
-- [ ] El delta de `workflow-lifecycle`, la página del plan, la fila de delegación de la rúbrica y el changelog describen el reparto por dominio.
+- [x] El delta de `workflow-lifecycle`, la página del plan, la fila de delegación de la rúbrica y el changelog describen el reparto por dominio.
 
 **Closes:** AC1 (lo describe en el sitio y el spec; lo cierra T1)
 
@@ -51,15 +51,19 @@ Tras integrar, la actualización local (`hive update --source`) instala el conte
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: build · T1 start
-- Last commit: 49ef7757
+- Stage: build · tasks done
+- Last commit: febf6665
 - Open findings: none
-- Next: T1: plan-review reference, step 5, Revise, reviewer-brief, cuts, allowance
+- Next: full suite, then flow-verify (/code-review)
 
 ### Evidence
 
 - before captures: none (no interface)
+- go test ./tests/content/... · pass · febf6665
+- pnpm --dir site check/lint/build · pass
+- go test ./tooling/management -run Reference|Anchor · pass · 2da238dd
 
 ## Estado de la revisión y avance
 
 2026-11-21 — T1 · 2da238dd · unverified: AC1-AC3 are read in the installed files after hive update
+2026-11-21 — T2 · febf6665 · unverified: none

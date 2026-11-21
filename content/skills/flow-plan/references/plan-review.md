@@ -1,10 +1,10 @@
 # Plan review across domains
 
-Read from [flow-plan](../SKILL.md) step 5 when the plan's tasks touch files of two or more domains below, or a screen where the user enters or chooses data. A plan in one domain gets one `hive-review-plan` child, and this reference does not apply.
+Read from [flow-plan](../SKILL.md) step 5 when the plan's tasks change files of two or more domains below. A data-entry screen also counts as client, so a client plan with such a screen counts two. A plan in one domain gets one `hive-review-plan` child, and this reference does not apply.
 
 ## Domains
 
-A domain counts when a task's `Locations:` change files of it. Tests and documentation count with the domain they check or describe, a file no row names counts with server, and a task that changes files of two domains counts in both.
+A domain counts when a task's `Locations:` change files of it. Tests and documentation count with the domain they check or describe. Repository-wide files, such as manifests, lockfiles, build configuration, the changelog and the change folder, count with the other files of the task that changes them, and code no row names counts with server. A task that changes files of two domains counts in both.
 
 | Domain | Files | What its reviewer examines |
 | --- | --- | --- |
@@ -16,11 +16,11 @@ A domain counts when a task's `Locations:` change files of it. Tests and documen
 
 ## How many reviewers
 
-Launch one `hive-review-plan` child per counted domain, together, before step 4's question, at most three. With four or more domains, merge into one assignment the domains with the fewest tasks, repeating until at most three remain; on a tie, the later row joins the earlier one. Never merge the data-entry screen assignment.
+Launch one `hive-review-plan` child per counted domain, together, before step 4's question, at most three. With four or more domains, merge the two assignments with the fewest tasks, a merged one counting the sum of its tasks, and repeat until at most three remain; on a tie, merge the two latest rows. Never merge the data-entry screen assignment.
 
 ## Each brief
 
-Brief each child as [reviewer brief](../../hive-rule-reviewer-brief/SKILL.md) sets, and add its domain, the questions of its row and the contracts it shares with the other counted domains, such as a payload, a schema or a rule another domain's tasks change. Each assignment keeps the role's own checks of criteria, external facts and verification lines.
+Brief each child as [reviewer brief](../../hive-rule-reviewer-brief/SKILL.md) sets, and add its domain, the questions of its row and the contracts it shares with the other counted domains, such as a payload, a schema or a rule another domain's tasks change. Tell each child to review its domain's tasks and those shared contracts. Give the role's whole-plan checks, the criteria, the external facts and the verification lines, to the first assignment in the table's order only, so they are not run three times.
 
 ## Reconcile
 

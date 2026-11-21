@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Listo para flow-build |
+| Estado | En verify |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `49ef7757` · rama propuesta `feat/conditional-plan-reviewers` |
 | Playbook | ninguno |
@@ -13,9 +13,10 @@
 - **D2 A** — ¿Revisores del plan en paralelo? Sí, en un cambio aparte y condicional: un revisor por dominio solo cuando el plan cruza dos o más, el ángulo de UX para pantallas de captura, y la re-revisión retomando al mismo revisor (`engram:tricell-hive/decision/conditional-parallel-plan-reviewers`).
 - **D4** — ¿Qué cuenta como superficie? Sin respuesta: el usuario preguntó por el reparto anterior, y D7 la reemplaza.
 - **D5 A** — ¿Cuántos revisores por ronda como máximo? Tres, contando el de UX; con más dominios se agrupan los de menos tareas.
-- **D6 A** — ¿Cómo cabe el texto nuevo en el presupuesto de lectura? Recortando texto existente sin quitar instrucciones. Se respondió con una estimación equivocada (150–190 B; eran 365); la decisión vigente es D9.
+- **D6 A** — ¿Cómo cabe el texto nuevo en el presupuesto de lectura? Recortando texto existente sin quitar instrucciones. Se respondió con una estimación equivocada (150–190 B; eran 365); la decisión vigente es D10.
 - **D8 A** — **Replaces:** D6. ¿Cómo cabe, con las cifras reales? Con los recortes sin pérdida de `design.md` «Presupuesto» (entonces estimados en 199 B; medidos después en 189 B), más una tolerancia en `reading_footprint_test.go` igual al crecimiento medido de este cambio (+9 B), para dejar 15 B de margen a las correcciones.
-- **D9 A** — **Replaces:** D8. ¿Con qué tolerancia, si los textos exactos crecen +22 B y no +9? Con +22 B, la misma regla de D8 con la cifra real; los 15 B de margen quedan para las correcciones.
+- **D9 A** — **Replaces:** D8. (Vigente hasta D10.) ¿Con qué tolerancia, si los textos exactos crecen +22 B y no +9? Con +22 B, la misma regla de D8 con la cifra real; los 15 B de margen quedan para las correcciones.
+- **D10 A** — **Replaces:** D9. ¿Con qué tolerancia, si los arreglos de `/code-review` suman +160 B? Con +182 B, el crecimiento medido de este cambio con sus arreglos; el margen sigue en 15 B.
 - **D7 A** — **Replaces:** D4. ¿Cómo se reparten los revisores? Por dominio, como antes del 30 de octubre, con las etiquetas server, client, data-entry screen, guidance e infrastructure (tabla en `design.md`). Un dominio cuenta solo cuando alguna tarea cambia archivos suyos según su `Locations:`.
 - **Supuesto** — Con varios revisores, relee una revisión solo el revisor cuyo dominio tiene una tarea cuyo texto, `Closes:` o verificación cambió, o un criterio que esa tarea cierra; un cambio que no cae en un solo dominio lo releen todos. Alternativa descartada: que relean todos siempre. Para revertirlo, se quita esa sección de `plan-review.md`.
 - **Supuesto** — Retomar al revisor se generaliza en `hive-rule-reviewer-brief`, solo para revisores del plan y de UX, con la misma condición que ya usa el revisor de UX: un mensaje al mismo hijo, o un hijo nuevo con los hallazgos anteriores si el host no puede mandar el mensaje o este falla. Alternativa descartada: una regla aparte en «Revise». Para revertirlo, se restaura el párrafo de UX.
@@ -42,7 +43,7 @@ Al terminar, un plan cuyas tareas cambian archivos de dos o más dominios, o una
 
 ## Alcance y aceptación
 
-Dentro: `content/skills/flow-plan/references/plan-review.md` (nuevo), `content/skills/flow-plan/SKILL.md` pasos 3 (recorte) y 5, `content/skills/hive-rule-change-folder/SKILL.md` (párrafo inicial y «Revise» paso 4), `content/skills/hive-rule-reviewer-brief/SKILL.md` (releer), `content/agents/review/hive-review-plan.md` (recortes de los pasos 1, 3 y 4), `tests/content/reading_footprint_test.go` (tolerancia de D9), `site/src/content/docs/flows/plan.md`, `_support/docs/harness-engineering/session-review-rubric.md`, `CHANGELOG.md` y el delta de `workflow-lifecycle`: agrega «A plan that crosses domains gets one reviewer per domain» y modifica «Plan revisions keep the change folder coherent», cuyo escenario hoy pide «one `hive-review-plan` child».
+Dentro: `content/skills/flow-plan/references/plan-review.md` (nuevo), `content/skills/flow-plan/SKILL.md` pasos 3 (recorte) y 5, `content/skills/hive-rule-change-folder/SKILL.md` (párrafo inicial y «Revise» paso 4), `content/skills/hive-rule-reviewer-brief/SKILL.md` (releer), `content/agents/review/hive-review-plan.md` (recortes de los pasos 1, 3 y 4), `tests/content/reading_footprint_test.go` (tolerancia de D10), `site/src/content/docs/flows/plan.md`, `_support/docs/harness-engineering/session-review-rubric.md`, `CHANGELOG.md` y el delta de `workflow-lifecycle`: agrega «A plan that crosses domains gets one reviewer per domain» y modifica «Plan revisions keep the change folder coherent», cuyo escenario hoy pide «one `hive-review-plan` child».
 
 Fuera: revisores de otro proveedor o modelo, cambiar el rol `hive-review-plan` (el reparto lo hace el hilo principal), el mapeo de OpenCode `hive-review-plan` → `flow-plan/SKILL.md`, y `flow-build/references/spec-delta.md` (un cambio sin plan sigue sin revisión del plan).
 
@@ -103,4 +104,14 @@ Aplicados: textos exactos con sus bytes, releer limitado a revisores del plan y 
 
 2026-11-21 — Tercera ronda, retomando al mismo revisor (56 s, 195k tokens): los hallazgos A–E de la segunda ronda cerrados y el plan listo para aprobar. Aplicados los 3 P3: D9 marca que reemplaza a D8; con cinco dominios se juntan asignaciones «hasta que queden tres»; el requisito MODIFIED nombra `hive-review-ux`.
 
-Estado: listo para flow-build.
+
+2026-11-21 — Verify: `/code-review` dio 5 hallazgos importantes y 5 menores. Se corrigieron:
+- «cuenta como server» partía planes de un solo dominio; los archivos de todo el repositorio ahora cuentan con su tarea;
+- el paso 5 ahora lleva las reglas de conteo;
+- una pantalla de captura cuenta también como client;
+- releer cubre un plan revisado por una decisión y un revisor cuyo ID ya no existe;
+- solo la primera asignación hace los chequeos de todo el plan;
+- la regla de juntar dominios va de dos en dos;
+- la descripción de la hoja y el requisito MODIFIED.
+
+El enlace del sitio a `master` sigue la convención de las demás páginas. D10 A sube la tolerancia a +182 B.
