@@ -354,7 +354,7 @@
 ### E3 — PR `feat/stage-rules-reply` (T8, T9, T10 parte checkpoint y cierre) · depends on: E2 · files: content/skills/flow-plan/, content/skills/hive-core/references/checkpoint.md, content/skills/hive-core/references/close-report.md, content/skills/flow-close/SKILL.md, content/guidance/global.md, 7 SKILL.md, tests/skills/, tests/content/, docs
 
 - [x] unit: go -C <worktree> test -count=1 ./... y python3 -I -m unittest discover -s <worktree>/tests/skills -p '*_test.py'
-- [ ] live: tras el merge de E3 y tu aviso, binario reconstruido (archivo temporal + mv), luego hive update --source <checkout> --out <archivo> y hive apply --plan <archivo> (D9 A) · pass: hive status sin drift, hive-core y los paquetes instalados en los 7 hosts, ninguna carpeta hive-rule-* instalada
+- [x] live: tras el merge de E3 y tu aviso, binario reconstruido (archivo temporal + mv), luego hive update --source <checkout> --out <archivo> y hive apply --plan <archivo> (D9 A) · pass: hive status sin drift, hive-core y los paquetes instalados en los 7 hosts, ninguna carpeta hive-rule-* instalada
 - [x] perf: n/a: sin meta medida en esta unidad
 
 ## Verification and human review
@@ -406,3 +406,4 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 2026-11-21 — T8 · 7415f709 · unverified: AC8 orden tras compactar: comportamiento del agente, no observable en pruebas
 2026-11-21 — T9 · 8fb08a4c · unverified: none
 2026-11-21 — T10 · a7c443f8 · unverified: none
+2026-11-21 — E3 live: binario reconstruido (tmp + mv) y contenido desplegado desde f2b983e8 (hive update --out + hive apply); hive status --scope user en los 7 hosts: 1954 registros instalados, 0 hive-rule-*, hive-core y 63 paquetes (9 por host). Hallazgo H1 corregido en #568 (693d403f).
