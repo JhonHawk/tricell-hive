@@ -230,6 +230,18 @@ class StrayClonesTests(unittest.TestCase):
         self.assertEqual(len({mod.normalize_remote(f) for f in forms}), 1)
         self.assertNotEqual(mod.normalize_remote("https://github.com/org/other"), mod.normalize_remote(forms[0]))
 
+    def test_unreadable_worktree_folder_is_reported_without_aborting_apply(self):
+        blocked = self.tmp / ".worktrees"
+        blocked.chmod(0)
+        try:
+            code, plan = self.plan("--apply")
+        finally:
+            blocked.chmod(0o755)
+        self.assertEqual(code, 0, plan)
+        errors = [c for c in plan["stray_clones"] if "error" in c]
+        self.assertEqual([pathlib.Path(c["path"]).resolve() for c in errors], [blocked.resolve()])
+        self.assertIn("applied", plan)
+
     def test_untracked_file_marks_a_clone_dirty(self):
         (self.inside / "notes.md").write_text("draft\n")
         _, plan = self.plan()

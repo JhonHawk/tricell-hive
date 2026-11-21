@@ -28,4 +28,4 @@ If the helper is unavailable, perform only the authorized cleanup whose inputs a
 
 ## Report
 
-Report the repositories checked, `removed_worktrees`, `deleted_branches`, `base_update` (the commits the base advanced, or why it stayed with its files), each retained branch as ``kept `<branch>`: <reason>``, each other retained item with its reason, `stray_clones` (full clones under the worktree folders that Git does not list: each with `path`, `branch`, `dirty` and `unpushed`, which the helper never removes), and any `errors`. A nonzero exit or partial result is not a completed cleanup.
+Report the repositories checked, `removed_worktrees`, `deleted_branches`, `base_update` (the commits the base advanced, or why it stayed with its files), each retained branch as ``kept `<branch>`: <reason>``, each other retained item with its reason, `stray_clones` (full clones under the worktree folders that Git does not list: each with `path`, `branch`, `dirty` and `unpushed`, or `path` and `error` for one it could not read, which the helper never removes), and any `errors`. A nonzero exit or partial result is not a completed cleanup.

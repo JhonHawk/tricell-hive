@@ -18,7 +18,8 @@ ignored there; then it executes only the safe removals and deletions.
 In both modes `stray_clones` lists each full clone of the same origin under the
 worktree folders of the main checkout and of its parent folder, with its
 branch, whether it holds changes and how many commits are on no remote. The
-helper never removes, moves or switches a clone.
+helper never removes, moves or switches a clone; a folder or entry it
+cannot read is listed with `error` instead.
 """
 
 import argparse
@@ -448,12 +449,21 @@ def plan_stray_clones(main_checkout):
     folders = [main / rel for rel in STRAY_CLONE_DIRS] + [main.parent / ".worktrees"]
     clones, seen = [], set()
     for folder in folders:
-        if not folder.is_dir():
-            continue
-        for entry in sorted(folder.iterdir()):
-            if not (entry / ".git").is_dir() or entry.resolve() in seen:
+        try:
+            if not folder.is_dir():
                 continue
-            seen.add(entry.resolve())
+            entries = sorted(folder.iterdir())
+        except OSError as exc:
+            clones.append({"path": str(folder), "error": str(exc)})
+            continue
+        for entry in entries:
+            try:
+                if not (entry / ".git").is_dir() or entry.resolve() in seen:
+                    continue
+                seen.add(entry.resolve())
+            except (OSError, RuntimeError) as exc:
+                clones.append({"path": str(entry), "error": str(exc)})
+                continue
             code, url, _ = run_git(str(entry), "config", "--get", "remote.origin.url")
             if code != 0 or normalize_remote(url) != target:
                 continue
