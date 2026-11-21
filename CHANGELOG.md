@@ -230,7 +230,7 @@ raise the minor or the patch version.
   report. A close ends as its `hive-rule-close-modes` row sets, not always with
   the footer. Each `hive-mode` playbook names its rows, and `hive-rule-close-hygiene`
   covers steps 4, 5 and 7 only. `hive-rule-report-endings` has a 9,000-byte limit
-  and the plan/build reading-footprint test a second allowance of 9,090 bytes.
+  and the plan/build reading-footprint test a second allowance of 9,160 bytes.
 
 - A plan whose tasks touch two or more of server, client, guidance,
   infrastructure or a data-entry screen gets one `hive-review-plan` per

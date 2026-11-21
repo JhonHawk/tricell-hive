@@ -249,7 +249,7 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 				// close-report, which it reads whole at each stage's end; the user accepted
 				// that growth on 2026-11-21 (D12 A), measured again after the fixes of
 				// its review findings.
-				const reportingFamilyAllowance = 9090
+				const reportingFamilyAllowance = 9160
 				allowance := planReviewAllowance + reportingFamilyAllowance
 				if like >= declared.bytes+allowance {
 					t.Errorf("plan-build-required union without the moments the baseline did not read is %d B, not below the baseline %d B plus the %d B allowance", like, declared.bytes, allowance)

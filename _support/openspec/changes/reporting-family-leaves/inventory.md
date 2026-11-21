@@ -335,7 +335,7 @@ Efecto en `global.md` (28,593 B hoy): se pierden la viñeta 72 (101 B), la cláu
 | S12.10 | `flow-build:20` | A mechanical change skips verify: check its criteria, if it has any, then, under `interactive`, hold the delivery's v… | se queda en flow-build paso 5 |  |
 | S12.11 | `flow-build:20` | integrate as the delivery says, and run `flow-close`. | se queda en flow-build paso 5 |  |
 | S12.12 | `flow-build:20` | An operational task, as «Proportionality» defines it, skips the CI run and verify: check its criteria and run `flow-c… | se queda en flow-build paso 5 |  |
-| S12.13 | `flow-build:20` | End the final report with one line naming each principle read from the code principles that changed a decision, or none. | flow-build paso 5 | PENDIENTE: ordena una línea del reporte final («one line naming each principle…») que close-report no tiene; ver sección de oraciones sin colocar |
+| S12.13 | `flow-build:20` | End the final report with one line naming each principle read from the code principles that changed a decision, or none. | flow-build paso 5 | RESUELTO (H13): la línea pasa a la parte **Principles** de close-report; flow-build la entrega y flow-close paso 6 la recibe |
 
 ### S13 · plan-handoff líneas 21, 28 (4)
 
@@ -425,7 +425,7 @@ Ninguna oración quedó sin destino: las 207 tienen uno. Cuatro piden una decisi
 
 **Size of `global.md`.** 28,593 B on base `7f6277e0`; 28,412 B now (`wc -c`), 181 B smaller. The cap of 30,000 B is untouched. `report-endings` is 8,661 B (own limit 9,000 B, D11 A) and `close-report` 6,416 B (7,000 B exception). Each playbook is at most 7,000 B (largest `ticket-status`, 5,917 B).
 
-**Reading footprint.** The plan/build union grows by +9,149 B (+4.96%) without the moments the baseline did not read, against an allowance of 182 B + 8,970 B (D12 A). The test logs: `plan/build union at 2bb96478 (its declared list): 184489 B; candidate with every selected leaf: 200832 B (+16343 B, +8.86%), of which new sources 94359 B`.
+**Reading footprint.** The plan/build union grows by +9,330 B (+5.06%) after the findings fixes (PR #563 merged at +9,149 B) without the moments the baseline did not read, against an allowance of 182 B + 9,160 B (D12 A). The test logs: `plan/build union at 2bb96478 (its declared list): 184489 B; candidate with every selected leaf: 200832 B (+16343 B, +8.86%), of which new sources 94359 B`.
 
 **How it was checked.** `go test -count=1 ./tests/content/...`, `./tests/pilot/`, `check_change.py` on this folder; `inventory.md` maps each source sentence to its destination, input for `/code-review`.
 
