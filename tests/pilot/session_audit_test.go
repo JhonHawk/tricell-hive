@@ -1121,3 +1121,58 @@ func TestAuditMergedBranchDeletedKeptBranchAfterTheSessionEnded(t *testing.T) {
 		t.Errorf("a merge whose head the session does not show is a work merge: %+v", got)
 	}
 }
+
+func TestAuditHelperApplyNeedsTheScriptToRun(t *testing.T) {
+	const dir = "existing_criteria"
+	for _, f := range []string{
+		"claude-project-merged-unrelated-apply-fail.jsonl",
+		"claude-project-merged-rg-apply-fail.jsonl",
+		"claude-project-merged-other-variable-apply-fail.jsonl",
+	} {
+		if got := auditStatus(t, auditFixture(t, "claude", auditOptions{}, dir, f), "merged_branch_deleted"); got.Status != "fail" {
+			t.Errorf("%s: an --apply of another command is not a branch deletion: %+v", f, got)
+		}
+	}
+}
+
+func TestAuditEndPhraseNeedsOnlyClosingWords(t *testing.T) {
+	for _, tc := range []struct {
+		msg  string
+		want bool
+	}{
+		{"es todo por el momento, gracias!", true},
+		{"Es todo", true},
+		{"that's it for now, thanks", true},
+		{"por el momento es todo", true},
+		{"Es todo correcto, sigue con el siguiente ticket", false},
+		{"Terminamos el build y luego vemos el deploy", false},
+	} {
+		if got := isSessionEndMessage(tc.msg); got != tc.want {
+			t.Errorf("isSessionEndMessage(%q) = %v, want %v", tc.msg, got, tc.want)
+		}
+	}
+	for _, f := range []string{"claude-project-merged-es-todo-correcto-review.jsonl", "claude-project-merged-terminamos-el-build-review.jsonl"} {
+		if got := auditStatus(t, auditFixture(t, "claude", auditOptions{}, "existing_criteria", f), "merged_branch_deleted"); got.Status != "review" {
+			t.Errorf("%s: a message that continues the work does not end the session: %+v", f, got)
+		}
+	}
+}
+
+func TestAuditMergeHeadIsThatOfTheMergedPullRequest(t *testing.T) {
+	base := auditOptions{Base: "development"}
+	for _, f := range []string{
+		"claude-project-merged-create-without-head-fail.jsonl",
+		"claude-project-merged-headref-other-pr-fail.jsonl",
+	} {
+		if got := auditStatus(t, auditFixture(t, "claude", base, "existing_criteria", f), "merged_branch_deleted"); got.Status != "fail" {
+			t.Errorf("%s: the head of another pull request is not the merge's head: %+v", f, got)
+		}
+	}
+}
+
+func TestAuditCloseBeforeCleanupSkipsPromotionMerges(t *testing.T) {
+	got := auditStatus(t, auditFixture(t, "claude", auditOptions{Base: "development"}, "close_before_branch_cleanup", "claude-project-promotion-then-work-pass.jsonl"), "close_before_branch_cleanup")
+	if got.Status != "pass" {
+		t.Fatalf("a deploy report after a promotion merge is not a close before cleanup: %+v", got)
+	}
+}
