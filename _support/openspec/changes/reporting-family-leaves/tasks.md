@@ -159,10 +159,10 @@ Caminata humana: no hay pantalla; la validación es leer las dos hojas resultant
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: verify · code review
-- Last commit: 36699815
-- Open findings: none
-- Next: esperar /code-review, ronda de hallazgos, push y PR
+- Stage: verify · push y PR
+- Last commit: aaf32526
+- Open findings: close: global.md línea del análisis sin el alcance de su hogar ni enlace (nit); close: flow-deploy paso 8 'every part' ambiguo y 'the run' sin step 1 (nit); close: close-report fila ready cita CI de base no iniciada (nit); close: report-endings repite la condición de create-report (nit); close: prueba de playbooks busca en todo el archivo; hotfix sin fila de despliegue (nit); close: close-modes 'Step 8's [the footer]' y 'Three reports' con 6 filas (nit); close: principios de flow-build sin parte en close-report (preexistente); close: git-workflow paso 10 'or nothing runs yet' sin fila en close-modes (preexistente)
+- Next: push, PR, merge gate, flow-close
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/reporting-family-leaves · refactor/reporting-family-leaves
 
 ### Evidence
@@ -172,6 +172,8 @@ Caminata humana: no hay pantalla; la validación es leer las dos hojas resultant
 - python3 -I -m unittest discover -s tests/skills · exit 0, 115 s · 36699815
 - go vet ./... · exit 0 · 36699815
 - local CI: solo master-source-branch (guarda de PRs a master), no aplica a un PR contra development
+- go test -count=1 ./... · exit 0, 259 s · aaf32526
+- python3 tests/skills · exit 0 · 36699815, sin cambios de Python desde entonces (reuso)
 
 ## Review status and progress
 
