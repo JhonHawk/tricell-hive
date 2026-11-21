@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | En build |
+| Estado | Completado · PR #563, 9e8633ae |
 | Tracker | Sin ticket |
 | Git | `JhonHawk/tricell-hive`, base `development` en `7f6277e0` (plan escrito sobre `2376cbbb`); rama `refactor/reporting-family-leaves` en el worktree `.claude/worktrees/reporting-family-leaves` |
 | Playbook | ninguno (reestructura que además cambia comportamiento: resuelve contradicciones) |

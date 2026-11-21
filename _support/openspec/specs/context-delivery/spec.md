@@ -72,7 +72,7 @@ request, not foreign content or persistent session flags.
 
 ### Requirement: Declared source footprint without token claims
 
-The size check SHALL report the global core separately from explicit simple-query, question, retained plan/build and E2E scenarios. Each scenario SHALL name its read conditions and source files, include the entrypoints and mandatory procedures selected by those conditions, and count each source once. Missing required sources SHALL fail measurement. The change report SHALL distinguish prose, references and executable code, and SHALL retain a before/after comparison using the same source set so a scenario-definition change is not misreported as savings. Existing scenario measurements SHALL remain identifiable. Source bytes and characters SHALL NOT be presented as actual tokens, observed native delivery or model reliability. Native metadata/rendering, repeated reads, project inputs, history and host policy SHALL remain explicit exclusions. Each skill entrypoint and reference SHALL retain the existing 16,000-byte limit; no new aggregate quota is implied.
+The size check SHALL report the global core separately from explicit simple-query, question, retained plan/build and E2E scenarios. Each scenario SHALL name its read conditions and source files, include the entrypoints and mandatory procedures selected by those conditions, and count each source once. A scenario that reads a flow's generated stage packet SHALL count it as one read whose sources are its members, and SHALL report its number of reads, its bytes without repeats, the members the packets bring that the scenario's earlier list did not read, and its bytes with members repeated across packets; the comparison against the earlier baseline SHALL apply to the bytes without repeats of the members the earlier list read, and SHALL NOT fail for the brought members or the repeats. Missing required sources SHALL fail measurement. The change report SHALL distinguish prose, references and executable code, and SHALL retain a before/after comparison using the same source set so a scenario-definition change is not misreported as savings. Existing scenario measurements SHALL remain identifiable. Source bytes and characters SHALL NOT be presented as actual tokens, observed native delivery or model reliability. Native metadata/rendering, repeated reads, project inputs, history and host policy SHALL remain explicit exclusions. Each skill entrypoint and reference SHALL retain the existing 16,000-byte limit, and each stage packet SHALL be at most 24,000 bytes and 1,000 lines; no new aggregate quota is implied.
 
 #### Scenario: Standalone user decision
 - **WHEN** the declared scenario is a user decision without an activity, delegation or artifact
@@ -85,6 +85,10 @@ The size check SHALL report the global core separately from explicit simple-quer
 #### Scenario: Comparable baseline
 - **WHEN** the measured scenario's source list changes
 - **THEN** the report separates the methodology change from the before/after measurement on matching paths and reports new sources explicitly.
+
+#### Scenario: A route that reads stage packets
+- **WHEN** the plan/build scenario reads the stage packets of its flows
+- **THEN** the report gives its reads, its bytes without repeats, the brought members and its bytes with repeats, the scenario declares at most 26 reads, and only growth in the members the earlier list read can fail the comparison.
 
 ### Requirement: Layered global core with owning skills
 The global core (`content/guidance/global.md`) SHALL hold the invariants that must act in any flow or outside one without another file being read: authorization and critical effects, including the tracker writes, the close-cleanup authorization and the immediate escalation of a P0, a security finding or an exposed secret, preservation, secrets, basic artifact placement, the current-project boundary, the session-start read of local instructions, the delivery modes and what each authorizes, and the minimal line of each question rule. For each of these whose procedure lives in a rule leaf, the core SHALL state only the invariant and link the leaf. It SHALL also hold an index, «Rule leaves», that links each rule leaf once, on a line that states literally when to read it, naming an observable act or event; a line may group leaves that share a moment. A rule that applies at an identifiable moment SHALL live in exactly one rule leaf, and every flow step where it applies SHALL link that leaf. A procedure that belongs to one activity SHALL live in the skill that owns that activity, or in a reference that skill links with its read condition, each with one canonical home. No rule SHALL depend on a model choosing to load a skill from its description. The global core SHALL measure at most 30,000 bytes, and a content test SHALL fail above that size with a message that names where a new rule goes: a rule leaf, with only its invariant in the core when it must act unread.
@@ -134,12 +138,20 @@ Temporary installation SHALL require its own covered effect, preserve the curren
 - **THEN** the case stops its model work and known process groups, preserves necessary evidence, reports failed/blocked/inconclusive as supported, and launches no second attempt without renewed authorization.
 
 ### Requirement: Rule leaves hidden from model invocation
-Each rule leaf (`hive-rule-*`) and principle leaf (`hive-principle-*`, except the index) SHALL be a skill whose frontmatter sets `disable-model-invocation: true`, whose description is one line of at most 200 characters, and whose `SKILL.md` is at most 4,000 bytes, or at most 7,000 bytes when the content test names it as an exception. The language leaf `hive-typescript` SHALL stay model-invocable, with `paths` for TypeScript files, and `hive-principle-index` SHALL link it with the condition of editing those files. Every rule leaf SHALL appear exactly once in the global core's index, and every principle leaf once in `hive-principle-index`. A leaf SHALL be read by the path its index line or flow link gives, never through a host's skill-invocation tool.
+Each rule leaf SHALL be a file `content/skills/hive-core/references/<name>.md` with no frontmatter, whose first body line after its `#` title starts with "Read" and states when to read it, and which is at most 4,000 bytes, or at most 7,000 bytes when the content test names it as an exception; a rule leaf's own references and scripts SHALL live under `hive-core/references/<name>/` and `hive-core/scripts/<name>/`. The skill `hive-core` SHALL be the only skill that holds rule leaves; its `SKILL.md` SHALL set `disable-model-invocation: true` and SHALL NOT list or route to the leaves, since the global core's index does. Each principle leaf (`hive-principle-*`, except the index) SHALL be a skill whose frontmatter sets `disable-model-invocation: true`, whose description is one line of at most 200 characters, and whose `SKILL.md` is at most 4,000 bytes. The language leaf `hive-typescript` SHALL stay model-invocable, with `paths` for TypeScript files, and `hive-principle-index` SHALL link it with the condition of editing those files. Every rule leaf SHALL appear exactly once in the global core's index, on a line whose trigger is literal text of the leaf's first body line, compared in lower case with markdown links reduced to their text, and every principle leaf once in `hive-principle-index`. A leaf SHALL be read by the path its index line, its flow link or its flow's stage packet gives, never through a host's skill-invocation tool.
 
 #### Scenario: A leaf missing its switch
-- **WHEN** a leaf skill lacks `disable-model-invocation: true` or is listed twice in an index
+- **WHEN** a principle leaf lacks `disable-model-invocation: true`, `hive-core/SKILL.md` lacks it, or a leaf is listed twice in an index
 - **THEN** `go test ./tests/content/...` fails and names the leaf.
+
+#### Scenario: An index line that does not quote its leaf
+- **WHEN** the trigger of a line of the global core's «Rule leaves» is not literal text of the first body line of the leaf it links
+- **THEN** `go test ./tests/content/...` fails and names the line and the leaf.
 
 #### Scenario: A rule restated outside its leaf
 - **WHEN** a key phrase registered for a rule leaf appears in a second file under `content/`
 - **THEN** the single-home test fails and names both files.
+
+#### Scenario: A rule leaf left as its own skill
+- **WHEN** a directory `content/skills/hive-rule-*` exists
+- **THEN** `go test ./tests/content/...` fails and names it.

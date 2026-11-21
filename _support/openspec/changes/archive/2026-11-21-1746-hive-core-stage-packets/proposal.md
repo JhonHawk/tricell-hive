@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Borrador · plan revisado, listo para flow-build cuando el orden interno se cumpla |
+| Estado | Completado · PRs #565 89befa58, #566 03a70b78, #567 f2b983e8 |
 | Tracker | Sin ticket |
 | Git | `JhonHawk/tricell-hive`, base `development` en `7f6277e0` (2026-11-21); ramas propuestas `refactor/hive-core-sheets` (E1), `feat/stage-packets` (E2), `feat/stage-rules-reply` (E3), cada una en su worktree de `.claude/worktrees/` |
 | Playbook | ninguno (reestructura de la distribución que además cambia lo que lee el agente) |
