@@ -53,9 +53,9 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 	// Predicates are explicit scenarios, not a transitive inventory of links.
 	common := []string{global}
 	// The question rules live in rule leaves the index and the flow steps link.
-	question := []string{global, skills + "hive-rule-questions/SKILL.md"}
+	question := []string{global, skills + "hive-core/references/questions.md"}
 	cycle := append(append([]string{}, question...),
-		skills+"hive-rule-delivery-ask/SKILL.md", skills+"hive-rule-project-settings/SKILL.md", skills+"hive-rule-ticket-state/SKILL.md",
+		skills+"hive-core/references/delivery-ask.md", skills+"hive-core/references/project-settings.md", skills+"hive-core/references/ticket-state.md",
 		skills+"flow-plan/SKILL.md", skills+"flow-build/SKILL.md", skills+"flow-close/SKILL.md",
 		skills+"hive-mode/SKILL.md", skills+"flow-verify/SKILL.md",
 		"content/agents/review/hive-review-plan.md",
@@ -64,11 +64,11 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 	)
 	// Minimal skills (skills-rebuild): sources absent from the baseline commit.
 	moved := map[string]bool{
-		skills + "flow-verify/SKILL.md":                true,
-		skills + "hive-rule-questions/SKILL.md":        true,
-		skills + "hive-rule-delivery-ask/SKILL.md":     true,
-		skills + "hive-rule-project-settings/SKILL.md": true,
-		skills + "hive-rule-ticket-state/SKILL.md":     true,
+		skills + "flow-verify/SKILL.md":                     true,
+		skills + "hive-core/references/questions.md":        true,
+		skills + "hive-core/references/delivery-ask.md":     true,
+		skills + "hive-core/references/project-settings.md": true,
+		skills + "hive-core/references/ticket-state.md":     true,
 	}
 	scenarios := []struct {
 		name, predicate string
@@ -131,29 +131,29 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 	skills := "content/skills/"
 	cycle := []string{
 		"content/guidance/global.md",
-		skills + "hive-rule-questions/SKILL.md",
-		skills + "hive-rule-delivery-ask/SKILL.md", skills + "hive-rule-project-settings/SKILL.md",
-		skills + "hive-rule-ticket-state/SKILL.md",
-		skills + "hive-rule-close-modes/SKILL.md", skills + "hive-rule-close-hygiene/SKILL.md", skills + "hive-rule-close-report/SKILL.md",
+		skills + "hive-core/references/questions.md",
+		skills + "hive-core/references/delivery-ask.md", skills + "hive-core/references/project-settings.md",
+		skills + "hive-core/references/ticket-state.md",
+		skills + "hive-core/references/close-modes.md", skills + "hive-core/references/close-hygiene.md", skills + "hive-core/references/close-report.md",
 		skills + "hive-mode/SKILL.md", skills + "flow-plan/SKILL.md",
 		skills + "flow-build/SKILL.md", skills + "flow-verify/SKILL.md", skills + "flow-close/SKILL.md",
-		skills + "hive-rule-delegation/SKILL.md", skills + "hive-rule-child-brief/SKILL.md", skills + "hive-rule-reviewer-brief/SKILL.md",
+		skills + "hive-core/references/delegation.md", skills + "hive-core/references/child-brief.md", skills + "hive-core/references/reviewer-brief.md",
 		skills + "flow-plan/references/plan-handoff.md",
-		skills + "hive-rule-business-rules/SKILL.md", skills + "hive-rule-business-record/SKILL.md", skills + "hive-rule-business-ticket/SKILL.md",
+		skills + "hive-core/references/business-rules.md", skills + "hive-core/references/business-record.md", skills + "hive-core/references/business-ticket.md",
 		skills + "project-layout/references/layout.md", skills + "flow-close/references/support-material.md",
-		skills + "hive-rule-project-verification/SKILL.md", skills + "hive-rule-project-verification-format/SKILL.md", skills + "hive-rule-suppression-review/SKILL.md",
-		skills + "hive-rule-reuse-before-writing/SKILL.md", skills + "hive-rule-tests/SKILL.md", skills + "hive-rule-checkpoint/SKILL.md",
-		skills + "hive-rule-checks/SKILL.md", skills + "hive-rule-change-folder/SKILL.md", skills + "hive-rule-review-findings/SKILL.md",
-		skills + "hive-rule-review-evidence/SKILL.md",
-		skills + "hive-rule-report-endings/SKILL.md", skills + "hive-rule-git-commit/SKILL.md", skills + "hive-rule-merge-gate/SKILL.md",
+		skills + "hive-core/references/project-verification.md", skills + "hive-core/references/project-verification-format.md", skills + "hive-core/references/suppression-review.md",
+		skills + "hive-core/references/reuse-before-writing.md", skills + "hive-core/references/tests.md", skills + "hive-core/references/checkpoint.md",
+		skills + "hive-core/references/checks.md", skills + "hive-core/references/change-folder.md", skills + "hive-core/references/review-findings.md",
+		skills + "hive-core/references/review-evidence.md",
+		skills + "hive-core/references/report-endings.md", skills + "hive-core/references/git-commit.md", skills + "hive-core/references/merge-gate.md",
 		"content/agents/review/hive-review-plan.md", "content/agents/development/hive-build-backend.md",
 		"content/agents/quality/hive-verify-task.md", "content/agents/review/hive-review-code.md",
 	}
 	e2e := append(append([]string{}, cycle...),
 		skills+"flow-build/references/e2e-coordination.md", skills+"flow-plan/references/execution-record.md",
-		skills+"hive-rule-defect-fix/SKILL.md", skills+"git-workflow/SKILL.md",
+		skills+"hive-core/references/defect-fix.md", skills+"git-workflow/SKILL.md",
 		skills+"flow-close/references/branch-cleanup.md", "content/agents/development/hive-build-owner.md",
-		skills+"hive-rule-pr-reviews/SKILL.md",
+		skills+"hive-core/references/pr-reviews.md",
 	)
 	// baselineCycle is the plan-build-required list as 2bb96478 declared it: the
 	// sources the same scenario read before the rules moved into leaves.
@@ -229,7 +229,7 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 				// (it held no git-workflow), so they are reported apart too and the
 				// comparison with the baseline is made without them.
 				extra := 0
-				for _, path := range []string{skills + "hive-rule-git-commit/SKILL.md", skills + "hive-rule-merge-gate/SKILL.md"} {
+				for _, path := range []string{skills + "hive-core/references/git-commit.md", skills + "hive-core/references/merge-gate.md"} {
 					data, err := os.ReadFile(filepath.Join(root, path))
 					if err != nil {
 						t.Fatal(err)

@@ -7,7 +7,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "content/skills/hive-rule-trackers/scripts/work_time.py"
+SCRIPT = ROOT / "content/skills/hive-core/scripts/trackers/work_time.py"
 sys.dont_write_bytecode = True  # keep __pycache__ out of the distributed skill folder
 
 
