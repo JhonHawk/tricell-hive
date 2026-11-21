@@ -220,6 +220,13 @@ raise the minor or the patch version.
 
 ### Changed
 
+- A plan runs each command a task's `Verification:` line names once on the
+  base before its review, in parallel when the commands share no database,
+  port, lock or output directory, and records the result in its verified
+  context. A command over 5 minutes runs only in its shortest form, and one
+  that would change tracked files or a shared resource is written as
+  `not measured`. A revision reruns a command it changes, and the plan
+  reviewer reports a command with no line (`flow-plan` step 3).
 - The close no longer archives a change folder or commits the support items
   the user keeps in Git: it records them under `archive-pending/<change-id>`
   and discards checkpoint-only edits. A hygiene request archives every folder
