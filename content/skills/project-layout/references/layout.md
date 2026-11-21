@@ -58,7 +58,7 @@ Keep source plans, user-selected output, unique evidence of work not yet integra
 
 ## Retain evidence
 
-Verification material serves the review of its own work. Keep it unversioned in the work's `workspace/` folder while the work is open; once the work is integrated, its pull request body, which lists each acceptance criterion with its evidence, is the record that replaces it, or the final report when the delivery opens no pull request. A capture is replaced only when its uploaded URL is in the merged body, read again at the close with `gh pr view <n> --json body`, as [pull request captures](../../git-workflow/references/pr-captures.md#read-back) sets; keep every other capture.
+Verification material serves the review of its work. Keep it unversioned in the work's `workspace/` folder while the work is open; once the work is integrated, its pull request body (each acceptance criterion with its evidence) or its ticket's attachment list is the record that replaces it, or the final report when it has neither. A capture is replaced when its uploaded URL is in the merged body, read again at the close with `gh pr view <n> --json body`, as [pull request captures](../../git-workflow/references/pr-captures.md#read-back) sets, or in the attachment list; keep every other capture.
 
 Promote a conclusion from that material, as project-layout's [inventory](inventory.md#promote-a-conclusion) sets, only when it is one of these, since later work reuses only these:
 
@@ -74,7 +74,7 @@ Keep, until a decision covers them: the trace of a finding that has no ticket ye
 
 **Condition:** closing a work item or session.
 
-**Actions:** run [flow-close](../../flow-close/SKILL.md), which sets what it removes, stops and keeps, and what it proposes for the work's support material.
+**Actions:** run [flow-close](../../flow-close/SKILL.md), which sets what it removes, stops and keeps, and what it deletes and leaves of the work's support material.
 
 **Condition:** requested organization of existing support material, evidence curation, cleanup of legacy material in a workspace or monorepo, promotion of findings into durable guidance, or archiving.
 

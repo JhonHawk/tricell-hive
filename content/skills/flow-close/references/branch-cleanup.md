@@ -6,13 +6,13 @@ Read by [flow-close](../SKILL.md) at its cleanup step, and by a hygiene request.
 
 For a work item, cover each repository where it created a branch, worktree or commit, or wrote its change folder, plus the repository holding `Specs`. For a hygiene request, cover the current repository, its specs repository and those named in pending-close records.
 
-Handle the work’s own branch first, then sweep earlier branches in the same repository. Before its own cleanup, stop only processes this work started, move out the material its support decision keeps, return its checkout to the base through [git-workflow](../../git-workflow/SKILL.md), and run from the main checkout. The sweep never switches another checkout’s branch.
+Handle the work’s own branch first, then sweep earlier branches in the same repository. Before its own cleanup, stop only processes this work started, move the material its inventory keeps to the main checkout, return its checkout to the base through [git-workflow](../../git-workflow/SKILL.md), and run from the main checkout. The sweep never switches another checkout’s branch.
 
 For each pass, refresh Git refs and collect the following inputs for [cleanup_branches.py](../scripts/cleanup_branches.py); the helper does not query the tracker or persistent memory:
 
 - Merged PRs: for the work’s branch, read its PR state, target base and `headRefOid`; for the sweep, list the user’s merged PRs into the base with `gh pr list --author @me --state merged --base <base> --json headRefName,headRefOid`. Supply only eligible branches as `--merged-pr <branch>=<headRefOid>`.
 - Non-PR candidates: use `--candidate <branch>` only for temporary/preview branches this work created, or, in a repository without PRs, local branches whose ownership the user’s earlier plan, checkpoint or close record establishes. The helper checks ancestry; this flag never proves ownership or permits unmerged commits.
-- Protected inputs: pass each open PR’s base as `--open-pr-base <branch>` and each branch named by unfinished work in memory, plans or checkpoints as `--active-branch <branch>`. This includes fresh branches with no commits beyond base, pending closes, and every active or ownership-uncertain assignment in the [E2E execution record](../../flow-plan/references/execution-record.md). A pending archive is not a pending close. When a pending close is older than 24 hours, resume its close steps, including its support decision, before its own cleanup; never sweep it away. Pass environment branches not already read from `AGENTS.md` with `--env-branch <branch>`.
+- Protected inputs: pass each open PR’s base as `--open-pr-base <branch>` and each branch named by unfinished work in memory, plans or checkpoints as `--active-branch <branch>`. This includes fresh branches with no commits beyond base, pending closes, and every active or ownership-uncertain assignment in the [E2E execution record](../../flow-plan/references/execution-record.md). A pending archive is not a pending close. When a pending close is older than 24 hours, resume its close steps, including its support-material inventory, before its own cleanup; never sweep it away. Pass environment branches not already read from `AGENTS.md` with `--env-branch <branch>`.
 
 If an input cannot be established, keep the affected candidates and report why; an unavailable PR or memory query is not an empty result. A promotion not yet made is not a reason to keep a branch.
 
@@ -28,4 +28,4 @@ If the helper is unavailable, perform only the authorized cleanup whose inputs a
 
 ## Report
 
-Report the repositories checked, `removed_worktrees`, `deleted_branches`, `base_update` (the commits the base advanced, or why it stayed with its files), each retained item with its reason, and any `errors`. A nonzero exit or partial result is not a completed cleanup.
+Report the repositories checked, `removed_worktrees`, `deleted_branches`, `base_update` (the commits the base advanced, or why it stayed with its files), each retained branch as ``kept `<branch>`: <reason>``, each other retained item with its reason, `stray_clones` (full clones under the worktree folders that Git does not list: each with `path`, `branch`, `dirty` and `unpushed`, which the helper never removes), and any `errors`. A nonzero exit or partial result is not a completed cleanup.
