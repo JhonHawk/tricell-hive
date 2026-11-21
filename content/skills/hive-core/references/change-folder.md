@@ -4,7 +4,7 @@ Read when a plan needs a change folder, or a written plan changes.
 
 ## Change folder
 
-Write `<Specs>/changes/<change-id>/` in English kebab-case, starting with the ticket key if any, else a short slug. Earlier change folders in the repository are context, not a model: the templates and this leaf set the shape and the ceremony, such as the plan review, even when earlier folders record more. Copy each template from [assets/change-folder/](../../flow-plan/assets/change-folder), fill it, delete its comments and unused sections:
+Write `<Specs>/changes/<change-id>/` in English kebab-case, starting with the ticket key if any, else a short slug. Earlier change folders in the repository are context, not a model: the templates and this leaf set the shape and the ceremony, such as the plan review, even when earlier folders record more. Copy each template from [assets/change-folder/](../../flow-plan/assets/change-folder/), fill it, delete its comments and unused sections:
 
 - `proposal.md`: the request and the ticket's criteria quoted, the user's decisions, the business rules the work adopts ([business rules](business-rules.md)), the scope, the numbered criteria, the prerequisites, each external fact with its measurement, each class of effect with its answer, the delivery decisions;
 - `tasks.md`: the tasks with checkboxes, each with its `Closes:` line and check, and the verification of the whole change;
