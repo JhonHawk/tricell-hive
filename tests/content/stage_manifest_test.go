@@ -96,7 +96,7 @@ func TestStageManifests(t *testing.T) {
 				t.Errorf("%s: SKILL.md does not tell the agent to read `%s.md`", flow, key)
 			}
 		}
-		for _, phrase := range []string{"read the linked leaves instead", "packet end line, read the rest", "names is missing or the output says it was cut, read that leaf", "until a compaction, after which read the packet again"} {
+		for _, phrase := range []string{"read the linked leaves instead", "packet end line, read the rest", "names is missing, read that leaf", "says it was cut, read the linked leaves", "needs no new read until a compaction, after which read"} {
 			if !strings.Contains(string(skill), phrase) {
 				t.Errorf("%s: SKILL.md lacks the packet fallback %q", flow, phrase)
 			}

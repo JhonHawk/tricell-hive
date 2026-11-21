@@ -176,26 +176,43 @@ func TestPacketUnpaddedTabNumbersAreStripped(t *testing.T) {
 	}
 }
 
-func TestPacketWithoutEndLineIsUnverifiedOnlyForItsManifestMembers(t *testing.T) {
-	cut := numberedLines(pktText(""), "→")
-	cut = strings.Split(cut, "\n")[0]
+func TestPacketWithoutEndLineIsUnverifiedForAnyLeaf(t *testing.T) {
+	// Without an end line the audit cannot tell which packet version the session
+	// read, so it reports the read as unverified, never as a fail.
+	cut := strings.Split(numberedLines(pktText(""), "→"), "\n")[0]
 	for _, tc := range []struct {
 		name   string
 		events []traceEvent
 	}{
 		{"shell head no end line", []traceEvent{{Line: 1, Kind: "shell", ID: "a", Command: "head -20 /h/.agents/skills/hive-mode/stage.md"}, {Line: 2, Kind: "tool_result", ID: "a", Text: cut}}},
 		{"no result", []traceEvent{{Line: 1, Kind: "read", ID: "a", Path: "/h/.agents/skills/hive-mode/stage.md"}}},
+		{"two packets, no result", []traceEvent{{Line: 1, Kind: "shell", ID: "a", Command: "cat /h/.agents/skills/hive-mode/stage.md " + pktPath}}},
 	} {
-		if read, unverified := packetNamesLeaf(tc.events, 0, "git-commit"); read || unverified {
-			t.Errorf("%s: hive-mode's packet does not list git-commit: read=%v unverified=%v", tc.name, read, unverified)
-		}
-		if _, unverified := packetNamesLeaf(tc.events, 0, "questions"); !unverified {
-			t.Errorf("%s: hive-mode's packet lists questions, want unverified", tc.name)
+		if read, unverified := packetNamesLeaf(tc.events, 0, "git-commit"); read || !unverified {
+			t.Errorf("%s: read=%v unverified=%v, want unverified", tc.name, read, unverified)
 		}
 	}
-	flowBuild := []traceEvent{{Line: 1, Kind: "read", ID: "a", Path: pktPath}}
-	if _, unverified := packetNamesLeaf(flowBuild, 0, "git-commit"); !unverified {
-		t.Error("flow-build's packet lists git-commit, want unverified without a result")
+}
+
+func TestPacketThroughAPassThroughPipeIsARead(t *testing.T) {
+	for _, cmd := range []string{
+		"cat " + pktPath + " | head -400",
+		"nl -ba " + pktPath + " | sed -n '1,400p'",
+		"bash -lc 'cat " + pktPath + " || true'",
+	} {
+		if whole, _ := packetReadKind(traceEvent{Kind: "shell", Command: cmd}); !whole {
+			t.Errorf("%q is a whole read of the packet", cmd)
+		}
+	}
+	if whole, maybe := packetReadKind(traceEvent{Kind: "shell", Command: "cat " + pktPath + " | fold -w 80"}); whole || !maybe {
+		t.Errorf("a pipe into an unknown program: whole=%v maybe=%v, want maybe", whole, maybe)
+	}
+	events := []traceEvent{
+		{Line: 1, Kind: "shell", ID: "a", Command: "cat " + pktPath + " | fold -w 80"},
+		{Line: 2, Kind: "tool_result", ID: "a", Text: pktText("")},
+	}
+	if read, unverified := packetNamesLeaf(events, 0, "git-commit"); read || !unverified {
+		t.Errorf("a pipe into an unknown program: read=%v unverified=%v, want unverified", read, unverified)
 	}
 }
 
@@ -204,7 +221,7 @@ func TestPacketReadThroughAFilterOrPatternScriptIsNoRead(t *testing.T) {
 		"cat " + pktPath + " | grep -E '^## |hive packet end'",
 		"sed -n '/^## /p;/packet end/p' " + pktPath,
 		"sed '/^## /!d' " + pktPath,
-		"cat " + pktPath + " | head -400",
+		"cat " + pktPath + " | sed -n '/^## /p'",
 	} {
 		if readsPacketFile(traceEvent{Kind: "shell", Command: cmd}) {
 			t.Errorf("%q counted as a whole read of the packet", cmd)

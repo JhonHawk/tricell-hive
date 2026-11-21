@@ -5,7 +5,7 @@ description: Coordinate delegated unattended work with a bounded objective and e
 
 # Unattended delegation
 
-At entry, read `stage.md` in this skill's folder whole: it holds the leaves delivery-ask, external-effects, questions, delegation, unattended-effects, so a step that links one of them needs no new read until a compaction, after which read the packet again. If it is missing, read the linked leaves instead; if its last line is not its packet end line, read the rest, and if a `## ` heading the end line names is missing or the output says it was cut, read that leaf.
+At entry, read `stage.md` in this skill's folder whole: it holds the leaves delivery-ask, external-effects, questions, delegation, unattended-effects, so a step that links one of them needs no new read until a compaction, after which read the packet again. If it is missing, read the linked leaves instead; if its last line is not its packet end line, read the rest; if a `## ` heading the end line names is missing, read that leaf; and if the output says it was cut, read the linked leaves.
 
 For explicit E2E work, read [coordination](../flow-build/references/e2e-coordination.md); E2E alone does not activate this skill.
 

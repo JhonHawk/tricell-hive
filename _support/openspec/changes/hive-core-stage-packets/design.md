@@ -70,7 +70,7 @@ Las anclas se conservan: cada hoja mantiene sus encabezados, y `references.go` v
     - el resto, relativo a la carpeta del flujo.
 - Validación: `validateRelease` genera cada paquete, lo añade a la lista de archivos y anclas de `validateInstructionReferences` y valida su tamaño, sus líneas y sus enlaces, como si fuera `content/skills/<flujo>/<clave>.md`.
 - Registro: `validRecordedStagePacket` acepta el registro, y `rejectHandWrittenPolicies` rechaza un `stage*.md` en el fuente.
-- Línea de entrada del flujo, en texto y no como enlace, porque el archivo no existe en el fuente: «Read `stage.md` in this skill's folder whole; it holds <hojas>, so do not read them again. If it is missing, read the linked leaves.»
+- Línea de entrada del flujo, en texto y no como enlace, porque el archivo no existe en el fuente: «At entry, read `stage.md` in this skill's folder whole: it holds the leaves <hojas>, so a step that links one of them needs no new read until a compaction, after which read the packet again.» Sigue el respaldo: si falta, las hojas enlazadas; si falta la línea de fin, el resto; si falta un encabezado, esa hoja; si la salida dice que se cortó, las hojas enlazadas.
 - Fin del paquete: la última línea es `<!-- hive packet end: <clave> · <miembro>,<miembro>,… -->`.
 - La línea de entrada del flujo añade: «If its last line is not the packet end line, read the rest».
 - Nombre de miembro: su ruta del manifiesto sin `.md`, por ejemplo `## hive-core/references/questions`.

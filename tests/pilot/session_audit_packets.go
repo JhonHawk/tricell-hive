@@ -1,11 +1,8 @@
 package main
 
 import (
-	"encoding/json"
-	"os"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"slices"
 	"strings"
 )
@@ -167,13 +164,31 @@ func pipelineSegments(command string) (pieces []string, piped []bool) {
 	return pieces, piped
 }
 
-// readsPacketFile reports whether a call reads an installed packet: the Read
-// tool on its path, or a shell segment of a program that prints whole files
-// and whose output reaches the result unfiltered.
+// packetPassThrough names the shell programs that pass every line they read
+// on, whole or as a leading or trailing slice, so a packet piped into them
+// still reaches the result as lines a cut marker or a missing end line shows.
+var packetPassThrough = regexp.MustCompile(`^(cat|head|tail|nl|less|more|tee)$`)
+
+// quotedSinglePipe matches a lone `|` in a piece, as a `bash -lc '… | …'`
+// wrapper holds; `||` is a separator, not a pipe.
+var quotedSinglePipe = regexp.MustCompile(`(^|[^|])\|([^|]|$)`)
+
+// readsPacketFile reports whether a call reads an installed packet whole.
 func readsPacketFile(e traceEvent) bool {
+	whole, _ := packetReadKind(e)
+	return whole
+}
+
+// packetReadKind judges a call that names a packet. whole: the Read tool on its
+// path, or a shell segment of a program that prints whole files whose output
+// reaches the result unfiltered or through pass-through programs only. maybe:
+// the packet's text reaches the result through a program the audit does not
+// know, so the read can be neither counted nor ruled out. A filter such as
+// grep, rg, awk or a pattern sed gives neither.
+func packetReadKind(e traceEvent) (whole, maybe bool) {
 	switch e.Kind {
 	case "read":
-		return packetFilePath.MatchString(filepath.ToSlash(e.Path))
+		return packetFilePath.MatchString(filepath.ToSlash(e.Path)), false
 	case "shell":
 		pieces, piped := pipelineSegments(e.Command)
 		for k, piece := range pieces {
@@ -181,17 +196,48 @@ func readsPacketFile(e traceEvent) bool {
 				if len(args) == 0 || packetFilter.MatchString(filepath.Base(args[0])) || !shellReadsPattern(args, packetFilePath) {
 					continue
 				}
-				if piped[k] || strings.Contains(piece, "|") {
-					continue
-				}
 				if filepath.Base(args[0]) == "sed" && !sedPrintsWholeLines(args) {
 					continue
 				}
-				return true
+				if quotedSinglePipe.MatchString(piece) {
+					maybe = true
+					continue
+				}
+				switch downstreamOf(pieces, piped, k) {
+				case "pass":
+					return true, false
+				case "unknown":
+					maybe = true
+				}
 			}
 		}
 	}
-	return false
+	return false, maybe
+}
+
+// downstreamOf classifies what the pipe after piece k does with its output:
+// "pass" when it reaches the result whole or through pass-through programs,
+// "filter" when a program selects lines by pattern, "unknown" otherwise.
+func downstreamOf(pieces []string, piped []bool, k int) string {
+	for j := k; j < len(pieces)-1 && piped[j]; j++ {
+		segs := shellSegments(pieces[j+1], 0)
+		if len(segs) == 0 || len(segs[0]) == 0 {
+			return "unknown"
+		}
+		args := segs[0]
+		name := filepath.Base(args[0])
+		switch {
+		case packetFilter.MatchString(name):
+			return "filter"
+		case name == "sed":
+			if !sedPrintsWholeLines(args) {
+				return "filter"
+			}
+		case !packetPassThrough.MatchString(name):
+			return "unknown"
+		}
+	}
+	return "pass"
 }
 
 // resultTextOf returns the text of the result of the call at i, joined by the
@@ -212,97 +258,30 @@ func resultTextOf(events []traceEvent, i int) (string, bool) {
 	return "", false
 }
 
-// packetFileKey reads the flow and the manifest key of an installed packet
-// path: `<skills>/<flow>/stage.md` is key `stage`, `stage-exit.md` is
-// `stage-exit`.
-var packetFileKey = regexp.MustCompile(`/skills/([a-z0-9]+(?:-[a-z0-9]+)*)/(stage(?:-[a-z]+)?)\.md(?:$|[^\w./-])`)
-
-// packetRepoRoot finds the repository root that holds `content/skills`: the
-// nearest parent of the working directory that has it, else the checkout this
-// file was compiled from. The audit has no repository root of its own, and a
-// transcript's cwd is the audited session's, not this checkout.
-func packetRepoRoot() string {
-	var starts []string
-	if wd, err := os.Getwd(); err == nil {
-		starts = append(starts, wd)
-	}
-	if _, file, _, ok := runtime.Caller(0); ok {
-		starts = append(starts, filepath.Dir(file))
-	}
-	for _, dir := range starts {
-		for {
-			if st, err := os.Stat(filepath.Join(dir, "content", "skills")); err == nil && st.IsDir() {
-				return dir
-			}
-			parent := filepath.Dir(dir)
-			if parent == dir {
-				break
-			}
-			dir = parent
-		}
-	}
-	return ""
-}
-
-// manifestHolds reads the repository's `content/skills/<flow>/assets/stage.json`
-// and reports whether the packet at path lists the leaf. known is false when
-// the manifest cannot be read or has no such key, so the caller keeps a packet
-// whose members it cannot tell as possibly holding the leaf.
-func manifestHolds(path, leaf string) (holds, known bool) {
-	m := packetFileKey.FindStringSubmatch(filepath.ToSlash(path) + " ")
-	root := packetRepoRoot()
-	if m == nil || root == "" {
-		return false, false
-	}
-	data, err := os.ReadFile(filepath.Join(root, "content", "skills", m[1], "assets", "stage.json"))
-	if err != nil {
-		return false, false
-	}
-	var manifest map[string][]string
-	if json.Unmarshal(data, &manifest) != nil {
-		return false, false
-	}
-	members, ok := manifest[m[2]]
-	if !ok {
-		return false, false
-	}
-	return slices.Contains(members, leafMemberPrefix+leaf+".md"), true
-}
-
-// packetPathOf returns the packet path a call reads, from the Read tool's
-// path or the shell command's text.
-func packetPathOf(e traceEvent) string {
-	if e.Kind == "read" {
-		return e.Path
-	}
-	return packetFilePath.FindString(e.Command)
-}
-
-// mayHoldLeaf reports whether the packet a call reads may hold the leaf, from
-// the manifest; a packet whose manifest is unavailable may.
-func mayHoldLeaf(e traceEvent, leaf string) bool {
-	holds, known := manifestHolds(packetPathOf(e), leaf)
-	return holds || !known
-}
-
 // packetNamesLeaf judges the call at i as a read of the leaf through a packet.
 // read: the packet's result is complete and names the leaf. unverified: the
-// call reads a packet that may hold the leaf but whose result does not show
-// it whole: no result to join, no end line, or a heading missing. A call that
+// call reads a packet whose result does not show the leaf whole: no result to
+// join, no end line (the audit cannot tell which packet version the session
+// read, so any leaf may be in it), a heading missing, or a pipe through a
+// program the audit does not know. A call that
 // is no packet read, a failed one, or a packet whose end line does not name the
 // leaf gives neither.
 func packetNamesLeaf(events []traceEvent, i int, leaf string) (read, unverified bool) {
 	e := events[i]
-	if (e.Success != nil && !*e.Success) || !readsPacketFile(e) {
+	if e.Success != nil && !*e.Success {
 		return false, false
+	}
+	whole, maybe := packetReadKind(e)
+	if !whole {
+		return false, maybe
 	}
 	text, ok := resultTextOf(events, i)
 	if !ok {
-		return false, mayHoldLeaf(e, leaf)
+		return false, true
 	}
 	ends := packetEnds(text)
 	if len(ends) == 0 {
-		return false, mayHoldLeaf(e, leaf)
+		return false, true
 	}
 	named := false
 	for _, end := range ends {
