@@ -253,8 +253,9 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 				const reportingFamilyAllowance = 9230
 				// The change reuse-sound-base grew rung 2 of reuse-before-writing and the
 				// code reviewer's check of what new code reuses; the user accepted that
-				// growth on 2026-11-21 (D1 A), measured on development at f80c6843.
-				const reuseSoundBaseAllowance = 1109
+				// growth on 2026-11-21 (D1 A); measured again after decision D2 A, on
+				// development at 01efd12c.
+				const reuseSoundBaseAllowance = 1111
 				allowance := planReviewAllowance + reportingFamilyAllowance + reuseSoundBaseAllowance
 				if like >= declared.bytes+allowance {
 					t.Errorf("plan-build-required union without the moments the baseline did not read is %d B, not below the baseline %d B plus the %d B allowance", like, declared.bytes, allowance)

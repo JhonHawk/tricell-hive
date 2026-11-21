@@ -19,6 +19,7 @@
 - **D1 A** — ¿Cómo se paga el crecimiento de la unión de lectura plan/build (unos 800 B, con 17 B de margen)? Con una constante de asignación nueva en `reading_footprint_test.go`, igual a la medida tras T1 y con su comentario; no se recorta el texto de otras reglas.
 
 - **D2 A** — ¿Qué hace el build con un workaround ya aceptado, cuyo comentario nombra su causa? Lo nombra con su ticket, propone uno solo si no existe y construye encima sin volver a preguntar. Descartadas: preguntar siempre (B) y no construir nunca encima (C). Resuelve el hallazgo P2 del cierre; los dos P3 del spec se corrigen con ella.
+- **Supuesto** — «Aceptado» se prueba por el comentario: un workaround cuyo comentario nombra el ticket de su causa (el paso 4 de `defect-fix` ahora lo pide al marcarlo) se mantiene o se llama sin volver a preguntar y nunca se copia; uno sin ticket, como un comentario anterior a Hive, sigue la ruta de cualquier base no sana. Alternativa descartada: tratar todo comentario de causa como aceptado (la revisión mostró que salta la elección del usuario y no permite encontrar el ticket). Para revertirlo, se quita la condición del ticket en la hoja y en `defect-fix`.
 
 ## Business rules
 
