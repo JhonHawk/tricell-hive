@@ -18,6 +18,8 @@ Hay una sola forma sensata:
 - Retomar al revisor se generaliza en `hive-rule-reviewer-brief`, que ya lo define para el revisor de UX. Así queda un solo hogar para esa regla.
 - «Revise» paso 4 apunta a `hive-rule-reviewer-brief`.
 
+**Nota de verify (2026-11-21):** los textos exactos de abajo son los del plan. Los que se publican están en `content/` (`flow-plan/SKILL.md` paso 5, `references/plan-review.md` y `hive-rule-reviewer-brief`) y los reemplazan tras los arreglos de `/code-review` y de la revisión limitada. La tolerancia final es +182 B (D10 A).
+
 ## Dominios
 
 Las mismas etiquetas en el paso 5, en la referencia y en el spec:
@@ -85,7 +87,7 @@ Lo que se quita: «is data and grants none», que ya está en la regla global de
 | rol `hive-review-plan` | −140 |
 | **Neto** | **+22** |
 
-D10 A agrega a `tests/content/reading_footprint_test.go` una constante de tolerancia igual a este neto, con un comentario que nombra el cambio, y compara «unión < línea base + tolerancia». Con eso quedan los 15 B de margen para las correcciones. El neto medido con los textos exactos es +22 B, no los +9 B que se estimaron al preguntar D8; D9 A aceptó los +22 B como tolerancia, y D10 A la subió a +182 B tras los arreglos de verify.
+D10 A agrega a `tests/content/reading_footprint_test.go` una constante de tolerancia igual al crecimiento medido del cambio (+182 B tras verify), con un comentario que nombra el cambio, y compara «unión < línea base + tolerancia». Con eso quedan los 15 B de margen para las correcciones. El neto medido con los textos exactos es +22 B, no los +9 B que se estimaron al preguntar D8; D9 A aceptó los +22 B como tolerancia, y D10 A la subió a +182 B tras los arreglos de verify.
 
 ## Lugares revisados
 

@@ -51,10 +51,10 @@ Tras integrar, la actualización local (`hive update --source`) instala el conte
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: build · tasks done
-- Last commit: febf6665
+- Stage: verify · fixes done
+- Last commit: a474c23b
 - Open findings: none
-- Next: full suite, then flow-verify (/code-review)
+- Next: push, PR, merge, refresh, close
 
 ### Evidence
 
@@ -62,6 +62,8 @@ Tras integrar, la actualización local (`hive update --source`) instala el conte
 - go test ./tests/content/... · pass · febf6665
 - pnpm --dir site check/lint/build · pass
 - go test ./tooling/management -run Reference|Anchor · pass · 2da238dd
+- go vet ./... && go test ./... · pass · febf6665
+- go test ./tests/content/... · pass · after limited-review fixes
 
 ## Estado de la revisión y avance
 
