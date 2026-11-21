@@ -11,7 +11,7 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when a production defect ca
 - Before each promotion, list the other commits it would carry and ask about them, as urgent-fixes sets.
 - Environment branches change only through the declared path: [promotion path](../../hive-rule-promotion-path/SKILL.md).
 
-**Reporting.** When the work closes, `flow-close` writes its final report with the row of [close report](../../hive-rule-close-report/SKILL.md#variants) that the delivery mode in force picks, and the message ends in the close row of [report endings](../../hive-rule-report-endings/SKILL.md) that [close modes](../../hive-rule-close-modes/SKILL.md) sets.
+**Reporting.** When the work closes, `flow-close` writes its final report with the row of [close report](../../hive-rule-close-report/SKILL.md#variants) that the delivery mode in force picks, and the message ends in the close row of [report endings](../../hive-rule-report-endings/SKILL.md) that [close modes](../../hive-rule-close-modes/SKILL.md) sets; a promotion's cleanup close uses the deployment row of [close report](../../hive-rule-close-report/SKILL.md#variants).
 
 **Handoffs.** Work the incident exposes beyond the fix, such as a missing guard or a refactor, is separate work, as [scope changes](../../hive-rule-scope-changes/SKILL.md) sets.
 

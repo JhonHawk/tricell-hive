@@ -19,7 +19,7 @@ Every move from one flow to the next SHALL end the report with the next-step blo
 
 ### Requirement: The final report carries evidence and a try-it block
 
-The final report SHALL carry a defect's regression test output seen failing and then passing, and, when the change can be seen or run, a block with the URL or command, the test account's index row, the steps and the expected result, in every delivery mode. Its parts SHALL be stated in one rule leaf, `hive-rule-close-report`, with one row per variant (close at the completion point, a pull request left open under `ready` or waiting for a reviewer, a deploy's cleanup close, `hold` and a pause outside it). Each work item SHALL get one final report, written by `flow-close` at its report step: `git-workflow` and `flow-deploy` SHALL hand what they observed to the close instead of writing it, and the end of unattended work SHALL summarize the session and point to each close's report. A later message with the result of a base CI run that ends after the close is not a second final report.
+The final report SHALL carry a defect's regression test output seen failing and then passing, and, when the change can be seen or run, a block with the URL or command, the test account's index row, the steps and the expected result, in every delivery mode. Its parts SHALL be stated in one rule leaf, `hive-rule-close-report`, with one row per variant (close at the completion point, a pull request left open under `ready` or waiting for a reviewer, a deploy's cleanup close, `hold` and a pause outside it). Each work item SHALL get one final report, written by `flow-close` at its report step: `git-workflow` and `flow-deploy` SHALL hand what they observed to the close instead of writing it, `flow-build` SHALL hand it the line of code principles that changed a decision, which the report carries when it was handed over in that work item, and the end of unattended work SHALL summarize the session and point to each close's report. A later message with the result of a base CI run that ends after the close is not a second final report.
 
 #### Scenario: Hold delivery
 
@@ -53,7 +53,7 @@ Each of the 13 playbooks of `hive-mode` SHALL carry one reporting line that link
 
 ### Requirement: The two reporting homes have bounded size and reading cost
 
-`hive-rule-report-endings` SHALL have its own size limit of 9,000 bytes and `hive-rule-close-report` SHALL stay in the 7,000-byte exception; every other leaf keeps its limit and no text SHALL be cut to fit. The reading-footprint test for the plan and build route SHALL accept the growth that comes from reading those two leaves whole at each stage's end, as a second allowance of 8,970 bytes beside the earlier 182 bytes. The global guidance SHALL NOT grow past its size at the base of the build (28,593 bytes at `7f6277e0`).
+`hive-rule-report-endings` SHALL have its own size limit of 9,000 bytes and `hive-rule-close-report` SHALL stay in the 7,000-byte exception; every other leaf keeps its limit and no text SHALL be cut to fit. The reading-footprint test for the plan and build route SHALL accept the growth that comes from reading those two leaves whole at each stage's end, as a second allowance of 9,230 bytes beside the earlier 182 bytes. The global guidance SHALL NOT grow past its size at the base of the build (28,593 bytes at `7f6277e0`).
 
 #### Scenario: The leaves fit their limits
 

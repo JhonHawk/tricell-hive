@@ -247,8 +247,9 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 				// The change reporting-family-leaves moved the text of next-step-block and
 				// close-footer, which this list did not read, into report-endings and
 				// close-report, which it reads whole at each stage's end; the user accepted
-				// that growth on 2026-11-21 (D12 A).
-				const reportingFamilyAllowance = 8970
+				// that growth on 2026-11-21 (D12 A), measured again after the fixes of
+				// its review findings.
+				const reportingFamilyAllowance = 9230
 				allowance := planReviewAllowance + reportingFamilyAllowance
 				if like >= declared.bytes+allowance {
 					t.Errorf("plan-build-required union without the moments the baseline did not read is %d B, not below the baseline %d B plus the %d B allowance", like, declared.bytes, allowance)

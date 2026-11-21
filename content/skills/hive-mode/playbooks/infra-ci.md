@@ -12,7 +12,7 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the work changes infra
 - A check that is weakened, skipped or excluded to make a pipeline green needs its justification: [weakened checks](../../hive-rule-suppression-review/SKILL.md).
 - Environment branches change only through the declared path ([promotion path](../../hive-rule-promotion-path/SKILL.md)); each stop, push, pull request and merge happens under the delivery mode in force, and promotion follows `flow-deploy` with its authorization per environment.
 
-**Reporting.** When the work closes, `flow-close` writes its final report with the row of [close report](../../hive-rule-close-report/SKILL.md#variants) that the delivery mode in force picks, and the message ends in the close row of [report endings](../../hive-rule-report-endings/SKILL.md) that [close modes](../../hive-rule-close-modes/SKILL.md) sets.
+**Reporting.** When the work closes, `flow-close` writes its final report with the row of [close report](../../hive-rule-close-report/SKILL.md#variants) that the delivery mode in force picks, and the message ends in the close row of [report endings](../../hive-rule-report-endings/SKILL.md) that [close modes](../../hive-rule-close-modes/SKILL.md) sets; a promotion's cleanup close uses the deployment row of [close report](../../hive-rule-close-report/SKILL.md#variants).
 
 **Handoffs.** A defect the work exposes is a separate topic or [bugfix](bugfix.md); a project verification command or journey the work adds follows [project verification](../../hive-rule-project-verification/SKILL.md). Either is a scope change, as [scope changes](../../hive-rule-scope-changes/SKILL.md) sets.
 

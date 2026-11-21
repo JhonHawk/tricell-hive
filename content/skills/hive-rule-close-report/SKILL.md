@@ -18,6 +18,7 @@ Report the whole work item in one message, each part only when it has content:
 - **Omitted:** each check that was skipped or could not run, with its reason, including the CI-only jobs.
 - **Repaired:** the local environment repairs made, such as reinstalled dependencies or seeded data.
 - **Support material:** each item with its path and the action applied, or listed as pending, as [support material](../flow-close/references/support-material.md) sets.
+- **Principles:** when `flow-build` handed it over in this work item, one line naming each code principle read that changed a decision, or none; otherwise leave the part out.
 - **Findings:** the defects not fixed, as [Findings](#findings) sets.
 - **Candidates:** the work's repetitions, as [Candidates](#candidates) sets.
 - **Next:** what remains, with who owns it, and what comes next, such as the merge left to the user, review bots or base CI still pending, and the pending archives with the hygiene reply.
@@ -30,10 +31,10 @@ When the user asks to keep or share this report, or it exceeds what fits on one 
 
 | Variant | Parts | Adds |
 | --- | --- | --- |
-| Close at the completion point (merge done) | every part with content | none |
-| Pull request left open in `ready` or waiting on a reviewer | every part | in Integrated, the head commit, the base commit its current-base check passed on and the CI result; in Next, the pending merge and on whom, and the base CI still pending, as [merge gate](../hive-rule-merge-gate/SKILL.md) sets |
-| Deployment (a cleanup close that `flow-deploy` calls) | every part | the run; per environment the identity served, the health and the functional acceptance, each as met, failed, blocked or "not run"; the triggers decided; the CI failures from before that step 5 of `flow-deploy` let pass; the tickets waiting on a check |
-| `hold` | what is pending, the defect's proof and Try it | none |
+| Close at the completion point (merge done) | every part with content | in Next, the base CI still running, as [merge gate](../hive-rule-merge-gate/SKILL.md) sets |
+| Pull request left open in `ready` or waiting on a reviewer | every part | in Integrated, the head commit, the base commit its current-base check passed on and the CI result; in Next, the pending merge and on whom |
+| Deployment (a cleanup close that `flow-deploy` calls) | every part | the run named in step 1 of `flow-deploy`; per environment the identity served, the health and the functional acceptance, each as met, failed, blocked or "not run"; the triggers decided; the CI failures from before that step 5 of `flow-deploy` let pass; the tickets waiting on a check |
+| `hold` | what is pending, the defect's proof, Try it and Principles | none |
 | Pause outside `hold` | as `hold` | the commit of the change folder |
 
 ## Findings at the close

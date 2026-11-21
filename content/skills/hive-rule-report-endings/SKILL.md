@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Read before you end a message that reports, hands over or closes, or offer a single action that changes no repository file. Find the row that fits.
 
-Three reports end differently: an analysis, a hand-over to another flow and a close. Every message that closes work ends with the waiting line, whichever row it takes.
+Each row below ends a message differently. Every message that closes work ends with the waiting line, whichever row it takes.
 
 | Way of ending | It ends with |
 | --- | --- |
@@ -36,10 +36,10 @@ When the block leads from an approved plan to its build in the same session, or 
 - **See the findings**, with their count and highest severity, such as "see the 3 findings (1 P1)"; it shows the table and the round of [findings at the close](../hive-rule-close-report/SKILL.md#findings-at-the-close).
 - **Explain a finding or a result**, naming it.
 - **Turn a candidate into a mechanism**, naming it: only for a candidate whose record counts two sessions or more; it enters `flow-build` as **Resolve findings now** does.
-- **Find the next ticket**, run only when the user picks it, as [Find the next ticket](../hive-rule-close-report/SKILL.md#findings-at-the-close) sets.
+- **Find the next ticket**, run only when the user picks it, as [Find the next ticket](../hive-mode/playbooks/ticket-status.md#find-the-next-ticket) sets.
 - **Hygiene**, with the count of pending items as [batch archive](../flow-close/references/batch-archive.md) step 1 counts them: delivers them as that reference sets; only while one is pending.
 - **Continue** with what remains of the work, naming it, such as the next phase of a plan in progress.
-- **Offer a `create-report` page**, only when the user asks to keep or share the report or it exceeds what fits on one screen, as [close report](../hive-rule-close-report/SKILL.md#final-report) sets.
+- **Offer a `create-report` page**, as [close report](../hive-rule-close-report/SKILL.md#final-report) sets.
 
 ## Same-turn continuations
 

@@ -202,13 +202,14 @@ func leafProblems(root string) []string {
 		if data, err := os.ReadFile(path); err == nil {
 			text := string(data)
 			name := filepath.Base(path)
+			reporting := playbookReporting(text)
 			for _, want := range []string{playbookEndingsLink, playbookReportLink, playbookReportModes} {
-				if !strings.Contains(text, want) {
+				if !strings.Contains(reporting, want) {
 					problems = append(problems, fmt.Sprintf("playbook %s lacks %q in its reporting line", name, want))
 				}
 			}
-			if name == "pr-review-deploy.md" && !strings.Contains(text, "deployment row of") {
-				problems = append(problems, fmt.Sprintf("playbook %s lacks the deployment row of close report", name))
+			if playbookHasStage(text, "flow-deploy") && !strings.Contains(reporting, "deployment row of") {
+				problems = append(problems, fmt.Sprintf("playbook %s lacks the deployment row of close report in its reporting line", name))
 			}
 			for _, mode := range playbookModeNames(text) {
 				problems = append(problems, fmt.Sprintf("playbook %s names the delivery mode %s outside the phrase %q", filepath.Base(path), mode, playbookModePhrase))
@@ -229,6 +230,28 @@ func leafProblems(root string) []string {
 	}
 	sort.Strings(problems)
 	return problems
+}
+
+// playbookReporting returns the paragraph that starts with **Reporting.**, or
+// an empty string when the playbook has none.
+func playbookReporting(text string) string {
+	for _, para := range strings.Split(text, "\n\n") {
+		if strings.HasPrefix(strings.TrimSpace(para), "**Reporting.**") {
+			return para
+		}
+	}
+	return ""
+}
+
+// playbookHasStage reports whether the paragraph that starts with **Stages.**
+// links the named flow.
+func playbookHasStage(text, flow string) bool {
+	for _, para := range strings.Split(text, "\n\n") {
+		if strings.HasPrefix(strings.TrimSpace(para), "**Stages.**") {
+			return strings.Contains(para, flow+"/SKILL.md")
+		}
+	}
+	return false
 }
 
 // playbookModeNames returns each delivery mode a playbook names in backticks
