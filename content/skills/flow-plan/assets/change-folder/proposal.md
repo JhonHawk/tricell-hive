@@ -57,6 +57,10 @@ None: the build needs nothing from outside the repository.
 
 - <external fact> · <read-only command or source> · <result, or not measured> · <date>
 
+<!-- One line per command a task's `Verification:` line names, as flow-plan step 3 sets: the command, its result or not measured, and the date. Delete this comment. -->
+
+- <verification command> · <result, or not measured with the task that meets it first> · <date>
+
 ## Effects
 
 <!-- One line per class of effect asked in the plan's effects round. Keep this heading in English, whatever the session language, like `Observed in:`: flow-deploy looks for it. When the plan foresees no effect on an external system, keep only the `None:` line; otherwise delete the `None:` line and keep one line per class. Delete this comment. -->

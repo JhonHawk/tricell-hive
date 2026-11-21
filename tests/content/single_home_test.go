@@ -57,6 +57,7 @@ var homePhrases = []homePhrase{
 	{"Never delete a rule's line or change the rule it states", "content/skills/hive-rule-business-record/SKILL.md"},
 	{"Leave every other character of the description as it was", "content/skills/hive-rule-business-ticket/SKILL.md"},
 	{"Measure each one with a read-only read", "content/skills/hive-rule-external-facts/SKILL.md"},
+	{"run each command it names once on the base", "content/skills/flow-plan/SKILL.md"},
 	{"A class the user approved is the user's instruction for each effect of that class", "content/skills/hive-rule-external-effects/SKILL.md"},
 	{"Fix the data contract each changed screen consumes", "content/skills/hive-rule-ui-plan/SKILL.md"},
 	{"has an approved example; one still pending approval settles nothing", "content/skills/hive-rule-ui-example/SKILL.md"},
