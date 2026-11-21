@@ -1,0 +1,10 @@
+{
+  "stage": [
+    "hive-core/references/close-modes.md",
+    "hive-core/references/ticket-state.md",
+    "hive-core/references/close-hygiene.md",
+    "hive-core/references/close-report.md",
+    "hive-core/references/business-rules.md",
+    "flow-close/references/support-material.md"
+  ]
+}

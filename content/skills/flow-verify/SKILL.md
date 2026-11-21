@@ -5,6 +5,8 @@ description: "Verify a built candidate before it is accepted: current evidence f
 
 # Verify a built candidate
 
+At entry, read `stage-entry.md` in this skill's folder whole: it holds the leaves verification-floor, no-comments, blast-radius, prose, suppression-review, project-verification, checks, checkpoint. At step 2, read `stage-exit.md` there whole: it holds reviewer-brief, questions, review-findings, merge-gate, pr-reviews. A step that links one of those leaves needs no new read until a compaction, after which read again each packet already read. If a packet is missing, read the linked leaves instead; if its last line is not its packet end line, read the rest; if a `## ` heading the end line names is missing, read that leaf; and if the output says it was cut, read the linked leaves.
+
 For explicit E2E work, read [coordination](../flow-build/references/e2e-coordination.md) before accepting owner returns. Before the real-path walk, read [project verification](../hive-core/references/project-verification.md). For every candidate, read [suppression review](../hive-core/references/suppression-review.md), including when the chosen review is native or there is no dedicated review; supply it in review requirements and keep missing coverage unverified.
 
 For a UI change, the primary producer publishes the walk's captures as [walkthrough](../hive-core/references/walkthrough.md) sets, and reads [UI verification](../hive-core/references/ui-verification.md) for the verification and capture scope.

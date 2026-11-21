@@ -5,6 +5,8 @@ description: Prepare an authorized Git delivery while preserving unrelated work,
 
 # Deliver an authorized Git change
 
+At entry, read `stage.md` in this skill's folder whole: it holds the leaves git-commit, foreign-commits, pr-reviews, merge-gate, prose, so a step that links one of them needs no new read until a compaction, after which read the packet again. If it is missing, read the linked leaves instead; if its last line is not its packet end line, read the rest; if a `## ` heading the end line names is missing, read that leaf; and if the output says it was cut, read the linked leaves.
+
 Global «Scope and authorization» and «Delivery» authorize effects. For E2E assignments, read [coordination](../flow-build/references/e2e-coordination.md) before Git actions.
 
 **State read.** Where a step below reads Git or pull-request state, run `python3 -I <git-workflow-dir>/scripts/git_state.py --base <base>` ([state](scripts/git_state.py)), adding `--fetch` where the step fetches, `--pr <n>` for a pull request that is not the branch's open one, and `--since <push time>` at step 7; it prints that step's facts as JSON. When it is missing or exits 2, run the step's own commands; when it exits 1, read each field that holds `error`, and a pull request marked unavailable, with those commands. After a failed fetch it compares nothing: neither do you until a fetch succeeds. It decides nothing: which commits are this work's, which account is a bot and whether a thread still applies stay with the steps below.

@@ -1707,6 +1707,13 @@ var leafReadVerb = regexp.MustCompile(`^(cat|sed|head|tail|less|more|bat|nl|awk|
 // program prints files, it names the path, and it redirects nothing, so a
 // heredoc or a commit message that mentions the path is no read.
 func shellReadsLeaf(args []string, leaf string) bool {
+	return shellReadsPattern(args, leafPathPattern(leaf))
+}
+
+// shellReadsPattern reports whether a shell segment prints a file whose path
+// pattern matches: a program that prints files, no redirection, and an argument
+// that names the path.
+func shellReadsPattern(args []string, path *regexp.Regexp) bool {
 	if len(args) < 2 || !leafReadVerb.MatchString(filepath.Base(args[0])) {
 		return false
 	}
@@ -1715,7 +1722,7 @@ func shellReadsLeaf(args []string, leaf string) bool {
 			return false
 		}
 	}
-	return namesLeafPath(strings.Join(args[1:], " "), leaf)
+	return path.MatchString(strings.Join(args[1:], " "))
 }
 
 // namesLeaf reports whether a call read the leaf's file: the Read tool on its
@@ -1844,26 +1851,34 @@ func ticketMoveShell(args []string) bool {
 // Status: fail when an observed action has no read before it; review when the
 // only gap is a shell command the host withheld before it (the read could be
 // in it); pass when every observed class was read; not_observed ("not
-// exercised") when the session has no such action. Only the first action of a
+// exercised") when the session has no such action, or when the only read is of
+// a stage packet whose result does not show the leaf whole (packetNamesLeaf). Only the first action of a
 // class is checked, so a read lost to a compaction is not seen. Reads are
 // those namesLeaf accepts.
 func leafReadBeforeAction(s auditSession) criterionAssessment {
 	c := criterionAssessment{Criterion: "leaf_read_before_action", Status: "not_observed", Evidence: []string{}}
 	seen := map[string]bool{}
-	var failed, review, passed []string
+	var failed, review, unverified, passed []string
 	for i, e := range s.Trace.Events {
 		for _, a := range leafActionsIn(e, s.Cwd) {
 			if seen[a.class] {
 				continue
 			}
 			seen[a.class] = true
-			read, withheld := a.readInCommand, false
-			for _, prior := range s.Trace.Events[:i] {
-				if namesLeaf(prior, a.leaf) {
+			read, withheld, unseen := a.readInCommand, false, false
+			prior := s.Trace.Events[:i]
+			for j, p := range prior {
+				if namesLeaf(p, a.leaf) {
 					read = true
 					break
 				}
-				if prior.Kind == "shell" && prior.CommandWithheld {
+				packetRead, packetUnverified := packetNamesLeaf(prior, j, a.leaf)
+				if packetRead {
+					read = true
+					break
+				}
+				unseen = unseen || packetUnverified
+				if p.Kind == "shell" && p.CommandWithheld {
 					withheld = true
 				}
 			}
@@ -1873,6 +1888,8 @@ func leafReadBeforeAction(s auditSession) criterionAssessment {
 				passed = append(passed, line)
 			case withheld:
 				review = append(review, line)
+			case unseen:
+				unverified = append(unverified, line+": a stage packet was read but its result does not show the leaf whole")
 			default:
 				failed = append(failed, line)
 			}
@@ -1883,6 +1900,8 @@ func leafReadBeforeAction(s auditSession) criterionAssessment {
 		c.Status, c.Evidence = "fail", failed
 	case len(review) > 0:
 		c.Status, c.Evidence = "review", review
+	case len(unverified) > 0:
+		c.Evidence = unverified
 	case len(passed) > 0:
 		c.Status, c.Evidence = "pass", passed
 	}

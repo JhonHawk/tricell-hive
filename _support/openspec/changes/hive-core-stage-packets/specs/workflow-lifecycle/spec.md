@@ -110,11 +110,27 @@ Each of the 13 playbooks of `hive-mode` SHALL carry one reporting line that link
 ## ADDED Requirements
 
 ### Requirement: A flow reads its stage packet and records it in the checkpoint
-A flow that has a stage packet SHALL tell the agent, at its entry, to read that packet whole and not to read again the leaves it holds, to read the linked leaves when the packet is missing, and SHALL keep its link to each leaf for the moments outside the packet. The work's checkpoint SHALL carry a line `- Rules: <packet path relative to the skills store> · extra: <conditional leaves read>`, such as `- Rules: flow-build/stage.md · extra: defect-fix`, written by `tasks.py <change-folder> checkpoint --rules` for a change folder, kept by later checkpoint calls that omit `--rules`, accepted by `check_change.py` when well formed and rejected otherwise, and written by hand in the checkpoint file of a plan kept in the conversation. After a compaction the agent SHALL read, in this order, the checkpoint, the local instruction files, the packet its `Rules:` line names, or the leaves its flow links when that packet is missing, the extra leaves, and then persistent memory, before its next step; the global core SHALL state this order in one line, and no other file under `content/` SHALL state a different one.
+A flow that has a stage packet SHALL tell the agent, at its entry, to read that packet whole and not to read again the leaves it holds, to read the linked leaves when the packet is missing, and SHALL keep its link to each leaf for the moments outside the packet. The work's checkpoint SHALL carry a line `- Rules: <packet path relative to the skills store> · extra: <conditional leaves read>`, such as `- Rules: flow-build/stage.md · extra: defect-fix`, written by `tasks.py <change-folder> checkpoint --rules` for a change folder, kept by later checkpoint calls that omit `--rules`, accepted by `check_change.py` when well formed and rejected otherwise, and written by hand in the checkpoint file of a plan kept in the conversation. The checkpoint SHALL also carry a line `- Principles: <value>`, where the value is `none` or one or more principle names matching `[a-z0-9-]+` separated by `, `, so the line `flow-build` hands to `flow-close` survives a compaction or a new session. `tasks.py <change-folder> checkpoint --principles` SHALL add its names to those the line holds, without duplicates, SHALL write `none` only when the line holds no name, SHALL replace `none` with the first name added after it, and SHALL never remove the line; a later call without `--principles` SHALL keep it, and `check_change.py` SHALL reject an empty or malformed value, including `none` together with a name. `flow-build` SHALL record a principle when it changes a decision and SHALL record `none` at its last step when the line is absent; `flow-close` SHALL read the line before its cleanup removes the checkpoint, and the **Principles** part of the final report SHALL come from it. After a compaction the agent SHALL read, in this order, the checkpoint, the local instruction files, the packet its `Rules:` line names, or the leaves its flow links when that packet is missing, the extra leaves, and then persistent memory, before its next step; the global core SHALL state this order in one line, and no other file under `content/` SHALL state a different one.
 
 #### Scenario: The checkpoint keeps the rules line
 - **WHEN** `tasks.py <folder> checkpoint --rules "flow-build/stage.md · extra: defect-fix"` runs and a later checkpoint call omits `--rules`
 - **THEN** `## Checkpoint` still holds the same `- Rules:` line and `check_change.py` exits 0.
+
+#### Scenario: The checkpoint keeps the principles line
+- **WHEN** `tasks.py <folder> checkpoint --principles "boundary-discipline"` runs and a later checkpoint call omits `--principles`
+- **THEN** `## Checkpoint` still holds `- Principles: boundary-discipline` and `check_change.py` exits 0.
+
+#### Scenario: Principles accumulate
+- **WHEN** `--principles "boundary-discipline"` runs, then `--principles "model-the-domain, boundary-discipline"`, then `--principles none`
+- **THEN** `## Checkpoint` holds `- Principles: boundary-discipline, model-the-domain`.
+
+#### Scenario: A name replaces none
+- **WHEN** `--principles none` runs, then `--principles "boundary-discipline"`
+- **THEN** `## Checkpoint` holds `- Principles: boundary-discipline`.
+
+#### Scenario: A malformed principles line
+- **WHEN** `## Checkpoint` holds `- Principles:` with an empty value
+- **THEN** `check_change.py` prints the line and exits non-zero.
 
 #### Scenario: A malformed rules line
 - **WHEN** `## Checkpoint` holds `- Rules:` with no packet path

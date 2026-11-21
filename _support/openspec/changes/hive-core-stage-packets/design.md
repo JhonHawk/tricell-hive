@@ -70,7 +70,7 @@ Las anclas se conservan: cada hoja mantiene sus encabezados, y `references.go` v
     - el resto, relativo a la carpeta del flujo.
 - Validación: `validateRelease` genera cada paquete, lo añade a la lista de archivos y anclas de `validateInstructionReferences` y valida su tamaño, sus líneas y sus enlaces, como si fuera `content/skills/<flujo>/<clave>.md`.
 - Registro: `validRecordedStagePacket` acepta el registro, y `rejectHandWrittenPolicies` rechaza un `stage*.md` en el fuente.
-- Línea de entrada del flujo, en texto y no como enlace, porque el archivo no existe en el fuente: «Read `stage.md` in this skill's folder whole; it holds <hojas>, so do not read them again. If it is missing, read the linked leaves.»
+- Línea de entrada del flujo, en texto y no como enlace, porque el archivo no existe en el fuente: «At entry, read `stage.md` in this skill's folder whole: it holds the leaves <hojas>, so a step that links one of them needs no new read until a compaction, after which read the packet again.» Sigue el respaldo: si falta, las hojas enlazadas; si falta la línea de fin, el resto; si falta un encabezado, esa hoja; si la salida dice que se cortó, las hojas enlazadas.
 - Fin del paquete: la última línea es `<!-- hive packet end: <clave> · <miembro>,<miembro>,… -->`.
 - La línea de entrada del flujo añade: «If its last line is not the packet end line, read the rest».
 - Nombre de miembro: su ruta del manifiesto sin `.md`, por ejemplo `## hive-core/references/questions`.
@@ -99,7 +99,7 @@ Lecturas estimadas en la ruta plan→build: ~26 frente a 39. La prueba de huella
 
 **Checkpoint y cierre (E3)**
 
-- `tasks.py checkpoint --rules "flow-build/stage.md · extra: defect-fix"` escribe `- Rules:` en `## Checkpoint`. Igual que `--worktree`, las llamadas siguientes la conservan, y `check_change.py` valida su forma. Un plan que se queda en la conversación escribe la misma línea a mano.
+- `tasks.py checkpoint --rules "flow-build/stage.md · extra: defect-fix"` escribe `- Rules:` en `## Checkpoint`, y `--principles "boundary-discipline"` escribe `- Principles:` (D13 A), para que la línea que `flow-build` pasa a `flow-close` sobreviva una compactación. Su valor es `none` o nombres `[a-z0-9-]+` separados por `, `; el flag une nombres sin duplicados, un nombre reemplaza `none` y nada borra la línea; `flow-close` la lee en su paso 2, antes de borrar el checkpoint. Igual que `--worktree`, las llamadas siguientes la conservan, y `check_change.py` valida su forma. Un plan que se queda en la conversación escribe la misma línea a mano.
 - Orden tras compactar, dicho en una línea de `global.md` y en la hoja `checkpoint`: checkpoint, `HIVE.local.md`, el paquete de `Rules:`, sus extras y la memoria persistente.
 - `Reply:` en 7 flujos: la fila de `report-endings` o `close-report` que termina el flujo, más lo que el flujo añade y la fila no tiene.
 

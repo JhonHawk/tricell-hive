@@ -169,7 +169,7 @@
 
 ### T6 — El manager genera los paquetes por etapa y la auditoría los reconoce
 
-- [ ] El manager genera un paquete por clave de cada `<flujo>/assets/stage.json`, como fija el delta de `versioned-installation`:
+- [x] El manager genera un paquete por clave de cada `<flujo>/assets/stage.json`, como fija el delta de `versioned-installation`:
   - lo registra y lo instala;
   - lo genera con la concatenación de sus miembros bajo `## <nombre>`;
   - reescribe sus enlaces y valida el paquete generado;
@@ -227,7 +227,7 @@
 
 ### T7 — Manifiestos, línea de entrada de cada flujo y huella
 
-- [ ] Los ocho flujos y la huella quedan así:
+- [x] Los ocho flujos y la huella quedan así:
   - cada uno tiene `assets/stage.json` con la membresía de `design.md`, recalculada sobre la base de E2;
   - la suma de miembros de cada paquete da ≤ 23,000 B, y el paquete ya generado ≤ 24,000 B en la prueba del manager;
   - cada flujo dice al entrar que lea su paquete entero, que no relea sus hojas y que, si falta, lea las hojas enlazadas;
@@ -260,7 +260,7 @@
 
 ### T8 — La línea `Rules:` del checkpoint y el orden tras compactar
 
-- [ ] `tasks.py checkpoint --rules` escribe y conserva `- Rules:`, y `check_change.py` la acepta bien formada y la rechaza mal formada. La hoja del checkpoint y una línea de `global.md` dicen el orden tras compactar: checkpoint, `HIVE.local.md`, paquete, extras y memoria. Las líneas de `global.md` que hoy nombran pasos tras compactar (`:46`, `:90`, `:126` en `7f6277e0`) quedan reconciliadas con ese orden, sin otro orden en `content/`.
+- [ ] `tasks.py checkpoint --rules` escribe y conserva `- Rules:`, y `--principles` escribe y conserva `- Principles:` (D13 A); `check_change.py` acepta cada línea bien formada y la rechaza mal formada. `--principles` une nombres sin duplicados, un nombre reemplaza `none` y ningún valor borra la línea. `flow-build` escribe `Principles:` cuando un principio cambia una decisión, o `none` en su paso 5 si no existe; `flow-close` la lee en su paso 2 y `close-report` toma de ella la parte **Principles**. La hoja del checkpoint y una línea de `global.md` dicen el orden tras compactar: checkpoint, `HIVE.local.md`, paquete, extras y memoria. Las líneas de `global.md` que hoy nombran pasos tras compactar (`:46`, `:90`, `:126` en `7f6277e0`) quedan reconciliadas con ese orden, sin otro orden en `content/`.
 
 **Closes:** AC8
 
@@ -269,6 +269,7 @@
 **Locations:**
 - `content/skills/flow-plan/scripts/{tasks.py,check_change.py}` y `assets/change-folder/tasks.md`;
 - `content/skills/hive-core/references/checkpoint.md`;
+- `content/skills/flow-build/SKILL.md` (paso 2 y paso 5), `content/skills/flow-close/SKILL.md` (pasos 2 y 6) y `content/skills/hive-core/references/close-report.md` (parte **Principles**);
 - `content/guidance/global.md`;
 - `tests/skills/{tasks_test.py,change_check_test.py}`;
 - `specs/workflow-lifecycle/spec.md` de esta carpeta.
@@ -278,12 +279,16 @@
 **Test approach:** tdd (los scripts guardan el estado de reanudación)
 
 **Changes:**
-- El flag sigue el patrón de `--worktree`.
+- `--rules` sigue el patrón de `--worktree`; `--principles` se conserva igual cuando se omite, pero une y no borra, como sigue.
+- `Principles:` guarda los nombres de los principios, no su texto: `none`, o uno o más nombres `[a-z0-9-]+` separados por `, `, cada uno el nombre de la skill sin el prefijo `hive-principle-` (como `boundary-discipline`), o el de la skill u hoja que el índice de principios enlaza (como `hive-typescript` o `defect-fix`). `check_change.py` comprueba solo esa forma, no una lista instalada, y rechaza un valor vacío.
+- `--principles` une los nombres nuevos a los que ya tiene la línea, sin duplicados y en orden de llegada; `none` es un valor literal que solo se escribe si la línea no tiene nombres, el primer nombre que llega después lo reemplaza, y ningún valor del flag la borra. `check_change.py` rechaza `none` junto con un nombre. Las llamadas sin `--principles` la conservan.
+- `flow-build` escribe `--principles <nombres>` en el paso 2 cuando un principio cambia una decisión, y `--principles none` en el paso 5 si la línea todavía no existe. Con un plan en la conversación se escribe igual a mano en su archivo de checkpoint.
+- `flow-close` toma la línea `Principles:` del checkpoint en su paso 2, junto con el inventario, antes de que el paso 5 borre el checkpoint, y el paso 6 la usa para la parte **Principles**.
 - La ruta es relativa al almacén de skills.
 - La línea del orden en `global.md` y la hoja `checkpoint` dicen que, si el paquete falta, se leen las hojas que enlaza el flujo.
 
 **Verification:**
-- `python3 -I -m unittest discover -s <worktree>/tests/skills -p '*_test.py'` termina con exit 0, con casos nuevos de escritura, conservación y rechazo.
+- `python3 -I -m unittest discover -s <worktree>/tests/skills -p '*_test.py'` termina con exit 0, con casos nuevos de escritura, conservación y rechazo para `--rules` y `--principles`, de unión sin duplicados, de `none` literal que no borra nombres, de un nombre que reemplaza `none`, del rechazo de `none, <nombre>`, y de la ruta del registro de ejecución (`tasks.py execution`) con los dos flags.
 - `go -C <worktree> test -count=1 ./tests/content/...` termina con exit 0.
 - `rg -n 'compact' <worktree>/content` no muestra ningún otro orden.
 
@@ -311,7 +316,7 @@
 
 ### T10 — Documentación de paquetes, checkpoint y cierre
 
-- [ ] Estos documentos describen los paquetes, la línea `Rules:`, el orden tras compactar y la línea `Reply:`, cada uno en el PR que los introduce:
+- [ ] Estos documentos describen los paquetes, las líneas `Rules:` y `Principles:`, el orden tras compactar y la línea `Reply:`, cada uno en el PR que los introduce:
   - `deployment-manager.md`, `instruction-resources.md` y `compaction-survival.md`;
   - el sitio y `CHANGELOG.md`;
   - `README.md` y `llms.txt`, si cambia algo de lo que declaran.
@@ -336,17 +341,17 @@
 
 ### E1 — PR `refactor/hive-core-sheets` (T1–T5) · depends on: none · files: content/skills/hive-core/, content/, tests/content/, tests/pilot/, tests/skills/, tooling/, site/, _support/docs/, README.md, llms.txt, AGENTS.md, CHANGELOG.md
 
-- [ ] unit: go -C <worktree> test -count=1 ./... y python3 -I -m unittest discover -s <worktree>/tests/skills -p '*_test.py'
-- [ ] live: hive update --source <worktree> --dry-run con el binario del worktree · pass: retira las carpetas hive-rule-* y añade hive-core, sin cambios fuera de las rutas de E1, sus roles renderizados y los bloques globales
-- [ ] perf: n/a: mudanza sin cambio de lectura
+- [x] unit: go -C <worktree> test -count=1 ./... y python3 -I -m unittest discover -s <worktree>/tests/skills -p '*_test.py'
+- [x] live: hive update --source <worktree> --dry-run con el binario del worktree · pass: retira las carpetas hive-rule-* y añade hive-core, sin cambios fuera de las rutas de E1, sus roles renderizados y los bloques globales
+- [x] perf: n/a: mudanza sin cambio de lectura
 
 ### E2 — PR `feat/stage-packets` (T6, T7, T10 parte paquetes) · depends on: E1 · files: tooling/management/, content/skills/*/assets/stage.json, content/skills/*/SKILL.md, content/guidance/global.md, tests/content/, tests/pilot/, docs
 
-- [ ] unit: go -C <worktree> test -count=1 ./... y python3 -I -m unittest discover -s <worktree>/tests/skills -p '*_test.py'
-- [ ] live: bin=$(mktemp) && go -C <worktree> build -o "$bin" ./tooling/cli && "$bin" update --source <worktree> --dry-run · pass: un stage.md por flujo con manifiesto y dos en flow-verify, cada uno ≤ 24,000 B
-- [ ] perf: lecturas declaradas plan/build · base: 39 · fail: > 26
+- [x] unit: go -C <worktree> test -count=1 ./... y python3 -I -m unittest discover -s <worktree>/tests/skills -p '*_test.py'
+- [x] live: bin=$(mktemp) && go -C <worktree> build -o "$bin" ./tooling/cli && "$bin" update --source <worktree> --dry-run · pass: un stage.md por flujo con manifiesto y dos en flow-verify, cada uno ≤ 24,000 B
+- [x] perf: lecturas declaradas plan/build · base: 39 · fail: > 26
 
-### E3 — PR `feat/stage-rules-reply` (T8, T9, T10 parte checkpoint y cierre) · depends on: E2 · files: content/skills/flow-plan/, content/skills/hive-core/references/checkpoint.md, content/guidance/global.md, 7 SKILL.md, tests/skills/, tests/content/, docs
+### E3 — PR `feat/stage-rules-reply` (T8, T9, T10 parte checkpoint y cierre) · depends on: E2 · files: content/skills/flow-plan/, content/skills/hive-core/references/checkpoint.md, content/skills/hive-core/references/close-report.md, content/skills/flow-close/SKILL.md, content/guidance/global.md, 7 SKILL.md, tests/skills/, tests/content/, docs
 
 - [ ] unit: go -C <worktree> test -count=1 ./... y python3 -I -m unittest discover -s <worktree>/tests/skills -p '*_test.py'
 - [ ] live: tras el merge de E3 y tu aviso, binario reconstruido (archivo temporal + mv), luego hive update --source <checkout> --out <archivo> y hive apply --plan <archivo> (D9 A) · pass: hive status sin drift, hive-core y los paquetes instalados en los 7 hosts, ninguna carpeta hive-rule-* instalada
@@ -368,11 +373,11 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: verify · E1 step 2 code review
-- Last commit: 13e8b55e
-- Open findings: none
-- Next: leer hallazgos de /code-review; una ronda de arreglos; push + PR E1 + merge gate. Al finalizar el build (tras E3), actualizar el artifact «Skills de Hive» https://claude.ai/artifact/77U7EN4pUTcEtiAijziLxE (pedido del usuario 2026-11-21)
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/hive-core-stage-packets · refactor/hive-core-sheets
+- Stage: verify · E2 push
+- Last commit: 8d16e080
+- Open findings: E2 /code-review (no bloqueantes, al cierre): marcador de corte entre corchetes no reconocido; un corte en un paquete marca incompletos los demás de la misma salida; flow-verify sin fixture de sesión cut-…-fail; nit global.md regla nueva en el núcleo (AC6 la exige) · decisión: findings del cierre
+- Next: push + PR E2 + merge; luego E3 (T8, T9, T10 checkpoint/cierre) en rama feat/stage-rules-reply. Al finalizar el build (tras E3), actualizar el artifact «Skills de Hive» https://claude.ai/artifact/77U7EN4pUTcEtiAijziLxE
+- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/hive-core-stage-packets · feat/stage-packets
 
 ### Evidence
 
@@ -382,6 +387,9 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 - AC16 sweep sobre el worktree: sin salida
 - dry-run E1 con binario del worktree: 708 archivos, 60 hive-rule retirados, un openai.yaml en hive-core
 - verify E1 paso 1: comentarios añadidos = doc comments (Keep); supresiones añadidas: ninguna; blast radius: hook de Grok cubre references/*.md; prueba real-content del manager resuelve cada enlace skill: (rung 4)
+- E1 integrado: PR #565 merge 89befa58 (2026-11-21); sin CI de PR ni de base (solo master-source-branch.yml)
+- suite E2 @93d7910f: vet 0, py 0 (71 s), go test ./... 0 (262 s); tras 8d16e080: tests/content y tests/pilot 0
+- dry-run E2 @8d16e080: 9 paquetes (uno por flujo, dos en flow-verify), validación de topes OK; huella plan/build 24 lecturas (base 39)
 
 ## Review status and progress
 
@@ -390,3 +398,5 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 2026-11-21 — T2 · b9e17031 · unverified: none
 2026-11-21 — T5 · 000c57fe · unverified: none
 2026-11-21 — T4 · 70f07007 · unverified: AC2: se observa en la instalación local tras el refresco posterior a E3; hoy solo prueba del manager y dry-run (sustitutos)
+2026-11-21 — T6 · f6a984cb · unverified: AC5: instalación tras el refresco posterior a E3; fixtures de lectura construidos con la forma real (1\t…), no copiados de una transcripción
+2026-11-21 — T7 · 4ad914c9 · unverified: none

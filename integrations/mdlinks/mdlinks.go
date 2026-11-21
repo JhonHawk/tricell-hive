@@ -101,3 +101,22 @@ func RewriteSkillLinks(body, dir string) string {
 	})
 	return out.String()
 }
+
+// MapOutsideFences applies f to every line of data that is ordinary text and
+// leaves fenced code and its delimiter lines as written. The result keeps the
+// line structure of data, so a trailing newline stays.
+func MapOutsideFences(data string, f func(line string) string) string {
+	var out strings.Builder
+	first := true
+	fenceScan(data, func(line string, kind lineKind) {
+		if !first {
+			out.WriteByte('\n')
+		}
+		first = false
+		if kind == textLine {
+			line = f(line)
+		}
+		out.WriteString(line)
+	})
+	return out.String()
+}

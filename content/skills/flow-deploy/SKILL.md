@@ -5,6 +5,8 @@ description: "Promote an integrated candidate through the declared environments 
 
 # Promote and verify what is served
 
+At entry, read `stage.md` in this skill's folder whole: it holds the leaves promotion-path, external-effects, merge-gate, pr-reviews, deployment-checks, so a step that links one of them needs no new read until a compaction, after which read the packet again. If it is missing, read the linked leaves instead; if its last line is not its packet end line, read the rest; if a `## ` heading the end line names is missing, read that leaf; and if the output says it was cut, read the linked leaves.
+
 ## Entry and exit
 
 This is a stage of its own, after integration, and one run can cover several tickets. Enter with an integrated, identified candidate (the commits on the base branch), and the repository's declared `Environments`; the authorization for each environment is asked in step 4. When these exist, enter directly, with no plan or build before it, and a request to promote or deploy is such an entry. The run's candidate and tickets are fixed when it starts; classify a request to change them as [scope changes](../hive-core/references/scope-changes.md) sets. Exit with, per environment, the served identity, the health and the functional acceptance each stated as met, failed, blocked, or "not run". A production defect whose fix is not integrated yet is not an entry: send it to [hive-mode](../hive-mode/SKILL.md) while its cause is unknown, or to [flow-build](../flow-build/SKILL.md) once it is known, and enter here with the integrated fix.

@@ -1,0 +1,9 @@
+{
+  "stage": [
+    "hive-core/references/git-commit.md",
+    "hive-core/references/foreign-commits.md",
+    "hive-core/references/pr-reviews.md",
+    "hive-core/references/merge-gate.md",
+    "hive-core/references/prose.md"
+  ]
+}

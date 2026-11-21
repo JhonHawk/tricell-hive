@@ -1,0 +1,9 @@
+{
+  "stage": [
+    "hive-core/references/delivery-ask.md",
+    "hive-core/references/external-effects.md",
+    "hive-core/references/questions.md",
+    "hive-core/references/delegation.md",
+    "hive-core/references/unattended-effects.md"
+  ]
+}
