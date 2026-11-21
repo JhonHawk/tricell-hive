@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | Completado · PR #554, merge dcf4ff0c |
 | Tracker | none · relacionado: #553 (router de reglas por tecnología, espera a este cambio) |
 | Git | tricell-hive · base `development` @ 27875867 · rama propuesta `refactor/global-guidance-slimming` |
 | Playbook | refactor |
