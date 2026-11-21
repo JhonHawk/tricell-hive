@@ -52,16 +52,25 @@ Revisión humana: leer el peldaño 2 nuevo y el texto del revisor en el diff.
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: build · T1
-- Last commit: 2eef1969
+- Stage: verify · 2 reviews
+- Last commit: b0b2f452
 - Open findings: none
-- Next: T1: edit rung 2, reviewer, single-home test, allowance
+- Next: await /code-review, then push and PR (ready)
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/reuse-sound-base · feat/reuse-sound-base
-- Rules: flow-build/stage.md
+- Rules: flow-verify/stage-entry.md, flow-verify/stage-exit.md
+- Principles: none
 
 ### Evidence
 
 - before captures: none (no screen)
+- go vet ./... · exit 0 · b0b2f452
+- go test ./... -count=1 · all ok · b0b2f452
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · 318 OK · b0b2f452
+- go test ./tests/content/ -count=1 · ok; union 194910 B < 194911 B; flow-build packet 22457 B · b0b2f452
+- pnpm --dir site check · 0 errors (install --offline exit 1, direct deps linked) · b0b2f452
+- local CI: only master-source-branch.yml (pull_request_target to master), not applicable to a PR to development · b0b2f452
+- walk AC1 (candidate file): 3 matches; AC2: reviewer lines present; AC3: 1 line; AC4: constant + test ok · b0b2f452; AC1/AC2 installed-file observation pending hive update after merge
+- no-comments: 1 added comment kept (allowance reason); suppressions: none · b0b2f452
 
 ## Estado de revisión y progreso
 
