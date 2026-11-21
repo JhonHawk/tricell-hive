@@ -38,6 +38,9 @@ var leafSizeExceptions = map[string]bool{
 	// One moment, the merge: the CI wait, the current base, the reviewer hold
 	// and the bypass grants that can lift it, read together before merging.
 	"hive-rule-merge-gate": true,
+	// One report in several variants (completion, open pull request,
+	// deployment, hold, pause) plus the findings at the close, read together.
+	"hive-rule-close-report": true,
 }
 
 // playbookKinds is the closed set of playbooks of hive-mode, one file each.

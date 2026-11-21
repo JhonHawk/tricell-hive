@@ -48,6 +48,7 @@ var homePhrases = []homePhrase{
 	{"Close a work item once", "content/skills/hive-rule-close-modes/SKILL.md"},
 	{"A finding is a defect the work found but did not fix", "content/skills/hive-rule-close-report/SKILL.md"},
 	{"A candidate is a repetition the work did not turn into a mechanism", "content/skills/hive-rule-close-report/SKILL.md"},
+	{"the delivery mode in force, or the flow that called the close, picks the row", "content/skills/hive-rule-close-report/SKILL.md"},
 	{"Take the first rung that fully does what the task needs", "content/skills/hive-rule-reuse-before-writing/SKILL.md"},
 	{"Name the realistic change to the code that would make it fail", "content/skills/hive-rule-tests/SKILL.md"},
 	{"pin its current behavior for those callers with a check through the real path", "content/skills/hive-rule-tests-no-runner/SKILL.md"},

@@ -6,7 +6,7 @@ Restricción de todas las tareas: `wc -c content/guidance/global.md` no crece so
 
 ### T1 — Inventario de oraciones y su destino
 
-- [ ] `inventory.md` en esta carpeta lista, oración por oración, cada regla de estas fuentes con su archivo y línea de origen y su destino (archivo y sección o fila), o «se borra: duplicado de <destino>», y estima los bytes de `report-endings` y `close-report` resultantes. Fuentes: `hive-rule-next-step-block`, `hive-rule-close-footer`, `hive-rule-report-endings`, `hive-rule-close-report`, la columna «Ends with» de `hive-rule-close-modes`; `git-workflow` pasos 9–10; `flow-deploy` pasos 6 y 8 y la línea 18; `flow-close` descripción y pasos 6 y 8; `unattended-delegation` líneas 15-16, 20 y 28; `hive-rule-merge-gate` líneas 9 y 14; las copias de la continuación (`hive-mode/SKILL.md:14,25-26`, `flow-build/SKILL.md:14,20`, `flow-plan/references/plan-handoff.md:21,28`); `global.md` «Questions and routes» (líneas 133-137) y las 62 líneas de «Rule leaves».
+- [x] `inventory.md` en esta carpeta lista, oración por oración, cada regla de estas fuentes con su archivo y línea de origen y su destino (archivo y sección o fila), o «se borra: duplicado de <destino>», y estima los bytes de `report-endings` y `close-report` resultantes. Fuentes: `hive-rule-next-step-block`, `hive-rule-close-footer`, `hive-rule-report-endings`, `hive-rule-close-report`, la columna «Ends with» de `hive-rule-close-modes`; `git-workflow` pasos 9–10; `flow-deploy` pasos 6 y 8 y la línea 18; `flow-close` descripción y pasos 6 y 8; `unattended-delegation` líneas 15-16, 20 y 28; `hive-rule-merge-gate` líneas 9 y 14; las copias de la continuación (`hive-mode/SKILL.md:14,25-26`, `flow-build/SKILL.md:14,20`, `flow-plan/references/plan-handoff.md:21,28`); `global.md` «Questions and routes» (líneas 133-137) y las 62 líneas de «Rule leaves».
 
 **Closes:** AC9
 
@@ -50,7 +50,7 @@ Restricción de todas las tareas: `wc -c content/guidance/global.md` no crece so
 
 **Execution:** hilo principal
 
-**Test approach:** check — `leaf_skill_test.go` añade `hive-rule-report-endings` a las excepciones de 7,000 B; `leaf_links_test.go` cambia la arista; `single_home_test.go` fija la frase de la tabla de finales.
+**Test approach:** check — `leaf_skill_test.go` da a `hive-rule-report-endings` su propia excepción de 9,000 B (D11 A); `leaf_links_test.go` cambia la arista; `single_home_test.go` fija la frase de la tabla de finales.
 
 **Changes:** `report-endings` conserva su nombre y la frase «Three reports end differently» (o se actualiza junto con `single_home_test.go:82`), porque `tests/pilot/session_audit_endings.go:14` y sus fixtures la citan por nombre.
 
@@ -172,3 +172,5 @@ Caminata humana: no hay pantalla; la validación es leer las dos hojas resultant
 ## Review status and progress
 
 2026-11-20 — Tareas escritas; reescritas tras la revisión del plan (orden: el inventario, luego los dos hogares, luego los flujos, la continuación, el índice y los playbooks).
+2026-11-21 — T1 · ab07dabd · unverified: none
+2026-11-21 — Revisión durante el build: D11 A da a `report-endings` una excepción de 9,000 B. Se decidieron sin preguntar `S12.13`, `S4.13`, `S5.3` y `S10.8`/`S10.15` (ver la respuesta del T2). No cambia ningún criterio ni el delta, y no invalida ninguna tarea.
