@@ -213,7 +213,7 @@ class ChangeCheckTest(unittest.TestCase):
         def with_lines(*extra):
             block = "\n    ## Checkpoint\n\n    - Next: T2\n" + "".join(f"    {line}\n" for line in extra) + "\n    ## Review status and progress"
             return TASKS.replace("\n    ## Review status and progress", block)
-        good = with_lines("- Rules: flow-build/stage.md · extra: defect-fix, tests", "- Principles: boundary-discipline, hive-typescript")
+        good = with_lines("- Rules: flow-verify/stage-entry.md, flow-verify/stage-exit.md · extra: defect-fix, tests", "- Principles: boundary-discipline, hive-typescript")
         with tempfile.TemporaryDirectory() as tmp:
             result = self.run_check(self.folder(tmp, tasks=good))
             self.assertEqual(result.returncode, 0, result.stdout)

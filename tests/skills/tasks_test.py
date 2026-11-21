@@ -217,6 +217,9 @@ class TasksScriptTest(unittest.TestCase):
             third = self.checkpoint(change, "verify", "1", "walk", "--rules", "flow-verify/stage-entry.md")
             self.assertEqual(third.returncode, 0, third.stderr)
             self.assertIn("- Rules: flow-verify/stage-entry.md\n", self.text(change))
+            both = self.checkpoint(change, "verify", "2", "reviews", "--rules", "flow-verify/stage-entry.md, flow-verify/stage-exit.md")
+            self.assertEqual(both.returncode, 0, both.stderr)
+            self.assertIn("- Rules: flow-verify/stage-entry.md, flow-verify/stage-exit.md\n", self.text(change))
             bad = self.checkpoint(change, "verify", "1", "walk", "--rules", "stage.md")
             self.assertEqual(bad.returncode, 2)
 

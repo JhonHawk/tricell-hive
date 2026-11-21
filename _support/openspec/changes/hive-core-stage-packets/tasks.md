@@ -316,7 +316,7 @@
 
 ### T10 — Documentación de paquetes, checkpoint y cierre
 
-- [ ] Estos documentos describen los paquetes, las líneas `Rules:` y `Principles:`, el orden tras compactar y la línea `Reply:`, cada uno en el PR que los introduce:
+- [x] Estos documentos describen los paquetes, las líneas `Rules:` y `Principles:`, el orden tras compactar y la línea `Reply:`, cada uno en el PR que los introduce:
   - `deployment-manager.md`, `instruction-resources.md` y `compaction-survival.md`;
   - el sitio y `CHANGELOG.md`;
   - `README.md` y `llms.txt`, si cambia algo de lo que declaran.
@@ -403,3 +403,4 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 2026-11-21 — T7 · 4ad914c9 · unverified: none
 2026-11-21 — T8 · 7415f709 · unverified: AC8 orden tras compactar: comportamiento del agente, no observable en pruebas
 2026-11-21 — T9 · 8fb08a4c · unverified: none
+2026-11-21 — T10 · a7c443f8 · unverified: none

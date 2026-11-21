@@ -30,8 +30,8 @@ Reads proposal.md, tasks.md, design.md and specs/**/*.md and prints one
   <predicate>`, `perf: <metric> · base: <value> · fail: <threshold>` (or `falla:`);
   a predicate written `n/a: <reason>` replaces pass, base and threshold;
 - without --archive, a malformed `- Rules:` or `- Principles:` line in the
-  `## Checkpoint` section of tasks.md: Rules is `<flow>/stage[-<name>].md`,
-  optionally followed by ` · extra: <leaf>, <leaf>`; Principles is `none` or
+  `## Checkpoint` section of tasks.md: Rules is one or more
+  `<flow>/stage[-<name>].md` joined by `, `, optionally followed by ` · extra: <leaf>, <leaf>`; Principles is `none` or
   principle names (`[a-z0-9-]+`) joined by `, `, never `none` with a name;
 - with --archive, each unchecked `- [ ]` box of tasks.md, then their count; a
   delivery-unit box written `n/a: <reason>` is not counted.
@@ -360,7 +360,8 @@ def execution_findings(folder, tasks):
 
 CHECKPOINT_HEADING = re.compile(r"^##\s+Checkpoint\s*$", re.IGNORECASE)
 LEAF_NAME = r"[a-z0-9]+(?:-[a-z0-9]+)*"
-RULES_LINE = re.compile(rf"^{LEAF_NAME}/stage(?:-[a-z]+)?\.md(?: · extra: {LEAF_NAME}(?:, {LEAF_NAME})*)?$")
+PACKET_PATH = rf"{LEAF_NAME}/stage(?:-[a-z]+)?\.md"
+RULES_LINE = re.compile(rf"^{PACKET_PATH}(?:, {PACKET_PATH})*(?: · extra: {LEAF_NAME}(?:, {LEAF_NAME})*)?$")
 PRINCIPLES_LINE = re.compile(rf"^(?:none|(?!none(?:,|$)){LEAF_NAME}(?:, (?!none(?:,|$)){LEAF_NAME})*)$")
 
 

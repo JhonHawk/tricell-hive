@@ -23,8 +23,9 @@ lines up to the next `##` or `###` heading.
   each --check adds one, a new --worktree replaces it and --worktree none removes it.
   --unwritten writes `- Unwritten: <text>` (what no file holds yet, asked at a pause) after
   the Worktree line; later calls keep it, a new value replaces it, `none` removes it.
-  --rules writes `- Rules: <flow>/<packet>.md[ · extra: <leaves>]`, the stage packet the
-  flow read and the conditional leaves read besides it, kept and replaced like --worktree.
+  --rules writes `- Rules: <flow>/<packet>.md[, <flow>/<packet>.md][ · extra: <leaves>]`, the
+  stage packets the flow read and the conditional leaves read besides them, kept and
+  replaced like --worktree.
   --principles writes `- Principles: <names>|none`, the code principles that changed a
   decision: new names join the line's names without duplicates, `none` is written only
   while the line holds no name and a name replaces it, and no value removes the line.
@@ -198,7 +199,8 @@ def cmd_done(lines, args):
     return lines, f"✓ {task['id']} · {done}/{len(tasks)} · {task['title']}"
 
 
-RULES_VALUE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*/stage(?:-[a-z]+)?\.md(?: · extra: [a-z0-9]+(?:-[a-z0-9]+)*(?:, [a-z0-9]+(?:-[a-z0-9]+)*)*)?$")
+PACKET_PATH = r"[a-z0-9]+(?:-[a-z0-9]+)*/stage(?:-[a-z]+)?\.md"
+RULES_VALUE = re.compile(rf"^{PACKET_PATH}(?:, {PACKET_PATH})*(?: · extra: [a-z0-9]+(?:-[a-z0-9]+)*(?:, [a-z0-9]+(?:-[a-z0-9]+)*)*)?$")
 PRINCIPLE_NAME = r"[a-z0-9]+(?:-[a-z0-9]+)*"
 PRINCIPLES_VALUE = re.compile(rf"^(?:none|(?!none(?:,|$)){PRINCIPLE_NAME}(?:, (?!none(?:,|$)){PRINCIPLE_NAME})*)$")
 
@@ -206,7 +208,7 @@ PRINCIPLES_VALUE = re.compile(rf"^(?:none|(?!none(?:,|$)){PRINCIPLE_NAME}(?:, (?
 def rules_value(value):
     value = single_line(value)
     if value != "none" and not RULES_VALUE.match(value):
-        raise argparse.ArgumentTypeError("expected '<flow>/stage[-<name>].md[ · extra: <leaf>, …]' or 'none'")
+        raise argparse.ArgumentTypeError("expected '<flow>/stage[-<name>].md[, …][ · extra: <leaf>, …]' or 'none'")
     return value
 
 
