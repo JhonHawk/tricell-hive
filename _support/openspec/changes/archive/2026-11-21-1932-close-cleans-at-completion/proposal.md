@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | Completado · PR #572, merge f80c6843 |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `2eef1969` · rama propuesta `feat/close-cleans-at-completion` |
 | Playbook | investigate → cambio de reglas (ninguno) |
