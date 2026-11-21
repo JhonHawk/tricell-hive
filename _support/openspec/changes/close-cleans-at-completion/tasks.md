@@ -58,7 +58,7 @@ Base `2eef1969` de `development`, rama `feat/close-cleans-at-completion`. T1 y T
 
 ### T3 — La auditoría falla lo que hoy marca como revisión
 
-- [ ] `close_before_branch_cleanup` y `merged_branch_deleted` cambian como fija `design.md`, con fixtures y pruebas.
+- [x] `close_before_branch_cleanup` y `merged_branch_deleted` cambian como fija `design.md`, con fixtures y pruebas.
 
 **Closes:** AC5, AC6
 
@@ -76,7 +76,7 @@ Base `2eef1969` de `development`, rama `feat/close-cleans-at-completion`. T1 y T
 
 ### T4 — Spec, sitio, README y registros
 
-- [ ] El delta de `workflow-lifecycle`, la página de cierre, README, `llms.txt` y `CHANGELOG.md` describen el cierre nuevo.
+- [x] El delta de `workflow-lifecycle`, la página de cierre, README, `llms.txt` y `CHANGELOG.md` describen el cierre nuevo.
 
 **Closes:** AC1, AC2, AC3, AC4
 
@@ -99,15 +99,22 @@ Base `2eef1969` de `development`, rama `feat/close-cleans-at-completion`. T1 y T
 2026-11-21 — T1 · 31ef6f14 · unverified: AC1–AC4 se observan en las hojas instaladas tras hive update
 2026-11-21 — T5 · 2852cc57 · unverified: none
 2026-11-21 — T2 · 50a4ccb6 · unverified: none
+2026-11-21 — T4 · bf451910 · unverified: AC1–AC4 en las hojas instaladas tras hive update
+2026-11-21 — T3 · 5f59dea2 · unverified: none
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: build · T1
-- Last commit: 2eef1969
+- Stage: verify · entry
+- Last commit: 5f59dea2
 - Open findings: none
-- Next: T1 via hive-write-docs child
+- Next: flow-verify: code review /code-review, walk AC1-AC7
 - Rules: flow-build/stage.md
+- Principles: none
 
 ### Evidence
 
 - before captures: none (no screen)
+- go test ./... · exit 0 · 5f59dea2
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · OK 321 tests · 5f59dea2
+- pnpm --dir site build · exit 0 · bf451910
+- CI: master-source-branch.yml only gates PRs into master; not applicable
