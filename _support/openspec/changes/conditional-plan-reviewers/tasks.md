@@ -4,7 +4,7 @@ Base `49ef7757` de `development`, rama `feat/conditional-plan-reviewers`. Todo c
 
 ### T1 — La referencia, el paso 5, «Revise» y los recortes
 
-- [ ] `plan-review.md` existe con la tabla, el tope y la reconciliación; el paso 5 y «Revise» la apuntan; los recortes y la tolerancia de D9 mantienen el presupuesto.
+- [x] `plan-review.md` existe con la tabla, el tope y la reconciliación; el paso 5 y «Revise» la apuntan; los recortes y la tolerancia de D9 mantienen el presupuesto.
 
 **Closes:** AC1, AC2, AC3
 
@@ -61,3 +61,5 @@ Tras integrar, la actualización local (`hive update --source`) instala el conte
 - before captures: none (no interface)
 
 ## Estado de la revisión y avance
+
+2026-11-21 — T1 · 2da238dd · unverified: AC1-AC3 are read in the installed files after hive update
