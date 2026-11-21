@@ -530,16 +530,20 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"round grok pass", "grok", round, []string{round, "grok-updates-pass.jsonl"}, auditOptions{}, "pass"},
 		{"round grok no user available", "grok", round, []string{round, "grok-updates-empty-card-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"round grok declined card is not an exemption", "grok", round, []string{round, "grok-updates-declined-card-fail.jsonl"}, auditOptions{}, "fail"},
-		{"close claude review", "claude", close, []string{close, "claude-project-review.jsonl"}, auditOptions{}, "review"},
+		{"close claude fail", "claude", close, []string{close, "claude-project-fail.jsonl"}, auditOptions{}, "fail"},
 		{"close claude pass", "claude", close, []string{close, "claude-project-pass.jsonl"}, auditOptions{}, "pass"},
 		{"close claude no deletion", "claude", close, []string{close, "claude-project-nodelete-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"close claude merge deletes the branch itself", "claude", close, []string{close, "claude-project-delete-branch-flag-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"close grok review", "grok", close, []string{close, "grok-updates-review.jsonl"}, auditOptions{}, "review"},
+		{"close grok fail", "grok", close, []string{close, "grok-updates-fail.jsonl"}, auditOptions{}, "fail"},
 		{"close grok pass", "grok", close, []string{close, "grok-updates-pass.jsonl"}, auditOptions{}, "pass"},
+		{"close report keeps a branch the session deleted", "claude", close, []string{close, "claude-project-kept-review.jsonl"}, auditOptions{}, "review"},
+		{"close report says a folder stays on master without the kept form", "claude", close, []string{close, "claude-project-stays-on-master-fail.jsonl"}, auditOptions{}, "fail"},
+		{"close report keeps a branch the session never deleted", "claude", close, []string{close, "claude-project-kept-other-branch-fail.jsonl"}, auditOptions{}, "fail"},
+		{"close deletion by the helper through a variable is a deletion", "claude", close, []string{close, "claude-project-variable-apply-pass.jsonl"}, auditOptions{}, "pass"},
 		{"close codex merge with unknown success is not a merge", "codex", close, []string{close, "codex-rollout-truncated-merge-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"close earlier merge is checked too", "claude", close, []string{close, "claude-project-two-merges-review.jsonl"}, auditOptions{}, "review"},
-		{"close local merge and push of base", "claude", close, []string{close, "claude-project-local-merge-review.jsonl"}, auditOptions{Base: "development"}, "review"},
-		{"close local merge without a base is not recognized", "claude", close, []string{close, "claude-project-local-merge-review.jsonl"}, auditOptions{Cwd: "elsewhere"}, "not_observed"},
+		{"close earlier merge is checked too", "claude", close, []string{close, "claude-project-two-merges-fail.jsonl"}, auditOptions{}, "fail"},
+		{"close local merge and push of base", "claude", close, []string{close, "claude-project-local-merge-fail.jsonl"}, auditOptions{Base: "development"}, "fail"},
+		{"close local merge without a base is not recognized", "claude", close, []string{close, "claude-project-local-merge-fail.jsonl"}, auditOptions{Cwd: "elsewhere"}, "not_observed"},
 		{"round codex typed timeout is not an empty card", "codex", round, []string{round, "codex-rollout-typed-timeout-fail.jsonl"}, auditOptions{}, "fail"},
 		{"round claude typed timeout is not an empty card", "claude", round, []string{round, "claude-project-typed-timeout-fail.jsonl"}, auditOptions{}, "fail"},
 		{"round grok typed text is not an empty card", "grok", round, []string{round, "grok-updates-typed-timeout-fail.jsonl"}, auditOptions{}, "fail"},
@@ -1043,5 +1047,77 @@ func TestLeafPathsOldAndNew(t *testing.T) {
 	}
 	if !namesLeaf(traceEvent{Kind: "read", Path: "/s/" + oldLeafPrefix + "question-channel/SKILL.md"}, leafQuestionRound) {
 		t.Error("the former questions name was not accepted")
+	}
+}
+
+func TestAuditMergedBranchDeletedThroughHelperVariable(t *testing.T) {
+	got := auditStatus(t, auditFixture(t, "claude", auditOptions{}, "existing_criteria", "claude-project-merged-variable-apply-pass.jsonl"), "merged_branch_deleted")
+	if got.Status != "pass" {
+		t.Fatalf("the helper run with --apply through a variable is a deletion: %+v", got)
+	}
+}
+
+func writeAgentsEnvironments(t *testing.T, environments string) string {
+	t.Helper()
+	dir := t.TempDir()
+	body := "# Guidance\n\n## Hive\n\n- Project: example\n- Base branch: development\n- Environments: " + environments + "\n"
+	if err := os.WriteFile(filepath.Join(dir, "AGENTS.md"), []byte(body), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	return dir
+}
+
+func TestAuditMergedBranchDeletedAfterTheSessionEnded(t *testing.T) {
+	const crit = "merged_branch_deleted"
+	const dir = "existing_criteria"
+	for _, c := range []struct {
+		name, host, file string
+	}{
+		{"claude", "claude", "claude-project-merged-end-fail.jsonl"},
+		{"codex", "codex", "codex-rollout-merged-end-fail.jsonl"},
+		{"grok", "grok", "grok-updates-merged-end-fail.jsonl"},
+	} {
+		got := auditStatus(t, auditFixture(t, c.host, auditOptions{}, dir, c.file), crit)
+		if got.Status != "fail" {
+			t.Errorf("%s: a merge left after the user ended the session must fail: %+v", c.name, got)
+		}
+	}
+	question := auditStatus(t, auditFixture(t, "claude", auditOptions{}, dir, "claude-project-merged-question-review.jsonl"), crit)
+	if question.Status != "review" {
+		t.Errorf("a question that holds an end phrase does not end the session: %+v", question)
+	}
+}
+
+func TestAuditMergedBranchDeletedPromotionAfterTheSessionEnded(t *testing.T) {
+	const crit = "merged_branch_deleted"
+	const dir = "existing_criteria"
+	base := auditOptions{Base: "development"}
+	if got := auditStatus(t, auditFixture(t, "claude", base, dir, "claude-project-promotion-head-review.jsonl"), crit); got.Status != "review" {
+		t.Errorf("a promotion whose head is the base must be review: %+v", got)
+	}
+	if got := auditStatus(t, auditFixture(t, "claude", base, dir, "claude-project-promotion-headrefname-review.jsonl"), crit); got.Status != "review" {
+		t.Errorf("a promotion whose head a headRefName read shows must be review: %+v", got)
+	}
+	if got := auditStatus(t, auditFixture(t, "claude", auditOptions{}, dir, "claude-project-promotion-head-review.jsonl"), crit); got.Status != "fail" {
+		t.Errorf("without a base the head development is a work branch: %+v", got)
+	}
+	qa := auditFixture(t, "claude", base, dir, "claude-project-promotion-qa-head-review.jsonl")
+	if got := auditStatus(t, qa, crit); got.Status != "fail" {
+		t.Errorf("a head outside the base and the Environments is a work merge: %+v", got)
+	}
+	withEnv := auditOptions{Base: "development", Cwd: writeAgentsEnvironments(t, "development \u2192 qa \u2192 master")}
+	if got := auditStatus(t, auditFixture(t, "claude", withEnv, dir, "claude-project-promotion-qa-head-review.jsonl"), crit); got.Status != "review" {
+		t.Errorf("a head listed in the Environments of the session AGENTS.md must be review: %+v", got)
+	}
+}
+
+func TestAuditMergedBranchDeletedKeptBranchAfterTheSessionEnded(t *testing.T) {
+	const crit = "merged_branch_deleted"
+	const dir = "existing_criteria"
+	if got := auditStatus(t, auditFixture(t, "claude", auditOptions{}, dir, "claude-project-merged-kept-end-review.jsonl"), crit); got.Status != "review" {
+		t.Errorf("kept for the branch of the merge, seen by --head, must be review: %+v", got)
+	}
+	if got := auditStatus(t, auditFixture(t, "claude", auditOptions{}, dir, "claude-project-merged-kept-unseen-head-fail.jsonl"), crit); got.Status != "fail" {
+		t.Errorf("a merge whose head the session does not show is a work merge: %+v", got)
 	}
 }
