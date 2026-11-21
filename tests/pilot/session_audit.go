@@ -1068,24 +1068,63 @@ func isHelperScript(tok string) bool {
 	return filepath.Base(tok) == "cleanup_branches.py"
 }
 
+var envAssignment = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
+
 // helperInvocation reports whether args run the cleanup script: the script is
-// the command, or the first positional argument of a python interpreter. A
+// the command, or the first positional argument of a python interpreter, after
+// leading VAR=value tokens and the wrappers env, timeout <n> and uv run. A
 // command that only names the script as an argument, such as a search, does not.
 func helperInvocation(args []string) bool {
-	if len(args) == 0 {
+	i := 0
+	skipAssignments := func() {
+		for i < len(args) && envAssignment.MatchString(args[i]) {
+			i++
+		}
+	}
+	skipAssignments()
+	for i < len(args) {
+		switch filepath.Base(args[i]) {
+		case "env":
+			i++
+			for i < len(args) && (strings.HasPrefix(args[i], "-") || envAssignment.MatchString(args[i])) {
+				i++
+			}
+			continue
+		case "timeout":
+			i++
+			for i < len(args) && strings.HasPrefix(args[i], "-") {
+				i++
+			}
+			i++
+			continue
+		case "uv":
+			if i+1 < len(args) && args[i+1] == "run" {
+				i += 2
+				for i < len(args) && strings.HasPrefix(args[i], "-") {
+					i++
+				}
+				continue
+			}
+		}
+		break
+	}
+	if i >= len(args) {
 		return false
 	}
-	if isHelperScript(args[0]) {
+	if isHelperScript(args[i]) {
 		return true
 	}
-	if !strings.HasPrefix(filepath.Base(args[0]), "python") {
+	if !strings.HasPrefix(filepath.Base(args[i]), "python") {
 		return false
 	}
-	for _, a := range args[1:] {
-		if strings.HasPrefix(a, "-") {
-			continue
+	for i++; i < len(args); i++ {
+		switch a := args[i]; {
+		case a == "-X" || a == "-W":
+			i++
+		case strings.HasPrefix(a, "-"):
+		default:
+			return isHelperScript(a)
 		}
-		return isHelperScript(a)
 	}
 	return false
 }
@@ -1248,12 +1287,17 @@ func existingAuditCriteria(s auditSession, base string) []criterionAssessment {
 // sessionEndPhrases is the subset of phrases the audit takes as the user ending
 // the session. It detects, it does not define: close-modes sets what ends a
 // session, and rule-enforcers.md lists this subset.
-var sessionEndPhrases = []string{"es todo", "eso es todo", "terminamos", "por hoy", "por el momento es todo", "that's all", "that's it for now"}
+var sessionEndPhrases = []string{"es todo", "eso es todo", "terminamos", "por hoy", "por el momento es todo", "that's all", "that's it for now", "por hoy es todo", "por ahora es todo"}
 
 // sessionEndClosers are the words that may follow an end phrase: thanks and
 // the closing «por el momento» or «por hoy» that an end message carries. Any
 // other word means the message goes on with the work.
-var sessionEndClosers = map[string]bool{"gracias": true, "muchas": true, "por": true, "ahora": true, "el": true, "momento": true, "hoy": true, "ok": true, "listo": true, "thanks": true, "thank": true, "you": true, "for": true, "now": true}
+var sessionEndClosers = map[string]bool{
+	"gracias": true, "muchas": true, "por": true, "ahora": true, "el": true, "momento": true, "hoy": true, "ok": true, "listo": true,
+	"thanks": true, "thank": true, "you": true, "for": true, "now": true,
+	"es": true, "eso": true, "todo": true, "terminamos": true, "that's": true, "all": true, "it": true, "that": true,
+	"tu": true, "tus": true, "ayuda": true, "nos": true, "vemos": true, "mañana": true, "de": true, "mi": true, "parte": true, "buen": true, "trabajo": true, "today": true, "bye": true,
+}
 
 // isSessionEndMessage reports whether a user message starts with a listed
 // phrase, has at most 10 words, holds no question mark and continues, after the
@@ -1354,38 +1398,53 @@ func promotionBranches(cwd, base string) map[string]bool {
 	return out
 }
 
-// ghPrNumber returns the pull request number a `gh pr <sub>` invocation names,
-// or "": its first positional argument, a number or a pull request URL, after
-// skipping the flags and the values of the flags that take one.
-func ghPrNumber(args []string) string {
+// ghPrTarget returns what a `gh pr <sub>` invocation names as its pull
+// request: its first positional argument (a number, a branch or a URL, reduced
+// to its last path segment), or "" when it names none and acts on the current
+// branch. Flags are skipped with the values of the flags that take one.
+func ghPrTarget(args []string) string {
 	valued := map[string]bool{"--repo": true, "-R": true, "--body": true, "-b": true, "--subject": true, "-t": true, "--body-file": true, "-F": true, "--match-head-commit": true, "--json": true, "--jq": true, "-q": true, "--template": true, "-T": true}
 	for i := 3; i < len(args); i++ {
 		a := args[i]
 		if strings.HasPrefix(a, "-") {
-			if valued[a] {
+			if valued[a] && !strings.Contains(a, "=") {
 				i++
 			}
 			continue
 		}
-		num := a[strings.LastIndex(a, "/")+1:]
-		if _, err := strconv.Atoi(num); err == nil {
-			return num
+		return a[strings.LastIndex(a, "/")+1:]
+	}
+	return ""
+}
+
+var pullNumber = regexp.MustCompile(`/pull/(\d+)|#(\d+)`)
+
+// resultOf returns the text of the tool result that answers events[i].
+func resultOf(events []traceEvent, i int) string {
+	for j := i + 1; j < len(events); j++ {
+		if events[j].Kind == "tool_result" && events[j].ID != "" && (events[j].ID == events[i].ID || strings.HasPrefix(events[i].ID, events[j].ID+"#")) {
+			return events[j].Text
 		}
-		return ""
 	}
 	return ""
 }
 
 // mergeHead returns the head branch the session shows for the merge at
-// events[mergeAt]: the head of the nearest earlier `gh pr create` (empty when
-// that create names none), or a read of headRefName of the pull request the
-// merge names. A merge whose head the session does not show gives "".
+// events[mergeAt]. It is the head of the nearest earlier `gh pr create` that
+// opened the merged pull request (a create whose result shows another number is
+// skipped; one with no --head gives ""), or a read of headRefName by a
+// `gh pr view` that names the same pull request as the merge, both naming none
+// included. A merge whose head the session does not show gives "".
 func mergeHead(events []traceEvent, mergeAt int) string {
-	mergeNumber := ""
+	mergeTarget := ""
 	for _, args := range shellSegments(events[mergeAt].Command, 0) {
 		if isGhPrSubcommand(args, "merge") {
-			mergeNumber = ghPrNumber(args)
+			mergeTarget = ghPrTarget(args)
 		}
+	}
+	mergeNumber := ""
+	if _, err := strconv.Atoi(mergeTarget); err == nil {
+		mergeNumber = mergeTarget
 	}
 	for i := mergeAt - 1; i >= 0; i-- {
 		e := events[i]
@@ -1393,6 +1452,9 @@ func mergeHead(events []traceEvent, mergeAt int) string {
 		case "shell":
 			for _, args := range shellSegments(e.Command, 0) {
 				if !isGhPrSubcommand(args, "create") {
+					continue
+				}
+				if m := pullNumber.FindStringSubmatch(resultOf(events, i)); m != nil && mergeNumber != "" && m[1]+m[2] != mergeNumber {
 					continue
 				}
 				for j, a := range args {
@@ -1407,7 +1469,7 @@ func mergeHead(events []traceEvent, mergeAt int) string {
 			}
 		case "tool_result":
 			m := ghHeadHeadRef.FindStringSubmatch(e.Text)
-			if m == nil || mergeNumber == "" {
+			if m == nil {
 				continue
 			}
 			for j := i - 1; j >= 0; j-- {
@@ -1415,7 +1477,7 @@ func mergeHead(events []traceEvent, mergeAt int) string {
 					continue
 				}
 				for _, args := range shellSegments(events[j].Command, 0) {
-					if isGhPrSubcommand(args, "view") && ghPrNumber(args) == mergeNumber {
+					if isGhPrSubcommand(args, "view") && ghPrTarget(args) == mergeTarget {
 						return m[1]
 					}
 				}

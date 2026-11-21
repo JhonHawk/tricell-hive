@@ -1176,3 +1176,62 @@ func TestAuditCloseBeforeCleanupSkipsPromotionMerges(t *testing.T) {
 		t.Fatalf("a deploy report after a promotion merge is not a close before cleanup: %+v", got)
 	}
 }
+
+func TestAuditEndPhraseAcceptsClosingVariants(t *testing.T) {
+	for _, tc := range []struct {
+		msg  string
+		want bool
+	}{
+		{"Por hoy es todo, gracias", true},
+		{"Por ahora es todo", true},
+		{"Es todo, gracias por tu ayuda", true},
+		{"Terminamos por hoy, nos vemos mañana", true},
+		{"that's all for today", true},
+		{"that's all, bye", true},
+		{"Es todo correcto, sigue con el siguiente ticket", false},
+		{"Terminamos el build y luego vemos el deploy", false},
+	} {
+		if got := isSessionEndMessage(tc.msg); got != tc.want {
+			t.Errorf("isSessionEndMessage(%q) = %v, want %v", tc.msg, got, tc.want)
+		}
+	}
+}
+
+func TestAuditMergeHeadMatchesTheMergedPullRequest(t *testing.T) {
+	base := auditOptions{Base: "development"}
+	for _, tc := range []struct{ file, want string }{
+		{"claude-project-merged-create-other-pr-fail.jsonl", "fail"},
+		{"claude-project-merged-headref-current-branch-review.jsonl", "review"},
+		{"claude-project-merged-headref-branch-positional-review.jsonl", "review"},
+	} {
+		if got := auditStatus(t, auditFixture(t, "claude", base, "existing_criteria", tc.file), "merged_branch_deleted"); got.Status != tc.want {
+			t.Errorf("%s = %s, want %s: %+v", tc.file, got.Status, tc.want, got)
+		}
+	}
+}
+
+func TestAuditHelperInvocationSeesWrappers(t *testing.T) {
+	for _, tc := range []struct {
+		cmd  string
+		want bool
+	}{
+		{"python3 -I scripts/cleanup_branches.py --repo . --apply", true},
+		{"PYTHONDONTWRITEBYTECODE=1 python3 -I scripts/cleanup_branches.py --repo . --apply", true},
+		{"env PYTHONDONTWRITEBYTECODE=1 python3 scripts/cleanup_branches.py --apply", true},
+		{"timeout 600 python3 -I scripts/cleanup_branches.py --apply", true},
+		{"uv run scripts/cleanup_branches.py --apply", true},
+		{"uv run python scripts/cleanup_branches.py --apply", true},
+		{"python3 -X utf8 scripts/cleanup_branches.py --apply", true},
+		{"python3 -W ignore scripts/cleanup_branches.py --apply", true},
+		{"rg -n -- --apply scripts/cleanup_branches.py", false},
+		{"python3 scripts/apply_deltas.py --apply", false},
+	} {
+		got := false
+		for _, args := range shellSegments(tc.cmd, 0) {
+			got = got || isCleanupApply(args)
+		}
+		if got != tc.want {
+			t.Errorf("isCleanupApply(%q) = %v, want %v", tc.cmd, got, tc.want)
+		}
+	}
+}
