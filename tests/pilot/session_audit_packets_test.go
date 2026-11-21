@@ -175,3 +175,59 @@ func TestPacketUnpaddedTabNumbersAreStripped(t *testing.T) {
 		t.Fatal("Claude Code's unpadded form, 1\\t…, is not read as a complete packet")
 	}
 }
+
+func TestPacketWithoutEndLineIsUnverifiedOnlyForItsManifestMembers(t *testing.T) {
+	cut := numberedLines(pktText(""), "→")
+	cut = strings.Split(cut, "\n")[0]
+	for _, tc := range []struct {
+		name   string
+		events []traceEvent
+	}{
+		{"shell head no end line", []traceEvent{{Line: 1, Kind: "shell", ID: "a", Command: "head -20 /h/.agents/skills/hive-mode/stage.md"}, {Line: 2, Kind: "tool_result", ID: "a", Text: cut}}},
+		{"no result", []traceEvent{{Line: 1, Kind: "read", ID: "a", Path: "/h/.agents/skills/hive-mode/stage.md"}}},
+	} {
+		if read, unverified := packetNamesLeaf(tc.events, 0, "git-commit"); read || unverified {
+			t.Errorf("%s: hive-mode's packet does not list git-commit: read=%v unverified=%v", tc.name, read, unverified)
+		}
+		if _, unverified := packetNamesLeaf(tc.events, 0, "questions"); !unverified {
+			t.Errorf("%s: hive-mode's packet lists questions, want unverified", tc.name)
+		}
+	}
+	flowBuild := []traceEvent{{Line: 1, Kind: "read", ID: "a", Path: pktPath}}
+	if _, unverified := packetNamesLeaf(flowBuild, 0, "git-commit"); !unverified {
+		t.Error("flow-build's packet lists git-commit, want unverified without a result")
+	}
+}
+
+func TestPacketReadThroughAFilterOrPatternScriptIsNoRead(t *testing.T) {
+	for _, cmd := range []string{
+		"cat " + pktPath + " | grep -E '^## |hive packet end'",
+		"sed -n '/^## /p;/packet end/p' " + pktPath,
+		"sed '/^## /!d' " + pktPath,
+		"cat " + pktPath + " | head -400",
+	} {
+		if readsPacketFile(traceEvent{Kind: "shell", Command: cmd}) {
+			t.Errorf("%q counted as a whole read of the packet", cmd)
+		}
+	}
+	for _, cmd := range []string{"sed -n '1,400p' " + pktPath, "sed -n 1,400p " + pktPath, "cat " + pktPath, "cat " + pktPath + " && git status"} {
+		if !readsPacketFile(traceEvent{Kind: "shell", Command: cmd}) {
+			t.Errorf("%q is a whole read of the packet", cmd)
+		}
+	}
+}
+
+func TestPacketResultWithATruncationMarkerIsIncomplete(t *testing.T) {
+	full := pktText("")
+	for name, marker := range map[string]string{
+		"codex lines":      "…12 lines truncated…",
+		"codex tokens":     "... 3400 tokens truncated ...",
+		"claude persisted": "<persisted-output>\nOutput too large (60KB). Full output saved to: /x\n</persisted-output>",
+		"claude too large": "Output too large (60KB).",
+	} {
+		text := full + marker + "\n"
+		if _, complete := packetResult(text); complete {
+			t.Errorf("%s: a result with a truncation marker counted as complete", name)
+		}
+	}
+}
