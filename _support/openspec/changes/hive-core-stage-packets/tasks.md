@@ -347,9 +347,9 @@
 
 ### E2 — PR `feat/stage-packets` (T6, T7, T10 parte paquetes) · depends on: E1 · files: tooling/management/, content/skills/*/assets/stage.json, content/skills/*/SKILL.md, content/guidance/global.md, tests/content/, tests/pilot/, docs
 
-- [ ] unit: go -C <worktree> test -count=1 ./... y python3 -I -m unittest discover -s <worktree>/tests/skills -p '*_test.py'
-- [ ] live: bin=$(mktemp) && go -C <worktree> build -o "$bin" ./tooling/cli && "$bin" update --source <worktree> --dry-run · pass: un stage.md por flujo con manifiesto y dos en flow-verify, cada uno ≤ 24,000 B
-- [ ] perf: lecturas declaradas plan/build · base: 39 · fail: > 26
+- [x] unit: go -C <worktree> test -count=1 ./... y python3 -I -m unittest discover -s <worktree>/tests/skills -p '*_test.py'
+- [x] live: bin=$(mktemp) && go -C <worktree> build -o "$bin" ./tooling/cli && "$bin" update --source <worktree> --dry-run · pass: un stage.md por flujo con manifiesto y dos en flow-verify, cada uno ≤ 24,000 B
+- [x] perf: lecturas declaradas plan/build · base: 39 · fail: > 26
 
 ### E3 — PR `feat/stage-rules-reply` (T8, T9, T10 parte checkpoint y cierre) · depends on: E2 · files: content/skills/flow-plan/, content/skills/hive-core/references/checkpoint.md, content/skills/hive-core/references/close-report.md, content/skills/flow-close/SKILL.md, content/guidance/global.md, 7 SKILL.md, tests/skills/, tests/content/, docs
 
@@ -373,10 +373,10 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: build · E2 T6
-- Last commit: 89befa58
-- Open findings: E1 /code-review nits a cierre: link text [flow-build]/[flow-close] apunta a tests.md / close-hygiene.md (unattended-delegation:16, ticket-status.md:14, pre-existing); leaf_links_test acepta /<leaf>.md de cualquier skill; leafPathPattern recompila regex por evento; removePycache reporta motivo incorrecto al conservar; comentario leafReadBeforeAction obsoleto · decisión: findings del cierre
-- Next: E2/T6 manager stage packets (hive-build-infra + hive-verify-task). Al finalizar el build (tras E3), actualizar el artifact «Skills de Hive» https://claude.ai/artifact/77U7EN4pUTcEtiAijziLxE
+- Stage: verify · E2 push
+- Last commit: 8d16e080
+- Open findings: E2 /code-review (no bloqueantes, al cierre): marcador de corte entre corchetes no reconocido; un corte en un paquete marca incompletos los demás de la misma salida; flow-verify sin fixture de sesión cut-…-fail; nit global.md regla nueva en el núcleo (AC6 la exige) · decisión: findings del cierre
+- Next: push + PR E2 + merge; luego E3 (T8, T9, T10 checkpoint/cierre) en rama feat/stage-rules-reply. Al finalizar el build (tras E3), actualizar el artifact «Skills de Hive» https://claude.ai/artifact/77U7EN4pUTcEtiAijziLxE
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/hive-core-stage-packets · feat/stage-packets
 
 ### Evidence
@@ -388,6 +388,8 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 - dry-run E1 con binario del worktree: 708 archivos, 60 hive-rule retirados, un openai.yaml en hive-core
 - verify E1 paso 1: comentarios añadidos = doc comments (Keep); supresiones añadidas: ninguna; blast radius: hook de Grok cubre references/*.md; prueba real-content del manager resuelve cada enlace skill: (rung 4)
 - E1 integrado: PR #565 merge 89befa58 (2026-11-21); sin CI de PR ni de base (solo master-source-branch.yml)
+- suite E2 @93d7910f: vet 0, py 0 (71 s), go test ./... 0 (262 s); tras 8d16e080: tests/content y tests/pilot 0
+- dry-run E2 @8d16e080: 9 paquetes (uno por flujo, dos en flow-verify), validación de topes OK; huella plan/build 24 lecturas (base 39)
 
 ## Review status and progress
 
