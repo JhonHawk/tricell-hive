@@ -64,12 +64,11 @@ A rule leaf is a skill the model does not load on its own. At the moment a line 
 - After a push, before a merge or a `ready` stop: [merge gate](skill:hive-rule-merge-gate/SKILL.md).
 - When a pull request's CI wait ends: [PR reviews](skill:hive-rule-pr-reviews/SKILL.md).
 - Before a push, merge or branch on an environment branch after the base: [promotion path](skill:hive-rule-promotion-path/SKILL.md).
-- When a close starts: [close modes](skill:hive-rule-close-modes/SKILL.md); at close steps 4 to 7: [close hygiene](skill:hive-rule-close-hygiene/SKILL.md); before the close footer: [close footer](skill:hive-rule-close-footer/SKILL.md).
+- When a close starts: [close modes](skill:hive-rule-close-modes/SKILL.md); at close steps 4 to 7: [close hygiene](skill:hive-rule-close-hygiene/SKILL.md).
 - Before a final report or classifying a finding: [close report](skill:hive-rule-close-report/SKILL.md).
 - Before writing a decision, finding or list for the user, before asking a round, and when a card returns unanswered: [questions](skill:hive-rule-questions/SKILL.md).
 - Before giving a reason, reporting a blocker or failure, asking the user to act, or when a defect blocks authorized work: [reasons and blockers](skill:hive-rule-reasons-and-blockers/SKILL.md).
-- Before ending an analysis, review or ticket assessment, or offering a single action: [report endings](skill:hive-rule-report-endings/SKILL.md).
-- Before handing over to the next flow: [next-step block](skill:hive-rule-next-step-block/SKILL.md).
+- Before ending a message that reports, hands over or closes, or offering a single action: [report endings](skill:hive-rule-report-endings/SKILL.md).
 - Before a work item's first edit with no delivery answers in force: [delivery questions](skill:hive-rule-delivery-ask/SKILL.md).
 - Before validation or push, with commits not this work item's: [foreign commits](skill:hive-rule-foreign-commits/SKILL.md).
 - Before adding, updating or marking stale a `HIVE.local.md` entry: [local record](skill:hive-rule-local-record/SKILL.md); before writing, ignoring or pruning a `HIVE.local.md` file (authorized in any flow): [local write](skill:hive-rule-local-write/SKILL.md).
@@ -109,7 +108,7 @@ Application code, scripts and configuration stay in their source locations, even
 
 - Ask only for a choice that is the user's and changes what happens next ([questions](skill:hive-rule-questions/SKILL.md)); a message that asks for a decision or validation, delivers a result or a blocker, or closes work opens with a bold context line (stage · ticket · progress) and ends with one line naming what you wait for; a decision has an ID or a session question's fixed header, a `Situation:` line, lettered options, the recommended first marked `(★)`, and an `I recommend` line. Give the effect of a step as its reason, never that an instruction requires it; end a blocker or a failure with the smallest fix you can see, and do what your access and authorization allow instead of asking the user to do it ([reasons and blockers](skill:hive-rule-reasons-and-blockers/SKILL.md)).
 - Ask a round through the host's native question tool when it waits for the answer and the host permits it for that question, and in the text where none does ([questions](skill:hive-rule-questions/SKILL.md) «Channel»); a card the user left unanswered is never replaced by the round in the text.
-- Moving from one flow to the next is never asked with the question tool: end the report with a next-step block that names the command the user types ([next-step block](skill:hive-rule-next-step-block/SKILL.md)); only the user's reply to it, or a flow command they type, starts the next flow, except the continuations and fixes that leaf lists. An analysis, explanation, review or diagnosis ends with a block of lettered replies and no command.
+- Moving from one flow to the next is never asked with the question tool: end the report with a next-step block that names the command the user types ([report endings](skill:hive-rule-report-endings/SKILL.md)); only the user's reply to it, or a flow command they type, starts the next flow, except the continuations and fixes that leaf lists.
 
 ## Delivery
 

@@ -18,8 +18,12 @@ import (
 const (
 	leafSizeLimit          = 4000
 	leafExceptionSizeLimit = 7000
-	leafDescriptionLimit   = 200
-	playbookSizeLimit      = 7000
+	// leafReportEndingsSizeLimit is the own limit of hive-rule-report-endings,
+	// the one home of how every message ends (decision D11 A of the
+	// reporting-family-leaves plan).
+	leafReportEndingsSizeLimit = 9000
+	leafDescriptionLimit       = 200
+	playbookSizeLimit          = 7000
 	// playbookModePhrase is the fixed phrase through which a playbook refers to
 	// the delivery mode: it never fixes or replaces the mode itself.
 	playbookModePhrase = "under the delivery mode in force"
@@ -149,6 +153,9 @@ func leafProblems(root string) []string {
 		limit := leafSizeLimit
 		if leafSizeExceptions[name] {
 			limit = leafExceptionSizeLimit
+		}
+		if name == "hive-rule-report-endings" {
+			limit = leafReportEndingsSizeLimit
 		}
 		if len(data) > limit {
 			problems = append(problems, fmt.Sprintf("%s: SKILL.md is %d bytes, limit %d", name, len(data), limit))

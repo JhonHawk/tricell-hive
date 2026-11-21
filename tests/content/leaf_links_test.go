@@ -25,7 +25,7 @@ var leafLinks = []leafLink{
 	{"hive-rule-close-modes", "content/skills/flow-close/SKILL.md"},
 	{"hive-rule-close-hygiene", "content/skills/flow-close/SKILL.md"},
 	{"hive-rule-close-report", "content/skills/flow-close/SKILL.md"},
-	{"hive-rule-close-footer", "content/skills/flow-close/SKILL.md"},
+	{"hive-rule-report-endings", "content/skills/flow-close/SKILL.md"},
 	{"hive-rule-close-report", "content/skills/git-workflow/SKILL.md"},
 	{"hive-rule-close-report", "content/skills/unattended-delegation/SKILL.md"},
 	{"hive-rule-merge-gate", "content/skills/git-workflow/SKILL.md"},

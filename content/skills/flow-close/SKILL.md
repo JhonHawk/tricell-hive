@@ -1,6 +1,6 @@
 ---
 name: flow-close
-description: Close a work item and its session hygiene. Use when a work item reaches its completion point, is abandoned or is paused; when an operational task ends; when the user ends the session; or when the user asks for session hygiene, such as "haz higiene"; not to clean up, prune or reorganize existing docs or support material, which project-layout does. Closes the change record, cleans merged branches, task temporaries and processes, proposes what to do with the work's support material, and reports the outcome with a close footer whose reply starts any cleanup left.
+description: Close a work item and its session hygiene. Use when a work item reaches its completion point, is abandoned or is paused; when an operational task ends; when the user ends the session; or when the user asks for session hygiene, such as "haz higiene"; not to clean up, prune or reorganize existing docs or support material, which project-layout does. Closes the change record, cleans merged branches, task temporaries and processes, proposes what to do with the work's support material, and reports the outcome as close modes sets, with a footer whose reply starts any cleanup left or with the report alone.
 ---
 
 # Close a work item and the session
@@ -18,4 +18,4 @@ To clean up, prune, reorganize, curate or archive existing docs or support mater
 5. Clean up the branches and worktrees of each repository the work touched as [close hygiene](../hive-rule-close-hygiene/SKILL.md#clean-up) sets.
 6. Write the final report as [Final report](../hive-rule-close-report/SKILL.md#final-report) sets.
 7. Write the outcome to persistent memory, the account index rows as [test accounts](../hive-rule-test-accounts/SKILL.md) sets, the pending-work records as [Pending work](../hive-rule-close-hygiene/SKILL.md#pending-work) sets, each candidate's record as [Candidates](../hive-rule-close-report/SKILL.md#candidates) sets, and each ticket's time record as [time](../hive-rule-trackers/references/time.md) sets.
-8. End with the close footer as [close footer](../hive-rule-close-footer/SKILL.md) sets.
+8. End as the row of [close modes](../hive-rule-close-modes/SKILL.md) sets: with the footer, as [the close footer](../hive-rule-report-endings/SKILL.md#the-close-footer) sets, or with the report alone, as [report endings](../hive-rule-report-endings/SKILL.md) sets.

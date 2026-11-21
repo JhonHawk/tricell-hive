@@ -22,7 +22,7 @@ Restricción de todas las tareas: `wc -c content/guidance/global.md` no crece so
 
 ### T2 — `close-report` como hogar del reporte final
 
-- [ ] `hive-rule-close-report` tiene la tabla de variantes de `design.md` con la fila de despliegue completa, la sección «Findings at the close» con la tabla de hallazgos, su ronda y «Find the next ticket» que venían de `close-footer`, y su línea de lectura cubre toda variante; «Findings» conserva solo la definición y las prioridades.
+- [x] `hive-rule-close-report` tiene la tabla de variantes de `design.md` con la fila de despliegue completa, la sección «Findings at the close» con la tabla de hallazgos, su ronda y «Find the next ticket» que venían de `close-footer`, y su línea de lectura cubre toda variante; «Findings» conserva solo la definición y las prioridades.
 
 **Closes:** AC1
 
@@ -174,3 +174,4 @@ Caminata humana: no hay pantalla; la validación es leer las dos hojas resultant
 2026-11-20 — Tareas escritas; reescritas tras la revisión del plan (orden: el inventario, luego los dos hogares, luego los flujos, la continuación, el índice y los playbooks).
 2026-11-21 — T1 · ab07dabd · unverified: none
 2026-11-21 — Revisión durante el build: D11 A da a `report-endings` una excepción de 9,000 B. Se decidieron sin preguntar `S12.13`, `S4.13`, `S5.3` y `S10.8`/`S10.15` (ver la respuesta del T2). No cambia ningún criterio ni el delta, y no invalida ninguna tarea.
+2026-11-21 — T2 · 94a48a14 · unverified: none

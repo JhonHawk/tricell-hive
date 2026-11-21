@@ -1,12 +1,56 @@
 ---
 name: hive-rule-report-endings
-description: "Hive rule leaf: read before ending an analysis, explanation, review, diagnosis or ticket assessment, or when offering a single action. Sets how each report ends."
+description: "Hive rule leaf: read before you end a message that reports, hands over or closes, or when offering a single action. Sets how each message ends, the footer's replies and the same-turn continuations."
 disable-model-invocation: true
 ---
 
-# How a report ends
+# How a message ends
 
-Read before you end an analysis, an explanation, a review, a diagnosis, a ticket assessment or a work item's close, or offer a single action that changes no repository file.
+Read before you end a message that reports, hands over or closes, or offer a single action that changes no repository file. Find the row that fits.
 
-- Three reports end differently. An analysis, explanation, review or diagnosis the user asked for without asking for a change ends at its findings, with a block headed by a question, such as **▶ How do we continue?**, that lists every reply the user can give as its options, each on its own line with a letter, `A`, `B`…, the recommended one first with `(★)` and its reason when one is better, with no command and no list of other replies; it never recommends a flow the user did not ask for, and when the findings confirm a defect in the current project, one of its options is the reply that fixes it. The assessment of a ticket the user picked for research, such as "research COM-918", ends as [hive-mode](../hive-mode/SKILL.md) step 5 sets. When the user's own request asked for a change and named it with its target, not whether or how to make one, and research finds it a small understood change («Proportionality»), research continues into `flow-build` in the same turn, as it sets, with no block, unless it recommends the create-design stage for a new screen, as it also sets. A reply to a question or a proposal never counts as that request. A work item's close ends with the block [flow-close](../flow-close/SKILL.md) sets; the other hand-overs end with [the next-step block](../hive-rule-next-step-block/SKILL.md).
-- A single action that changes no repository file and is not a tracker write «Scope and authorization» already authorizes, such as creating a ticket, closing one as not planned, deleting a merged branch or saving to memory, is never routed through a flow's command: offer it as one more reply of the block, such as "reply *create the ticket*", when the message ends with one, and otherwise ask it as a decision of the round, such as `D4 — Do you want me to create the ticket?`; the answer authorizes only that action. Creating the ticket then follows [create-issue](../create-issue/SKILL.md), in the same turn. An answer to another decision authorizes a ticket or other single action only when the chosen option's label or description, as the question tool shows it, names that action; text around the question does not.
+Three reports end differently: an analysis, a hand-over to another flow and a close. Every message that closes work ends with the waiting line, whichever row it takes.
+
+| Way of ending | It ends with |
+| --- | --- |
+| Analysis, explanation, review or diagnosis the user asked for without asking for a change | Its findings, then a block headed by a question, such as **▶ How do we continue?**, that lists every reply the user can give as its options, each on its own line with a letter, `A`, `B`…, the recommended one first with `(★)` and its reason when one is better, with no command and no list of other replies. It never recommends a flow the user did not ask for, and when the findings confirm a defect in the current project, one of its options is the reply that fixes it. |
+| Assessment of a ticket the user picked for research, such as "research COM-918" | As [hive-mode](../hive-mode/SKILL.md) step 5 sets. |
+| Hand-over to another flow | [The next-step block](#the-next-step-block). |
+| Close with the footer (the first two rows of [close modes](../hive-rule-close-modes/SKILL.md)) | The report, then [the close footer](#the-close-footer), then the waiting line of [questions](../hive-rule-questions/SKILL.md) «Format». |
+| Close without the footer (the other rows of [close modes](../hive-rule-close-modes/SKILL.md)) | The report, as the row of [close report](../hive-rule-close-report/SKILL.md#variants) that fits, with no footer and no command. |
+| A single action that changes no repository file and is not a tracker write «Scope and authorization» already authorizes, such as creating a ticket, closing one as not planned, deleting a merged branch or saving to memory | Never routed through a flow's command: offer it as one more reply of the block, such as "reply *create the ticket*", when the message ends with one, and otherwise ask it as a decision of the round, such as `D4 — Do you want me to create the ticket?`. The answer authorizes only that action. Creating the ticket then follows [create-issue](../create-issue/SKILL.md), in the same turn. An answer to another decision authorizes a ticket or other single action only when the chosen option's label or description, as the question tool shows it, names that action; text around the question does not. |
+
+## The next-step block
+
+Moving from one flow to the next (research's status report to a ticket's research, research to create-design, plan or build, create-design to plan, build or research, plan to build or research, build to verify) is never asked with the question tool, because a card hides the report it closes. End the report with a separate next-step block: a `---` rule, a bold heading such as **▶ Next step: plan (recommended)**, the reason in one line, and the command the user types to start that flow, written once, in the syntax of the host you run in, with a real argument, such as `/flow-plan COM-833`. Offer a flow's command only when the next step needs that flow's procedure: an investigation, a design in Figma, a plan, or a change to the repository's files with its delivery. No flow needs a ticket: when the work has none, the command's argument is a short description of the work or its change folder, never a placeholder, and a ticket is proposed only as [scope changes](../hive-rule-scope-changes/SKILL.md) sets. Add the other replies the user can give, such as keep investigating or what to change, as a short list with a letter each, `A`, `B`…, so the user can answer with the letter alone.
+
+Only the user's reply to this block, or a flow command they type, starts the next flow; a reply to a question or the acceptance of a proposal only settles or redirects the scope, except a fix the close footer's **Resolve findings now** reply or a findings round sends, and the [same-turn continuations](#same-turn-continuations). Keep the question tool for decisions inside a flow: scope, design, delivery and review, validation and findings.
+
+When the block leads from an approved plan to its build in the same session, or starts another work item after a close, add compacting first as one of its replies, never because of an estimated share of the context window, which the model cannot see: the host's compaction command followed, where the host accepts instructions, by what to keep (the change folder, or the whole plan summary for a plan kept in the conversation, the approved criteria and the delivery answers, or the files and decisions the next work reuses). That compaction is not one «during work» of the [checkpoint](../hive-rule-checkpoint/SKILL.md): after it, end again with the same block and wait for the reply.
+
+## The close footer
+
+`flow-close` step 8 ends the report with the next-step block, never with the question tool. Its heading recommends **close** with its reason, unless a proposed finding is P1 or higher, when it recommends seeing the findings, or a plan is in progress, when it recommends continuing it; with no step pending and neither case, its heading is **▶ Closed**, with no recommendation. Its replies come from this work's context, each only when it applies:
+
+- **Close:** runs the pending steps, as [close modes](../hive-rule-close-modes/SKILL.md) sets; only while one is pending.
+- **Resolve findings now**, naming them, such as "resolve H2 and H3 in this branch": they enter `flow-build` on the work's branch, with the code review of the fix and its checks, or `flow-plan` when the fix is not a small understood change.
+- **See the findings**, with their count and highest severity, such as "see the 3 findings (1 P1)"; it shows the table and the round of [findings at the close](../hive-rule-close-report/SKILL.md#findings-at-the-close).
+- **Explain a finding or a result**, naming it.
+- **Turn a candidate into a mechanism**, naming it: only for a candidate whose record counts two sessions or more; it enters `flow-build` as **Resolve findings now** does.
+- **Find the next ticket**, run only when the user picks it, as [Find the next ticket](../hive-rule-close-report/SKILL.md#findings-at-the-close) sets.
+- **Hygiene**, with the count of pending items as [batch archive](../flow-close/references/batch-archive.md) step 1 counts them: delivers them as that reference sets; only while one is pending.
+- **Continue** with what remains of the work, naming it, such as the next phase of a plan in progress.
+- **Offer a `create-report` page**, only when the user asks to keep or share the report or it exceeds what fits on one screen, as [close report](../hive-rule-close-report/SKILL.md#final-report) sets.
+
+## Same-turn continuations
+
+Five continuations need no reply and no block; the exceptions to «only the user's reply starts the next flow» are these and the stages covered by the explicit [E2E grant](../flow-build/references/e2e-coordination.md):
+
+- Research into `flow-build`, when the user's own request asked for a change and named it with its target, not whether or how to make one, and research finds it a small understood change («Proportionality»), unless it recommends the create-design stage for a new screen. A reply to a question or a proposal never counts as that request.
+- Research into create-design, for a request whose deliverable is the design, as [hive-mode](../hive-mode/SKILL.md) step 0 sets.
+- Research into [create-prd](../create-prd/SKILL.md), for a request whose deliverable is a requirement document, as [hive-mode](../hive-mode/SKILL.md) step 0 sets.
+- Build into verify, as [flow-build](../flow-build/SKILL.md) step 5 sets.
+- Plan into build, when the user asked for it beforehand or unattended delegation is active, as [plan handoff](../flow-plan/references/plan-handoff.md) sets.
+
+Typing a flow's command loads that skill whole for that flow, and a flow or skill entered by continuation is read whole before its first step.
+
+Command syntax by host, for the next-step block: `/flow-x` in Claude Code, Grok, Cursor and Antigravity; `$flow-x` in Codex; `/skill:flow-x` in Pi; `@flow-x` in OpenCode. Write the commands of several hosts only when you cannot tell which host you run in.

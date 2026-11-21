@@ -2,7 +2,7 @@
 
 Read from [hive-mode](../SKILL.md#pick-the-playbook) when the user asks for the project's status, its backlog, unfinished work or what to work on next, such as "¿qué sigue?" or "status del proyecto". This report replaces the router's steps 0 to 5 and ends as step 3 below sets; investigating one question or one ticket is [investigate](investigate.md).
 
-**Stages.** `hive-mode` alone, read-only. Choosing a ticket from the recommendations starts `hive-mode` for that ticket, and the user's reply is what starts it. **Leaves.** [delegation](../../hive-rule-delegation/SKILL.md), [next-step block](../../hive-rule-next-step-block/SKILL.md), [close hygiene](../../hive-rule-close-hygiene/SKILL.md#pending-work), [local write](../../hive-rule-local-write/SKILL.md).
+**Stages.** `hive-mode` alone, read-only. Choosing a ticket from the recommendations starts `hive-mode` for that ticket, and the user's reply is what starts it. **Leaves.** [delegation](../../hive-rule-delegation/SKILL.md), [report endings](../../hive-rule-report-endings/SKILL.md#the-next-step-block), [close hygiene](../../hive-rule-close-hygiene/SKILL.md#pending-work), [local write](../../hive-rule-local-write/SKILL.md).
 
 This report is read-only, except for the writes [local write](../../hive-rule-local-write/SKILL.md) authorizes, and assesses no ticket in depth; the router does that, with its own steps, once the user picks one. Read only what the report needs: the `## Hive` section of the repository, the tracker, Git and the pending-work records in persistent memory.
 
@@ -12,7 +12,7 @@ This report is read-only, except for the writes [local write](../../hive-rule-lo
    - the work left open on purpose: the `Pending:` records [flow-close](../../hive-rule-close-hygiene/SKILL.md#pending-work) writes, searched in the project the global guidance's «Persistent memory» names, with an explicit result limit. A record is ready to resume when every ticket and condition that unblocks it is resolved; this report never deletes one, which only a close does.
    - the items waiting for a hygiene batch, counted as [batch archive](../../flow-close/references/batch-archive.md) step 1 sets, reported as one line with their count and the hygiene reply.
 2. Write the report as [Report](#report) sets. Never replace it with a question card.
-3. When the user asked what to take next, end the report with the route as [next-step block](../../hive-rule-next-step-block/SKILL.md) sets: the recommended ticket or group and the command that assesses it, such as `/hive-mode COM-833` in the host's syntax. The ticket the user names starts `hive-mode`. A plain status request ends with the recommendations.
+3. When the user asked what to take next, end the report with the route as [the next-step block](../../hive-rule-report-endings/SKILL.md#the-next-step-block) sets: the recommended ticket or group and the command that assesses it, such as `/hive-mode COM-833` in the host's syntax. The ticket the user names starts `hive-mode`. A plain status request ends with the recommendations.
 
 ## Report
 
@@ -39,4 +39,4 @@ Recommendation
 
 ## Find the next ticket
 
-When flow-close's footer reply **Find the next ticket** runs this report, use the cut of the tickets that reuse this session's context: the files, modules and decisions it touched. Leave out the tickets another session has in progress, and the tickets opened from this work's findings unless they are P0 or P1. Recommend the one that reuses the most context, with its task count (from its description or checklist); choosing it starts `hive-mode` to assess it. That report's next-step block carries the compaction reply for another work item that [next-step block](../../hive-rule-next-step-block/SKILL.md) sets.
+When flow-close's footer reply **Find the next ticket** runs this report, use the cut of the tickets that reuse this session's context: the files, modules and decisions it touched. Leave out the tickets another session has in progress, and the tickets opened from this work's findings unless they are P0 or P1. Recommend the one that reuses the most context, with its task count (from its description or checklist); choosing it starts `hive-mode` to assess it. That report's next-step block carries the compaction reply for another work item that [the next-step block](../../hive-rule-report-endings/SKILL.md#the-next-step-block) sets.

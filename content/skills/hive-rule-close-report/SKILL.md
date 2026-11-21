@@ -22,7 +22,7 @@ Report the whole work item in one message, each part only when it has content:
 - **Candidates:** the work's repetitions, as [Candidates](#candidates) sets.
 - **Next:** what remains, with who owns it, and what comes next, such as the merge left to the user, review bots or base CI still pending, and the pending archives with the hygiene reply.
 
-When the user asks to keep or share this report, or it exceeds what fits on one screen, offer a `create-report` page as one reply of the close's reply block in [report-endings](../hive-rule-report-endings/SKILL.md).
+When the user asks to keep or share this report, or it exceeds what fits on one screen, offer a `create-report` page as one reply of the close's reply block in [report-endings](../hive-rule-report-endings/SKILL.md#the-close-footer).
 
 ## Variants
 
@@ -44,7 +44,7 @@ When the user asks to keep or share this report, or it exceeds what fits on one 
 | --- | --- | --- | --- |
 | H1 | <what, with its severity> | <where, how it fails, who it affects, the evidence> | <open a ticket, ignore, or fix now, with its reason> |
 
-Recommend fixing now or a ticket as the ticket rule of [scope changes](../hive-rule-scope-changes/SKILL.md) sets; recommend ignoring when the finding did not recur or has no impact. After the table, ask the findings as a round, as [asking a round](../hive-rule-questions/SKILL.md) sets: each finding is one question with the options fix now, ticket and ignore, its recommendation starred; the user may answer all at once or a few at a time, such as "ok" or "H1 ticket, H2 ignore". A ticket answer creates it as that skill sets; a fix-now answer goes as **Resolve findings now** in [report-endings](../hive-rule-report-endings/SKILL.md) sets; an ignore answer is noted in the report. When every finding has an answer, end again with the close's reply block, without the findings replies.
+Recommend fixing now or a ticket as the ticket rule of [scope changes](../hive-rule-scope-changes/SKILL.md) sets; recommend ignoring when the finding did not recur or has no impact. After the table, ask the findings as a round, as [asking a round](../hive-rule-questions/SKILL.md) sets: each finding is one question with the options fix now, ticket and ignore, its recommendation starred; the user may answer all at once or a few at a time, such as "ok" or "H1 ticket, H2 ignore". A ticket answer creates it as that skill sets; a fix-now answer goes as **Resolve findings now** in [report-endings](../hive-rule-report-endings/SKILL.md#the-close-footer) sets; an ignore answer is noted in the report. When every finding has an answer, end again with the close's reply block, without the findings replies.
 
 **Find the next ticket** runs research's [status report](../hive-mode/playbooks/ticket-status.md#find-the-next-ticket) as it sets for that reply.
 
@@ -56,4 +56,4 @@ A finding is a defect the work found but did not fix: a review finding below P1,
 
 A candidate is a repetition the work did not turn into a mechanism under [defect fix](../hive-rule-defect-fix/SKILL.md) point 5: an inline script or command chain the work ran two or more times for the same purpose, such as the same link check or hash comparison, or a correction the user gave twice in the work. The report lists each one on one line, with what repeated, how many times and the mechanism that point would choose, and asks nothing about it; a work with none has no such part. [Script lifecycle](../project-layout/references/script-lifecycle.md) sets where a script goes at each level.
 
-At step 7, search the project's persistent memory for each candidate by the terms of its purpose, then create or update one record under the topic `candidate/<tool>-<target>` in kebab case, such as `candidate/link-check-docs`, with the sessions that saw it, their dates and its count. A candidate seen in two sessions or more is offered as the **Turn a candidate into a mechanism** reply of the close row of [report-endings](../hive-rule-report-endings/SKILL.md); it is not a finding, since it is no defect.
+At step 7, search the project's persistent memory for each candidate by the terms of its purpose, then create or update one record under the topic `candidate/<tool>-<target>` in kebab case, such as `candidate/link-check-docs`, with the sessions that saw it, their dates and its count. A candidate seen in two sessions or more is offered as the **Turn a candidate into a mechanism** reply of the close row of [report-endings](../hive-rule-report-endings/SKILL.md#the-close-footer); it is not a finding, since it is no defect.
