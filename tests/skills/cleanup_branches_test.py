@@ -179,6 +179,64 @@ class CleanupBranchesTests(unittest.TestCase):
         self.assertTrue(remote, "remote branch must survive a failed worktree removal")
 
 
+class StrayClonesTests(unittest.TestCase):
+    """Full clones under worktree folders are reported, never removed."""
+
+    tearDown = CleanupBranchesTests.tearDown
+    git = CleanupBranchesTests.git
+
+    def setUp(self):
+        CleanupBranchesTests.setUp(self)
+        self.inside = self.main_repo / ".worktrees" / "x"
+        self.git(self.tmp, "clone", "-q", str(self.origin), str(self.inside))
+        self.outside = self.tmp / ".worktrees" / "y"
+        self.git(self.tmp, "clone", "-q", "file://" + str(self.origin), str(self.outside))
+        self.git(self.outside, "switch", "-q", "-c", "fix/local-only")
+        (self.outside / "local.txt").write_text("local\n")
+        self.git(self.outside, "add", "local.txt")
+        self.git(self.outside, "commit", "-q", "-m", "local only")
+        foreign_origin = self.tmp / "foreign.git"
+        self.git(self.tmp, "init", "--bare", "-b", "development", str(foreign_origin))
+        self.foreign = self.tmp / ".worktrees" / "z"
+        self.git(self.tmp, "clone", "-q", str(foreign_origin), str(self.foreign))
+
+    def plan(self, *args):
+        mod = load_module()
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = mod.main(["--repo", str(self.main_repo), "--base", "development", *args])
+        return code, json.loads(out.getvalue())
+
+    def test_clones_of_the_same_origin_are_listed_and_kept(self):
+        for args in ((), ("--apply",)):
+            code, plan = self.plan(*args)
+            self.assertEqual(code, 0, plan)
+            clones = {pathlib.Path(c["path"]).resolve(): c for c in plan["stray_clones"]}
+            self.assertEqual(set(clones), {self.inside.resolve(), self.outside.resolve()}, plan["stray_clones"])
+            inside, outside = clones[self.inside.resolve()], clones[self.outside.resolve()]
+            self.assertEqual((inside["branch"], inside["dirty"], inside["unpushed"]), ("development", False, 0))
+            self.assertEqual((outside["branch"], outside["dirty"], outside["unpushed"]), ("fix/local-only", False, 1))
+            for path in (self.inside, self.outside, self.foreign):
+                self.assertTrue(path.exists(), path)
+
+    def test_ssh_and_https_forms_of_one_remote_match(self):
+        mod = load_module()
+        forms = [
+            "git@github.com:org/repo.git",
+            "https://github.com/org/repo",
+            "ssh://git@github.com/org/repo.git",
+            "https://user@GitHub.com/org/repo.git/",
+        ]
+        self.assertEqual(len({mod.normalize_remote(f) for f in forms}), 1)
+        self.assertNotEqual(mod.normalize_remote("https://github.com/org/other"), mod.normalize_remote(forms[0]))
+
+    def test_untracked_file_marks_a_clone_dirty(self):
+        (self.inside / "notes.md").write_text("draft\n")
+        _, plan = self.plan()
+        inside = next(c for c in plan["stray_clones"] if pathlib.Path(c["path"]).resolve() == self.inside.resolve())
+        self.assertTrue(inside["dirty"])
+
+
 class BaseFastForwardTests(unittest.TestCase):
     """The close brings the main checkout's base up to origin when that is safe."""
 

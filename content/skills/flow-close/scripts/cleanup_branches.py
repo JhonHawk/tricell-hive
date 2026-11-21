@@ -14,6 +14,11 @@ fetched). With `--apply`, it first fetches the base from origin and
 fast-forwards the main checkout's base when that checkout is on it, has no
 commits missing from origin, and no incoming file is changed, untracked or
 ignored there; then it executes only the safe removals and deletions.
+
+In both modes `stray_clones` lists each full clone of the same origin under the
+worktree folders of the main checkout and of its parent folder, with its
+branch, whether it holds changes and how many commits are on no remote. The
+helper never removes, moves or switches a clone.
 """
 
 import argparse
@@ -405,6 +410,66 @@ def main_checkout_of(repo):
     return None
 
 
+STRAY_CLONE_DIRS = (".worktrees", ".claude/worktrees", ".grok/worktrees")
+SCP_LIKE_URL = re.compile(r"^(?:[^@/]+@)?([^:/]+):(?!//)(.+)$")
+
+
+def normalize_remote(url):
+    """Compare remotes by host and path, without scheme, user or `.git` suffix."""
+    url = (url or "").strip()
+    if not url:
+        return None
+    if url.startswith("file://"):
+        url = url[len("file://"):]
+    if "://" in url:
+        rest = url.split("://", 1)[1]
+        host, _, path = rest.partition("/")
+        key = host.rsplit("@", 1)[-1].lower() + "/" + path
+    elif os.path.isabs(url) or url.startswith("."):
+        key = os.path.realpath(url)
+    else:
+        match = SCP_LIKE_URL.match(url)
+        key = (match.group(1).lower() + "/" + match.group(2)) if match else url
+    key = key.rstrip("/")
+    if key.endswith(".git"):
+        key = key[: -len(".git")]
+    return key.rstrip("/")
+
+
+def plan_stray_clones(main_checkout):
+    """Full clones of this repository's origin under its worktree folders."""
+    if not main_checkout:
+        return []
+    code, origin, _ = run_git(main_checkout, "config", "--get", "remote.origin.url")
+    target = normalize_remote(origin) if code == 0 else None
+    if not target:
+        return []
+    main = pathlib.Path(main_checkout)
+    folders = [main / rel for rel in STRAY_CLONE_DIRS] + [main.parent / ".worktrees"]
+    clones, seen = [], set()
+    for folder in folders:
+        if not folder.is_dir():
+            continue
+        for entry in sorted(folder.iterdir()):
+            if not (entry / ".git").is_dir() or entry.resolve() in seen:
+                continue
+            seen.add(entry.resolve())
+            code, url, _ = run_git(str(entry), "config", "--get", "remote.origin.url")
+            if code != 0 or normalize_remote(url) != target:
+                continue
+            _, branch, _ = run_git(str(entry), "branch", "--show-current")
+            _, status, _ = run_git(str(entry), "status", "--porcelain")
+            _, unpushed, _ = run_git(str(entry), "rev-list", "--count", "--branches", "--not", "--remotes")
+            branch, unpushed = branch.strip(), unpushed.strip()
+            clones.append({
+                "path": str(entry),
+                "branch": branch or None,
+                "dirty": bool(status.strip()),
+                "unpushed": int(unpushed) if unpushed.isdigit() else None,
+            })
+    return clones
+
+
 def status_paths(checkout):
     """Paths the checkout holds locally: changed, staged, untracked or ignored.
 
@@ -542,6 +607,7 @@ def main(argv=None):
         return 2
 
     plan["base_update"] = base_update
+    plan["stray_clones"] = plan_stray_clones(main_checkout_of(args.repo))
     if args.apply:
         applied = apply_cleanup(args.repo, plan)
         if base_error:
