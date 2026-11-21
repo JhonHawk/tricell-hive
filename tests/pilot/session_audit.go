@@ -1181,8 +1181,8 @@ func eventDeletesBranch(e traceEvent) bool {
 
 // deletedBranchNames lists the branches a session's deletions name: the
 // `--merged-pr BRANCH=SHA` values of the helper run with --apply, the branches
-// of `git branch -d|-D|--delete`, and those of `git push --delete` or a
-// `:branch` refspec.
+// of `git branch -d|-D|--delete`, those of `git push --delete` or a `:branch`
+// refspec, and the ref a `gh api -X DELETE .../git/refs/heads/<branch>` names.
 func deletedBranchNames(events []traceEvent) map[string]bool {
 	names := map[string]bool{}
 	add := func(b string) {
@@ -1206,6 +1206,14 @@ func deletedBranchNames(events []traceEvent) map[string]bool {
 					}
 				}
 			}
+			if isGhAPIDeleteRef(args) {
+				for _, a := range args {
+					if i := strings.Index(a, "git/refs/heads/"); i >= 0 {
+						add(a[i+len("git/refs/heads/"):])
+					}
+				}
+				continue
+			}
 			isGit, sub, _ := gitInvocation(args, "")
 			if !isGit || sub >= len(args) {
 				continue
@@ -1224,6 +1232,12 @@ func deletedBranchNames(events []traceEvent) map[string]bool {
 				if !gitPushDeletesBranch(rest) {
 					continue
 				}
+				deleteFlag := false
+				for _, a := range rest {
+					if a == "--delete" || a == "-d" {
+						deleteFlag = true
+					}
+				}
 				positional := 0
 				for _, a := range rest {
 					switch {
@@ -1232,7 +1246,7 @@ func deletedBranchNames(events []traceEvent) map[string]bool {
 					case strings.HasPrefix(a, "-"):
 					default:
 						positional++
-						if positional > 1 {
+						if deleteFlag && positional > 1 {
 							add(a)
 						}
 					}
@@ -1472,16 +1486,35 @@ func mergeHead(events []traceEvent, mergeAt int) string {
 			if m == nil {
 				continue
 			}
+			// The read counts only when the one segment of its call that asks
+			// for headRefName is a gh pr view of the merged pull request.
+			sameCall, readers, viewMatches := false, 0, false
 			for j := i - 1; j >= 0; j-- {
-				if events[j].Kind != "shell" || (e.ID != "" && events[j].ID != e.ID && !strings.HasPrefix(events[j].ID, e.ID+"#")) {
+				if events[j].Kind != "shell" {
 					continue
 				}
+				if e.ID != "" && events[j].ID != e.ID && !strings.HasPrefix(events[j].ID, e.ID+"#") {
+					if sameCall {
+						break
+					}
+					continue
+				}
+				sameCall = true
 				for _, args := range shellSegments(events[j].Command, 0) {
+					if !strings.Contains(strings.Join(args, " "), "headRefName") {
+						continue
+					}
+					readers++
 					if isGhPrSubcommand(args, "view") && ghPrTarget(args) == mergeTarget {
-						return m[1]
+						viewMatches = true
 					}
 				}
-				break
+				if e.ID == "" {
+					break
+				}
+			}
+			if readers == 1 && viewMatches {
+				return m[1]
 			}
 		}
 	}
@@ -1816,8 +1849,8 @@ func auditMerges(events []traceEvent, base string) []int {
 // (the cleanup helper with --apply included, however it is invoked), fails: the
 // cleanup belongs at the completion point, before the report. It is review,
 // not fail, only when the report holds the form kept `<branch>` for a branch the
-// session deleted, as `--merged-pr`, `git branch -d|-D` or `git push --delete`
-// show it, since such a report names what it leaves. A merge with no later
+// session deleted, as deletedBranchNames reads it from `--merged-pr`, `git branch
+// -d|-D`, `git push --delete`, a `:branch` refspec or `gh api -X DELETE`, since such a report names what it leaves. A merge with no later
 // deletion is not observed: merged_branch_deleted covers that case.
 func closeBeforeBranchCleanup(s auditSession, base string) criterionAssessment {
 	c := criterionAssessment{Criterion: "close_before_branch_cleanup", Status: "not_observed", Evidence: []string{}}

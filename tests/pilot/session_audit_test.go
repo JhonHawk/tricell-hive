@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -1233,5 +1234,45 @@ func TestAuditHelperInvocationSeesWrappers(t *testing.T) {
 		if got != tc.want {
 			t.Errorf("isCleanupApply(%q) = %v, want %v", tc.cmd, got, tc.want)
 		}
+	}
+}
+
+func TestDeletedBranchNamesMatchesTheDeletionCommands(t *testing.T) {
+	ok := true
+	shell := func(cmd string) traceEvent { return traceEvent{Kind: "shell", Command: cmd, Success: &ok} }
+	got := deletedBranchNames([]traceEvent{
+		shell("gh api -X DELETE repos/o/r/git/refs/heads/feat/api-gone"),
+		shell("git push origin feat/kept :feat/gone"),
+		shell("git push --delete origin feat/flagged"),
+	})
+	want := map[string]bool{"feat/api-gone": true, "feat/gone": true, "feat/flagged": true}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("deletedBranchNames = %v, want %v", got, want)
+	}
+}
+
+func TestMergeHeadReadsEverySegmentOfACodexCall(t *testing.T) {
+	ok := true
+	events := []traceEvent{
+		{Kind: "shell", ID: "call_1#0", Command: "gh pr view 42 --json headRefName", Success: &ok},
+		{Kind: "shell", ID: "call_1#1", Command: "gh pr checks 42", Success: &ok},
+		{Kind: "tool_result", ID: "call_1", Text: `{"headRefName":"development"}`},
+		{Kind: "shell", ID: "call_2", Command: "gh pr merge 42 --merge", Success: &ok},
+	}
+	if got := mergeHead(events, 3); got != "development" {
+		t.Fatalf("mergeHead = %q, want development", got)
+	}
+}
+
+func TestMergeHeadIgnoresAHeadRefNameAnotherSegmentPrinted(t *testing.T) {
+	ok := true
+	events := []traceEvent{
+		{Kind: "shell", ID: "call_1#0", Command: "gh pr view 42 --json title", Success: &ok},
+		{Kind: "shell", ID: "call_1#1", Command: "gh pr list --json headRefName,number", Success: &ok},
+		{Kind: "tool_result", ID: "call_1", Text: `[{"headRefName":"development","number":41}]`},
+		{Kind: "shell", ID: "call_2", Command: "gh pr merge 42 --merge", Success: &ok},
+	}
+	if got := mergeHead(events, 3); got != "" {
+		t.Fatalf("mergeHead = %q, want empty", got)
 	}
 }
