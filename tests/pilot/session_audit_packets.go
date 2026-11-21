@@ -28,10 +28,27 @@ var (
 
 const leafMemberPrefix = "hive-core/references/"
 
-// packetResult reads the text of a packet read's result: the members its end
-// line names, and whether every one of them has its exact heading. Without the
-// end line the members are unknown and nothing is counted.
+// packetResult reads the text of a packet read's result: the members its last
+// end line names, and whether every one of them has its exact heading. Without
+// an end line the members are unknown and nothing is counted.
 func packetResult(text string) (members []string, complete bool) {
+	ends := packetEnds(text)
+	if len(ends) == 0 {
+		return nil, false
+	}
+	last := ends[len(ends)-1]
+	return last.members, last.complete
+}
+
+type packetEnd struct {
+	members  []string
+	complete bool
+}
+
+// packetEnds reads every end line of a result, since one shell command may
+// print several packets: for each, the members it names and whether each of
+// them has its exact heading in the result.
+func packetEnds(text string) []packetEnd {
 	lines := strings.Split(text, "\n")
 	for i, l := range lines {
 		lines[i] = lineNumberPrefix.ReplaceAllString(strings.TrimRight(l, "\r"), "")
@@ -42,33 +59,39 @@ func packetResult(text string) (members []string, complete bool) {
 			headings[m] = true
 		}
 	}
-	for i := len(lines) - 1; i >= 0; i-- {
-		m := packetEndLine.FindStringSubmatch(lines[i])
+	var ends []packetEnd
+	for _, l := range lines {
+		m := packetEndLine.FindStringSubmatch(l)
 		if m == nil {
 			continue
 		}
+		end := packetEnd{complete: true}
 		for _, name := range strings.Split(m[1], ",") {
-			members = append(members, strings.TrimSpace(name))
-		}
-		for _, name := range members {
+			name = strings.TrimSpace(name)
+			end.members = append(end.members, name)
 			if !headings[name] {
-				return members, false
+				end.complete = false
 			}
 		}
-		return members, true
+		ends = append(ends, end)
 	}
-	return nil, false
+	return ends
 }
 
+// packetFilter names the shell programs that print only the lines they match:
+// their output can hold every heading and the end line without the leaves'
+// text, so they never read a packet whole.
+var packetFilter = regexp.MustCompile(`^(awk|grep|egrep|fgrep|rg)$`)
+
 // readsPacketFile reports whether a call reads an installed packet: the Read
-// tool on its path, or a shell segment of a program that prints files.
+// tool on its path, or a shell segment of a program that prints whole files.
 func readsPacketFile(e traceEvent) bool {
 	switch e.Kind {
 	case "read":
 		return packetFilePath.MatchString(filepath.ToSlash(e.Path))
 	case "shell":
 		for _, args := range shellSegments(e.Command, 0) {
-			if shellReadsPattern(args, packetFilePath) {
+			if len(args) > 0 && !packetFilter.MatchString(filepath.Base(args[0])) && shellReadsPattern(args, packetFilePath) {
 				return true
 			}
 		}
@@ -109,14 +132,20 @@ func packetNamesLeaf(events []traceEvent, i int, leaf string) (read, unverified 
 	if !ok {
 		return false, true
 	}
-	members, complete := packetResult(text)
-	if len(members) == 0 {
+	ends := packetEnds(text)
+	if len(ends) == 0 {
 		return false, true
 	}
-	if !slices.Contains(members, leafMemberPrefix+leaf) {
-		return false, false
+	named := false
+	for _, end := range ends {
+		if slices.Contains(end.members, leafMemberPrefix+leaf) {
+			if end.complete {
+				return true, false
+			}
+			named = true
+		}
 	}
-	return complete, !complete
+	return false, named
 }
 
 // readsReportEndingsAt is readsReportEndings for the call at i, which also

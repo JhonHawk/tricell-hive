@@ -141,3 +141,37 @@ func TestCostCountsAPacketReadAsAHiveRead(t *testing.T) {
 		t.Errorf("a repository file counted: %q", got)
 	}
 }
+
+func TestPacketReadOfTwoPacketsCountsEachMember(t *testing.T) {
+	exit := "## hive-core/references/review-findings\n\n# Review findings\n\nRules.\n\n<!-- hive packet end: stage-exit · hive-core/references/review-findings -->\n"
+	events := []traceEvent{
+		{Line: 1, Kind: "shell", ID: "s", Command: "cat " + pktPath + " /h/.agents/skills/flow-verify/stage-exit.md"},
+		{Line: 2, Kind: "tool_result", ID: "s", Text: pktText("") + exit},
+	}
+	for _, leaf := range []string{"git-commit", "review-findings"} {
+		if read, unverified := packetNamesLeaf(events, 0, leaf); !read || unverified {
+			t.Errorf("%s: one cat of two packets: read=%v unverified=%v, want read", leaf, read, unverified)
+		}
+	}
+}
+
+func TestPacketFilteredByAShellFilterIsNoRead(t *testing.T) {
+	for _, cmd := range []string{"grep -e '^## ' -e 'packet end' " + pktPath, "rg '^## ' " + pktPath, "awk '/^## /' " + pktPath} {
+		if readsPacketFile(traceEvent{Kind: "shell", Command: cmd}) {
+			t.Errorf("%q counted as a whole read of the packet", cmd)
+		}
+	}
+	if !readsPacketFile(traceEvent{Kind: "shell", Command: "cat " + pktPath}) {
+		t.Error("cat of the packet is not a read")
+	}
+}
+
+func TestPacketUnpaddedTabNumbersAreStripped(t *testing.T) {
+	lines := strings.Split(strings.TrimRight(pktText(""), "\n"), "\n")
+	for i, l := range lines {
+		lines[i] = fmt.Sprintf("%d\t%s", i+1, l)
+	}
+	if _, complete := packetResult(strings.Join(lines, "\n")); !complete {
+		t.Fatal("Claude Code's unpadded form, 1\\t…, is not read as a complete packet")
+	}
+}

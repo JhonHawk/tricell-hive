@@ -247,7 +247,7 @@ func TestStagePacketGoesWithItsHostAndWithRemoval(t *testing.T) {
 }
 
 func TestStagePacketHandWrittenIsRejectedFromACheckoutAndAStoredRelease(t *testing.T) {
-	for _, name := range []string{"stage.md", "stage-exit.md"} {
+	for _, name := range []string{"stage.md", "stage-exit.md", "stage2.md", "stage_notes.md", "stage-v2.md"} {
 		o := packetOptions(t)
 		put(t, packetSource(o, "flow-build/"+name), "# Mine\n")
 		if _, err := BuildPlan("install", o); err == nil || !strings.Contains(err.Error(), "content/skills/flow-build/"+name) {
