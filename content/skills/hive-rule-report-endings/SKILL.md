@@ -49,7 +49,7 @@ Five continuations need no reply and no block; the exceptions to «only the user
 - Research into create-design, for a request whose deliverable is the design, as [hive-mode](../hive-mode/SKILL.md) step 0 sets.
 - Research into [create-prd](../create-prd/SKILL.md), for a request whose deliverable is a requirement document, as [hive-mode](../hive-mode/SKILL.md) step 0 sets.
 - Build into verify, as [flow-build](../flow-build/SKILL.md) step 5 sets.
-- Plan into build, when the user asked for it beforehand or unattended delegation is active, as [plan handoff](../flow-plan/references/plan-handoff.md) sets.
+- Plan into build, when the user's own message asked beforehand to build after the plan without stopping, or [unattended delegation](../unattended-delegation/SKILL.md) is active and its objective reaches the build, as [plan handoff](../flow-plan/references/plan-handoff.md) sets.
 
 Typing a flow's command loads that skill whole for that flow, and a flow or skill entered by continuation is read whole before its first step.
 

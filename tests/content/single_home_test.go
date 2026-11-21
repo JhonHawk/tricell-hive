@@ -82,6 +82,7 @@ var homePhrases = []homePhrase{
 	{"is allowed when it is reversible or made reversible first and disrupts no other component", "content/skills/hive-rule-unattended-effects/SKILL.md"},
 	{"Draw two or three examples only for a screen the user names", "content/skills/hive-rule-design-stage/SKILL.md"},
 	{"Three reports end differently", "content/skills/hive-rule-report-endings/SKILL.md"},
+	{"named it with its target, not whether or how to make one, and research finds it a small understood change", "content/skills/hive-rule-report-endings/SKILL.md"},
 	{"Delete every Kill", "content/skills/hive-rule-no-comments/SKILL.md"},
 	{"Name the one fact the change is safe because of", "content/skills/hive-rule-blast-radius/SKILL.md"},
 	{"Write so a tired engineer understands on the first read", "content/skills/hive-rule-prose/SKILL.md"},
