@@ -58,7 +58,7 @@ These rules hold in every mode, including unattended delegation.
 
 ## Rule leaves
 
-A rule leaf is a file of `hive-core`, a skill the model does not load on its own. At the moment a line names, read the linked file whole and follow it; never invoke it as a skill, which a host may refuse. Flow steps link their leaves too; a flow's stage packet holds some leaves whole, and a leaf read there is read.
+A rule leaf is a file of `hive-core`, a skill the model does not load on its own. At the moment a line names, read the linked file whole and follow it; never invoke it as a skill, which a host may refuse. Flow steps link their leaves too; a flow's stage packet holds some leaves whole, and a leaf read there needs no new read until a compaction.
 
 - Before the first `git add` or commit of a task, in any flow: [git commit](skill:hive-core/references/git-commit.md).
 - After a pull request's push, before its merge or a `ready` stop: [merge gate](skill:hive-core/references/merge-gate.md).

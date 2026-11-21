@@ -5,7 +5,7 @@ description: Implement or resume authorized code or configuration work; reconcil
 
 # Implement authorized work
 
-At entry, read `stage.md` in this skill's folder whole: it holds the leaves verification-floor, checkpoint, checks, tests, reuse-before-writing, delegation, git-commit, security-boundaries, stored-data, so do not read them again. If it is missing, read the linked leaves instead; if its last line is not its packet end line, read the rest.
+At entry, read `stage.md` in this skill's folder whole: it holds the leaves verification-floor, checkpoint, checks, tests, reuse-before-writing, delegation, git-commit, security-boundaries, stored-data, so a step that links one of them needs no new read until a compaction, after which read the packet again. If it is missing, read the linked leaves instead; if its last line is not its packet end line, read the rest, and if a `## ` heading the end line names is missing or the output says it was cut, read that leaf.
 
 Read the [verification floor](../hive-core/references/verification-floor.md) at the start: it sets what always runs for the change's kind, in every delivery mode. Keep a checkpoint as [checkpoint](../hive-core/references/checkpoint.md) sets, written at the start and after each task. After a compaction, resume from it, the active skill and one `git status`; read code again only before editing it.
 

@@ -5,7 +5,7 @@ description: "Promote an integrated candidate through the declared environments 
 
 # Promote and verify what is served
 
-At entry, read `stage.md` in this skill's folder whole: it holds the leaves promotion-path, external-effects, merge-gate, pr-reviews, deployment-checks, so do not read them again. If it is missing, read the linked leaves instead; if its last line is not its packet end line, read the rest.
+At entry, read `stage.md` in this skill's folder whole: it holds the leaves promotion-path, external-effects, merge-gate, pr-reviews, deployment-checks, so a step that links one of them needs no new read until a compaction, after which read the packet again. If it is missing, read the linked leaves instead; if its last line is not its packet end line, read the rest, and if a `## ` heading the end line names is missing or the output says it was cut, read that leaf.
 
 ## Entry and exit
 

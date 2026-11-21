@@ -5,7 +5,7 @@ description: Prepare an authorized Git delivery while preserving unrelated work,
 
 # Deliver an authorized Git change
 
-At entry, read `stage.md` in this skill's folder whole: it holds the leaves git-commit, foreign-commits, pr-reviews, merge-gate, prose, so do not read them again. If it is missing, read the linked leaves instead; if its last line is not its packet end line, read the rest.
+At entry, read `stage.md` in this skill's folder whole: it holds the leaves git-commit, foreign-commits, pr-reviews, merge-gate, prose, so a step that links one of them needs no new read until a compaction, after which read the packet again. If it is missing, read the linked leaves instead; if its last line is not its packet end line, read the rest, and if a `## ` heading the end line names is missing or the output says it was cut, read that leaf.
 
 Global «Scope and authorization» and «Delivery» authorize effects. For E2E assignments, read [coordination](../flow-build/references/e2e-coordination.md) before Git actions.
 

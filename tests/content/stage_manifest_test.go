@@ -11,9 +11,10 @@ import (
 )
 
 // stagePacketMemberLimit keeps the members of one packet under the manager's
-// 24,000-byte cap on the generated packet, with room for its headings, its end
-// line and its rewritten links.
-const stagePacketMemberLimit = 23000
+// 24,000-byte cap on the generated packet: its headings, its end line and its
+// rewritten links added about 1,150 B to flow-close's 22,051 B of members, so
+// 1,500 B stays free for them.
+const stagePacketMemberLimit = 22500
 
 var stageKeyPattern = regexp.MustCompile(`^stage(-[a-z]+)?$`)
 
@@ -95,7 +96,7 @@ func TestStageManifests(t *testing.T) {
 				t.Errorf("%s: SKILL.md does not tell the agent to read `%s.md`", flow, key)
 			}
 		}
-		for _, phrase := range []string{"read the linked leaves instead", "packet end line, read the rest"} {
+		for _, phrase := range []string{"read the linked leaves instead", "packet end line, read the rest", "names is missing or the output says it was cut, read that leaf", "until a compaction, after which read the packet again"} {
 			if !strings.Contains(string(skill), phrase) {
 				t.Errorf("%s: SKILL.md lacks the packet fallback %q", flow, phrase)
 			}

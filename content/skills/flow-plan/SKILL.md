@@ -5,7 +5,7 @@ description: Prepare how a change is done by presenting its approaches, resolvin
 
 # Prepare an executable plan
 
-At entry, read `stage.md` in this skill's folder whole: it holds the leaves verification-floor, tests, questions, delivery-ask, plan-handoff, so do not read them again. If it is missing, read the linked leaves instead; if its last line is not its packet end line, read the rest.
+At entry, read `stage.md` in this skill's folder whole: it holds the leaves verification-floor, tests, questions, delivery-ask, plan-handoff, so a step that links one of them needs no new read until a compaction, after which read the packet again. If it is missing, read the linked leaves instead; if its last line is not its packet end line, read the rest, and if a `## ` heading the end line names is missing or the output says it was cut, read that leaf.
 
 For explicit E2E work, read [coordination](../flow-build/references/e2e-coordination.md) before defining units and grants. When planning project checks or affected feature coverage, read [project verification](../hive-core/references/project-verification.md).
 
