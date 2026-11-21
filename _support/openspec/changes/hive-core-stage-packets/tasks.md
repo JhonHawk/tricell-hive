@@ -353,9 +353,9 @@
 
 ### E3 — PR `feat/stage-rules-reply` (T8, T9, T10 parte checkpoint y cierre) · depends on: E2 · files: content/skills/flow-plan/, content/skills/hive-core/references/checkpoint.md, content/skills/hive-core/references/close-report.md, content/skills/flow-close/SKILL.md, content/guidance/global.md, 7 SKILL.md, tests/skills/, tests/content/, docs
 
-- [ ] unit: go -C <worktree> test -count=1 ./... y python3 -I -m unittest discover -s <worktree>/tests/skills -p '*_test.py'
+- [x] unit: go -C <worktree> test -count=1 ./... y python3 -I -m unittest discover -s <worktree>/tests/skills -p '*_test.py'
 - [ ] live: tras el merge de E3 y tu aviso, binario reconstruido (archivo temporal + mv), luego hive update --source <checkout> --out <archivo> y hive apply --plan <archivo> (D9 A) · pass: hive status sin drift, hive-core y los paquetes instalados en los 7 hosts, ninguna carpeta hive-rule-* instalada
-- [ ] perf: n/a: sin meta medida en esta unidad
+- [x] perf: n/a: sin meta medida en esta unidad
 
 ## Verification and human review
 
@@ -373,10 +373,10 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: build · E3 T8
-- Last commit: 03a70b78
+- Stage: verify · E3 push
+- Last commit: 2a1faa7d
 - Open findings: none
-- Next: E3: T8 (hilo principal), T9 (hive-write-docs + prueba del hilo), T10 checkpoint/cierre. Al finalizar, actualizar el artifact «Skills de Hive» https://claude.ai/artifact/77U7EN4pUTcEtiAijziLxE
+- Next: push + PR E3 + merge; luego aviso de refresco (D9 A) y esperar a que se cierren las sesiones; refresco binario+contenido; hive status; flow-close; actualizar artifact «Skills de Hive»
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/hive-core-stage-packets · feat/stage-rules-reply
 
 ### Evidence
@@ -391,6 +391,8 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 - suite E2 @93d7910f: vet 0, py 0 (71 s), go test ./... 0 (262 s); tras 8d16e080: tests/content y tests/pilot 0
 - dry-run E2 @8d16e080: 9 paquetes (uno por flujo, dos en flow-verify), validación de topes OK; huella plan/build 24 lecturas (base 39)
 - E2 integrado: PR #566 merge 03a70b78 (2026-11-21)
+- suite E3 @a7c443f8: vet 0, py 0 (69 s), go test ./... 0 (308 s); tras 2a1faa7d: python 0, tests/content 0
+- hallazgos no bloqueantes del cierre: scratchpad/hive-core-close-findings.md
 
 ## Review status and progress
 
