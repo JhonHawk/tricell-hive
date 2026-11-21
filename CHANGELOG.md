@@ -220,6 +220,12 @@ raise the minor or the patch version.
 
 ### Changed
 
+- A plan whose tasks touch two or more of server, client, guidance,
+  infrastructure or a data-entry screen gets one `hive-review-plan` per
+  domain, up to three, launched together (`flow-plan/references/plan-review.md`).
+  A revision is reread by the same reviewer through a follow-up message, and
+  with several reviewers only by those whose domain it touched. Other plans
+  keep one reviewer.
 - A plan runs each command a task's `Verification:` line names once on the
   base before its review, in parallel when the commands share no database,
   port, lock or output directory, and records the result in its verified
