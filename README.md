@@ -456,11 +456,11 @@ lists where each flow loops.
   integration, also when a project declares a later completion point in its
   `Completion` key, then ends as the close's situation sets: with a footer that lists
   replies from the context, such as closing or resolving a finding, or with the report alone
-  for a deploy's cleanup, abandoned work, a hygiene request or unattended work. The support-material decision and the cleanup run on
-  your reply, when you start other work or when the session ends: the work's resources,
-  plus your earlier merged branches and their clean worktrees in each repository the work
-  touched; with nothing to decide or clean up, they run at once and closing is
-  not offered. The change record is recorded as waiting for its archive; a hygiene
+  for a deploy's cleanup, abandoned work, a hygiene request or unattended work. At the merge the cleanup runs
+  before the report, with no question: the work's resources and the evidence its ticket
+  or pull request holds, plus your earlier merged branches and their clean worktrees in
+  each repository the work touched. Only what needs your answer waits for a close reply,
+  other work or the end of the session; with nothing waiting, closing is not offered. The change record is recorded as waiting for its archive; a hygiene
   request archives every waiting record in one delivery. A pause commits the change folder where the specs repository allows it, and a
   promotion not yet made keeps nothing. Unfinished work is preserved.
 - [Deploy](https://hive.tricell.tech/flows/deploy/) ([skill](content/skills/flow-deploy/SKILL.md)) is a separate stage after

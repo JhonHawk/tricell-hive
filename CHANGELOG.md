@@ -220,6 +220,18 @@ raise the minor or the patch version.
 
 ### Changed
 
+- At the merge, `flow-close` now cleans up before its report: the merged
+  branch and its clean worktree, earlier merged branches, processes,
+  temporaries, and the verification material the ticket's attachment list or
+  the merged pull request body holds. Only what needs the user waits for the
+  footer's Close reply. The support-material step asks nothing and never
+  commits or archives; the hygiene batch archives change folders only. The end
+  of the session after a close runs what is pending without a second report.
+  `cleanup_branches.py` reports full clones left under worktree folders as
+  `stray_clones`, and `--audit-session` fails `close_before_branch_cleanup` and
+  `merged_branch_deleted` when a close reports first or a session ends with the
+  work's merged branch left.
+
 - The 60 rule leaves moved from one skill folder each, `content/skills/hive-rule-<name>/SKILL.md`,
   into one hidden skill, `hive-core`: a leaf is now
   `content/skills/hive-core/references/<name>.md` without frontmatter, its own
