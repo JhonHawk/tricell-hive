@@ -1486,7 +1486,9 @@ func mergeHead(events []traceEvent, mergeAt int) string {
 			if m == nil {
 				continue
 			}
-			sameCall := false
+			// The read counts only when the one segment of its call that asks
+			// for headRefName is a gh pr view of the merged pull request.
+			sameCall, readers, viewMatches := false, 0, false
 			for j := i - 1; j >= 0; j-- {
 				if events[j].Kind != "shell" {
 					continue
@@ -1499,13 +1501,20 @@ func mergeHead(events []traceEvent, mergeAt int) string {
 				}
 				sameCall = true
 				for _, args := range shellSegments(events[j].Command, 0) {
+					if !strings.Contains(strings.Join(args, " "), "headRefName") {
+						continue
+					}
+					readers++
 					if isGhPrSubcommand(args, "view") && ghPrTarget(args) == mergeTarget {
-						return m[1]
+						viewMatches = true
 					}
 				}
 				if e.ID == "" {
 					break
 				}
+			}
+			if readers == 1 && viewMatches {
+				return m[1]
 			}
 		}
 	}
@@ -1840,8 +1849,8 @@ func auditMerges(events []traceEvent, base string) []int {
 // (the cleanup helper with --apply included, however it is invoked), fails: the
 // cleanup belongs at the completion point, before the report. It is review,
 // not fail, only when the report holds the form kept `<branch>` for a branch the
-// session deleted, as `--merged-pr`, `git branch -d|-D` or `git push --delete`
-// show it, since such a report names what it leaves. A merge with no later
+// session deleted, as deletedBranchNames reads it from `--merged-pr`, `git branch
+// -d|-D`, `git push --delete`, a `:branch` refspec or `gh api -X DELETE`, since such a report names what it leaves. A merge with no later
 // deletion is not observed: merged_branch_deleted covers that case.
 func closeBeforeBranchCleanup(s auditSession, base string) criterionAssessment {
 	c := criterionAssessment{Criterion: "close_before_branch_cleanup", Status: "not_observed", Evidence: []string{}}

@@ -1263,3 +1263,16 @@ func TestMergeHeadReadsEverySegmentOfACodexCall(t *testing.T) {
 		t.Fatalf("mergeHead = %q, want development", got)
 	}
 }
+
+func TestMergeHeadIgnoresAHeadRefNameAnotherSegmentPrinted(t *testing.T) {
+	ok := true
+	events := []traceEvent{
+		{Kind: "shell", ID: "call_1#0", Command: "gh pr view 42 --json title", Success: &ok},
+		{Kind: "shell", ID: "call_1#1", Command: "gh pr list --json headRefName,number", Success: &ok},
+		{Kind: "tool_result", ID: "call_1", Text: `[{"headRefName":"development","number":41}]`},
+		{Kind: "shell", ID: "call_2", Command: "gh pr merge 42 --merge", Success: &ok},
+	}
+	if got := mergeHead(events, 3); got != "" {
+		t.Fatalf("mergeHead = %q, want empty", got)
+	}
+}
