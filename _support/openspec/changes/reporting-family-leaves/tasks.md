@@ -159,11 +159,11 @@ Caminata humana: no hay pantalla; la validación es leer las dos hojas resultant
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: verify · push y PR
-- Last commit: aaf32526
-- Open findings: none · H11–H18 resueltos en la rama fix/reporting-findings (después de PR #563)
-- Next: push, PR, merge gate, flow-close
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/reporting-family-leaves · refactor/reporting-family-leaves
+- Stage: follow-up fixes · hallazgos H11–H18 y revisión acotada
+- Last commit: 856149db
+- Open findings: none
+- Next: push, PR, merge, despliegue; archivo pendiente (higiene)
+- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/reporting-family-leaves · fix/reporting-findings
 
 ### Evidence
 
