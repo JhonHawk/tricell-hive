@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"testing"
 )
@@ -14,46 +15,63 @@ import (
 // guidance or a page people read names one as a skill. The names stay legal
 // elsewhere: the legacy catalogue, history documents and session fixtures keep
 // them on purpose, and some live on as another thing's name, such as the
-// `local-instructions.md` reference of harness-audit.
+// `local-instructions.md` reference of harness-audit. Add a name here when a
+// skill is retired.
 var retiredSkills = []string{
 	"flow-research", "flow-report", "flow-figma-design", "hive-ui-criteria",
 	"flow-status", "security-advisory", "flow-walkthrough", "starlight-docs-site",
 	"local-instructions", "engram-init-workspace", "workspace-conventions", "docs-cleanup",
+	"flow-security", "workspace-archive",
 }
 
 // retiredSkillFiles are the files this test reads: what an agent loads and
 // what a person reads to use Hive.
 var retiredSkillFiles = []string{"content", "site/src/content/docs", "README.md", "llms.txt", "AGENTS.md"}
 
-// skillNameForms returns the patterns that name `name` as a skill: its folder
-// in a skills path or locator, its entrypoint, its name in backticks, the word
-// "skill" after it, or a slash, dollar or at command, also inside backticks,
-// bold or a link's text.
-func skillNameForms(name string) *regexp.Regexp {
-	n := regexp.QuoteMeta(name)
-	return regexp.MustCompile(`(?:skills/` + n + `(?:/|\b)|skill:` + n + `\b|\.\./` + n + `/SKILL\.md|` + "`" + n + "`" + `|\b` + n + ` skills?\b|(?:^|[\s(*"\[` + "`" + `])[/$@]` + n + `\b)`)
-}
+// skillNameForms holds, per retired skill, the pattern that names it as a
+// skill: its folder in a skills path or locator, its entrypoint, its name in
+// backticks, the word "skill" after it (also across a line break), or a slash,
+// dollar or at command after any character that is not part of a word or a
+// path, such as a space, a backtick, an underscore, a quote, a bracket or a
+// table bar. A name is matched whole: one that only starts with a retired
+// name, such as flow-report-assets, is another name.
+var skillNameForms = func() map[string]*regexp.Regexp {
+	forms := map[string]*regexp.Regexp{}
+	const end = `(?:$|[^A-Za-z0-9-])`
+	for _, name := range retiredSkills {
+		n := regexp.QuoteMeta(name)
+		forms[name] = regexp.MustCompile(`(?m)(?:` +
+			`skills/` + n + `(?:/|` + end + `)` +
+			`|skill:` + n + end +
+			`|\.\./` + n + `/SKILL\.md` +
+			"|`" + n + "`" +
+			`|(?:^|[^A-Za-z0-9_-])` + n + `\s+skills?` + end +
+			`|(?:^|[^A-Za-z0-9./-])[/$@]` + n + end +
+			`)`)
+	}
+	return forms
+}()
 
 // legacyLeafPrefix is the folder prefix the rule leaves had before they moved
 // into hive-core; written in two parts so this file does not name it.
 var legacyLeafPrefix = regexp.MustCompile(`\b` + "hive-" + "rule-" + `[a-z]`)
 
 // retiredNameProblems returns one line per mention of a retired skill, or of a
-// leaf's former folder, in the given files' text.
+// leaf's former folder, in the given files' text, sorted by file and line.
 func retiredNameProblems(files map[string]string) []string {
 	var problems []string
+	lineOf := func(text string, offset int) int { return strings.Count(text[:offset], "\n") + 1 }
 	for path, text := range files {
-		for n, line := range strings.Split(text, "\n") {
-			for _, name := range retiredSkills {
-				if skillNameForms(name).MatchString(line) {
-					problems = append(problems, fmt.Sprintf("%s:%d: names the retired skill %s", path, n+1, name))
-				}
-			}
-			if legacyLeafPrefix.MatchString(line) {
-				problems = append(problems, fmt.Sprintf("%s:%d: names a rule leaf by its former folder; leaves are files of hive-core", path, n+1))
+		for _, name := range retiredSkills {
+			for _, m := range skillNameForms[name].FindAllStringIndex(text, -1) {
+				problems = append(problems, fmt.Sprintf("%s:%d: names the retired skill %s", path, lineOf(text, m[0]), name))
 			}
 		}
+		for _, m := range legacyLeafPrefix.FindAllStringIndex(text, -1) {
+			problems = append(problems, fmt.Sprintf("%s:%d: names a rule leaf by its former folder; leaves are files of hive-core", path, lineOf(text, m[0])))
+		}
 	}
+	sort.Strings(problems)
 	return problems
 }
 
@@ -99,31 +117,43 @@ func TestNoRetiredSkillIsNamed(t *testing.T) {
 }
 
 func TestRetiredSkillFormsAndLegalNames(t *testing.T) {
-	for _, line := range []string{
+	for _, text := range []string{
 		"read [the walkthrough](../flow-walkthrough/SKILL.md)",
 		"run `flow-research` first",
 		"the local-instructions skill writes it",
+		"and the flow-report\nskill writes it",
 		"type /flow-report to start",
 		"type `/flow-status` to see the backlog",
 		"run `$flow-research` in Codex",
 		"**@flow-report** in Cursor",
+		"__/flow-status__ in bold",
+		"set the command to \"/flow-status\"",
+		"say '/flow-status' aloud",
+		"<code>/flow-report</code>",
+		"|/flow-report|",
+		"see [/flow-report](https://x) for details",
 		"see skill:docs-cleanup/SKILL.md",
 		"content/skills/workspace-conventions/SKILL.md",
+		"run `flow-security` before the push",
 		"read " + "hive-" + "rule-questions before asking",
 	} {
-		if len(retiredNameProblems(map[string]string{"x.md": line})) == 0 {
-			t.Errorf("%q is not reported", line)
+		if len(retiredNameProblems(map[string]string{"x.md": text})) == 0 {
+			t.Errorf("%q is not reported", text)
 		}
 	}
-	for _, line := range []string{
+	for _, text := range []string{
 		"[local instructions](references/local-instructions.md)",
 		"[the next-step block](report-endings.md#the-next-step-block)",
 		"`<meta name=\"flow-report-assets\" content=\"external\">`",
 		"see ../../tests/fixtures/workspace-conventions/baseline/global.md",
 		"the hive-core skill stores the leaves",
+		"`/flow-report-assets/app.css`",
+		"content/skills/flow-report-assets/x",
+		"the use-flow-status skill is another one",
+		"https://example.com/flow-report",
 	} {
-		if problems := retiredNameProblems(map[string]string{"x.md": line}); len(problems) != 0 {
-			t.Errorf("%q is reported: %v", line, problems)
+		if problems := retiredNameProblems(map[string]string{"x.md": text}); len(problems) != 0 {
+			t.Errorf("%q is reported: %v", text, problems)
 		}
 	}
 }
