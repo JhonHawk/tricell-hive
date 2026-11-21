@@ -454,8 +454,9 @@ lists where each flow loops.
   mode, and the final report ends with how to try the change yourself.
 - [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) moves the ticket, writes the work's business rules to it and reports at
   integration, also when a project declares a later completion point in its
-  `Completion` key, then ends with a footer that lists replies from the context, such as
-  closing or resolving a finding. The support-material decision and the cleanup run on
+  `Completion` key, then ends as the close's situation sets: with a footer that lists
+  replies from the context, such as closing or resolving a finding, or with the report alone
+  for a deploy's cleanup, abandoned work, a hygiene request or unattended work. The support-material decision and the cleanup run on
   your reply, when you start other work or when the session ends: the work's resources,
   plus your earlier merged branches and their clean worktrees in each repository the work
   touched; with nothing to decide or clean up, they run at once and closing is

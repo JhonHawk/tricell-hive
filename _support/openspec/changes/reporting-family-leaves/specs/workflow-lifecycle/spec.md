@@ -32,3 +32,31 @@ The final report SHALL carry a defect's regression test output seen failing and 
 - **GIVEN** a delivery whose pull request the agent merged
 - **WHEN** `git-workflow` verifies the merge and runs `flow-close`
 - **THEN** one final report is written, by `flow-close`, with the row for the close at the completion point
+
+## ADDED Requirements
+
+### Requirement: Playbooks and the close hygiene leaf name their own row
+
+Each of the 13 playbooks of `hive-mode` SHALL carry one reporting line that links its row of `hive-rule-report-endings` and the row of `hive-rule-close-report` that the delivery mode in force picks, without naming a delivery mode; `pr-review-deploy` SHALL also link the deployment row. A playbook SHALL NOT copy text from those leaves. The `hive-rule-close-hygiene` leaf and its line in the global guidance SHALL cover steps 4, 5 and 7 of `flow-close` and SHALL NOT claim step 6, which belongs to `hive-rule-close-report`. Aligning each line of the global index with the first «Read» line of its leaf, and the test for it, SHALL belong to the change `hive-core-stage-packets`, not to this one.
+
+#### Scenario: A playbook reports through its rows
+
+- **GIVEN** the `bugfix` playbook
+- **WHEN** the work closes
+- **THEN** the playbook's reporting line leads to the close row of `hive-rule-report-endings` and to the row of `hive-rule-close-report` that the delivery mode in force picks
+
+#### Scenario: Close hygiene stays out of the report step
+
+- **GIVEN** the index line and the leaf of `hive-rule-close-hygiene`
+- **WHEN** a close reaches step 6
+- **THEN** neither the line nor the leaf asks to be read for the final report
+
+### Requirement: The two reporting homes have bounded size and reading cost
+
+`hive-rule-report-endings` SHALL have its own size limit of 9,000 bytes and `hive-rule-close-report` SHALL stay in the 7,000-byte exception; every other leaf keeps its limit and no text SHALL be cut to fit. The reading-footprint test for the plan and build route SHALL accept the growth that comes from reading those two leaves whole at each stage's end, as a second allowance of 8,880 bytes beside the earlier 182 bytes. The global guidance SHALL NOT grow past its size at the base of the build (28,593 bytes at `7f6277e0`).
+
+#### Scenario: The leaves fit their limits
+
+- **GIVEN** the candidate
+- **WHEN** the content tests run
+- **THEN** `hive-rule-report-endings` is at most 9,000 bytes, `hive-rule-close-report` at most 7,000 bytes, and the global guidance at most 28,593 bytes

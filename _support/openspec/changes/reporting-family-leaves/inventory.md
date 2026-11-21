@@ -414,3 +414,19 @@ Ninguna oración quedó sin destino: las 207 tienen uno. Cuatro piden una decisi
 2. `S4.13` (`close-report/SKILL.md:25`, ofrecer una página `create-report` «as one reply of the close footer»): la lista de respuestas de `close-footer` (`S2.6`-`S2.16`) no trae esa respuesta. Al fundirla en la fila de footer de `report-endings`, hay que añadir esa respuesta o cambiar la frase.
 3. `S5.3` (`close-modes/SKILL.md:15`): una sola fila agrupa seis situaciones y T3 la enlaza a «Cierre sin footer» más «la fila de `close-report` que aplica»; las filas de `close-report` no cubren abandono, higiene ni fin de sesión. Propuesta: tratarlas con la fila «Cierre en el punto de terminación» y registrarlo en la tabla.
 4. `S10.8` y `S10.15` (`merge-gate/SKILL.md:9,14`): dicen qué pone el reporte de cierre sobre el CI de la base y el merge pendiente, que ahora también están en la fila «ready» de `close-report` (`S4.4`, `S4.12`). Se dejan en `merge-gate` (T4 así lo manda) y la fila de `close-report` los enlaza en lugar de copiarlos.
+
+## Texto del PR (para cuando la entrega salga de `hold`)
+
+**Title:** refactor(guidance): give reporting two homes, the final report and how a message ends
+
+**What changed.** The final report lives in `hive-rule-close-report` (one row per variant plus the findings round of the close). How each message ends lives in `hive-rule-report-endings` (a row per way of ending, the close footer's replies and the same-turn continuations). `hive-rule-next-step-block` and `hive-rule-close-footer` are deleted and every link points to the section that took their text. `flow-close` step 6 writes the only final report; `git-workflow`, `flow-deploy` and `unattended-delegation` hand over or summarize. A close ends as its `close-modes` row sets. The 13 playbooks name their rows. `close-hygiene` covers steps 4, 5 and 7. `site/`, `llms.txt`, `README.md`, `CHANGELOG.md`, the architecture page and the rule-enforcers table follow.
+
+**Why.** One work item wrote two final reports, `flow-close` said the close always ends with the footer while `close-modes` listed six closes without it, and the same-turn continuation was written in six places.
+
+**Size of `global.md`.** 28,593 B on base `7f6277e0`; 28,312 B now (`wc -c`), 281 B smaller. The cap of 30,000 B is untouched. `report-endings` is 8,661 B (own limit 9,000 B, D11 A) and `close-report` 6,420 B (7,000 B exception). Each playbook is at most 7,000 B (largest `ticket-status`, 5,917 B).
+
+**Reading footprint.** The plan/build union grows by +9,053 B (+4.91%) without the moments the baseline did not read, against an allowance of 182 B + 8,880 B (D12 A). The test logs: `plan/build union at 2bb96478 (its declared list): 184489 B; candidate with every selected leaf: 200736 B (+16247 B, +8.81%), of which new sources 94363 B`.
+
+**How it was checked.** `go test -count=1 ./tests/content/...`, `./tests/pilot/`, `check_change.py` on this folder; `inventory.md` maps each source sentence to its destination, input for `/code-review`.
+
+**Places checked.** `content/guidance/global.md` («Rule leaves», «Questions and routes»); the 13 playbooks; `hive-rule-close-modes`, `hive-rule-close-hygiene`, `hive-rule-merge-gate`; `flow-close`, `flow-deploy`, `flow-build`, `flow-plan/references/plan-handoff.md`, `git-workflow`, `unattended-delegation`, `hive-mode`; `site/src/content/docs/flows/{close,deploy,overview,build,hive-mode,create-design}.md`; `llms.txt`; `README.md`; `CHANGELOG.md`; `_support/docs/architecture/{instruction-resources,workspace-and-artifacts}.md`; `_support/docs/harness-engineering/{rule-enforcers,session-review-rubric}.md`; `tests/content/*`, `tests/pilot/session_audit_endings.go` and its fixtures (name `report-endings` kept); `_support/openspec/specs/workflow-lifecycle/spec.md` and `project-layout/spec.md:54` (kept, still true).

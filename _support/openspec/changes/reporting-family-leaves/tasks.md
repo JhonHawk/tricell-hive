@@ -94,7 +94,7 @@ Restricción de todas las tareas: `wc -c content/guidance/global.md` no crece so
 
 ### T6 — `close-hygiene` deja el paso 6 a `close-report`
 
-- [ ] La línea de `close-hygiene` en `## Rule leaves` y la hoja `hive-rule-close-hygiene` (descripción y cuerpo) ya no incluyen el paso 6 de `flow-close`. La prueba literal del índice ya no es de este plan: la hace `hive-core-stage-packets` (D7 A).
+- [x] La línea de `close-hygiene` en `## Rule leaves` y la hoja `hive-rule-close-hygiene` (descripción y cuerpo) ya no incluyen el paso 6 de `flow-close`. La prueba literal del índice ya no es de este plan: la hace `hive-core-stage-packets` (D7 A).
 
 **Closes:** AC10
 
@@ -112,7 +112,7 @@ Restricción de todas las tareas: `wc -c content/guidance/global.md` no crece so
 
 ### T7 — Cada playbook nombra su fila
 
-- [ ] Los 13 archivos de `content/skills/hive-mode/playbooks/` tienen una línea que enlaza su fila de `report-endings` y «la fila de `close-report` que elige el modo de entrega vigente»; `pr-review-deploy` enlaza además la fila de despliegue; ninguna nombra un modo.
+- [x] Los 13 archivos de `content/skills/hive-mode/playbooks/` tienen una línea que enlaza su fila de `report-endings` y «la fila de `close-report` que elige el modo de entrega vigente»; `pr-review-deploy` enlaza además la fila de despliegue; ninguna nombra un modo.
 
 **Closes:** AC7
 
@@ -178,3 +178,5 @@ Caminata humana: no hay pantalla; la validación es leer las dos hojas resultant
 2026-11-21 — T3 · 6d9aad92 · unverified: none
 2026-11-21 — T4 · cc6b183a · unverified: none
 2026-11-21 — T5 · 7e3fdc95 · unverified: none
+2026-11-21 — T6 · e2451b7b · unverified: none
+2026-11-21 — T7 · 90e85220 · unverified: none

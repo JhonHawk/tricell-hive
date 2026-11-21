@@ -220,6 +220,18 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Reporting has two homes. `hive-rule-close-report` holds the final report with
+  one row per variant (close at the completion point, pull request left open,
+  deployment, `hold`, pause) and the findings round of the close;
+  `hive-rule-report-endings` holds how every message ends, the close footer and
+  the same-turn continuations. `flow-close` step 6 writes the only final report
+  of a work item: `git-workflow` and `flow-deploy` hand it what they observed,
+  and `unattended-delegation` summarizes the session and links each close's
+  report. A close ends as its `hive-rule-close-modes` row sets, not always with
+  the footer. Each `hive-mode` playbook names its rows, and `hive-rule-close-hygiene`
+  covers steps 4, 5 and 7 only. `hive-rule-report-endings` has a 9,000-byte limit
+  and the plan/build reading-footprint test a second allowance of 8,880 bytes.
+
 - A plan whose tasks touch two or more of server, client, guidance,
   infrastructure or a data-entry screen gets one `hive-review-plan` per
   domain, up to three, launched together (`flow-plan/references/plan-review.md`).
@@ -366,6 +378,10 @@ raise the minor or the patch version.
   coherence check reports a criterion without the marker.
 
 ### Removed
+
+- The rule leaves `hive-rule-next-step-block` and `hive-rule-close-footer`: their
+  text moved to `hive-rule-report-endings` and `hive-rule-close-report`.
+  Installed copies disappear on `hive update`; restart open sessions.
 
 - The skill catalogue goes from 20 to 13 skills. Seven skills that sessions
   rarely loaded, or never invoked by name, become references or modes of the
