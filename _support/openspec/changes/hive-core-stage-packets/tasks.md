@@ -260,7 +260,7 @@
 
 ### T8 — La línea `Rules:` del checkpoint y el orden tras compactar
 
-- [ ] `tasks.py checkpoint --rules` escribe y conserva `- Rules:`, y `--principles` escribe y conserva `- Principles:` (D13 A); `check_change.py` acepta cada línea bien formada y la rechaza mal formada. `--principles` une nombres sin duplicados, un nombre reemplaza `none` y ningún valor borra la línea. `flow-build` escribe `Principles:` cuando un principio cambia una decisión, o `none` en su paso 5 si no existe; `flow-close` la lee en su paso 2 y `close-report` toma de ella la parte **Principles**. La hoja del checkpoint y una línea de `global.md` dicen el orden tras compactar: checkpoint, `HIVE.local.md`, paquete, extras y memoria. Las líneas de `global.md` que hoy nombran pasos tras compactar (`:46`, `:90`, `:126` en `7f6277e0`) quedan reconciliadas con ese orden, sin otro orden en `content/`.
+- [x] `tasks.py checkpoint --rules` escribe y conserva `- Rules:`, y `--principles` escribe y conserva `- Principles:` (D13 A); `check_change.py` acepta cada línea bien formada y la rechaza mal formada. `--principles` une nombres sin duplicados, un nombre reemplaza `none` y ningún valor borra la línea. `flow-build` escribe `Principles:` cuando un principio cambia una decisión, o `none` en su paso 5 si no existe; `flow-close` la lee en su paso 2 y `close-report` toma de ella la parte **Principles**. La hoja del checkpoint y una línea de `global.md` dicen el orden tras compactar: checkpoint, `HIVE.local.md`, paquete, extras y memoria. Las líneas de `global.md` que hoy nombran pasos tras compactar (`:46`, `:90`, `:126` en `7f6277e0`) quedan reconciliadas con ese orden, sin otro orden en `content/`.
 
 **Closes:** AC8
 
@@ -294,7 +294,7 @@
 
 ### T9 — La línea `Reply:` de cada flujo
 
-- [ ] `hive-mode`, `flow-plan`, `flow-build`, `flow-verify`, `flow-close`, `flow-deploy` y `git-workflow` tienen una línea `Reply:`. Esa línea nombra la fila de reporte que termina el flujo y solo lo que el flujo añade y la fila no tiene. Una prueba de contenido la exige.
+- [x] `hive-mode`, `flow-plan`, `flow-build`, `flow-verify`, `flow-close`, `flow-deploy` y `git-workflow` tienen una línea `Reply:`. Esa línea nombra la fila de reporte que termina el flujo y solo lo que el flujo añade y la fila no tiene. Una prueba de contenido la exige.
 
 **Closes:** AC9
 
@@ -373,11 +373,11 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: verify · E2 push
-- Last commit: 8d16e080
-- Open findings: E2 /code-review (no bloqueantes, al cierre): marcador de corte entre corchetes no reconocido; un corte en un paquete marca incompletos los demás de la misma salida; flow-verify sin fixture de sesión cut-…-fail; nit global.md regla nueva en el núcleo (AC6 la exige) · decisión: findings del cierre
-- Next: push + PR E2 + merge; luego E3 (T8, T9, T10 checkpoint/cierre) en rama feat/stage-rules-reply. Al finalizar el build (tras E3), actualizar el artifact «Skills de Hive» https://claude.ai/artifact/77U7EN4pUTcEtiAijziLxE
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/hive-core-stage-packets · feat/stage-packets
+- Stage: build · E3 T8
+- Last commit: 03a70b78
+- Open findings: none
+- Next: E3: T8 (hilo principal), T9 (hive-write-docs + prueba del hilo), T10 checkpoint/cierre. Al finalizar, actualizar el artifact «Skills de Hive» https://claude.ai/artifact/77U7EN4pUTcEtiAijziLxE
+- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/hive-core-stage-packets · feat/stage-rules-reply
 
 ### Evidence
 
@@ -390,6 +390,7 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 - E1 integrado: PR #565 merge 89befa58 (2026-11-21); sin CI de PR ni de base (solo master-source-branch.yml)
 - suite E2 @93d7910f: vet 0, py 0 (71 s), go test ./... 0 (262 s); tras 8d16e080: tests/content y tests/pilot 0
 - dry-run E2 @8d16e080: 9 paquetes (uno por flujo, dos en flow-verify), validación de topes OK; huella plan/build 24 lecturas (base 39)
+- E2 integrado: PR #566 merge 03a70b78 (2026-11-21)
 
 ## Review status and progress
 
@@ -400,3 +401,5 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 2026-11-21 — T4 · 70f07007 · unverified: AC2: se observa en la instalación local tras el refresco posterior a E3; hoy solo prueba del manager y dry-run (sustitutos)
 2026-11-21 — T6 · f6a984cb · unverified: AC5: instalación tras el refresco posterior a E3; fixtures de lectura construidos con la forma real (1\t…), no copiados de una transcripción
 2026-11-21 — T7 · 4ad914c9 · unverified: none
+2026-11-21 — T8 · 7415f709 · unverified: AC8 orden tras compactar: comportamiento del agente, no observable en pruebas
+2026-11-21 — T9 · 8fb08a4c · unverified: none
