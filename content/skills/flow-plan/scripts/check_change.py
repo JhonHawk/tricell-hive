@@ -29,6 +29,10 @@ Reads proposal.md, tasks.md, design.md and specs/**/*.md and prints one
   `· depends on: … · files: …`); boxes `unit: <command>`, `live: <scenario> · pass:
   <predicate>`, `perf: <metric> · base: <value> · fail: <threshold>` (or `falla:`);
   a predicate written `n/a: <reason>` replaces pass, base and threshold;
+- without --archive, a malformed `- Rules:` or `- Principles:` line in the
+  `## Checkpoint` section of tasks.md: Rules is one or more
+  `<flow>/stage[-<name>].md` joined by `, `, optionally followed by ` · extra: <leaf>, <leaf>`; Principles is `none` or
+  principle names (`[a-z0-9-]+`) joined by `, `, never `none` with a name;
 - with --archive, each unchecked `- [ ]` box of tasks.md, then their count; a
   delivery-unit box written `n/a: <reason>` is not counted.
 
@@ -354,6 +358,29 @@ def execution_findings(folder, tasks):
     return []
 
 
+CHECKPOINT_HEADING = re.compile(r"^##\s+Checkpoint\s*$", re.IGNORECASE)
+LEAF_NAME = r"[a-z0-9]+(?:-[a-z0-9]+)*"
+PACKET_PATH = rf"{LEAF_NAME}/stage(?:-[a-z]+)?\.md"
+RULES_LINE = re.compile(rf"^{PACKET_PATH}(?:, {PACKET_PATH})*(?: · extra: {LEAF_NAME}(?:, {LEAF_NAME})*)?$")
+PRINCIPLES_LINE = re.compile(rf"^(?:none|(?!none(?:,|$)){LEAF_NAME}(?:, (?!none(?:,|$)){LEAF_NAME})*)$")
+
+
+def checkpoint_line_findings(tasks):
+    """The Rules and Principles lines of the checkpoint, which a resumed session reads."""
+    findings, inside = [], False
+    for n, line in enumerate(tasks, 1):
+        if line.startswith("## "):
+            inside = bool(CHECKPOINT_HEADING.match(line))
+            continue
+        if not inside:
+            continue
+        for label, shape in (("Rules", RULES_LINE), ("Principles", PRINCIPLES_LINE)):
+            prefix = f"- {label}:"
+            if line.startswith(prefix) and not shape.match(line[len(prefix):].strip()):
+                findings.append(f"tasks.md:{n}: malformed checkpoint line: {line.strip()}")
+    return findings
+
+
 def main(argv):
     args = [a for a in argv if a != "--archive"]
     if len(args) != 1:
@@ -377,6 +404,7 @@ def main(argv):
         findings += business_rules_findings(docs["proposal.md"])
         findings += execution_findings(folder, docs["tasks.md"])
         findings += delivery_unit_findings(docs["tasks.md"])
+        findings += checkpoint_line_findings(docs["tasks.md"])
     findings += stale_mentions(docs, old)
     if "--archive" in argv:
         resolved = {n for n, line in delivery_units(docs["tasks.md"])

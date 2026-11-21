@@ -45,7 +45,7 @@
 
 ## Checkpoint
 
-<Written by `scripts/tasks.py checkpoint`: Updated, Stage, Last commit, Open findings, Next, Worktree when the work has one (`- Worktree: <path> · <branch>`), Unwritten at a pause (`--unwritten`), then `### Evidence` with the checks recorded so far.>
+<Written by `scripts/tasks.py checkpoint`: Updated, Stage, Last commit, Open findings, Next, Worktree when the work has one (`- Worktree: <path> · <branch>`), Unwritten at a pause (`--unwritten`), Rules with the stage packets read (`--rules`), Principles with the code principles that changed a decision (`--principles`), then `### Evidence` with the checks recorded so far.>
 
 ## Review status and progress
 

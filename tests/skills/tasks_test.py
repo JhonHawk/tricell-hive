@@ -204,6 +204,64 @@ class TasksScriptTest(unittest.TestCase):
             self.assertEqual(fourth.returncode, 0, fourth.stderr)
             self.assertNotIn("- Worktree:", self.text(change))
 
+    def test_checkpoint_keeps_the_rules_line_until_a_new_one_is_given(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            change = self.folder(tmp)
+            first = self.checkpoint(change, "build", "T1", "run T2", "--rules", "flow-build/stage.md · extra: defect-fix")
+            self.assertEqual(first.returncode, 0, first.stderr)
+            second = self.checkpoint(change, "build", "T2", "run T3")
+            self.assertEqual(second.returncode, 0, second.stderr)
+            text = self.text(change)
+            self.assertEqual(text.count("- Rules:"), 1)
+            self.assertIn("- Rules: flow-build/stage.md · extra: defect-fix", text)
+            third = self.checkpoint(change, "verify", "1", "walk", "--rules", "flow-verify/stage-entry.md")
+            self.assertEqual(third.returncode, 0, third.stderr)
+            self.assertIn("- Rules: flow-verify/stage-entry.md\n", self.text(change))
+            both = self.checkpoint(change, "verify", "2", "reviews", "--rules", "flow-verify/stage-entry.md, flow-verify/stage-exit.md")
+            self.assertEqual(both.returncode, 0, both.stderr)
+            self.assertIn("- Rules: flow-verify/stage-entry.md, flow-verify/stage-exit.md\n", self.text(change))
+            bad = self.checkpoint(change, "verify", "1", "walk", "--rules", "stage.md")
+            self.assertEqual(bad.returncode, 2)
+
+    def test_checkpoint_rules_merge_within_a_flow_and_reset_on_a_new_one(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            change = self.folder(tmp)
+            steps = [
+                ("flow-build/stage.md · extra: defect-fix", "- Rules: flow-build/stage.md · extra: defect-fix"),
+                ("flow-verify/stage-entry.md", "- Rules: flow-verify/stage-entry.md"),
+                ("flow-verify/stage-exit.md · extra: tests", "- Rules: flow-verify/stage-entry.md, flow-verify/stage-exit.md · extra: tests"),
+                ("flow-verify/stage-exit.md · extra: defect-fix", "- Rules: flow-verify/stage-entry.md, flow-verify/stage-exit.md · extra: tests, defect-fix"),
+            ]
+            for n, (value, want) in enumerate(steps, 1):
+                result = self.checkpoint(change, "verify", str(n), "next", "--rules", value)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                text = self.text(change)
+                self.assertEqual(text.count("- Rules:"), 1, text)
+                self.assertIn(want + "\n", text)
+            removed = self.checkpoint(change, "close", "5", "next", "--rules", "none")
+            self.assertEqual(removed.returncode, 0, removed.stderr)
+            self.assertNotIn("- Rules:", self.text(change))
+
+    def test_checkpoint_merges_principles_and_never_removes_them(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            change = self.folder(tmp)
+            steps = [
+                (["--principles", "none"], "- Principles: none"),
+                (["--principles", "boundary-discipline"], "- Principles: boundary-discipline"),
+                ([], "- Principles: boundary-discipline"),
+                (["--principles", "model-the-domain, boundary-discipline"], "- Principles: boundary-discipline, model-the-domain"),
+                (["--principles", "none"], "- Principles: boundary-discipline, model-the-domain"),
+            ]
+            for n, (extra, want) in enumerate(steps, 1):
+                result = self.checkpoint(change, "build", f"T{n}", "next", *extra)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                text = self.text(change)
+                self.assertEqual(text.count("- Principles:"), 1, text)
+                self.assertIn(want + "\n", text)
+            for bad in ("", "Boundary", "none, model-the-domain", "a,b"):
+                result = self.checkpoint(change, "build", "T9", "next", "--principles", bad)
+                self.assertEqual(result.returncode, 2, bad)
+
     def test_checkpoint_keeps_unwritten_until_replaced_or_none(self):
         with tempfile.TemporaryDirectory() as tmp:
             change = self.folder(tmp)
