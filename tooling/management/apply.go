@@ -186,6 +186,93 @@ func cleanupDirs(dirs []string) []string {
 	return retained
 }
 
+// retireSkillCaches runs after a transaction commits, so the retirement is
+// already recorded. For each Hive skill folder the plan retired whole (no
+// record left under it, and Hive created it) it deletes the regular *.pyc
+// files of every __pycache__ directory, then the directory once empty, so the
+// folder itself can go with the other empty directories. It never follows a
+// link: a __pycache__ that is a link is left alone, and a directory with any
+// other file is kept. It returns one note per directory it left.
+func retireSkillCaches(p Plan, next State) []string {
+	bundles := map[string]bool{}
+	for _, ch := range p.Changes {
+		if ch.After != nil || ch.Before == nil || ch.Target.Kind != "skill" || !strings.HasPrefix(ch.Target.Source, "content/skills/") {
+			continue
+		}
+		bundle := ch.Target.Path
+		for range strings.Split(ch.Target.Source, "/")[3:] {
+			bundle = filepath.Dir(bundle)
+		}
+		bundles[bundle] = true
+	}
+	var names []string
+	for b := range bundles {
+		names = append(names, b)
+	}
+	sort.Strings(names)
+	var notes []string
+	for _, bundle := range names {
+		if !slices.Contains(next.CreatedDirs, bundle) || target.Safe(bundle) != nil {
+			continue
+		}
+		stillOwned := false
+		for path := range next.Records {
+			if strings.HasPrefix(path, bundle+string(filepath.Separator)) {
+				stillOwned = true
+				break
+			}
+		}
+		if stillOwned {
+			continue
+		}
+		_ = filepath.WalkDir(bundle, func(path string, d os.DirEntry, err error) error {
+			if err != nil || d.Name() != "__pycache__" {
+				return nil
+			}
+			if d.Type()&os.ModeSymlink != 0 {
+				notes = append(notes, "left "+path+" untouched: it is a link")
+				return nil
+			}
+			if !d.IsDir() {
+				return nil
+			}
+			if note := removePycache(path); note != "" {
+				notes = append(notes, note)
+			}
+			return filepath.SkipDir
+		})
+	}
+	return notes
+}
+
+// removePycache deletes the regular *.pyc files of dir and then dir when it is
+// empty. It returns a note when dir keeps a file that is not one of them.
+func removePycache(dir string) string {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return "kept " + dir + ": " + err.Error()
+	}
+	kept := false
+	for _, e := range entries {
+		path := filepath.Join(dir, e.Name())
+		info, err := os.Lstat(path)
+		if err != nil || !info.Mode().IsRegular() || !strings.HasSuffix(e.Name(), ".pyc") || target.Safe(path) != nil {
+			kept = true
+			continue
+		}
+		if os.Remove(path) != nil {
+			kept = true
+		}
+	}
+	if kept {
+		return "kept " + dir + ": it holds files other than .pyc"
+	}
+	if err := os.Remove(dir); err != nil && !os.IsNotExist(err) {
+		return "kept " + dir + ": " + err.Error()
+	}
+	return ""
+}
+
 // anyUserScopeHiveBlockRemains reports whether s.Records still has any
 // "block"-kind record with at least one user-scope consumer: whether there
 // is still somewhere a voice choice could apply.
@@ -790,6 +877,9 @@ func (e Engine) Apply(p Plan) (string, error) {
 		for _, n := range j.PiConfig.Notes {
 			warning = strings.TrimPrefix(warning+"; "+n, "; ")
 		}
+	}
+	for _, n := range retireSkillCaches(p, next) {
+		warning = strings.TrimPrefix(warning+"; "+n, "; ")
 	}
 	id, err := finishApply(p, j.ID, next)
 	if err != nil {

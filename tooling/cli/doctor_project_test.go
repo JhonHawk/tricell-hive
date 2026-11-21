@@ -444,11 +444,11 @@ func TestHiveSectionGitNotFoundIsAnErrorNotAFinding(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 // projectSettingsSection returns the canonical settings declaration, split into
-// prose lines and lines inside fenced code blocks. It lives in the rule leaf
-// hive-rule-project-settings, which the global guidance's index names.
+// prose lines and lines inside fenced code blocks. It lives in the project-settings
+// leaf of hive-core, which the global guidance's index names.
 func projectSettingsSection(t *testing.T) (prose, code []string) {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join("..", "..", "content", "skills", "hive-rule-project-settings", "SKILL.md"))
+	data, err := os.ReadFile(filepath.Join("..", "..", "content", "skills", "hive-core", "references", "project-settings.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -491,7 +491,7 @@ func TestHiveSettingKeysAppearInTheGuidance(t *testing.T) {
 			}
 		}
 		if !ok {
-			t.Errorf("key %q is not the start of any backtick-quoted text in the canonical «Project settings» declaration of hive-rule-project-settings", k.Name)
+			t.Errorf("key %q is not the start of any backtick-quoted text in the canonical «Project settings» declaration of the project-settings leaf", k.Name)
 		}
 	}
 }
@@ -510,7 +510,7 @@ func TestHiveSettingKeysCoverTheGuidanceExample(t *testing.T) {
 		}
 		seen++
 		if !knownHiveKey(strings.TrimSpace(name)) {
-			t.Errorf("the example in hive-rule-project-settings uses key %q, which hiveSettingKeys does not know", strings.TrimSpace(name))
+			t.Errorf("the example in the project-settings leaf uses key %q, which hiveSettingKeys does not know", strings.TrimSpace(name))
 		}
 	}
 	if seen == 0 {
@@ -551,7 +551,7 @@ func TestRetiredHiveKeysMatchTheGuidance(t *testing.T) {
 		}
 	}
 	if line == "" {
-		t.Fatal("hive-rule-project-settings has no line starting \"Retired keys:\"")
+		t.Fatal("the project-settings leaf has no line starting \"Retired keys:\"")
 	}
 	var sentence string
 	sentence, _, _ = strings.Cut(line, ".")
