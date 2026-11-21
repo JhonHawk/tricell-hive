@@ -223,6 +223,25 @@ class TasksScriptTest(unittest.TestCase):
             bad = self.checkpoint(change, "verify", "1", "walk", "--rules", "stage.md")
             self.assertEqual(bad.returncode, 2)
 
+    def test_checkpoint_rules_merge_within_a_flow_and_reset_on_a_new_one(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            change = self.folder(tmp)
+            steps = [
+                ("flow-build/stage.md · extra: defect-fix", "- Rules: flow-build/stage.md · extra: defect-fix"),
+                ("flow-verify/stage-entry.md", "- Rules: flow-verify/stage-entry.md"),
+                ("flow-verify/stage-exit.md · extra: tests", "- Rules: flow-verify/stage-entry.md, flow-verify/stage-exit.md · extra: tests"),
+                ("flow-verify/stage-exit.md · extra: defect-fix", "- Rules: flow-verify/stage-entry.md, flow-verify/stage-exit.md · extra: tests, defect-fix"),
+            ]
+            for n, (value, want) in enumerate(steps, 1):
+                result = self.checkpoint(change, "verify", str(n), "next", "--rules", value)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                text = self.text(change)
+                self.assertEqual(text.count("- Rules:"), 1, text)
+                self.assertIn(want + "\n", text)
+            removed = self.checkpoint(change, "close", "5", "next", "--rules", "none")
+            self.assertEqual(removed.returncode, 0, removed.stderr)
+            self.assertNotIn("- Rules:", self.text(change))
+
     def test_checkpoint_merges_principles_and_never_removes_them(self):
         with tempfile.TemporaryDirectory() as tmp:
             change = self.folder(tmp)

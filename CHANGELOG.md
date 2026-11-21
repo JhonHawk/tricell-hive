@@ -237,11 +237,11 @@ raise the minor or the patch version.
   falls back to the linked leaves, and a hand-written `stage*.md` in a skill is
   rejected. `--audit-session` counts a packet read as a read of its leaves only
   when the result holds every heading and the end line.
-- The checkpoint records the stage packet a flow read and the code principles
+- The checkpoint records the stage packets a flow read and the code principles
   that changed a decision: `tasks.py checkpoint --rules` writes `- Rules:`,
   `--principles` adds names to `- Principles:`, and `check_change.py` rejects a
   malformed line. After a compaction the agent reads the checkpoint, the
-  `HIVE.local.md` files, the packet that line names and its extra leaves, then
+  `HIVE.local.md` files, the packets that line names and its extra leaves, then
   memory. Close takes the principles line from the checkpoint before removing it.
 - Seven flows name the reply that ends them in one `Reply:` line, which links the
   row of `report-endings` or `close-report` and adds only what the row lacks.

@@ -7,7 +7,7 @@ Usage:
   python3 -I tasks.py <change-folder> checkpoint --stage <stage> --step <step> --commit <sha>|none
           --next "<action>" [--finding "<ID: decision>"]... [--check "<command> · <result> · <commit>"]...
           [--worktree "<path> · <branch>"] [--unwritten "<text>|none"]
-          [--rules "<flow>/<packet>.md[ · extra: <leaf>, …]"|none] [--principles "<name>, …"|none]
+          [--rules "<flow>/<packet>.md[, …][ · extra: <leaf>, …]"|none] [--principles "<name>, …"|none]
 
 A task is a `### T<n> — <title>` heading; its boxes are the `- [ ]` and `- [x]`
 lines up to the next `##` or `###` heading.
@@ -24,8 +24,9 @@ lines up to the next `##` or `###` heading.
   --unwritten writes `- Unwritten: <text>` (what no file holds yet, asked at a pause) after
   the Worktree line; later calls keep it, a new value replaces it, `none` removes it.
   --rules writes `- Rules: <flow>/<packet>.md[, <flow>/<packet>.md][ · extra: <leaves>]`, the
-  stage packets the flow read and the conditional leaves read besides them, kept and
-  replaced like --worktree.
+  stage packets the flow read and the conditional leaves read besides them: later calls
+  keep it, packets and leaves of the same flow join it without duplicates, a packet of
+  another flow starts a new line, and `none` removes it.
   --principles writes `- Principles: <names>|none`, the code principles that changed a
   decision: new names join the line's names without duplicates, `none` is written only
   while the line holds no name and a name replaces it, and no value removes the line.
@@ -219,6 +220,31 @@ def principles_value(value):
     return value
 
 
+def split_rules(value):
+    packets, _, extra = value.partition(" · extra: ")
+    return packets.split(", "), [e for e in extra.split(", ") if e]
+
+
+def merge_rules(current, given):
+    """Join the given packets and extra leaves to the line's while the flow stays the
+    same, without duplicates and in order of arrival; a packet of another flow starts a
+    new line, and `none` removes it."""
+    if given is None:
+        return current
+    if given == "none":
+        return None
+    packets, extra = split_rules(given)
+    if current:
+        old_packets, old_extra = split_rules(current)
+        flows = {p.split("/", 1)[0] for p in old_packets}
+        if all(p.split("/", 1)[0] in flows for p in packets):
+            packets = old_packets + [p for p in packets if p not in old_packets]
+            extra = old_extra + [e for e in extra if e not in old_extra]
+    packets = list(dict.fromkeys(packets))
+    extra = list(dict.fromkeys(extra))
+    return ", ".join(packets) + (" · extra: " + ", ".join(extra) if extra else "")
+
+
 def merge_principles(current, given):
     """Join the given names to the line's, without duplicates and in order of arrival;
     `none` stands only while no name is known, and nothing removes the line."""
@@ -235,7 +261,8 @@ def cmd_checkpoint(lines, args):
     kept = []
     worktree = args.worktree
     unwritten = args.unwritten
-    rules = getattr(args, "rules", None)
+    given_rules = getattr(args, "rules", None)
+    rules = None
     principles = None
     execution = None
     existing = section_bounds(lines, CHECKPOINT)
@@ -249,7 +276,7 @@ def cmd_checkpoint(lines, args):
                 worktree = line[len("- Worktree: "):]
             elif unwritten is None and not inside and line.startswith("- Unwritten: "):
                 unwritten = line[len("- Unwritten: "):]
-            elif rules is None and not inside and line.startswith("- Rules: "):
+            elif not inside and line.startswith("- Rules: "):
                 rules = line[len("- Rules: "):]
             elif not inside and line.startswith("- Principles: "):
                 principles = line[len("- Principles: "):]
@@ -259,6 +286,7 @@ def cmd_checkpoint(lines, args):
                 inside = False
             elif inside and line.strip():
                 kept.append(line)
+    rules = merge_rules(rules, given_rules)
     principles = merge_principles(principles, getattr(args, "principles", None))
     for check in args.check:
         entry = f"- {check}"
@@ -783,7 +811,7 @@ def build_parser():
     cp.add_argument("--check", action="append", default=[], type=single_line)
     cp.add_argument("--worktree", type=single_line, help="'<path> · <branch>' of the work's worktree, kept by later calls; 'none' removes it")
     cp.add_argument("--unwritten", type=single_line, help="what no file holds yet, asked at a pause, kept by later calls; 'none' removes it")
-    cp.add_argument("--rules", type=rules_value, help="'<flow>/<packet>.md[ · extra: <leaf>, …]' the flow read, kept by later calls; 'none' removes it")
+    cp.add_argument("--rules", type=rules_value, help="'<flow>/<packet>.md[, …][ · extra: <leaf>, …]' the flow read; joins the line while the flow stays the same, starts a new line for another flow; 'none' removes it")
     cp.add_argument("--principles", type=principles_value, help="principle names that changed a decision, joined by ', ', merged into the line; 'none' only while it has none")
     execution = sub.add_parser("execution", help="coordinator-owned local execution record")
     operations = execution.add_subparsers(dest="operation", required=True)
