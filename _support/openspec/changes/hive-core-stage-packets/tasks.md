@@ -368,10 +368,10 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: build · E1 T4 verify
-- Last commit: 000c57fe
+- Stage: verify · E1 step 2 code review
+- Last commit: 13e8b55e
 - Open findings: none
-- Next: esperar hive-verify-task de T4; luego flow-verify de E1
+- Next: leer hallazgos de /code-review; una ronda de arreglos; push + PR E1 + merge gate. Al finalizar el build (tras E3), actualizar el artifact «Skills de Hive» https://claude.ai/artifact/77U7EN4pUTcEtiAijziLxE (pedido del usuario 2026-11-21)
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/hive-core-stage-packets · refactor/hive-core-sheets
 
 ### Evidence
@@ -381,6 +381,7 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 - suite E1 @000c57fe (dirty: tasks.md): go vet exit 0; python unittest exit 0 (71 s); go test -count=1 ./... exit 0 (333 s)
 - AC16 sweep sobre el worktree: sin salida
 - dry-run E1 con binario del worktree: 708 archivos, 60 hive-rule retirados, un openai.yaml en hive-core
+- verify E1 paso 1: comentarios añadidos = doc comments (Keep); supresiones añadidas: ninguna; blast radius: hook de Grok cubre references/*.md; prueba real-content del manager resuelve cada enlace skill: (rung 4)
 
 ## Review status and progress
 
