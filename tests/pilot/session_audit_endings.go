@@ -267,7 +267,7 @@ func analysisReplyBlock(s auditSession) criterionAssessment {
 			st.card = i
 		case e.Kind == "text" && e.Role == "assistant":
 			st.text = i
-		case read < 0 && readsReportEndings(e):
+		case read < 0 && readsReportEndingsAt(events, i):
 			read = i
 		}
 	}

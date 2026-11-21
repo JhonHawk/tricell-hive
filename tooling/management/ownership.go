@@ -80,6 +80,11 @@ func normalizeState(s *State) error {
 				return err
 			}
 		}
+		if generatedStagePacket(r.Target.Source) {
+			if err := validRecordedStagePacket(r); err != nil {
+				return err
+			}
+		}
 		if s.Version == 1 {
 			if r.Target.Host == "" || len(r.Consumers) != 0 || r.Target.Kind == "symlink" {
 				return fmt.Errorf("invalid legacy ownership")
@@ -156,6 +161,11 @@ func desiredResources(c target.Config, hosts []string, state State, action strin
 		return nil, err
 	}
 	bindings = append(bindings, policies...)
+	packets, err := stagePacketTargets(bindings, state, rel)
+	if err != nil {
+		return nil, err
+	}
+	bindings = append(bindings, packets...)
 	parts, err := antigravityRuleTargets(c, hosts, state, rel)
 	if err != nil {
 		return nil, err
