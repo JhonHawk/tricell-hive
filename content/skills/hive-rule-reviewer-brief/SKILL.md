@@ -1,6 +1,6 @@
 ---
 name: hive-rule-reviewer-brief
-description: "Hive rule leaf: read when briefing a reviewing or verifying child, or rereading a UX finding after a fix. Give it the artifact, the requirements and the check output, never the producer's case."
+description: "Hive rule leaf: read when briefing a reviewing or verifying child, or rereading a finding after a fix. Give it the artifact, the requirements and the check output, never the producer's case."
 disable-model-invocation: true
 ---
 
@@ -18,4 +18,4 @@ Never include the producer's reasoning, its account of why the work is right, a 
 
 For a design another person drew, to review with nothing to draw, the brief gives the file and nodes or the image, the request when there is one, the app's existing screens and recorded decisions; no sibling list, library inventory, width or how the design was reached.
 
-Reread a correction of the UX reviewer's finding with one follow-up to that same child that names the corrected regions and states, which it rereads as its role's step 3 sets; when the host has no tool to message that child, or the message returns an error, brief a new `hive-review-ux` child with the corrected findings, those regions and states, and the means to reach their states that this brief sets; never run a new full UX review.
+Reread a correction of a plan or UX reviewer's findings with one follow-up to that same child; when the host has no tool to message it, or the message returns an error, brief a new child of its role with the earlier findings. Of several plan reviewers, those [plan review](../flow-plan/references/plan-review.md) names reread. A UX reread names the corrected regions and states, which it rereads as its role's step 3 sets, with the means to reach them; never run a new full UX review.
