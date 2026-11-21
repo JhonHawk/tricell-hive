@@ -4,17 +4,18 @@ Read when a close starts. Read it before step 1 of [flow-close](../../flow-close
 
 | Situation | Runs now | Waits | Ends with |
 | --- | --- | --- | --- |
-| Completion point reached, or an operational task ends | Steps 1, 3, 4, 6 and 7 | Steps 2 and 5, recorded as pending | Step 8's [footer](report-endings.md#the-close-footer) |
-| That case, when step 2's inventory lists no item to act on and step 5 has nothing of this work to remove or ask about | Steps 1, 3, 4, 6 and 7, and steps 2 and 5 at once, before step 6 | Nothing | Step 8's [footer](report-endings.md#the-close-footer) |
-| Follow-up close of a pull request that waited at its completion point, abandoned work, a deploy's cleanup close, a hygiene request, the session's end, or any close under [unattended delegation](../../unattended-delegation/SKILL.md) | Every step, step 2's question included | Nothing | The report, without the footer, as [report endings](report-endings.md) sets |
+| Completion point reached, or an operational task ends | Steps 1 to 7 in order, the branch cleanup included | Only an item that needs the user, each with its own question, asked after step 6 and never before: what the cleanup helper keeps for a reason the user resolves, a dump or export, and each remote resource | Step 8's [footer](report-endings.md#the-close-footer) |
+| Follow-up close of a pull request that waited at its completion point, abandoned work, a deploy's cleanup close, a hygiene request or the session's end for a work item with no earlier close, or any close under [unattended delegation](../../unattended-delegation/SKILL.md) | Every step | Nothing; it asks only the items the first row names | The report, without the footer, as [report endings](report-endings.md) sets |
+| Hygiene request, or the session's end, after the work item's close | Only the items still pending and, for a hygiene request, the batch; the session's end repeats step 5 first | Nothing | What ran, as [close report](close-report.md#variants) sets, without the footer |
 | Work delivered under `hold`, before it is delivered | Step 1 pauses its viewer session; step 2 lists its support material without asking or acting on it; step 5 stops the processes and containers it started and keeps everything else; step 6 reports as the `hold` row of [close report](close-report.md#variants) sets; step 7 records it; the checkpoint's `--unwritten` names what no file holds yet, as [checkpoint](checkpoint.md) sets, and no `wip:` commit is made | The full close, until the work is delivered and reaches its completion point | The report, without the footer, as [report endings](report-endings.md) sets |
 | Work paused outside `hold`, such as a plan paused before its build | As the `hold` row, and also commits its change folder as [git-workflow step 4](../../git-workflow/SKILL.md) sets for a pause | The full close | The report, without the footer, as [report endings](report-endings.md) sets |
 
-When steps wait:
+When items wait:
 
 - Retain step 1's readback and receipts and record their location for later input cleanup; do not close an already closed viewer again.
-- Run the pending steps in order when the user chooses to close (the footer's **Close** reply, which exists only while a step is pending), starts another work item or ends the session. Report what they did and any viewer limitation, and update memory.
-- When another work starts, step 2's question joins its first round; steps 4 and 5 wait for the answer.
-- If the session stops without a reply, a later close or hygiene request resumes the pending steps from memory.
+- Run the pending items in order when the user chooses to close (the footer's **Close** reply, which exists only while an item is pending), starts another work item or ends the session. Report what they did and any viewer limitation, and update memory.
+- If the session stops without a reply, a later close or hygiene request resumes the pending items from memory.
+
+The session's end is a user message that ends it without asking for more work. Before the last message, repeat step 5; that message lists each item still pending with its question, each kept branch as ``kept `<branch>`: <reason>`` ([branch cleanup](../../flow-close/references/branch-cleanup.md) «Report»), and the count of change folders waiting for the batch, undelivered.
 
 Close a work item once. The follow-up close of a pull request that waited at its completion point, and the full close of `hold` work after its pause close, are part of that close, not a repeat. After the footer's reply, act on it; do not run the close or its final report again.

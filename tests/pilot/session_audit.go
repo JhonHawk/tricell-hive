@@ -10,9 +10,12 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 )
 
 // Real-session audit: reads a transcript a host already wrote and runs the
@@ -1060,24 +1063,184 @@ func resolveAuditBase(cwd, flagBase string) string {
 
 // --- criteria ---
 
+// isHelperScript reports whether tok names the cleanup script.
+func isHelperScript(tok string) bool {
+	return filepath.Base(tok) == "cleanup_branches.py"
+}
+
+var envAssignment = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
+
+// helperInvocation reports whether args run the cleanup script: the script is
+// the command, or the first positional argument of a python interpreter, after
+// leading VAR=value tokens and the wrappers env, timeout <n> and uv run. A
+// command that only names the script as an argument, such as a search, does not.
+func helperInvocation(args []string) bool {
+	i := 0
+	skipAssignments := func() {
+		for i < len(args) && envAssignment.MatchString(args[i]) {
+			i++
+		}
+	}
+	skipAssignments()
+	for i < len(args) {
+		switch filepath.Base(args[i]) {
+		case "env":
+			i++
+			for i < len(args) && (strings.HasPrefix(args[i], "-") || envAssignment.MatchString(args[i])) {
+				i++
+			}
+			continue
+		case "timeout":
+			i++
+			for i < len(args) && strings.HasPrefix(args[i], "-") {
+				i++
+			}
+			i++
+			continue
+		case "uv":
+			if i+1 < len(args) && args[i+1] == "run" {
+				i += 2
+				for i < len(args) && strings.HasPrefix(args[i], "-") {
+					i++
+				}
+				continue
+			}
+		}
+		break
+	}
+	if i >= len(args) {
+		return false
+	}
+	if isHelperScript(args[i]) {
+		return true
+	}
+	if !strings.HasPrefix(filepath.Base(args[i]), "python") {
+		return false
+	}
+	for i++; i < len(args); i++ {
+		switch a := args[i]; {
+		case a == "-X" || a == "-W":
+			i++
+		case strings.HasPrefix(a, "-"):
+		default:
+			return isHelperScript(a)
+		}
+	}
+	return false
+}
+
 // isCleanupApply recognizes the cleanup script run with --apply, which deletes
 // merged branches. It counts as a branch deletion only in the audit.
 func isCleanupApply(args []string) bool {
-	script := false
-	apply := false
+	if !helperInvocation(args) {
+		return false
+	}
 	for _, a := range args {
-		if filepath.Base(a) == "cleanup_branches.py" {
-			script = true
-		}
 		if a == "--apply" {
-			apply = true
+			return true
 		}
 	}
-	return script && apply
+	return false
+}
+
+var helperAssignment = regexp.MustCompile(`(?:^|[\s;&|])([A-Za-z_][A-Za-z0-9_]*)=["']?([^\s"';&|]*cleanup_branches\.py)["']?`)
+
+// expandHelperVariables replaces, in a command, each variable the command
+// itself assigns to a path ending in cleanup_branches.py with that path, so a
+// script run through "$SCRIPT" reads as the script. A variable assigned
+// elsewhere, or to another path, is left alone.
+func expandHelperVariables(command string) string {
+	if !strings.Contains(command, "cleanup_branches.py") {
+		return command
+	}
+	for _, m := range helperAssignment.FindAllStringSubmatch(command, -1) {
+		ref := regexp.MustCompile(`\$\{` + regexp.QuoteMeta(m[1]) + `\}|\$` + regexp.QuoteMeta(m[1]) + `\b`)
+		command = ref.ReplaceAllLiteralString(command, m[2])
+	}
+	return command
 }
 
 func auditBranchDeletion(args []string) bool {
 	return branchDeletionCommand(args) || isCleanupApply(args)
+}
+
+// eventDeletesBranch reports whether a successful shell event deletes a branch
+// in the audit's sense: a deletion command, or the cleanup helper with --apply
+// however the script is invoked.
+func eventDeletesBranch(e traceEvent) bool {
+	if e.Kind != "shell" || e.Success == nil || !*e.Success {
+		return false
+	}
+	for _, args := range shellSegments(expandHelperVariables(e.Command), 0) {
+		if auditBranchDeletion(args) {
+			return true
+		}
+	}
+	return false
+}
+
+// deletedBranchNames lists the branches a session's deletions name: the
+// `--merged-pr BRANCH=SHA` values of the helper run with --apply, the branches
+// of `git branch -d|-D|--delete`, and those of `git push --delete` or a
+// `:branch` refspec.
+func deletedBranchNames(events []traceEvent) map[string]bool {
+	names := map[string]bool{}
+	add := func(b string) {
+		b = strings.TrimPrefix(strings.TrimPrefix(b, ":"), "refs/heads/")
+		if b != "" {
+			names[b] = true
+		}
+	}
+	for _, e := range events {
+		if !eventDeletesBranch(e) {
+			continue
+		}
+		for _, args := range shellSegments(expandHelperVariables(e.Command), 0) {
+			if isCleanupApply(args) {
+				for i, a := range args {
+					switch {
+					case a == "--merged-pr" && i+1 < len(args):
+						add(strings.SplitN(args[i+1], "=", 2)[0])
+					case strings.HasPrefix(a, "--merged-pr="):
+						add(strings.SplitN(strings.TrimPrefix(a, "--merged-pr="), "=", 2)[0])
+					}
+				}
+			}
+			isGit, sub, _ := gitInvocation(args, "")
+			if !isGit || sub >= len(args) {
+				continue
+			}
+			rest := args[sub+1:]
+			switch args[sub] {
+			case "branch":
+				if gitBranchDeleteCommand(rest) {
+					for _, a := range rest {
+						if !strings.HasPrefix(a, "-") {
+							add(a)
+						}
+					}
+				}
+			case "push":
+				if !gitPushDeletesBranch(rest) {
+					continue
+				}
+				positional := 0
+				for _, a := range rest {
+					switch {
+					case strings.HasPrefix(a, ":"):
+						add(a)
+					case strings.HasPrefix(a, "-"):
+					default:
+						positional++
+						if positional > 1 {
+							add(a)
+						}
+					}
+				}
+			}
+		}
+	}
+	return names
 }
 
 func hasLocalGitMerge(events []traceEvent) bool {
@@ -1107,18 +1270,235 @@ func existingAuditCriteria(s auditSession, base string) []criterionAssessment {
 			})
 		}
 	}
-	merged := mergedBranchDeletedWith(r, base, auditBranchDeletion)
+	expanded := r.Trace
+	expanded.Events = append([]traceEvent(nil), r.Trace.Events...)
+	for i, e := range expanded.Events {
+		if e.Kind == "shell" {
+			expanded.Events[i].Command = expandHelperVariables(e.Command)
+		}
+	}
+	merged := mergedBranchDeletedWith(result{Host: r.Host, Cwd: r.Cwd, Root: r.Root, Trace: expanded}, base, auditBranchDeletion)
 	if base == "" && merged.Status == "not_observed" && hasLocalGitMerge(s.Trace.Events) {
 		merged.Evidence = []string{"base branch unknown: pass --base or declare Base branch in the AGENTS.md ## Hive section of the session cwd"}
 	}
-	return append(criteria, mergedWithoutCloseIsReview(s.Trace.Events, merged))
+	return append(criteria, mergedAfterClose(s, base, merged))
 }
 
-// mergedWithoutCloseIsReview turns a merged_branch_deleted fail into review
-// when no assistant close report follows the last merge: the session may still
-// be open or that merge a promotion, and a branch is left only after a close.
-// The fail evidence is the last merge's own event, which locates it.
-func mergedWithoutCloseIsReview(events []traceEvent, merged criterionAssessment) criterionAssessment {
+// sessionEndPhrases is the subset of phrases the audit takes as the user ending
+// the session. It detects, it does not define: close-modes sets what ends a
+// session, and rule-enforcers.md lists this subset.
+var sessionEndPhrases = []string{"es todo", "eso es todo", "terminamos", "por hoy", "por el momento es todo", "that's all", "that's it for now", "por hoy es todo", "por ahora es todo"}
+
+// sessionEndClosers are the words that may follow an end phrase: thanks and
+// the closing «por el momento» or «por hoy» that an end message carries. Any
+// other word means the message goes on with the work.
+var sessionEndClosers = map[string]bool{
+	"gracias": true, "muchas": true, "por": true, "ahora": true, "el": true, "momento": true, "hoy": true, "ok": true, "listo": true,
+	"thanks": true, "thank": true, "you": true, "for": true, "now": true,
+	"es": true, "eso": true, "todo": true, "terminamos": true, "that's": true, "all": true, "it": true, "that": true,
+	"tu": true, "tus": true, "ayuda": true, "nos": true, "vemos": true, "mañana": true, "de": true, "mi": true, "parte": true, "buen": true, "trabajo": true, "today": true, "bye": true,
+}
+
+// isSessionEndMessage reports whether a user message starts with a listed
+// phrase, has at most 10 words, holds no question mark and continues, after the
+// phrase, only with punctuation and closing words.
+func isSessionEndMessage(text string) bool {
+	t := strings.ToLower(strings.TrimLeft(strings.TrimSpace(text), " \t\n\"'*\u00a1!.,"))
+	t = strings.ReplaceAll(t, "\u2019", "'")
+	if strings.Contains(t, "?") || len(strings.Fields(t)) > 10 {
+		return false
+	}
+	for _, phrase := range sessionEndPhrases {
+		if !strings.HasPrefix(t, phrase) {
+			continue
+		}
+		rest := t[len(phrase):]
+		if r, _ := utf8.DecodeRuneInString(rest); rest != "" && (unicode.IsLetter(r) || unicode.IsDigit(r)) {
+			continue
+		}
+		closing := true
+		for _, w := range strings.FieldsFunc(rest, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) && r != '\'' }) {
+			if !sessionEndClosers[w] {
+				closing = false
+				break
+			}
+		}
+		if closing {
+			return true
+		}
+	}
+	return false
+}
+
+// sessionEndAfter returns the position, in the event list, of the first user
+// message after events[after] that ends the session, or -1. The message sits
+// before the first event of its turn.
+func sessionEndAfter(s auditSession, after int) (pos int, text string) {
+	var turns []int
+	for t := range s.Prompts {
+		turns = append(turns, t)
+	}
+	sort.Ints(turns)
+	for _, t := range turns {
+		if !isSessionEndMessage(s.Prompts[t]) {
+			continue
+		}
+		pos := len(s.Trace.Events)
+		for i := range s.Trace.Events {
+			if i < len(s.Turn) && s.Turn[i] >= t {
+				pos = i
+				break
+			}
+		}
+		if pos > after {
+			return pos, s.Prompts[t]
+		}
+	}
+	return -1, ""
+}
+
+var (
+	environmentsLine = regexp.MustCompile(`^\s*[-*]\s*Environments:\s*(.+)$`)
+	environmentSplit = regexp.MustCompile(`\s*(?:\x{2192}|->|,)\s*`)
+	ghHeadHeadRef    = regexp.MustCompile(`headRefName"?\s*[:=]\s*"?([^\s",}]+)`)
+	keptBranch       = regexp.MustCompile("(?i)\\bkept\\s+`([^`\\n]+)`")
+)
+
+// promotionBranches is the base and the branches of the `Environments` line of
+// the `## Hive` section of AGENTS.md in cwd.
+func promotionBranches(cwd, base string) map[string]bool {
+	out := map[string]bool{}
+	if base != "" {
+		out[base] = true
+	}
+	if cwd == "" {
+		return out
+	}
+	data, err := os.ReadFile(filepath.Join(cwd, "AGENTS.md"))
+	if err != nil {
+		return out
+	}
+	inHive := false
+	for _, l := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(l, "## ") {
+			inHive = strings.TrimSpace(strings.TrimPrefix(l, "## ")) == "Hive"
+			continue
+		}
+		if !inHive {
+			continue
+		}
+		if m := environmentsLine.FindStringSubmatch(l); m != nil {
+			for _, b := range environmentSplit.Split(m[1], -1) {
+				if b = strings.Trim(strings.TrimSpace(b), "`"); b != "" {
+					out[b] = true
+				}
+			}
+		}
+	}
+	return out
+}
+
+// ghPrTarget returns what a `gh pr <sub>` invocation names as its pull
+// request: its first positional argument (a number, a branch or a URL, reduced
+// to its last path segment), or "" when it names none and acts on the current
+// branch. Flags are skipped with the values of the flags that take one.
+func ghPrTarget(args []string) string {
+	valued := map[string]bool{"--repo": true, "-R": true, "--body": true, "-b": true, "--subject": true, "-t": true, "--body-file": true, "-F": true, "--match-head-commit": true, "--json": true, "--jq": true, "-q": true, "--template": true, "-T": true}
+	for i := 3; i < len(args); i++ {
+		a := args[i]
+		if strings.HasPrefix(a, "-") {
+			if valued[a] && !strings.Contains(a, "=") {
+				i++
+			}
+			continue
+		}
+		return a[strings.LastIndex(a, "/")+1:]
+	}
+	return ""
+}
+
+var pullNumber = regexp.MustCompile(`/pull/(\d+)|#(\d+)`)
+
+// resultOf returns the text of the tool result that answers events[i].
+func resultOf(events []traceEvent, i int) string {
+	for j := i + 1; j < len(events); j++ {
+		if events[j].Kind == "tool_result" && events[j].ID != "" && (events[j].ID == events[i].ID || strings.HasPrefix(events[i].ID, events[j].ID+"#")) {
+			return events[j].Text
+		}
+	}
+	return ""
+}
+
+// mergeHead returns the head branch the session shows for the merge at
+// events[mergeAt]. It is the head of the nearest earlier `gh pr create` that
+// opened the merged pull request (a create whose result shows another number is
+// skipped; one with no --head gives ""), or a read of headRefName by a
+// `gh pr view` that names the same pull request as the merge, both naming none
+// included. A merge whose head the session does not show gives "".
+func mergeHead(events []traceEvent, mergeAt int) string {
+	mergeTarget := ""
+	for _, args := range shellSegments(events[mergeAt].Command, 0) {
+		if isGhPrSubcommand(args, "merge") {
+			mergeTarget = ghPrTarget(args)
+		}
+	}
+	mergeNumber := ""
+	if _, err := strconv.Atoi(mergeTarget); err == nil {
+		mergeNumber = mergeTarget
+	}
+	for i := mergeAt - 1; i >= 0; i-- {
+		e := events[i]
+		switch e.Kind {
+		case "shell":
+			for _, args := range shellSegments(e.Command, 0) {
+				if !isGhPrSubcommand(args, "create") {
+					continue
+				}
+				if m := pullNumber.FindStringSubmatch(resultOf(events, i)); m != nil && mergeNumber != "" && m[1]+m[2] != mergeNumber {
+					continue
+				}
+				for j, a := range args {
+					switch {
+					case (a == "--head" || a == "-H") && j+1 < len(args):
+						return args[j+1]
+					case strings.HasPrefix(a, "--head="):
+						return strings.TrimPrefix(a, "--head=")
+					}
+				}
+				return ""
+			}
+		case "tool_result":
+			m := ghHeadHeadRef.FindStringSubmatch(e.Text)
+			if m == nil {
+				continue
+			}
+			for j := i - 1; j >= 0; j-- {
+				if events[j].Kind != "shell" || (e.ID != "" && events[j].ID != e.ID && !strings.HasPrefix(events[j].ID, e.ID+"#")) {
+					continue
+				}
+				for _, args := range shellSegments(events[j].Command, 0) {
+					if isGhPrSubcommand(args, "view") && ghPrTarget(args) == mergeTarget {
+						return m[1]
+					}
+				}
+				break
+			}
+		}
+	}
+	return ""
+}
+
+// mergedAfterClose judges a merged_branch_deleted fail by what follows the last
+// merge. A close report after it keeps the fail. With no close report, a user
+// message that ends the session also fails, except, as review, when the merge
+// is a promotion (its head, which the session shows, is the base or a branch of
+// Environments) or the last assistant message before that message holds
+// the form kept `<branch>` for the merge's branch, seen by the same source. With
+// neither a report nor such a message, the session may still be open or the
+// merge a promotion, and the status is review. The fail evidence is the last
+// merge's own event, which locates it.
+func mergedAfterClose(s auditSession, base string, merged criterionAssessment) criterionAssessment {
+	events := s.Trace.Events
 	if merged.Status != "fail" || len(merged.Evidence) == 0 {
 		return merged
 	}
@@ -1136,8 +1516,33 @@ func mergedWithoutCloseIsReview(events []traceEvent, merged criterionAssessment)
 			return merged
 		}
 	}
-	merged.Status = "review"
-	merged.Evidence = append(merged.Evidence, "no close report after the last merge: the session may be open or the merge a promotion")
+	endAt, _ := sessionEndAfter(s, mergeAt)
+	if endAt < 0 {
+		merged.Status = "review"
+		merged.Evidence = append(merged.Evidence, "no close report after the last merge: the session may be open or the merge a promotion")
+		return merged
+	}
+	if head := mergeHead(events, mergeAt); head != "" {
+		if promotionBranches(s.Cwd, base)[head] {
+			merged.Status = "review"
+			merged.Evidence = append(merged.Evidence, "the merge is a promotion of "+head+", the base or an environment branch")
+			return merged
+		}
+		for i := endAt - 1; i > mergeAt; i-- {
+			if events[i].Kind != "text" || events[i].Role != "assistant" {
+				continue
+			}
+			for _, m := range keptBranch.FindAllStringSubmatch(events[i].Text, -1) {
+				if m[1] == head {
+					merged.Status = "review"
+					merged.Evidence = append(merged.Evidence, "the last assistant message keeps `"+head+"`, the branch of the merge")
+					return merged
+				}
+			}
+			break
+		}
+	}
+	merged.Evidence = append(merged.Evidence, "a user message that ends the session follows the merge and no branch deletion follows it")
 	return merged
 }
 
@@ -1369,11 +1774,6 @@ func isCloseReport(text string) bool {
 	return false
 }
 
-// closeBeforeCleanupStatus is the status of a close report that comes before
-// the branch cleanup. It is the single place that decides it (user decision
-// D11: review, never fail).
-const closeBeforeCleanupStatus = "review"
-
 // auditMerges returns the indexes of the events that complete a merge without
 // deleting the branch: a successful `gh pr merge` without --delete-branch, or a
 // successful `git merge` followed by a successful `git push` that names base.
@@ -1411,31 +1811,29 @@ func auditMerges(events []traceEvent, base string) []int {
 // closeBeforeBranchCleanup checks every successful merge that does not delete
 // its branch (a `gh pr merge` without --delete-branch, or a local `git merge`
 // followed by a push of the base; a command whose success is unknown is not a
-// merge). When an assistant message whose first line is a bold «Cierre» or
-// «Close» heading comes after the merge and before the first command that
-// deletes a branch, the status is review, never fail: flow-close prescribes
-// that order at a completion point while a merged branch remains to delete, and
-// only its closes without deferral must delete first, which a transcript alone
-// cannot tell apart. A merge with no later deletion is not observed:
-// merged_branch_deleted covers that case. closeBeforeCleanupStatus is the one
-// place that decides the status.
+// merge). An assistant message whose first line is a bold «Cierre» or «Close»
+// heading, after the merge and before the first command that deletes a branch
+// (the cleanup helper with --apply included, however it is invoked), fails: the
+// cleanup belongs at the completion point, before the report. It is review,
+// not fail, only when the report holds the form kept `<branch>` for a branch the
+// session deleted, as `--merged-pr`, `git branch -d|-D` or `git push --delete`
+// show it, since such a report names what it leaves. A merge with no later
+// deletion is not observed: merged_branch_deleted covers that case.
 func closeBeforeBranchCleanup(s auditSession, base string) criterionAssessment {
 	c := criterionAssessment{Criterion: "close_before_branch_cleanup", Status: "not_observed", Evidence: []string{}}
 	events := s.Trace.Events
-	var flagged, cleaned []string
+	deleted := deletedBranchNames(events)
+	var failed, kept, cleaned []string
 	seen := map[string]bool{}
+	promotions := promotionBranches(s.Cwd, base)
 	for _, merge := range auditMerges(events, base) {
+		if promotions[mergeHead(events, merge)] {
+			continue
+		}
 		deletion := -1
 		for i := merge + 1; i < len(events) && deletion < 0; i++ {
-			e := events[i]
-			if e.Kind != "shell" || e.Success == nil || !*e.Success {
-				continue
-			}
-			for _, args := range shellSegments(e.Command, 0) {
-				if auditBranchDeletion(args) {
-					deletion = i
-					break
-				}
+			if eventDeletesBranch(events[i]) {
+				deletion = i
 			}
 		}
 		if deletion < 0 {
@@ -1445,9 +1843,15 @@ func closeBeforeBranchCleanup(s auditSession, base string) criterionAssessment {
 		for i := merge + 1; i < deletion; i++ {
 			if events[i].Kind == "text" && events[i].Role == "assistant" && isCloseReport(events[i].Text) {
 				found = true
-				if ev := regressionEvidence(events[i]); !seen[ev] {
-					seen[ev] = true
-					flagged = append(flagged, ev)
+				ev := regressionEvidence(events[i])
+				if seen[ev] {
+					continue
+				}
+				seen[ev] = true
+				if reportKeepsDeletedBranch(events[i].Text, deleted) {
+					kept = append(kept, ev)
+				} else {
+					failed = append(failed, ev)
 				}
 			}
 		}
@@ -1456,12 +1860,25 @@ func closeBeforeBranchCleanup(s auditSession, base string) criterionAssessment {
 		}
 	}
 	switch {
-	case len(flagged) > 0:
-		c.Status, c.Evidence = closeBeforeCleanupStatus, flagged
+	case len(failed) > 0:
+		c.Status, c.Evidence = "fail", failed
+	case len(kept) > 0:
+		c.Status, c.Evidence = "review", kept
 	case len(cleaned) > 0:
 		c.Status, c.Evidence = "pass", cleaned
 	}
 	return c
+}
+
+// reportKeepsDeletedBranch reports whether a report holds the form kept `<branch>`
+// for a branch the session deleted.
+func reportKeepsDeletedBranch(text string, deleted map[string]bool) bool {
+	for _, m := range keptBranch.FindAllStringSubmatch(text, -1) {
+		if deleted[m[1]] {
+			return true
+		}
+	}
+	return false
 }
 
 var (

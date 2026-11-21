@@ -17,7 +17,7 @@ Read after [ticket state](ticket-state.md) decides a move, and before a comment,
 - Write a comment the work owes, such as its pending work or its evidence, through the tracker's tool, in the ticket's language.
 - Evidence of a work item, such as before and after captures, the output of its tests and links to its pull request, reaches the ticket before any step that removes it, as [flow-close](../../flow-close/SKILL.md) sets: attached through the tracker's tool where it uploads files, otherwise linked from the pull request, or listed in the comment for the user to attach. Never commit a capture to link it. A public repository or tracker gets an image only as [PR captures](../../git-workflow/references/pr-captures.md) authorizes it.
 - Never attach or paste a secret value, an account identifier or a capture that shows one: crop it, or leave it out and say so in the comment.
-- Read the comment or the attachment list back.
+- Read the comment or the attachment list back. When a later deletion depends on the evidence, as [support material](../../flow-close/references/support-material.md) sets, read the attachment list: evidence the comment only lists for the user to attach is not a copy.
 
 ## Time
 

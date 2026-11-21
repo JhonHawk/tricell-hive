@@ -2,13 +2,13 @@
 
 ## When to read
 
-Read before archiving `sessions/` folders the user selected, from [project-layout](../SKILL.md) or from flow-close's [support material](../../flow-close/references/support-material.md) at a close.
+Read before archiving `sessions/` folders the user selected, from [project-layout](../SKILL.md).
 
 ## Procedure
 
 Before writing or cleaning support records, read [layout and retention](../../project-layout/references/layout.md).
 
-Archive only sessions the user selected and whose closure is explicit in their retained record. The helper reads only the first status field in each record (the `Status` row of a plan's [proposal](../../flow-plan/assets/change-folder/proposal.md)). Its value must be `closed`, `completed`, or `cancelled` (Spanish: `cerrado`, `completado`, `cancelado`), case-insensitive, either alone or followed by `·`, `.`, `;`, or a table border: `Status: closed`, `**Estado:** cerrado. …`, or `| Status | Completed · … |`. `Completed` is the closed phase listed in that row, and a record that a user dropped reads `cancelled`; `Blocked`, `Paused`, and the other phases count as open. A qualified value such as `completado parcialmente` counts as open. It does not normalize those files. A closed research record may be archived without a plan. If a session has plans, every plan must carry one of those closed states. Do not classify work by age, normalize names or status values, stage files, commit, or push; the caller that asked the user, [project-layout](../SKILL.md) or flow-close's [support material](../../flow-close/references/support-material.md), delivers the moves.
+Archive only sessions the user selected and whose closure is explicit in their retained record. The helper reads only the first status field in each record (the `Status` row of a plan's [proposal](../../flow-plan/assets/change-folder/proposal.md)). Its value must be `closed`, `completed`, or `cancelled` (Spanish: `cerrado`, `completado`, `cancelado`), case-insensitive, either alone or followed by `·`, `.`, `;`, or a table border: `Status: closed`, `**Estado:** cerrado. …`, or `| Status | Completed · … |`. `Completed` is the closed phase listed in that row, and a record that a user dropped reads `cancelled`; `Blocked`, `Paused`, and the other phases count as open. A qualified value such as `completado parcialmente` counts as open. It does not normalize those files. A closed research record may be archived without a plan. If a session has plans, every plan must carry one of those closed states. Do not classify work by age, normalize names or status values, stage files, commit, or push; [project-layout](../SKILL.md) asks the user and delivers the moves.
 
 Use [the helper](../scripts/archive_sessions.py), run as `python3 <project-layout-dir>/scripts/archive_sessions.py --support-root <root> --session <folder>` (repeat `--session` per folder), with a declared support root and selected session names. It reports a deterministic mapping without changes by default. `--apply` is allowed when the user's authorization already covers those selected moves. An ambiguous or open session stays in place and is reported.
 

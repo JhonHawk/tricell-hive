@@ -1,6 +1,6 @@
 # Inventory
 
-Read at [project-layout](../SKILL.md) step 2, at step 5 before pruning a living document or writing a promoted conclusion, and from flow-close when its close promotes one. It sets what the inventory lists, what it never proposes to remove, and how a conclusion is promoted; the classes are those of that step 3.
+Read at [project-layout](../SKILL.md) step 2, at step 5 before pruning a living document or writing a promoted conclusion. It sets what the inventory lists, what it never proposes to remove, and how a conclusion is promoted; the classes are those of that step 3.
 
 Limit the inventory to the repositories and folders the request covers, and do not bulk-read unrelated logs or sensitive files. Check each item's ownership, sensitivity and whether its work is explicitly closed; preserve and report what stays uncertain.
 

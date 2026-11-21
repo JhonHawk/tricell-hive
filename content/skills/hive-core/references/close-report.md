@@ -15,13 +15,13 @@ Report the whole work item in one message, each part only when it has content:
 - **Principles:** when `flow-build` handed it over in this work item, or the checkpoint holds its `Principles:` line, one line naming each code principle read that changed a decision, or none; otherwise leave the part out.
 - **Findings:** the defects not fixed, as [Findings](#findings) sets.
 - **Candidates:** the work's repetitions, as [Candidates](#candidates) sets.
-- **Next:** what remains, with who owns it, and what comes next, such as the merge left to the user, review bots or base CI still pending, and the pending archives with the hygiene reply.
+- **Next:** what remains, with who owns it, and what comes next, such as the merge left to the user, review bots or base CI still pending, the pending archives with the hygiene reply, and each promotion and closed `sessions/` folder with its `project-layout` command.
 
 When the user asks to keep or share this report, or it exceeds what fits on one screen, offer a `create-report` page as one reply of the close's reply block in [report-endings](report-endings.md#the-close-footer).
 
 ## Variants
 
-`flow-close` writes the report at its step 6; the delivery mode in force, or the flow that called the close, picks the row. Closes with no row of their own (an abandon, hygiene, the end of a session, an unattended close) use the first row.
+`flow-close` writes the report at its step 6; the delivery mode in force, or the flow that called the close, picks the row. Closes with no row of their own (an abandon, an unattended close, a hygiene request or the session's end with no earlier close) use the first row.
 
 | Variant | Parts | Adds |
 | --- | --- | --- |
@@ -30,6 +30,7 @@ When the user asks to keep or share this report, or it exceeds what fits on one 
 | Deployment (a cleanup close that `flow-deploy` calls) | every part | the run named in step 1 of `flow-deploy`; per environment the identity served, the health and the functional acceptance, each as met, failed, blocked or "not run"; the triggers decided; the CI failures from before that step 5 of `flow-deploy` let pass; the tickets waiting on a check |
 | `hold` | what is pending, the defect's proof, Try it and Principles | none |
 | Pause outside `hold` | as `hold` | the commit of the change folder |
+| Hygiene request or session's end after the work item's close | what ran of the pending items and the batch, and what stays pending | none |
 
 ## Findings at the close
 
