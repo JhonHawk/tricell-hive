@@ -4,7 +4,7 @@ Base `2eef1969` de `development`, rama `feat/reuse-sound-base`. Dos tareas peque
 
 ### T1 — Peldaño 2: reutilizar solo una base sana
 
-- [ ] La hoja `reuse-before-writing` y el rol `hive-review-code` dicen lo que fija `design.md` «Forma propuesta», con la prueba de hogar único y la asignación de lectura que decida D1.
+- [x] La hoja `reuse-before-writing` y el rol `hive-review-code` dicen lo que fija `design.md` «Forma propuesta», con la prueba de hogar único y la asignación de lectura que decida D1.
 
 **Closes:** AC1, AC2, AC4
 
@@ -22,7 +22,7 @@ Base `2eef1969` de `development`, rama `feat/reuse-sound-base`. Dos tareas peque
 
 ### T2 — La página del flujo build y el CHANGELOG
 
-- [ ] `site/src/content/docs/flows/build.md` describe la base sana como fija `design.md`, y `CHANGELOG.md` lleva su entrada bajo `[Unreleased]`.
+- [x] `site/src/content/docs/flows/build.md` describe la base sana como fija `design.md`, y `CHANGELOG.md` lleva su entrada bajo `[Unreleased]`.
 
 **Closes:** AC3
 
@@ -64,3 +64,6 @@ Revisión humana: leer el peldaño 2 nuevo y el texto del revisor en el diff.
 - before captures: none (no screen)
 
 ## Estado de revisión y progreso
+
+2026-11-21 — T1 · c5a5a2be · unverified: AC1 y AC2 se observan en los archivos instalados tras hive update, después de integrar
+2026-11-21 — T2 · 90e471cc · unverified: none
