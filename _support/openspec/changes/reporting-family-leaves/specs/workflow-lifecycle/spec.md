@@ -53,7 +53,7 @@ Each of the 13 playbooks of `hive-mode` SHALL carry one reporting line that link
 
 ### Requirement: The two reporting homes have bounded size and reading cost
 
-`hive-rule-report-endings` SHALL have its own size limit of 9,000 bytes and `hive-rule-close-report` SHALL stay in the 7,000-byte exception; every other leaf keeps its limit and no text SHALL be cut to fit. The reading-footprint test for the plan and build route SHALL accept the growth that comes from reading those two leaves whole at each stage's end, as a second allowance of 8,880 bytes beside the earlier 182 bytes. The global guidance SHALL NOT grow past its size at the base of the build (28,593 bytes at `7f6277e0`).
+`hive-rule-report-endings` SHALL have its own size limit of 9,000 bytes and `hive-rule-close-report` SHALL stay in the 7,000-byte exception; every other leaf keeps its limit and no text SHALL be cut to fit. The reading-footprint test for the plan and build route SHALL accept the growth that comes from reading those two leaves whole at each stage's end, as a second allowance of 8,970 bytes beside the earlier 182 bytes. The global guidance SHALL NOT grow past its size at the base of the build (28,593 bytes at `7f6277e0`).
 
 #### Scenario: The leaves fit their limits
 

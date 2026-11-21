@@ -130,7 +130,7 @@ Restricción de todas las tareas: `wc -c content/guidance/global.md` no crece so
 
 ### T8 — Spec, sitio, `llms.txt`, changelog y documentación
 
-- [ ] El delta de `workflow-lifecycle` refleja lo construido; `site/src/content/docs/flows/close.md`, `site/src/content/docs/flows/deploy.md` y `llms.txt` describen los dos hogares y el cierre según su modo; `CHANGELOG.md` `[Unreleased]` tiene la entrada; `_support/docs/architecture/instruction-resources.md` y las otras páginas que citaban las hojas borradas apuntan a su destino; el texto del PR (para cuando la entrega salga de `hold`) queda en `inventory.md` con los lugares revisados y el tamaño de `global.md` antes y después.
+- [x] El delta de `workflow-lifecycle` refleja lo construido; `site/src/content/docs/flows/close.md`, `site/src/content/docs/flows/deploy.md` y `llms.txt` describen los dos hogares y el cierre según su modo; `CHANGELOG.md` `[Unreleased]` tiene la entrada; `_support/docs/architecture/instruction-resources.md` y las otras páginas que citaban las hojas borradas apuntan a su destino; el texto del PR (para cuando la entrega salga de `hold`) queda en `inventory.md` con los lugares revisados y el tamaño de `global.md` antes y después.
 
 **Closes:** AC3, AC4
 
@@ -159,15 +159,19 @@ Caminata humana: no hay pantalla; la validación es leer las dos hojas resultant
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: build · T1 inventario
-- Last commit: 7f6277e0
+- Stage: verify · code review
+- Last commit: 36699815
 - Open findings: none
-- Next: T1: inventory.md (hijo hive-write-docs), luego T2
+- Next: esperar /code-review, ronda de hallazgos, push y PR
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/reporting-family-leaves · refactor/reporting-family-leaves
 
 ### Evidence
 
 - before captures: none (sin pantalla)
+- go test -count=1 ./... · exit 0, 262 s · 36699815 (dirty: solo tasks.md)
+- python3 -I -m unittest discover -s tests/skills · exit 0, 115 s · 36699815
+- go vet ./... · exit 0 · 36699815
+- local CI: solo master-source-branch (guarda de PRs a master), no aplica a un PR contra development
 
 ## Review status and progress
 
@@ -180,3 +184,4 @@ Caminata humana: no hay pantalla; la validación es leer las dos hojas resultant
 2026-11-21 — T5 · 7e3fdc95 · unverified: none
 2026-11-21 — T6 · e2451b7b · unverified: none
 2026-11-21 — T7 · 90e85220 · unverified: none
+2026-11-21 — T8 · 36699815 · unverified: none

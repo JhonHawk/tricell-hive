@@ -425,7 +425,7 @@ Ninguna oración quedó sin destino: las 207 tienen uno. Cuatro piden una decisi
 
 **Size of `global.md`.** 28,593 B on base `7f6277e0`; 28,312 B now (`wc -c`), 281 B smaller. The cap of 30,000 B is untouched. `report-endings` is 8,661 B (own limit 9,000 B, D11 A) and `close-report` 6,420 B (7,000 B exception). Each playbook is at most 7,000 B (largest `ticket-status`, 5,917 B).
 
-**Reading footprint.** The plan/build union grows by +9,053 B (+4.91%) without the moments the baseline did not read, against an allowance of 182 B + 8,880 B (D12 A). The test logs: `plan/build union at 2bb96478 (its declared list): 184489 B; candidate with every selected leaf: 200736 B (+16247 B, +8.81%), of which new sources 94363 B`.
+**Reading footprint.** The plan/build union grows by +9,053 B (+4.91%) without the moments the baseline did not read, against an allowance of 182 B + 8,970 B (D12 A). The test logs: `plan/build union at 2bb96478 (its declared list): 184489 B; candidate with every selected leaf: 200736 B (+16247 B, +8.81%), of which new sources 94363 B`.
 
 **How it was checked.** `go test -count=1 ./tests/content/...`, `./tests/pilot/`, `check_change.py` on this folder; `inventory.md` maps each source sentence to its destination, input for `/code-review`.
 

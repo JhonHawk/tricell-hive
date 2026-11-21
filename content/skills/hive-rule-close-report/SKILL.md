@@ -32,7 +32,7 @@ When the user asks to keep or share this report, or it exceeds what fits on one 
 | --- | --- | --- |
 | Close at the completion point (merge done) | every part with content | none |
 | Pull request left open in `ready` or waiting on a reviewer | every part | in Integrated, the head commit, the base commit its current-base check passed on and the CI result; in Next, the pending merge and on whom, and the base CI still pending, as [merge gate](../hive-rule-merge-gate/SKILL.md) sets |
-| Deployment (a cleanup close that `flow-deploy` calls) | every part | the run; per environment the identity served, the health and the functional acceptance, each as met, failed, blocked or "did not run"; the triggers decided; the CI failures from before that step 5 of `flow-deploy` let pass; the tickets waiting on a check |
+| Deployment (a cleanup close that `flow-deploy` calls) | every part | the run; per environment the identity served, the health and the functional acceptance, each as met, failed, blocked or "not run"; the triggers decided; the CI failures from before that step 5 of `flow-deploy` let pass; the tickets waiting on a check |
 | `hold` | what is pending, the defect's proof and Try it | none |
 | Pause outside `hold` | as `hold` | the commit of the change folder |
 
