@@ -27,10 +27,11 @@ var retiredSkillFiles = []string{"content", "site/src/content/docs", "README.md"
 
 // skillNameForms returns the patterns that name `name` as a skill: its folder
 // in a skills path or locator, its entrypoint, its name in backticks, the word
-// "skill" after it, or a slash, dollar or at command.
+// "skill" after it, or a slash, dollar or at command, also inside backticks,
+// bold or a link's text.
 func skillNameForms(name string) *regexp.Regexp {
 	n := regexp.QuoteMeta(name)
-	return regexp.MustCompile(`(?:skills/` + n + `(?:/|\b)|skill:` + n + `\b|\.\./` + n + `/SKILL\.md|` + "`" + n + "`" + `|\b` + n + ` skills?\b|(?:^|[\s(])[/$@]` + n + `\b)`)
+	return regexp.MustCompile(`(?:skills/` + n + `(?:/|\b)|skill:` + n + `\b|\.\./` + n + `/SKILL\.md|` + "`" + n + "`" + `|\b` + n + ` skills?\b|(?:^|[\s(*"\[` + "`" + `])[/$@]` + n + `\b)`)
 }
 
 // legacyLeafPrefix is the folder prefix the rule leaves had before they moved
@@ -103,6 +104,9 @@ func TestRetiredSkillFormsAndLegalNames(t *testing.T) {
 		"run `flow-research` first",
 		"the local-instructions skill writes it",
 		"type /flow-report to start",
+		"type `/flow-status` to see the backlog",
+		"run `$flow-research` in Codex",
+		"**@flow-report** in Cursor",
 		"see skill:docs-cleanup/SKILL.md",
 		"content/skills/workspace-conventions/SKILL.md",
 		"read " + "hive-" + "rule-questions before asking",
