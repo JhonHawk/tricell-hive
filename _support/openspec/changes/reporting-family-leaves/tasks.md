@@ -40,7 +40,7 @@ Restricción de todas las tareas: `wc -c content/guidance/global.md` no crece so
 
 ### T3 — `report-endings` como hogar de cómo termina el mensaje
 
-- [ ] `hive-rule-report-endings` tiene la tabla de formas de terminar de `design.md`, la fila de cierre con el footer, sus respuestas y el enlace a la línea de espera de `hive-rule-questions` «Format», y la sección «Same-turn continuations» con la sintaxis por host; `hive-rule-next-step-block` y `hive-rule-close-footer` se borran y todo enlace a ellas apunta a la sección de `report-endings` o `close-report` que tomó su texto; la columna «Ends with» de `close-modes`, el paso 8 de `flow-close` y su descripción enlazan la fila que aplica; `global.md` pierde las dos entradas del índice y las líneas de «Questions and routes» que T1 marcó como duplicadas, conservando el invariante mínimo.
+- [x] `hive-rule-report-endings` tiene la tabla de formas de terminar de `design.md`, la fila de cierre con el footer, sus respuestas y el enlace a la línea de espera de `hive-rule-questions` «Format», y la sección «Same-turn continuations» con la sintaxis por host; `hive-rule-next-step-block` y `hive-rule-close-footer` se borran y todo enlace a ellas apunta a la sección de `report-endings` o `close-report` que tomó su texto; la columna «Ends with» de `close-modes`, el paso 8 de `flow-close` y su descripción enlazan la fila que aplica; `global.md` pierde las dos entradas del índice y las líneas de «Questions and routes» que T1 marcó como duplicadas, conservando el invariante mínimo.
 
 **Closes:** AC3, AC4, AC8
 
@@ -58,7 +58,7 @@ Restricción de todas las tareas: `wc -c content/guidance/global.md` no crece so
 
 ### T4 — Un solo escritor del reporte final
 
-- [ ] `git-workflow` paso 9 y `flow-deploy` paso 8 verifican y entregan lo observado a `flow-close` sin escribir reporte; `flow-close` paso 6 escribe el reporte con la fila de `close-report` que aplica; `unattended-delegation` paso 9 resume la sesión (efectos con su reversión, decisiones tomadas, lo no resuelto) y enlaza el reporte de cada cierre; `flow-deploy` paso 6 nombra su espera de recuperación como mensaje de bloqueo.
+- [x] `git-workflow` paso 9 y `flow-deploy` paso 8 verifican y entregan lo observado a `flow-close` sin escribir reporte; `flow-close` paso 6 escribe el reporte con la fila de `close-report` que aplica; `unattended-delegation` paso 9 resume la sesión (efectos con su reversión, decisiones tomadas, lo no resuelto) y enlaza el reporte de cada cierre; `flow-deploy` paso 6 nombra su espera de recuperación como mensaje de bloqueo.
 
 **Closes:** AC1, AC2
 
@@ -76,7 +76,7 @@ Restricción de todas las tareas: `wc -c content/guidance/global.md` no crece so
 
 ### T5 — La continuación en el mismo turno tiene un hogar
 
-- [ ] `hive-mode`, `flow-build`, `plan-handoff` y `global.md` nombran la continuación con un enlace a «Same-turn continuations» de `report-endings` y conservan solo su propio paso; `single_home_test.go` fija la frase de la continuación de investigación a `flow-build` en `report-endings`.
+- [x] `hive-mode`, `flow-build`, `plan-handoff` y `global.md` nombran la continuación con un enlace a «Same-turn continuations» de `report-endings` y conservan solo su propio paso; `single_home_test.go` fija la frase de la continuación de investigación a `flow-build` en `report-endings`.
 
 **Closes:** AC5
 
@@ -175,3 +175,6 @@ Caminata humana: no hay pantalla; la validación es leer las dos hojas resultant
 2026-11-21 — T1 · ab07dabd · unverified: none
 2026-11-21 — Revisión durante el build: D11 A da a `report-endings` una excepción de 9,000 B. Se decidieron sin preguntar `S12.13`, `S4.13`, `S5.3` y `S10.8`/`S10.15` (ver la respuesta del T2). No cambia ningún criterio ni el delta, y no invalida ninguna tarea.
 2026-11-21 — T2 · 94a48a14 · unverified: none
+2026-11-21 — T3 · 6d9aad92 · unverified: none
+2026-11-21 — T4 · cc6b183a · unverified: none
+2026-11-21 — T5 · 7e3fdc95 · unverified: none

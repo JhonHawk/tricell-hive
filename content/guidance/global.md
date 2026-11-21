@@ -64,7 +64,7 @@ A rule leaf is a skill the model does not load on its own. At the moment a line 
 - After a push, before a merge or a `ready` stop: [merge gate](skill:hive-rule-merge-gate/SKILL.md).
 - When a pull request's CI wait ends: [PR reviews](skill:hive-rule-pr-reviews/SKILL.md).
 - Before a push, merge or branch on an environment branch after the base: [promotion path](skill:hive-rule-promotion-path/SKILL.md).
-- When a close starts: [close modes](skill:hive-rule-close-modes/SKILL.md); at close steps 4 to 7: [close hygiene](skill:hive-rule-close-hygiene/SKILL.md).
+- When a close starts: [close modes](skill:hive-rule-close-modes/SKILL.md); close steps 4, 5, 7: [close hygiene](skill:hive-rule-close-hygiene/SKILL.md).
 - Before a final report or classifying a finding: [close report](skill:hive-rule-close-report/SKILL.md).
 - Before writing a decision, finding or list for the user, before asking a round, and when a card returns unanswered: [questions](skill:hive-rule-questions/SKILL.md).
 - Before giving a reason, reporting a blocker or failure, asking the user to act, or when a defect blocks authorized work: [reasons and blockers](skill:hive-rule-reasons-and-blockers/SKILL.md).
