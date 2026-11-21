@@ -99,7 +99,7 @@ Lecturas estimadas en la ruta plan→build: ~26 frente a 39. La prueba de huella
 
 **Checkpoint y cierre (E3)**
 
-- `tasks.py checkpoint --rules "flow-build/stage.md · extra: defect-fix"` escribe `- Rules:` en `## Checkpoint`. Igual que `--worktree`, las llamadas siguientes la conservan, y `check_change.py` valida su forma. Un plan que se queda en la conversación escribe la misma línea a mano.
+- `tasks.py checkpoint --rules "flow-build/stage.md · extra: defect-fix"` escribe `- Rules:` en `## Checkpoint`, y `--principles "boundary-discipline"` escribe `- Principles:` (D13 A), para que la línea que `flow-build` pasa a `flow-close` sobreviva una compactación. Su valor es `none` o nombres `[a-z0-9-]+` separados por `, `; el flag une nombres sin duplicados, un nombre reemplaza `none` y nada borra la línea; `flow-close` la lee en su paso 2, antes de borrar el checkpoint. Igual que `--worktree`, las llamadas siguientes la conservan, y `check_change.py` valida su forma. Un plan que se queda en la conversación escribe la misma línea a mano.
 - Orden tras compactar, dicho en una línea de `global.md` y en la hoja `checkpoint`: checkpoint, `HIVE.local.md`, el paquete de `Rules:`, sus extras y la memoria persistente.
 - `Reply:` en 7 flujos: la fila de `report-endings` o `close-report` que termina el flujo, más lo que el flujo añade y la fila no tiene.
 

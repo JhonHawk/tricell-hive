@@ -260,7 +260,7 @@
 
 ### T8 — La línea `Rules:` del checkpoint y el orden tras compactar
 
-- [ ] `tasks.py checkpoint --rules` escribe y conserva `- Rules:`, y `check_change.py` la acepta bien formada y la rechaza mal formada. La hoja del checkpoint y una línea de `global.md` dicen el orden tras compactar: checkpoint, `HIVE.local.md`, paquete, extras y memoria. Las líneas de `global.md` que hoy nombran pasos tras compactar (`:46`, `:90`, `:126` en `7f6277e0`) quedan reconciliadas con ese orden, sin otro orden en `content/`.
+- [ ] `tasks.py checkpoint --rules` escribe y conserva `- Rules:`, y `--principles` escribe y conserva `- Principles:` (D13 A); `check_change.py` acepta cada línea bien formada y la rechaza mal formada. `--principles` une nombres sin duplicados, un nombre reemplaza `none` y ningún valor borra la línea. `flow-build` escribe `Principles:` cuando un principio cambia una decisión, o `none` en su paso 5 si no existe; `flow-close` la lee en su paso 2 y `close-report` toma de ella la parte **Principles**. La hoja del checkpoint y una línea de `global.md` dicen el orden tras compactar: checkpoint, `HIVE.local.md`, paquete, extras y memoria. Las líneas de `global.md` que hoy nombran pasos tras compactar (`:46`, `:90`, `:126` en `7f6277e0`) quedan reconciliadas con ese orden, sin otro orden en `content/`.
 
 **Closes:** AC8
 
@@ -269,6 +269,7 @@
 **Locations:**
 - `content/skills/flow-plan/scripts/{tasks.py,check_change.py}` y `assets/change-folder/tasks.md`;
 - `content/skills/hive-core/references/checkpoint.md`;
+- `content/skills/flow-build/SKILL.md` (paso 2 y paso 5), `content/skills/flow-close/SKILL.md` (pasos 2 y 6) y `content/skills/hive-core/references/close-report.md` (parte **Principles**);
 - `content/guidance/global.md`;
 - `tests/skills/{tasks_test.py,change_check_test.py}`;
 - `specs/workflow-lifecycle/spec.md` de esta carpeta.
@@ -278,12 +279,16 @@
 **Test approach:** tdd (los scripts guardan el estado de reanudación)
 
 **Changes:**
-- El flag sigue el patrón de `--worktree`.
+- `--rules` sigue el patrón de `--worktree`; `--principles` se conserva igual cuando se omite, pero une y no borra, como sigue.
+- `Principles:` guarda los nombres de los principios, no su texto: `none`, o uno o más nombres `[a-z0-9-]+` separados por `, `, cada uno el nombre de la skill sin el prefijo `hive-principle-` (como `boundary-discipline`), o el de la skill u hoja que el índice de principios enlaza (como `hive-typescript` o `defect-fix`). `check_change.py` comprueba solo esa forma, no una lista instalada, y rechaza un valor vacío.
+- `--principles` une los nombres nuevos a los que ya tiene la línea, sin duplicados y en orden de llegada; `none` es un valor literal que solo se escribe si la línea no tiene nombres, el primer nombre que llega después lo reemplaza, y ningún valor del flag la borra. `check_change.py` rechaza `none` junto con un nombre. Las llamadas sin `--principles` la conservan.
+- `flow-build` escribe `--principles <nombres>` en el paso 2 cuando un principio cambia una decisión, y `--principles none` en el paso 5 si la línea todavía no existe. Con un plan en la conversación se escribe igual a mano en su archivo de checkpoint.
+- `flow-close` toma la línea `Principles:` del checkpoint en su paso 2, junto con el inventario, antes de que el paso 5 borre el checkpoint, y el paso 6 la usa para la parte **Principles**.
 - La ruta es relativa al almacén de skills.
 - La línea del orden en `global.md` y la hoja `checkpoint` dicen que, si el paquete falta, se leen las hojas que enlaza el flujo.
 
 **Verification:**
-- `python3 -I -m unittest discover -s <worktree>/tests/skills -p '*_test.py'` termina con exit 0, con casos nuevos de escritura, conservación y rechazo.
+- `python3 -I -m unittest discover -s <worktree>/tests/skills -p '*_test.py'` termina con exit 0, con casos nuevos de escritura, conservación y rechazo para `--rules` y `--principles`, de unión sin duplicados, de `none` literal que no borra nombres, de un nombre que reemplaza `none`, del rechazo de `none, <nombre>`, y de la ruta del registro de ejecución (`tasks.py execution`) con los dos flags.
 - `go -C <worktree> test -count=1 ./tests/content/...` termina con exit 0.
 - `rg -n 'compact' <worktree>/content` no muestra ningún otro orden.
 
@@ -311,7 +316,7 @@
 
 ### T10 — Documentación de paquetes, checkpoint y cierre
 
-- [ ] Estos documentos describen los paquetes, la línea `Rules:`, el orden tras compactar y la línea `Reply:`, cada uno en el PR que los introduce:
+- [ ] Estos documentos describen los paquetes, las líneas `Rules:` y `Principles:`, el orden tras compactar y la línea `Reply:`, cada uno en el PR que los introduce:
   - `deployment-manager.md`, `instruction-resources.md` y `compaction-survival.md`;
   - el sitio y `CHANGELOG.md`;
   - `README.md` y `llms.txt`, si cambia algo de lo que declaran.
@@ -346,7 +351,7 @@
 - [ ] live: bin=$(mktemp) && go -C <worktree> build -o "$bin" ./tooling/cli && "$bin" update --source <worktree> --dry-run · pass: un stage.md por flujo con manifiesto y dos en flow-verify, cada uno ≤ 24,000 B
 - [ ] perf: lecturas declaradas plan/build · base: 39 · fail: > 26
 
-### E3 — PR `feat/stage-rules-reply` (T8, T9, T10 parte checkpoint y cierre) · depends on: E2 · files: content/skills/flow-plan/, content/skills/hive-core/references/checkpoint.md, content/guidance/global.md, 7 SKILL.md, tests/skills/, tests/content/, docs
+### E3 — PR `feat/stage-rules-reply` (T8, T9, T10 parte checkpoint y cierre) · depends on: E2 · files: content/skills/flow-plan/, content/skills/hive-core/references/checkpoint.md, content/skills/hive-core/references/close-report.md, content/skills/flow-close/SKILL.md, content/guidance/global.md, 7 SKILL.md, tests/skills/, tests/content/, docs
 
 - [ ] unit: go -C <worktree> test -count=1 ./... y python3 -I -m unittest discover -s <worktree>/tests/skills -p '*_test.py'
 - [ ] live: tras el merge de E3 y tu aviso, binario reconstruido (archivo temporal + mv), luego hive update --source <checkout> --out <archivo> y hive apply --plan <archivo> (D9 A) · pass: hive status sin drift, hive-core y los paquetes instalados en los 7 hosts, ninguna carpeta hive-rule-* instalada
