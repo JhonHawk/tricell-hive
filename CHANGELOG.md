@@ -220,6 +220,14 @@ raise the minor or the patch version.
 
 ### Changed
 
+- The 60 rule leaves moved from one skill folder each, `content/skills/hive-rule-<name>/SKILL.md`,
+  into one hidden skill, `hive-core`: a leaf is now
+  `content/skills/hive-core/references/<name>.md` without frontmatter, its own
+  references are in `references/<name>/` and its scripts in `scripts/<name>/`
+  (`checks/run_check.py`, `trackers/jira_rest.py`, `trackers/work_time.py`). A host
+  lists one rule skill instead of 60, and the «Rule leaves» index of the global
+  guidance stays the only router. Updating retires the `hive-rule-*` folders.
+  Pull-request links and local notes that name an old path need the new one.
 - Reporting has two homes. `hive-rule-close-report` holds the final report with
   one row per variant (close at the completion point, pull request left open,
   deployment, `hold`, pause) and the findings round of the close;
