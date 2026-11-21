@@ -52,10 +52,10 @@ Revisión humana: leer el peldaño 2 nuevo y el texto del revisor en el diff.
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: verify · 2 reviews
-- Last commit: b0b2f452
-- Open findings: none
-- Next: await /code-review, then push and PR (ready)
+- Stage: verify · 6 push
+- Last commit: 9fa7cf19
+- Open findings: spec rationale: 'a workaround whose comment names its cause, which a user already accepted' is false for an incident mitigation · close finding; an accepted workaround is re-asked on each later task and may get a duplicate ticket proposal · close finding (user decision); spec scenario title 'too large to fix in passing' implies small diverging duplication is fixed silently · close finding; the second review does not cover what the first missed · noted
+- Next: push, PR ready, CI wait, PR reviews, stop
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/reuse-sound-base · feat/reuse-sound-base
 - Rules: flow-verify/stage-entry.md, flow-verify/stage-exit.md
 - Principles: none
@@ -71,6 +71,10 @@ Revisión humana: leer el peldaño 2 nuevo y el texto del revisor en el diff.
 - local CI: only master-source-branch.yml (pull_request_target to master), not applicable to a PR to development · b0b2f452
 - walk AC1 (candidate file): 3 matches; AC2: reviewer lines present; AC3: 1 line; AC4: constant + test ok · b0b2f452; AC1/AC2 installed-file observation pending hive update after merge
 - no-comments: 1 added comment kept (allowance reason); suppressions: none · b0b2f452
+- go vet + go test ./... -count=1 all ok; unittest OK · 9fa7cf19
+- go test ./tests/content/ ok; union 194963 B < 194964 B; flow-build packet 22498 B · 9fa7cf19
+- pnpm --dir site check 0 errors · 9fa7cf19
+- /code-review round 1: 3 important + 5 nits fixed in 9c35281a; round 2 (fix diff): 2 blocking fixed locally in 9fa7cf19 (Unreviewed), 4 nits to close · 9fa7cf19
 
 ## Estado de revisión y progreso
 
