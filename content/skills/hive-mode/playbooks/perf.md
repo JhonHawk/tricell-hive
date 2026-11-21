@@ -13,6 +13,8 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the goal is a measured
 - Measurements that only read an outside system are read-only; one that loads or changes it is an effect planned as [effects round](../../hive-rule-external-effects/SKILL.md) sets, since it can spend quota or disturb a shared resource.
 - Each stop, push, pull request and merge happens under the delivery mode in force.
 
+**Reporting.** When the work closes, `flow-close` writes its final report with the row of [close report](../../hive-rule-close-report/SKILL.md#variants) that the delivery mode in force picks, and the message ends in the close row of [report endings](../../hive-rule-report-endings/SKILL.md) that [close modes](../../hive-rule-close-modes/SKILL.md) sets.
+
 **Handoffs.** A defect the profiling exposes is separate work, a finding or a [bugfix](bugfix.md); a restructuring the speedup needs is a [refactor](refactor.md), as [scope changes](../../hive-rule-scope-changes/SKILL.md) sets.
 
 **Leaves.** [verification floor](../../hive-rule-verification-floor/SKILL.md), [loops](../../hive-rule-loops/SKILL.md), [checks](../../hive-rule-checks/SKILL.md), [tests](../../hive-rule-tests/SKILL.md), [checkpoint](../../hive-rule-checkpoint/SKILL.md), [external effects](../../hive-rule-external-effects/SKILL.md).

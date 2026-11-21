@@ -13,6 +13,8 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the work is a question
 - The investigation changes no repository file, tracker or shared data. A ticket for a finding is a single action offered at the end, never part of a route ([create-issue](../../create-issue/SKILL.md) writes it).
 - The findings end as [report endings](../../hive-rule-report-endings/SKILL.md) sets, with no flow recommended that the user did not ask for.
 
+**Reporting.** The findings end in the analysis row of [report endings](../../hive-rule-report-endings/SKILL.md); if the work later closes, its final report uses the row of [close report](../../hive-rule-close-report/SKILL.md#variants) that the delivery mode in force picks.
+
 **Handoffs.** When the findings confirm a defect and the user asks for its fix, hand off to [bugfix](bugfix.md) as a scope change, state its class and destination in one line, and record the new playbook ([scope changes](../../hive-rule-scope-changes/SKILL.md)). Other confirmed work goes to the playbook of its kind, or to `flow-plan` when its how has a decision for the user.
 
 **Leaves.** [delegation](../../hive-rule-delegation/SKILL.md), [child brief](../../hive-rule-child-brief/SKILL.md), [report endings](../../hive-rule-report-endings/SKILL.md), [scope changes](../../hive-rule-scope-changes/SKILL.md), [external facts](../../hive-rule-external-facts/SKILL.md) when the answer depends on an outside system.

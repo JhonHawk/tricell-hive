@@ -15,6 +15,8 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the product the user a
 - A business rule the deliverable decides is recorded as [business rules](../../hive-rule-business-rules/SKILL.md) sets.
 - Publishing or sharing the deliverable is the user's choice; this playbook authorizes none.
 
+**Reporting.** When the work closes, `flow-close` writes its final report with the row of [close report](../../hive-rule-close-report/SKILL.md#variants) that the delivery mode in force picks, and the message ends in the close row of [report endings](../../hive-rule-report-endings/SKILL.md) that [close modes](../../hive-rule-close-modes/SKILL.md) sets.
+
 **Handoffs.** A requirement document that is approved and should become work goes to `flow-plan` or the playbook of its kind; the user's reply authorizes only the flow it names ([scope changes](../../hive-rule-scope-changes/SKILL.md)).
 
 **Leaves.** [design stage](../../hive-rule-design-stage/SKILL.md), [business rules](../../hive-rule-business-rules/SKILL.md), [scope changes](../../hive-rule-scope-changes/SKILL.md).

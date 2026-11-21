@@ -1,12 +1,12 @@
 ---
 name: hive-rule-close-hygiene
-description: "Hive rule leaf: read at steps 4 to 7 of a close. Records the pending archive, cleans branches and worktrees, and writes the pending-work records."
+description: "Hive rule leaf: read at steps 4, 5 and 7 of a close. Records the pending archive, cleans branches and worktrees, and writes the pending-work records."
 disable-model-invocation: true
 ---
 
 # Record the archive, clean up and record pending work
 
-Read at steps 4 to 7 of [flow-close](../flow-close/SKILL.md).
+Read at steps 4, 5 and 7 of [flow-close](../flow-close/SKILL.md).
 
 ## Archive the change folder
 

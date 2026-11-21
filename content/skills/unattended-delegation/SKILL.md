@@ -17,7 +17,7 @@ This skill grants no broader tools or host permissions; step 6's irreversible or
 6. **Take effects within bounds.** Before each effect, read [unattended effects](../hive-rule-unattended-effects/SKILL.md): allowed effects, the unforeseen-spend test, what stays forbidden, what to report for a skipped one.
 7. **Support artifacts.** Before writing or cleaning one, read [layout and retention](../project-layout/references/layout.md).
 8. **Loops.** Before the first cycle of work that repeats acting and measuring until a condition holds, read [loops](../hive-rule-loops/SKILL.md) and follow it.
-9. **End.** At expiry or when the objective is complete, stop unattended effects, then report the completed and unresolved work, each effect applied with how to revert it, and the decisions taken, as [close report](../hive-rule-close-report/SKILL.md#final-report) sets, and return control to the user.
+9. **End.** At expiry or when the objective is complete, stop unattended effects, run a pause close for each work item still open, then write the end report, a summary of the session: the completed and unresolved work, each effect applied with how to revert it and the decisions taken, linking the [final report](../hive-rule-close-report/SKILL.md#variants) of each close it ran, and return control to the user.
 
 ## Decision log
 
