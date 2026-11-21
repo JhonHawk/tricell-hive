@@ -151,7 +151,7 @@ A promotion that has not been made SHALL NOT be a reason to keep a branch, workt
 - **THEN** the plan includes the promotion to that environment as a task
 
 ### Requirement: Plan revisions keep the change folder coherent
-A revision of a written plan that has a change folder SHALL edit in the same pass every artifact that states what changed, mark a replaced decision or criterion with `**Replaces:** <old IDs>` and a dropped criterion with `**Retired:** <reason>` without deleting the old line, reopen each completed task the revision invalidates, and run the coherence check (`flow-plan/scripts/check_change.py`, which also validates the canonical grammar of lines under `## Business rules` in `proposal.md` and of the delivery-unit boxes under `## Delivery units` in `tasks.md` when run without `--archive`) until it exits 0 before work continues; a revision that changes a criterion or the delta SHALL get one `hive-review-plan` round.
+A revision of a written plan that has a change folder SHALL edit in the same pass every artifact that states what changed, mark a replaced decision or criterion with `**Replaces:** <old IDs>` and a dropped criterion with `**Retired:** <reason>` without deleting the old line, reopen each completed task the revision invalidates, and run the coherence check (`flow-plan/scripts/check_change.py`, which also validates the canonical grammar of lines under `## Business rules` in `proposal.md` and of the delivery-unit boxes under `## Delivery units` in `tasks.md` when run without `--archive`) until it exits 0 before work continues; a revision that changes a criterion or the delta SHALL get one review round from the plan's reviewers, each reviewer rereading it through one follow-up message to the same child, or, when its ID is gone, the host has no tool to message it or the message returns an error, by a new child of its role given the earlier findings.
 
 #### Scenario: A task still names a replaced decision
 - **GIVEN** a change folder whose revision replaced a decision and marked the new one with `**Replaces:**`
@@ -161,7 +161,7 @@ A revision of a written plan that has a change folder SHALL edit in the same pas
 #### Scenario: A revision changes a criterion
 - **GIVEN** a change folder whose plan was already reviewed
 - **WHEN** a revision changes a criterion or the delta
-- **THEN** one `hive-review-plan` child reviews the revised folder, and a gap that survives the round goes to the user as a decision
+- **THEN** the plan's reviewer rereads the revised folder in one round, through a follow-up message to the same child or a new child given its earlier findings, and a gap that survives the round goes to the user as a decision
 
 #### Scenario: Malformed business rule line in proposal
 - **GIVEN** a change folder whose `proposal.md` holds a line under `## Business rules` that violates the canonical prefix or field grammar
@@ -1508,3 +1508,50 @@ Before planning a change to a capability, the plan SHALL read the deltas of the 
 - **GIVEN** a pending change folder whose delta modifies a requirement of a capability
 - **WHEN** a new plan changes the same requirement
 - **THEN** its delta starts from the requirement as the pending delta leaves it
+
+### Requirement: A plan runs the verification commands it writes
+
+Before writing a task's verification, the plan SHALL run each command it names once on the base; an observation or a walk SHALL NOT count as a command. When the command needs the change to exist, the plan SHALL run its nearest existing form instead: the same script or runner on a test it already finds, and, when the new test will import project code, a throwaway test that only imports those modules, kept outside the repository when the runner accepts a path and otherwise untracked and deleted in the same command. A command that changes tracked files, a database that is not local, shared or remote resources or an external system, or a long check, SHALL NOT be run while planning; the runner's own caches and ignored output, and a local test database already running, SHALL NOT count as such a change. A command that is not run, and one that needs a service the build will start, SHALL be written as not measured, with the task that meets it first. A command whose last measured run took over 5 minutes SHALL run only in its shortest form with the same runner; one with no measured run SHALL be cut to that form once it passes 5 minutes. Commands that share no database, port, lock or output directory SHALL be started together and awaited together; the others SHALL run one after another. The plan SHALL record one line per command in its verified context, or in the summary of a plan kept in the conversation, with the command, its result and the date. A command that cannot run because its script, runner or a dependency is missing on the base and is not added by a task, or because a module does not load, SHALL be changed before the plan review; one that a task adds SHALL be written as not measured with that task. The plan SHALL NOT switch or stash the checkout to reach the base. When a revision of the plan changes a task's verification command or what it rests on, the plan SHALL run it again and update its line before the next review round. The plan reviewer SHALL report as a gap a task's verification command with no line, or one recorded as run although the project lacks what it needs, without running it.
+
+#### Scenario: A test command names a runner the app does not use
+
+- **GIVEN** a task whose verification runs a new test with Vitest in an app whose test script is `node --test` and that has no Vitest dependency
+- **WHEN** the plan writes that task
+- **THEN** running the command on the base fails because Vitest is missing
+- **AND** since no task adds Vitest, the plan changes the task's check before the review
+
+#### Scenario: A revision changes the command
+
+- **GIVEN** a plan whose review found that a task's test command cannot run
+- **WHEN** the revision replaces it with another runner
+- **THEN** the new command, with a throwaway test that imports the same modules, runs on the base before the next review round
+- **AND** its line in the verified context shows the new result and date
+
+### Requirement: A plan that crosses domains gets one reviewer per domain
+
+When a plan with a change folder has tasks that change files of two or more of these domains: server, client, guidance or infrastructure, or a data-entry screen where the user enters or chooses data, which also counts as client, the plan SHALL be reviewed by one `hive-review-plan` child per counted domain, launched together, with at most three children, the data-entry screen's included. Tests and documentation SHALL count with the domain they check or describe; repository-wide files, such as manifests, lockfiles, build configuration, the changelog and the change folder, SHALL count with the other files of the task that changes them, or with server when that task changes no other file; any other file no domain names SHALL count with server; and a task that changes files of two domains SHALL count in both. With four or more domains, the assignment with the fewest tasks SHALL be merged into the one with the next fewest, a merged assignment counting the sum of its tasks and taking its earliest domain's place, until at most three remain, a tie taking the later domain in that list, and the data-entry screen assignment SHALL never be merged. Each brief SHALL name its domain, the questions its domain examines and the contracts it shares with the other counted domains, and only the first assignment SHALL run the whole-plan checks of criteria, external facts and verification lines, the others being told to skip them. A finding several reviewers report SHALL be merged into one that names each reviewer. Any other plan with a change folder SHALL keep one reviewer. On a revision, a reviewer SHALL reread it when the revision changed the text, `Closes:` or verification of a task in its domain, or a criterion such a task closes, the first assignment SHALL also reread a revision that changes a criterion, an external fact or a verification line, and every reviewer SHALL reread a change that belongs to no single domain.
+
+#### Scenario: Server and client tasks
+
+- **GIVEN** a plan whose tasks change a server endpoint and a web client's dialog where the user picks a time
+- **WHEN** the plan is written
+- **THEN** a server reviewer, a client reviewer and a data-entry screen reviewer are launched together
+- **AND** each brief names the payload the server and the client share
+
+#### Scenario: Four domains
+
+- **GIVEN** a plan whose tasks change server, client, guidance and infrastructure files, with three server tasks, three client tasks, two guidance tasks and one infrastructure task
+- **WHEN** the plan is written
+- **THEN** three reviewers are launched, and infrastructure shares one assignment with guidance
+
+#### Scenario: A plan in one domain
+
+- **GIVEN** a plan whose tasks change only agent guidance files
+- **WHEN** the plan is written
+- **THEN** one `hive-review-plan` child reviews it
+
+#### Scenario: A revision that touches one domain
+
+- **GIVEN** a plan reviewed by a server and a client reviewer
+- **WHEN** a revision changes a criterion that only a server task closes
+- **THEN** the server reviewer rereads the revised folder, and the client reviewer does not

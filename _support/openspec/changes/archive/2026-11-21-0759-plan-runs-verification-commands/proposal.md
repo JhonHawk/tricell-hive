@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | En build |
+| Estado | Completado · PR #560, merge 49ef7757 |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `04a1f27b` · rama propuesta `feat/plan-runs-verification-commands` |
 | Playbook | ninguno |
