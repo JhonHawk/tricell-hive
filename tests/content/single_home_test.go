@@ -40,6 +40,7 @@ var homePhrases = []homePhrase{
 	{"Keep a test that fails when the behavior its users observe breaks", "content/skills/hive-core/references/tests.md"},
 	{"Remove dead code, redundant validators and stub references", "content/skills/hive-core/references/reuse-before-writing.md"},
 	{"with no layer, abstraction or parameter the request does not need", "content/skills/hive-core/references/reuse-before-writing.md"},
+	{"It is not when (a) it is a workaround", "content/skills/hive-core/references/reuse-before-writing.md"},
 	{"yourself that the host has a connection that can write", "content/skills/hive-core/references/design-stage.md"},
 	{"Never bypass branch protection, required reviews or required checks", "content/skills/hive-core/references/merge-gate.md"},
 	{"A human reviewer holds the merge in every delivery mode", "content/skills/hive-core/references/merge-gate.md"},

@@ -414,6 +414,13 @@ raise the minor or the patch version.
   not close the criterion, and a criterion whose place a stage has not reached,
   such as a deployed environment, is reported as not verified. The plan
   coherence check reports a criterion without the marker.
+- Reuse before writing now reuses existing code only when it is a sound
+  base. Code that is a workaround, breaks the repository's standards, needs a
+  flag only the new code turns on, or duplicates logic that diverges is not
+  copied or extended: the build fixes it first when the fix is small, and
+  otherwise the plan offers that fix as an approach or the build asks before
+  building on it. The code reviewer flags new code that copies or extends such
+  a base.
 
 ### Removed
 
