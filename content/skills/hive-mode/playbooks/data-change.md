@@ -12,7 +12,7 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the work changes store
 - Keep a dump or export the task made as evidence; ask before removing it.
 - Each stop, push, pull request and merge happens under the delivery mode in force; promotion follows `flow-deploy` and its authorization per environment.
 
-**Reporting.** When the work closes, `flow-close` writes its final report with the row of [close report](../../hive-rule-close-report/SKILL.md#variants) that the delivery mode in force picks, and the message ends in the close row of [report endings](../../hive-rule-report-endings/SKILL.md) that [close modes](../../hive-rule-close-modes/SKILL.md) sets.
+**Reporting.** When the work closes, `flow-close` writes its final report with the row of [close report](../../hive-rule-close-report/SKILL.md#variants) that the delivery mode in force picks, and the message ends in the close row of [report endings](../../hive-rule-report-endings/SKILL.md) that [close modes](../../hive-rule-close-modes/SKILL.md) sets; a promotion's cleanup close uses the deployment row of [close report](../../hive-rule-close-report/SKILL.md#variants).
 
 **Handoffs.** A bug whose cause is bad data continues here from [bugfix](bugfix.md); a code restructuring the migration needs is separate [refactor](refactor.md) work, as [scope changes](../../hive-rule-scope-changes/SKILL.md) sets.
 

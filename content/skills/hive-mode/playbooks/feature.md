@@ -12,7 +12,7 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the work adds or exten
 - Tests follow [tests](../../hive-rule-tests/SKILL.md): the ones that pin the new behavior, and none that only restate the code.
 - Each stop, push, pull request and merge happens under the delivery mode in force.
 
-**Reporting.** When the work closes, `flow-close` writes its final report with the row of [close report](../../hive-rule-close-report/SKILL.md#variants) that the delivery mode in force picks, and the message ends in the close row of [report endings](../../hive-rule-report-endings/SKILL.md) that [close modes](../../hive-rule-close-modes/SKILL.md) sets.
+**Reporting.** When the work closes, `flow-close` writes its final report with the row of [close report](../../hive-rule-close-report/SKILL.md#variants) that the delivery mode in force picks, and the message ends in the close row of [report endings](../../hive-rule-report-endings/SKILL.md) that [close modes](../../hive-rule-close-modes/SKILL.md) sets; a promotion's cleanup close uses the deployment row of [close report](../../hive-rule-close-report/SKILL.md#variants).
 
 **Handoffs.** A request that turns out to need a new or recomposed screen goes to `ui-change`; a defect found along the way is a separate topic, or `bugfix` when the user asks for its fix. Either is a scope change, as [scope changes](../../hive-rule-scope-changes/SKILL.md) sets.
 
