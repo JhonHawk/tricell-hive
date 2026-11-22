@@ -6,16 +6,41 @@ Each row below ends a message differently. Every message that closes work ends w
 
 | Way of ending | It ends with |
 | --- | --- |
-| Analysis, explanation, review or diagnosis the user asked for without asking for a change | Its findings, then a block headed by a question, such as **▶ How do we continue?**, that lists every reply the user can give as its options, each on its own line with a letter, `A`, `B`…, the recommended one first with `(★)` and its reason when one is better, with no command and no list of other replies. It never recommends a flow the user did not ask for, and when the findings confirm a defect in the current project, one of its options is the reply that fixes it. |
+| Analysis, explanation, review or diagnosis the user asked for without asking for a change | Its findings, then [the reply block](#the-reply-block). It never recommends a flow the user did not ask for, and when the findings confirm a defect in the current project, one of its replies fixes it. |
 | Assessment of a ticket the user picked for research, such as "research COM-918" | As [hive-mode](../../hive-mode/SKILL.md) step 5 sets. |
 | Hand-over to another flow | [The next-step block](#the-next-step-block). |
 | Close with the footer (the first row of [close modes](close-modes.md)) | The report, then [the close footer](#the-close-footer), then the waiting line of [questions](questions.md) «Format». |
 | Close without the footer (the other rows of [close modes](close-modes.md)) | The report, as the row of [close report](close-report.md#variants) that fits, with no footer and no command. |
-| A single action that changes no repository file and is not a tracker write «Scope and authorization» already authorizes, such as creating a ticket, closing one as not planned, deleting a merged branch or saving to memory | Never routed through a flow's command: offer it as one more reply of the block, such as "reply *create the ticket*", when the message ends with one, and otherwise ask it as a decision of the round, such as `D4 — Do you want me to create the ticket?`. The answer authorizes only that action. Creating the ticket then follows [create-issue](../../create-issue/SKILL.md), in the same turn. An answer to another decision authorizes a ticket or other single action only when the chosen option's label or description, as the question tool shows it, names that action; text around the question does not. |
+| A single action that changes no repository file and is not a tracker write «Scope and authorization» already authorizes, such as creating a ticket, closing one as not planned, deleting a merged branch or saving to memory | Never routed through a flow's command: offer it as one more reply of the block, such as `C - Create the ticket`, when the message ends with one, and otherwise ask it as a decision of the round, such as `D4 — Do you want me to create the ticket?`. The answer authorizes only that action. Creating the ticket then follows [create-issue](../../create-issue/SKILL.md), in the same turn. An answer to another decision authorizes a ticket or other single action only when the chosen option's label or description, as the question tool shows it, names that action; text around the question does not. |
+
+## The reply block
+
+Every reply the user can give, the recommended one first, and no command:
+
+```
+**▶ D<n> — <a question, such as How do we continue?>**
+
+A - (★) <reply>: <why, when one is better>
+
+B - <reply>
+```
 
 ## The next-step block
 
-Moving from one flow to the next (research's status report to a ticket's research, research to create-design, plan or build, create-design to plan, build or research, plan to build or research, build to verify) is never asked with the question tool, because a card hides the report it closes. End the report with a separate next-step block: a `---` rule, a bold heading such as **▶ Next step: plan (recommended)**, the reason in one line, and the command the user types to start that flow, written once, in the syntax of the host you run in, with a real argument, such as `/flow-plan COM-833`. Offer a flow's command only when the next step needs that flow's procedure: an investigation, a design in Figma, a plan, or a change to the repository's files with its delivery. No flow needs a ticket: when the work has none, the command's argument is a short description of the work or its change folder, never a placeholder, and a ticket is proposed only as [scope changes](scope-changes.md) sets. Add the other replies the user can give, such as keep investigating or what to change, as a short list with a letter each, `A`, `B`…, so the user can answer with the letter alone.
+Moving from one flow to the next (research's status report to a ticket's research, research to create-design, plan or build, create-design to plan, build or research, plan to build or research, build to verify) is never asked with the question tool, because a card hides the report it closes. End the report with a separate next-step block:
+
+```
+---
+**▶ D<n> — Next step: <flow> (recommended)**
+
+<the reason in one line>
+
+`<the command, once, in this host's syntax, with a real argument, such as /flow-plan COM-833>`
+
+A - <another reply, such as keep investigating>
+```
+
+Offer a flow's command only when the next step needs that flow's procedure: an investigation, a design in Figma, a plan, or a change to the repository's files with its delivery. No flow needs a ticket: when the work has none, the command's argument is a short description of the work or its change folder, never a placeholder, and a ticket is proposed only as [scope changes](scope-changes.md) sets. The ID only names the block: a reply to it, by its letter, its ID or the command, keeps the effect below.
 
 Only the user's reply to this block, or a flow command they type, starts the next flow; a reply to a question or the acceptance of a proposal only settles or redirects the scope, except a fix the close footer's **Resolve findings now** reply or a findings round sends, and the [same-turn continuations](#same-turn-continuations). Keep the question tool for decisions inside a flow: scope, design, delivery and review, validation and findings.
 
@@ -23,7 +48,22 @@ When the block leads from an approved plan to its build in the same session, or 
 
 ## The close footer
 
-`flow-close` step 8 ends the report with the next-step block, never with the question tool. Its heading recommends **close** with its reason, unless a proposed finding is P1 or higher, when it recommends seeing the findings, or a plan is in progress, when it recommends continuing it; with no item pending and neither case, its heading is **▶ Closed**, with no recommendation. Its replies come from this work's context, each only when it applies:
+`flow-close` step 8 ends the report with this block, never with the question tool:
+
+```
+---
+**▶ D<n> — <Close | See the findings | Continue> (recommended)**
+
+<the reason in one line>
+
+A - (★) <reply>
+
+B - <reply>
+
+<the waiting line>
+```
+
+It recommends closing, unless a proposed finding is P1 or higher (see the findings) or a plan is in progress (continue it); with no item pending and neither case, the heading is **▶ D<n> — Closed**, with no reason and no `(★)`, or **▶ Closed** alone when no reply applies. Its replies come from this work's context, each only when it applies:
 
 - **Close:** runs the pending items, as [close modes](close-modes.md) sets; only while one is pending.
 - **Resolve findings now**, naming them, such as "resolve H2 and H3 in this branch": they enter `flow-build` on the work's branch, with the code review of the fix and its checks, or `flow-plan` when the fix is not a small understood change.

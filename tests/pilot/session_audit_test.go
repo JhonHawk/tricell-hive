@@ -591,6 +591,8 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"reply claude italic bullets without letters", "claude", reply, []string{reply, "claude-project-italic-bullets-fail.jsonl"}, auditOptions{}, "fail"},
 		{"reply claude italic bullets after reading the rule", "claude", reply, []string{reply, "claude-project-italic-read-fail.jsonl"}, auditOptions{}, "fail"},
 		{"reply claude heading with the arrow and letters", "claude", reply, []string{reply, "claude-project-lettered-block-pass.jsonl"}, auditOptions{}, "pass"},
+		{"reply claude heading with its D ID and letters without list markers", "claude", reply, []string{reply, "claude-project-id-heading-pass.jsonl"}, auditOptions{}, "pass"},
+		{"format claude a reply block with its D ID is not a decision round", "claude", format, []string{reply, "claude-project-id-heading-pass.jsonl"}, auditOptions{}, "not_observed"},
 		{"reply claude bold question heading and letters", "claude", reply, []string{reply, "claude-project-bold-question-pass.jsonl"}, auditOptions{}, "pass"},
 		{"reply claude letters without a heading", "claude", reply, []string{reply, "claude-project-letters-no-heading-fail.jsonl"}, auditOptions{}, "fail"},
 		{"reply claude report ending in bold-labeled findings", "claude", reply, []string{reply, "claude-project-bold-findings-notobserved.jsonl"}, auditOptions{}, "not_observed"},
