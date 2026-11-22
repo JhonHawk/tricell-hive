@@ -1,0 +1,69 @@
+{
+  "reviewed": "2026-11-21",
+  "installer": "skills",
+  "stacks": [
+    {
+      "id": "flutter",
+      "label": "Flutter",
+      "sources": [
+        {"repo": "flutter/agent-plugins", "docs": "https://docs.flutter.dev/ai/agent-skills"},
+        {"repo": "dart-lang/skills", "docs": "https://docs.flutter.dev/ai/agent-skills"}
+      ]
+    },
+    {
+      "id": "dart",
+      "label": "Dart",
+      "sources": [
+        {"repo": "dart-lang/skills", "docs": "https://docs.flutter.dev/ai/agent-skills"}
+      ]
+    },
+    {
+      "id": "expo",
+      "label": "Expo (React Native)",
+      "sources": [
+        {"repo": "expo/skills", "docs": "https://docs.expo.dev/skills/"}
+      ]
+    },
+    {
+      "id": "react-native",
+      "label": "React Native without Expo",
+      "sources": [],
+      "note": "React Native publishes no official skills; Expo's apply only to Expo projects."
+    },
+    {
+      "id": "kmp",
+      "label": "Kotlin Multiplatform",
+      "sources": [
+        {"repo": "Kotlin/kotlin-agent-skills", "docs": "https://kotlinlang.org/docs/kotlin-ai-skills.html"}
+      ]
+    },
+    {
+      "id": "android",
+      "label": "Android",
+      "sources": [
+        {"repo": "android/skills", "docs": "https://github.com/android/skills"}
+      ]
+    },
+    {
+      "id": "ios",
+      "label": "iOS (Swift)",
+      "sources": [],
+      "note": "Apple publishes no official skills."
+    },
+    {
+      "id": "nextjs",
+      "label": "Next.js",
+      "sources": [
+        {"repo": "vercel/next.js", "docs": "https://nextjs.org/docs/app/guides/ai-agents"}
+      ],
+      "note": "Next.js 16.2 and later ship version-matched docs in the package; next dev writes an AGENTS.md block that points to them."
+    },
+    {
+      "id": "nestjs",
+      "label": "NestJS",
+      "sources": [
+        {"repo": "nestjs/agent-skills", "docs": "https://docs.nestjs.com/llms.txt"}
+      ]
+    }
+  ]
+}
