@@ -29,7 +29,7 @@ When a repository's `## Hive` declares `Other trackers`, the workflow guidance S
 
 #### Scenario: Ticket of an additional tracker reaches a later environment
 - **WHEN** a deployment is verified and `Completion` holds a value for the prefix `XYZ`
-- **THEN** the guidance moves each `XYZ-` ticket whose change that ref holds to the declared state in the tracker that declares `XYZ`.
+- **THEN** the guidance moves each `XYZ-` ticket whose change that ref holds, to the declared state in the tracker that declares `XYZ`; when the deployment's functional walk runs, only a ticket whose acceptance criteria it observed in that environment moves, and when the walk does not run the ticket moves on the verified deployment and the report names it as not walked.
 
 #### Scenario: Mirror tickets
 - **WHEN** one work item names a ticket in the primary tracker and another in an additional tracker
@@ -1916,3 +1916,10 @@ Once a change folder is on `origin/<base>` with every task done, nothing SHALL b
 - **GIVEN** a change folder already on `development` whose task T3 is still open
 - **WHEN** the agent records T3 with `tasks.py <folder> done T3`
 - **THEN** the task is recorded in `tasks.md` as before
+
+### Requirement: Commits that appear after the push are asked before the merge
+When a commit that the work did not make, such as a review bot's autofix, appears on the pull request's branch after the work's last push, the workflow guidance SHALL name it and ask whether it goes in the same publication before the merge or the `ready` stop, as it does before a push, and SHALL NOT merge or stop with it unasked.
+
+#### Scenario: A bot's autofix after the push
+- **WHEN** a review bot pushes an autofix commit to the branch after the work's last push and the next step is the merge
+- **THEN** the agent names the commit and asks before merging.

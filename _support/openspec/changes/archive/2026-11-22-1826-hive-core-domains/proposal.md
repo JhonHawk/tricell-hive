@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Completed |
+| Estado | Completado · PR #587, d4f1eedb |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` (`da2a4f27`) · se construye sobre `docs/inspiration-credits-index` (`657c1ea0`), que ya quitó los `references/notice.md` |
 | Playbook | refactor |
