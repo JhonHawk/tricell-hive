@@ -28,6 +28,14 @@ var (
 	sessionCard = regexp.MustCompile(`(?i)^\W*(?:entrega|delivery|revisi[oó]n|review|seguridad|security)\W*$|\bentrega\b|revisi[oó]n (?:del? )?(?:c[oó]digo|seguridad)|\b(?:code|security) review\b|\bdelivery mode\b`)
 	// nextStepBlock is the block that ends a report, from its ▶ heading on.
 	nextStepBlock = regexp.MustCompile(`(?s)[^\n]*▶.*$`)
+	// imperativeConfirm asks the user to confirm without a question mark, such
+	// as «Para arrancar, confirma …»: at the start of a sentence or after a
+	// comma or colon, so «el log confirma que…» does not count.
+	imperativeConfirm = regexp.MustCompile(`(?i)(?:^|[,:]\s*)[*_]*(?:conf[ií]rma(?:me|lo|la)?|confirm)\b`)
+	// offeredReplies opens a sentence that lists the replies the user may type,
+	// and quotedReply is one of them in quotation marks.
+	offeredReplies = regexp.MustCompile(`(?i)\b(?:puedes responder|responde|you can reply|reply with)\b`)
+	quotedReply    = regexp.MustCompile(`«[^»\n]+»|"[^"\n]+"|“[^”\n]+”`)
 )
 
 // proseChoices returns the questions of a message that ask the user to choose:
@@ -43,7 +51,33 @@ func proseChoices(text string) (choices []string, session bool) {
 			session = session || isSession
 		}
 	}
+	for _, s := range proseSentences(text) {
+		switch {
+		case strings.HasSuffix(s, "?"):
+		case imperativeConfirm.MatchString(s) && sessionChoice.MatchString(s):
+			choices = append(choices, s)
+			session = true
+		case offeredReplies.MatchString(s) && len(quotedReply.FindAllString(s, -1)) >= 2:
+			choices = append(choices, s)
+		}
+	}
 	return choices, session
+}
+
+// proseSentences returns each sentence of the text, its markup trimmed. A
+// sentence that holds a quoted reply keeps the stops inside the quotes.
+func proseSentences(text string) []string {
+	var out []string
+	for _, line := range strings.Split(text, "\n") {
+		masked := quotedReply.ReplaceAllStringFunc(line, func(q string) string { return strings.NewReplacer(".", "\x00", "!", "\x01", "?", "\x02", ":", "\x03").Replace(q) })
+		for _, s := range strings.Split(sentenceEnd.ReplaceAllString(masked, "$1\n"), "\n") {
+			s = strings.NewReplacer("\x00", ".", "\x01", "!", "\x02", "?", "\x03", ":").Replace(s)
+			if s = strings.TrimRight(strings.TrimSpace(s), "*_"); s != "" {
+				out = append(out, s)
+			}
+		}
+	}
+	return out
 }
 
 // proseQuestions returns each sentence of the text that ends in a question
