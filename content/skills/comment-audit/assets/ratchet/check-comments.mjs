@@ -1,0 +1,331 @@
+// Comment ratchet: rejects comments a change adds to JavaScript or TypeScript,
+// while comments already in the base stay until a cleanup removes them.
+// Template from Hive's comment-audit skill; adjust the four constants below.
+//
+//   node check-comments.mjs [--base <rev>]           lint changed files against the base
+//   node check-comments.mjs --inventory              one JSON line per comment
+//   node check-comments.mjs --same-code --base <rev> confirm changed files lost only comments
+//
+// Exit 0 clean, 1 with findings, 2 on any error.
+
+import { execFileSync } from "node:child_process";
+import { lstatSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { parseArgs } from "node:util";
+
+const SOURCE_PATTERNS = ["*.js", "*.jsx", "*.mjs", "*.cjs", "*.ts", "*.tsx", "*.mts", "*.cts"];
+
+// Exact paths, or prefixes ending in "/".
+const EXCLUDED = ["node_modules/", "dist/", "build/", "coverage/"];
+
+// Comments that are directives to a tool, not prose. Add the project's own.
+const ALLOWED = [
+  /^\/\*!/,
+  /@license\b|@preserve\b/,
+  /^\/\/\/\s*<reference\b/,
+  /^\/\/\s*@ts-(check|nocheck|expect-error|ignore)\b/,
+  /^\/[/*]\s*(eslint|oxlint)-(disable|enable)/,
+  /^\/[/*]\s*(biome-ignore|prettier-ignore)\b/,
+  /^\/[/*]\s*(istanbul|c8|v8) ignore\b/,
+  /^\/[/*]\*?\s*@(vitest|jest)-environment\b/,
+  /^\/[/*]\*?\s*@jsx(ImportSource|Runtime|Frag)?\b/,
+  /^\/\*\s*[#@]__(PURE|NO_SIDE_EFFECTS)__\s*\*\/$/,
+  /^\/\*\s*(webpack[A-Z]\w*|@vite-ignore)\b/,
+  /^\/\/ workaround: \S+$/,
+];
+
+// JSDoc type blocks are directives in JavaScript files checked by TypeScript.
+const JSDOC_TYPES = /^\/\*\*[\s\S]*@(type|typedef|param\s*\{|returns?\s*\{|template|satisfies|import)\b/;
+const JS_FILES = /\.(js|jsx|mjs|cjs)$/;
+
+const DECISIONS_PATH = "docs/decisions/";
+
+class Failure extends Error {}
+
+function git(root, args) {
+  try {
+    return execFileSync("git", ["-C", root, ...args], {
+      encoding: "utf8",
+      maxBuffer: 256 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+  } catch (error) {
+    const detail = error.stderr ? String(error.stderr).trim() : error.message;
+    throw new Failure(`git ${args[0]} failed: ${detail}`);
+  }
+}
+
+function nulSeparated(output) {
+  return output.split("\0").filter(Boolean);
+}
+
+function excluded(file) {
+  return EXCLUDED.some((entry) => (entry.endsWith("/") ? file.startsWith(entry) : file === entry));
+}
+
+function pluginsFor(file) {
+  if (/\.(ts|mts|cts)$/.test(file)) return ["typescript", "decorators-legacy"];
+  if (/\.tsx$/.test(file)) return ["typescript", "jsx", "decorators-legacy"];
+  return ["jsx", "decorators-legacy"];
+}
+
+function parseSource(parser, file, text) {
+  try {
+    return parser.parse(text, {
+      sourceType: "unambiguous",
+      plugins: pluginsFor(file),
+      tokens: true,
+      errorRecovery: false,
+    });
+  } catch (error) {
+    throw new Failure(`${file}: could not parse: ${error.message}`);
+  }
+}
+
+function isDirective(file, text) {
+  return ALLOWED.some((pattern) => pattern.test(text)) || (JS_FILES.test(file) && JSDOC_TYPES.test(text));
+}
+
+function comments(parser, file, text) {
+  const ast = parseSource(parser, file, text);
+  return ast.comments.map((comment) => {
+    const raw = text.slice(comment.start, comment.end);
+    const lineStart = text.lastIndexOf("\n", comment.start - 1) + 1;
+    const lineEnd = text.indexOf("\n", comment.end);
+    const before = text.slice(lineStart, comment.start);
+    const after = text.slice(comment.end, lineEnd === -1 ? text.length : lineEnd);
+    return {
+      line: comment.loc.start.line,
+      column: comment.loc.start.column + 1,
+      start: comment.start,
+      end: comment.end,
+      fullLine: before.trim() === "" && after.trim() === "",
+      directive: isDirective(file, raw),
+      text: raw,
+    };
+  });
+}
+
+function normalized(text) {
+  return text
+    .split(/\r\n|\n|\r/)
+    .map((line) => line.trim())
+    .join("\n");
+}
+
+function readSource(root, file) {
+  const path = join(root, file);
+  let stats;
+  try {
+    stats = lstatSync(path);
+  } catch {
+    throw new Failure(`${file}: cannot read`);
+  }
+  if (!stats.isFile()) throw new Failure(`${file}: not a regular file`);
+  return readFileSync(path, "utf8");
+}
+
+function resolveBase(root, base) {
+  if (base === undefined) {
+    try {
+      return git(root, ["merge-base", "HEAD", "refs/remotes/origin/HEAD"]).trim();
+    } catch {
+      throw new Failure("no --base given and origin/HEAD is unknown; pass --base <rev>");
+    }
+  }
+  try {
+    return git(root, ["rev-parse", "--verify", "--end-of-options", `${base}^{commit}`]).trim();
+  } catch {
+    throw new Failure(`base ${base} does not resolve to a commit`);
+  }
+}
+
+// Changed source files against the base: [path now, path at the base or null].
+function changedFiles(root, base) {
+  const fields = nulSeparated(
+    git(root, [
+      "diff",
+      "--no-ext-diff",
+      "--no-textconv",
+      "--find-renames",
+      "--diff-filter=AMRT",
+      "--name-status",
+      "-z",
+      base,
+      "--",
+      ...SOURCE_PATTERNS,
+    ]),
+  );
+  const changed = new Map();
+  for (let index = 0; index < fields.length; ) {
+    const status = fields[index];
+    if (status.startsWith("R")) {
+      changed.set(fields[index + 2], fields[index + 1]);
+      index += 3;
+    } else {
+      changed.set(fields[index + 1], status === "A" ? null : fields[index + 1]);
+      index += 2;
+    }
+  }
+  const untracked = nulSeparated(
+    git(root, ["ls-files", "-z", "--others", "--exclude-standard", "--", ...SOURCE_PATTERNS]),
+  );
+  for (const file of untracked) changed.set(file, null);
+  return [...changed].filter(([file]) => !excluded(file));
+}
+
+function baseText(root, base, file) {
+  return git(root, ["cat-file", "blob", `${base}:${file}`]);
+}
+
+function lint(parser, root, base) {
+  let findings = 0;
+  for (const [file, before] of changedFiles(root, base)) {
+    const remaining = new Map();
+    if (before !== null) {
+      for (const comment of comments(parser, before, baseText(root, base, before))) {
+        const key = normalized(comment.text);
+        remaining.set(key, (remaining.get(key) ?? 0) + 1);
+      }
+    }
+    for (const comment of comments(parser, file, readSource(root, file))) {
+      if (comment.directive) continue;
+      const key = normalized(comment.text);
+      const left = remaining.get(key) ?? 0;
+      if (left > 0) {
+        remaining.set(key, left - 1);
+        continue;
+      }
+      console.error(`${file}:${comment.line}:${comment.column}: no-new-comments`);
+      findings++;
+    }
+  }
+  if (findings) {
+    console.error(
+      `${findings} new comment(s). Record a lasting decision in ${DECISIONS_PATH} instead.`,
+    );
+  }
+  return findings ? 1 : 0;
+}
+
+function inventory(parser, root) {
+  const files = new Set(
+    nulSeparated(
+      git(root, [
+        "ls-files",
+        "-z",
+        "--cached",
+        "--others",
+        "--exclude-standard",
+        "--",
+        ...SOURCE_PATTERNS,
+      ]),
+    ),
+  );
+  const deleted = new Set(
+    nulSeparated(git(root, ["ls-files", "-z", "--deleted", "--", ...SOURCE_PATTERNS])),
+  );
+  for (const file of files) {
+    if (excluded(file) || deleted.has(file)) continue;
+    for (const comment of comments(parser, file, readSource(root, file))) {
+      console.log(JSON.stringify({ file, ...comment }));
+    }
+  }
+  return 0;
+}
+
+function walk(node, visit) {
+  if (!node || typeof node !== "object") return;
+  if (Array.isArray(node)) {
+    for (const child of node) walk(child, visit);
+    return;
+  }
+  if (typeof node.type === "string") visit(node);
+  for (const [key, value] of Object.entries(node)) {
+    if (key !== "loc" && key !== "comments" && key !== "tokens" && key !== "extra") walk(value, visit);
+  }
+}
+
+// The code tokens of a file, without comments, without the braces of a JSX
+// expression that held only a comment, and with JSX text merged and its
+// whitespace collapsed, so that removing a comment leaves the list unchanged.
+function codeTokens(parser, file, text) {
+  const ast = parseSource(parser, file, text);
+  const emptyContainers = [];
+  walk(ast.program, (node) => {
+    if (node.type === "JSXExpressionContainer" && node.expression?.type === "JSXEmptyExpression") {
+      emptyContainers.push([node.start, node.end]);
+    }
+  });
+  const tokens = [];
+  for (const token of ast.tokens) {
+    const label = typeof token.type === "string" ? token.type : token.type.label;
+    if (label === "CommentLine" || label === "CommentBlock") continue;
+    if (emptyContainers.some(([start, end]) => token.start >= start && token.end <= end)) continue;
+    const value = text.slice(token.start, token.end);
+    if (label === "jsxText") {
+      const previous = tokens.at(-1);
+      if (previous?.label === "jsxText") {
+        previous.value += value;
+      } else {
+        tokens.push({ label, value });
+      }
+      continue;
+    }
+    tokens.push({ label, value });
+  }
+  return tokens
+    .map((token) =>
+      token.label === "jsxText" ? { ...token, value: token.value.replace(/\s+/g, " ").trim() } : token,
+    )
+    .filter((token) => !(token.label === "jsxText" && token.value === ""))
+    .map((token) => `${token.label} ${token.value}`);
+}
+
+function sameCode(parser, root, base) {
+  let findings = 0;
+  for (const [file, before] of changedFiles(root, base)) {
+    if (before === null) continue;
+    const old = codeTokens(parser, before, baseText(root, base, before));
+    const now = codeTokens(parser, file, readSource(root, file));
+    const index = old.findIndex((token, position) => token !== now[position]);
+    if (index !== -1 || old.length !== now.length) {
+      const at = index === -1 ? Math.min(old.length, now.length) : index;
+      console.error(`${file}: code changed at token ${at + 1}: ${old[at] ?? "(end)"} -> ${now[at] ?? "(end)"}`);
+      findings++;
+    }
+  }
+  return findings ? 1 : 0;
+}
+
+async function main() {
+  const { values } = parseArgs({
+    options: {
+      base: { type: "string" },
+      inventory: { type: "boolean" },
+      "same-code": { type: "boolean" },
+    },
+  });
+  let parser;
+  try {
+    parser = await import("@babel/parser");
+  } catch {
+    throw new Failure("@babel/parser is not installed; add it as a devDependency");
+  }
+  const root = git(process.cwd(), ["rev-parse", "--show-toplevel"]).trimEnd();
+  if (values.inventory) {
+    if (values.base !== undefined || values["same-code"]) {
+      throw new Failure("--inventory takes no other option");
+    }
+    return inventory(parser, root);
+  }
+  const base = resolveBase(root, values.base);
+  return values["same-code"] ? sameCode(parser, root, base) : lint(parser, root, base);
+}
+
+try {
+  process.exitCode = await main();
+} catch (error) {
+  console.error(error instanceof Failure ? error.message : String(error?.stack ?? error));
+  process.exitCode = 2;
+}
