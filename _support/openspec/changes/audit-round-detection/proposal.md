@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | In build · verify |
 | Tracker | ninguno · watch items `engram:tricell-hive/watch/codex-decision-format-async` (#17780) y `watch/plan-skips-delivery-round-and-handoff` (#17933) |
 | Git | tricell-hive · base `development` en `1b87f0a7` · rama `feat/audit-round-detection` · worktree `.claude/worktrees/audit-round-detection` |
 | Playbook | infra-ci |
@@ -113,3 +113,4 @@ None: the tasks take no effect on an external system.
 - Se mide `go vet`.
 - Se registra el checksum de la copia.
 - El delta de la spec se ordena.
+2026-11-22 — Build T1–T5 (`3a4454c4`, `742ed7b2`, `2f2de663`, `995e234a`, `6818b23f`). Comparar 65 sesiones reales entre la base y el candidato mostró un falso positivo con «Confirmé»; se corrigió en `4137c556`. La primera `/code-review` dejó 7 hallazgos bloqueantes, cada uno reproducido con un fixture; se corrigieron en `35a94a21`. La segunda, limitada a esos arreglos, dejó otros 7, que se corrigieron en `d2916d67` con una línea `Unreviewed:`. Quedan para los hallazgos del cierre los no bloqueantes: «responde» en indicativo con comillas dobles, ítems no textuales de una celda `exec` contados como salidas, `readsFlowSkill` y `loadsFlowClose` que toman un grep como carga (previo) y `flowCommand` sin `*_` como `buildRoute`. La relectura de `flow-plan` en otro turno quedó cubierta por el arreglo de `d2916d67`, que compara con la última carga.

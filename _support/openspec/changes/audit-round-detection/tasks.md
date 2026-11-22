@@ -144,11 +144,11 @@ Fixtures:
 
 ## Checkpoint
 
-- Updated: 2026-11-21
-- Stage: build · local CI
-- Last commit: 6818b23f
+- Updated: 2026-11-22
+- Stage: verify · push
+- Last commit: d2916d67
 - Open findings: none
-- Next: flow-verify: code review /code-review, then push
+- Next: push, PR to development, merge gate (automatic)
 - Worktree: .claude/worktrees/audit-round-detection · feat/audit-round-detection
 - Rules: flow-build/stage.md
 - Principles: none
@@ -161,6 +161,9 @@ Fixtures:
 - go vet ./tests/pilot/ · ok · 6818b23f
 - fixture sweep · 342 fixtures, no verdict change outside new fixtures and the new column · 6818b23f
 - facti audit · AC1–AC7 lines 278/278/278/266/210/83/1784 · 6818b23f
+- go test ./tests/pilot/ · ok 67s · 35a94a21 (before the plan-turn tweak; NewCriteria rerun ok)
+- go test ./tests/pilot/ ./tests/content/ · ok · d2916d67
+- go test ./... · ok 4m23s · 6818b23f (only tests/pilot changed since)
 
 ## Review status and progress
 
