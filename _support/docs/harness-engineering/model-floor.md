@@ -1,19 +1,21 @@
 # Model support floor
 
-This page is the canonical list of the models Hive's distributed guidance is written for and of the candidates whose observed failures count toward a correction. Root `AGENTS.md` «Guidance structure» points here for the writing target, and «Measurement» points here for floor membership; neither restates the list. `tests/content/model_floor_test.go` keeps the tables below aligned with `integrations/agent-profiles.json` and with the flash-class pilot list in `tests/pilot/flash_class.go`.
+This page is the canonical list of the models Hive's distributed guidance is written for and of the candidates whose observed failures count toward a correction. Root `AGENTS.md` «Guidance structure» points here for the writing target, and «Measurement» points here for floor membership; neither restates the list. `tests/content/model_floor_test.go` checks that every model a role profile of `integrations/agent-profiles.json` names has a row, and that the rows marked as writing target are exactly the ones «Two sets» lists.
 
 ## Two sets
 
-- **Writing target.** Distributed content is written clearly for the named models of the `execution`, `focused`, `reasoning` and `verifier` profiles in `integrations/agent-profiles.json`: the models that run Hive's delegated roles, from execution to reasoning and verification, which include the frontier models. The profiles do not set a host's main-session model: the user picks it, and only a floor model counts there. A rule aimed at a model outside this set needs the recurrence that root `AGENTS.md` «Measurement» sets; a plausible misreading by a smaller model is not enough.
-- **Support floor.** The writing target plus the Haiku and flash-class models the user kept on 2026-10-11 and confirmed on 2026-11-08, the models the user runs in their own main sessions, listed by name since 2026-11-17, and the former role-profile models the «Floor» table marks "until 2026-11-20". A failure observed on any floor model, provisional or qualified, counts toward a correction as «Measurement» sets; a failure seen only on a model outside the floor does not. When a reviewed session runs a model no row lists, ask the user whether it counts; a yes adds its row, marked as a main-session model and not a writing target, and the session then counts.
+- **Writing target.** `opus` `gpt-6.2-sol`
+- **Support floor.** The writing target plus one tier above it (Claude Fable 5.2, gpt-6.2-astra), one tier below it (Claude Sonnet 5.5, gpt-6.1-terra), and Grok 4.7 with its variant `grok-4.7-build-fast`, which the user runs in main sessions. A failure observed on any floor model, provisional or qualified, counts toward a correction as «Measurement» sets; a failure seen only on a model outside the floor does not. Haiku, Luna, flash-class models and superseded versions are not on the floor. When a reviewed session runs a model no row lists, ask the user whether it counts, unless it is a Haiku, Luna or flash-class model; a yes adds its row, marked as a main-session model and not a writing target, and the session then counts.
 
-On hosts that inherit the session model (Pi, Cursor, Antigravity) or declare none (OpenCode), delegated roles run whatever model the session runs. Hive's guidance is not written for that open set (decision of 2026-11-08: write for the role-profile models and correct on observed failures instead); only floor models count there.
+Distributed content is written clearly for the writing target: Claude Opus 5.5 and OpenAI gpt-6.2-sol (decision of 2026-11-22). The role profiles also run models one tier below, Sonnet 5.5 and gpt-6.1-terra, which the user kept: agentic benchmarks place them close to the target, and their documented risks (stopping early or skipping a check at low or medium effort) depend on effort, which the profiles set. A rule aimed at a model outside the writing target needs the recurrence that root `AGENTS.md` «Measurement» sets; a plausible misreading by a smaller model is not enough.
+
+On hosts that inherit the session model (Pi, Cursor, Antigravity) or declare none (OpenCode), delegated roles run whatever model the session runs; only floor models count there.
 
 ## Membership and normalization
 
 A model belongs to the floor by its identity, whatever host runs it:
 
-1. Remove the provider prefix and the variant from both the session's model and the table's model before comparing them: `opencode-go/claude-haiku-5-5#high` and the row `opencode-go/claude-haiku-5-5` both become `claude-haiku-5-5`, so a session on `claude-haiku-5-5` through another provider matches that row.
+1. Remove the provider prefix and the variant from both the session's model and the table's model before comparing them: `opencode-go/claude-sonnet-5-5#high` becomes `claude-sonnet-5-5`, which the `sonnet` row's alias resolves to, so a session on Sonnet 5.5 through another provider matches that row.
 2. Resolve an alias to the full IDs listed under «Aliases»; membership means being one of those IDs. An alias that resolves to an older model on another provider, such as `sonnet` on Amazon Bedrock, is not a floor model there.
 3. When a session's served model cannot be seen (Codex never exposes it, and an OpenCode session's trace does not carry it, although qualification runs read it from the session export), use its configured model and name it as configured.
 
@@ -22,20 +24,15 @@ A model belongs to the floor by its identity, whatever host runs it:
 | Host | Model | Efforts | Origin | Writing target | Status | Verified | Reference |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | claude | `opus` | `high` | `reasoning`, `verifier` | yes | provisional | none | — |
-| claude | `sonnet` | `high` | `execution`, `focused` | yes | provisional | none | — |
 | codex | `gpt-6.2-sol` | `medium`, `high`, `max` | `execution`, `reasoning`, `verifier`; user's main session, 2026-11-17 | yes | provisional | none | — |
-| codex | `gpt-6.1-terra` | `medium` | `focused` | yes | provisional | none | — |
-| grok | `grok-4.7` | — | `verifier` | yes | provisional | none | — |
-| opencode | `opencode-go/claude-haiku-5-5` | `high` | floor of 2026-10-11 (`flashModels`) | no | provisional | none | — |
-| opencode | `opencode-go/deepseek-v4.1-flash` | `high` | floor of 2026-10-11 (`flashModels`) | no | provisional | none | — |
-| opencode | `opencode-go/qwen3.8-flash` | `medium` | floor of 2026-10-11 (`flashModels`) | no | provisional | none | — |
-| opencode | `opencode-go/glm-5.3-flash` | `high` | floor of 2026-10-11 (`flashModels`) | no | provisional | none | — |
-| codex | `gpt-6-astra` | `high` | user's main session, 2026-11-17 | no | provisional | none | — |
-| codex | `gpt-6.1-sol` | `medium`, `high` | `execution`, `reasoning`, `verifier` until 2026-11-20 | no | provisional | none | — |
-| grok | `grok-4.6` | — | `verifier` until 2026-11-20 | no | provisional | none | — |
+| claude | `claude-fable-5-2` | — | tier above, 2026-11-22 | no | provisional | none | — |
+| codex | `gpt-6.2-astra` | — | tier above, 2026-11-22 | no | provisional | none | — |
+| claude | `sonnet` | `high` | `execution`, `focused`; tier below | no | provisional | none | — |
+| codex | `gpt-6.1-terra` | `medium` | `focused`; tier below | no | provisional | none | — |
+| grok | `grok-4.7` | — | `verifier` | no | provisional | none | — |
 | grok | `grok-4.7-build-fast` | `high` | user's main session, 2026-11-17 | no | provisional | none | — |
 
-Row changes: on 2026-11-20 the Codex profiles moved from `gpt-6.1-sol` to `gpt-6.2-sol` and the Grok `verifier` from `grok-4.6` to `grok-4.7`, the versions the user runs; the old models stay on the floor, out of the writing target, and observations already counted on them stay counted.
+Row changes: on 2026-11-22 the writing target narrowed to `opus` and `gpt-6.2-sol`, the Fable and Astra rows joined, and the Haiku, flash-class and superseded rows left the floor; observations already counted on them stay in their watch items.
 
 A row is **provisional** until a qualification run passes; **Verified** then records its date and **Reference** the reference model of that run.
 
