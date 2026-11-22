@@ -166,8 +166,11 @@ def _check_no_link(path, env):
 
 
 def _read(path):
-    with open(path, encoding="utf-8", newline="") as fh:
-        return fh.read()
+    try:
+        with open(path, encoding="utf-8", newline="") as fh:
+            return fh.read()
+    except UnicodeDecodeError:
+        raise TargetError(f"{path}: not valid UTF-8")
 
 
 def _newline(text):
@@ -286,7 +289,6 @@ def build_plan(env, rules=None, remove=False):
     for host, path in candidates:
         if not path.is_file():
             continue
-        _check_no_link(path, env)
         current = _read(path)
         try:
             if remove:
@@ -302,9 +304,7 @@ def build_plan(env, rules=None, remove=False):
             plan.append(_planned(path, current, new, env))
     for host, path, hive_file, frontmatter in own_targets(env):
         exists = path.is_file() or path.is_symlink()
-        if exists:
-            _check_no_link(path, env)
-        current = _read(path) if exists else None
+        current = _read(path) if path.is_file() else None
         if current is not None and PRECEDENCE not in current:
             if remove:
                 continue
@@ -338,6 +338,8 @@ def apply_plan(plan):
                 _write_atomic(path, after)
         except OSError as exc:
             failed.append((path, exc.strerror or str(exc)))
+        except TargetError as exc:
+            failed.append((path, str(exc)))
     return skipped, failed
 
 
@@ -352,7 +354,11 @@ def check(env):
     for host, path in shared_targets(env):
         if not path.is_file():
             continue
-        text = _read(path)
+        try:
+            text = _read(path)
+        except TargetError as exc:
+            problems.append(f"invalid {host} {exc}")
+            continue
         has_hive = HIVE_BEGIN in text and HIVE_END in text
         has_section = BEGIN in text or END in text
         if not has_hive:
@@ -375,11 +381,21 @@ def check(env):
         if not _in_position(text):
             problems.append(f"position {host} {path}: not right after Hive's block")
     for host, path in unread_files(env):
-        if path.is_file() and (BEGIN in _read(path) or END in _read(path)):
+        try:
+            text = _read(path) if path.is_file() else ""
+        except TargetError as exc:
+            problems.append(f"invalid {host} {exc}")
+            continue
+        if BEGIN in text or END in text:
             problems.append(f"orphan {host} {path}: personal section in a file {host} no longer reads")
     for host, path, hive_file, frontmatter in own_targets(env):
         exists = path.is_file()
-        ours = exists and PRECEDENCE in _read(path)
+        try:
+            text = _read(path) if exists else ""
+        except TargetError as exc:
+            problems.append(f"invalid {host} {exc}")
+            continue
+        ours = exists and PRECEDENCE in text
         if not hive_file.is_file():
             if ours:
                 problems.append(f"orphan {host} {path}: personal file in a host without Hive")
@@ -391,7 +407,7 @@ def check(env):
                 problems.append(f"missing {host} {path}")
         elif rules is None:
             problems.append(f"present {host} {path}: no valid rules.md to compare with")
-        elif _read(path) != _own_file(rules, frontmatter):
+        elif text != _own_file(rules, frontmatter):
             problems.append(f"differs {host} {path}")
     return problems
 

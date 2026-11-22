@@ -215,6 +215,28 @@ class PersonalRulesTests(unittest.TestCase):
         self.assertTrue(self.shared["pi"].is_symlink())
         self.assertNotIn(BEGIN, self.read(real))
 
+    def test_a_symlinked_file_that_is_not_a_target_blocks_nothing(self):
+        real = self.home / "dotfiles/AGENTS.md"
+        self.write(real, "Pi notes without Hive.\n")
+        self.shared["pi"].unlink()
+        self.shared["pi"].symlink_to(real)
+        result = self.run_script("deploy")
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertEqual(self.read(self.shared["codex"]).count(BEGIN), 1)
+        self.assertEqual(self.run_script("remove").returncode, 0)
+        self.assertNotIn(BEGIN, self.read(self.shared["codex"]))
+
+    def test_a_target_that_is_not_utf8_is_named_without_a_traceback(self):
+        codex = self.shared["codex"]
+        with open(codex, "ab") as fh:
+            fh.write(b"caf\xe9\n")
+        for command in ("deploy", "check"):
+            with self.subTest(command):
+                result = self.run_script(command)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn(str(codex), result.stdout)
+                self.assertNotIn("Traceback", result.stderr)
+
     def test_remove_and_check_find_a_section_codex_no_longer_reads(self):
         self.assertEqual(self.run_script("deploy").returncode, 0)
         self.write(self.home / ".codex/AGENTS.override.md", hive_block())
