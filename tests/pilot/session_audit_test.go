@@ -439,6 +439,8 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"try it codex final report without the block", "codex", tryIt, []string{tryIt, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
 		{"try it codex final report with the block", "codex", tryIt, []string{tryIt, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
 		{"try it codex frontend child, report without the block", "codex", tryIt, []string{tryIt, "codex-rollout-child-fail.jsonl"}, auditOptions{}, "fail"},
+		{"try it codex mobile child, report without the block", "codex", tryIt, []string{tryIt, "codex-rollout-mobile-child-fail.jsonl"}, auditOptions{}, "fail"},
+		{"try it codex mobile child, report with the block", "codex", tryIt, []string{tryIt, "codex-rollout-mobile-child-pass.jsonl"}, auditOptions{}, "pass"},
 		{"try it codex UI edit without verify", "codex", tryIt, []string{tryIt, "codex-rollout-noverify-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"try it claude final report with the block", "claude", tryIt, []string{tryIt, "claude-project-pass.jsonl"}, auditOptions{}, "pass"},
 		{"try it claude final report without the block", "claude", tryIt, []string{tryIt, "claude-project-fail.jsonl"}, auditOptions{}, "fail"},

@@ -128,7 +128,7 @@ func tryItBlockInReport(s auditSession) criterionAssessment {
 	for i := range events {
 		e := &events[i]
 		switch {
-		case succeeded(events, i) && (editsInterface(*e, s.Cwd) || launchesRole(*e, "hive-build-frontend")):
+		case succeeded(events, i) && (editsInterface(*e, s.Cwd) || launchesRole(*e, "hive-build-frontend") || launchesRole(*e, "hive-build-mobile")):
 			edited = true
 		case e.Kind == "skill_invocation" && strings.Contains(e.Text+string(e.Input), "flow-verify"):
 			verified = true
