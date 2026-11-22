@@ -913,8 +913,8 @@ class VersionedTest(unittest.TestCase):
         other_tasks.write_text(TASKS_MD + "\n## Checkpoint\n\n- Stage: verify · x\n", encoding="utf-8")
         result = self.versioned(folder)
         self.assertVersioned(result, 0, "versioned: yes",
-                             f"warning: modified openspec/changes/demo/tasks.md in {other}: only its checkpoint changed;"
-                             f" restore it with git -C {other} restore -- openspec/changes/demo/tasks.md")
+                             f"warning: modified openspec/changes/demo/tasks.md in {other}: name it in the close report",
+                             absent=(f"git -C {other} restore",))
 
     def test_a_checkpoint_only_edit_is_restored(self):
         repo = self.repo("app", "- Base branch: main\n- Specs: openspec\n")
@@ -1157,6 +1157,16 @@ class IntegratedFolderTest(unittest.TestCase):
         (folder / "tasks.md").write_text(text, encoding="utf-8")
         done = self.run_tasks(folder, "done", "T4", "--commit", "abc1234", "--unverified", "none")
         self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        again = self.checkpoint(folder)
+        self.assertEqual(again.returncode, 0, again.stdout + again.stderr)
+
+    def test_out_starts_an_empty_file(self):
+        repo, folder = self.integrated()
+        out = self.tmp / "empty.md"
+        out.write_text("", encoding="utf-8")
+        result = self.checkpoint(folder, "--out", str(out))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(out.read_text(encoding="utf-8").startswith("## Checkpoint"))
 
     def test_out_does_not_replace_a_file_that_is_not_a_checkpoint(self):
         repo, folder = self.integrated()

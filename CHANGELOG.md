@@ -237,9 +237,11 @@ raise the minor or the patch version.
 
 - Nothing is written to a change folder after its merge. `tasks.py checkpoint`
   and `done` exit 1 without writing once the folder is on `origin/<base>` with
-  every task done, from any checkout; the close keeps its checkpoint with
-  `checkpoint --out <file>` in the host's temporary location, and `versioned`
-  gives the `git restore` for a `tasks.md` whose only change is its checkpoint.
+  every task done and nothing uncommitted beyond its checkpoint, from any
+  checkout; the close keeps its checkpoint with `checkpoint --out <file>` in
+  the host's temporary location, and `versioned` gives the `git -C <checkout>
+  restore` for a `tasks.md` whose only change is its checkpoint and names, without
+  restoring, the folder's edits left in other worktrees.
   The archive stays in the hygiene batch.
 - At the merge, `flow-close` now cleans up before its report: the merged
   branch and its clean worktree, earlier merged branches, processes,

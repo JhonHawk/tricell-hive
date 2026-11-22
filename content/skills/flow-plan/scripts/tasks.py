@@ -34,19 +34,22 @@ lines up to the next `##` or `###` heading.
   while the line holds no name and a name replaces it, and no value removes the line.
   Boxes under `## Delivery units` belong to no task: `done` never ticks them.
   --out FILE writes only the `## Checkpoint` block to FILE, outside the folder's repository,
-  starting from FILE's block or else tasks.md's, and never writes tasks.md.
-- integrated folder: once the folder is on origin/<base> (as `versioned` finds it) and every
-  task is done in that integrated copy of tasks.md, `checkpoint` without --out and `done` write
-  nothing and exit 1: nothing is written to the folder until the hygiene batch archives it.
-  Any Git error in this check lets the write through.
+  starting from FILE's block (an empty FILE counts as none; a FILE holding anything else is
+  refused) or else tasks.md's, and never writes tasks.md.
+- integrated folder: once the folder is on origin/<base> (as `versioned` finds it), every task
+  is done in that integrated copy of tasks.md and the working copy matches it outside
+  `## Checkpoint`, `checkpoint` without --out and `done` write nothing and exit 1: nothing is
+  written to the folder until the hygiene batch archives it. Any Git error lets the write through.
 - versioned: reads only (no fetch, commit or push) whether the folder is versioned in the
   repository that holds it, found from the folder itself, so it answers the same from a
   repository, a monorepo's package or a workspace root outside Git. Versioned means its last
   commit is on a remote branch (on origin/<base> when that repository's `## Hive` declares
   `Delivery: direct-base`) and, when that repository is not the work's (--work-repo, compared
   by Git common dir), no file under it is untracked or modified; in the work's repository such
-  files are warnings for the close report, and a tasks.md whose only change is its checkpoint
-  gets the `git restore` that removes it. Prints the repository, `versioned:
+  files are warnings for the close report, a tasks.md whose only change is its checkpoint
+  gets the `git -C <checkout> restore` that removes it, and the folder's uncommitted files in
+  the repository's other worktrees are named without a restore, since they may be another
+  session's work. Prints the repository, `versioned:
   yes|no`, one line per missing state or warning, and, when not versioned, the next step. With
   --work-repo, warns when that repository declares no Specs or one that does not hold the folder.
   Exits 0 when versioned, 1 when not or outside Git, 2 on invalid arguments.
@@ -856,6 +859,13 @@ def git_paths(state, *args):
     return [p for p in out.split("\0") if p]
 
 
+def without_checkpoint(lines):
+    """The lines that are not blank and not in the `## Checkpoint` section."""
+    bounds = section_bounds(lines, CHECKPOINT)
+    kept = lines if not bounds else lines[:bounds[0]] + lines[bounds[1]:]
+    return [l for l in kept if l.strip()]
+
+
 def checkpoint_only(state, top, path):
     """Whether a modified tasks.md differs from HEAD only inside its `## Checkpoint` section."""
     if Path(path).name != "tasks.md":
@@ -867,18 +877,13 @@ def checkpoint_only(state, top, path):
         current = read(Path(top) / path)
     except Failure:
         return False
-
-    def without_checkpoint(lines):
-        bounds = section_bounds(lines, CHECKPOINT)
-        return lines if not bounds else lines[:bounds[0]] + lines[bounds[1]:]
-
-    strip = lambda lines: [l for l in without_checkpoint(lines) if l.strip()]
-    return strip(committed.splitlines()) == strip(current)
+    return without_checkpoint(committed.splitlines()) == without_checkpoint(current)
 
 
 def edit_warning(state, top, kind, path, where=""):
-    """The close's instruction for one uncommitted file of the folder in the checkout at top."""
-    if kind == "modified" and checkpoint_only(state, top, path):
+    """The close's instruction for one uncommitted file of the folder in the checkout at top.
+    Another worktree's file is only named: it may be another session's work."""
+    if not where and kind == "modified" and checkpoint_only(state, top, path):
         return (f"warning: modified {printable(path)}{where}: only its checkpoint changed;"
                 f" restore it with git -C {printable(str(top))} restore -- {printable(path)}")
     return f"warning: {kind} {printable(path)}{where}: name it in the close report"
@@ -945,10 +950,12 @@ def integrated_and_done(folder):
         code, text, _ = state.git_run("show", f"refs/remotes/origin/{base}:{rel}/tasks.md")
         if code != 0:
             return None
-        for lines in (text.splitlines(), read(folder / "tasks.md")):
-            tasks = parse_tasks(lines)
-            if not tasks or not all(complete(lines, t) for t in tasks):
-                return None  # an open task in either copy: the work goes on
+        integrated = text.splitlines()
+        tasks = parse_tasks(integrated)
+        if not tasks or not all(complete(integrated, t) for t in tasks):
+            return None  # an open task on the base: a later unit goes on
+        if without_checkpoint(read(folder / "tasks.md")) != without_checkpoint(integrated):
+            return None  # the working copy reopened or recorded work not yet committed
         return f"origin/{base}"
     except Exception:  # the check never blocks a write it cannot prove wrong
         return None
@@ -976,7 +983,7 @@ def checkpoint_out(folder, args):
     if root is not None and out.is_relative_to(root[0]):
         print(f"refused: --out {printable(str(out))} must be outside the repository {printable(str(root[0]))}")
         return 1
-    if out.exists():
+    if out.exists() and out.read_text(encoding="utf-8").strip():
         lines = read(out)
         headings = [l for l in lines if LEVEL2.match(l)]
         first = next((l for l in lines if l.strip()), "")
