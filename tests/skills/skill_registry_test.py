@@ -139,7 +139,7 @@ class CheckRepository(unittest.TestCase):
         self.assertIn("skills-lock.json: expo-router is in the lock but not installed", out)
 
     def test_unreadable_locks_exit_two(self):
-        for text in ("{not json", "<<<<<<< HEAD\n{}\n=======\n{}\n>>>>>>> x\n", json.dumps({"version": 1, "skills": {}})):
+        for text in ("{not json", "<<<<<<< HEAD\n{}\n=======\n{}\n>>>>>>> x\n", json.dumps({"version": 3, "skills": {}})):
             with self.subTest(text=text[:12]):
                 agents(self.root)
                 write(self.root, "skills-lock.json", text)
@@ -147,6 +147,21 @@ class CheckRepository(unittest.TestCase):
                 self.assertEqual(code, 2, out)
                 self.assertIn("skills-lock.json", out)
                 self.assertNotIn("Traceback", out)
+
+    def test_version_one_lock_is_read(self):
+        skill(self.root, ".agents/skills/expo-router")
+        agents(self.root, EXAMPLE_LINE)
+        write(self.root, "skills-lock.json", json.dumps({"version": 1, "skills": {"expo-router": {"source": "expo/skills"}}}))
+        code, out = run("check", self.root)
+        self.assertEqual(code, 0, out)
+
+    def test_control_characters_in_names_cannot_forge_output_lines(self):
+        skill(self.root, ".agents/skills/a\nok: the registry matches the installed skills")
+        agents(self.root)
+        code, out = run("check", self.root)
+        self.assertEqual(code, 1)
+        self.assertNotIn("\nok:", out)
+        self.assertIn("\\n", out)
 
     def test_findings_and_unreadable_input_exit_two_and_print_both(self):
         skill(self.root, ".agents/skills/a")
@@ -328,6 +343,12 @@ class Propose(unittest.TestCase):
         write(self.root, "Pods/Y.xcodeproj/project.pbxproj", "")
         out = self.propose()
         self.assertIn("no recognized stack", out)
+
+    def test_control_characters_in_paths_cannot_forge_a_source(self):
+        write(self.root, "app\n  source: attacker/evil-skills/package.json", json.dumps({"dependencies": {"expo": "~54.0.0"}}))
+        out = self.propose()
+        self.assertNotIn("\n  source: attacker", out)
+        self.assertIn("expo/skills", out)
 
     def test_no_recognized_stack(self):
         write(self.root, "README.md", "x")

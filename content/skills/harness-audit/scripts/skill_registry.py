@@ -69,6 +69,11 @@ def _workspace_module():
     return module
 
 
+def printable(text):
+    """Escape control characters so a file or folder name cannot add an output line."""
+    return "".join(c if c.isprintable() else repr(c)[1:-1] for c in text)
+
+
 def read_text(path):
     try:
         return path.read_text(encoding="utf-8")
@@ -176,8 +181,8 @@ def lock_entries(repo):
         data = json.loads(text)
     except ValueError:
         raise Unreadable(f"{path}: not valid JSON (merge conflict markers or a broken edit)")
-    if not isinstance(data, dict) or data.get("version") != 2 or not isinstance(data.get("skills"), dict):
-        raise Unreadable(f"{path}: expected version 2 with a skills object")
+    if not isinstance(data, dict) or data.get("version") not in (1, 2) or not isinstance(data.get("skills"), dict):
+        raise Unreadable(f"{path}: expected version 1 or 2 with a skills object")
     return sorted(data["skills"])
 
 
@@ -401,7 +406,7 @@ def propose(path):
         sid = stack["id"]
         if sid not in evidence:
             continue
-        print(f"stack: {stack['label']} ({'; '.join(evidence[sid])})")
+        print(f"stack: {stack['label']} ({printable('; '.join(evidence[sid]))})")
         if not stack["sources"]:
             print(f"  no official skills: {stack.get('note', '')}".rstrip())
         for source in stack["sources"]:
@@ -421,11 +426,11 @@ def main(argv=None):
         return propose(args.path)
     report = check(args.path)
     for line in report.errors:
-        print(f"error: {line}")
+        print(f"error: {printable(line)}")
     for line in report.findings:
-        print(f"finding: {line}")
+        print(f"finding: {printable(line)}")
     for line in report.notes:
-        print(f"note: {line}")
+        print(f"note: {printable(line)}")
     if report.code() == 0:
         print("ok: the registry matches the installed skills")
     return report.code()
