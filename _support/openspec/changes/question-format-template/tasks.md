@@ -4,7 +4,7 @@ Base: `development` en `19f3b7be`; rama `feat/question-format-template` en el wo
 
 ### T1 — Criterio `card_option_format` del auditor de sesiones
 
-- [ ] `--audit-session` informa `card_option_format` en Claude, Codex y Grok, sobre cada tarjeta mostrada: falla una opción sin `<letra> - `, y en una de una sola elección una marca de recomendada que falta, se repite o no está en la primera; pasa una sesión con tarjetas en formato y da `not_observed` sin tarjetas. La evidencia da la línea y el número de la pregunta, sin su texto ni su `id`.
+- [x] `--audit-session` informa `card_option_format` en Claude, Codex y Grok, sobre cada tarjeta mostrada: falla una opción sin `<letra> - `, y en una de una sola elección una marca de recomendada que falta, se repite o no está en la primera; pasa una sesión con tarjetas en formato y da `not_observed` sin tarjetas. La evidencia da la línea y el número de la pregunta, sin su texto ni su `id`.
 
 **Closes:** AC1, AC2, AC3
 
@@ -99,3 +99,5 @@ Recorrido humano: leer las plantillas en `questions.md` y `report-endings.md`; t
 - before captures: none (no UI)
 
 ## Review status and progress
+
+2026-11-21 — T1 · 08ea7ace · unverified: none
