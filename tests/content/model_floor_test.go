@@ -13,18 +13,17 @@ import (
 // The support floor document lists the models distributed guidance is written
 // for and the candidates whose observed failures count toward a correction
 // (root AGENTS.md «Guidance structure» and «Measurement»). These tests keep its
-// tables aligned with the role profiles and the flash-class pilot list, so a
-// profile change or a dropped row cannot leave the floor stale unnoticed.
+// table aligned with the role profiles, so a profile change or a dropped row
+// cannot leave the floor stale unnoticed, and its writing-target rows aligned
+// with the models «Two sets» names.
 
 const (
 	modelFloorPath    = "../../_support/docs/harness-engineering/model-floor.md"
 	agentProfilesPath = "../../integrations/agent-profiles.json"
-	flashClassPath    = "../../tests/pilot/flash_class.go"
 )
 
-// writingTargetProfiles are the role profiles whose named models form the
-// writing target.
-var writingTargetProfiles = []string{"execution", "focused", "reasoning", "verifier"}
+// floorProfiles are the role profiles whose named models need a floor row.
+var floorProfiles = []string{"execution", "focused", "reasoning", "verifier"}
 
 var floorStatuses = map[string]bool{"provisional": true, "qualified": true}
 
@@ -38,12 +37,11 @@ type floorRow struct {
 
 type expectedModel struct {
 	host, model, effort string
-	target              bool
 }
 
 func TestModelFloor(t *testing.T) {
 	doc := readFloorFile(t, modelFloorPath)
-	expected := append(profileModels(t, readFloorFile(t, agentProfilesPath)), flashModels(t, readFloorFile(t, flashClassPath))...)
+	expected := profileModels(t, readFloorFile(t, agentProfilesPath))
 	for _, err := range checkFloor(doc, expected) {
 		t.Error(err)
 	}
@@ -51,7 +49,7 @@ func TestModelFloor(t *testing.T) {
 
 func TestModelFloorDetectsDrift(t *testing.T) {
 	doc := readFloorFile(t, modelFloorPath)
-	expected := append(profileModels(t, readFloorFile(t, agentProfilesPath)), flashModels(t, readFloorFile(t, flashClassPath))...)
+	expected := profileModels(t, readFloorFile(t, agentProfilesPath))
 	cases := map[string]func(string) string{
 		"row removed": func(d string) string {
 			return dropFloorLine(d, "| codex | `gpt-6.1-terra` |")
@@ -62,8 +60,14 @@ func TestModelFloorDetectsDrift(t *testing.T) {
 		"stale writing-target row": func(d string) string {
 			return strings.Replace(d, "| codex | `gpt-6.1-terra` |", "| codex | `gpt-6.1-terra` |\n| codex | `gpt-5.9-old` | `medium` | `focused` | yes | provisional | none | — |\n| codex | `gpt-6.1-terra-x` |", 1)
 		},
-		"flash model marked as writing target": func(d string) string {
-			return strings.Replace(d, "floor of 2026-10-11 (`flashModels`) | no |", "floor of 2026-10-11 (`flashModels`) | yes |", 1)
+		"target row «Two sets» does not list": func(d string) string {
+			return strings.Replace(d, "`focused`; tier below | no |", "`focused`; tier below | yes |", 1)
+		},
+		"listed target not marked": func(d string) string {
+			return strings.Replace(d, "| claude | `opus` | `high` | `reasoning`, `verifier` | yes |", "| claude | `opus` | `high` | `reasoning`, `verifier` | no |", 1)
+		},
+		"listed target without a row": func(d string) string {
+			return strings.Replace(d, "- **Writing target.** `opus` `gpt-6.2-sol`", "- **Writing target.** `opus` `gpt-6.2-sol` `gpt-7-nova`", 1)
 		},
 		"alias with a placeholder ID": func(d string) string {
 			return regexp.MustCompile("(?m)^\\| `sonnet` \\| [^|]+\\|").ReplaceAllString(d, "| `sonnet` | `tbd` |")
@@ -117,27 +121,30 @@ func checkFloor(doc string, expected []expectedModel) []error {
 		if want.effort != "" && !r.efforts[want.effort] {
 			errs = append(errs, fmt.Errorf("floor row %s %s lacks effort %s", want.host, want.model, want.effort))
 		}
-		if want.target && r.target != "yes" {
-			errs = append(errs, fmt.Errorf("floor row %s %s: writing target %q, want yes", want.host, want.model, r.target))
-		}
 	}
-	// A row claims the writing target only for a current role-profile model,
-	// so a stale or wrongly promoted row fails too.
-	isTarget := map[string]bool{}
-	for _, want := range expected {
-		if want.target {
-			isTarget[want.host+" "+want.model] = true
-		}
+	// The rows marked as writing target are exactly the models the «Writing
+	// target» bullet of «Two sets» lists, so a stale or wrongly promoted row
+	// fails, and so does a listed model without its row.
+	targets := writingTargets(floorSection(doc, "## Two sets"))
+	if len(targets) == 0 {
+		errs = append(errs, fmt.Errorf("«Two sets» lists no writing-target model"))
 	}
+	marked := map[string]bool{}
 	for key, r := range floor {
 		switch r.target {
 		case "yes":
-			if !isTarget[key] {
-				errs = append(errs, fmt.Errorf("floor row %s marks a writing target that no role profile names", key))
+			marked[r.model] = true
+			if !targets[r.model] {
+				errs = append(errs, fmt.Errorf("floor row %s marks a writing target that «Two sets» does not list", key))
 			}
 		case "no":
 		default:
 			errs = append(errs, fmt.Errorf("floor row %s: writing target %q, want yes or no", key, r.target))
+		}
+	}
+	for model := range targets {
+		if !marked[model] {
+			errs = append(errs, fmt.Errorf("«Two sets» lists %s as a writing target, but no floor row marks it", model))
 		}
 	}
 	aliases := floorTable(floorSection(doc, "## Aliases"))
@@ -184,36 +191,30 @@ func profileModels(t *testing.T, raw string) []expectedModel {
 	}
 	var out []expectedModel
 	for host, h := range profiles.Hosts {
-		for _, name := range writingTargetProfiles {
+		for _, name := range floorProfiles {
 			p := h.Models[name]
 			if p.Model == "" || p.Model == "inherit" {
 				continue
 			}
-			out = append(out, expectedModel{host: host, model: p.Model, effort: p.Effort, target: true})
+			out = append(out, expectedModel{host: host, model: p.Model, effort: p.Effort})
 		}
 	}
 	if len(out) == 0 {
-		t.Fatal("agent-profiles.json names no model in the writing-target profiles")
+		t.Fatal("agent-profiles.json names no model in the floor profiles")
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].host+out[i].model < out[j].host+out[j].model })
 	return out
 }
 
-// flashModels reads the flash-class list from the pilot source, since it is an
-// unexported variable of another package.
-func flashModels(t *testing.T, src string) []expectedModel {
-	t.Helper()
-	m := regexp.MustCompile(`var flashModels = \[\]string\{([^}]*)\}`).FindStringSubmatch(src)
-	if m == nil {
-		t.Fatal("flash_class.go has no flashModels list")
-	}
-	var out []expectedModel
-	for _, q := range regexp.MustCompile(`"([^"]+)"`).FindAllStringSubmatch(m[1], -1) {
-		model, effort, _ := strings.Cut(q[1], "#")
-		out = append(out, expectedModel{host: "opencode", model: model, effort: effort})
-	}
-	if len(out) == 0 {
-		t.Fatal("flashModels is empty")
+// writingTargets returns the backquoted models of the «Writing target» bullet.
+func writingTargets(section string) map[string]bool {
+	out := map[string]bool{}
+	for _, line := range strings.Split(section, "\n") {
+		if strings.HasPrefix(strings.TrimSpace(line), "- **Writing target.**") {
+			for _, m := range regexp.MustCompile("`([^`]+)`").FindAllStringSubmatch(line, -1) {
+				out[m[1]] = true
+			}
+		}
 	}
 	return out
 }

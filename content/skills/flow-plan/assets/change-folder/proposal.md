@@ -1,6 +1,6 @@
 # <TICKET, or the change-id without a ticket> — <one-line title>
 
-<!-- Template from flow-plan. Write the text, headings and field names in the session language; keep code and identifiers as they are. Name the first field `Status`, or `Estado` in Spanish, and start its value with the phase, since the archive helper reads it. Delete these comments. -->
+<!-- Template from flow-plan. Write the text, headings and field names in the session language; keep code and identifiers as they are. Name the first field `Status` (`Estado` in Spanish) and start its value with the phase, since the archive helper reads it. Delete these comments. -->
 
 | Field | Value |
 | --- | --- |
@@ -11,14 +11,14 @@
 
 ## Decisions
 
-<!-- One line per decision the user took, under its date: the decision ID and letter in bold, a dash, the question in plain words, and the answer and what it changes, such as "- **D62 B** — Who links each event to its stage? The server; the agent no longer declares it.". Readers outside the conversation do not know the IDs: no line here or in any other section relies on an ID alone. A decision taken without asking, as «Decide and list» of the `questions` leaf sets, goes here too, marked with the session language's word for "assumption" in place of the ID, with the alternative discarded; a business rule taken that way also gets its `assumption` line under `## Business rules`. -->
+<!-- One line per decision the user took, under its date: the decision ID and letter in bold, a dash, the question in plain words, and the answer and what it changes, such as "- **D62 B** — Who links each event to its stage? The server; the agent no longer declares it.". No line here or in any other section relies on an ID alone. A decision taken without asking, as «Decide and list» of the `questions` leaf sets, goes here too, marked with the session language's word for "assumption" in place of the ID, with the alternative discarded; a business rule taken that way also gets its `assumption` line under `## Business rules`. -->
 
 <date>
 - **<D<n> letter>** — <question?> <answer and what it changes>.
 
 ## Business rules
 
-<!-- Keep this heading in English, whatever the session language, like `## Effects`: flow-plan's reference «Business rules» looks for it. One line per business rule the work adopts that its ticket and documentation did not state, and per rule a decision cancels, in the format that reference sets; never delete a line. The ticket's control lines and the `card stale:` and `frame stale:` lines go here too. When the work adopts none, keep only the `None:` line; otherwise delete it. Delete this comment. -->
+<!-- Keep this heading in English, like `## Effects`: the business-rules leaf looks for it. One line per business rule the work adopts that its ticket and documentation did not state, and per rule a decision cancels, in the format that leaf sets; never delete a line. The ticket's control lines and the `card stale:` and `frame stale:` lines go here too. When the work adopts none, keep only the `None:` line; otherwise delete it. Delete this comment. -->
 
 None: the work adopts no business rule beyond what its ticket and documentation state.
 
@@ -43,7 +43,7 @@ rule: <the rule> · screen <name, or none> · <status> · found by <drawer | rev
 
 ## Prerequisites
 
-<!-- What the build needs from outside the repository, usually from a third party or a person: an API key, an account or user in a platform, an access grant, a test number, data. Never write a secret's value: name where it is stored. When there are none, keep only the next line. -->
+<!-- What the build needs from outside the repository, such as an API key, an account, an access grant or data. Never write a secret's value: name where it is stored. When there are none, keep only the next line. -->
 
 None: the build needs nothing from outside the repository.
 
@@ -53,7 +53,7 @@ None: the build needs nothing from outside the repository.
 
 <What was read and observed before planning, with paths, commits and dates.>
 
-<!-- Only when the approach reads or changes an external system: one line per external fact, as flow-plan's reference «Outside the repository» sets. A fact no read-only read could show is written as not measured, with the task that meets it first. Delete this comment. -->
+<!-- Only when the approach reads or changes an external system: one line per external fact, as the external-facts leaf sets; a fact no read-only read could show is written as not measured, with the task that meets it first. Delete this comment. -->
 
 - <external fact> · <read-only command or source> · <result, or not measured> · <date>
 
@@ -63,7 +63,7 @@ None: the build needs nothing from outside the repository.
 
 ## Effects
 
-<!-- One line per class of effect asked in the plan's effects round. Keep this heading in English, whatever the session language, like `Observed in:`: flow-deploy looks for it. When the plan foresees no effect on an external system, keep only the `None:` line; otherwise delete the `None:` line and keep one line per class. Delete this comment. -->
+<!-- One line per class of effect asked in the plan's effects round. Keep this heading in English: flow-deploy looks for it. When the plan foresees no effect on an external system, keep only the `None:` line; otherwise delete it and keep one line per class. Delete this comment. -->
 
 None: the tasks take no effect on an external system.
 

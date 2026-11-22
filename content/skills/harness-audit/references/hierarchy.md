@@ -4,13 +4,7 @@ Read this before judging any instruction file. A file's value depends on which h
 
 ## Compute the effective set (HA-HI-01)
 
-For each host in use and each declared or observed entry point, list:
-
-1. **Startup set**: files loaded when the session starts, in order, with sizes.
-2. **On-demand set**: files a host adds later when the agent opens files in a subdirectory.
-3. **Configuration inputs** that change either set.
-
-Judge a level only against these sets. When a conclusion depends on version-sensitive behavior, confirm it with the host's own view or report it as a hypothesis (HA-ME-02; see [native tools](native-tools.md)).
+For each host in use and each declared or observed entry point, list the **startup set** (files loaded when the session starts, in order, with sizes), the **on-demand set** (files a host adds when the agent opens files in a subdirectory) and the **configuration inputs** that change either. Judge a level only against these sets; confirm version-sensitive conclusions with the host's own view or report a hypothesis (HA-ME-02; see [native tools](native-tools.md)).
 
 ## Observe entry points
 
@@ -20,7 +14,7 @@ Count sessions per start directory for the targets and their ancestors, recordin
 - Codex: the `cwd` of the first `session_meta` record in each file under `~/.codex/sessions/`.
 - Grok Build: one directory per session under `~/.grok/sessions/<URL-encoded start path>/`. The first user record of its `chat_history.jsonl` holds the `<rules>` actually loaded, which is direct evidence of the startup set.
 
-Histories show where sessions started, not what the user intends. Report both when they differ, and read only metadata, never conversation content beyond the loaded rules.
+Histories show where sessions started, not what the user intends: report both when they differ, and read only metadata, never conversation content beyond the loaded rules.
 
 ## Loading behavior
 
@@ -36,9 +30,9 @@ Checked on Claude Code 2.1.280 and Codex 0.155.1. Reconfirm when the installed v
 
 Grok Build 1.0.38, observed in two sessions on 2026-09-22 and not documented: the startup set held `<Claude home>/CLAUDE.md` plus the entry directory's `AGENTS.md` and `CLAUDE.md`; a workspace `AGENTS.md` one level above a repository entry point was not loaded. Confirm against the session's recorded `<rules>` before relying on it.
 
-Cursor CLI: documented (cursor.com/docs/cli/using and /docs/rules, 2026-09-25) to load the entry directory's `AGENTS.md` and `CLAUDE.md` and `.cursor/rules/`; its only documented global channel is User Rules in the app settings, not a file. Observed on 2026.09.18 in one run per case: those three project sources loaded and `<Claude home>/CLAUDE.md` did not. Observed on 2026.10.22 in two probes (2026-10-31): a rule in `~/.cursor/rules/` with `alwaysApply: true` reaches a workspace under the home folder and not one outside it, which is how the Hive layer arrives from `~/.cursor/rules/hive.mdc` (HA-IF-18; `_support/docs/architecture/deployment-manager.md`). Whether it loads ancestor or nested `AGENTS.md` files was not observed. Outside the home folder the Hive layer reaches it only through the pointer in HA-IF-18. It has no known view of the loaded instructions, so treat its loading claims as observations or hypotheses (HA-ME-02).
+Cursor CLI: documented (cursor.com/docs/cli/using and /docs/rules, 2026-09-25) to load the entry directory's `AGENTS.md` and `CLAUDE.md` and `.cursor/rules/`; its only documented global channel is User Rules in the app settings, not a file. Observed on 2026.09.18 in one run per case: those three project sources loaded and `<Claude home>/CLAUDE.md` did not. Observed on 2026.10.22 in two probes (2026-10-31): a rule in `~/.cursor/rules/` with `alwaysApply: true` reaches a workspace under the home folder and not one outside it, which is how the Hive layer arrives from `~/.cursor/rules/hive.mdc` (HA-IF-18; `_support/docs/architecture/deployment-manager.md`). Whether it loads ancestor or nested `AGENTS.md` files was not observed. Outside the home folder the Hive layer reaches it only through the pointer in HA-IF-18. It has no known view of the loaded instructions: treat its loading claims as observations or hypotheses (HA-ME-02).
 
-Antigravity (`agy` 1.5.2 and the App 2.29, which share `~/.gemini/config`): Hive delivers the guidance as `trigger: always_on` rule files `~/.gemini/config/rules/hive-NN.md`. Observed 2026-11-06 with marker probes on `agy` 1.5.2: it truncates every rule file at 24,000 bytes, global ones included; documented: always-on and global rules share a 20,000-token budget. Hive cuts the guidance into parts of at most 22,000 bytes for this reason (`_support/docs/architecture/deployment-manager.md`). Whether it loads ancestor or nested `AGENTS.md` or `CLAUDE.md` files, and whether the global rules reach a workspace outside the home folder, was not verified. It has no known view of the loaded instructions, so treat its loading claims as observations or hypotheses (HA-ME-02).
+Antigravity (`agy` 1.5.2 and the App 2.29, which share `~/.gemini/config`): Hive delivers the guidance as `trigger: always_on` rule files `~/.gemini/config/rules/hive-NN.md`. Observed 2026-11-06 with marker probes on `agy` 1.5.2: it truncates every rule file at 24,000 bytes, global ones included; documented: always-on and global rules share a 20,000-token budget, so Hive cuts the guidance into parts of at most 22,000 bytes (`_support/docs/architecture/deployment-manager.md`). Whether it loads ancestor or nested `AGENTS.md` or `CLAUDE.md` files, or reaches a workspace outside the home folder, was not verified. It has no known view of the loaded instructions: treat its loading claims as observations or hypotheses (HA-ME-02).
 
 Configuration inputs to read when present:
 
@@ -60,6 +54,4 @@ A host's own memory is part of the startup set: for stores per entry point, fold
 
 ## Reading layered findings
 
-- Content above a repository that reaches it through the repository's upward pointer is conditionally reached, not missing.
-- Report the same rule once, at the level that should own it, citing the other copies.
-- Measure cost per entry point: the global layer and ancestor files are paid in every session that loads them, so a small file in a heavily used chain can matter more than a large one used rarely.
+Content above a repository that reaches it through the repository's upward pointer is conditionally reached, not missing. Report the same rule once, at the level that should own it, citing the other copies. Measure cost per entry point: the global layer and ancestor files are paid in every session that loads them.

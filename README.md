@@ -29,8 +29,8 @@ settings have explicit read conditions. Installing a reference makes it availabl
 or followed. This organization does not establish reliability for any model family.
 
 **Entry router, playbooks and rule leaves.** Every request to do work enters
-[hive-mode](content/skills/hive-mode/SKILL.md), which opens at most one of 13
-[playbooks](content/skills/hive-mode/playbooks/) for its kind of work. The
+[hive-mode](content/skills/hive-mode/SKILL.md), which classifies it by kind of work and
+opens the [playbook](content/skills/hive-mode/playbooks/) of the kinds that have steps of their own. The
 rules that apply at one moment, such as staging a commit, moving a ticket or asking a
 round of questions, live in small files called rule leaves, stored as `content/skills/hive-core/<domain>/<name>.md`, one folder per domain. The
 [«Rule leaves» index](content/guidance/global.md) of the global guidance names the
@@ -47,9 +47,9 @@ Code principles follow the same pattern: the hidden
 [principles index](content/skills/hive-core/principles/index.md) lists each
 principle with the moment it applies, and the visible
 [`hive-typescript`](content/skills/hive-typescript/SKILL.md) skill covers `.ts` and `.tsx` files; the agent reads it when its description or the index sends it there, not automatically.
-The guidance is written for the role-profile models listed in the
-[support floor](_support/docs/harness-engineering/model-floor.md); the floor's smaller
-Haiku and flash-class candidates and the maintainer's main-session models are not a writing target, but their observed failures count toward corrections.
+The guidance is written for Claude Opus 5.5 and OpenAI gpt-6.2-sol, the writing target of the
+[support floor](_support/docs/harness-engineering/model-floor.md); failures observed one tier above
+(Fable 5.2, gpt-6.2-astra), one tier below (Sonnet 5.5, gpt-6.1-terra) and on Grok 4.7 also count toward corrections.
 
 OpenCode V2 also receives an **optional, inactive context loader** at user scope in
 `<OpenCodeHome>/hive/context-loader/{index.js,context-loader.json}`, outside
@@ -426,9 +426,9 @@ lists where each flow loops.
   Build in the same turn, except a new screen it offers to Create design first; Plan comes only when the how has a decision for you or the work
   cannot be finished from your request and the `git diff`. It also turns uncertainty into
   a supported answer, assesses a ticket you pick, and audits the codebase for what to
-  improve when you ask. It also classifies the work into one of 13 playbooks
-  (`content/skills/hive-mode/playbooks/`), each naming the order of the stages and what
-  is specific to its kind, or follows the general route when none fits. An analysis ends at its findings
+  improve when you ask. It also classifies the work by kind: the kinds with steps of their own have a playbook
+  (`content/skills/hive-mode/playbooks/`), the rest carry what is specific to them in the router's
+  table, and work that fits no kind follows the general route. An analysis ends at its findings
   with no flow recommended. It does not publish to the viewer.
 - [Create design](https://hive.tricell.tech/flows/create-design/) ([skill](content/skills/create-design/SKILL.md)) is an optional
   stage between Hive mode and Plan for a new or recomposed screen: it draws one example

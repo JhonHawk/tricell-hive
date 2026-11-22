@@ -7,6 +7,4 @@ Read when you add validation, error handling or an adapter around a framework, a
 3. Keep transport and framework types out of the public surface of a module; convert them at the edge.
 4. Put business logic in functions that need no framework, with a thin shell that reads input, calls them and writes output.
 
-Two tests. Is this data crossing a boundary right now? If not, the check is redundant. Could this be a plain function the shell calls? If so, extract it.
-
 This does not weaken input validation required by [security boundaries](../build/security-boundaries.md): untrusted input is always validated where it enters.

@@ -247,6 +247,21 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Hive's guidance is now written for Claude Opus 5.5 and OpenAI gpt-6.2-sol.
+  Failures observed one tier above (Fable 5.2, gpt-6.2-astra), one tier below
+  (Sonnet 5.5, gpt-6.1-terra) and on Grok 4.7 count toward corrections; Haiku,
+  Luna, flash-class models and superseded versions no longer do. The user's
+  decision may now rest on a writing-target vendor's prompting guidance to
+  relax or remove a rule.
+- The distributed guidance was pruned for those models: restatements,
+  tautologies, generic engineering advice, scaffolding and verbose wording
+  left the rule leaves, the skills and the roles, while authorization,
+  secrets, irreversible effects, preservation and the rules frontier models
+  do not follow unprompted stay. The playbooks `investigate`, `bugfix`,
+  `feature`, `hotfix`, `infra-ci`, `pr-review-deploy` and `deliverable` are now
+  rows of the `hive-mode` table, and the remaining playbooks no longer repeat
+  the report row `flow-close` picks. Role names and profiles are unchanged.
+
 - In a project whose lint bans comments, the `no-comments` review moves a
   comment it would keep to the project's decision record, and an accepted
   workaround carries a one-line marker, `workaround:` and its ticket, that

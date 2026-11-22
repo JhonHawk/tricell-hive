@@ -2,7 +2,7 @@
 
 Read when a plan picks each task's checks, at a build's start and at verify's entry.
 
-What always runs for each kind of change. Each check keeps its own rule, linked here, and runs as that rule sets it. The floor holds in every delivery mode, `hold` included: a mode decides only what happens after the checks.
+What always runs for each kind of change; each check keeps its own rule, linked here. The floor holds in every delivery mode, `hold` included: a mode decides only what happens after the checks.
 
 | Kind of change | Always runs |
 | --- | --- |
@@ -17,6 +17,5 @@ What always runs for each kind of change. Each check keeps its own rule, linked 
 
 ## What the report carries
 
-- **A defect's proof:** the regression test's output seen failing on the code before the fix, then passing after it, trimmed to the lines that show both; or that the failure could not be reproduced before the fix.
 - **Try it:** when the change can be seen or run, a block headed in the session language, such as **Try it**: the URL or command to open it, the test account by its row in the account index (never a secret), the steps, and the result to expect. It asks nothing and appears in every delivery mode, where [close report](../close/close-report.md) places it in the final report, and in a request to validate such a change.
 - A check of this floor that did not run is named with its reason among the report's omitted checks.

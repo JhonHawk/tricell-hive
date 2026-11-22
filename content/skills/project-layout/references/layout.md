@@ -2,7 +2,7 @@
 
 ## When to read
 
-Read before writing or cleaning a support artifact, a script or an operation's data. Apply the basic scope, placement, preservation and cleanup authorization in the global guidance, and [close cleanup](../../hive-core/close/close-cleanup.md) for what a close may remove. Reading this reference does not start [project-layout](../SKILL.md)'s procedure or authorize retention, moves, deletion or publication.
+Read before writing or cleaning a support artifact, a script or an operation's data; [close cleanup](../../hive-core/close/close-cleanup.md) sets what a close may remove. Reading this reference does not start [project-layout](../SKILL.md)'s procedure or authorize retention, moves, deletion or publication.
 
 ## Read the project's layout
 
@@ -10,7 +10,7 @@ Before choosing a destination, find the project's index: `_support/docs/README.m
 
 ## Identify the work
 
-Create only the folders and records the work needs. One work item shares its identifier: `<work>` is the `<change-id>` when a change exists, shortened when long but always with words that identify the work, never the tracker key alone; otherwise, a short English kebab-case description, after the tracker key when one exists.
+Create only the folders and records the work needs. `<work>` is the `<change-id>` when a change exists (shortened when long, with words that identify the work, never the tracker key alone), otherwise a short English kebab-case description after the tracker key when one exists.
 
 ## Select the destination
 
@@ -21,7 +21,7 @@ Create only the folders and records the work needs. One work item shares its ide
 - `docs/<topic>/`: living knowledge, conventions, and durable decisions, updated in place; living documents need no date. Procedures that were run and will be run again, such as a rollback, a restore or a cutover, go in `docs/runbooks/`.
 - `sessions/YYYY-MM-DD-<work>/`: retained records that belong to no change, such as research or a report requested on its own. Before writing, identify the artifact type and complete destination path, reusing the existing work session. Even a small task or single file belongs there rather than the repository root; the one exception is `HIVE.local.md`, kept at the repository or workspace root as [local write](../../hive-core/local/local-write.md) sets.
 - `workspace/YYYY-MM-DD-<work>/`: ignored by Git, for material the user may open or whose versioning is undecided: working documents, images, temporary information, and files a tool or later session must find again, such as saved state, including an unattended or coordinated work's decision log, `decisions.tsv`.
-- Scratch, reproducible material nobody needs after the task (temporary files, shell helpers, intermediate output, throwaway checkouts), goes where the host keeps temporary work: its scratch or session directory, otherwise the system temporary directory; never the repository root, and never for anything the user should read or reuse. Material holding the only copy of work, such as unintegrated source edits, uncommitted changes in a checkout, or unique evidence, is not scratch: keep it in its source location, the host's native mechanism, or a location the user approves.
+- Scratch, reproducible material nobody needs after the task (temporary files, shell helpers, intermediate output, throwaway checkouts), goes where the host keeps temporary work (its scratch or session directory, otherwise the system temporary directory), never the repository root, and never for anything the user should read or reuse. Material holding the only copy of work (unintegrated source edits, uncommitted changes in a checkout, unique evidence) is not scratch: keep it in its source location, the host's native mechanism, or a location the user approves.
 - `secrets/`: never versioned, the folder at mode `0700` and its files at `0600`, holding the secret files and the account index `ACCOUNTS.md` that [test accounts](../../hive-core/local/test-accounts.md) sets.
 - `data/`: never versioned and protected, one `data/YYYY-MM-DD-<work>/` folder per operation for its inputs and outputs, such as a dump, an export or a migration's files; it may hold the only copy of data, so only the user's answer removes it.
 - `scripts/`: never versioned, the local scripts that `HIVE.local.md` names, as [local script](../../hive-core/local/local-script.md) sets.
@@ -30,12 +30,7 @@ Create only the folders and records the work needs. One work item shares its ide
 
 **Actions:** choose by who runs it, as [script lifecycle](script-lifecycle.md) sets:
 
-- Code that every clone or CI needs goes in the code of the repository whose code or data it uses, never under `_support/`, which holds no code another clone needs, and never in a workspace root that is not a repository. Add its line to the index. Its folder comes from who runs it, reusing the folder or the equivalent group the repository already has:
-  - code that one package runs, from its manifest, its code or its tests: that package's `scripts/`, `script/` or `tools/`, the first that exists, otherwise `scripts/`;
-  - code CI runs: `<tools>/ci/`; code a Git hook runs: `<tools>/hooks/`; a procedure a runbook tells people to run: `<tools>/ops/`; other shared tooling: `<tools>/`. `<tools>` is the `tools at` home, otherwise the first of `scripts`, `script`, `tools` or `hack` at the repository root, otherwise `scripts`; an existing `cicd`, `pipeline` or `pipelines` folder stands for `ci`, `git-hooks` or `githooks` for `hooks`, and `operations` or `runbooks` for `ops`;
-  - infrastructure as code (Terraform, cloud bootstrap and policies): the `infra at` home, otherwise the first of `infra`, `infrastructure`, `terraform` or `deployments`, otherwise `infra/`.
-
-  For code and folders already under `_support/`, the [placement planner](../scripts/plan_layout.py) computes these destinations with their full rule order, the reference rewrites and the items no rule places; never choose them by hand.
+- Code that every clone or CI needs goes in the code of the repository whose code or data it uses, never under `_support/` (which holds no code another clone needs) and never in a workspace root that is not a repository, with its line in the index. Its folder comes from who runs it, reusing the repository's own folder or equivalent group: a package's own scripts in that package's `scripts/`, `script/` or `tools/`; code CI runs in `<tools>/ci/`, a Git hook's in `<tools>/hooks/`, a runbook's procedure in `<tools>/ops/`, other shared tooling in `<tools>/`; infrastructure as code in the `infra at` home, otherwise `infra/`. `<tools>` is the `tools at` home, otherwise the first of `scripts`, `script`, `tools` or `hack` at the repository root, otherwise `scripts`. For code and folders already under `_support/`, the [placement planner](../scripts/plan_layout.py) computes these destinations with their full rule order, the reference rewrites and the items no rule places; never choose them by hand.
 - A script run once against shared data, such as a backfill, a repair or a cutover, stays in its work's `sessions/YYYY-MM-DD-<work>/` folder with its output, its revert and a `<work>.report.md` that says what it changed.
 - A helper only this machine needs is a local script under `scripts/`.
 - Anything else is scratch.
@@ -51,10 +46,10 @@ Keep source plans, user-selected output, unique evidence of work not yet integra
 
 ## Name and date records
 
-- On resume of any retained record, a change record or a session record, reconcile it with current sources and state. Keep current status and next steps consistent; retain superseded statements only as clearly labeled history. Reuse the same work folder and canonical record across conversations; avoid competing current versions.
-- Name new records under `sessions/` `<topic>.<type>.<extension>`, with a descriptive English `kebab-case` topic shared by related records and an English type: `research` for retained investigations (including findings called a report) and `report` for distinct execution, closure, or presentation deliverables. Use Markdown for ordinary research; honor an explicitly requested format. Tool-defined filenames keep their names.
-- Dated folders use the work's initial ISO date, except archived changes, named as [batch archive](../../flow-close/references/batch-archive.md) sets; internal filenames do not repeat it. Continuing work keeps its initial date, scope, and location. Do not automatically rename or migrate existing material to this layout.
-- Date human-authored records and folders, except archived changes, with the user's local calendar date, checking the clock and timezone when uncertain. Preserve original evidence timestamps, with explicit offsets when time affects interpretation.
+- On resume of a retained record, reconcile it with current sources and state: keep current status and next steps consistent, retain superseded statements only as labeled history, and reuse the same work folder and canonical record across conversations.
+- Name new records under `sessions/` `<topic>.<type>.<extension>`, with a descriptive English `kebab-case` topic shared by related records and an English type: `research` for retained investigations (including findings called a report), `report` for distinct execution, closure or presentation deliverables. Use Markdown for ordinary research and honor an explicitly requested format; tool-defined filenames keep their names.
+- Dated folders use the work's initial ISO date (archived changes are named as [batch archive](../../flow-close/references/batch-archive.md) sets); internal filenames do not repeat it, and continuing work keeps its initial date, scope and location. Existing material is not renamed or migrated to this layout automatically.
+- Date human-authored records and folders with the user's local calendar date, checking the clock and timezone when uncertain; preserve original evidence timestamps, with explicit offsets when time affects interpretation.
 
 ## Retain evidence
 

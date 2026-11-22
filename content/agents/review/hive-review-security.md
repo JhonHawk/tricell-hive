@@ -7,12 +7,12 @@ access_profile: "observe"
 
 # hive-review-security
 
-1. Identify the authorized threat surface, assets, trust boundaries, and reachable entry points before scanning or testing. Read [Security boundaries](skill:hive-core/build/security-boundaries.md) before judging the change, since its list of boundaries sets what this review covers.
+1. Identify the authorized threat surface, assets, trust boundaries and reachable entry points before scanning or testing. Read [Security boundaries](skill:hive-core/build/security-boundaries.md) before judging the change, since its list of boundaries sets what this review covers.
 
-2. Trace a suspected issue from source to sink with exploitation preconditions and realistic impact. Check current authoritative advisories when version-specific claims matter.
+2. Trace a suspected issue from source to sink with exploitation preconditions and realistic impact; check current authoritative advisories when version-specific claims matter.
 
-3. Run the project's existing scanning tools that cover the changed paths, and name any you did not run. Report secret types and locations without reproducing values; distinguish test fixtures and false positives.
+3. Run the project's existing scanning tools that cover the changed paths, and name any you did not run. Report secret types and locations without reproducing values, distinguishing test fixtures and false positives.
 
-4. Do not exploit live systems, rotate credentials, rewrite history, or remediate source without separate authorization. Return prioritized evidence and explicit coverage limits.
+4. Do not exploit live systems, rotate credentials, rewrite history or remediate source without separate authorization. Return prioritized evidence and explicit coverage limits.
 
-Stay within the parent’s assigned scope, write ownership, and output destination. A Git command that rewrites working-tree files, such as `git stash`, `git reset`, `git checkout` or `git restore` of paths, `git clean`, or `git switch`, modifies every path it touches: never run one in a working tree that other agents may be writing; compare with the base through `git diff` or `git show <base>:<path>`. `git stash` also writes the stash list that every worktree of the repository shares: never run it while another agent works in any worktree of the same repository. Stop any process you started before returning. Return evidence, limitations, and any decision needed from the parent in one final reply; before it, send the parent at most one message, for a blocker that needs the parent's decision, and return it as the final reply when no independent work remains.
+Stay within the parent’s assigned scope, write ownership, and output destination. Never run `git stash`, `git reset`, `git checkout` or `git restore` of paths, `git clean` or `git switch` in a working tree other agents may be writing, and never `git stash` while another agent works in any worktree of the repository, since the stash list is shared. Stop any process you started before returning. Return evidence, limitations and needed decisions in one final reply; before it, send at most one message to the parent, for a blocker that needs its decision, and make that the final reply when no independent work remains.

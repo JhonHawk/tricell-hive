@@ -2,7 +2,7 @@
 
 Read at step 5 of [create-design](../SKILL.md), once the first review is reconciled, to draw the rule cards; at its step 7, when the user answers a rule; and from any later flow when a rule a card shows changes or a decision contradicts an approved frame. [Business rules](../../hive-core/business/business-rules.md) defines a business rule; [business record](../../hive-core/business/business-record.md) holds the line that records it and its statuses.
 
-A rule card is an annotation beside a frame that lists the business rules shaping that screen which the frame does not say by itself, so a reader of the design file finds them without the ticket or the conversation. It is not part of the interface.
+A rule card is an annotation beside a frame that lists the business rules shaping that screen which the frame does not say by itself, so a reader of the design file finds them without the ticket; it is not part of the interface.
 
 ## Which rules go on a card
 
@@ -17,7 +17,7 @@ A frame with no rule to keep gets no card. A `scope` rule has stopped its screen
 
 ## Draw the cards
 
-Draw them after the first review's findings are fixed and its unsettled rules recorded, never before: the first reviewer must list the unsettled rules without seeing yours. For a work of several screens, that review is the one of the whole set, not the earlier review of the first screen alone that step 5 sets: that one gets no cards and no follow-up.
+Draw them after the first review's findings are fixed and its unsettled rules recorded, never before: the first reviewer must list the unsettled rules without seeing yours. For several screens, that review is the one of the whole set, not the earlier review of the first screen alone (which gets no cards and no follow-up).
 
 - Use the annotation component of the library [design library](design-library.md) binds when it holds one; otherwise define one card component in the file, on the tool's automatic layout and bound to the file's variables, as a piece of this work with its `candidate:` line, and place one instance per frame.
 - Place each card outside its frame's bounds, to the right, aligned to the frame's top and 40 px away, so an export of the frame leaves it out. [Canvas sections](sections.md) sets the section that holds it. Space the frames this work draws so a card fits between two of them. Never move a frame this work did not create to make room: ask it as a decision first.
@@ -39,11 +39,6 @@ When a later flow records a change to a rule a card shows, as [business rules](.
 - With a connection that can write to that Figma file, correct the card: mark the earlier row as cancelled, with the date and the reason, and add a row for the rule that replaces it; never delete the earlier row. Change only the card nodes the example's record lists in its `card:` lines, which the global guidance's «Scope and authorization» authorizes without a question. Never change a frame or any other node from outside the design stage.
 - Without that connection, without those `card:` lines where the flow runs, or when the write fails, add `card stale: <screen> · <rule>` to the work's rule record.
 
-When a decision contradicts what an approved frame itself shows, such as a region, an action, a state or a text of the frame, add `frame stale: <node> · <rule>` to the work's rule record and say so in that turn's message. The build follows the decision, and no flow redraws the frame outside the design stage. The close names each `card stale:` and `frame stale:` line in its final report, as left open.
+When a decision contradicts what an approved frame itself shows (a region, an action, a state or a text), add `frame stale: <node> · <rule>` to the work's rule record and say so in that turn's message. The build follows the decision, and no flow redraws the frame outside the design stage. The close names each `card stale:` and `frame stale:` line in its final report, as left open.
 
-When [create-design](../SKILL.md) runs again for that work, read those lines and the record's `cancelled` rules, wherever the rule record now lives, before drawing; correct the cards and the frames they name; and name each line you corrected in the stage's report. The plan's revision then removes those lines, as the [rule record](../../hive-core/business/business-record.md) sets; for work without a change folder, remove them from the checkpoint file yourself.
-
-## Special cases
-
-- **A request for the design itself.** When the request names existing frames as its target, draw the cards beside those frames, and move none of them without asking.
-- **Unattended delegation.** Draw the cards with the rules as the record holds them; a `proposed` rule stays as still to decide.
+When [create-design](../SKILL.md) runs again for that work, read those lines and the record's `cancelled` rules before drawing, correct the cards and the frames they name, and name each corrected line in the stage's report. The plan's revision then removes those lines, as the [rule record](../../hive-core/business/business-record.md) sets; for work without a change folder, remove them from the checkpoint file. A request for the design itself that names existing frames draws their cards beside them and moves none without asking; under unattended delegation the cards show the rules as the record holds them, a `proposed` rule as still to decide.

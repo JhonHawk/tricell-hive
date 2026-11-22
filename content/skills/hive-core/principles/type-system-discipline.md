@@ -8,4 +8,4 @@ Read when you design a type, shape a function signature or write code in a stati
 4. When a schema, contract or generated client already owns a shape, derive the type from it; do not hand-write a parallel copy that can drift.
 5. When code branches over variants, make the compiler fail when a variant is added, rather than falling into a silent default.
 
-Test: name one invalid state the types still allow. If you can name one cheaply removable, remove it.
+Test: name one invalid state the types still allow, and remove it when that is cheap.

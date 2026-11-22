@@ -1,6 +1,6 @@
 # Support material
 
-Read at [flow-close](../SKILL.md) step 2, at every close that takes the inventory of a work's support material, and before its final report lists that material.
+Read at [flow-close](../SKILL.md) step 2, and before the final report lists support material.
 
 List what this work created or changed under the project's support home, in its checkout or worktree: its folders under `sessions/`, `workspace/` and `evidence/`, found by the work's identifier as [layout](../../project-layout/references/layout.md) names it, its change folder when the work was abandoned, and any other support path its checkpoint or its commits name. Step 5 removes its reproducible temporaries from the host's temporary location. Name material of other work or uncertain ownership, such as an untracked folder no record ties to this work, as kept, without an action. Assign one action to each item, with its reason:
 

@@ -23,7 +23,9 @@ exit 0
 `
 
 // qrEnv is one `qualify run` environment: a temporary checkout with the real
-// suite, the real model-floor.md and fake hosts on PATH, and a temporary HOME.
+// suite, a fixed floor document and fake hosts on PATH, and a temporary HOME.
+// The floor document is a fixture, since its cases exercise effort resolution
+// on rows (OpenCode variants, several Codex efforts) the real floor may drop.
 type qrEnv struct {
 	*qualifyRun
 	recorded [][]string // runner arguments seen by a recording hook
@@ -32,7 +34,7 @@ type qrEnv struct {
 func newQREnv(t *testing.T) *qrEnv {
 	t.Helper()
 	q := newQualifyRun(t)
-	data, err := os.ReadFile(filepath.Join(repoRoot, "_support/docs/harness-engineering/model-floor.md"))
+	data, err := os.ReadFile(filepath.Join(repoRoot, "tests/fixtures/qualification/model-floor-fixture.md"))
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -7,18 +7,18 @@ description: Audit one area's tests and remove duplicate, implementation-coupled
 
 > Adapted from the `test-audit` skill of [openclaw/openclaw](https://github.com/openclaw/openclaw/tree/main/.agents/skills/test-audit) (MIT, commit `3195fba90643`). The complete notice is in [OpenClaw license](references/license-openclaw.md).
 
-Prune an area's tests to one owner per contract, proven by mutation, never by a deletion count. The [Tests](../hive-core/build/tests.md) leaf is the criterion for every mark: read it before step 4. The audit adds to the normal flows and replaces none of their steps: steps 1–4 are research and change no repository file; step 5 adds to [flow-plan](../flow-plan/SKILL.md); steps 6–9 add to [flow-build](../flow-build/SKILL.md); [flow-verify](../flow-verify/SKILL.md) and flow-close follow, with the exceptions steps 9 and 10 name. When you route from one flow to the next, name the audit in the command's argument, such as `/flow-plan test-audit <area>`, so this skill keeps applying.
+Prune an area's tests to one owner per contract, proven by mutation, never by a deletion count. The [Tests](../hive-core/build/tests.md) leaf is the criterion for every mark: read it before step 4. The audit adds to the normal flows and replaces none of their steps: steps 1–4 are research and change no repository file; step 5 adds to [flow-plan](../flow-plan/SKILL.md); steps 6–9 to [flow-build](../flow-build/SKILL.md); [flow-verify](../flow-verify/SKILL.md) and flow-close follow, with the exceptions steps 9 and 10 name. When you route between flows, name the audit in the command's argument (`/flow-plan test-audit <area>`) so this skill keeps applying.
 
 ## Scope
 
-1. **Name one area.** The area is the code the user names, such as a module, a service or a package, with every test that exercises it at any layer. When the user names none, propose up to three areas ranked by measurable signals and ask which one: test lines per production line, the share of assertions on calls (such as `toHaveBeenCalled`, `verify(` or `assert_called`), and test files named after tickets. One area is one work item and one pull request.
+1. **Name one area:** the code the user names (a module, service or package) with every test that exercises it at any layer. When the user names none, propose up to three areas ranked by test lines per production line, the share of assertions on calls (`toHaveBeenCalled`, `verify(`, `assert_called`) and test files named after tickets, and ask which. One area is one work item and one pull request.
 2. **Record a baseline** at a pinned commit:
    - the area's test lines and production lines, counted separately;
    - each test file's pass or fail state; put each failing test in a baseline-failure list, as a possible product defect, never as a duplicate to delete;
-   - line and branch coverage of the area only when the repository already measures it, adding no dependency, with unit and integration tests together when both exist;
+   - line and branch coverage of the area only when the repository already measures it, adding no dependency;
    - the wall time of each suite that runs the area's tests.
 
-   When the repository has no test runner, say so and stop: there is nothing to audit, and [no test runner](../hive-core/build/tests-no-runner.md) sets what applies there.
+   When the repository has no test runner, say so and stop: [no test runner](../hive-core/build/tests-no-runner.md) sets what applies there.
 3. **Split into lanes** along the production code that owns the behavior, not along file names. Each test file belongs to exactly one lane, and tests that may assert the same contract stay in the same lane.
 
 ## Ledger
