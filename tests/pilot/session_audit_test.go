@@ -684,6 +684,7 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"change folder codex versioned exited 0", "codex", folder, []string{folder, "codex-rollout-versioned-pass.jsonl"}, auditOptions{}, "pass"},
 		{"change folder codex no text after the merge", "codex", folder, []string{folder, "codex-rollout-no-text-review.jsonl"}, auditOptions{}, "review"},
 		{"change folder codex only a checkpoint after the merge", "codex", folder, []string{folder, "codex-rollout-checkpoint-only-review.jsonl"}, auditOptions{}, "review"},
+		{"change folder codex checkpoint written with --out after the merge", "codex", folder, []string{folder, "codex-rollout-checkpoint-out-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"change folder codex folder only read", "codex", folder, []string{folder, "codex-rollout-read-only-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"change folder codex no merge", "codex", folder, []string{folder, "codex-rollout-no-merge-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"change folder codex archived folder", "codex", folder, []string{folder, "codex-rollout-archive-notobserved.jsonl"}, auditOptions{}, "not_observed"},

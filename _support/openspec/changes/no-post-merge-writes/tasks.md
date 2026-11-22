@@ -22,7 +22,7 @@ Base `development` en `1b87f0a7`, rama `fix/no-post-merge-writes`, worktree `.cl
 
 ### T2 — Reglas del cierre, `git-workflow`, `checkpoint.md` y el sitio
 
-- [ ] `close-hygiene` dice dónde escribe y lee el cierre su checkpoint después del merge y deja de mandar `git restore`; `checkpoint.md`, `git-workflow` paso 4 y `flows/close.md` dejan de decir que las ediciones posteriores al merge esperan al archivo.
+- [x] `close-hygiene` dice dónde escribe y lee el cierre su checkpoint después del merge y deja de mandar `git restore`; `checkpoint.md`, `git-workflow` paso 4 y `flows/close.md` dejan de decir que las ediciones posteriores al merge esperan al archivo.
 
 **Closes:** AC4, AC5
 
@@ -84,3 +84,4 @@ Sin parada de validación humana (`automatic`).
 ## Review status and progress
 
 2026-11-22 — T1 · 015dce3a · unverified: none
+2026-11-22 — T2 · 0fde9c85 · unverified: AC5 se observa en el cierre de este cambio, tras el refresco

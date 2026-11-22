@@ -135,7 +135,8 @@ func folderRenames(command string) [][2]string {
 // and whether the write is only a tasks.py progress record: tasks.py done,
 // checkpoint or execution, a redirection or tee, and a command that names the
 // folder and writes through a Python call. A read names the folder without
-// writing it and is not one.
+// writing it and is not one, and neither is `tasks.py checkpoint --out`, which
+// writes the checkpoint to another file.
 func commandWrites(command string) (content, progress []string) {
 	for _, args := range shellSegments(command, 0) {
 		for i, a := range args {
@@ -143,7 +144,11 @@ func commandWrites(command string) (content, progress []string) {
 				continue
 			}
 			switch args[i+2] {
-			case "done", "checkpoint", "execution":
+			case "checkpoint":
+				if !hasArg(args[i+3:], "--out") {
+					progress = append(progress, changeFolderIDs(args[i+1])...)
+				}
+			case "done", "execution":
 				progress = append(progress, changeFolderIDs(args[i+1])...)
 			}
 		}
@@ -347,8 +352,9 @@ func lastMergeIndex(events []traceEvent, base string) int {
 // `git add .` or `git commit -a` makes it a review. Without any of them,
 // assistant text after the last merge is a fail naming the folder; no such
 // text, or a folder whose only writes are tasks.py progress records after the
-// last merge (it came versioned from another session and its edits wait for the
-// archive), is a review. A session that wrote no change folder or merged
+// last merge (it came versioned from another session; after the merge only a
+// checkpoint left from before it should remain, for the close to restore), is a
+// review. A session that wrote no change folder or merged
 // nothing is not observed.
 func changeFolderUncommitted(s auditSession, base string) criterionAssessment {
 	c := criterionAssessment{Criterion: "change_folder_uncommitted", Status: "not_observed", Evidence: []string{}}
@@ -453,4 +459,14 @@ func changeFolderUncommitted(s auditSession, base string) criterionAssessment {
 		c.Status, c.Evidence = "pass", passed
 	}
 	return c
+}
+
+// hasArg reports whether args holds the flag, alone or as `flag=value`.
+func hasArg(args []string, flag string) bool {
+	for _, a := range args {
+		if a == flag || strings.HasPrefix(a, flag+"=") {
+			return true
+		}
+	}
+	return false
 }
