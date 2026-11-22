@@ -155,12 +155,17 @@ func flowEnteredWithoutRoute(s auditSession) criterionAssessment {
 // buildRoute is the command a plan's next-step block names to start its build,
 // or create-design when the route ends in a screen to draw, in any host's
 // syntax.
-var buildRoute = regexp.MustCompile(`(?:^|[\s\x60(>])(?:[/$@]|/skill:)(?:flow-build|create-design)\b`)
+var buildRoute = regexp.MustCompile(`(?:^|[\s\x60(>*_])(?:[/$@]|/skill:)(?:flow-build|create-design)\b`)
+
+// partialRead is a shell command that searches a skill instead of loading it,
+// such as a grep of one rule while planning.
+var partialRead = regexp.MustCompile(`(?:^|[\s;&|(])(?:rg|grep)\b`)
 
 // loadedFlow returns the flow whose skill an event loads, as readsFlowSkill
-// reads it, or "".
+// reads it, or "". A search event or a grep of the SKILL.md quotes it and
+// loads nothing.
 func loadedFlow(e traceEvent) string {
-	if !readsFlowSkill(e) {
+	if !readsFlowSkill(e) || e.Kind == "search" || e.Kind == "shell" && partialRead.MatchString(e.Command) {
 		return ""
 	}
 	if e.Kind == "skill_invocation" {
@@ -179,14 +184,18 @@ func loadedFlow(e traceEvent) string {
 // planWithoutBuildRoute checks that each plan stage, from a load of flow-plan
 // to the next load of another flow, has an assistant message that names the
 // build command. A stage another flow ends without it fails at the flow-plan
-// load; one the session's end ends without it is a review, since the session
-// may still be open. Loading flow-plan again does not end the stage.
+// load, unless that flow starts in the turn that loaded flow-plan, with no
+// reply of the user between them, a continuation the user may have asked for,
+// or after unattended delegation started: both are reviews. One the session's end ends without it is a
+// review too, since the session may still be open. Loading flow-plan again
+// does not end the stage.
 func planWithoutBuildRoute(s auditSession) criterionAssessment {
 	c := criterionAssessment{Criterion: "plan_without_build_route", Status: "not_observed", Evidence: []string{}}
 	if child(s) {
 		return c
 	}
 	events := s.Trace.Events
+	unattended := unattendedActivation(events)
 	var failed, review, passed []string
 	start, routed := -1, false
 	for i, e := range events {
@@ -195,9 +204,14 @@ func planWithoutBuildRoute(s auditSession) criterionAssessment {
 		case flow == "flow-plan" && start < 0:
 			start, routed = i, false
 		case flow != "" && flow != "flow-plan" && start >= 0:
-			if routed {
+			switch {
+			case routed:
 				passed = append(passed, regressionEvidence(events[start]))
-			} else {
+			case s.Turn[start] == s.Turn[i]:
+				review = append(review, regressionEvidence(events[start])+" flow started in the plan's own turn")
+			case unattended >= 0 && unattended < i:
+				review = append(review, regressionEvidence(events[start])+" after unattended delegation")
+			default:
 				failed = append(failed, regressionEvidence(events[start]))
 			}
 			start = -1

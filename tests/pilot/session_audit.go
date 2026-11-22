@@ -1620,7 +1620,7 @@ var (
 	// numberedTitleLine is a numbered question, such as "**1. ¿Dónde
 	// trabajamos?**". It is a round's title only when a starred option follows
 	// it, as roundTitles checks, since an analysis may list numbered questions.
-	numberedTitleLine = regexp.MustCompile(`(?m)^\s*[#>*\s]*\d+[.)]\s+[^\n]*\?[^\n]*$`)
+	numberedTitleLine = regexp.MustCompile(`(?m)^[ \t]*[#>*]*[ \t]*\d+[.)][ \t]+[^\n]*\?[*_ \t]*$`)
 	// The star may follow the letter with or without a separator: "A - (★)" or
 	// "- **A (★) · …".
 	roundOptionStar = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\s*(?:[-—–·]\s*\**\s*)?\(★\)`)
@@ -1697,41 +1697,39 @@ func isTextRound(text string) bool {
 }
 
 // roundTitles returns the spans of a message's round titles in order: each
-// line roundTitleLine matches, and each numbered question that a starred option
-// line follows before the next title of either kind.
+// title roundTitleLine matches or, in a message with none, the numbered titles
+// numberedRoundTitles keeps. A message with a D<n> title or a session header
+// keeps only those, since its Situation may list numbered questions.
 func roundTitles(text string) [][]int {
-	type title struct {
-		span  []int
-		gated bool
+	if fixed := roundTitleLine.FindAllStringIndex(text, -1); len(fixed) > 0 {
+		return fixed
 	}
-	var all []title
-	fixedAt := map[int]bool{}
-	for _, span := range roundTitleLine.FindAllStringIndex(text, -1) {
-		all = append(all, title{span: span})
-		fixedAt[span[0]] = true
+	return numberedRoundTitles(text)
+}
+
+// numberedRoundTitles returns the numbered questions, such as "**1. ¿Dónde
+// trabajamos?**", that a starred option line follows before the next one, in a
+// message with no roundTitleLine title.
+func numberedRoundTitles(text string) [][]int {
+	if roundTitleLine.MatchString(text) {
+		return nil
 	}
-	for _, span := range numberedTitleLine.FindAllStringIndex(text, -1) {
-		if !fixedAt[span[0]] {
-			all = append(all, title{span: span, gated: true})
-		}
-	}
-	sort.Slice(all, func(i, j int) bool { return all[i].span[0] < all[j].span[0] })
+	spans := numberedTitleLine.FindAllStringIndex(text, -1)
 	var titles [][]int
-	for i, t := range all {
+	for i, span := range spans {
 		end := len(text)
-		if i+1 < len(all) {
-			end = all[i+1].span[0]
+		if i+1 < len(spans) {
+			end = spans[i+1][0]
 		}
-		if !t.gated || roundOptionStar.MatchString(text[t.span[1]:end]) {
-			titles = append(titles, t.span)
+		if roundOptionStar.MatchString(text[span[1]:end]) {
+			titles = append(titles, span)
 		}
 	}
 	return titles
 }
 
-// isRoundTitleLine reports whether the line from start to end of text holds a
-// round title. A title's match may begin on a blank line above it, since its
-// leading \s* crosses newlines, so the line is the one its last byte is on.
+// isRoundTitleLine reports whether the line from start to end of text holds
+// one of the titles, judged by the line its last byte is on.
 func isRoundTitleLine(titles [][]int, start, end int) bool {
 	for _, t := range titles {
 		if last := t[1] - 1; last >= start && last < end {
@@ -2051,6 +2049,9 @@ func auditCriteria(s auditSession, base string) []criterionAssessment {
 var (
 	// The title names a review; the options decide whether it picks a mechanism.
 	reviewQuestionTitle = regexp.MustCompile(`(?i)\brevisi(?:[oó]n|ones)\b|\breview(?:s|ers?)?\b|\brevis(?:amos|ar) el c[oó]digo\b`)
+	// codeReviewTitle asks for the code review itself, not a security review or
+	// a rerun of one.
+	codeReviewTitle = regexp.MustCompile(`(?i)\brevis(?:amos|ar) el c[oó]digo\b|\brevisi[oó]n (?:del? )?c[oó]digo\b|\bcode review\b`)
 	// A decision about a review's findings is not the question that picks it.
 	reviewFindingsTitle = regexp.MustCompile(`(?i)hallazgo|finding`)
 	nativeReviewOption  = regexp.MustCompile(`(?i)/review\b|codex review|revisi[oó]n nativa|native review|\bnativ[ae]\s*:`)
@@ -2078,7 +2079,8 @@ func reviewQuestionNativeOption(s auditSession) criterionAssessment {
 	// mechanism; names is where an option is named (a card's label, not its
 	// description). The question picks a mechanism when at least two options name
 	// one and its title is not about a review's findings, whose options may name
-	// a mechanism too.
+	// a mechanism too; a title that asks for the code review itself needs one,
+	// since a round that offers only the agent still picks the mechanism.
 	judge := func(e traceEvent, title, mechanisms, names string) {
 		named := 0
 		for _, option := range strings.Split(mechanisms, "\n") {
@@ -2086,7 +2088,11 @@ func reviewQuestionNativeOption(s auditSession) criterionAssessment {
 				named++
 			}
 		}
-		if !reviewQuestionTitle.MatchString(title) || reviewFindingsTitle.MatchString(title) || named < 1 {
+		least := 2
+		if codeReviewTitle.MatchString(title) {
+			least = 1
+		}
+		if !reviewQuestionTitle.MatchString(title) || reviewFindingsTitle.MatchString(title) || named < least {
 			return
 		}
 		if nativeReviewOption.MatchString(names) {

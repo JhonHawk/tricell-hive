@@ -105,7 +105,7 @@ Fixtures:
 
 ### T5 — Nuevo criterio `plan_without_build_route`
 
-- [ ] El criterio falla una etapa de plan sin comando de build en ningún mensaje del asistente, pasa con `flow-build` o `create-design` en la sintaxis de cualquier host, da `review` si la sesión termina dentro de la etapa, y no juzga una sesión hija
+- [x] El criterio falla una etapa de plan sin comando de build en ningún mensaje del asistente, pasa con `flow-build` o `create-design` en la sintaxis de cualquier host, da `review` si la sesión termina dentro de la etapa, y no juzga una sesión hija
 
 **Closes:** AC5
 
@@ -145,17 +145,22 @@ Fixtures:
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: build · T1
-- Last commit: uncommitted
+- Stage: build · local CI
+- Last commit: 6818b23f
 - Open findings: none
-- Next: T1 rondas numeradas
+- Next: flow-verify: code review /code-review, then push
 - Worktree: .claude/worktrees/audit-round-detection · feat/audit-round-detection
 - Rules: flow-build/stage.md
+- Principles: none
 
 ### Evidence
 
 - before captures: none (no screen)
 - base sweep: 329 fixtures read with pilot-base @1b87f0a7 (scratchpad verdicts-base.tsv)
+- go test ./... · ok (4m23s) · 6818b23f
+- go vet ./tests/pilot/ · ok · 6818b23f
+- fixture sweep · 342 fixtures, no verdict change outside new fixtures and the new column · 6818b23f
+- facti audit · AC1–AC7 lines 278/278/278/266/210/83/1784 · 6818b23f
 
 ## Review status and progress
 
@@ -163,3 +168,4 @@ Fixtures:
 2026-11-21 — T2 · 742ed7b2 · unverified: none
 2026-11-21 — T3 · 2f2de663 · unverified: none
 2026-11-21 — T4 · 995e234a · unverified: none
+2026-11-21 — T5 · 6818b23f · unverified: none

@@ -151,6 +151,11 @@ func tryItBlockInReport(s auditSession) criterionAssessment {
 		switch {
 		case succeeded(events, i) && (editsInterface(e, s.Cwd) || launchesRole(e, "hive-build-frontend") || launchesRole(e, "hive-build-mobile")):
 			edited = true
+			// A later interface change is another work item, judged on its own
+			// report.
+			if closeTurn >= 0 && s.Turn[i] > closeTurn {
+				closeTurn = -1
+			}
 		case edited && loadsFlowClose(e):
 			closeTurn = s.Turn[i]
 		}

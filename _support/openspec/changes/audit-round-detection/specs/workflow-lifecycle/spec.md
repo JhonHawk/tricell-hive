@@ -2,7 +2,7 @@
 
 ### Requirement: The session audit fails a plan that ends without a build route
 
-`go run ./tests/pilot --audit-session` SHALL report `plan_without_build_route` for Claude, Codex and Grok sessions. A plan stage SHALL run from a load of `flow-plan`, through the skill call or a read of its installed `SKILL.md`, to the next load of a different flow's skill or the end of the session; a further load of `flow-plan` SHALL NOT end it. The criterion SHALL pass a stage in which an assistant message holds the command of `flow-build` or `create-design` in any host's syntax, such as `/flow-build` or `$flow-build`; SHALL fail a stage that a later flow load ends with no such message, giving the line of the `flow-plan` load; SHALL report review for a stage the end of the session ends with no such message, since the session may still be open; SHALL report not_observed when the session loads no `flow-plan`; and SHALL NOT judge a child session.
+`go run ./tests/pilot --audit-session` SHALL report `plan_without_build_route` for Claude, Codex and Grok sessions. A plan stage SHALL run from a load of `flow-plan`, through the skill call or a read of its installed `SKILL.md`, to the next load of a different flow's skill or the end of the session; a further load of `flow-plan`, a search event or a `grep` or `rg` of a flow's `SKILL.md` SHALL NOT end it. The criterion SHALL pass a stage in which an assistant message holds the command of `flow-build` or `create-design` in any host's syntax, such as `/flow-build`, `$flow-build` or `**/flow-build**`; SHALL fail a stage that a later flow load ends with no such message, giving the line of the `flow-plan` load, except that it SHALL report review when that load is in the turn that loaded `flow-plan`, a continuation the user may have asked for, or follows the activation of unattended delegation; SHALL report review for a stage the end of the session ends with no such message, since the session may still be open; SHALL report not_observed when the session loads no `flow-plan`; and SHALL NOT judge a child session.
 
 #### Scenario: A plan kept in the conversation that never names the build command
 
@@ -16,6 +16,12 @@
 - **WHEN** the audit runs on it
 - **THEN** `plan_without_build_route` passes
 
+#### Scenario: A plan and its build in one turn
+
+- **GIVEN** a session whose user asks to plan and build without stopping, and that loads `flow-plan` and then `flow-build` in the same turn with no flow command in its messages
+- **WHEN** the audit runs on it
+- **THEN** `plan_without_build_route` reports review
+
 #### Scenario: A message that names only the plan command
 
 - **GIVEN** a plan stage whose only flow command in an assistant message is `/flow-plan`, ended by a load of `flow-build`
@@ -24,7 +30,7 @@
 
 ### Requirement: The session audit reads a round written with numbered questions
 
-In `go run ./tests/pilot --audit-session`, a decision round written as text SHALL also be a block whose title line is numbered and ends in a question, such as `**1. ¿Dónde trabajamos?**`, when at least one option line marked `(★)` follows it before the next title; a numbered question with no such option SHALL remain a sentence that `prose_choice_without_card` reads. An option line SHALL count as the recommended one when `(★)` follows its letter with or without a separator, as in `- **A (★) · Checkout actual.**`. On Codex, `review_question_native_option` SHALL judge a review question, its title naming a review or asking how the code is reviewed, whose options name at least one review mechanism.
+In `go run ./tests/pilot --audit-session`, a decision round written as text SHALL also be a block whose title line is numbered and ends in a question, such as `**1. ¿Dónde trabajamos?**`, when at least one option line marked `(★)` follows it before the next title and the message has no `D<n>` title or session header, whose Situation may list numbered questions; a numbered question with no such option SHALL remain a sentence that `prose_choice_without_card` reads. An option line SHALL count as the recommended one when `(★)` follows its letter with or without a separator, as in `- **A (★) · Checkout actual.**`. On Codex, `review_question_native_option` SHALL judge a review question whose options name at least two review mechanisms, and one that asks for the code review itself, such as «¿Cómo revisamos el código?», whose options name at least one; a security review question with one mechanism SHALL NOT be judged.
 
 #### Scenario: The delivery round written as numbered questions
 
@@ -78,7 +84,7 @@ When a Codex `exec` cell's output holds as many plain-text items as the cell has
 
 ### Requirement: The session audit judges the Try it block on the close report
 
-`try_it_block_in_report` SHALL judge the last assistant message of the last turn that loaded `flow-close`, through the skill call, a read of its installed `SKILL.md` or a shell read of it, a `sed` range included, after the interface change, when the session has one; and the session's last assistant message otherwise.
+`try_it_block_in_report` SHALL judge the last assistant message of the last turn that loaded `flow-close`, through the skill call, a read of its installed `SKILL.md` or a shell read of it, a `sed` range included, after the interface change, when the session has one and no later interface change follows that turn; and the session's last assistant message otherwise.
 
 #### Scenario: Other work after the close report
 
