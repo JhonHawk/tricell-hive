@@ -83,7 +83,7 @@ Base `development` en `867f5463`, rama `feat/skill-registry-mobile`, worktree `.
 
 ### T5 — Camino de dispositivo en la verificación de interfaz
 
-- [ ] `ui-verification.md` tiene «Device tool», y los roles y hojas que asumen navegador remiten a él para una app nativa.
+- [x] `ui-verification.md` tiene «Device tool», y los roles y hojas que asumen navegador remiten a él para una app nativa.
 
 **Closes:** AC7, AC8
 
@@ -133,12 +133,12 @@ Sin parada de validación humana (`automatic`).
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: build · local CI
-- Last commit: b76b6b32
+- Stage: verify · reviews running
+- Last commit: 59e77a86
 - Open findings: none
-- Next: flow-verify: walk AC1-AC8 (AC7 needs the Pixel), /code-review, hive-review-security
+- Next: wait /code-review and hive-review-security; review findings round; push, PR, merge (automatic)
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/skill-registry-mobile · feat/skill-registry-mobile
-- Rules: flow-build/stage.md
+- Rules: flow-verify/stage-entry.md · extra: viewer
 - Principles: none
 
 ### Evidence
@@ -148,6 +148,9 @@ Sin parada de validación humana (`automatic`).
 - go test ./... · pass · b76b6b32
 - python3 -m unittest discover -s tests/skills -p '*_test.py' · pass, 383 tests · b76b6b32
 - CI-only: .github/workflows/master-source-branch.yml (branch rule on GitHub)
+- AC7 walk: adb -s AXLKCP4403411088 exec-out screencap -p → PNG 720x1612, hive view work capture --viewport mobile → updated, iteration 1 · 59e77a86
+- AC1 walk: skill_registry.py check <worktree> → exit 1, names .agents/skills/reui once · 59e77a86
+- blast radius: temp project-scope install (28 skills each in .agents/.claude) → check exit 0; + third-party skill → exit 1 · 59e77a86
 
 ## Review status and progress
 
@@ -156,3 +159,4 @@ Sin parada de validación humana (`automatic`).
 2026-11-21 — T3 · 10582c10 · unverified: none
 2026-11-21 — T4 · 5911a832 · unverified: AC6 se observa tras el refresco del mantenedor posterior al merge
 2026-11-21 — T6 · b76b6b32 · unverified: build del sitio y chequeo de enlaces no corrieron (site/ sin node_modules)
+2026-11-21 — T5 · 2747e98f · unverified: iOS sin observar (esta Mac no tiene Xcode completo); AC7 observado en WDY-LX3 por D7 A, no en el Pixel
