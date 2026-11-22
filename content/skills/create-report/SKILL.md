@@ -9,7 +9,7 @@ When documentation should live as a maintained, searchable Starlight site, read 
 
 Before writing the support deliverable, read [layout and retention](../project-layout/references/layout.md).
 
-Use this skill when the requested deliverable benefits from an explicit visual or printable presentation. A request to save findings for later does not by itself call for HTML: keep resumable research in a Markdown work record, placed where that reference puts research records. Preserve an explicitly requested format. Keep ordinary answers, status updates, and ordinary handoffs out of HTML; viewer publication belongs to [walkthrough](../hive-core/ui/walkthrough.md), not these report assets. The rules for chat replies are [decision format](../hive-core/messages/questions.md) and [asking a round](../hive-core/messages/questions.md).
+Use this skill when the requested deliverable benefits from an explicit visual or printable presentation. A request to save findings for later does not by itself call for HTML: keep resumable research in a Markdown work record, placed where that reference puts research records. Preserve an explicitly requested format. Keep ordinary answers, status updates and handoffs out of HTML; viewer publication belongs to [walkthrough](../hive-core/ui/walkthrough.md), not these assets.
 
 Choose the asset that matches what the reader receives:
 
@@ -22,8 +22,8 @@ Choose the asset that matches what the reader receives:
 | Unresolved option comparison | [template](assets/skeleton-comparison.html) |
 | Guided presentation | [template](assets/skeleton-deck.html) |
 
-Copy an asset and replace its placeholders with accurate, audience-appropriate content. Keep its responsive and print behavior unless the report needs a deliberate alternative. Write human-facing content in the session language. Put the report in the destination resolved by the workspace guidance; do not invent a destination or overwrite a retained record without authorization.
+Copy an asset and replace its placeholders with accurate content in the session language, keeping its responsive and print behavior unless the report needs a deliberate alternative. Put the report in the destination the workspace guidance resolves; do not invent one or overwrite a retained record without authorization.
 
-Reports are offline by default: keep styles, scripts, images, and diagrams in the file. If an external asset is necessary, add `<meta name="flow-report-assets" content="external">`, name the dependency in the report, and make the readable content work without it. Include a short provenance footer with the date, inputs, and relevant paths.
+Reports are offline by default: keep styles, scripts, images and diagrams in the file. If an external asset is necessary, add `<meta name="flow-report-assets" content="external">`, name the dependency in the report, and make the readable content work without it. Include a short provenance footer with the date, inputs and relevant paths.
 
-Run [the self-check](scripts/self_check.py) with `python3 <skill-dir>/scripts/self_check.py <report.html>` after writing and fix failures. For reports containing inline SVG diagrams, also run [the geometry check](scripts/verify_geometry.py) with `python3 <skill-dir>/scripts/verify_geometry.py <report.html>`. Read [the diagram grammar](references/diagram-grammar.md) before drawing or modifying an SVG diagram, and [the SVG construction rules](references/diagram-svg-construction.md) before writing or changing SVG markup.
+Run [the self-check](scripts/self_check.py) with `python3 <skill-dir>/scripts/self_check.py <report.html>` after writing and fix failures. For inline SVG diagrams, also run [the geometry check](scripts/verify_geometry.py) with `python3 <skill-dir>/scripts/verify_geometry.py <report.html>`. Read [the diagram grammar](references/diagram-grammar.md) before drawing or modifying an SVG diagram, and [the SVG construction rules](references/diagram-svg-construction.md) before writing or changing SVG markup.

@@ -2,7 +2,7 @@
 
 Read at [create-issue](../SKILL.md) step 1, when the user asks to validate, review or complete a ticket that already exists. It replaces that skill's steps 2 to 8. A flow that only judges whether a ticket is ready, as [hive-mode](../../hive-mode/SKILL.md) does for a chosen ticket, reads the ready list of [ticket types](ticket-types.md) and not this reference.
 
-1. **Read the ticket.** Read it whole with its comments, and each document it links as far as the ticket depends on it. With the code at hand, compare what the ticket states with the code: what already exists, what the code contradicts, and what data, relation or permission is missing. These are technical findings, and you state them on your own.
+1. **Read the ticket.** Read it whole with its comments and each document it links as far as the ticket depends on it. With the code at hand, compare what the ticket states with it (what already exists, what the code contradicts, what data, relation or permission is missing); these technical findings you state on your own.
 2. **Run the ready list.** Apply the ready list of [ticket types](ticket-types.md) and note, for each check that fails, what is missing.
 3. **Check authorship and permission.** Before any write, compare the ticket's author with the account authenticated in the tracker, and read what that account may write there, as [trackers](trackers.md) sets.
 4. **Pick the output.** Take the first case that holds:

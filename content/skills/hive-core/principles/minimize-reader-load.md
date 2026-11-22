@@ -6,6 +6,6 @@ Read when you shape code a person must follow, and when a review asks why a piec
 - Shrink the scope of state: return a value instead of mutating, prefer a local to a field, a field to module state, module state to a global. Derive a value instead of keeping a copy in step.
 - State an invariant once, at the boundary, not in each consumer.
 
-Test: can a new reader answer "where does X come from?" and "what can change X?" within half a minute? If not, remove a layer or narrow a state.
+Test: a new reader can answer "where does X come from?" and "what can change X?" within half a minute; if not, remove a layer or narrow a state.
 
 A layer that hides a real second implementation, a boundary or a test seam the code needs stays.

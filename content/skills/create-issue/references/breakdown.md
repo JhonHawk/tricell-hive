@@ -4,16 +4,15 @@ Read at [create-issue](../SKILL.md) step 3, when the work names more than one ch
 
 ## The set
 
-- A child is a change that is integrated and accepted on its own: it has its own outcome and its own criteria, and someone could deliver it and stop there. A part that only makes sense inside another change, such as a layer, a step or one file, is not a child: it stays in its ticket, and that ticket's plan turns it into a task.
-- Cut the children as slices that each deliver behavior end to end, not one child per layer such as "the API" and "the screen" of the same capability.
+- A child is a change that is integrated and accepted on its own, with its own outcome and criteria, and someone could deliver it and stop there; a layer, step or file that only makes sense inside another change stays in its ticket, whose plan turns it into a task. Cut children as slices that each deliver behavior end to end, not one per layer ("the API", "the screen").
 - The parent states the outcome the children share, what is out of scope for the whole set, and its children. A set has at least two children; with one, write one ticket.
 - Each child is drafted and checked as a ticket of its type, as [ticket types](ticket-types.md) sets, and names the repository it changes.
 - When a child cannot start before another finishes, record that it is blocked by it; leave the others unordered.
-- A set is a parent with its children. Several tickets for separate findings, each one chosen by the user, are single tickets and follow the skill's steps 7 and 8; so is a group of findings that a flow presents as one item, which is one ticket that lists its members.
+- Several tickets for separate findings, each chosen by the user, are single tickets following the skill's steps 7 and 8; so is a group of findings a flow presents as one item (one ticket that lists its members).
 
 ## Approval
 
-Show the whole set before any write: the parent, then each child with its type, title, outcome, criteria, repository and what it is blocked by, and which tickets would be created as blocked. Ask one approval for the whole set, as one decision whose options are to create it or to correct it. A correction changes the set, and the changed set is shown again. No ticket of the set is written before that approval, and an earlier answer that asked for "a ticket" does not cover a set: ask it also inside a flow.
+Show the whole set before any write: the parent, then each child with its type, title, outcome, criteria, repository and what it is blocked by, and which tickets would be created as blocked. Ask one approval for the whole set, as one decision whose options are to create it or to correct it; a correction changes the set, which is shown again. No ticket of the set is written before that approval, and an earlier answer asking for "a ticket" does not cover a set, also inside a flow.
 
 While [unattended delegation](../../unattended-delegation/SKILL.md) is active, create no set: report the proposed set as unresolved. A single ticket for a finding is still created there without a confirmation.
 

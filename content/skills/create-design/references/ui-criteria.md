@@ -1,6 +1,6 @@
 # UI criteria
 
-Criteria for screens, ranked below the project's own design system. Follow the steps in order; load a reference only when the table at step 5 names your situation.
+Criteria for screens, ranked below the project's own design system. Follow the steps in order.
 
 1. **Find the design record.** Look for `DESIGN.md` at the root of the app that owns the UI, next to its package manifest; in a monorepo, the app whose screens the change touches. When it exists, read it first, then check it for staleness as [design record](design-record.md#staleness) sets.
 2. **Detect when the record is missing or stale.** Follow [design record](design-record.md#detection): library, installed version, customization layer, library tools. Write or refresh the record only as [design record](design-record.md#writing) «Writing» sets; until then, use what you detected without saving it.
@@ -11,7 +11,6 @@ Criteria for screens, ranked below the project's own design system. Follow the s
    | Situation | Read |
    | --- | --- |
    | Create or change a screen, or review one | [criteria](criteria.md) |
-   | Refine a built screen | [refinement](refinement.md) |
    | Create or refresh `DESIGN.md`, or detect the library | [design record](design-record.md) |
 
 6. **Report** as the output contract sets.

@@ -22,3 +22,18 @@ The findings stay in the conversation; save them to a file only when the user as
 ## How it ends
 
 End with a block of replies and no command, as [report endings](../../hive-core/messages/report-endings.md) sets for a review.
+
+## Judging frames
+
+The procedure of the `hive-review-ux` child for frames in a design file or an image of a design; it replaces steps 1 to 3 of that role. Read each frame and each sibling screen the brief names through the design tool's connection, the image and the node tree of both; a sibling whose image was not read is a comparison not run, reported as such. Judge each frame, components and copy included, against the request, what the siblings fix (as the brief lists it, or measured in the named siblings), and the decisions recorded for the app, by [UI criteria](ui-criteria.md) and its precedence.
+
+- **Library:** when the brief names a design library, declared in `DESIGN.md` or not, a piece or variable it holds that the frames draw other than as its instance or binding is a finding, unless the brief says the file could not use the library. Search the library through the connection for each `candidate:` piece in the brief and each piece drawn without an instance, and report the ones it holds. A piece the brief's inventory shows the siblings instance, drawn other than as an instance of that component or of the library's own, is a finding with or without a library.
+- **Siblings' images:** compare for what a node tree does not show: the fill of table headers and containers, the page's side margins, the container around filters and toolbars, the density of rows.
+- **Alignment:** measure edges and spacing shared with the siblings, a shell whose size matches theirs, nodes outside automatic layout or absolutely positioned where the siblings use neither, and text that does not fit its container.
+- **Unsettled rules:** list apart each business rule a frame shows, as [business rules](../../hive-core/business/business-rules.md) defines one, that neither the brief's requirements and recorded decisions nor the siblings settle; it does not fail the verdict.
+
+Driving a browser, loading, empty and error states, keyboard order, focus, the automated audit, the defects the base already shows and the handoff captures do not apply. Without a connection that reads the file, judge from the images in the brief and report each alignment measurement as not run.
+
+The verdict starts as not passed and is passed when the frames show no finding against the request, the siblings, the recorded decisions or the brief's library. In a first review it stays not passed while a sibling image or a library search the connection lets you run was not run; one the connection cannot run is reported as not run without failing the verdict. A follow-up after a fix rereads only the corrected frames. When its brief gives rule cards, read each card with its frame and the brief's rule lines, as [rule cards](rule-cards.md) sets, and report as findings a row that repeats the frame's visible text, a row the frame contradicts, and a rule of those lines that its screen's card lacks although the frame's text does not say it. Report as step 4 of the role sets, with the unsettled rules after the findings, without the base's defect list and without states not covered. Never change the frames.
+
+Given an image of a design and no file or nodes, judge from the image alone: every measurement that needs nodes is not run, and the verdict is passed when the image shows no finding against the request, the recorded decisions and the criteria.

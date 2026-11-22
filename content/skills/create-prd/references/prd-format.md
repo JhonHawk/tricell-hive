@@ -1,6 +1,6 @@
 # PRD format
 
-Read before drafting a requirement document and before checking one, at [create-prd](../SKILL.md) steps 4, 5 and 7, in its [incoming document](incoming-document.md) and [technical review](technical-review.md) uses, and when the `hive-review-prd` role reviews one. Reading this reference writes no document.
+Read at [create-prd](../SKILL.md) steps 4, 5 and 7, in its [incoming document](incoming-document.md) and [technical review](technical-review.md) uses, and when the `hive-review-prd` role reviews a document.
 
 ## Sections
 

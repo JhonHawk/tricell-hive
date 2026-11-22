@@ -5,7 +5,7 @@ Read before you write a decision, finding, blocker or list for the user, before 
 ## What to ask
 
 - Ask only a choice that is the user's and changes what happens next: find the facts yourself and reuse decisions given.
-- **Decide and list.** An open decision of what or how is taken without asking when none of a–f holds and its recommended option has a consequence the others lack. List it in the next message, headed such as «What I decided», one line each: the decision, the alternative discarded, how to reverse it; five at most, the rest approved in one question. Say in one line that a reply accepts each one it does not correct; that authorizes no effect and leaves a business rule `assumption`.
+- **Decide and list.** An open decision of what or how is taken without asking when none of a–f holds and its recommended option has a consequence the others lack. List it in the next message, headed such as «What I decided», one line each: the decision, the alternative discarded, how to reverse it; five at most, the rest approved in one question. A reply accepts each one it does not correct, which authorizes no effect and leaves a business rule `assumption`; say so in one line.
 - **Ask** a decision when at least one holds:
   - **a.** It adds or removes behavior, touches another module or splits the work, against the ticket or the request.
   - **b.** The recommended option costs less now and another avoids rework or a migration later.
@@ -14,7 +14,7 @@ Read before you write a decision, finding, blocker or list for the user, before 
   - **e.** It rests on an unverified fact, or no consequence separates the options.
   - **f.** It contradicts the user, the ticket or the specs.
 - Rounds other rules set stay asked: effects, session questions, validation, findings, Figma approval and `proposed` rules, a plan's approach, create-issue and create-prd, an unanswered card, an external project, test infrastructure.
-- Ask in rounds of every decision whose prerequisites are settled; a decision is a prerequisite when one of its answers would change or void another's question or options, such as one about carrying out its recommended option, which waits for a later round unless its options hold under every answer.
+- Ask in one round every decision whose prerequisites are settled. A decision is a prerequisite when one of its answers would change or void another's question or options; the dependent one waits for a later round unless its options hold under every answer.
 - An open question about what the user wants, as [hive-mode](../../hive-mode/SKILL.md) step 3 asks it, goes in the text, one per message, with why you ask and an offer to start without the answer, and no IDs, options or "ok" line.
 
 ## Format
@@ -49,9 +49,9 @@ D<n+1> — …
 
 - The context line opens every message that asks a decision or a validation, delivers a result or a blocker, or closes work; the waiting line ends it.
 - `Situation:` uses the user's words and explains each ID or name it uses. `I recommend` gives its reason as [reasons and blockers](reasons-and-blockers.md) sets, plus what stays uncertain for a choice of scope, a contract, stored data, cost or one hard to reverse.
-- The session questions, the delivery mode, the code review mechanism and the security review, take a fixed header in the session language, such as **Delivery** and **Review**, in place of the ID, and keep the rest of the format. A finding asked in a round carries its title line `H1 — …` and its option lines, such as fix now, ticket and ignore, without the labelled lines.
+- The session questions (delivery mode, code review mechanism, security review) take a fixed header in the session language, such as **Delivery** and **Review**, in place of the ID. A finding asked in a round carries its title line `H1 — …` and option lines, such as fix now, ticket and ignore, without the labelled lines.
 - IDs: decisions and blocks of lettered replies `D<n>` ([report endings](report-endings.md)), findings `H<n>`, tasks `T<n>`, criteria `AC<n>`, numbered on through the session and never reused. Cite an option as `D2 B` and an ID with a short gloss, such as "D2 (autonomous CI)".
-- In a list, report or close, each point carries one item and opens with its ID in bold and a dash, `- **D2** — Move the summary to the top`, or with its description when it has none.
+- In a list, report or close, each point carries one item and opens with its ID in bold and a dash, `- **D2** — Move the summary to the top`.
 
 ## Channel
 
@@ -72,8 +72,7 @@ description: If you choose it: <…>; the starred one ends with the reason and w
 label:       B - <two to five words>
 ```
 
-  Show artifact options, such as sketches or code, in the preview, otherwise in a code block.
-- One tool per pending question: never repeat it through an asynchronous and a waiting tool, nor send another card while one waits. A receipt is not an answer. A plain acceptance, such as "ok", "dale" or "con los recomendados", applies the starred options of the decisions the user was shown; free text still answers, and an asked decision a reply leaves out, or one not shown, stays open; a listed one follows «Decide and list».
+- One tool per pending question: never repeat it through an asynchronous and a waiting tool, nor send another card while one waits. A receipt is not an answer. A plain acceptance, such as "ok" or "dale", applies the starred options of the decisions the user was shown; free text still answers, a decision a reply leaves out or one not shown stays open, and a listed one follows «Decide and list».
 
 ## A card returns unanswered
 

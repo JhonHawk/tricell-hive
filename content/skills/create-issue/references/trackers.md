@@ -1,10 +1,10 @@
 # Trackers
 
-Read before the first write to a tracker, at [create-issue](../SKILL.md) step 8, and when a ticket is marked as blocked at its step 6. Each tracker's commands are in the references of [trackers](../../hive-core/tracker/trackers.md): [Jira](../../hive-core/tracker/trackers/jira.md), [Linear](../../hive-core/tracker/trackers/linear.md) and [GitHub](../../hive-core/tracker/trackers/github.md). It names each tracker's own concept; perform the action through the tracker's own CLI or tool, and read that tool's current help for the exact command, since its options change between versions.
+Read before the first write to a tracker, at [create-issue](../SKILL.md) step 8, and when a ticket is marked as blocked at its step 6. Each tracker's commands are in the references of [trackers](../../hive-core/tracker/trackers.md): [Jira](../../hive-core/tracker/trackers/jira.md), [Linear](../../hive-core/tracker/trackers/linear.md) and [GitHub](../../hive-core/tracker/trackers/github.md).
 
 ## Before writing
 
-Read what the authenticated account may do in the target: create a ticket, set its type and labels, relate it to another, comment, and edit a ticket someone else wrote. A tracker can drop a field the account may not set without reporting an error, so name before the write each field you will not be able to set. New tickets go in the primary tracker: the `Tracker` that the `## Hive` of the repository the session works in declares, as [project settings](../../hive-core/plan/project-settings.md) sets, unless the user names another tracker or repository for the ticket.
+Read what the authenticated account may do in the target (create a ticket, set its type and labels, relate it, comment, edit a ticket someone else wrote); a tracker can drop a field the account may not set without an error, so name each field you cannot set before the write. New tickets go in the primary tracker: the `Tracker` that the `## Hive` of the repository the session works in declares, as [project settings](../../hive-core/plan/project-settings.md) sets, unless the user names another tracker or repository for the ticket.
 
 ## Type
 
@@ -12,16 +12,7 @@ Set the ticket's type with the tracker's own type when it has one that matches, 
 
 ## Parent and children
 
-| Level | GitHub | Linear | Jira |
-| --- | --- | --- | --- |
-| One ticket | An issue, with an issue type where the organization defines types | An issue | A story, task or bug |
-| Parent with children | A parent issue with sub-issues | A parent issue with sub-issues | An epic, with each child naming it as its parent |
-
-- In GitHub, issue types exist only where the organization defines them. A repository owned by a user account has none: create the parent without a type.
-- Linear has no epic type: the parent issue is the epic. Add the tickets to a project only when the user names an existing one.
-- In Jira, the epic is an issue type. Sub-tasks are parts of one ticket and are not used for the children of a breakdown.
-- Never create a project, a milestone or an initiative to hold a set.
-- For another tracker, use its own parent and child relation when it has one. Otherwise list the children in the parent's text and the parent in each child, and say in the report what could not be represented.
+One ticket is an issue (GitHub, with an issue type where the organization defines types; a repository owned by a user account has none, so create the parent without a type), an issue (Linear) or a story, task or bug (Jira). A parent with children is a parent issue with sub-issues in GitHub and Linear (Linear has no epic type; add tickets to a project only when the user names an existing one) and an epic in Jira, with each child naming it as its parent (Jira sub-tasks are parts of one ticket, not children of a breakdown). Never create a project, milestone or initiative to hold a set. For another tracker, use its own parent and child relation; otherwise list the children in the parent's text and the parent in each child, and say in the report what could not be represented.
 
 ## Relating a ticket to its origin
 

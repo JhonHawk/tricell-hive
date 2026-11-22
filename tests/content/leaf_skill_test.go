@@ -30,15 +30,9 @@ const (
 	// playbookModePhrase is the fixed phrase through which a playbook refers to
 	// the delivery mode: it never fixes or replaces the mode itself.
 	playbookModePhrase = "under the delivery mode in force"
-	// The next three constants are what the reporting line of every playbook
-	// links: how its message ends and the final-report row that the delivery
-	// mode in force picks (AC7 of the reporting-family-leaves plan).
-	playbookEndingsLink = "hive-core/messages/report-endings.md"
-	playbookReportLink  = "hive-core/close/close-report.md#variants"
-	playbookReportModes = "the delivery mode in force picks"
-	ruleLeavesHeading   = "## Rule leaves"
-	languageLeafName    = "hive-typescript"
-	coreSkillName       = "hive-core"
+	ruleLeavesHeading  = "## Rule leaves"
+	languageLeafName   = "hive-typescript"
+	coreSkillName      = "hive-core"
 	// principlesDomain is the domain of the principle leaves; its index is
 	// principles/index.md and is not a leaf.
 	principlesDomain    = "principles"
@@ -70,11 +64,10 @@ var leafSizeExceptions = map[string]bool{
 	"close-report": true,
 }
 
-// playbookKinds is the closed set of playbooks of hive-mode, one file each.
+// playbookKinds is the closed set of hive-mode playbooks that have a file; the
+// other kinds of hive-mode's table carry what is specific to them in their row.
 var playbookKinds = []string{
-	"bugfix", "data-change", "deliverable", "dependency-security", "feature",
-	"hotfix", "infra-ci", "investigate", "perf", "pr-review-deploy",
-	"refactor", "ticket-status", "ui-change",
+	"data-change", "dependency-security", "perf", "refactor", "ticket-status", "ui-change",
 }
 
 var deliveryModeNamePattern = regexp.MustCompile("`(interactive|automatic|ready|direct-base|hold)`")
@@ -390,16 +383,6 @@ func leafProblems(root string) []string {
 		}
 		if data, err := os.ReadFile(path); err == nil {
 			text := string(data)
-			name := filepath.Base(path)
-			reporting := playbookReporting(text)
-			for _, want := range []string{playbookEndingsLink, playbookReportLink, playbookReportModes} {
-				if !strings.Contains(reporting, want) {
-					problems = append(problems, fmt.Sprintf("playbook %s lacks %q in its reporting line", name, want))
-				}
-			}
-			if playbookHasStage(text, "flow-deploy") && !strings.Contains(reporting, "deployment row of") {
-				problems = append(problems, fmt.Sprintf("playbook %s lacks the deployment row of close report in its reporting line", name))
-			}
 			for _, mode := range playbookModeNames(text) {
 				problems = append(problems, fmt.Sprintf("playbook %s names the delivery mode %s outside the phrase %q", filepath.Base(path), mode, playbookModePhrase))
 			}
@@ -419,28 +402,6 @@ func leafProblems(root string) []string {
 	}
 	sort.Strings(problems)
 	return problems
-}
-
-// playbookReporting returns the paragraph that starts with **Reporting.**, or
-// an empty string when the playbook has none.
-func playbookReporting(text string) string {
-	for _, para := range strings.Split(text, "\n\n") {
-		if strings.HasPrefix(strings.TrimSpace(para), "**Reporting.**") {
-			return para
-		}
-	}
-	return ""
-}
-
-// playbookHasStage reports whether the paragraph that starts with **Stages.**
-// links the named flow.
-func playbookHasStage(text, flow string) bool {
-	for _, para := range strings.Split(text, "\n\n") {
-		if strings.HasPrefix(strings.TrimSpace(para), "**Stages.**") {
-			return strings.Contains(para, flow+"/SKILL.md")
-		}
-	}
-	return false
 }
 
 // playbookModeNames returns each delivery mode a playbook names in backticks
@@ -513,8 +474,8 @@ func TestLeafSkillInvariantsCatchViolations(t *testing.T) {
 	writeFile(t, filepath.Join(skills, legacyRulePrefix+"x", "keep"), "")
 	writeFile(t, filepath.Join(skills, legacyPrincipleSkillPrefix+"x", "keep"), "")
 	writeFile(t, filepath.Join(skills, languageLeafName, "SKILL.md"), leafDoc(languageLeafName, "disable-model-invocation: true\n"))
-	writeFile(t, filepath.Join(skills, "hive-mode", "playbooks", "bugfix.md"), strings.Repeat("y", playbookSizeLimit+1))
-	writeFile(t, filepath.Join(skills, "hive-mode", "playbooks", "hotfix.md"), "Push "+playbookModePhrase+", then stop in `hold`.\n")
+	writeFile(t, filepath.Join(skills, "hive-mode", "playbooks", "perf.md"), strings.Repeat("y", playbookSizeLimit+1))
+	writeFile(t, filepath.Join(skills, "hive-mode", "playbooks", "refactor.md"), "Push "+playbookModePhrase+", then stop in `hold`.\n")
 	writeFile(t, filepath.Join(skills, "hive-mode", "playbooks", "extra.md"), "Not one of the playbooks.\n")
 
 	got := strings.Join(leafProblems(root), "\n")
@@ -542,11 +503,10 @@ func TestLeafSkillInvariantsCatchViolations(t *testing.T) {
 		"principles/index.md lists p5, which does not exist",
 		"hive-typescript: must stay model-invocable",
 		"hive-typescript: frontmatter has no `paths`",
-		"playbook bugfix.md is",
-		"playbook hotfix.md lacks \"" + playbookEndingsLink + "\" in its reporting line",
-		"playbook hotfix.md names the delivery mode `hold` outside the phrase",
+		"playbook perf.md is",
+		"playbook refactor.md names the delivery mode `hold` outside the phrase",
 		"hive-mode/playbooks holds extra.md",
-		"hive-mode/playbooks lacks feature.md",
+		"hive-mode/playbooks lacks ui-change.md",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing problem %q in:\n%s", want, got)

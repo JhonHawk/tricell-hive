@@ -12,7 +12,7 @@ hold the canonical rules.
 For where each flow loops and where a requested change returns the work, see the [changes and loops overview](/flows/overview/).
 
 - [Status](/flows/status/), a playbook of Hive mode: report the backlog and unfinished work, read-only, and recommend what to take next.
-- [Hive mode](/flows/hive-mode/): the entry for every request to do work. It settles what you need, opens at most one of 13 playbooks for the kind of work, and also investigates a question with evidence or audits the codebase for what to improve.
+- [Hive mode](/flows/hive-mode/): the entry for every request to do work. It settles what you need, classifies the work by kind and opens its playbook when the kind has one, and also investigates a question with evidence or audits the codebase for what to improve.
 - [Create design](/flows/create-design/): draw a new screen in Figma, correct frames you name, review a design someone else drew, or create or refresh `DESIGN.md`.
 - [Plan](/flows/plan/): settle consequential decisions and define verifiable work.
 - [Build](/flows/build/): implement authorized changes and hand over a built candidate.

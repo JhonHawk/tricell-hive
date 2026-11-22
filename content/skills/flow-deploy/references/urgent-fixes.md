@@ -1,6 +1,6 @@
 # Urgent production fixes
 
-Read by [flow-deploy](../SKILL.md) when a production defect cannot wait for the next scheduled promotion. The branch rule that keeps environment branches on the promotion path stays in [promotion path](../../hive-core/git/promotion-path.md).
+Read by [flow-deploy](../SKILL.md) when a production defect cannot wait for the next scheduled promotion.
 
 A production defect cannot wait for the next scheduled promotion when the user says so, or when the defect is P0 by [close report](../../hive-core/close/close-report.md#findings); this paragraph is the definition other files point to. Use this route for such a defect when the repository has environment branches. Enter with the fix integrated, as the skill's entry sets: it follows the chosen delivery mode through [flow-build](../../flow-build/SKILL.md) into the base branch and is then promoted at once through each environment in the declared order, each promotion with its usual gates.
 

@@ -27,14 +27,7 @@ Ask them in the round of the manifest, as [decision format](../../hive-core/mess
 
 Group entries by repository, in the order they can be applied. Each entry has:
 
-| Field | Content |
-| --- | --- |
-| Operation | `rename`, `move`, `archive`, `create`, `insert`, `keep`, `manual`, or `ask` |
-| Source → destination | Repository-relative paths |
-| Command | The exact `git mv` or `mkdir` for mechanical operations; for `insert`, the exact line and the line it follows; none for `manual` or `ask` |
-| Reason | The evidence that places it there |
-| Links affected | Files that reference the source path |
-| Risk | Collisions, links to rewrite, open work using the path |
+Each entry has an operation (`rename`, `move`, `archive`, `create`, `insert`, `keep`, `manual` or `ask`), repository-relative source and destination paths, the exact `git mv` or `mkdir` command for mechanical operations (for `insert`, the exact line and the line it follows; none for `manual` or `ask`), the reason (the evidence that places it there), the files that reference the source path, and the risk (collisions, links to rewrite, open work using the path).
 
 Rules for proposing entries:
 

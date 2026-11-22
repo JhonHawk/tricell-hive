@@ -7,6 +7,6 @@ Read when you design an operation that changes state and can be interrupted, rep
 3. Write a file to a temporary path in the same folder and move it into place, so a reader never sees a partial file.
 4. An operation that cannot be made idempotent says so and is guarded by a check before it runs.
 
-Tests: what happens if this runs twice? What if the previous run died at each point between its first and last effect? If the answer depends on what was left behind, add a reconciliation step.
+Test: run it twice, and kill it between its first and last effect; if the outcome depends on what was left behind, add a reconciliation step.
 
 An external or stored effect still follows the project's effects and stored-data rules.

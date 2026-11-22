@@ -1,6 +1,6 @@
 # Ticket types
 
-Read before drafting a ticket and before checking one, at [create-issue](../SKILL.md) steps 5 and 6, and when another flow judges whether a ticket is ready, as [hive-mode](../../hive-mode/SKILL.md) does for a chosen ticket. Reading this reference creates no ticket.
+Read at [create-issue](../SKILL.md) steps 5 and 6, and when another flow judges whether a ticket is ready, as [hive-mode](../../hive-mode/SKILL.md) does for a chosen ticket.
 
 ## Sections
 
@@ -38,7 +38,7 @@ A ticket is ready when all eight hold. [check_issue.py](../scripts/check_issue.p
 7. The sections its type adds are present: for a bug, its steps to reproduce, its expected and observed results and its environment.
 8. The work is one change that is integrated and accepted on its own, with at most 7 criteria; a spike has its timebox and its deliverable.
 
-A draft that fails check 8 for its size goes to [breakdown](breakdown.md), except a group of findings that a flow presents as one item: it stays one ticket, with one criterion for each member. A ticket that already exists and fails it is reported as too large, with the split proposed and nothing split: [hive-mode](../../hive-mode/SKILL.md) settles its scope with the user, and [existing ticket](existing-ticket.md) proposes the split to its owner.
+A draft that fails check 8 for its size goes to [breakdown](breakdown.md), except a group of findings a flow presents as one item: it stays one ticket, with one criterion per member. An existing ticket that fails it is reported as too large, with the split proposed and nothing split ([hive-mode](../../hive-mode/SKILL.md) settles its scope with the user; [existing ticket](existing-ticket.md) proposes the split to its owner).
 
 ## Hint
 

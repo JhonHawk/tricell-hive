@@ -4,20 +4,20 @@ Read at step 3 of [create-design](../SKILL.md), before step 4, whatever the app'
 
 ## Sibling records
 
-Search for the file's location together with each sibling's frame node, since node identifiers repeat across files, a filtered read, in the project's change folders, archived ones included, and in the `examples.md` files of its work folders under `_support/workspace/`. Read the record of the example a sibling was approved from when one is found: its corrections are decisions too.
+Search the project's change folders, archived ones included, and the `examples.md` files of its work folders under `_support/workspace/` for the file's location together with each sibling's frame node, since node identifiers repeat across files; use a filtered read. Read the record of the example a sibling was approved from when one is found: its corrections are decisions too.
 
 ## Which library binds
 
 Bind one Figma library at step 3: the one that holds the app's components and variables. A library of another design tool does not count. Take the first of these that gives one:
 
-1. **The conversation.** The library the user named or shared in this conversation as the place of the app's components, by its name or by a link. For a link to a Figma file other than the one step 3 resolved, apply the first of these that fits: the user presents it as a library, a kit, a design system or the source of the components, so it is that library; the user links it as the screen to replicate or as a reference to follow, so the link does not make it one; the user states no purpose, so it is that library only when the connection lists it among the libraries the resolved file has enabled. When the user gave more than one library, take none of them and no other source yet: ask the user once, as an open question in the text, which holds the app's components, and bind the one they name.
+1. **The conversation.** The library the user named or shared in this conversation as the place of the app's components, by name or link. For a link to a Figma file other than the one step 3 resolved: it is that library when the user presents it as a library, kit, design system or source of the components; it is not when the user links it as the screen to replicate or a reference to follow; with no stated purpose, it is only when the connection lists it among the libraries the resolved file has enabled. When the user gave more than one library, take none and no other source yet: ask once, as an open question in the text, which holds the app's components, and bind the one they name.
 2. **The design record.** The library the app's `DESIGN.md` declares in its `**Design library:**` field.
 3. **Detection.** With neither, gather the libraries these three sources show:
    - the libraries whose components the sibling frames instance or whose variables they bind, read from the siblings' node trees: an instance whose main component, or a binding whose variable, lives outside the file comes from a library;
    - the library that the example record of a sibling names, in the records «Sibling records» finds;
    - the libraries the file has enabled, as the connection lists them; skip this source when the connection cannot list them.
 
-   When they show exactly one library, bind it. When they show several, bind the one the sibling frames instance components from. When that leaves none or more than one, ask the user once, as an open question in the text, which of the libraries found holds the app's components, and bind the one they name. When the sources show no library, or the user names none, bind none.
+   One library: bind it. Several: bind the one the sibling frames instance components from; when that leaves none or more than one, ask once, as an open question in the text, which holds the app's components, and bind the one named. No library shown, or none named: bind none.
 
 Binding none changes only where new pieces come from: the frames still reuse what the siblings use, as «Draw with it» sets.
 

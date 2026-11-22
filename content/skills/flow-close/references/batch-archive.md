@@ -1,6 +1,6 @@
 # Batch archive
 
-Read on a hygiene request, such as the close footer's **Hygiene** reply, and at a close whose `Specs` is in another repository, as [close hygiene](../../hive-core/close/close-hygiene.md#archive-the-change-folder) sets. A close of work whose `Specs` is in its own repository archives nothing: it records the folder for this batch.
+Read on a hygiene request, such as the close footer's **Hygiene** reply, and at a close whose `Specs` is in another repository, as [close hygiene](../../hive-core/close/close-hygiene.md#archive-the-change-folder) sets. A close of work whose `Specs` is in its own repository archives nothing and records the folder for this batch.
 
 ## On a hygiene request
 

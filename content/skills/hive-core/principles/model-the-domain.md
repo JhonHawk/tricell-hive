@@ -10,6 +10,4 @@ Put the domain rules in a data structure so the structure removes branches and i
 - a reducer in place of ad hoc mutations;
 - an index, queue or normalized collection when the access pattern asks for one.
 
-Signs you skipped it: a branch added to an if/else chain for the third time, or a second flag that must be kept in step with the first.
-
-Do not force it. When the shape is clear, local and unlikely to grow, plain code is the better answer. An abstraction that adds a layer without removing a branch or an invalid state is not this principle.
+Signs you skipped it: a branch added to an if/else chain for the third time, or a second flag that must be kept in step with the first. Do not force it: when the shape is clear, local and unlikely to grow, plain code is better, and an abstraction that removes no branch or invalid state is not this principle.
