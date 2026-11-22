@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | Completado · PR #577, 19f3b7be |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `e83104ef` · rama propuesta `feat/personal-rules` |
 | Playbook | feature |

@@ -262,7 +262,7 @@ When a task of a change folder is done, the agent SHALL record it with `flow-pla
 
 ### Requirement: Decisions carry labelled context
 
-A decision `D<n>` shown to the user, and a session question shown under its fixed header, SHALL carry, under its title line, a `Situation:` line that says what happened or what was found, what was verified and what to check, with its target, in words the user has used or that the same message explains; under each option, an `If you choose it:` line that says what the user gets and what it costs them in time, money, risk or what stops working; and an `I recommend <letter>:` line whose reason is a consequence for the user and never a quotation of a rule or a skill. The three labels SHALL be written in the session language, while the IDs, fixed headers, letters and the `(★)` mark stay as they are. The round's waiting line SHALL also say how many known decisions are still to come. In a native question card, the question SHALL carry the situation, each option's description the text of its `If you choose it:` line, or the option's effect in one line when it has none, and the starred option's description SHALL end with the reason of the recommendation. The "Open the viewer" option that a validation question carries SHALL have no `If you choose it:` line. A finding `H<n>` asked in a round carries its title and option lines without the three labelled lines, and the replies of a next-step block keep their own format.
+A decision `D<n>` shown to the user, and a session question shown under its fixed header, SHALL carry, under its title line, a `Situation:` line that says what happened or what was found, what was verified and what to check, with its target, in words the user has used or that the same message explains; under each option, an `If you choose it:` line that says what the user gets and what it costs them in time, money, risk or what stops working; and an `I recommend <letter>:` line whose reason is a consequence for the user and never a quotation of a rule or a skill. The three labels SHALL be written in the session language, while the IDs, fixed headers, letters and the `(★)` mark stay as they are. Each option SHALL open its own line as `<letter> - <name>`, with `(★)` right after the dash on the recommended one, or «(Recommended)», the marker a host's card asks for, at the end of the label, and no list marker before the letter. In a round written in the text, the decisions SHALL be separated by a `---` rule. The round's waiting line SHALL also say how many known decisions are still to come. In a native question card, the question SHALL carry the situation, each option's label SHALL be `<letter> - <name>` with the recommended one first and marked, each option's description the text of its `If you choose it:` line, or the option's effect in one line when it has none, and the starred option's description SHALL end with the reason of the recommendation. The "Open the viewer" option that a validation question carries SHALL have no `If you choose it:` line. A finding `H<n>` asked in a round carries its title and option lines without the three labelled lines. Every block of lettered replies the user answers, the analysis reply block, the next-step block and the close footer, SHALL open with a bold heading `▶ D<n> — <heading>` from the same series as the decisions, so its replies are cited as `D<n> <letter>`; the ID only names the block, and a reply to a next-step block keeps that block's effect. A close footer with no reply to offer keeps `▶ Closed` without an ID or letters.
 
 #### Scenario: A rule requires the question
 
@@ -275,6 +275,19 @@ A decision `D<n>` shown to the user, and a session question shown under its fixe
 
 - **WHEN** the situation would name a task ID, a file, a branch or an internal name the user has not been given
 - **THEN** the same message explains it, or the situation leaves it out
+
+#### Scenario: Two decisions written in the text
+
+- **GIVEN** no waiting card carries the round
+- **WHEN** the agent writes two decisions in the text
+- **THEN** each option line opens with its letter and a dash, with no list marker before it
+- **AND** a `---` rule separates the two decisions
+
+#### Scenario: An analysis left open is cited later
+
+- **GIVEN** an analysis ended with `▶ D5 — How do we continue?` and the user answered another question
+- **WHEN** a later message refers to that open question
+- **THEN** it names it as D5
 
 ### Requirement: Reasons state effects, not rules
 
@@ -791,7 +804,7 @@ When the user asks to audit a codebase, or to find what to improve in it, withou
 
 ### Requirement: Defects are fixed at their cause
 
-Before the first edit of a fix for a defect, in a build task, a round of fixes, an urgent production fix or a child's task, once a failing check is judged to show wrong code, and when a plan weighs the approaches to such a fix, the agent SHALL name the defect's cause, the first place the code does what it should not or fails to handle a state it should handle, shown by a reproduction, a regression test seen failing or the code read, and SHALL write it in the task's line or the report. It SHALL fix the defect at that cause with the smallest change that removes it, also when a finding names only the place where the symptom surfaced, wherever it lies in the repository, and SHALL search the cause's literal values and callers for the same fault, fixing each instance in the files the work already changes and reporting the others as findings. A guard, retry, fallback, default value, clamp, swallowed error or discarded state added where the symptom surfaced SHALL NOT count as a fix, unless the code's documented contract, schema or specification allows that state or it comes from input that crosses a trust boundary. While an incident needs its impact reduced, the agent SHALL mitigate first within existing authority. Otherwise, when fixing the cause is a choice the global «Scope and authorization» makes a blocker for a defect that blocks work, such as a contract, stored data or a fix that is not a small understood change, the agent SHALL report it before writing any workaround, so the user chooses between fixing the cause now and a workaround; when the cause lies in a project outside the current one, the agent SHALL ask the question «Scope and authorization» sets for code in an external project, with a workaround here as the other option. A mitigation or a workaround the user accepts SHALL be the smallest fix that holds; a code change SHALL be marked with one comment line that names the cause; each SHALL be named in the report as a workaround with the cause's location, and fixing the cause SHALL be proposed as a ticket unless the same work fixes it. A child SHALL fix only within the paths its brief names and SHALL report other instances, workarounds and outside causes to its parent. New code SHALL NOT copy an existing pattern that is a workaround, such as one a comment marks or a guard the rule does not count as a fix, and SHALL name that pattern in the report. The code review SHALL check for a fix placed where the symptom surfaced instead of at its cause and for new code that copies a workaround, taking as their failure scenario the bad state the cause still produces for its other consumers or the workaround's spread, SHALL NOT rate a fix at the cause, with the other instances fixed with it, as a change the task did not ask for, and SHALL rate each finding by its observable impact. The rule SHALL live in a reference of `flow-build` that `flow-build`, its «Reuse before writing» section, the round of fixes of `flow-verify` and the urgent fixes of `flow-deploy` link with the condition that requires reading it.
+Before the first edit of a fix for a defect, in a build task, a round of fixes, an urgent production fix or a child's task, once a failing check is judged to show wrong code, and when a plan weighs the approaches to such a fix, the agent SHALL name the defect's cause, the first place the code does what it should not or fails to handle a state it should handle, shown by a reproduction, a regression test seen failing or the code read, and SHALL write it in the task's line or the report. It SHALL fix the defect at that cause with the smallest change that removes it, also when a finding names only the place where the symptom surfaced, wherever it lies in the repository, and SHALL search the cause's literal values and callers for the same fault, fixing each instance in the files the work already changes and reporting the others as findings. A guard, retry, fallback, default value, clamp, swallowed error or discarded state added where the symptom surfaced SHALL NOT count as a fix, unless the code's documented contract, schema or specification allows that state or it comes from input that crosses a trust boundary. While an incident needs its impact reduced, the agent SHALL mitigate first within existing authority. Otherwise, when fixing the cause is a choice the global «Scope and authorization» makes a blocker for a defect that blocks work, such as a contract, stored data or a fix that is not a small understood change, the agent SHALL report it before writing any workaround, so the user chooses between fixing the cause now and a workaround; when the cause lies in a project outside the current one, the agent SHALL ask the question «Scope and authorization» sets for code in an external project, with a workaround here as the other option. A mitigation or a workaround the user accepts SHALL be the smallest fix that holds; a code change SHALL be marked with one comment line that names the cause and, once it exists, the cause's ticket; each SHALL be named in the report as a workaround with the cause's location, and fixing the cause SHALL be proposed as a ticket unless the same work fixes it. A child SHALL fix only within the paths its brief names and SHALL report other instances, workarounds and outside causes to its parent. The code review SHALL check for a fix placed where the symptom surfaced instead of at its cause, taking as its failure scenario the bad state the cause still produces for its other consumers, SHALL NOT rate a fix at the cause, with the other instances fixed with it, as a change the task did not ask for, and SHALL rate each finding by its observable impact. The rule SHALL live in the `hive-core` rule leaf `defect-fix`, which the global «Rule leaves» index, `flow-build`, the «Reuse before writing» leaf, the round of fixes of `flow-verify` and the urgent fixes of `flow-deploy` link with the condition that requires reading it.
 
 #### Scenario: A null crash in a view
 
@@ -805,19 +818,13 @@ Before the first edit of a fix for a defect, in a build task, a round of fixes, 
 - **GIVEN** the cause of a defect is in a service of a project outside the current one
 - **WHEN** the agent is about to fix it
 - **THEN** before writing any workaround it asks whether to continue there from this session or open a session in that project, with a workaround here as the other option
-- **AND** a workaround the user accepts is marked with one comment line naming the cause, named as a workaround in the report, and a ticket is proposed for the cause
+- **AND** a workaround the user accepts is marked with one comment line naming the cause and its ticket, named as a workaround in the report, and a ticket is proposed for the cause
 
 #### Scenario: A cause in an untouched module of the same repository
 
 - **GIVEN** a view crashes because a helper in a module the work has not touched returns a value its contract forbids
 - **WHEN** the agent fixes the defect
 - **THEN** it fixes the helper, without a guard in the view and without proposing a ticket
-
-#### Scenario: Copying an existing workaround
-
-- **GIVEN** the surrounding code repeats a retry that a comment marks as a temporary workaround
-- **WHEN** a task writes new code in that area
-- **THEN** the new code does not copy the retry and the report names it
 
 ### Requirement: The user decides whether a worktree is created
 
@@ -1686,3 +1693,70 @@ In `go run ./tests/pilot --audit-session`, `close_before_branch_cleanup` SHALL r
 - **GIVEN** a real session whose close report follows the merge and whose branch deletion comes after the user's `/flow-close`
 - **WHEN** the session audit reads it
 - **THEN** `close_before_branch_cleanup` reports fail, even though the report says a folder «sigue en `master`»
+
+### Requirement: New code builds only on a sound base
+
+Before writing new code, and when a plan weighs approaches, the agent SHALL reuse what the codebase already has, such as a helper, component or pattern, only when it is a sound base. A base SHALL NOT count as sound when it is a workaround, such as one a comment marks or a guard the «Defects are fixed at their cause» requirement does not count as a fix; when it breaks the repository's `CODING_STANDARDS.md`, its lint configuration or a convention its documentation states; when using it needs a boolean flag or a branch inside it that only the new code turns on; or when the same logic lives elsewhere in the repository with diverging behavior. The agent SHALL name such a base in the report with the condition it meets, and SHALL NOT copy or extend it. A workaround whose comment names its cause's ticket is one the «Defects are fixed at their cause» requirement already handled, by the user's choice or an incident's mitigation: later work SHALL keep or call it without asking again, SHALL NOT copy it, SHALL name it and its ticket in the report, and a child SHALL report it to its parent; a workaround whose comment names no ticket SHALL take the route of any other base that is not sound. Except for duplicated logic that diverges, whose unification changes what one set of callers observes, and for a workaround whose comment names its ticket, it SHALL fix the base first, within the paths a child's brief names, keeping what the base's callers observe as a characterization test pins it, when that fix is a small understood change, and that fix SHALL count as part of the task, not as a module touched against the request; otherwise a plan SHALL offer that fix as an approach, and a build SHALL report it before building on it, a child to its parent, with the choice the «Defects are fixed at their cause» requirement gives for a cause, the base in its place; building on the base once the user accepts SHALL be marked, reported and proposed as a ticket as that requirement sets for a workaround. The code review SHALL check for new code that copies or extends a base that is not sound, taking that base's spread as the failure scenario, and SHALL NOT rate a fix of the base the rule has the author make first as a change the task did not ask for, nor flag code that keeps or calls a workaround whose comment names its ticket. The rule SHALL live in the `hive-core` rule leaf `reuse-before-writing`, and no other file of the distributed content SHALL restate its conditions.
+
+#### Scenario: Copying an existing workaround
+
+- **GIVEN** the surrounding code repeats a retry that a comment marks as a temporary workaround
+- **WHEN** a task writes new code in that area
+- **THEN** the new code does not copy the retry and the report names it
+
+#### Scenario: A helper that needs a flag for the new caller
+
+- **GIVEN** a formatting helper used by three views would need a boolean `isExport` branch to serve a new export view
+- **WHEN** a build task without a plan writes the export view and fixing the helper is a small understood change
+- **THEN** the agent first restructures the helper, with its output for the three views pinned by a characterization test, and the export view uses the restructured helper
+- **AND** no `isExport` flag is added to the helper
+
+#### Scenario: Duplicated logic that diverges
+
+- **GIVEN** two modules compute a price total in different ways and a new feature needs that total
+- **WHEN** a plan weighs approaches, or a build without a plan reaches that code, even when unifying them would take a few lines
+- **THEN** unifying the total first is offered to the user as an approach, or reported before building on either version
+- **AND** neither version is copied or unified silently
+
+#### Scenario: A workaround the user accepted earlier
+
+- **GIVEN** a retry whose comment names an upstream timeout as its cause and the cause's ticket, kept as a workaround under the «Defects are fixed at their cause» requirement
+- **WHEN** a new task in the same file would reuse that code
+- **THEN** the build neither removes the retry nor asks again whether to fix the cause, calls it without copying it, and names the workaround and its ticket in the report
+- **AND** it proposes no second ticket for the same cause
+
+#### Scenario: A cause comment with no ticket
+
+- **GIVEN** a helper whose comment says it works around a stale vendor cache, written before Hive, with no ticket
+- **WHEN** a new task would build on that helper
+- **THEN** the agent fixes the cause first when that is a small understood change, or otherwise reports it before building on it, with the choice between fixing the cause and keeping the workaround
+
+#### Scenario: A base that breaks the project's standards
+
+- **GIVEN** `CODING_STANDARDS.md` forbids raw SQL in views and an existing view builds a query by string concatenation
+- **WHEN** a task writes a new view that needs the same data
+- **THEN** the new view does not copy the concatenated query, and the report names the existing view and the standard it breaks
+
+### Requirement: The session audit flags card options out of format
+
+`go run ./tests/pilot --audit-session` SHALL report `card_option_format` for Claude, Codex and Grok sessions, judging every native question card that waits for the answer, answered or not; Codex's `request_user_input_async` is not such a card, and a card the host refused for invalid input was never shown. It SHALL fail a card when one of its option labels does not open with `<letter> - `, or when two options share a letter; for a card of a single choice it SHALL also fail when no option carries the recommended mark, or when the mark sits on an option other than the first or on more than one. The recommended mark SHALL be `(★)` right after `<letter> - `, or «(Recommended)», in any letter case, at the end of the label. The evidence SHALL give the card's line and the question's number in the card, and never the question's text or its ID. A session with no question card SHALL be `not_observed`, and a child session SHALL not be judged.
+
+#### Scenario: A card whose options lost their letters
+
+- **WHEN** a card offers `Worktree propio (★)` and `Checkout principal`
+- **THEN** `card_option_format` fails at that card's line and gives the question's number, without its text
+
+#### Scenario: A star quoted inside another option
+
+- **WHEN** a card offers `A - (★) Letra fija` and `B - Estricto: solo A - (★)`
+- **THEN** `card_option_format` passes
+
+#### Scenario: A card in its format
+
+- **WHEN** every card of the session offers options such as `A - (★) Aprobar` and `B - Pedir correcciones`
+- **THEN** `card_option_format` passes
+
+#### Scenario: The host's recommended marker
+
+- **WHEN** a Codex card offers `A - Siempre (Recommended)` and `B - Visibilidad actual`
+- **THEN** `card_option_format` passes
