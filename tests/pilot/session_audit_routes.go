@@ -152,6 +152,134 @@ func flowEnteredWithoutRoute(s auditSession) criterionAssessment {
 	return statusOf(c, failed, passed)
 }
 
+// buildRoute is the command a plan's next-step block names to start its build,
+// or create-design when the route ends in a screen to draw, in any host's
+// syntax.
+var buildRoute = regexp.MustCompile(`(?:^|[\s\x60(>*_])(?:[/$@]|/skill:)(?:flow-build|create-design)\b`)
+
+// partialRead is a shell command that searches a skill instead of loading it,
+// such as a grep of one rule while planning.
+var partialRead = regexp.MustCompile(`(?:^|[\s;&|(])(?:rg|grep)\b`)
+
+// loadedFlow returns the flow whose skill an event loads, as readsFlowSkill
+// reads it, or "". A search event, or a shell segment that greps the SKILL.md,
+// quotes it and loads nothing; another segment of the same command may still
+// load it.
+func loadedFlow(e traceEvent) string {
+	if !readsFlowSkill(e) || e.Kind == "search" {
+		return ""
+	}
+	switch e.Kind {
+	case "skill_invocation":
+		return e.Text
+	case "shell":
+		for _, part := range commandParts.Split(e.Command, -1) {
+			if m := flowSkillRead.FindStringSubmatch(part); m != nil && readCommand.MatchString(part) && !partialRead.MatchString(part) {
+				return m[1]
+			}
+		}
+		return ""
+	}
+	if m := flowSkillRead.FindStringSubmatch(filepath.ToSlash(e.Path)); m != nil {
+		return m[1]
+	}
+	return ""
+}
+
+// installedUnattendedRead is the installed unattended-delegation skill; the
+// repository's own content/skills copy is not under a host's dot folder.
+var installedUnattendedRead = regexp.MustCompile(`/\.[a-z]+/skills/unattended-delegation/SKILL\.md`)
+
+// unattendedLoad returns the index of the first event that loads the installed
+// unattended-delegation skill: its call, a read, or a shell segment that reads
+// it and does not grep it; or -1.
+func unattendedLoad(events []traceEvent) int {
+	for i, e := range events {
+		switch e.Kind {
+		case "skill_invocation":
+			if e.Text == "unattended-delegation" {
+				return i
+			}
+		case "read":
+			if installedUnattendedRead.MatchString(filepath.ToSlash(e.Path)) {
+				return i
+			}
+		case "shell":
+			for _, part := range commandParts.Split(e.Command, -1) {
+				if installedUnattendedRead.MatchString(part) && readCommand.MatchString(part) && !partialRead.MatchString(part) {
+					return i
+				}
+			}
+		}
+	}
+	return -1
+}
+
+// questionBetween reports whether a question card lies between the events at
+// from and to, whose answer is a reply of the user inside the turn.
+func questionBetween(events []traceEvent, from, to int) bool {
+	for k := from + 1; k < to; k++ {
+		if events[k].Kind == "question" {
+			return true
+		}
+	}
+	return false
+}
+
+// planWithoutBuildRoute checks that each plan stage, from a load of flow-plan
+// to the next load of another flow, has an assistant message that names the
+// build command. A stage another flow ends without it fails at the flow-plan
+// load, unless that flow starts in the turn of the stage's latest flow-plan
+// load with no question card between them, a continuation the user may have
+// asked for, or after unattended delegation started: both are reviews. One the
+// session's end ends without it is a review too, since the session may still
+// be open. Loading flow-plan again does not end the stage.
+func planWithoutBuildRoute(s auditSession) criterionAssessment {
+	c := criterionAssessment{Criterion: "plan_without_build_route", Status: "not_observed", Evidence: []string{}}
+	if child(s) {
+		return c
+	}
+	events := s.Trace.Events
+	unattended := unattendedLoad(events)
+	var failed, review, passed []string
+	start, latest, routed := -1, -1, false
+	for i, e := range events {
+		flow := loadedFlow(e)
+		switch {
+		case flow == "flow-plan" && start < 0:
+			start, latest, routed = i, i, false
+		case flow == "flow-plan":
+			latest = i
+		case flow != "" && start >= 0:
+			switch {
+			case routed:
+				passed = append(passed, regressionEvidence(events[start]))
+			case s.Turn[latest] == s.Turn[i] && !questionBetween(events, latest, i):
+				review = append(review, regressionEvidence(events[start])+" flow started in the plan's own turn")
+			case unattended >= 0 && unattended < i:
+				review = append(review, regressionEvidence(events[start])+" after unattended delegation")
+			default:
+				failed = append(failed, regressionEvidence(events[start]))
+			}
+			start = -1
+		case start >= 0 && e.Kind == "text" && e.Role == "assistant" && buildRoute.MatchString(e.Text):
+			routed = true
+		}
+	}
+	if start >= 0 {
+		if routed {
+			passed = append(passed, regressionEvidence(events[start]))
+		} else {
+			review = append(review, regressionEvidence(events[start])+" session ended inside the plan stage")
+		}
+	}
+	if len(failed) == 0 && len(review) > 0 {
+		c.Status, c.Evidence = "review", review
+		return c
+	}
+	return statusOf(c, failed, passed)
+}
+
 // roundFormat reports, for a message, whether it asks decisions in text and
 // whether every one of them has the full format. A decision is a block under a
 // "D<n> —" title with lettered options, a row of a table round, or a loose

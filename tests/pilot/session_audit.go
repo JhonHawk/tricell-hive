@@ -502,6 +502,7 @@ func (b *codexBuilder) codexExecOutput(line int, id string, items []any) {
 		output   string
 	}
 	var results []result
+	var plain []string
 	header := ""
 	for n, raw := range items {
 		text := str(object(raw)["text"])
@@ -511,6 +512,7 @@ func (b *codexBuilder) codexExecOutput(line int, id string, items []any) {
 		}
 		var v map[string]any
 		if json.Unmarshal([]byte(text), &v) != nil || v == nil {
+			plain = append(plain, text)
 			continue
 		}
 		if str(v["status"]) == "rejected" {
@@ -540,6 +542,10 @@ func (b *codexBuilder) codexExecOutput(line int, id string, items []any) {
 	// Truncated output, or a command still running that returns a session ID,
 	// leaves it unknown.
 	paired := len(results) == shellCount
+	// A cell that prints each command's output as plain text, such as
+	// text(r.output), gives no exit code; with one plain item per command, the
+	// item at a command's position is that command's output.
+	plainPaired := !paired && shellCount > 0 && len(plain) == shellCount
 	shellN := 0
 	for _, i := range execIdx {
 		e := &b.s.Trace.Events[i]
@@ -551,6 +557,9 @@ func (b *codexBuilder) codexExecOutput(line int, id string, items []any) {
 				r := results[shellN]
 				ok := !r.rejected && r.hasCode && r.code == 0
 				success, text = &ok, r.output
+			}
+			if plainPaired {
+				e.CellOutput = plain[shellN]
 			}
 			shellN++
 		default:
@@ -1607,8 +1616,16 @@ var (
 	// "?", so a report heading such as "**Review** — Completed" is not a round.
 	// Only a D<n> title takes the middle dot: the context line of a message,
 	// "**Review · ticket · is it done?**", uses it too.
-	roundTitleLine  = regexp.MustCompile(`(?mi)^\s*[#>*\s]*(?:D\d+\s*[—–·-]|(?:` + sessionHeaderNames + `)\**\s*[—–-][^\n]*\?)`)
-	roundOptionStar = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\s*[-—–·]\s*\**\s*\(★\)`)
+	// It stays on one line, so a bare "**Review**" heading does not join the
+	// question on the next line into a title.
+	roundTitleLine = regexp.MustCompile(`(?mi)^[ \t]*[#>* \t]*(?:D\d+[ \t]*[—–·-]|(?:` + sessionHeaderNames + `)\**[ \t]*[—–-][^\n]*\?)`)
+	// numberedTitleLine is a numbered question, such as "**1. ¿Dónde
+	// trabajamos?**". It is a round's title only when a starred option follows
+	// it, as roundTitles checks, since an analysis may list numbered questions.
+	numberedTitleLine = regexp.MustCompile(`(?m)^[ \t]*[#>* \t]*\d+[.)][ \t]+[^\n]*\?[*_ \t]*(?:\([^)\n]{1,40}\)[*_ \t]*)?\r?$`)
+	// The star may follow the letter with or without a separator: "A - (★)" or
+	// "- **A (★) · …".
+	roundOptionStar = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\s*(?:[-—–·]\s*\**\s*)?\(★\)`)
 	// grokNoUser is the result Grok gives a question when no user can answer.
 	grokNoUser = regexp.MustCompile(`(?i)^\s*no user is available`)
 	// claudeRejected matches the tool errors that mean the user turned the card
@@ -1678,7 +1695,50 @@ func tableRounds(text string) []string {
 }
 
 func isTextRound(text string) bool {
-	return roundTitleLine.MatchString(text) && roundOptionStar.MatchString(text) || len(tableRounds(text)) > 0
+	return len(roundTitles(text)) > 0 && roundOptionStar.MatchString(text) || len(tableRounds(text)) > 0
+}
+
+// roundTitles returns the spans of a message's round titles in order: each
+// title roundTitleLine matches or, in a message with none, the numbered titles
+// numberedRoundTitles keeps. A message with a D<n> title or a session header
+// keeps only those, since its Situation may list numbered questions.
+func roundTitles(text string) [][]int {
+	if fixed := roundTitleLine.FindAllStringIndex(text, -1); len(fixed) > 0 {
+		return fixed
+	}
+	return numberedRoundTitles(text)
+}
+
+// numberedRoundTitles returns the numbered questions, such as "**1. ¿Dónde
+// trabajamos?**", that a starred option line follows before the next one, in a
+// message with no roundTitleLine title.
+func numberedRoundTitles(text string) [][]int {
+	if roundTitleLine.MatchString(text) {
+		return nil
+	}
+	spans := numberedTitleLine.FindAllStringIndex(text, -1)
+	var titles [][]int
+	for i, span := range spans {
+		end := len(text)
+		if i+1 < len(spans) {
+			end = spans[i+1][0]
+		}
+		if roundOptionStar.MatchString(text[span[1]:end]) {
+			titles = append(titles, span)
+		}
+	}
+	return titles
+}
+
+// isRoundTitleLine reports whether the line from start to end of text holds
+// one of the titles, judged by the line its last byte is on.
+func isRoundTitleLine(titles [][]int, start, end int) bool {
+	for _, t := range titles {
+		if last := t[1] - 1; last >= start && last < end {
+			return true
+		}
+	}
+	return false
 }
 
 // emptyCardResult reports whether a native question result is a card that
@@ -1985,12 +2045,15 @@ func skillNamedAsReason(s auditSession) criterionAssessment {
 
 func auditCriteria(s auditSession, base string) []criterionAssessment {
 	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s), reviewQuestionNativeOption(s), leafReadBeforeAction(s),
-		flowEnteredWithoutRoute(s), decisionRoundFormat(s), uiChangeWithoutUXReview(s), trackerStatesCacheWritten(s), tryItBlockInReport(s), proseChoiceWithoutCard(s), ticketAssessmentEnding(s), selfFeedingLog(s), analysisReplyBlock(s), unboundedBackgroundWait(s), cardOptionFormat(s), changeFolderUncommitted(s, base))
+		flowEnteredWithoutRoute(s), decisionRoundFormat(s), uiChangeWithoutUXReview(s), trackerStatesCacheWritten(s), tryItBlockInReport(s), proseChoiceWithoutCard(s), ticketAssessmentEnding(s), selfFeedingLog(s), analysisReplyBlock(s), unboundedBackgroundWait(s), cardOptionFormat(s), changeFolderUncommitted(s, base), planWithoutBuildRoute(s))
 }
 
 var (
 	// The title names a review; the options decide whether it picks a mechanism.
-	reviewQuestionTitle = regexp.MustCompile(`(?i)\brevisi(?:[oó]n|ones)\b|\breview(?:s|ers?)?\b`)
+	reviewQuestionTitle = regexp.MustCompile(`(?i)\brevisi(?:[oó]n|ones)\b|\breview(?:s|ers?)?\b|\brevis(?:amos|ar) el c[oó]digo\b`)
+	// codeReviewTitle asks for the code review itself, not a security review or
+	// a rerun of one.
+	codeReviewTitle = regexp.MustCompile(`(?i)\brevis(?:amos|ar) el c[oó]digo\b|\brevisi[oó]n (?:del? )?c[oó]digo\b|\bcode review\b|^[ \t#>*]*(?:review|revisi[oó]n)\**[ \t]*[—–-]`)
 	// A decision about a review's findings is not the question that picks it.
 	reviewFindingsTitle = regexp.MustCompile(`(?i)hallazgo|finding`)
 	nativeReviewOption  = regexp.MustCompile(`(?i)/review\b|codex review|revisi[oó]n nativa|native review|\bnativ[ae]\s*:`)
@@ -2000,7 +2063,7 @@ var (
 	// optionLine is a decision's option line written as text, such as
 	// "A - (★) Accept" or "- **B · Keep**"; its Situation, "If you choose it" and
 	// recommendation lines are not options.
-	optionLine = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\**\s*[-—–·].*$`)
+	optionLine = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\**\s*(?:[-—–·]|\(★\)).*$`)
 )
 
 // reviewQuestionNativeOption checks, on Codex, that the code review question
@@ -2018,7 +2081,8 @@ func reviewQuestionNativeOption(s auditSession) criterionAssessment {
 	// mechanism; names is where an option is named (a card's label, not its
 	// description). The question picks a mechanism when at least two options name
 	// one and its title is not about a review's findings, whose options may name
-	// a mechanism too.
+	// a mechanism too; a title that asks for the code review itself needs one,
+	// since a round that offers only the agent still picks the mechanism.
 	judge := func(e traceEvent, title, mechanisms, names string) {
 		named := 0
 		for _, option := range strings.Split(mechanisms, "\n") {
@@ -2026,7 +2090,11 @@ func reviewQuestionNativeOption(s auditSession) criterionAssessment {
 				named++
 			}
 		}
-		if !reviewQuestionTitle.MatchString(title) || reviewFindingsTitle.MatchString(title) || named < 2 {
+		least := 2
+		if codeReviewTitle.MatchString(title) {
+			least = 1
+		}
+		if !reviewQuestionTitle.MatchString(title) || reviewFindingsTitle.MatchString(title) || named < least {
 			return
 		}
 		if nativeReviewOption.MatchString(names) {
@@ -2079,7 +2147,7 @@ func reviewQuestionNativeOption(s auditSession) criterionAssessment {
 // decisionBlocks splits a message into its decisions, each from its title line
 // (`D<n> — …`) to the next title line or the end.
 func decisionBlocks(text string) []string {
-	idx := roundTitleLine.FindAllStringIndex(text, -1)
+	idx := roundTitles(text)
 	var blocks []string
 	for i, loc := range idx {
 		end := len(text)
