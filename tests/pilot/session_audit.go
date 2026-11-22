@@ -368,8 +368,9 @@ func (b *codexBuilder) codexItem(line int, p map[string]any) {
 // codexCompletedItem records what Codex reports after an exec block's call
 // ran: an MCP call with its arguments and result, which the block's source
 // cannot give, the command a shell call executed, interpolation resolved, with
-// its exit code when Codex reports one, and the paths a patch changed. They get kinds of their own so the criteria that read calls from the block
-// do not count them twice.
+// its exit code when Codex reports one, and the paths a patch changed. They get
+// kinds of their own so the criteria that read calls from the block do not
+// count them twice.
 func (b *codexBuilder) codexCompletedItem(line int, item map[string]any) {
 	switch str(item["type"]) {
 	case "McpToolCall":

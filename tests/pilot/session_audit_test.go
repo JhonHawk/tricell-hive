@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -692,6 +693,9 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"change folder claude variable names other paths", "claude", folder, []string{folder, "claude-project-variable-other-paths-fail.jsonl"}, auditOptions{}, "fail"},
 		{"change folder claude renamed then committed under the new name", "claude", folder, []string{folder, "claude-project-rename-commit-pass.jsonl"}, auditOptions{}, "pass"},
 		{"change folder claude renamed after its commit and not committed again", "claude", folder, []string{folder, "claude-project-rename-uncommitted-fail.jsonl"}, auditOptions{}, "fail"},
+		{"change folder claude staged in one call and committed in another", "claude", folder, []string{folder, "claude-project-staged-in-another-call-pass.jsonl"}, auditOptions{}, "pass"},
+		{"change folder claude git add -A may have taken the folder", "claude", folder, []string{folder, "claude-project-add-all-review.jsonl"}, auditOptions{}, "review"},
+		{"change folder claude edited after the commit and before the merge", "claude", folder, []string{folder, "claude-project-edit-after-commit-fail.jsonl"}, auditOptions{}, "fail"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1340,5 +1344,29 @@ func TestAuditCodexCompletedItemCarriesExitCodeAndPatchPaths(t *testing.T) {
 	}
 	if !versioned || !merge || !patched {
 		t.Fatalf("versioned failed = %v, merge succeeded = %v, patch path = %v", versioned, merge, patched)
+	}
+}
+
+func TestAuditExpandAssignmentsIsBoundedAndExpandsAValueOnce(t *testing.T) {
+	if got := expandAssignments("D=a/b; OLD=$D/c; echo $OLD"); got != "D=a/b; OLD=a/b/c; echo a/b/c" {
+		t.Fatalf("expansion = %q", got)
+	}
+	var b strings.Builder
+	b.WriteString("A00=xx;")
+	for i := 1; i < 40; i++ {
+		fmt.Fprintf(&b, "A%02d=$A%02d$A%02d;", i, i-1, i-1)
+	}
+	b.WriteString("echo $A39")
+	chain := b.String()
+	start := time.Now()
+	got := expandAssignments(chain)
+	if got != chain {
+		t.Fatalf("a chain that outgrows the bound must stay unexpanded, got %d bytes", len(got))
+	}
+	if d := time.Since(start); d > 2*time.Second {
+		t.Fatalf("expansion took %v", d)
+	}
+	if big := strings.Repeat("x", maxExpandedCommand+1) + "; F=a; echo $F"; expandAssignments(big) != big {
+		t.Fatal("a command past the bound must stay unexpanded")
 	}
 }

@@ -51,25 +51,38 @@ func resolvedCommand(e traceEvent) (string, bool) {
 // shellAssignment is a `NAME=value` assignment where a command can start.
 var shellAssignment = regexp.MustCompile(`(?:^|[;&|(\n]\s*)([A-Za-z_][A-Za-z0-9_]*)=("[^"\n]*"|'[^'\n]*'|[^\s;&|)"']+)`)
 
+// maxExpandedCommand bounds the size of a command after expansion: a chain of
+// assignments that each repeat the one before doubles it at every step.
+const maxExpandedCommand = 64 << 10
+
 // expandAssignments replaces `$NAME` and `${NAME}` after a `NAME=value`
 // assignment of the same command with its value, so a path built from a
-// variable matches as written. A value made by a substitution is left as is.
+// variable matches as written. A value made by a substitution is left as is. A
+// command that grows past maxExpandedCommand, or starts past it, is returned
+// unexpanded.
 func expandAssignments(command string) string {
-	for from := 0; from < len(command); {
-		loc := shellAssignment.FindStringSubmatchIndex(command[from:])
+	if len(command) > maxExpandedCommand {
+		return command
+	}
+	expanded := command
+	for from := 0; from < len(expanded); {
+		loc := shellAssignment.FindStringSubmatchIndex(expanded[from:])
 		if loc == nil {
 			break
 		}
-		name := command[from+loc[2] : from+loc[3]]
-		value := strings.Trim(command[from+loc[4]:from+loc[5]], "\"'")
+		name := expanded[from+loc[2] : from+loc[3]]
+		value := strings.Trim(expanded[from+loc[4]:from+loc[5]], "\"'")
 		end := from + loc[1]
 		if !strings.Contains(value, "$(") && !strings.Contains(value, "`") {
-			rest := strings.NewReplacer("${"+name+"}", value, "$"+name, value).Replace(command[end:])
-			command = command[:end] + rest
+			rest := strings.NewReplacer("${"+name+"}", value, "$"+name, value).Replace(expanded[end:])
+			if end+len(rest) > maxExpandedCommand {
+				return command
+			}
+			expanded = expanded[:end] + rest
 		}
 		from = end
 	}
-	return command
+	return expanded
 }
 
 // folderRoot matches a path that is a change folder itself.
@@ -163,39 +176,92 @@ func namesFolder(args []string, folder string) bool {
 	return false
 }
 
-// commitsFolder reports whether a command that succeeded commits the folder:
-// a `git commit` or git_state.py commit segment that names it, or that follows
-// a `git add` segment of the same command that names it, or a
-// `tasks.py <folder> versioned`. A commit of other paths in the same command as
-// a tasks.py record is not one.
-func commitsFolder(command, folder string) bool {
-	added := false
-	for _, args := range shellSegments(command, 0) {
-		isGit, sub, _ := gitInvocation(args, "")
-		if isGit && sub < len(args) {
-			switch args[sub] {
-			case "add":
-				added = added || namesFolder(args, folder)
-			case "commit":
-				if added || namesFolder(args, folder) {
-					return true
-				}
-			}
-		}
-		for i, a := range args {
-			switch filepath.Base(a) {
-			case "git_state.py":
-				if i+1 < len(args) && args[i+1] == "commit" && (added || namesFolder(args, folder)) {
-					return true
-				}
-			case "tasks.py":
-				if i+2 < len(args) && args[i+2] == "versioned" && namesFolder(args[i+1:i+2], folder) {
-					return true
-				}
-			}
+// stagesAll reports whether a `git add` takes every change: -A, --all or `.`.
+func stagesAll(args []string) bool {
+	for _, a := range args {
+		if a == "-A" || a == "--all" || a == "." {
+			return true
 		}
 	}
 	return false
+}
+
+// commitsAll reports whether a `git commit` takes every tracked change: -a, in
+// a short-flag cluster or alone, or --all.
+func commitsAll(args []string) bool {
+	for _, a := range args {
+		if a == "--all" || (strings.HasPrefix(a, "-") && !strings.HasPrefix(a, "--") && strings.Contains(a, "a") && !strings.HasPrefix(a, "-m")) {
+			return true
+		}
+	}
+	return false
+}
+
+// folderCoverage walks the commands of a session once and says, per folder,
+// whether it was committed at or after its last content write: strong when a
+// commit names the folder, when it follows a `git add` naming it that no commit
+// has used yet (the add may be in an earlier command), or when
+// `tasks.py <folder> versioned` exited 0; weak when only a `git add -A`, `git
+// add .` or `git commit -a` could have taken it, which the audit cannot tell.
+// A commit uses up the staged state.
+func folderCoverage(events []traceEvent, since map[string]int) (strong, weak map[string]bool) {
+	strong, weak = map[string]bool{}, map[string]bool{}
+	staged := map[string]int{}
+	weakAt := -1
+	for i, e := range events {
+		command, ok := resolvedCommand(e)
+		if !ok {
+			continue
+		}
+		for _, args := range shellSegments(command, 0) {
+			if isGit, sub, _ := gitInvocation(args, ""); isGit && sub < len(args) && args[sub] == "add" {
+				for f := range since {
+					if namesFolder(args, f) {
+						staged[f] = i
+					}
+				}
+				if stagesAll(args) {
+					weakAt = i
+				}
+				continue
+			}
+			isCommit, all := false, false
+			if isGit, sub, _ := gitInvocation(args, ""); isGit && sub < len(args) && args[sub] == "commit" {
+				isCommit, all = true, commitsAll(args[sub+1:])
+			}
+			for k, a := range args {
+				switch filepath.Base(a) {
+				case "git_state.py":
+					if k+1 < len(args) && args[k+1] == "commit" {
+						isCommit = true
+					}
+				case "tasks.py":
+					if k+2 < len(args) && args[k+2] == "versioned" {
+						for f, from := range since {
+							if i >= from && namesFolder(args[k+1:k+2], f) {
+								strong[f] = true
+							}
+						}
+					}
+				}
+			}
+			if !isCommit {
+				continue
+			}
+			for f, from := range since {
+				at, wasStaged := staged[f]
+				switch {
+				case i < from:
+				case namesFolder(args, f) || (wasStaged && at >= from):
+					strong[f] = true
+				case all || weakAt >= from:
+					weak[f] = true
+				}
+			}
+			staged, weakAt = map[string]int{}, -1
+		}
+	}
+	return strong, weak
 }
 
 // lastMergeIndex returns the index of the last event that completes a merge,
@@ -236,13 +302,16 @@ func lastMergeIndex(events []traceEvent, base string) int {
 // changeFolderUncommitted checks that a close which merged left the change
 // folder it wrote versioned. The folders are the `changes/<id>` segments
 // outside the archive of the paths the session wrote through a patch, a write
-// tool or a command of a known writing form. After the first write to a folder,
-// a successful commit command that names it, or `tasks.py <folder> versioned`
-// that exited 0, is a pass. Without either, assistant text after the last merge
-// is a fail naming the folder; no such text, or a folder whose only writes are
-// tasks.py progress records after the last merge (it came versioned from
-// another session and its edits wait for the archive), is a review. A session
-// that wrote no change folder or merged nothing is not observed.
+// tool or a command of a known writing form. A folder passes when a successful
+// commit follows its last content write before the last merge and names it, or
+// follows a `git add` that did, in any earlier command, or when
+// `tasks.py <folder> versioned` exited 0 after that write. A broad `git add -A`,
+// `git add .` or `git commit -a` makes it a review. Without any of them,
+// assistant text after the last merge is a fail naming the folder; no such
+// text, or a folder whose only writes are tasks.py progress records after the
+// last merge (it came versioned from another session and its edits wait for the
+// archive), is a review. A session that wrote no change folder or merged
+// nothing is not observed.
 func changeFolderUncommitted(s auditSession, base string) criterionAssessment {
 	c := criterionAssessment{Criterion: "change_folder_uncommitted", Status: "not_observed", Evidence: []string{}}
 	events := s.Trace.Events
@@ -299,30 +368,37 @@ func changeFolderUncommitted(s auditSession, base string) criterionAssessment {
 			break
 		}
 	}
-	var failed, review, passed []string
+	first, onlyLateProgress, since := map[string]int{}, map[string]bool{}, map[string]int{}
 	for _, folder := range order {
 		ws := writes[folder]
-		first, onlyLateProgress := ws[0].index, true
+		first[folder], onlyLateProgress[folder] = ws[0].index, true
 		for _, w := range ws {
-			if w.index < first {
-				first = w.index
+			if w.index < first[folder] {
+				first[folder] = w.index
 			}
 			if !w.progress || w.index < merge {
-				onlyLateProgress = false
+				onlyLateProgress[folder] = false
 			}
 		}
-		covered := false
-		for _, e := range events[first+1:] {
-			if command, ok := resolvedCommand(e); ok && commitsFolder(command, folder) {
-				covered = true
-				break
+		// The commit must follow the last content write before the merge,
+		// or the first write when the folder has only progress records.
+		since[folder] = first[folder]
+		for _, w := range ws {
+			if !w.progress && w.index < merge && w.index > since[folder] {
+				since[folder] = w.index
 			}
 		}
-		line := fmt.Sprintf("stdout.jsonl:%d %s %s", events[first].Line, events[first].Kind, folder)
+	}
+	strong, weak := folderCoverage(events, since)
+	var failed, review, passed []string
+	for _, folder := range order {
+		line := fmt.Sprintf("stdout.jsonl:%d %s %s", events[first[folder]].Line, events[first[folder]].Kind, folder)
 		switch {
-		case covered:
-			passed = append(passed, line+" committed after the first write")
-		case onlyLateProgress:
+		case strong[folder]:
+			passed = append(passed, line+" committed after its last write")
+		case weak[folder]:
+			review = append(review, line+" only a broad add or commit -a could have taken it")
+		case onlyLateProgress[folder]:
 			review = append(review, line+" only progress records after the last merge")
 		case textAfterMerge:
 			failed = append(failed, line+" not committed before the close report")
