@@ -8,10 +8,12 @@ opens with a fixed precedence line.
 Subcommands:
   deploy  Write or replace the rules: a marked section right after Hive's block
           (or voice block) in each shared global file, and an own rule file in
-          Cursor and Antigravity. A file that changed since it was read is not
-          written; it is named and the run exits non-zero.
+          Cursor and Antigravity. It refuses, writing nothing, an invalid
+          source, a symlinked target and a rule file it did not write. A file
+          that changed since it was read, or that cannot be written, is named
+          and the run exits non-zero.
   check   Exit non-zero naming each copy that is missing, differs from the
-          source, is out of position, or sits in a host without Hive.
+          source, is out of position, or sits where its host no longer reads it.
   remove  Delete every personal section and rule file.
 """
 
@@ -48,6 +50,10 @@ class SourceError(Exception):
     pass
 
 
+class TargetError(Exception):
+    pass
+
+
 def _line_has_secret():
     spec = importlib.util.spec_from_file_location("local_instructions", SCRIPT_DIR / "local_instructions.py")
     module = importlib.util.module_from_spec(spec)
@@ -73,24 +79,41 @@ def source_path(env):
     return _xdg_config(env) / "hive" / "rules.md"
 
 
-def shared_targets(env):
-    """Return (host, path) for each shared global file, one entry per path."""
-    claude = _home_dir(env, "CLAUDE_CONFIG_DIR", ".claude") / "CLAUDE.md"
-    grok = pathlib.Path(env["HOME"], ".claude", "CLAUDE.md")
+def _codex_files(env):
+    """Return (the file Codex reads, the other one), as the manager decides."""
     codex_home = _home_dir(env, "CODEX_HOME", ".codex")
-    codex = codex_home / "AGENTS.md"
+    agents = codex_home / "AGENTS.md"
     override = codex_home / "AGENTS.override.md"
     if override.is_file() and override.stat().st_size > 0:
-        codex = override
-    pi = _home_dir(env, "PI_CODING_AGENT_DIR", ".pi", "agent") / "AGENTS.md"
-    opencode = _xdg_config(env) / "opencode" / "AGENTS.md"
+        return override, agents
+    return agents, override
+
+
+def _dedupe(pairs):
     seen, out = set(), []
-    for host, path in (("claude", claude), ("grok", grok), ("codex", codex), ("pi", pi), ("opencode", opencode)):
+    for host, path in pairs:
         key = os.path.realpath(path)
         if key not in seen:
             seen.add(key)
             out.append((host, path))
     return out
+
+
+def shared_targets(env):
+    """Return (host, path) for each shared global file a host reads now."""
+    claude = _home_dir(env, "CLAUDE_CONFIG_DIR", ".claude") / "CLAUDE.md"
+    grok = pathlib.Path(env["HOME"], ".claude", "CLAUDE.md")
+    codex, _ = _codex_files(env)
+    pi = _home_dir(env, "PI_CODING_AGENT_DIR", ".pi", "agent") / "AGENTS.md"
+    opencode = _xdg_config(env) / "opencode" / "AGENTS.md"
+    return _dedupe([("claude", claude), ("grok", grok), ("codex", codex), ("pi", pi), ("opencode", opencode)])
+
+
+def unread_files(env):
+    """Return (host, path) for shared files a host could hold a section in but does not read now."""
+    _, other = _codex_files(env)
+    read = {os.path.realpath(p) for _, p in shared_targets(env)}
+    return [(host, path) for host, path in [("codex", other)] if os.path.realpath(path) not in read]
 
 
 def own_targets(env):
@@ -129,13 +152,35 @@ def read_source(env):
     return text
 
 
-def _newline(text):
-    return "\r\n" if "\r\n" in text else "\n"
+def _check_no_link(path, env):
+    """Refuse a target that is a symlink or sits under a symlinked folder below HOME."""
+    home = os.path.realpath(env["HOME"])
+    current = pathlib.Path(path)
+    while True:
+        if current.is_symlink():
+            raise TargetError(f"{path}: refused, {current} is a symbolic link")
+        parent = current.parent
+        if parent == current or os.path.realpath(parent) == home or str(parent) == env["HOME"]:
+            return
+        current = parent
 
 
 def _read(path):
-    with open(path, newline="") as fh:
+    with open(path, encoding="utf-8", newline="") as fh:
         return fh.read()
+
+
+def _newline(text):
+    """Return the line ending of the line that ends Hive's block, as Hive writes it."""
+    marker = VOICE_END if VOICE_END in text else HIVE_END
+    if marker in text:
+        index = text.index(marker) + len(marker)
+        if text.startswith("\r\n", index):
+            return "\r\n"
+        if text.startswith("\n", index):
+            return "\n"
+    first = text.find("\n")
+    return "\r\n" if first > 0 and text[first - 1] == "\r" else "\n"
 
 
 def _section(rules, nl):
@@ -154,9 +199,9 @@ def _section_span(text):
     if text.count(BEGIN) != 1 or text.count(END) != 1:
         raise ValueError("malformed or duplicate personal markers")
     start = text.index(BEGIN)
-    end = text.index(END) + len(END)
-    if end < start:
+    if text.index(END) < start:
         raise ValueError("reversed personal markers")
+    end = text.index(END) + len(END)
     if text.startswith("\r\n", end):
         end += 2
     elif text.startswith("\n", end):
@@ -197,7 +242,14 @@ def _in_position(text):
     if span is None:
         return False
     base = _without_section(text)
-    return text[: span[0]] == base[: _anchor(base)] and text[: span[0]].strip() != ""
+    return text[: span[0]] == base[: _anchor(base)]
+
+
+def stat_mode(path):
+    try:
+        return os.stat(path).st_mode & 0o7777
+    except FileNotFoundError:
+        return None
 
 
 def _write_atomic(path, text):
@@ -205,7 +257,7 @@ def _write_atomic(path, text):
     mode = stat_mode(path)
     fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".personal-rules-")
     try:
-        with os.fdopen(fd, "w", newline="") as fh:
+        with os.fdopen(fd, "w", encoding="utf-8", newline="") as fh:
             fh.write(text)
         if mode is not None:
             os.chmod(tmp, mode)
@@ -216,71 +268,87 @@ def _write_atomic(path, text):
         raise
 
 
-def stat_mode(path):
-    try:
-        return os.stat(path).st_mode & 0o7777
-    except FileNotFoundError:
-        return None
+def _planned(path, current, new, env):
+    _check_no_link(path, env)
+    return (path, current, new)
 
 
 def build_plan(env, rules=None, remove=False):
-    """Return the writes as (path, text read or None, new text or None to delete)."""
+    """Return the writes as (path, text read or None, new text or None to delete).
+
+    Raises SourceError or TargetError, before any write, for an invalid source,
+    a symlinked target, a rule file this script did not write, or malformed markers.
+    """
     if rules is None and not remove:
         rules = read_source(env)
     plan = []
-    for host, path in shared_targets(env):
+    candidates = shared_targets(env) + (unread_files(env) if remove else [])
+    for host, path in candidates:
         if not path.is_file():
             continue
+        _check_no_link(path, env)
         current = _read(path)
-        if remove:
-            if BEGIN in current or END in current:
-                try:
-                    plan.append((path, current, _without_section(current)))
-                except ValueError as exc:
-                    raise ValueError(f"{path}: {exc}")
-            continue
-        if HIVE_BEGIN not in current or HIVE_END not in current:
-            continue
         try:
+            if remove:
+                if BEGIN in current or END in current:
+                    plan.append(_planned(path, current, _without_section(current), env))
+                continue
+            if HIVE_BEGIN not in current or HIVE_END not in current:
+                continue
             new = _with_section(current, rules)
         except ValueError as exc:
-            raise ValueError(f"{path}: {exc}")
+            raise TargetError(f"{path}: {exc}")
         if new != current:
-            plan.append((path, current, new))
+            plan.append(_planned(path, current, new, env))
     for host, path, hive_file, frontmatter in own_targets(env):
-        exists = path.is_file()
+        exists = path.is_file() or path.is_symlink()
+        if exists:
+            _check_no_link(path, env)
         current = _read(path) if exists else None
+        if current is not None and PRECEDENCE not in current:
+            if remove:
+                continue
+            if hive_file.is_file():
+                raise TargetError(f"{path}: refused, this file was not written by personal_rules.py")
+            continue
         if remove:
-            if exists and PRECEDENCE in current:
-                plan.append((path, current, None))
+            if exists:
+                plan.append(_planned(path, current, None, env))
             continue
         if not hive_file.is_file():
             continue
         new = _own_file(rules, frontmatter)
         if new != current:
-            plan.append((path, current, new))
+            plan.append(_planned(path, current, new, env))
     return plan
 
 
 def apply_plan(plan):
-    """Apply the writes; return the paths skipped because they changed since read."""
-    skipped = []
+    """Apply the writes; return (paths skipped because they changed, (path, error) failures)."""
+    skipped, failed = [], []
     for path, before, after in plan:
-        now = _read(path) if path.is_file() else None
-        if now != before:
-            skipped.append(path)
-            continue
-        if after is None:
-            path.unlink()
-        else:
-            _write_atomic(path, after)
-    return skipped
+        try:
+            now = _read(path) if path.is_file() else None
+            if now != before:
+                skipped.append(path)
+                continue
+            if after is None:
+                path.unlink()
+            else:
+                _write_atomic(path, after)
+        except OSError as exc:
+            failed.append((path, exc.strerror or str(exc)))
+    return skipped, failed
 
 
 def check(env):
-    """Return a list of problems, one per copy."""
-    rules = read_source(env)
+    """Return a list of problems, one per copy or per source error."""
     problems = []
+    try:
+        rules = read_source(env)
+    except SourceError as exc:
+        rules = None
+        problems.append(f"source {exc}")
     for host, path in shared_targets(env):
         if not path.is_file():
             continue
@@ -297,20 +365,32 @@ def check(env):
             problems.append(f"invalid {host} {path}: {exc}")
             continue
         if span is None:
-            problems.append(f"missing {host} {path}")
+            if rules is not None:
+                problems.append(f"missing {host} {path}")
             continue
-        nl = _newline(text)
-        if text[span[0] : span[1]] != _section(rules, nl):
+        if rules is None:
+            problems.append(f"present {host} {path}: no valid rules.md to compare with")
+        elif text[span[0] : span[1]] != _section(rules, _newline(text)):
             problems.append(f"differs {host} {path}")
         if not _in_position(text):
             problems.append(f"position {host} {path}: not right after Hive's block")
+    for host, path in unread_files(env):
+        if path.is_file() and (BEGIN in _read(path) or END in _read(path)):
+            problems.append(f"orphan {host} {path}: personal section in a file {host} no longer reads")
     for host, path, hive_file, frontmatter in own_targets(env):
+        exists = path.is_file()
+        ours = exists and PRECEDENCE in _read(path)
         if not hive_file.is_file():
-            if path.is_file():
+            if ours:
                 problems.append(f"orphan {host} {path}: personal file in a host without Hive")
             continue
-        if not path.is_file():
-            problems.append(f"missing {host} {path}")
+        if not ours:
+            if exists:
+                problems.append(f"foreign {host} {path}: not written by personal_rules.py")
+            elif rules is not None:
+                problems.append(f"missing {host} {path}")
+        elif rules is None:
+            problems.append(f"present {host} {path}: no valid rules.md to compare with")
         elif _read(path) != _own_file(rules, frontmatter):
             problems.append(f"differs {host} {path}")
     return problems
@@ -325,30 +405,30 @@ def main(argv=None, env=None):
     parser.add_argument("command", choices=["deploy", "check", "remove"])
     args = parser.parse_args(argv)
     env = dict(os.environ if env is None else env)
+    if args.command == "check":
+        problems = check(env)
+        for line in problems:
+            print(line)
+        if not problems:
+            print("ok: every copy matches rules.md")
+        return exit_code_for([], problems)
     try:
-        if args.command == "check":
-            problems = check(env)
-            for line in problems:
-                print(line)
-            if not problems:
-                print("ok: every copy matches rules.md")
-            return exit_code_for([], problems)
         plan = build_plan(env, remove=args.command == "remove")
-    except SourceError as exc:
+    except (SourceError, TargetError) as exc:
         print(f"refused: {exc}")
         return 1
-    except ValueError as exc:
-        print(f"refused: {exc}")
-        return 1
-    skipped = apply_plan(plan)
+    skipped, failed = apply_plan(plan)
+    failed_paths = {path for path, _ in failed}
     for path, _before, after in plan:
         if path in skipped:
             print(f"skipped {path}: changed since it was read; run {args.command} again")
-        else:
+        elif path not in failed_paths:
             print(f"{'removed' if after is None else 'wrote'} {path}")
+    for path, reason in failed:
+        print(f"failed {path}: {reason}")
     if not plan:
         print("ok: nothing to change")
-    return exit_code_for(skipped, [])
+    return exit_code_for(skipped, [str(p) for p, _ in failed])
 
 
 if __name__ == "__main__":

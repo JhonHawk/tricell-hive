@@ -196,6 +196,68 @@ class PersonalRulesTests(unittest.TestCase):
         self.assertNotEqual(result.returncode, 0)
         self.assertIn("rules.md", result.stdout)
 
+    def test_a_rule_file_the_user_wrote_is_never_overwritten(self):
+        self.write(self.cursor_personal, "---\nalwaysApply: true\n---\n\nMy own Cursor rule.\n")
+        result = self.run_script("deploy")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(str(self.cursor_personal), result.stdout)
+        self.assertEqual(self.read(self.cursor_personal), "---\nalwaysApply: true\n---\n\nMy own Cursor rule.\n")
+        self.assertNotIn(BEGIN, self.read(self.shared["codex"]))
+
+    def test_symlinked_targets_are_refused(self):
+        real = self.home / "dotfiles/AGENTS.md"
+        self.write(real, hive_block())
+        self.shared["pi"].unlink()
+        self.shared["pi"].symlink_to(real)
+        result = self.run_script("deploy")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(str(self.shared["pi"]), result.stdout)
+        self.assertTrue(self.shared["pi"].is_symlink())
+        self.assertNotIn(BEGIN, self.read(real))
+
+    def test_remove_and_check_find_a_section_codex_no_longer_reads(self):
+        self.assertEqual(self.run_script("deploy").returncode, 0)
+        self.write(self.home / ".codex/AGENTS.override.md", hive_block())
+        result = self.run_script("check")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(str(self.shared["codex"]), result.stdout)
+        self.assertEqual(self.run_script("remove").returncode, 0)
+        self.assertNotIn(BEGIN, self.read(self.shared["codex"]))
+
+    def test_end_marker_right_before_begin_is_refused(self):
+        codex = self.shared["codex"]
+        self.write(codex, hive_block() + END + BEGIN + "\n")
+        result = self.run_script("deploy")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.read(codex).count(BEGIN), 1)
+
+    def test_check_without_a_source_still_names_the_copies(self):
+        self.assertEqual(self.run_script("deploy").returncode, 0)
+        self.source.unlink()
+        result = self.run_script("check")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("rules.md", result.stdout)
+        self.assertIn(str(self.shared["codex"]), result.stdout)
+        self.assertIn(str(self.cursor_personal), result.stdout)
+
+    def test_a_write_error_names_the_file_and_the_others_are_written(self):
+        rules_dir = self.agy_personal.parent
+        os.chmod(rules_dir, 0o555)
+        try:
+            result = self.run_script("deploy")
+        finally:
+            os.chmod(rules_dir, 0o755)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(str(self.agy_personal), result.stdout)
+        self.assertNotIn("Traceback", result.stderr)
+        self.assertEqual(self.read(self.shared["codex"]).count(BEGIN), 1)
+
+    def test_section_uses_the_line_ending_of_the_hive_block(self):
+        path = self.shared["opencode"]
+        self.write(path, "Notes with CRLF.\r\n" + hive_block())
+        self.assertEqual(self.run_script("deploy").returncode, 0)
+        self.assertIn(HIVE_END + "\n" + self.section(RULE), self.read(path))
+
     def test_codex_whitespace_override_wins_like_the_manager(self):
         override = self.home / ".codex/AGENTS.override.md"
         self.write(override, "\n")
@@ -253,7 +315,7 @@ class PersonalRulesTests(unittest.TestCase):
         plan = module.build_plan(env)
         codex = self.shared["codex"]
         self.write(codex, self.read(codex) + "Edited meanwhile.\n")
-        skipped = module.apply_plan(plan)
+        skipped, failed = module.apply_plan(plan)
         self.assertEqual([str(p) for p in skipped], [str(codex)])
         self.assertNotIn(BEGIN, self.read(codex))
         self.assertEqual(self.read(self.shared["pi"]).count(BEGIN), 1)
@@ -265,7 +327,7 @@ class PersonalRulesTests(unittest.TestCase):
         plan = module.build_plan(dict(self.env))
         codex = self.shared["codex"]
         self.write(codex, self.read(codex) + "Edited meanwhile.\n")
-        skipped = module.apply_plan(plan)
+        skipped, failed = module.apply_plan(plan)
         self.assertNotEqual(module.exit_code_for(skipped=skipped, problems=[]), 0)
 
 
