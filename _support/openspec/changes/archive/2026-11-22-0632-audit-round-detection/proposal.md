@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | In build · verify |
+| Estado | Completado · PR #583, merge a69e54cf |
 | Tracker | ninguno · watch items `engram:tricell-hive/watch/codex-decision-format-async` (#17780) y `watch/plan-skips-delivery-round-and-handoff` (#17933) |
 | Git | tricell-hive · base `development` en `1b87f0a7` · rama `feat/audit-round-detection` · worktree `.claude/worktrees/audit-round-detection` |
 | Playbook | infra-ci |
