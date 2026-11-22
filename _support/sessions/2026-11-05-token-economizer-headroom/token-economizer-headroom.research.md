@@ -2,7 +2,7 @@
 
 Pregunta: ¿los tres mecanismos de TokenEconomizer (microsoft/TokenEconomizer, arXiv 2610.22732) tienen margen en las sesiones de este equipo? Réplica de las *headroom measurements* del paper (apéndice B) sin llamadas a modelo.
 
-- Script: `measure-headroom.py` (esta carpeta). Resultado crudo: `headroom.json`, sin trackear: se regenera con el script.
+- Script: `measure-headroom.py` (esta carpeta). Resultado crudo: `headroom.json`, en `_support/workspace/2026-11-05-token-economizer-headroom/` (ignorado por Git): se regenera con el script.
 - Datos: hilos principales de los últimos 30 días, 194 sesiones de Claude Code (16 repos, 36 480 llamadas) y 35 de Codex (5 repos, 13 807 llamadas; sin `exec` ni subagentes).
 - Costo: tokens efectivos relativos con precios de caché; los hosts no se mezclan. Todos los porcentajes son cotas superiores de exposición, no ahorro alcanzable.
 
