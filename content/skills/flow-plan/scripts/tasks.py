@@ -865,8 +865,9 @@ def cmd_versioned(args):
     workspace = sibling_script("workspace-repo/scripts/workspace_repo.py", "hive_workspace_repo")
     settings = hive_settings(top, workspace)
     direct_base = settings.get("Delivery", "").split()[:1] == ["direct-base"]
-    base = workspace.base_branch_of(str(top))
-    base_source = "Hive" if settings.get("Base branch") == base else "origin/HEAD"
+    declared = settings.get("Base branch", "")
+    base_source = "Hive" if re.fullmatch(r"\S+", declared) else "origin/HEAD"
+    base = declared if base_source == "Hive" else workspace.base_branch_of(str(top))
     print(f"repo: {top} · base: {base} ({base_source}) · delivery: {'direct-base' if direct_base else 'not declared'}"
           f" · work repo: {'same' if same_repo else work_top}")
     state = git_reader(top)

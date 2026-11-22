@@ -936,7 +936,7 @@ class VersionedTest(unittest.TestCase):
     def test_squash_merged_folder_with_its_branch_deleted_passes(self):
         for delivery in ("", "- Delivery: direct-base\n"):
             with self.subTest(delivery=delivery):
-                repo = self.repo(f"app{len(delivery)}", f"- Base branch: main\n{delivery}- Specs: `openspec`\n")
+                repo = self.repo(f"app{len(delivery)}", f"- Base branch: `main`\n{delivery}- Specs: `openspec`\n")
                 folder = self.change(repo / "openspec")
                 self.git(repo, "switch", "-c", "feat/work")
                 self.commit(repo, folder, push="feat/work")
