@@ -8,7 +8,7 @@ Which of Hive's rules a mechanism enforces, and which still rest on prose. A rul
 
 | Rule | Home | Mechanism | Kind | Status |
 | --- | --- | --- | --- | --- |
-| A skill or reference stays at or under 16,000 bytes | root `AGENTS.md` «Guidance structure» | `tests/content/skill_size_test.go` | prevents | enforced |
+| A `SKILL.md` stays at or under 16,000 bytes; every other whole-read file (reference, leaf, playbook) at or under 24,000 | root `AGENTS.md` «Guidance structure» | `tests/content/skill_size_test.go`, `tests/content/leaf_skill_test.go` | prevents | enforced |
 | The global core stays at or under 30,000 bytes; a new rule goes to a leaf | root `AGENTS.md` «Guidance structure» | `tests/content/budget_test.go` | prevents | enforced |
 | Internal links and their anchors resolve | `_support/docs/architecture/instruction-resources.md` | `tooling/management/references.go` | prevents | enforced |
 | Every role-profile model has a floor row, and the writing-target rows match «Two sets» | `_support/docs/harness-engineering/model-floor.md` | `tests/content/model_floor_test.go` | prevents | enforced |

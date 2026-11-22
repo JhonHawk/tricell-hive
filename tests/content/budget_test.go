@@ -12,7 +12,9 @@ import (
 // globalGuidanceLimit is the size budget of the always-loaded global guidance.
 // Each session and each role child loads it whole, and each prune before this
 // budget existed grew back within weeks, so a new rule goes to a leaf and the
-// core keeps only what must act unread.
+// core keeps only what must act unread. A loading budget, not a host limit: no
+// supported host cuts the core at this size, and it changes only by the user's
+// decision, never in the change that needs the room.
 const globalGuidanceLimit = 30000
 
 // globalGuidanceProblem measures root/content/guidance/global.md and returns
@@ -26,7 +28,7 @@ func globalGuidanceProblem(root string) (int, string, error) {
 	if len(data) <= globalGuidanceLimit {
 		return len(data), "", nil
 	}
-	return len(data), fmt.Sprintf("content/guidance/global.md is %d bytes, over its %d-byte budget: move the rule's procedure to a rule leaf or its skill and keep in the global core only its invariant, when it must act without the leaf being read (AGENTS.md «Guidance structure»)", len(data), globalGuidanceLimit), nil
+	return len(data), fmt.Sprintf("content/guidance/global.md is %d bytes, over its %d-byte budget: move the rule's procedure to a rule leaf or its skill and keep in the global core only its invariant, when it must act without the leaf being read (AGENTS.md «Guidance structure»); raising the budget is the user's decision", len(data), globalGuidanceLimit), nil
 }
 
 // TestGlobalGuidanceSize enforces the budget and reports the size. Source size

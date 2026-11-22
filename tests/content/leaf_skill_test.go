@@ -12,21 +12,13 @@ import (
 	"unicode/utf8"
 )
 
-// Leaves are small files the model does not load on its own: a flow step or an
-// index line names them with the condition to read them, and the agent reads
-// the file. The rule leaves are files of the hidden hive-core skill, without
-// frontmatter; the principles and the language leaf stay skills. These limits
-// keep each leaf readable in one pass and keep a host's skill catalog from
-// carrying them.
+// Leaves are files the model does not load on its own: a flow step or an index
+// line names them with the condition to read them, and the agent reads the
+// file. The rule and principle leaves are files of the hidden hive-core skill,
+// without frontmatter; the language leaf stays a skill. Each leaf and playbook
+// stays within wholeReadLimit (skill_size_test.go), with no limit of its own.
 const (
-	leafSizeLimit          = 4000
-	leafExceptionSizeLimit = 7000
-	// leafReportEndingsSizeLimit is the own limit of the report-endings leaf,
-	// the one home of how every message ends (decision D11 A of the
-	// reporting-family-leaves plan).
-	leafReportEndingsSizeLimit = 9000
-	leafDescriptionLimit       = 200
-	playbookSizeLimit          = 7000
+	leafDescriptionLimit = 200
 	// playbookModePhrase is the fixed phrase through which a playbook refers to
 	// the delivery mode: it never fixes or replaces the mode itself.
 	playbookModePhrase = "under the delivery mode in force"
@@ -47,22 +39,6 @@ const (
 	// domain folders replaced it; hive-core may not hold it.
 	legacyReferencesDir = "references"
 )
-
-// leafSizeExceptions names each rule leaf, by its file name without the domain
-// folder, whose single rule cannot fit the common limit without
-// rewording it; each stays at or under leafExceptionSizeLimit.
-var leafSizeExceptions = map[string]bool{
-	// One home for every question to the user: what to ask, the format and the
-	// channel per host, read together before any round; the unanswered card,
-	// a moment of its own, is its reference.
-	"questions": true,
-	// One moment, the merge: the CI wait, the current base, the reviewer hold
-	// and the bypass grants that can lift it, read together before merging.
-	"merge-gate": true,
-	// One report in several variants (completion, open pull request,
-	// deployment, hold, pause) plus the findings at the close, read together.
-	"close-report": true,
-}
 
 // playbookKinds is the closed set of hive-mode playbooks that have a file; the
 // other kinds of hive-mode's table carry what is specific to them in their row.
@@ -137,7 +113,7 @@ func countPrincipleLinks(text string) map[string]int {
 
 // leafFileProblems checks what a rule leaf and a principle share: a title, no
 // frontmatter, a first body line that starts with "Read" and the size limit.
-func leafFileProblems(label string, data []byte, limit int) []string {
+func leafFileProblems(label string, data []byte) []string {
 	var problems []string
 	text := string(data)
 	if strings.HasPrefix(text, "---") {
@@ -149,8 +125,8 @@ func leafFileProblems(label string, data []byte, limit int) []string {
 	if !strings.HasPrefix(leafFirstBodyLine(text), "Read ") {
 		problems = append(problems, fmt.Sprintf("%s: first body line does not start with \"Read\"", label))
 	}
-	if len(data) > limit {
-		problems = append(problems, fmt.Sprintf("%s: leaf is %d bytes, limit %d", label, len(data), limit))
+	if problem := wholeReadProblem(label, int64(len(data))); problem != "" {
+		problems = append(problems, problem)
 	}
 	return problems
 }
@@ -225,14 +201,7 @@ func ruleLeafProblems(skillsDir string, ruleIndex string, hasRuleIndex bool) []s
 				problems = append(problems, fmt.Sprintf("%s: %v", name, err))
 				continue
 			}
-			limit := leafSizeLimit
-			if leafSizeExceptions[name] {
-				limit = leafExceptionSizeLimit
-			}
-			if name == "report-endings" {
-				limit = leafReportEndingsSizeLimit
-			}
-			for _, problem := range leafFileProblems(name, data, limit) {
+			for _, problem := range leafFileProblems(name, data) {
 				problems = append(problems, strings.Replace(problem, "a leaf carries", "a rule leaf carries", 1))
 			}
 			if !hasRuleIndex {
@@ -275,7 +244,7 @@ func principleProblems(skillsDir string) []string {
 			problems = append(problems, fmt.Sprintf("%s: %v", name, err))
 			continue
 		}
-		for _, problem := range leafFileProblems(name, data, leafSizeLimit) {
+		for _, problem := range leafFileProblems(name, data) {
 			problems = append(problems, strings.Replace(problem, "a leaf carries", "a principle carries", 1))
 		}
 		if indexErr == nil {
@@ -365,11 +334,11 @@ func leafProblems(root string) []string {
 			if !strings.Contains(frontmatterBlock(text), "\npaths:") {
 				problems = append(problems, fmt.Sprintf("%s: frontmatter has no `paths`", name))
 			}
+			if problem := languageLeafProblem(name+"/SKILL.md", int64(len(data))); problem != "" {
+				problems = append(problems, problem)
+			}
 		} else if hidden != "true" {
 			problems = append(problems, fmt.Sprintf("%s: frontmatter lacks `disable-model-invocation: true`", name))
-		}
-		if len(data) > leafSizeLimit {
-			problems = append(problems, fmt.Sprintf("%s: SKILL.md is %d bytes, limit %d", name, len(data), leafSizeLimit))
 		}
 	}
 
@@ -377,9 +346,10 @@ func leafProblems(root string) []string {
 	present := map[string]bool{}
 	for _, path := range playbooks {
 		present[strings.TrimSuffix(filepath.Base(path), ".md")] = true
-		info, err := os.Stat(path)
-		if err == nil && info.Size() > playbookSizeLimit {
-			problems = append(problems, fmt.Sprintf("playbook %s is %d bytes, limit %d", filepath.Base(path), info.Size(), playbookSizeLimit))
+		if info, err := os.Stat(path); err == nil {
+			if problem := wholeReadProblem("playbook "+filepath.Base(path), info.Size()); problem != "" {
+				problems = append(problems, problem)
+			}
 		}
 		if data, err := os.ReadFile(path); err == nil {
 			text := string(data)
@@ -461,20 +431,20 @@ func TestLeafSkillInvariantsCatchViolations(t *testing.T) {
 	writeFile(t, filepath.Join(core, "build", "a.md"), "# A\n\nRead before a commit.\n")
 	writeFile(t, filepath.Join(core, "build", "b.md"), "---\nname: b\n---\n\n# B\n\nRead never.\n")
 	writeFile(t, filepath.Join(core, "build", "c.md"), "# C\n\nWhen a commit is made.\n")
-	writeFile(t, filepath.Join(core, "build", "big.md"), "# Big\n\nRead always.\n"+strings.Repeat("x", leafSizeLimit))
+	writeFile(t, filepath.Join(core, "build", "big.md"), "# Big\n\nRead always.\n"+strings.Repeat("x", wholeReadLimit))
 	writeFile(t, filepath.Join(core, "plan", "a.md"), "# A again\n\nRead before a plan.\n")
 	writeFile(t, filepath.Join(core, "empty", "keep"), "")
 	writeFile(t, filepath.Join(core, "stray", "z.md"), "# Z\n\nRead never.\n")
 	writeFile(t, filepath.Join(core, legacyReferencesDir, "old.md"), "# Old\n\nRead never.\n")
 	writeFile(t, filepath.Join(core, principlesDomain, principleIndexFile), "# Principles\n\nRead first.\n\n- [one](p1.md)\n- [again](p1.md)\n- [two](p2.md)\n- [three](p3.md)\n- [gone](p5.md)\n")
 	writeFile(t, filepath.Join(core, principlesDomain, "p1.md"), "---\nname: p1\n---\n\n# P1\n\nRead when you design.\n")
-	writeFile(t, filepath.Join(core, principlesDomain, "p2.md"), "# P2\n\nRead when you write.\n"+strings.Repeat("x", leafSizeLimit))
+	writeFile(t, filepath.Join(core, principlesDomain, "p2.md"), "# P2\n\nRead when you write.\n"+strings.Repeat("x", wholeReadLimit))
 	writeFile(t, filepath.Join(core, principlesDomain, "p3.md"), "# P3\n\nWhen you review.\n")
 	writeFile(t, filepath.Join(core, principlesDomain, "p4.md"), "# P4\n\nRead when you ship.\n")
 	writeFile(t, filepath.Join(skills, legacyRulePrefix+"x", "keep"), "")
 	writeFile(t, filepath.Join(skills, legacyPrincipleSkillPrefix+"x", "keep"), "")
 	writeFile(t, filepath.Join(skills, languageLeafName, "SKILL.md"), leafDoc(languageLeafName, "disable-model-invocation: true\n"))
-	writeFile(t, filepath.Join(skills, "hive-mode", "playbooks", "perf.md"), strings.Repeat("y", playbookSizeLimit+1))
+	writeFile(t, filepath.Join(skills, "hive-mode", "playbooks", "perf.md"), strings.Repeat("y", wholeReadLimit+1))
 	writeFile(t, filepath.Join(skills, "hive-mode", "playbooks", "refactor.md"), "Push "+playbookModePhrase+", then stop in `hold`.\n")
 	writeFile(t, filepath.Join(skills, "hive-mode", "playbooks", "extra.md"), "Not one of the playbooks.\n")
 
@@ -493,17 +463,17 @@ func TestLeafSkillInvariantsCatchViolations(t *testing.T) {
 		"b: first line is not a title",
 		"b: listed 0 times",
 		"c: first body line does not start with \"Read\"",
-		"big: leaf is",
+		"big: whole-read file is",
 		"lists build/gone, which does not exist",
 		"p1: a principle carries no frontmatter",
 		"p1: listed 2 times in principles/index.md",
-		"p2: leaf is",
+		"p2: whole-read file is",
 		"p3: first body line does not start with \"Read\"",
 		"p4: listed 0 times in principles/index.md",
 		"principles/index.md lists p5, which does not exist",
 		"hive-typescript: must stay model-invocable",
 		"hive-typescript: frontmatter has no `paths`",
-		"playbook perf.md is",
+		"playbook perf.md: whole-read file is",
 		"playbook refactor.md names the delivery mode `hold` outside the phrase",
 		"hive-mode/playbooks holds extra.md",
 		"hive-mode/playbooks lacks ui-change.md",

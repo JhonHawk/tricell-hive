@@ -247,6 +247,16 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Rule leaves, principle leaves, playbooks and skill references share one
+  24,000-byte limit, the one stage packets already have. The 4,000, 7,000 and
+  9,000-byte leaf limits, the leaf exception list and the 7,000-byte playbook
+  limit are gone, and references move from 16,000 bytes. A leaf a stage
+  packet holds still fits that packet's 24,000 bytes, and the language leaf
+  `hive-typescript` keeps its 4,000-byte budget. A `SKILL.md` keeps
+  16,000 bytes, since Claude Code keeps only the first 5,000 tokens of an
+  invoked skill after compaction. `harness-audit` HA-SK-02 now allows a
+  reference up to 24,000 bytes. A failing size test names what to move.
+
 - Hive's guidance is now written for Claude Opus 5.5 and OpenAI gpt-6.2-sol.
   Failures observed one tier above (Fable 5.2, gpt-6.2-astra), one tier below
   (Sonnet 5.5, gpt-6.1-terra) and on Grok 4.7 count toward corrections; Haiku,
