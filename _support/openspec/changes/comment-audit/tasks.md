@@ -90,16 +90,25 @@ Sin parada de validación (`automatic`).
 ## Checkpoint
 
 - Updated: 2026-11-22
-- Stage: build · T1
-- Last commit: 32bef8c8
-- Open findings: none
-- Next: T1: write the template test first
+- Stage: verify · integrate
+- Last commit: 8dd91b83
+- Open findings: H1 P3 lint flags an unstaged local rename as new comments · close findings; H2 P3 ALLOWED accepts prose after a directive (@license anywhere, /*! prose, eslint-disable -- prose, case-insensitive copyright) · close findings; H3 P3 block-form workaround marker allowed outside JSX · close findings; H4 P3 Go test parser versions duplicated from package.json; a bumped pin makes the suite skip · close findings; H5 P3 shown() leaves C1 controls and bidi overrides unescaped · close findings
+- Next: push, open PR, wait CI, merge, refresh install, observe AC1 AC4 AC7, flow-close, update artifact
 - Worktree: .claude/worktrees/comment-audit · feat/comment-audit
-- Rules: flow-build/stage.md
+- Unwritten: after the close, update the artifact https://claude.ai/artifact/77U7EN4pUTcEtiAijziLxE tab #propuestas (Hive hoy) with comment-audit; read all 2446 lines first
+- Rules: flow-verify/stage-entry.md, flow-verify/stage-exit.md
+- Principles: none
 
 ### Evidence
 
 - before captures: none (no screen)
+- local CI f210537d: go vet ok; go test ./... ok 178s; python unittest 412 ok; site build 20 pages ok
+- AC2 d13777f5: go test ./tests/content -run TestCommentAuditTemplate -count=1 -v -> 17 pass 0 fail with babel8 and babel7
+- AC6 ec3528b8: repo and workspace built from references/project-skill.md -> skill_registry.py check exit 0 on both; without the repo ## Skills line exit 1
+- AC5 d13777f5: prompt clause -> SKILL.md line: classify every comment -> 21-27; Tautology/Stale delete -> 22-23, 42; Excuse delete + issue -> 24, 40, 43; Decision record -> ADR/record -> 25, 41; lint rule with ratchet, partial cleanup -> 11, 45; /delete-comment skill in .agents and .claude -> 46 + references/project-skill.md; estimate lines shed -> 17, 55
+- blast radius d13777f5: adding the template to a project made its own lint fail with 16 findings; fixed in d13777f5, regression test 'adding the ratchet to a project passes its own lint' seen failing then passing
+- final local CI 8dd91b83: go vet ok; go test ./... 23 ok 173s; python 412 ok; site build ok; template 26/26 babel8 and babel7
+- reviews: /code-review 32bef8c8..d13777f5 (7 important, 3 nit) and hive-review-security d13777f5 (1 medium, 4 low) fixed in 8d925381; second pass /code-review and security on d13777f5..8d925381 fixed locally in 8dd91b83 (Unreviewed line)
 
 ## Review status and progress
 
