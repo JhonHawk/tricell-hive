@@ -671,6 +671,7 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"card options grok a card in format", "grok", cards, []string{cards, "grok-updates-pass.jsonl"}, auditOptions{}, "pass"},
 		{"card options claude a card the host refused for invalid input", "claude", cards, []string{cards, "claude-project-invalid-input-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"card options claude two options with the same letter", "claude", cards, []string{cards, "claude-project-repeated-letter-fail.jsonl"}, auditOptions{}, "fail"},
+		{"card options claude a card closed by another error was shown", "claude", cards, []string{cards, "claude-project-timeout-error-fail.jsonl"}, auditOptions{}, "fail"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

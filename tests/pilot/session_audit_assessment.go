@@ -315,13 +315,21 @@ func cardOptionsOutOfFormat(labels []string, multi bool) string {
 	return ""
 }
 
+// cardRefusedInput matches the error a host returns when it refuses a card's
+// input before showing it, such as Claude Code's InputValidationError. Other
+// errors, such as a timeout, close a card the user saw.
+var cardRefusedInput = regexp.MustCompile(`(?i)InputValidationError|invalid (?:input|arguments)`)
+
 // cardNeverShown reports whether the host refused the card at qi before the
-// user saw it: its result is an error that is not the user turning it down.
+// user saw it: its result is an input validation error.
 func cardNeverShown(events []traceEvent, qi int) bool {
+	if events[qi].ID == "" {
+		return false
+	}
 	for i := qi + 1; i < len(events); i++ {
 		if events[i].Kind == "tool_result" && events[i].ID == events[qi].ID {
 			r := events[i]
-			return r.Success != nil && !*r.Success && !claudeRejected.MatchString(r.Text)
+			return r.Success != nil && !*r.Success && cardRefusedInput.MatchString(r.Text)
 		}
 	}
 	return false

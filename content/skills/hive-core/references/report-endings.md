@@ -37,14 +37,14 @@ Moving from one flow to the next (research's status report to a ticket's researc
 
 <the reason in one line>
 
-`<the command, once, in this host's syntax, with a real argument: /flow-plan COM-833>`
+`<the command, once, in this host's syntax, with a real argument, such as /flow-plan COM-833>`
 
 A - <another reply, such as keep investigating or what to change>
 
 <waiting line>
 ```
 
-Offer a flow's command only when the next step needs that flow's procedure: an investigation, a design in Figma, a plan, or a change to the repository's files with its delivery. No flow needs a ticket: when the work has none, the command's argument is a short description of the work or its change folder, never a placeholder, and a ticket is proposed only as [scope changes](scope-changes.md) sets. The ID only names the block; replying to it keeps the effect below.
+Offer a flow's command only when the next step needs that flow's procedure: an investigation, a design in Figma, a plan, or a change to the repository's files with its delivery. No flow needs a ticket: when the work has none, the command's argument is a short description of the work or its change folder, never a placeholder, and a ticket is proposed only as [scope changes](scope-changes.md) sets. The ID only names the block; a reply to it by letter, ID or command keeps the effect below.
 
 Only the user's reply to this block, or a flow command they type, starts the next flow; a reply to a question or the acceptance of a proposal only settles or redirects the scope, except a fix the close footer's **Resolve findings now** reply or a findings round sends, and the [same-turn continuations](#same-turn-continuations). Keep the question tool for decisions inside a flow: scope, design, delivery and review, validation and findings.
 
@@ -60,7 +60,7 @@ When the block leads from an approved plan to its build in the same session, or 
 
 <the reason in one line>
 
-A - <reply, (★) if recommended>
+A - (★) <reply>
 
 B - <reply>
 
