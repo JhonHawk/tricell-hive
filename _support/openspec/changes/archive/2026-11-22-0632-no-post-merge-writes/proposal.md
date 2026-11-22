@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | Completado · PR #585, merge 1df007e2 |
 | Tracker | none |
 | Git | tricell-hive · base `development` en `1b87f0a7` · rama `fix/no-post-merge-writes` · worktree `.claude/worktrees/no-post-merge-writes` |
 | Playbook | none |
