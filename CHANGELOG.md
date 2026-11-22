@@ -12,6 +12,21 @@ raise the minor or the patch version.
 
 ### Added
 
+- A project can list the third-party skills an agent must read, and when, in
+  a `## Skills` section of its `AGENTS.md` (`harness-audit` rule HA-IF-19).
+  `harness-audit/scripts/skill_registry.py check` compares that section with
+  the skills installed in `.agents/skills`, `.claude/skills`, `.grok/skills`
+  and `skills-lock.json`, for a repository or a declared workspace, and
+  `propose` prints the official skill sources of the stack a repository's
+  files show. Onboarding installs only the sources the user approves, through
+  the `skills` CLI pinned to a commit. The main thread copies the lines that
+  apply into each child's brief. Each Hive skill now ships
+  `assets/hive-managed.json` so the check skips the skills Hive installed.
+- `hive-build-mobile` implements mobile changes in the repository's stack
+  (Flutter, Expo or React Native, Kotlin Multiplatform, native Android or
+  iOS), reads the project's `## Skills` lines, and verifies on the device or
+  emulator its brief assigns.
+
 - The rule leaf `hive-rule-background-wait` restores the rule the skills
   rebuild dropped: a polling loop or background wait ends on every outcome,
   including output it does not recognize, has a deadline for the whole wait,
@@ -424,6 +439,9 @@ raise the minor or the patch version.
 
 ### Removed
 
+- `hive-build-kmp`, replaced by `hive-build-mobile`. An update removes it
+  from every host. A model override set with `hive models set` on
+  `hive-build-kmp` no longer applies; set it again on `hive-build-mobile`.
 - The rule leaves `hive-rule-next-step-block` and `hive-rule-close-footer`: their
   text moved to `hive-rule-report-endings` and `hive-rule-close-report`.
   Installed copies disappear on `hive update`; restart open sessions.
