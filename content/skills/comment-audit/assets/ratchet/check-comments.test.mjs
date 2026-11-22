@@ -196,6 +196,83 @@ test("license headers and JSX forms of directives and the marker pass", (t) => {
   assert.equal(result.status, 0, result.stderr);
 });
 
+test("license words below the file header are a new comment", (t) => {
+  const r = repo(t);
+  r.write("src/a.tsx", "export const A = () => <p>x</p>;\n");
+  const base = r.commit("base");
+  const prose = [
+    "// we skip the @license check here",
+    "/*! remember to update this before 2027 */",
+    "// Copyright notice is broken, fix later",
+    "/* workaround: COM-2 */",
+    "/*! TODO: check license header later */",
+    "// (c) fall back to the cache",
+  ];
+  r.write("src/b.ts", `export const b = 1;\n${prose.join("\n")}\n`);
+  const result = r.run(["--base", base]);
+  assert.equal(result.status, 1);
+  prose.forEach((_, index) => {
+    assert.match(result.stderr, new RegExp(`^src/b\\.ts:${index + 2}:1: no-new-comments$`, "m"));
+  });
+  r.write("src/c.ts", "// Copyright 2026 Example Ltd.\n\n// TODO: split this module\nexport const c = 1;\n");
+  r.write("src/b.ts", "export const b = 1;\n");
+  const separated = r.run(["--base", base]);
+  assert.equal(separated.status, 1);
+  assert.match(separated.stderr, /^src\/c\.ts:3:1: no-new-comments$/m);
+  assert.doesNotMatch(separated.stderr, /^src\/c\.ts:1:/m);
+});
+
+test("a file header that is not a license, or a task note inside one, is a new comment", (t) => {
+  const r = repo(t);
+  r.write("src/a.ts", "export const a = 1;\n");
+  const base = r.commit("base");
+  r.write("src/b.ts", "// Validates the customer's license key before checkout\nexport const b = 1;\n");
+  r.write("src/c.ts", "// Steps: (a) parse, (b) map, (c) reduce\nexport const c = 1;\n");
+  r.write("src/d.ts", "// Copyright 2026 Acme\n// HACK: works around the race in the cache\nexport const d = 1;\n");
+  r.write("src/e.js", "export const e = 1;\n/*! tiny-lib v1.0 | MIT */\nexport const f = 2;\n");
+  const result = r.run(["--base", base]);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /^src\/b\.ts:1:1: no-new-comments$/m);
+  assert.match(result.stderr, /^src\/c\.ts:1:1: no-new-comments$/m);
+  assert.match(result.stderr, /^src\/d\.ts:2:1: no-new-comments$/m);
+  assert.doesNotMatch(result.stderr, /^src\/d\.ts:1:/m);
+  assert.match(result.stderr, /^src\/e\.js:2:1: no-new-comments$/m);
+});
+
+test("a license header after a shebang or a directive, and an explicit license tag anywhere, are directives", (t) => {
+  const r = repo(t);
+  r.write("src/a.ts", "export const a = 1;\n");
+  const base = r.commit("base");
+  r.write("bin/cli.js", "#!/usr/bin/env node\n// Copyright 2026 X\n// SPDX-License-Identifier: MIT\nconsole.log(1);\n");
+  r.write("src/client.js", '"use client";\n// Copyright 2026 X\nexport const c = 1;\n');
+  r.write("src/bundle.js", "export const a = 1;\n/*! @license tiny-lib v1.0 MIT */\nexport const b = 2;\n");
+  const result = r.run(["--base", base]);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("a license header before the first code token is a directive", (t) => {
+  const r = repo(t);
+  r.write("src/a.ts", "export const a = 1;\n");
+  const base = r.commit("base");
+  const headers = [
+    "/** @license MIT */",
+    "/**\n * @license\n * Copyright Google LLC All Rights Reserved.\n */",
+    "/*\n * Foo lib v1.0\n * @license MIT\n */",
+    "// @license MIT",
+    "/*! MIT License */",
+    "/*! foo v1.2 | MIT License | github.com/x/foo */",
+    "/*! Copyright Example Ltd. */",
+    "/*! (c) 2026 Foo Inc. */",
+    "// Copyright (C) 2026 Free Software Foundation",
+    "// Copyright The Kubernetes Authors.",
+    "// SPDX-License-Identifier: MIT",
+    "// Copyright 2026 Google LLC\n//\n// Licensed under the Apache License, Version 2.0 (the \"License\");\n// you may not use this file except in compliance with the License.",
+  ];
+  headers.forEach((header, index) => r.write(`src/h${index}.ts`, `${header}\nexport const h = ${index};\n`));
+  const result = r.run(["--base", base]);
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test("a symlinked source file is skipped, not fatal", (t) => {
   const r = repo(t);
   r.write("src/a.ts", "export const a = 1;\n");

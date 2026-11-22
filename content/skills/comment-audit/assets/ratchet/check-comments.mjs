@@ -8,9 +8,6 @@ const SOURCE_PATTERNS = ["*.js", "*.jsx", "*.mjs", "*.cjs", "*.ts", "*.tsx", "*.
 const EXCLUDED = ["node_modules/", "dist/", "build/", "coverage/"];
 
 const ALLOWED = [
-  /^\/\*!/,
-  /@license\b|@preserve\b/,
-  /^\/[/*]\**\s*(SPDX-License-Identifier:|Copyright\b|\(c\)\s)/i,
   /^\/\/\/\s*<reference\b/,
   /^\/[/*]\s*@ts-(check|nocheck|expect-error|ignore)\b/,
   /^\/[/*]\s*(eslint|oxlint)-(disable|enable)/,
@@ -21,8 +18,15 @@ const ALLOWED = [
   /^\/\*\s*[#@]__(PURE|NO_SIDE_EFFECTS)__\s*\*\/$/,
   /^\/\*\s*(webpack[A-Z]\w*|@vite-ignore)\b/,
   /^\/\/ workaround: \S+$/,
-  /^\/\* workaround: \S+ \*\/$/,
 ];
+
+const JSX_WORKAROUND = /^\/\* workaround: \S+ \*\/$/;
+
+const LICENSE_START = /^\/(\/|\*[*!]?)[\s*]*(Copyright\b|\([cC]\)\s|©|SPDX-License-Identifier:|@license\b|@preserve\b)/;
+const LICENSE_BANNER = /^\/\*![\s\S]*(\blicen[cs]e[ds]?\b|\bcopyright\b|SPDX-License-Identifier|\([cC]\)|©)/i;
+const LICENSE_TAG = /^\/\*[*!]?[^\n]*?(\n[ \t*]*)?@(license|preserve)\b|\n[ \t*]*@(license|preserve)\b/;
+const TASK_NOTE = /^\/[/*]\**\s*(TODO|FIXME|HACK|XXX|BUG)\b/i;
+const BLANK_LINE = /(\r\n|\n|\r)[ \t]*(\r\n|\n|\r)/;
 
 const JSDOC_TYPES = /^\/\*\*[\s\S]*@(type|typedef|param\s*\{|returns?\s*\{|template|satisfies|import)\b/;
 const JS_FILES = /\.(js|jsx|mjs|cjs)$/;
@@ -77,6 +81,21 @@ function isDirective(file, text) {
 
 function comments(parser, file, text) {
   const ast = parseSource(parser, file, text);
+  const containers = [];
+  walk(ast.program, (node) => {
+    if (node.type === "JSXExpressionContainer") containers.push([node.start, node.end]);
+  });
+  const codeStart = ast.program.body.length ? ast.program.body[0].start : text.length;
+  const header = new Set();
+  let previous = null;
+  for (const comment of ast.comments) {
+    if (comment.end > codeStart) break;
+    if (previous && BLANK_LINE.test(text.slice(previous.end, comment.start))) break;
+    const raw = text.slice(comment.start, comment.end);
+    if (!previous && !LICENSE_START.test(raw) && !LICENSE_BANNER.test(raw)) break;
+    if (!TASK_NOTE.test(raw)) header.add(comment);
+    previous = comment;
+  }
   return ast.comments.map((comment) => {
     const raw = text.slice(comment.start, comment.end);
     const lineStart = text.lastIndexOf("\n", comment.start - 1) + 1;
@@ -89,7 +108,12 @@ function comments(parser, file, text) {
       start: comment.start,
       end: comment.end,
       fullLine: before.trim() === "" && after.trim() === "",
-      directive: isDirective(file, raw),
+      directive:
+        isDirective(file, raw) ||
+        header.has(comment) ||
+        (comment.type === "CommentBlock" && LICENSE_TAG.test(raw)) ||
+        (JSX_WORKAROUND.test(raw) &&
+          containers.some(([start, end]) => start <= comment.start && comment.end <= end)),
       text: raw,
     };
   });
