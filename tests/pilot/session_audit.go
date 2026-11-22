@@ -2205,13 +2205,16 @@ type leafAction struct {
 }
 
 // A leaf is named by its short name; the installed file is
-// hive-core/references/<name>.md, and sessions recorded before the move to
+// hive-core/<domain>/<name>.md, and sessions recorded before the move to
 // hive-core read <oldLeafPrefix><name>/SKILL.md.
 const (
 	leafGitCommit     = "git-commit"
 	leafTicketState   = "ticket-state"
 	leafQuestionRound = "questions"
 	oldLeafPrefix     = "hive-" + "rule-"
+	// leafDomainDir matches the folder of hive-core that holds a leaf: the
+	// former references folder or a domain folder.
+	leafDomainDir = `[a-z0-9]+(?:-[a-z0-9]+)*`
 )
 
 // leafFormerNames lists the short names a leaf had before, so transcripts of
@@ -2219,16 +2222,17 @@ const (
 var leafFormerNames = map[string][]string{leafQuestionRound: {"question-channel"}}
 
 // leafPathPattern matches the full path of a leaf's file: the old
-// <prefix><name>/SKILL.md or the current hive-core/references/<name>.md. The
-// path is compared whole, so a leaf's own nested reference
-// (references/<name>/<f>.md) and hive-core/SKILL.md are no leaf read.
+// <prefix><name>/SKILL.md, hive-core/references/<name>.md (recorded before the
+// domain folders) or the current hive-core/<domain>/<name>.md, where a domain
+// is any kebab-case folder. The path is compared whole, so a leaf's own nested
+// reference (<domain>/<name>/<f>.md) and hive-core/SKILL.md are no leaf read.
 func leafPathPattern(leaf string) *regexp.Regexp {
 	names := append([]string{leaf}, leafFormerNames[leaf]...)
 	var alts []string
 	for _, n := range names {
 		alts = append(alts, regexp.QuoteMeta(oldLeafPrefix+n+"/SKILL.md"))
 	}
-	alts = append(alts, regexp.QuoteMeta("hive-core/references/"+leaf+".md"))
+	alts = append(alts, regexp.QuoteMeta("hive-core/")+leafDomainDir+"/"+regexp.QuoteMeta(leaf+".md"))
 	return regexp.MustCompile(`(?:^|[^\w.-])(?:` + strings.Join(alts, "|") + `)(?:$|[^\w./-])`)
 }
 

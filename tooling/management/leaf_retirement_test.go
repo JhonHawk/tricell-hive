@@ -229,10 +229,13 @@ func TestRealContentInstallsHiveCoreAndResolvesEveryGlobalLink(t *testing.T) {
 	if policies != 1 || coreFiles < 60 {
 		t.Fatalf("hive-core policies = %d, files = %d", policies, coreFiles)
 	}
-	for _, f := range []string{"references/questions.md", "scripts/checks/run_check.py", "scripts/trackers/jira_rest.py", "scripts/trackers/work_time.py"} {
+	for _, f := range []string{"messages/questions.md", "messages/questions/unanswered.md", "principles/index.md", "principles/boundary-discipline.md", "assets/domains.json", "scripts/checks/run_check.py", "scripts/trackers/jira_rest.py", "scripts/trackers/work_time.py"} {
 		if _, err := os.Lstat(filepath.Join(core, f)); err != nil {
 			t.Errorf("hive-core lacks %s: %v", f, err)
 		}
+	}
+	if _, err := os.Lstat(filepath.Join(core, "references")); !os.IsNotExist(err) {
+		t.Errorf("hive-core still has references/: %v", err)
 	}
 
 	links := skillLink.FindAllString(string(real), -1)

@@ -20,7 +20,14 @@ var atxHeading = regexp.MustCompile(`^ {0,3}#{1,6}[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*
 var inlineMarkdownLink = regexp.MustCompile(`!?\[([^\]\n]*)\]\([^)\n]*\)`)
 var slugDropped = regexp.MustCompile(`[^\p{L}\p{M}\p{N}\p{Pc} -]`)
 
-func instructionMarkdown(source string) bool {
+func instructionMarkdown(source string) bool { return instructionMarkdownIn(source, nil) }
+
+// instructionMarkdownIn also covers the Markdown of a skill's declared domain
+// folders, by skill name.
+func instructionMarkdownIn(source string, domains map[string]map[string]bool) bool {
+	if parts := strings.Split(source, "/"); strings.HasSuffix(source, ".md") && len(parts) >= 5 && parts[0] == "content" && parts[1] == "skills" && domains[parts[2]][parts[3]] {
+		return true
+	}
 	return strings.HasSuffix(source, ".md") && (source == GlobalSource || strings.HasPrefix(source, "content/agents/") ||
 		(strings.HasPrefix(source, "content/skills/") && (strings.HasSuffix(source, "/SKILL.md") || (strings.Contains(source, "/references/") || strings.Contains(source, "/playbooks/")))) || generatedStagePacket(source))
 }
@@ -52,7 +59,7 @@ func headingAnchors(data string) map[string]bool {
 	return anchors
 }
 
-func validateInstructionReferences(r Release) error {
+func validateInstructionReferences(r Release, domains map[string]map[string]bool) error {
 	entries := make(map[string]bool, len(r.Files))
 	contents := make(map[string]string, len(r.Files))
 	anchors := make(map[string]map[string]bool)
@@ -74,7 +81,7 @@ func validateInstructionReferences(r Release) error {
 		return set[fragment]
 	}
 	for _, f := range r.Files {
-		if !instructionMarkdown(f.Path) {
+		if !instructionMarkdownIn(f.Path, domains) {
 			continue
 		}
 		body := mdlinks.OutsideFences(string(f.Data))

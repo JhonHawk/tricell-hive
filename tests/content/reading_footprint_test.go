@@ -54,9 +54,9 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 	// Predicates are explicit scenarios, not a transitive inventory of links.
 	common := []string{global}
 	// The question rules live in rule leaves the index and the flow steps link.
-	question := []string{global, skills + "hive-core/references/questions.md"}
+	question := []string{global, skills + "hive-core/messages/questions.md"}
 	cycle := append(append([]string{}, question...),
-		skills+"hive-core/references/delivery-ask.md", skills+"hive-core/references/project-settings.md", skills+"hive-core/references/ticket-state.md",
+		skills+"hive-core/git/delivery-ask.md", skills+"hive-core/plan/project-settings.md", skills+"hive-core/tracker/ticket-state.md",
 		skills+"flow-plan/SKILL.md", skills+"flow-build/SKILL.md", skills+"flow-close/SKILL.md",
 		skills+"hive-mode/SKILL.md", skills+"flow-verify/SKILL.md",
 		"content/agents/review/hive-review-plan.md",
@@ -65,11 +65,11 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 	)
 	// Minimal skills (skills-rebuild): sources absent from the baseline commit.
 	moved := map[string]bool{
-		skills + "flow-verify/SKILL.md":                     true,
-		skills + "hive-core/references/questions.md":        true,
-		skills + "hive-core/references/delivery-ask.md":     true,
-		skills + "hive-core/references/project-settings.md": true,
-		skills + "hive-core/references/ticket-state.md":     true,
+		skills + "flow-verify/SKILL.md":               true,
+		skills + "hive-core/messages/questions.md":    true,
+		skills + "hive-core/git/delivery-ask.md":      true,
+		skills + "hive-core/plan/project-settings.md": true,
+		skills + "hive-core/tracker/ticket-state.md":  true,
 	}
 	scenarios := []struct {
 		name, predicate string
@@ -132,29 +132,29 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 	skills := "content/skills/"
 	cycle := []string{
 		"content/guidance/global.md",
-		skills + "hive-core/references/questions.md",
-		skills + "hive-core/references/delivery-ask.md", skills + "hive-core/references/project-settings.md",
-		skills + "hive-core/references/ticket-state.md",
-		skills + "hive-core/references/close-modes.md", skills + "hive-core/references/close-hygiene.md", skills + "hive-core/references/close-report.md",
+		skills + "hive-core/messages/questions.md",
+		skills + "hive-core/git/delivery-ask.md", skills + "hive-core/plan/project-settings.md",
+		skills + "hive-core/tracker/ticket-state.md",
+		skills + "hive-core/close/close-modes.md", skills + "hive-core/close/close-hygiene.md", skills + "hive-core/close/close-report.md",
 		skills + "hive-mode/SKILL.md", skills + "flow-plan/SKILL.md",
 		skills + "flow-build/SKILL.md", skills + "flow-verify/SKILL.md", skills + "flow-close/SKILL.md",
-		skills + "hive-core/references/delegation.md", skills + "hive-core/references/child-brief.md", skills + "hive-core/references/reviewer-brief.md",
+		skills + "hive-core/delegation/delegation.md", skills + "hive-core/delegation/child-brief.md", skills + "hive-core/delegation/reviewer-brief.md",
 		skills + "flow-plan/references/plan-handoff.md",
-		skills + "hive-core/references/business-rules.md", skills + "hive-core/references/business-record.md", skills + "hive-core/references/business-ticket.md",
+		skills + "hive-core/business/business-rules.md", skills + "hive-core/business/business-record.md", skills + "hive-core/business/business-ticket.md",
 		skills + "project-layout/references/layout.md", skills + "flow-close/references/support-material.md",
-		skills + "hive-core/references/project-verification.md", skills + "hive-core/references/project-verification-format.md", skills + "hive-core/references/suppression-review.md",
-		skills + "hive-core/references/reuse-before-writing.md", skills + "hive-core/references/tests.md", skills + "hive-core/references/checkpoint.md",
-		skills + "hive-core/references/checks.md", skills + "hive-core/references/change-folder.md", skills + "hive-core/references/review-findings.md",
-		skills + "hive-core/references/review-evidence.md",
-		skills + "hive-core/references/report-endings.md", skills + "hive-core/references/git-commit.md", skills + "hive-core/references/merge-gate.md",
+		skills + "hive-core/build/project-verification.md", skills + "hive-core/build/project-verification-format.md", skills + "hive-core/review/suppression-review.md",
+		skills + "hive-core/plan/reuse-before-writing.md", skills + "hive-core/build/tests.md", skills + "hive-core/plan/checkpoint.md",
+		skills + "hive-core/build/checks.md", skills + "hive-core/plan/change-folder.md", skills + "hive-core/review/review-findings.md",
+		skills + "hive-core/review/review-evidence.md",
+		skills + "hive-core/messages/report-endings.md", skills + "hive-core/git/git-commit.md", skills + "hive-core/git/merge-gate.md",
 		"content/agents/review/hive-review-plan.md", "content/agents/development/hive-build-backend.md",
 		"content/agents/quality/hive-verify-task.md", "content/agents/review/hive-review-code.md",
 	}
 	e2e := append(append([]string{}, cycle...),
 		skills+"flow-build/references/e2e-coordination.md", skills+"flow-plan/references/execution-record.md",
-		skills+"hive-core/references/defect-fix.md", skills+"git-workflow/SKILL.md",
+		skills+"hive-core/build/defect-fix.md", skills+"git-workflow/SKILL.md",
 		skills+"flow-close/references/branch-cleanup.md", "content/agents/development/hive-build-owner.md",
-		skills+"hive-core/references/pr-reviews.md",
+		skills+"hive-core/git/pr-reviews.md",
 	)
 	// baselineCycle is the plan-build-required list as 2bb96478 declared it: the
 	// sources the same scenario read before the rules moved into leaves.
@@ -190,7 +190,7 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 					return nil, err
 				}
 				kind := "prose"
-				if strings.Contains(path, "/references/") {
+				if isReferencePath(root, path) {
 					kind = "reference"
 					references += len(data)
 				} else if strings.HasSuffix(path, ".py") {
@@ -230,7 +230,7 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 				// (it held no git-workflow), so they are reported apart too and the
 				// comparison with the baseline is made without them.
 				extra := 0
-				for _, path := range []string{skills + "hive-core/references/git-commit.md", skills + "hive-core/references/merge-gate.md"} {
+				for _, path := range []string{skills + "hive-core/git/git-commit.md", skills + "hive-core/git/merge-gate.md"} {
 					data, err := os.ReadFile(filepath.Join(root, path))
 					if err != nil {
 						t.Fatal(err)
@@ -358,4 +358,44 @@ func planBuildPacketReads(t *testing.T, root string, route []string) packetRoute
 	}
 	sort.Strings(result.newLeaves)
 	return result
+}
+
+// isReferencePath classifies a source of the reading union as a reference: a
+// file under a skill's references folder or in a hive-core domain folder.
+func isReferencePath(root, path string) bool {
+	if strings.Contains(path, "/references/") {
+		return true
+	}
+	coreDir := "content/skills/" + coreSkillName + "/"
+	if !strings.HasPrefix(path, coreDir) {
+		return false
+	}
+	domains, err := readDomains(filepath.Join(root, "content", "skills", coreSkillName))
+	if err != nil {
+		return false
+	}
+	for _, domain := range domains {
+		if strings.HasPrefix(path, coreDir+domain+"/") {
+			return true
+		}
+	}
+	return false
+}
+
+func TestIsReferencePathFollowsTheDomainList(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "content", "skills", coreSkillName, "assets", "domains.json"), `{"domains": ["build", "principles"]}`)
+	for path, want := range map[string]bool{
+		"content/skills/hive-core/build/tests.md":            true,
+		"content/skills/hive-core/principles/index.md":       true,
+		"content/skills/hive-core/scripts/x/run.py":          false,
+		"content/skills/hive-core/other/x.md":                false,
+		"content/skills/flow-plan/references/plan.md":        true,
+		"content/skills/flow-plan/SKILL.md":                  false,
+		"content/skills/hive-core/build/checks/run-check.md": true,
+	} {
+		if got := isReferencePath(root, path); got != want {
+			t.Errorf("isReferencePath(%q) = %v, want %v", path, got, want)
+		}
+	}
 }

@@ -1,6 +1,6 @@
 {
   "stage": [
-    "hive-core/references/questions.md",
-    "hive-core/references/report-endings.md"
+    "hive-core/messages/questions.md",
+    "hive-core/messages/report-endings.md"
   ]
 }

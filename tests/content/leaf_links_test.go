@@ -17,8 +17,9 @@ type leafLink struct {
 }
 
 // leafLinks lists, per leaf, the files that link it at the step where its rule
-// applies. A rule leaf is named by its file name in hive-core/references; a
-// principle, the language leaf and a flow skill by their skill name.
+// applies. A rule leaf is named by its file name without its domain folder; the
+// principle index by its path under hive-core; the language leaf and a flow
+// skill by their skill name.
 var leafLinks = []leafLink{
 	{"git-commit", "content/skills/flow-build/SKILL.md"},
 	{"git-commit", "content/skills/git-workflow/SKILL.md"},
@@ -38,8 +39,8 @@ var leafLinks = []leafLink{
 	{"promotion-path", "content/skills/git-workflow/SKILL.md"},
 	{"promotion-path", "content/skills/flow-deploy/SKILL.md"},
 	{"reuse-before-writing", "content/skills/flow-build/SKILL.md"},
-	{"hive-principle-index", "content/skills/flow-build/SKILL.md"},
-	{"hive-typescript", "content/skills/hive-principle-index/SKILL.md"},
+	{"principles/index", "content/skills/flow-build/SKILL.md"},
+	{"hive-typescript", "content/skills/hive-core/principles/index.md"},
 	{"reuse-before-writing", "content/skills/flow-plan/SKILL.md"},
 	{"tests", "content/skills/flow-build/SKILL.md"},
 	{"tests", "content/skills/flow-plan/SKILL.md"},
@@ -92,40 +93,45 @@ var leafLinks = []leafLink{
 	{"no-comments", "content/skills/flow-verify/SKILL.md"},
 	{"blast-radius", "content/skills/flow-verify/SKILL.md"},
 	{"prose", "content/skills/flow-verify/SKILL.md"},
-	{"prose", "content/skills/hive-core/references/git-commit.md"},
+	{"prose", "content/skills/hive-core/git/git-commit.md"},
 	{"interrogate", "content/skills/flow-verify/SKILL.md"},
 	{"verification-floor", "content/skills/flow-build/SKILL.md"},
 	{"verification-floor", "content/skills/flow-verify/SKILL.md"},
 	{"verification-floor", "content/skills/flow-plan/SKILL.md"},
-	{"trackers", "content/skills/hive-core/references/ticket-state.md"},
+	{"trackers", "content/skills/hive-core/tracker/ticket-state.md"},
 	{"trackers", "content/skills/flow-close/SKILL.md"},
 	{"unattended-effects", "content/skills/unattended-delegation/SKILL.md"},
 	{"loops", "content/skills/unattended-delegation/SKILL.md"},
 	{"loops", "content/skills/hive-mode/playbooks/perf.md"},
-	{"external-effects", "content/skills/hive-core/references/loops.md"},
-	{"unattended-effects", "content/skills/hive-core/references/loops.md"},
+	{"external-effects", "content/skills/hive-core/plan/loops.md"},
+	{"unattended-effects", "content/skills/hive-core/plan/loops.md"},
 	{"unattended-delegation", "content/skills/flow-build/references/e2e-coordination.md"},
-	{"unattended-delegation", "content/skills/hive-core/references/unattended-effects.md"},
-	{"checkpoint", "content/skills/hive-core/references/close-modes.md"},
+	{"unattended-delegation", "content/skills/hive-core/delegation/unattended-effects.md"},
+	{"checkpoint", "content/skills/hive-core/close/close-modes.md"},
 	{"defect-fix", "content/agents/review/hive-review-code.md"},
-	{"hive-principle-index", "content/agents/review/hive-review-code.md"},
-	{"hive-principle-index", "content/agents/development/hive-build-owner.md"},
+	{"principles/index", "content/agents/review/hive-review-code.md"},
+	{"principles/index", "content/agents/development/hive-build-owner.md"},
 	{"review-evidence", "content/agents/review/hive-review-code.md"},
 	{"suppression-review", "content/agents/review/hive-review-code.md"},
 	{"security-boundaries", "content/agents/review/hive-review-security.md"},
 	{"tests", "content/agents/quality/hive-write-tests.md"},
 	{"delegation", "content/guidance/global.md"},
-	{"viewer", "content/skills/hive-core/references/walkthrough.md"},
-	{"ui-example", "content/skills/hive-core/references/ui-plan.md"},
-	{"child-brief", "content/skills/hive-core/references/delegation.md"},
+	{"viewer", "content/skills/hive-core/ui/walkthrough.md"},
+	{"ui-example", "content/skills/hive-core/ui/ui-plan.md"},
+	{"child-brief", "content/skills/hive-core/delegation/delegation.md"},
 }
 
 // leafLinkPatternFor returns the pattern a file must match to link the leaf: a
-// rule leaf is a file of hive-core, linked by its path or, from a sibling
-// leaf, by its file name; any other leaf is a skill, linked by its entrypoint.
+// rule leaf is a file of a hive-core domain folder, linked by its path or, from
+// a sibling leaf, by its file name; a name with a folder, such as the principle
+// index, is linked by that path; any other leaf is a skill, linked by its
+// entrypoint.
 func leafLinkPatternFor(leaf string) *regexp.Regexp {
-	if strings.HasPrefix(leaf, "hive-principle-") || leaf == languageLeafName || leaf == "unattended-delegation" {
+	if leaf == languageLeafName || leaf == "unattended-delegation" {
 		return regexp.MustCompile(regexp.QuoteMeta(leaf + "/SKILL.md"))
+	}
+	if strings.Contains(leaf, "/") {
+		return regexp.MustCompile(`(^|[/(])` + regexp.QuoteMeta(leaf+".md"))
 	}
 	return regexp.MustCompile(`(^|[/(])` + regexp.QuoteMeta(leaf+".md"))
 }
@@ -163,12 +169,13 @@ func TestLeavesAreLinkedWhereTheyApply(t *testing.T) {
 
 func TestLeavesAreLinkedCatchesMissingLink(t *testing.T) {
 	root := t.TempDir()
-	writeFile(t, filepath.Join(root, "content", "skills", "flow-build", "SKILL.md"), "Commit, reading [c](../hive-core/references/c.md).\n")
+	writeFile(t, filepath.Join(root, "content", "skills", "flow-build", "SKILL.md"), "Commit, reading [c](../hive-core/build/c.md).\n")
 	got := linkProblems(root, []leafLink{
 		{"c", "content/skills/flow-build/SKILL.md"},
+		{"principles/index", "content/skills/flow-build/SKILL.md"},
 		{"d", "content/skills/flow-build/SKILL.md"},
 	})
-	if len(got) != 1 || !strings.Contains(got[0], "does not link d") {
+	if len(got) != 2 || !strings.Contains(got[0], "does not link principles/index") || !strings.Contains(got[1], "does not link d") {
 		t.Errorf("unexpected problems: %v", got)
 	}
 }

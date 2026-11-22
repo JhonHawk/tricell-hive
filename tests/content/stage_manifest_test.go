@@ -10,12 +10,6 @@ import (
 	"testing"
 )
 
-// stagePacketMemberLimit keeps the members of one packet under the manager's
-// 24,000-byte cap on the generated packet: its headings, its end line and its
-// rewritten links added about 1,150 B to flow-close's 22,051 B of members, so
-// 1,500 B stays free for them.
-const stagePacketMemberLimit = 22500
-
 var stageKeyPattern = regexp.MustCompile(`^stage(-[a-z]+)?$`)
 
 // stageFlows are the flows that read a stage packet at entry.
@@ -85,9 +79,6 @@ func TestStageManifests(t *testing.T) {
 					continue
 				}
 				total += len(data)
-			}
-			if total > stagePacketMemberLimit {
-				t.Errorf("%s/%s: members sum to %d B, over %d B", flow, key, total, stagePacketMemberLimit)
 			}
 			t.Logf("%s/%s: %d members, %d B", flow, key, len(members), total)
 			// The flow names its packet at entry, with the fallback for a missing

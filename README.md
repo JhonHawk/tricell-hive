@@ -32,7 +32,7 @@ or followed. This organization does not establish reliability for any model fami
 [hive-mode](content/skills/hive-mode/SKILL.md), which opens at most one of 13
 [playbooks](content/skills/hive-mode/playbooks/) for its kind of work. The
 rules that apply at one moment, such as staging a commit, moving a ticket or asking a
-round of questions, live in small files called rule leaves, stored as `content/skills/hive-core/references/<name>.md`. The
+round of questions, live in small files called rule leaves, stored as `content/skills/hive-core/<domain>/<name>.md`, one folder per domain. The
 [«Rule leaves» index](content/guidance/global.md) of the global guidance names the
 moment that requires each one, and the flow steps link them where they apply. A leaf
 is read as a file at that moment; it is not invoked as a skill. The leaves belong to
@@ -40,11 +40,11 @@ one hidden skill, `hive-core`, marked `disable-model-invocation: true`, which Cl
 Code reads; for Codex the manager generates a hidden-skill policy file,
 `agents/openai.yaml`, beside that skill; Antigravity lists the skill in its catalog
 with a one-line description. For the other hosts no hiding mechanism is verified, so
-they may list it. An update retires the earlier one-skill-per-leaf folders. A leaf installed is not proof that a session
+they may list it. An update retires the earlier one-skill-per-leaf folders, the earlier `references/` folder of `hive-core` and the earlier principle skills. A leaf installed is not proof that a session
 read it; `go run ./tests/pilot --audit-session` checks, for a real session, that the
 leaf of a commit, a ticket move or a question card was read before that action.
 Code principles follow the same pattern: the hidden
-[`hive-principle-index`](content/skills/hive-principle-index/SKILL.md) lists each
+[principles index](content/skills/hive-core/principles/index.md) lists each
 principle with the moment it applies, and the visible
 [`hive-typescript`](content/skills/hive-typescript/SKILL.md) skill covers `.ts` and `.tsx` files; the agent reads it when its description or the index sends it there, not automatically.
 The guidance is written for the role-profile models listed in the
@@ -577,7 +577,7 @@ flow's brief (research, plan, build, verify, delivery, close, collab or local), 
 names every operation with its flows, `--section rules` prints the shared rules,
 and `--operation NAME` narrows to one operation.
 JSON inputs use `--json FILE` or `--json -`. The
-[walkthrough reference](content/skills/hive-core/references/walkthrough.md) owns the agent's
+[walkthrough reference](content/skills/hive-core/ui/walkthrough.md) owns the agent's
 procedure; the [viewer manual](https://hive.tricell.tech/viewer/) explains how to
 read and manage published work.
 

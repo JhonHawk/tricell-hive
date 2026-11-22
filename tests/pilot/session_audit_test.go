@@ -524,6 +524,9 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"leaf claude reads the hive-core path before git, ticket and card", "claude", leaf, []string{leaf, "claude-project-core-path-pass.jsonl"}, auditOptions{}, "pass"},
 		{"leaf claude nested reference and hive-core SKILL.md are no leaf read", "claude", leaf, []string{leaf, "claude-project-core-nested-fail.jsonl"}, auditOptions{}, "fail"},
 		{"leaf codex shell read of the hive-core path before git and card", "codex", leaf, []string{leaf, "codex-rollout-core-path-pass.jsonl"}, auditOptions{}, "pass"},
+		{"leaf claude reads the domain path before git, ticket and card", "claude", leaf, []string{leaf, "claude-project-domain-path-pass.jsonl"}, auditOptions{}, "pass"},
+		{"leaf claude nested reference under a domain is no leaf read", "claude", leaf, []string{leaf, "claude-project-domain-nested-fail.jsonl"}, auditOptions{}, "fail"},
+		{"leaf codex shell read of the domain path before git and card", "codex", leaf, []string{leaf, "codex-rollout-domain-path-pass.jsonl"}, auditOptions{}, "pass"},
 		{"leaf codex no governed action", "codex", leaf, []string{leaf, "codex-rollout-notexercised.jsonl"}, auditOptions{}, "not_observed"},
 		{"leaf claude Read of a packet with line numbers and arrows counts its members", "claude", leaf, []string{leaf, "claude-project-packet-read-pass.jsonl"}, auditOptions{}, "pass"},
 		{"leaf claude Read of a packet with line numbers and tabs counts its members", "claude", leaf, []string{leaf, "claude-project-packet-read-tab-pass.jsonl"}, auditOptions{}, "pass"},
@@ -1117,17 +1120,19 @@ func TestLeafPathsOldAndNew(t *testing.T) {
 	cur := "/h/.agents/skills/hive-core/references/report-endings.md"
 	nested := "/h/.agents/skills/hive-core/references/report-endings/extra.md"
 	core := "/h/.agents/skills/hive-core/SKILL.md"
+	domain := "/h/.agents/skills/hive-core/messages/report-endings.md"
+	domainNested := "/h/.agents/skills/hive-core/messages/report-endings/extra.md"
 	for _, tc := range []struct {
 		path string
 		want bool
-	}{{old, true}, {cur, true}, {nested, false}, {core, false}} {
+	}{{old, true}, {cur, true}, {domain, true}, {nested, false}, {domainNested, false}, {core, false}} {
 		if got := readsReportEndings(traceEvent{Kind: "read", Path: tc.path}); got != tc.want {
 			t.Errorf("read %s: %v, want %v", tc.path, got, tc.want)
 		}
 		if got := readsReportEndings(traceEvent{Kind: "shell", Command: "sed -n 1,40p " + tc.path}); got != tc.want {
 			t.Errorf("shell %s: %v, want %v", tc.path, got, tc.want)
 		}
-		if got := hiveCall("Read", tc.path, ""); (got == "read") != (tc.want || tc.path == nested || tc.path == core) {
+		if got := hiveCall("Read", tc.path, ""); (got == "read") != (tc.want || tc.path == nested || tc.path == domainNested || tc.path == core) {
 			t.Errorf("cost read %s: %q", tc.path, got)
 		}
 	}

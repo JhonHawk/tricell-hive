@@ -50,7 +50,7 @@ or `interactive` is retired: it answers no question, the agent asks it each sess
 and the old value only informs the recommended option. `hive doctor` warns
 about those lines.
 Each key's meaning and accepted values are in
-[project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/references/project-settings.md).
+[project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/plan/project-settings.md).
 `hive project set` edits the section for you after a confirmation, and the
 [harness audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/SKILL.md)
 can create or update it for you: ask it to set up your repository's Hive section,
@@ -104,7 +104,7 @@ file that names it, also kept out of Git: the agent writes it while it builds,
 names it in its report, and runs it from any worktree through the main
 checkout's path. From a worktree the host isolates, the agent adds new
 entries and scripts through the shell, under your permission settings, and
-names any other change in its report. The [worktree rule](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/references/local-write/worktree.md)
+names any other change in its report. The [worktree rule](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/local/local-write/worktree.md)
 holds the details.
 
 Then ask for an outcome and state its limits:
