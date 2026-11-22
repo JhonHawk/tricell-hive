@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"tricell-hive/integrations/target"
 	"tricell-hive/tooling/distribution"
+	"tricell-hive/tooling/durable"
 )
 
 type CommandReceipt struct {
@@ -98,7 +99,7 @@ func activateUpdateCommand(p UpdatePlan, fail func(string) error) error {
 		if err != nil {
 			return err
 		}
-		err = syncFile(d)
+		err = durable.Sync(d)
 		d.Close()
 		if err != nil {
 			return err

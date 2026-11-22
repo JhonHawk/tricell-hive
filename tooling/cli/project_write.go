@@ -19,6 +19,7 @@ import (
 	"slices"
 	"sort"
 	"strings"
+	"tricell-hive/tooling/durable"
 	"unicode"
 )
 
@@ -264,7 +265,7 @@ func writeProjectFile(path string, before []byte, existed bool, after []byte) (e
 		tmp.Close()
 		return fmt.Errorf("cannot write %s: %v", projectFileName, err)
 	}
-	if err := tmp.Sync(); err != nil {
+	if err := durable.Sync(tmp); err != nil {
 		tmp.Close()
 		return fmt.Errorf("cannot write %s: %v", projectFileName, err)
 	}
@@ -296,7 +297,7 @@ func syncDir(dir string) error {
 		return err
 	}
 	defer d.Close()
-	return d.Sync()
+	return durable.Sync(d)
 }
 
 var githubNamePattern = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)

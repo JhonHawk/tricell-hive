@@ -8,6 +8,7 @@ import (
 	"strings"
 	"syscall"
 	"time"
+	"tricell-hive/tooling/durable"
 )
 
 const stateMarker = "storage.json"
@@ -214,7 +215,7 @@ func initializeState(stateDir string) error {
 	if err != nil {
 		return err
 	}
-	syncErr := stagedDir.Sync()
+	syncErr := durable.Sync(stagedDir)
 	stagedDir.Close()
 	if syncErr != nil {
 		return syncErr
@@ -232,7 +233,7 @@ func initializeState(stateDir string) error {
 		return err
 	}
 	defer parent.Close()
-	return parent.Sync()
+	return durable.Sync(parent)
 }
 
 func readBoundedDescriptor(f *os.File, limit int64) ([]byte, error) {

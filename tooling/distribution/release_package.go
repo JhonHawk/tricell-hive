@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"tricell-hive/tooling/durable"
 )
 
 // PreparedRelease owns disposable inputs until Cleanup. Binding's final path
@@ -367,7 +368,7 @@ func (p *PreparedRelease) Retain() error {
 			_, copyErr = io.Copy(out, source)
 		}
 		if copyErr == nil {
-			copyErr = out.Sync()
+			copyErr = durable.Sync(out)
 		}
 		closeErr := out.Close()
 		if copyErr != nil {
@@ -408,7 +409,7 @@ func syncReleaseDirectory(path string) error {
 	if err != nil {
 		return err
 	}
-	syncErr := dir.Sync()
+	syncErr := durable.Sync(dir)
 	closeErr := dir.Close()
 	if syncErr != nil {
 		return syncErr
