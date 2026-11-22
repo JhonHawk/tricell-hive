@@ -4,7 +4,7 @@ Base `development` en `1b87f0a7`, rama `fix/no-post-merge-writes`, worktree `.cl
 
 ### T1 — `tasks.py` no escribe en una carpeta integrada y completa; `checkpoint --out`; `versioned`
 
-- [ ] `checkpoint` y `done` salen con 1 sin escribir cuando la carpeta está en `origin/<base>` con todas sus tareas marcadas; `checkpoint --out` escribe en otro archivo; `versioned` indica `git restore` para un `tasks.md` cambiado solo en su checkpoint.
+- [x] `checkpoint` y `done` salen con 1 sin escribir cuando la carpeta está en `origin/<base>` con todas sus tareas marcadas; `checkpoint --out` escribe en otro archivo; `versioned` indica `git restore` para un `tasks.md` cambiado solo en su checkpoint.
 
 **Closes:** AC2, AC4, AC6
 
@@ -82,3 +82,5 @@ Sin parada de validación humana (`automatic`).
 - before captures: none (no screen)
 
 ## Review status and progress
+
+2026-11-22 — T1 · 015dce3a · unverified: none
