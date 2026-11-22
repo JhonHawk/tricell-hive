@@ -8,9 +8,10 @@ const SOURCE_PATTERNS = ["*.js", "*.jsx", "*.mjs", "*.cjs", "*.ts", "*.tsx", "*.
 const EXCLUDED = ["node_modules/", "dist/", "build/", "coverage/"];
 
 const ALLOWED = [
-  /^\/\*![\s\S]*\b(license|copyright|SPDX-License-Identifier)\b/i,
-  /^\/\*[*!]?\s*@(license|preserve)\b/,
-  /^\/[/*]\**\s*(SPDX-License-Identifier:|Copyright\s+(\(c\)|©|\d{4})|\(c\)\s+\d{4})/,
+  /^\/\*![\s\S]*(\b(19|20)\d{2}\b|SPDX-License-Identifier|@license|\blicensed\b|\(c\)|©)/i,
+  /^\/(\/|\*[*!]?)[\s*]*@(license|preserve)\b/,
+  /^\/\*[*!][\s\S]*\n[\s*]*@(license|preserve)\b/,
+  /^\/[/*]\**[\s*]*(SPDX-License-Identifier:|Copyright\b|\([cC]\)\s|©)/,
   /^\/\/\/\s*<reference\b/,
   /^\/[/*]\s*@ts-(check|nocheck|expect-error|ignore)\b/,
   /^\/[/*]\s*(eslint|oxlint)-(disable|enable)/,

@@ -205,16 +205,32 @@ test("prose that only mentions a directive word is a new comment", (t) => {
     "/*! remember to update this */",
     "// copyright logic is wrong here, fix later",
     "/* workaround: COM-2 */",
+    "/*! copyright logic is wrong here, fix later */",
+    "/*! TODO: check license header later */",
   ];
   r.write("src/b.ts", `${prose.join("\n")}\nexport const b = 1;\n`);
   const result = r.run(["--base", base]);
   assert.equal(result.status, 1);
-  for (const line of [1, 2, 3, 4]) {
-    assert.match(result.stderr, new RegExp(`^src/b\\.ts:${line}:1: no-new-comments$`, "m"));
-  }
-  r.write("src/b.ts", "/** @license MIT */\n/*! Copyright 2026 Example Ltd. */\nexport const b = 1;\n");
-  const headers = r.run(["--base", base]);
-  assert.equal(headers.status, 0, headers.stderr);
+  prose.forEach((_, index) => {
+    assert.match(result.stderr, new RegExp(`^src/b\\.ts:${index + 1}:1: no-new-comments$`, "m"));
+  });
+  const headers = [
+    "/** @license MIT */",
+    "/**\n * @license\n * Copyright Google LLC All Rights Reserved.\n */",
+    "/**\n * Foo lib v1.0\n * @license MIT\n */",
+    "// @license MIT",
+    "/*! Copyright 2026 Example Ltd. */",
+    "/*! (c) 2026 Foo Inc. */",
+    "/*! Licensed MIT */",
+    "/*! jQuery v3.7.1 | (c) OpenJS Foundation and other contributors | jquery.org/license */",
+    "// Copyright (C) 2026 Free Software Foundation",
+    "// Copyright The Kubernetes Authors.",
+    "// SPDX-License-Identifier: MIT",
+  ];
+  headers.forEach((header, index) => r.write(`src/h${index}.ts`, `${header}\nexport const h = ${index};\n`));
+  r.write("src/b.ts", "export const b = 1;\n");
+  const accepted = r.run(["--base", base]);
+  assert.equal(accepted.status, 0, accepted.stderr);
 });
 
 test("a symlinked source file is skipped, not fatal", (t) => {
