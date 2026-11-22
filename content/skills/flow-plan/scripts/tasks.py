@@ -8,6 +8,7 @@ Usage:
           --next "<action>" [--finding "<ID: decision>"]... [--check "<command> · <result> · <commit>"]...
           [--worktree "<path> · <branch>"] [--unwritten "<text>|none"]
           [--rules "<flow>/<packet>.md[, …][ · extra: <leaf>, …]"|none] [--principles "<name>, …"|none]
+          [--out FILE]
   python3 -I tasks.py <change-folder> versioned [--work-repo DIR]
 
 A task is a `### T<n> — <title>` heading; its boxes are the `- [ ]` and `- [x]`
@@ -32,13 +33,23 @@ lines up to the next `##` or `###` heading.
   decision: new names join the line's names without duplicates, `none` is written only
   while the line holds no name and a name replaces it, and no value removes the line.
   Boxes under `## Delivery units` belong to no task: `done` never ticks them.
+  --out FILE writes only the `## Checkpoint` block to FILE, outside the folder's repository,
+  starting from FILE's block (an empty FILE counts as none; a FILE holding anything else is
+  refused) or else tasks.md's, and never writes tasks.md.
+- integrated folder: once the folder is on origin/<base> (as `versioned` finds it), every task
+  is done in that integrated copy of tasks.md and the working copy matches it outside
+  `## Checkpoint`, `checkpoint` without --out and `done` write nothing and exit 1: nothing is
+  written to the folder until the hygiene batch archives it. Any Git error lets the write through.
 - versioned: reads only (no fetch, commit or push) whether the folder is versioned in the
   repository that holds it, found from the folder itself, so it answers the same from a
   repository, a monorepo's package or a workspace root outside Git. Versioned means its last
   commit is on a remote branch (on origin/<base> when that repository's `## Hive` declares
   `Delivery: direct-base`) and, when that repository is not the work's (--work-repo, compared
   by Git common dir), no file under it is untracked or modified; in the work's repository such
-  files are warnings, since later edits wait for the archive. Prints the repository, `versioned:
+  files are warnings for the close report, a tasks.md whose only change is its checkpoint
+  gets the `git -C <checkout> restore` that removes it, and the folder's uncommitted files in
+  the repository's other worktrees are named without a restore, since they may be another
+  session's work. Prints the repository, `versioned:
   yes|no`, one line per missing state or warning, and, when not versioned, the next step. With
   --work-repo, warns when that repository declares no Specs or one that does not hold the folder.
   Exits 0 when versioned, 1 when not or outside Git, 2 on invalid arguments.
@@ -114,7 +125,8 @@ def write(path, lines):
         fd, temp = tempfile.mkstemp(dir=str(path.parent), prefix=".tasks-", suffix=".tmp")
         with os.fdopen(fd, "w", encoding="utf-8", newline="") as handle:
             handle.write(text)
-        os.chmod(temp, path.stat().st_mode & 0o7777)
+        if path.exists():
+            os.chmod(temp, path.stat().st_mode & 0o7777)
         os.replace(temp, path)
         temp = None
     except OSError as error:
@@ -847,6 +859,151 @@ def git_paths(state, *args):
     return [p for p in out.split("\0") if p]
 
 
+def without_checkpoint(lines):
+    """The lines that are not blank and not in the `## Checkpoint` section."""
+    bounds = section_bounds(lines, CHECKPOINT)
+    kept = lines if not bounds else lines[:bounds[0]] + lines[bounds[1]:]
+    return [l for l in kept if l.strip()]
+
+
+def checkpoint_only(state, top, path):
+    """Whether a modified tasks.md differs from HEAD only inside its `## Checkpoint` section."""
+    if Path(path).name != "tasks.md":
+        return False
+    code, committed, _ = state.git_run("show", f"HEAD:{path}")
+    if code != 0:
+        return False
+    try:
+        current = read(Path(top) / path)
+    except Failure:
+        return False
+    return without_checkpoint(committed.splitlines()) == without_checkpoint(current)
+
+
+def edit_warning(state, top, kind, path, where=""):
+    """The close's instruction for one uncommitted file of the folder in the checkout at top.
+    Another worktree's file is only named: it may be another session's work."""
+    if not where and kind == "modified" and checkpoint_only(state, top, path):
+        return (f"warning: modified {printable(path)}{where}: only its checkpoint changed;"
+                f" restore it with git -C {printable(str(top))} restore -- {printable(path)}")
+    return f"warning: {kind} {printable(path)}{where}: name it in the close report"
+
+
+def other_worktree_edits(state, top, rel):
+    """Warnings for the folder's uncommitted files in the repository's other worktrees."""
+    code, out, _ = state.git_run("worktree", "list", "--porcelain")
+    if code != 0:
+        return []
+    found = []
+    for line in out.splitlines():
+        if not line.startswith("worktree "):
+            continue
+        tree = Path(line[len("worktree "):]).resolve()
+        if tree == Path(top).resolve() or not tree.is_dir():
+            continue
+        try:
+            other = git_reader(tree)
+            edits = [("untracked", p) for p in git_paths(other, "ls-files", "--others", "--exclude-standard", "-z", "--", rel)]
+            edits += [("modified", p) for p in git_paths(other, "diff", "--name-only", "-z", "HEAD", "--", rel)]
+        except Failure:
+            continue
+        found += [edit_warning(other, tree, kind, path, f" in {printable(str(tree))}") for kind, path in edits]
+    return found
+
+
+def resolve_base(top, workspace):
+    """(base, source) from `## Hive` Base branch, else origin/HEAD; base is "—" when neither resolves."""
+    declared = hive_settings(top, workspace).get("Base branch", "")
+    if re.fullmatch(r"\S+", declared):
+        return declared, "Hive"
+    return workspace.base_branch_of(str(top)), "origin/HEAD"
+
+
+def on_origin_base(state, last, base, rel):
+    """Whether the folder's last commit, or its content after a squash or rebase merge, is on origin/<base>."""
+    if base == "—":
+        return False
+    base_ref = f"refs/remotes/origin/{base}"
+    code, _, _ = state.git_run("merge-base", "--is-ancestor", last, base_ref)
+    if code != 0:
+        # A squash or rebase merge leaves the folder's commit on no remote branch once the
+        # pull request's branch is deleted; its content on the base still counts.
+        code, _, _ = state.git_run("diff", "--quiet", last, base_ref, "--", rel)
+    return code == 0
+
+
+def integrated_and_done(folder):
+    """origin/<base> when the folder is on it with every task done in that copy, else None.
+    Any failure to answer lets the write through."""
+    try:
+        folder = folder.resolve()
+        root = git_root(folder)
+        if root is None:
+            return None
+        top = root[0]
+        base, _ = resolve_base(top, sibling_script("workspace-repo/scripts/workspace_repo.py", "hive_workspace_repo"))
+        state = git_reader(top)
+        rel = str(folder.relative_to(top))
+        code, out, _ = state.git_run("log", "-1", "--format=%H", "--", rel)
+        if code != 0 or not out.strip() or not on_origin_base(state, out.strip(), base, rel):
+            return None
+        code, text, _ = state.git_run("show", f"refs/remotes/origin/{base}:{rel}/tasks.md")
+        if code != 0:
+            return None
+        integrated = text.splitlines()
+        tasks = parse_tasks(integrated)
+        if not tasks or not all(complete(integrated, t) for t in tasks):
+            return None  # an open task on the base: a later unit goes on
+        if without_checkpoint(read(folder / "tasks.md")) != without_checkpoint(integrated):
+            return None  # the working copy reopened or recorded work not yet committed
+        return f"origin/{base}"
+    except Exception:  # the check never blocks a write it cannot prove wrong
+        return None
+    return None
+
+
+def refusal(folder, base, with_out):
+    text = (f"refused: {printable(str(folder))} is on {base} with every task done; nothing is written to it"
+            " until the hygiene batch archives it.")
+    if with_out:
+        text += (f" Write the checkpoint with --out <host temp>/<repo>-{printable(folder.name)}-checkpoint.md;"
+                 " to continue the work, reopen its task on a new branch first.")
+    else:
+        text += " To continue the work, reopen its task on a new branch first."
+    return text
+
+
+def checkpoint_out(folder, args):
+    out = args.out.expanduser().resolve()
+    root = None
+    try:
+        root = git_root(folder.resolve())
+    except Failure:
+        root = None
+    if root is not None and out.is_relative_to(root[0]):
+        print(f"refused: --out {printable(str(out))} must be outside the repository {printable(str(root[0]))}")
+        return 1
+    if out.exists() and out.read_text(encoding="utf-8").strip():
+        lines = read(out)
+        headings = [l for l in lines if LEVEL2.match(l)]
+        first = next((l for l in lines if l.strip()), "")
+        if not CHECKPOINT.match(first) or len(headings) != 1:
+            print(f"refused: --out {printable(str(out))} is not a checkpoint file; choose another path")
+            return 1
+    else:
+        source = read(folder / "tasks.md")
+        bounds = section_bounds(source, CHECKPOINT)
+        lines = source[bounds[0]:bounds[1]] if bounds else []
+    new_lines, _ = cmd_checkpoint(lines, args)
+    start, end = section_bounds(new_lines, CHECKPOINT)
+    block = new_lines[start:end]
+    while block and not block[-1].strip():
+        block.pop()
+    write(out, block)
+    print(f"checkpoint written to {out}")
+    return 0
+
+
 def cmd_versioned(args):
     folder = args.folder.resolve()
     root = git_root(folder)
@@ -865,9 +1022,7 @@ def cmd_versioned(args):
     workspace = sibling_script("workspace-repo/scripts/workspace_repo.py", "hive_workspace_repo")
     settings = hive_settings(top, workspace)
     direct_base = settings.get("Delivery", "").split()[:1] == ["direct-base"]
-    declared = settings.get("Base branch", "")
-    base_source = "Hive" if re.fullmatch(r"\S+", declared) else "origin/HEAD"
-    base = declared if base_source == "Hive" else workspace.base_branch_of(str(top))
+    base, base_source = resolve_base(top, workspace)
     print(f"repo: {top} · base: {base} ({base_source}) · delivery: {'direct-base' if direct_base else 'not declared'}"
           f" · work repo: {'same' if same_repo else work_top}")
     state = git_reader(top)
@@ -881,18 +1036,12 @@ def cmd_versioned(args):
     edits = [("untracked", p) for p in untracked] + [("modified", p) for p in modified]
     for kind, path in edits:
         if same_repo and last:
-            warnings.append(f"warning: {kind} {printable(path)}: later edits wait for the archive")
+            warnings.append(edit_warning(state, top, kind, path))
         else:
             problems.append(f"{kind}: {printable(path)}")
-    base_ref = f"refs/remotes/origin/{base}"
-    on_base = False
-    if last and base != "—":
-        # A squash or rebase merge leaves the folder's commit on no remote branch once the
-        # pull request's branch is deleted; its content on the base still counts.
-        code, _, _ = state.git_run("merge-base", "--is-ancestor", last[0], base_ref)
-        if code != 0:
-            code, _, _ = state.git_run("diff", "--quiet", last[0], base_ref, "--", rel)
-        on_base = code == 0
+    if same_repo and last:
+        warnings.extend(other_worktree_edits(state, top, rel))
+    on_base = bool(last) and on_origin_base(state, last[0], base, rel)
     if not last:
         problems.append("not committed: the folder has no commit")
     elif direct_base:
@@ -943,6 +1092,7 @@ def build_parser():
     cp.add_argument("--unwritten", type=single_line, help="what no file holds yet, asked at a pause, kept by later calls; 'none' removes it")
     cp.add_argument("--rules", type=rules_value, help="'<flow>/<packet>.md[, …][ · extra: <leaf>, …]' the flow read; joins the line while the flow stays the same, starts a new line for another flow; 'none' removes it")
     cp.add_argument("--principles", type=principles_value, help="principle names that changed a decision, joined by ', ', merged into the line; 'none' only while it has none")
+    cp.add_argument("--out", type=Path, help="write only the checkpoint block to this file, outside the repository, instead of tasks.md")
     versioned = sub.add_parser("versioned", help="whether the change folder is committed and on a remote branch")
     versioned.add_argument("--work-repo", type=Path, help="the work's repository, checked for a Specs that holds the folder")
     execution = sub.add_parser("execution", help="coordinator-owned local execution record")
@@ -974,6 +1124,13 @@ def main(argv):
         if args.command == "execution":
             cmd_execution(args)
             return 0
+        if args.command == "checkpoint" and args.out is not None:
+            return checkpoint_out(args.folder, args)
+        if args.command in ("checkpoint", "done"):
+            base = integrated_and_done(args.folder)
+            if base is not None:
+                print(refusal(args.folder, base, args.command == "checkpoint"))
+                return 1
         handler = {"status": cmd_status, "done": cmd_done, "checkpoint": cmd_checkpoint}[args.command]
         result = handler(lines, args)
         if result is not None:

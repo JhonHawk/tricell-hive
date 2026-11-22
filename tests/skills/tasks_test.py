@@ -899,8 +899,33 @@ class VersionedTest(unittest.TestCase):
         (folder / "tasks.md").write_text(TASKS_MD + "\nCheckpoint line\n", encoding="utf-8")
         (folder / "design.md").write_text("# Design\n", encoding="utf-8")
         self.assertVersioned(self.versioned(folder), 0, "versioned: yes",
-                             "warning: modified openspec/changes/demo/tasks.md: later edits wait for the archive",
-                             "warning: untracked openspec/changes/demo/design.md")
+                             "warning: modified openspec/changes/demo/tasks.md: name it in the close report",
+                             "warning: untracked openspec/changes/demo/design.md: name it in the close report",
+                             absent=("later edits wait for the archive",))
+
+    def test_a_checkpoint_left_in_another_worktree_is_named(self):
+        repo = self.repo("app", "- Base branch: main\n- Specs: openspec\n")
+        folder = self.change(repo / "openspec")
+        self.commit(repo, folder, push="main")
+        other = self.tmp / "wt"
+        self.git(repo, "worktree", "add", "-q", "--detach", str(other), "HEAD")
+        other_tasks = other / "openspec" / "changes" / "demo" / "tasks.md"
+        other_tasks.write_text(TASKS_MD + "\n## Checkpoint\n\n- Stage: verify · x\n", encoding="utf-8")
+        result = self.versioned(folder)
+        self.assertVersioned(result, 0, "versioned: yes",
+                             f"warning: modified openspec/changes/demo/tasks.md in {other}: name it in the close report",
+                             absent=(f"git -C {other} restore",))
+
+    def test_a_checkpoint_only_edit_is_restored(self):
+        repo = self.repo("app", "- Base branch: main\n- Specs: openspec\n")
+        folder = self.change(repo / "openspec")
+        self.commit(repo, folder, push="main")
+        script = [sys.executable, "-I", "-B", str(TASKS), str(folder), "checkpoint", "--stage", "build",
+                  "--step", "T2", "--commit", "abc1234", "--next", "go on"]
+        self.assertEqual(subprocess.run(script, text=True, capture_output=True, timeout=60).returncode, 0)
+        self.assertVersioned(self.versioned(folder), 0, "versioned: yes",
+                             "warning: modified openspec/changes/demo/tasks.md: only its checkpoint changed;"
+                             f" restore it with git -C {repo} restore -- openspec/changes/demo/tasks.md")
 
     def test_monorepo_folder_checked_from_a_package_directory(self):
         repo = self.repo("mono", "- Specs: _support/openspec\n")
@@ -1002,3 +1027,159 @@ class VersionedTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+DONE_MD = TASKS_MD.replace("- [ ]", "- [x]")
+
+
+class IntegratedFolderTest(unittest.TestCase):
+    """After its merge, with every task done, nothing is written to the change folder."""
+
+    setUp, git, repo, change, commit = (VersionedTest.setUp, VersionedTest.git, VersionedTest.repo,
+                                        VersionedTest.change, VersionedTest.commit)
+
+    def integrated(self, tasks=DONE_MD, hive="- Base branch: main\n- Specs: openspec\n"):
+        repo = self.repo("app", hive)
+        folder = self.change(repo / "openspec")
+        (folder / "tasks.md").write_text(tasks, encoding="utf-8")
+        self.commit(repo, folder, push="main")
+        return repo, folder
+
+    def run_tasks(self, folder, *args, cwd=None):
+        return subprocess.run([sys.executable, "-I", "-B", str(TASKS), str(folder), *args],
+                              cwd=cwd or self.tmp, text=True, capture_output=True, timeout=60)
+
+    def checkpoint(self, folder, *extra):
+        return self.run_tasks(folder, "checkpoint", "--stage", "close", "--step", "integrated",
+                              "--commit", "abc1234", "--next", "close", *extra)
+
+    def assertRefused(self, result, folder, before, out=True):
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        text = result.stdout + result.stderr
+        self.assertIn("is on origin/main with every task done", text)
+        self.assertEqual("--out" in text, out, text)
+        self.assertEqual((folder / "tasks.md").read_bytes(), before)
+
+    def test_checkpoint_is_refused_on_the_base(self):
+        repo, folder = self.integrated()
+        before = (folder / "tasks.md").read_bytes()
+        self.assertRefused(self.checkpoint(folder), folder, before)
+
+    def test_checkpoint_is_refused_on_no_branch(self):
+        repo, folder = self.integrated()
+        self.git(repo, "switch", "-q", "--detach", "HEAD")
+        before = (folder / "tasks.md").read_bytes()
+        self.assertRefused(self.checkpoint(folder), folder, before)
+
+    def test_checkpoint_is_refused_on_the_merged_branch(self):
+        repo = self.repo("app", "- Base branch: main\n- Specs: openspec\n")
+        self.git(repo, "switch", "-q", "-c", "feat/x")
+        folder = self.change(repo / "openspec")
+        (folder / "tasks.md").write_text(DONE_MD, encoding="utf-8")
+        self.commit(repo, folder, push="feat/x")
+        self.git(repo, "push", "-q", "origin", "feat/x:main")
+        self.git(repo, "fetch", "-q", "origin")
+        before = (folder / "tasks.md").read_bytes()
+        self.assertRefused(self.checkpoint(folder), folder, before)
+
+    def test_checkpoint_is_refused_after_a_squash_merge(self):
+        repo = self.repo("app", "- Base branch: main\n- Specs: openspec\n")
+        self.git(repo, "switch", "-q", "-c", "feat/x")
+        folder = self.change(repo / "openspec")
+        (folder / "tasks.md").write_text(DONE_MD, encoding="utf-8")
+        self.commit(repo, folder, push="feat/x")
+        self.git(repo, "switch", "-q", "main")
+        self.git(repo, "merge", "-q", "--squash", "feat/x")
+        self.git(repo, "commit", "-q", "-m", "squash")
+        self.git(repo, "push", "-q", "origin", "main")
+        self.git(repo, "switch", "-q", "feat/x")
+        before = (folder / "tasks.md").read_bytes()
+        self.assertRefused(self.checkpoint(folder), folder, before)
+
+    def test_done_is_refused(self):
+        repo, folder = self.integrated()
+        before = (folder / "tasks.md").read_bytes()
+        result = self.run_tasks(folder, "done", "T1", "--commit", "abc1234", "--unverified", "none")
+        self.assertRefused(result, folder, before, out=False)
+
+    def test_an_open_task_keeps_writing(self):
+        repo, folder = self.integrated(tasks=TASKS_MD)
+        self.assertEqual(self.checkpoint(folder).returncode, 0)
+        self.assertIn("## Checkpoint", (folder / "tasks.md").read_text(encoding="utf-8"))
+
+    def test_a_later_unit_records_its_last_task_then_its_checkpoint(self):
+        last_open = DONE_MD.replace("- [x] gamma", "- [ ] gamma")
+        repo, folder = self.integrated(tasks=last_open)
+        self.git(repo, "switch", "-q", "-c", "unit-2")
+        done = self.run_tasks(folder, "done", "T3", "--commit", "abc1234", "--unverified", "none")
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        self.assertEqual(self.checkpoint(folder).returncode, 0)
+
+    def test_a_folder_only_on_its_branch_keeps_writing(self):
+        repo = self.repo("app", "- Base branch: main\n- Specs: openspec\n")
+        self.git(repo, "switch", "-q", "-c", "feat/x")
+        folder = self.change(repo / "openspec")
+        (folder / "tasks.md").write_text(DONE_MD, encoding="utf-8")
+        self.commit(repo, folder, push="feat/x")
+        self.assertEqual(self.checkpoint(folder).returncode, 0)
+
+    def test_a_repository_without_commits_or_remote_keeps_writing(self):
+        bare = self.tmp / "bare"
+        self.git(self.tmp, "init", "-q", str(bare))
+        folder = bare / "openspec" / "changes" / "demo"
+        folder.mkdir(parents=True)
+        (folder / "tasks.md").write_text(DONE_MD, encoding="utf-8")
+        self.assertEqual(self.checkpoint(folder).returncode, 0)
+        self.git(bare, "add", ".")
+        self.git(bare, "commit", "-q", "-m", "local")
+        self.assertEqual(self.checkpoint(folder).returncode, 0)
+
+    def test_out_writes_only_the_checkpoint_elsewhere(self):
+        repo, folder = self.integrated()
+        before = (folder / "tasks.md").read_bytes()
+        out = self.tmp / "outside" / "demo-checkpoint.md"
+        out.parent.mkdir()
+        first = self.checkpoint(folder, "--out", str(out), "--check", "suite · pass · abc1234")
+        self.assertEqual(first.returncode, 0, first.stdout + first.stderr)
+        self.assertIn(f"checkpoint written to {out}", first.stdout)
+        second = self.checkpoint(folder, "--out", str(out))
+        self.assertEqual(second.returncode, 0, second.stdout + second.stderr)
+        text = out.read_text(encoding="utf-8")
+        self.assertTrue(text.startswith("## Checkpoint"), text)
+        self.assertIn("- suite · pass · abc1234", text)
+        self.assertNotIn("### T1", text)
+        self.assertEqual((folder / "tasks.md").read_bytes(), before)
+
+    def test_a_task_reopened_in_the_working_copy_keeps_writing(self):
+        repo, folder = self.integrated()
+        self.git(repo, "switch", "-q", "-c", "reopen")
+        text = (folder / "tasks.md").read_text(encoding="utf-8").replace("- [x] delta", "- [ ] delta")
+        (folder / "tasks.md").write_text(text, encoding="utf-8")
+        done = self.run_tasks(folder, "done", "T4", "--commit", "abc1234", "--unverified", "none")
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+        again = self.checkpoint(folder)
+        self.assertEqual(again.returncode, 0, again.stdout + again.stderr)
+
+    def test_out_starts_an_empty_file(self):
+        repo, folder = self.integrated()
+        out = self.tmp / "empty.md"
+        out.write_text("", encoding="utf-8")
+        result = self.checkpoint(folder, "--out", str(out))
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertTrue(out.read_text(encoding="utf-8").startswith("## Checkpoint"))
+
+    def test_out_does_not_replace_a_file_that_is_not_a_checkpoint(self):
+        repo, folder = self.integrated()
+        notes = self.tmp / "notes.md"
+        notes.write_text("my notes\nimportant\n", encoding="utf-8")
+        result = self.checkpoint(folder, "--out", str(notes))
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("not a checkpoint file", result.stdout + result.stderr)
+        self.assertEqual(notes.read_text(encoding="utf-8"), "my notes\nimportant\n")
+
+    def test_out_inside_the_repository_is_refused(self):
+        repo, folder = self.integrated()
+        result = self.checkpoint(folder, "--out", str(repo / "checkpoint.md"))
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("outside the repository", result.stdout + result.stderr)
+        self.assertFalse((repo / "checkpoint.md").exists())
