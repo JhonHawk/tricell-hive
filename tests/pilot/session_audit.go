@@ -1616,11 +1616,13 @@ var (
 	// "?", so a report heading such as "**Review** — Completed" is not a round.
 	// Only a D<n> title takes the middle dot: the context line of a message,
 	// "**Review · ticket · is it done?**", uses it too.
-	roundTitleLine = regexp.MustCompile(`(?mi)^\s*[#>*\s]*(?:D\d+\s*[—–·-]|(?:` + sessionHeaderNames + `)\**\s*[—–-][^\n]*\?)`)
+	// It stays on one line, so a bare "**Review**" heading does not join the
+	// question on the next line into a title.
+	roundTitleLine = regexp.MustCompile(`(?mi)^[ \t]*[#>* \t]*(?:D\d+[ \t]*[—–·-]|(?:` + sessionHeaderNames + `)\**[ \t]*[—–-][^\n]*\?)`)
 	// numberedTitleLine is a numbered question, such as "**1. ¿Dónde
 	// trabajamos?**". It is a round's title only when a starred option follows
 	// it, as roundTitles checks, since an analysis may list numbered questions.
-	numberedTitleLine = regexp.MustCompile(`(?m)^[ \t]*[#>*]*[ \t]*\d+[.)][ \t]+[^\n]*\?[*_ \t]*$`)
+	numberedTitleLine = regexp.MustCompile(`(?m)^[ \t]*[#>* \t]*\d+[.)][ \t]+[^\n]*\?[*_ \t]*(?:\([^)\n]{1,40}\)[*_ \t]*)?\r?$`)
 	// The star may follow the letter with or without a separator: "A - (★)" or
 	// "- **A (★) · …".
 	roundOptionStar = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\s*(?:[-—–·]\s*\**\s*)?\(★\)`)
@@ -2051,7 +2053,7 @@ var (
 	reviewQuestionTitle = regexp.MustCompile(`(?i)\brevisi(?:[oó]n|ones)\b|\breview(?:s|ers?)?\b|\brevis(?:amos|ar) el c[oó]digo\b`)
 	// codeReviewTitle asks for the code review itself, not a security review or
 	// a rerun of one.
-	codeReviewTitle = regexp.MustCompile(`(?i)\brevis(?:amos|ar) el c[oó]digo\b|\brevisi[oó]n (?:del? )?c[oó]digo\b|\bcode review\b`)
+	codeReviewTitle = regexp.MustCompile(`(?i)\brevis(?:amos|ar) el c[oó]digo\b|\brevisi[oó]n (?:del? )?c[oó]digo\b|\bcode review\b|^[ \t#>*]*(?:review|revisi[oó]n)\**[ \t]*[—–-]`)
 	// A decision about a review's findings is not the question that picks it.
 	reviewFindingsTitle = regexp.MustCompile(`(?i)hallazgo|finding`)
 	nativeReviewOption  = regexp.MustCompile(`(?i)/review\b|codex review|revisi[oó]n nativa|native review|\bnativ[ae]\s*:`)

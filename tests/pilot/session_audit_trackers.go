@@ -119,6 +119,20 @@ func resultText(events []traceEvent, i int) string {
 	return ""
 }
 
+// loadsFlowVerify reports whether an event loads the installed flow-verify
+// skill: its skill call, a read or search of its SKILL.md, or a shell read.
+func loadsFlowVerify(e traceEvent) bool {
+	switch e.Kind {
+	case "skill_invocation":
+		return strings.Contains(e.Text+string(e.Input), "flow-verify")
+	case "read", "search":
+		return flowVerifyRead.MatchString(e.Path)
+	case "shell":
+		return flowVerifyRead.MatchString(e.Command) && readCommand.MatchString(e.Command)
+	}
+	return false
+}
+
 // loadsFlowClose reports whether an event loads the installed flow-close skill:
 // its skill call, a read of its SKILL.md, or a shell read of it, a sed range
 // included.
@@ -146,18 +160,18 @@ func tryItBlockInReport(s auditSession) criterionAssessment {
 	}
 	events := s.Trace.Events
 	edited, verified := false, false
-	closeTurn := -1
+	closeTurn, laterEdit := -1, false
 	for i, e := range events {
 		switch {
 		case succeeded(events, i) && (editsInterface(e, s.Cwd) || launchesRole(e, "hive-build-frontend") || launchesRole(e, "hive-build-mobile")):
 			edited = true
-			// A later interface change is another work item, judged on its own
-			// report.
-			if closeTurn >= 0 && s.Turn[i] > closeTurn {
-				closeTurn = -1
-			}
+			laterEdit = laterEdit || closeTurn >= 0 && s.Turn[i] > closeTurn
+		case laterEdit && loadsFlowVerify(e):
+			// A later interface change that reaches verify is another work
+			// item, judged on its own report.
+			closeTurn, laterEdit = -1, false
 		case edited && loadsFlowClose(e):
-			closeTurn = s.Turn[i]
+			closeTurn, laterEdit = s.Turn[i], false
 		}
 	}
 	edited = false
@@ -170,11 +184,7 @@ func tryItBlockInReport(s auditSession) criterionAssessment {
 		switch {
 		case succeeded(events, i) && (editsInterface(*e, s.Cwd) || launchesRole(*e, "hive-build-frontend") || launchesRole(*e, "hive-build-mobile")):
 			edited = true
-		case e.Kind == "skill_invocation" && strings.Contains(e.Text+string(e.Input), "flow-verify"):
-			verified = true
-		case (e.Kind == "read" || e.Kind == "search") && flowVerifyRead.MatchString(e.Path):
-			verified = true
-		case e.Kind == "shell" && flowVerifyRead.MatchString(e.Command) && readCommand.MatchString(e.Command):
+		case loadsFlowVerify(*e):
 			verified = true
 		case e.Kind == "text" && e.Role == "assistant":
 			last = e
