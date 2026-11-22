@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Completed |
+| Estado | Completado · PR #589, c61c10e3 |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` (`d4f1eedb`) · rama propuesta `refactor/leaf-restatements` |
 | Playbook | refactor |

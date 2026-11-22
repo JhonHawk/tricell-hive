@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Completed |
+| Estado | Completado · PR #592, 4a2d1c5d |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` (`c61c10e3`) · rama propuesta `refactor/global-core-invariants` |
 | Playbook | refactor |
