@@ -69,7 +69,9 @@ func proseChoices(text string) (choices []string, session bool) {
 func proseSentences(text string) []string {
 	var out []string
 	for _, line := range strings.Split(text, "\n") {
-		masked := quotedReply.ReplaceAllStringFunc(line, func(q string) string { return strings.NewReplacer(".", "\x00", "!", "\x01", "?", "\x02", ":", "\x03").Replace(q) })
+		masked := quotedReply.ReplaceAllStringFunc(line, func(q string) string {
+			return strings.NewReplacer(".", "\x00", "!", "\x01", "?", "\x02", ":", "\x03").Replace(q)
+		})
 		for _, s := range strings.Split(sentenceEnd.ReplaceAllString(masked, "$1\n"), "\n") {
 			s = strings.NewReplacer("\x00", ".", "\x01", "!", "\x02", "?", "\x03", ":").Replace(s)
 			if s = strings.TrimRight(strings.TrimSpace(s), "*_"); s != "" {

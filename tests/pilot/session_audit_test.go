@@ -955,6 +955,10 @@ func TestAnalysisReplyBlockEvidenceSaysIfTheRuleWasRead(t *testing.T) {
 		{"claude-project-italic-read-fail.jsonl", "was read"},
 		{"codex-rollout-no-replies-fail.jsonl", "without a reply block; report-endings rule was read"},
 		{"codex-rollout-temp-write-fail.jsonl", "without a reply block; report-endings rule not read"},
+		{"codex-rollout-cell-packet-fail.jsonl", "report-endings rule was read"},
+		{"codex-rollout-cell-truncated-fail.jsonl", "report-endings rule not read"},
+		{"codex-rollout-cell-filtered-fail.jsonl", "report-endings rule not read"},
+		{"codex-rollout-cell-unpaired-fail.jsonl", "report-endings rule not read"},
 	} {
 		host := strings.SplitN(tc.file, "-", 2)[0]
 		got := auditStatus(t, auditFixture(t, host, auditOptions{}, reply, tc.file), reply)

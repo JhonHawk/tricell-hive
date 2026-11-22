@@ -276,6 +276,9 @@ func packetNamesLeaf(events []traceEvent, i int, leaf string) (read, unverified 
 		return false, maybe
 	}
 	text, ok := resultTextOf(events, i)
+	if text == "" && e.CellOutput != "" {
+		text, ok = e.CellOutput, true
+	}
 	if !ok {
 		return false, true
 	}

@@ -502,6 +502,7 @@ func (b *codexBuilder) codexExecOutput(line int, id string, items []any) {
 		output   string
 	}
 	var results []result
+	var plain []string
 	header := ""
 	for n, raw := range items {
 		text := str(object(raw)["text"])
@@ -511,6 +512,7 @@ func (b *codexBuilder) codexExecOutput(line int, id string, items []any) {
 		}
 		var v map[string]any
 		if json.Unmarshal([]byte(text), &v) != nil || v == nil {
+			plain = append(plain, text)
 			continue
 		}
 		if str(v["status"]) == "rejected" {
@@ -540,6 +542,10 @@ func (b *codexBuilder) codexExecOutput(line int, id string, items []any) {
 	// Truncated output, or a command still running that returns a session ID,
 	// leaves it unknown.
 	paired := len(results) == shellCount
+	// A cell that prints each command's output as plain text, such as
+	// text(r.output), gives no exit code; with one plain item per command, the
+	// item at a command's position is that command's output.
+	plainPaired := !paired && shellCount > 0 && len(plain) == shellCount
 	shellN := 0
 	for _, i := range execIdx {
 		e := &b.s.Trace.Events[i]
@@ -551,6 +557,9 @@ func (b *codexBuilder) codexExecOutput(line int, id string, items []any) {
 				r := results[shellN]
 				ok := !r.rejected && r.hasCode && r.code == 0
 				success, text = &ok, r.output
+			}
+			if plainPaired {
+				e.CellOutput = plain[shellN]
 			}
 			shellN++
 		default:

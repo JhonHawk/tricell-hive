@@ -8,7 +8,7 @@ Base `development` en `1b87f0a7`, rama `feat/audit-round-detection`, worktree `.
 
 ### T1 — Rondas numeradas en texto
 
-- [ ] Un título numerado con pregunta cuenta como título de ronda cuando le sigue al menos una opción con estrella antes del siguiente título; `roundOptionStar` y `optionLine` aceptan `(★)` entre la letra y el separador; `reviewQuestionTitle` reconoce «revisamos el código» y «revisar el código»; `reviewQuestionNativeOption` juzga una pregunta de revisión con una sola opción que nombra un mecanismo
+- [x] Un título numerado con pregunta cuenta como título de ronda cuando le sigue al menos una opción con estrella antes del siguiente título; `roundOptionStar` y `optionLine` aceptan `(★)` entre la letra y el separador; `reviewQuestionTitle` reconoce «revisamos el código» y «revisar el código»; `reviewQuestionNativeOption` juzga una pregunta de revisión con una sola opción que nombra un mecanismo
 
 **Closes:** AC1, AC2, AC3
 
@@ -34,7 +34,7 @@ Fixtures:
 
 ### T2 — Elecciones en prosa: confirmación imperativa y respuestas entre comillas
 
-- [ ] `prose_choice_without_card` falla una confirmación imperativa de una elección de sesión y marca `review` en un mensaje que ofrece dos o más respuestas entre comillas
+- [x] `prose_choice_without_card` falla una confirmación imperativa de una elección de sesión y marca `review` en un mensaje que ofrece dos o más respuestas entre comillas
 
 **Closes:** AC4, AC9
 
@@ -158,3 +158,6 @@ Fixtures:
 - base sweep: 329 fixtures read with pilot-base @1b87f0a7 (scratchpad verdicts-base.tsv)
 
 ## Review status and progress
+
+2026-11-21 — T1 · 3a4454c4 · unverified: none
+2026-11-21 — T2 · 742ed7b2 · unverified: none
