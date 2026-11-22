@@ -900,9 +900,12 @@ def cmd_versioned(args):
     for line in problems + warnings:
         print(line)
     if problems:
-        print("next: commit and deliver the folder as git-workflow step 4 sets, then run versioned again")
-        return 1
-    return 0
+        print("next: commit and deliver the folder as git-workflow step 4 sets, then run versioned again; if it still"
+              " prints `versioned: no`, the close report lists the folder as pending with its path and its question,"
+              " asked after the report as close-modes sets")
+    if warnings:
+        print("next: name each warning in the close report")
+    return 1 if problems else 0
 
 
 def build_parser():
