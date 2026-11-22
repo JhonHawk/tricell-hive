@@ -6,13 +6,13 @@ What always runs for each kind of change. Each check keeps its own rule, linked 
 
 | Kind of change | Always runs |
 | --- | --- |
-| Mechanical, as «Proportionality» of the global guidance defines it | The checks that already cover it; no verify and no code review |
+| Mechanical, as [proportionality](../plan/proportionality.md) defines it | The checks that already cover it; no verify and no code review |
 | Every other change | The full suite and local CI, as [checks](checks.md) sets; [blast radius](../review/blast-radius.md); the code review; and the rows below that apply |
 | Defect fix | Its regression test seen failing, then passing, as [tests](tests.md) and [defect fix](defect-fix.md) set; without a test runner, the direct check [no test runner](tests-no-runner.md) sets |
 | New or changed behavior | The check [tests](tests.md) sets for each behavior, and the walk of each criterion in its place, as [flow-verify](../../flow-verify/SKILL.md) step 1 sets |
 | Restructuring that keeps behavior | The existing tests, or a characterization test first, as [tests](tests.md) sets |
 | A screen added or changed | [Before captures](../ui/before-captures.md), the captures [UI verification](../ui/ui-verification.md) sets, the `hive-review-ux` child and the [walkthrough](../ui/walkthrough.md) |
-| Risky, as «Proportionality» defines it | A `hive-verify-task` child per risky task of a plan with a change folder, as [flow-build](../../flow-build/SKILL.md) step 3 sets; for a change that touches a [security boundary](security-boundaries.md), the security review the user accepted |
+| Risky, as the global guidance's «Proportionality» defines it | A `hive-verify-task` child per risky task of a plan with a change folder, as [flow-build](../../flow-build/SKILL.md) step 3 sets; for a change that touches a [security boundary](security-boundaries.md), the security review the user accepted |
 | A measured speed or size goal | Before and after measurements read as [explain the number](../principles/explain-the-number.md) sets, against the threshold of the [perf playbook](../../hive-mode/playbooks/perf.md) |
 
 ## What the report carries

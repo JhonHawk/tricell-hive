@@ -28,6 +28,8 @@ var leafLinks = []leafLink{
 	{"ticket-state", "content/skills/flow-deploy/SKILL.md"},
 	{"close-modes", "content/skills/flow-close/SKILL.md"},
 	{"close-hygiene", "content/skills/flow-close/SKILL.md"},
+	{"close-cleanup", "content/skills/flow-close/SKILL.md"},
+	{"proportionality", "content/skills/flow-build/SKILL.md"},
 	{"close-report", "content/skills/flow-close/SKILL.md"},
 	{"report-endings", "content/skills/flow-close/SKILL.md"},
 	{"close-report", "content/skills/git-workflow/SKILL.md"},

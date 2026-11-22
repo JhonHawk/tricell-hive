@@ -1,0 +1,9 @@
+# Proportionality
+
+Read when choosing a route, a delivery or a verification for a piece of work, and when a rule names a mechanical change, a small understood change or an operational task.
+
+A mechanical change is a rename, a move, configuration that changes no permission, security setting or dependency, formatting, wiring existing checks exercise, or user-facing text, documentation or style that alters no rendered layout, state or flow; a documentation update that is part of a change to code or configuration stays mechanical even when it alters a layout; a change to logic, a contract, permissions, security, money, stored data, concurrency, a dependency, something read outside the code, or code serving behavior the request did not name is not. A mechanical change needs no plan or delegation and skips verify and the dedicated review, unless project guidance requires one, but keeps the global guidance's «Delivery» question and is verified with the checks that already cover it.
+
+A small understood change is one whose how leaves no decision for the user and that someone could finish from the request and `git diff` alone.
+
+An operational task is work that leaves no repository change to deliver, such as a database dump, a data export or an environment operation. It keeps its plan in the conversation, is exempt from the delivery questions ([delivery questions](../git/delivery-ask.md)) and still asks each critical effect. Adding files to a repository so the task can run, such as a script or an image definition, is the user's choice: ask it before the first such file; a [local script](../local/local-script.md) is not such a file. Work whose plan meets a change-folder condition of [flow-plan](../../flow-plan/SKILL.md) «Where the plan lives», or whose user accepts adding repository files, leaves a repository change: it is not an operational task and gets the global guidance's «Delivery» questions before its first edit.

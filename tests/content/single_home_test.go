@@ -21,6 +21,11 @@ type homePhrase struct {
 // homePhrases lists one literal phrase per rule and the file that must be
 // its only home under content/.
 var homePhrases = []homePhrase{
+	{"A small understood change is one whose how leaves no decision", "content/skills/hive-core/plan/proportionality.md"},
+	{"updating the pending-work records in persistent memory that name it", "content/skills/hive-core/close/close-cleanup.md"},
+	{"A mechanical change is a rename, a move", "content/skills/hive-core/plan/proportionality.md"},
+	{"An operational task is work that leaves no repository change to deliver", "content/skills/hive-core/plan/proportionality.md"},
+	{"recommending the new session so that", "content/skills/hive-core/plan/scope-changes.md"},
 	{"Never run `git add -A`", "content/skills/hive-core/git/git-commit.md"},
 	{"five at most, the rest approved in one question", "content/skills/hive-core/messages/questions.md"},
 	{"Before the validation, or before the push when the mode", "content/skills/hive-core/git/foreign-commits.md"},

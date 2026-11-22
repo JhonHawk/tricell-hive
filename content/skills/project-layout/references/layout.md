@@ -2,7 +2,7 @@
 
 ## When to read
 
-Read before writing or cleaning a support artifact, a script or an operation's data. Apply the basic scope, placement, preservation and cleanup authorization in the global guidance. Reading this reference does not start [project-layout](../SKILL.md)'s procedure or authorize retention, moves, deletion or publication.
+Read before writing or cleaning a support artifact, a script or an operation's data. Apply the basic scope, placement, preservation and cleanup authorization in the global guidance, and [close cleanup](../../hive-core/close/close-cleanup.md) for what a close may remove. Reading this reference does not start [project-layout](../SKILL.md)'s procedure or authorize retention, moves, deletion or publication.
 
 ## Read the project's layout
 

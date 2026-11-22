@@ -83,7 +83,7 @@ It recommends closing, unless a proposed finding is P1 or higher (see the findin
 
 Five continuations need no reply and no block; the exceptions to «only the user's reply starts the next flow» are these and the stages covered by the explicit [E2E grant](../../flow-build/references/e2e-coordination.md):
 
-- Research into `flow-build`, when the user's own request asked for a change and named it with its target, not whether or how to make one, and research finds it a small understood change («Proportionality»), unless it recommends the create-design stage for a new screen. A reply to a question or a proposal never counts as that request.
+- Research into `flow-build`, when the user's own request asked for a change and named it with its target, not whether or how to make one, and research finds it a small understood change ([proportionality](../plan/proportionality.md)), unless it recommends the create-design stage for a new screen. A reply to a question or a proposal never counts as that request.
 - Research into create-design, for a request whose deliverable is the design, as [hive-mode](../../hive-mode/SKILL.md) step 0 sets.
 - Research into [create-prd](../../create-prd/SKILL.md), for a request whose deliverable is a requirement document, as [hive-mode](../../hive-mode/SKILL.md) step 0 sets.
 - Build into verify, as [flow-build](../../flow-build/SKILL.md) step 5 sets.

@@ -235,6 +235,12 @@ raise the minor or the patch version.
 
 ### Changed
 
+- The global guidance keeps only invariants for three rules and moves their
+  procedure to the leaf read at that moment. The list of what a close may clean up
+  is the new `close-cleanup` leaf; the definitions of a mechanical change, a small
+  understood change and an operational task are the new `proportionality` leaf;
+  the external-project procedure is a section of `scope-changes`. `global.md` goes
+  from 28,000 B to under 26,000 B.
 - Outside its home, a rule is cited only by its moment and a link, anchored to
   the exact section when needed, never restated. About 50 partial restatements in
   the global guidance, skills, roles and rule leaves became such citations, and the
