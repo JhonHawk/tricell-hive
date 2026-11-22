@@ -22,7 +22,7 @@ Base: `development` en `19f3b7be`; rama `feat/question-format-template` en el wo
 
 ### T2 — Plantillas de la ronda y de la tarjeta en `questions.md`
 
-- [ ] `questions.md` muestra la ronda en texto y la tarjeta como plantillas literales, con opciones `A - (★) <opción>` sin marcador de lista y `---` entre decisiones en el texto; la línea mínima de `global.md` usa el literal.
+- [x] `questions.md` muestra la ronda en texto y la tarjeta como plantillas literales, con opciones `A - (★) <opción>` sin marcador de lista y `---` entre decisiones en el texto; la línea mínima de `global.md` usa el literal.
 
 **Closes:** AC4
 
@@ -40,7 +40,7 @@ Base: `development` en `19f3b7be`; rama `feat/question-format-template` en el wo
 
 ### T3 — Plantillas de los bloques de respuestas en `report-endings.md`
 
-- [ ] `report-endings.md` muestra el bloque de análisis, el de siguiente paso y el pie de cierre como plantillas literales con `▶ D<n> — …` y respuestas con letra sin marcador de lista, y el auditor sigue aceptándolos.
+- [x] `report-endings.md` muestra el bloque de análisis, el de siguiente paso y el pie de cierre como plantillas literales con `▶ D<n> — …` y respuestas con letra sin marcador de lista, y el auditor sigue aceptándolos.
 
 **Closes:** AC5
 
@@ -101,3 +101,5 @@ Recorrido humano: leer las plantillas en `questions.md` y `report-endings.md`; t
 ## Review status and progress
 
 2026-11-21 — T1 · 08ea7ace · unverified: none
+2026-11-21 — T2 · d6b223a5 · unverified: none
+2026-11-21 — T3 · c8183d41 · unverified: none
