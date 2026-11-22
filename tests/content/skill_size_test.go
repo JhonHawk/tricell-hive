@@ -9,17 +9,42 @@ import (
 	"testing"
 )
 
+// Every size limit here rests on a host's cut or on the user's decision, never
+// on a file's current size: a change does not raise one to make room for its
+// own text, and does not cut text a rule needs to fit one.
+
 // skillEntrypointLimit is the largest size, in bytes, of a skill's SKILL.md.
-// A host may keep only the start of an invoked skill after compaction
-// (Claude Code keeps its first 5,000 tokens), so a longer entrypoint can lose
-// its final steps; harness-audit's HA-SK-02 states the same limit.
+// Host limit: after compaction Claude Code keeps only the first 5,000 tokens
+// of each invoked skill (code.claude.com/docs/en/skills, «Skill content
+// lifecycle», read 2026-11-22 on 2.1.330), so a longer entrypoint loses its
+// final steps. It changes only when that cut changes.
 const skillEntrypointLimit = 16000
 
-// skillReferenceLimit is the largest size, in bytes, of a file in a skill's
-// references directory. A model that caps or cuts a long read loses the rules
-// after the cut (issue #204), so a reference past this size is split by
-// responsibility; harness-audit's HA-SK-02 states the same limit.
-const skillReferenceLimit = 16000
+// wholeReadLimit is the largest size, in bytes, of any other file a model
+// reads in one pass: a skill reference, a rule or principle leaf, a playbook.
+// It is the stage packet limit (tooling/management/stage_packets.go), the
+// size Antigravity truncates a rule file past, and it leaves a model that
+// caps a long read (issue #204) its later rules. One limit for every such
+// file, with no exception list (user decision D5 A, D6 A, 2026-11-22).
+const wholeReadLimit = 24000
+
+// wholeReadProblem returns the failure for a whole-read file of size bytes,
+// or "" when it fits.
+func wholeReadProblem(label string, size int64) string {
+	if size <= wholeReadLimit {
+		return ""
+	}
+	return fmt.Sprintf("%s: whole-read file is %d bytes, over the %d-byte limit: split it by responsibility into files each linked with its read condition; do not raise the limit or trim a rule's text to fit", label, size, wholeReadLimit)
+}
+
+// entrypointProblem returns the failure for a SKILL.md of size bytes, or ""
+// when it fits.
+func entrypointProblem(label string, size int64) string {
+	if size <= skillEntrypointLimit {
+		return ""
+	}
+	return fmt.Sprintf("%s: %d bytes, over the %d-byte skill entrypoint limit, past which Claude Code drops the end of an invoked skill after compaction: move a situational section to a reference linked with its read condition; do not trim a rule's text to fit", label, size, skillEntrypointLimit)
+}
 
 // referenceRoots returns the folders under skillsDir whose files count as skill
 // references: each skill's references folder, and each domain folder
@@ -43,7 +68,7 @@ func referenceRoots(skillsDir string) (roots, problems []string) {
 }
 
 // referenceSizeProblems returns one line per file under the reference folders
-// of skillsDir that is over skillReferenceLimit, and one when none is found.
+// of skillsDir that is over wholeReadLimit, and one when none is found.
 func referenceSizeProblems(skillsDir string) []string {
 	roots, problems := referenceRoots(skillsDir)
 	found := 0
@@ -57,9 +82,9 @@ func referenceSizeProblems(skillsDir string) []string {
 			if err != nil {
 				return err
 			}
-			if info.Size() > skillReferenceLimit {
-				rel, _ := filepath.Rel(skillsDir, path)
-				problems = append(problems, fmt.Sprintf("content/skills/%s: %d bytes, over the %d-byte skill reference limit", filepath.ToSlash(rel), info.Size(), skillReferenceLimit))
+			rel, _ := filepath.Rel(skillsDir, path)
+			if problem := wholeReadProblem("content/skills/"+filepath.ToSlash(rel), info.Size()); problem != "" {
+				problems = append(problems, problem)
 			}
 			return nil
 		})
@@ -84,7 +109,7 @@ func TestSkillReferenceSizeCatchesOversizeFiles(t *testing.T) {
 	if got := referenceSizeProblems(skills); len(got) == 0 || !strings.Contains(strings.Join(got, "\n"), "no skill references found") {
 		t.Errorf("an empty tree must report that nothing was found, got %v", got)
 	}
-	big := strings.Repeat("x", skillReferenceLimit+1)
+	big := strings.Repeat("x", wholeReadLimit+1)
 	writeFile(t, filepath.Join(skills, coreSkillName, "assets", "domains.json"), `{"domains": ["build", "principles"]}`)
 	writeFile(t, filepath.Join(skills, coreSkillName, "build", "checks.md"), "# Checks\n")
 	writeFile(t, filepath.Join(skills, coreSkillName, "build", "checks", "own.md"), big)
@@ -115,8 +140,28 @@ func TestSkillEntrypointSize(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if info.Size() > skillEntrypointLimit {
-			t.Errorf("%s: %d bytes, over the %d-byte skill entrypoint limit", filepath.ToSlash(path[len("../../"):]), info.Size(), skillEntrypointLimit)
+		if problem := entrypointProblem(filepath.ToSlash(path[len("../../"):]), info.Size()); problem != "" {
+			t.Error(problem)
+		}
+	}
+}
+
+func TestSizeLimitBoundaries(t *testing.T) {
+	for _, tc := range []struct {
+		name    string
+		problem func(string, int64) string
+		limit   int64
+		hint    string
+	}{
+		{"whole read", wholeReadProblem, wholeReadLimit, "split it by responsibility"},
+		{"entrypoint", entrypointProblem, skillEntrypointLimit, "move a situational section to a reference"},
+	} {
+		if got := tc.problem("f.md", tc.limit); got != "" {
+			t.Errorf("%s: %d bytes must fit, got %q", tc.name, tc.limit, got)
+		}
+		got := tc.problem("f.md", tc.limit+1)
+		if !strings.Contains(got, "f.md: ") || !strings.Contains(got, tc.hint) {
+			t.Errorf("%s: %d bytes must fail naming the file and %q, got %q", tc.name, tc.limit+1, tc.hint, got)
 		}
 	}
 }

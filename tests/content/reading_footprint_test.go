@@ -288,7 +288,7 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 		t.Logf("leaves the packets bring that the route did not read: %d B %v", packetReads.newBytes, packetReads.newLeaves)
 		t.Logf("bytes with repetitions (each packet counts its members again): %d B", packetReads.repeated)
 	})
-	t.Log("Explicit source unions, not transitive loading or observed tokens. Excludes native metadata/rendering, repeated reads, project inputs, history and host policies. Executable resources are measured separately, not presumed read by a model. No aggregate quota; each entrypoint/reference retains its 16000-byte check.")
+	t.Log("Explicit source unions, not transitive loading or observed tokens. Excludes native metadata/rendering, repeated reads, project inputs, history and host policies. Executable resources are measured separately, not presumed read by a model. No aggregate quota; each entrypoint keeps its 16000-byte check and each other whole-read file its 24000-byte check.")
 }
 
 // planBuildPacketReadLimit is the most file reads the plan/build route may
