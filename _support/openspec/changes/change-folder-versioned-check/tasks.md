@@ -4,7 +4,7 @@ Base `development` en `867f5463`; rama `feat/change-folder-versioned-check`. Ord
 
 ### T1 — Subcomando `versioned` en `tasks.py`
 
-- [ ] `tasks.py <folder> versioned [--work-repo DIR]` sale con 0, 1 o 2 según el estado del folder, con los cuatro casos de distribución, los de error y los avisos probados con Git real
+- [x] `tasks.py <folder> versioned [--work-repo DIR]` sale con 0, 1 o 2 según el estado del folder, con los cuatro casos de distribución, los de error y los avisos probados con Git real
 
 **Closes:** AC7, AC8, AC3, AC4
 
@@ -31,7 +31,7 @@ Base `development` en `867f5463`; rama `feat/change-folder-versioned-check`. Ord
 
 ### T2 — `flow-close` corre la comprobación; regla, enforcer y sitio
 
-- [ ] `flow-close` paso 3 corre `versioned` y vuelve a `git-workflow` paso 4 con salida 1; la fila `prevents` de `rule-enforcers.md` y la página del cierre lo nombran
+- [x] `flow-close` paso 3 corre `versioned` y vuelve a `git-workflow` paso 4 con salida 1; la fila `prevents` de `rule-enforcers.md` y la página del cierre lo nombran
 
 **Closes:** AC9
 
@@ -53,7 +53,7 @@ Base `development` en `867f5463`; rama `feat/change-folder-versioned-check`. Ord
 
 ### T3 — Criterio `change_folder_uncommitted` en `--audit-session`
 
-- [ ] `--audit-session` reporta el criterio en fail, pass, review y not_observed, con fixtures y las dos sesiones reales de cam
+- [x] `--audit-session` reporta el criterio en fail, pass, review y not_observed, con fixtures y las dos sesiones reales de cam
 
 **Closes:** AC10
 
@@ -91,14 +91,31 @@ Recorrido de solo lectura sobre folders reales: `versioned` en `facti-specs/open
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: build · T1
-- Last commit: uncommitted
-- Open findings: none
-- Next: Implement T1 versioned subcommand in tasks.py with tests
-- Rules: flow-build/stage.md
+- Stage: verify · 6 integrate
+- Last commit: 2c68b46b
+- Open findings: H1: squash-merged folder edited later on base reads not pushed — close findings; H2: content writes after the last merge not checked by the audit — close findings; H3: git add -u, :/, * and -Av not counted as broad adds — close findings; H4: commitsAll misreads short-flag clusters with attached values — close findings; H5: printable() not applied to the repo header, relpath suggestion and folder error — close findings; H6: versioned run with . from inside the folder is not credited by the audit — close findings
+- Next: push, PR to development, CI wait, merge, flow-close, refresh install
+- Rules: flow-verify/stage-entry.md, flow-verify/stage-exit.md
+- Principles: none
 
 ### Evidence
 
 - before captures: none (no screen)
+- python3 -m unittest discover -s tests/skills -p tasks_test.py · OK 41 tests · 73fbfbff
+- mutations same_repo/direct_base/specs-holds · each fails VersionedTest · 73fbfbff
+- go vet ./... · exit 0 · be6375c0
+- go test ./... · exit 0 · be6375c0
+- python3 -m unittest discover -s tests/skills -p *_test.py · OK 355 tests · be6375c0
+- CI: only master-source-branch.yml (pull_request_target to master), CI-only, not reproduced locally
+- go vet ./... · exit 0 · 68eb563f; go vet ./tests/pilot · exit 0 · 2c68b46b
+- go test ./... · exit 0 · 68eb563f; go test ./tests/pilot · ok · 2c68b46b
+- python3 -m unittest discover -s tests/skills -p *_test.py · OK · 68eb563f; tasks_test.py · OK · 2c68b46b
+- review: native /code-review medium on 867f5463..be6375c0 (3 blocking fixed in c2a97948, 68eb563f) and on be6375c0..68eb563f (2 blocking fixed locally in b5ee1400, 2c68b46b, Unreviewed)
+- security: hive-review-security on be6375c0, 1 low fixed in 68eb563f
+- walk: facti fac-235 from workspace root exit 1 + Specs warning; tricell-hive archived folder from tooling/ exit 0; audit CAM-20/CAM-25 fail, PRs 572/575/577 pass
 
 ## Review status and progress
+
+2026-11-21 — T1 · 73fbfbff · unverified: none
+2026-11-21 — T3 · 7b39ec8e · unverified: none
+2026-11-21 — T2 · be6375c0 · unverified: AC9: deployed guidance is observed at the refresh after the merge
