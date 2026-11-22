@@ -230,3 +230,80 @@ func chosenLabel(host, result, id, question string, labels []string) string {
 	}
 	return ""
 }
+
+var (
+	// cardOptionLetter opens an option label of a question card: a capital
+	// letter, a space, a dash and a space, as "A - (★) Accept".
+	cardOptionLetter = regexp.MustCompile(`^[A-Z] - `)
+	// cardOptionMark is the recommended mark of a label: the star right after
+	// its letter, or the host's "(Recommended)" at its end. A star quoted later
+	// in another option's name is not a mark.
+	cardOptionMark = regexp.MustCompile(`^[A-Z] - \(★\)|(?i)\(recommended\)\s*$`)
+)
+
+// cardOptionFormat checks the option labels of every waiting question card a
+// session shows, answered or not: each opens with its letter and a dash, and
+// a single choice marks its first option, and only it, as recommended. Codex's
+// request_user_input_async does not wait for the answer and is not judged. The
+// evidence gives the card's line and the question's number in it, never its
+// text or its ID, which the model writes.
+func cardOptionFormat(s auditSession) criterionAssessment {
+	c := criterionAssessment{Criterion: "card_option_format", Status: "not_observed", Evidence: []string{}}
+	if child(s) {
+		return c
+	}
+	var failed, passed []string
+	for _, e := range s.Trace.Events {
+		if e.Kind != "question" || e.Tool == "request_user_input_async" {
+			continue
+		}
+		for n, raw := range list(decodeInput(e)["questions"]) {
+			q := object(raw)
+			var labels []string
+			for _, o := range list(q["options"]) {
+				if label := str(object(o)["label"]); label != "" {
+					labels = append(labels, label)
+				} else if label := str(o); label != "" {
+					labels = append(labels, label)
+				}
+			}
+			if len(labels) == 0 {
+				continue
+			}
+			name := fmt.Sprintf("question %d", n+1)
+			multi, _ := q["multiSelect"].(bool)
+			if reason := cardOptionsOutOfFormat(labels, multi); reason != "" {
+				failed = append(failed, fmt.Sprintf("%s %s: %s", regressionEvidence(e), name, reason))
+			} else {
+				passed = append(passed, fmt.Sprintf("%s %s", regressionEvidence(e), name))
+			}
+		}
+	}
+	return statusOf(c, failed, passed)
+}
+
+// cardOptionsOutOfFormat says why a question's option labels leave the format,
+// or "" when they keep it.
+func cardOptionsOutOfFormat(labels []string, multi bool) string {
+	for _, l := range labels {
+		if !cardOptionLetter.MatchString(l) {
+			return "an option without its letter and dash"
+		}
+	}
+	if multi {
+		return ""
+	}
+	var marked []int
+	for i, l := range labels {
+		if cardOptionMark.MatchString(l) {
+			marked = append(marked, i)
+		}
+	}
+	switch {
+	case len(marked) == 0:
+		return "no option marked as recommended"
+	case len(marked) > 1 || marked[0] != 0:
+		return "the recommended mark is not on the first option alone"
+	}
+	return ""
+}

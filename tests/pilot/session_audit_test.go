@@ -405,6 +405,7 @@ func TestAuditNewCriteria(t *testing.T) {
 	const feed = "self_feeding_log"
 	const reply = "analysis_reply_block"
 	const wait = "unbounded_background_wait"
+	const cards = "card_option_format"
 	cases := []newCriterionCase{
 		{"round codex title with a middle dot", "codex", round, []string{round, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
 		{"format codex title with a middle dot", "codex", format, []string{format, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
@@ -651,6 +652,21 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"wait claude a loop inside an echoed sentence", "claude", wait, []string{"unbounded_background_wait", "claude-project-echoed-loop-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"wait claude timeout after env", "claude", wait, []string{"unbounded_background_wait", "claude-project-env-timeout-pass.jsonl"}, auditOptions{}, "pass"},
 		{"wait claude a sleep in a subshell", "claude", wait, []string{"unbounded_background_wait", "claude-project-subshell-sleep-fail.jsonl"}, auditOptions{}, "fail"},
+		{"card options claude options that lost their letters", "claude", cards, []string{cards, "claude-project-trailing-star-fail.jsonl"}, auditOptions{}, "fail"},
+		{"card options claude cards in format, session questions included", "claude", cards, []string{cards, "claude-project-pass.jsonl"}, auditOptions{}, "pass"},
+		{"card options claude multiple choice with letters and several marks", "claude", cards, []string{cards, "claude-project-multiselect-pass.jsonl"}, auditOptions{}, "pass"},
+		{"card options claude the mark on the second option", "claude", cards, []string{cards, "claude-project-second-star-fail.jsonl"}, auditOptions{}, "fail"},
+		{"card options claude a single choice with no mark", "claude", cards, []string{cards, "claude-project-no-mark-fail.jsonl"}, auditOptions{}, "fail"},
+		{"card options claude a star quoted inside another option", "claude", cards, []string{cards, "claude-project-quoted-star-pass.jsonl"}, auditOptions{}, "pass"},
+		{"card options claude a rejected card without letters", "claude", cards, []string{cards, "claude-project-rejected-fail.jsonl"}, auditOptions{}, "fail"},
+		{"card options claude a card with no result without letters", "claude", cards, []string{cards, "claude-project-no-result-fail.jsonl"}, auditOptions{}, "fail"},
+		{"card options claude a Spanish marker no host asks for", "claude", cards, []string{cards, "claude-project-spanish-marker-fail.jsonl"}, auditOptions{}, "fail"},
+		{"card options claude a child session", "claude", cards, []string{cards, "claude-project-sidechain-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"card options claude no card", "claude", cards, []string{cards, "claude-project-nocard-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"card options codex a middle dot after the letter", "codex", cards, []string{cards, "codex-rollout-middle-dot-fail.jsonl"}, auditOptions{}, "fail"},
+		{"card options codex the host's recommended marker", "codex", cards, []string{cards, "codex-rollout-host-marker-pass.jsonl"}, auditOptions{}, "pass"},
+		{"card options codex an async card is not judged", "codex", cards, []string{cards, "codex-rollout-async-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"card options grok a card in format", "grok", cards, []string{cards, "grok-updates-pass.jsonl"}, auditOptions{}, "pass"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
