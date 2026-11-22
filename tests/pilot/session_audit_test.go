@@ -696,6 +696,8 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"change folder claude staged in one call and committed in another", "claude", folder, []string{folder, "claude-project-staged-in-another-call-pass.jsonl"}, auditOptions{}, "pass"},
 		{"change folder claude git add -A may have taken the folder", "claude", folder, []string{folder, "claude-project-add-all-review.jsonl"}, auditOptions{}, "review"},
 		{"change folder claude edited after the commit and before the merge", "claude", folder, []string{folder, "claude-project-edit-after-commit-fail.jsonl"}, auditOptions{}, "fail"},
+		{"change folder claude add in the specs repository and commit in the code repository", "claude", folder, []string{folder, "claude-project-add-in-specs-commit-in-code-fail.jsonl"}, auditOptions{}, "fail"},
+		{"change folder claude code commit first and specs commit last", "claude", folder, []string{folder, "claude-project-code-commit-then-specs-commit-pass.jsonl"}, auditOptions{}, "pass"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

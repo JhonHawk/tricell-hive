@@ -200,40 +200,58 @@ func commitsAll(args []string) bool {
 // folderCoverage walks the commands of a session once and says, per folder,
 // whether it was committed at or after its last content write: strong when a
 // commit names the folder, when it follows a `git add` naming it that no commit
-// has used yet (the add may be in an earlier command), or when
-// `tasks.py <folder> versioned` exited 0; weak when only a `git add -A`, `git
-// add .` or `git commit -a` could have taken it, which the audit cannot tell.
-// A commit uses up the staged state.
-func folderCoverage(events []traceEvent, since map[string]int) (strong, weak map[string]bool) {
+// of the same repository has used yet (the add may be in an earlier command), or
+// when `tasks.py <folder> versioned` exited 0; weak when only a `git add -A`,
+// `git add .` or `git commit -a` of the same repository could have taken it,
+// which the audit cannot tell. A repository is the directory a command resolves
+// to: the `-C` or `--repo` directory, else the directory of the last `cd` of the
+// command, else cwd. A commit uses up the staged state of its repository only.
+func folderCoverage(events []traceEvent, since map[string]int, cwd string) (strong, weak map[string]bool) {
 	strong, weak = map[string]bool{}, map[string]bool{}
-	staged := map[string]int{}
-	weakAt := -1
+	staged := map[string]map[string]int{}
+	weakAt := map[string]int{}
 	for i, e := range events {
 		command, ok := resolvedCommand(e)
 		if !ok {
 			continue
 		}
+		dir := cwd
 		for _, args := range shellSegments(command, 0) {
-			if isGit, sub, _ := gitInvocation(args, ""); isGit && sub < len(args) && args[sub] == "add" {
+			if len(args) >= 2 && args[0] == "cd" {
+				dir = resolveDir(dir, args[1])
+				continue
+			}
+			isGit, sub, gitDir := gitInvocation(args, dir)
+			if isGit && sub < len(args) && args[sub] == "add" {
+				repo := cleanDir(gitDir)
 				for f := range since {
 					if namesFolder(args, f) {
-						staged[f] = i
+						if staged[repo] == nil {
+							staged[repo] = map[string]int{}
+						}
+						staged[repo][f] = i
 					}
 				}
 				if stagesAll(args) {
-					weakAt = i
+					weakAt[repo] = i
 				}
 				continue
 			}
+			repo := cleanDir(gitDir)
 			isCommit, all := false, false
-			if isGit, sub, _ := gitInvocation(args, ""); isGit && sub < len(args) && args[sub] == "commit" {
+			if isGit && sub < len(args) && args[sub] == "commit" {
 				isCommit, all = true, commitsAll(args[sub+1:])
 			}
 			for k, a := range args {
 				switch filepath.Base(a) {
 				case "git_state.py":
 					if k+1 < len(args) && args[k+1] == "commit" {
-						isCommit = true
+						isCommit, repo = true, cleanDir(dir)
+						for m, v := range args {
+							if v == "--repo" && m+1 < len(args) {
+								repo = cleanDir(resolveDir(dir, args[m+1]))
+							}
+						}
 					}
 				case "tasks.py":
 					if k+2 < len(args) && args[k+2] == "versioned" {
@@ -249,19 +267,39 @@ func folderCoverage(events []traceEvent, since map[string]int) (strong, weak map
 				continue
 			}
 			for f, from := range since {
-				at, wasStaged := staged[f]
+				at, wasStaged := staged[repo][f]
+				w, hasWeak := weakAt[repo]
 				switch {
 				case i < from:
 				case namesFolder(args, f) || (wasStaged && at >= from):
 					strong[f] = true
-				case all || weakAt >= from:
+				case all || (hasWeak && w >= from):
 					weak[f] = true
 				}
 			}
-			staged, weakAt = map[string]int{}, -1
+			delete(staged, repo)
+			delete(weakAt, repo)
 		}
 	}
 	return strong, weak
+}
+
+// resolveDir resolves a directory argument against the current one; $PWD is the
+// current one.
+func resolveDir(cwd, dir string) string {
+	switch dir {
+	case "$PWD", "${PWD}", ".":
+		return cwd
+	}
+	if filepath.IsAbs(dir) {
+		return filepath.Clean(dir)
+	}
+	return filepath.Join(cwd, dir)
+}
+
+// cleanDir normalizes a repository directory so equal paths compare equal.
+func cleanDir(dir string) string {
+	return filepath.Clean(dir)
 }
 
 // lastMergeIndex returns the index of the last event that completes a merge,
@@ -389,7 +427,7 @@ func changeFolderUncommitted(s auditSession, base string) criterionAssessment {
 			}
 		}
 	}
-	strong, weak := folderCoverage(events, since)
+	strong, weak := folderCoverage(events, since, s.Cwd)
 	var failed, review, passed []string
 	for _, folder := range order {
 		line := fmt.Sprintf("stdout.jsonl:%d %s %s", events[first[folder]].Line, events[first[folder]].Kind, folder)
