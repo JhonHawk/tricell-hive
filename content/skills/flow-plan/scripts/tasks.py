@@ -876,6 +876,36 @@ def checkpoint_only(state, top, path):
     return strip(committed.splitlines()) == strip(current)
 
 
+def edit_warning(state, top, kind, path, where=""):
+    """The close's instruction for one uncommitted file of the folder in the checkout at top."""
+    if kind == "modified" and checkpoint_only(state, top, path):
+        return (f"warning: modified {printable(path)}{where}: only its checkpoint changed;"
+                f" restore it with git -C {printable(str(top))} restore -- {printable(path)}")
+    return f"warning: {kind} {printable(path)}{where}: name it in the close report"
+
+
+def other_worktree_edits(state, top, rel):
+    """Warnings for the folder's uncommitted files in the repository's other worktrees."""
+    code, out, _ = state.git_run("worktree", "list", "--porcelain")
+    if code != 0:
+        return []
+    found = []
+    for line in out.splitlines():
+        if not line.startswith("worktree "):
+            continue
+        tree = Path(line[len("worktree "):]).resolve()
+        if tree == Path(top).resolve() or not tree.is_dir():
+            continue
+        try:
+            other = git_reader(tree)
+            edits = [("untracked", p) for p in git_paths(other, "ls-files", "--others", "--exclude-standard", "-z", "--", rel)]
+            edits += [("modified", p) for p in git_paths(other, "diff", "--name-only", "-z", "HEAD", "--", rel)]
+        except Failure:
+            continue
+        found += [edit_warning(other, tree, kind, path, f" in {printable(str(tree))}") for kind, path in edits]
+    return found
+
+
 def resolve_base(top, workspace):
     """(base, source) from `## Hive` Base branch, else origin/HEAD; base is "—" when neither resolves."""
     declared = hive_settings(top, workspace).get("Base branch", "")
@@ -915,10 +945,11 @@ def integrated_and_done(folder):
         code, text, _ = state.git_run("show", f"refs/remotes/origin/{base}:{rel}/tasks.md")
         if code != 0:
             return None
-        lines = text.splitlines()
-        tasks = parse_tasks(lines)
-        if tasks and all(complete(lines, t) for t in tasks):
-            return f"origin/{base}"
+        for lines in (text.splitlines(), read(folder / "tasks.md")):
+            tasks = parse_tasks(lines)
+            if not tasks or not all(complete(lines, t) for t in tasks):
+                return None  # an open task in either copy: the work goes on
+        return f"origin/{base}"
     except Exception:  # the check never blocks a write it cannot prove wrong
         return None
     return None
@@ -928,7 +959,7 @@ def refusal(folder, base, with_out):
     text = (f"refused: {printable(str(folder))} is on {base} with every task done; nothing is written to it"
             " until the hygiene batch archives it.")
     if with_out:
-        text += (f" Write the checkpoint with --out <host temp>/{printable(folder.name)}-checkpoint.md;"
+        text += (f" Write the checkpoint with --out <host temp>/<repo>-{printable(folder.name)}-checkpoint.md;"
                  " to continue the work, reopen its task on a new branch first.")
     else:
         text += " To continue the work, reopen its task on a new branch first."
@@ -947,6 +978,11 @@ def checkpoint_out(folder, args):
         return 1
     if out.exists():
         lines = read(out)
+        headings = [l for l in lines if LEVEL2.match(l)]
+        first = next((l for l in lines if l.strip()), "")
+        if not CHECKPOINT.match(first) or len(headings) != 1:
+            print(f"refused: --out {printable(str(out))} is not a checkpoint file; choose another path")
+            return 1
     else:
         source = read(folder / "tasks.md")
         bounds = section_bounds(source, CHECKPOINT)
@@ -993,13 +1029,11 @@ def cmd_versioned(args):
     edits = [("untracked", p) for p in untracked] + [("modified", p) for p in modified]
     for kind, path in edits:
         if same_repo and last:
-            if kind == "modified" and checkpoint_only(state, top, path):
-                warnings.append(f"warning: modified {printable(path)}: only its checkpoint changed;"
-                                f" restore it with git restore -- {printable(path)}")
-            else:
-                warnings.append(f"warning: {kind} {printable(path)}: name it in the close report")
+            warnings.append(edit_warning(state, top, kind, path))
         else:
             problems.append(f"{kind}: {printable(path)}")
+    if same_repo and last:
+        warnings.extend(other_worktree_edits(state, top, rel))
     on_base = bool(last) and on_origin_base(state, last[0], base, rel)
     if not last:
         problems.append("not committed: the folder has no commit")

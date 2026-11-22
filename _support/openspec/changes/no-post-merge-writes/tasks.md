@@ -40,7 +40,7 @@ Base `development` en `1b87f0a7`, rama `fix/no-post-merge-writes`, worktree `.cl
 
 ### T3 — Detector de sesiones
 
-- [ ] `commandWrites` no cuenta `checkpoint … --out` como escritura en la carpeta, y el comentario de `changeFolderUncommitted` deja de decir que las ediciones esperan al archivo.
+- [x] `commandWrites` no cuenta `checkpoint … --out` como escritura en la carpeta, y el comentario de `changeFolderUncommitted` deja de decir que las ediciones esperan al archivo.
 
 **Closes:** AC4
 
@@ -69,19 +69,25 @@ Sin parada de validación humana (`automatic`).
 
 ## Checkpoint
 
-- Updated: 2026-11-21
-- Stage: build · T1
-- Last commit: 1b87f0a7
+- Updated: 2026-11-22
+- Stage: verify · entry
+- Last commit: d8748c75
 - Open findings: none
-- Next: T1 tdd: refusal tests first
+- Next: verify: /code-review, walk AC2/AC4/AC6, push/PR/merge, close observes AC5
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/no-post-merge-writes · fix/no-post-merge-writes
-- Rules: flow-build/stage.md
+- Rules: flow-verify/stage-entry.md
+- Principles: none
 
 ### Evidence
 
 - before captures: none (no screen)
+- go vet ./... · pass · d8748c75
+- go test ./... · pass except intermittent TestHiveSectionValidListsValuesAndWritesNothing (tooling/cli, 'the repository files changed' under full-suite load); alone 3/3 pass and tooling/cli rerun pass · d8748c75
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · pass · d8748c75
+- CI-only: .github/workflows/master-source-branch.yml
 
 ## Review status and progress
 
 2026-11-22 — T1 · 015dce3a · unverified: none
 2026-11-22 — T2 · 0fde9c85 · unverified: AC5 se observa en el cierre de este cambio, tras el refresco
+2026-11-22 — T3 · d8748c75 · unverified: none

@@ -903,6 +903,19 @@ class VersionedTest(unittest.TestCase):
                              "warning: untracked openspec/changes/demo/design.md: name it in the close report",
                              absent=("later edits wait for the archive",))
 
+    def test_a_checkpoint_left_in_another_worktree_is_named(self):
+        repo = self.repo("app", "- Base branch: main\n- Specs: openspec\n")
+        folder = self.change(repo / "openspec")
+        self.commit(repo, folder, push="main")
+        other = self.tmp / "wt"
+        self.git(repo, "worktree", "add", "-q", "--detach", str(other), "HEAD")
+        other_tasks = other / "openspec" / "changes" / "demo" / "tasks.md"
+        other_tasks.write_text(TASKS_MD + "\n## Checkpoint\n\n- Stage: verify · x\n", encoding="utf-8")
+        result = self.versioned(folder)
+        self.assertVersioned(result, 0, "versioned: yes",
+                             f"warning: modified openspec/changes/demo/tasks.md in {other}: only its checkpoint changed;"
+                             f" restore it with git -C {other} restore -- openspec/changes/demo/tasks.md")
+
     def test_a_checkpoint_only_edit_is_restored(self):
         repo = self.repo("app", "- Base branch: main\n- Specs: openspec\n")
         folder = self.change(repo / "openspec")
@@ -912,7 +925,7 @@ class VersionedTest(unittest.TestCase):
         self.assertEqual(subprocess.run(script, text=True, capture_output=True, timeout=60).returncode, 0)
         self.assertVersioned(self.versioned(folder), 0, "versioned: yes",
                              "warning: modified openspec/changes/demo/tasks.md: only its checkpoint changed;"
-                             " restore it with git restore -- openspec/changes/demo/tasks.md")
+                             f" restore it with git -C {repo} restore -- openspec/changes/demo/tasks.md")
 
     def test_monorepo_folder_checked_from_a_package_directory(self):
         repo = self.repo("mono", "- Specs: _support/openspec\n")
@@ -1136,6 +1149,23 @@ class IntegratedFolderTest(unittest.TestCase):
         self.assertIn("- suite · pass · abc1234", text)
         self.assertNotIn("### T1", text)
         self.assertEqual((folder / "tasks.md").read_bytes(), before)
+
+    def test_a_task_reopened_in_the_working_copy_keeps_writing(self):
+        repo, folder = self.integrated()
+        self.git(repo, "switch", "-q", "-c", "reopen")
+        text = (folder / "tasks.md").read_text(encoding="utf-8").replace("- [x] delta", "- [ ] delta")
+        (folder / "tasks.md").write_text(text, encoding="utf-8")
+        done = self.run_tasks(folder, "done", "T4", "--commit", "abc1234", "--unverified", "none")
+        self.assertEqual(done.returncode, 0, done.stdout + done.stderr)
+
+    def test_out_does_not_replace_a_file_that_is_not_a_checkpoint(self):
+        repo, folder = self.integrated()
+        notes = self.tmp / "notes.md"
+        notes.write_text("my notes\nimportant\n", encoding="utf-8")
+        result = self.checkpoint(folder, "--out", str(notes))
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertIn("not a checkpoint file", result.stdout + result.stderr)
+        self.assertEqual(notes.read_text(encoding="utf-8"), "my notes\nimportant\n")
 
     def test_out_inside_the_repository_is_refused(self):
         repo, folder = self.integrated()
