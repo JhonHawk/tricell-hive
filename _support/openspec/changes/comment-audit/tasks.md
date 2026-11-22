@@ -4,7 +4,7 @@ Base `development` en `32bef8c8` (antes `8aa361cb`), rama `feat/comment-audit`, 
 
 ### T1 — Plantilla del lint gradual y su test
 
-- [ ] La plantilla y su prueba pasan con `@babel/parser` 8.1.2 y 7.29.14
+- [x] La plantilla y su prueba pasan con `@babel/parser` 8.1.2 y 7.29.14
 
 **Closes:** AC2
 
@@ -22,7 +22,7 @@ Base `development` en `32bef8c8` (antes `8aa361cb`), rama `feat/comment-audit`, 
 
 ### T2 — La skill `comment-audit` y sus referencias
 
-- [ ] `SKILL.md`, `references/ratchet.md`, `references/project-skill.md` y `assets/hive-managed.json` escritos
+- [x] `SKILL.md`, `references/ratchet.md`, `references/project-skill.md` y `assets/hive-managed.json` escritos
 
 **Closes:** AC1, AC5, AC6
 
@@ -40,7 +40,7 @@ Base `development` en `32bef8c8` (antes `8aa361cb`), rama `feat/comment-audit`, 
 
 ### T3 — Reglas de comentarios y de atajos en proyectos con el lint
 
-- [ ] `no-comments`, `defect-fix`, `suppression-review` y la página de build del sitio cubren el proyecto con el lint
+- [x] `no-comments`, `defect-fix`, `suppression-review` y la página de build del sitio cubren el proyecto con el lint
 
 **Closes:** AC4, AC7
 
@@ -58,7 +58,7 @@ Base `development` en `32bef8c8` (antes `8aa361cb`), rama `feat/comment-audit`, 
 
 ### T4 — Catálogo, arquitectura y changelog
 
-- [ ] La skill aparece en el catálogo y su hogar está documentado
+- [x] La skill aparece en el catálogo y su hogar está documentado
 
 **Closes:** AC1
 
@@ -107,3 +107,7 @@ Sin parada de validación (`automatic`).
 2026-11-22 — Revisión 3: la forma de la marca vive solo en `no-comments`, porque `defect-fix` tiene 3.882 B de 4.000; la revisión comprueba su destino; casos de prueba de Babel ausente y de JSX inline.
 2026-11-22 — Revisión 2 tras la relectura: plugins de Babel por extensión, parser con `import()`, `--same-code` en JSX, `ALLOWED` ampliado, marca por lenguaje y con destino de registro, Keep abierto sin registro.
 2026-11-22 — Revisión 1 tras la revisión del plan: D5 y D6; T1 con Babel en dos versiones, salidas de error, renombres, subcarpetas, JSX, directivas y `--same-code`; T2 con correspondencia de categorías y registro en workspaces; T3 amplía a `defect-fix`, `suppression-review` y la página de build; AC3 retirado, AC6 y AC7 nuevos.
+2026-11-22 — T1 · d32b88cb · unverified: mutation of --find-renames is caught only because the rename test sets diff.renames=false; the Go test skips on machines without the pinned parsers (npm ci --prefix tests/content/testdata/comment-audit)
+2026-11-22 — T2 · ec3528b8 · unverified: AC1 waits for the installation after the merge; AC5's clause table is written in verify
+2026-11-22 — T3 · ec518780 · unverified: AC4 and AC7 wait for the installation after the merge; defect-fix is at 3,989 of 4,000 B (87 B trimmed, not the 100 B the plan aimed for)
+2026-11-22 — T4 · f210537d · unverified: AC1 waits for the installation after the merge
