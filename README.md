@@ -270,6 +270,12 @@ this line to its `AGENTS.md`, near the top and outside its `## Hive` section:
 Cursor sessions: unless your loaded instructions contain the line "# Tricell Hive guidance" as a heading of its own, read `~/.cursor/rules/hive.mdc` before any other action and follow it. If that file is missing, say so and continue.
 ```
 
+Your own rules for every project, which the personal rules mode of
+[harness-audit](content/skills/harness-audit/references/personal-rules.md) keeps in
+`~/.config/hive/rules.md` and copies to each host, land in Cursor as
+`~/.cursor/rules/personal-rules.mdc`. That pointer names only `hive.mdc`, so a
+repository outside your home folder does not load them.
+
 See [native destinations](_support/docs/architecture/deployment-manager.md#content-and-native-destinations)
 and [agent delivery](_support/docs/architecture/agent-delivery.md) for documented
 versions and observations. [Role profiles](integrations/agent-profiles.json)
