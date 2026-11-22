@@ -4,7 +4,7 @@ Base `013a9725` en `development`, rama `refactor/size-limits`, worktree `.claude
 
 ### T1 — Tests de tamaño por concepto
 
-- [ ] Hojas, principios, playbooks y referencias comparten el tope de lectura entera de 24.000 B; `SKILL.md` mantiene 16.000 B; cada constante cita su fuente y cada mensaje dice qué hacer
+- [x] Hojas, principios, playbooks y referencias comparten el tope de lectura entera de 24.000 B; `SKILL.md` mantiene 16.000 B; cada constante cita su fuente y cada mensaje dice qué hacer
 
 **Closes:** AC1, AC2, AC3, AC4
 
@@ -22,7 +22,7 @@ Base `013a9725` en `development`, rama `refactor/size-limits`, worktree `.claude
 
 ### T2 — Textos que repiten los topes
 
-- [ ] Ningún texto del repositorio fuera de los cambios archivados da 16.000 B para referencias ni 4.000/7.000/9.000 B para hojas
+- [x] Ningún texto del repositorio fuera de los cambios archivados da 16.000 B para referencias ni 4.000/7.000/9.000 B para hojas
 
 **Closes:** AC5
 
@@ -46,4 +46,22 @@ Base `013a9725` en `development`, rama `refactor/size-limits`, worktree `.claude
 
 ## Checkpoint
 
+- Updated: 2026-11-22
+- Stage: flow-build · 5
+- Last commit: aa87439c
+- Open findings: none
+- Next: flow-verify: /code-review, then push, PR and merge (automatic)
+- Worktree: .claude/worktrees/size-limits · refactor/size-limits
+- Rules: flow-build/stage.md · extra: spec-delta, change-folder, prose, delivery-ask
+- Principles: none
+
+### Evidence
+
+- go vet ./... && go test ./... · pass (23 packages) · aa87439c
+- before captures: none (no UI)
+- CI: only master-source-branch.yml (PR guard toward master), no job to run locally
+
 ## Review status and progress
+
+2026-11-22 — T1 · b6a7ecaa · unverified: none
+2026-11-22 — T2 · aa87439c · unverified: none

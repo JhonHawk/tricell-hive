@@ -9,10 +9,6 @@ import (
 	"testing"
 )
 
-// Every size limit here rests on a host's cut or on the user's decision, never
-// on a file's current size: a change does not raise one to make room for its
-// own text, and does not cut text a rule needs to fit one.
-
 // skillEntrypointLimit is the largest size, in bytes, of a skill's SKILL.md.
 // Host limit: after compaction Claude Code keeps only the first 5,000 tokens
 // of each invoked skill (code.claude.com/docs/en/skills, «Skill content

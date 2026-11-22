@@ -29,7 +29,7 @@ func TestRealStagePacketsKeepAMarginUnderTheCap(t *testing.T) {
 	for _, name := range names {
 		size := len(packets[name])
 		if size > stagePacketMaxBytes-stagePacketMargin {
-			t.Errorf("%s: %d B, over %d B (cap %d B less a %d B margin)", name, size, stagePacketMaxBytes-stagePacketMargin, stagePacketMaxBytes, stagePacketMargin)
+			t.Errorf("%s: %d B, over %d B (cap %d B less a %d B margin): split a member leaf by responsibility or move a leaf the stage does not need out of its assets/stage.json; do not raise the cap", name, size, stagePacketMaxBytes-stagePacketMargin, stagePacketMaxBytes, stagePacketMargin)
 		}
 		t.Logf("%s: %d B", name, size)
 	}
