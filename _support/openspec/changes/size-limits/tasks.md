@@ -47,12 +47,12 @@ Base `013a9725` en `development`, rama `refactor/size-limits`, worktree `.claude
 ## Checkpoint
 
 - Updated: 2026-11-22
-- Stage: flow-build · 5
-- Last commit: aa87439c
+- Stage: flow-verify · 6
+- Last commit: b1fa0e38
 - Open findings: none
-- Next: flow-verify: /code-review, then push, PR and merge (automatic)
+- Next: push, PR, CI wait, merge (automatic), then flow-close
 - Worktree: .claude/worktrees/size-limits · refactor/size-limits
-- Rules: flow-build/stage.md · extra: spec-delta, change-folder, prose, delivery-ask
+- Rules: flow-verify/stage-entry.md, flow-verify/stage-exit.md · extra: prose
 - Principles: none
 
 ### Evidence
@@ -60,6 +60,10 @@ Base `013a9725` en `development`, rama `refactor/size-limits`, worktree `.claude
 - go vet ./... && go test ./... · pass (23 packages) · aa87439c
 - before captures: none (no UI)
 - CI: only master-source-branch.yml (PR guard toward master), no job to run locally
+- go vet ./... && go test ./... · pass (23 packages) · f7e78e23
+- go test ./tests/content/... · pass · b1fa0e3 (only spec text changed after f7e78e23)
+- AC1-AC5 walked on real files by temporary padding · pass · 394eaf61
+- /code-review medium · H1-H4 fixed f7e78e23; H5-H6 not fixed (other records, archive) · second review H7 fixed b1fa0e3, H8-H12 to close
 
 ## Review status and progress
 
