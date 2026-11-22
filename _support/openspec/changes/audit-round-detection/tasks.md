@@ -60,7 +60,7 @@ Fixtures:
 
 ### T3 — Paquetes leídos dentro de una celda `exec` de Codex
 
-- [ ] Cuando una celda `exec` trae tantas salidas en texto plano como comandos de shell, cada comando recibe la suya por posición, y `packetNamesLeaf` la usa si el resultado del comando está vacío; con otro número, ningún comando recibe texto
+- [x] Cuando una celda `exec` trae tantas salidas en texto plano como comandos de shell, cada comando recibe la suya por posición, y `packetNamesLeaf` la usa si el resultado del comando está vacío; con otro número, ningún comando recibe texto
 
 **Closes:** AC6
 
@@ -84,7 +84,7 @@ Fixtures:
 
 ### T4 — El reporte que juzga Try it
 
-- [ ] `tryItBlockInReport` juzga el último mensaje del asistente en el último turno que cargó `flow-close` después del cambio de UI
+- [x] `tryItBlockInReport` juzga el último mensaje del asistente en el último turno que cargó `flow-close` después del cambio de UI
 
 **Closes:** AC7
 
@@ -161,3 +161,5 @@ Fixtures:
 
 2026-11-21 — T1 · 3a4454c4 · unverified: none
 2026-11-21 — T2 · 742ed7b2 · unverified: none
+2026-11-21 — T3 · 2f2de663 · unverified: none
+2026-11-21 — T4 · 995e234a · unverified: none

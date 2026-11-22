@@ -152,6 +152,73 @@ func flowEnteredWithoutRoute(s auditSession) criterionAssessment {
 	return statusOf(c, failed, passed)
 }
 
+// buildRoute is the command a plan's next-step block names to start its build,
+// or create-design when the route ends in a screen to draw, in any host's
+// syntax.
+var buildRoute = regexp.MustCompile(`(?:^|[\s\x60(>])(?:[/$@]|/skill:)(?:flow-build|create-design)\b`)
+
+// loadedFlow returns the flow whose skill an event loads, as readsFlowSkill
+// reads it, or "".
+func loadedFlow(e traceEvent) string {
+	if !readsFlowSkill(e) {
+		return ""
+	}
+	if e.Kind == "skill_invocation" {
+		return e.Text
+	}
+	src := e.Command
+	if e.Kind != "shell" {
+		src = filepath.ToSlash(e.Path)
+	}
+	if m := flowSkillRead.FindStringSubmatch(src); m != nil {
+		return m[1]
+	}
+	return ""
+}
+
+// planWithoutBuildRoute checks that each plan stage, from a load of flow-plan
+// to the next load of another flow, has an assistant message that names the
+// build command. A stage another flow ends without it fails at the flow-plan
+// load; one the session's end ends without it is a review, since the session
+// may still be open. Loading flow-plan again does not end the stage.
+func planWithoutBuildRoute(s auditSession) criterionAssessment {
+	c := criterionAssessment{Criterion: "plan_without_build_route", Status: "not_observed", Evidence: []string{}}
+	if child(s) {
+		return c
+	}
+	events := s.Trace.Events
+	var failed, review, passed []string
+	start, routed := -1, false
+	for i, e := range events {
+		flow := loadedFlow(e)
+		switch {
+		case flow == "flow-plan" && start < 0:
+			start, routed = i, false
+		case flow != "" && flow != "flow-plan" && start >= 0:
+			if routed {
+				passed = append(passed, regressionEvidence(events[start]))
+			} else {
+				failed = append(failed, regressionEvidence(events[start]))
+			}
+			start = -1
+		case start >= 0 && e.Kind == "text" && e.Role == "assistant" && buildRoute.MatchString(e.Text):
+			routed = true
+		}
+	}
+	if start >= 0 {
+		if routed {
+			passed = append(passed, regressionEvidence(events[start]))
+		} else {
+			review = append(review, regressionEvidence(events[start])+" session ended inside the plan stage")
+		}
+	}
+	if len(failed) == 0 && len(review) > 0 {
+		c.Status, c.Evidence = "review", review
+		return c
+	}
+	return statusOf(c, failed, passed)
+}
+
 // roundFormat reports, for a message, whether it asks decisions in text and
 // whether every one of them has the full format. A decision is a block under a
 // "D<n> —" title with lettered options, a row of a table round, or a loose

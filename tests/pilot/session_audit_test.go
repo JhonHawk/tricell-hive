@@ -408,7 +408,14 @@ func TestAuditNewCriteria(t *testing.T) {
 	const wait = "unbounded_background_wait"
 	const cards = "card_option_format"
 	const folder = "change_folder_uncommitted"
+	const planRoute = "plan_without_build_route"
 	cases := []newCriterionCase{
+		{"plan codex stage ended by a build without the command", "codex", planRoute, []string{planRoute, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
+		{"plan codex next-step block naming /flow-build", "codex", planRoute, []string{planRoute, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
+		{"plan codex session ends inside the stage", "codex", planRoute, []string{planRoute, "codex-rollout-open-review.jsonl"}, auditOptions{}, "review"},
+		{"plan codex re-read of flow-plan keeps the stage open", "codex", planRoute, []string{planRoute, "codex-rollout-reread-pass.jsonl"}, auditOptions{}, "pass"},
+		{"plan codex message naming only /flow-plan", "codex", planRoute, []string{planRoute, "codex-rollout-plan-command-only-fail.jsonl"}, auditOptions{}, "fail"},
+		{"plan codex child session", "codex", planRoute, []string{planRoute, "codex-rollout-child-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"round codex title with a middle dot", "codex", round, []string{round, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
 		{"format codex title with a middle dot", "codex", format, []string{format, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
 		{"round codex numbered questions with starred options", "codex", round, []string{round, "codex-rollout-numbered-fail.jsonl"}, auditOptions{}, "fail"},
