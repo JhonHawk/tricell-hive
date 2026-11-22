@@ -36,12 +36,10 @@ Remove the comments a codebase does not need, keep what they recorded where it b
 
 Steps 6–9 add to flow-build.
 
-6. **Record before removing.** For each batch, in this order:
-   - create the excuses' tickets as the approved set;
-   - write each Decision record's entry, with the paths it concerns, and each Constraint's approved check;
-   - remove the comments and the blank lines their removal leaves, changing nothing else;
-   - over each excuse's shortcut, put the workaround marker the [no comments](../hive-core/review/no-comments.md) leaf defines, naming its ticket. An excuse with no shortcut under it, such as a to-do, gets no marker once its ticket exists.
-7. **Prove only comments changed.** Run `node <script> --same-code --base <the commit before the batch>`, before the batch's own commit; a nonzero exit names the file and the first token that changed: revert that change. Run the project's lint, type check and the tests of the files the batch touched. When a script, not the host's patch tool, edited the files, say in the report that the host's per-turn diff view does not show them, and give `git diff --stat` for the batch.
+6. **Record before removing.** Each batch lands as two commits, in this order:
+   - the record commit: create the excuses' tickets as the approved set, write each Decision record's entry with the paths it concerns, and add each Constraint's approved check with its test;
+   - the removal commit: remove the comments and the blank lines their removal leaves, changing nothing else, and over each excuse's shortcut put the workaround marker the [no comments](../hive-core/review/no-comments.md) leaf defines, naming its ticket. An excuse with no shortcut under it, such as a to-do, gets no marker once its ticket exists.
+7. **Prove only comments changed.** Before the removal commit, run `node <script> --same-code --base <the record commit>`; a nonzero exit names the file and what changed in it: revert that change. Run the project's lint, type check and the tests of the files the batch touched. When a script, not the host's patch tool, edited the files, say in the report that the host's per-turn diff view does not show them, and give `git diff --stat` for the batch.
 8. **Wire the lint.** Add the script to the project's lint command and to its CI, with an explicit `--base`: the pull request's base, or the commit before a push, with enough history to reach it. [Ratchet](references/ratchet.md) sets the exact wiring and the checks it needs. The base in Git is the allowance: each file keeps the comments it had until a batch removes them, and a removed comment cannot come back.
 9. **Generate the project's skill** as [project skill](references/project-skill.md) sets, so the next batch runs without this audit: its inventory command, categories, mechanical patterns, ledger location, decision record, tracker and checks, registered for every host the project uses.
 

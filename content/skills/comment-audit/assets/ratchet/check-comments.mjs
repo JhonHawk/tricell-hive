@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { lstatSync, readFileSync, realpathSync } from "node:fs";
-import { isAbsolute, join, relative } from "node:path";
+import { isAbsolute, join, relative, sep } from "node:path";
 import { parseArgs } from "node:util";
 
 const SOURCE_PATTERNS = ["*.js", "*.jsx", "*.mjs", "*.cjs", "*.ts", "*.tsx", "*.mts", "*.cts"];
@@ -113,7 +113,7 @@ function readSource(root, file) {
   if (!stats.isFile()) return null;
   const real = realpathSync(path);
   const inside = relative(realpathSync(root), real);
-  if (inside.startsWith("..") || isAbsolute(inside)) return null;
+  if (inside === ".." || inside.startsWith(`..${sep}`) || isAbsolute(inside)) return null;
   return readFileSync(real, "utf8");
 }
 
@@ -172,7 +172,7 @@ function changedFiles(root, base) {
   );
   for (const file of untracked) changed.set(file, { before: null, status: "A" });
   return [...changed]
-    .filter(([file]) => !excluded(file))
+    .filter(([file, { before }]) => !excluded(file) || (before !== null && before !== file && !excluded(before)))
     .map(([file, { before, status }]) => ({ file, before, status }));
 }
 
@@ -183,7 +183,7 @@ function baseText(root, base, file) {
 function lint(parser, root, base) {
   let findings = 0;
   for (const { file, before, status } of changedFiles(root, base)) {
-    if (status === "D") continue;
+    if (status === "D" || excluded(file)) continue;
     const text = readSource(root, file);
     if (text === null) continue;
     const remaining = new Map();
@@ -266,7 +266,11 @@ function codeTokens(parser, file, text) {
   for (const token of ast.tokens) {
     const label = typeof token.type === "string" ? token.type : token.type.label;
     if (label === "CommentLine" || label === "CommentBlock") continue;
-    if (emptyContainers.some(([start, end]) => token.start >= start && token.end <= end)) continue;
+    const container = emptyContainers.find(([start, end]) => token.start >= start && token.end <= end);
+    if (container) {
+      previousEnd = container[1];
+      continue;
+    }
     const value = text.slice(token.start, token.end);
     const breakBefore = previousEnd !== null && /[\n\r]/.test(text.slice(previousEnd, token.start));
     previousEnd = token.end;
@@ -297,8 +301,17 @@ function sameCode(parser, root, base) {
       findings++;
       continue;
     }
+    if (before !== null && before !== file) {
+      console.error(shown(`${file}: moved from ${before}`));
+      findings++;
+      continue;
+    }
     const text = readSource(root, file);
-    if (text === null) continue;
+    if (text === null) {
+      console.error(shown(`${file}: not a regular file`));
+      findings++;
+      continue;
+    }
     const now = codeTokens(parser, file, text);
     if (before === null) {
       if (now.length) {

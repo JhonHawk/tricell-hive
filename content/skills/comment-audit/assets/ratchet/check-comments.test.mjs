@@ -222,6 +222,16 @@ test("the inventory does not read through a directory symlink out of the reposit
   assert.doesNotMatch(result.stdout, /leaked/);
 });
 
+test("a name that starts with two dots is still checked", (t) => {
+  const r = repo(t);
+  r.write("src/a.ts", "export const a = 1;\n");
+  const base = r.commit("base");
+  r.write("..lib/x.ts", "export const x = 1;\n// added\n");
+  const result = r.run(["--base", base]);
+  assert.equal(result.status, 1, result.stderr);
+  assert.match(result.stderr, /^\.\.lib\/x\.ts:2:1: no-new-comments$/m);
+});
+
 test("control characters in a file name are escaped in findings", (t) => {
   const r = repo(t);
   r.write("src/a.ts", "export const a = 1;\n");
@@ -239,6 +249,38 @@ test("--same-code rejects a removal that changes line breaks between tokens", (t
   const base = r.commit("base");
   r.write("src/a.js", "export function f() {\n  return 1;\n}\n");
   assert.equal(r.run(["--same-code", "--base", base]).status, 1);
+});
+
+test("--same-code accepts removing a multi-line JSX comment between elements", (t) => {
+  const r = repo(t);
+  r.write("src/a.jsx", "export const A = () => <div><a/>{/* x\n y */}<b/></div>;\n");
+  const base = r.commit("base");
+  r.write("src/a.jsx", "export const A = () => <div><a/><b/></div>;\n");
+  const result = r.run(["--same-code", "--base", base]);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("--same-code rejects a file replaced by a symlink, renamed or moved out of the check", (t) => {
+  const r = repo(t);
+  r.write("src/a.js", "export const a = 1;\n");
+  r.write("src/b.js", "export const b = 1;\n");
+  const base = r.commit("base");
+  rmSync(join(r.root, "src/b.js"));
+  symlinkSync("a.js", join(r.root, "src/b.js"));
+  const linked = r.run(["--same-code", "--base", base]);
+  assert.equal(linked.status, 1);
+  assert.match(linked.stderr, /^src\/b\.js: /m);
+  rmSync(join(r.root, "src/b.js"));
+  r.write("src/b.js", "export const b = 1;\n");
+  r.git("mv", "src/a.js", "src/z.js");
+  const renamed = r.run(["--same-code", "--base", base]);
+  assert.equal(renamed.status, 1);
+  assert.match(renamed.stderr, /^src\/z\.js: /m);
+  mkdirSync(join(r.root, "dist"));
+  r.git("mv", "src/z.js", "dist/a.js");
+  const moved = r.run(["--same-code", "--base", base]);
+  assert.equal(moved.status, 1);
+  assert.match(moved.stderr, /^dist\/a\.js: /m);
 });
 
 test("--same-code rejects a deleted or added source file", (t) => {
