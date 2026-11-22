@@ -8,10 +8,6 @@ const SOURCE_PATTERNS = ["*.js", "*.jsx", "*.mjs", "*.cjs", "*.ts", "*.tsx", "*.
 const EXCLUDED = ["node_modules/", "dist/", "build/", "coverage/"];
 
 const ALLOWED = [
-  /^\/\*![\s\S]*(\b(19|20)\d{2}\b|SPDX-License-Identifier|@license|\blicensed\b|\(c\)|©)/i,
-  /^\/(\/|\*[*!]?)[\s*]*@(license|preserve)\b/,
-  /^\/\*[*!][\s\S]*\n[\s*]*@(license|preserve)\b/,
-  /^\/[/*]\**[\s*]*(SPDX-License-Identifier:|Copyright\b|\([cC]\)\s|©)/,
   /^\/\/\/\s*<reference\b/,
   /^\/[/*]\s*@ts-(check|nocheck|expect-error|ignore)\b/,
   /^\/[/*]\s*(eslint|oxlint)-(disable|enable)/,
@@ -25,6 +21,8 @@ const ALLOWED = [
 ];
 
 const JSX_WORKAROUND = /^\/\* workaround: \S+ \*\/$/;
+
+const LICENSE_WORDS = /@license\b|@preserve\b|\blicen[cs]e[ds]?\b|\bcopyright\b|SPDX-License-Identifier|\(c\)|©/i;
 
 const JSDOC_TYPES = /^\/\*\*[\s\S]*@(type|typedef|param\s*\{|returns?\s*\{|template|satisfies|import)\b/;
 const JS_FILES = /\.(js|jsx|mjs|cjs)$/;
@@ -83,6 +81,18 @@ function comments(parser, file, text) {
   walk(ast.program, (node) => {
     if (node.type === "JSXExpressionContainer") containers.push([node.start, node.end]);
   });
+  const firstCode = ast.tokens.find((token) => {
+    const label = typeof token.type === "string" ? token.type : token.type.label;
+    return label !== "CommentLine" && label !== "CommentBlock";
+  });
+  const header = new Set();
+  for (const comment of ast.comments) {
+    if (firstCode && comment.end > firstCode.start) break;
+    const previous = [...header].at(-1);
+    if (previous && /\n[ \t]*\r?\n/.test(text.slice(previous.end, comment.start))) break;
+    header.add(comment);
+  }
+  const licensed = [...header].some((comment) => LICENSE_WORDS.test(text.slice(comment.start, comment.end)));
   return ast.comments.map((comment) => {
     const raw = text.slice(comment.start, comment.end);
     const lineStart = text.lastIndexOf("\n", comment.start - 1) + 1;
@@ -97,6 +107,7 @@ function comments(parser, file, text) {
       fullLine: before.trim() === "" && after.trim() === "",
       directive:
         isDirective(file, raw) ||
+        (licensed && header.has(comment)) ||
         (JSX_WORKAROUND.test(raw) &&
           containers.some(([start, end]) => start <= comment.start && comment.end <= end)),
       text: raw,
