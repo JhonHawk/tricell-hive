@@ -16,4 +16,4 @@ User waits are the only time subtracted; builds, tests, remote CI and children c
 1. Read the worklogs your account already has on the ticket, as its tracker's reference sets.
 2. At the delivery point, add one worklog with the total `converted_seconds` and nothing else: no comment, no description. At the close, update that same worklog to the new total; when a worklog this work wrote exists, update it instead of adding one.
 3. Never mention the time, how it was measured or the factor anywhere a ticket's readers see: its comments, its evidence or the pull request.
-4. Record in the work's close record in persistent memory, per ticket: the worklog ID, `active_seconds`, `ci_wait_seconds`, the factor, the ticket type and the sessions measured.
+4. Record in the close record that [flow-close](../../../flow-close/SKILL.md) step 7 writes to persistent memory, per ticket: the worklog ID, `active_seconds`, `ci_wait_seconds`, the factor, the ticket type and the sessions measured.

@@ -8,7 +8,7 @@ effort: "low"
 
 # hive-read-state
 
-1. Use the declared repository, issue, pull request, pipeline, deployment, account or service identifiers, or the tracker query by project, state, label, or text that the brief gives (a tracker query returns the tickets it matches, with the fields the brief names). Resolve ambiguity before querying unrelated projects.
+1. Use the declared repository, issue, pull request, pipeline, deployment, account or service identifiers, or the tracker query by project, state, label, or text that the brief gives (a tracker query returns the tickets it matches, with the fields the brief names). Resolve ambiguity before querying unrelated projects. Reach a tracker through the tool order of [trackers](skill:hive-core/tracker/trackers.md), reading only.
 
 2. Read current sources and report identifiers, observed state, observation time, and evidence links. Separate stale documents from live state.
 

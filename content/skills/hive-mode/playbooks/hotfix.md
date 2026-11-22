@@ -5,8 +5,7 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when a production defect ca
 **Stages.** `hive-mode`, then [flow-build](../../flow-build/SKILL.md) for the fix, which integrates into the base branch as the delivery mode in force sets, then [flow-verify](../../flow-verify/SKILL.md), then [flow-deploy](../../flow-deploy/SKILL.md) through the urgent-fixes route, then [flow-close](../../flow-close/SKILL.md).
 
 **Specific to a hotfix**
-- Reduce the incident's ongoing impact first, within existing authority, and keep the evidence; tell a temporary mitigation from a verified fix.
-- The fix is still a defect fix: the cause is named and fixed at its source ([defect fix](../../hive-core/build/defect-fix.md)), with the smallest change that removes it and a regression check.
+- While the incident lasts, mitigate as [urgent fixes](../../flow-deploy/references/urgent-fixes.md) sets; the fix itself is a defect fix, as [defect fix](../../hive-core/build/defect-fix.md) sets.
 - Each stop, push, pull request and merge happens under the delivery mode in force. The promotion is never covered by it: [flow-deploy](../../flow-deploy/SKILL.md) asks its own authorization for each environment, and urgent-fixes sets what is reported when the mode in force publishes nothing.
 - Before each promotion, list the other commits it would carry and ask about them, as urgent-fixes sets.
 - Environment branches change only through the declared path: [promotion path](../../hive-core/git/promotion-path.md).

@@ -93,7 +93,7 @@ A rule leaf is a file of `hive-core`, a skill the model does not load on its own
 - When adding or changing a project verification command: [project verification](skill:hive-core/build/project-verification.md).
 - When writing or checking the JSON of the project verification contract: [verification format](skill:hive-core/build/project-verification-format.md).
 - Before a change to stored data: [stored data](skill:hive-core/build/stored-data.md).
-- When a change touches untrusted input, permissions, process execution or data exposure: [security boundaries](skill:hive-core/build/security-boundaries.md).
+- When a change touches untrusted input, permissions, process execution, data exposure, authentication, secrets, cryptography or dependencies: [security boundaries](skill:hive-core/build/security-boundaries.md).
 - Before a commit message, pull request text or documentation: [prose](skill:hive-core/build/prose.md).
 
 ### Delegation

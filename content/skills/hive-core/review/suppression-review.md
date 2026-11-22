@@ -1,6 +1,6 @@
 # Review of weakened checks
 
-Read before reviewing any candidate. It applies to every candidate, whatever review mechanism is selected. The verifier supplies this requirement and reference in the review brief, including through the host's native review instruction mechanism when native review is selected. Do not silently replace the selected review if its instructions or coverage cannot be supplied or verified; report this review as unverified.
+Read before reviewing any candidate. Read it also before adding a suppression directive, a skipped test or a configuration exclusion that weakens a check: the justified disposition below is what that addition needs. It applies to every candidate, whatever review mechanism is selected. The verifier supplies this requirement and reference in the review brief, including through the host's native review instruction mechanism when native review is selected. Do not silently replace the selected review if its instructions or coverage cannot be supplied or verified; report this review as unverified.
 
 Inspect the candidate diff for added or widened suppression directives, skipped tests, and configuration exclusions that weaken checks. Inventory each candidate with its location and affected check, or explicitly report that the diff contains none. For each candidate, assess the scope and requirements it affects and record a justified disposition with evidence. A green check alone does not establish that a suppressed failure is fixed.
 

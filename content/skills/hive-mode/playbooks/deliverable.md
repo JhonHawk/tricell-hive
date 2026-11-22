@@ -12,7 +12,7 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the product the user a
 **Specific to a deliverable**
 - The deliverable is the result: no `flow-plan`, `flow-build` or `flow-verify` runs unless the user also asks for a repository change; that part is a separate piece of work with the playbook of its kind.
 - Put a support artifact where the project's layout says, and read [layout and retention](../../project-layout/references/layout.md) before writing it. Findings stay in the conversation unless the user asks for a saved file.
-- A business rule the deliverable decides is recorded as [business rules](../../hive-core/business/business-rules.md) sets.
+- A business rule a requirement document decides is written in that document, as [create-prd](../../create-prd/SKILL.md) sets; any other deliverable's rule is recorded as [business rules](../../hive-core/business/business-rules.md) sets.
 - Publishing or sharing the deliverable is the user's choice; this playbook authorizes none.
 
 **Reporting.** When the work closes, `flow-close` writes its final report with the row of [close report](../../hive-core/close/close-report.md#variants) that the delivery mode in force picks, and the message ends in the close row of [report endings](../../hive-core/messages/report-endings.md) that [close modes](../../hive-core/close/close-modes.md) sets.

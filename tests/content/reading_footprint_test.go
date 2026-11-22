@@ -146,7 +146,7 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 		skills + "flow-plan/references/plan-handoff.md",
 		skills + "hive-core/business/business-rules.md", skills + "hive-core/business/business-record.md", skills + "hive-core/business/business-ticket.md",
 		skills + "project-layout/references/layout.md", skills + "flow-close/references/support-material.md",
-		skills + "hive-core/build/project-verification.md", skills + "hive-core/build/project-verification-format.md", skills + "hive-core/review/suppression-review.md",
+		skills + "hive-core/review/suppression-review.md",
 		skills + "hive-core/plan/reuse-before-writing.md", skills + "hive-core/build/tests.md", skills + "hive-core/plan/checkpoint.md",
 		skills + "hive-core/build/checks.md", skills + "hive-core/plan/change-folder.md", skills + "hive-core/review/review-findings.md",
 		skills + "hive-core/review/review-evidence.md",
@@ -159,6 +159,8 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 		skills+"hive-core/build/defect-fix.md", skills+"git-workflow/SKILL.md",
 		skills+"flow-close/references/branch-cleanup.md", "content/agents/development/hive-build-owner.md",
 		skills+"hive-core/git/pr-reviews.md",
+		// flow-verify reads project verification only for E2E work or a change to a verification command.
+		skills+"hive-core/build/project-verification.md", skills+"hive-core/build/project-verification-format.md",
 	)
 	// baselineCycle is the plan-build-required list as 2bb96478 declared it: the
 	// sources the same scenario read before the rules moved into leaves.

@@ -235,6 +235,28 @@ raise the minor or the patch version.
 
 ### Changed
 
+- A cleanup of the rule leaves removes dangling and circular references and
+  conflicting wordings, so each rule has one home and the other places link it.
+  The merge of a pull request the work did not write is now set in `merge-gate`,
+  the close record of `flow-close` lists the steps that wait for an answer, and
+  `flow-close` updates the ticket's worklog through the time reference. `flow-build`
+  and `flow-verify` read the checkpoint's `Playbook` record at entry, and the flows
+  link `git-workflow`, `scope-changes`, `project-settings` and `reasons-and-blockers`
+  at the step where each applies. The security-boundaries leaf lists eight topics
+  (untrusted input, permissions, process execution, data exposure, authentication,
+  secrets, cryptography, dependencies), and the security reviewer and the build link
+  it instead of listing them. `flow-verify` no longer preloads the project
+  verification leaf, and `flow-build` no longer preloads the stored-data and
+  security leaves; each is read under its condition. The reviewer brief keeps
+  what every verify needs, and the briefs for drawn frames and for another person's
+  design moved to `create-design`. `host-session-identity` moved to
+  `hive-core/ui/viewer/`.
+- Repository guidance fixes the evidence for relaxing or removing a rule (a
+  comparison of real sessions with `--audit-session`, or the rule's own reason
+  verified as no longer holding) and limits "never" and "always" to invariants in
+  text that is written or edited. Two content tests detect a citation of a
+  section or step that does not exist and a stage-packet line that differs from
+  its manifest.
 - The global guidance keeps only invariants for three rules and moves their
   procedure to the leaf read at that moment. The list of what a close may clean up
   is the new `close-cleanup` leaf; the definitions of a mechanical change, a small

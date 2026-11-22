@@ -16,7 +16,7 @@ Verify the change on this branch and integrate it if everything passes.
 Skip verify for this one; I will check it myself.
 ```
 
-The [project verification contract](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/build/project-verification.md) indexes existing commands and feature journeys for launch, readiness, exercise, evidence and cleanup. A structurally valid contract or a recorded pass is not proof the behavior was exercised: the agent checks the actual results and reports gaps.
+The [project verification contract](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/build/project-verification.md), which Verify reads for end-to-end work or when a verification command changes, indexes existing commands and feature journeys for launch, readiness, exercise, evidence and cleanup. A structurally valid contract or a recorded pass is not proof the behavior was exercised: the agent checks the actual results and reports gaps.
 
 For E2E units, an independent verifier checks the exact returned head. The coordinator integrates verified heads into the declared target and checks them together; local integration is reported separately from remote publication. See [E2E coordination](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-build/references/e2e-coordination.md).
 

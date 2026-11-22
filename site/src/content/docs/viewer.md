@@ -65,7 +65,7 @@ from running agent sessions; the
 [verification record](https://github.com/JhonHawk/tricell-hive/blob/master/_support/docs/architecture/host-session-events.md)
 marks each one. If a hook is not installed, not approved or not yet running, the
 agent can pass the host and session identity explicitly, as
-[host session identity](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-verify/references/host-session-identity.md)
+[host session identity](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/ui/viewer/host-session-identity.md)
 describes.
 
 ## Interface language

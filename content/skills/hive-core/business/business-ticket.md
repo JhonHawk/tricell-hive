@@ -8,7 +8,7 @@ The main thread writes the record's rules to the work's ticket at three moments,
 2. when the build starts, with the ticket's move to in progress, at step 1 of [flow-build](../../flow-build/SKILL.md);
 3. at the work item's completion point, at step 3 of [flow-close](../../flow-close/SKILL.md), at the point [ticket state](../tracker/ticket-state.md) defines.
 
-Write nothing to a tracker when the work names no ticket or was abandoned; the close then lists the record's rules in its final report. An operational task writes only when its request's deliverable is the design and names its ticket, or when the user asks.
+Write nothing to a tracker when the work names no ticket or was abandoned; the close then lists the record's rules in its final report. An operational task writes as the global «Scope and authorization» sets.
 
 Make each write through the tracker's own CLI or tool, in the tracker that declares the ticket's key, and in each ticket when the work names more than one. A write has two parts.
 
