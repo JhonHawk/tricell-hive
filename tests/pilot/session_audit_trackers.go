@@ -1,6 +1,7 @@
 package main
 
 import (
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -20,6 +21,9 @@ var (
 	memoryWriteCLI  = regexp.MustCompile(`\bengram\s+save\b`)
 	// flowVerifyRead is the installed flow-verify skill, read or invoked.
 	flowVerifyRead = regexp.MustCompile(`/\.[a-z]+/skills/flow-verify/SKILL\.md`)
+	// flowCloseRead is the installed flow-close skill. It has its own pattern,
+	// outside flowSkillRead, so flow_entered_without_route does not judge it.
+	flowCloseRead = regexp.MustCompile(`/\.[a-z]+/skills/flow-close/SKILL\.md`)
 	// tryItHeading is the heading of the block a report carries for a change
 	// that can be seen or run, in the languages Hive's sessions use.
 	tryItHeading = regexp.MustCompile(`(?mi)^[\s#>*_-]*(?:pru[eé]balo(?: t[uú])?|try it)\b`)
@@ -115,8 +119,40 @@ func resultText(events []traceEvent, i int) string {
 	return ""
 }
 
+// loadsFlowVerify reports whether an event loads the installed flow-verify
+// skill: its skill call, a read or search of its SKILL.md, or a shell read.
+func loadsFlowVerify(e traceEvent) bool {
+	switch e.Kind {
+	case "skill_invocation":
+		return strings.Contains(e.Text+string(e.Input), "flow-verify")
+	case "read", "search":
+		return flowVerifyRead.MatchString(e.Path)
+	case "shell":
+		return flowVerifyRead.MatchString(e.Command) && readCommand.MatchString(e.Command)
+	}
+	return false
+}
+
+// loadsFlowClose reports whether an event loads the installed flow-close skill:
+// its skill call, a read of its SKILL.md, or a shell read of it, a sed range
+// included.
+func loadsFlowClose(e traceEvent) bool {
+	switch e.Kind {
+	case "skill_invocation":
+		return e.Text == "flow-close"
+	case "read", "search":
+		return flowCloseRead.MatchString(filepath.ToSlash(e.Path))
+	case "shell":
+		return flowCloseRead.MatchString(e.Command) && readCommand.MatchString(e.Command)
+	}
+	return false
+}
+
 // tryItBlockInReport fails when a session edits a file that renders an
-// interface, loads flow-verify, and its last message carries no Try it block.
+// interface, loads flow-verify, and its report carries no Try it block. The
+// report is the last message of the last turn that loaded flow-close after the
+// interface change, since the session may go on to other work; without such a
+// turn, it is the session's last message.
 func tryItBlockInReport(s auditSession) criterionAssessment {
 	c := criterionAssessment{Criterion: "try_it_block_in_report", Status: "not_observed", Evidence: []string{}}
 	if child(s) {
@@ -124,17 +160,31 @@ func tryItBlockInReport(s auditSession) criterionAssessment {
 	}
 	events := s.Trace.Events
 	edited, verified := false, false
+	closeTurn, laterEdit := -1, false
+	for i, e := range events {
+		switch {
+		case succeeded(events, i) && (editsInterface(e, s.Cwd) || launchesRole(e, "hive-build-frontend") || launchesRole(e, "hive-build-mobile")):
+			edited = true
+			laterEdit = laterEdit || closeTurn >= 0 && s.Turn[i] > closeTurn
+		case laterEdit && loadsFlowVerify(e):
+			// A later interface change that reaches verify is another work
+			// item, judged on its own report.
+			closeTurn, laterEdit = -1, false
+		case edited && loadsFlowClose(e):
+			closeTurn, laterEdit = s.Turn[i], false
+		}
+	}
+	edited = false
 	var last *traceEvent
 	for i := range events {
 		e := &events[i]
+		if closeTurn >= 0 && s.Turn[i] > closeTurn {
+			break
+		}
 		switch {
 		case succeeded(events, i) && (editsInterface(*e, s.Cwd) || launchesRole(*e, "hive-build-frontend") || launchesRole(*e, "hive-build-mobile")):
 			edited = true
-		case e.Kind == "skill_invocation" && strings.Contains(e.Text+string(e.Input), "flow-verify"):
-			verified = true
-		case (e.Kind == "read" || e.Kind == "search") && flowVerifyRead.MatchString(e.Path):
-			verified = true
-		case e.Kind == "shell" && flowVerifyRead.MatchString(e.Command) && readCommand.MatchString(e.Command):
+		case loadsFlowVerify(*e):
 			verified = true
 		case e.Kind == "text" && e.Role == "assistant":
 			last = e

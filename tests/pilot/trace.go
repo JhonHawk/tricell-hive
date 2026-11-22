@@ -52,6 +52,11 @@ type traceEvent struct {
 	// native operation. It never reaches run.json or the native projection;
 	// writeFlashPrivateOperations moves it to the private evidence file.
 	PrivateText string `json:"-"`
+	// CellOutput is, for a shell command of a Codex exec cell, the plain-text
+	// output item at its position when the cell printed one per command and
+	// the audit could not pair a JSON result with it. Only the reading of
+	// stage packets uses it.
+	CellOutput string `json:"-"`
 }
 type traceReport struct {
 	Model, ModelAtInit                        string
