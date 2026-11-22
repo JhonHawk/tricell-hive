@@ -8,9 +8,9 @@ const SOURCE_PATTERNS = ["*.js", "*.jsx", "*.mjs", "*.cjs", "*.ts", "*.tsx", "*.
 const EXCLUDED = ["node_modules/", "dist/", "build/", "coverage/"];
 
 const ALLOWED = [
-  /^\/\*!/,
-  /@license\b|@preserve\b/,
-  /^\/[/*]\**\s*(SPDX-License-Identifier:|Copyright\b|\(c\)\s)/i,
+  /^\/\*![\s\S]*\b(license|copyright|SPDX-License-Identifier)\b/i,
+  /^\/\*[*!]?\s*@(license|preserve)\b/,
+  /^\/[/*]\**\s*(SPDX-License-Identifier:|Copyright\s+(\(c\)|©|\d{4})|\(c\)\s+\d{4})/,
   /^\/\/\/\s*<reference\b/,
   /^\/[/*]\s*@ts-(check|nocheck|expect-error|ignore)\b/,
   /^\/[/*]\s*(eslint|oxlint)-(disable|enable)/,
@@ -21,8 +21,9 @@ const ALLOWED = [
   /^\/\*\s*[#@]__(PURE|NO_SIDE_EFFECTS)__\s*\*\/$/,
   /^\/\*\s*(webpack[A-Z]\w*|@vite-ignore)\b/,
   /^\/\/ workaround: \S+$/,
-  /^\/\* workaround: \S+ \*\/$/,
 ];
+
+const JSX_WORKAROUND = /^\/\* workaround: \S+ \*\/$/;
 
 const JSDOC_TYPES = /^\/\*\*[\s\S]*@(type|typedef|param\s*\{|returns?\s*\{|template|satisfies|import)\b/;
 const JS_FILES = /\.(js|jsx|mjs|cjs)$/;
@@ -77,6 +78,10 @@ function isDirective(file, text) {
 
 function comments(parser, file, text) {
   const ast = parseSource(parser, file, text);
+  const containers = [];
+  walk(ast.program, (node) => {
+    if (node.type === "JSXExpressionContainer") containers.push([node.start, node.end]);
+  });
   return ast.comments.map((comment) => {
     const raw = text.slice(comment.start, comment.end);
     const lineStart = text.lastIndexOf("\n", comment.start - 1) + 1;
@@ -89,7 +94,10 @@ function comments(parser, file, text) {
       start: comment.start,
       end: comment.end,
       fullLine: before.trim() === "" && after.trim() === "",
-      directive: isDirective(file, raw),
+      directive:
+        isDirective(file, raw) ||
+        (JSX_WORKAROUND.test(raw) &&
+          containers.some(([start, end]) => start <= comment.start && comment.end <= end)),
       text: raw,
     };
   });

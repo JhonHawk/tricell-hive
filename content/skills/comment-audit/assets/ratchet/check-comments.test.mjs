@@ -196,6 +196,27 @@ test("license headers and JSX forms of directives and the marker pass", (t) => {
   assert.equal(result.status, 0, result.stderr);
 });
 
+test("prose that only mentions a directive word is a new comment", (t) => {
+  const r = repo(t);
+  r.write("src/a.tsx", "export const A = () => <p>x</p>;\n");
+  const base = r.commit("base");
+  const prose = [
+    "// we skip the @license check here",
+    "/*! remember to update this */",
+    "// copyright logic is wrong here, fix later",
+    "/* workaround: COM-2 */",
+  ];
+  r.write("src/b.ts", `${prose.join("\n")}\nexport const b = 1;\n`);
+  const result = r.run(["--base", base]);
+  assert.equal(result.status, 1);
+  for (const line of [1, 2, 3, 4]) {
+    assert.match(result.stderr, new RegExp(`^src/b\\.ts:${line}:1: no-new-comments$`, "m"));
+  }
+  r.write("src/b.ts", "/** @license MIT */\n/*! Copyright 2026 Example Ltd. */\nexport const b = 1;\n");
+  const headers = r.run(["--base", base]);
+  assert.equal(headers.status, 0, headers.stderr);
+});
+
 test("a symlinked source file is skipped, not fatal", (t) => {
   const r = repo(t);
   r.write("src/a.ts", "export const a = 1;\n");
