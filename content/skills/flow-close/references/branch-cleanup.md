@@ -1,6 +1,6 @@
 # Branch cleanup
 
-Read by [flow-close](../SKILL.md) at its cleanup step, and by a hygiene request. The global guidance’s «Preservation» authorizes removing merged branches and their clean worktrees, and the fast-forward of the base that the helper makes under the conditions below; this procedure grants no other effect.
+Read by [flow-close](../SKILL.md) at its cleanup step, and by a hygiene request. [Close cleanup](../../hive-core/close/close-cleanup.md) authorizes removing merged branches and their clean worktrees, and the fast-forward of the base that the helper makes under the conditions below; this procedure grants no other effect.
 
 ## Scope and inputs
 

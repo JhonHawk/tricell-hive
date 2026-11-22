@@ -1,0 +1,5 @@
+# Close cleanup
+
+Read at a work item's close, before removing, stopping or deleting anything.
+
+At a work item's close these are authorized: removing that task's reproducible temporary files and checkpoint file; stopping the processes it or its children started, as the global guidance's «Preservation» sets; removing the local containers it started with their volumes and the images it built; updating the pending-work records in persistent memory that name it, soft-deleting one left with nothing open, or an abandoned work's own record ([close hygiene](close-hygiene.md#pending-work)); deleting the work's verification material that its ticket or its merged pull request's body already holds ([support material](../../flow-close/references/support-material.md)); and deleting merged work branches, of this or the user's earlier work, in the repositories the work touched, with their clean worktrees, and fast-forwarding their base ([branch cleanup](../../flow-close/references/branch-cleanup.md)).

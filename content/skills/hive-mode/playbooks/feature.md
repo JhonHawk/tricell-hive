@@ -2,7 +2,7 @@
 
 Read from [hive-mode](../SKILL.md#pick-the-playbook) when the work adds or extends behavior and changes no screen's layout. A new or recomposed screen is [ui-change](ui-change.md).
 
-**Stages.** `hive-mode` settles the what, then [flow-plan](../../flow-plan/SKILL.md), or straight to [flow-build](../../flow-build/SKILL.md) when the change is a small understood change (the global guidance's «Proportionality»), then [flow-verify](../../flow-verify/SKILL.md) and [flow-close](../../flow-close/SKILL.md). [flow-deploy](../../flow-deploy/SKILL.md) runs only when the user asks to promote.
+**Stages.** `hive-mode` settles the what, then [flow-plan](../../flow-plan/SKILL.md), or straight to [flow-build](../../flow-build/SKILL.md) when the change is a small understood change ([proportionality](../../hive-core/plan/proportionality.md)), then [flow-verify](../../flow-verify/SKILL.md) and [flow-close](../../flow-close/SKILL.md). [flow-deploy](../../flow-deploy/SKILL.md) runs only when the user asks to promote.
 
 **Specific to a feature**
 - Write the acceptance criteria first, one observable behavior each, with the place where its real effect shows, as [acceptance criteria](../../flow-plan/SKILL.md#acceptance-criteria) sets. A criterion that is already true on the base branch grades nothing.

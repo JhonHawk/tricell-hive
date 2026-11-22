@@ -1,6 +1,6 @@
 # Close modes
 
-Read when a close starts. Read it before step 1 of [flow-close](../../flow-close/SKILL.md). Find the row that fits, then run the steps as it says. The close also runs when an operational task ends, as the global guidance's «Proportionality» defines it, and when the user abandons the work; a step with nothing to act on, such as the ticket move of work that was not integrated, is skipped.
+Read when a close starts. Read it before step 1 of [flow-close](../../flow-close/SKILL.md). Find the row that fits, then run the steps as it says. The close also runs when an operational task ends, as [proportionality](../plan/proportionality.md) defines it, and when the user abandons the work; a step with nothing to act on, such as the ticket move of work that was not integrated, is skipped.
 
 | Situation | Runs now | Waits | Ends with |
 | --- | --- | --- | --- |

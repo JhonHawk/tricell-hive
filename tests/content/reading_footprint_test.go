@@ -59,6 +59,7 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 		skills+"hive-core/git/delivery-ask.md", skills+"hive-core/plan/project-settings.md", skills+"hive-core/tracker/ticket-state.md",
 		skills+"flow-plan/SKILL.md", skills+"flow-build/SKILL.md", skills+"flow-close/SKILL.md",
 		skills+"hive-mode/SKILL.md", skills+"flow-verify/SKILL.md",
+		skills+"hive-core/plan/proportionality.md", skills+"hive-core/close/close-cleanup.md",
 		"content/agents/review/hive-review-plan.md",
 		"content/agents/development/hive-build-backend.md",
 		"content/agents/quality/hive-verify-task.md",
@@ -70,6 +71,8 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 		skills + "hive-core/git/delivery-ask.md":      true,
 		skills + "hive-core/plan/project-settings.md": true,
 		skills + "hive-core/tracker/ticket-state.md":  true,
+		skills + "hive-core/plan/proportionality.md":  true,
+		skills + "hive-core/close/close-cleanup.md":   true,
 	}
 	scenarios := []struct {
 		name, predicate string
@@ -135,6 +138,7 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 		skills + "hive-core/messages/questions.md",
 		skills + "hive-core/git/delivery-ask.md", skills + "hive-core/plan/project-settings.md",
 		skills + "hive-core/tracker/ticket-state.md",
+		skills + "hive-core/plan/proportionality.md", skills + "hive-core/close/close-cleanup.md",
 		skills + "hive-core/close/close-modes.md", skills + "hive-core/close/close-hygiene.md", skills + "hive-core/close/close-report.md",
 		skills + "hive-mode/SKILL.md", skills + "flow-plan/SKILL.md",
 		skills + "flow-build/SKILL.md", skills + "flow-verify/SKILL.md", skills + "flow-close/SKILL.md",
