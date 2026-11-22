@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"sync"
 	"time"
+	"tricell-hive/tooling/durable"
 )
 
 const (
@@ -163,7 +164,7 @@ func writeFileAtomic(path string, data []byte) error {
 	tmp := f.Name()
 	_, err = f.Write(data)
 	if err == nil {
-		err = f.Sync()
+		err = durable.Sync(f)
 	}
 	if cerr := f.Close(); err == nil {
 		err = cerr

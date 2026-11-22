@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"tricell-hive/integrations/target"
+	"tricell-hive/tooling/durable"
 )
 
 // Unlike read, this narrowly inspects the declared alias leaf without following
@@ -159,5 +160,5 @@ func writeResource(t target.Target, expected, s snapshot, migration bool, fail f
 		return err
 	}
 	defer d.Close()
-	return syncFile(d)
+	return durable.Sync(d)
 }

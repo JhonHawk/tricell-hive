@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"tricell-hive/integrations/target"
+	"tricell-hive/tooling/durable"
 	"tricell-hive/tooling/management"
 )
 
@@ -63,13 +64,14 @@ func TestMain(m *testing.M) {
 	// `hive view start` launches this executable as the server; run the
 	// command line instead of the suite (view_command_test.go).
 	if os.Getenv("HIVE_VIEW_TEST_SERVE") == "1" {
+		durable.DisableForTests()
 		if err := run(os.Args[1:]); err != nil {
 			fmt.Fprintln(os.Stderr, "hive:", err)
 			os.Exit(1)
 		}
 		os.Exit(0)
 	}
-	management.DisableDiskSyncForTests()
+	durable.DisableForTests()
 	// The tests call target.Safe, which Lstats every ancestor of a path, some
 	// 700k times in temp homes. cmd/go records each call in a test log and
 	// re-verifies it line by line when it looks up a cached result, which cost
