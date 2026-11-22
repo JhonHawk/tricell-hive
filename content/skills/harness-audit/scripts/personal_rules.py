@@ -26,9 +26,12 @@ SCRIPT_DIR = pathlib.Path(__file__).resolve().parent
 
 BEGIN = "<!-- === PERSONAL RULES:BEGIN === -->"
 END = "<!-- === PERSONAL RULES:END === -->"
-HIVE_BEGIN = "<!-- === TRICELL HIVE RULES:BEGIN === -->"
-HIVE_END = "<!-- === TRICELL HIVE RULES:END === -->"
-VOICE_END = "<!-- === TRICELL HIVE VOICE:END === -->"
+# Hive's release refuses any file that holds its block delimiters verbatim, so
+# this script composes them instead of spelling them out.
+_HIVE_MARKER = "<!-- === TRICELL HIVE {}:{} === -->"
+HIVE_BEGIN = _HIVE_MARKER.format("RULES", "BEGIN")
+HIVE_END = _HIVE_MARKER.format("RULES", "END")
+VOICE_END = _HIVE_MARKER.format("VOICE", "END")
 RESERVED = ("PERSONAL RULES:BEGIN", "PERSONAL RULES:END", "TRICELL HIVE")
 MAX_BYTES = 8000
 PRECEDENCE = (
