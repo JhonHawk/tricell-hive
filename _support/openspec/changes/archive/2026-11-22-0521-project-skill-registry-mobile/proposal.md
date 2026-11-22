@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | Completado · PR #581, merge 846198ea |
 | Tracker | none (sin ticket; relacionado con #553, que excluye «un setup por proyecto que detecte el stack») |
 | Git | tricell-hive · base `development` en `867f5463` · rama `feat/skill-registry-mobile` · worktree `.claude/worktrees/skill-registry-mobile` |
 | Playbook | none (cruza feature de guía, tooling y verificación) |

@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build · plan revisado (dos revisores, tres rondas) |
+| Estado | Completado · PR #580, merge 01e43b50 |
 | Tracker | ninguno · watch item `engram:tricell-hive/watch/change-folder-uncommitted-specs-repo` (#17924) |
 | Git | tricell-hive · base `development` en `867f5463` · rama propuesta `feat/change-folder-versioned-check` |
 | Playbook | infra-ci |
