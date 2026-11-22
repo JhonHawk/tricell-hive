@@ -12,7 +12,7 @@ effort_claude: "medium"
 
 2. Preserve meaningful content and behavior. Shape each screen with the [criteria](skill:create-design/references/criteria.md) for the screen mode of its area, and refine an existing one with [refinement](skill:create-design/references/refinement.md); meet every check those criteria mark as measured in what you build.
 
-3. For a built interface, use available rendering tools to inspect the target viewports and themes. Verify keyboard focus, text contrast of at least 4.5:1, or 3:1 for large text, computed from rendered colors, and the loading, empty, error, permission-denied, and success states the changed screen can reach. Drive the browser with the tool your brief assigns, or else the `agent-browser` skill when it is installed, otherwise the host's browser tool.
+3. For a built interface, use available rendering tools to inspect the target viewports and themes. Verify keyboard focus, text contrast of at least 4.5:1, or 3:1 for large text, computed from rendered colors, and the loading, empty, error, permission-denied, and success states the changed screen can reach. Drive the browser with the tool your brief assigns, or else the `agent-browser` skill when it is installed, otherwise the host's browser tool; for a native mobile app, drive the device or emulator your brief assigns as [Device tool](skill:hive-core/references/ui-verification/device-tool.md) sets.
 
 4. Deliver the requested design or implementation with concrete visual evidence and remaining limitations. Do not claim rendered verification from source inspection alone.
 

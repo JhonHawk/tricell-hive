@@ -4,7 +4,7 @@ Base `development` en `867f5463`, rama `feat/skill-registry-mobile`, worktree `.
 
 ### T1 — Script `skill_registry.py` con `check` y `propose`, y la tabla `stack-skills.json`
 
-- [ ] `check` compara `## Skills` con las skills instaladas en un repositorio y en un workspace declarado; `propose` imprime las fuentes oficiales del stack detectado.
+- [x] `check` compara `## Skills` con las skills instaladas en un repositorio y en un workspace declarado; `propose` imprime las fuentes oficiales del stack detectado.
 
 **Closes:** AC1, AC2, AC3
 
@@ -29,7 +29,7 @@ Base `development` en `867f5463`, rama `feat/skill-registry-mobile`, worktree `.
 
 ### T2 — HA-IF-19 y el procedimiento de onboarding en `harness-audit`
 
-- [ ] `harness-audit` revisa y escribe `## Skills`, propone las skills oficiales del stack y verifica con el script.
+- [x] `harness-audit` revisa y escribe `## Skills`, propone las skills oficiales del stack y verifica con el script.
 
 **Closes:** AC4
 
@@ -47,7 +47,7 @@ Base `development` en `867f5463`, rama `feat/skill-registry-mobile`, worktree `.
 
 ### T3 — Líneas del registro en los encargos y documentación de entrega
 
-- [ ] El hilo principal copia las líneas de `## Skills` que aplican en el encargo de cada hijo, y la arquitectura deja de negar el registro.
+- [x] El hilo principal copia las líneas de `## Skills` que aplican en el encargo de cada hijo, y la arquitectura deja de negar el registro.
 
 **Closes:** AC5
 
@@ -65,7 +65,7 @@ Base `development` en `867f5463`, rama `feat/skill-registry-mobile`, worktree `.
 
 ### T4 — Rol `hive-build-mobile` en lugar de `hive-build-kmp`
 
-- [ ] Existe `hive-build-mobile`, `hive-build-kmp` se retira, y las listas de roles y el auditor de sesiones lo reflejan.
+- [x] Existe `hive-build-mobile`, `hive-build-kmp` se retira, y las listas de roles y el auditor de sesiones lo reflejan.
 
 **Closes:** AC6
 
@@ -89,7 +89,7 @@ Base `development` en `867f5463`, rama `feat/skill-registry-mobile`, worktree `.
 
 **Depends on:** T4
 
-**Locations:** `content/skills/hive-core/references/ui-verification.md`, `content/skills/hive-core/references/before-captures.md`, `content/skills/hive-core/references/walkthrough.md`, `content/skills/hive-core/references/a11y-audit.md`, `content/agents/quality/hive-verify-change.md`, `content/agents/review/hive-review-ux.md`, `content/agents/design/hive-design-ui.md`
+**Locations:** `content/skills/hive-core/references/ui-verification.md`, `content/skills/hive-core/references/ui-verification/device-tool.md` (nuevo: la hoja tiene tope de 4,000 bytes), `content/skills/hive-core/references/before-captures.md`, `content/skills/hive-core/references/walkthrough.md`, `content/skills/hive-core/references/a11y-audit.md`, `content/agents/quality/hive-verify-change.md`, `content/agents/review/hive-review-ux.md`, `content/agents/design/hive-design-ui.md`
 
 **Execution:** hilo principal
 
@@ -145,3 +145,8 @@ Sin parada de validación humana (`automatic`).
 - before captures: none (no screen of an app changes)
 
 ## Review status and progress
+
+2026-11-21 — T1 · ab99cc4f · unverified: none
+2026-11-21 — T2 · 5add19bd · unverified: AC4 se observa en el texto; ninguna instalación real corrió (el plan no corre instaladores)
+2026-11-21 — T3 · 10582c10 · unverified: none
+2026-11-21 — T4 · 5911a832 · unverified: AC6 se observa tras el refresco del mantenedor posterior al merge
