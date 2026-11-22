@@ -88,11 +88,11 @@ Recorrido humano: abrir una sesión nueva en Codex y otra en Claude Code y ver q
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: build · 5 local CI
-- Last commit: 6b2ee737
-- Open findings: none
-- Next: flow-verify: reviews (/code-review, hive-review-security), commit change folder, push, PR, merge; then T4
-- Rules: flow-build/stage.md
+- Stage: verify · 6 integrate
+- Last commit: 539bbbf9
+- Open findings: L3 secret check misses spaced password= and URL credentials · close finding; L4 race window with hive update · close finding; ownership by precedence sentence · close finding; tests miss parent-symlink walk and early write failure · close finding
+- Next: push, PR, CI wait, merge; then T4 with the user's approval of the rule text
+- Rules: flow-verify/stage-entry.md, flow-verify/stage-exit.md
 - Principles: none
 
 ### Evidence
@@ -102,6 +102,11 @@ Recorrido humano: abrir una sesión nueva en Codex y otra en Claude Code y ver q
 - go test -count=1 ./... · exit 0, 22 ok, 264 s · 6b2ee737
 - python3 -m unittest discover -s tests/skills -p '*_test.py' · exit 0, 119 s · 6b2ee737
 - CI-only: .github/workflows/master-source-branch.yml (source-branch policy on master PRs, no tests)
+- go vet ./... · exit 0 · 7fea27ef
+- go test -count=1 ./... · exit 0, 22 ok · 7fea27ef
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · exit 0 · 7fea27ef
+- go test -count=1 ./tooling/management ./tooling/package ./tests/content · exit 0 · 539bbbf9
+- personal_rules_test.py · 25 OK · 539bbbf9
 
 ## Review status and progress
 
