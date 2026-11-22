@@ -8,6 +8,7 @@ Usage:
           --next "<action>" [--finding "<ID: decision>"]... [--check "<command> · <result> · <commit>"]...
           [--worktree "<path> · <branch>"] [--unwritten "<text>|none"]
           [--rules "<flow>/<packet>.md[, …][ · extra: <leaf>, …]"|none] [--principles "<name>, …"|none]
+  python3 -I tasks.py <change-folder> versioned [--work-repo DIR]
 
 A task is a `### T<n> — <title>` heading; its boxes are the `- [ ]` and `- [x]`
 lines up to the next `##` or `###` heading.
@@ -31,10 +32,21 @@ lines up to the next `##` or `###` heading.
   decision: new names join the line's names without duplicates, `none` is written only
   while the line holds no name and a name replaces it, and no value removes the line.
   Boxes under `## Delivery units` belong to no task: `done` never ticks them.
+- versioned: reads only (no fetch, commit or push) whether the folder is versioned in the
+  repository that holds it, found from the folder itself, so it answers the same from a
+  repository, a monorepo's package or a workspace root outside Git. Versioned means its last
+  commit is on a remote branch (on origin/<base> when that repository's `## Hive` declares
+  `Delivery: direct-base`) and, when that repository is not the work's (--work-repo, compared
+  by Git common dir), no file under it is untracked or modified; in the work's repository such
+  files are warnings, since later edits wait for the archive. Prints the repository, `versioned:
+  yes|no`, one line per missing state or warning, and, when not versioned, the next step. With
+  --work-repo, warns when that repository declares no Specs or one that does not hold the folder.
+  Exits 0 when versioned, 1 when not or outside Git, 2 on invalid arguments.
 
 Optional: execution init/check/update/validate-handoff (see ../references/execution-record.md).
 
-Writes tasks.md directly. Exit status: 0 on success, 2 when the arguments are invalid,
+Writes tasks.md directly (versioned writes nothing). Exit status: 0 on success, 1 when versioned
+finds the folder not versioned, 2 when the arguments are invalid,
 the folder or tasks.md cannot be read or written, the task does not exist, or the
 progress section is missing for `done`. Standard library only; self-contained.
 """
@@ -404,10 +416,9 @@ def plan_revision(folder):
     return digest.hexdigest()
 
 
-def git_reader(repo):
-    # Use the existing timeout, safe environment and factual Git query boundary.
-    source = Path(__file__).resolve().parents[2] / "git-workflow/scripts/git_state.py"
-    spec = importlib.util.spec_from_file_location("hive_git_state", source)
+def sibling_script(relative, name):
+    source = Path(__file__).resolve().parents[2] / relative
+    spec = importlib.util.spec_from_file_location(name, source)
     module = importlib.util.module_from_spec(spec)
     previous = sys.dont_write_bytecode
     try:
@@ -415,6 +426,12 @@ def git_reader(repo):
         spec.loader.exec_module(module)
     finally:
         sys.dont_write_bytecode = previous
+    return module
+
+
+def git_reader(repo):
+    # Use the existing timeout, safe environment and factual Git query boundary.
+    module = sibling_script("git-workflow/scripts/git_state.py", "hive_git_state")
     state = module.State(SimpleNamespace(repo=str(repo), timeout=20))
     require(state.git is not None, "git executable unavailable")
     return state
@@ -793,6 +810,101 @@ def cmd_execution(args):
     print(f"execution {args.operation} · generation {data['generation']}")
 
 
+HIVE_KEY = re.compile(r"^-\s*(Base branch|Delivery|Specs):\s*(.+?)\s*$")
+
+
+def hive_settings(top, workspace):
+    """The `## Hive` keys the versioned check reads from top/AGENTS.md."""
+    settings = {}
+    for line in workspace.hive_lines(workspace.read_text(str(Path(top) / "AGENTS.md"))):
+        match = HIVE_KEY.match(line)
+        if match and match.group(1) not in settings:
+            settings[match.group(1)] = match.group(2)
+    return settings
+
+
+def git_root(path):
+    """(toplevel, common dir) of the repository holding path, or None outside Git."""
+    state = git_reader(path)
+    code, top, _ = state.git_run("rev-parse", "--show-toplevel")
+    if code != 0 or not top.strip():
+        return None
+    top = Path(top.strip()).resolve()
+    code, common, err = state.git_run("rev-parse", "--git-common-dir")
+    require(code == 0, f"Git check failed: {err}")
+    common = Path(common.strip())
+    return top, (common if common.is_absolute() else Path(path) / common).resolve()
+
+
+def git_paths(state, *args):
+    code, out, err = state.git_run(*args)
+    require(code == 0, f"Git check failed: {err}")
+    return [p for p in out.split("\0") if p]
+
+
+def cmd_versioned(args):
+    folder = args.folder.resolve()
+    root = git_root(folder)
+    if root is None:
+        print(f"versioned: no · {folder} is in no Git repository, so it cannot be versioned")
+        return 1
+    top, common = root
+    work_top, work_common = top, common
+    if args.work_repo is not None:
+        work = args.work_repo.resolve()
+        require(work.is_dir(), f"--work-repo {args.work_repo}: directory unavailable")
+        work_root = git_root(work)
+        require(work_root is not None, f"--work-repo {args.work_repo}: not a Git repository")
+        work_top, work_common = work_root
+    same_repo = work_common == common
+    workspace = sibling_script("workspace-repo/scripts/workspace_repo.py", "hive_workspace_repo")
+    settings = hive_settings(top, workspace)
+    direct_base = settings.get("Delivery", "").split()[:1] == ["direct-base"]
+    base = workspace.base_branch_of(str(top))
+    base_source = "Hive" if "Base branch" in settings else "origin/HEAD"
+    print(f"repo: {top} · base: {base} ({base_source}) · delivery: {'direct-base' if direct_base else 'not declared'}"
+          f" · work repo: {'same' if same_repo else work_top}")
+    state = git_reader(top)
+    rel = str(folder.relative_to(top)) if folder != top else "."
+    problems, warnings = [], []
+    untracked = git_paths(state, "ls-files", "--others", "--exclude-standard", "-z", "--", rel)
+    last = git_paths(state, "log", "-1", "--format=%H%x00", "--", rel)
+    modified = git_paths(state, "diff", "--name-only", "-z", "HEAD", "--", rel) if last else []
+    edits = [("untracked", p) for p in untracked] + [("modified", p) for p in modified]
+    for kind, path in edits:
+        if same_repo and last:
+            warnings.append(f"warning: {kind} {path}: later edits wait for the archive")
+        else:
+            problems.append(f"{kind}: {path}")
+    if not last:
+        problems.append("not committed: the folder has no commit")
+    elif direct_base:
+        if base == "—":
+            problems.append("not pushed: Delivery is direct-base but no base branch resolves (no Base branch, no origin/HEAD)")
+        else:
+            code, _, _ = state.git_run("merge-base", "--is-ancestor", last[0], f"refs/remotes/origin/{base}")
+            if code != 0:
+                problems.append(f"not pushed: {last[0][:12]} is not on origin/{base}")
+    elif not git_paths(state, "branch", "-r", "--contains", last[0], "--format=%(refname)%00"):
+        problems.append(f"not pushed: {last[0][:12]} is on no remote branch")
+    if args.work_repo is not None:
+        specs = hive_settings(work_top, workspace).get("Specs")
+        if specs is None:
+            warnings.append(f"warning: {work_top} declares no Specs; declare Specs: {os.path.relpath(folder.parent.parent, work_top)}")
+        else:
+            value = specs.split(" · ")[0].strip()
+            target = Path(value) if Path(value).is_absolute() else work_top / value
+            if not folder.is_relative_to(target.resolve()):
+                warnings.append(f"warning: {work_top} Specs {value} does not hold the folder; declare Specs: {os.path.relpath(folder.parent.parent, work_top)}")
+    print(f"versioned: {'no' if problems else 'yes'}")
+    for line in problems + warnings:
+        print(line)
+    if problems:
+        print("next: commit and deliver the folder as git-workflow step 4 sets, then run versioned again")
+        return 1
+    return 0
+
+
 def build_parser():
     parser = argparse.ArgumentParser(prog="tasks.py", description="Record task progress in a change folder's tasks.md.")
     parser.add_argument("folder", type=Path)
@@ -813,6 +925,8 @@ def build_parser():
     cp.add_argument("--unwritten", type=single_line, help="what no file holds yet, asked at a pause, kept by later calls; 'none' removes it")
     cp.add_argument("--rules", type=rules_value, help="'<flow>/<packet>.md[, …][ · extra: <leaf>, …]' the flow read; joins the line while the flow stays the same, starts a new line for another flow; 'none' removes it")
     cp.add_argument("--principles", type=principles_value, help="principle names that changed a decision, joined by ', ', merged into the line; 'none' only while it has none")
+    versioned = sub.add_parser("versioned", help="whether the change folder is committed and on a remote branch")
+    versioned.add_argument("--work-repo", type=Path, help="the work's repository, checked for a Specs that holds the folder")
     execution = sub.add_parser("execution", help="coordinator-owned local execution record")
     operations = execution.add_subparsers(dest="operation", required=True)
     for name in ("init", "check", "update", "validate-handoff"):
@@ -839,6 +953,8 @@ def main(argv):
         if args.command == "execution":
             cmd_execution(args)
             return 0
+        if args.command == "versioned":
+            return cmd_versioned(args)
         handler = {"status": cmd_status, "done": cmd_done, "checkpoint": cmd_checkpoint}[args.command]
         result = handler(lines, args)
         if result is not None:
