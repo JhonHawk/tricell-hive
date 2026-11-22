@@ -819,8 +819,13 @@ def hive_settings(top, workspace):
     for line in workspace.hive_lines(workspace.read_text(str(Path(top) / "AGENTS.md"))):
         match = HIVE_KEY.match(line)
         if match and match.group(1) not in settings:
-            settings[match.group(1)] = match.group(2)
+            settings[match.group(1)] = match.group(2).replace("`", "").strip()
     return settings
+
+
+def printable(text):
+    """A path as one output line: control characters escaped."""
+    return "".join(c if c.isprintable() else repr(c)[1:-1] for c in text)
 
 
 def git_root(path):
@@ -861,31 +866,40 @@ def cmd_versioned(args):
     settings = hive_settings(top, workspace)
     direct_base = settings.get("Delivery", "").split()[:1] == ["direct-base"]
     base = workspace.base_branch_of(str(top))
-    base_source = "Hive" if "Base branch" in settings else "origin/HEAD"
+    base_source = "Hive" if settings.get("Base branch") == base else "origin/HEAD"
     print(f"repo: {top} · base: {base} ({base_source}) · delivery: {'direct-base' if direct_base else 'not declared'}"
           f" · work repo: {'same' if same_repo else work_top}")
     state = git_reader(top)
     rel = str(folder.relative_to(top)) if folder != top else "."
     problems, warnings = [], []
+    if args.work_repo is None:
+        warnings.append("warning: no --work-repo given; the folder's repository is taken as the work's")
     untracked = git_paths(state, "ls-files", "--others", "--exclude-standard", "-z", "--", rel)
     last = git_paths(state, "log", "-1", "--format=%H%x00", "--", rel)
     modified = git_paths(state, "diff", "--name-only", "-z", "HEAD", "--", rel) if last else []
     edits = [("untracked", p) for p in untracked] + [("modified", p) for p in modified]
     for kind, path in edits:
         if same_repo and last:
-            warnings.append(f"warning: {kind} {path}: later edits wait for the archive")
+            warnings.append(f"warning: {kind} {printable(path)}: later edits wait for the archive")
         else:
-            problems.append(f"{kind}: {path}")
+            problems.append(f"{kind}: {printable(path)}")
+    base_ref = f"refs/remotes/origin/{base}"
+    on_base = False
+    if last and base != "—":
+        # A squash or rebase merge leaves the folder's commit on no remote branch once the
+        # pull request's branch is deleted; its content on the base still counts.
+        code, _, _ = state.git_run("merge-base", "--is-ancestor", last[0], base_ref)
+        if code != 0:
+            code, _, _ = state.git_run("diff", "--quiet", last[0], base_ref, "--", rel)
+        on_base = code == 0
     if not last:
         problems.append("not committed: the folder has no commit")
     elif direct_base:
         if base == "—":
             problems.append("not pushed: Delivery is direct-base but no base branch resolves (no Base branch, no origin/HEAD)")
-        else:
-            code, _, _ = state.git_run("merge-base", "--is-ancestor", last[0], f"refs/remotes/origin/{base}")
-            if code != 0:
-                problems.append(f"not pushed: {last[0][:12]} is not on origin/{base}")
-    elif not git_paths(state, "branch", "-r", "--contains", last[0], "--format=%(refname)%00"):
+        elif not on_base:
+            problems.append(f"not pushed: {last[0][:12]} is not on origin/{base}")
+    elif not on_base and not git_paths(state, "branch", "-r", "--contains", last[0], "--format=%(refname)%00"):
         problems.append(f"not pushed: {last[0][:12]} is on no remote branch")
     if args.work_repo is not None:
         specs = hive_settings(work_top, workspace).get("Specs")
@@ -895,7 +909,7 @@ def cmd_versioned(args):
             value = specs.split(" · ")[0].strip()
             target = Path(value) if Path(value).is_absolute() else work_top / value
             if not folder.is_relative_to(target.resolve()):
-                warnings.append(f"warning: {work_top} Specs {value} does not hold the folder; declare Specs: {os.path.relpath(folder.parent.parent, work_top)}")
+                warnings.append(f"warning: {work_top} Specs {printable(value)} does not hold the folder; declare Specs: {os.path.relpath(folder.parent.parent, work_top)}")
     print(f"versioned: {'no' if problems else 'yes'}")
     for line in problems + warnings:
         print(line)
@@ -950,14 +964,15 @@ def main(argv):
     args = build_parser().parse_args(argv)
     path = args.folder / "tasks.md"
     try:
+        if args.command == "versioned":
+            require(args.folder.is_dir(), f"{args.folder}: not a directory")
+            return cmd_versioned(args)
         if not path.is_file():
             raise Failure(f"{path}: not found")
         lines = read(path)
         if args.command == "execution":
             cmd_execution(args)
             return 0
-        if args.command == "versioned":
-            return cmd_versioned(args)
         handler = {"status": cmd_status, "done": cmd_done, "checkpoint": cmd_checkpoint}[args.command]
         result = handler(lines, args)
         if result is not None:

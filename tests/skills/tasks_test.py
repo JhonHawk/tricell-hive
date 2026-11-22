@@ -933,6 +933,30 @@ class VersionedTest(unittest.TestCase):
         self.assertVersioned(self.versioned("specs/openspec/changes/demo", *args), 1,
                              "modified: openspec/changes/demo/tasks.md")
 
+    def test_squash_merged_folder_with_its_branch_deleted_passes(self):
+        for delivery in ("", "- Delivery: direct-base\n"):
+            with self.subTest(delivery=delivery):
+                repo = self.repo(f"app{len(delivery)}", f"- Base branch: main\n{delivery}- Specs: `openspec`\n")
+                folder = self.change(repo / "openspec")
+                self.git(repo, "switch", "-c", "feat/work")
+                self.commit(repo, folder, push="feat/work")
+                self.git(repo, "switch", "main")
+                self.git(repo, "merge", "-q", "--squash", "feat/work")
+                self.git(repo, "commit", "-m", "squash")
+                self.git(repo, "push", "-q", "origin", "main", ":feat/work")
+                self.git(repo, "branch", "-D", "feat/work")
+                self.git(repo, "fetch", "-q", "--prune", "origin")
+                result = self.versioned(folder, "--work-repo", str(repo))
+                self.assertVersioned(result, 0, "versioned: yes", "base: main (Hive)", absent=("warning",))
+
+    def test_folder_without_tasks_md_and_absent_work_repo(self):
+        repo = self.repo("app", "- Specs: openspec\n")
+        folder = self.change(repo / "openspec")
+        (folder / "tasks.md").unlink()
+        self.commit(repo, folder, push="main")
+        self.assertVersioned(self.versioned(folder), 0, "versioned: yes",
+                             "warning: no --work-repo given; the folder's repository is taken as the work's")
+
     def test_commit_on_no_remote_branch_fails(self):
         repo = self.repo("app")
         folder = self.change(repo / "openspec")
