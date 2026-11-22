@@ -49,6 +49,17 @@ function repo(t) {
   };
 }
 
+test("adding the ratchet to a project passes its own lint", (t) => {
+  const r = repo(t);
+  r.write("src/a.ts", "export const a = 1;\n");
+  const base = r.commit("base");
+  for (const name of ["check-comments.mjs", "check-comments.test.mjs"]) {
+    copyFileSync(fileURLToPath(new URL(`./${name}`, import.meta.url)), join(r.root, name));
+  }
+  const result = r.run(["--base", base]);
+  assert.equal(result.status, 0, result.stderr);
+});
+
 test("a change that adds no comments passes", (t) => {
   const r = repo(t);
   r.write("src/a.ts", "// kept\nexport const a = 1;\n");

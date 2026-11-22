@@ -1,13 +1,3 @@
-// Comment ratchet: rejects comments a change adds to JavaScript or TypeScript,
-// while comments already in the base stay until a cleanup removes them.
-// Template from Hive's comment-audit skill; adjust the four constants below.
-//
-//   node check-comments.mjs [--base <rev>]           lint changed files against the base
-//   node check-comments.mjs --inventory              one JSON line per comment
-//   node check-comments.mjs --same-code --base <rev> confirm changed files lost only comments
-//
-// Exit 0 clean, 1 with findings, 2 on any error.
-
 import { execFileSync } from "node:child_process";
 import { lstatSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -15,10 +5,8 @@ import { parseArgs } from "node:util";
 
 const SOURCE_PATTERNS = ["*.js", "*.jsx", "*.mjs", "*.cjs", "*.ts", "*.tsx", "*.mts", "*.cts"];
 
-// Exact paths, or prefixes ending in "/".
 const EXCLUDED = ["node_modules/", "dist/", "build/", "coverage/"];
 
-// Comments that are directives to a tool, not prose. Add the project's own.
 const ALLOWED = [
   /^\/\*!/,
   /@license\b|@preserve\b/,
@@ -34,7 +22,6 @@ const ALLOWED = [
   /^\/\/ workaround: \S+$/,
 ];
 
-// JSDoc type blocks are directives in JavaScript files checked by TypeScript.
 const JSDOC_TYPES = /^\/\*\*[\s\S]*@(type|typedef|param\s*\{|returns?\s*\{|template|satisfies|import)\b/;
 const JS_FILES = /\.(js|jsx|mjs|cjs)$/;
 
@@ -140,7 +127,6 @@ function resolveBase(root, base) {
   }
 }
 
-// Changed source files against the base: [path now, path at the base or null].
 function changedFiles(root, base) {
   const fields = nulSeparated(
     git(root, [
@@ -246,9 +232,6 @@ function walk(node, visit) {
   }
 }
 
-// The code tokens of a file, without comments, without the braces of a JSX
-// expression that held only a comment, and with JSX text merged and its
-// whitespace collapsed, so that removing a comment leaves the list unchanged.
 function codeTokens(parser, file, text) {
   const ast = parseSource(parser, file, text);
   const emptyContainers = [];
