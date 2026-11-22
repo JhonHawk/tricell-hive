@@ -45,7 +45,7 @@ Code never depends on the work material under `_support/` (`workspace/`, `data/`
 
 **Condition:** producing UI review images or recordings.
 
-**Actions:** put images and recordings in `workspace/YYYY-MM-DD-<work>/images/`, and a build's before captures in its `images/before/`. Publish UI captures using [walkthrough](../../hive-core/ui/walkthrough.md); its [readback checks](../../hive-core/ui/viewer-close.md) precede removing the disposable upload inputs, which never include a capture that [Retain evidence](#retain-evidence) keeps. Link current output from the handoff.
+**Actions:** put images and recordings in `workspace/YYYY-MM-DD-<work>/images/`, and a build's before captures in its `images/before/`. Publish UI captures using [walkthrough](../../hive-core/ui/walkthrough.md); removing its disposable upload inputs follows [close the viewer](../../hive-core/ui/viewer-close.md) and never includes a capture that [Retain evidence](#retain-evidence) keeps. Link current output from the handoff.
 
 Keep source plans, user-selected output, unique evidence of work not yet integrated, uncommitted work and anything with uncertain ownership. Keep failed or unconfirmed upload inputs, and all inputs for paused work. Walkthrough pages generated before the standalone fallback was removed are kept as they are, never deleted or rewritten by that removal. Retention does not authorize publication, and nothing expires by age.
 

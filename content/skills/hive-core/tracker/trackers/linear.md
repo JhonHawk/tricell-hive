@@ -1,6 +1,6 @@
 # Linear
 
-Read from [trackers](../trackers.md) for a ticket whose key the `## Hive` assigns to Linear. Use the Linear MCP tools when the host has them, otherwise the Linear CLI or its GraphQL API; read the tool's current description before the first use in a session.
+Read from [trackers](../trackers.md) for a ticket whose key the `## Hive` assigns to Linear. Act in the order [trackers](../trackers.md) sets: the Linear CLI, then the host's Linear MCP tools, then its GraphQL API; the table names the MCP tool of each step. Read the tool's current description before the first use in a session.
 
 | Step | With the MCP tools |
 | --- | --- |

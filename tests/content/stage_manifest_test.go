@@ -94,3 +94,39 @@ func TestStageManifests(t *testing.T) {
 		}
 	}
 }
+
+// packetHoldsLine matches the sentence of a flow's SKILL.md that names the
+// leaves one stage packet holds, such as "read `stage.md` … it holds the
+// leaves a, b, c".
+var packetHoldsLine = regexp.MustCompile("read `(stage(?:-[a-z]+)?)\\.md`[^:]*: it holds (?:the leaves )?([a-z0-9-]+(?:, [a-z0-9-]+)*)(?:, so |\\.)")
+
+// TestPacketHoldsLinesMatchManifests fails when the leaves a SKILL.md says a
+// packet holds differ from that packet's stage.json: a step relies on that
+// list to skip reading a leaf, so a leaf named there but left out of the
+// packet is never read.
+func TestPacketHoldsLinesMatchManifests(t *testing.T) {
+	for _, flow := range stageFlows {
+		manifest := readStageManifest(t, flow)
+		data, err := os.ReadFile(filepath.Join(repoRoot(t), "content", "skills", flow, "SKILL.md"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		seen := map[string]bool{}
+		for _, m := range packetHoldsLine.FindAllStringSubmatch(string(data), -1) {
+			key := m[1]
+			seen[key] = true
+			var want []string
+			for _, member := range manifest[key] {
+				want = append(want, strings.TrimSuffix(filepath.Base(member), ".md"))
+			}
+			if got := strings.Split(m[2], ", "); strings.Join(got, ",") != strings.Join(want, ",") {
+				t.Errorf("%s/SKILL.md says %s.md holds %v, but assets/stage.json lists %v: name exactly the packet's members, in its order", flow, key, got, want)
+			}
+		}
+		for key := range manifest {
+			if !seen[key] {
+				t.Errorf("%s/SKILL.md names no leaves for packet %s.md: add the sentence that says what it holds", flow, key)
+			}
+		}
+	}
+}

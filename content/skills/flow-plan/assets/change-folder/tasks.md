@@ -16,7 +16,7 @@
 
 **Execution:** <main thread, or the role that runs it>
 
-**Test approach:** <tdd · characterization · check, as the Tests section of flow-build defines them; omit for a mechanical change>
+**Test approach:** <tdd · characterization · check, as the tests leaf `hive-core/build/tests.md` defines them; omit for a mechanical change>
 
 **Changes:** <what changes and what deliberately does not>
 

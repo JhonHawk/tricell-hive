@@ -6,8 +6,8 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the work changes infra
 
 **Specific to infrastructure and pipelines**
 - Measure each fact about the outside system before planning, with read-only reads ([external facts](../../hive-core/plan/external-facts.md)), and plan each effect as [effects round](../../hive-core/plan/external-effects.md) sets: spending real money or paid quota, destroying or replacing infrastructure and changing shared or remote resources each need an answer before they run.
-- Reproduce the repository's CI locally before the push and read each exit status ([checks](../../hive-core/build/checks.md)). A pipeline change shows its real effect only when the path it changes runs, so name that run as the place a criterion is observed.
-- A change that touches permissions, process execution, secrets or what a job can read goes through [security boundaries](../../hive-core/build/security-boundaries.md). Secrets stay in the project's untracked secret location.
+- A pipeline change shows its real effect only when the path it changes runs, so name that run as the place a criterion is observed; the local CI run before the push is [local CI](../../hive-core/build/checks.md#local-ci).
+- A change that touches a boundary [security boundaries](../../hive-core/build/security-boundaries.md) lists, such as what a job can read, goes through it. Secrets stay in the project's untracked secret location.
 - A new package or tool from a registry passes the package check of the global guidance's «Scope and authorization» before it is added.
 - A check that is weakened, skipped or excluded to make a pipeline green needs its justification: [weakened checks](../../hive-core/review/suppression-review.md).
 - Environment branches change only through the declared path ([promotion path](../../hive-core/git/promotion-path.md)); each stop, push, pull request and merge happens under the delivery mode in force, and promotion follows `flow-deploy` with its authorization per environment.

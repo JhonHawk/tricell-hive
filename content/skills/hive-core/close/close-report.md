@@ -15,7 +15,7 @@ Report the whole work item in one message, each part only when it has content:
 - **Principles:** when `flow-build` handed it over in this work item, or the checkpoint holds its `Principles:` line, one line naming each code principle read that changed a decision, or none; otherwise leave the part out.
 - **Findings:** the defects not fixed, as [Findings](#findings) sets.
 - **Candidates:** the work's repetitions, as [Candidates](#candidates) sets.
-- **Next:** what remains, with who owns it, and what comes next, such as the merge left to the user, review bots or base CI still pending, the pending archives with the hygiene reply, and each promotion and closed `sessions/` folder with its `project-layout` command.
+- **Next:** what remains, with who owns it, and what comes next, such as the merge left to the user, review bots or base CI still pending, the pending archives with the hygiene reply, and what [support material](../../flow-close/references/support-material.md) sets to name there.
 
 When the user asks to keep or share this report, or it exceeds what fits on one screen, offer a `create-report` page as one reply of the close's reply block in [report-endings](../messages/report-endings.md#the-close-footer).
 
@@ -46,7 +46,7 @@ Recommend fixing now or a ticket as the ticket rule of [scope changes](../plan/s
 
 ## Findings
 
-A finding is a defect the work found but did not fix: a review finding below P1, a UI defect that was already there, a test that already failed or fails intermittently (keep its error output), or anything else noticed on the way. Every finding carries one priority by its observable impact, whatever scale its source used: P0 blocks the release, an operation or a core flow for every input; P1 is blocking, as [review findings](../review/review-findings.md) defines it, and must be fixed before merge; P2 should be fixed but does not block; P3 is minor. A finding of P2 or higher with a concrete failure scenario is proposed; the rest get one line each in the report. P2 findings that share an area or a cause are proposed as one group that lists each member with its evidence; findings of P1 or higher are proposed one by one. Never open a ticket without the user's answer, which unattended delegation gives at its step 5.
+A finding is a defect the work found but did not fix: a review finding below P1, a UI defect that was already there, a test that already failed or fails intermittently (keep its error output), or anything else noticed on the way. Every finding carries one priority by its observable impact, whatever scale its source used: P0 blocks the release, an operation or a core flow for every input; P1 is blocking, one that breaks a criterion, a contract, data, security or the build, and must be fixed before merge; P2 should be fixed but does not block; P3 is minor. A finding of P2 or higher with a concrete failure scenario is proposed; the rest get one line each in the report. P2 findings that share an area or a cause are proposed as one group that lists each member with its evidence; findings of P1 or higher are proposed one by one. Never open a ticket without the user's answer, which unattended delegation gives at its step 5.
 
 ## Candidates
 

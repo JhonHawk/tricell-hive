@@ -7,7 +7,7 @@ Each row below ends a message differently. Every message that closes work ends w
 | Way of ending | It ends with |
 | --- | --- |
 | Analysis, explanation, review or diagnosis the user asked for without asking for a change | Its findings, then [the reply block](#the-reply-block). It never recommends a flow the user did not ask for, and when the findings confirm a defect in the current project, one of its replies fixes it. |
-| Assessment of a ticket the user picked for research, such as "research COM-918" | When the findings confirm work the ticket asks for, as [hive-mode](../../hive-mode/SKILL.md) step 5 sets; otherwise as the first row. |
+| Assessment of a ticket the user picked for research, such as "research COM-918" | When the findings confirm work the ticket asks for, [the next-step block](#the-next-step-block) toward `flow-plan`, or `flow-build` for a small understood change ([proportionality](../plan/proportionality.md)), unless the design stage of [hive-mode](../../hive-mode/SKILL.md) sends it to its own block; otherwise as the first row. |
 | Hand-over to another flow | [The next-step block](#the-next-step-block). |
 | Close with the footer (the first row of [close modes](../close/close-modes.md)) | The report, then [the close footer](#the-close-footer), then the waiting line of [questions](questions.md) «Format». |
 | Close without the footer (the other rows of [close modes](../close/close-modes.md)) | The report, as the row of [close report](../close/close-report.md#variants) that fits, with no footer and no command. |
@@ -87,7 +87,7 @@ Five continuations need no reply and no block; the exceptions to «only the user
 - Research into create-design, for a request whose deliverable is the design, as [hive-mode](../../hive-mode/SKILL.md) step 0 sets.
 - Research into [create-prd](../../create-prd/SKILL.md), for a request whose deliverable is a requirement document, as [hive-mode](../../hive-mode/SKILL.md) step 0 sets.
 - Build into verify, as [flow-build](../../flow-build/SKILL.md) step 5 sets.
-- Plan into build, when the user's own message asked beforehand to build after the plan without stopping, or [unattended delegation](../../unattended-delegation/SKILL.md) is active and its objective reaches the build, as [plan handoff](../../flow-plan/references/plan-handoff.md) sets.
+- Plan into build, after the plan's summary, when the user's own message asked beforehand to build after the plan without stopping, or [unattended delegation](../../unattended-delegation/SKILL.md) is active and its objective reaches the build.
 
 Typing a flow's command loads that skill whole for that flow, and a flow or skill entered by continuation is read whole before its first step.
 

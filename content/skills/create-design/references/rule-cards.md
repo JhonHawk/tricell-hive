@@ -1,6 +1,6 @@
 # Rule cards
 
-Read at step 5 of [create-design](../SKILL.md), once the first review is reconciled, to draw the rule cards; at its step 7, when the user answers a rule; and from any later flow when a rule a card shows changes or a decision contradicts an approved frame. [Business rules](../../hive-core/business/business-rules.md) defines a business rule, the line that records it and its statuses.
+Read at step 5 of [create-design](../SKILL.md), once the first review is reconciled, to draw the rule cards; at its step 7, when the user answers a rule; and from any later flow when a rule a card shows changes or a decision contradicts an approved frame. [Business rules](../../hive-core/business/business-rules.md) defines a business rule; [business record](../../hive-core/business/business-record.md) holds the line that records it and its statuses.
 
 A rule card is an annotation beside a frame that lists the business rules shaping that screen which the frame does not say by itself, so a reader of the design file finds them without the ticket or the conversation. It is not part of the interface.
 
@@ -26,7 +26,7 @@ Draw them after the first review's findings are fixed and its unsettled rules re
 - Put on a card no row that repeats the frame's text and no rule of another screen.
 - Add one `card: <screen> · <node>` line per card to the example's record, where those lines stay.
 
-Then the one follow-up review of step 5 covers the cards together with the corrected frames, and runs for the cards alone when no frame was corrected; its brief gives each card's node, as [Reviewer brief](../../hive-core/delegation/reviewer-brief.md) sets. Fix what holds. The cards get no further review.
+Then the one follow-up review of step 5 covers the cards together with the corrected frames, and runs for the cards alone when no frame was corrected; its brief gives each card's node, as [frame review brief](frame-review-brief.md) sets. Fix what holds. The cards get no further review.
 
 ## When the user answers a rule
 

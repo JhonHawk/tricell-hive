@@ -8,7 +8,7 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the work changes store
 - Before planning, read and follow [stored data](../../hive-core/build/stored-data.md).
 - List and measure each external fact the plan rests on, with read-only reads, before writing tasks: [external facts](../../hive-core/plan/external-facts.md).
 - A write to shared or production data is an effect: plan it as the [effects round](../../hive-core/plan/external-effects.md) sets, which keeps a write to data the task did not create in a non-local database out of any class.
-- Checks that sign in or use records the environment holds read the account index first: [test accounts](../../hive-core/local/test-accounts.md). In QA and deployed environments use what exists; create nothing without asking.
+- Checks that sign in or use records the environment holds read the account index first: [test accounts](../../hive-core/local/test-accounts.md).
 - A dump or export the task made is kept as the global guidance's «Preservation» and [close modes](../../hive-core/close/close-modes.md) set.
 - Delivery follows the mode in force ([delivery questions](../../hive-core/git/delivery-ask.md)); promotion follows `flow-deploy`.
 

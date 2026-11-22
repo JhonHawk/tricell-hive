@@ -7,11 +7,11 @@ Hive has two security tools, and neither starts on its own. One reviews a change
 
 ## Reviewing a change
 
-The [hive-review-security](https://github.com/JhonHawk/tricell-hive/blob/master/content/agents/review/hive-review-security.md) role is an independent reviewer that reads and tests but changes nothing. It looks at the places where a change meets a security boundary: authentication, authorization, untrusted input, command or process execution, secrets, cryptography, dependencies and data exposure. It traces a suspected problem from its source to where it does harm, runs the scanners your project already has, and reports a secret by its type and location, never its value.
+The [hive-review-security](https://github.com/JhonHawk/tricell-hive/blob/master/content/agents/review/hive-review-security.md) role is an independent reviewer that reads and tests but changes nothing. It looks at the places where a change meets a security boundary, the eight topics that [security boundaries](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/build/security-boundaries.md) lists. It traces a suspected problem from its source to where it does harm, runs the scanners your project already has, and reports a secret by its type and location, never its value.
 
 ### When it runs
 
-When you ask for it, or accept it when the agent recommends it for a change that touches authentication, authorization, untrusted input, process execution, secrets, cryptography, dependencies or data exposure. The agent does not start it without your answer, and your answer to the code review question does not count as one. Once you accept, [Verify](/flows/verify/) runs it on the candidate at the start of verification, before you are asked to validate. You can also ask for it on a change that is already merged.
+When you ask for it, or accept it when the agent recommends it for a change that touches one of those topics. The agent does not start it without your answer, and your answer to the code review question does not count as one. Once you accept, [Verify](/flows/verify/) runs it on the candidate at the start of verification, before you are asked to validate. You can also ask for it on a change that is already merged.
 
 Example requests:
 

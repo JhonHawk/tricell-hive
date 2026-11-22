@@ -9,7 +9,7 @@ Each work item has one rule record, a list of lines in this format:
 Write the rule in plain words a reader outside the conversation understands, never as a decision ID alone. The status is one of:
 
 - `proposed`: the user has not decided it yet.
-- `assumption`: adopted without asking, which is allowed only when none of the criteria a–f of [questions](../messages/questions.md) «What to ask» holds; a reply that accepts the list leaves it `assumption`.
+- `assumption`: adopted without asking, as [questions](../messages/questions.md) «Decide and list» sets.
 - `scope`: it changes the scope, as step 5 of [create-design](../../create-design/SKILL.md) sets.
 - `approved <date>: <answer>`: the user decided it.
 - `stated: <source>`: a source already says it. Only an example's record holds this status, for its rule card, as [rule cards](../../create-design/references/rule-cards.md) sets; the plan does not copy these lines.

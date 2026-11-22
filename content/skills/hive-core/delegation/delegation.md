@@ -15,7 +15,7 @@ A child does the work for the first of these reasons that applies; when none app
    - in any other flow, a check or collection that needs more than 5 large reads.
 
    A large read is defined in the global guidance's «Proportionality». Work below these limits stays in the main thread unless reason 3 applies, and so does a task whose writes overlap files another task in progress writes. Drawing the frames of [create-design](../../create-design/SKILL.md) stays in the main thread whatever its size, as its step 5 sets; their review goes to a child under reason 1.
-3. **Cross-check: the external facts of a plan.** When a plan's approach depends on two or more external systems, one read-only child per external system measures that system's facts, whatever their size, as [outside the repository](../plan/external-facts.md) sets, so the main thread checks each returned fact instead of producing it.
+3. **Cross-check: the external facts of a plan.** Children measure them, whatever their size, as [external facts](../plan/external-facts.md) sets, so the main thread checks each returned fact instead of producing it.
 
 ## When children run at the same time
 

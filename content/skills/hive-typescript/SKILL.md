@@ -18,6 +18,6 @@ Applies when you read or edit `.ts` or `.tsx` files. Start from [type system dis
 8. **Parse once, at the entry.** Follow [boundary discipline](../hive-core/principles/boundary-discipline.md); `Record<string, unknown>` stops where the data enters.
 9. **Derive before declaring.** Use `Pick`, `Omit`, `Parameters`, `ReturnType`, `Awaited` or `typeof` before writing a new interface for a shape that already exists.
 10. **Object arguments.** Pass an object when a function takes several arguments of similar type, so the call names them. Skip this in hot paths such as per-frame rendering or parsers.
-11. **Tests and logs.** Run real code in tests and double only what crosses the system boundary, as [Tests](../hive-core/build/tests.md) sets. Log through the project's structured logger with an identifier that lets you trace the case; leave no `console.log` in shipped code.
+11. **Tests and logs.** Write tests as [Tests](../hive-core/build/tests.md) sets. Log through the project's structured logger with an identifier that lets you trace the case; leave no `console.log` in shipped code.
 
 A lint or type-checker suppression (`@ts-ignore`, `@ts-expect-error`, `eslint-disable`) is a defect to resolve, not a tool: read [suppression review](../hive-core/review/suppression-review.md) before adding one.

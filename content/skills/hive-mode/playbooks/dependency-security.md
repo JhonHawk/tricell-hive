@@ -8,7 +8,7 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the user asks whether 
 
 Adding or updating a package or tool in a project is not this sweep: before it, run the package check of the global guidance's «Scope and authorization» (`check_package.py` of [flow-build](../../flow-build/SKILL.md)), then plan it as a [feature](feature.md) or [infra-ci](infra-ci.md) change. Reviewing a change's security boundaries is the `hive-review-security` role's, recommended as [delivery questions](../../hive-core/git/delivery-ask.md) sets.
 
-Answer "does this advisory affect us, and where?" with evidence for each repository. The sweep is read-only: it changes no repository, dependency, tracker or deployment, except for the entries of the current project's `HIVE.local.md` and of the machine file that [local write](../../hive-core/local/local-write.md) authorizes. Fixes run afterward, in each project's own session.
+Answer "does this advisory affect us, and where?" with evidence for each repository. The sweep is read-only: it changes no repository, dependency, tracker or deployment, except for the writes [local write](../../hive-core/local/local-write.md) authorizes. Fixes run afterward, in each project's own session.
 
 ## Frame the sweep
 
@@ -42,4 +42,4 @@ State the coverage: repositories and branches read, sources consulted, and what 
 
 ## After the report
 
-The fixes belong to each project's own session, under the global rule on changing only the current project: report, for each affected project, the fixed version or mitigation it needs as a finding for that session. When the current project is affected, end with the next-step block that [hive-mode step 5](../SKILL.md) sets, with the fix as one of its alternatives.
+The fixes belong to each project's own session, under the global rule on changing only the current project: report, for each affected project, the fixed version or mitigation it needs as a finding for that session. When the current project is affected, end with the reply block of the analysis row of [report endings](../../hive-core/messages/report-endings.md), with the fix as one of its replies.

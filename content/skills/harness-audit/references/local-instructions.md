@@ -13,7 +13,7 @@ Work only in the current project and the machine file, as [local write](../../hi
 In the main thread, read:
 
 - each `HIVE.local.md` that [local write](../../hive-core/local/local-write.md) places for this session;
-- the project's tracked guidance on running it locally: the `AGENTS.md` files from the working directory up to the repository or workspace root, and the README's setup section. A fact found there holds for every clone and is never written to the file;
+- the project's tracked guidance on running it locally: the `AGENTS.md` files from the working directory up to the repository or workspace root, and the README's setup section. A fact found there is not recorded, as [local record](../../hive-core/local/local-record.md) sets;
 - `ACCOUNTS.md`, only to point to it: accounts stay there;
 - the names of the files in the secret location, never their contents, as the global guidance's «Secrets» sets;
 - the host's own memory and local notes for this project, such as Claude Code's project memory folder and `CLAUDE.local.md`;
@@ -34,7 +34,7 @@ It reads the top-level Claude Code and Codex sessions of the last 30 days starte
 Sort every candidate into one of:
 
 - **record:** it passes the test [local record](../../hive-core/local/local-record.md) sets. The `missing` candidates, the existing cloud profiles with their regions, and the installed tools go to the machine file; the `commands`, the `ports` and which profile serves an environment of the project go to the file their `where` names. Each becomes one entry as [local record](../../hive-core/local/local-record.md) defines it: a `commands` candidate is a line that says what it starts or does, with the command in its detail when it does not fit the line;
-- **every clone:** it holds for any checkout, such as a test command already in the tracked guidance; it goes to step 7's report, never into a file;
+- **every clone:** a fact [local record](../../hive-core/local/local-record.md) keeps out of the files for holding in any checkout; it goes to step 7's report;
 - **discard:** a `missing` program that the project's own dependencies provide, such as one in `node_modules/.bin` or the project's package manifest, since it was missing only until they were installed; a stack, branch, ticket or path that no longer exists, a duplicate, a fact a later session contradicts, a command a single session used for one task, or anything [local record](../../hive-core/local/local-record.md) excludes.
 
 In curate mode, the existing entries are not sorted into those classes: give each one proposal instead. **Keep** it as it is; **split** it, with the line that stays and the detail that moves to persistent memory, when it is longer than its line or holds steps; **relocate** it, with its destination, when it belongs in another of the files; or **retire** it, when [local record](../../hive-core/local/local-record.md) excludes it or it falls in the discard class above, such as a duplicate or an entry marked stale. An instruction of the user found among the entries is split too: the one line that says what it constrains, and the instruction saved as a decision in the file's project, or in `hive-machine` for the machine file.

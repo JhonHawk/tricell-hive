@@ -9,7 +9,7 @@ Read before writing, changing or deleting a test, or when a check fails. Also re
 - A defect you fix: one regression test, in the test that owns the broken behavior as point 2 of the filter below sets, seen failing on the code before the fix. Do not repeat it at every layer the defect crosses. When the failure cannot be reproduced before the fix, say so.
 - Consequential logic: permissions, money, data integrity, or a public or persisted contract.
 
-Verify any other behavior change with a direct check, or by extending its owning test (`check`). A refactor that keeps behavior uses the existing tests, or first a test that pins the current behavior (`characterization`). A mechanical change adds no test.
+Verify any other behavior change with a direct check, or by extending its owning test (`check`). A [refactor](tests/refactor.md) that keeps behavior uses the existing tests, or first a test that pins the current behavior (`characterization`). A mechanical change adds no test.
 
 **Before writing a test**, apply this filter; do not write a test that fails any point:
 
