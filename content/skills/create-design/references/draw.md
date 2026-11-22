@@ -7,7 +7,7 @@ Read at step 5 of [create-design](../SKILL.md), before the first drawing. This f
 Draw each frame at the width its platform sets:
 
 - **An app that runs only on mobile** is drawn once, at 440 px, whatever width the file's existing frames use, with no second frame. A native app runs only on mobile, and so does an app whose shell in the code and in the sibling frames is a phone shell with no desktop layout, even when it has a viewport meta tag or breakpoints.
-- **A web app** is drawn at one desktop width, the one the screen's existing frames in that file use, otherwise 1440 px. When the screen is served on mobile, which a responsive layout shows (a breakpoint or a viewport meta tag, as [UI verification](../../hive-core/ui/ui-verification.md) reads it), it also gets a 440 px frame.
+- **A web app** is drawn at one desktop width, the one the screen's existing frames in that file use, otherwise 1440 px. When the screen is served on mobile, as [UI verification](../../hive-core/ui/ui-verification.md) reads it, it also gets a 440 px frame.
 
 Read the platform from what step 3 gathers. With neither code nor sibling frames, the platform the request or the ticket names decides; with none, draw it as a web app with its 440 px frame and say so in step 6's message. The main width of a screen is 440 px for an app that runs only on mobile and its desktop width for a web app.
 

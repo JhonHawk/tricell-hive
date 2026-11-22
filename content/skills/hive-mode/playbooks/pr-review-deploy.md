@@ -9,7 +9,7 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the work is to review 
 - Inventory added suppressions, skipped tests and exclusions that weaken checks ([weakened checks](../../hive-core/review/suppression-review.md)).
 - Read the pull request's checks and reviews once and answer each comment ([PR reviews](../../hive-core/git/pr-reviews.md)); the merge waits on the CI result, the current-base check and any human reviewer ([merge gate](../../hive-core/git/merge-gate.md)).
 - Merging a pull request this work did not write needs the user's instruction in every case; the delivery mode in force covers only the fixes the work commits itself, and this work never merges its own pull request when that mode stops it open for the user.
-- Name commits on the branch that are not this work's before the validation or the push ([foreign commits](../../hive-core/git/foreign-commits.md)).
+- Commits that are not this work's are named and asked about when [foreign commits](../../hive-core/git/foreign-commits.md) says.
 - Promotion follows [flow-deploy](../../flow-deploy/SKILL.md): its authorization per environment and the served-identity checks. Environment branches change only through the declared path ([promotion path](../../hive-core/git/promotion-path.md)).
 - A check that signs in reads the account index first ([test accounts](../../hive-core/local/test-accounts.md)).
 

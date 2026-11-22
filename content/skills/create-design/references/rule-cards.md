@@ -9,7 +9,7 @@ A rule card is an annotation beside a frame that lists the business rules shapin
 For each frame the work drew, take:
 
 - each `rule:` line of the example's record whose screen is that frame's, with status `proposed`, `assumption`, `approved` or `stated`;
-- each rule a source states, in the request, the ticket or the documentation the work read, that shapes that screen and that the record does not already hold.
+- each rule that is [stated](../../hive-core/business/business-rules.md#what-a-business-rule-is) and shapes that screen and that the record does not already hold.
 
 Keep a rule only when its condition or its consequence is not written in the frame's visible text: leave out a rule that a label, a helper text or a message of the frame already says in full. Add each stated rule you keep to the record only when that screen has no line for it, as `rule: <the rule> · screen <name> · stated: <source> · found by drawer`.
 

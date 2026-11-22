@@ -31,7 +31,7 @@ Before step 1, open [investigate](playbooks/investigate.md) when the user asks t
 
    When this step ends with a route to `flow-plan`, `create-design` or `flow-build`, or continues into `flow-build`, write one line with the scope estimated from the reads, before the next-step block when there is one, so the user can narrow it: about how many files and which areas (for a chosen ticket, its complexity from «Assess a chosen ticket»), the playbook, and the stages and checks the guidance sends such work through, such as plan, per-task verification, a review, CI, and a promotion only when the request asks for one. Mark it an estimate, such as "Scope (estimate): ~42 files (contracts, runtime, tests, manual) · plan + per-task verification + review + UX review · PR and CI". A reply that narrows the scope without naming a flow gets the revised line and the same ending again.
 
-   **A screen to design.** For a change the user asked for or a ticket they picked that adds a screen or recomposes one, decide whether to offer [create-design](../create-design/SKILL.md) as [design stage](../hive-core/ui/design-stage.md) sets, and name that stage in the scope line when you offer it.
+   **A screen to design.** Decide whether to offer [create-design](../create-design/SKILL.md) as [design stage](../hive-core/ui/design-stage.md) sets.
 
    Creating a ticket is a single action, offered as a reply or asked, never part of a route; once answered, it follows [create-issue](../create-issue/SKILL.md). The user's reply authorizes only the flow it names, or the single action it answers.
 

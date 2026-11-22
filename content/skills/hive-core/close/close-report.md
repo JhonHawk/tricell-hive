@@ -8,7 +8,7 @@ Report the whole work item in one message, each part only when it has content:
 
 - **Integrated:** what changed and where: the pull request, the commits, the ticket's state.
 - **Resolved:** each acceptance criterion with how it was shown, the corrections the user asked for, and the defect's proof the [verification floor](../build/verification-floor.md) sets.
-- **Try it:** the block the verification floor sets, when the change can be seen or run.
+- **Try it:** the block the [verification floor](../build/verification-floor.md) sets.
 - **Omitted:** each check that was skipped or could not run, with its reason, including the CI-only jobs.
 - **Repaired:** the local environment repairs made, such as reinstalled dependencies or seeded data.
 - **Support material:** each item with its path and the action applied, or listed as pending, as [support material](../../flow-close/references/support-material.md) sets.
@@ -27,7 +27,7 @@ When the user asks to keep or share this report, or it exceeds what fits on one 
 | --- | --- | --- |
 | Close at the completion point (merge done) | every part with content | in Next, the base CI still running, as [merge gate](../git/merge-gate.md) sets |
 | Pull request left open in `ready` or waiting on a reviewer | every part | in Integrated, the head commit, the base commit its current-base check passed on and the CI result; in Next, the pending merge and on whom |
-| Deployment (a cleanup close that `flow-deploy` calls) | every part | the run named in step 1 of `flow-deploy`; per environment the identity served, the health and the functional acceptance, each as met, failed, blocked or "not run"; the triggers decided; the CI failures from before that step 5 of `flow-deploy` let pass; the tickets waiting on a check |
+| Deployment (a cleanup close that `flow-deploy` calls) | every part | the run named in step 1 of `flow-deploy`; per environment the identity served, the health and the functional acceptance, each as met, failed, blocked or "not run"; the triggers decided; the CI failures from before that step 5 of `flow-deploy` let pass; each ticket that stayed out of its `Completion` state, or moved without a walk, as [ticket state](../tracker/ticket-state.md) sets |
 | `hold` | what is pending, the defect's proof, Try it and Principles | none |
 | Pause outside `hold` | as `hold` | the commit of the change folder |
 | Hygiene request or session's end after the work item's close | what ran of the pending items and the batch, and what stays pending | none |

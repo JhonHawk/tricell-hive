@@ -49,7 +49,7 @@ Default mode and the model waits for the answer; the TUI auto-resolves an
 untouched card with empty answers after 60 s hidden plus 60 s of visible
 countdown, and any key pressed in the card cancels the countdown (observed in
 the `rust-v0.163.0` sources). The host's current instructions govern what follows
-an unanswered card; see [Questions and routes](../../../content/guidance/global.md#questions-and-routes).
+an unanswered card; see [unanswered card](../../../content/skills/hive-core/messages/questions/unanswered.md).
 Codex warns that under-development features may change;
 `codex features disable default_mode_request_user_input` turns it off.
 Installations made before this capability enable it by hand with the same

@@ -21,7 +21,7 @@ This applies when a written plan changes during planning or the build: a decisio
 
 1. Edit in the same pass every place in the folder that states what changed: the proposal's sections and criteria, `design.md`, each task's text, `Closes:`, test approach and verification, rerunning each changed verification command as [flow-plan](../../flow-plan/SKILL.md) step 3 sets, and the delta. Put `**Replaces:** <old IDs>` on the new decision's or criterion's own line; keep a dropped criterion's line and put `**Retired:** <reason>` on that same line; never delete the old line. Both markers stay English. A decision that adds, replaces or cancels a business rule also updates its record ([business rules](../business/business-rules.md)).
 2. Reopen each `[x]` task it invalidates.
-3. Run `python3 <flow-plan-dir>/scripts/check_change.py <change-folder>` ([script](../../flow-plan/scripts/check_change.py)): fix each line it prints until it exits 0.
+3. Run `python3 -I <flow-plan-dir>/scripts/check_change.py <change-folder>` ([script](../../flow-plan/scripts/check_change.py)): fix each line it prints until it exits 0.
 4. When the revision changes a criterion or the delta, have the plan's reviewers reread the revised folder as [reviewer brief](../delegation/reviewer-brief.md) sets: one round per revision. A surviving gap goes to the user as a decision.
 5. Add one line to the progress section with the revision, its reason and what it invalidated, and tell the user in a line.
 

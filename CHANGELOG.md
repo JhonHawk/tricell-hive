@@ -235,6 +235,17 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Outside its home, a rule is cited only by its moment and a link, anchored to
+  the exact section when needed, never restated. About 50 partial restatements in
+  the global guidance, skills, roles and rule leaves became such citations, and the
+  copies that disagreed with their home now follow it. The global guidance keeps
+  one invariant line for questions and routes and groups the «Rule leaves» index
+  under one heading per domain, with the verify-current-state principle listed.
+- A commit the work did not make that appears after its last push, such as a
+  bot's autofix, is named and asked about before the merge or the `ready` stop.
+- With a `Completion` key, a ticket moves after a deployment only when the
+  functional walk observed its criteria; without a walk it moves and the report
+  names it as not walked.
 - The rule leaves of `hive-core` live in one folder per domain (`messages`,
   `git`, `plan`, `build`, `delegation`, `ui`, `review`, `business`, `close`,
   `local`, `tracker`), in place of the single `references/` folder, and the
