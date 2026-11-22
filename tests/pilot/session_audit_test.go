@@ -411,6 +411,13 @@ func TestAuditNewCriteria(t *testing.T) {
 	cases := []newCriterionCase{
 		{"round codex title with a middle dot", "codex", round, []string{round, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
 		{"format codex title with a middle dot", "codex", format, []string{format, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
+		{"round codex numbered questions with starred options", "codex", round, []string{round, "codex-rollout-numbered-fail.jsonl"}, auditOptions{}, "fail"},
+		{"format codex numbered questions without Situation", "codex", format, []string{format, "codex-rollout-numbered-fail.jsonl"}, auditOptions{}, "fail"},
+		{"review codex numbered review question with one option", "codex", review, []string{review, "codex-rollout-numbered-one-option-fail.jsonl"}, auditOptions{}, "fail"},
+		{"round codex analysis listing numbered questions", "codex", round, []string{round, "codex-rollout-numbered-analysis-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"format codex analysis listing numbered questions", "codex", format, []string{round, "codex-rollout-numbered-analysis-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"review codex analysis listing numbered questions", "codex", review, []string{round, "codex-rollout-numbered-analysis-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"prose choice codex numbered bold question without letters", "codex", prose, []string{prose, "codex-rollout-numbered-prose-fail.jsonl"}, auditOptions{}, "fail"},
 		{"prose choice codex without the card", "codex", prose, []string{prose, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
 		{"prose choice codex asked through the card", "codex", prose, []string{prose, "codex-rollout-card-pass.jsonl"}, auditOptions{}, "pass"},
 		{"prose choice wrapped over two lines", "codex", prose, []string{prose, "codex-rollout-wrapped-fail.jsonl"}, auditOptions{}, "fail"},

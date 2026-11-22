@@ -51,12 +51,18 @@ func proseChoices(text string) (choices []string, session bool) {
 // text_round_without_card judges the round, so its title is skipped.
 func proseQuestions(text string) []string {
 	var out []string
+	titles := roundTitles(text)
+	offset := 0
 	for _, line := range strings.Split(text, "\n") {
-		if roundTitleLine.MatchString(line) {
+		start := offset
+		offset += len(line) + 1
+		if isRoundTitleLine(titles, start, start+len(line)) {
 			continue
 		}
 		for _, s := range strings.Split(sentenceEnd.ReplaceAllString(line, "$1\n"), "\n") {
-			s = strings.TrimSpace(s)
+			// A question in bold or italics, such as "**¿interactive o hold?**",
+			// ends in its markup.
+			s = strings.TrimRight(strings.TrimSpace(s), "*_")
 			if !strings.HasSuffix(s, "?") {
 				continue
 			}

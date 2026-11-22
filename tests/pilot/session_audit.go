@@ -1607,8 +1607,14 @@ var (
 	// "?", so a report heading such as "**Review** — Completed" is not a round.
 	// Only a D<n> title takes the middle dot: the context line of a message,
 	// "**Review · ticket · is it done?**", uses it too.
-	roundTitleLine  = regexp.MustCompile(`(?mi)^\s*[#>*\s]*(?:D\d+\s*[—–·-]|(?:` + sessionHeaderNames + `)\**\s*[—–-][^\n]*\?)`)
-	roundOptionStar = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\s*[-—–·]\s*\**\s*\(★\)`)
+	roundTitleLine = regexp.MustCompile(`(?mi)^\s*[#>*\s]*(?:D\d+\s*[—–·-]|(?:` + sessionHeaderNames + `)\**\s*[—–-][^\n]*\?)`)
+	// numberedTitleLine is a numbered question, such as "**1. ¿Dónde
+	// trabajamos?**". It is a round's title only when a starred option follows
+	// it, as roundTitles checks, since an analysis may list numbered questions.
+	numberedTitleLine = regexp.MustCompile(`(?m)^\s*[#>*\s]*\d+[.)]\s+[^\n]*\?[^\n]*$`)
+	// The star may follow the letter with or without a separator: "A - (★)" or
+	// "- **A (★) · …".
+	roundOptionStar = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\s*(?:[-—–·]\s*\**\s*)?\(★\)`)
 	// grokNoUser is the result Grok gives a question when no user can answer.
 	grokNoUser = regexp.MustCompile(`(?i)^\s*no user is available`)
 	// claudeRejected matches the tool errors that mean the user turned the card
@@ -1678,7 +1684,52 @@ func tableRounds(text string) []string {
 }
 
 func isTextRound(text string) bool {
-	return roundTitleLine.MatchString(text) && roundOptionStar.MatchString(text) || len(tableRounds(text)) > 0
+	return len(roundTitles(text)) > 0 && roundOptionStar.MatchString(text) || len(tableRounds(text)) > 0
+}
+
+// roundTitles returns the spans of a message's round titles in order: each
+// line roundTitleLine matches, and each numbered question that a starred option
+// line follows before the next title of either kind.
+func roundTitles(text string) [][]int {
+	type title struct {
+		span  []int
+		gated bool
+	}
+	var all []title
+	fixedAt := map[int]bool{}
+	for _, span := range roundTitleLine.FindAllStringIndex(text, -1) {
+		all = append(all, title{span: span})
+		fixedAt[span[0]] = true
+	}
+	for _, span := range numberedTitleLine.FindAllStringIndex(text, -1) {
+		if !fixedAt[span[0]] {
+			all = append(all, title{span: span, gated: true})
+		}
+	}
+	sort.Slice(all, func(i, j int) bool { return all[i].span[0] < all[j].span[0] })
+	var titles [][]int
+	for i, t := range all {
+		end := len(text)
+		if i+1 < len(all) {
+			end = all[i+1].span[0]
+		}
+		if !t.gated || roundOptionStar.MatchString(text[t.span[1]:end]) {
+			titles = append(titles, t.span)
+		}
+	}
+	return titles
+}
+
+// isRoundTitleLine reports whether the line from start to end of text holds a
+// round title. A title's match may begin on a blank line above it, since its
+// leading \s* crosses newlines, so the line is the one its last byte is on.
+func isRoundTitleLine(titles [][]int, start, end int) bool {
+	for _, t := range titles {
+		if last := t[1] - 1; last >= start && last < end {
+			return true
+		}
+	}
+	return false
 }
 
 // emptyCardResult reports whether a native question result is a card that
@@ -1990,7 +2041,7 @@ func auditCriteria(s auditSession, base string) []criterionAssessment {
 
 var (
 	// The title names a review; the options decide whether it picks a mechanism.
-	reviewQuestionTitle = regexp.MustCompile(`(?i)\brevisi(?:[oó]n|ones)\b|\breview(?:s|ers?)?\b`)
+	reviewQuestionTitle = regexp.MustCompile(`(?i)\brevisi(?:[oó]n|ones)\b|\breview(?:s|ers?)?\b|\brevis(?:amos|ar) el c[oó]digo\b`)
 	// A decision about a review's findings is not the question that picks it.
 	reviewFindingsTitle = regexp.MustCompile(`(?i)hallazgo|finding`)
 	nativeReviewOption  = regexp.MustCompile(`(?i)/review\b|codex review|revisi[oó]n nativa|native review|\bnativ[ae]\s*:`)
@@ -2000,7 +2051,7 @@ var (
 	// optionLine is a decision's option line written as text, such as
 	// "A - (★) Accept" or "- **B · Keep**"; its Situation, "If you choose it" and
 	// recommendation lines are not options.
-	optionLine = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\**\s*[-—–·].*$`)
+	optionLine = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\**\s*(?:[-—–·]|\(★\)).*$`)
 )
 
 // reviewQuestionNativeOption checks, on Codex, that the code review question
@@ -2026,7 +2077,7 @@ func reviewQuestionNativeOption(s auditSession) criterionAssessment {
 				named++
 			}
 		}
-		if !reviewQuestionTitle.MatchString(title) || reviewFindingsTitle.MatchString(title) || named < 2 {
+		if !reviewQuestionTitle.MatchString(title) || reviewFindingsTitle.MatchString(title) || named < 1 {
 			return
 		}
 		if nativeReviewOption.MatchString(names) {
@@ -2079,7 +2130,7 @@ func reviewQuestionNativeOption(s auditSession) criterionAssessment {
 // decisionBlocks splits a message into its decisions, each from its title line
 // (`D<n> — …`) to the next title line or the end.
 func decisionBlocks(text string) []string {
-	idx := roundTitleLine.FindAllStringIndex(text, -1)
+	idx := roundTitles(text)
 	var blocks []string
 	for i, loc := range idx {
 		end := len(text)
