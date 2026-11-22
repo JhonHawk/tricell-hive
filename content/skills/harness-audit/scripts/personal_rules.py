@@ -77,7 +77,7 @@ def shared_targets(env):
     codex_home = _home_dir(env, "CODEX_HOME", ".codex")
     codex = codex_home / "AGENTS.md"
     override = codex_home / "AGENTS.override.md"
-    if override.is_file() and override.read_text(encoding="utf-8").strip():
+    if override.is_file() and override.stat().st_size > 0:
         codex = override
     pi = _home_dir(env, "PI_CODING_AGENT_DIR", ".pi", "agent") / "AGENTS.md"
     opencode = _xdg_config(env) / "opencode" / "AGENTS.md"
@@ -109,7 +109,10 @@ def read_source(env):
         raise SourceError(f"{path}: rules.md not found")
     if len(data) > MAX_BYTES:
         raise SourceError(f"{path}: rules.md holds {len(data)} bytes, over the {MAX_BYTES}-byte limit")
-    text = data.decode("utf-8").replace("\r\n", "\n")
+    try:
+        text = data.decode("utf-8").replace("\r\n", "\n")
+    except UnicodeDecodeError:
+        raise SourceError(f"{path}: rules.md is not valid UTF-8")
     if not text.strip():
         raise SourceError(f"{path}: rules.md is empty")
     has_secret = _line_has_secret()
@@ -228,11 +231,17 @@ def build_plan(env, rules=None, remove=False):
         current = _read(path)
         if remove:
             if BEGIN in current or END in current:
-                plan.append((path, current, _without_section(current)))
+                try:
+                    plan.append((path, current, _without_section(current)))
+                except ValueError as exc:
+                    raise ValueError(f"{path}: {exc}")
             continue
         if HIVE_BEGIN not in current or HIVE_END not in current:
             continue
-        new = _with_section(current, rules)
+        try:
+            new = _with_section(current, rules)
+        except ValueError as exc:
+            raise ValueError(f"{path}: {exc}")
         if new != current:
             plan.append((path, current, new))
     for host, path, hive_file, frontmatter in own_targets(env):

@@ -184,6 +184,24 @@ class PersonalRulesTests(unittest.TestCase):
                 self.assertEqual({p: self.read(p) for p in self.shared.values()}, before)
                 self.assertFalse(self.cursor_personal.exists())
 
+    def test_refusals_name_the_file_that_caused_them(self):
+        codex = self.shared["codex"]
+        self.write(codex, self.read(codex) + BEGIN + "\nhalf a section\n")
+        result = self.run_script("deploy")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn(str(codex), result.stdout)
+        self.write(codex, "My own notes.\n\n" + hive_block())
+        self.source.write_bytes(b"caf\xe9\n")
+        result = self.run_script("deploy")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("rules.md", result.stdout)
+
+    def test_codex_whitespace_override_wins_like_the_manager(self):
+        override = self.home / ".codex/AGENTS.override.md"
+        self.write(override, "\n")
+        self.assertEqual(self.run_script("deploy").returncode, 0)
+        self.assertNotIn(BEGIN, self.read(self.shared["codex"]))
+
     def test_prose_identifiers_are_not_secrets(self):
         self.write(self.source, RULE + "Set autoMemoryDirectory and toolActivation in settings.\n")
         result = self.run_script("deploy")
