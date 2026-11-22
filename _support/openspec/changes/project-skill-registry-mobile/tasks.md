@@ -133,11 +133,12 @@ Sin parada de validación humana (`automatic`).
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: build · T1
-- Last commit: 867f5463
+- Stage: build · T5 walk + T6
+- Last commit: 2747e98f
 - Open findings: none
-- Next: T1: measure Hive-owned skill marker, then write skill_registry.py with tests
+- Next: T6 running in hive-write-docs child; T5 device walk waits for the Pixel (adb devices empty); then local CI and flow-verify
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/skill-registry-mobile · feat/skill-registry-mobile
+- Unwritten: T6 child launched; Pixel disconnected
 - Rules: flow-build/stage.md
 
 ### Evidence

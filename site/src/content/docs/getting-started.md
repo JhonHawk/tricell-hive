@@ -57,6 +57,25 @@ can create or update it for you: ask it to set up your repository's Hive section
 and it proposes the facts with their evidence, asks the decisions it cannot
 deduce, and writes only what you accept.
 
+Skills that your project installs for its stack, such as Expo, Flutter or
+Next.js skills, can be listed in a separate `## Skills` section of the same
+`AGENTS.md`. Each line names a condition and the `SKILL.md` to read before work
+that matches it, so the agent does not depend on a skill activating by itself,
+and the main agent copies the lines that apply into each helper's brief. The
+section sits outside `## Hive`, which keeps facts only. Ask the
+[harness audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/SKILL.md) to set it up: it runs a
+read-only script that detects your stack from its files and prints the official
+skill sources for it, asks which to install, checks the installer and pins each
+source to a commit before installing it into your project only, and writes the
+section. The same script later reports a listed path that does not exist and an
+installed skill that no line lists. For a workspace of several repositories, the
+workspace's `AGENTS.md` repeats each repository's lines with the repository's
+folder as a prefix, because most hosts do not discover skills in subfolders. The
+[skills registry rule](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/references/instruction-files.md)
+and the [stack skills procedure](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/references/stack-skills.md)
+hold the format and the steps. Hive lists no official skills for iOS, and
+installs nothing without your answer.
+
 Facts that hold only on your machine and that a later session would run or
 check again go in two untracked files. Those of one project, such as the ports
 your local stack ends up on or which cloud profile serves its QA environment,
