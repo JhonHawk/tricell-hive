@@ -12,6 +12,18 @@ raise the minor or the patch version.
 
 ### Added
 
+- The `comment-audit` skill audits the comments of a codebase or an area and
+  removes them in batches. It files a ticket for each comment that excuses a
+  shortcut, moves each decision a comment records to the project's decision
+  record, and wires a lint that rejects new comments while the rest wait. The
+  lint compares each changed file with its version at the Git base. The skill
+  also estimates the lines a full cleanup sheds, and generates the project's
+  own skill in `.agents/skills` with links in `.claude/skills`. Its
+  JavaScript and TypeScript template parses with `@babel/parser`, since
+  TypeScript 7 no longer exports its classic parser, and its suite runs with
+  parser 8.1.2 and 7.29.14 (`npm ci --prefix
+  tests/content/testdata/comment-audit`).
+
 - A project can list the third-party skills an agent must read, and when, in
   a `## Skills` section of its `AGENTS.md` (`harness-audit` rule HA-IF-19).
   `harness-audit/scripts/skill_registry.py check` compares that section with
@@ -235,6 +247,10 @@ raise the minor or the patch version.
 
 ### Changed
 
+- In a project whose lint bans comments, the `no-comments` review moves a
+  comment it would keep to the project's decision record, and an accepted
+  workaround carries a one-line marker, `workaround:` and its ticket, that
+  `no-comments` defines and `defect-fix` and `suppression-review` link.
 - A cleanup of the rule leaves removes dangling and circular references and
   conflicting wordings, so each rule has one home and the other places link it.
   The merge of a pull request the work did not write is now set in `merge-gate`,
