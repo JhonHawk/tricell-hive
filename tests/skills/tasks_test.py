@@ -838,5 +838,167 @@ class ExecutionRecordTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
 
 
+GIT_CONFIG = ["-c", "user.name=t", "-c", "user.email=t@example.invalid", "-c", "init.defaultBranch=main",
+              "-c", "commit.gpgsign=false", "-c", "core.hooksPath=/dev/null"]
+
+
+class VersionedTest(unittest.TestCase):
+    """`versioned` reads real repositories: a bare origin and its clones, in a temporary folder."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp()).resolve()
+        self.addCleanup(shutil.rmtree, self.tmp)
+
+    def git(self, cwd, *args):
+        result = subprocess.run(["git", *GIT_CONFIG, *args], cwd=cwd, text=True, capture_output=True, timeout=60)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        return result.stdout.strip()
+
+    def repo(self, name, hive=""):
+        """A clone of a fresh bare origin, with one pushed commit holding AGENTS.md."""
+        origin = self.tmp / f"{name}.git"
+        self.git(self.tmp, "init", "--bare", str(origin))
+        self.git(self.tmp, "clone", str(origin), name)
+        repo = self.tmp / name
+        (repo / "AGENTS.md").write_text(f"# Guide\n\n## Hive\n\n{hive}", encoding="utf-8")
+        self.git(repo, "add", "AGENTS.md")
+        self.git(repo, "commit", "-m", "init")
+        self.git(repo, "push", "-q", "origin", "main")
+        self.git(repo, "remote", "set-head", "origin", "main")
+        return repo
+
+    def change(self, specs, name="demo"):
+        folder = specs / "changes" / name
+        folder.mkdir(parents=True)
+        (folder / "tasks.md").write_text(TASKS_MD, encoding="utf-8")
+        (folder / "proposal.md").write_text(PROPOSAL, encoding="utf-8")
+        return folder
+
+    def commit(self, repo, folder, push=None):
+        self.git(repo, "add", str(folder))
+        self.git(repo, "commit", "-m", "change folder")
+        if push:
+            self.git(repo, "push", "-q", "origin", push)
+
+    def versioned(self, folder, *args, cwd=None):
+        return subprocess.run([sys.executable, "-I", "-B", str(TASKS), str(folder), "versioned", *args],
+                              cwd=cwd or self.tmp, text=True, capture_output=True, timeout=60)
+
+    def assertVersioned(self, result, code, *lines, absent=()):
+        self.assertEqual(result.returncode, code, result.stdout + result.stderr)
+        for line in lines:
+            self.assertIn(line, result.stdout)
+        for line in absent:
+            self.assertNotIn(line, result.stdout)
+
+    def test_specs_in_the_work_repository_pass_with_later_edits_as_warnings(self):
+        repo = self.repo("app", "- Base branch: main\n- Specs: openspec\n")
+        folder = self.change(repo / "openspec")
+        self.commit(repo, folder, push="main")
+        self.assertVersioned(self.versioned(folder, "--work-repo", str(repo)), 0, "versioned: yes", absent=("warning",))
+        (folder / "tasks.md").write_text(TASKS_MD + "\nCheckpoint line\n", encoding="utf-8")
+        (folder / "design.md").write_text("# Design\n", encoding="utf-8")
+        self.assertVersioned(self.versioned(folder), 0, "versioned: yes",
+                             "warning: modified openspec/changes/demo/tasks.md: later edits wait for the archive",
+                             "warning: untracked openspec/changes/demo/design.md")
+
+    def test_monorepo_folder_checked_from_a_package_directory(self):
+        repo = self.repo("mono", "- Specs: _support/openspec\n")
+        folder = self.change(repo / "_support/openspec")
+        self.git(repo, "switch", "-c", "feat/work")
+        self.commit(repo, folder, push="feat/work")
+        package = repo / "packages/api"
+        package.mkdir(parents=True)
+        result = self.versioned(os.path.relpath(folder, package), cwd=package)
+        self.assertVersioned(result, 0, f"repo: {repo} ·", "base: main (origin/HEAD)", "versioned: yes")
+
+    def test_sibling_direct_base_specs_from_a_workspace_root_outside_git(self):
+        specs = self.repo("specs", "- Base branch: main\n- Delivery: direct-base\n")
+        code = self.repo("code", "- Specs: ../specs/openspec · https://example.invalid/specs.git\n")
+        folder = self.change(specs / "openspec")
+        args = ("--work-repo", "code")
+        self.assertVersioned(self.versioned("specs/openspec/changes/demo", *args), 1, "versioned: no",
+                             "untracked: openspec/changes/demo/tasks.md", "not committed: the folder has no commit",
+                             "next: commit and deliver the folder as git-workflow step 4 sets", absent=("warning",))
+        self.git(specs, "switch", "-c", "feat/work")
+        self.commit(specs, folder, push="feat/work")
+        self.assertVersioned(self.versioned("specs/openspec/changes/demo", *args), 1, "delivery: direct-base",
+                             "is not on origin/main")
+        self.git(specs, "switch", "main")
+        self.git(specs, "merge", "-q", "--ff-only", "feat/work")
+        self.git(specs, "push", "-q", "origin", "main")
+        self.assertVersioned(self.versioned("specs/openspec/changes/demo", *args), 0, "versioned: yes",
+                             f"work repo: {code}", absent=("warning",))
+        (folder / "tasks.md").write_text(TASKS_MD + "\nedit\n", encoding="utf-8")
+        self.assertVersioned(self.versioned("specs/openspec/changes/demo", *args), 1,
+                             "modified: openspec/changes/demo/tasks.md")
+
+    def test_squash_merged_folder_with_its_branch_deleted_passes(self):
+        for delivery in ("", "- Delivery: direct-base\n"):
+            with self.subTest(delivery=delivery):
+                repo = self.repo(f"app{len(delivery)}", f"- Base branch: `main`\n{delivery}- Specs: `openspec`\n")
+                folder = self.change(repo / "openspec")
+                self.git(repo, "switch", "-c", "feat/work")
+                self.commit(repo, folder, push="feat/work")
+                self.git(repo, "switch", "main")
+                self.git(repo, "merge", "-q", "--squash", "feat/work")
+                self.git(repo, "commit", "-m", "squash")
+                self.git(repo, "push", "-q", "origin", "main", ":feat/work")
+                self.git(repo, "branch", "-D", "feat/work")
+                self.git(repo, "fetch", "-q", "--prune", "origin")
+                result = self.versioned(folder, "--work-repo", str(repo))
+                self.assertVersioned(result, 0, "versioned: yes", "base: main (Hive)", absent=("warning",))
+
+    def test_folder_without_tasks_md_and_absent_work_repo(self):
+        repo = self.repo("app", "- Specs: openspec\n")
+        folder = self.change(repo / "openspec")
+        (folder / "tasks.md").unlink()
+        self.commit(repo, folder, push="main")
+        self.assertVersioned(self.versioned(folder), 0, "versioned: yes",
+                             "warning: no --work-repo given; the folder's repository is taken as the work's")
+
+    def test_commit_on_no_remote_branch_fails(self):
+        repo = self.repo("app")
+        folder = self.change(repo / "openspec")
+        self.commit(repo, folder)
+        self.assertVersioned(self.versioned(folder), 1, "is on no remote branch")
+
+    def test_direct_base_without_a_resolvable_base_fails(self):
+        repo = self.tmp / "bare-hive"
+        repo.mkdir()
+        self.git(repo, "init")
+        (repo / "AGENTS.md").write_text("## Hive\n\n- Delivery: direct-base\n", encoding="utf-8")
+        folder = self.change(repo / "openspec")
+        self.git(repo, "add", "AGENTS.md")
+        self.commit(repo, folder)
+        self.assertVersioned(self.versioned(folder), 1, "no base branch resolves")
+
+    def test_folder_outside_git_cannot_be_versioned(self):
+        folder = self.change(self.tmp / "loose")
+        self.assertVersioned(self.versioned(folder), 1, "is in no Git repository")
+
+    def test_work_repo_specs_warnings(self):
+        specs = self.repo("specs", "- Base branch: main\n")
+        folder = self.change(specs / "openspec")
+        self.commit(specs, folder, push="main")
+        self.repo("bare-code")
+        self.repo("elsewhere", "- Specs: docs/openspec\n")
+        self.assertVersioned(self.versioned(folder, "--work-repo", "bare-code"), 0,
+                             "declares no Specs; declare Specs: ../specs/openspec")
+        self.assertVersioned(self.versioned(folder, "--work-repo", "elsewhere"), 0,
+                             "Specs docs/openspec does not hold the folder")
+        (self.tmp / "plain").mkdir()
+        self.assertEqual(self.versioned(folder, "--work-repo", "plain").returncode, 2)
+
+    def test_worktree_and_main_checkout_count_as_one_repository(self):
+        repo = self.repo("app", "- Specs: openspec\n")
+        self.git(repo, "worktree", "add", "-q", "-b", "feat/work", str(self.tmp / "wt"))
+        folder = self.change(self.tmp / "wt/openspec")
+        self.commit(self.tmp / "wt", folder, push="feat/work")
+        (folder / "tasks.md").write_text(TASKS_MD + "\nedit\n", encoding="utf-8")
+        self.assertVersioned(self.versioned(folder, "--work-repo", str(repo)), 0, "work repo: same",
+                             "warning: modified openspec/changes/demo/tasks.md")
+
+
 if __name__ == "__main__":
     unittest.main()

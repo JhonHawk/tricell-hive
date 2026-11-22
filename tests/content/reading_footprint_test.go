@@ -256,11 +256,15 @@ func TestRequiredProcedureReadingFootprint(t *testing.T) {
 				// growth on 2026-11-21 (D1 A); measured again after decision D2 A, on
 				// development at 01efd12c.
 				const reuseSoundBaseAllowance = 1111
+				// The change change-folder-versioned-check added the pointer of flow-close
+				// step 3 to `tasks.py versioned`, whose output carries the rest of the
+				// procedure; the user accepted that growth on 2026-11-21 (D4 A).
+				const changeFolderVersionedAllowance = 125
 				// The change project-skill-registry-mobile added the brief's copy of a
 				// project's ## Skills lines to child-brief and reviewer-brief; the user
 				// accepted that growth on 2026-11-21 (D6 A), on development at 867f5463.
 				const skillRegistryAllowance = 353
-				allowance := planReviewAllowance + reportingFamilyAllowance + reuseSoundBaseAllowance + skillRegistryAllowance
+				allowance := planReviewAllowance + reportingFamilyAllowance + reuseSoundBaseAllowance + changeFolderVersionedAllowance + skillRegistryAllowance
 				if like >= declared.bytes+allowance {
 					t.Errorf("plan-build-required union without the moments the baseline did not read is %d B, not below the baseline %d B plus the %d B allowance", like, declared.bytes, allowance)
 				}

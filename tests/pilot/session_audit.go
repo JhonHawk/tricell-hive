@@ -367,9 +367,10 @@ func (b *codexBuilder) codexItem(line int, p map[string]any) {
 
 // codexCompletedItem records what Codex reports after an exec block's call
 // ran: an MCP call with its arguments and result, which the block's source
-// cannot give, and the command a shell call executed, interpolation resolved.
-// They get kinds of their own so the criteria that read calls from the block
-// do not count them twice.
+// cannot give, the command a shell call executed, interpolation resolved, with
+// its exit code when Codex reports one, and the paths a patch changed. They get
+// kinds of their own so the criteria that read calls from the block do not
+// count them twice.
 func (b *codexBuilder) codexCompletedItem(line int, item map[string]any) {
 	switch str(item["type"]) {
 	case "McpToolCall":
@@ -386,7 +387,24 @@ func (b *codexBuilder) codexCompletedItem(line int, item map[string]any) {
 		if len(argv) == 0 {
 			return
 		}
-		b.add(traceEvent{Line: line, Kind: "exec_item", Command: str(argv[len(argv)-1])})
+		e := traceEvent{Line: line, Kind: "exec_item", Command: str(argv[len(argv)-1])}
+		if code, ok := item["exit_code"].(float64); ok {
+			okay := code == 0
+			e.Success = &okay
+		}
+		b.add(e)
+	case "FileChange":
+		// The paths a patch changed, interpolation resolved, which the exec
+		// block's source cannot give.
+		changes := object(item["changes"])
+		paths := make([]string, 0, len(changes))
+		for path := range changes {
+			paths = append(paths, path)
+		}
+		sort.Strings(paths)
+		for _, path := range paths {
+			b.add(traceEvent{Line: line, Kind: "write_item", Tool: "apply_patch", Path: path})
+		}
 	}
 }
 
@@ -1967,7 +1985,7 @@ func skillNamedAsReason(s auditSession) criterionAssessment {
 
 func auditCriteria(s auditSession, base string) []criterionAssessment {
 	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s), reviewQuestionNativeOption(s), leafReadBeforeAction(s),
-		flowEnteredWithoutRoute(s), decisionRoundFormat(s), uiChangeWithoutUXReview(s), trackerStatesCacheWritten(s), tryItBlockInReport(s), proseChoiceWithoutCard(s), ticketAssessmentEnding(s), selfFeedingLog(s), analysisReplyBlock(s), unboundedBackgroundWait(s), cardOptionFormat(s))
+		flowEnteredWithoutRoute(s), decisionRoundFormat(s), uiChangeWithoutUXReview(s), trackerStatesCacheWritten(s), tryItBlockInReport(s), proseChoiceWithoutCard(s), ticketAssessmentEnding(s), selfFeedingLog(s), analysisReplyBlock(s), unboundedBackgroundWait(s), cardOptionFormat(s), changeFolderUncommitted(s, base))
 }
 
 var (

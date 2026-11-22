@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -406,6 +407,7 @@ func TestAuditNewCriteria(t *testing.T) {
 	const reply = "analysis_reply_block"
 	const wait = "unbounded_background_wait"
 	const cards = "card_option_format"
+	const folder = "change_folder_uncommitted"
 	cases := []newCriterionCase{
 		{"round codex title with a middle dot", "codex", round, []string{round, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
 		{"format codex title with a middle dot", "codex", format, []string{format, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
@@ -674,6 +676,30 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"card options claude a card the host refused for invalid input", "claude", cards, []string{cards, "claude-project-invalid-input-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"card options claude two options with the same letter", "claude", cards, []string{cards, "claude-project-repeated-letter-fail.jsonl"}, auditOptions{}, "fail"},
 		{"card options claude a card closed by another error was shown", "claude", cards, []string{cards, "claude-project-timeout-error-fail.jsonl"}, auditOptions{}, "fail"},
+		{"change folder codex patched and never committed", "codex", folder, []string{folder, "codex-rollout-patch-fail.jsonl"}, auditOptions{}, "fail"},
+		{"change folder codex written by Path.write_text in a heredoc", "codex", folder, []string{folder, "codex-rollout-write-text-fail.jsonl"}, auditOptions{}, "fail"},
+		{"change folder codex versioned exited 1", "codex", folder, []string{folder, "codex-rollout-versioned-failed-fail.jsonl"}, auditOptions{}, "fail"},
+		{"change folder codex commit of other paths beside a tasks.py record", "codex", folder, []string{folder, "codex-rollout-commit-of-other-paths-fail.jsonl"}, auditOptions{}, "fail"},
+		{"change folder codex committed naming the folder", "codex", folder, []string{folder, "codex-rollout-redirect-commit-pass.jsonl"}, auditOptions{}, "pass"},
+		{"change folder codex versioned exited 0", "codex", folder, []string{folder, "codex-rollout-versioned-pass.jsonl"}, auditOptions{}, "pass"},
+		{"change folder codex no text after the merge", "codex", folder, []string{folder, "codex-rollout-no-text-review.jsonl"}, auditOptions{}, "review"},
+		{"change folder codex only a checkpoint after the merge", "codex", folder, []string{folder, "codex-rollout-checkpoint-only-review.jsonl"}, auditOptions{}, "review"},
+		{"change folder codex folder only read", "codex", folder, []string{folder, "codex-rollout-read-only-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"change folder codex no merge", "codex", folder, []string{folder, "codex-rollout-no-merge-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"change folder codex archived folder", "codex", folder, []string{folder, "codex-rollout-archive-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"change folder codex merge exited non-zero", "codex", folder, []string{folder, "codex-rollout-failed-merge-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"change folder claude written and merged with --delete-branch", "claude", folder, []string{folder, "claude-project-write-fail.jsonl"}, auditOptions{}, "fail"},
+		{"change folder claude committed after add", "claude", folder, []string{folder, "claude-project-commit-pass.jsonl"}, auditOptions{}, "pass"},
+		{"change folder claude folder only read", "claude", folder, []string{folder, "claude-project-read-only-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"change folder claude commit paths built from a shell variable", "claude", folder, []string{folder, "claude-project-variable-commit-pass.jsonl"}, auditOptions{}, "pass"},
+		{"change folder claude variable names other paths", "claude", folder, []string{folder, "claude-project-variable-other-paths-fail.jsonl"}, auditOptions{}, "fail"},
+		{"change folder claude renamed then committed under the new name", "claude", folder, []string{folder, "claude-project-rename-commit-pass.jsonl"}, auditOptions{}, "pass"},
+		{"change folder claude renamed after its commit and not committed again", "claude", folder, []string{folder, "claude-project-rename-uncommitted-fail.jsonl"}, auditOptions{}, "fail"},
+		{"change folder claude staged in one call and committed in another", "claude", folder, []string{folder, "claude-project-staged-in-another-call-pass.jsonl"}, auditOptions{}, "pass"},
+		{"change folder claude git add -A may have taken the folder", "claude", folder, []string{folder, "claude-project-add-all-review.jsonl"}, auditOptions{}, "review"},
+		{"change folder claude edited after the commit and before the merge", "claude", folder, []string{folder, "claude-project-edit-after-commit-fail.jsonl"}, auditOptions{}, "fail"},
+		{"change folder claude add in the specs repository and commit in the code repository", "claude", folder, []string{folder, "claude-project-add-in-specs-commit-in-code-fail.jsonl"}, auditOptions{}, "fail"},
+		{"change folder claude code commit first and specs commit last", "claude", folder, []string{folder, "claude-project-code-commit-then-specs-commit-pass.jsonl"}, auditOptions{}, "pass"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1297,5 +1323,54 @@ func TestMergeHeadIgnoresAHeadRefNameAnotherSegmentPrinted(t *testing.T) {
 	}
 	if got := mergeHead(events, 3); got != "" {
 		t.Fatalf("mergeHead = %q, want empty", got)
+	}
+}
+
+func TestAuditChangeFolderEvidenceNamesTheFolder(t *testing.T) {
+	got := auditStatus(t, auditFixture(t, "codex", auditOptions{}, "change_folder_uncommitted", "codex-rollout-patch-fail.jsonl"), "change_folder_uncommitted")
+	if len(got.Evidence) != 1 || !strings.Contains(got.Evidence[0], "changes/demo-change") || !strings.HasPrefix(got.Evidence[0], "codex-rollout-patch-fail.jsonl:") {
+		t.Fatalf("evidence = %v", got.Evidence)
+	}
+}
+
+func TestAuditCodexCompletedItemCarriesExitCodeAndPatchPaths(t *testing.T) {
+	s := loadFixture(t, "codex", auditOptions{}, "change_folder_uncommitted", "codex-rollout-versioned-failed-fail.jsonl")
+	var versioned, merge, patched bool
+	for _, e := range s.Trace.Events {
+		switch {
+		case e.Kind == "exec_item" && strings.Contains(e.Command, " versioned "):
+			versioned = e.Success != nil && !*e.Success
+		case e.Kind == "exec_item" && strings.HasPrefix(e.Command, "cd /work/code && gh pr merge"):
+			merge = e.Success != nil && *e.Success
+		case e.Kind == "write_item" && strings.HasSuffix(e.Path, "/changes/demo-change/design.md"):
+			patched = true
+		}
+	}
+	if !versioned || !merge || !patched {
+		t.Fatalf("versioned failed = %v, merge succeeded = %v, patch path = %v", versioned, merge, patched)
+	}
+}
+
+func TestAuditExpandAssignmentsIsBoundedAndExpandsAValueOnce(t *testing.T) {
+	if got := expandAssignments("D=a/b; OLD=$D/c; echo $OLD"); got != "D=a/b; OLD=a/b/c; echo a/b/c" {
+		t.Fatalf("expansion = %q", got)
+	}
+	var b strings.Builder
+	b.WriteString("A00=xx;")
+	for i := 1; i < 40; i++ {
+		fmt.Fprintf(&b, "A%02d=$A%02d$A%02d;", i, i-1, i-1)
+	}
+	b.WriteString("echo $A39")
+	chain := b.String()
+	start := time.Now()
+	got := expandAssignments(chain)
+	if got != chain {
+		t.Fatalf("a chain that outgrows the bound must stay unexpanded, got %d bytes", len(got))
+	}
+	if d := time.Since(start); d > 2*time.Second {
+		t.Fatalf("expansion took %v", d)
+	}
+	if big := strings.Repeat("x", maxExpandedCommand+1) + "; F=a; echo $F"; expandAssignments(big) != big {
+		t.Fatal("a command past the bound must stay unexpanded")
 	}
 }
