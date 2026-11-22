@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const script = fileURLToPath(new URL("./check-comments.mjs", import.meta.url));
 const env = {
-  ...process.env,
+  ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith("GIT_"))),
   GIT_CONFIG_GLOBAL: "/dev/null",
   GIT_CONFIG_NOSYSTEM: "1",
   GIT_AUTHOR_NAME: "test",
@@ -180,6 +180,81 @@ test("allowed directives and the workaround marker pass", (t) => {
   );
   const result = r.run(["--base", base]);
   assert.equal(result.status, 0, result.stderr);
+});
+
+test("license headers and JSX forms of directives and the marker pass", (t) => {
+  const r = repo(t);
+  r.write("src/a.tsx", "export const A = () => <div>x</div>;\n");
+  const base = r.commit("base");
+  r.write("src/b.ts", "// SPDX-License-Identifier: MIT\nexport const b = 1;\n");
+  r.write("src/c.ts", "/* Copyright 2026 Example Ltd. */\nexport const c = 1;\n");
+  r.write(
+    "src/a.tsx",
+    "declare const X: (p: { a: string }) => null;\nexport const A = () => (\n  <div>\n    {/* @ts-expect-error */}\n    <X a={1} />\n    {/* workaround: COM-1 */}\n    <p>x</p>\n  </div>\n);\n",
+  );
+  const result = r.run(["--base", base]);
+  assert.equal(result.status, 0, result.stderr);
+});
+
+test("a symlinked source file is skipped, not fatal", (t) => {
+  const r = repo(t);
+  r.write("src/a.ts", "export const a = 1;\n");
+  const base = r.commit("base");
+  symlinkSync("a.ts", join(r.root, "src/link.ts"));
+  r.write("src/b.ts", "export const b = 1;\n// added\n");
+  const lint = r.run(["--base", base]);
+  assert.equal(lint.status, 1, lint.stderr);
+  assert.match(lint.stderr, /^src\/b\.ts:2:1: no-new-comments$/m);
+  assert.equal(r.run(["--inventory"]).status, 0);
+});
+
+test("the inventory does not read through a directory symlink out of the repository", (t) => {
+  const r = repo(t);
+  const outside = mkdtempSync(join(tmpdir(), "comment-ratchet-outside-"));
+  t.after(() => rmSync(outside, { recursive: true, force: true }));
+  writeFileSync(join(outside, "x.ts"), "// leaked\nexport const x = 1;\n");
+  r.write("d/x.ts", "export const x = 1;\n");
+  r.commit("base");
+  rmSync(join(r.root, "d"), { recursive: true });
+  symlinkSync(outside, join(r.root, "d"));
+  const result = r.run(["--inventory"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.doesNotMatch(result.stdout, /leaked/);
+});
+
+test("control characters in a file name are escaped in findings", (t) => {
+  const r = repo(t);
+  r.write("src/a.ts", "export const a = 1;\n");
+  const base = r.commit("base");
+  r.write("src/x\n::error::forged.ts", "export const x = 1;\n// added\n");
+  const result = r.run(["--base", base]);
+  assert.equal(result.status, 1);
+  assert.doesNotMatch(result.stderr, /^::error/m);
+  assert.match(result.stderr, /x\\x0a::error::forged\.ts:2:1: no-new-comments/);
+});
+
+test("--same-code rejects a removal that changes line breaks between tokens", (t) => {
+  const r = repo(t);
+  r.write("src/a.js", "export function f() {\n  return /*\n  */ 1;\n}\n");
+  const base = r.commit("base");
+  r.write("src/a.js", "export function f() {\n  return 1;\n}\n");
+  assert.equal(r.run(["--same-code", "--base", base]).status, 1);
+});
+
+test("--same-code rejects a deleted or added source file", (t) => {
+  const r = repo(t);
+  r.write("src/a.js", "export const a = 1;\n");
+  r.write("src/gone.js", "export const g = 1;\n");
+  const base = r.commit("base");
+  rmSync(join(r.root, "src/gone.js"));
+  const deleted = r.run(["--same-code", "--base", base]);
+  assert.equal(deleted.status, 1);
+  assert.match(deleted.stderr, /^src\/gone\.js: /m);
+  r.write("src/gone.js", "export const g = 1;\n");
+  r.write("src/new.js", "export const n = 1;\n");
+  const added = r.run(["--same-code", "--base", base]);
+  assert.equal(added.status, 1);
+  assert.match(added.stderr, /^src\/new\.js: /m);
 });
 
 test("a base that does not resolve exits 2", (t) => {

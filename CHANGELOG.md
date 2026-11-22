@@ -21,7 +21,7 @@ raise the minor or the patch version.
   own skill in `.agents/skills` with links in `.claude/skills`. Its
   JavaScript and TypeScript template parses with `@babel/parser`, since
   TypeScript 7 no longer exports its classic parser, and its suite runs with
-  parser 8.1.2 and 7.29.14 (`npm ci --prefix
+  parser 8.1.2 and 7.29.14 (`npm ci --ignore-scripts --prefix
   tests/content/testdata/comment-audit`).
 
 - A project can list the third-party skills an agent must read, and when, in

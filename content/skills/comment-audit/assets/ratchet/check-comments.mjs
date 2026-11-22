@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
-import { lstatSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { lstatSync, readFileSync, realpathSync } from "node:fs";
+import { isAbsolute, join, relative } from "node:path";
 import { parseArgs } from "node:util";
 
 const SOURCE_PATTERNS = ["*.js", "*.jsx", "*.mjs", "*.cjs", "*.ts", "*.tsx", "*.mts", "*.cts"];
@@ -10,8 +10,9 @@ const EXCLUDED = ["node_modules/", "dist/", "build/", "coverage/"];
 const ALLOWED = [
   /^\/\*!/,
   /@license\b|@preserve\b/,
+  /^\/[/*]\**\s*(SPDX-License-Identifier:|Copyright\b|\(c\)\s)/i,
   /^\/\/\/\s*<reference\b/,
-  /^\/\/\s*@ts-(check|nocheck|expect-error|ignore)\b/,
+  /^\/[/*]\s*@ts-(check|nocheck|expect-error|ignore)\b/,
   /^\/[/*]\s*(eslint|oxlint)-(disable|enable)/,
   /^\/[/*]\s*(biome-ignore|prettier-ignore)\b/,
   /^\/[/*]\s*(istanbul|c8|v8) ignore\b/,
@@ -20,6 +21,7 @@ const ALLOWED = [
   /^\/\*\s*[#@]__(PURE|NO_SIDE_EFFECTS)__\s*\*\/$/,
   /^\/\*\s*(webpack[A-Z]\w*|@vite-ignore)\b/,
   /^\/\/ workaround: \S+$/,
+  /^\/\* workaround: \S+ \*\/$/,
 ];
 
 const JSDOC_TYPES = /^\/\*\*[\s\S]*@(type|typedef|param\s*\{|returns?\s*\{|template|satisfies|import)\b/;
@@ -108,8 +110,20 @@ function readSource(root, file) {
   } catch {
     throw new Failure(`${file}: cannot read`);
   }
-  if (!stats.isFile()) throw new Failure(`${file}: not a regular file`);
-  return readFileSync(path, "utf8");
+  if (!stats.isFile()) return null;
+  const real = realpathSync(path);
+  const inside = relative(realpathSync(root), real);
+  if (inside.startsWith("..") || isAbsolute(inside)) return null;
+  return readFileSync(real, "utf8");
+}
+
+function shown(text) {
+  return [...text]
+    .map((character) => {
+      const code = character.charCodeAt(0);
+      return code < 32 || code === 127 ? `\\x${code.toString(16).padStart(2, "0")}` : character;
+    })
+    .join("");
 }
 
 function resolveBase(root, base) {
@@ -134,7 +148,6 @@ function changedFiles(root, base) {
       "--no-ext-diff",
       "--no-textconv",
       "--find-renames",
-      "--diff-filter=AMRT",
       "--name-status",
       "-z",
       base,
@@ -145,19 +158,22 @@ function changedFiles(root, base) {
   const changed = new Map();
   for (let index = 0; index < fields.length; ) {
     const status = fields[index];
-    if (status.startsWith("R")) {
-      changed.set(fields[index + 2], fields[index + 1]);
+    if (status.startsWith("R") || status.startsWith("C")) {
+      changed.set(fields[index + 2], { before: fields[index + 1], status: status[0] });
       index += 3;
     } else {
-      changed.set(fields[index + 1], status === "A" ? null : fields[index + 1]);
+      const file = fields[index + 1];
+      changed.set(file, { before: status === "A" ? null : file, status });
       index += 2;
     }
   }
   const untracked = nulSeparated(
     git(root, ["ls-files", "-z", "--others", "--exclude-standard", "--", ...SOURCE_PATTERNS]),
   );
-  for (const file of untracked) changed.set(file, null);
-  return [...changed].filter(([file]) => !excluded(file));
+  for (const file of untracked) changed.set(file, { before: null, status: "A" });
+  return [...changed]
+    .filter(([file]) => !excluded(file))
+    .map(([file, { before, status }]) => ({ file, before, status }));
 }
 
 function baseText(root, base, file) {
@@ -166,7 +182,10 @@ function baseText(root, base, file) {
 
 function lint(parser, root, base) {
   let findings = 0;
-  for (const [file, before] of changedFiles(root, base)) {
+  for (const { file, before, status } of changedFiles(root, base)) {
+    if (status === "D") continue;
+    const text = readSource(root, file);
+    if (text === null) continue;
     const remaining = new Map();
     if (before !== null) {
       for (const comment of comments(parser, before, baseText(root, base, before))) {
@@ -174,7 +193,7 @@ function lint(parser, root, base) {
         remaining.set(key, (remaining.get(key) ?? 0) + 1);
       }
     }
-    for (const comment of comments(parser, file, readSource(root, file))) {
+    for (const comment of comments(parser, file, text)) {
       if (comment.directive) continue;
       const key = normalized(comment.text);
       const left = remaining.get(key) ?? 0;
@@ -182,7 +201,7 @@ function lint(parser, root, base) {
         remaining.set(key, left - 1);
         continue;
       }
-      console.error(`${file}:${comment.line}:${comment.column}: no-new-comments`);
+      console.error(shown(`${file}:${comment.line}:${comment.column}: no-new-comments`));
       findings++;
     }
   }
@@ -213,7 +232,9 @@ function inventory(parser, root) {
   );
   for (const file of files) {
     if (excluded(file) || deleted.has(file)) continue;
-    for (const comment of comments(parser, file, readSource(root, file))) {
+    const text = readSource(root, file);
+    if (text === null) continue;
+    for (const comment of comments(parser, file, text)) {
       console.log(JSON.stringify({ file, ...comment }));
     }
   }
@@ -241,40 +262,56 @@ function codeTokens(parser, file, text) {
     }
   });
   const tokens = [];
+  let previousEnd = null;
   for (const token of ast.tokens) {
     const label = typeof token.type === "string" ? token.type : token.type.label;
     if (label === "CommentLine" || label === "CommentBlock") continue;
     if (emptyContainers.some(([start, end]) => token.start >= start && token.end <= end)) continue;
     const value = text.slice(token.start, token.end);
+    const breakBefore = previousEnd !== null && /[\n\r]/.test(text.slice(previousEnd, token.start));
+    previousEnd = token.end;
     if (label === "jsxText") {
       const previous = tokens.at(-1);
       if (previous?.label === "jsxText") {
         previous.value += value;
       } else {
-        tokens.push({ label, value });
+        tokens.push({ label, value, breakBefore: false });
       }
       continue;
     }
-    tokens.push({ label, value });
+    tokens.push({ label, value, breakBefore: tokens.at(-1)?.label === "jsxText" ? false : breakBefore });
   }
   return tokens
     .map((token) =>
       token.label === "jsxText" ? { ...token, value: token.value.replace(/\s+/g, " ").trim() } : token,
     )
     .filter((token) => !(token.label === "jsxText" && token.value === ""))
-    .map((token) => `${token.label} ${token.value}`);
+    .map((token) => `${token.breakBefore ? "\\n " : ""}${token.label} ${token.value}`);
 }
 
 function sameCode(parser, root, base) {
   let findings = 0;
-  for (const [file, before] of changedFiles(root, base)) {
-    if (before === null) continue;
+  for (const { file, before, status } of changedFiles(root, base)) {
+    if (status === "D") {
+      console.error(shown(`${file}: deleted`));
+      findings++;
+      continue;
+    }
+    const text = readSource(root, file);
+    if (text === null) continue;
+    const now = codeTokens(parser, file, text);
+    if (before === null) {
+      if (now.length) {
+        console.error(shown(`${file}: added with code`));
+        findings++;
+      }
+      continue;
+    }
     const old = codeTokens(parser, before, baseText(root, base, before));
-    const now = codeTokens(parser, file, readSource(root, file));
     const index = old.findIndex((token, position) => token !== now[position]);
     if (index !== -1 || old.length !== now.length) {
       const at = index === -1 ? Math.min(old.length, now.length) : index;
-      console.error(`${file}: code changed at token ${at + 1}: ${old[at] ?? "(end)"} -> ${now[at] ?? "(end)"}`);
+      console.error(shown(`${file}: code changed at token ${at + 1}: ${old[at] ?? "(end)"} -> ${now[at] ?? "(end)"}`));
       findings++;
     }
   }
@@ -309,6 +346,6 @@ async function main() {
 try {
   process.exitCode = await main();
 } catch (error) {
-  console.error(error instanceof Failure ? error.message : String(error?.stack ?? error));
+  console.error(shown(error instanceof Failure ? error.message : String(error?.stack ?? error)));
   process.exitCode = 2;
 }

@@ -6,8 +6,8 @@ Read at [comment audit](../SKILL.md) step 9. It sets where the project's own com
 
 - Name it `delete-comment` unless the user names it otherwise; the name matches `^[a-z0-9][a-z0-9-]*$`.
 - Write it to `.agents/skills/<name>/SKILL.md` at the repository root. Codex, Cursor, OpenCode, Pi and Antigravity read that folder.
-- Create the relative link `.claude/skills/<name>` → `../../.agents/skills/<name>`, which Claude Code reads. When the repository has a `.grok/` folder, also create `.grok/skills/<name>` → `../../.agents/skills/<name>`. Never copy the folder per host: the copies drift.
-- Never put `assets/hive-managed.json` in it. That marker tells harness-audit's registry check the skill belongs to Hive, and this one belongs to the project.
+- Create the relative link `.claude/skills/<name>` → `../../.agents/skills/<name>`, which Claude Code reads. When the repository has a `.grok/` folder, also create `.grok/skills/<name>` → `../../.agents/skills/<name>`. Link instead of copying the folder per host, since copies drift apart.
+- Leave `assets/hive-managed.json` out of it. That marker tells harness-audit's registry check the skill belongs to Hive, and this one belongs to the project, so with it the check would skip it.
 
 ## What it holds
 

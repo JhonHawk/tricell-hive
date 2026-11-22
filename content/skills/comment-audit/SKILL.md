@@ -10,7 +10,7 @@ Remove the comments a codebase does not need, keep what they recorded where it b
 ## Scope
 
 1. **Name the scope.** The scope is the whole codebase or the area the user names, such as a package or an app. List the languages in it and the generated paths to leave out, such as API clients, bundles and declaration files a tool writes. One scope is one work item; a large scope may land in several pull requests, since the lint in step 8 accepts a partial cleanup.
-2. **Pick the inventory tool.** For JavaScript and TypeScript, copy the template in [ratchet](references/ratchet.md) to the project's CI scripts folder and use its `--inventory`. For another language, write the port that reference describes. The template needs `@babel/parser`: when the project lacks it, adding it is part of the plan, after the package check that [reuse before writing](../hive-core/plan/reuse-before-writing.md) rung 5 sets.
+2. **Pick the inventory tool.** For JavaScript and TypeScript, copy the template in [ratchet](references/ratchet.md) to a folder in the host's temporary location, so research writes no repository file, and run its `--inventory` from the repository root. The template finds `@babel/parser` from its own folder: use the project's installed copy by linking its `node_modules` there, or install the parser in that temporary folder after the package check that [reuse before writing](../hive-core/plan/reuse-before-writing.md) rung 5 sets. For another language, sketch the port that reference describes in the same temporary folder. Adding the script and the parser to the project belongs to the plan and step 8.
 3. **Record a baseline** at a pinned commit, from the inventory's JSON lines:
    - the number of comments, of lines that hold only comments (`fullLine: true`), and of lines that mix code and a comment, counted apart;
    - the comments marked `directive`, which stay and are not counted as removable. Before step 4, read the comments the inventory did not mark and add to `ALLOWED` the project's own tool directives, such as a build tool's magic comments;
@@ -20,17 +20,17 @@ Remove the comments a codebase does not need, keep what they recorded where it b
 
 4. **Mark every comment.** With at most 200 comments in scope, mark them in the main thread. Otherwise give each lane, such as one app or package, to one `hive-research` child, briefed as [delegation](../hive-core/delegation/delegation.md) sets, with this section, the no-comments leaf, and a ledger file in the host's temporary location as its output destination. The child reads each comment with the code around it and its history (`git log -S`), writes one row per comment as `category · file:line · evidence`, and returns its counts per category. Mechanical classes, such as banners like `// ======` or labels like `// Arrange`, are one row each with the exact pattern that found them, so a later batch can repeat it. The categories, with their no-comments counterpart:
    - **Tautology** (Kill): it repeats what the code, a name or a type already says, or marks a section the structure shows.
-   - **Stale** (Kill): it describes code or behavior the current source or its history contradicts, or records a past change.
+   - **Stale** (Kill): it describes code or behavior the current source or its history contradicts, records a past change, or holds commented-out code.
    - **Excuse** (new): it justifies a shortcut, such as a silent catch or a fallback, so the shortcut looks acceptable. Name the shortcut and its consequence.
    - **Decision record** (Keep): it states a non-obvious decision or a constraint from outside the code, confirmed as step 4 of the leaf sets. A Keep that fails that confirmation is Stale.
    - **Constraint** (Constraint): it tells the next editor what not to do; propose the check the leaf's step 5 sets.
-   - **Directive**: a tool reads it; it stays. A lint or type-checker suppression among them goes to [suppression review](../hive-core/review/suppression-review.md).
+   - **Directive**: a tool reads it, or it is a license header; it stays. A lint or type-checker suppression among them goes to [suppression review](../hive-core/review/suppression-review.md).
 
-   A row without evidence stays unmarked and the report names it.
+   A row without evidence stays unmarked and the report names it. A comment that holds a credential is reported as an exposed secret, as the global guidance's «Secrets» sets, and its text is never copied to the ledger, a ticket or the decision record.
 
 ## Plan
 
-5. Plan as flow-plan sets, adding: the batches, each one a lane or a mechanical class small enough to review; the decision record each Decision record goes to, which is the project's existing record when it has one, otherwise `<support home>/docs/decisions/` as [layout](../project-layout/references/layout.md) sets, read and indexed as it says, proposed to the user as a decision; the tracker where the excuses go, as one parent ticket with a child per shortcut through [create-issue](../create-issue/SKILL.md) and its breakdown; and where the lint runs in the project's lint script and CI. Ask before any write to the tracker, as create-issue sets.
+5. Plan as flow-plan sets, adding: the batches, each one a lane or a mechanical class of at most 50 files or 500 removed lines, so one review reads it whole; the decision record each Decision record goes to, which is the project's existing record when it has one, otherwise `<support home>/docs/decisions/` as [layout](../project-layout/references/layout.md) sets, read and indexed as it says, proposed to the user as a decision; the tracker where the excuses go, as one parent ticket with a child per shortcut through [create-issue](../create-issue/SKILL.md) and its breakdown; and where the lint runs in the project's lint script and CI. Ask before any write to the tracker, as create-issue sets.
 
 ## Cutover
 
@@ -54,4 +54,4 @@ Steps 6–9 add to flow-build.
     - the lint's command and the CI job that runs it, and the generated skill's path;
     - the line estimate for removing every removable comment, from step 3.
 
-    Never set or report a deletion target: a comment that records a fact the code cannot hold stays recorded somewhere.
+    Do not set or report a deletion target: a comment that records a fact the code cannot hold stays recorded somewhere, so a target would push facts out.

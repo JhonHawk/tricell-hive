@@ -2,6 +2,7 @@ package content
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -12,8 +13,12 @@ import (
 const (
 	commentAuditTemplateDir = "../../content/skills/comment-audit/assets/ratchet"
 	commentAuditParsersDir  = "tests/content/testdata/comment-audit/node_modules"
-	commentAuditInstall     = "npm ci --prefix tests/content/testdata/comment-audit"
+	commentAuditInstall     = "npm ci --ignore-scripts --prefix tests/content/testdata/comment-audit"
 )
+
+// commentAuditParserVersions are the versions package.json pins; an install
+// left from an older pin must not pass as the pinned one.
+var commentAuditParserVersions = map[string]string{"babel8": "8.1.2", "babel7": "7.29.14"}
 
 // TestCommentAuditTemplate runs the ratchet template's own node:test suite
 // once per pinned @babel/parser major version, since projects copy the
@@ -44,6 +49,7 @@ func TestCommentAuditTemplate(t *testing.T) {
 			}
 			cmd := exec.Command("node", "--test", "check-comments.test.mjs")
 			cmd.Dir = dir
+			cmd.Env = withoutGitVariables(os.Environ())
 			var out bytes.Buffer
 			cmd.Stdout = &out
 			cmd.Stderr = &out
@@ -69,14 +75,38 @@ func commentAuditParsers(t *testing.T) string {
 		if err != nil {
 			continue
 		}
-		if _, err := os.Stat(filepath.Join(abs, "babel8", "package.json")); err == nil {
-			if _, err := os.Stat(filepath.Join(abs, "babel7", "package.json")); err == nil {
-				return abs
-			}
+		if installedVersionsMatch(abs) {
+			return abs
 		}
 	}
-	t.Skipf("pinned parsers not installed; run %s from the repository root", commentAuditInstall)
+	t.Skipf("pinned parsers %v not installed; run %s from the repository root", commentAuditParserVersions, commentAuditInstall)
 	return ""
+}
+
+func installedVersionsMatch(dir string) bool {
+	for alias, want := range commentAuditParserVersions {
+		data, err := os.ReadFile(filepath.Join(dir, alias, "package.json"))
+		if err != nil {
+			return false
+		}
+		var manifest struct {
+			Version string `json:"version"`
+		}
+		if json.Unmarshal(data, &manifest) != nil || manifest.Version != want {
+			return false
+		}
+	}
+	return true
+}
+
+func withoutGitVariables(environ []string) []string {
+	var kept []string
+	for _, entry := range environ {
+		if !strings.HasPrefix(entry, "GIT_") {
+			kept = append(kept, entry)
+		}
+	}
+	return kept
 }
 
 func summaryLines(output string) string {
