@@ -19,7 +19,7 @@ Read before you write a decision, finding, blocker or list for the user, before 
 
 ## Format
 
-A round written in the text, one blank line between its lines, labels in the session language:
+A round in the text, a blank line between its lines, labels in the session language:
 
 ```
 **<Stage> · <ticket> · <progress>**
@@ -50,7 +50,7 @@ D<n+1> — …
 - The context line opens every message that asks a decision or a validation, delivers a result or a blocker, or closes work; the waiting line ends it.
 - `Situation:` uses the user's words and explains each ID or name it uses. `I recommend` gives its reason as [reasons and blockers](reasons-and-blockers.md) sets, plus what stays uncertain for a choice of scope, a contract, stored data, cost or one hard to reverse.
 - The session questions, the delivery mode, the code review mechanism and the security review, take a fixed header in the session language, such as **Delivery** and **Review**, in place of the ID, and keep the rest of the format. A finding asked in a round carries its title line `H1 — …` and its option lines, such as fix now, ticket and ignore, without the labelled lines.
-- IDs: decisions and blocks of lettered replies `D<n>` ([report endings](report-endings.md#the-next-step-block)), findings `H<n>`, tasks `T<n>`, criteria `AC<n>`, numbered on through the session and never reused. Cite an option as `D2 B` and an ID with a short gloss, such as "D2 (autonomous CI)".
+- IDs: decisions and blocks of lettered replies `D<n>` ([report endings](report-endings.md)), findings `H<n>`, tasks `T<n>`, criteria `AC<n>`, numbered on through the session and never reused. Cite an option as `D2 B` and an ID with a short gloss, such as "D2 (autonomous CI)".
 - In a list, report or close, each point carries one item and opens with its ID in bold and a dash, `- **D2** — Move the summary to the top`, or with its description when it has none.
 
 ## Channel

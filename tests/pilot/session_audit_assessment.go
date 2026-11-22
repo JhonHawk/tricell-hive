@@ -244,7 +244,9 @@ var (
 // cardOptionFormat checks the option labels of every waiting question card a
 // session shows, answered or not: each opens with its letter and a dash, and
 // a single choice marks its first option, and only it, as recommended. Codex's
-// request_user_input_async does not wait for the answer and is not judged. The
+// request_user_input_async does not wait for the answer and is not judged, nor
+// is a card the host refused, such as for invalid input, since the user never
+// saw it. The
 // evidence gives the card's line and the question's number in it, never its
 // text or its ID, which the model writes.
 func cardOptionFormat(s auditSession) criterionAssessment {
@@ -253,8 +255,8 @@ func cardOptionFormat(s auditSession) criterionAssessment {
 		return c
 	}
 	var failed, passed []string
-	for _, e := range s.Trace.Events {
-		if e.Kind != "question" || e.Tool == "request_user_input_async" {
+	for i, e := range s.Trace.Events {
+		if e.Kind != "question" || e.Tool == "request_user_input_async" || cardNeverShown(s.Trace.Events, i) {
 			continue
 		}
 		for n, raw := range list(decodeInput(e)["questions"]) {
@@ -285,10 +287,15 @@ func cardOptionFormat(s auditSession) criterionAssessment {
 // cardOptionsOutOfFormat says why a question's option labels leave the format,
 // or "" when they keep it.
 func cardOptionsOutOfFormat(labels []string, multi bool) string {
+	seen := map[byte]bool{}
 	for _, l := range labels {
 		if !cardOptionLetter.MatchString(l) {
 			return "an option without its letter and dash"
 		}
+		if seen[l[0]] {
+			return "two options with the same letter"
+		}
+		seen[l[0]] = true
 	}
 	if multi {
 		return ""
@@ -306,4 +313,16 @@ func cardOptionsOutOfFormat(labels []string, multi bool) string {
 		return "the recommended mark is not on the first option alone"
 	}
 	return ""
+}
+
+// cardNeverShown reports whether the host refused the card at qi before the
+// user saw it: its result is an error that is not the user turning it down.
+func cardNeverShown(events []traceEvent, qi int) bool {
+	for i := qi + 1; i < len(events); i++ {
+		if events[i].Kind == "tool_result" && events[i].ID == events[qi].ID {
+			r := events[i]
+			return r.Success != nil && !*r.Success && !claudeRejected.MatchString(r.Text)
+		}
+	}
+	return false
 }

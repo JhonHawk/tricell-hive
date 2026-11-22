@@ -15,7 +15,7 @@ Each row below ends a message differently. Every message that closes work ends w
 
 ## The reply block
 
-Every reply the user can give, the recommended one first, and no command:
+Every reply the user can give, in one list, the recommended first; no command:
 
 ```
 **▶ D<n> — <a question, such as How do we continue?>**
@@ -23,6 +23,8 @@ Every reply the user can give, the recommended one first, and no command:
 A - (★) <reply>: <why, when one is better>
 
 B - <reply>
+
+<waiting line>
 ```
 
 ## The next-step block
@@ -35,12 +37,14 @@ Moving from one flow to the next (research's status report to a ticket's researc
 
 <the reason in one line>
 
-`<the command, once, in this host's syntax, with a real argument, such as /flow-plan COM-833>`
+`<the command, once, in this host's syntax, with a real argument: /flow-plan COM-833>`
 
-A - <another reply, such as keep investigating>
+A - <another reply, such as keep investigating or what to change>
+
+<waiting line>
 ```
 
-Offer a flow's command only when the next step needs that flow's procedure: an investigation, a design in Figma, a plan, or a change to the repository's files with its delivery. No flow needs a ticket: when the work has none, the command's argument is a short description of the work or its change folder, never a placeholder, and a ticket is proposed only as [scope changes](scope-changes.md) sets. The ID only names the block: a reply to it, by its letter, its ID or the command, keeps the effect below.
+Offer a flow's command only when the next step needs that flow's procedure: an investigation, a design in Figma, a plan, or a change to the repository's files with its delivery. No flow needs a ticket: when the work has none, the command's argument is a short description of the work or its change folder, never a placeholder, and a ticket is proposed only as [scope changes](scope-changes.md) sets. The ID only names the block; replying to it keeps the effect below.
 
 Only the user's reply to this block, or a flow command they type, starts the next flow; a reply to a question or the acceptance of a proposal only settles or redirects the scope, except a fix the close footer's **Resolve findings now** reply or a findings round sends, and the [same-turn continuations](#same-turn-continuations). Keep the question tool for decisions inside a flow: scope, design, delivery and review, validation and findings.
 
@@ -56,14 +60,14 @@ When the block leads from an approved plan to its build in the same session, or 
 
 <the reason in one line>
 
-A - (★) <reply>
+A - <reply, (★) if recommended>
 
 B - <reply>
 
-<the waiting line>
+<waiting line>
 ```
 
-It recommends closing, unless a proposed finding is P1 or higher (see the findings) or a plan is in progress (continue it); with no item pending and neither case, the heading is **▶ D<n> — Closed**, with no reason and no `(★)`, or **▶ Closed** alone when no reply applies. Its replies come from this work's context, each only when it applies:
+It recommends closing, unless a proposed finding is P1 or higher (see the findings) or a plan is in progress (continue it); with no item pending and neither case, the heading is **▶ D<n> — Closed**, with no reason or `(★)`, or **▶ Closed** alone when no reply applies. Its replies come from this work's context, each only when it applies:
 
 - **Close:** runs the pending items, as [close modes](close-modes.md) sets; only while one is pending.
 - **Resolve findings now**, naming them, such as "resolve H2 and H3 in this branch": they enter `flow-build` on the work's branch, with the code review of the fix and its checks, or `flow-plan` when the fix is not a small understood change.

@@ -58,7 +58,7 @@ Base: `development` en `19f3b7be`; rama `feat/question-format-template` en el wo
 
 ### T4 — `AGENTS.md`, sitio y suite completa
 
-- [ ] `AGENTS.md` dice que un formato que ve el usuario se escribe como plantilla literal en su hoja y que una plantilla no es un ejemplo suelto; las páginas del sitio que describen los bloques de respuestas dicen que llevan un ID que se puede citar.
+- [x] `AGENTS.md` dice que un formato que ve el usuario se escribe como plantilla literal en su hoja y que una plantilla no es un ejemplo suelto; las páginas del sitio que describen los bloques de respuestas dicen que llevan un ID que se puede citar.
 
 **Closes:** AC6, AC7
 
@@ -87,19 +87,31 @@ Recorrido humano: leer las plantillas en `questions.md` y `report-endings.md`; t
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: build · T1
-- Last commit: 19f3b7be
+- Stage: verify · 2 reviews
+- Last commit: 09cbbcc9
 - Open findings: none
-- Next: T1 card_option_format
+- Next: code review result, then push
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/question-format-template · feat/question-format-template
-- Rules: flow-build/stage.md
+- Rules: flow-verify/stage-entry.md
+- Principles: none
 
 ### Evidence
 
 - before captures: none (no UI)
+- go vet ./... · exit 0 · 09cbbcc9
+- go test -count=1 ./... · exit 0 · 09cbbcc9 (tree = 09cbbcc9 plus tasks.md)
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · 347 OK, 121 s · 09cbbcc9
+- CI-only: .github/workflows/master-source-branch.yml (source-branch policy on master PRs, no tests)
+- full suite reused from build at 09cbbcc9 (tree unchanged but tasks.md)
+- blast radius: candidate auditor vs base on 570 sessions · 12532 criteria identical; 8 diffs from 3 transcripts that grew, identical on rerun · 09cbbcc9
+- AC1 aa27a201 card_option_format fail ×3 (3849, 6616, 6940) · 09cbbcc9
+- AC2 1140329b/e8ef9855/7bcc87ae pass (13/3/18 cards) · 09cbbcc9
+- AC3 codex 01a1f7d9 fail, 01a1f047 pass · 09cbbcc9
+- AC4–AC7 leaves, AGENTS.md, site grep; TestStageManifests and footprint ok · 09cbbcc9
 
 ## Review status and progress
 
 2026-11-21 — T1 · 08ea7ace · unverified: none
 2026-11-21 — T2 · d6b223a5 · unverified: none
 2026-11-21 — T3 · c8183d41 · unverified: none
+2026-11-21 — T4 · 09cbbcc9 · unverified: none
