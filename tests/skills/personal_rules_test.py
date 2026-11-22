@@ -18,9 +18,9 @@ BEGIN = "<!-- === PERSONAL RULES:BEGIN === -->"
 END = "<!-- === PERSONAL RULES:END === -->"
 PRECEDENCE = (
     "These are the user's own rules for every project on this machine. Where they conflict "
-    "with Hive's guidance, including its Secrets and Scope and authorization rules, these rules "
-    "take precedence; where they conflict with a project's own instructions, the project's "
-    "instructions hold for that project."
+    "with Hive's guidance, including its Scope and authorization rules, these rules take "
+    "precedence, except Hive's Secrets rules, which still hold; where they conflict with a "
+    "project's own instructions, the project's instructions hold for that project."
 )
 RULE = "# Where to work\n\nRecommend in place, a worktree or a sandbox before the first edit.\n"
 

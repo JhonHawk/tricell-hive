@@ -14,7 +14,7 @@ Personal rules are the user's own instructions for every project on this machine
 | Cursor | the file `~/.cursor/rules/personal-rules.mdc`, always applied |
 | Antigravity | the file `~/.gemini/config/rules/personal-rules.md`, `trigger: always_on` |
 
-Each section sits right after Hive's block, or after Hive's voice block when one is present, between `PERSONAL RULES` markers. Each copy opens with a fixed line: the user's rules take precedence over Hive's guidance, its Secrets and Scope and authorization rules included, and a project's own instructions hold over them for that project.
+Each section sits right after Hive's block, or after Hive's voice block when one is present, between `PERSONAL RULES` markers. Each copy opens with a fixed line: the user's rules take precedence over Hive's guidance, its Scope and authorization rules included, except Hive's Secrets rules, which still hold, and a project's own instructions hold over them for that project.
 
 ## Who writes them
 
@@ -35,4 +35,4 @@ To remove the rules, run `python3 -I <harness-audit-dir>/scripts/personal_rules.
 - `hive update` keeps every byte outside Hive's block, so the sections survive it. When Hive's block was deleted by hand and reinstalled at the end of the file, the section is no longer right after it: `check` reports the position and `deploy` moves it.
 - Uninstalling Hive leaves the sections and files in place, since they belong to the user; `check` names a copy in a host without Hive, or in a Codex file Codex no longer reads, and `remove` deletes it.
 - Cursor loads `personal-rules.mdc` only in workspaces under the home folder, like Hive's own `hive.mdc`; the fallback pointer for other workspaces names only `hive.mdc`.
-- An audit of a host's global layer reads one copy per host: the copies in other hosts' files are not duplicates of each other. A personal rule that conflicts with Hive's Secrets or Scope and authorization rules is a finding for the user to confirm, since the precedence line lets it override them; other conflicts with Hive's guidance follow the precedence line.
+- An audit of a host's global layer reads one copy per host: the copies in other hosts' files are not duplicates of each other. A personal rule that conflicts with Hive's Secrets rules is a finding, since those rules still hold over it; one that conflicts with Scope and authorization is a finding for the user to confirm, since the precedence line lets it override them; other conflicts with Hive's guidance follow the precedence line.

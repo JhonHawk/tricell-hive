@@ -81,7 +81,7 @@ Base: `development` en `e83104ef`; rama propuesta `feat/personal-rules`. Todas l
 | Pruebas de cada tarea | Al cerrar la tarea, local | El comando de la tarea pasa | Cubierto por la implementación |
 | Suite completa | Candidato final, local | `go vet ./...`, `go test ./...`, `python3 -m unittest discover -s tests/skills -p '*_test.py'` | Cubierto por la implementación |
 | Revisión de código | Candidato final, antes del push | `/code-review` de Claude Code | La respuesta de revisión |
-| Revisión de seguridad | Candidato final, antes del push | hijo `hive-review-security`, con la escritura de archivos de instrucciones, el detector de secretos y la línea de prioridad (D11 B) en su brief | La respuesta de seguridad |
+| Revisión de seguridad | Candidato final, antes del push | hijo `hive-review-security`, con la escritura de archivos de instrucciones, el detector de secretos y la línea de prioridad (H2 A) en su brief | La respuesta de seguridad |
 
 Recorrido humano: abrir una sesión nueva en Codex y otra en Claude Code y ver que la regla «dónde trabajar» está en su contexto.
 
