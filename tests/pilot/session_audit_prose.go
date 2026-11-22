@@ -31,7 +31,9 @@ var (
 	// imperativeConfirm asks the user to confirm without a question mark, such
 	// as «Para arrancar, confirma …»: at the start of a sentence or after a
 	// comma or colon, so «el log confirma que…» does not count.
-	imperativeConfirm = regexp.MustCompile(`(?i)(?:^|[,:]\s*)[*_]*(?:conf[ií]rma(?:me|lo|la)?|confirm)\b`)
+	// RE2's \b is ASCII, so «Confirmé» would end at the «é»: the word must end
+	// in a non-letter instead.
+	imperativeConfirm = regexp.MustCompile(`(?i)(?:^|[,:]\s*)[*_]*(?:conf[ií]rma(?:me|lo|la)?|confirm)(?:[^\p{L}]|$)`)
 	// offeredReplies opens a sentence that lists the replies the user may type,
 	// and quotedReply is one of them in quotation marks.
 	offeredReplies = regexp.MustCompile(`(?i)\b(?:puedes responder|responde|you can reply|reply with)\b`)

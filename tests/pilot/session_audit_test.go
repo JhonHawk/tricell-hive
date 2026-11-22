@@ -428,6 +428,7 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"prose choice codex imperative confirmation of delivery", "codex", prose, []string{prose, "codex-rollout-imperative-confirm-fail.jsonl"}, auditOptions{}, "fail"},
 		{"prose choice codex replies offered in quotation marks", "codex", prose, []string{prose, "codex-rollout-quoted-replies-review.jsonl"}, auditOptions{}, "review"},
 		{"prose choice codex sentence that reports a confirmation", "codex", prose, []string{prose, "codex-rollout-reported-confirm-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"prose choice codex past-tense Confirmé is no request", "codex", prose, []string{prose, "codex-rollout-past-tense-confirm-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"prose choice codex without the card", "codex", prose, []string{prose, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
 		{"prose choice codex asked through the card", "codex", prose, []string{prose, "codex-rollout-card-pass.jsonl"}, auditOptions{}, "pass"},
 		{"prose choice wrapped over two lines", "codex", prose, []string{prose, "codex-rollout-wrapped-fail.jsonl"}, auditOptions{}, "fail"},
