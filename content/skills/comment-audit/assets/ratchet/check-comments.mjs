@@ -22,7 +22,11 @@ const ALLOWED = [
 
 const JSX_WORKAROUND = /^\/\* workaround: \S+ \*\/$/;
 
-const LICENSE_WORDS = /@license\b|@preserve\b|\blicen[cs]e[ds]?\b|\bcopyright\b|SPDX-License-Identifier|\(c\)|©/i;
+const LICENSE_START = /^\/(\/|\*[*!]?)[\s*]*(Copyright\b|\([cC]\)\s|©|SPDX-License-Identifier:|@license\b|@preserve\b)/;
+const LICENSE_BANNER = /^\/\*![\s\S]*(\blicen[cs]e[ds]?\b|\bcopyright\b|SPDX-License-Identifier|\([cC]\)|©)/i;
+const LICENSE_TAG = /^\/\*[*!]?[^\n]*?(\n[ \t*]*)?@(license|preserve)\b|\n[ \t*]*@(license|preserve)\b/;
+const TASK_NOTE = /^\/[/*]\**\s*(TODO|FIXME|HACK|XXX|BUG)\b/i;
+const BLANK_LINE = /(\r\n|\n|\r)[ \t]*(\r\n|\n|\r)/;
 
 const JSDOC_TYPES = /^\/\*\*[\s\S]*@(type|typedef|param\s*\{|returns?\s*\{|template|satisfies|import)\b/;
 const JS_FILES = /\.(js|jsx|mjs|cjs)$/;
@@ -81,18 +85,17 @@ function comments(parser, file, text) {
   walk(ast.program, (node) => {
     if (node.type === "JSXExpressionContainer") containers.push([node.start, node.end]);
   });
-  const firstCode = ast.tokens.find((token) => {
-    const label = typeof token.type === "string" ? token.type : token.type.label;
-    return label !== "CommentLine" && label !== "CommentBlock";
-  });
+  const codeStart = ast.program.body.length ? ast.program.body[0].start : text.length;
   const header = new Set();
+  let previous = null;
   for (const comment of ast.comments) {
-    if (firstCode && comment.end > firstCode.start) break;
-    const previous = [...header].at(-1);
-    if (previous && /\n[ \t]*\r?\n/.test(text.slice(previous.end, comment.start))) break;
-    header.add(comment);
+    if (comment.end > codeStart) break;
+    if (previous && BLANK_LINE.test(text.slice(previous.end, comment.start))) break;
+    const raw = text.slice(comment.start, comment.end);
+    if (!previous && !LICENSE_START.test(raw) && !LICENSE_BANNER.test(raw)) break;
+    if (!TASK_NOTE.test(raw)) header.add(comment);
+    previous = comment;
   }
-  const licensed = [...header].some((comment) => LICENSE_WORDS.test(text.slice(comment.start, comment.end)));
   return ast.comments.map((comment) => {
     const raw = text.slice(comment.start, comment.end);
     const lineStart = text.lastIndexOf("\n", comment.start - 1) + 1;
@@ -107,7 +110,8 @@ function comments(parser, file, text) {
       fullLine: before.trim() === "" && after.trim() === "",
       directive:
         isDirective(file, raw) ||
-        (licensed && header.has(comment)) ||
+        header.has(comment) ||
+        (comment.type === "CommentBlock" && LICENSE_TAG.test(raw)) ||
         (JSX_WORKAROUND.test(raw) &&
           containers.some(([start, end]) => start <= comment.start && comment.end <= end)),
       text: raw,
