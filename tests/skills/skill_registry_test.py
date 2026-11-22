@@ -95,7 +95,8 @@ class CheckRepository(unittest.TestCase):
         skill(self.root, ".agents/skills/expo-router")
         os.makedirs(self.root / ".claude/skills")
         os.symlink("../../.agents/skills/expo-router", self.root / ".claude/skills/expo-router")
-        os.symlink("../.agents/skills", self.root / ".grok")  # .grok -> .agents/skills, so .grok/skills does not exist
+        os.makedirs(self.root / ".grok")
+        os.symlink("../.agents/skills", self.root / ".grok/skills")
         agents(self.root, "- Before editing files under `apps/mobile/`: `.claude/skills/expo-router/SKILL.md`")
         code, out = run("check", self.root)
         self.assertEqual(code, 0, out)

@@ -101,7 +101,7 @@ Base `development` en `867f5463`, rama `feat/skill-registry-mobile`, worktree `.
 
 ### T6 — Sitio, README y llms.txt
 
-- [ ] La documentación para personas explica `## Skills`, el script, el rol móvil y la verificación en dispositivo.
+- [x] La documentación para personas explica `## Skills`, el script, el rol móvil y la verificación en dispositivo.
 
 **Closes:** none — documentación para personas de lo que cierran T1 a T5
 
@@ -133,17 +133,21 @@ Sin parada de validación humana (`automatic`).
 ## Checkpoint
 
 - Updated: 2026-11-21
-- Stage: build · T5 walk + T6
-- Last commit: 2747e98f
+- Stage: build · local CI
+- Last commit: b76b6b32
 - Open findings: none
-- Next: T6 running in hive-write-docs child; T5 device walk waits for the Pixel (adb devices empty); then local CI and flow-verify
+- Next: flow-verify: walk AC1-AC8 (AC7 needs the Pixel), /code-review, hive-review-security
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/skill-registry-mobile · feat/skill-registry-mobile
-- Unwritten: T6 child launched; Pixel disconnected
 - Rules: flow-build/stage.md
+- Principles: none
 
 ### Evidence
 
 - before captures: none (no screen of an app changes)
+- go vet ./... · pass · b76b6b32
+- go test ./... · pass · b76b6b32
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · pass, 383 tests · b76b6b32
+- CI-only: .github/workflows/master-source-branch.yml (branch rule on GitHub)
 
 ## Review status and progress
 
@@ -151,3 +155,4 @@ Sin parada de validación humana (`automatic`).
 2026-11-21 — T2 · 5add19bd · unverified: AC4 se observa en el texto; ninguna instalación real corrió (el plan no corre instaladores)
 2026-11-21 — T3 · 10582c10 · unverified: none
 2026-11-21 — T4 · 5911a832 · unverified: AC6 se observa tras el refresco del mantenedor posterior al merge
+2026-11-21 — T6 · b76b6b32 · unverified: build del sitio y chequeo de enlaces no corrieron (site/ sin node_modules)
