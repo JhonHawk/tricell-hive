@@ -58,7 +58,7 @@ Base: `development` en `e83104ef`; rama propuesta `feat/personal-rules`. Todas l
 
 ### T4 — Regla «dónde trabajar» como primer contenido
 
-- [ ] `~/.config/hive/rules.md` tiene la regla «dónde trabajar» aprobada por el usuario, desplegada en los siete hosts, y sigue intacta tras el refresco local del mantenedor.
+- [x] `~/.config/hive/rules.md` tiene la regla «dónde trabajar» aprobada por el usuario, desplegada en los siete hosts, y sigue intacta tras el refresco local del mantenedor.
 
 **Closes:** AC8, AC9, AC10, AC12
 
@@ -113,3 +113,5 @@ Recorrido humano: abrir una sesión nueva en Codex y otra en Claude Code y ver q
 2026-11-21 — T1 · 2ec3e343 · unverified: AC8-AC10 en archivos reales: los observa T4
 2026-11-21 — T2 · 0ff323ab · unverified: none
 2026-11-21 — T3 · 2db70972 · unverified: none
+2026-11-21 — T4 · uncommitted · unverified: none
+2026-11-21 — T4 marked at the archive batch (D11 A): `personal_rules.py check` exit 0 ("every copy matches rules.md") after the maintainer refresh from 5eb0ef25; the section is in the global files of Claude Code, Codex, OpenCode and Pi.

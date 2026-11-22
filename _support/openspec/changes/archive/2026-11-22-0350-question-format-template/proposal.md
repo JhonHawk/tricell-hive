@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | Completado · PR #578, 5eb0ef25 |
 | Tracker | none |
 | Git | tricell-hive, base `development` en `19f3b7be`, rama `feat/question-format-template` (worktree `.claude/worktrees/question-format-template`) |
 | Playbook | none (guía distribuida más un criterio del auditor; ningún playbook cubre ambos) |

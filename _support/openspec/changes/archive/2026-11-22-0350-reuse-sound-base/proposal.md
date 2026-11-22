@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | In verify |
+| Estado | Completado · PR #575, e83104ef |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `f80c6843` (planeado en `2eef1969`) · rama `feat/reuse-sound-base` |
 | Playbook | investigate → cambio de reglas (ninguno) |
