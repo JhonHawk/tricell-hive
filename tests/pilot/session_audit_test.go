@@ -448,6 +448,7 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"cache claude reading transitions is not a move", "claude", cache, []string{cache, "claude-project-read-transitions-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"try it codex final report without the block", "codex", tryIt, []string{tryIt, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
 		{"try it codex final report with the block", "codex", tryIt, []string{tryIt, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
+		{"try it codex close report judged before later work", "codex", tryIt, []string{tryIt, "codex-rollout-close-then-other-work-fail.jsonl"}, auditOptions{}, "fail"},
 		{"try it codex frontend child, report without the block", "codex", tryIt, []string{tryIt, "codex-rollout-child-fail.jsonl"}, auditOptions{}, "fail"},
 		{"try it codex mobile child, report without the block", "codex", tryIt, []string{tryIt, "codex-rollout-mobile-child-fail.jsonl"}, auditOptions{}, "fail"},
 		{"try it codex mobile child, report with the block", "codex", tryIt, []string{tryIt, "codex-rollout-mobile-child-pass.jsonl"}, auditOptions{}, "pass"},
