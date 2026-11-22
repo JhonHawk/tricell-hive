@@ -42,6 +42,13 @@ Everything else needs a stated reason to be resident. Classify the rest:
   ```
 
   Check it for each repository outside the home folder used with Cursor CLI: the caller says so, or you confirm Cursor sessions there; a `.cursor/` directory alone is a reason to ask, not evidence. A missing line is `medium`, and `high` when the repository declares `Hive guidance: required`, because that declaration is then false for Cursor sessions; propose the exact line. An existing line is `keep`, not a redundant pointer under HA-HI-07: the condition keeps hosts that already load the layer from reading it again.
+- **HA-IF-19 — Skills registry.** A project lists the third-party skills an agent must read, and when, in a `## Skills` section of its `AGENTS.md`, outside `## Hive` and outside any block an installer manages. The section opens with the line "Before the work a line names, read that skill's SKILL.md whole." Each line is a list item: an observable trigger, a path or a kind of task, then the skill as a backticked path ending in `SKILL.md`, relative to the folder of that `AGENTS.md`:
+
+  ```markdown
+  - Before editing files under `apps/mobile/`: `.agents/skills/expo-router/SKILL.md`
+  ```
+
+  Check each repository entry point with `python3 -I <harness-audit-dir>/scripts/skill_registry.py check <repository>` ([skill registry](../scripts/skill_registry.py)). Each path it reports missing and each installed skill it reports unlisted is `medium`; a registry inside `## Hive` is `relocate` into its own section; exit 2 names an input it cannot read. The skills Hive installed carry `assets/hive-managed.json` and need no line. A sentence elsewhere in the instruction files that requires a skill, such as "use the X skill for UI work", is `relocate` into the section, except inside an installer's managed block, whose next run would revert the move: add the registry line beside the block and leave the block. A declared workspace repeats each child's lines in its own `## Skills`, with the child's path as prefix on the trigger's paths and on the skill's path, because Codex, OpenCode, Pi, Grok and Antigravity do not discover skills below the folder where the session starts. That copy is the stated exception to HA-HI-05's "never by copying" and to HA-IF-08, and `check` on the workspace verifies it. A project with no third-party skills installed needs no section. To propose and install the official skills of the project's stack, follow [stack skills](stack-skills.md).
 
 ## Evidence for each finding
 

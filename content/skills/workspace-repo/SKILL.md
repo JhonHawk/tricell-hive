@@ -27,5 +27,6 @@ When the user chooses to make an existing specs repository the coordinator, keep
 ## Limits
 
 - Codex, Grok and Cursor do not load the coordinator's `AGENTS.md` in a session started inside a child, so each child keeps its complete `## Hive` section; sessions that work across repositories start at the coordinator root.
+- Most hosts do not discover a child's skills from the coordinator root, so the coordinator's `## Skills` repeats each child's registry lines with the child's path as prefix, as HA-IF-19 of [instruction files](../harness-audit/references/instruction-files.md) sets.
 - A host's native worktree made from the coordinator holds none of the children: create worktrees inside the child that holds the change.
 - A change across repositories is still one pull request per repository; the coordinator makes no change atomic.
