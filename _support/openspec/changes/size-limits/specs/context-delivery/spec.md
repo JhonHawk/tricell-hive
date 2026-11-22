@@ -20,23 +20,6 @@ The size check SHALL report the global core separately from explicit simple-quer
 - **WHEN** the plan/build scenario reads the stage packets of its flows
 - **THEN** the report gives its reads, its bytes without repeats, the brought members and its bytes with repeats, the scenario declares at most 26 reads, and only growth in the members the earlier list read can fail the comparison.
 
-## ADDED Requirements
-
-### Requirement: Size limits rest on a host limit or a loading budget
-Every size limit a content test enforces SHALL belong to one of three kinds, and its constant SHALL name its source. A host limit SHALL rest on a documented cut of a supported host and change only when that host changes: a skill entrypoint at most 16,000 bytes, because Claude Code keeps only the first 5,000 tokens of an invoked skill after compaction. A whole-read limit of 24,000 bytes SHALL apply to every other file a model reads in one pass: a skill reference, a rule leaf, a principle leaf and a playbook, the same limit as a stage packet; no file SHALL have a limit of its own or an exception. A loading budget SHALL cap what every session loads unread, the global core and the voice text, and SHALL change only by the user's decision. A failing size test SHALL name the file, its size, the limit and what to do: for an entrypoint, move a situational section to a reference linked with its read condition; for a whole-read file, split it by responsibility; for the global core, move the rule's procedure to its leaf. A change SHALL NOT raise a limit to make room for its own content, and SHALL NOT cut text a rule needs to fit a limit.
-
-#### Scenario: A leaf past the whole-read limit
-- **WHEN** a rule leaf, principle leaf, playbook or skill reference measures more than 24,000 bytes
-- **THEN** `go test ./tests/content/...` fails, naming the file, its size, the limit and that it splits by responsibility.
-
-#### Scenario: A leaf under the whole-read limit
-- **WHEN** a rule leaf measures between 4,001 and 24,000 bytes
-- **THEN** the size tests pass, and no exception list names it.
-
-#### Scenario: An entrypoint past the host limit
-- **WHEN** a skill's `SKILL.md` measures more than 16,000 bytes
-- **THEN** `go test ./tests/content/...` fails, naming the compaction cut and that a situational section moves to a reference.
-
 ### Requirement: Rule leaves hidden from model invocation
 The skill `hive-core` SHALL hold every rule leaf and every principle leaf in domain folders at its top level, `content/skills/hive-core/<domain>/<name>.md`, and SHALL NOT hold a `references/` folder. The domains SHALL be the ones `content/skills/hive-core/assets/domains.json` lists, each folder SHALL hold at least one leaf, and a leaf's name SHALL be unique across domains. Each rule leaf SHALL have no frontmatter, a first body line after its `#` title that starts with "Read" and states when to read it, and at most the 24,000-byte whole-read limit; a rule leaf's own references SHALL live under `hive-core/<domain>/<name>/` and its scripts under `hive-core/scripts/<name>/`. The principle leaves SHALL form the domain `principles`: each a file `content/skills/hive-core/principles/<name>.md` with no frontmatter, a first body line after its `#` title that starts with "Read", and at most the 24,000-byte whole-read limit, and the principle index SHALL be `content/skills/hive-core/principles/index.md`. No directory `content/skills/hive-rule-*` or `content/skills/hive-principle-*` SHALL exist. `hive-core/SKILL.md` SHALL set `disable-model-invocation: true` and SHALL NOT list or route to the leaves, since the global core's index and the principle index do. The language leaf `hive-typescript` SHALL stay model-invocable, with `paths` for TypeScript files, and the principle index SHALL link it with the condition of editing those files. Every rule leaf SHALL appear exactly once in the global core's index, on a line whose trigger is literal text of the leaf's first body line, compared in lower case with markdown links reduced to their text, and every principle leaf once in the principle index. A leaf SHALL be read by the path its index line, its flow link or its flow's stage packet gives, never through a host's skill-invocation tool.
 
@@ -55,3 +38,20 @@ The skill `hive-core` SHALL hold every rule leaf and every principle leaf in dom
 #### Scenario: A leaf outside its domains
 - **WHEN** `content/skills/hive-core/references/` exists, a folder at the top of `hive-core` is neither a domain `domains.json` lists nor `assets` or `scripts`, a domain holds no leaf, a leaf name repeats across domains, or a directory `content/skills/hive-rule-*` or `content/skills/hive-principle-*` exists
 - **THEN** `go test ./tests/content/...` fails and names it.
+
+## ADDED Requirements
+
+### Requirement: Size limits rest on a host limit or a loading budget
+Every size limit a content test enforces SHALL belong to one of three kinds, and its constant SHALL name its source. A host limit SHALL rest on a documented cut of a supported host and change only when that host changes: a skill entrypoint at most 16,000 bytes, because Claude Code keeps only the first 5,000 tokens of an invoked skill after compaction. A whole-read limit of 24,000 bytes SHALL apply to every other file a model reads in one pass: a skill reference, a rule leaf, a principle leaf and a playbook, the same limit as a stage packet; no file SHALL have a limit of its own or an exception, and a leaf a stage packet holds SHALL also fit that packet's 24,000 bytes. A loading budget SHALL cap what a session loads without a read of its own, the global core (30,000 bytes), the voice text (3,072 bytes) and the language leaf `hive-typescript` (4,000 bytes, loaded by `paths` in every session that edits TypeScript), and SHALL change only by the user's decision. A failing size test SHALL name the file, its size, the limit and what to do: for an entrypoint, move a situational section to a reference linked with its read condition; for a whole-read file, split it by responsibility; for the global core, move the rule's procedure to its leaf. A change SHALL NOT raise a limit to make room for its own content, and SHALL NOT cut text a rule needs to fit a limit.
+
+#### Scenario: A leaf past the whole-read limit
+- **WHEN** a rule leaf, principle leaf, playbook or skill reference measures more than 24,000 bytes
+- **THEN** `go test ./tests/content/...` fails, naming the file, its size, the limit and that it splits by responsibility.
+
+#### Scenario: A leaf under the whole-read limit
+- **WHEN** a rule leaf measures between 4,001 and 24,000 bytes
+- **THEN** the size tests pass, and no exception list names it.
+
+#### Scenario: An entrypoint past the host limit
+- **WHEN** a skill's `SKILL.md` measures more than 16,000 bytes
+- **THEN** `go test ./tests/content/...` fails, naming the compaction cut and that a situational section moves to a reference.

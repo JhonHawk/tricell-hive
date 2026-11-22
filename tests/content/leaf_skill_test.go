@@ -334,6 +334,9 @@ func leafProblems(root string) []string {
 			if !strings.Contains(frontmatterBlock(text), "\npaths:") {
 				problems = append(problems, fmt.Sprintf("%s: frontmatter has no `paths`", name))
 			}
+			if problem := languageLeafProblem(name+"/SKILL.md", int64(len(data))); problem != "" {
+				problems = append(problems, problem)
+			}
 		} else if hidden != "true" {
 			problems = append(problems, fmt.Sprintf("%s: frontmatter lacks `disable-model-invocation: true`", name))
 		}

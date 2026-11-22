@@ -18,10 +18,10 @@ const skillEntrypointLimit = 16000
 
 // wholeReadLimit is the largest size, in bytes, of any other file a model
 // reads in one pass: a skill reference, a rule or principle leaf, a playbook.
-// It is the stage packet limit (tooling/management/stage_packets.go), the
-// size Antigravity truncates a rule file past, and it leaves a model that
-// caps a long read (issue #204) its later rules. One limit for every such
-// file, with no exception list (user decision D5 A, D6 A, 2026-11-22).
+// It is the stage packet limit (tooling/management/stage_packets.go), and it
+// leaves a model that caps a long read (issue #204) its later rules. One limit
+// for every such file, with no exception list (user decision D5 A, D6 A,
+// 2026-11-22); a leaf a packet holds also fits the packet's own limit.
 const wholeReadLimit = 24000
 
 // wholeReadProblem returns the failure for a whole-read file of size bytes,
@@ -31,6 +31,21 @@ func wholeReadProblem(label string, size int64) string {
 		return ""
 	}
 	return fmt.Sprintf("%s: whole-read file is %d bytes, over the %d-byte limit: split it by responsibility into files each linked with its read condition; do not raise the limit or trim a rule's text to fit", label, size, wholeReadLimit)
+}
+
+// languageLeafBudget is the largest size, in bytes, of the language leaf's
+// SKILL.md. A loading budget, not a host limit: its `paths` load it in every
+// session that edits a TypeScript file, so it changes only by the user's
+// decision.
+const languageLeafBudget = 4000
+
+// languageLeafProblem returns the failure for a language leaf of size bytes,
+// or "" when it fits.
+func languageLeafProblem(label string, size int64) string {
+	if size <= languageLeafBudget {
+		return ""
+	}
+	return fmt.Sprintf("%s: %d bytes, over the %d-byte budget of a leaf every TypeScript session loads: move what only some edits need to a reference the leaf links with its read condition; raising the budget is the user's decision", label, size, languageLeafBudget)
 }
 
 // entrypointProblem returns the failure for a SKILL.md of size bytes, or ""
@@ -151,6 +166,7 @@ func TestSizeLimitBoundaries(t *testing.T) {
 	}{
 		{"whole read", wholeReadProblem, wholeReadLimit, "split it by responsibility"},
 		{"entrypoint", entrypointProblem, skillEntrypointLimit, "move a situational section to a reference"},
+		{"language leaf", languageLeafProblem, languageLeafBudget, "raising the budget is the user's decision"},
 	} {
 		if got := tc.problem("f.md", tc.limit); got != "" {
 			t.Errorf("%s: %d bytes must fit, got %q", tc.name, tc.limit, got)

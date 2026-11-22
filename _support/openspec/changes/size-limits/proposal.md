@@ -60,3 +60,4 @@ None: the tasks take no effect on an external system.
 ## Review status and progress
 
 2026-11-22 — Sin plan: carpeta escrita por flow-build para el delta de spec; sin revisión de plan.
+2026-11-22 — /code-review (medium): H1 delta requirement under ADDED moved to MODIFIED; H2 language leaf keeps its 4,000-byte budget as a loading budget; H3 a packet member also fits its packet; H4 wholeReadLimit no longer cites Antigravity. H5 (other active change folders state 4,000 B) and H6 (main specs change at archive) not fixed: other works' records and the hygiene batch merge.
