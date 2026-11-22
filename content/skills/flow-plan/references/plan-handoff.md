@@ -4,7 +4,7 @@ Read right before returning a ready plan, at `flow-plan` step 6. Reading this re
 
 ## Write the summary first
 
-A saved change folder holds the detail and the user may not open it, so summarize the plan in the message text, in the session language. A message that only points at the change folder, or a question card in place of the summary, is a failure of this step. Do not paste the whole plan. A plan kept in the conversation, as [flow-plan](../SKILL.md#where-the-plan-lives) sets, has no folder behind it: its summary also carries each task's `Closes:` line and verification. The summary has, in this order:
+A saved change folder holds the detail and the user may not open it, so summarize the plan in the message text, in the session language. A message that only points at the change folder, or a question card in place of the summary, is a failure of this step. Do not paste the whole plan. A plan kept in the conversation, as [flow-plan](../SKILL.md#where-the-plan-lives) sets, has no folder behind it: its summary also carries each task's `Closes:` line and verification, each external fact with its measurement as [outside the repository](../../hive-core/plan/external-facts.md) records it, and each verification command with its result and date. The summary has, in this order:
 
 1. The objective in one or two sentences, and the files and areas of the scope line [hive-mode](../../hive-mode/SKILL.md) step 5 sets, recounted from the plan; its stages and checks go in items 7 and 8. When research gave that line in this conversation and the file count differs by more than a quarter, or an area was added or removed, say what changed and why, such as "~42 files, not ~30: the retired contract's tests are removed"; without that line, give the count alone.
 2. The text of each acceptance criterion `AC<n>`, and the name of each requirement the delta adds, modifies or removes: they are the contract the user approves.
@@ -14,7 +14,7 @@ A saved change folder holds the detail and the user may not open it, so summariz
 6. The prerequisites still unmet, with who provides each, and each external fact written as not measured, with the task that meets it first, as [outside the repository](../../hive-core/plan/external-facts.md) sets.
 7. The verification: the tests, the UI walk and review, and the code review, and each verification command not measured.
 8. The delivery mode, with the validation stop and the endpoint after it.
-9. Each class of effect with its answer (approved, refused or unanswered), its target, ceiling and tasks, what remains open or unauthorized, and the change folder path or that the plan lives in the conversation.
+9. Each class of effect with its answer as the [effects round](../../hive-core/plan/external-effects.md) records it, what remains open or unauthorized, and the change folder path or that the plan lives in the conversation.
 
 ## Then end with the build route
 

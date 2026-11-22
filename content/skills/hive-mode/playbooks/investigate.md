@@ -11,7 +11,6 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the work is a question
 - An audit of a codebase for what to improve follows [code audit](../references/code-audit.md): its aspects, the brief of its children, its report and the rejected findings it skips.
 - A chosen ticket is assessed for impact, complexity, readiness and dependencies as the router's «Assess a chosen ticket» sets.
 - The investigation changes no repository file, tracker or shared data. A ticket for a finding is a single action offered at the end, never part of a route ([create-issue](../../create-issue/SKILL.md) writes it).
-- The findings end as [report endings](../../hive-core/messages/report-endings.md) sets, with no flow recommended that the user did not ask for.
 
 **Reporting.** The findings end in the analysis row of [report endings](../../hive-core/messages/report-endings.md); if the work later closes, its final report uses the row of [close report](../../hive-core/close/close-report.md#variants) that the delivery mode in force picks.
 

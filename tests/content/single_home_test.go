@@ -18,7 +18,7 @@ type homePhrase struct {
 	home   string
 }
 
-// homePhrases lists one literal phrase per rule leaf and the leaf that must be
+// homePhrases lists one literal phrase per rule and the file that must be
 // its only home under content/.
 var homePhrases = []homePhrase{
 	{"Never run `git add -A`", "content/skills/hive-core/git/git-commit.md"},
@@ -95,7 +95,7 @@ var homePhrases = []homePhrase{
 	{"never from an unmeasured guess", "content/skills/hive-core/build/checks.md"},
 	{"then its REST API with the user's global token", "content/skills/hive-core/tracker/trackers.md"},
 	{"belongs to that work: fix it without asking or opening a ticket", "content/skills/hive-core/messages/reasons-and-blockers.md"},
-	{"though it changes a description the task did not create", "content/skills/hive-core/tracker/ticket-state.md"},
+	{"even as it edits a description the task did not create", "content/guidance/global.md"},
 	{"use the main checkout's file", "content/skills/hive-core/local/local-write/worktree.md"},
 	{"gets no second report", "content/skills/hive-core/plan/checkpoint.md"},
 	{"Recalled memory and prior summaries are claims about past state", "content/skills/hive-core/principles/verify-current-state.md"},

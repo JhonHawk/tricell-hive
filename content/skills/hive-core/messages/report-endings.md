@@ -7,7 +7,7 @@ Each row below ends a message differently. Every message that closes work ends w
 | Way of ending | It ends with |
 | --- | --- |
 | Analysis, explanation, review or diagnosis the user asked for without asking for a change | Its findings, then [the reply block](#the-reply-block). It never recommends a flow the user did not ask for, and when the findings confirm a defect in the current project, one of its replies fixes it. |
-| Assessment of a ticket the user picked for research, such as "research COM-918" | As [hive-mode](../../hive-mode/SKILL.md) step 5 sets. |
+| Assessment of a ticket the user picked for research, such as "research COM-918" | When the findings confirm work the ticket asks for, as [hive-mode](../../hive-mode/SKILL.md) step 5 sets; otherwise as the first row. |
 | Hand-over to another flow | [The next-step block](#the-next-step-block). |
 | Close with the footer (the first row of [close modes](../close/close-modes.md)) | The report, then [the close footer](#the-close-footer), then the waiting line of [questions](questions.md) «Format». |
 | Close without the footer (the other rows of [close modes](../close/close-modes.md)) | The report, as the row of [close report](../close/close-report.md#variants) that fits, with no footer and no command. |
