@@ -38,7 +38,7 @@ const ALLOWED = [
 const JSDOC_TYPES = /^\/\*\*[\s\S]*@(type|typedef|param\s*\{|returns?\s*\{|template|satisfies|import)\b/;
 const JS_FILES = /\.(js|jsx|mjs|cjs)$/;
 
-const DECISIONS_PATH = "docs/decisions/";
+const DECISIONS_PATH = "_support/docs/decisions/";
 
 class Failure extends Error {}
 
