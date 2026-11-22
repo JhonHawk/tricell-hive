@@ -10,7 +10,7 @@ Every migration, in either direction, follows the same order: separate current k
 
 ## Questions a migration asks
 
-Ask them in the round of the manifest, as [decision format](../../hive-core/references/questions.md) sets:
+Ask them in the round of the manifest, as [decision format](../../hive-core/messages/questions.md) sets:
 
 - **Knowledge hub**, when `Specs` is missing, does not resolve, or differs between repositories of one project: the detected specs repository; the repository that owns the contracts, usually the backend; a workspace repository created with workspace-repo; or `_support` of the workspace only. Say what each leaves outside Git.
 - **Documentation home**, when a repository keeps its living documentation outside `_support/docs`, such as a root `docs/`: propose moving it to `_support/docs`, with the links each move updates. When the user declines, keep it, and write at the head of its index the line `Layout: docs at <path>`, keeping any key the line already has, creating `<path>/README.md` when it has no index and pointing the root `AGENTS.md` at it with an `Index: <path>` line when the index is not `_support/docs/README.md` or `docs/README.md`.
@@ -21,7 +21,7 @@ Ask them in the round of the manifest, as [decision format](../../hive-core/refe
 - **HA-PL-02 — One target per project.** Repositories of the same project point `Specs` at the same directory. Several repositories sharing a project without a specs repository need the caller's decision to create one or designate a repository.
 - **HA-PL-03 — Legacy homes.** Find existing records outside the layout: `sessions/` folders, epic or delta folders, current-rule folders such as `product/`, unversioned workspace ledgers such as `_support/PROJECT.md`, and plans at repository roots. Classify each by its content, not its name.
 - **HA-PL-04 — Current requirements.** Identify where current behavior is described today. A product map (`product/<module>/<view>.md` with rules in force) is the project's current-requirements home: `keep` it in place and never propose moving it into `<specs>/specs/`. Another folder that already holds only rules in force maps to `<specs>/specs/`; a document that mixes current rules with delivery history stays in place (`keep`) and remains authoritative for its areas until a change moves them, because extracting current requirements is authoring, not a move. Flag instructions that still call such documents the single source of truth so they can name the transition.
-- **HA-PL-05 — Misplaced material.** Report content whose home is another repository or level, such as infrastructure configuration inside a specs repository, secrets or raw evidence inside a versioned path, or support material at a repository root. These checks propose no removal of versioned evidence or legacy records: project-layout's classes in its step 3 decide them. `HIVE.local.md` at a repository or workspace root is not misplaced: [local write](../../hive-core/references/local-write.md) keeps it there.
+- **HA-PL-05 — Misplaced material.** Report content whose home is another repository or level, such as infrastructure configuration inside a specs repository, secrets or raw evidence inside a versioned path, or support material at a repository root. These checks propose no removal of versioned evidence or legacy records: project-layout's classes in its step 3 decide them. `HIVE.local.md` at a repository or workspace root is not misplaced: [local write](../../hive-core/local/local-write.md) keeps it there.
 
 ## Migration manifest
 

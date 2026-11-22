@@ -32,7 +32,7 @@ type mainThreadCost struct {
 
 func newCost() mainThreadCost { return mainThreadCost{UsageSource: "none", ByTool: map[string]int{}} }
 
-var hiveSkillPath = regexp.MustCompile(`([^\s"'` + "`" + `]*/)skills/[^/\s"'` + "`" + `\\]+/(SKILL\.md|stage(?:-[a-z]+)?\.md|references/|scripts/[^\s"'` + "`" + `\\]+\.py)`)
+var hiveSkillPath = regexp.MustCompile(`([^\s"'` + "`" + `]*/)skills/(?:[^/\s"'` + "`" + `\\]+/(SKILL\.md|stage(?:-[a-z]+)?\.md|references/|scripts/[^\s"'` + "`" + `\\]+\.py)|hive-core/` + leafDomainDir + `/[^\s"'` + "`" + `\\]*\.md)`)
 var hiveReadCommand = regexp.MustCompile(`\b(cat|sed|head|tail|rg|grep)\b`)
 
 // hiveCall classifies a tool call as a read of an installed Hive skill ("read"),

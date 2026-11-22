@@ -1,10 +1,10 @@
 # Trackers
 
-Read before the first write to a tracker, at [create-issue](../SKILL.md) step 8, and when a ticket is marked as blocked at its step 6. Each tracker's commands are in the references of [trackers](../../hive-core/references/trackers.md): [Jira](../../hive-core/references/trackers/jira.md), [Linear](../../hive-core/references/trackers/linear.md) and [GitHub](../../hive-core/references/trackers/github.md). It names each tracker's own concept; perform the action through the tracker's own CLI or tool, and read that tool's current help for the exact command, since its options change between versions.
+Read before the first write to a tracker, at [create-issue](../SKILL.md) step 8, and when a ticket is marked as blocked at its step 6. Each tracker's commands are in the references of [trackers](../../hive-core/tracker/trackers.md): [Jira](../../hive-core/tracker/trackers/jira.md), [Linear](../../hive-core/tracker/trackers/linear.md) and [GitHub](../../hive-core/tracker/trackers/github.md). It names each tracker's own concept; perform the action through the tracker's own CLI or tool, and read that tool's current help for the exact command, since its options change between versions.
 
 ## Before writing
 
-Read what the authenticated account may do in the target: create a ticket, set its type and labels, relate it to another, comment, and edit a ticket someone else wrote. A tracker can drop a field the account may not set without reporting an error, so name before the write each field you will not be able to set. New tickets go in the primary tracker: the `Tracker` that the `## Hive` of the repository the session works in declares, as [project settings](../../hive-core/references/project-settings.md) sets, unless the user names another tracker or repository for the ticket.
+Read what the authenticated account may do in the target: create a ticket, set its type and labels, relate it to another, comment, and edit a ticket someone else wrote. A tracker can drop a field the account may not set without reporting an error, so name before the write each field you will not be able to set. New tickets go in the primary tracker: the `Tracker` that the `## Hive` of the repository the session works in declares, as [project settings](../../hive-core/plan/project-settings.md) sets, unless the user names another tracker or repository for the ticket.
 
 ## Type
 

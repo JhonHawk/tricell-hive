@@ -12,7 +12,7 @@ Check three facts before writing the body: `gh pr create --help` lists `--attach
 
 ## The table
 
-Put one table per changed screen in the body, after the acceptance criteria. Each row is one region at one width, theme and state, as the before and after captures pair them in [before captures](../../hive-core/references/before-captures.md):
+Put one table per changed screen in the body, after the acceptance criteria. Each row is one region at one width, theme and state, as the before and after captures pair them in [before captures](../../hive-core/ui/before-captures.md):
 
 ```markdown
 | Region · width · theme · state | Before | After |

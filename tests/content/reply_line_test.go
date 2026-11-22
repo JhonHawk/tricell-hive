@@ -26,7 +26,7 @@ func replyLineProblems(skills map[string]string) []string {
 		switch {
 		case len(replies) != 1:
 			problems = append(problems, fmt.Sprintf("%s: want one line starting with Reply:, found %d", flow, len(replies)))
-		case !strings.Contains(replies[0], "hive-core/references/report-endings.md") && !strings.Contains(replies[0], "hive-core/references/close-report.md"):
+		case !strings.Contains(replies[0], "hive-core/messages/report-endings.md") && !strings.Contains(replies[0], "hive-core/close/close-report.md"):
 			problems = append(problems, flow+": its Reply: line links no row of report-endings or close-report")
 		}
 	}

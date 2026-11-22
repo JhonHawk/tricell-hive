@@ -127,6 +127,40 @@ func TestReportEndingsReadThroughAPacket(t *testing.T) {
 	}
 }
 
+func TestPacketMembersNameADomainPath(t *testing.T) {
+	member := "hive-core/messages/report-endings"
+	text := "## " + member + "\n\n# Report endings\n\nRules.\n\n<!-- hive packet end: stage · " + member + " -->\n"
+	events := []traceEvent{{Line: 1, Kind: "read", ID: "a", Path: "/h/.claude/skills/flow-close/stage.md"}, {Line: 2, Kind: "tool_result", ID: "a", Text: numberedLines(text, "→")}}
+	if !readsReportEndingsAt(events, 0) {
+		t.Fatal("a complete packet whose member is a domain path is not a read of report-endings")
+	}
+	if read, _ := packetNamesLeaf(events, 0, "git-commit"); read {
+		t.Fatal("a packet without git-commit counted as a read of it")
+	}
+}
+
+func TestCostCountsADomainLeafReadAsAHiveRead(t *testing.T) {
+	if got := hiveCall("Read", "/h/.agents/skills/hive-core/git/git-commit.md", ""); got != "read" {
+		t.Errorf("domain leaf read: %q", got)
+	}
+	if got := hiveCall("Bash", "", "cat /h/.agents/skills/hive-core/git/git-commit.md"); got != "read" {
+		t.Errorf("domain leaf shell read: %q", got)
+	}
+	if got := hiveCall("Read", "/repo/content/skills/hive-core/git/git-commit.md", ""); got != "" {
+		t.Errorf("repository content counted: %q", got)
+	}
+	// Only hive-core holds domain folders: another skill's folders count as before.
+	for _, tc := range []struct{ tool, path, command string }{
+		{"Read", "/h/.claude/skills/hive-mode/playbooks/bugfix.md", ""},
+		{"Read", "/h/.agents/skills/create-design/assets/template.md", ""},
+		{"Bash", "", "cat /h/.agents/skills/flow-plan/scripts/notes.md"},
+	} {
+		if got := hiveCall(tc.tool, tc.path, tc.command); got != "" {
+			t.Errorf("%+v: %q, want no Hive read", tc, got)
+		}
+	}
+}
+
 func TestCostCountsAPacketReadAsAHiveRead(t *testing.T) {
 	for _, tc := range []struct{ tool, path, command string }{
 		{"Read", "/h/.agents/skills/flow-verify/stage-entry.md", ""},

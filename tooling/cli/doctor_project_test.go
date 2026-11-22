@@ -448,7 +448,7 @@ func TestHiveSectionGitNotFoundIsAnErrorNotAFinding(t *testing.T) {
 // leaf of hive-core, which the global guidance's index names.
 func projectSettingsSection(t *testing.T) (prose, code []string) {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join("..", "..", "content", "skills", "hive-core", "references", "project-settings.md"))
+	data, err := os.ReadFile(filepath.Join("..", "..", "content", "skills", "hive-core", "plan", "project-settings.md"))
 	if err != nil {
 		t.Fatal(err)
 	}

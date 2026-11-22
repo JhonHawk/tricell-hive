@@ -1,9 +1,9 @@
 {
   "stage": [
-    "hive-core/references/promotion-path.md",
-    "hive-core/references/external-effects.md",
-    "hive-core/references/merge-gate.md",
-    "hive-core/references/pr-reviews.md",
+    "hive-core/git/promotion-path.md",
+    "hive-core/plan/external-effects.md",
+    "hive-core/git/merge-gate.md",
+    "hive-core/git/pr-reviews.md",
     "flow-deploy/references/deployment-checks.md"
   ]
 }

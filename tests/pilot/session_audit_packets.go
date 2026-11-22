@@ -14,7 +14,7 @@ import (
 // holds that end line and an exact heading for every member it names, so a
 // result cut at its end, or cut in the middle by the host, is not counted, and
 // a section a leaf owns, such as `## Change folder`, is never mistaken for the
-// member `hive-core/references/change-folder`.
+// member `hive-core/<domain>/change-folder`.
 var (
 	// packetFilePath names an installed packet: a flow's stage file under any
 	// host's skills folder. The repository holds none.
@@ -33,7 +33,11 @@ var (
 // every heading survived the cut.
 var packetTruncationMarker = regexp.MustCompile(`(?i)(?:…|\.\.\.)\s*\d+\s+(?:lines?|tokens?|chars?|characters?|bytes?)\s+truncated\s*(?:…|\.\.\.)|<persisted-output>|Output too large`)
 
-const leafMemberPrefix = "hive-core/references/"
+// leafMember matches the packet member that names a leaf: hive-core/<domain>/<leaf>,
+// or the former hive-core/references/<leaf>.
+func leafMember(member, leaf string) bool {
+	return regexp.MustCompile(`^hive-core/` + leafDomainDir + `/` + regexp.QuoteMeta(leaf) + `$`).MatchString(member)
+}
 
 // packetResult reads the text of a packet read's result: the members its last
 // end line names, and whether every one of them has its exact heading. Without
@@ -288,7 +292,7 @@ func packetNamesLeaf(events []traceEvent, i int, leaf string) (read, unverified 
 	}
 	named := false
 	for _, end := range ends {
-		if slices.Contains(end.members, leafMemberPrefix+leaf) {
+		if slices.ContainsFunc(end.members, func(m string) bool { return leafMember(m, leaf) }) {
 			if end.complete {
 				return true, false
 			}

@@ -1,13 +1,13 @@
 {
   "stage": [
-    "hive-core/references/verification-floor.md",
-    "hive-core/references/checkpoint.md",
-    "hive-core/references/checks.md",
-    "hive-core/references/tests.md",
-    "hive-core/references/reuse-before-writing.md",
-    "hive-core/references/delegation.md",
-    "hive-core/references/git-commit.md",
-    "hive-core/references/security-boundaries.md",
-    "hive-core/references/stored-data.md"
+    "hive-core/build/verification-floor.md",
+    "hive-core/plan/checkpoint.md",
+    "hive-core/build/checks.md",
+    "hive-core/build/tests.md",
+    "hive-core/plan/reuse-before-writing.md",
+    "hive-core/delegation/delegation.md",
+    "hive-core/git/git-commit.md",
+    "hive-core/build/security-boundaries.md",
+    "hive-core/build/stored-data.md"
   ]
 }

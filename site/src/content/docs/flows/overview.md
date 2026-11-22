@@ -22,14 +22,14 @@ Hive's flows are not a one-way line. Work loops back when a check fails, when a 
 
 Around them:
 
-- The [viewer](/viewer/) shows the UI captures of a work and the iteration each belongs to. Only Build and Verify publish to it, when they capture an interface; Plan, Hive mode and any flow without captures publish nothing. The [walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/references/walkthrough.md) skill publishes the captures and presents a built interface for your validation. Hive's host hooks add the session's activity, and the host's task list where it has one, as [host-observed activity](/viewer/#host-observed-activity).
+- The [viewer](/viewer/) shows the UI captures of a work and the iteration each belongs to. Only Build and Verify publish to it, when they capture an interface; Plan, Hive mode and any flow without captures publish nothing. The [walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/ui/walkthrough.md) skill publishes the captures and presents a built interface for your validation. Hive's host hooks add the session's activity, and the host's task list where it has one, as [host-observed activity](/viewer/#host-observed-activity).
 - [E2E coordination](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-build/references/e2e-coordination.md) is an explicitly delegated mode of the existing flows: the coordinator leads agreed deliverables through the authorized endpoint. You do not have to be away, and it does not by itself activate unattended delegation.
 - [Unattended delegation](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md) lets work continue while you are away, within the objective and answers you already gave, and stops at anything irreversible. It keeps a local decision log, one line per decision and per external effect with how to revert it, which the final report cites by path; the format is in the [skill](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md#decision-log).
 - [Security review](/flows/security/) is recommended for a change that touches a security boundary and runs when you accept or ask for it, plus the advisory check.
 
 ## Where the work loops
 
-When you ask for something that would change work already open, the agent first says what kind of change it is and where the work goes: a correction, an added task, a new change or a separate topic. That classification lives in the [scope changes rule](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/references/scope-changes.md).
+When you ask for something that would change work already open, the agent first says what kind of change it is and where the work goes: a correction, an added task, a new change or a separate topic. That classification lives in the [scope changes rule](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/plan/scope-changes.md).
 
 | Flow | Where it iterates | Where the work returns |
 | --- | --- | --- |

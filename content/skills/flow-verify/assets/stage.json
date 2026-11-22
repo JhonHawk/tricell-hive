@@ -1,19 +1,19 @@
 {
   "stage-entry": [
-    "hive-core/references/verification-floor.md",
-    "hive-core/references/no-comments.md",
-    "hive-core/references/blast-radius.md",
-    "hive-core/references/prose.md",
-    "hive-core/references/suppression-review.md",
-    "hive-core/references/project-verification.md",
-    "hive-core/references/checks.md",
-    "hive-core/references/checkpoint.md"
+    "hive-core/build/verification-floor.md",
+    "hive-core/review/no-comments.md",
+    "hive-core/review/blast-radius.md",
+    "hive-core/build/prose.md",
+    "hive-core/review/suppression-review.md",
+    "hive-core/build/project-verification.md",
+    "hive-core/build/checks.md",
+    "hive-core/plan/checkpoint.md"
   ],
   "stage-exit": [
-    "hive-core/references/reviewer-brief.md",
-    "hive-core/references/questions.md",
-    "hive-core/references/review-findings.md",
-    "hive-core/references/merge-gate.md",
-    "hive-core/references/pr-reviews.md"
+    "hive-core/delegation/reviewer-brief.md",
+    "hive-core/messages/questions.md",
+    "hive-core/review/review-findings.md",
+    "hive-core/git/merge-gate.md",
+    "hive-core/git/pr-reviews.md"
   ]
 }

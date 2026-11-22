@@ -1,6 +1,7 @@
 package content
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -32,20 +33,29 @@ const (
 	// The next three constants are what the reporting line of every playbook
 	// links: how its message ends and the final-report row that the delivery
 	// mode in force picks (AC7 of the reporting-family-leaves plan).
-	playbookEndingsLink = "hive-core/references/report-endings.md"
-	playbookReportLink  = "hive-core/references/close-report.md#variants"
+	playbookEndingsLink = "hive-core/messages/report-endings.md"
+	playbookReportLink  = "hive-core/close/close-report.md#variants"
 	playbookReportModes = "the delivery mode in force picks"
 	ruleLeavesHeading   = "## Rule leaves"
-	principleIndexName  = "hive-principle-index"
 	languageLeafName    = "hive-typescript"
 	coreSkillName       = "hive-core"
-	// legacyRulePrefix is the directory prefix the rule leaves had before they
-	// moved into hive-core; no directory with it may remain.
-	legacyRulePrefix = "hive-" + "rule-"
+	// principlesDomain is the domain of the principle leaves; its index is
+	// principles/index.md and is not a leaf.
+	principlesDomain    = "principles"
+	principleIndexFile  = "index.md"
+	domainsManifestPath = "assets/domains.json"
+	// legacyRulePrefix and legacyPrincipleSkillPrefix are the directory
+	// prefixes the rule leaves and the principles had before they moved into
+	// hive-core; no directory with them may remain.
+	legacyRulePrefix           = "hive-" + "rule-"
+	legacyPrincipleSkillPrefix = "hive-" + "principle-"
+	// legacyReferencesDir is the folder the rule leaves shared before the
+	// domain folders replaced it; hive-core may not hold it.
+	legacyReferencesDir = "references"
 )
 
-// leafSizeExceptions names each rule leaf, by its file name in
-// hive-core/references, whose single rule cannot fit the common limit without
+// leafSizeExceptions names each rule leaf, by its file name without the domain
+// folder, whose single rule cannot fit the common limit without
 // rewording it; each stays at or under leafExceptionSizeLimit.
 var leafSizeExceptions = map[string]bool{
 	// One home for every question to the user: what to ask, the format and the
@@ -69,18 +79,33 @@ var playbookKinds = []string{
 
 var deliveryModeNamePattern = regexp.MustCompile("`(interactive|automatic|ready|direct-base|hold)`")
 
-var leafLinkPattern = regexp.MustCompile(`(hive-principle-[a-z0-9-]+|hive-typescript)/SKILL\.md`)
+// ruleLeafLinkPattern matches a link to a file of a hive-core domain folder and
+// captures the domain and the file name without its extension.
+var ruleLeafLinkPattern = regexp.MustCompile(`hive-core/([a-z0-9-]+)/([a-z0-9-]+)\.md`)
 
-// ruleLeafLinkPattern matches a link to a rule leaf of hive-core and captures
-// the leaf's file name without its extension.
-var ruleLeafLinkPattern = regexp.MustCompile(`hive-core/references/([a-z0-9-]+)\.md`)
+// principleIndexLinkPattern matches a link of the principle index to a file of
+// the same folder and captures the file name without its extension.
+var principleIndexLinkPattern = regexp.MustCompile(`\]\(([a-z0-9-]+)\.md(?:#[^)]*)?\)`)
 
-func isLeafName(name string) bool {
-	switch {
-	case strings.HasPrefix(name, "hive-principle-"):
-		return name != principleIndexName
+// notRuleDomain reports whether a folder of hive-core cannot hold rule leaves
+// even when a link names a file in it.
+func notRuleDomain(domain string) bool {
+	return domain == principlesDomain || domain == "scripts" || domain == "assets"
+}
+
+// readDomains returns the domain folders hive-core/assets/domains.json lists.
+func readDomains(coreDir string) ([]string, error) {
+	data, err := os.ReadFile(filepath.Join(coreDir, filepath.FromSlash(domainsManifestPath)))
+	if err != nil {
+		return nil, err
 	}
-	return name == languageLeafName
+	var manifest struct {
+		Domains []string `json:"domains"`
+	}
+	if err := json.Unmarshal(data, &manifest); err != nil {
+		return nil, fmt.Errorf("%s: %w", domainsManifestPath, err)
+	}
+	return manifest.Domains, nil
 }
 
 // sectionText returns the text of the `## ` section that starts with heading,
@@ -97,25 +122,50 @@ func sectionText(text, heading string) (string, bool) {
 	return rest, true
 }
 
-func countLinks(text string) map[string]int {
-	counts := map[string]int{}
-	for _, match := range leafLinkPattern.FindAllStringSubmatch(text, -1) {
-		counts[match[1]]++
-	}
-	return counts
-}
-
+// countRuleLinks counts the links of text to rule leaves, keyed by
+// "<domain>/<name>".
 func countRuleLinks(text string) map[string]int {
 	counts := map[string]int{}
 	for _, match := range ruleLeafLinkPattern.FindAllStringSubmatch(text, -1) {
+		if !notRuleDomain(match[1]) {
+			counts[match[1]+"/"+match[2]]++
+		}
+	}
+	return counts
+}
+
+func countPrincipleLinks(text string) map[string]int {
+	counts := map[string]int{}
+	for _, match := range principleIndexLinkPattern.FindAllStringSubmatch(text, -1) {
 		counts[match[1]]++
 	}
 	return counts
 }
 
-// ruleLeafProblems checks the hive-core skill and each rule leaf in its
-// references folder: no frontmatter, a title, a first body line that starts
-// with "Read", the size limit, and exactly one line of the global index.
+// leafFileProblems checks what a rule leaf and a principle share: a title, no
+// frontmatter, a first body line that starts with "Read" and the size limit.
+func leafFileProblems(label string, data []byte, limit int) []string {
+	var problems []string
+	text := string(data)
+	if strings.HasPrefix(text, "---") {
+		problems = append(problems, fmt.Sprintf("%s: a leaf carries no frontmatter", label))
+	}
+	if !strings.HasPrefix(text, "# ") {
+		problems = append(problems, fmt.Sprintf("%s: first line is not a title", label))
+	}
+	if !strings.HasPrefix(leafFirstBodyLine(text), "Read ") {
+		problems = append(problems, fmt.Sprintf("%s: first body line does not start with \"Read\"", label))
+	}
+	if len(data) > limit {
+		problems = append(problems, fmt.Sprintf("%s: leaf is %d bytes, limit %d", label, len(data), limit))
+	}
+	return problems
+}
+
+// ruleLeafProblems checks the hive-core skill, its folders against
+// assets/domains.json and each rule leaf of the listed domains: no frontmatter,
+// a title, a first body line that starts with "Read", the size limit, a name
+// unique across domains, and exactly one line of the global index.
 func ruleLeafProblems(skillsDir string, ruleIndex string, hasRuleIndex bool) []string {
 	var problems []string
 	coreDir := filepath.Join(skillsDir, coreSkillName)
@@ -131,47 +181,122 @@ func ruleLeafProblems(skillsDir string, ruleIndex string, hasRuleIndex bool) []s
 			problems = append(problems, fmt.Sprintf("%s: SKILL.md lists leaves; the global index is their only list", coreSkillName))
 		}
 	}
+
+	domains, err := readDomains(coreDir)
+	if err != nil {
+		problems = append(problems, fmt.Sprintf("%s/%s: %v", coreSkillName, domainsManifestPath, err))
+	}
+	listed := map[string]bool{}
+	for _, domain := range domains {
+		listed[domain] = true
+	}
+	if err == nil && !listed[principlesDomain] {
+		problems = append(problems, fmt.Sprintf("%s/%s does not list the %s domain", coreSkillName, domainsManifestPath, principlesDomain))
+	}
+	if entries, err := os.ReadDir(coreDir); err == nil {
+		for _, entry := range entries {
+			name := entry.Name()
+			switch {
+			case !entry.IsDir() || name == "assets" || name == "scripts":
+			case name == legacyReferencesDir:
+				problems = append(problems, fmt.Sprintf("%s/%s: the folder remains; the leaves live in the domain folders", coreSkillName, name))
+			case !listed[name]:
+				problems = append(problems, fmt.Sprintf("%s/%s: folder is not listed in %s", coreSkillName, name, domainsManifestPath))
+			}
+		}
+	}
+
 	ruleCounts := countRuleLinks(ruleIndex)
-	paths, _ := filepath.Glob(filepath.Join(coreDir, "references", "*.md"))
+	present := map[string]bool{}
+	owner := map[string]string{}
+	for _, domain := range domains {
+		if domain == principlesDomain {
+			continue
+		}
+		paths, _ := filepath.Glob(filepath.Join(coreDir, domain, "*.md"))
+		sort.Strings(paths)
+		if len(paths) == 0 {
+			problems = append(problems, fmt.Sprintf("%s/%s: domain holds no leaf", coreSkillName, domain))
+		}
+		for _, path := range paths {
+			name := strings.TrimSuffix(filepath.Base(path), ".md")
+			key := domain + "/" + name
+			present[key] = true
+			if first, ok := owner[name]; ok {
+				problems = append(problems, fmt.Sprintf("%s: the leaf name is in both %s/%s and %s/%s", name, coreSkillName, first, coreSkillName, domain))
+			} else {
+				owner[name] = domain
+			}
+			data, err := os.ReadFile(path)
+			if err != nil {
+				problems = append(problems, fmt.Sprintf("%s: %v", name, err))
+				continue
+			}
+			limit := leafSizeLimit
+			if leafSizeExceptions[name] {
+				limit = leafExceptionSizeLimit
+			}
+			if name == "report-endings" {
+				limit = leafReportEndingsSizeLimit
+			}
+			for _, problem := range leafFileProblems(name, data, limit) {
+				problems = append(problems, strings.Replace(problem, "a leaf carries", "a rule leaf carries", 1))
+			}
+			if !hasRuleIndex {
+				problems = append(problems, fmt.Sprintf("%s: global.md has no %q section", name, ruleLeavesHeading))
+			} else if n := ruleCounts[key]; n != 1 {
+				problems = append(problems, fmt.Sprintf("%s: listed %d times in %q, want 1", name, n, ruleLeavesHeading))
+			}
+		}
+	}
+	for key := range ruleCounts {
+		if !present[key] {
+			problems = append(problems, fmt.Sprintf("%q lists %s, which does not exist", ruleLeavesHeading, key))
+		}
+	}
+	return problems
+}
+
+// principleProblems checks the principle domain: every file of principles/
+// other than index.md has no frontmatter, a title, a first body line that
+// starts with "Read", the size limit, and exactly one link in principles/index.md.
+func principleProblems(skillsDir string) []string {
+	var problems []string
+	dir := filepath.Join(skillsDir, coreSkillName, principlesDomain)
+	indexData, indexErr := os.ReadFile(filepath.Join(dir, principleIndexFile))
+	if indexErr != nil {
+		problems = append(problems, fmt.Sprintf("%s/%s/%s: %v", coreSkillName, principlesDomain, principleIndexFile, indexErr))
+	}
+	counts := countPrincipleLinks(string(indexData))
+	paths, _ := filepath.Glob(filepath.Join(dir, "*.md"))
 	sort.Strings(paths)
 	present := map[string]bool{}
 	for _, path := range paths {
 		name := strings.TrimSuffix(filepath.Base(path), ".md")
+		if filepath.Base(path) == principleIndexFile {
+			continue
+		}
 		present[name] = true
 		data, err := os.ReadFile(path)
 		if err != nil {
 			problems = append(problems, fmt.Sprintf("%s: %v", name, err))
 			continue
 		}
-		text := string(data)
-		if strings.HasPrefix(text, "---") {
-			problems = append(problems, fmt.Sprintf("%s: a rule leaf carries no frontmatter", name))
+		for _, problem := range leafFileProblems(name, data, leafSizeLimit) {
+			problems = append(problems, strings.Replace(problem, "a leaf carries", "a principle carries", 1))
 		}
-		if !strings.HasPrefix(text, "# ") {
-			problems = append(problems, fmt.Sprintf("%s: first line is not a title", name))
-		}
-		if !strings.HasPrefix(leafFirstBodyLine(text), "Read ") {
-			problems = append(problems, fmt.Sprintf("%s: first body line does not start with \"Read\"", name))
-		}
-		limit := leafSizeLimit
-		if leafSizeExceptions[name] {
-			limit = leafExceptionSizeLimit
-		}
-		if name == "report-endings" {
-			limit = leafReportEndingsSizeLimit
-		}
-		if len(data) > limit {
-			problems = append(problems, fmt.Sprintf("%s: leaf is %d bytes, limit %d", name, len(data), limit))
-		}
-		if !hasRuleIndex {
-			problems = append(problems, fmt.Sprintf("%s: global.md has no %q section", name, ruleLeavesHeading))
-		} else if n := ruleCounts[name]; n != 1 {
-			problems = append(problems, fmt.Sprintf("%s: listed %d times in %q, want 1", name, n, ruleLeavesHeading))
+		if indexErr == nil {
+			if n := counts[name]; n != 1 {
+				problems = append(problems, fmt.Sprintf("%s: listed %d times in %s/%s, want 1", name, n, principlesDomain, principleIndexFile))
+			}
 		}
 	}
-	for name := range ruleCounts {
+	if len(present) == 0 {
+		problems = append(problems, fmt.Sprintf("%s/%s: domain holds no principle", coreSkillName, principlesDomain))
+	}
+	for name := range counts {
 		if !present[name] {
-			problems = append(problems, fmt.Sprintf("%q lists %s, which does not exist", ruleLeavesHeading, name))
+			problems = append(problems, fmt.Sprintf("%s/%s lists %s, which does not exist", principlesDomain, principleIndexFile, name))
 		}
 	}
 	return problems
@@ -203,7 +328,10 @@ func leafProblems(root string) []string {
 		if entry.IsDir() && strings.HasPrefix(entry.Name(), legacyRulePrefix) {
 			problems = append(problems, fmt.Sprintf("%s: a %s directory remains; the rule leaves are files of %s", entry.Name(), legacyRulePrefix+"*", coreSkillName))
 		}
-		if entry.IsDir() && isLeafName(entry.Name()) {
+		if entry.IsDir() && strings.HasPrefix(entry.Name(), legacyPrincipleSkillPrefix) {
+			problems = append(problems, fmt.Sprintf("%s: a %s directory remains; the principles are files of %s/%s", entry.Name(), legacyPrincipleSkillPrefix+"*", coreSkillName, principlesDomain))
+		}
+		if entry.IsDir() && entry.Name() == languageLeafName {
 			leaves[entry.Name()] = true
 		}
 	}
@@ -214,12 +342,7 @@ func leafProblems(root string) []string {
 	}
 	ruleIndex, hasRuleIndex := sectionText(globalText, ruleLeavesHeading)
 	problems = append(problems, ruleLeafProblems(skillsDir, ruleIndex, hasRuleIndex)...)
-	principleCounts := map[string]int{}
-	principleIndexPath := filepath.Join(skillsDir, principleIndexName, "SKILL.md")
-	principleData, principleErr := os.ReadFile(principleIndexPath)
-	if principleErr == nil {
-		principleCounts = countLinks(string(principleData))
-	}
+	problems = append(problems, principleProblems(skillsDir)...)
 
 	names := make([]string, 0, len(leaves))
 	for name := range leaves {
@@ -254,16 +377,6 @@ func leafProblems(root string) []string {
 		}
 		if len(data) > leafSizeLimit {
 			problems = append(problems, fmt.Sprintf("%s: SKILL.md is %d bytes, limit %d", name, len(data), leafSizeLimit))
-		}
-		if principleErr != nil {
-			problems = append(problems, fmt.Sprintf("%s: %s has no SKILL.md", name, principleIndexName))
-		} else if n := principleCounts[name]; n != 1 {
-			problems = append(problems, fmt.Sprintf("%s: listed %d times in %s, want 1", name, n, principleIndexName))
-		}
-	}
-	for name := range principleCounts {
-		if !leaves[name] {
-			problems = append(problems, fmt.Sprintf("%s lists %s, which does not exist", principleIndexName, name))
 		}
 	}
 
@@ -378,16 +491,27 @@ func leafDoc(name, extra string) string {
 func TestLeafSkillInvariantsCatchViolations(t *testing.T) {
 	root := t.TempDir()
 	skills := filepath.Join(root, "content", "skills")
-	refs := filepath.Join(skills, coreSkillName, "references")
-	link := func(name string) string { return "[x](skill:hive-core/references/" + name + ".md)" }
+	core := filepath.Join(skills, coreSkillName)
+	link := func(domain, name string) string { return "[x](skill:hive-core/" + domain + "/" + name + ".md)" }
 	writeFile(t, filepath.Join(root, "content", "guidance", "global.md"),
-		"# Guide\n\n"+ruleLeavesHeading+"\n\n- Before a commit: "+link("a")+".\n- Again: "+link("a")+".\n- Plain: "+link("c")+".\n- Big: "+link("big")+".\n- Gone: "+link("gone")+".\n\n## Next\n")
-	writeFile(t, filepath.Join(skills, coreSkillName, "SKILL.md"), leafDoc(coreSkillName, "")+link("a")+"\n")
-	writeFile(t, filepath.Join(refs, "a.md"), "# A\n\nRead before a commit.\n")
-	writeFile(t, filepath.Join(refs, "b.md"), "---\nname: b\n---\n\n# B\n\nRead never.\n")
-	writeFile(t, filepath.Join(refs, "c.md"), "# C\n\nWhen a commit is made.\n")
-	writeFile(t, filepath.Join(refs, "big.md"), "# Big\n\nRead always.\n"+strings.Repeat("x", leafSizeLimit))
+		"# Guide\n\n"+ruleLeavesHeading+"\n\n- Before a commit: "+link("build", "a")+".\n- Again: "+link("build", "a")+".\n- Plain: "+link("build", "c")+".\n- Big: "+link("build", "big")+".\n- Gone: "+link("build", "gone")+".\n\n## Next\n")
+	writeFile(t, filepath.Join(core, "SKILL.md"), leafDoc(coreSkillName, "")+link("build", "a")+"\n")
+	writeFile(t, filepath.Join(core, "assets", "domains.json"), `{"domains": ["build", "plan", "empty", "principles"]}`)
+	writeFile(t, filepath.Join(core, "build", "a.md"), "# A\n\nRead before a commit.\n")
+	writeFile(t, filepath.Join(core, "build", "b.md"), "---\nname: b\n---\n\n# B\n\nRead never.\n")
+	writeFile(t, filepath.Join(core, "build", "c.md"), "# C\n\nWhen a commit is made.\n")
+	writeFile(t, filepath.Join(core, "build", "big.md"), "# Big\n\nRead always.\n"+strings.Repeat("x", leafSizeLimit))
+	writeFile(t, filepath.Join(core, "plan", "a.md"), "# A again\n\nRead before a plan.\n")
+	writeFile(t, filepath.Join(core, "empty", "keep"), "")
+	writeFile(t, filepath.Join(core, "stray", "z.md"), "# Z\n\nRead never.\n")
+	writeFile(t, filepath.Join(core, legacyReferencesDir, "old.md"), "# Old\n\nRead never.\n")
+	writeFile(t, filepath.Join(core, principlesDomain, principleIndexFile), "# Principles\n\nRead first.\n\n- [one](p1.md)\n- [again](p1.md)\n- [two](p2.md)\n- [three](p3.md)\n- [gone](p5.md)\n")
+	writeFile(t, filepath.Join(core, principlesDomain, "p1.md"), "---\nname: p1\n---\n\n# P1\n\nRead when you design.\n")
+	writeFile(t, filepath.Join(core, principlesDomain, "p2.md"), "# P2\n\nRead when you write.\n"+strings.Repeat("x", leafSizeLimit))
+	writeFile(t, filepath.Join(core, principlesDomain, "p3.md"), "# P3\n\nWhen you review.\n")
+	writeFile(t, filepath.Join(core, principlesDomain, "p4.md"), "# P4\n\nRead when you ship.\n")
 	writeFile(t, filepath.Join(skills, legacyRulePrefix+"x", "keep"), "")
+	writeFile(t, filepath.Join(skills, legacyPrincipleSkillPrefix+"x", "keep"), "")
 	writeFile(t, filepath.Join(skills, languageLeafName, "SKILL.md"), leafDoc(languageLeafName, "disable-model-invocation: true\n"))
 	writeFile(t, filepath.Join(skills, "hive-mode", "playbooks", "bugfix.md"), strings.Repeat("y", playbookSizeLimit+1))
 	writeFile(t, filepath.Join(skills, "hive-mode", "playbooks", "hotfix.md"), "Push "+playbookModePhrase+", then stop in `hold`.\n")
@@ -396,18 +520,28 @@ func TestLeafSkillInvariantsCatchViolations(t *testing.T) {
 	got := strings.Join(leafProblems(root), "\n")
 	for _, want := range []string{
 		legacyRulePrefix + "x: a " + legacyRulePrefix + "* directory remains",
+		legacyPrincipleSkillPrefix + "x: a " + legacyPrincipleSkillPrefix + "* directory remains",
 		"hive-core: frontmatter lacks `disable-model-invocation: true`",
 		"hive-core: SKILL.md lists leaves",
+		"hive-core/references: the folder remains",
+		"hive-core/stray: folder is not listed in assets/domains.json",
+		"hive-core/empty: domain holds no leaf",
+		"a: the leaf name is in both hive-core/build and hive-core/plan",
 		"a: listed 2 times",
 		"b: a rule leaf carries no frontmatter",
 		"b: first line is not a title",
 		"b: listed 0 times",
 		"c: first body line does not start with \"Read\"",
 		"big: leaf is",
-		"lists gone, which does not exist",
+		"lists build/gone, which does not exist",
+		"p1: a principle carries no frontmatter",
+		"p1: listed 2 times in principles/index.md",
+		"p2: leaf is",
+		"p3: first body line does not start with \"Read\"",
+		"p4: listed 0 times in principles/index.md",
+		"principles/index.md lists p5, which does not exist",
 		"hive-typescript: must stay model-invocable",
 		"hive-typescript: frontmatter has no `paths`",
-		"hive-typescript: hive-principle-index has no SKILL.md",
 		"playbook bugfix.md is",
 		"playbook hotfix.md lacks \"" + playbookEndingsLink + "\" in its reporting line",
 		"playbook hotfix.md names the delivery mode `hold` outside the phrase",
@@ -417,6 +551,24 @@ func TestLeafSkillInvariantsCatchViolations(t *testing.T) {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing problem %q in:\n%s", want, got)
 		}
+	}
+}
+
+func TestLeafSkillInvariantsNeedTheDomainManifest(t *testing.T) {
+	root := t.TempDir()
+	core := filepath.Join(root, "content", "skills", coreSkillName)
+	writeFile(t, filepath.Join(core, "SKILL.md"), leafDoc(coreSkillName, "disable-model-invocation: true\n"))
+	if got := strings.Join(leafProblems(root), "\n"); !strings.Contains(got, "hive-core/assets/domains.json: ") {
+		t.Errorf("a missing manifest must be reported, got:\n%s", got)
+	}
+	writeFile(t, filepath.Join(core, "assets", "domains.json"), `{"domains": ["build"]}`)
+	if got := strings.Join(leafProblems(root), "\n"); !strings.Contains(got, "does not list the principles domain") {
+		t.Errorf("a manifest without principles must be reported, got:\n%s", got)
+	}
+	writeFile(t, filepath.Join(core, "assets", "domains.json"), `{"domains": ["build", "principles"]}`)
+	writeFile(t, filepath.Join(core, principlesDomain, principleIndexFile), "# Principles\n")
+	if got := strings.Join(leafProblems(root), "\n"); !strings.Contains(got, "hive-core/principles: domain holds no principle") {
+		t.Errorf("a principles domain without a principle must be reported, got:\n%s", got)
 	}
 }
 

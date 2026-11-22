@@ -243,7 +243,11 @@ func loadRelease(o Options, stateDir string) (Release, error) {
 				return r, err
 			}
 			sources = append(sources, filepath.ToSlash(relative))
-			for _, leaf := range []string{"references", "scripts", "assets", "playbooks"} {
+			domains, err := skillDomainFolders(o.Source, path)
+			if err != nil {
+				return r, err
+			}
+			for _, leaf := range append(append([]string{}, fixedSkillFolders...), domains...) {
 				root := filepath.Join(filepath.Dir(path), leaf)
 				if err := collectResources(o.Source, root, &sources); err != nil {
 					return r, err
@@ -370,7 +374,7 @@ func validSource(source string) bool {
 	if regexp.MustCompile(`^content/agents/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\.md$`).MatchString(source) {
 		return true
 	}
-	return regexp.MustCompile(`^content/skills/[a-z0-9]+(-[a-z0-9]+)*/(SKILL\.md|(references|scripts|assets|playbooks)/([A-Za-z0-9][A-Za-z0-9._-]*/)*(\.gitignore|[A-Za-z0-9][A-Za-z0-9._-]*\.(md|html|py|sh|json|ts|mjs|astro|mdx|css|yaml|yml|tsv)))$`).MatchString(source)
+	return regexp.MustCompile(`^content/skills/[a-z0-9]+(-[a-z0-9]+)*/(SKILL\.md|[a-z0-9]+(-[a-z0-9]+)*/([A-Za-z0-9][A-Za-z0-9._-]*/)*(\.gitignore|[A-Za-z0-9][A-Za-z0-9._-]*\.(md|html|py|sh|json|ts|mjs|astro|mdx|css|yaml|yml|tsv)))$`).MatchString(source)
 }
 func releaseSources(r *Release) []string {
 	sources := []string{}
@@ -470,12 +474,16 @@ func validateRelease(r Release) error {
 			return err
 		}
 	}
+	domains, err := releaseDomains(r)
+	if err != nil {
+		return err
+	}
 	packets, err := stagePacketPayloads(r)
 	if err != nil {
 		return err
 	}
 	r.Files = append(append([]Payload{}, r.Files...), packets...)
-	return validateInstructionReferences(r)
+	return validateInstructionReferences(r, domains)
 }
 
 func renderContextLoader(r *Release) ([]byte, []byte, error) {

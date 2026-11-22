@@ -56,8 +56,17 @@ var skillNameForms = func() map[string]*regexp.Regexp {
 // into hive-core; written in two parts so this file does not name it.
 var legacyLeafPrefix = regexp.MustCompile(`\b` + "hive-" + "rule-" + `[a-z]`)
 
+// legacyPrincipleSkillName matches the skill-name prefix the principles had before
+// they moved into hive-core/principles; written in two parts for the same reason.
+// A principle is a file there, not a skill.
+var legacyPrincipleSkillName = regexp.MustCompile(`\b` + "hive-" + "principle-" + `[a-z]`)
+
+// legacyReferencesPath is the folder the rule leaves shared before the domain
+// folders replaced it; written in two parts for the same reason.
+var legacyReferencesPath = regexp.MustCompile(regexp.QuoteMeta("hive-core/" + "references/"))
+
 // retiredNameProblems returns one line per mention of a retired skill, or of a
-// leaf's former folder, in the given files' text, sorted by file and line.
+// leaf's or a principle's former home, in the given files' text, sorted by file and line.
 func retiredNameProblems(files map[string]string) []string {
 	var problems []string
 	lineOf := func(text string, offset int) int { return strings.Count(text[:offset], "\n") + 1 }
@@ -69,6 +78,12 @@ func retiredNameProblems(files map[string]string) []string {
 		}
 		for _, m := range legacyLeafPrefix.FindAllStringIndex(text, -1) {
 			problems = append(problems, fmt.Sprintf("%s:%d: names a rule leaf by its former folder; leaves are files of hive-core", path, lineOf(text, m[0])))
+		}
+		for _, m := range legacyPrincipleSkillName.FindAllStringIndex(text, -1) {
+			problems = append(problems, fmt.Sprintf("%s:%d: names a principle as a skill; principles are files of hive-core/principles", path, lineOf(text, m[0])))
+		}
+		for _, m := range legacyReferencesPath.FindAllStringIndex(text, -1) {
+			problems = append(problems, fmt.Sprintf("%s:%d: names the former hive-core references folder; leaves live in the domain folders", path, lineOf(text, m[0])))
 		}
 	}
 	sort.Strings(problems)
@@ -136,6 +151,9 @@ func TestRetiredSkillFormsAndLegalNames(t *testing.T) {
 		"content/skills/workspace-conventions/SKILL.md",
 		"run `flow-security` before the push",
 		"read " + "hive-" + "rule-questions before asking",
+		"read " + "hive-" + "principle-index before writing",
+		"content/skills/" + "hive-" + "principle-boundary-discipline/SKILL.md",
+		"the leaf is `hive-core/" + "references/questions.md`",
 	} {
 		if len(retiredNameProblems(map[string]string{"x.md": text})) == 0 {
 			t.Errorf("%q is not reported", text)
@@ -147,6 +165,7 @@ func TestRetiredSkillFormsAndLegalNames(t *testing.T) {
 		"`<meta name=\"flow-report-assets\" content=\"external\">`",
 		"see ../../tests/fixtures/workspace-conventions/baseline/global.md",
 		"the hive-core skill stores the leaves",
+		"read hive-core/principles/index.md before writing",
 		"`/flow-report-assets/app.css`",
 		"content/skills/flow-report-assets/x",
 		"the use-flow-status skill is another one",

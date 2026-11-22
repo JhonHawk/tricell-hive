@@ -235,6 +235,20 @@ raise the minor or the patch version.
 
 ### Changed
 
+- The rule leaves of `hive-core` live in one folder per domain (`messages`,
+  `git`, `plan`, `build`, `delegation`, `ui`, `review`, `business`, `close`,
+  `local`, `tracker`), in place of the single `references/` folder, and the
+  nine code principles and their index move into the same skill as the
+  `principles/` domain. `hive-core/assets/domains.json` lists the domains: the
+  manager installs, validates and links only the folders it lists, and rejects
+  a release whose manifest is malformed or whose files sit in an unlisted
+  folder. The `hive-principle-*` skills no longer exist, so the update retires
+  them and the old `references/` files. `hive-typescript` stays a visible
+  skill. The text of each leaf is unchanged except its links. This is a minor
+  version change: it removes skills and moves every installed leaf path.
+  Sessions opened before the update keep the old paths in their loaded
+  guidance and must restart. Rebuild the manager binary before deploying the
+  content, because an older binary cannot read the state it records.
 - Nothing is written to a change folder after its merge. `tasks.py checkpoint`
   and `done` exit 1 without writing once the folder is on `origin/<base>` with
   every task done and nothing uncommitted beyond its checkpoint, from any

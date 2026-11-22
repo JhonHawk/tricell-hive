@@ -10,7 +10,7 @@ effort_claude: "medium"
 
 1. Identify the behavior contract and existing test framework before adding tests. Reproduce a reported defect when feasible.
 
-2. Before writing, changing or deleting each test, and when a check fails, read and apply [Tests](skill:hive-core/references/tests.md).
+2. Before writing, changing or deleting each test, and when a check fails, read and apply [Tests](skill:hive-core/build/tests.md).
 
 3. Use representative fixtures and isolate external side effects. Keep test data and cleanup within the authorized environment.
 
