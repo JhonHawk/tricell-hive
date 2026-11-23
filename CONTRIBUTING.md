@@ -23,6 +23,10 @@ go test ./...
 python3 -m unittest discover -s tests/skills -p '*_test.py'
 ```
 
+While you fix a change, run the narrower check that
+[AGENTS.md «Checks by path»](AGENTS.md#checks-by-path) assigns to each path you
+edited, and the whole suite once on the final candidate.
+
 Run the suite with the default `umask 022`: under a stricter mask such as `077`,
 `tooling/management` and `tooling/package` fail on file modes.
 
