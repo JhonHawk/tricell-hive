@@ -466,8 +466,8 @@ lists where each flow loops.
   before the report, with no question: the work's resources and the evidence its ticket
   or pull request holds, plus your earlier merged branches and their clean worktrees in
   each repository the work touched. Only what needs your answer waits for a close reply,
-  other work or the end of the session; with nothing waiting, closing is not offered. The change record is recorded as waiting for its archive; a hygiene
-  request archives every waiting record in one delivery. A pause commits the change folder where the specs repository allows it, and a
+  other work or the end of the session; with nothing waiting, closing is not offered. The change record is recorded as waiting for its archive; hygiene is offered
+  once 10 or more wait, and a hygiene request archives every waiting record in one delivery. A pause commits the change folder where the specs repository allows it, and a
   promotion not yet made keeps nothing. Unfinished work is preserved.
 - [Deploy](https://hive.tricell.tech/flows/deploy/) ([skill](content/skills/flow-deploy/SKILL.md)) is a separate stage after
   integration: it promotes through the declared environments and checks what is
