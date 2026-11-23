@@ -219,7 +219,7 @@ func shellItems(command, cwd string) ([]rerunItem, string) {
 			scripted = append(scripted, rerunItem{kind: k})
 		}
 	}
-	body := expandAssignments(inlineShellHeredocs(command))
+	body := keepEscapes(expandAssignments(inlineShellHeredocs(command)))
 	segments := shellSegments(body, 0)
 	if segments == nil {
 		return append(items, rerunItem{kind: "unknown"}), ""
@@ -302,12 +302,19 @@ func echoMark(segment []string) string {
 
 // printfLine is the single line a printf prints, with each $? replaced by 0
 // and the arguments put into the format. It is "" when the output is not one
-// line.
+// line, when printf assigns to a variable (-v), or when no $? reaches the
+// printed line: in the format, or in an argument a conversion of the line
+// consumes.
 func printfLine(words []string) string {
-	if len(words) == 0 {
+	if len(words) > 0 && words[0] == "--" {
+		words = words[1:]
+	}
+	if len(words) == 0 || words[0] == "-v" {
 		return ""
 	}
-	format, args := statusUse.ReplaceAllString(words[0], "0"), words[1:]
+	format, args := words[0], words[1:]
+	reached := statusUse.MatchString(format)
+	format = statusUse.ReplaceAllString(format, "0")
 	var out strings.Builder
 	next := 0
 	for i := 0; i < len(format); i++ {
@@ -327,10 +334,11 @@ func printfLine(words []string) string {
 			i++
 		case c == '%':
 			i++
-			for i < len(format) && !strings.ContainsRune("sdiuxXfgeEc", rune(format[i])) {
+			for i < len(format) && !strings.ContainsRune("sdiuxXfgeEcb", rune(format[i])) {
 				i++
 			}
 			if next < len(args) {
+				reached = reached || statusUse.MatchString(args[next])
 				out.WriteString(statusUse.ReplaceAllString(args[next], "0"))
 			}
 			next++
@@ -339,10 +347,43 @@ func printfLine(words []string) string {
 		}
 	}
 	line := strings.TrimRight(out.String(), "\n")
-	if strings.Contains(line, "\n") {
+	if !reached || strings.Contains(line, "\n") || next > 0 && len(args) > next {
 		return ""
 	}
 	return strings.TrimSpace(line)
+}
+
+// keepEscapes doubles the backslash of \n and \t inside double quotes, which
+// shellSegments would otherwise drop, so a printf format keeps its escapes.
+func keepEscapes(command string) string {
+	var out strings.Builder
+	var quote rune
+	chars := []rune(command)
+	for i := 0; i < len(chars); i++ {
+		ch := chars[i]
+		switch {
+		case quote == 0 && ch == '\\' && i+1 < len(chars):
+			out.WriteRune(ch)
+			out.WriteRune(chars[i+1])
+			i++
+			continue
+		case quote == 0 && (ch == '\'' || ch == '"'):
+			quote = ch
+		case quote == ch:
+			quote = 0
+		case quote == '"' && ch == '\\' && i+1 < len(chars):
+			if n := chars[i+1]; n == 'n' || n == 't' {
+				out.WriteString("\\\\")
+				continue
+			}
+			out.WriteRune(ch)
+			out.WriteRune(chars[i+1])
+			i++
+			continue
+		}
+		out.WriteRune(ch)
+	}
+	return out.String()
 }
 
 // statusMark returns what the command prints to show the status of the suite
@@ -517,22 +558,28 @@ func gitItems(words []string, cwd string) []rerunItem {
 	return nil
 }
 
-var pathLike = regexp.MustCompile(`^\.{1,2}(?:/|$)|[^/]\.[A-Za-z0-9]+$`)
+var dotPath = regexp.MustCompile(`^\.{1,2}(?:/|$)`)
 
 // namesOnlyPaths reports whether the arguments of a git checkout name only
-// paths: a "--", more than one operand, or one that looks like a file, so the
-// command restores files and does not change the branch.
+// paths: operands after a "--", two or more operands, or one that is "." or
+// starts with "./" or "../". A single other operand, "--" after it included,
+// is a branch.
 func namesOnlyPaths(args []string) bool {
 	var operands []string
-	for _, a := range args {
+	for i, a := range args {
 		if a == "--" {
-			return true
+			for _, p := range args[i+1:] {
+				if !strings.HasPrefix(p, "-") {
+					return true
+				}
+			}
+			break
 		}
 		if !strings.HasPrefix(a, "-") {
 			operands = append(operands, a)
 		}
 	}
-	return len(operands) > 1 || len(operands) == 1 && pathLike.MatchString(operands[0])
+	return len(operands) > 1 || len(operands) == 1 && dotPath.MatchString(operands[0])
 }
 
 // suiteRun recognizes an unfiltered suite run and returns the working folder
@@ -751,7 +798,7 @@ func reviewRoundsPerCandidate(s auditSession) criterionAssessment {
 		}
 		switch {
 		case resets[i] || loadedFlow(e) == "flow-build" || loadedFlow(e) == "flow-plan":
-			rounds = nil
+			rounds, carried = nil, false
 		case reviewLaunch(e) && succeeded(events, i):
 			if carried {
 				// The first launch of the turn carries out the typed command.
