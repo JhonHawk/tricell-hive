@@ -1,7 +1,7 @@
 {
   "name": "audit-comments-template-test",
   "private": true,
-  "description": "Pinned parsers for the audit-comments ratchet template test (tests/content/comment_audit_template_test.go).",
+  "description": "Pinned parsers for the audit-comments ratchet template test (tests/content/audit_comments_template_test.go).",
   "dependencies": {
     "babel7": "npm:@babel/parser@7.29.14",
     "babel8": "npm:@babel/parser@8.1.2"

@@ -4,7 +4,7 @@ Base `development` en `0aad427f`; worktree `.claude/worktrees/vendored-exclusion
 
 ### T1 — `--same-code` rechaza cambios en rutas excluidas
 
-- [ ] `sameCode` reporta un cambio bajo una ruta de `EXCLUDED`, con los casos nuevos de `design.md` vistos fallar antes del cambio.
+- [x] `sameCode` reporta un cambio bajo una ruta de `EXCLUDED`, con los casos nuevos de `design.md` vistos fallar antes del cambio.
 
 **Closes:** AC1
 
@@ -63,3 +63,5 @@ AC1 se observa en la suite del candidato; AC2 y AC3, en los archivos instalados 
 - before captures: none (no UI)
 
 ## Review status and progress
+
+2026-11-23 — T1 · 6f8cf47f · unverified: none
