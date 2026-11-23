@@ -12,6 +12,28 @@ raise the minor or the patch version.
 
 ### Added
 
+- `AGENTS.md` «Checks by path» assigns a narrower check to each path of this
+  repository, so a fix to guidance text runs about 80 s of tests instead of
+  the whole suite, which still runs once on the final candidate. The refresh
+  steps read the deployed commit with `hive releases` instead of searching
+  for it.
+
+- `--audit-session` reports two new criteria: `full_suite_after_text_fix`, a
+  whole-suite run repeated after a passing one with only text changed between
+  them, and `review_rounds_per_candidate`, more than two code review rounds
+  before a push, a merge or a new work item.
+
+### Changed
+
+- A fix round whose paths all have an assigned check runs only those checks
+  and reuses the candidate's passing suite. A second code review runs only
+  when the fixes change code or a contract, and a review leaves out files the
+  diff only moves. A plan gets one reread round while it is planned, and what
+  survives goes to the user. A review mechanism the project guidance names is
+  stated in one line instead of asked, and `hold` asks the delivery again when
+  an earlier work item left uncommitted changes. A question card's
+  `Situation:` line does not replace the text before the card.
+
 - The `hive-write-ledger` role writes the ledger of each lane that
   `audit-comments` and `audit-tests` delegate. Those skills briefed
   `hive-research`, which renders read-only on most hosts and could not write

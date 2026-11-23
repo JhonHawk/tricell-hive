@@ -13,7 +13,7 @@ Read before you write a decision, finding, blocker or list for the user, before 
   - **d.** It is hard to reverse: a public contract, stored data, permissions, security, money or production.
   - **e.** It rests on an unverified fact, or no consequence separates the options.
   - **f.** It contradicts the user, the ticket or the specs.
-- Rounds other rules set stay asked: effects, session questions, validation, findings, Figma approval and `proposed` rules, a plan's approach, create-issue and create-prd, an unanswered card, an external project, test infrastructure.
+- Rounds other rules set stay asked: effects, session questions (a review mechanism the project names is stated instead, as [delivery questions](../git/delivery-ask.md) sets), validation, findings, Figma approval and `proposed` rules, a plan's approach, create-issue and create-prd, an unanswered card, an external project, test infrastructure.
 - Ask in one round every decision whose prerequisites are settled. A decision is a prerequisite when one of its answers would change or void another's question or options; the dependent one waits for a later round unless its options hold under every answer.
 - An open question about what the user wants, as [hive-mode](../../hive-mode/SKILL.md) step 3 asks it, goes in the text, one per message, with why you ask and an offer to start without the answer, and no IDs, options or "ok" line.
 
@@ -61,8 +61,8 @@ D<n+1> — …
 | A waiting card without option descriptions | Written in the text, then through the card with each option's effect in its label |
 | No waiting card: none in this mode, one that returns at once such as `request_user_input_async`, one that fails other than by the user's dismissal, a headless run, a child or unattended work | Written in the text in full; a form the host requires keeps the ID or header, the letters, the consequences and the `(★)` option with its reason |
 
-- Asking only in the text where the card applies is a failure, a decision asked as a prose question included, such as "interactive or hold?": delivery, review and every other decision go through the card.
-- Through the card: write first, as visible text, the context line, the report the round needs and the waiting line, never the decisions themselves; then, with no tool call between, ask each decision or finding as one question, in one call up to the tool's limit (four on Claude Code, three on Codex) or consecutive calls with no message between. The turn ends with the card.
+- Asking only in the text where the card applies is a failure, a decision asked as a prose question included, such as "interactive or hold?": delivery, review and every other decision go through the card, except a review mechanism stated as [delivery questions](../git/delivery-ask.md) sets.
+- Through the card: write first, as visible text, the context line, the report the round needs and the waiting line, never the decisions themselves; then, with no tool call between, ask each decision or finding as one question, in one call up to the tool's limit (four on Claude Code, three on Codex) or consecutive calls with no message between. The turn ends with the card. The card's `Situation:` line does not replace that text: write it even when the card already explains the decision.
 - Each question stands alone:
 
 ```

@@ -45,6 +45,8 @@ searches every declared tracker, moves and comments each ticket, and writes its 
 key belongs to, and creates new tickets only in the main one.
 The delivery mode, the review mechanism and the `UI verification` level are not
 keys: the agent asks them each session and reuses your answers for that session.
+When your project's guidance names a review mechanism that runs on the agent's
+host, the agent states it in one line instead of asking it.
 A section that still holds `Review`, `UI verification` or `Delivery: automatic`
 or `interactive` is retired: it answers no question, the agent asks it each session,
 and the old value only informs the recommended option. `hive doctor` warns

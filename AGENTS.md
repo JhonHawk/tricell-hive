@@ -57,10 +57,34 @@ Sessions in this repository require the deployed Hive global guidance, whose sup
 
 - A question, research task, or recommendation does not authorize implementation or unrelated fixes. Keep incidental findings separate from the requested work.
 - Do not deploy or copy configuration into global tool directories, change global tool settings, commit, push, merge, or delete branches without the user's explicit instruction for that action. Research and recommendations are not that instruction; the delivery and review answers given in the session, or a `Delivery: direct-base` value in a repository's `## Hive` section, count as the user's explicit instruction for the effects the «Delivery» section of [the global guidance](content/guidance/global.md) assigns to them.
-- The maintainer's preferred code-review mechanism here is Claude Code's `/code-review`: it informs the Recommended option of the review question and authorizes nothing by itself.
+- The maintainer's preferred code-review mechanism here is Claude Code's `/code-review`: on Claude Code it is stated in one line instead of asking the review question, elsewhere it informs the Recommended option, and it authorizes nothing by itself.
 - Keep credentials out of tracked files, reports, and tool output; protect necessary local recovery copies and exclude them from Git.
 - Preserve user-owned authentication, preferences, native histories, third-party tools, backups, and Engram data. Keep `.engram/config.json` project identity unless the user explicitly asks to change it.
 - Do not add dependencies, a runtime, universal adapter, hook system, or build framework for configuration alone. Prefer the host's existing capability and document a verified limitation before introducing new machinery.
+
+## Checks by path
+
+This table is the scope `content/skills/hive-core/build/checks.md` reads: after a fix, and in a plan task's `Verification:` line, run the command of each changed path's row instead of the full suite. The full suite (`CONTRIBUTING.md` «Run the full local test suite»: `go vet ./...`, `go test ./...` and the Python unittest run) still gives the candidate its passing evidence once, and runs again only for a changed path of the last row, or when a skill or resource is renamed or removed, as `_support/docs/architecture/instruction-resources.md` sets.
+
+| Changed paths | Check |
+| --- | --- |
+| `content/**` except `content/skills/**/scripts/**` and `content/skills/**/assets/**`, `_support/**`, `AGENTS.md`, `README.md`, `llms.txt`, `CHANGELOG.md`, `CONTRIBUTING.md` | the text check below (about 80 s) |
+| `site/**` | `pnpm check`, `pnpm lint` and `pnpm build` in `site/` |
+| `tooling/viewer/frontend/**` | its pnpm commands in `CONTRIBUTING.md` |
+| `content/skills/**/assets/**` | the text check below and `python3 -m unittest discover -s tests/skills -p '*_test.py'` |
+| `content/skills/**/scripts/**`, `tests/skills/**` | `python3 -m unittest discover -s tests/skills -p '*_test.py'` |
+| `tests/content/**` | `go test -count=1 ./tests/content/...` |
+| `tests/pilot/**`, `tests/fixtures/sessions/**` | `go test -count=1 ./tests/pilot/` |
+| Any other path | the full suite |
+
+The text check:
+
+```sh
+go test -count=1 ./tests/content/... ./integrations/...
+go test -count=1 -run 'TestRealStagePacketsKeepAMarginUnderTheCap|TestRealContentInstallsHiveCoreAndResolvesEveryGlobalLink|TestRepositoryInstructionAnchorsResolve|TestRepositoryCatalogueInstructionReferences|TestAntigravityRulePartsFromRealGuidanceFitAndReproduceIt' ./tooling/management/
+go test -count=1 -run TestFrozenInputsIncludeRuntimeAndLocalDependencies ./tooling/package/
+go test -count=1 -run TestVoiceListShowsRepositoryVoices ./tooling/cli/
+```
 
 ## Refreshing a local installation
 
@@ -69,7 +93,7 @@ Refresh a local installation only when the user asks, as the rule above requires
 The binary and the deployed content update separately:
 
 - **Manager changes** (`tooling/`, `integrations/`): rebuild the binary from this checkout into a temporary file in the same folder and move it over the installed one: `bin="$(command -v hive)" && go build -o "$bin.new" ./tooling/cli && mv -f "$bin.new" "$bin"`. Never build straight onto the installed path: `go build -o` rewrites the file in place, and macOS kills a running process whose signed executable changes, such as the viewer service (`hive view serve`); the move gives the file a new inode and the running viewer keeps the old one. A source update does not replace the binary. The build takes every commit up to `HEAD`, including other sessions' commits on the same branch: before building, name the `tooling/` and `integrations/` commits not yet in the installed binary, so a change another session has not delivered is not installed with yours.
-- **Content changes** (`content/`): run `hive update --source <checkout>` from this checkout or elsewhere. It deploys the committed `HEAD`, never uncommitted edits, to every registered host, and asks for confirmation; from an agent shell without a terminal, after naming the commits not yet deployed, run `hive update --source <checkout> --out FILE` with `FILE` in the host's temporary location and then `hive apply --plan FILE`, and tell the user that open sessions need a restart. Use `--dry-run` to preview. It deploys every committed change up to `HEAD`, not only the latest commit: before deploying, compare with the source commit the previous deploy printed and name the commits not yet deployed, so a commit the user chose to hold back is not published with another. Open sessions load the new guidance only after a restart, except that OpenCode applies edits to its global and upward-discovered `AGENTS.md` files before the next model request, and Codex 0.166 reloaded the global `AGENTS.md` in an open session within seconds of an update (runtime observation, one session, 2026-10-31); start a new OpenCode session for changed roles or skills.
+- **Content changes** (`content/`): run `hive update --source <checkout>` from this checkout or elsewhere. It deploys the committed `HEAD`, never uncommitted edits, to every registered host, and asks for confirmation; from an agent shell without a terminal, after naming the commits not yet deployed, run `hive update --source <checkout> --out FILE` with `FILE` in the host's temporary location and then `hive apply --plan FILE`, and tell the user that open sessions need a restart. Use `--dry-run` to preview. It deploys every committed change up to `HEAD`, not only the latest commit: before deploying, read the source commit of the deployed release with `hive releases | jq -r '[.[]|select(.consumers|length>0)][0].commits[-1]'`, list the commits since it with `git log --oneline <that commit>..HEAD -- content` and name them, so a commit the user chose to hold back is not published with another. Open sessions load the new guidance only after a restart, except that OpenCode applies edits to its global and upward-discovered `AGENTS.md` files before the next model request, and Codex 0.166 reloaded the global `AGENTS.md` in an open session within seconds of an update (runtime observation, one session, 2026-10-31); start a new OpenCode session for changed roles or skills.
 - **Both:** rebuild first, since an older binary can reject newer content.
 - **Release-package installations:** `hive update` updates them to a compatible published release; an installation of 0.8.0 or earlier first runs the 0.9.0-or-newer installer once, as `README.md` «Update, verify, recover, and uninstall» describes. This maintainer checkout uses the explicit source route above.
 

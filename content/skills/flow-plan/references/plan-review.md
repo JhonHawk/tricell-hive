@@ -28,4 +28,4 @@ Merge a finding that several reviewers report into one, naming each reviewer, th
 
 ## Reread a revision
 
-A reviewer rereads a revision, as [reviewer brief](../../hive-core/delegation/reviewer-brief.md) sets, when it changed the text, `Closes:` or verification of a task in its domain, or a criterion such a task closes; the first assignment also rereads a change to a criterion, an external fact or a verification line, and every reviewer rereads a change that belongs to no single domain.
+When a revision is reread, as [Revise a plan in progress](../../hive-core/plan/change-folder.md#revise-a-plan-in-progress) step 4 sets with its trigger and its limit, the reviewer of each domain whose tasks or criteria it changed rereads it, as [reviewer brief](../../hive-core/delegation/reviewer-brief.md) sets; the first assignment also rereads a change to an external fact or a verification line, and every reviewer rereads a change that belongs to no single domain.
