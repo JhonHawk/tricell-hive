@@ -10,7 +10,7 @@ Read from [hive-mode](../SKILL.md#pick-the-playbook) when the user asks for the 
    - the work left open on purpose: the `Pending:` records [close hygiene](../../hive-core/close/close-hygiene.md#pending-work) writes, searched in the project the global guidance's «Persistent memory» names, with an explicit result limit. A record is ready to resume when every ticket and condition that unblocks it is resolved; this report never deletes one, which only a close does;
    - the items waiting for a hygiene batch, counted and offered as [close hygiene](../../hive-core/close/close-hygiene.md#archive-the-change-folder) «When to offer hygiene» sets, as one line of «Report» part 3.
 2. Write the report as [Report](#report) sets. Never replace it with a question card.
-3. When the user asked what to take next, end the report with the route as [the next-step block](../../hive-core/messages/report-endings.md#the-next-step-block) sets: the recommended ticket or group and the command that assesses it, such as `/hive-mode COM-833` in the host's syntax. The ticket the user names starts `hive-mode`. A plain status request ends with the recommendations.
+3. When the user asked what to take next, end the report with the route as [the next-step block](../../hive-core/messages/report-endings.md#the-next-step-block) sets: the recommended ticket or group and the command that assesses it, the `hive-mode` command with the ticket key, in the host's syntax that block sets. The ticket the user names starts `hive-mode`. A plain status request ends with the recommendations.
 
 ## Report
 

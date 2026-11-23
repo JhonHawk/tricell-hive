@@ -37,12 +37,14 @@ Moving from one flow to the next is never asked with the question tool, because 
 
 <the reason in one line>
 
-`<the command, once, in this host's syntax, with a real argument, such as /flow-plan COM-833>`
+`<the flow's command, once, in this host's syntax from the line below, with a real argument: a ticket key, a change folder or a short description of the work>`
 
 A - <another reply, such as keep investigating or what to change>
 
 <waiting line>
 ```
+
+Command syntax by host, for the next-step block: `/flow-x` in Claude Code, Grok, Cursor and Antigravity; `$flow-x` in Codex; `/skill:flow-x` in Pi; `@flow-x` in OpenCode. Write the commands of several hosts only when you cannot tell which host you run in.
 
 Offer a flow's command only when the next step needs that flow's procedure: an investigation, a design in Figma, a plan, or a change to the repository's files with its delivery. No flow needs a ticket: when the work has none, the command's argument is a short description of the work or its change folder, never a placeholder, and a ticket is proposed only as [scope changes](../plan/scope-changes.md) sets.
 
@@ -89,5 +91,3 @@ Five continuations need no reply and no block; with the stages covered by the ex
 - Plan into build, after the plan's summary, when the user's own message asked beforehand to build after the plan without stopping, or [unattended delegation](../../unattended-delegation/SKILL.md) is active and its objective reaches the build.
 
 Typing a flow's command loads that skill whole for that flow, and a flow or skill entered by continuation is read whole before its first step.
-
-Command syntax by host, for the next-step block: `/flow-x` in Claude Code, Grok, Cursor and Antigravity; `$flow-x` in Codex; `/skill:flow-x` in Pi; `@flow-x` in OpenCode. Write the commands of several hosts only when you cannot tell which host you run in.
