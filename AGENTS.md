@@ -73,6 +73,7 @@ This table is the scope `content/skills/hive-core/build/checks.md` reads: after 
 | `tooling/viewer/frontend/**` | its pnpm commands in `CONTRIBUTING.md` |
 | `content/skills/**/assets/**` | the text check below and `python3 -m unittest discover -s tests/skills -p '*_test.py'` |
 | `content/skills/**/scripts/**`, `tests/skills/**` | `python3 -m unittest discover -s tests/skills -p '*_test.py'` |
+| `tests/content/**` | `go test -count=1 ./tests/content/...` |
 | `tests/pilot/**`, `tests/fixtures/sessions/**` | `go test -count=1 ./tests/pilot/` |
 | Any other path | the full suite |
 
