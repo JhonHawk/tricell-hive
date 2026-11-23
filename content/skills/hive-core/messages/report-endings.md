@@ -74,7 +74,7 @@ It recommends closing, unless a proposed finding is P1 or higher or a plan is in
 - **See the findings**, with their count and highest severity: it shows the table and the round of [findings at the close](../close/close-report.md#findings-at-the-close).
 - **Turn a candidate into a mechanism**, naming it, only for a candidate whose record counts two sessions or more; it enters `flow-build` as **Resolve findings now** does.
 - **Find the next ticket**, run only when the user picks it, as [Find the next ticket](../../hive-mode/playbooks/ticket-status.md#find-the-next-ticket) sets.
-- **Hygiene**, with the count of pending items as [batch archive](../../flow-close/references/batch-archive.md) step 1 counts them.
+- **Hygiene**, with the count of pending archives, only when [close hygiene](../close/close-hygiene.md#archive-the-change-folder) «When to offer hygiene» offers it.
 - **Continue** with what remains, such as the next phase of a plan in progress.
 - **Offer a `create-report` page**, as [close report](../close/close-report.md#final-report) sets.
 
