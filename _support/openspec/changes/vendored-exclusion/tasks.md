@@ -22,7 +22,7 @@ Base `development` en `0aad427f`; worktree `.claude/worktrees/vendored-exclusion
 
 ### T2 — El texto de la skill y sus referencias
 
-- [ ] Los pasos 1, 2, 4 y 7 de `SKILL.md`, `ratchet.md`, `project-skill.md`, el nombre del test de Go y `CHANGELOG.md` dicen lo que fija `design.md` «Texto».
+- [x] Los pasos 1, 2, 4 y 7 de `SKILL.md`, `ratchet.md`, `project-skill.md`, el nombre del test de Go y `CHANGELOG.md` dicen lo que fija `design.md` «Texto».
 
 **Closes:** AC2, AC3
 
@@ -51,17 +51,21 @@ AC1 se observa en la suite del candidato; AC2 y AC3, en los archivos instalados 
 ## Checkpoint
 
 - Updated: 2026-11-23
-- Stage: build · T1
-- Last commit: 0aad427f
+- Stage: verify · 2 review
+- Last commit: 5cad7ea7
 - Open findings: none
-- Next: T1: tdd tests then excludedChanges
+- Next: /code-review, then push/PR/merge, refresh install, observe AC2-AC3
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/vendored-exclusion · feat/vendored-exclusion
-- Rules: flow-build/stage.md
+- Rules: flow-verify/stage-entry.md
+- Principles: none
 
 ### Evidence
 
 - before captures: none (no UI)
+- go test ./... · pass · 5cad7ea7 (pre-commit tree)
+- TestAuditCommentsTemplate -v · 34/34 babel8+babel7; new cases seen failing before 6f8cf47f
 
 ## Review status and progress
 
 2026-11-23 — T1 · 6f8cf47f · unverified: none
+2026-11-23 — T2 · 5cad7ea7 · unverified: AC2 y AC3 en los archivos instalados tras el merge

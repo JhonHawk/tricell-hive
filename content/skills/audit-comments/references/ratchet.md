@@ -17,7 +17,7 @@ Modes and exits:
 
 - `node check-comments.mjs --base <rev>`: lint. Each changed source file outside `EXCLUDED` has its comments compared with the same file at `<rev>`, a renamed file with its old path. A comment beyond those the base had, counted by its text with each line's indentation trimmed, is a finding: `file:line:column: no-new-comments`. Directives and the workaround marker do not count.
 - `--inventory`: one JSON line per comment of every tracked and untracked source file outside `EXCLUDED`: `file`, `line`, `column`, `start`, `end`, `fullLine`, `directive`, `text`.
-- `--same-code --base <rev>`: confirms each changed file lost only comments, with the line breaks between its tokens unchanged, since a removed multi-line comment can change automatic semicolon insertion. A deleted, moved or renamed source file, one replaced by a symlink, an added one with code, or a tracked file of any type changed, added or deleted under an `EXCLUDED` path (`<file>: changed under an excluded path`, reported before parsing), is a finding; an untracked file under an `EXCLUDED` path is not. A JSX `{}` that held only a comment and whitespace-only JSX text do not count as code.
+- `--same-code --base <rev>`: confirms each changed file lost only comments, with the line breaks between its tokens unchanged, since a removed multi-line comment can change automatic semicolon insertion. A deleted, moved or renamed source file, one replaced by a symlink, an added one with code, or a tracked file of any type changed, added or deleted under an `EXCLUDED` path (`<file>: changed under an excluded path`, reported before parsing), is a finding; an untracked file under an `EXCLUDED` path is not, nor a submodule there whose only change is uncommitted work inside it. A JSX `{}` that held only a comment and whitespace-only JSX text do not count as code.
 - Exit 0 clean, 1 with findings, 2 on any error: an unknown base, a missing parser, a file that does not parse. Exit 2 means the check did not run, so fix the setup it names instead of removing comments.
 - Symlinks and other non-regular files are skipped, so the script reads nothing outside the repository through them.
 
@@ -33,7 +33,7 @@ Write the same contract with the language's own parser or tokenizer. Regular exp
 - compares each changed file with its version at `--base`, following renames, by comment text with indentation trimmed;
 - allows the language's directives and the workaround marker written with its line-comment token, such as `# workaround: <ticket>`;
 - names `DECISIONS_PATH` in its error message;
-- skips the paths of an `EXCLUDED` list, matched from the repository root, in its lint and inventory, and has a `--same-code` mode that compares each changed file's tokens with comments removed and rejects any tracked change under those paths;
+- skips the paths of an `EXCLUDED` list, matched from the repository root, in its lint and inventory, and has a `--same-code` mode that does what the template's `--same-code` line above sets, the rejection of tracked changes under those paths included;
 - exits 0, 1 or 2 as above, and runs from any folder of the repository;
 - has a suite with at least: no new comment, a new comment, a duplicate, a comment the base removed, a rename, comment-like text in a string, an excluded path, a change under an excluded path failing `--same-code`, an allowed directive, an unknown base.
 

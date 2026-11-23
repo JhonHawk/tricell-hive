@@ -208,6 +208,7 @@ function excludedChanges(root, base) {
       "--no-ext-diff",
       "--no-textconv",
       "--no-renames",
+      "--ignore-submodules=dirty",
       "--name-only",
       "-z",
       base,
@@ -344,7 +345,13 @@ function sameCode(parser, root, base) {
     findings++;
   }
   for (const { file, before, status } of changedFiles(root, base)) {
-    if (reported.has(file)) continue;
+    if (reported.has(file) || reported.has(before)) {
+      if (before !== null && before !== file && !excluded(before)) {
+        console.error(shown(`${file}: moved from ${before}`));
+        findings++;
+      }
+      continue;
+    }
     if (status === "D") {
       console.error(shown(`${file}: deleted`));
       findings++;
