@@ -409,6 +409,7 @@ func TestAuditNewCriteria(t *testing.T) {
 	const cards = "card_option_format"
 	const folder = "change_folder_uncommitted"
 	const planRoute = "plan_without_build_route"
+	const suite, rounds = "full_suite_after_text_fix", "review_rounds_per_candidate"
 	cases := []newCriterionCase{
 		{"plan codex stage ended by a build without the command", "codex", planRoute, []string{planRoute, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
 		{"plan codex next-step block naming /flow-build", "codex", planRoute, []string{planRoute, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
@@ -738,6 +739,42 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"change folder claude edited after the commit and before the merge", "claude", folder, []string{folder, "claude-project-edit-after-commit-fail.jsonl"}, auditOptions{}, "fail"},
 		{"change folder claude add in the specs repository and commit in the code repository", "claude", folder, []string{folder, "claude-project-add-in-specs-commit-in-code-fail.jsonl"}, auditOptions{}, "fail"},
 		{"change folder claude code commit first and specs commit last", "claude", folder, []string{folder, "claude-project-code-commit-then-specs-commit-pass.jsonl"}, auditOptions{}, "pass"},
+		{"full_suite_after_text_fix claude a markdown edit between two plain runs", "claude", suite, []string{suite, "claude-project-text-edit-fail.jsonl"}, auditOptions{}, "fail"},
+		{"full_suite_after_text_fix claude two passing runs with nothing between them", "claude", suite, []string{suite, "claude-project-no-change-fail.jsonl"}, auditOptions{}, "fail"},
+		{"full_suite_after_text_fix claude git add and commit are not changes", "claude", suite, []string{suite, "claude-project-commit-between-fail.jsonl"}, auditOptions{}, "fail"},
+		{"full_suite_after_text_fix claude piped runs shown passing by PIPESTATUS", "claude", suite, []string{suite, "claude-project-pipestatus-fail.jsonl"}, auditOptions{}, "fail"},
+		{"full_suite_after_text_fix claude pnpm test runs shown passing by exit=0", "claude", suite, []string{suite, "claude-project-pnpm-exit-fail.jsonl"}, auditOptions{}, "fail"},
+		{"full_suite_after_text_fix claude a shell write to a markdown file", "claude", suite, []string{suite, "claude-project-shell-md-write-fail.jsonl"}, auditOptions{}, "fail"},
+		{"full_suite_after_text_fix claude a Python write of a markdown file named in the script", "claude", suite, []string{suite, "claude-project-python-literal-md-write-fail.jsonl"}, auditOptions{}, "fail"},
+		{"full_suite_after_text_fix claude a scratch write in the temporary folder", "claude", suite, []string{suite, "claude-project-temp-write-fail.jsonl"}, auditOptions{}, "fail"},
+		{"full_suite_after_text_fix claude cd and go -C name the same directory", "claude", suite, []string{suite, "claude-project-cd-run-fail.jsonl"}, auditOptions{}, "fail"},
+		{"full_suite_after_text_fix claude a code edit beside the markdown edit", "claude", suite, []string{suite, "claude-project-code-edit-pass.jsonl"}, auditOptions{}, "pass"},
+		{"full_suite_after_text_fix claude a shell edit of a Go file", "claude", suite, []string{suite, "claude-project-shell-sed-go-pass.jsonl"}, auditOptions{}, "pass"},
+		{"full_suite_after_text_fix claude a rebase between the runs", "claude", suite, []string{suite, "claude-project-rebase-between-pass.jsonl"}, auditOptions{}, "pass"},
+		{"full_suite_after_text_fix claude piped runs without a pass line", "claude", suite, []string{suite, "claude-project-pipe-unproven-review.jsonl"}, auditOptions{}, "review"},
+		{"full_suite_after_text_fix claude the first run failed", "claude", suite, []string{suite, "claude-project-first-failed-review.jsonl"}, auditOptions{}, "review"},
+		{"full_suite_after_text_fix claude a shell write with an unresolved target", "claude", suite, []string{suite, "claude-project-shell-unknown-target-review.jsonl"}, auditOptions{}, "review"},
+		{"full_suite_after_text_fix claude a Python write whose target is a variable", "claude", suite, []string{suite, "claude-project-python-write-review.jsonl"}, auditOptions{}, "review"},
+		{"full_suite_after_text_fix claude one run", "claude", suite, []string{suite, "claude-project-one-run-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"full_suite_after_text_fix claude runs filtered by -run", "claude", suite, []string{suite, "claude-project-filtered-run-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"full_suite_after_text_fix claude runs of one sub-package", "claude", suite, []string{suite, "claude-project-subpackage-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"full_suite_after_text_fix claude a push between the runs", "claude", suite, []string{suite, "claude-project-push-between-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"full_suite_after_text_fix claude a merge between the runs", "claude", suite, []string{suite, "claude-project-merge-between-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"full_suite_after_text_fix claude a new branch between the runs", "claude", suite, []string{suite, "claude-project-new-branch-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"full_suite_after_text_fix claude runs in two directories", "claude", suite, []string{suite, "claude-project-other-directory-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"full_suite_after_text_fix claude suite text inside arguments", "claude", suite, []string{suite, "claude-project-echoed-suite-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"review_rounds_per_candidate claude three code-review skill rounds", "claude", rounds, []string{rounds, "claude-project-three-skill-rounds-fail.jsonl"}, auditOptions{}, "fail"},
+		{"review_rounds_per_candidate claude four review agent rounds", "claude", rounds, []string{rounds, "claude-project-four-agent-rounds-fail.jsonl"}, auditOptions{}, "fail"},
+		{"review_rounds_per_candidate claude two rounds", "claude", rounds, []string{rounds, "claude-project-two-rounds-pass.jsonl"}, auditOptions{}, "pass"},
+		{"review_rounds_per_candidate claude three agents in one message are one round", "claude", rounds, []string{rounds, "claude-project-one-message-pass.jsonl"}, auditOptions{}, "pass"},
+		{"review_rounds_per_candidate claude a push resets the count", "claude", rounds, []string{rounds, "claude-project-push-resets-pass.jsonl"}, auditOptions{}, "pass"},
+		{"review_rounds_per_candidate claude a merge resets the count", "claude", rounds, []string{rounds, "claude-project-merge-resets-pass.jsonl"}, auditOptions{}, "pass"},
+		{"review_rounds_per_candidate claude a flow load resets the count", "claude", rounds, []string{rounds, "claude-project-flow-load-resets-pass.jsonl"}, auditOptions{}, "pass"},
+		{"review_rounds_per_candidate claude a branch switch resets the count", "claude", rounds, []string{rounds, "claude-project-branch-switch-resets-pass.jsonl"}, auditOptions{}, "pass"},
+		{"review_rounds_per_candidate claude a typed /code-review before two more rounds", "claude", rounds, []string{rounds, "claude-project-typed-first-review.jsonl"}, auditOptions{}, "review"},
+		{"review_rounds_per_candidate claude no review", "claude", rounds, []string{rounds, "claude-project-no-review-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"review_rounds_per_candidate claude a child session", "claude", rounds, []string{rounds, "claude-project-sidechain-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"rounds codex another host", "codex", rounds, []string{rounds, "codex-rollout-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
