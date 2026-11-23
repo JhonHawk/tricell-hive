@@ -58,7 +58,7 @@ Codex has no per-role sandbox. Evidence labels as in the table at the end of thi
 
 ## Delegation and instruction delivery
 
-`content/guidance/global.md` retains essential delegation boundaries and explicit read conditions; the leaves `content/skills/hive-core/delegation/delegation.md` (when a child does the work in every flow, and when children run at the same time), `content/skills/hive-core/delegation/child-brief.md` (every child's brief, wait and evidence check) and `content/skills/hive-core/delegation/reviewer-brief.md` (the reviewer brief) own them. Questions and reporting have their own canonical references; reporting is read under the conditions in `content/guidance/global.md`. Activity skills own their specific decomposition and review procedure; role descriptions identify stable responsibilities. Project guidance and situational references supply technical conventions; a project's `## Skills` section in its `AGENTS.md` (harness-audit's HA-IF-19) names the third-party skills of its stack and when to read each. Keep these sources canonical rather than maintaining a second role-by-stack routing table in Hive.
+`content/guidance/global.md` retains essential delegation boundaries and explicit read conditions; the leaves `content/skills/hive-core/delegation/delegation.md` (when a child does the work in every flow, and when children run at the same time), `content/skills/hive-core/delegation/child-brief.md` (every child's brief, wait and evidence check) and `content/skills/hive-core/delegation/reviewer-brief.md` (the reviewer brief) own them. Questions and reporting have their own canonical references; reporting is read under the conditions in `content/guidance/global.md`. Activity skills own their specific decomposition and review procedure; role descriptions identify stable responsibilities. Project guidance and situational references supply technical conventions; a project's `## Skills` section in its `AGENTS.md` (audit-harness's HA-IF-19) names the third-party skills of its stack and when to read each. Keep these sources canonical rather than maintaining a second role-by-stack routing table in Hive.
 
 A role's native configuration does not establish that it received or read a skill. The caller supplies project context, decisions and applicable resource identities or accessible paths, including the `## Skills` lines whose trigger applies to the child's task, copied word for word as `child-brief.md` sets. The child locates skills through the host catalog/loader or an explicit task path and reads the required resource before dependent work. Missing context blocks only the affected dependency. Hive does not implement portable skill preloading or filesystem-permission overrides.
 
@@ -92,7 +92,7 @@ removing the entry and reloading the plugin through the native host deactivates 
 `Agent.Info.name` from the active agent ID and supply only:
 
 - `hive-review-plan`: `flow-plan/SKILL.md`.
-- `hive-review-harness`: `harness-audit/SKILL.md`.
+- `hive-review-harness`: `audit-harness/SKILL.md`.
 
 The manager generates embedded reference snapshots from the validated release
 payload; the references retain one editorial home under their owning skills.

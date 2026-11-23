@@ -13,7 +13,7 @@ import (
 const contextSnapshotMarker = "__HIVE_CONTEXT_SNAPSHOT_DATA__"
 
 var contextReferences = [...]struct{ role, resource string }{
-	{"hive-review-harness", "harness-audit/SKILL.md"},
+	{"hive-review-harness", "audit-harness/SKILL.md"},
 	{"hive-review-plan", "flow-plan/SKILL.md"},
 }
 

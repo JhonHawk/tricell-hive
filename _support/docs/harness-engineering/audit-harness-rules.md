@@ -1,6 +1,6 @@
 # Harness audit rules: provenance catalog
 
-This catalog records why each rule in the `harness-audit` skill exists. The deployed skill carries only rule IDs and rule text; sources, evidence strength, and verification dates live here and are not distributed. Update this file whenever a rule is added, changed, or retired, and re-verify version-sensitive rules when the installed host version changes.
+This catalog records why each rule in the `audit-harness` skill exists. The deployed skill carries only rule IDs and rule text; sources, evidence strength, and verification dates live here and are not distributed. Update this file whenever a rule is added, changed, or retired, and re-verify version-sensitive rules when the installed host version changes.
 
 ## Conventions
 

@@ -77,20 +77,20 @@ func TestFlashClassSnapshotMetadataRejectsBeforeActivation(t *testing.T) {
 			m["references"] = append(list(m["references"]), list(m["references"])[0])
 		},
 		"installed tamper": func(_ map[string]any, _ string, g *guidanceVariant) {
-			_ = os.WriteFile(filepath.Join(filepath.Dir(filepath.Dir(g.report.FlowBuildSkillPath)), "harness-audit/SKILL.md"), []byte("tampered"), 0600)
+			_ = os.WriteFile(filepath.Join(filepath.Dir(filepath.Dir(g.report.FlowBuildSkillPath)), "audit-harness/SKILL.md"), []byte("tampered"), 0600)
 		},
 		"source tamper": func(_ map[string]any, source string, _ *guidanceVariant) {
-			_ = os.WriteFile(filepath.Join(source, "content/skills/harness-audit/SKILL.md"), []byte("tampered"), 0600)
+			_ = os.WriteFile(filepath.Join(source, "content/skills/audit-harness/SKILL.md"), []byte("tampered"), 0600)
 		},
 		"same digest different source": func(m map[string]any, source string, g *guidanceVariant) {
-			path := filepath.Join(filepath.Dir(filepath.Dir(g.report.FlowBuildSkillPath)), "harness-audit/SKILL.md")
+			path := filepath.Join(filepath.Dir(filepath.Dir(g.report.FlowBuildSkillPath)), "audit-harness/SKILL.md")
 			_ = os.WriteFile(path, []byte("tampered"), 0600)
 			object(list(m["references"])[0])["sha256"] = digest([]byte("tampered"))
 		},
 		"invalid UTF-8": func(m map[string]any, source string, g *guidanceVariant) {
 			data := []byte{0xff}
-			_ = os.WriteFile(filepath.Join(source, "content/skills/harness-audit/SKILL.md"), data, 0600)
-			_ = os.WriteFile(filepath.Join(filepath.Dir(filepath.Dir(g.report.FlowBuildSkillPath)), "harness-audit/SKILL.md"), data, 0600)
+			_ = os.WriteFile(filepath.Join(source, "content/skills/audit-harness/SKILL.md"), data, 0600)
+			_ = os.WriteFile(filepath.Join(filepath.Dir(filepath.Dir(g.report.FlowBuildSkillPath)), "audit-harness/SKILL.md"), data, 0600)
 			object(list(m["references"])[0])["sha256"] = digest(data)
 		},
 	}

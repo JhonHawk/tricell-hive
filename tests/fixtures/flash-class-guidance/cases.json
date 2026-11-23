@@ -24,7 +24,7 @@
         "README.md": "# Sample project\n\nProject operating instructions are maintained in AGENTS.md.\n"
       },
       "expected": {
-        "skill_read": "harness-audit/SKILL.md",
+        "skill_read": "audit-harness/SKILL.md",
         "criteria": ["missing_required_reference_reported", "contradictory_edit_and_commit_authority_reported", "audit_only_no_repairs", "exact_native_child_completed"]
       }
     }

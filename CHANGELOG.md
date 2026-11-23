@@ -12,7 +12,7 @@ raise the minor or the patch version.
 
 ### Added
 
-- The `comment-audit` skill audits the comments of a codebase or an area and
+- The `audit-comments` skill audits the comments of a codebase or an area and
   removes them in batches. It files a ticket for each comment that excuses a
   shortcut, moves each decision a comment records to the project's decision
   record, and wires a lint that rejects new comments while the rest wait. The
@@ -22,11 +22,11 @@ raise the minor or the patch version.
   JavaScript and TypeScript template parses with `@babel/parser`, since
   TypeScript 7 no longer exports its classic parser, and its suite runs with
   parser 8.1.2 and 7.29.14 (`npm ci --ignore-scripts --prefix
-  tests/content/testdata/comment-audit`).
+  tests/content/testdata/audit-comments`).
 
 - A project can list the third-party skills an agent must read, and when, in
-  a `## Skills` section of its `AGENTS.md` (`harness-audit` rule HA-IF-19).
-  `harness-audit/scripts/skill_registry.py check` compares that section with
+  a `## Skills` section of its `AGENTS.md` (`audit-harness` rule HA-IF-19).
+  `audit-harness/scripts/skill_registry.py check` compares that section with
   the skills installed in `.agents/skills`, `.claude/skills`, `.grok/skills`
   and `skills-lock.json`, for a repository or a declared workspace, and
   `propose` prints the official skill sources of the stack a repository's
@@ -108,7 +108,7 @@ raise the minor or the patch version.
   decision records, worktrees, backups, dumps or operation data, and tags each
   repository's state before removing anything, so any file can be restored. It
   replaces Close's support maintenance reference and Close's layout reference,
-  and takes over harness-audit's layout checks.
+  and takes over audit-harness's layout checks.
 - `workspace-repo` is a skill that turns a workspace of several repositories
   into a coordinator repository, on your request: it versions the workspace's
   guidance, its repository table and its knowledge, keeps each repository an
@@ -261,7 +261,7 @@ raise the minor or the patch version.
   packet holds still fits that packet's 24,000 bytes, and the language leaf
   `hive-typescript` keeps its 4,000-byte budget. A `SKILL.md` keeps
   16,000 bytes, since Claude Code keeps only the first 5,000 tokens of an
-  invoked skill after compaction. `harness-audit` HA-SK-02 now allows a
+  invoked skill after compaction. `audit-harness` HA-SK-02 now allows a
   reference up to 24,000 bytes. A failing size test names what to move.
 
 - Hive's guidance is now written for Claude Opus 5.5 and OpenAI gpt-6.2-sol.
@@ -566,8 +566,8 @@ raise the minor or the patch version.
   - `flow-status` → the `ticket-status` playbook of `hive-mode`: ask for the
     status or what comes next; `/flow-status` is gone.
   - `security-advisory` → the `dependency-security` playbook of `hive-mode`.
-  - `local-instructions` → the local instructions mode of `harness-audit`.
-  - `engram-init-workspace` → the Engram workspace mode of `harness-audit`,
+  - `local-instructions` → the local instructions mode of `audit-harness`.
+  - `engram-init-workspace` → the Engram workspace mode of `audit-harness`,
     still only on explicit request.
   - `workspace-conventions` → the support maintenance reference of
     `flow-close`, with `artifact-layout.md`, `archive.md` and the archive
@@ -579,6 +579,11 @@ raise the minor or the patch version.
   Type `/create-report`; `/flow-report` is gone. Reports that opt in to
   external assets keep the `flow-report-assets` meta tag, so existing reports
   pass the checker unchanged.
+- `harness-audit` is renamed `audit-harness` and `test-audit` is renamed
+  `audit-tests`, next to the new `audit-comments`: each skill that audits
+  starts with `audit-`, so the three sort together. Type `/audit-harness` and
+  `/audit-tests`; `/harness-audit` and `/test-audit` are gone. The next
+  `hive update` removes the old folders from each host.
 
 ### Migration
 

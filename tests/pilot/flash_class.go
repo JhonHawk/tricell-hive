@@ -24,7 +24,7 @@ func flashRole(caseID string) (string, string) {
 	case "plan-reference":
 		return "hive-review-plan", "flow-plan/SKILL.md"
 	case "harness-reference":
-		return "hive-review-harness", "harness-audit/SKILL.md"
+		return "hive-review-harness", "audit-harness/SKILL.md"
 	}
 	return "", ""
 }

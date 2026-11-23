@@ -6,7 +6,7 @@ Read at [comment audit](../SKILL.md) step 9. It sets where the project's own com
 
 - Name it `delete-comment` unless the user names it otherwise (matching `^[a-z0-9][a-z0-9-]*$`) and write it to `.agents/skills/<name>/SKILL.md` at the repository root, which Codex, Cursor, OpenCode, Pi and Antigravity read.
 - Link the folder per host instead of copying it, since copies drift: `.claude/skills/<name>` → `../../.agents/skills/<name>` for Claude Code, and `.grok/skills/<name>` the same way when the repository has a `.grok/` folder.
-- Leave `assets/hive-managed.json` out: that marker tells harness-audit's registry check a skill belongs to Hive, and this one belongs to the project.
+- Leave `assets/hive-managed.json` out: that marker tells audit-harness's registry check a skill belongs to Hive, and this one belongs to the project.
 
 ## What it holds
 
@@ -22,11 +22,11 @@ Frontmatter with `name` and a `description` that says when to use it, such as "R
 
 ## Register it
 
-- In the repository's `AGENTS.md`, add a line to its `## Skills` section, creating the section with the opening line [instruction files](../../harness-audit/references/instruction-files.md) HA-IF-19 sets when it is missing:
+- In the repository's `AGENTS.md`, add a line to its `## Skills` section, creating the section with the opening line [instruction files](../../audit-harness/references/instruction-files.md) HA-IF-19 sets when it is missing:
 
   ```markdown
   - Before auditing or deleting code comments, or when the comment lint fails: `.agents/skills/<name>/SKILL.md`
   ```
 
 - When the repository is a child of a declared workspace, add the same line to the workspace's `## Skills`, with the child's path as a prefix on the trigger and on the skill's path, such as `app/.agents/skills/<name>/SKILL.md`.
-- Check with `python3 -I <harness-audit-dir>/scripts/skill_registry.py check <repository>` ([skill registry](../../harness-audit/scripts/skill_registry.py)), and on the workspace when there is one. Each must exit 0; fix each finding it prints.
+- Check with `python3 -I <audit-harness-dir>/scripts/skill_registry.py check <repository>` ([skill registry](../../audit-harness/scripts/skill_registry.py)), and on the workspace when there is one. Each must exit 0; fix each finding it prints.

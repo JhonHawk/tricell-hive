@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "content/skills/harness-audit/scripts/personal_rules.py"
+SCRIPT = ROOT / "content/skills/audit-harness/scripts/personal_rules.py"
 
 HIVE_BEGIN = "<!-- === TRICELL HIVE RULES:BEGIN === -->"
 HIVE_END = "<!-- === TRICELL HIVE RULES:END === -->"

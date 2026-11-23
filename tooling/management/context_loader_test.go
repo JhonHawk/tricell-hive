@@ -285,7 +285,7 @@ func putLoaderSources(t *testing.T, o Options) {
 	put(t, filepath.Join(o.Source, loaderSourceTest), loaderTemplateTest)
 	put(t, filepath.Join(o.Source, "content/skills/flow-plan/SKILL.md"), "# Plan\n")
 	put(t, filepath.Join(o.Source, "content/skills/flow-plan/SKILL.md"), "\ufeffPlan \"quoted\" \\ Unicode 雪\r\n__HIVE_CONTEXT_SNAPSHOT_DATA__\n")
-	put(t, filepath.Join(o.Source, "content/skills/harness-audit/SKILL.md"), "# Harness\n")
+	put(t, filepath.Join(o.Source, "content/skills/audit-harness/SKILL.md"), "# Harness\n")
 }
 
 func TestOpenCodeContextLoaderRejectsInvalidSnapshotSources(t *testing.T) {
@@ -299,7 +299,7 @@ func TestOpenCodeContextLoaderRejectsInvalidSnapshotSources(t *testing.T) {
 		{"missing reference", "content/skills/flow-plan/SKILL.md", "", true},
 		{"invalid reference UTF8", "content/skills/flow-plan/SKILL.md", string([]byte{0xff}), false},
 		{"missing owner", "content/skills/flow-plan/SKILL.md", "", true},
-		{"missing harness", "content/skills/harness-audit/SKILL.md", "", true},
+		{"missing harness", "content/skills/audit-harness/SKILL.md", "", true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			o := loaderOptions(t)

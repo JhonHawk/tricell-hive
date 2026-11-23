@@ -11,28 +11,28 @@ import (
 )
 
 const (
-	commentAuditTemplateDir = "../../content/skills/comment-audit/assets/ratchet"
-	commentAuditParsersDir  = "tests/content/testdata/comment-audit/node_modules"
-	commentAuditInstall     = "npm ci --ignore-scripts --prefix tests/content/testdata/comment-audit"
+	auditCommentsTemplateDir = "../../content/skills/audit-comments/assets/ratchet"
+	auditCommentsParsersDir  = "tests/content/testdata/audit-comments/node_modules"
+	auditCommentsInstall     = "npm ci --ignore-scripts --prefix tests/content/testdata/audit-comments"
 )
 
-// commentAuditParserVersions are the versions package.json pins; an install
+// auditCommentsParserVersions are the versions package.json pins; an install
 // left from an older pin must not pass as the pinned one.
-var commentAuditParserVersions = map[string]string{"babel8": "8.1.2", "babel7": "7.29.14"}
+var auditCommentsParserVersions = map[string]string{"babel8": "8.1.2", "babel7": "7.29.14"}
 
-// TestCommentAuditTemplate runs the ratchet template's own node:test suite
+// TestAuditCommentsTemplate runs the ratchet template's own node:test suite
 // once per pinned @babel/parser major version, since projects copy the
 // template and run it with whichever of the two their Node supports.
-func TestCommentAuditTemplate(t *testing.T) {
+func TestAuditCommentsTemplate(t *testing.T) {
 	if _, err := exec.LookPath("node"); err != nil {
 		t.Skip("Node unavailable")
 	}
-	parsers := commentAuditParsers(t)
+	parsers := auditCommentsParsers(t)
 	for _, version := range []string{"babel8", "babel7"} {
 		t.Run(version, func(t *testing.T) {
 			dir := t.TempDir()
 			for _, name := range []string{"check-comments.mjs", "check-comments.test.mjs"} {
-				data, err := os.ReadFile(filepath.Join(commentAuditTemplateDir, name))
+				data, err := os.ReadFile(filepath.Join(auditCommentsTemplateDir, name))
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -61,14 +61,14 @@ func TestCommentAuditTemplate(t *testing.T) {
 	}
 }
 
-// commentAuditParsers finds the installed pinned parsers in this checkout or,
+// auditCommentsParsers finds the installed pinned parsers in this checkout or,
 // from a worktree that never installed them, in the main checkout.
-func commentAuditParsers(t *testing.T) string {
+func auditCommentsParsers(t *testing.T) string {
 	t.Helper()
-	candidates := []string{filepath.Join("..", "..", commentAuditParsersDir)}
+	candidates := []string{filepath.Join("..", "..", auditCommentsParsersDir)}
 	if common, err := exec.Command("git", "rev-parse", "--path-format=absolute", "--git-common-dir").Output(); err == nil {
 		main := filepath.Dir(strings.TrimSpace(string(common)))
-		candidates = append(candidates, filepath.Join(main, commentAuditParsersDir))
+		candidates = append(candidates, filepath.Join(main, auditCommentsParsersDir))
 	}
 	for _, candidate := range candidates {
 		abs, err := filepath.Abs(candidate)
@@ -79,12 +79,12 @@ func commentAuditParsers(t *testing.T) string {
 			return abs
 		}
 	}
-	t.Skipf("pinned parsers %v not installed; run %s from the repository root", commentAuditParserVersions, commentAuditInstall)
+	t.Skipf("pinned parsers %v not installed; run %s from the repository root", auditCommentsParserVersions, auditCommentsInstall)
 	return ""
 }
 
 func installedVersionsMatch(dir string) bool {
-	for alias, want := range commentAuditParserVersions {
+	for alias, want := range auditCommentsParserVersions {
 		data, err := os.ReadFile(filepath.Join(dir, alias, "package.json"))
 		if err != nil {
 			return false

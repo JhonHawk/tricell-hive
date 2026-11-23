@@ -508,7 +508,7 @@ func hiveFindings(items []hiveItem, root string, git gitRunner) []hiveFinding {
 	}
 	reported := map[string]bool{}
 	retired := func(key string) {
-		findings = append(findings, hiveFinding{Text: retiredSubject(key, values[key], "retired") + "; Hive asks it each session, and the old value only informs the recommended option — remove it with hive project set --unset " + key + " or run harness-audit"})
+		findings = append(findings, hiveFinding{Text: retiredSubject(key, values[key], "retired") + "; Hive asks it each session, and the old value only informs the recommended option — remove it with hive project set --unset " + key + " or run audit-harness"})
 	}
 	for _, name := range retiredHiveKeys {
 		if _, present := values[name]; present {
@@ -853,7 +853,7 @@ func localProjectFindings(root string, git gitRunner) []hiveFinding {
 			if staleEntries > 0 {
 				add(true, "HIVE.local.md: %d entries (> 50) with unpruned STALE entries", totalEntries)
 			} else {
-				add(false, "HIVE.local.md: %d entries (> 50 with no STALE entries); curate with harness-audit", totalEntries)
+				add(false, "HIVE.local.md: %d entries (> 50 with no STALE entries); curate with audit-harness", totalEntries)
 			}
 		}
 	}

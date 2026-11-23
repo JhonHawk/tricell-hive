@@ -7,7 +7,7 @@ import tempfile
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "content/skills/harness-audit/scripts/local_instructions.py"
+SCRIPT = ROOT / "content/skills/audit-harness/scripts/local_instructions.py"
 GIT = shutil.which("git")
 
 

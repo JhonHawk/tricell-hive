@@ -7,7 +7,7 @@ import (
 )
 
 // hiveManagedMarker is the file each Hive skill ships so that a project's
-// skills registry check (harness-audit's skill_registry.py) can tell the skills
+// skills registry check (audit-harness's skill_registry.py) can tell the skills
 // Hive installed in a project from the third-party skills the registry lists,
 // on any machine, without the manager's state.
 const hiveManagedMarker = "{\"managed_by\": \"tricell-hive\"}\n"

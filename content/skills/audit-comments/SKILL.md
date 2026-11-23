@@ -1,11 +1,11 @@
 ---
-name: comment-audit
+name: audit-comments
 description: Audit the comments of a repository or an area and remove them in batches, filing a ticket for each comment that excuses a workaround and moving each decision a comment records to the project's decision record, then leave a lint that rejects new comments while the rest are cleaned up, estimate the lines the cleanup sheds, and generate the project's own skill to repeat it, in .agents/skills with a link in .claude/skills. Use when the user asks to audit, delete, ban or ratchet the comments of a codebase, or to set up a no-comments lint; not for the comments one change adds or edits, which the no-comments review leaf handles.
 ---
 
 # Comment audit
 
-Remove the comments a codebase does not need, keep what they recorded where it belongs, and stop new ones with a lint that only gets stricter. The [no comments](../hive-core/review/no-comments.md) leaf is the criterion for each comment's category: read it before step 4. The audit adds to the normal flows and replaces none of their steps: steps 1–4 are research and change no repository file; step 5 adds to [flow-plan](../flow-plan/SKILL.md); steps 6–9 to [flow-build](../flow-build/SKILL.md); [flow-verify](../flow-verify/SKILL.md) and flow-close follow. When you route between flows, name the audit in the command's argument (`/flow-plan comment-audit <area>`) so this skill keeps applying.
+Remove the comments a codebase does not need, keep what they recorded where it belongs, and stop new ones with a lint that only gets stricter. The [no comments](../hive-core/review/no-comments.md) leaf is the criterion for each comment's category: read it before step 4. The audit adds to the normal flows and replaces none of their steps: steps 1–4 are research and change no repository file; step 5 adds to [flow-plan](../flow-plan/SKILL.md); steps 6–9 to [flow-build](../flow-build/SKILL.md); [flow-verify](../flow-verify/SKILL.md) and flow-close follow. When you route between flows, name the audit in the command's argument (`/flow-plan audit-comments <area>`) so this skill keeps applying.
 
 ## Scope
 
