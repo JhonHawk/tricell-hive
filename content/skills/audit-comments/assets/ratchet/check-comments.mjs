@@ -200,6 +200,25 @@ function changedFiles(root, base) {
     .map(([file, { before, status }]) => ({ file, before, status }));
 }
 
+function excludedChanges(root, base) {
+  if (!EXCLUDED.length) return [];
+  const listed = nulSeparated(
+    git(root, [
+      "diff",
+      "--no-ext-diff",
+      "--no-textconv",
+      "--no-renames",
+      "--ignore-submodules=dirty",
+      "--name-only",
+      "-z",
+      base,
+      "--",
+      ...EXCLUDED.map((entry) => `:(top,literal)${entry}`),
+    ]),
+  );
+  return listed.filter(excluded);
+}
+
 function baseText(root, base, file) {
   return git(root, ["cat-file", "blob", `${base}:${file}`]);
 }
@@ -319,7 +338,20 @@ function codeTokens(parser, file, text) {
 
 function sameCode(parser, root, base) {
   let findings = 0;
+  const reported = new Set();
+  for (const file of excludedChanges(root, base)) {
+    console.error(shown(`${file}: changed under an excluded path`));
+    reported.add(file);
+    findings++;
+  }
   for (const { file, before, status } of changedFiles(root, base)) {
+    if (reported.has(file) || reported.has(before)) {
+      if (before !== null && before !== file && !excluded(before)) {
+        console.error(shown(`${file}: moved from ${before}`));
+        findings++;
+      }
+      continue;
+    }
     if (status === "D") {
       console.error(shown(`${file}: deleted`));
       findings++;

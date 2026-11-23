@@ -60,7 +60,11 @@ raise the minor or the patch version.
   JavaScript and TypeScript template parses with `@babel/parser`, since
   TypeScript 7 no longer exports its classic parser, and its suite runs with
   parser 8.1.2 and 7.29.14 (`npm ci --ignore-scripts --prefix
-  tests/content/testdata/audit-comments`).
+  tests/content/testdata/audit-comments`). It leaves vendored third-party
+  code out of the audit by its path from the repository root, and the
+  ratchet's `--same-code` rejects a batch that changes any tracked file under
+  an excluded path, so that code stays inside the proof that a batch removed
+  only comments.
 
 - A project can list the third-party skills an agent must read, and when, in
   a `## Skills` section of its `AGENTS.md` (`audit-harness` rule HA-IF-19).
