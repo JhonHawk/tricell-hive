@@ -80,8 +80,9 @@ func referenceRoots(skillsDir string) (roots, problems []string) {
 
 // referenceSizeProblems returns one line per file under the reference folders
 // of skillsDir that is over wholeReadLimit, and one when none is found. A file
-// directly in a hive-core domain folder is a leaf, which leafProblems sizes,
-// so it is skipped here and an oversize leaf is reported once.
+// directly in a hive-core domain folder with the .md extension is a leaf,
+// which leafProblems sizes, so it is skipped here and an oversize leaf is
+// reported once; the principle index is not a leaf and is sized here.
 func referenceSizeProblems(skillsDir string) []string {
 	roots, problems := referenceRoots(skillsDir)
 	coreDir := filepath.Join(skillsDir, coreSkillName)
@@ -91,7 +92,10 @@ func referenceSizeProblems(skillsDir string) []string {
 			if err != nil || entry.IsDir() {
 				return err
 			}
-			if filepath.Dir(path) == root && filepath.Dir(root) == coreDir {
+			isLeaf := filepath.Dir(path) == root && filepath.Dir(root) == coreDir &&
+				filepath.Ext(path) == ".md" &&
+				!(filepath.Base(root) == principlesDomain && entry.Name() == principleIndexFile)
+			if isLeaf {
 				return nil
 			}
 			found++
@@ -131,11 +135,17 @@ func TestSkillReferenceSizeCatchesOversizeFiles(t *testing.T) {
 	writeFile(t, filepath.Join(skills, coreSkillName, "build", "checks.md"), "# Checks\n")
 	writeFile(t, filepath.Join(skills, coreSkillName, "build", "huge.md"), big)
 	writeFile(t, filepath.Join(skills, coreSkillName, "build", "checks", "own.md"), big)
-	writeFile(t, filepath.Join(skills, coreSkillName, "principles", "index.md"), "# P\n")
+	writeFile(t, filepath.Join(skills, coreSkillName, "build", "data.json"), big)
+	writeFile(t, filepath.Join(skills, coreSkillName, "principles", "index.md"), big)
 	writeFile(t, filepath.Join(skills, coreSkillName, "unlisted", "x.md"), big)
 	writeFile(t, filepath.Join(skills, "flow-x", "references", "r.md"), big)
 	got := strings.Join(referenceSizeProblems(skills), "\n")
-	for _, want := range []string{"content/skills/hive-core/build/checks/own.md: ", "content/skills/flow-x/references/r.md: "} {
+	for _, want := range []string{
+		"content/skills/hive-core/build/checks/own.md: ",
+		"content/skills/hive-core/build/data.json: ",
+		"content/skills/hive-core/principles/index.md: ",
+		"content/skills/flow-x/references/r.md: ",
+	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("missing %q in:\n%s", want, got)
 		}
