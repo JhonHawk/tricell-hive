@@ -1,6 +1,6 @@
 ---
 name: create-issue
-description: Create a tracker ticket, break work down into a parent ticket with children, or validate a ticket that already exists, so that a person or an agent can work it without inventing decisions. Use when the user asks for a ticket, an issue, an epic or a breakdown of work into tickets, asks whether a ticket is ready, or answers that a finding or a separate topic becomes a ticket; not for moving a ticket's state, commenting a work item's pending work or writing its business rules to its ticket, which the flow that causes them does.
+description: Create a tracker ticket, break work down into a parent ticket with children, or validate a ticket that already exists, so that a person or an agent can work it without inventing decisions. Use when the user asks for a ticket, an issue, an epic or a breakdown of work into tickets, asks whether a ticket is ready, or answers that a finding or a separate topic becomes a ticket; not for moving a ticket's state, commenting a work item's pending work or writing its business rules to its ticket, which the flow that causes them does, nor for auditing, grouping or deduplicating the open tickets, which audit-issues does.
 ---
 
 # Create a ticket
