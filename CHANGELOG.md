@@ -247,6 +247,13 @@ raise the minor or the patch version.
 
 ### Changed
 
+- Hygiene is offered only once 10 or more change folders wait for their
+  archive. Below that, the close footer, a close report's **Next** and the
+  session's last message leave out the hygiene reply and the pending archives,
+  so a first close no longer reads as work left half done. The status report
+  still gives the count at any size and adds the hygiene reply from 10. The
+  rule lives in `close-hygiene` «When to offer hygiene».
+
 - Rule leaves, principle leaves, playbooks and skill references share one
   24,000-byte limit, the one stage packets already have. The 4,000, 7,000 and
   9,000-byte leaf limits, the leaf exception list and the 7,000-byte playbook
