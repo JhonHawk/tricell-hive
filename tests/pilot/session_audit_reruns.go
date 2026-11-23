@@ -17,9 +17,9 @@ var (
 	textExtensions = map[string]bool{".md": true, ".mdx": true, ".txt": true}
 	// A run is shown to pass by a PIPESTATUS line whose first status is 0 or
 	// an exit=0 line in its output.
-	suitePassLine = regexp.MustCompile(`\bPIPESTATUS\b[^0-9\n]*(?:\[\d+\][^0-9\n]*)?0\b|\bexit=0\b`)
-	patchedFile   = regexp.MustCompile(`(?m)^\*\*\* (?:Update|Add|Delete) File: (.+)$|^\*\*\* Move to: (.+)$`)
-	typedReview   = regexp.MustCompile(`(?:^|[\s>])/(?:[a-z0-9-]+:)?code-review\b`)
+	statusUse   = regexp.MustCompile(`\$\{PIPESTATUS\[0\]\}|\$\?|\$\{\?\}`)
+	patchedFile = regexp.MustCompile(`(?m)^\*\*\* (?:Update|Add|Delete) File: (.+)$|^\*\*\* Move to: (.+)$`)
+	typedReview = regexp.MustCompile(`(?:^|[\s>])/(?:[a-z0-9-]+:)?code-review\b`)
 	// goValueFlags take their value as the next word.
 	goValueFlags  = map[string]bool{"-count": true, "-timeout": true, "-parallel": true, "-p": true, "-cpu": true, "-tags": true, "-ldflags": true, "-coverprofile": true, "-covermode": true, "-coverpkg": true, "-shuffle": true, "-vet": true, "-o": true, "-gcflags": true, "-mod": true}
 	goFilterFlags = map[string]bool{"-run": true, "-skip": true, "-bench": true, "-fuzz": true, "-list": true}
@@ -49,6 +49,10 @@ type rerunItem struct {
 	// plain: a run whose success is the suite's own, with no pipe or
 	// background around it.
 	plain bool
+	// mark is the text the command prints to show the status of this run: its
+	// echo of $? right after it, or of ${PIPESTATUS[0]} after its pipeline,
+	// with the status replaced by 0.
+	mark string
 }
 
 func fullSuiteAfterTextFix(s auditSession) criterionAssessment {
@@ -74,7 +78,7 @@ func fullSuiteAfterTextFix(s auditSession) criterionAssessment {
 					passed = append(passed, evidence)
 				case unknown:
 					review = append(review, evidence+" with a write whose target is unknown")
-				case !runShownToPass(events, prevItem):
+				case !runShownToPass(s, prevItem):
 					review = append(review, evidence+" and the first run is not shown to pass")
 				default:
 					failed = append(failed, evidence)
@@ -95,11 +99,38 @@ func rerunStatus(c criterionAssessment, failed, review, passed []string) criteri
 	return statusOf(c, failed, passed)
 }
 
-func runShownToPass(events []traceEvent, run rerunItem) bool {
+// runShownToPass reports whether a run's own status shows it passed: the
+// success of a command with no pipe or background around the suite, or the
+// line its status echo printed with 0. A run launched in the background, or
+// with no result, is not shown: the host only reports that it started.
+func runShownToPass(s auditSession, run rerunItem) bool {
+	events := s.Trace.Events
+	if runsInBackground(s.Host, events[run.event]) {
+		return false
+	}
+	answered := false
+	for _, e := range events[run.event+1:] {
+		if e.Kind == "tool_result" && e.ID == events[run.event].ID {
+			answered = true
+			break
+		}
+	}
+	if !answered {
+		return false
+	}
 	if run.plain && succeeded(events, run.event) {
 		return true
 	}
-	return suitePassLine.MatchString(resultText(events, run.event))
+	if run.mark == "" {
+		return false
+	}
+	for _, line := range strings.Split(resultText(events, run.event), "\n") {
+		line = strings.TrimSpace(line)
+		if line == run.mark || len(run.mark) > 1 && strings.Contains(line, run.mark) {
+			return true
+		}
+	}
+	return false
 }
 
 // rerunItems lists, in order, the suite runs, changes and boundaries of a
@@ -169,11 +200,11 @@ func pathKind(p, cwd string) string {
 // counting text inside arguments or heredocs, and returns its steps and the
 // working folder after it ("" when it is not known).
 func shellItems(command, cwd string) ([]rerunItem, string) {
-	var items []rerunItem
+	var items, scripted []rerunItem
 	literals := pythonWritePath.FindAllStringSubmatch(command, -1)
 	for _, p := range literals {
 		if k := pathKind(p[1], cwd); k != "" {
-			items = append(items, rerunItem{kind: k})
+			scripted = append(scripted, rerunItem{kind: k})
 		}
 	}
 	body := expandAssignments(inlineShellHeredocs(command))
@@ -181,15 +212,39 @@ func shellItems(command, cwd string) ([]rerunItem, string) {
 	if segments == nil {
 		return append(items, rerunItem{kind: "unknown"}), ""
 	}
-	for _, segment := range segments {
+	segmentOf := map[int]int{}
+	for si, segment := range segments {
 		for _, args := range splitBackground(segment) {
 			var more []rerunItem
 			more, cwd = simpleItems(args, cwd)
-			items = append(items, more...)
+			for _, it := range more {
+				if it.kind == "run" {
+					segmentOf[len(items)] = si
+				}
+				items = append(items, it)
+			}
+		}
+	}
+	if !hasBackground(body) {
+		for i, si := range segmentOf {
+			items[i].mark = statusMark(segments, si)
 		}
 	}
 	if runsInterpreter(segments) && len(interpreterWrite.FindAllString(command, -1)) > len(literals) {
-		items = append(items, rerunItem{kind: "unknown"})
+		scripted = append(scripted, rerunItem{kind: "unknown"})
+	}
+	// A script's writes cannot be placed among the segments, so a command that
+	// also runs the suite is unknown on both sides of the run.
+	if len(scripted) > 0 {
+		hasRun := false
+		for _, it := range items {
+			hasRun = hasRun || it.kind == "run"
+		}
+		if hasRun {
+			items = append(append([]rerunItem{{kind: "unknown"}}, items...), rerunItem{kind: "unknown"})
+		} else {
+			items = append(scripted, items...)
+		}
 	}
 	tail := lastStatement(body)
 	pipelined := hasPipeOrBackground(body)
@@ -206,6 +261,58 @@ func shellItems(command, cwd string) ([]rerunItem, string) {
 		}
 	}
 	return items, cwd
+}
+
+// echoMark returns what an echo or printf segment prints for a status, with
+// the status replaced by 0, or "" when the segment prints none.
+func echoMark(segment []string) string {
+	if name := filepath.Base(segment[0]); name != "echo" && name != "printf" {
+		return ""
+	}
+	var words []string
+	for _, w := range segment[1:] {
+		if m := redirectWord.FindStringSubmatch(w); m != nil && w != m[1] {
+			break
+		}
+		words = append(words, w)
+	}
+	text := strings.Join(words, " ")
+	if !statusUse.MatchString(text) {
+		return ""
+	}
+	return strings.TrimSpace(statusUse.ReplaceAllString(text, "0"))
+}
+
+// statusMark returns what the command prints to show the status of the suite
+// run in segment si: an echo or printf of $? in the next segment, or of
+// ${PIPESTATUS[0]} in a later one when the suite is piped, with the status
+// replaced by 0. It is "" when no echo is tied to the run, or when another
+// status echo of the command prints the same text, so the output could not
+// tell which command it came from.
+func statusMark(segments [][]string, si int) string {
+	mark := ""
+	for next := si + 1; next < len(segments) && mark == ""; next++ {
+		if echoMark(segments[next]) == "" {
+			continue
+		}
+		if next > si+1 && !strings.Contains(strings.Join(segments[next], " "), "PIPESTATUS") {
+			return ""
+		}
+		mark = echoMark(segments[next])
+	}
+	if mark == "" {
+		return ""
+	}
+	same := 0
+	for _, segment := range segments {
+		if echoMark(segment) == mark {
+			same++
+		}
+	}
+	if same > 1 {
+		return ""
+	}
+	return mark
 }
 
 func runsInterpreter(segments [][]string) bool {
@@ -456,6 +563,12 @@ func lastStatement(command string) string {
 		}
 	}
 	return command[cut:]
+}
+
+// hasBackground reports whether a command sends something to the background
+// with an unquoted "&".
+func hasBackground(command string) bool {
+	return hasPipeOrBackground(strings.NewReplacer("||", " ", "|", " ").Replace(command))
 }
 
 // hasPipeOrBackground reports whether a command has an unquoted "|", "||" or
