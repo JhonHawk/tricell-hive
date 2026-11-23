@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | In build |
+| Estado | In build · verify |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` (`f550f3e6`) · rama propuesta `feat/comment-rule-restatement` |
 | Playbook | feature |
@@ -79,3 +79,5 @@ None: the tasks take no effect on an external system.
 2026-11-23 — Revisión `hive-review-plan` (guidance, 200 s, 148k tokens): 1 P1, 6 P2 y 7 P3. Aplicados: P1-1 (sin «gets a detail wrong»; la parte no expresada queda como comentario propio, escenario mixto en el delta; D6), P2-1 y P2-4 (restricción sin check al registro, rutas del lint; D7), P2-2 (marcador «key or URL», punto 5 como puntero, `instruction-resources.md`), P2-3 (apertura de la plantilla; D7), P2-5 (reporte de HA-HI-03), P2-6 (Kill de regla en el reporte), y los P3 de alcance «in the repository», paso 10, orden de secciones y verificaciones de T2. Sin aplicar: el lugar de respaldo para `hold` (la entrega es `automatic`).
 
 2026-11-23 — Relectura (65 s): resueltos todos los hallazgos anteriores. Nuevos: P2-A (el Stale de la auditoría sigue borrando un detalle contradicho; pasa al usuario como D8) y cuatro P3 aplicados: D4 y D6 alineados, D7 alineado con «Impact», la sección vuelve a abrir con «Do not add comments» unida al lint, y la redacción del delta y de `tasks.md`.
+
+2026-11-23 — `/code-review` (high) sobre `7dfdac23`: 1 importante y 5 menores; sin supresiones agregadas. Corregidos en `b37cd578` (Unreviewed, solo Markdown): el comentario mixto tiene una fila del ledger por parte (importante); el changelog decía «cut out»; el marcador dice «record entry»; la sección nombra dónde va `## Skills` cuando falta. Al cierre: puntero en el workspace a la sección de cada repo hijo (HA-HI-05), y HA-IF-05 frente a la primera frase de la sección.

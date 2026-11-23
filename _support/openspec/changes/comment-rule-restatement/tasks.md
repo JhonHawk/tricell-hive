@@ -4,7 +4,7 @@ Base `development` en `f550f3e6`; worktree `.claude/worktrees/comment-rule-resta
 
 ### T1 — El criterio de borrado tiene una sola casa
 
-- [ ] El Kill y la línea de reporte de `no-comments.md` y la Tautology de `audit-comments/SKILL.md` dicen lo que fija `design.md` «Texto», y la fila nueva de `single_home_test.go` fija la cláusula en el leaf.
+- [x] El Kill y la línea de reporte de `no-comments.md` y la Tautology de `audit-comments/SKILL.md` dicen lo que fija `design.md` «Texto», y la fila nueva de `single_home_test.go` fija la cláusula en el leaf.
 
 **Closes:** AC1, AC2
 
@@ -22,7 +22,7 @@ Base `development` en `f550f3e6`; worktree `.claude/worktrees/comment-rule-resta
 
 ### T2 — La auditoría deja la regla de comentarios en el AGENTS.md del proyecto
 
-- [ ] Los pasos 9 y 10, la descripción, `project-skill.md`, `instruction-resources.md`, la página de skills del sitio y `CHANGELOG.md` dicen lo que fija `design.md` «Texto».
+- [x] Los pasos 9 y 10, la descripción, `project-skill.md`, `instruction-resources.md`, la página de skills del sitio y `CHANGELOG.md` dicen lo que fija `design.md` «Texto».
 
 **Closes:** AC3, AC4
 
@@ -51,15 +51,25 @@ AC1–AC3 se observan en los archivos instalados tras el merge y el refresco loc
 ## Checkpoint
 
 - Updated: 2026-11-23
-- Stage: build · T1
-- Last commit: f550f3e6
-- Open findings: none
-- Next: T1: Kill clause, report line, Tautology pointer, single-home row
+- Stage: verify · push
+- Last commit: b37cd578
+- Open findings: close: workspace pointer to child ## Comments (HA-HI-05); close: HA-IF-05 vs the section's first sentence
+- Next: push, PR, CI wait, merge (automatic), refresh install, observe AC1-AC3, flow-close
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/comment-rule-restatement · feat/comment-rule-restatement
-- Rules: flow-build/stage.md
+- Rules: flow-verify/stage-entry.md, flow-verify/stage-exit.md
+- Principles: none
 
 ### Evidence
 
 - no before captures (no screen)
+- full suite: go vet ./..., go test ./..., python unittest (412) · pass · 7dfdac23 · 267 s
+- text check · pass · 7dfdac23 · 97 s
+- site npm run check/lint/build via linked node_modules · pass · comment rule in dist/skills/index.html · 7dfdac23
+- local CI: only master-source-branch.yml (CI-only, push to master)
+- /code-review high · 1 important + 5 nits · fixes b37cd578
+- text check after fixes · pass (tests/content rerun after reword) · b37cd578
 
 ## Review status and progress
+
+2026-11-23 — T1 · b87eb18f · unverified: AC1-AC2 observed only after merge and local refresh
+2026-11-23 — T2 · 7dfdac23 · unverified: AC3 observed only after merge and local refresh
