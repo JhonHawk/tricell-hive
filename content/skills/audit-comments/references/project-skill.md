@@ -17,7 +17,7 @@ Frontmatter with `name` and a `description` that says when to use it, such as "R
 3. Each mechanical pattern a batch used, with the exact expression, so the next batch repeats it.
 4. Where the ledger of the last audit is, and the comments it left unmarked.
 5. The decision record's path, the tracker and parent ticket for excuses, and the workaround marker's form.
-6. The checks a batch runs: `--same-code` against the commit before the batch, the comment lint, the lint, the type check and the tests of the touched files.
+6. The checks a batch runs: the comment lint, the lint, the type check and the tests of the touched files, then `--same-code --base <the batch's record commit>` last, since those commands can regenerate files; stage the removal commit by file name.
 7. That a bulk edit made by a script does not show in a host's per-turn diff view, and to report `git diff --stat` instead.
 
 ## Register it

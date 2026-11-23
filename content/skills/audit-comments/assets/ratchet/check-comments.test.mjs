@@ -376,6 +376,76 @@ test("--same-code rejects a deleted or added source file", (t) => {
   assert.match(added.stderr, /^src\/new\.js: /m);
 });
 
+test("--same-code rejects a change under an excluded path, of any type, even one that does not parse", (t) => {
+  const r = repo(t);
+  r.write("src/a.js", "// note\nexport const a = 1;\n");
+  r.write("dist/a.js", "export const d = 1;\n");
+  r.write("dist/style.css", "a { color: red; }\n");
+  r.write("dist/bad.js", "export const b = 1;\n");
+  const base = r.commit("base");
+  r.write("src/a.js", "export const a = 1;\n");
+  assert.equal(r.run(["--same-code", "--base", base]).status, 0);
+  r.write("dist/a.js", "export const d = 2;\n");
+  const edited = r.run(["--same-code", "--base", base]);
+  assert.equal(edited.status, 1);
+  assert.match(edited.stderr, /^dist\/a\.js: changed under an excluded path$/m);
+  r.write("dist/a.js", "export const d = 1;\n");
+  r.write("dist/style.css", "a { color: blue; }\n");
+  const styled = r.run(["--same-code", "--base", base]);
+  assert.equal(styled.status, 1);
+  assert.match(styled.stderr, /^dist\/style\.css: changed under an excluded path$/m);
+  r.write("dist/style.css", "a { color: red; }\n");
+  r.write("dist/bad.js", "export const = ;\n");
+  const unparsable = r.run(["--same-code", "--base", base]);
+  assert.equal(unparsable.status, 1, unparsable.stderr);
+  assert.match(unparsable.stderr, /^dist\/bad\.js: changed under an excluded path$/m);
+  r.write("dist/bad.js", "export const b = 1;\n");
+  r.write("dist/new.js", "export const n = 1;\n");
+  r.git("add", "dist/new.js");
+  const added = r.run(["--same-code", "--base", base]);
+  assert.equal(added.status, 1);
+  assert.match(added.stderr, /^dist\/new\.js: changed under an excluded path$/m);
+  r.git("rm", "-q", "--cached", "dist/new.js");
+  assert.equal(r.run(["--same-code", "--base", base]).status, 0);
+});
+
+test("--same-code ignores untracked files under an excluded path", (t) => {
+  const r = repo(t);
+  r.write("src/a.js", "export const a = 1;\n");
+  const base = r.commit("base");
+  r.write("dist/out.js", "export const o = 1;\n");
+  assert.equal(r.run(["--same-code", "--base", base]).status, 0);
+});
+
+test("--same-code names both sides of a move across an excluded path once", (t) => {
+  const r = repo(t);
+  r.write("dist/a.js", "export const a = 1;\n");
+  r.write("src/s.js", "export const s = 1;\n");
+  const base = r.commit("base");
+  r.git("mv", "dist/a.js", "src/a2.js");
+  const out = r.run(["--same-code", "--base", base]);
+  assert.equal(out.status, 1);
+  assert.match(out.stderr, /^dist\/a\.js: changed under an excluded path$/m);
+  assert.doesNotMatch(out.stderr, /^src\/a2\.js: /m);
+  r.git("mv", "src/a2.js", "dist/a.js");
+  r.git("mv", "src/s.js", "dist/s.js");
+  const into = r.run(["--same-code", "--base", base]);
+  assert.equal(into.status, 1);
+  assert.match(into.stderr, /^dist\/s\.js: changed under an excluded path$/m);
+  assert.match(into.stderr, /^dist\/s\.js: moved from src\/s\.js$/m);
+});
+
+test("the inventory skips excluded paths", (t) => {
+  const r = repo(t);
+  r.write("src/a.js", "// kept\nexport const a = 1;\n");
+  r.write("dist/a.js", "// skipped\nexport const d = 1;\n");
+  r.commit("base");
+  const result = r.run(["--inventory"]);
+  assert.equal(result.status, 0, result.stderr);
+  const files = result.stdout.trim().split("\n").map((line) => JSON.parse(line).file);
+  assert.deepEqual(files, ["src/a.js"]);
+});
+
 test("a base that does not resolve exits 2", (t) => {
   const r = repo(t);
   r.write("src/a.ts", "export const a = 1;\n");
