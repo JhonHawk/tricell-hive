@@ -11,10 +11,8 @@ const reportEndingsPath = "../../content/skills/hive-core/messages/report-ending
 
 var hostCommand = regexp.MustCompile("(^|[\\s`])(/|\\$|@|/skill:)(flow-|hive-mode)")
 
-// nextStepSyntaxProblems checks that the next-step block's template holds no
-// command written in one host's syntax, and that the host syntax line follows
-// the template directly: a model that rereads only the template copies its
-// literal and misses a syntax line placed sections away.
+// A model that rereads only the next-step template copies its literal command
+// and misses a syntax line placed sections away (Codex sessions, 2026-11-22/23).
 func nextStepSyntaxProblems(doc string) []string {
 	section, _, _ := strings.Cut(doc[strings.Index(doc, "## The next-step block")+1:], "\n## ")
 	parts := strings.SplitN(section, "```", 3)
