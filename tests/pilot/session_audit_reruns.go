@@ -15,9 +15,12 @@ import (
 
 var (
 	textExtensions = map[string]bool{".md": true, ".mdx": true, ".txt": true}
-	// A run is shown to pass by a PIPESTATUS line whose first status is 0 or
-	// an exit=0 line in its output.
-	statusUse   = regexp.MustCompile(`\$\{PIPESTATUS\[0\]\}|\$\?|\$\{\?\}`)
+	// statusUse is the status of the previous command in an echo: a run is
+	// shown to pass by the whole output line its own echo of that status prints
+	// with 0, never by a line that merely contains it. A status taken from
+	// PIPESTATUS is not used, since the segments of a command do not tell which
+	// pipeline it belongs to.
+	statusUse   = regexp.MustCompile(`\$\?|\$\{\?\}`)
 	patchedFile = regexp.MustCompile(`(?m)^\*\*\* (?:Update|Add|Delete) File: (.+)$|^\*\*\* Move to: (.+)$`)
 	typedReview = regexp.MustCompile(`(?:^|[\s>])/(?:[a-z0-9-]+:)?code-review\b`)
 	// goValueFlags take their value as the next word.
@@ -50,8 +53,7 @@ type rerunItem struct {
 	// background around it.
 	plain bool
 	// mark is the text the command prints to show the status of this run: its
-	// echo of $? right after it, or of ${PIPESTATUS[0]} after its pipeline,
-	// with the status replaced by 0.
+	// echo of $? in the segment right after it, with the status replaced by 0.
 	mark string
 }
 
@@ -108,29 +110,35 @@ func runShownToPass(s auditSession, run rerunItem) bool {
 	if runsInBackground(s.Host, events[run.event]) {
 		return false
 	}
-	answered := false
-	for _, e := range events[run.event+1:] {
-		if e.Kind == "tool_result" && e.ID == events[run.event].ID {
-			answered = true
-			break
-		}
-	}
+	result, answered := resultOf2(events, run.event)
 	if !answered {
 		return false
 	}
-	if run.plain && succeeded(events, run.event) {
+	if run.plain && result.Success != nil && *result.Success {
 		return true
 	}
 	if run.mark == "" {
 		return false
 	}
-	for _, line := range strings.Split(resultText(events, run.event), "\n") {
-		line = strings.TrimSpace(line)
-		if line == run.mark || len(run.mark) > 1 && strings.Contains(line, run.mark) {
+	for _, line := range strings.Split(result.Text, "\n") {
+		if strings.TrimSpace(line) == run.mark {
 			return true
 		}
 	}
 	return false
+}
+
+// resultOf2 finds the tool result that answers events[i]. Codex numbers the
+// shell events of a block <call_id>#<n>, so a result is also accepted by the
+// call ID alone, as resultOf does.
+func resultOf2(events []traceEvent, i int) (traceEvent, bool) {
+	for j := i + 1; j < len(events); j++ {
+		r := events[j]
+		if r.Kind == "tool_result" && r.ID != "" && (r.ID == events[i].ID || strings.HasPrefix(events[i].ID, r.ID+"#")) {
+			return r, true
+		}
+	}
+	return traceEvent{}, false
 }
 
 // rerunItems lists, in order, the suite runs, changes and boundaries of a
@@ -284,22 +292,15 @@ func echoMark(segment []string) string {
 }
 
 // statusMark returns what the command prints to show the status of the suite
-// run in segment si: an echo or printf of $? in the next segment, or of
-// ${PIPESTATUS[0]} in a later one when the suite is piped, with the status
-// replaced by 0. It is "" when no echo is tied to the run, or when another
-// status echo of the command prints the same text, so the output could not
-// tell which command it came from.
+// run in segment si: an echo or printf of $? in the very next segment, with the
+// status replaced by 0. It is "" when no echo is tied to the run, or when
+// another status echo of the command prints the same text, so the output could
+// not tell which command it came from.
 func statusMark(segments [][]string, si int) string {
-	mark := ""
-	for next := si + 1; next < len(segments) && mark == ""; next++ {
-		if echoMark(segments[next]) == "" {
-			continue
-		}
-		if next > si+1 && !strings.Contains(strings.Join(segments[next], " "), "PIPESTATUS") {
-			return ""
-		}
-		mark = echoMark(segments[next])
+	if si+1 >= len(segments) {
+		return ""
 	}
+	mark := echoMark(segments[si+1])
 	if mark == "" {
 		return ""
 	}

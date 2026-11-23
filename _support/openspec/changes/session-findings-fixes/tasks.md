@@ -6,7 +6,7 @@ El check del texto, que esta carpeta llama «check de texto», es: `go test -cou
 
 ### T1 — Checks por ruta, commit desplegado y CHANGELOG
 
-- [ ] `AGENTS.md` asigna un comando a cada ruta y da el comando del commit desplegado
+- [x] `AGENTS.md` asigna un comando a cada ruta y da el comando del commit desplegado
 
 **Closes:** AC10, AC13
 
@@ -24,7 +24,7 @@ El check del texto, que esta carpeta llama «check de texto», es: `go test -cou
 
 ### T2 — Alcance conocido y reutilización del pase de la suite
 
-- [ ] `checks.md` y `flow-plan` paso 3 usan el check asignado a cada ruta
+- [x] `checks.md` y `flow-plan` paso 3 usan el check asignado a cada ruta
 
 **Closes:** AC14
 
@@ -42,7 +42,7 @@ El check del texto, que esta carpeta llama «check de texto», es: `go test -cou
 
 ### T3 — Segunda revisión por trozos del diff y archivos movidos fuera del alcance
 
-- [ ] `review-findings.md` y `reviewer-brief.md` acotan la revisión
+- [x] `review-findings.md` y `reviewer-brief.md` acotan la revisión
 
 **Closes:** AC16
 
@@ -60,7 +60,7 @@ El check del texto, que esta carpeta llama «check de texto», es: `go test -cou
 
 ### T4 — Relectura del plan con un solo hogar y un tope
 
-- [ ] `change-folder.md` fija el disparador y el tope; `plan-review.md` solo el dominio
+- [x] `change-folder.md` fija el disparador y el tope; `plan-review.md` solo el dominio
 
 **Closes:** AC18
 
@@ -78,7 +78,7 @@ El check del texto, que esta carpeta llama «check de texto», es: `go test -cou
 
 ### T5 — Revisión anunciada en una línea y `hold` que no mezcla trabajos
 
-- [ ] `delivery-ask.md` y su disparador en `global.md` cubren D6 y D7
+- [x] `delivery-ask.md` y su disparador en `global.md` cubren D6 y D7
 
 **Closes:** AC19, AC20
 
@@ -96,7 +96,7 @@ El check del texto, que esta carpeta llama «check de texto», es: `go test -cou
 
 ### T6 — `Situation:` no sustituye el texto previo a la tarjeta
 
-- [ ] `questions.md` «Channel» lo dice en una frase
+- [x] `questions.md` «Channel» lo dice en una frase
 
 **Closes:** AC9
 
@@ -114,7 +114,7 @@ El check del texto, que esta carpeta llama «check de texto», es: `go test -cou
 
 ### T7 — Dos criterios de auditoría: suite tras arreglo de texto y rondas de revisión por candidato
 
-- [ ] `--audit-session` informa `full_suite_after_text_fix` y `review_rounds_per_candidate`
+- [x] `--audit-session` informa `full_suite_after_text_fix` y `review_rounds_per_candidate`
 
 **Closes:** AC15, AC17
 
@@ -126,13 +126,13 @@ El check del texto, que esta carpeta llama «check de texto», es: `go test -cou
 
 **Test approach:** tdd (contrato del informe de auditoría)
 
-**Changes:** Una corrida de suite sin filtro se reconoce con `shellSegments` y sin contar texto dentro de argumentos o heredocs: `go test ./...` y `go -C <dir> test ./...` con `-count` o `-race`, `npm test`, `pnpm test` y `pytest` sin argumentos; `-run` o un patrón de subpaquete la filtran. `full_suite_after_text_fix`, en el mismo directorio de trabajo o `-C` y sin `git push`, `gh pr merge` ni rama o worktree nuevos entre ambas: `fail` cuando una corrida sigue a otra que se muestra pasada (una línea `PIPESTATUS` o `exit=0` en su salida, o el indicador de éxito de un comando sin tubería ni segundo plano) y todo lo cambiado entre ellas son archivos `.md`, `.mdx` o `.txt`, por herramientas de edición o por escrituras de shell cuyo destino es de esos tipos; `pass` cuando hay otra edición o un rebase, merge, pull, checkout, switch, cherry-pick, am, apply, reset o restore; `review` cuando una escritura de shell tiene un destino que no se puede mostrar de texto; `git add`, `git commit` y `git push` no cuentan como cambios; `review` cuando no se puede mostrar que la primera pasó; `not_observed` sin dos corridas. Sin cambios entre dos corridas cuenta como solo texto, así que da `fail` solo si la primera se muestra pasada. `review_rounds_per_candidate`, solo en sesiones principales de Claude Code: cuenta rondas de revisión de código (skill `code-review`, hijo `hive-review-code`; las de un mismo mensaje son una ronda) y se reinicia con `git push`, `gh pr merge`, una carga nueva de `flow-build` o `flow-plan` o un cambio de rama; `fail` con más de dos rondas, `review` cuando la tercera sigue a un `/code-review` que escribió el usuario, `pass` con dos o menos, `not_observed` sin revisiones, en hijos y en otros hosts. Cada caso tiene su fixture. La rúbrica gana dos filas con fecha y sesión de origen y `rule-enforcers.md` lista los dos enforcers citando `session_audit_reruns.go`. Corre el criterio sobre las transcripciones de Claude Code del 20 al 22 de noviembre de este repositorio, confirma a mano cada `fail` que dé y anota en su informe cuántas sesiones leyó y cuáles fallan. No cambia ningún otro criterio.
+**Changes:** Una corrida de suite sin filtro se reconoce con `shellSegments` y sin contar texto dentro de argumentos o heredocs: `go test ./...` y `go -C <dir> test ./...` con `-count` o `-race`, `npm test`, `pnpm test` y `pytest` sin argumentos; `-run` o un patrón de subpaquete la filtran. `full_suite_after_text_fix`, en el mismo directorio de trabajo o `-C` y sin `git push`, `gh pr merge` ni rama o worktree nuevos entre ambas: `fail` cuando una corrida sigue a otra que se muestra pasada (un eco de su propio `$?` en el comando siguiente cuya línea completa muestra 0, o el indicador de éxito de un comando sin tubería ni segundo plano) y todo lo cambiado entre ellas son archivos `.md`, `.mdx` o `.txt`, por herramientas de edición o por escrituras de shell cuyo destino es de esos tipos; `pass` cuando hay otra edición o un rebase, merge, pull, checkout, switch, cherry-pick, am, apply, reset o restore; `review` cuando una escritura de shell tiene un destino que no se puede mostrar de texto; `git add`, `git commit` y `git push` no cuentan como cambios; `review` cuando no se puede mostrar que la primera pasó; `not_observed` sin dos corridas. Sin cambios entre dos corridas cuenta como solo texto, así que da `fail` solo si la primera se muestra pasada. `review_rounds_per_candidate`, solo en sesiones principales de Claude Code: cuenta rondas de revisión de código (skill `code-review`, hijo `hive-review-code`; las de un mismo mensaje son una ronda) y se reinicia con `git push`, `gh pr merge`, una carga nueva de `flow-build` o `flow-plan` o un cambio de rama; `fail` con más de dos rondas, `review` cuando la tercera sigue a un `/code-review` que escribió el usuario, `pass` con dos o menos, `not_observed` sin revisiones, en hijos y en otros hosts. Cada caso tiene su fixture. La rúbrica gana dos filas con fecha y sesión de origen y `rule-enforcers.md` lista los dos enforcers citando `session_audit_reruns.go`. Corre el criterio sobre las transcripciones de Claude Code del 20 al 22 de noviembre de este repositorio, confirma a mano cada `fail` que dé y anota en su informe cuántas sesiones leyó y cuáles fallan. No cambia ningún otro criterio.
 
 **Verification:** `go test -count=1 ./tests/pilot/` pasa con un caso por estado de cada criterio; `go test -count=1 ./tests/content/...` pasa; `go run ./tests/pilot --audit-session ~/.claude/projects/-Users-jmartinez-Development-projects-tricell-tricell-hive/7319321c-5a79-42a9-91a8-17c47fcfbb69.jsonl --host claude` da `review_rounds_per_candidate` en `fail` con la línea 3346 como evidencia; el informe de T7 nombra las sesiones del 20 al 22 de noviembre con `full_suite_after_text_fix` en `fail` confirmado a mano, o dice que ninguna coincidió entre las n leídas.
 
 ### T8 — Regla personal «Where to work» en una línea cuando es «in place»
 
-- [ ] `rules.md` y sus copias dicen que «In place» se anuncia y sigue
+- [x] `rules.md` y sus copias dicen que «In place» se anuncia y sigue
 
 **Closes:** AC11
 
@@ -178,14 +178,30 @@ El PR lista los lugares revisados por cada regla cambiada y el tamaño de `conte
 ## Checkpoint
 
 - Updated: 2026-11-23
-- Stage: build · T1-T9 start
-- Last commit: ee05129b
+- Stage: verify · step 2 code review running
+- Last commit: a3b291ac
 - Open findings: none
-- Next: T7 child; T1, T2, T4 in main thread; T3/T5 rubric rows after T7; T6 after T5; T8; T9 at close
-- Rules: flow-build/stage.md
+- Next: judge /code-review findings, one round of fixes, then push, PR, merge (automatic)
+- Rules: flow-verify/stage-entry.md
 
 ### Evidence
 
 - before captures: none (no screen)
+- go vet ./... · exit 0 · a346b972
+- go test ./... · exit 0 · a346b972 (a3b291ac only removes comments; go vet ./tests/pilot/ exit 0)
+- python3 -m unittest discover -s tests/skills · 412 OK · a346b972
+- site pnpm check/lint/build · exit 0 · a346b972
+- text check · exit 0, 95 s · 3caa7191 tree
+- go test ./tests/pilot/ · ok 62.9 s · c107eced
+- audit 7319321c review_rounds_per_candidate fail at 3346 · c107eced
 
 ## Review status and progress
+
+2026-11-23 — T1 · f3fbef6e · unverified: none
+2026-11-23 — T2 · 924b3f52 · unverified: AC14 seen in the installed leaf only after the local refresh
+2026-11-23 — T4 · 9a7bd1cb · unverified: AC18 seen in the installed leaf only after the local refresh; site build runs once after T3 and T5
+2026-11-23 — T8 · uncommitted · unverified: outside the repository; previous rules.md kept in the session scratchpad for recovery
+2026-11-23 — T7 · c107eced · unverified: AC15: no real session of 2026-11-20..22 gave a fail (0 fail, 4 pass, 10 review in 33); proven by fixtures only
+2026-11-23 — T3 · 3caa7191 · unverified: AC16 seen in the installed leaf only after the local refresh
+2026-11-23 — T5 · 8af977ab · unverified: AC19, AC20 seen in the installed leaf only after the local refresh
+2026-11-23 — T6 · a346b972 · unverified: AC9 seen in the installed leaf only after the local refresh
