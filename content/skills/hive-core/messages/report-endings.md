@@ -37,7 +37,7 @@ Moving from one flow to the next is never asked with the question tool, because 
 
 <the reason in one line>
 
-`<the flow's command, once, in this host's syntax from the line below, with a real argument, such as a ticket key>`
+`<the flow's command, once, in this host's syntax from the line below, with a real argument: a ticket key, a change folder or a short description of the work>`
 
 A - <another reply, such as keep investigating or what to change>
 
