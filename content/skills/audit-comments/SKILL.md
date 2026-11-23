@@ -26,7 +26,7 @@ Remove the comments a codebase does not need, keep what they recorded where it b
    - **Constraint** (Constraint): it tells the next editor what not to do; propose the check the leaf's step 5 sets.
    - **Directive**: a tool reads it, or it is a license header; it stays. A lint or type-checker suppression among them goes to [suppression review](../hive-core/review/suppression-review.md).
 
-   A row without evidence stays unmarked and the report names it. A comment that holds a credential is reported as an exposed secret, as the global guidance's «Secrets» sets, and its text is never copied to the ledger, a ticket or the decision record.
+   A Tautology under that clause that also holds a part the code does not express gets one row per part: the restated part Tautology, the rest under its own category, so step 6's record commit keeps that part before the removal commit deletes the comment. A row without evidence stays unmarked and the report names it. A comment that holds a credential is reported as an exposed secret, as the global guidance's «Secrets» sets, and its text is never copied to the ledger, a ticket or the decision record.
 
 ## Plan
 

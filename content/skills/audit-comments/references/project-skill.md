@@ -22,7 +22,7 @@ Frontmatter with `name` and a `description` that says when to use it, such as "R
 
 ## Register it
 
-- In the same repository's `AGENTS.md`, write a `## Comments` section above `## Skills`, outside `## Hive` and any installer-managed block, from this template, with the project's comment lint command, the paths it checks (its `SOURCE_PATTERNS` minus `EXCLUDED`), decision record path and tracker in place of each `<…>`; when the file already has a `## Comments` section, update it instead of adding another. A declared workspace does not get it, since the lint runs in each repository. When that level's `CLAUDE.md` does not import `@AGENTS.md`, report it as audit-harness's [hierarchy](../../audit-harness/references/hierarchy.md) HA-HI-03 sets.
+- In the same repository's `AGENTS.md`, write a `## Comments` section above `## Skills` (which the next bullet creates when it is missing), outside `## Hive` and any installer-managed block, from this template, with the project's comment lint command, the paths it checks (its `SOURCE_PATTERNS` minus `EXCLUDED`), decision record path and tracker in place of each `<…>`; when the file already has a `## Comments` section, update it instead of adding another. A declared workspace does not get it, since the lint runs in each repository. When that level's `CLAUDE.md` does not import `@AGENTS.md`, report it as audit-harness's [hierarchy](../../audit-harness/references/hierarchy.md) HA-HI-03 sets.
 
   ```markdown
   ## Comments
@@ -37,7 +37,7 @@ Frontmatter with `name` and a `description` that says when to use it, such as "R
 
   - Directives a tool reads, such as a lint suppression with its reason or a bundler's magic comment.
   - License headers.
-  - The workaround marker, on one line: the line-comment token, then `workaround: ` and the ticket's key or URL, or the decision entry as `<path>#<anchor>` while no ticket exists; `{/* workaround: <ticket> */}` inside JSX.
+  - The workaround marker, on one line: the line-comment token, then `workaround: ` and the ticket's key or URL, or the record entry as `<path>#<anchor>` while no ticket exists; `{/* workaround: <ticket> */}` inside JSX.
 
   Existing comments stay until a cleanup batch removes them.
   ```

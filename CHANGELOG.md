@@ -27,8 +27,8 @@ raise the minor or the patch version.
 
 - The `no-comments` review removes a comment that restates a rule the code,
   its tests or its configuration already express, even when it states only
-  part of the rule, once the evidence names what expresses it; the part the
-  code does not express is cut out and sorted on its own. `audit-comments`
+  part of the rule, once the evidence names what expresses it; the comment is
+  cut down to the part the code does not express, which is sorted on its own. `audit-comments`
   also writes a `## Comments` section in the audited repository's
   `AGENTS.md`: the lint and the paths it checks, where each fact goes
   instead of a comment, and the only comments that stay.
