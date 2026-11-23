@@ -9,7 +9,7 @@ const root = await realpath(process.argv[2])
 const skills = path.join(root, "skills")
 const metadata = path.join(root, "context-loader.json")
 const refs = {
-  "hive-review-harness": "harness-audit/SKILL.md",
+  "hive-review-harness": "audit-harness/SKILL.md",
   "hive-review-plan": "flow-plan/SKILL.md",
 }
 const expected = JSON.parse(await readFile(path.join(root, "fixture.json"), "utf8"))

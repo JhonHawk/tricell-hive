@@ -1,5 +1,5 @@
 ---
-name: harness-audit
+name: audit-harness
 description: Audit coding-agent instruction files (AGENTS.md and CLAUDE.md at every level), skills, and subagent definitions for harness-engineering quality, run native validators, ask the decisions the findings need, and apply the accepted outcomes in the current project; a project's layout and its migration belong to project-layout. Use when asked to audit, review, prune, fix, or check agent instructions, skills, or agents, to set up or update a repository's Hive settings section (onboarding a project to Hive), to explain what a host loads from an entry directory, including its memory, or why sessions behave differently by where they start, to find and clean host memory and Engram records that restate the guidance in use, to create or curate the HIVE.local.md files of a project and of this machine or record how the project runs here (not one fact verified during other work), to set, sync or remove the user's own rules for every host, or, only on explicit request, to initialize or diagnose an Engram workspace identity.
 ---
 

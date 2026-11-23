@@ -7,8 +7,8 @@ import tempfile
 import unittest
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-SCRIPT = ROOT / "content/skills/harness-audit/scripts/skill_registry.py"
-TABLE = ROOT / "content/skills/harness-audit/assets/stack-skills.json"
+SCRIPT = ROOT / "content/skills/audit-harness/scripts/skill_registry.py"
+TABLE = ROOT / "content/skills/audit-harness/assets/stack-skills.json"
 
 EXAMPLE_LINE = "- Before editing files under `apps/mobile/`: `.agents/skills/expo-router/SKILL.md`"
 

@@ -4,7 +4,7 @@ const snapshot = __HIVE_CONTEXT_SNAPSHOT_DATA__
 
 const resources = new Map([
   ["hive-review-plan", "flow-plan/SKILL.md"],
-  ["hive-review-harness", "harness-audit/SKILL.md"],
+  ["hive-review-harness", "audit-harness/SKILL.md"],
 ])
 
 export default Plugin.define({

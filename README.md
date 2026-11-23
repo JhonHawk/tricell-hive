@@ -271,7 +271,7 @@ Cursor sessions: unless your loaded instructions contain the line "# Tricell Hiv
 ```
 
 Your own rules for every project, which the personal rules mode of
-[harness-audit](content/skills/harness-audit/references/personal-rules.md) keeps in
+[audit-harness](content/skills/audit-harness/references/personal-rules.md) keeps in
 `~/.config/hive/rules.md` and copies to each host, land in Cursor as
 `~/.cursor/rules/personal-rules.mdc`. That pointer names only `hive.mdc`, so a
 repository outside your home folder does not load them.
@@ -500,7 +500,7 @@ Two commands tune the setup from a terminal:
   decisions are asked once per work item when still open, and
   `hive doctor` warns about leftover `Review`, `UI verification` or
   `Delivery: automatic|interactive` lines. `hive doctor` exits non-zero when the
-  `## Hive` section has a blocking finding, and `harness-audit` can create or
+  `## Hive` section has a blocking finding, and `audit-harness` can create or
   update the section for you.
 - `hive voice` lists the voices (`hive voice list`), selects one with `hive voice set ID`,
   and turns it off with `hive voice off`.

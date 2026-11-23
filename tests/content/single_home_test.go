@@ -113,8 +113,8 @@ var homePhrases = []homePhrase{
 	{"Ask the delivery mode and the code review mechanism once per session and repository, in one round", "content/skills/hive-core/git/delivery-ask.md"},
 	{"name them with their count and the work they belong to, and ask whether they go in the same publication", "content/skills/hive-core/git/foreign-commits.md"},
 	{"Only an explicitly assigned `hive-build-owner` may build, test, fix and create local commits", "content/skills/flow-build/references/e2e-coordination.md"},
-	{"allows creating or changing it only through this mode", "content/skills/harness-audit/references/engram-workspace.md"},
-	{"Before the work a line names, read that skill's SKILL.md whole.", "content/skills/harness-audit/references/instruction-files.md"},
+	{"allows creating or changing it only through this mode", "content/skills/audit-harness/references/engram-workspace.md"},
+	{"Before the work a line names, read that skill's SKILL.md whole.", "content/skills/audit-harness/references/instruction-files.md"},
 	{"copy into the brief of every child, builder or reviewer, each of its lines whose trigger applies", "content/skills/hive-core/delegation/child-brief.md"},
 }
 

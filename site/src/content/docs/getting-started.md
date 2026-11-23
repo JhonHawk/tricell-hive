@@ -52,7 +52,7 @@ about those lines.
 Each key's meaning and accepted values are in
 [project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/plan/project-settings.md).
 `hive project set` edits the section for you after a confirmation, and the
-[harness audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/SKILL.md)
+[harness audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-harness/SKILL.md)
 can create or update it for you: ask it to set up your repository's Hive section,
 and it proposes the facts with their evidence, asks the decisions it cannot
 deduce, and writes only what you accept.
@@ -63,7 +63,7 @@ Next.js skills, can be listed in a separate `## Skills` section of the same
 that matches it, so the agent does not depend on a skill activating by itself,
 and the main agent copies the lines that apply into each helper's brief. The
 section sits outside `## Hive`, which keeps facts only. Ask the
-[harness audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/SKILL.md) to set it up: it runs a
+[harness audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-harness/SKILL.md) to set it up: it runs a
 read-only script that detects your stack from its files and prints the official
 skill sources for it, asks which to install, checks the installer and pins each
 source to a commit before installing it into your project only, and writes the
@@ -71,8 +71,8 @@ section. The same script later reports a listed path that does not exist and an
 installed skill that no line lists. For a workspace of several repositories, the
 workspace's `AGENTS.md` repeats each repository's lines with the repository's
 folder as a prefix, because most hosts do not discover skills in subfolders. The
-[skills registry rule](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/references/instruction-files.md)
-and the [stack skills procedure](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/references/stack-skills.md)
+[skills registry rule](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-harness/references/instruction-files.md)
+and the [stack skills procedure](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-harness/references/stack-skills.md)
 hold the format and the steps. Hive lists no official skills for iOS, and
 installs nothing without your answer.
 
@@ -94,7 +94,7 @@ You neither create nor commit them: the agent reads
 both at the start of each session, adds each fact it verified with its date,
 marks the ones that stop working as stale, names the file that holds a password
 instead of writing it, and keeps the files out of Git. You can edit it by hand, and the
-[local instructions mode of harness-audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/references/local-instructions.md)
+[local instructions mode of audit-harness](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-harness/references/local-instructions.md)
 fills it the first time from what already worked in your recent sessions, asking
 you which facts to keep. A fact that
 holds for every clone belongs in `AGENTS.md`, so the agent names it in its

@@ -1993,7 +1993,7 @@ func reportKeepsDeletedBranch(text string, deleted map[string]bool) bool {
 }
 
 var (
-	hiveSkillName = regexp.MustCompile(`\b(?:flow-[a-z][a-z-]*|git-workflow|harness-audit|docs-cleanup|project-layout|workspace-repo|create-issue|create-prd|create-design)\b`)
+	hiveSkillName = regexp.MustCompile(`\b(?:flow-[a-z][a-z-]*|git-workflow|audit-harness|harness-audit|docs-cleanup|project-layout|workspace-repo|create-issue|create-prd|create-design)\b`)
 	demandVerb    = regexp.MustCompile(`(?i)\b(?:pide|piden|exige|exigen|establece|establecen|requires?|asks?|sets?)\b`)
 	sentenceBreak = regexp.MustCompile(`[.!?]+\s+|\n+`)
 )

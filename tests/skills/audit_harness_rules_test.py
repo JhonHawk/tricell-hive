@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Parity between the harness-audit skill and its provenance catalog."""
+"""Parity between the audit-harness skill and its provenance catalog."""
 
 from __future__ import annotations
 
@@ -9,8 +9,8 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
-CATALOG = ROOT / "_support/docs/harness-engineering/harness-audit-rules.md"
-DEPLOYED = [ROOT / "content/skills/harness-audit", ROOT / "content/skills/project-layout", ROOT / "content/agents/review/hive-review-harness.md"]
+CATALOG = ROOT / "_support/docs/harness-engineering/audit-harness-rules.md"
+DEPLOYED = [ROOT / "content/skills/audit-harness", ROOT / "content/skills/project-layout", ROOT / "content/agents/review/hive-review-harness.md"]
 RULE_ID = re.compile(r"HA-[A-Z]+-[0-9]+")
 ACTIVE_ROW = re.compile(r"^\| (HA-[A-Z]+-[0-9]+) \|.*\| active \|$", re.MULTILINE)
 
@@ -24,7 +24,7 @@ def deployed_ids(paths: list[Path]) -> set[str]:
     return {m for f in files for m in RULE_ID.findall(f.read_text(encoding="utf-8"))}
 
 
-class HarnessAuditRulesTest(unittest.TestCase):
+class AuditHarnessRulesTest(unittest.TestCase):
     def test_active_catalog_ids_match_deployed_ids(self) -> None:
         catalog, deployed = active_ids(CATALOG.read_text(encoding="utf-8")), deployed_ids(DEPLOYED)
         self.assertTrue(catalog, "catalog has no active rules")

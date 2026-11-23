@@ -1,5 +1,5 @@
 ---
-name: test-audit
+name: audit-tests
 description: Audit one area's tests and remove duplicate, implementation-coupled or vacuous proof without leaving any contract without its only proof, through a baseline, a read-only ledger per test, a layer plan, keepers before deletions, an independent preservation review and targeted mutations. Use when the user asks to audit, prune, slim down or deduplicate the tests of an area, module or subsystem; not for writing the tests of a change, which follows the tests leaf of the core guidance, `hive-core/build/tests.md`.
 ---
 
@@ -7,7 +7,7 @@ description: Audit one area's tests and remove duplicate, implementation-coupled
 
 > Adapted from the `test-audit` skill of [openclaw/openclaw](https://github.com/openclaw/openclaw/tree/main/.agents/skills/test-audit) (MIT, commit `3195fba90643`). The complete notice is in [OpenClaw license](references/license-openclaw.md).
 
-Prune an area's tests to one owner per contract, proven by mutation, never by a deletion count. The [Tests](../hive-core/build/tests.md) leaf is the criterion for every mark: read it before step 4. The audit adds to the normal flows and replaces none of their steps: steps 1–4 are research and change no repository file; step 5 adds to [flow-plan](../flow-plan/SKILL.md); steps 6–9 to [flow-build](../flow-build/SKILL.md); [flow-verify](../flow-verify/SKILL.md) and flow-close follow, with the exceptions steps 9 and 10 name. When you route between flows, name the audit in the command's argument (`/flow-plan test-audit <area>`) so this skill keeps applying.
+Prune an area's tests to one owner per contract, proven by mutation, never by a deletion count. The [Tests](../hive-core/build/tests.md) leaf is the criterion for every mark: read it before step 4. The audit adds to the normal flows and replaces none of their steps: steps 1–4 are research and change no repository file; step 5 adds to [flow-plan](../flow-plan/SKILL.md); steps 6–9 to [flow-build](../flow-build/SKILL.md); [flow-verify](../flow-verify/SKILL.md) and flow-close follow, with the exceptions steps 9 and 10 name. When you route between flows, name the audit in the command's argument (`/flow-plan audit-tests <area>`) so this skill keeps applying.
 
 ## Scope
 

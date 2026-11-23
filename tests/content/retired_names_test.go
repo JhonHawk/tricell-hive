@@ -15,13 +15,20 @@ import (
 // guidance or a page people read names one as a skill. The names stay legal
 // elsewhere: the legacy catalogue, history documents and session fixtures keep
 // them on purpose, and some live on as another thing's name, such as the
-// `local-instructions.md` reference of harness-audit. Add a name here when a
+// `local-instructions.md` reference of audit-harness. Add a name here when a
 // skill is retired.
 var retiredSkills = []string{
 	"flow-research", "flow-report", "flow-figma-design", "hive-ui-criteria",
 	"flow-status", "security-advisory", "flow-walkthrough", "starlight-docs-site",
 	"local-instructions", "engram-init-workspace", "workspace-conventions", "docs-cleanup",
-	"flow-security", "workspace-archive",
+	"flow-security", "workspace-archive", "comment-audit", "test-audit", "harness-audit",
+}
+
+// upstreamMentions name a third-party skill that shares a retired name: the
+// attribution keeps the upstream's own name and URL, so its exact text is
+// masked before the retired forms are matched.
+var upstreamMentions = []string{
+	"the `test-audit` skill of [openclaw/openclaw](https://github.com/openclaw/openclaw/tree/main/.agents/skills/test-audit)",
 }
 
 // retiredSkillFiles are the files this test reads: what an agent loads and
@@ -71,6 +78,9 @@ func retiredNameProblems(files map[string]string) []string {
 	var problems []string
 	lineOf := func(text string, offset int) int { return strings.Count(text[:offset], "\n") + 1 }
 	for path, text := range files {
+		for _, mention := range upstreamMentions {
+			text = strings.ReplaceAll(text, mention, strings.Repeat(" ", len(mention)))
+		}
 		for _, name := range retiredSkills {
 			for _, m := range skillNameForms[name].FindAllStringIndex(text, -1) {
 				problems = append(problems, fmt.Sprintf("%s:%d: names the retired skill %s", path, lineOf(text, m[0]), name))
@@ -154,6 +164,8 @@ func TestRetiredSkillFormsAndLegalNames(t *testing.T) {
 		"read " + "hive-" + "principle-index before writing",
 		"content/skills/" + "hive-" + "principle-boundary-discipline/SKILL.md",
 		"the leaf is `hive-core/" + "references/questions.md`",
+		"run `harness-audit` on the repository",
+		"see https://github.com/openclaw/openclaw/tree/main/.agents/skills/test-audit",
 	} {
 		if len(retiredNameProblems(map[string]string{"x.md": text})) == 0 {
 			t.Errorf("%q is not reported", text)
@@ -170,6 +182,7 @@ func TestRetiredSkillFormsAndLegalNames(t *testing.T) {
 		"content/skills/flow-report-assets/x",
 		"the use-flow-status skill is another one",
 		"https://example.com/flow-report",
+		"> Adapted from the `test-audit` skill of [openclaw/openclaw](https://github.com/openclaw/openclaw/tree/main/.agents/skills/test-audit) (MIT).",
 	} {
 		if problems := retiredNameProblems(map[string]string{"x.md": text}); len(problems) != 0 {
 			t.Errorf("%q is reported: %v", text, problems)

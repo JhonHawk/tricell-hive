@@ -1,6 +1,6 @@
 # Define and deploy the user's personal rules
 
-Read from [harness-audit](../SKILL.md) when the user asks to define, change, sync, check or remove their own rules for every host, such as how they want work placed or reviewed in any project. This mode replaces the audit procedure.
+Read from [audit-harness](../SKILL.md) when the user asks to define, change, sync, check or remove their own rules for every host, such as how they want work placed or reviewed in any project. This mode replaces the audit procedure.
 
 Personal rules are the user's own instructions for every project on this machine. They live in one source, `rules.md` in the Hive configuration folder (`$XDG_CONFIG_HOME/hive/` when that variable is an absolute path, `~/.config/hive/` otherwise), and [personal_rules.py](../scripts/personal_rules.py) copies them to each host where Hive is installed at user scope:
 
@@ -14,13 +14,13 @@ Write or sync personal rules only in this mode, when the user asks for it, after
 
 ## Steps
 
-1. **Read.** Read `rules.md` when it exists, and run `python3 -I <harness-audit-dir>/scripts/personal_rules.py check` to see which copies are missing, differ from it, are out of position, or sit in a host that no longer has Hive.
+1. **Read.** Read `rules.md` when it exists, and run `python3 -I <audit-harness-dir>/scripts/personal_rules.py check` to see which copies are missing, differ from it, are out of position, or sit in a host that no longer has Hive.
 2. **Define.** Ask what the rule must make an agent do, when, and what it must not do; one open question per message. Write the rule as an instruction with its condition and an observable test, in English, without a secret value. Keep the whole file at or under 8,000 bytes: it enters every session on every host.
 3. **Approve.** Show the full new text and, when `rules.md` exists, its diff. Write `rules.md` only after the user approves that text; a correction is not approval, so show the corrected text again.
-4. **Deploy.** Run `python3 -I <harness-audit-dir>/scripts/personal_rules.py deploy`; it refuses, naming the cause and writing nothing, an oversized or secret-looking source, a symbolic-link target and a `personal-rules` rule file it did not write: report a refused target to the user instead of moving or deleting it. When it names a file that changed since it was read, run it again.
-5. **Check.** Run `python3 -I <harness-audit-dir>/scripts/personal_rules.py check` and report each host with its result. Exit 0 means every copy matches `rules.md`.
+4. **Deploy.** Run `python3 -I <audit-harness-dir>/scripts/personal_rules.py deploy`; it refuses, naming the cause and writing nothing, an oversized or secret-looking source, a symbolic-link target and a `personal-rules` rule file it did not write: report a refused target to the user instead of moving or deleting it. When it names a file that changed since it was read, run it again.
+5. **Check.** Run `python3 -I <audit-harness-dir>/scripts/personal_rules.py check` and report each host with its result. Exit 0 means every copy matches `rules.md`.
 
-To remove the rules, run `python3 -I <harness-audit-dir>/scripts/personal_rules.py remove` after the user confirms; it deletes each section and both rule files and leaves `rules.md` and Hive's blocks in place.
+To remove the rules, run `python3 -I <audit-harness-dir>/scripts/personal_rules.py remove` after the user confirms; it deletes each section and both rule files and leaves `rules.md` and Hive's blocks in place.
 
 ## Limits
 

@@ -200,7 +200,7 @@ def check_project_local(repo):
                 blocking.append(f"HIVE.local.md: {total_entries} entries (> 50) with unpruned STALE entries")
             else:
                 warnings.append(
-                    f"HIVE.local.md: {total_entries} entries (> 50 with no STALE entries); curate with harness-audit"
+                    f"HIVE.local.md: {total_entries} entries (> 50 with no STALE entries); curate with audit-harness"
                 )
 
     return {"ok": len(blocking) == 0, "blocking": blocking, "warnings": warnings}

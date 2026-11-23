@@ -1,6 +1,6 @@
 # Migrate a project's layout
 
-Read at [project-layout](../SKILL.md) before step 3 when the request moves a project between layouts, when `Specs` or the workspace's knowledge hub is missing or unresolved, when a repository keeps its documentation outside `_support/docs`, and from harness-audit's onboarding for HA-PL-01. It sets the checks of the `## Hive` settings and the change-record layout, the questions a migration asks, and its manifest entries, which join project-layout's manifest; nothing moves before the user's answer to it. Edits to the `## Hive` section itself follow harness-audit's [apply](../../harness-audit/references/apply.md).
+Read at [project-layout](../SKILL.md) before step 3 when the request moves a project between layouts, when `Specs` or the workspace's knowledge hub is missing or unresolved, when a repository keeps its documentation outside `_support/docs`, and from audit-harness's onboarding for HA-PL-01. It sets the checks of the `## Hive` settings and the change-record layout, the questions a migration asks, and its manifest entries, which join project-layout's manifest; nothing moves before the user's answer to it. Edits to the `## Hive` section itself follow audit-harness's [apply](../../audit-harness/references/apply.md).
 
 ## Choose the layout
 

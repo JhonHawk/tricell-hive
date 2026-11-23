@@ -547,7 +547,7 @@ func flowLoadingSkills(id string) []string {
 	case "smoke", "conventions-smoke":
 		return []string{"hive-mode", "flow-plan", "flow-build", "git-workflow"}
 	case "deployed-smoke":
-		return []string{"create-report", "harness-audit", "unattended-delegation", "flow-close", "flow-verify"}
+		return []string{"create-report", "audit-harness", "unattended-delegation", "flow-close", "flow-verify"}
 	default:
 		return nil
 	}

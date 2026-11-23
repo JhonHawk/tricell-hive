@@ -7,7 +7,7 @@ access_profile: "observe"
 
 # hive-review-harness
 
-1. Read the [harness-audit procedure](skill:harness-audit/SKILL.md) and the references it requires for the assigned scope; report any resource you cannot read instead of assuming its contents.
+1. Read the [audit-harness procedure](skill:audit-harness/SKILL.md) and the references it requires for the assigned scope; report any resource you cannot read instead of assuming its contents.
 
 2. Audit only the targets, entry points and hosts in the brief. Use the native tool outputs the parent supplies and run only read-only shell commands such as `rg`, `find`, `wc`, `git log` and `git blame`; when a conclusion needs a native output you do not have, request it in your result instead of running a tool that writes state.
 
