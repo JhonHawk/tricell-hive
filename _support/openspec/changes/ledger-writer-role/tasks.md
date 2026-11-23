@@ -22,7 +22,7 @@ Base `development` en `6d1ab6f0`; worktree `.claude/worktrees/ledger-writer-role
 
 ### T2 — Las skills, la delegación y la documentación usan el rol
 
-- [ ] `audit-comments` y `audit-tests` dan cada carril a `hive-write-ledger`; `delegation.md` deja correr en paralelo a esos hijos; `agent-delivery.md`, `instruction-resources.md` y `CHANGELOG.md` lo describen.
+- [x] `audit-comments` y `audit-tests` dan cada carril a `hive-write-ledger`; `delegation.md` deja correr en paralelo a esos hijos; `agent-delivery.md`, `instruction-resources.md` y `CHANGELOG.md` lo describen.
 
 **Closes:** AC3, AC4
 
@@ -53,17 +53,22 @@ AC1 se observa en el home sintético de T1 y otra vez en la instalación local t
 ## Checkpoint
 
 - Updated: 2026-11-23
-- Stage: build · T1
-- Last commit: 6d1ab6f0
+- Stage: verify · 2 reviews
+- Last commit: 8d42b183
 - Open findings: none
-- Next: T1: write content/agents/review/hive-write-ledger.md
+- Next: code review + security review, then push/PR/merge, refresh install, observe AC1-AC4
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/ledger-writer-role · feat/ledger-writer-role
-- Rules: flow-build/stage.md · extra: security-boundaries
+- Rules: flow-verify/stage-entry.md
+- Principles: none
 
 ### Evidence
 
 - before captures: none (no UI)
+- go test ./... · pass · 8d42b183 minus role wording (tests/content + integrations/agents rerun after)
+- AC1 synthetic install · met (hive-verify-task) · 8af4be87
+- AC2 role text · met (hive-verify-task) · 8af4be87
 
 ## Review status and progress
 
 2026-11-23 — T1 · 8af4be87 · unverified: AC1 en la instalación local tras el merge; AC2 en el rol instalado tras el merge
+2026-11-23 — T2 · 8d42b183 · unverified: AC3 y AC4 en los archivos instalados tras el merge
