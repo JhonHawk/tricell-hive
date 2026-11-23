@@ -18,7 +18,7 @@ When the project guidance assigns a check to each path a change touches, that as
 
 ### Requirement: A second review runs only for fixes that change code or a contract
 
-After the round of fixes, a second code review SHALL run only when a hunk of the fixes' diff lies outside a `.md` or test file and changes more than comment lines, or when the fixes change a contract. A fix whose hunks are all of those kinds SHALL NOT start a review and SHALL carry an `Unreviewed: <reason>` line in its commit message. The artifact of an agent code review SHALL exclude the files `git diff -M --name-status` reports as `R100`, and its brief SHALL name them in one line; a native review mechanism that accepts paths SHALL get only the edited ones.
+After the round of fixes, a second code review SHALL run only when a hunk of the fixes' diff lies outside a `.md` or test file and changes more than comment lines, or when the fixes change a contract. A fix whose every hunk lies in a `.md` or test file or changes only comment lines, and that changes no contract, SHALL NOT start a review and SHALL carry an `Unreviewed: <reason>` line in its commit message. The artifact of an agent code review SHALL exclude the files `git diff -M --name-status` reports as `R100`, and its brief SHALL name them in one line; a native review mechanism that accepts paths SHALL get every changed path except those, added files and files renamed with changes included.
 
 #### Scenario: A wording fix
 
