@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build · plan revisado (dos revisores, una relectura) |
+| Estado | Completado · PR #607, merge 6f7fe6f3 |
 | Tracker | ninguno (hallazgos de una investigación en la sesión 1f049e3f) |
 | Git | tricell-hive · base `development` @ `6d1ab6f0` · rama propuesta `fix/session-findings` |
 | Playbook | ninguno (cruza guía, herramientas de auditoría, tests y una regla personal) |

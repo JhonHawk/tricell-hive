@@ -150,7 +150,7 @@ El check del texto, que esta carpeta llama «check de texto», es: `go test -cou
 
 ### T9 — Watch items y revisión de H4/H5
 
-- [ ] Engram tiene los watch items de H8/H9 y el cierre registra la revisión de H4/H5
+- [x] Engram tiene los watch items de H8/H9 y el cierre registra la revisión de H4/H5
 
 **Closes:** AC12
 
@@ -209,3 +209,4 @@ El PR lista los lugares revisados por cada regla cambiada y el tamaño de `conte
 2026-11-23 — T3 · 3caa7191 · unverified: AC16 seen in the installed leaf only after the local refresh
 2026-11-23 — T5 · 8af977ab · unverified: AC19, AC20 seen in the installed leaf only after the local refresh
 2026-11-23 — T6 · a346b972 · unverified: AC9 seen in the installed leaf only after the local refresh
+2026-11-23 — T9 · uncommitted · unverified: none (box ticked at the hygiene batch: Engram work/session-findings-fixes lists the four watch items and the H4/H5 recurrence check)

@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | In build · verify |
+| Estado | Completado · PR #609, merge b0f1955f |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` (`f550f3e6`) · rama propuesta `feat/comment-rule-restatement` |
 | Playbook | feature |

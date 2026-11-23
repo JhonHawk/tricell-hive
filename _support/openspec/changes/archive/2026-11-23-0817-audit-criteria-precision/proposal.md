@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | In build |
+| Estado | Completado · PR #608, merge f550f3e6 |
 | Tracker | ninguno (hallazgos H10, H11 y H12 del cierre de session-findings-fixes) |
 | Git | tricell-hive · base `development` @ `6f7fe6f3` · rama `fix/audit-criteria-precision` |
 | Playbook | bugfix |

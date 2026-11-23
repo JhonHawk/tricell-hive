@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | Completado · PR #596, merge ec51a107 |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` (`32bef8c8`, avanzada desde `8aa361cb` al integrarse `core-cleanup-batches`) · worktree `.claude/worktrees/comment-audit` · rama `feat/comment-audit` |
 | Playbook | feature |

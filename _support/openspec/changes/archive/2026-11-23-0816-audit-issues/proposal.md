@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | Completado · PR #603, merge 6d1ab6f0 |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` (`48824e10`) · worktree `.claude/worktrees/audit-issues` · rama `feat/audit-issues` |
 | Playbook | feature |

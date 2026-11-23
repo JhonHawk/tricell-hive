@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | Completado · PR #606, merge 1acca323 |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` (`0aad427f`) · worktree `.claude/worktrees/vendored-exclusion` · rama `feat/vendored-exclusion` |
 | Playbook | feature |

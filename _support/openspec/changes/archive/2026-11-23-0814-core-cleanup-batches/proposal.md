@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | In build · integrando a `development` por PR (2026-11-22) |
+| Estado | Completado · PR #595, merge 32bef8c8 |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` (`8aa361cb`) · `hold`: en el sitio o en un worktree, según pregunte el build; rama `refactor/core-cleanup-batches` solo si luego se entrega |
 | Playbook | refactor |
