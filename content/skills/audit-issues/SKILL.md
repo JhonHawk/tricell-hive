@@ -18,7 +18,7 @@ Check each open ticket against the code as it is now, propose closing the ones t
 
 ## Verdicts
 
-2. **Read each ticket of the pass** whole, with its comments and each document it links as far as the ticket depends on it, and the code it names at the current commit of the base branch, never the commit it was filed against. Decide whether children do these reads as [delegation](../hive-core/delegation/delegation.md) «When a child does the work» sets. When they do, give each `hive-research` child one lane of at most 15 tickets, briefed as [child brief](../hive-core/delegation/child-brief.md) sets, with [checks](references/checks.md) as its criterion and a ledger file in the host's temporary location as its output: one row per ticket as `identifier · verdict · evidence · group key`, plus each candidate duplicate it found. A child writes nothing to the tracker. Check each returned row's evidence before using it, as [review evidence](../hive-core/review/review-evidence.md) sets for a finding: a row whose evidence does not hold gets its ticket read again here, or `not confirmed`.
+2. **Read each ticket of the pass** whole, with its comments and each document it links as far as the ticket depends on it, and the code it names at the base branch's remote commit, fetched before the first read and named in the set's header, not the commit the ticket was filed against, since reports go stale. Decide whether children do these reads as [delegation](../hive-core/delegation/delegation.md) «When a child does the work» sets. When they do, give each `hive-research` child at most 15 tickets of the pass, splitting a larger lane across children, briefed as [child brief](../hive-core/delegation/child-brief.md) sets, with [checks](references/checks.md) as its criterion. The child returns its rows in its final reply, since that role writes no file: one row per ticket as `identifier · verdict · evidence · group key`, plus each candidate duplicate it found. A child writes nothing to the tracker. Check each returned row's evidence before using it, as [review evidence](../hive-core/review/review-evidence.md) sets for a finding: a row whose evidence does not hold gets its ticket read again here, or `not confirmed`.
 3. **Give each ticket a verdict** with checks 1 to 8 of [checks](references/checks.md), each with the evidence that check requires, then apply its «Exclusions» and «Authorship». Reproduce a defect only when its verdict would close a Bug, as check 2 sets.
 4. **Group** the `valid` tickets with checks 9 to 14; the other verdicts take no group, as the verdict table of [checks](references/checks.md) sets: each group names its key, its level (root cause, domain or module), its parent and the order of its members. Find an existing parent first (check 12); draft a new parent as create-issue steps 2 and 4 to 6 set, with the group's shared outcome as its outcome.
 5. **Read the child auto-close.** For each parent the set would close or that a root-cause group would close later, read whether closing it closes its open children in this tracker, as [tracker writes](references/tracker-writes.md) «Child auto-close» sets. It is `on`, `off`, or `unknown` with the place where it is configured.
@@ -28,7 +28,7 @@ Check each open ticket against the code as it is now, propose closing the ones t
 6. **Show the set and ask one approval.** Show the whole set in the message before any write, in this form, in the session language:
 
    ```
-   Pass <lane> · <n> tickets read · <n> to close · <n> groups · <n> unwritten
+   Pass <lane> · <base>@<commit> · <n> tickets read · <n> to close · <n> groups · <n> unwritten
 
    <Group title> · <level>: <key> · parent <link | new: title> · child auto-close <on | off | unknown: where>
      <ID>  <verdict>  <evidence>  → <write>
@@ -41,7 +41,7 @@ Check each open ticket against the code as it is now, propose closing the ones t
      <ID>  <reason: in progress | open branch or pull request | not confirmed | not ready>  <what it lacks>
    ```
 
-   Each `<write>` names the exact write the ticket gets: `move under <parent>`, `close as <duplicate of ID | not planned | completed> + evidence comment`, `comment for its author`, `related to <ID>`, `blocked by <ID>`, or `none`. A new parent is shown with its title, type, outcome and what is out of its scope.
+   Each `<write>` names the exact write the ticket gets: `move under <parent>`, `close as <duplicate of ID | not planned | completed> + evidence comment`, `comment for its author`, `comment with <pull request link>`, `related to <ID>`, `blocked by <ID>`, or `none`. A new parent is shown with its title, type, outcome and what is out of its scope.
 
    Then ask one decision, as [questions](../hive-core/messages/questions.md) sets, whose options are to apply the set or to correct it, such as taking a ticket out of a group, changing a verdict or splitting a group. A correction changes the set, which is shown again whole. This approval names each write on each ticket and is the instruction on named targets that the global guidance's critical-effect rule asks for: closing or moving a ticket the task did not create changes shared data. No write happens before it; an earlier answer, also one asking for the audit, does not cover it.
 
@@ -49,7 +49,7 @@ Check each open ticket against the code as it is now, propose closing the ones t
 
 ## Writes
 
-7. **Write the approved set** one ticket at a time, never in parallel, in this order: the new parents; each move under a parent; the relations (related, blocked by); each close, its evidence comment first; each comment for another author. Make each write as [tracker writes](references/tracker-writes.md) sets, add its link to the list of what was written in the message, and read the ticket back, reporting a difference instead of writing again. When a write fails, stop as [breakdown](../create-issue/references/breakdown.md) «Writes» steps 4 and 5 set.
+7. **Write the approved set** one ticket at a time, never in parallel, in this order: the new parents; each move under a parent; the relations (related, blocked by); each close, its evidence comment first; each comment for another author and each `covered by` comment. Make each write as [tracker writes](references/tracker-writes.md) sets, add its link to the list of what was written in the message, and read the ticket back, reporting a difference instead of writing again. When a write fails, stop as [breakdown](../create-issue/references/breakdown.md) «Writes» steps 4 and 5 set.
 
 ## Report
 

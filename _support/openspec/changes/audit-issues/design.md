@@ -43,11 +43,12 @@ Por ticket. Cada veredicto lleva su evidencia: archivo y línea, commit o PR, o 
 2. **Falso positivo.** El síntoma no se sostiene.
    - Se propone cerrar solo si el código muestra que el fallo no puede ocurrir (D10).
    - Un Bug cuya reproducción falla queda «no confirmado», porque las herramientas actuales reproducen entre 37 y 44 % de los casos ([Otter](https://arxiv.org/html/2502.05368v1), [AssertFlip](https://arxiv.org/html/2507.17542v2)).
-   - Se reproduce solo cuando el veredicto cerraría un Bug (D5).
+   - Se reproduce solo cuando el veredicto cerraría un Bug (D5), y solo en un entorno local o desechable; si los pasos necesitan datos compartidos, el Bug queda «no confirmado».
 3. **Ya corregido.** Un PR integrado o un commit cambió la ruta que falla, o una prueba la cubre. Se cita.
 4. **Duplicado.** Se busca un ticket con el mismo resultado, abierto o cerrado, en todo el tracker y no solo en la pasada, como hace `create-issue` en su paso 2.
    - Solo es duplicado con evidencia firme: el mismo texto de error, los mismos pasos o la misma causa demostrada en el código (D8).
    - Sin esa evidencia, la relación es «related».
+   - El canónico está abierto: si el ticket que coincide está cerrado, el abierto queda abierto y relacionado con él, como `create-issue` paso 2 relaciona un defecto que volvió.
    - Motivo: los estudios miden si el duplicado aparece entre los primeros resultados, no qué tan correcta es la fusión, y sobreestiman el rendimiento real entre 17 y 42 % ([Rakha et al.](https://sail.cs.queensu.ca/data/pdfs/TSE2017_RevisitingThePerformanceEvaluationOfAutomatedApproachesForTheRetrievalOfDuplicateIssueReports.pdf)).
    - La búsqueda de texto no rinde peor que los modelos neuronales ([Zhang et al.](https://ar5iv.labs.arxiv.org/html/2212.00548)), así que no hace falta un índice (D11).
 5. **Cubierto por un cambio en curso.** Una carpeta de cambio abierta o un PR abierto ya cubre el ticket. El ticket no se cierra: se relaciona con el cambio y queda abierto hasta que el cambio se integre, que es cuando `hive-core/tracker/ticket-state.md` lo termina.
@@ -66,7 +67,7 @@ Por grupo:
     - Un grupo por causa raíz es un padre con hijos que un solo cambio cierra: un repositorio, un PR y como máximo 7 criterios (`create-issue` paso 3). Es una excepción a `breakdown.md` «The set», donde cada hijo se integra solo, y `checks.md` la dice ahí.
     - Si no cabe, el grupo pasa a ser por dominio o por módulo, con hijos que se entregan por separado.
 11. **Orden.** Las relaciones blocked-by dentro del grupo.
-12. **Padre existente.** Si un ticket o un paraguas ya cubre el grupo, se reutiliza. Un padre nuevo sigue los pasos 2 y 4 a 6 de `create-issue`.
+12. **Padre existente.** Si un ticket o un paraguas ya cubre el grupo, se reutiliza, salvo que su propio veredicto lo cierre. Un padre nuevo sigue los pasos 2 y 4 a 6 de `create-issue`.
 13. **Prioridad entre grupos.** El orden de `hive-mode/playbooks/ticket-status.md` «Report» punto 4.
 14. **Sueltos.** Un ticket que no comparte causa ni área con otro queda solo.
 

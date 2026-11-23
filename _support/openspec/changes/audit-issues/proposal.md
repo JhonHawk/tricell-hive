@@ -141,3 +141,5 @@ None: the tasks take no effect on an external system.
 - N7: «Evidence» es la del checkpoint.
 
 No cambió ningún criterio ni el delta, así que no hace falta otra ronda.
+
+2026-11-22 — `/code-review` (high) sobre `0dbc206d` dio 4 hallazgos importantes, 1 previo y 4 menores; se corrigieron todos en una ronda. El canónico de un duplicado está abierto. Un ticket que el conjunto cierra no se reutiliza como padre. Los hijos reciben hasta 15 tickets y devuelven sus filas en la respuesta. La reproducción corre solo en un entorno local o desechable. La base se lee del remoto. El comentario de `covered by` tiene su lugar en la aprobación y en el orden de escrituras. El check 7 no agrega escrituras. `hive-mode` suma «triage» y «consolidate». Se quitaron dos absolutos. El patrón del ledger que un rol de solo lectura no puede escribir sigue en `audit-comments` y `audit-tests` (hallazgo previo, fuera de este cambio).

@@ -4,7 +4,7 @@ Base `development` en `48824e10`; worktree `.claude/worktrees/audit-issues`, ram
 
 ### T1 — La skill `audit-issues` con sus dos referencias
 
-- [ ] `content/skills/audit-issues/` existe con `SKILL.md`, `assets/hive-managed.json`, `references/checks.md` y `references/tracker-writes.md`, y cumple `design.md` y las decisiones de `proposal.md`.
+- [x] `content/skills/audit-issues/` existe con `SKILL.md`, `assets/hive-managed.json`, `references/checks.md` y `references/tracker-writes.md`, y cumple `design.md` y las decisiones de `proposal.md`.
 
 **Closes:** AC4, AC5, AC6
 
@@ -28,7 +28,7 @@ Las excepciones (autoría de D6, grupo por causa raíz) se escriben en `checks.m
 
 ### T2 — Enrutamiento hacia `audit-issues`
 
-- [ ] `hive-mode/SKILL.md` envía a `audit-issues` un pedido de auditar, agrupar, deduplicar o limpiar los tickets abiertos, y la descripción de `create-issue` lo excluye.
+- [x] `hive-mode/SKILL.md` envía a `audit-issues` un pedido de auditar, agrupar, deduplicar o limpiar los tickets abiertos, y la descripción de `create-issue` lo excluye.
 
 **Closes:** AC3
 
@@ -49,7 +49,7 @@ Las excepciones (autoría de D6, grupo por causa raíz) se escriben en `checks.m
 
 ### T3 — Catálogo, sitio y documentación
 
-- [ ] El catálogo, las páginas del sitio que describen esas rutas, `instruction-resources.md` y `CHANGELOG.md` describen `audit-issues`.
+- [x] El catálogo, las páginas del sitio que describen esas rutas, `instruction-resources.md` y `CHANGELOG.md` describen `audit-issues`.
 
 **Closes:** AC1
 
@@ -84,15 +84,27 @@ AC1 se observa tras el merge, al refrescar la instalación local (marcador de ma
 ## Checkpoint
 
 - Updated: 2026-11-22
-- Stage: build · T1
-- Last commit: 48824e10
+- Stage: verify · 2 review running
+- Last commit: 0dbc206d
 - Open findings: none
-- Next: T1: write content/skills/audit-issues
+- Next: apply /code-review findings, then push, PR, merge, refresh install, observe AC1/AC3-AC6
 - Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/audit-issues · feat/audit-issues
-- Rules: flow-build/stage.md
+- Rules: flow-verify/stage-entry.md
+- Principles: none
 
 ### Evidence
 
 - before captures: none (no UI)
+- go test ./... · pass 3m02s · 0dbc206d
+- npm --prefix site run build · Complete!, 20 pages · 0dbc206d
+- go test ./tests/content/... · pass · f96590e4
+- CI master-source-branch.yml: only guards PRs into master; not applicable to development
+- AC5 candidate: SKILL.md:12 count+pass before code; :28-44 set template with verdict, evidence, level, auto-close; :46 one approval, correct/take out; :48 unattended no writes; :52 one at a time, stop on failure; checks.md:48 Authorship comment only
+- AC6 candidate: checks.md:13-25 checks 1-8, :61-68 checks 9-14; :19 firm duplicate evidence; :15-16 not confirmed; :41 Exclusions; :63 root-cause exception to breakdown «The set»
+- AC4 candidate: tracker-writes.md:27-29 close table (gh --duplicate-of, --reason not planned/completed, duplicateOf, canceled, Jira link type); :41 related per tracker; :54-55 child auto-close unknown; :61 read back; :31,:48 link Move and Comment and attach
 
 ## Review status and progress
+
+2026-11-22 — T1 · 30e2aa79 · unverified: AC4, AC5 y AC6 se observan en la instalación tras el merge
+2026-11-22 — T2 · f96590e4 · unverified: AC3 se observa en la instalación tras el merge
+2026-11-22 — T3 · 0dbc206d · unverified: AC1 se observa en la instalación tras el merge
