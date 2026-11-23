@@ -4,7 +4,7 @@ Base `development` en `6d1ab6f0`; worktree `.claude/worktrees/ledger-writer-role
 
 ### T1 — El rol `hive-write-ledger`
 
-- [ ] `content/agents/review/hive-write-ledger.md` existe con la descripción, los pasos de `design.md` y el bloque de límites de `implement`, y se renderiza con escritura en una instalación sintética.
+- [x] `content/agents/review/hive-write-ledger.md` existe con la descripción, los pasos de `design.md` y el bloque de límites de `implement`, y se renderiza con escritura en una instalación sintética.
 
 **Closes:** AC1, AC2
 
@@ -65,3 +65,5 @@ AC1 se observa en el home sintético de T1 y otra vez en la instalación local t
 - before captures: none (no UI)
 
 ## Review status and progress
+
+2026-11-23 — T1 · 8af4be87 · unverified: AC1 en la instalación local tras el merge; AC2 en el rol instalado tras el merge

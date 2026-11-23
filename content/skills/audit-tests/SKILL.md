@@ -1,6 +1,6 @@
 ---
 name: audit-tests
-description: Audit one area's tests and remove duplicate, implementation-coupled or vacuous proof without leaving any contract without its only proof, through a baseline, a read-only ledger per test, a layer plan, keepers before deletions, an independent preservation review and targeted mutations. Use when the user asks to audit, prune, slim down or deduplicate the tests of an area, module or subsystem; not for writing the tests of a change, which follows the tests leaf of the core guidance, `hive-core/build/tests.md`.
+description: Audit one area's tests and remove duplicate, implementation-coupled or vacuous proof without leaving any contract without its only proof, through a baseline, a ledger per test written without editing the tests, a layer plan, keepers before deletions, an independent preservation review and targeted mutations. Use when the user asks to audit, prune, slim down or deduplicate the tests of an area, module or subsystem; not for writing the tests of a change, which follows the tests leaf of the core guidance, `hive-core/build/tests.md`.
 ---
 
 # Test audit
@@ -23,7 +23,7 @@ Prune an area's tests to one owner per contract, proven by mutation, never by a 
 
 ## Ledger
 
-4. **Mark every test.** When the whole area has at most 10 test declarations, mark them in the main thread. Otherwise give each lane to one `hive-research` child, briefed as [delegation](../hive-core/delegation/delegation.md) sets, with this section, the [tests](../hive-core/build/tests.md) leaf, and a ledger file in the host's temporary location as its output destination. The child reads every test in full, including parameter tables and shared fixtures, and its production owner, callers, history and CI routing; writes one row per test declaration to that file as `mark · file:line · contract · evidence`, a parameterized test being one row unless its cases need different marks; and returns a short reply with its counts per mark and the lists below. It edits nothing else and runs no test suite that shares a local database or service with other work. The marks:
+4. **Mark every test.** When the whole area has at most 10 test declarations, mark them in the main thread. Otherwise give each lane to one `hive-write-ledger` child, briefed as [delegation](../hive-core/delegation/delegation.md) sets, with this section, the [tests](../hive-core/build/tests.md) leaf, and a ledger file in the host's temporary location as its output destination. The child reads every test in full, including parameter tables and shared fixtures, and its production owner, callers, history and CI routing; writes one row per test declaration to that file as `mark · file:line · contract · evidence`, a parameterized test being one row unless its cases need different marks; and returns a short reply with its counts per mark and the lists below. It edits nothing else and runs no test suite that shares a local database or service with other work. The marks:
    - `R` retain: name the contract and the realistic change that makes the test fail;
    - `F` repair: the contract stays but the assertion needs a fix, such as a negative case that passes on an unrelated guard; say what to repair;
    - `C` consolidate: name the keeper that absorbs it and cite the keeper's `file:line` that already asserts it, or the exact assertion to carry into it;
