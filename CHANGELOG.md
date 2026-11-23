@@ -12,6 +12,13 @@ raise the minor or the patch version.
 
 ### Added
 
+- The `hive-write-ledger` role writes the ledger of each lane that
+  `audit-comments` and `audit-tests` delegate. Those skills briefed
+  `hive-research`, which renders read-only on most hosts and could not write
+  the ledger; it keeps that access. A child whose only write is its own file
+  in the host's temporary location now runs side by side with the others, as
+  a read-only child does.
+
 - The `audit-issues` skill audits a tracker's open tickets against the current
   code. It counts them and suggests a pass, gives each ticket a verdict with
   its evidence, proposes closing the false positives, duplicates and tickets
