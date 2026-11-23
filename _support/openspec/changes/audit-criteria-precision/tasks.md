@@ -4,7 +4,7 @@ Base `development` @ `6f7fe6f3`, rama `fix/audit-criteria-precision`. T1 va al h
 
 ### T1 — Criterios de auditoría según el requisito
 
-- [ ] Los seis casos de H10 y H11 deciden como el delta dice
+- [x] Los seis casos de H10 y H11 deciden como el delta dice
 
 **Closes:** AC1, AC2, AC3, AC4, AC5, AC6
 
@@ -22,7 +22,7 @@ Base `development` @ `6f7fe6f3`, rama `fix/audit-criteria-precision`. T1 va al h
 
 ### T2 — Comando del commit desplegado sin `null`
 
-- [ ] `AGENTS.md` usa `// empty` y dice qué hacer sin salida
+- [x] `AGENTS.md` usa `// empty` y dice qué hacer sin salida
 
 **Closes:** AC7
 
@@ -48,4 +48,20 @@ Base `development` @ `6f7fe6f3`, rama `fix/audit-criteria-precision`. T1 va al h
 
 ## Checkpoint
 
+- Updated: 2026-11-23
+- Stage: verify · push
+- Last commit: f7d46e14
+- Open findings: none
+- Next: PR, merge, close
+- Rules: flow-build/stage.md, flow-verify/stage-entry.md, flow-verify/stage-exit.md
+
+### Evidence
+
+- go test ./tests/pilot/ ok 65.4 s · f7d46e14
+- go test ./tests/content/... ok · f7d46e14
+- text check ok · 42f10614
+
 ## Review status and progress
+
+2026-11-23 — T2 · 42f10614 · unverified: none
+2026-11-23 — T1 · 8c562d61 · unverified: AC5 probe typed2 gives pass; real sessions not re-audited
