@@ -22,7 +22,9 @@ var (
 	// pipeline it belongs to.
 	statusUse   = regexp.MustCompile(`\$\?|\$\{\?\}`)
 	patchedFile = regexp.MustCompile(`(?m)^\*\*\* (?:Update|Add|Delete) File: (.+)$|^\*\*\* Move to: (.+)$`)
-	typedReview = regexp.MustCompile(`(?:^|[\s>])/(?:[a-z0-9-]+:)?code-review\b`)
+	// A text file under these folders is data a test reads, not documentation.
+	fixtureFolder = regexp.MustCompile(`(?:^|/)(?:testdata|tests/fixtures)/`)
+	typedReview   = regexp.MustCompile(`(?:^|[\s>])/(?:[a-z0-9-]+:)?code-review\b`)
 	// goValueFlags take their value as the next word.
 	goValueFlags  = map[string]bool{"-count": true, "-timeout": true, "-parallel": true, "-p": true, "-cpu": true, "-tags": true, "-ldflags": true, "-coverprofile": true, "-covermode": true, "-coverpkg": true, "-shuffle": true, "-vet": true, "-o": true, "-gcflags": true, "-mod": true}
 	goFilterFlags = map[string]bool{"-run": true, "-skip": true, "-bench": true, "-fuzz": true, "-list": true}
@@ -198,6 +200,8 @@ func pathKind(p, cwd string) string {
 		return ""
 	case strings.ContainsAny(p, "$`") || strings.HasPrefix(p, "~") || interpHole.MatchString(p):
 		return "unknown"
+	case fixtureFolder.MatchString(filepath.ToSlash(p)):
+		return "other"
 	case textExtensions[strings.ToLower(filepath.Ext(p))]:
 		return "text"
 	}
@@ -242,20 +246,21 @@ func shellItems(command, cwd string) ([]rerunItem, string) {
 		scripted = append(scripted, rerunItem{kind: "unknown"})
 	}
 	// A script's writes cannot be placed among the segments, so a command that
-	// also runs the suite is unknown on both sides of the run.
+	// also runs the suite has them on both sides of the run: each counts by its
+	// kind, and one that is not known is unknown.
 	if len(scripted) > 0 {
 		hasRun := false
 		for _, it := range items {
 			hasRun = hasRun || it.kind == "run"
 		}
 		if hasRun {
-			items = append(append([]rerunItem{{kind: "unknown"}}, items...), rerunItem{kind: "unknown"})
+			items = append(append(append([]rerunItem{}, scripted...), items...), scripted...)
 		} else {
 			items = append(scripted, items...)
 		}
 	}
 	tail := lastStatement(body)
-	pipelined := hasPipeOrBackground(body)
+	pipelined := hasPipeOrBackground(body) || shellCPipe(body)
 	tailRuns := 0
 	for _, segment := range shellSegments(tail, 0) {
 		if _, ok := suiteRun(segment, cwd); ok {
@@ -274,7 +279,8 @@ func shellItems(command, cwd string) ([]rerunItem, string) {
 // echoMark returns what an echo or printf segment prints for a status, with
 // the status replaced by 0, or "" when the segment prints none.
 func echoMark(segment []string) string {
-	if name := filepath.Base(segment[0]); name != "echo" && name != "printf" {
+	name := filepath.Base(segment[0])
+	if name != "echo" && name != "printf" {
 		return ""
 	}
 	var words []string
@@ -288,7 +294,55 @@ func echoMark(segment []string) string {
 	if !statusUse.MatchString(text) {
 		return ""
 	}
+	if name == "printf" {
+		return printfLine(words)
+	}
 	return strings.TrimSpace(statusUse.ReplaceAllString(text, "0"))
+}
+
+// printfLine is the single line a printf prints, with each $? replaced by 0
+// and the arguments put into the format. It is "" when the output is not one
+// line.
+func printfLine(words []string) string {
+	if len(words) == 0 {
+		return ""
+	}
+	format, args := statusUse.ReplaceAllString(words[0], "0"), words[1:]
+	var out strings.Builder
+	next := 0
+	for i := 0; i < len(format); i++ {
+		switch c := format[i]; {
+		case c == '\\' && i+1 < len(format):
+			i++
+			switch format[i] {
+			case 'n':
+				out.WriteByte('\n')
+			case 't':
+				out.WriteByte('\t')
+			default:
+				out.WriteByte(format[i])
+			}
+		case c == '%' && i+1 < len(format) && format[i+1] == '%':
+			out.WriteByte('%')
+			i++
+		case c == '%':
+			i++
+			for i < len(format) && !strings.ContainsRune("sdiuxXfgeEc", rune(format[i])) {
+				i++
+			}
+			if next < len(args) {
+				out.WriteString(statusUse.ReplaceAllString(args[next], "0"))
+			}
+			next++
+		default:
+			out.WriteByte(c)
+		}
+	}
+	line := strings.TrimRight(out.String(), "\n")
+	if strings.Contains(line, "\n") {
+		return ""
+	}
+	return strings.TrimSpace(line)
 }
 
 // statusMark returns what the command prints to show the status of the suite
@@ -441,7 +495,7 @@ func gitItems(words []string, cwd string) []rerunItem {
 				return []rerunItem{{kind: "boundary", branch: true}}
 			}
 		}
-		return []rerunItem{{kind: "other", branch: true}}
+		return []rerunItem{{kind: "other", branch: name == "switch" || !namesOnlyPaths(rest)}}
 	case "rebase", "merge", "pull", "cherry-pick", "am", "apply", "reset", "restore":
 		return []rerunItem{{kind: "other"}}
 	case "worktree":
@@ -461,6 +515,24 @@ func gitItems(words []string, cwd string) []rerunItem {
 		return []rerunItem{{kind: "unknown"}}
 	}
 	return nil
+}
+
+var pathLike = regexp.MustCompile(`^\.{1,2}(?:/|$)|[^/]\.[A-Za-z0-9]+$`)
+
+// namesOnlyPaths reports whether the arguments of a git checkout name only
+// paths: a "--", more than one operand, or one that looks like a file, so the
+// command restores files and does not change the branch.
+func namesOnlyPaths(args []string) bool {
+	var operands []string
+	for _, a := range args {
+		if a == "--" {
+			return true
+		}
+		if !strings.HasPrefix(a, "-") {
+			operands = append(operands, a)
+		}
+	}
+	return len(operands) > 1 || len(operands) == 1 && pathLike.MatchString(operands[0])
 }
 
 // suiteRun recognizes an unfiltered suite run and returns the working folder
@@ -566,6 +638,21 @@ func lastStatement(command string) string {
 	return command[cut:]
 }
 
+var shellCArgument = regexp.MustCompile(`\b(?:ba|z|da)?sh\s+-l?c\s+(?:'([^']*)'|"((?:[^"\\]|\\.)*)")`)
+
+// shellCPipe reports whether the argument of a "bash -c" or "sh -c" holds a
+// pipe or a background launch, which the quotes hide from the command's own
+// scan.
+func shellCPipe(command string) bool {
+	for _, m := range shellCArgument.FindAllStringSubmatch(command, -1) {
+		inner := m[1] + m[2]
+		if hasPipeOrBackground(inner) || shellCPipe(inner) {
+			return true
+		}
+	}
+	return false
+}
+
 // hasBackground reports whether a command sends something to the background
 // with an unquoted "&".
 func hasBackground(command string) bool {
@@ -652,18 +739,28 @@ func reviewRoundsPerCandidate(s auditSession) criterionAssessment {
 			failed = append(failed, evidence)
 		}
 	}
-	turn := -1
+	turn, carried := -1, false
 	for i, e := range events {
 		if s.Turn[i] != turn {
 			turn = s.Turn[i]
+			carried = false
 			if typedReview.MatchString(s.Prompts[turn]) {
 				add(round{e.Line, true}, "typed /code-review")
+				carried = true
 			}
 		}
 		switch {
 		case resets[i] || loadedFlow(e) == "flow-build" || loadedFlow(e) == "flow-plan":
 			rounds = nil
 		case reviewLaunch(e) && succeeded(events, i):
+			if carried {
+				// The first launch of the turn carries out the typed command.
+				carried = false
+				if e.Message != "" {
+					counted[e.Message] = true
+				}
+				continue
+			}
 			if e.Message != "" {
 				if counted[e.Message] {
 					continue
