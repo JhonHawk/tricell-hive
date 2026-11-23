@@ -14,7 +14,7 @@ What is the status of the project?
 What should I take next?
 ```
 
-To investigate one question or assess one ticket, use [Hive mode](/flows/hive-mode/) instead.
+To investigate one question or assess one ticket, use [Hive mode](/flows/hive-mode/) instead. To clean up the open tickets, closing the ones that no longer apply and grouping the related ones, ask for an audit of them, which the [audit-issues](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-issues/SKILL.md) skill runs.
 
 ## What it asks you
 

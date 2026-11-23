@@ -17,7 +17,7 @@ It starts on any request to do work, with no command to type, and when the next 
 - You pick a ticket to work on and want it assessed first.
 - You ask it to audit the codebase, or to find what to improve in it, as [Auditing a codebase](#auditing-a-codebase) describes.
 
-A single lookup that answers the question needs no investigation: the agent reports the answer with its source and any doubt. The project's status or backlog runs as Hive mode's [Status](/flows/status/) playbook, and whether a published security advisory affects your repositories as its advisory sweep ([Security review](/flows/security/) describes it).
+A single lookup that answers the question needs no investigation: the agent reports the answer with its source and any doubt. The project's status or backlog runs as Hive mode's [Status](/flows/status/) playbook, a request to audit, group or deduplicate the open tickets goes to the [audit-issues](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-issues/SKILL.md) skill, and whether a published security advisory affects your repositories as its advisory sweep ([Security review](/flows/security/) describes it).
 
 Example requests:
 
@@ -83,6 +83,7 @@ It ends at the findings, like any analysis. You can ask for tickets for the find
 ## Related flows
 
 - [Status](/flows/status/) reports the backlog; Hive mode takes the one ticket you pick from it.
+- The [audit-issues](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-issues/SKILL.md) skill audits the open tickets, closes the ones that no longer apply and groups the rest under parents, after you approve the whole set.
 - [Create design](/flows/create-design/) is the optional step it recommends before Plan for a new or recomposed screen.
 - [Build](/flows/build/) follows in the same turn when the how is settled, unless a new screen goes to Create design first; [Plan](/flows/plan/) follows when it has a decision for you.
 
