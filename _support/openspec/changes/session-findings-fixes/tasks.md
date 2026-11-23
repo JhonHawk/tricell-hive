@@ -178,11 +178,11 @@ El PR lista los lugares revisados por cada regla cambiada y el tamaño de `conte
 ## Checkpoint
 
 - Updated: 2026-11-23
-- Stage: verify · step 2 code review running
-- Last commit: a3b291ac
+- Stage: verify · step 6 push
+- Last commit: f6006820
 - Open findings: none
-- Next: judge /code-review findings, one round of fixes, then push, PR, merge (automatic)
-- Rules: flow-verify/stage-entry.md
+- Next: push, PR, merge (automatic), local refresh, flow-close
+- Rules: flow-verify/stage-entry.md, flow-verify/stage-exit.md
 
 ### Evidence
 
@@ -194,6 +194,10 @@ El PR lista los lugares revisados por cada regla cambiada y el tamaño de `conte
 - text check · exit 0, 95 s · 3caa7191 tree
 - go test ./tests/pilot/ · ok 62.9 s · c107eced
 - audit 7319321c review_rounds_per_candidate fail at 3346 · c107eced
+- text check after merging development · exit 0
+- python unittest 412 OK after merge
+- go test ./tests/pilot/ ok 65.7 s · 2099120c
+- go test ./... exit 0 on a346b972; reused: later changes are tests/pilot (rerun) and text (text check rerun)
 
 ## Review status and progress
 
