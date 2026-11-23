@@ -63,7 +63,7 @@ A rule leaf is a file of `hive-core`, a skill the model does not load on its own
 
 ### Git
 
-- Before a work item's first edit, when no delivery answers are in force for this session and repository: [delivery questions](skill:hive-core/git/delivery-ask.md).
+- Before a work item's first edit, when no delivery answers are in force for this session and repository, or when the delivery in force is `hold` and the working tree holds uncommitted changes of an earlier work item: [delivery questions](skill:hive-core/git/delivery-ask.md).
 - Before validation or push, and before a merge or a `ready` stop, with commits not this work item's: [foreign commits](skill:hive-core/git/foreign-commits.md).
 - Before the first `git add` or commit of a task, in any flow: [git commit](skill:hive-core/git/git-commit.md).
 - After a pull request's push, before its merge or a `ready` stop: [merge gate](skill:hive-core/git/merge-gate.md).

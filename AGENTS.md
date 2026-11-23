@@ -57,7 +57,7 @@ Sessions in this repository require the deployed Hive global guidance, whose sup
 
 - A question, research task, or recommendation does not authorize implementation or unrelated fixes. Keep incidental findings separate from the requested work.
 - Do not deploy or copy configuration into global tool directories, change global tool settings, commit, push, merge, or delete branches without the user's explicit instruction for that action. Research and recommendations are not that instruction; the delivery and review answers given in the session, or a `Delivery: direct-base` value in a repository's `## Hive` section, count as the user's explicit instruction for the effects the «Delivery» section of [the global guidance](content/guidance/global.md) assigns to them.
-- The maintainer's preferred code-review mechanism here is Claude Code's `/code-review`: it informs the Recommended option of the review question and authorizes nothing by itself.
+- The maintainer's preferred code-review mechanism here is Claude Code's `/code-review`: on Claude Code it is stated in one line instead of asking the review question, elsewhere it informs the Recommended option, and it authorizes nothing by itself.
 - Keep credentials out of tracked files, reports, and tool output; protect necessary local recovery copies and exclude them from Git.
 - Preserve user-owned authentication, preferences, native histories, third-party tools, backups, and Engram data. Keep `.engram/config.json` project identity unless the user explicitly asks to change it.
 - Do not add dependencies, a runtime, universal adapter, hook system, or build framework for configuration alone. Prefer the host's existing capability and document a verified limitation before introducing new machinery.
