@@ -334,7 +334,7 @@ func leafProblems(root string) []string {
 			if !strings.Contains(frontmatterBlock(text), "\npaths:") {
 				problems = append(problems, fmt.Sprintf("%s: frontmatter has no `paths`", name))
 			}
-			if problem := languageLeafProblem(name+"/SKILL.md", int64(len(data))); problem != "" {
+			if problem := languageLeafProblem("content/skills/"+name+"/SKILL.md", int64(len(data))); problem != "" {
 				problems = append(problems, problem)
 			}
 		} else if hidden != "true" {
@@ -443,7 +443,7 @@ func TestLeafSkillInvariantsCatchViolations(t *testing.T) {
 	writeFile(t, filepath.Join(core, principlesDomain, "p4.md"), "# P4\n\nRead when you ship.\n")
 	writeFile(t, filepath.Join(skills, legacyRulePrefix+"x", "keep"), "")
 	writeFile(t, filepath.Join(skills, legacyPrincipleSkillPrefix+"x", "keep"), "")
-	writeFile(t, filepath.Join(skills, languageLeafName, "SKILL.md"), leafDoc(languageLeafName, "disable-model-invocation: true\n"))
+	writeFile(t, filepath.Join(skills, languageLeafName, "SKILL.md"), leafDoc(languageLeafName, "disable-model-invocation: true\n")+strings.Repeat("z", languageLeafBudget))
 	writeFile(t, filepath.Join(skills, "hive-mode", "playbooks", "perf.md"), strings.Repeat("y", wholeReadLimit+1))
 	writeFile(t, filepath.Join(skills, "hive-mode", "playbooks", "refactor.md"), "Push "+playbookModePhrase+", then stop in `hold`.\n")
 	writeFile(t, filepath.Join(skills, "hive-mode", "playbooks", "extra.md"), "Not one of the playbooks.\n")
@@ -473,6 +473,7 @@ func TestLeafSkillInvariantsCatchViolations(t *testing.T) {
 		"principles/index.md lists p5, which does not exist",
 		"hive-typescript: must stay model-invocable",
 		"hive-typescript: frontmatter has no `paths`",
+		"content/skills/hive-typescript/SKILL.md: ",
 		"playbook perf.md: whole-read file is",
 		"playbook refactor.md names the delivery mode `hold` outside the phrase",
 		"hive-mode/playbooks holds extra.md",

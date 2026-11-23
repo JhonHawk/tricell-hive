@@ -79,14 +79,20 @@ func referenceRoots(skillsDir string) (roots, problems []string) {
 }
 
 // referenceSizeProblems returns one line per file under the reference folders
-// of skillsDir that is over wholeReadLimit, and one when none is found.
+// of skillsDir that is over wholeReadLimit, and one when none is found. A file
+// directly in a hive-core domain folder is a leaf, which leafProblems sizes,
+// so it is skipped here and an oversize leaf is reported once.
 func referenceSizeProblems(skillsDir string) []string {
 	roots, problems := referenceRoots(skillsDir)
+	coreDir := filepath.Join(skillsDir, coreSkillName)
 	found := 0
 	for _, root := range roots {
 		err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, err error) error {
 			if err != nil || entry.IsDir() {
 				return err
+			}
+			if filepath.Dir(path) == root && filepath.Dir(root) == coreDir {
+				return nil
 			}
 			found++
 			info, err := entry.Info()
@@ -123,6 +129,7 @@ func TestSkillReferenceSizeCatchesOversizeFiles(t *testing.T) {
 	big := strings.Repeat("x", wholeReadLimit+1)
 	writeFile(t, filepath.Join(skills, coreSkillName, "assets", "domains.json"), `{"domains": ["build", "principles"]}`)
 	writeFile(t, filepath.Join(skills, coreSkillName, "build", "checks.md"), "# Checks\n")
+	writeFile(t, filepath.Join(skills, coreSkillName, "build", "huge.md"), big)
 	writeFile(t, filepath.Join(skills, coreSkillName, "build", "checks", "own.md"), big)
 	writeFile(t, filepath.Join(skills, coreSkillName, "principles", "index.md"), "# P\n")
 	writeFile(t, filepath.Join(skills, coreSkillName, "unlisted", "x.md"), big)
@@ -135,6 +142,9 @@ func TestSkillReferenceSizeCatchesOversizeFiles(t *testing.T) {
 	}
 	if strings.Contains(got, "unlisted") {
 		t.Errorf("a folder outside domains.json is the leaf test's to report, got:\n%s", got)
+	}
+	if strings.Contains(got, "huge.md") {
+		t.Errorf("a leaf is the leaf test's to size, got:\n%s", got)
 	}
 }
 
