@@ -349,7 +349,7 @@ func leafProblems(root string) []string {
 	for _, path := range playbooks {
 		present[strings.TrimSuffix(filepath.Base(path), ".md")] = true
 		if info, err := os.Stat(path); err == nil {
-			if problem := wholeReadProblem("playbook "+filepath.Base(path), info.Size()); problem != "" {
+			if problem := wholeReadProblem("content/skills/hive-mode/playbooks/"+filepath.Base(path), info.Size()); problem != "" {
 				problems = append(problems, problem)
 			}
 		}
@@ -476,7 +476,7 @@ func TestLeafSkillInvariantsCatchViolations(t *testing.T) {
 		"hive-typescript: must stay model-invocable",
 		"hive-typescript: frontmatter has no `paths`",
 		"content/skills/hive-typescript/SKILL.md: ",
-		"playbook perf.md: whole-read file is",
+		"content/skills/hive-mode/playbooks/perf.md: whole-read file is",
 		"playbook refactor.md names the delivery mode `hold` outside the phrase",
 		"hive-mode/playbooks holds extra.md",
 		"hive-mode/playbooks lacks ui-change.md",
