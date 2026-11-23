@@ -2,7 +2,7 @@
 
 | Field | Value |
 | --- | --- |
-| Status | Completed (hold) |
+| Status | Completed · PR #598, merge 013a9725 |
 | Tracker | none |
 | Git | tricell-hive, base `development` at `34395b92`, proposed branch `refactor/frontier-prune` |
 | Playbook | refactor |

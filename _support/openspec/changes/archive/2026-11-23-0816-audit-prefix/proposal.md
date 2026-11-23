@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Completed |
+| Estado | Completado · PR #602, merge 48824e10 |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `ba160011` · rama `refactor/audit-prefix` |
 | Playbook | refactor |

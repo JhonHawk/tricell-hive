@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | In build |
+| Estado | Completado · PR #599, merge f30687b5 |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` en `013a9725` · rama `refactor/size-limits` |
 | Playbook | refactor |

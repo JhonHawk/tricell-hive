@@ -2,7 +2,7 @@
 
 | Campo | Valor |
 | --- | --- |
-| Estado | Ready for flow-build |
+| Estado | Completado · PR #604, merge ee05129b |
 | Tracker | ninguno |
 | Git | tricell-hive · base `development` (`6d1ab6f0`) · worktree `.claude/worktrees/ledger-writer-role` · rama `feat/ledger-writer-role` |
 | Playbook | feature |
