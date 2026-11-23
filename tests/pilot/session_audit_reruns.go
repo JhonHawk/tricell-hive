@@ -208,7 +208,6 @@ func shellItems(command, cwd string) ([]rerunItem, string) {
 	return items, cwd
 }
 
-// runsInterpreter reports whether a command runs a script interpreter.
 func runsInterpreter(segments [][]string) bool {
 	for _, segment := range segments {
 		for i := 0; i < len(segment) && i < 3; i++ {
@@ -220,7 +219,6 @@ func runsInterpreter(segments [][]string) bool {
 	return false
 }
 
-// simpleItems reads one simple command.
 func simpleItems(args []string, cwd string) ([]rerunItem, string) {
 	var items []rerunItem
 	var words []string
@@ -497,8 +495,6 @@ func hasPipeOrBackground(command string) bool {
 	}
 	return false
 }
-
-// --- review_rounds_per_candidate ---
 
 // reviewRoundsPerCandidate fails when a main Claude Code session launches more
 // than two code review rounds with no push, merge, new load of flow-build or
