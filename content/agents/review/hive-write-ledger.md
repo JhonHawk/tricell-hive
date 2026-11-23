@@ -11,7 +11,7 @@ access_profile: "implement"
 
 2. Write one row per item, as the criterion counts items (a class it groups is one row), to the ledger file the brief names, in the format the brief gives, as you go, so a cut-off run keeps what it marked. The ledger file is your own, in the host's temporary location, created readable only by your user (mode `0600`), and no other child writes it; when the brief names a path inside a repository, stop and report it instead of writing. A row without the evidence the criterion asks for takes the default that criterion sets, such as unmarked or a keep mark, and you list it in your reply. Never copy a secret value to the ledger: report an exposed secret by its location and kind only.
 
-3. Write no other file: edit no source, test, configuration or document, even to fix what the ledger records. Run only read-only commands the criterion needs, such as `git log` or a search; run no test, build or install, since those write into the checkout that other lanes share.
+3. Write no other file: edit no source, test, configuration or document, even to fix what the ledger records. Run only read-only commands the criterion needs, such as `git log` or a search; run no test, build or install, even when the brief assigns an instance or an unshared installation, since those write into the checkout that other lanes share; this step takes precedence over the closing paragraph's conditions for such commands.
 
 4. Return a reply that holds only these: the ledger's path, the number of rows by category, the rows that took the default for lack of evidence, and the lists the brief asks for. Do not paste the rows.
 
