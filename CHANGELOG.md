@@ -12,6 +12,15 @@ raise the minor or the patch version.
 
 ### Added
 
+- The `audit-issues` skill audits a tracker's open tickets against the current
+  code. It counts them and suggests a pass, gives each ticket a verdict with
+  its evidence, proposes closing the false positives, duplicates and tickets
+  already fixed, and groups the rest under parent tickets by root cause,
+  domain or module so they are fixed together. It writes to the tracker only
+  after one approval of the whole set, and a ticket someone else wrote gets a
+  comment instead of a close. `hive-mode` routes ticket audits to it, and
+  `create-issue` leaves them to it.
+
 - The `audit-comments` skill audits the comments of a codebase or an area and
   removes them in batches. It files a ticket for each comment that excuses a
   shortcut, moves each decision a comment records to the project's decision

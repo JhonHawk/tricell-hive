@@ -47,11 +47,13 @@ Used on its own, it reports each ticket with its link, whether it is ready or bl
 - It does not move a ticket's state, comment the work's pending items or write its business rules.
 - It does not start Plan or Build for the ticket it creates.
 - It does not edit your repository.
+- It does not audit, group or deduplicate the tickets already open; the [audit-issues](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-issues/SKILL.md) skill does.
 
 ## Related flows
 
 - [Hive mode](/flows/hive-mode/) checks for an existing ticket before it proposes one, and follows the skill once you answer that a finding becomes a ticket.
 - [Close](/flows/close/) asks, for each defect the work found but did not fix, whether to open a ticket, and follows the skill when you answer yes.
+- The [audit-issues](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-issues/SKILL.md) skill audits the open tickets and uses this skill's parent tickets and their approval for the groups it forms.
 - [Changes and loops](/flows/overview/) maps where each flow returns the work.
 
 ## FAQ
