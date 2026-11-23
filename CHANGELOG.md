@@ -25,6 +25,14 @@ raise the minor or the patch version.
 
 ### Changed
 
+- The `no-comments` review removes a comment that restates a rule the code,
+  its tests or its configuration already express, even when it states only
+  part of the rule, once the evidence names what expresses it; the comment is
+  cut down to the part the code does not express, which is sorted on its own. `audit-comments`
+  also writes a `## Comments` section in the audited repository's
+  `AGENTS.md`: the lint and the paths it checks, where each fact goes
+  instead of a comment, and the only comments that stay.
+
 - A fix round whose paths all have an assigned check runs only those checks
   and reuses the candidate's passing suite. A second code review runs only
   when the fixes change code or a contract, and a review leaves out files the

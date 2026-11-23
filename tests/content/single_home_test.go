@@ -90,6 +90,7 @@ var homePhrases = []homePhrase{
 	{"Each row below ends a message differently", "content/skills/hive-core/messages/report-endings.md"},
 	{"named it with its target, not whether or how to make one, and research finds it a small understood change", "content/skills/hive-core/messages/report-endings.md"},
 	{"Delete every Kill", "content/skills/hive-core/review/no-comments.md"},
+	{"restates a rule the code", "content/skills/hive-core/review/no-comments.md"},
 	{"Name the one fact the change is safe because of", "content/skills/hive-core/review/blast-radius.md"},
 	{"Write so a tired engineer understands on the first read", "content/skills/hive-core/build/prose.md"},
 	{"Break this change. Prove each finding with a run against the real code", "content/skills/hive-core/review/interrogate.md"},
