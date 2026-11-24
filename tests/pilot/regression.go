@@ -855,27 +855,16 @@ func shellReadsSecret(args []string) bool {
 				return false // an in-place edit prints nothing
 			}
 		}
-	}
-	skipNext := false
-	isSed := filepath.Base(args[0]) == "sed"
-	skipScript := isSed // sed's first operand is its script, not a file, unless -e or -f gave one
-	for _, a := range args[1:] {
-		if a == "-e" || a == "-f" || strings.HasPrefix(a, "--expression") || strings.HasPrefix(a, "--file") {
-			skipScript = false
+		var scriptFileProtected bool
+		args, scriptFileProtected = sedOperands(args)
+		if scriptFileProtected {
+			return true
 		}
 	}
-	scriptNext := false
+	skipNext := false
 	for _, a := range args[1:] {
 		if skipNext {
 			skipNext = false
-			continue
-		}
-		if scriptNext {
-			scriptNext = false // the value of -e or -f: a script, whose text may name a path without reading it
-			continue
-		}
-		if isSed && (a == "-e" || a == "-f" || a == "--expression" || a == "--file") {
-			scriptNext = true
 			continue
 		}
 		if target, isRedirect := outputRedirect(a); isRedirect {
@@ -891,15 +880,66 @@ func shellReadsSecret(args []string) bool {
 		if strings.HasPrefix(a, "-") {
 			continue
 		}
-		if skipScript {
-			skipScript = false
-			continue
-		}
 		if isSecretPath(a) {
 			return true
 		}
 	}
 	return false
+}
+
+// sedOperands splits a sed command into its file operands and reports whether a script file named
+// by -f/--file is a secret path, since sed reads that file. The script itself is not a file: it is the
+// value of -e/--expression (attached or in the next word, also inside a short-option cluster such as
+// -ne or -e1p), or, when neither -e nor -f is given, the first operand. The returned slice keeps
+// args[0] and drops every option and script.
+func sedOperands(args []string) ([]string, bool) {
+	operands := []string{args[0]}
+	haveScript := false
+	protectedScriptFile := false
+	var positional []string
+	for i := 1; i < len(args); i++ {
+		a := args[i]
+		switch {
+		case a == "--expression" || a == "--file":
+			haveScript = true
+			if i+1 < len(args) {
+				i++
+				if a == "--file" && isSecretPath(args[i]) {
+					protectedScriptFile = true
+				}
+			}
+		case strings.HasPrefix(a, "--expression="):
+			haveScript = true
+		case strings.HasPrefix(a, "--file="):
+			haveScript = true
+			protectedScriptFile = protectedScriptFile || isSecretPath(strings.TrimPrefix(a, "--file="))
+		case strings.HasPrefix(a, "--"):
+			// another long option; not judged.
+		case strings.HasPrefix(a, "-") && len(a) > 1:
+			cluster := a[1:]
+			for j, ch := range cluster {
+				if ch != 'e' && ch != 'f' {
+					continue
+				}
+				haveScript = true
+				value := cluster[j+1:]
+				if value == "" && i+1 < len(args) {
+					i++
+					value = args[i]
+				}
+				if ch == 'f' && isSecretPath(value) {
+					protectedScriptFile = true
+				}
+				break // the rest of the cluster, or the next word, was the value
+			}
+		default:
+			positional = append(positional, a)
+		}
+	}
+	if !haveScript && len(positional) > 0 {
+		positional = positional[1:] // the first operand is the script
+	}
+	return append(operands, positional...), protectedScriptFile
 }
 
 // outputRedirect reports whether a shell token is an output redirection

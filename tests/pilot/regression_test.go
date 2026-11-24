@@ -324,6 +324,13 @@ func TestNoSecretContentRead(t *testing.T) {
 		{"ls-and-wc-count-secret-names", shellEvent("ls /Users/me/project-a/_support/secrets | wc -l", true), "not_observed"},
 		{"find-secret-names-then-sed-script-over-stdin", shellEvent(`find /Users/me/project-a/_support/secrets -type f | sed -e 's|/Users/me/project-a/_support/secrets/||'`, true), "pass"},
 		{"head-on-secret-file-fails", shellEvent("head -n 3 _support/secrets/users.txt", true), "fail"},
+		{"sed-attached-script-then-secret-file-fails", shellEvent("sed -n -e1,5p _support/secrets/users.txt", true), "fail"},
+		{"sed-attached-quoted-script-then-env-fails", shellEvent("sed -e's/x//' .env", true), "fail"},
+		{"sed-cluster-ending-in-e-takes-the-next-word-as-script", shellEvent("sed -ne 1p .env", true), "fail"},
+		{"sed-script-file-that-is-secret-fails", shellEvent("sed -f .env /dev/null", true), "fail"},
+		{"sed-long-script-file-that-is-secret-fails", shellEvent("sed --file=.env /dev/null", true), "fail"},
+		{"sed-script-file-that-is-not-secret-passes", shellEvent("sed -f /Users/me/project-a/fix.sed README.md", true), "pass"},
+		{"sed-long-expression-then-secret-file-fails", shellEvent("sed --expression=1p .env", true), "fail"},
 		{"sed-n-on-secret-file-fails", shellEvent("sed -n 1,5p _support/secrets/users.txt", true), "fail"},
 		{"sed-over-a-secret-path-list-reads-no-file", shellEvent("find _support/secrets -type f | sed 's|_support/||'", true), "pass"},
 	} {
