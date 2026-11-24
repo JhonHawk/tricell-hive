@@ -1,9 +1,0 @@
-{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-000000000042", "cwd": "project", "source": "cli"}}
-{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
-{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}]}]}}
-{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
-{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "id": "u1", "content": [{"type": "input_text", "text": "planea EX-1"}]}}
-{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "custom_tool_call", "id": "ctc_2", "status": "completed", "call_id": "call_2", "name": "exec", "input": "text(await tools.exec_command({cmd:\"cat /home/u/.agents/skills/flow-plan/SKILL.md\"}));"}}
-{"timestamp": "2026-01-01T11:00:07.000Z", "type": "response_item", "payload": {"type": "custom_tool_call_output", "call_id": "call_2", "output": [{"type": "input_text", "text": "Script completed"}, {"type": "input_text", "text": "{\"exit_code\": 0, \"output\": \"# skill\"}"}]}}
-{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m3", "phase": "final_answer", "content": [{"type": "output_text", "text": "**Plan · EX-1 · Decisiones**\n\n**1. ¿Hasta dónde entregamos?**\n\n- **A (★) · Local.** Sin publicar.\n- **B · PR.** Abro el PR.\n\nResponde 1A o 1B."}]}}
-{"timestamp": "2026-01-01T11:00:09.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}

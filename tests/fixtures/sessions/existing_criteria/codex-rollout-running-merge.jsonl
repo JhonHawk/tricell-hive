@@ -1,6 +1,0 @@
-{"timestamp":"2026-01-01T11:00:01.000Z","type":"session_meta","payload":{"id":"00000000-0000-0000-0000-000000000001","cwd":"project","source":"cli"}}
-{"timestamp":"2026-01-01T11:00:02.000Z","type":"turn_context","payload":{"model":"gpt-example","cwd":"project"}}
-{"timestamp":"2026-01-01T11:00:03.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t2"}}
-{"timestamp":"2026-01-01T11:00:04.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"call_1","input":"text(await tools.exec_command({cmd:\"gh pr merge 1 --repo example/repo --merge\",yield_time_ms:1000}));"}}
-{"timestamp":"2026-01-01T11:00:05.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"call_1","output":[{"type":"input_text","text":"Script completed\nWall time 0.1 seconds"},{"type":"input_text","text":"{\"session_id\": 7, \"wall_time_seconds\": 1.0, \"output\": \"still running\"}"}]}}
-{"timestamp":"2026-01-01T11:00:06.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t5"}}

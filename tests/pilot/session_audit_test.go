@@ -12,17 +12,52 @@ import (
 	"time"
 )
 
-func sessionFixture(parts ...string) string {
-	return filepath.Join(append([]string{"..", "fixtures", "sessions"}, parts...)...)
+// Sessions are written inside the tests as transcript text, one file per case,
+// in the format of their host. They carry no real names, paths or ticket keys.
+var sessionFileName = map[string]string{"claude": "session.jsonl", "codex": "rollout.jsonl", "grok": "updates.jsonl"}
+
+// writeFiles writes each file (the key is a slash path under a new temporary
+// folder) and returns the folder.
+func writeFiles(t *testing.T, files map[string]string) string {
+	t.Helper()
+	root := t.TempDir()
+	for rel, body := range files {
+		p := filepath.Join(root, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(p), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte(strings.TrimPrefix(body, "\n")), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	return root
 }
 
-func loadFixture(t *testing.T, host string, opts auditOptions, parts ...string) auditSession {
+func writeSession(t *testing.T, host, transcript string) string {
 	t.Helper()
-	s, err := loadAuditSession(sessionFixture(parts...), host, opts)
+	name := sessionFileName[host]
+	if name == "" {
+		name = "session.jsonl"
+	}
+	return filepath.Join(writeFiles(t, map[string]string{name: transcript}), name)
+}
+
+func loadSession(t *testing.T, host string, opts auditOptions, transcript string) auditSession {
+	t.Helper()
+	s, err := loadAuditSession(writeSession(t, host, transcript), host, opts)
 	if err != nil {
-		t.Fatalf("load %v: %v", parts, err)
+		t.Fatalf("load %s session: %v", host, err)
 	}
 	return s
+}
+
+func auditTranscript(t *testing.T, host string, opts auditOptions, transcript string) auditReport {
+	t.Helper()
+	rep, err := auditSessionFile(writeSession(t, host, transcript), host, opts)
+	if err != nil {
+		t.Fatalf("audit %s session: %v", host, err)
+	}
+	return rep
 }
 
 func eventsOf(s auditSession, kind string) []traceEvent {
@@ -54,7 +89,7 @@ func assistantTexts(s auditSession) []traceEvent {
 }
 
 func TestAuditClaudeAdapter(t *testing.T) {
-	s := loadFixture(t, "claude", auditOptions{}, "adapters", "claude-project", "session.jsonl")
+	s := loadSession(t, "claude", auditOptions{}, claudeAdapterSession)
 	if s.Cwd != "project" || s.Model != "claude-example-1" || s.ModelConfigured {
 		t.Fatalf("cwd/model = %q/%q configured=%v", s.Cwd, s.Model, s.ModelConfigured)
 	}
@@ -88,7 +123,7 @@ func TestAuditClaudeAdapter(t *testing.T) {
 }
 
 func TestAuditCodexAdapter(t *testing.T) {
-	s := loadFixture(t, "codex", auditOptions{}, "adapters", "codex-rollout", "rollout.jsonl")
+	s := loadSession(t, "codex", auditOptions{}, codexAdapterRollout)
 	if s.Cwd != "project" || s.Model != "gpt-example" || !s.ModelConfigured || s.Subagent {
 		t.Fatalf("cwd/model/configured/subagent = %q/%q/%v/%v", s.Cwd, s.Model, s.ModelConfigured, s.Subagent)
 	}
@@ -172,7 +207,11 @@ func TestAuditCodexSubagentFlag(t *testing.T) {
 }
 
 func TestAuditGrokAdapter(t *testing.T) {
-	s := loadFixture(t, "grok", auditOptions{}, "adapters", "grok-updates", "updates.jsonl")
+	root := writeFiles(t, map[string]string{"updates.jsonl": grokAdapterUpdates, "summary.json": `{"current_model_id":"grok-example-1"}`})
+	s, err := loadAuditSession(filepath.Join(root, "updates.jsonl"), "grok", auditOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
 	if s.Model != "grok-example-1" {
 		t.Fatalf("model = %q", s.Model)
 	}
@@ -230,16 +269,13 @@ func TestAuditGrokCwdFromFolderName(t *testing.T) {
 }
 
 func TestAuditReportCarriesNoCommandOrMessageText(t *testing.T) {
-	for _, tc := range []struct {
-		host  string
-		parts []string
-	}{
-		{"claude", []string{"adapters", "claude-project", "session.jsonl"}},
-		{"codex", []string{"adapters", "codex-rollout", "rollout.jsonl"}},
-		{"grok", []string{"adapters", "grok-updates", "updates.jsonl"}},
+	for _, tc := range []struct{ host, transcript string }{
+		{"claude", claudeAdapterSession},
+		{"codex", codexAdapterRollout},
+		{"grok", grokAdapterUpdates},
 	} {
 		var out bytes.Buffer
-		if err := auditSessionMain(sessionFixture(tc.parts...), tc.host, auditOptions{Base: "development"}, &out); err != nil {
+		if err := auditSessionMain(writeSession(t, tc.host, tc.transcript), tc.host, auditOptions{Base: "development"}, &out); err != nil {
 			t.Fatalf("%s: %v", tc.host, err)
 		}
 		var rep auditReport
@@ -259,7 +295,7 @@ func TestAuditReportCarriesNoCommandOrMessageText(t *testing.T) {
 
 func TestAuditRejectsUnsupportedHost(t *testing.T) {
 	var out bytes.Buffer
-	if err := auditSessionMain(sessionFixture("adapters", "claude-project", "session.jsonl"), "pi", auditOptions{}, &out); err == nil {
+	if err := auditSessionMain(writeSession(t, "claude", claudeAdapterSession), "pi", auditOptions{}, &out); err == nil {
 		t.Fatal("host pi must be rejected")
 	}
 }
@@ -275,17 +311,8 @@ func auditStatus(t *testing.T, rep auditReport, name string) criterionAssessment
 	return criterionAssessment{}
 }
 
-func auditFixture(t *testing.T, host string, opts auditOptions, parts ...string) auditReport {
-	t.Helper()
-	rep, err := auditSessionFile(sessionFixture(parts...), host, opts)
-	if err != nil {
-		t.Fatalf("audit %v: %v", parts, err)
-	}
-	return rep
-}
-
 func TestAuditRunsTheSevenExistingCriteria(t *testing.T) {
-	rep := auditFixture(t, "claude", auditOptions{}, "adapters", "claude-project", "session.jsonl")
+	rep := auditTranscript(t, "claude", auditOptions{}, claudeAdapterSession)
 	got := map[string]bool{}
 	for _, c := range rep.Criteria {
 		got[c.Criterion] = true
@@ -294,35 +321,6 @@ func TestAuditRunsTheSevenExistingCriteria(t *testing.T) {
 		if !got[name] {
 			t.Fatalf("criterion %s missing: %+v", name, rep.Criteria)
 		}
-	}
-}
-
-func TestAuditMergedBranchDeletedCountsCleanupScriptApply(t *testing.T) {
-	pass := auditStatus(t, auditFixture(t, "claude", auditOptions{}, "existing_criteria", "claude-project-merged-cleanup-pass.jsonl"), "merged_branch_deleted")
-	if pass.Status != "pass" || len(pass.Evidence) == 0 || !strings.HasPrefix(pass.Evidence[0], "claude-project-merged-cleanup-pass.jsonl:") {
-		t.Fatalf("pass = %+v", pass)
-	}
-	fail := auditStatus(t, auditFixture(t, "claude", auditOptions{}, "existing_criteria", "claude-project-merged-cleanup-fail.jsonl"), "merged_branch_deleted")
-	if fail.Status != "fail" {
-		t.Fatalf("a dry-run cleanup must not count as deletion: %+v", fail)
-	}
-}
-
-func TestAuditMergedBranchDeletedWithoutCloseIsReview(t *testing.T) {
-	got := auditStatus(t, auditFixture(t, "claude", auditOptions{}, "existing_criteria", "claude-project-merged-no-close-review.jsonl"), "merged_branch_deleted")
-	if got.Status != "review" || len(got.Evidence) != 2 || !strings.Contains(got.Evidence[1], "no close report after the last merge") {
-		t.Fatalf("a merge with no close after it must be review: %+v", got)
-	}
-}
-
-func TestAuditLocalMergeNeedsBase(t *testing.T) {
-	without := auditStatus(t, auditFixture(t, "claude", auditOptions{Cwd: t.TempDir()}, "existing_criteria", "claude-project-local-merge.jsonl"), "merged_branch_deleted")
-	if without.Status != "not_observed" || len(without.Evidence) != 1 || !strings.Contains(without.Evidence[0], "base branch") {
-		t.Fatalf("without base = %+v", without)
-	}
-	with := auditStatus(t, auditFixture(t, "claude", auditOptions{Base: "development", Cwd: t.TempDir()}, "existing_criteria", "claude-project-local-merge.jsonl"), "merged_branch_deleted")
-	if with.Status != "fail" {
-		t.Fatalf("with base = %+v", with)
 	}
 }
 
@@ -343,45 +341,6 @@ func TestAuditResolvesBaseFromFlagThenAgents(t *testing.T) {
 	}
 }
 
-func TestAuditGitAddResolvesAgainstSessionCwd(t *testing.T) {
-	dir := t.TempDir()
-	if err := os.Mkdir(filepath.Join(dir, "docs"), 0o700); err != nil {
-		t.Fatal(err)
-	}
-	opts := auditOptions{Cwd: dir}
-	// A directory pathspec that exists on disk cannot be checked against the
-	// historical inventory: review, never fail.
-	if s := auditStatus(t, auditFixture(t, "claude", opts, "existing_criteria", "claude-project-git-add-dir.jsonl"), "no_broad_git_add").Status; s != "review" {
-		t.Fatalf("directory pathspec = %s, want review", s)
-	}
-	// A pathspec that no longer exists cannot be judged either.
-	if s := auditStatus(t, auditFixture(t, "claude", auditOptions{Cwd: t.TempDir()}, "existing_criteria", "claude-project-git-add-dir.jsonl"), "no_broad_git_add").Status; s != "review" {
-		t.Fatalf("pathspec missing on disk = %s, want review", s)
-	}
-	if err := os.WriteFile(filepath.Join(dir, "notes.txt"), []byte("x"), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	if s := auditStatus(t, auditFixture(t, "claude", opts, "existing_criteria", "claude-project-git-add-file.jsonl"), "no_broad_git_add").Status; s != "pass" {
-		t.Fatalf("file pathspec = %s, want pass", s)
-	}
-	// A pathspec outside the session root cannot be judged.
-	if s := auditStatus(t, auditFixture(t, "claude", opts, "existing_criteria", "claude-project-git-add-outside.jsonl"), "no_broad_git_add").Status; s != "review" {
-		t.Fatalf("pathspec outside the root = %s, want review", s)
-	}
-	if s := auditStatus(t, auditFixture(t, "claude", opts, "existing_criteria", "claude-project-git-add-all.jsonl"), "no_broad_git_add").Status; s != "fail" {
-		t.Fatalf("git add -A = %s, want fail", s)
-	}
-}
-
-type newCriterionCase struct {
-	name      string
-	host      string
-	criterion string
-	parts     []string
-	opts      auditOptions
-	want      string
-}
-
 func hiveLikeDir(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
@@ -395,7 +354,22 @@ func hiveLikeDir(t *testing.T) string {
 	return filepath.Join(dir, "nested", "worktree")
 }
 
-func TestAuditNewCriteria(t *testing.T) {
+// sessionCase is one transcript and the status one criterion must report on it.
+type sessionCase struct {
+	name       string
+	host       string
+	criterion  string
+	want       string
+	opts       auditOptions
+	disk       []string // files, and folders with a trailing slash, created under the session cwd
+	hive       bool     // the session cwd is inside a Hive repository
+	evidence   []string // substrings the evidence must hold
+	transcript string
+}
+
+// TestAuditCriteria keeps, for each criterion, one case that fails and one for
+// each other status it emits; not_observed has its own shared empty session.
+func TestAuditCriteria(t *testing.T) {
 	const round, close, skill = "text_round_without_card", "close_before_branch_cleanup", "skill_named_as_reason"
 	const review = "review_question_native_option"
 	const leaf = "leaf_read_before_action"
@@ -411,431 +385,622 @@ func TestAuditNewCriteria(t *testing.T) {
 	const folder = "change_folder_uncommitted"
 	const planRoute = "plan_without_build_route"
 	const suite, rounds = "full_suite_after_text_fix", "review_rounds_per_candidate"
-	cases := []newCriterionCase{
-		{"async card while the waiting card is offered", "codex", asyncCard, []string{asyncCard, "codex-rollout-waiting-offered-fail.jsonl"}, auditOptions{}, "fail"},
-		{"async card while the waiting card is offered, round written first", "codex", asyncCard, []string{asyncCard, "codex-rollout-waiting-offered-round-written-fail.jsonl"}, auditOptions{}, "fail"},
-		{"async card as the only tool, no round in the text", "codex", asyncCard, []string{asyncCard, "codex-rollout-async-only-no-round-fail.jsonl"}, auditOptions{}, "fail"},
-		{"async card as the only tool, round written first", "codex", asyncCard, []string{asyncCard, "codex-rollout-async-only-round-pass.jsonl"}, auditOptions{}, "pass"},
-		{"async card after unattended delegation, round written first", "codex", asyncCard, []string{asyncCard, "codex-rollout-unattended-round-written-pass.jsonl"}, auditOptions{}, "pass"},
-		{"async card after a grep of the repository's unattended skill", "codex", asyncCard, []string{asyncCard, "codex-rollout-unattended-grep-fail.jsonl"}, auditOptions{}, "fail"},
-		{"async card after unattended delegation, no round in the text", "codex", asyncCard, []string{asyncCard, "codex-rollout-unattended-no-round-fail.jsonl"}, auditOptions{}, "fail"},
-		{"async card in a child session", "codex", asyncCard, []string{asyncCard, "codex-rollout-child-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"async card, session without an async call", "codex", asyncCard, []string{prose, "codex-rollout-card-pass.jsonl"}, auditOptions{}, "not_observed"},
-		{"prose choice codex pending delivery with a recommended mode in backticks", "codex", prose, []string{prose, "codex-rollout-pending-recommend-fail.jsonl"}, auditOptions{}, "fail"},
-		{"prose choice codex delivery only left pending", "codex", prose, []string{prose, "codex-rollout-pending-only-review.jsonl"}, auditOptions{}, "review"},
-		{"prose choice codex recommended backticks with no delivery mode word", "codex", prose, []string{prose, "codex-rollout-mode-substring-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"prose choice codex recommended option followed by a later code span", "codex", prose, []string{prose, "codex-rollout-span-gap-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"prose choice codex recommendation that only names a command ending in a mode word", "codex", prose, []string{prose, "codex-rollout-ready-command-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"prose choice codex quoted recommendation in a report is not counted", "codex", prose, []string{prose, "codex-rollout-quoted-recommend-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"plan codex typed skill, build command without a next-step block", "codex", planRoute, []string{planRoute, "codex-rollout-typed-skill-no-block-fail.jsonl"}, auditOptions{}, "fail"},
-		{"plan codex typed skill, build command without a next-step block, session ends in the stage", "codex", planRoute, []string{planRoute, "codex-rollout-typed-skill-no-block-open-fail.jsonl"}, auditOptions{}, "fail"},
-		{"plan codex typed skill, build command with the next-step block", "codex", planRoute, []string{planRoute, "codex-rollout-typed-skill-block-pass.jsonl"}, auditOptions{}, "pass"},
-		{"plan codex stage ended by a build without the command", "codex", planRoute, []string{planRoute, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
-		{"plan codex next-step block naming /flow-build", "codex", planRoute, []string{planRoute, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
-		{"plan codex session ends inside the stage", "codex", planRoute, []string{planRoute, "codex-rollout-open-review.jsonl"}, auditOptions{}, "review"},
-		{"plan codex re-read of flow-plan keeps the stage open", "codex", planRoute, []string{planRoute, "codex-rollout-reread-pass.jsonl"}, auditOptions{}, "pass"},
-		{"plan codex message naming only /flow-plan", "codex", planRoute, []string{planRoute, "codex-rollout-plan-command-only-fail.jsonl"}, auditOptions{}, "fail"},
-		{"plan codex child session", "codex", planRoute, []string{planRoute, "codex-rollout-child-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"plan codex bare build command, then the flow in the plan's own turn", "codex", planRoute, []string{planRoute, "codex-rollout-same-turn-bare-command-review.jsonl"}, auditOptions{}, "review"},
-		{"plan codex bare build command, then the flow after unattended delegation", "codex", planRoute, []string{planRoute, "codex-rollout-unattended-bare-command-review.jsonl"}, auditOptions{}, "review"},
-		{"plan codex marker in the middle of a line is no next-step block", "codex", planRoute, []string{planRoute, "codex-rollout-midline-marker-fail.jsonl"}, auditOptions{}, "fail"},
-		{"plan codex build in the plan's own turn", "codex", planRoute, []string{planRoute, "codex-rollout-same-turn-review.jsonl"}, auditOptions{}, "review"},
-		{"plan codex build command in bold", "codex", planRoute, []string{planRoute, "codex-rollout-bold-command-pass.jsonl"}, auditOptions{}, "pass"},
-		{"plan codex grep of flow-build while planning", "codex", planRoute, []string{planRoute, "codex-rollout-grep-build-pass.jsonl"}, auditOptions{}, "pass"},
-		{"plan codex card answered in the plan's turn, then the build", "codex", planRoute, []string{planRoute, "codex-rollout-card-then-build-fail.jsonl"}, auditOptions{}, "fail"},
-		{"plan codex build loaded by a sed range chained with rg", "codex", planRoute, []string{planRoute, "codex-rollout-load-with-rg-fail.jsonl"}, auditOptions{}, "fail"},
-		{"plan codex bare build command, then unattended delegation loads in a later turn", "codex", planRoute, []string{planRoute, "codex-rollout-unattended-after-bare-command-fail.jsonl"}, auditOptions{}, "fail"},
-		{"plan codex bare build command, then a re-read of flow-plan and the flow in a later turn", "codex", planRoute, []string{planRoute, "codex-rollout-reread-plan-later-turn-bare-command-fail.jsonl"}, auditOptions{}, "fail"},
-		{"plan codex grep of the repository's unattended skill", "codex", planRoute, []string{planRoute, "codex-rollout-unattended-grep-fail.jsonl"}, auditOptions{}, "fail"},
-		{"try it codex later tweak without verify keeps the close report", "codex", tryIt, []string{tryIt, "codex-rollout-later-tweak-pass.jsonl"}, auditOptions{}, "pass"},
-		{"review codex fixed Review header offering only the agent", "codex", review, []string{review, "codex-rollout-header-agent-only-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round codex numbered title under a heading marker", "codex", round, []string{round, "codex-rollout-numbered-heading-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round codex bare Review heading above a numbered round", "codex", round, []string{round, "codex-rollout-review-heading-numbered-fail.jsonl"}, auditOptions{}, "fail"},
-		{"prose codex bare Review heading above a numbered round", "codex", prose, []string{round, "codex-rollout-review-heading-numbered-fail.jsonl"}, auditOptions{}, "not_observed"},
-		{"format codex D1 round whose Situation lists numbered questions", "codex", format, []string{format, "codex-rollout-numbered-situation-pass.jsonl"}, auditOptions{}, "pass"},
-		{"prose choice codex question after a bare Review header", "codex", prose, []string{prose, "codex-rollout-header-then-question-fail.jsonl"}, auditOptions{}, "fail"},
-		{"try it codex later screen change after a closed one", "codex", tryIt, []string{tryIt, "codex-rollout-later-screen-fail.jsonl"}, auditOptions{}, "fail"},
-		{"review codex security question with one mechanism", "codex", review, []string{review, "codex-rollout-security-one-mechanism-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"round codex title with a middle dot", "codex", round, []string{round, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
-		{"format codex title with a middle dot", "codex", format, []string{format, "codex-rollout-dot-title-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round codex numbered questions with starred options", "codex", round, []string{round, "codex-rollout-numbered-fail.jsonl"}, auditOptions{}, "fail"},
-		{"format codex numbered questions without Situation", "codex", format, []string{format, "codex-rollout-numbered-fail.jsonl"}, auditOptions{}, "fail"},
-		{"review codex numbered review question with one option", "codex", review, []string{review, "codex-rollout-numbered-one-option-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round codex analysis listing numbered questions", "codex", round, []string{round, "codex-rollout-numbered-analysis-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"format codex analysis listing numbered questions", "codex", format, []string{round, "codex-rollout-numbered-analysis-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"review codex analysis listing numbered questions", "codex", review, []string{round, "codex-rollout-numbered-analysis-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"prose choice codex numbered bold question without letters", "codex", prose, []string{prose, "codex-rollout-numbered-prose-fail.jsonl"}, auditOptions{}, "fail"},
-		{"prose choice codex imperative confirmation of delivery", "codex", prose, []string{prose, "codex-rollout-imperative-confirm-fail.jsonl"}, auditOptions{}, "fail"},
-		{"prose choice codex replies offered in quotation marks", "codex", prose, []string{prose, "codex-rollout-quoted-replies-review.jsonl"}, auditOptions{}, "review"},
-		{"prose choice codex sentence that reports a confirmation", "codex", prose, []string{prose, "codex-rollout-reported-confirm-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"prose choice codex past-tense Confirmé is no request", "codex", prose, []string{prose, "codex-rollout-past-tense-confirm-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"prose choice codex without the card", "codex", prose, []string{prose, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
-		{"prose choice codex asked through the card", "codex", prose, []string{prose, "codex-rollout-card-pass.jsonl"}, auditOptions{}, "pass"},
-		{"prose choice wrapped over two lines", "codex", prose, []string{prose, "codex-rollout-wrapped-fail.jsonl"}, auditOptions{}, "fail"},
-		{"prose choice with an unclosed ¿ across paragraphs", "codex", prose, []string{prose, "codex-rollout-unclosed-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"prose choice card about something else", "codex", prose, []string{prose, "codex-rollout-other-card-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"prose choice findings card headed Revisión", "codex", prose, []string{prose, "codex-rollout-findings-card-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"prose choice english after the context line", "codex", prose, []string{prose, "codex-rollout-english-context-line-fail.jsonl"}, auditOptions{}, "fail"},
-		{"prose choice yes-no review question", "codex", prose, []string{prose, "codex-rollout-yes-no-review-fail.jsonl"}, auditOptions{}, "fail"},
-		{"prose choice ordinary word ready", "codex", prose, []string{prose, "codex-rollout-ready-word-review.jsonl"}, auditOptions{}, "review"},
-		{"prose choice before a next-step block", "codex", prose, []string{prose, "codex-rollout-next-step-block-fail.jsonl"}, auditOptions{}, "fail"},
-		{"prose choice in a full-format text round", "codex", prose, []string{prose, "codex-rollout-full-round-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"prose choice after another question", "codex", prose, []string{prose, "codex-rollout-after-question-fail.jsonl"}, auditOptions{}, "fail"},
-		{"prose session word without a choice", "codex", prose, []string{prose, "codex-rollout-session-word-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"prose choice naming /code-review", "codex", prose, []string{prose, "codex-rollout-code-review-slash-fail.jsonl"}, auditOptions{}, "fail"},
-		{"prose delivery choice after a lettered block", "codex", prose, []string{prose, "codex-rollout-round-plus-delivery-fail.jsonl"}, auditOptions{}, "fail"},
-		{"prose choice codex plain yes-no question", "codex", prose, []string{prose, "codex-rollout-plain-question-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"prose choice codex about what the user wants", "codex", prose, []string{prose, "codex-rollout-intent-review.jsonl"}, auditOptions{}, "review"},
-		{"prose choice codex card not offered", "codex", prose, []string{prose, "codex-rollout-not-offered-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"cache codex search empty, move, no write", "codex", cache, []string{cache, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
-		{"cache codex written after the move", "codex", cache, []string{cache, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
-		{"cache codex search found the topic", "codex", cache, []string{cache, "codex-rollout-found-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"cache claude search empty, move, no write", "claude", cache, []string{cache, "claude-project-fail.jsonl"}, auditOptions{}, "fail"},
-		{"cache claude written through the engram CLI", "claude", cache, []string{cache, "claude-project-cli-save-pass.jsonl"}, auditOptions{}, "pass"},
-		{"cache claude creating a ticket is not a move", "claude", cache, []string{cache, "claude-project-create-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"cache claude reading transitions is not a move", "claude", cache, []string{cache, "claude-project-read-transitions-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"try it codex final report without the block", "codex", tryIt, []string{tryIt, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
-		{"try it codex final report with the block", "codex", tryIt, []string{tryIt, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
-		{"try it codex close report judged before later work", "codex", tryIt, []string{tryIt, "codex-rollout-close-then-other-work-fail.jsonl"}, auditOptions{}, "fail"},
-		{"try it codex frontend child, report without the block", "codex", tryIt, []string{tryIt, "codex-rollout-child-fail.jsonl"}, auditOptions{}, "fail"},
-		{"try it codex mobile child, report without the block", "codex", tryIt, []string{tryIt, "codex-rollout-mobile-child-fail.jsonl"}, auditOptions{}, "fail"},
-		{"try it codex mobile child, report with the block", "codex", tryIt, []string{tryIt, "codex-rollout-mobile-child-pass.jsonl"}, auditOptions{}, "pass"},
-		{"try it codex UI edit without verify", "codex", tryIt, []string{tryIt, "codex-rollout-noverify-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"try it claude final report with the block", "claude", tryIt, []string{tryIt, "claude-project-pass.jsonl"}, auditOptions{}, "pass"},
-		{"try it claude final report without the block", "claude", tryIt, []string{tryIt, "claude-project-fail.jsonl"}, auditOptions{}, "fail"},
-		{"route codex reply to a proposal starts build", "codex", route, []string{route, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
-		{"route codex reply to a next-step block", "codex", route, []string{route, "codex-rollout-block-pass.jsonl"}, auditOptions{}, "pass"},
-		{"route codex typed command after a proposal", "codex", route, []string{route, "codex-rollout-typed-pass.jsonl"}, auditOptions{}, "pass"},
-		{"route codex direct request in the first turn", "codex", route, []string{route, "codex-rollout-direct-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"route claude ok to a proposal starts build", "claude", route, []string{route, "claude-project-fail.jsonl"}, auditOptions{}, "fail"},
-		{"assessment claude card answered, then a bare ending", "claude", assess, []string{assess, "claude-project-card-then-bare-fail.jsonl"}, auditOptions{}, "fail"},
-		{"assessment claude typed /hive-mode command", "claude", assess, []string{assess, "claude-project-typed-command-fail.jsonl"}, auditOptions{}, "fail"},
-		{"assessment claude prompt only mentions /hive-mode", "claude", assess, []string{assess, "claude-project-mentioned-command-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"format codex decisions as bullets", "codex", format, []string{format, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
-		{"format codex fixed headers without options", "codex", format, []string{format, "codex-rollout-fixedheader-fail.jsonl"}, auditOptions{}, "fail"},
-		{"format codex full round in text", "codex", format, []string{format, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
-		{"format codex card carries the round", "codex", format, []string{format, "codex-rollout-card-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"format codex report with a review heading", "codex", format, []string{format, "codex-rollout-report-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"ux codex screen edit without the reviewer", "codex", ux, []string{ux, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
-		{"ux codex screen edit with the reviewer", "codex", ux, []string{ux, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
-		{"ux codex test and logic edits only", "codex", ux, []string{ux, "codex-rollout-test-only-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"ux claude screen edit with the reviewer", "claude", ux, []string{ux, "claude-project-pass.jsonl"}, auditOptions{}, "pass"},
-		{"route a read of the repository's own flow skill", "codex", route, []string{route, "codex-rollout-repo-read-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"format a recap of decisions in force", "codex", format, []string{format, "codex-rollout-recap-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"route codex flow loaded after a card's answer", "codex", route, []string{route, "codex-rollout-card-fail.jsonl"}, auditOptions{}, "fail"},
-		{"route codex new request after a link with a query", "codex", route, []string{route, "codex-rollout-new-request-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"route codex longer reply to a proposal", "codex", route, []string{route, "codex-rollout-long-reply-review.jsonl"}, auditOptions{}, "review"},
-		{"route claude typed slash command", "claude", route, []string{route, "claude-project-typed-pass.jsonl"}, auditOptions{}, "pass"},
-		{"format a recap marked recommended", "codex", format, []string{format, "codex-rollout-recap-recommended-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"ux a brief that only mentions the UX reviewer", "codex", ux, []string{ux, "codex-rollout-brief-mention-fail.jsonl"}, auditOptions{}, "fail"},
-		{"ux a Claude child transcript is not judged", "claude", ux, []string{ux, "claude-subagent-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"route codex async card answered in the next turn", "codex", route, []string{route, "codex-rollout-async-card-fail.jsonl"}, auditOptions{}, "fail"},
-		{"route a file test is not a skill load", "codex", route, []string{route, "codex-rollout-file-test-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"format a lettered round without the star", "codex", format, []string{format, "codex-rollout-missing-star-fail.jsonl"}, auditOptions{}, "fail"},
-		{"format one of two decisions without its format", "codex", format, []string{format, "codex-rollout-one-of-two-fail.jsonl"}, auditOptions{}, "fail"},
-		{"ux a rejected edit changes nothing", "claude", ux, []string{ux, "claude-project-rejected-edit-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"ux an edit in a sibling project", "claude", ux, []string{ux, "claude-project-sibling-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"ux a screen rewritten from the shell", "codex", ux, []string{ux, "codex-rollout-shell-edit-fail.jsonl"}, auditOptions{}, "fail"},
-		{"ux a page written to a temporary folder", "claude", ux, []string{ux, "claude-project-tmp-html-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"leaf claude reads before git, ticket and card", "claude", leaf, []string{leaf, "claude-project-pass.jsonl"}, auditOptions{}, "pass"},
-		{"leaf claude git add before the read", "claude", leaf, []string{leaf, "claude-project-git-fail.jsonl"}, auditOptions{}, "fail"},
-		{"leaf claude ticket move without the read", "claude", leaf, []string{leaf, "claude-project-ticket-fail.jsonl"}, auditOptions{}, "fail"},
-		{"leaf claude card without the read", "claude", leaf, []string{leaf, "claude-project-question-fail.jsonl"}, auditOptions{}, "fail"},
-		{"leaf claude no governed action", "claude", leaf, []string{leaf, "claude-project-notexercised.jsonl"}, auditOptions{}, "not_observed"},
-		{"leaf codex reads before git and card", "codex", leaf, []string{leaf, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
-		{"leaf codex reads the single questions leaf", "codex", leaf, []string{leaf, "codex-rollout-questions-leaf-pass.jsonl"}, auditOptions{}, "pass"},
-		{"leaf codex git add without the read", "codex", leaf, []string{leaf, "codex-rollout-git-fail.jsonl"}, auditOptions{}, "fail"},
-		{"leaf codex card without the read", "codex", leaf, []string{leaf, "codex-rollout-question-fail.jsonl"}, auditOptions{}, "fail"},
-		{"leaf claude reads the hive-core path before git, ticket and card", "claude", leaf, []string{leaf, "claude-project-core-path-pass.jsonl"}, auditOptions{}, "pass"},
-		{"leaf claude nested reference and hive-core SKILL.md are no leaf read", "claude", leaf, []string{leaf, "claude-project-core-nested-fail.jsonl"}, auditOptions{}, "fail"},
-		{"leaf codex shell read of the hive-core path before git and card", "codex", leaf, []string{leaf, "codex-rollout-core-path-pass.jsonl"}, auditOptions{}, "pass"},
-		{"leaf claude reads the domain path before git, ticket and card", "claude", leaf, []string{leaf, "claude-project-domain-path-pass.jsonl"}, auditOptions{}, "pass"},
-		{"leaf claude nested reference under a domain is no leaf read", "claude", leaf, []string{leaf, "claude-project-domain-nested-fail.jsonl"}, auditOptions{}, "fail"},
-		{"leaf codex shell read of the domain path before git and card", "codex", leaf, []string{leaf, "codex-rollout-domain-path-pass.jsonl"}, auditOptions{}, "pass"},
-		{"leaf codex no governed action", "codex", leaf, []string{leaf, "codex-rollout-notexercised.jsonl"}, auditOptions{}, "not_observed"},
-		{"leaf claude Read of a packet with line numbers and arrows counts its members", "claude", leaf, []string{leaf, "claude-project-packet-read-pass.jsonl"}, auditOptions{}, "pass"},
-		{"leaf claude Read of a packet with line numbers and tabs counts its members", "claude", leaf, []string{leaf, "claude-project-packet-read-tab-pass.jsonl"}, auditOptions{}, "pass"},
-		{"leaf claude packet read with no line numbers counts its members", "claude", leaf, []string{leaf, "claude-project-packet-unnumbered-pass.jsonl"}, auditOptions{}, "pass"},
-		{"leaf claude packet that holds a leaf's own Change folder section", "claude", leaf, []string{leaf, "claude-project-packet-own-section-pass.jsonl"}, auditOptions{}, "pass"},
-		{"leaf claude complete packet without the governing leaf", "claude", leaf, []string{leaf, "claude-project-packet-without-leaf-fail.jsonl"}, auditOptions{}, "fail"},
-		{"leaf claude packet cut at its end", "claude", leaf, []string{leaf, "claude-project-packet-cut-end-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"leaf claude packet cut in the middle with its end line intact", "claude", leaf, []string{leaf, "claude-project-packet-cut-middle-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"leaf codex shell read of a packet counts its members", "codex", leaf, []string{leaf, "codex-rollout-packet-shell-pass.jsonl"}, auditOptions{}, "pass"},
-		{"leaf codex packet cut in the middle with its end line intact", "codex", leaf, []string{leaf, "codex-rollout-packet-cut-middle-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"round claude fail", "claude", round, []string{round, "claude-project-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round claude pass", "claude", round, []string{round, "claude-project-pass.jsonl"}, auditOptions{}, "pass"},
-		{"round claude no card in session", "claude", round, []string{round, "claude-project-nocard-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"round claude title without option star", "claude", round, []string{round, "claude-project-notround-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"round codex fail", "codex", round, []string{round, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round codex pass", "codex", round, []string{round, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
-		{"round codex empty card before round", "codex", round, []string{round, "codex-rollout-empty-card-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"round codex subagent", "codex", round, []string{round, "codex-rollout-subagent-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"round codex card listed in additional_tools", "codex", round, []string{round, "codex-rollout-offered-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round codex card listed outside Default or Plan", "codex", round, []string{round, "codex-rollout-offered-execute-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"round codex written as a table", "codex", round, []string{round, "codex-rollout-table-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round codex session question under a fixed header", "codex", round, []string{round, "codex-rollout-fixed-header-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round codex fixed header in another case", "codex", round, []string{round, "codex-rollout-header-case-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round codex review report heading with reply letters", "codex", round, []string{round, "codex-rollout-review-report-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"review question under the fixed header", "codex", review, []string{review, "codex-rollout-fixed-header-pass.jsonl"}, auditOptions{}, "pass"},
-		{"round codex findings table and a cited answer", "codex", round, []string{round, "codex-rollout-table-notround-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"review question without the native review", "codex", review, []string{review, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
-		{"review native named only outside the options", "codex", review, []string{review, "codex-rollout-situation-fail.jsonl"}, auditOptions{}, "fail"},
-		{"review table offering the native review", "codex", review, []string{review, "codex-rollout-table-pass.jsonl"}, auditOptions{}, "pass"},
-		{"review card naming the mechanisms only in descriptions", "codex", review, []string{review, "codex-rollout-card-description-fail.jsonl"}, auditOptions{}, "fail"},
-		{"review table naming the native review in a situation cell", "codex", review, []string{review, "codex-rollout-table-situation-fail.jsonl"}, auditOptions{}, "fail"},
-		{"review table with a separate ID column", "codex", review, []string{review, "codex-rollout-table-idcolumn-pass.jsonl"}, auditOptions{}, "pass"},
-		{"review findings card mentioning the agent", "codex", review, []string{review, "codex-rollout-findings-card-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"review question titled with a bare review", "codex", review, []string{review, "codex-rollout-bare-title-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round codex table with A) options split by <br>", "codex", round, []string{round, "codex-rollout-table-parens-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round codex table with A. and B: options", "codex", round, []string{round, "codex-rollout-table-punctuation-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round codex table with bold **A.** options", "codex", round, []string{round, "codex-rollout-table-bold-letters-fail.jsonl"}, auditOptions{}, "fail"},
-		{"review findings decision naming two mechanisms", "codex", review, []string{review, "codex-rollout-findings-mechanisms-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"review question with a plural title", "codex", review, []string{review, "codex-rollout-plural-title-fail.jsonl"}, auditOptions{}, "fail"},
-		{"review card with the native review", "codex", review, []string{review, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
-		{"close report mentioning a review", "codex", review, []string{review, "codex-rollout-close-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"decision about applying review findings", "codex", review, []string{review, "codex-rollout-findings-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"round grok fail", "grok", round, []string{round, "grok-updates-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round grok pass", "grok", round, []string{round, "grok-updates-pass.jsonl"}, auditOptions{}, "pass"},
-		{"round grok no user available", "grok", round, []string{round, "grok-updates-empty-card-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"round grok declined card is not an exemption", "grok", round, []string{round, "grok-updates-declined-card-fail.jsonl"}, auditOptions{}, "fail"},
-		{"close claude fail", "claude", close, []string{close, "claude-project-fail.jsonl"}, auditOptions{}, "fail"},
-		{"close claude pass", "claude", close, []string{close, "claude-project-pass.jsonl"}, auditOptions{}, "pass"},
-		{"close claude no deletion", "claude", close, []string{close, "claude-project-nodelete-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"close claude merge deletes the branch itself", "claude", close, []string{close, "claude-project-delete-branch-flag-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"close grok fail", "grok", close, []string{close, "grok-updates-fail.jsonl"}, auditOptions{}, "fail"},
-		{"close grok pass", "grok", close, []string{close, "grok-updates-pass.jsonl"}, auditOptions{}, "pass"},
-		{"close report keeps a branch the session deleted", "claude", close, []string{close, "claude-project-kept-review.jsonl"}, auditOptions{}, "review"},
-		{"close report says a folder stays on master without the kept form", "claude", close, []string{close, "claude-project-stays-on-master-fail.jsonl"}, auditOptions{}, "fail"},
-		{"close report keeps a branch the session never deleted", "claude", close, []string{close, "claude-project-kept-other-branch-fail.jsonl"}, auditOptions{}, "fail"},
-		{"close deletion by the helper through a variable is a deletion", "claude", close, []string{close, "claude-project-variable-apply-pass.jsonl"}, auditOptions{}, "pass"},
-		{"close codex merge with unknown success is not a merge", "codex", close, []string{close, "codex-rollout-truncated-merge-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"close earlier merge is checked too", "claude", close, []string{close, "claude-project-two-merges-fail.jsonl"}, auditOptions{}, "fail"},
-		{"close local merge and push of base", "claude", close, []string{close, "claude-project-local-merge-fail.jsonl"}, auditOptions{Base: "development"}, "fail"},
-		{"close local merge without a base is not recognized", "claude", close, []string{close, "claude-project-local-merge-fail.jsonl"}, auditOptions{Cwd: "elsewhere"}, "not_observed"},
-		{"round codex typed timeout is not an empty card", "codex", round, []string{round, "codex-rollout-typed-timeout-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round claude typed timeout is not an empty card", "claude", round, []string{round, "claude-project-typed-timeout-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round grok typed text is not an empty card", "grok", round, []string{round, "grok-updates-typed-timeout-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round codex empty answers", "codex", round, []string{round, "codex-rollout-empty-answers-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"round claude tool error", "claude", round, []string{round, "claude-project-tool-error-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"round claude rejected card is not empty", "claude", round, []string{round, "claude-project-rejected-card-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round after unattended delegation (skill call)", "claude", round, []string{round, "claude-project-unattended-after-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"round before unattended delegation still fails", "claude", round, []string{round, "claude-project-unattended-before-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round after unattended delegation (SKILL.md read)", "codex", round, []string{round, "codex-rollout-unattended-read-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"round with a compact summary inside its turn", "claude", round, []string{round, "claude-project-compact-summary-pass.jsonl"}, auditOptions{}, "pass"},
-		{"round with an interruption notice inside its turn", "claude", round, []string{round, "claude-project-interrupted-pass.jsonl"}, auditOptions{}, "pass"},
-		{"round grok UserDeclined is a decline", "grok", round, []string{round, "grok-updates-userdeclined-fail.jsonl"}, auditOptions{}, "fail"},
-		{"round grok failed status is a decline", "grok", round, []string{round, "grok-updates-failed-status-fail.jsonl"}, auditOptions{}, "fail"},
-		{"skill claude review", "claude", skill, []string{skill, "claude-project-review.jsonl"}, auditOptions{Cwd: "elsewhere"}, "review"},
-		{"skill claude pass", "claude", skill, []string{skill, "claude-project-pass.jsonl"}, auditOptions{Cwd: "elsewhere"}, "pass"},
-		{"skill codex spanish verb", "codex", skill, []string{skill, "codex-rollout-review.jsonl"}, auditOptions{Cwd: "elsewhere"}, "review"},
-		{"assessment codex ends without a card, block or command", "codex", assess, []string{assess, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
-		{"assessment codex ends with the next-step block", "codex", assess, []string{assess, "codex-rollout-block-pass.jsonl"}, auditOptions{}, "pass"},
-		{"assessment codex ends with a card", "codex", assess, []string{assess, "codex-rollout-card-pass.jsonl"}, auditOptions{}, "pass"},
-		{"assessment codex ends with an open question in text", "codex", assess, []string{assess, "codex-rollout-open-question-review.jsonl"}, auditOptions{}, "review"},
-		{"assessment codex ticket without hive-mode", "codex", assess, []string{assess, "codex-rollout-no-hive-mode-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"assessment codex ticket-status playbook", "codex", assess, []string{assess, "codex-rollout-ticket-status-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"assessment codex standard prefix is not a ticket", "codex", assess, []string{assess, "codex-rollout-standard-prefix-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"assessment codex github issue number", "codex", assess, []string{assess, "codex-rollout-github-issue-fail.jsonl"}, auditOptions{}, "fail"},
-		{"assessment claude skill call, no ending", "claude", assess, []string{assess, "claude-project-fail.jsonl"}, auditOptions{}, "fail"},
-		{"assessment claude ends with a card", "claude", assess, []string{assess, "claude-project-card-pass.jsonl"}, auditOptions{}, "pass"},
-		{"assessment claude ends with the answers block", "claude", assess, []string{assess, "claude-project-answers-block-pass.jsonl"}, auditOptions{}, "pass"},
-		{"assessment claude turn that follows a flow command", "claude", assess, []string{assess, "claude-project-flow-command-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"feed codex interpolated block with a trap that tails its log", "codex", feed, []string{feed, "codex-rollout-interpolated-trap-fail.jsonl"}, auditOptions{}, "fail"},
-		{"feed codex reader inside the redirected block", "codex", feed, []string{feed, "codex-rollout-reader-in-block-fail.jsonl"}, auditOptions{}, "fail"},
-		{"feed claude exec redirect with a trap that cats the file", "claude", feed, []string{feed, "claude-project-exec-trap-fail.jsonl"}, auditOptions{}, "fail"},
-		{"feed claude simple command redirect with a trap", "claude", feed, []string{feed, "claude-project-simple-trap-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"feed claude block redirect then a tail after an or", "claude", feed, []string{feed, "claude-project-or-tail-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"feed claude output in one command, tail in another", "claude", feed, []string{feed, "claude-project-two-commands-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"feed claude run_check helper", "claude", feed, []string{feed, "claude-project-run-check-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"feed codex the same interpolation is the same file", "codex", feed, []string{feed, "codex-rollout-interpolated-same-fail.jsonl"}, auditOptions{}, "fail"},
-		{"feed codex distinct interpolations are different files", "codex", feed, []string{feed, "codex-rollout-interpolated-distinct-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"feed claude stderr-only exec redirect", "claude", feed, []string{feed, "claude-project-stderr-exec-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"feed claude exec saves fd 3 then redirects stdout", "claude", feed, []string{feed, "claude-project-fd3-save-fail.jsonl"}, auditOptions{}, "fail"},
-		{"feed claude reader before the stdout restore", "claude", feed, []string{feed, "claude-project-reader-before-restore-fail.jsonl"}, auditOptions{}, "fail"},
-		{"feed claude reader after the stdout restore", "claude", feed, []string{feed, "claude-project-reader-after-restore-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"feed claude pattern inside a python heredoc", "claude", feed, []string{feed, "claude-project-python-heredoc-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"reply claude italic bullets without letters", "claude", reply, []string{reply, "claude-project-italic-bullets-fail.jsonl"}, auditOptions{}, "fail"},
-		{"reply claude italic bullets after reading the rule", "claude", reply, []string{reply, "claude-project-italic-read-fail.jsonl"}, auditOptions{}, "fail"},
-		{"reply claude heading with the arrow and letters", "claude", reply, []string{reply, "claude-project-lettered-block-pass.jsonl"}, auditOptions{}, "pass"},
-		{"reply claude heading with its D ID and letters without list markers", "claude", reply, []string{reply, "claude-project-id-heading-pass.jsonl"}, auditOptions{}, "pass"},
-		{"format claude a reply block with its D ID is not a decision round", "claude", format, []string{reply, "claude-project-id-heading-pass.jsonl"}, auditOptions{}, "not_observed"},
-		{"reply claude bold question heading and letters", "claude", reply, []string{reply, "claude-project-bold-question-pass.jsonl"}, auditOptions{}, "pass"},
-		{"reply claude letters without a heading", "claude", reply, []string{reply, "claude-project-letters-no-heading-fail.jsonl"}, auditOptions{}, "fail"},
-		{"reply claude report ending in bold-labeled findings", "claude", reply, []string{reply, "claude-project-bold-findings-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"reply claude decision round written in text", "claude", reply, []string{reply, "claude-project-text-round-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"reply claude ending with flow commands", "claude", reply, []string{reply, "claude-project-flow-command-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"reply claude an earlier turn ended badly", "claude", reply, []string{reply, "claude-project-earlier-turn-fail.jsonl"}, auditOptions{}, "fail"},
-		{"reply claude sidechain transcript is not judged", "claude", reply, []string{reply, "claude-project-sidechain-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"reply codex italic bullets", "codex", reply, []string{reply, "codex-rollout-italic-fail.jsonl"}, auditOptions{}, "fail"},
-		{"reply codex lettered block", "codex", reply, []string{reply, "codex-rollout-lettered-pass.jsonl"}, auditOptions{}, "pass"},
-		{"reply codex report ending with no replies", "codex", reply, []string{reply, "codex-rollout-no-replies-fail.jsonl"}, auditOptions{}, "fail"},
-		{"reply codex scratch write in /tmp keeps it an analysis", "codex", reply, []string{reply, "codex-rollout-temp-write-fail.jsonl"}, auditOptions{}, "fail"},
-		{"reply codex short answer is not judged", "codex", reply, []string{reply, "codex-rollout-short-answer-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"reply codex turn that patched a file is not judged", "codex", reply, []string{reply, "codex-rollout-edit-turn-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"reply claude turn that wrote a file is not judged", "claude", reply, []string{reply, "claude-project-write-turn-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"reply claude refused write keeps it an analysis", "claude", reply, []string{reply, "claude-project-denied-write-fail.jsonl"}, auditOptions{}, "fail"},
-		{"reply codex bare report in a turn without hive-mode is not judged", "codex", reply, []string{reply, "codex-rollout-no-hive-mode-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"reply grok italic bullets", "grok", reply, []string{reply, "grok-updates-italic-fail.jsonl"}, auditOptions{}, "fail"},
-		{"reply grok lettered block", "grok", reply, []string{reply, "grok-updates-lettered-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude a background loop with sleep and no deadline", "claude", wait, []string{"unbounded_background_wait", "claude-project-unbounded-fail.jsonl"}, auditOptions{}, "fail"},
-		{"wait claude timeout wrapping the loop", "claude", wait, []string{"unbounded_background_wait", "claude-project-timeout-wrap-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude timeout only inside the loop body", "claude", wait, []string{"unbounded_background_wait", "claude-project-timeout-body-fail.jsonl"}, auditOptions{}, "fail"},
-		{"wait claude a for loop over a finite list", "claude", wait, []string{"unbounded_background_wait", "claude-project-seq-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude a counter compared to a limit that exits", "claude", wait, []string{"unbounded_background_wait", "claude-project-counter-exit-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude SECONDS only printed", "claude", wait, []string{"unbounded_background_wait", "claude-project-seconds-print-fail.jsonl"}, auditOptions{}, "fail"},
-		{"wait claude SECONDS compared in the until condition", "claude", wait, []string{"unbounded_background_wait", "claude-project-seconds-limit-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude a foreground loop", "claude", wait, []string{"unbounded_background_wait", "claude-project-foreground-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"wait claude run_in_background false", "claude", wait, []string{"unbounded_background_wait", "claude-project-background-false-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"wait claude a background command without a loop", "claude", wait, []string{"unbounded_background_wait", "claude-project-no-loop-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"wait grok a loop with block_until_ms 0 and no deadline", "grok", wait, []string{"unbounded_background_wait", "grok-updates-unbounded-fail.jsonl"}, auditOptions{}, "fail"},
-		{"wait grok timeout wrapping the loop", "grok", wait, []string{"unbounded_background_wait", "grok-updates-timeout-wrap-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait grok a counter compared to a limit that exits", "grok", wait, []string{"unbounded_background_wait", "grok-updates-counter-exit-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait grok block_until_ms above 0", "grok", wait, []string{"unbounded_background_wait", "grok-updates-blocking-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"wait grok no block_until_ms", "grok", wait, []string{"unbounded_background_wait", "grok-updates-no-block-field-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"wait codex the host does not mark a background command", "codex", wait, []string{"unbounded_background_wait", "codex-rollout-unbounded-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"wait claude a loop after then", "claude", wait, []string{"unbounded_background_wait", "claude-project-then-while-fail.jsonl"}, auditOptions{}, "fail"},
-		{"wait claude a loop in a subshell", "claude", wait, []string{"unbounded_background_wait", "claude-project-subshell-while-fail.jsonl"}, auditOptions{}, "fail"},
-		{"wait claude a C-style for with a counter limit", "claude", wait, []string{"unbounded_background_wait", "claude-project-c-style-limit-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude a C-style for with a constant condition", "claude", wait, []string{"unbounded_background_wait", "claude-project-c-style-always-true-fail.jsonl"}, auditOptions{}, "fail"},
-		{"wait claude a C-style for without a condition", "claude", wait, []string{"unbounded_background_wait", "claude-project-c-style-empty-fail.jsonl"}, auditOptions{}, "fail"},
-		{"wait claude a counter limit in the while condition", "claude", wait, []string{"unbounded_background_wait", "claude-project-while-condition-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude a SECONDS test inside an if in the body", "claude", wait, []string{"unbounded_background_wait", "claude-project-seconds-if-in-body-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude a SECONDS test followed by a brace group", "claude", wait, []string{"unbounded_background_wait", "claude-project-seconds-brace-exit-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude a decrementing counter in the condition", "claude", wait, []string{"unbounded_background_wait", "claude-project-decrement-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude the limit on the left of the comparison", "claude", wait, []string{"unbounded_background_wait", "claude-project-limit-first-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude SECONDS compared with an or-exit", "claude", wait, []string{"unbounded_background_wait", "claude-project-seconds-or-exit-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude a C-style for with spaces", "claude", wait, []string{"unbounded_background_wait", "claude-project-c-style-spaced-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude timeout after then", "claude", wait, []string{"unbounded_background_wait", "claude-project-then-timeout-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude a counter inside a double-bracket and", "claude", wait, []string{"unbounded_background_wait", "claude-project-double-bracket-and-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude /bin/sleep in a negated condition loop", "claude", wait, []string{"unbounded_background_wait", "claude-project-absolute-sleep-fail.jsonl"}, auditOptions{}, "fail"},
-		{"wait claude an outer loop whose only sleep is in a timeout-wrapped inner loop", "claude", wait, []string{"unbounded_background_wait", "claude-project-outer-nested-timeout-fail.jsonl"}, auditOptions{}, "fail"},
-		{"wait claude a loop after a background command", "claude", wait, []string{"unbounded_background_wait", "claude-project-background-before-loop-fail.jsonl"}, auditOptions{}, "fail"},
-		{"wait claude an unbounded outer loop around a bounded inner loop", "claude", wait, []string{"unbounded_background_wait", "claude-project-nested-inner-bounded-fail.jsonl"}, auditOptions{}, "fail"},
-		{"wait claude a counter compared with -eq", "claude", wait, []string{"unbounded_background_wait", "claude-project-counter-eq-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude a counter compared with == in arithmetic", "claude", wait, []string{"unbounded_background_wait", "claude-project-counter-arith-eq-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude a loop keyword in a heredoc line", "claude", wait, []string{"unbounded_background_wait", "claude-project-heredoc-for-fail.jsonl"}, auditOptions{}, "fail"},
-		{"wait claude a variable named MAX_SECONDS is not the clock", "claude", wait, []string{"unbounded_background_wait", "claude-project-max-seconds-name-fail.jsonl"}, auditOptions{}, "fail"},
-		{"wait claude a C-style for with do on the same line", "claude", wait, []string{"unbounded_background_wait", "claude-project-c-style-do-glued-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude a sleep inside an echoed sentence", "claude", wait, []string{"unbounded_background_wait", "claude-project-echoed-sleep-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"wait claude a loop inside an echoed sentence", "claude", wait, []string{"unbounded_background_wait", "claude-project-echoed-loop-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"wait claude timeout after env", "claude", wait, []string{"unbounded_background_wait", "claude-project-env-timeout-pass.jsonl"}, auditOptions{}, "pass"},
-		{"wait claude a sleep in a subshell", "claude", wait, []string{"unbounded_background_wait", "claude-project-subshell-sleep-fail.jsonl"}, auditOptions{}, "fail"},
-		{"card options claude options that lost their letters", "claude", cards, []string{cards, "claude-project-trailing-star-fail.jsonl"}, auditOptions{}, "fail"},
-		{"card options claude cards in format, session questions included", "claude", cards, []string{cards, "claude-project-pass.jsonl"}, auditOptions{}, "pass"},
-		{"card options claude multiple choice with letters and several marks", "claude", cards, []string{cards, "claude-project-multiselect-pass.jsonl"}, auditOptions{}, "pass"},
-		{"card options claude the mark on the second option", "claude", cards, []string{cards, "claude-project-second-star-fail.jsonl"}, auditOptions{}, "fail"},
-		{"card options claude a single choice with no mark", "claude", cards, []string{cards, "claude-project-no-mark-fail.jsonl"}, auditOptions{}, "fail"},
-		{"card options claude a star quoted inside another option", "claude", cards, []string{cards, "claude-project-quoted-star-pass.jsonl"}, auditOptions{}, "pass"},
-		{"card options claude a rejected card without letters", "claude", cards, []string{cards, "claude-project-rejected-fail.jsonl"}, auditOptions{}, "fail"},
-		{"card options claude a card with no result without letters", "claude", cards, []string{cards, "claude-project-no-result-fail.jsonl"}, auditOptions{}, "fail"},
-		{"card options claude a Spanish marker no host asks for", "claude", cards, []string{cards, "claude-project-spanish-marker-fail.jsonl"}, auditOptions{}, "fail"},
-		{"card options claude a child session", "claude", cards, []string{cards, "claude-project-sidechain-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"card options claude no card", "claude", cards, []string{cards, "claude-project-nocard-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"card options codex a middle dot after the letter", "codex", cards, []string{cards, "codex-rollout-middle-dot-fail.jsonl"}, auditOptions{}, "fail"},
-		{"card options codex the host's recommended marker", "codex", cards, []string{cards, "codex-rollout-host-marker-pass.jsonl"}, auditOptions{}, "pass"},
-		{"card options codex an async card is not judged", "codex", cards, []string{cards, "codex-rollout-async-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"card options grok a card in format", "grok", cards, []string{cards, "grok-updates-pass.jsonl"}, auditOptions{}, "pass"},
-		{"card options claude a card the host refused for invalid input", "claude", cards, []string{cards, "claude-project-invalid-input-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"card options claude two options with the same letter", "claude", cards, []string{cards, "claude-project-repeated-letter-fail.jsonl"}, auditOptions{}, "fail"},
-		{"card options claude a card closed by another error was shown", "claude", cards, []string{cards, "claude-project-timeout-error-fail.jsonl"}, auditOptions{}, "fail"},
-		{"change folder codex patched and never committed", "codex", folder, []string{folder, "codex-rollout-patch-fail.jsonl"}, auditOptions{}, "fail"},
-		{"change folder codex written by Path.write_text in a heredoc", "codex", folder, []string{folder, "codex-rollout-write-text-fail.jsonl"}, auditOptions{}, "fail"},
-		{"change folder codex versioned exited 1", "codex", folder, []string{folder, "codex-rollout-versioned-failed-fail.jsonl"}, auditOptions{}, "fail"},
-		{"change folder codex commit of other paths beside a tasks.py record", "codex", folder, []string{folder, "codex-rollout-commit-of-other-paths-fail.jsonl"}, auditOptions{}, "fail"},
-		{"change folder codex committed naming the folder", "codex", folder, []string{folder, "codex-rollout-redirect-commit-pass.jsonl"}, auditOptions{}, "pass"},
-		{"change folder codex versioned exited 0", "codex", folder, []string{folder, "codex-rollout-versioned-pass.jsonl"}, auditOptions{}, "pass"},
-		{"change folder codex no text after the merge", "codex", folder, []string{folder, "codex-rollout-no-text-review.jsonl"}, auditOptions{}, "review"},
-		{"change folder codex only a checkpoint after the merge", "codex", folder, []string{folder, "codex-rollout-checkpoint-only-review.jsonl"}, auditOptions{}, "review"},
-		{"change folder codex checkpoint written with --out after the merge", "codex", folder, []string{folder, "codex-rollout-checkpoint-out-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"change folder codex folder only read", "codex", folder, []string{folder, "codex-rollout-read-only-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"change folder codex no merge", "codex", folder, []string{folder, "codex-rollout-no-merge-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"change folder codex archived folder", "codex", folder, []string{folder, "codex-rollout-archive-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"change folder codex merge exited non-zero", "codex", folder, []string{folder, "codex-rollout-failed-merge-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"change folder claude written and merged with --delete-branch", "claude", folder, []string{folder, "claude-project-write-fail.jsonl"}, auditOptions{}, "fail"},
-		{"change folder claude committed after add", "claude", folder, []string{folder, "claude-project-commit-pass.jsonl"}, auditOptions{}, "pass"},
-		{"change folder claude folder only read", "claude", folder, []string{folder, "claude-project-read-only-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"change folder claude commit paths built from a shell variable", "claude", folder, []string{folder, "claude-project-variable-commit-pass.jsonl"}, auditOptions{}, "pass"},
-		{"change folder claude variable names other paths", "claude", folder, []string{folder, "claude-project-variable-other-paths-fail.jsonl"}, auditOptions{}, "fail"},
-		{"change folder claude renamed then committed under the new name", "claude", folder, []string{folder, "claude-project-rename-commit-pass.jsonl"}, auditOptions{}, "pass"},
-		{"change folder claude renamed after its commit and not committed again", "claude", folder, []string{folder, "claude-project-rename-uncommitted-fail.jsonl"}, auditOptions{}, "fail"},
-		{"change folder claude staged in one call and committed in another", "claude", folder, []string{folder, "claude-project-staged-in-another-call-pass.jsonl"}, auditOptions{}, "pass"},
-		{"change folder claude git add -A may have taken the folder", "claude", folder, []string{folder, "claude-project-add-all-review.jsonl"}, auditOptions{}, "review"},
-		{"change folder claude edited after the commit and before the merge", "claude", folder, []string{folder, "claude-project-edit-after-commit-fail.jsonl"}, auditOptions{}, "fail"},
-		{"change folder claude add in the specs repository and commit in the code repository", "claude", folder, []string{folder, "claude-project-add-in-specs-commit-in-code-fail.jsonl"}, auditOptions{}, "fail"},
-		{"change folder claude code commit first and specs commit last", "claude", folder, []string{folder, "claude-project-code-commit-then-specs-commit-pass.jsonl"}, auditOptions{}, "pass"},
-		{"full_suite_after_text_fix claude a markdown edit between two plain runs", "claude", suite, []string{suite, "claude-project-text-edit-fail.jsonl"}, auditOptions{}, "fail"},
-		{"full_suite_after_text_fix claude two passing runs with nothing between them", "claude", suite, []string{suite, "claude-project-no-change-fail.jsonl"}, auditOptions{}, "fail"},
-		{"full_suite_after_text_fix claude git add and commit are not changes", "claude", suite, []string{suite, "claude-project-commit-between-fail.jsonl"}, auditOptions{}, "fail"},
-		{"full_suite_after_text_fix claude piped runs with a PIPESTATUS echo are not shown to pass", "claude", suite, []string{suite, "claude-project-pipestatus-review.jsonl"}, auditOptions{}, "review"},
-		{"full_suite_after_text_fix claude pnpm test runs shown passing by exit=0", "claude", suite, []string{suite, "claude-project-pnpm-exit-fail.jsonl"}, auditOptions{}, "fail"},
-		{"full_suite_after_text_fix claude a shell write to a markdown file", "claude", suite, []string{suite, "claude-project-shell-md-write-fail.jsonl"}, auditOptions{}, "fail"},
-		{"full_suite_after_text_fix claude a Python write of a markdown file named in the script", "claude", suite, []string{suite, "claude-project-python-literal-md-write-fail.jsonl"}, auditOptions{}, "fail"},
-		{"full_suite_after_text_fix claude a scratch write in the temporary folder", "claude", suite, []string{suite, "claude-project-temp-write-fail.jsonl"}, auditOptions{}, "fail"},
-		{"full_suite_after_text_fix claude cd and go -C name the same directory", "claude", suite, []string{suite, "claude-project-cd-run-fail.jsonl"}, auditOptions{}, "fail"},
-		{"full_suite_after_text_fix claude a code edit beside the markdown edit", "claude", suite, []string{suite, "claude-project-code-edit-pass.jsonl"}, auditOptions{}, "pass"},
-		{"full_suite_after_text_fix claude a shell edit of a Go file", "claude", suite, []string{suite, "claude-project-shell-sed-go-pass.jsonl"}, auditOptions{}, "pass"},
-		{"full_suite_after_text_fix claude a rebase between the runs", "claude", suite, []string{suite, "claude-project-rebase-between-pass.jsonl"}, auditOptions{}, "pass"},
-		{"full_suite_after_text_fix claude piped runs without a pass line", "claude", suite, []string{suite, "claude-project-pipe-unproven-review.jsonl"}, auditOptions{}, "review"},
-		{"full_suite_after_text_fix claude the first run failed", "claude", suite, []string{suite, "claude-project-first-failed-review.jsonl"}, auditOptions{}, "review"},
-		{"full_suite_after_text_fix claude a shell write with an unresolved target", "claude", suite, []string{suite, "claude-project-shell-unknown-target-review.jsonl"}, auditOptions{}, "review"},
-		{"full_suite_after_text_fix claude a first run launched in the background", "claude", suite, []string{suite, "claude-project-background-run-review.jsonl"}, auditOptions{}, "review"},
-		{"full_suite_after_text_fix claude an exit line printed by another command", "claude", suite, []string{suite, "claude-project-other-command-status-review.jsonl"}, auditOptions{}, "review"},
-		{"full_suite_after_text_fix claude a known code write by a script after the run in the same call", "claude", suite, []string{suite, "claude-project-python-after-run-pass.jsonl"}, auditOptions{}, "pass"},
-		{"full_suite_after_text_fix claude an unknown script write after the run in the same call", "claude", suite, []string{suite, "claude-project-python-variable-after-run-review.jsonl"}, auditOptions{}, "review"},
-		{"full_suite_after_text_fix claude printf of the status counts like echo", "claude", suite, []string{suite, "claude-project-printf-status-fail.jsonl"}, auditOptions{}, "fail"},
-		{"full_suite_after_text_fix claude a printf whose line never holds the status", "claude", suite, []string{suite, "claude-project-printf-no-status-review.jsonl"}, auditOptions{}, "review"},
-		{"full_suite_after_text_fix claude a printf whose status argument no conversion prints", "claude", suite, []string{suite, "claude-project-printf-status-argument-unused-review.jsonl"}, auditOptions{}, "review"},
-		{"full_suite_after_text_fix claude a double-quoted printf format keeps its escapes", "claude", suite, []string{suite, "claude-project-printf-double-quoted-fail.jsonl"}, auditOptions{}, "fail"},
-		{"full_suite_after_text_fix claude a pipe inside a bash -c argument", "claude", suite, []string{suite, "claude-project-bash-c-pipe-review.jsonl"}, auditOptions{}, "review"},
-		{"full_suite_after_text_fix claude a text file under testdata is not text", "claude", suite, []string{suite, "claude-project-testdata-text-pass.jsonl"}, auditOptions{}, "pass"},
-		{"full_suite_after_text_fix claude a Markdown file under tests/fixtures is not text", "claude", suite, []string{suite, "claude-project-fixtures-text-pass.jsonl"}, auditOptions{}, "pass"},
-		{"full_suite_after_text_fix claude a first run with no tool result", "claude", suite, []string{suite, "claude-project-no-result-review.jsonl"}, auditOptions{}, "review"},
-		{"full_suite_after_text_fix claude status echoes of commands run in the background", "claude", suite, []string{suite, "claude-project-background-group-status-review.jsonl"}, auditOptions{}, "review"},
-		{"full_suite_after_text_fix claude two commands print the same status text", "claude", suite, []string{suite, "claude-project-same-status-text-review.jsonl"}, auditOptions{}, "review"},
-		{"full_suite_after_text_fix claude a PIPESTATUS echo that belongs to another pipeline", "claude", suite, []string{suite, "claude-project-other-pipeline-status-review.jsonl"}, auditOptions{}, "review"},
-		{"full_suite_after_text_fix claude an exit line that only contains the run's status text", "claude", suite, []string{suite, "claude-project-contained-status-line-review.jsonl"}, auditOptions{}, "review"},
-		{"full_suite_after_text_fix claude a status line that ends with the run's status text", "claude", suite, []string{suite, "claude-project-status-suffix-review.jsonl"}, auditOptions{}, "review"},
-		{"full_suite_after_text_fix codex a plain Codex run, a README patch and a rerun", "codex", suite, []string{suite, "codex-rollout-text-edit-fail.jsonl"}, auditOptions{}, "fail"},
-		{"full_suite_after_text_fix claude the status of the run echoed right after it", "claude", suite, []string{suite, "claude-project-echo-status-fail.jsonl"}, auditOptions{}, "fail"},
-		{"full_suite_after_text_fix claude a piped run is not shown by a PIPESTATUS echo beside another exit line", "claude", suite, []string{suite, "claude-project-piped-own-status-review.jsonl"}, auditOptions{}, "review"},
-		{"full_suite_after_text_fix claude a Python write whose target is a variable", "claude", suite, []string{suite, "claude-project-python-write-review.jsonl"}, auditOptions{}, "review"},
-		{"full_suite_after_text_fix claude one run", "claude", suite, []string{suite, "claude-project-one-run-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"full_suite_after_text_fix claude runs filtered by -run", "claude", suite, []string{suite, "claude-project-filtered-run-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"full_suite_after_text_fix claude runs of one sub-package", "claude", suite, []string{suite, "claude-project-subpackage-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"full_suite_after_text_fix claude a push between the runs", "claude", suite, []string{suite, "claude-project-push-between-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"full_suite_after_text_fix claude a merge between the runs", "claude", suite, []string{suite, "claude-project-merge-between-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"full_suite_after_text_fix claude a new branch between the runs", "claude", suite, []string{suite, "claude-project-new-branch-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"full_suite_after_text_fix claude runs in two directories", "claude", suite, []string{suite, "claude-project-other-directory-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"full_suite_after_text_fix claude suite text inside arguments", "claude", suite, []string{suite, "claude-project-echoed-suite-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"review_rounds_per_candidate claude three code-review skill rounds", "claude", rounds, []string{rounds, "claude-project-three-skill-rounds-fail.jsonl"}, auditOptions{}, "fail"},
-		{"review_rounds_per_candidate claude four review agent rounds", "claude", rounds, []string{rounds, "claude-project-four-agent-rounds-fail.jsonl"}, auditOptions{}, "fail"},
-		{"review_rounds_per_candidate claude two rounds", "claude", rounds, []string{rounds, "claude-project-two-rounds-pass.jsonl"}, auditOptions{}, "pass"},
-		{"review_rounds_per_candidate claude three agents in one message are one round", "claude", rounds, []string{rounds, "claude-project-one-message-pass.jsonl"}, auditOptions{}, "pass"},
-		{"review_rounds_per_candidate claude a push resets the count", "claude", rounds, []string{rounds, "claude-project-push-resets-pass.jsonl"}, auditOptions{}, "pass"},
-		{"review_rounds_per_candidate claude a merge resets the count", "claude", rounds, []string{rounds, "claude-project-merge-resets-pass.jsonl"}, auditOptions{}, "pass"},
-		{"review_rounds_per_candidate claude a flow load resets the count", "claude", rounds, []string{rounds, "claude-project-flow-load-resets-pass.jsonl"}, auditOptions{}, "pass"},
-		{"review_rounds_per_candidate claude a branch switch resets the count", "claude", rounds, []string{rounds, "claude-project-branch-switch-resets-pass.jsonl"}, auditOptions{}, "pass"},
-		{"rounds claude a typed /code-review and its skill launch are one round", "claude", rounds, []string{rounds, "claude-project-typed-and-skill-one-round-pass.jsonl"}, auditOptions{}, "pass"},
-		{"rounds claude git checkout of a path is not a branch change", "claude", rounds, []string{rounds, "claude-project-checkout-paths-fail.jsonl"}, auditOptions{}, "fail"},
-		{"rounds claude git restore of paths is not a branch change", "claude", rounds, []string{rounds, "claude-project-restore-paths-fail.jsonl"}, auditOptions{}, "fail"},
-		{"rounds claude git checkout of a branch resets the count", "claude", rounds, []string{rounds, "claude-project-checkout-branch-resets-pass.jsonl"}, auditOptions{}, "pass"},
-		{"rounds claude a branch change between the typed command and its launch", "claude", rounds, []string{rounds, "claude-project-typed-then-reset-fail.jsonl"}, auditOptions{}, "fail"},
-		{"rounds claude git checkout of a branch with a dot resets the count", "claude", rounds, []string{rounds, "claude-project-checkout-dotted-branch-resets-pass.jsonl"}, auditOptions{}, "pass"},
-		{"rounds claude git checkout of a branch followed by -- resets the count", "claude", rounds, []string{rounds, "claude-project-checkout-branch-then-dashes-resets-pass.jsonl"}, auditOptions{}, "pass"},
-		{"review_rounds_per_candidate claude a typed /code-review before two more rounds", "claude", rounds, []string{rounds, "claude-project-typed-first-review.jsonl"}, auditOptions{}, "review"},
-		{"review_rounds_per_candidate claude no review", "claude", rounds, []string{rounds, "claude-project-no-review-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"review_rounds_per_candidate claude a child session", "claude", rounds, []string{rounds, "claude-project-sidechain-notobserved.jsonl"}, auditOptions{}, "not_observed"},
-		{"rounds codex another host", "codex", rounds, []string{rounds, "codex-rollout-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+	cases := []sessionCase{
+		{name: "reply claude italic bullets without letters", host: "claude", criterion: reply, want: "fail", evidence: []string{"not read"}, transcript: `
+{"type": "user", "timestamp": "2026-01-01T10:00:01.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": "Analyze the cache."}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:02.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "**Analysis · EX · the cache is read twice**\n\nThe loader reads the cache before and after the lock.\n\nWaiting for your reply. You can answer:\n\n- *Fix it* — I remove the second read.\n- *Leave it* — I record it as known."}]}}
+`},
+		{name: "reply claude italic bullets after reading the rule", host: "claude", criterion: reply, want: "fail", evidence: []string{"was read"}, transcript: `
+{"type": "user", "timestamp": "2026-01-01T10:00:01.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": "Analyze the cache."}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:02.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "t2", "name": "Read", "input": {"file_path": "/home/example/.agents/skills/hive-rule-report-endings/SKILL.md"}}]}}
+{"type": "user", "timestamp": "2026-01-01T10:00:03.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t2", "content": "ok", "is_error": false}]}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:04.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_4", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "**Analysis · EX · the cache is read twice**\n\nThe loader reads the cache before and after the lock.\n\nWaiting for your reply. You can answer:\n\n- *Fix it* — I remove the second read.\n- *Leave it* — I record it as known."}]}}
+`},
+		{name: "reply codex report ending with no replies", host: "codex", criterion: reply, want: "fail", evidence: []string{"without a reply block; report-endings rule was read"}, transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000cc", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "Analyze the video and propose a few screens."}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "custom_tool_call", "name": "exec", "call_id": "p0", "input": "text(await tools.exec_command({cmd:\"cat /home/example/.agents/skills/hive-mode/SKILL.md /home/example/.agents/skills/hive-rule-report-endings/SKILL.md\"}));"}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "response_item", "payload": {"type": "custom_tool_call_output", "call_id": "p0", "output": "ok"}}
+{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m0", "content": [{"type": "output_text", "text": "**Análisis · EX · Propuesta**\n\nEl estilo del video encaja con la app.\n\n1. **Antes de checar.** Hora actual y **Checar entrada**.\n2. **Confirmar.** Un arco que se llena al mantener presionado.\n3. **Jornada en curso.** Tiempo registrado hoy.\n4. **Comida en curso.** Tiempo desde la pausa.\n\nEl alcance termina en el análisis. Queda pendiente tu visto bueno para dibujar las cuatro vistas."}]}}
+{"timestamp": "2026-01-01T11:00:09.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{name: "reply claude heading with the arrow and letters", host: "claude", criterion: reply, want: "pass", transcript: `
+{"type": "user", "timestamp": "2026-01-01T10:00:01.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": "Analyze the cache."}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:02.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "**Analysis · EX · the cache is read twice**\n\nThe loader reads the cache before and after the lock.\n\n**▶ How do we continue?**\n\nA — (★) Fix it: removes the second read.\nB — Leave it: record it as known."}]}}
+`},
+		{name: "async card as the only tool, no round in the text", host: "codex", criterion: asyncCard, want: "fail", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000d1", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}, {"type": "function", "name": "request_user_input_async"}]}]}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "Continue"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m0", "content": [{"type": "output_text", "text": "Asking the delivery now."}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "request_user_input_async", "call_id": "q1", "arguments": "{\"questions\": [{\"id\": \"a\", \"header\": \"D1\", \"question\": \"Which delivery mode?\", \"options\": [\"Interactive\", \"Hold\"]}]}"}}
+{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "q1", "output": "{\"accepted\": true}"}}
+{"timestamp": "2026-01-01T11:00:09.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{name: "async card as the only tool, round written first", host: "codex", criterion: asyncCard, want: "pass", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000d1", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}, {"type": "function", "name": "request_user_input_async"}]}]}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "Continue"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m0", "content": [{"type": "output_text", "text": "**Build · EX-1 · delivery**\n\nD1 — Which delivery mode?\n\nSituation: the change touches one example file.\n\nA - (★) Interactive\nIf you choose it: you validate before the push.\n\nB - Hold\nIf you choose it: nothing is published.\n\nI recommend A: you see it first.\n\nWaiting for D1."}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "request_user_input_async", "call_id": "q1", "arguments": "{\"questions\": [{\"id\": \"a\", \"header\": \"D1\", \"question\": \"Which delivery mode?\", \"options\": [\"Interactive\", \"Hold\"]}]}"}}
+{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "q1", "output": "{\"accepted\": true}"}}
+{"timestamp": "2026-01-01T11:00:09.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{name: "card options claude options that lost their letters", host: "claude", criterion: cards, want: "fail", transcript: `
+{"type": "user", "message": {"role": "user", "content": "Continue"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_0", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "Round."}]}, "timestamp": "2026-01-01T11:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "q0", "name": "AskUserQuestion", "input": {"questions": [{"question": "D1 — Which delivery mode?", "header": "D1", "multiSelect": false, "options": [{"label": "Worktree propio (★)", "description": "x"}, {"label": "Checkout principal", "description": "x"}]}]}}]}, "timestamp": "2026-01-01T11:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "q0", "content": "Your questions have been answered.", "is_error": false}]}, "timestamp": "2026-01-01T11:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "card options claude cards in format, session questions included", host: "claude", criterion: cards, want: "pass", transcript: `
+{"type": "user", "message": {"role": "user", "content": "Continue"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_0", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "Round."}]}, "timestamp": "2026-01-01T11:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "q0", "name": "AskUserQuestion", "input": {"questions": [{"question": "D1 — Which approach?", "header": "D1", "multiSelect": false, "options": [{"label": "A - (★) Template", "description": "x"}, {"label": "B - Inline", "description": "x"}]}, {"question": "Delivery — Which delivery mode?", "header": "Delivery", "multiSelect": false, "options": [{"label": "A - (★) interactive", "description": "x"}, {"label": "B - automatic", "description": "x"}]}, {"question": "Review — Which review?", "header": "Review", "multiSelect": false, "options": [{"label": "A - (★) Native: Claude Code /code-review", "description": "x"}, {"label": "B - Agent: hive-review-code", "description": "x"}]}]}}]}, "timestamp": "2026-01-01T11:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "q0", "content": "Your questions have been answered.", "is_error": false}]}, "timestamp": "2026-01-01T11:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "change folder codex patched and never committed", host: "codex", criterion: folder, want: "fail", evidence: []string{"changes/demo-change", "rollout.jsonl:"}, transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000cf", "cwd": "/work/code", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "/work/code"}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "build DEMO-1"}]}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "FileChange", "id": "p4", "changes": {"/work/specs/openspec/changes/demo-change/proposal.md": {"type": "add", "content": "x"}}}}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "CommandExecution", "id": "c5", "command": ["/bin/zsh", "-lc", "python3 -I /skills/git-workflow/scripts/git_state.py commit --repo /work/code -m 'feat: demo' -- src/a.ts"], "status": "completed", "exit_code": 0, "aggregated_output": ""}}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "CommandExecution", "id": "c6", "command": ["/bin/zsh", "-lc", "cd /work/code && gh pr merge 7 --merge --match-head-commit abc123"], "status": "completed", "exit_code": 0, "aggregated_output": ""}}}
+{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m7", "content": [{"type": "output_text", "text": "Closed. The pull request is merged."}]}}
+`},
+		{name: "change folder codex versioned exited 0", host: "codex", criterion: folder, want: "pass", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000cf", "cwd": "/work/code", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "/work/code"}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "build DEMO-1"}]}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "FileChange", "id": "p4", "changes": {"/work/specs/openspec/changes/demo-change/design.md": {"type": "add", "content": "x"}}}}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "CommandExecution", "id": "c5", "command": ["/bin/zsh", "-lc", "cd /work/code && gh pr merge 7 --merge --match-head-commit abc123"], "status": "completed", "exit_code": 0, "aggregated_output": ""}}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "CommandExecution", "id": "c6", "command": ["/bin/zsh", "-lc", "python3 -I /skills/flow-plan/scripts/tasks.py /work/specs/openspec/changes/demo-change versioned --work-repo /work/code"], "status": "completed", "exit_code": 0, "aggregated_output": ""}}}
+{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m7", "content": [{"type": "output_text", "text": "Closed. The pull request is merged."}]}}
+`},
+		{name: "change folder codex no text after the merge", host: "codex", criterion: folder, want: "review", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000cf", "cwd": "/work/code", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "/work/code"}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "build DEMO-1"}]}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "FileChange", "id": "p4", "changes": {"/work/specs/openspec/changes/demo-change/design.md": {"type": "add", "content": "x"}}}}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "CommandExecution", "id": "c5", "command": ["/bin/zsh", "-lc", "cd /work/code && gh pr merge 7 --merge --match-head-commit abc123"], "status": "completed", "exit_code": 0, "aggregated_output": ""}}}
+`},
+		{name: "close claude fail", host: "claude", criterion: close, want: "fail", transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Merge it."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"m1","name":"Bash","input":{"command":"gh pr merge 1 --repo example/repo --merge","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"m1","content":"merged","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_2","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"**Close · EXAMPLE · integrated**\n\nThe change is merged into the base branch."}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:05.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_3","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"d1","name":"Bash","input":{"command":"git branch -d topic","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:06.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"d1","content":"deleted","is_error":false}]}}
+`},
+		{name: "close claude pass", host: "claude", criterion: close, want: "pass", transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Merge it."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"m1","name":"Bash","input":{"command":"gh pr merge 1 --repo example/repo --merge","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"m1","content":"merged","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_2","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"d1","name":"Bash","input":{"command":"git push origin --delete topic","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:05.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"d1","content":"deleted","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:06.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_3","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"**Close · EXAMPLE · integrated**\n\nThe change is merged into the base branch."}]}}
+`},
+		{name: "close report keeps a branch the session deleted", host: "claude", criterion: close, want: "review", transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Merge it."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"c1","name":"Bash","input":{"command":"gh pr merge 1 --repo example/repo --merge","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"c1","content":"merged","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_2","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"**Close · EXAMPLE · integrated**\n\nThe change is merged. kept \u0060topic\u0060: the user asked to keep it until the release."}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:05.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_3","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"c3","name":"Bash","input":{"command":"git branch -d topic","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:06.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"c3","content":"deleted","is_error":false}]}}
+`},
+		{name: "format codex decisions as bullets", host: "codex", criterion: format, want: "fail", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000aa", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}, {"type": "function", "name": "request_user_input"}]}]}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t3"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "go"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m5", "content": [{"type": "output_text", "text": "**EX-1 · Approved behavior**\n\nBefore editing, two delivery decisions remain:\n\n- **D1 · Delivery.** I recommend **\u0060hold\u0060**, which keeps the change local. Choose **\u0060interactive\u0060** to validate before the PR.\n- **D2 · Review.** I recommend **no dedicated review**. Choose **\u0060hive-review-code\u0060** for a second review.\n\nReply **with the recommended** to continue."}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t6"}}
+`},
+		{name: "format codex full round in text", host: "codex", criterion: format, want: "pass", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000aa", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t2"}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "go"}]}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m4", "content": [{"type": "output_text", "text": "**Build · EX-1 · delivery**\n\nD1 — Which delivery mode?\n\nSituation: the change touches one example file.\n\nA - (★) Interactive\nIf you choose it: you validate before the push.\n\nB - Hold\nIf you choose it: nothing is published.\n\nI recommend A: you see it first.\n\nWaiting for D1."}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t5"}}
+`},
+		{name: "route claude ok to a proposal starts build", host: "claude", criterion: route, want: "fail", transcript: `
+{"type": "user", "message": {"role": "user", "content": "Review ticket EX-1"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "**Proposal · EX-1 · return to Channels**\n\nThe arrow would go to Channels and keep the attempt.\n\nWaiting for your approval of the arrow's destination?"}]}, "timestamp": "2026-01-01T11:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": "ok"}, "timestamp": "2026-01-01T11:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_3", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "r1", "name": "Read", "input": {"file_path": "/home/example/.agents/skills/flow-build/SKILL.md"}}]}, "timestamp": "2026-01-01T11:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "r1", "content": "ok", "is_error": false}]}, "timestamp": "2026-01-01T11:00:05.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "route claude typed slash command", host: "claude", criterion: route, want: "pass", transcript: `
+{"type": "user", "message": {"role": "user", "content": "Review ticket EX-1"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "**Proposal · EX-1 · return to Channels**\n\nThe arrow would go to Channels and keep the attempt.\n\nWaiting for your approval of the arrow's destination?"}]}, "timestamp": "2026-01-01T11:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": "<command-message>flow-build</command-message>\n<command-name>/flow-build</command-name>"}, "timestamp": "2026-01-01T11:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_3", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "r1", "name": "Read", "input": {"file_path": "/home/example/.agents/skills/flow-build/SKILL.md"}}]}, "timestamp": "2026-01-01T11:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "r1", "content": "ok", "is_error": false}]}, "timestamp": "2026-01-01T11:00:05.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "route codex longer reply to a proposal", host: "codex", criterion: route, want: "review", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000aa", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}, {"type": "function", "name": "request_user_input"}]}]}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t3"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "Review ticket EX-1"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m5", "content": [{"type": "output_text", "text": "**Proposal · EX-1 · return to Channels**\n\nThe arrow would go to Channels and keep the attempt.\n\nWaiting for your approval of the arrow's destination?"}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t6"}}
+{"timestamp": "2026-01-01T11:00:08.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t7"}}
+{"timestamp": "2026-01-01T11:00:09.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "Return to Channels and also log the attempt"}]}}
+{"timestamp": "2026-01-01T11:00:10.000Z", "type": "response_item", "payload": {"type": "custom_tool_call", "name": "exec", "call_id": "call_1", "input": "text(await tools.exec_command({cmd:\"cat /home/example/.agents/skills/flow-build/SKILL.md\",yield_time_ms:1000}));"}}
+{"timestamp": "2026-01-01T11:00:11.000Z", "type": "response_item", "payload": {"type": "custom_tool_call_output", "call_id": "call_1", "output": [{"type": "input_text", "text": "Script completed"}, {"type": "input_text", "text": "{\"output\": \"ok\", \"exit_code\": 0}"}]}}
+{"timestamp": "2026-01-01T11:00:12.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t11"}}
+`},
+		{name: "full_suite_after_text_fix claude two passing runs with nothing between them", host: "claude", criterion: suite, want: "fail", transcript: `
+{"type": "user", "message": {"role": "user", "content": "Work on it."}, "timestamp": "2026-01-01T10:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "r1", "name": "Bash", "input": {"command": "go test -count=1 ./...", "description": "example"}}]}, "timestamp": "2026-01-01T10:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "r1", "content": "ok", "is_error": false}]}, "timestamp": "2026-01-01T10:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "r2", "name": "Bash", "input": {"command": "go test -count=1 ./...", "description": "example"}}]}, "timestamp": "2026-01-01T10:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "r2", "content": "ok", "is_error": false}]}, "timestamp": "2026-01-01T10:00:05.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_3", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "Done."}]}, "timestamp": "2026-01-01T10:00:06.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "full_suite_after_text_fix claude a code edit beside the markdown edit", host: "claude", criterion: suite, want: "pass", transcript: `
+{"type": "user", "message": {"role": "user", "content": "Work on it."}, "timestamp": "2026-01-01T10:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "r1", "name": "Bash", "input": {"command": "go test -count=1 ./...", "description": "example"}}]}, "timestamp": "2026-01-01T10:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "r1", "content": "ok", "is_error": false}]}, "timestamp": "2026-01-01T10:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "e1", "name": "Edit", "input": {"file_path": "/work/project/README.md", "old_string": "a", "new_string": "b"}}]}, "timestamp": "2026-01-01T10:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "e1", "content": "edited", "is_error": false}]}, "timestamp": "2026-01-01T10:00:05.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_3", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "e2", "name": "Edit", "input": {"file_path": "/work/project/main.go", "old_string": "a", "new_string": "b"}}]}, "timestamp": "2026-01-01T10:00:06.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "e2", "content": "edited", "is_error": false}]}, "timestamp": "2026-01-01T10:00:07.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_4", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "r2", "name": "Bash", "input": {"command": "go test -count=1 ./...", "description": "example"}}]}, "timestamp": "2026-01-01T10:00:08.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "r2", "content": "ok", "is_error": false}]}, "timestamp": "2026-01-01T10:00:09.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_5", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "Done."}]}, "timestamp": "2026-01-01T10:00:10.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "full_suite_after_text_fix claude piped runs with a PIPESTATUS echo are not shown to pass", host: "claude", criterion: suite, want: "review", transcript: `
+{"type": "user", "message": {"role": "user", "content": "Work on it."}, "timestamp": "2026-01-01T10:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "r1", "name": "Bash", "input": {"command": "go test -count=1 ./... 2>&1 | tail -3; echo PIPESTATUS=${PIPESTATUS[0]}", "description": "example"}}]}, "timestamp": "2026-01-01T10:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "r1", "content": "ok  \t./...\nPIPESTATUS=0", "is_error": false}]}, "timestamp": "2026-01-01T10:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "e1", "name": "Edit", "input": {"file_path": "/work/project/docs/guide.mdx", "old_string": "a", "new_string": "b"}}]}, "timestamp": "2026-01-01T10:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "e1", "content": "edited", "is_error": false}]}, "timestamp": "2026-01-01T10:00:05.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_3", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "r2", "name": "Bash", "input": {"command": "go test -count=1 ./... 2>&1 | tail -3; echo PIPESTATUS=${PIPESTATUS[0]}", "description": "example"}}]}, "timestamp": "2026-01-01T10:00:06.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "r2", "content": "ok", "is_error": false}]}, "timestamp": "2026-01-01T10:00:07.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_4", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "Done."}]}, "timestamp": "2026-01-01T10:00:08.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "leaf claude git add before the read", host: "claude", criterion: leaf, want: "fail", transcript: `
+{"type": "user", "timestamp": "2026-01-01T10:00:01.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": "Do the work."}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:02.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_0", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "t0", "name": "Bash", "input": {"command": "git add notes.txt"}}]}}
+{"type": "user", "timestamp": "2026-01-01T10:00:03.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t0", "content": "ok", "is_error": false}]}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:04.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "t1", "name": "Read", "input": {"file_path": "/home/example/.agents/skills/hive-rule-git-commit/SKILL.md"}}]}}
+{"type": "user", "timestamp": "2026-01-01T10:00:05.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t1", "content": "ok", "is_error": false}]}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:06.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "t2", "name": "Bash", "input": {"command": "git commit -m example"}}]}}
+{"type": "user", "timestamp": "2026-01-01T10:00:07.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t2", "content": "ok", "is_error": false}]}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:08.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_end", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "Done."}]}}
+`},
+		{name: "leaf claude reads before git, ticket and card", host: "claude", criterion: leaf, want: "pass", transcript: `
+{"type": "user", "timestamp": "2026-01-01T10:00:01.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": "Do the work."}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:02.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_0", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "t0", "name": "Read", "input": {"file_path": "/home/example/.agents/skills/hive-rule-git-commit/SKILL.md"}}]}}
+{"type": "user", "timestamp": "2026-01-01T10:00:03.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t0", "content": "ok", "is_error": false}]}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:04.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "git add notes.txt"}}]}}
+{"type": "user", "timestamp": "2026-01-01T10:00:05.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t1", "content": "ok", "is_error": false}]}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:06.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "t2", "name": "Bash", "input": {"command": "git commit -m example"}}]}}
+{"type": "user", "timestamp": "2026-01-01T10:00:07.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t2", "content": "ok", "is_error": false}]}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:08.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_3", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "t3", "name": "Bash", "input": {"command": "sed -n 1,40p /home/example/.agents/skills/hive-rule-ticket-state/SKILL.md"}}]}}
+{"type": "user", "timestamp": "2026-01-01T10:00:09.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t3", "content": "ok", "is_error": false}]}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:10.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_4", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "t4", "name": "Bash", "input": {"command": "gh issue close 5"}}]}}
+{"type": "user", "timestamp": "2026-01-01T10:00:11.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t4", "content": "ok", "is_error": false}]}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:12.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_5", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "t5", "name": "Read", "input": {"file_path": "/home/example/.agents/skills/hive-rule-question-channel/SKILL.md"}}]}}
+{"type": "user", "timestamp": "2026-01-01T10:00:13.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t5", "content": "ok", "is_error": false}]}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:14.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_6", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "t6", "name": "AskUserQuestion", "input": {"questions": [{"question": "D1 — Which delivery mode?", "header": "Delivery", "options": [{"label": "A - (★) Interactive", "description": "x"}, {"label": "B - Automatic", "description": "y"}], "multiSelect": false}]}}]}}
+{"type": "user", "timestamp": "2026-01-01T10:00:15.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "t6", "content": "ok", "is_error": false}]}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:16.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_end", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "Done."}]}}
+`},
+		{name: "plan codex typed skill, build command without a next-step block", host: "codex", criterion: planRoute, want: "fail", evidence: []string{"rollout.jsonl:6 "}, transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-000000000042", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "id": "u5", "content": [{"type": "input_text", "text": "$flow-plan EX-1"}]}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "t", "turn_id": "t", "item": {"type": "UserMessage", "id": "i5", "content": [{"type": "text", "text": "$flow-plan EX-1", "text_elements": [{"byte_range": {"start": 0, "end": 10}, "placeholder": "$flow-plan"}]}, {"type": "skill", "name": "flow-plan", "path": "/home/u/.agents/skills/flow-plan/SKILL.md"}]}}}
+{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m3", "phase": "final_answer", "content": [{"type": "output_text", "text": "**Plan · EX-1**\n\nEl plan queda en esta conversación.\n\n**Siguiente paso · Implementar EX-1**\n\n\u0060$flow-build EX-1\u0060"}]}}
+{"timestamp": "2026-01-01T11:00:09.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:10.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t2"}}
+{"timestamp": "2026-01-01T11:00:11.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "id": "u11", "content": [{"type": "input_text", "text": "$flow-build EX-1"}]}}
+{"timestamp": "2026-01-01T11:00:11.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "t", "turn_id": "t", "item": {"type": "UserMessage", "id": "i11", "content": [{"type": "text", "text": "$flow-build EX-1", "text_elements": [{"byte_range": {"start": 0, "end": 11}, "placeholder": "$flow-build"}]}, {"type": "skill", "name": "flow-build", "path": "/home/u/.agents/skills/flow-build/SKILL.md"}]}}}
+{"timestamp": "2026-01-01T11:00:14.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m6", "phase": "final_answer", "content": [{"type": "output_text", "text": "Empiezo el build."}]}}
+{"timestamp": "2026-01-01T11:00:15.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t2"}}
+`},
+		{name: "plan codex next-step block naming /flow-build", host: "codex", criterion: planRoute, want: "pass", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-000000000042", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}]}]}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "id": "u1", "content": [{"type": "input_text", "text": "planea EX-1"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "custom_tool_call", "id": "ctc_2", "status": "completed", "call_id": "call_2", "name": "exec", "input": "text(await tools.exec_command({cmd:\"cat /home/u/.agents/skills/flow-plan/SKILL.md\"}));"}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "response_item", "payload": {"type": "custom_tool_call_output", "call_id": "call_2", "output": [{"type": "input_text", "text": "Script completed"}, {"type": "input_text", "text": "{\"exit_code\": 0, \"output\": \"# skill\"}"}]}}
+{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m3", "phase": "final_answer", "content": [{"type": "output_text", "text": "**Plan conjunto · EX-1**\n\n| Tarea | Trabajo |\n|---|---|\n| T1 | Cambiar el filtro de ejemplo |\n\nEl plan queda en esta conversación.\n\n---\n**▶ D2 — Siguiente paso: flow-build (recomendado)**\n\nEl plan no tiene decisiones abiertas.\n\n\u0060/flow-build EX-1\u0060\n\nEspero el comando de build."}]}}
+{"timestamp": "2026-01-01T11:00:09.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:10.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t2"}}
+{"timestamp": "2026-01-01T11:00:11.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "id": "u4", "content": [{"type": "input_text", "text": "/flow-build EX-1"}]}}
+{"timestamp": "2026-01-01T11:00:12.000Z", "type": "response_item", "payload": {"type": "custom_tool_call", "id": "ctc_5", "status": "completed", "call_id": "call_5", "name": "exec", "input": "text(await tools.exec_command({cmd:\"cat /home/u/.agents/skills/flow-build/SKILL.md\"}));"}}
+{"timestamp": "2026-01-01T11:00:13.000Z", "type": "response_item", "payload": {"type": "custom_tool_call_output", "call_id": "call_5", "output": [{"type": "input_text", "text": "Script completed"}, {"type": "input_text", "text": "{\"exit_code\": 0, \"output\": \"# skill\"}"}]}}
+{"timestamp": "2026-01-01T11:00:14.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m6", "phase": "final_answer", "content": [{"type": "output_text", "text": "Empiezo el build."}]}}
+{"timestamp": "2026-01-01T11:00:15.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t2"}}
+`},
+		{name: "plan codex session ends inside the stage", host: "codex", criterion: planRoute, want: "review", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-000000000042", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}]}]}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "id": "u1", "content": [{"type": "input_text", "text": "planea EX-1"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "custom_tool_call", "id": "ctc_2", "status": "completed", "call_id": "call_2", "name": "exec", "input": "text(await tools.exec_command({cmd:\"cat /home/u/.agents/skills/flow-plan/SKILL.md\"}));"}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "response_item", "payload": {"type": "custom_tool_call_output", "call_id": "call_2", "output": [{"type": "input_text", "text": "Script completed"}, {"type": "input_text", "text": "{\"exit_code\": 0, \"output\": \"# skill\"}"}]}}
+{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m3", "phase": "final_answer", "content": [{"type": "output_text", "text": "**Plan · EX-1 · Decisiones**\n\n**1. ¿Hasta dónde entregamos?**\n\n- **A (★) · Local.** Sin publicar.\n- **B · PR.** Abro el PR.\n\nResponde 1A o 1B."}]}}
+{"timestamp": "2026-01-01T11:00:09.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{name: "prose choice codex without the card", host: "codex", criterion: prose, want: "fail", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}, {"type": "function", "name": "request_user_input"}]}]}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "Option A is approved. Before editing, two decisions remain. ¿Prefieres entrega \u0060interactive\u0060 para validar antes de publicar, o \u0060hold\u0060 para quedarte con el cambio local verificado? ¿Confirmas revisión de código y de seguridad de la API?"}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{name: "async card, session without an async call", host: "codex", criterion: prose, want: "pass", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}, {"type": "function", "name": "request_user_input"}]}]}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "**EX-1 · Delivery**\n\nThe delivery and review questions follow in the card."}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "request_user_input", "call_id": "q1", "arguments": "{\"questions\": [{\"id\": \"delivery\", \"header\": \"Delivery\", \"question\": \"Delivery \\u2014 how is the change delivered?\", \"options\": [{\"label\": \"A - (\\u2605) Interactive\", \"description\": \"You validate before the push.\"}, {\"label\": \"B - Hold\", \"description\": \"Local verified change only.\"}]}]}"}}
+{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "q1", "output": "{\"answers\": {\"delivery\": {\"answers\": [\"A - (\\u2605) Interactive\"]}}}"}}
+{"timestamp": "2026-01-01T11:00:09.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "Delivery: interactive."}]}}
+{"timestamp": "2026-01-01T11:00:10.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{name: "prose choice ordinary word ready", host: "codex", criterion: prose, want: "review", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}, {"type": "function", "name": "request_user_input"}]}]}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "Done. Should I merge now or wait until CI is ready?"}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{name: "review question without the native review", host: "codex", criterion: review, want: "fail", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-000000000009", "cwd": "project", "source": "vscode"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}, {"type": "function", "name": "request_user_input", "description": "only available in Default or Plan mode"}]}]}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "**Plan · EXAMPLE · ready**\n\n**D4 — ¿Qué revisión de código hacemos?**\n\nSituación: el cambio mueve scripts.\n\n- **A · (★) Agente \u0060hive-review-code\u0060.** Revisa la selección de CI.\n- **B · Sin revisión dedicada.** Se apoya en las pruebas.\n\nEspero D4."}]}}
+{"timestamp": "2026-01-01T11:00:09.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{name: "review card with the native review", host: "codex", criterion: review, want: "pass", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-000000000009", "cwd": "project", "source": "vscode"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}, {"type": "function", "name": "request_user_input", "description": "only available in Default or Plan mode"}]}]}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "request_user_input", "call_id": "call_9", "arguments": "{\"questions\": [{\"id\": \"review\", \"header\": \"Revisión\", \"question\": \"Integración · EXAMPLE · D1 — ¿Qué revisión de código hacemos antes del push?\", \"options\": [{\"label\": \"Codex review (Recommended)\", \"description\": \"x\"}, {\"label\": \"Agent hive-review-code\", \"description\": \"y\"}, {\"label\": \"No dedicated review\", \"description\": \"z\"}]}]}"}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "call_9", "output": "{\"answers\":{\"review\":{\"answers\":[\"Codex review (Recommended)\"]}}}"}}
+{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "Applying the review you chose."}]}}
+{"timestamp": "2026-01-01T11:00:09.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{name: "review_rounds_per_candidate claude three code-review skill rounds", host: "claude", criterion: rounds, want: "fail", transcript: `
+{"type": "user", "message": {"role": "user", "content": "Work on it."}, "timestamp": "2026-01-01T10:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "s1", "name": "Skill", "input": {"skill": "code-review", "args": "origin/development..HEAD"}}]}, "timestamp": "2026-01-01T10:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "s1", "content": "reviewed", "is_error": false}]}, "timestamp": "2026-01-01T10:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "s2", "name": "Skill", "input": {"skill": "code-review", "args": "origin/development..HEAD"}}]}, "timestamp": "2026-01-01T10:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "s2", "content": "reviewed", "is_error": false}]}, "timestamp": "2026-01-01T10:00:05.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_3", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "s3", "name": "Skill", "input": {"skill": "code-review", "args": "origin/development..HEAD"}}]}, "timestamp": "2026-01-01T10:00:06.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "s3", "content": "reviewed", "is_error": false}]}, "timestamp": "2026-01-01T10:00:07.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "review_rounds_per_candidate claude two rounds", host: "claude", criterion: rounds, want: "pass", transcript: `
+{"type": "user", "message": {"role": "user", "content": "Work on it."}, "timestamp": "2026-01-01T10:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "s1", "name": "Skill", "input": {"skill": "code-review", "args": "origin/development..HEAD"}}]}, "timestamp": "2026-01-01T10:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "s1", "content": "reviewed", "is_error": false}]}, "timestamp": "2026-01-01T10:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "s2", "name": "Skill", "input": {"skill": "code-review", "args": "origin/development..HEAD"}}]}, "timestamp": "2026-01-01T10:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "s2", "content": "reviewed", "is_error": false}]}, "timestamp": "2026-01-01T10:00:05.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "review_rounds_per_candidate claude a typed /code-review before two more rounds", host: "claude", criterion: rounds, want: "review", transcript: `
+{"type": "user", "message": {"role": "user", "content": "<command-message>code-review</command-message>\n<command-name>/code-review</command-name>"}, "timestamp": "2026-01-01T10:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "s1", "name": "Skill", "input": {"skill": "code-review", "args": "origin/development..HEAD"}}]}, "timestamp": "2026-01-01T10:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "s1", "content": "reviewed", "is_error": false}]}, "timestamp": "2026-01-01T10:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "s2", "name": "Skill", "input": {"skill": "code-review", "args": "origin/development..HEAD"}}]}, "timestamp": "2026-01-01T10:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "s2", "content": "reviewed", "is_error": false}]}, "timestamp": "2026-01-01T10:00:05.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_3", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "s3", "name": "Skill", "input": {"skill": "code-review", "args": "origin/development..HEAD"}}]}, "timestamp": "2026-01-01T10:00:06.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "s3", "content": "reviewed", "is_error": false}]}, "timestamp": "2026-01-01T10:00:07.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "feed claude exec redirect with a trap that cats the file", host: "claude", criterion: feed, want: "fail", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false, "type": "user", "message": {"role": "user", "content": "run the checks"}}
+{"timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false, "type": "assistant", "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "u2", "name": "Bash", "input": {"command": "set -eu\nci_log=$(mktemp -t build-check)\nexec >\"$ci_log\" 2>&1\ntrap 'cat \"$ci_log\"' EXIT\nmake unit\nmake build"}}]}}
+{"timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false, "type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "u2", "content": "ok", "is_error": false}]}}
+{"timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false, "type": "assistant", "message": {"id": "msg_4", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "Done."}]}}
+`},
+		{name: "skill claude review", host: "claude", criterion: skill, want: "review", opts: auditOptions{Cwd: "elsewhere"}, transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Continue."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"I stop before the push because flow-build requires your validation first."}]}}
+`},
+		{name: "skill claude pass", host: "claude", criterion: skill, want: "pass", opts: auditOptions{Cwd: "elsewhere"}, transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Continue."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"I stop before the push because the change alters a screen you have to judge. I ran flow-build earlier."}]}}
+`},
+		{name: "skill named as reason in the Hive repository is legitimate", host: "claude", criterion: skill, want: "not_observed", hive: true, transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Continue."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"I stop before the push because flow-build requires your validation first."}]}}
+`},
+		{name: "round codex fail", host: "codex", criterion: round, want: "fail", evidence: []string{"rollout.jsonl:"}, transcript: `
+{"timestamp":"2026-01-01T11:00:01.000Z","type":"session_meta","payload":{"id":"00000000-0000-0000-0000-000000000001","cwd":"project","source":"cli"}}
+{"timestamp":"2026-01-01T11:00:02.000Z","type":"turn_context","payload":{"model":"gpt-example","cwd":"project"}}
+{"timestamp":"2026-01-01T11:00:03.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t2"}}
+{"timestamp":"2026-01-01T11:00:04.000Z","type":"response_item","payload":{"type":"function_call","name":"request_user_input","call_id":"call_1","arguments":"{\"questions\": [{\"id\": \"d1\", \"header\": \"Delivery\", \"question\": \"D1 \\u2014 Which delivery mode?\", \"options\": [{\"label\": \"A - (\\u2605) Interactive\", \"description\": \"x\"}, {\"label\": \"B - Automatic\", \"description\": \"y\"}]}]}"}}
+{"timestamp":"2026-01-01T11:00:05.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"call_1","output":"{\"answers\":{\"d1\":{\"answers\":[\"A\"]}}}"}}
+{"timestamp":"2026-01-01T11:00:06.000Z","type":"response_item","payload":{"type":"message","role":"assistant","id":"msg2","phase":"commentary","content":[{"type":"output_text","text":"Working on it."}]}}
+{"timestamp":"2026-01-01T11:00:07.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t6"}}
+{"timestamp":"2026-01-01T11:00:08.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t7"}}
+{"timestamp":"2026-01-01T11:00:09.000Z","type":"response_item","payload":{"type":"message","role":"assistant","id":"msg3","phase":"final_answer","content":[{"type":"output_text","text":"**Plan · EXAMPLE · ready**\n\nD1 — Which delivery mode?\n\nSituation: the change touches one example file.\n\nA - (★) Interactive\nIf you choose it: you validate before the push.\n\nB - Automatic\nIf you choose it: it pushes without stopping.\n\nI recommend A: you can judge the result yourself.\n\nWaiting for D1."}]}}
+{"timestamp":"2026-01-01T11:00:10.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t9"}}
+`},
+		{name: "round claude pass", host: "claude", criterion: round, want: "pass", transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"First request."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Asking."},{"type":"tool_use","id":"q1","name":"AskUserQuestion","input":{"questions":[{"question":"D1 — Which delivery mode?","header":"Delivery","options":[{"label":"A - (★) Interactive","description":"x"},{"label":"B - Automatic","description":"y"}],"multiSelect":false}]}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"q1","content":"User has answered your questions: D1=A","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_2","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Working on it."}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:05.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Second request."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:06.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_3","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"**Plan · EXAMPLE · ready**\n\nD1 — Which delivery mode?\n\nSituation: the change touches one example file.\n\nA - (★) Interactive\nIf you choose it: you validate before the push.\n\nB - Automatic\nIf you choose it: it pushes without stopping.\n\nI recommend A: you can judge the result yourself.\n\nWaiting for D1."},{"type":"tool_use","id":"q2","name":"AskUserQuestion","input":{"questions":[{"question":"D1 — Which delivery mode?","header":"Delivery","options":[{"label":"A - (★) Interactive","description":"x"},{"label":"B - Automatic","description":"y"}],"multiSelect":false}]}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:07.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"q2","content":"User has answered your questions: D1=A","is_error":false}]}}
+`},
+		{name: "assessment claude skill call, no ending", host: "claude", criterion: assess, want: "fail", transcript: `
+{"type": "user", "message": {"role": "user", "content": "Review ticket EX-1"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_0", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "s0", "name": "Skill", "input": {"skill": "hive-mode"}}]}, "timestamp": "2026-01-01T11:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "s0", "content": "Launching skill: hive-mode", "is_error": false}]}, "timestamp": "2026-01-01T11:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "**Review · EX-1 · defect confirmed in code**\n\nThe form saves even when the name did not change.\n\n**Readiness.** I would pin three observable criteria; the rate limit still needs a threshold."}]}, "timestamp": "2026-01-01T11:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "assessment claude ends with the answers block", host: "claude", criterion: assess, want: "pass", transcript: `
+{"type": "user", "message": {"role": "user", "content": "Review ticket EX-1"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_0", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "s0", "name": "Skill", "input": {"skill": "hive-mode"}}]}, "timestamp": "2026-01-01T11:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "s0", "content": "Launching skill: hive-mode", "is_error": false}]}, "timestamp": "2026-01-01T11:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "**Review · EX-1 · defect confirmed in code**\n\nThe form saves even when the name did not change.\n\n**Readiness.** I would pin three observable criteria; the rate limit still needs a threshold.\n\n▶ ¿Cómo seguimos?\n- A: planificar\n- B: dejarlo"}]}, "timestamp": "2026-01-01T11:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "assessment codex ends with an open question in text", host: "codex", criterion: assess, want: "review", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}, {"type": "function", "name": "request_user_input"}]}]}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "Review ticket EX-1"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "custom_tool_call", "name": "exec", "call_id": "c1", "input": "text(await tools.exec_command({cmd:\"cat /home/example/.agents/skills/hive-mode/SKILL.md\",yield_time_ms:1000}));"}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "response_item", "payload": {"type": "custom_tool_call_output", "call_id": "c1", "output": [{"type": "input_text", "text": "Script completed"}, {"type": "input_text", "text": "{\"output\": \"ok\", \"exit_code\": 0}"}]}}
+{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m0", "content": [{"type": "output_text", "text": "**Review · EX-1 · defect confirmed in code**\n\nThe form saves even when the name did not change.\n\n**Readiness.** I would pin three observable criteria; the rate limit still needs a threshold.\n\nShould the rate limit stay inside EX-1 or become its own ticket?"}]}}
+{"timestamp": "2026-01-01T11:00:09.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{name: "cache claude search empty, move, no write", host: "claude", criterion: cache, want: "fail", transcript: `
+{"type": "user", "message": {"role": "user", "content": "build ABC-1"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "u2", "name": "mcp__engram__mem_search", "input": {"project": "p", "query": "tracker/states/jira/ABC"}}]}, "timestamp": "2026-01-01T11:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "u2", "content": "No memories found for: \"tracker/states/jira/ABC\"", "is_error": false}]}, "timestamp": "2026-01-01T11:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_4", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "u4", "name": "Bash", "input": {"command": "acli jira workitem transition --key ABC-1 --status \"En curso\" --yes"}}]}, "timestamp": "2026-01-01T11:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "u4", "content": "ok", "is_error": false}]}, "timestamp": "2026-01-01T11:00:05.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_8", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "Moved."}]}, "timestamp": "2026-01-01T11:00:08.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "cache claude written through the engram CLI", host: "claude", criterion: cache, want: "pass", transcript: `
+{"type": "user", "message": {"role": "user", "content": "build ABC-1"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "u2", "name": "mcp__engram__mem_search", "input": {"project": "p", "query": "tracker/states/jira/ABC"}}]}, "timestamp": "2026-01-01T11:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "u2", "content": "No memories found for: \"tracker/states/jira/ABC\"", "is_error": false}]}, "timestamp": "2026-01-01T11:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_4", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "u4", "name": "Bash", "input": {"command": "acli jira workitem transition --key ABC-1 --status \"En curso\" --yes"}}]}, "timestamp": "2026-01-01T11:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "u4", "content": "ok", "is_error": false}]}, "timestamp": "2026-01-01T11:00:05.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_6", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "u6", "name": "Bash", "input": {"command": "engram save --project p --type decision --topic tracker/states/jira/ABC 'states' 'x'"}}]}, "timestamp": "2026-01-01T11:00:06.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "u6", "content": "saved", "is_error": false}]}, "timestamp": "2026-01-01T11:00:07.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_8", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "Moved."}]}, "timestamp": "2026-01-01T11:00:08.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "try it claude final report without the block", host: "claude", criterion: tryIt, want: "fail", transcript: `
+{"type": "user", "message": {"role": "user", "content": "fix the button"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "u2", "name": "Edit", "input": {"file_path": "/work/project/src/Button.tsx", "old_string": "a", "new_string": "b"}}]}, "timestamp": "2026-01-01T11:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "u2", "content": "ok", "is_error": false}]}, "timestamp": "2026-01-01T11:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_4", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "u4", "name": "Skill", "input": {"skill": "flow-verify"}}]}, "timestamp": "2026-01-01T11:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "u4", "content": "loaded", "is_error": false}]}, "timestamp": "2026-01-01T11:00:05.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_6", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "Done. PR #2 merged."}]}, "timestamp": "2026-01-01T11:00:06.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "try it claude final report with the block", host: "claude", criterion: tryIt, want: "pass", transcript: `
+{"type": "user", "message": {"role": "user", "content": "fix the button"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "u2", "name": "Edit", "input": {"file_path": "/work/project/src/Button.tsx", "old_string": "a", "new_string": "b"}}]}, "timestamp": "2026-01-01T11:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "u2", "content": "ok", "is_error": false}]}, "timestamp": "2026-01-01T11:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_4", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "u4", "name": "Skill", "input": {"skill": "flow-verify"}}]}, "timestamp": "2026-01-01T11:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "u4", "content": "loaded", "is_error": false}]}, "timestamp": "2026-01-01T11:00:05.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_6", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "Done.\n\n### Try it\n- Open http://localhost:3000\n- Click Save.\n- The toast appears."}]}, "timestamp": "2026-01-01T11:00:06.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "ux codex screen edit without the reviewer", host: "codex", criterion: ux, want: "fail", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000aa", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}, {"type": "function", "name": "request_user_input"}]}]}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t3"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "fix"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "custom_tool_call", "name": "exec", "call_id": "call_1", "input": "text(await tools.apply_patch(\"*** Begin Patch\\n*** Update File: apps/web/src/app/page.tsx\\n@@\\n-a\\n+b\\n*** End Patch\"));"}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "response_item", "payload": {"type": "custom_tool_call_output", "call_id": "call_1", "output": [{"type": "input_text", "text": "Script completed"}]}}
+{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "custom_tool_call", "name": "exec", "call_id": "call_2", "input": "text(await tools.apply_patch(\"*** Begin Patch\\n*** Update File: apps/web/e2e/page.e2e.ts\\n@@\\n-a\\n+b\\n*** End Patch\"));"}}
+{"timestamp": "2026-01-01T11:00:09.000Z", "type": "response_item", "payload": {"type": "custom_tool_call_output", "call_id": "call_2", "output": [{"type": "input_text", "text": "Script completed"}]}}
+{"timestamp": "2026-01-01T11:00:10.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m9", "content": [{"type": "output_text", "text": "Done."}]}}
+{"timestamp": "2026-01-01T11:00:11.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t10"}}
+`},
+		{name: "ux claude screen edit with the reviewer", host: "claude", criterion: ux, want: "pass", transcript: `
+{"type": "user", "message": {"role": "user", "content": "fix"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "e1", "name": "Edit", "input": {"file_path": "/work/project/src/Button.tsx", "old_string": "a", "new_string": "b"}}]}, "timestamp": "2026-01-01T11:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "e1", "content": "ok", "is_error": false}]}, "timestamp": "2026-01-01T11:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_3", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "g1", "name": "Agent", "input": {"subagent_type": "hive-review-ux", "description": "UX review", "prompt": "Review."}}]}, "timestamp": "2026-01-01T11:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "g1", "content": "ok", "is_error": false}]}, "timestamp": "2026-01-01T11:00:05.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_5", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "Done."}]}, "timestamp": "2026-01-01T11:00:06.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "wait claude a background loop with sleep and no deadline", host: "claude", criterion: wait, want: "fail", evidence: []string{".jsonl:2 shell"}, transcript: `
+{"type": "user", "timestamp": "2026-01-01T10:00:01.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": "Wait for the deploy."}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:02.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "w1", "name": "Bash", "input": {"command": "while :; do status=$(example-cli deploy status --job 1 --output text); if [ \"$status\" = DONE ]; then break; fi; sleep 20; done", "description": "example", "run_in_background": true}}]}}
+{"type": "user", "timestamp": "2026-01-01T10:00:03.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "w1", "content": "started", "is_error": false}]}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:04.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "Waiting."}]}}
+`},
+		{name: "wait grok a loop with block_until_ms 0 and no deadline", host: "grok", criterion: wait, want: "fail", evidence: []string{".jsonl:2 shell"}, transcript: `
+{"method": "session/update", "params": {"sessionId": "00000000-0000-0000-0000-000000000003", "update": {"sessionUpdate": "user_message_chunk", "content": {"type": "text", "text": "Wait for the deploy."}}}, "timestamp": 1794948001, "timestamp_us": 1794948001000000}
+{"method": "session/update", "params": {"sessionId": "00000000-0000-0000-0000-000000000003", "update": {"sessionUpdate": "tool_call", "toolCallId": "call-1", "title": "run_terminal_command", "rawInput": {"command": "while :; do status=$(example-cli deploy status --job 1 --output text); if [ \"$status\" = DONE ]; then break; fi; sleep 20; done", "description": "example", "block_until_ms": 0}, "_meta": {"x.ai/tool": {"version": 1, "name": "run_terminal_command", "kind": "execute", "namespace": "grok_build"}}}}, "timestamp": 1794948002, "timestamp_us": 1794948002000000}
+{"method": "session/update", "params": {"sessionId": "00000000-0000-0000-0000-000000000003", "update": {"sessionUpdate": "tool_call_update", "toolCallId": "call-1", "status": "completed", "rawOutput": {"type": "Terminal", "command": "while :; do status=$(example-cli deploy status --job 1 --output text); if [ \"$status\" = DONE ]; then break; fi; sleep 20; done", "exit_code": 0, "output": "started", "timed_out": false}}}, "timestamp": 1794948003, "timestamp_us": 1794948003000000}
+{"method": "session/update", "params": {"sessionId": "00000000-0000-0000-0000-000000000003", "update": {"sessionUpdate": "agent_message_chunk", "content": {"type": "text", "text": "Waiting."}}}, "timestamp": 1794948004, "timestamp_us": 1794948004000000}
+{"method": "_x.ai/session/update", "params": {"sessionId": "00000000-0000-0000-0000-000000000003", "update": {"sessionUpdate": "turn_completed", "prompt_id": "p1", "stop_reason": "end_turn", "elapsed_ms": 1}}, "timestamp": 1794948005, "timestamp_us": 1794948005000000}
+`},
+		{name: "wait claude timeout wrapping the loop", host: "claude", criterion: wait, want: "pass", transcript: `
+{"type": "user", "timestamp": "2026-01-01T10:00:01.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": "Wait for the deploy."}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:02.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "w1", "name": "Bash", "input": {"command": "timeout 600 bash -c 'until [ \"$(example-cli deploy status --job 1 --output text)\" = DONE ]; do sleep 20; done'", "description": "example", "run_in_background": true}}]}}
+{"type": "user", "timestamp": "2026-01-01T10:00:03.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "w1", "content": "started", "is_error": false}]}}
+{"type": "assistant", "timestamp": "2026-01-01T10:00:04.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "Waiting."}]}}
+`},
+		{name: "merged branch deleted: a merge left after the user ended the session, claude", host: "claude", criterion: "merged_branch_deleted", want: "fail", transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Merge it."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"c1","name":"Bash","input":{"command":"gh pr merge 1 --repo example/repo --merge","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"c1","content":"merged","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_2","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Merged."}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:05.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"es todo por el momento, gracias!"}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:06.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_3","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Bye."}]}}
+`},
+		{name: "merged branch deleted: a merge left after the user ended the session, codex", host: "codex", criterion: "merged_branch_deleted", want: "fail", transcript: `
+{"timestamp":"2026-01-01T11:00:01.000Z","type":"session_meta","payload":{"id":"00000000-0000-0000-0000-000000000001","cwd":"project","source":"cli"}}
+{"timestamp":"2026-01-01T11:00:02.000Z","type":"turn_context","payload":{"model":"gpt-example","cwd":"project"}}
+{"timestamp":"2026-01-01T11:00:03.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t1"}}
+{"timestamp":"2026-01-01T11:00:04.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Merge it."}]}}
+{"timestamp":"2026-01-01T11:00:05.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"c1","input":"text(await tools.exec_command({cmd:\"gh pr merge 1 --repo example/repo --merge\",yield_time_ms:1000}));"}}
+{"timestamp":"2026-01-01T11:00:06.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"c1","output":[{"type":"input_text","text":"Script completed"},{"type":"input_text","text":"{\"output\": \"merged\", \"exit_code\": 0}"}]}}
+{"timestamp":"2026-01-01T11:00:07.000Z","type":"response_item","payload":{"type":"message","role":"assistant","id":"m1","content":[{"type":"output_text","text":"Merged."}]}}
+{"timestamp":"2026-01-01T11:00:08.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t1"}}
+{"timestamp":"2026-01-01T11:00:09.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t2"}}
+{"timestamp":"2026-01-01T11:00:10.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"es todo por el momento, gracias!"}]}}
+{"timestamp":"2026-01-01T11:00:11.000Z","type":"response_item","payload":{"type":"message","role":"assistant","id":"m2","content":[{"type":"output_text","text":"Bye."}]}}
+{"timestamp":"2026-01-01T11:00:12.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t2"}}
+`},
+		{name: "merged branch deleted: a merge left after the user ended the session, grok", host: "grok", criterion: "merged_branch_deleted", want: "fail", transcript: `
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"user_message_chunk","content":{"type":"text","text":"Merge it."}}},"timestamp":1794948001,"timestamp_us":1794948001000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"tool_call","toolCallId":"call-1","title":"run_terminal_command","rawInput":{"command":"gh pr merge 1 --repo example/repo --merge","description":"example"},"_meta":{"x.ai/tool":{"version":1,"name":"run_terminal_command","kind":"execute","namespace":"grok_build"}}}},"timestamp":1794948002,"timestamp_us":1794948002000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"tool_call_update","toolCallId":"call-1","status":"completed","rawOutput":{"type":"Terminal","command":"gh pr merge 1 --repo example/repo --merge","exit_code":0,"output":"merged","timed_out":false}}},"timestamp":1794948003,"timestamp_us":1794948003000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"Merged."}}},"timestamp":1794948004,"timestamp_us":1794948004000000}
+{"method":"_x.ai/session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"turn_completed","prompt_id":"p1","stop_reason":"end_turn","elapsed_ms":1}},"timestamp":1794948005,"timestamp_us":1794948005000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"user_message_chunk","content":{"type":"text","text":"es todo por el momento, gracias!"}}},"timestamp":1794948006,"timestamp_us":1794948006000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"Bye."}}},"timestamp":1794948007,"timestamp_us":1794948007000000}
+{"method":"_x.ai/session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"turn_completed","prompt_id":"p2","stop_reason":"end_turn","elapsed_ms":1}},"timestamp":1794948008,"timestamp_us":1794948008000000}
+`},
+		{name: "merged branch deleted: the cleanup helper run with --apply", host: "claude", criterion: "merged_branch_deleted", want: "pass", transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Merge it."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"m1","name":"Bash","input":{"command":"gh pr merge 1 --repo example/repo --merge","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"m1","content":"merged","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_2","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"d1","name":"Bash","input":{"command":"python3 -I scripts/cleanup_branches.py --repo . --base development --merged-pr topic=abc --apply","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:05.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"d1","content":"done","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:06.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_3","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Finished."}]}}
+`},
+		{name: "merged branch deleted: no close report after the last merge", host: "claude", criterion: "merged_branch_deleted", want: "review", transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Merge it."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"m1","name":"Bash","input":{"command":"gh pr merge 1 --repo example/repo --merge","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"m1","content":"merged","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_2","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Merged, promoting next."}]}}
+`},
+		{name: "merged branch deleted: the cleanup helper run without --apply is a dry run", host: "claude", criterion: "merged_branch_deleted", want: "fail", transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Merge it."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_m1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"m1","name":"Bash","input":{"command":"gh pr merge 1 --repo example/repo --merge","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"m1","content":"merged","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_d1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"d1","name":"Bash","input":{"command":"python3 -I scripts/cleanup_branches.py --repo . --base development --merged-pr topic=abc","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:05.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"d1","content":"done","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:06.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_e1","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Finished."}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:07.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_e2","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"**Close** - work item done."}]}}
+`},
+		{name: "merged branch deleted: the head is that of another pull request", host: "claude", criterion: "merged_branch_deleted", want: "fail", opts: auditOptions{Base: "development"}, transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Merge it."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_v1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"v1","name":"Bash","input":{"command":"gh pr view 41 --repo example/repo --json headRefName","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"v1","content":"{\"headRefName\":\"development\"}","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_m1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"m1","name":"Bash","input":{"command":"gh pr merge 42 --repo example/repo --squash","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:05.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"m1","content":"merged","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:06.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_e1","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Merged."}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:07.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"es todo"}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:08.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_e2","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Bye."}]}}
+`},
+		{name: "merged branch deleted: a local merge with no base branch is not observed", host: "claude", criterion: "merged_branch_deleted", want: "not_observed", evidence: []string{"base branch"}, transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Merge locally."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_m1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"m1","name":"Bash","input":{"command":"git merge topic","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"m1","content":"ok","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_p1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"p1","name":"Bash","input":{"command":"git push origin development","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:05.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"p1","content":"ok","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:06.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_e1","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Finished."}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:07.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_e2","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"**Close** - work item done."}]}}
+`},
+		{name: "leaf claude stage packet cut in the middle", host: "claude", criterion: leaf, want: "not_observed", evidence: []string{"does not show the leaf whole"}, transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Do the work."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_r1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"/home/example/.agents/skills/flow-build/stage.md"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r1","content":"     1\u2192## hive-core/git/git-commit\n     2\u2192\n     3\u2192# Git commit\n     4\u2192\n\u202612 lines truncated\u2026\n\n<!-- hive packet end: stage \u00b7 hive-core/git/git-commit -->\n","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_g1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"g1","name":"Bash","input":{"command":"git add notes.txt"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:05.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"g1","content":"ok","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:06.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_e1","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Done."}]}}
+`},
+		{name: "leaf claude stage packet cut before its end line", host: "claude", criterion: leaf, want: "not_observed", evidence: []string{"does not show the leaf whole"}, transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Do the work."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_r1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"/home/example/.agents/skills/flow-build/stage.md"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r1","content":"     1\u2192## hive-core/git/git-commit\n     2\u2192\n     3\u2192# Git commit\n     4\u2192\n     5\u2192Rules.","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_g1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"g1","name":"Bash","input":{"command":"git add notes.txt"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:05.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"g1","content":"ok","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:06.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_e1","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Done."}]}}
+`},
+		{name: "leaf codex git add after a shell command the host withheld", host: "codex", criterion: leaf, want: "review", transcript: `
+{"timestamp":"2026-01-01T11:00:01.000Z","type":"session_meta","payload":{"id":"00000000-0000-0000-0000-000000000042","cwd":"project","source":"cli"}}
+{"timestamp":"2026-01-01T11:00:02.000Z","type":"turn_context","payload":{"model":"gpt-example","cwd":"project"}}
+{"timestamp":"2026-01-01T11:00:03.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t1"}}
+{"timestamp":"2026-01-01T11:00:04.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Do the work."}]}}
+{"timestamp":"2026-01-01T11:00:05.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"c1","input":"text(await tools.exec_command({cmd:\"cat \" + dir + \"/notes.txt\"}));"}}
+{"timestamp":"2026-01-01T11:00:06.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"c1","output":[{"type":"input_text","text":"Script completed"},{"type":"input_text","text":"{\"output\": \"x\", \"exit_code\": 0}"}]}}
+{"timestamp":"2026-01-01T11:00:07.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"c2","input":"text(await tools.exec_command({cmd:\"git add notes.txt\"}));"}}
+{"timestamp":"2026-01-01T11:00:08.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"c2","output":[{"type":"input_text","text":"Script completed"},{"type":"input_text","text":"{\"output\": \"ok\", \"exit_code\": 0}"}]}}
+{"timestamp":"2026-01-01T11:00:09.000Z","type":"response_item","payload":{"type":"message","role":"assistant","id":"m1","content":[{"type":"output_text","text":"Done."}]}}
+{"timestamp":"2026-01-01T11:00:10.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t1"}}
+`},
+		{name: "git add -A", host: "claude", criterion: "no_broad_git_add", want: "fail", disk: []string{"docs/", "notes.txt"}, transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Stage it."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"a1","name":"Bash","input":{"command":"git add -A","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"a1","content":"ok","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_2","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Staged."}]}}
+`},
+		{name: "git add of a directory that exists on disk", host: "claude", criterion: "no_broad_git_add", want: "review", disk: []string{"docs/", "notes.txt"}, transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Stage it."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"a1","name":"Bash","input":{"command":"git add docs","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"a1","content":"ok","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_2","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Staged."}]}}
+`},
+		{name: "git add of a file that exists on disk", host: "claude", criterion: "no_broad_git_add", want: "pass", disk: []string{"docs/", "notes.txt"}, transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Stage it."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"a1","name":"Bash","input":{"command":"git add notes.txt","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"a1","content":"ok","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_2","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Staged."}]}}
+`},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			rep := auditFixture(t, tc.host, tc.opts, tc.parts...)
-			got := auditStatus(t, rep, tc.criterion)
+			opts := tc.opts
+			if len(tc.disk) > 0 {
+				opts.Cwd = t.TempDir()
+				for _, p := range tc.disk {
+					full := filepath.Join(opts.Cwd, filepath.FromSlash(p))
+					if strings.HasSuffix(p, "/") {
+						if err := os.MkdirAll(full, 0o700); err != nil {
+							t.Fatal(err)
+						}
+					} else if err := os.WriteFile(full, []byte("x"), 0o600); err != nil {
+						t.Fatal(err)
+					}
+				}
+			}
+			if tc.hive {
+				opts.Cwd = hiveLikeDir(t)
+			}
+			got := auditStatus(t, auditTranscript(t, tc.host, opts, tc.transcript), tc.criterion)
 			if got.Status != tc.want {
 				t.Fatalf("%s = %s, want %s (evidence %v)", tc.criterion, got.Status, tc.want, got.Evidence)
 			}
 			if (tc.want == "fail" || tc.want == "review") && len(got.Evidence) == 0 {
 				t.Fatalf("%s %s has no evidence", tc.criterion, tc.want)
+			}
+			for _, want := range tc.evidence {
+				if len(got.Evidence) != 1 || !strings.Contains(got.Evidence[0], want) {
+					t.Fatalf("evidence = %v, want one line holding %q", got.Evidence, want)
+				}
 			}
 			for _, e := range got.Evidence {
 				for _, leak := range []string{"Which delivery", "requires your validation", "pide revisar", "Cierre", "Close ·", "scripts/cleanup"} {
@@ -848,42 +1013,60 @@ func TestAuditNewCriteria(t *testing.T) {
 	}
 }
 
-func TestAuditSkillNamedAsReasonSkipsTheHiveRepository(t *testing.T) {
-	cwd := hiveLikeDir(t)
-	got := auditStatus(t, auditFixture(t, "claude", auditOptions{Cwd: cwd}, "skill_named_as_reason", "claude-project-review.jsonl"), "skill_named_as_reason")
-	if got.Status != "not_observed" {
-		t.Fatalf("in the Hive repository naming a skill is legitimate: %+v", got)
-	}
-}
-
-func TestAuditRoundEvidencePointsAtTheRoundMessage(t *testing.T) {
-	got := auditStatus(t, auditFixture(t, "codex", auditOptions{}, "text_round_without_card", "codex-rollout-fail.jsonl"), "text_round_without_card")
-	if len(got.Evidence) != 1 || !strings.HasPrefix(got.Evidence[0], "codex-rollout-fail.jsonl:") {
-		t.Fatalf("evidence = %v", got.Evidence)
+// TestAuditEmptySessionObservesNothing is the shared not_observed case: a
+// session with no turn gives every criterion nothing to judge, in every host.
+func TestAuditEmptySessionObservesNothing(t *testing.T) {
+	for _, host := range []string{"claude", "codex", "grok"} {
+		rep := auditTranscript(t, host, auditOptions{Base: "development"}, "")
+		if len(rep.Criteria) == 0 {
+			t.Fatalf("%s: no criteria in the report", host)
+		}
+		for _, c := range rep.Criteria {
+			if c.Status != "not_observed" {
+				t.Errorf("%s: %s = %s on an empty session", host, c.Criterion, c.Status)
+			}
+		}
 	}
 }
 
 func TestAuditUnknownSuccessIsNotRecordedAsSuccess(t *testing.T) {
-	for _, parts := range [][]string{
-		{"close_before_branch_cleanup", "codex-rollout-truncated-merge-notobserved.jsonl"},
-		{"existing_criteria", "codex-rollout-running-merge.jsonl"},
+	for _, tc := range []struct{ name, transcript string }{
+		{"truncated merge", `
+{"timestamp":"2026-01-01T11:00:01.000Z","type":"session_meta","payload":{"id":"00000000-0000-0000-0000-000000000001","cwd":"project","source":"cli"}}
+{"timestamp":"2026-01-01T11:00:02.000Z","type":"turn_context","payload":{"model":"gpt-example","cwd":"project"}}
+{"timestamp":"2026-01-01T11:00:03.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t2"}}
+{"timestamp":"2026-01-01T11:00:04.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"call_1","input":"text(await tools.exec_command({cmd:\"gh pr merge 1 --repo example/repo --merge\",yield_time_ms:1000}));"}}
+{"timestamp":"2026-01-01T11:00:05.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"call_1","output":[{"type":"input_text","text":"Script completed\nWall time 0.1 seconds"},{"type":"input_text","text":"Warning: truncated output (original token count: 5000)"}]}}
+{"timestamp":"2026-01-01T11:00:06.000Z","type":"response_item","payload":{"type":"message","role":"assistant","id":"msg2","phase":"final_answer","content":[{"type":"output_text","text":"**Close · EXAMPLE · integrated**\n\nThe change is merged."}]}}
+{"timestamp":"2026-01-01T11:00:07.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"call_3","input":"text(await tools.exec_command({cmd:\"git branch -d topic\",yield_time_ms:1000}));"}}
+{"timestamp":"2026-01-01T11:00:08.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"call_3","output":[{"type":"input_text","text":"Script completed\nWall time 0.1 seconds"},{"type":"input_text","text":"{\"chunk_id\": \"1\", \"exit_code\": 0, \"output\": \"example output\", \"wall_time_seconds\": 0.1}"}]}}
+{"timestamp":"2026-01-01T11:00:09.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t8"}}
+`},
+		{"running merge", `
+{"timestamp":"2026-01-01T11:00:01.000Z","type":"session_meta","payload":{"id":"00000000-0000-0000-0000-000000000001","cwd":"project","source":"cli"}}
+{"timestamp":"2026-01-01T11:00:02.000Z","type":"turn_context","payload":{"model":"gpt-example","cwd":"project"}}
+{"timestamp":"2026-01-01T11:00:03.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t2"}}
+{"timestamp":"2026-01-01T11:00:04.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"call_1","input":"text(await tools.exec_command({cmd:\"gh pr merge 1 --repo example/repo --merge\",yield_time_ms:1000}));"}}
+{"timestamp":"2026-01-01T11:00:05.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"call_1","output":[{"type":"input_text","text":"Script completed\nWall time 0.1 seconds"},{"type":"input_text","text":"{\"session_id\": 7, \"wall_time_seconds\": 1.0, \"output\": \"still running\"}"}]}}
+{"timestamp":"2026-01-01T11:00:06.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t5"}}
+`},
 	} {
-		s := loadFixture(t, "codex", auditOptions{}, parts...)
+		s := loadSession(t, "codex", auditOptions{}, tc.transcript)
 		var seen bool
 		for _, e := range s.Trace.Events {
 			if e.Kind == "shell" && strings.HasPrefix(e.Command, "gh pr merge") {
 				seen = true
 				if e.Success != nil {
-					t.Fatalf("%v: success must be unknown, got %v", parts, *e.Success)
+					t.Fatalf("%s: success must be unknown, got %v", tc.name, *e.Success)
 				}
 			}
 		}
 		if !seen {
-			t.Fatalf("%v: merge command not extracted", parts)
+			t.Fatalf("%s: merge command not extracted", tc.name)
 		}
-		merged := auditStatus(t, auditFixture(t, "codex", auditOptions{}, parts...), "merged_branch_deleted")
+		merged := auditStatus(t, auditTranscript(t, "codex", auditOptions{}, tc.transcript), "merged_branch_deleted")
 		if merged.Status != "not_observed" {
-			t.Fatalf("%v: merged_branch_deleted = %+v", parts, merged)
+			t.Fatalf("%s: merged_branch_deleted = %+v", tc.name, merged)
 		}
 	}
 }
@@ -972,21 +1155,46 @@ func TestLeafReadBeforeActionEdgeCases(t *testing.T) {
 
 func TestAuditCardAnswers(t *testing.T) {
 	cases := []struct {
-		name, host, file    string
+		name, host          string
 		answered, recommend int
+		transcript          string
 	}{
-		{"claude answered with an option", "claude", "claude-project-answered-pass.jsonl", 2, 1},
-		{"claude user-has-answered form", "claude", "claude-project-user-has-answered-pass.jsonl", 2, 2},
-		{"claude free text is not an option", "claude", "claude-project-free-text.jsonl", 1, 0},
-		{"claude empty card", "claude", "claude-project-empty.jsonl", 0, 0},
-		{"claude multiple choice is not counted", "claude", "claude-project-multiselect.jsonl", 0, 0},
-		{"codex answered with Recommended and recomendado labels", "codex", "codex-rollout-answered-pass.jsonl", 3, 2},
-		{"codex empty answers", "codex", "codex-rollout-empty.jsonl", 0, 0},
-		{"codex free text and a missing answer", "codex", "codex-rollout-free-text.jsonl", 1, 1},
+		{"claude answered with an option", "claude", 2, 1, `
+{"type": "user", "message": {"role": "user", "content": "Continue"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_0", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "q0", "name": "AskUserQuestion", "input": {"questions": [{"question": "D1 - Which verdict?", "header": "D1", "multiSelect": false, "options": [{"label": "A - (★) Judgment", "description": "x"}, {"label": "B - Mode", "description": "y"}]}, {"question": "Delivery - Where does it stop?", "header": "Delivery", "multiSelect": false, "options": [{"label": "A - (★) interactive", "description": "x"}, {"label": "B - automatic", "description": "y"}]}]}}]}, "timestamp": "2026-01-01T11:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "q0", "content": "Your questions have been answered: \"D1 - Which verdict?\"=\"A - (★) Judgment\", \"Delivery - Where does it stop?\"=\"B - automatic\". You can now continue with these answers in mind.", "is_error": false}]}, "timestamp": "2026-01-01T11:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{"claude free text is not an option", "claude", 1, 0, `
+{"type": "user", "message": {"role": "user", "content": "Continue"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_0", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "q0", "name": "AskUserQuestion", "input": {"questions": [{"question": "D1 - Which verdict?", "header": "D1", "multiSelect": false, "options": [{"label": "A - (★) Judgment", "description": "x"}, {"label": "B - Mode", "description": "y"}]}, {"question": "Delivery - Where does it stop?", "header": "Delivery", "multiSelect": false, "options": [{"label": "A - (★) interactive", "description": "x"}, {"label": "B - automatic", "description": "y"}]}]}}]}, "timestamp": "2026-01-01T11:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "q0", "content": "Your questions have been answered: \"D1 - Which verdict?\"=\"neither, do something else\", \"Delivery - Where does it stop?\"=\"B - automatic\". You can now continue with these answers in mind.", "is_error": false}]}, "timestamp": "2026-01-01T11:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{"codex answered with Recommended and recomendado labels", "codex", 3, 2, `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}, {"type": "function", "name": "request_user_input"}]}]}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "Continue"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m0", "content": [{"type": "output_text", "text": "Round."}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "request_user_input", "call_id": "q1", "arguments": "{\"questions\": [{\"id\": \"a\", \"header\": \"A\", \"question\": \"Scope?\", \"options\": [{\"label\": \"Fix (Recommended)\", \"description\": \"x\"}, {\"label\": \"Limit\", \"description\": \"y\"}]}, {\"id\": \"b\", \"header\": \"B\", \"question\": \"Review?\", \"options\": [{\"label\": \"Agent (recomendado)\", \"description\": \"x\"}, {\"label\": \"Native\", \"description\": \"y\"}]}, {\"id\": \"c\", \"header\": \"C\", \"question\": \"Security?\", \"options\": [{\"label\": \"Include (Recommended)\", \"description\": \"x\"}, {\"label\": \"General\", \"description\": \"y\"}]}]}"}}
+{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "q1", "output": "{\"answers\": {\"a\": {\"answers\": [\"Fix (Recommended)\"]}, \"b\": {\"answers\": [\"Native\"]}, \"c\": {\"answers\": [\"Include (Recommended)\"]}}}"}}
+{"timestamp": "2026-01-01T11:00:09.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{"codex empty answers", "codex", 0, 0, `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}, {"type": "function", "name": "request_user_input"}]}]}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "Continue"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m0", "content": [{"type": "output_text", "text": "Round."}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "response_item", "payload": {"type": "function_call", "name": "request_user_input", "call_id": "q1", "arguments": "{\"questions\": [{\"id\": \"a\", \"header\": \"A\", \"question\": \"Scope?\", \"options\": [{\"label\": \"Fix (Recommended)\", \"description\": \"x\"}, {\"label\": \"Limit\", \"description\": \"y\"}]}, {\"id\": \"b\", \"header\": \"B\", \"question\": \"Review?\", \"options\": [{\"label\": \"Agent (recomendado)\", \"description\": \"x\"}, {\"label\": \"Native\", \"description\": \"y\"}]}, {\"id\": \"c\", \"header\": \"C\", \"question\": \"Security?\", \"options\": [{\"label\": \"Include (Recommended)\", \"description\": \"x\"}, {\"label\": \"General\", \"description\": \"y\"}]}]}"}}
+{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "function_call_output", "call_id": "q1", "output": "{\"answers\":{}}"}}
+{"timestamp": "2026-01-01T11:00:09.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			rep := auditFixture(t, tc.host, auditOptions{}, "card_answers", tc.file)
+			rep := auditTranscript(t, tc.host, auditOptions{}, tc.transcript)
 			if rep.CardAnswers.Answered != tc.answered || rep.CardAnswers.Recommended != tc.recommend {
 				t.Fatalf("card_answers = %+v, want answered %d recommended %d", rep.CardAnswers, tc.answered, tc.recommend)
 			}
@@ -1001,7 +1209,11 @@ func TestAuditCardAnswers(t *testing.T) {
 
 func TestAuditCardAnswersAppearInTheJSONReport(t *testing.T) {
 	var out bytes.Buffer
-	if err := auditSessionMain(sessionFixture("card_answers", "claude-project-answered-pass.jsonl"), "claude", auditOptions{}, &out); err != nil {
+	if err := auditSessionMain(writeSession(t, "claude", `
+{"type": "user", "message": {"role": "user", "content": "Continue"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_0", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "q0", "name": "AskUserQuestion", "input": {"questions": [{"question": "D1 - Which verdict?", "header": "D1", "multiSelect": false, "options": [{"label": "A - (★) Judgment", "description": "x"}, {"label": "B - Mode", "description": "y"}]}, {"question": "Delivery - Where does it stop?", "header": "Delivery", "multiSelect": false, "options": [{"label": "A - (★) interactive", "description": "x"}, {"label": "B - automatic", "description": "y"}]}]}}]}, "timestamp": "2026-01-01T11:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "q0", "content": "Your questions have been answered: \"D1 - Which verdict?\"=\"A - (★) Judgment\", \"Delivery - Where does it stop?\"=\"B - automatic\". You can now continue with these answers in mind.", "is_error": false}]}, "timestamp": "2026-01-01T11:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+`), "claude", auditOptions{}, &out); err != nil {
 		t.Fatal(err)
 	}
 	var v map[string]json.RawMessage
@@ -1014,32 +1226,36 @@ func TestAuditCardAnswersAppearInTheJSONReport(t *testing.T) {
 }
 
 func TestAuditMainThreadCost(t *testing.T) {
-	grokRoot := sessionFixture("main_thread_cost", "grok-sessions")
 	cases := []struct {
 		name, host, file string
+		files            map[string]string
 		want             mainThreadCost
 	}{
-		{"claude counts a message once and skips sidechain lines", "claude", "claude.jsonl", mainThreadCost{
+		{"claude counts a message once and skips sidechain lines", "claude", "claude.jsonl", map[string]string{"claude.jsonl": claudeCostSession}, mainThreadCost{
 			ModelCalls: 2, InputTokens: 480, CachedTokens: 350, PeakContext: 320, UsageSource: "per_call", Compactions: 1,
 			ToolCalls: 4, HiveReads: 1, HiveScripts: 1, ByTool: map[string]int{"Read": 3, "Bash": 1}}},
-		{"codex counts a token_count only when the total changed", "codex", "codex.jsonl", mainThreadCost{
+		{"codex counts a token_count only when the total changed", "codex", "codex.jsonl", map[string]string{"codex.jsonl": codexCostSession}, mainThreadCost{
 			ModelCalls: 2, InputTokens: 350, CachedTokens: 140, PeakContext: 250, UsageSource: "per_call", Compactions: 1,
 			ToolCalls: 5, HiveReads: 2, HiveScripts: 1, ByTool: map[string]int{"exec": 4, "exec_command": 1}, RepeatedUsageEvents: 1}},
-		{"grok subtracts a child found in another project folder", "grok", "grok-sessions/%2Frepo/parent-ok/updates.jsonl", mainThreadCost{
+		{"grok subtracts a child found in another project folder", "grok", "grok-sessions/%2Frepo/parent-ok/updates.jsonl", grokCostSessions, mainThreadCost{
 			ModelCalls: 5, InputTokens: 2700, CachedTokens: 800, UsageSource: "per_turn", Compactions: 1,
 			ToolCalls: 5, HiveReads: 2, HiveScripts: 1, ByTool: map[string]int{"read_file": 2, "run_terminal_command": 3}}},
-		{"grok keeps the parent total when a child's usage is missing", "grok", "grok-sessions/%2Frepo/parent-missing/updates.jsonl", mainThreadCost{
+		{"grok keeps the parent total when a child's usage is missing", "grok", "grok-sessions/%2Frepo/parent-missing/updates.jsonl", grokCostSessions, mainThreadCost{
 			ModelCalls: 7, InputTokens: 3000, CachedTokens: 900, UsageSource: "per_turn_with_children", Compactions: 1,
 			ToolCalls: 5, HiveReads: 2, HiveScripts: 1, ByTool: map[string]int{"read_file": 2, "run_terminal_command": 3}}},
-		{"grok without usage reports none", "grok", "grok-sessions/%2Frepo/parent-none/updates.jsonl", mainThreadCost{
+		{"grok without usage reports none", "grok", "grok-sessions/%2Frepo/parent-none/updates.jsonl", grokCostSessions, mainThreadCost{
 			UsageSource: "none", ByTool: map[string]int{}}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			rep := auditFixture(t, tc.host, auditOptions{GrokSessionsRoot: grokRoot}, "main_thread_cost", filepath.FromSlash(tc.file))
-			got, want := rep.MainThreadCost, tc.want
-			gj, _ := json.Marshal(got)
-			wj, _ := json.Marshal(want)
+			root := writeFiles(t, tc.files)
+			opts := auditOptions{GrokSessionsRoot: filepath.Join(root, "grok-sessions")}
+			rep, err := auditSessionFile(filepath.Join(root, filepath.FromSlash(tc.file)), tc.host, opts)
+			if err != nil {
+				t.Fatal(err)
+			}
+			gj, _ := json.Marshal(rep.MainThreadCost)
+			wj, _ := json.Marshal(tc.want)
 			if string(gj) != string(wj) {
 				t.Fatalf("main_thread_cost = %s\nwant %s", gj, wj)
 			}
@@ -1049,7 +1265,7 @@ func TestAuditMainThreadCost(t *testing.T) {
 
 func TestAuditMainThreadCostLeavesTheCriteriaAlone(t *testing.T) {
 	var out bytes.Buffer
-	if err := auditSessionMain(sessionFixture("main_thread_cost", "claude.jsonl"), "claude", auditOptions{}, &out); err != nil {
+	if err := auditSessionMain(writeSession(t, "claude", claudeCostSession), "claude", auditOptions{}, &out); err != nil {
 		t.Fatal(err)
 	}
 	var v map[string]json.RawMessage
@@ -1061,26 +1277,6 @@ func TestAuditMainThreadCostLeavesTheCriteriaAlone(t *testing.T) {
 	}
 	if strings.Contains(string(v["criteria"]), "main_thread_cost") {
 		t.Fatalf("criteria mention main_thread_cost: %s", v["criteria"])
-	}
-}
-
-func TestAnalysisReplyBlockEvidenceSaysIfTheRuleWasRead(t *testing.T) {
-	const reply = "analysis_reply_block"
-	for _, tc := range []struct{ file, want string }{
-		{"claude-project-italic-bullets-fail.jsonl", "not read"},
-		{"claude-project-italic-read-fail.jsonl", "was read"},
-		{"codex-rollout-no-replies-fail.jsonl", "without a reply block; report-endings rule was read"},
-		{"codex-rollout-temp-write-fail.jsonl", "without a reply block; report-endings rule not read"},
-		{"codex-rollout-cell-packet-fail.jsonl", "report-endings rule was read"},
-		{"codex-rollout-cell-truncated-fail.jsonl", "report-endings rule not read"},
-		{"codex-rollout-cell-filtered-fail.jsonl", "report-endings rule not read"},
-		{"codex-rollout-cell-unpaired-fail.jsonl", "report-endings rule not read"},
-	} {
-		host := strings.SplitN(tc.file, "-", 2)[0]
-		got := auditStatus(t, auditFixture(t, host, auditOptions{}, reply, tc.file), reply)
-		if got.Status != "fail" || len(got.Evidence) != 1 || !strings.Contains(got.Evidence[0], tc.want) || !strings.HasPrefix(got.Evidence[0], tc.file+":") {
-			t.Fatalf("%s: %+v, want one fail evidence line at the file containing %q", tc.file, got, tc.want)
-		}
 	}
 }
 
@@ -1193,16 +1389,6 @@ func TestShellWork(t *testing.T) {
 	}
 }
 
-func TestAuditUnboundedBackgroundWaitEvidencePointsAtTheLaunch(t *testing.T) {
-	for host, want := range map[string]string{"claude": ".jsonl:2 shell", "grok": ".jsonl:2 shell"} {
-		name := map[string]string{"claude": "claude-project-unbounded-fail.jsonl", "grok": "grok-updates-unbounded-fail.jsonl"}[host]
-		got := auditStatus(t, auditFixture(t, host, auditOptions{}, "unbounded_background_wait", name), "unbounded_background_wait")
-		if len(got.Evidence) != 1 || !strings.Contains(got.Evidence[0], want) {
-			t.Fatalf("%s evidence = %v, want it to contain %q", host, got.Evidence, want)
-		}
-	}
-}
-
 func TestLeafPathsOldAndNew(t *testing.T) {
 	old := "/h/.agents/skills/" + oldLeafPrefix + "report-endings/SKILL.md"
 	cur := "/h/.agents/skills/hive-core/references/report-endings.md"
@@ -1232,91 +1418,6 @@ func TestLeafPathsOldAndNew(t *testing.T) {
 	}
 }
 
-func TestAuditMergedBranchDeletedThroughHelperVariable(t *testing.T) {
-	got := auditStatus(t, auditFixture(t, "claude", auditOptions{}, "existing_criteria", "claude-project-merged-variable-apply-pass.jsonl"), "merged_branch_deleted")
-	if got.Status != "pass" {
-		t.Fatalf("the helper run with --apply through a variable is a deletion: %+v", got)
-	}
-}
-
-func writeAgentsEnvironments(t *testing.T, environments string) string {
-	t.Helper()
-	dir := t.TempDir()
-	body := "# Guidance\n\n## Hive\n\n- Project: example\n- Base branch: development\n- Environments: " + environments + "\n"
-	if err := os.WriteFile(filepath.Join(dir, "AGENTS.md"), []byte(body), 0o600); err != nil {
-		t.Fatal(err)
-	}
-	return dir
-}
-
-func TestAuditMergedBranchDeletedAfterTheSessionEnded(t *testing.T) {
-	const crit = "merged_branch_deleted"
-	const dir = "existing_criteria"
-	for _, c := range []struct {
-		name, host, file string
-	}{
-		{"claude", "claude", "claude-project-merged-end-fail.jsonl"},
-		{"codex", "codex", "codex-rollout-merged-end-fail.jsonl"},
-		{"grok", "grok", "grok-updates-merged-end-fail.jsonl"},
-	} {
-		got := auditStatus(t, auditFixture(t, c.host, auditOptions{}, dir, c.file), crit)
-		if got.Status != "fail" {
-			t.Errorf("%s: a merge left after the user ended the session must fail: %+v", c.name, got)
-		}
-	}
-	question := auditStatus(t, auditFixture(t, "claude", auditOptions{}, dir, "claude-project-merged-question-review.jsonl"), crit)
-	if question.Status != "review" {
-		t.Errorf("a question that holds an end phrase does not end the session: %+v", question)
-	}
-}
-
-func TestAuditMergedBranchDeletedPromotionAfterTheSessionEnded(t *testing.T) {
-	const crit = "merged_branch_deleted"
-	const dir = "existing_criteria"
-	base := auditOptions{Base: "development"}
-	if got := auditStatus(t, auditFixture(t, "claude", base, dir, "claude-project-promotion-head-review.jsonl"), crit); got.Status != "review" {
-		t.Errorf("a promotion whose head is the base must be review: %+v", got)
-	}
-	if got := auditStatus(t, auditFixture(t, "claude", base, dir, "claude-project-promotion-headrefname-review.jsonl"), crit); got.Status != "review" {
-		t.Errorf("a promotion whose head a headRefName read shows must be review: %+v", got)
-	}
-	if got := auditStatus(t, auditFixture(t, "claude", auditOptions{}, dir, "claude-project-promotion-head-review.jsonl"), crit); got.Status != "fail" {
-		t.Errorf("without a base the head development is a work branch: %+v", got)
-	}
-	qa := auditFixture(t, "claude", base, dir, "claude-project-promotion-qa-head-review.jsonl")
-	if got := auditStatus(t, qa, crit); got.Status != "fail" {
-		t.Errorf("a head outside the base and the Environments is a work merge: %+v", got)
-	}
-	withEnv := auditOptions{Base: "development", Cwd: writeAgentsEnvironments(t, "development \u2192 qa \u2192 master")}
-	if got := auditStatus(t, auditFixture(t, "claude", withEnv, dir, "claude-project-promotion-qa-head-review.jsonl"), crit); got.Status != "review" {
-		t.Errorf("a head listed in the Environments of the session AGENTS.md must be review: %+v", got)
-	}
-}
-
-func TestAuditMergedBranchDeletedKeptBranchAfterTheSessionEnded(t *testing.T) {
-	const crit = "merged_branch_deleted"
-	const dir = "existing_criteria"
-	if got := auditStatus(t, auditFixture(t, "claude", auditOptions{}, dir, "claude-project-merged-kept-end-review.jsonl"), crit); got.Status != "review" {
-		t.Errorf("kept for the branch of the merge, seen by --head, must be review: %+v", got)
-	}
-	if got := auditStatus(t, auditFixture(t, "claude", auditOptions{}, dir, "claude-project-merged-kept-unseen-head-fail.jsonl"), crit); got.Status != "fail" {
-		t.Errorf("a merge whose head the session does not show is a work merge: %+v", got)
-	}
-}
-
-func TestAuditHelperApplyNeedsTheScriptToRun(t *testing.T) {
-	const dir = "existing_criteria"
-	for _, f := range []string{
-		"claude-project-merged-unrelated-apply-fail.jsonl",
-		"claude-project-merged-rg-apply-fail.jsonl",
-		"claude-project-merged-other-variable-apply-fail.jsonl",
-	} {
-		if got := auditStatus(t, auditFixture(t, "claude", auditOptions{}, dir, f), "merged_branch_deleted"); got.Status != "fail" {
-			t.Errorf("%s: an --apply of another command is not a branch deletion: %+v", f, got)
-		}
-	}
-}
-
 func TestAuditEndPhraseNeedsOnlyClosingWords(t *testing.T) {
 	for _, tc := range []struct {
 		msg  string
@@ -1332,30 +1433,6 @@ func TestAuditEndPhraseNeedsOnlyClosingWords(t *testing.T) {
 		if got := isSessionEndMessage(tc.msg); got != tc.want {
 			t.Errorf("isSessionEndMessage(%q) = %v, want %v", tc.msg, got, tc.want)
 		}
-	}
-	for _, f := range []string{"claude-project-merged-es-todo-correcto-review.jsonl", "claude-project-merged-terminamos-el-build-review.jsonl"} {
-		if got := auditStatus(t, auditFixture(t, "claude", auditOptions{}, "existing_criteria", f), "merged_branch_deleted"); got.Status != "review" {
-			t.Errorf("%s: a message that continues the work does not end the session: %+v", f, got)
-		}
-	}
-}
-
-func TestAuditMergeHeadIsThatOfTheMergedPullRequest(t *testing.T) {
-	base := auditOptions{Base: "development"}
-	for _, f := range []string{
-		"claude-project-merged-create-without-head-fail.jsonl",
-		"claude-project-merged-headref-other-pr-fail.jsonl",
-	} {
-		if got := auditStatus(t, auditFixture(t, "claude", base, "existing_criteria", f), "merged_branch_deleted"); got.Status != "fail" {
-			t.Errorf("%s: the head of another pull request is not the merge's head: %+v", f, got)
-		}
-	}
-}
-
-func TestAuditCloseBeforeCleanupSkipsPromotionMerges(t *testing.T) {
-	got := auditStatus(t, auditFixture(t, "claude", auditOptions{Base: "development"}, "close_before_branch_cleanup", "claude-project-promotion-then-work-pass.jsonl"), "close_before_branch_cleanup")
-	if got.Status != "pass" {
-		t.Fatalf("a deploy report after a promotion merge is not a close before cleanup: %+v", got)
 	}
 }
 
@@ -1375,19 +1452,6 @@ func TestAuditEndPhraseAcceptsClosingVariants(t *testing.T) {
 	} {
 		if got := isSessionEndMessage(tc.msg); got != tc.want {
 			t.Errorf("isSessionEndMessage(%q) = %v, want %v", tc.msg, got, tc.want)
-		}
-	}
-}
-
-func TestAuditMergeHeadMatchesTheMergedPullRequest(t *testing.T) {
-	base := auditOptions{Base: "development"}
-	for _, tc := range []struct{ file, want string }{
-		{"claude-project-merged-create-other-pr-fail.jsonl", "fail"},
-		{"claude-project-merged-headref-current-branch-review.jsonl", "review"},
-		{"claude-project-merged-headref-branch-positional-review.jsonl", "review"},
-	} {
-		if got := auditStatus(t, auditFixture(t, "claude", base, "existing_criteria", tc.file), "merged_branch_deleted"); got.Status != tc.want {
-			t.Errorf("%s = %s, want %s: %+v", tc.file, got.Status, tc.want, got)
 		}
 	}
 }
@@ -1458,15 +1522,17 @@ func TestMergeHeadIgnoresAHeadRefNameAnotherSegmentPrinted(t *testing.T) {
 	}
 }
 
-func TestAuditChangeFolderEvidenceNamesTheFolder(t *testing.T) {
-	got := auditStatus(t, auditFixture(t, "codex", auditOptions{}, "change_folder_uncommitted", "codex-rollout-patch-fail.jsonl"), "change_folder_uncommitted")
-	if len(got.Evidence) != 1 || !strings.Contains(got.Evidence[0], "changes/demo-change") || !strings.HasPrefix(got.Evidence[0], "codex-rollout-patch-fail.jsonl:") {
-		t.Fatalf("evidence = %v", got.Evidence)
-	}
-}
-
 func TestAuditCodexCompletedItemCarriesExitCodeAndPatchPaths(t *testing.T) {
-	s := loadFixture(t, "codex", auditOptions{}, "change_folder_uncommitted", "codex-rollout-versioned-failed-fail.jsonl")
+	s := loadSession(t, "codex", auditOptions{}, `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000cf", "cwd": "/work/code", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "/work/code"}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "build DEMO-1"}]}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "FileChange", "id": "p4", "changes": {"/work/specs/openspec/changes/demo-change/design.md": {"type": "add", "content": "x"}}}}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "CommandExecution", "id": "c5", "command": ["/bin/zsh", "-lc", "cd /work/code && gh pr merge 7 --merge --match-head-commit abc123"], "status": "completed", "exit_code": 0, "aggregated_output": ""}}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "CommandExecution", "id": "c6", "command": ["/bin/zsh", "-lc", "python3 -I /skills/flow-plan/scripts/tasks.py /work/specs/openspec/changes/demo-change versioned --work-repo /work/code"], "status": "failed", "exit_code": 1, "aggregated_output": ""}}}
+{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m7", "content": [{"type": "output_text", "text": "Closed. The pull request is merged."}]}}
+`)
 	var versioned, merge, patched bool
 	for _, e := range s.Trace.Events {
 		switch {
@@ -1507,9 +1573,129 @@ func TestAuditExpandAssignmentsIsBoundedAndExpandsAValueOnce(t *testing.T) {
 	}
 }
 
-func TestPlanWithoutBuildRouteNamesTheMessageWithoutTheBlock(t *testing.T) {
-	got := auditStatus(t, auditFixture(t, "codex", auditOptions{}, "plan_without_build_route", "codex-rollout-typed-skill-no-block-fail.jsonl"), "plan_without_build_route")
-	if got.Status != "fail" || len(got.Evidence) != 1 || !strings.Contains(got.Evidence[0], "codex-rollout-typed-skill-no-block-fail.jsonl:6 ") {
-		t.Fatalf("plan_without_build_route = %+v, want fail at the message on line 6", got)
-	}
+const claudeAdapterSession = `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Please check the project."}}
+{"type":"attachment","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project"}
+{"type":"assistant","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Checking."},{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"git status --short && echo sentinel-command-text","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"ok","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:05.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_2","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"One question."},{"type":"tool_use","id":"t2","name":"AskUserQuestion","input":{"questions":[{"question":"D1 — Which delivery mode?","header":"Delivery","options":[{"label":"A - (★) Interactive","description":"x"},{"label":"B - Automatic","description":"y"}],"multiSelect":false}]}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:06.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t2","content":"User has answered your questions: D1=A","is_error":false}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:07.000Z","cwd":"project","isSidechain":false,"isMeta":true,"message":{"role":"user","content":[{"type":"text","text":"meta note that is not a turn"}]}}
+{"type":"mode","timestamp":"2026-01-01T10:00:08.000Z","cwd":"project"}
+{"type":"user","timestamp":"2026-01-01T10:00:09.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Next request."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:10.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_3","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Done."}]}}
+`
+
+const codexAdapterRollout = `
+{"timestamp":"2026-01-01T11:00:01.000Z","type":"session_meta","payload":{"id":"00000000-0000-0000-0000-000000000001","cwd":"project","source":"cli"}}
+{"timestamp":"2026-01-01T11:00:02.000Z","type":"turn_context","payload":{"model":"gpt-example","cwd":"project"}}
+{"timestamp":"2026-01-01T11:00:03.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t2"}}
+{"timestamp":"2026-01-01T11:00:04.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"call_1","input":"text(await tools.exec_command({cmd:\"git status --short && echo \\\"sentinel-double\\\"\",yield_time_ms:1000}));\ntext(await tools.exec_command({cmd:'echo sentinel-single',yield_time_ms:1000}));"}}
+{"timestamp":"2026-01-01T11:00:05.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"call_1","output":[{"type":"input_text","text":"Script completed\nWall time 0.1 seconds"},{"type":"input_text","text":"{\"chunk_id\": \"1\", \"exit_code\": 0, \"output\": \"o\", \"wall_time_seconds\": 0.1}"},{"type":"input_text","text":"{\"chunk_id\": \"2\", \"exit_code\": 1, \"output\": \"o\", \"wall_time_seconds\": 0.1}"}]}}
+{"timestamp":"2026-01-01T11:00:06.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"call_2","input":"text(await tools.exec_command({cmd:\u0060git add notes.txt && echo \"sentinel-backtick\"\u0060,yield_time_ms:1000}));"}}
+{"timestamp":"2026-01-01T11:00:07.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"call_2","output":[{"type":"input_text","text":"Script completed\nWall time 0.1 seconds"},{"type":"input_text","text":"{\"chunk_id\": \"3\", \"exit_code\": 0, \"output\": \"o\", \"wall_time_seconds\": 0.1}"}]}}
+{"timestamp":"2026-01-01T11:00:08.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"call_3","input":"const name='x';\ntext(await tools.exec_command({cmd:\u0060echo ${name}\u0060,yield_time_ms:1000}));"}}
+{"timestamp":"2026-01-01T11:00:09.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"call_3","output":[{"type":"input_text","text":"Script completed\nWall time 0.1 seconds"},{"type":"input_text","text":"{\"chunk_id\": \"4\", \"exit_code\": 0, \"output\": \"o\", \"wall_time_seconds\": 0.1}"}]}}
+{"timestamp":"2026-01-01T11:00:10.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"call_4","input":"tools.write_stdin({session_id:1,chars:\"\"});"}}
+{"timestamp":"2026-01-01T11:00:11.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"call_4","output":[{"type":"input_text","text":"Script completed\nWall time 0.1 seconds"},{"type":"input_text","text":"{}"}]}}
+{"timestamp":"2026-01-01T11:00:12.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"call_5","input":"text(await tools.apply_patch(\"*** Begin Patch\\n*** Update File: src/a.txt\\n@@\\n-old\\n+new\\n*** Add File: docs/b.md\\n+hello\\n*** Delete File: old.txt\\n*** End Patch\"));"}}
+{"timestamp":"2026-01-01T11:00:13.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"call_5","output":[{"type":"input_text","text":"Script completed\nWall time 0.1 seconds"},{"type":"input_text","text":"{}"}]}}
+{"timestamp":"2026-01-01T11:00:14.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"call_6","input":"text(await tools.mcp__engram__mem_search({query:\"example\",project:\"p\"}));"}}
+{"timestamp":"2026-01-01T11:00:15.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"call_6","output":[{"type":"input_text","text":"Script completed\nWall time 0.1 seconds"},{"type":"input_text","text":"{\"content\":[]}"}]}}
+{"timestamp":"2026-01-01T11:00:16.000Z","type":"response_item","payload":{"type":"function_call","name":"request_user_input","call_id":"call_7","arguments":"{\"questions\": [{\"id\": \"d1\", \"header\": \"Delivery\", \"question\": \"D1 \\u2014 Which delivery mode?\", \"options\": [{\"label\": \"A - (\\u2605) Interactive\", \"description\": \"x\"}, {\"label\": \"B - Automatic\", \"description\": \"y\"}]}]}"}}
+{"timestamp":"2026-01-01T11:00:17.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"call_7","output":"{\"answers\":{\"d1\":{\"answers\":[\"A\"]}}}"}}
+{"timestamp":"2026-01-01T11:00:18.000Z","type":"response_item","payload":{"type":"message","role":"assistant","id":"msg8","phase":"final_answer","content":[{"type":"output_text","text":"Round answered."}]}}
+{"timestamp":"2026-01-01T11:00:19.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t18"}}
+{"timestamp":"2026-01-01T11:00:20.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t19"}}
+{"timestamp":"2026-01-01T11:00:21.000Z","type":"response_item","payload":{"type":"message","role":"assistant","id":"msg9","phase":"final_answer","content":[{"type":"output_text","text":"Second turn."}]}}
+{"timestamp":"2026-01-01T11:00:22.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t21"}}
+`
+
+const grokAdapterUpdates = `
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"user_message_chunk","content":{"type":"text","text":"Please check."}}},"timestamp":1794948001,"timestamp_us":1794948001000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"tool_call","toolCallId":"call-1","title":"run_terminal_command","rawInput":{"command":"git status --short && echo sentinel-command-text","description":"example"},"_meta":{"x.ai/tool":{"version":1,"name":"run_terminal_command","kind":"execute","namespace":"grok_build"}}}},"timestamp":1794948002,"timestamp_us":1794948002000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"tool_call_update","toolCallId":"call-1","status":"completed","rawOutput":{"type":"Terminal","command":"git status --short && echo sentinel-command-text","exit_code":0,"output":"example output","timed_out":false}}},"timestamp":1794948003,"timestamp_us":1794948003000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"tool_call","toolCallId":"call-2","title":"run_terminal_command","rawInput":{"command":"git branch -d example-branch","description":"example"},"_meta":{"x.ai/tool":{"version":1,"name":"run_terminal_command","kind":"execute","namespace":"grok_build"}}}},"timestamp":1794948004,"timestamp_us":1794948004000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"tool_call_update","toolCallId":"call-2","status":"completed","rawOutput":{"type":"Terminal","command":"git branch -d example-branch","exit_code":1,"output":"example output","timed_out":false}}},"timestamp":1794948005,"timestamp_us":1794948005000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"tool_call","toolCallId":"call-3","title":"ask_user_question","rawInput":{"questions":[{"question":"D1 — Which delivery mode?","options":[{"label":"A - (★) Interactive"},{"label":"B - Automatic"}]}]},"_meta":{"x.ai/tool":{"version":1,"name":"ask_user_question","kind":"other","namespace":"grok_build"}}}},"timestamp":1794948006,"timestamp_us":1794948006000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"tool_call_update","toolCallId":"call-3","status":"completed","rawOutput":{"UserAnswered":{"message":"User has answered your questions: \"D1\"=\"A\"","answers":{"D1":"A"}},"type":"AskUserQuestion"}}},"timestamp":1794948007,"timestamp_us":1794948007000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"tool_call","toolCallId":"call-4","title":"use_tool","rawInput":{"tool_name":"engram__mem_save","tool_input":{"title":"x"}},"_meta":{"x.ai/tool":{"version":1,"name":"use_tool","kind":"use_tool","namespace":"grok_build"}}}},"timestamp":1794948008,"timestamp_us":1794948008000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"Hello there, th"}}},"timestamp":1794948009,"timestamp_us":1794948009000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"is is a message"}}},"timestamp":1794948010,"timestamp_us":1794948010000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":" split in chunk"}}},"timestamp":1794948011,"timestamp_us":1794948011000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"s."}}},"timestamp":1794948012,"timestamp_us":1794948012000000}
+{"method":"_x.ai/session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"turn_completed","prompt_id":"p1","stop_reason":"end_turn","elapsed_ms":1}},"timestamp":1794948013,"timestamp_us":1794948013000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"user_message_chunk","content":{"type":"text","text":"Second prompt."}}},"timestamp":1794948014,"timestamp_us":1794948014000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"Sec"}}},"timestamp":1794948015,"timestamp_us":1794948015000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"ond"}}},"timestamp":1794948016,"timestamp_us":1794948016000000}
+{"method":"session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"agent_message_chunk","content":{"type":"text","text":"."}}},"timestamp":1794948017,"timestamp_us":1794948017000000}
+{"method":"_x.ai/session/update","params":{"sessionId":"00000000-0000-0000-0000-000000000002","update":{"sessionUpdate":"turn_completed","prompt_id":"p1","stop_reason":"end_turn","elapsed_ms":1}},"timestamp":1794948018,"timestamp_us":1794948018000000}
+`
+
+const claudeCostSession = `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"/repo","isSidechain":false,"message":{"role":"user","content":"Go."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"/repo","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Read","input":{"file_path":"/home/u/.agents/skills/hive-rule-tests/SKILL.md"}}],"usage":{"input_tokens":100,"cache_read_input_tokens":50,"cache_creation_input_tokens":10,"output_tokens":5}}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:03.000Z","cwd":"/repo","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"t2","name":"Bash","input":{"command":"python3 -I /home/u/.agents/skills/flow-close/scripts/cleanup_branches.py --apply"}}],"usage":{"input_tokens":100,"cache_read_input_tokens":50,"cache_creation_input_tokens":10,"output_tokens":5}}}
+{"type":"system","subtype":"compact_boundary","timestamp":"2026-01-01T10:00:04.000Z","cwd":"/repo"}
+{"type":"assistant","timestamp":"2026-01-01T10:00:05.000Z","cwd":"/repo","isSidechain":false,"message":{"id":"msg_2","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"t3","name":"Read","input":{"file_path":"/repo/.claude/worktrees/w/content/skills/x/SKILL.md"}}],"usage":{"input_tokens":20,"cache_read_input_tokens":300,"cache_creation_input_tokens":0,"output_tokens":5}}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:06.000Z","cwd":"/repo","isSidechain":false,"message":{"id":"msg_2","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"t4","name":"Read","input":{"file_path":"/repo/README.md"}}],"usage":{"input_tokens":20,"cache_read_input_tokens":300,"cache_creation_input_tokens":0,"output_tokens":5}}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:07.000Z","cwd":"/repo","isSidechain":true,"message":{"id":"msg_side","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"t5","name":"Read","input":{"file_path":"/home/u/.agents/skills/hive-rule-tests/SKILL.md"}}],"usage":{"input_tokens":9999,"cache_read_input_tokens":0,"cache_creation_input_tokens":0}}}
+`
+
+const codexCostSession = `
+{"timestamp":"2026-01-01T11:00:01.000Z","type":"session_meta","payload":{"id":"c1","cwd":"/repo","source":"cli"}}
+{"timestamp":"2026-01-01T11:00:02.000Z","type":"turn_context","payload":{"model":"gpt-example","cwd":"/repo"}}
+{"timestamp":"2026-01-01T11:00:03.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t1"}}
+{"timestamp":"2026-01-01T11:00:04.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":100,"cached_input_tokens":40},"last_token_usage":{"input_tokens":100,"cached_input_tokens":40}}}}
+{"timestamp":"2026-01-01T11:00:05.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":100,"cached_input_tokens":40},"last_token_usage":{"input_tokens":100,"cached_input_tokens":40}}}}
+{"timestamp":"2026-01-01T11:00:05.500Z","type":"event_msg","payload":{"type":"token_count","info":null}}
+{"timestamp":"2026-01-01T11:00:06.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"c1","input":"text(await tools.exec_command({cmd:\"cat /home/u/.agents/skills/hive-rule-tests/SKILL.md\"}));"}}
+{"timestamp":"2026-01-01T11:00:07.000Z","type":"compacted","payload":{}}
+{"timestamp":"2026-01-01T11:00:08.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"c2","input":"text(await tools.exec_command({cmd:\"python3 -I /home/u/.agents/skills/flow-close/scripts/cleanup_branches.py --apply\"}));"}}
+{"timestamp":"2026-01-01T11:00:09.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"c3","input":"text(await tools.exec_command({cmd:\"cat /repo/.claude/worktrees/w/content/skills/x/SKILL.md\"}));"}}
+{"timestamp":"2026-01-01T11:00:10.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"c4","input":"text(await tools.exec_command({cmd:\"cat README.md\"}));"}}
+{"timestamp":"2026-01-01T11:00:10.500Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","call_id":"c5","arguments":"{\"cmd\":[\"cat\",\"/home/u/.agents/skills/flow-build/SKILL.md\"]}"}}
+{"timestamp":"2026-01-01T11:00:11.000Z","type":"event_msg","payload":{"type":"token_count","info":{"total_token_usage":{"input_tokens":350,"cached_input_tokens":140},"last_token_usage":{"input_tokens":250,"cached_input_tokens":100}}}}
+`
+
+var grokCostSessions = map[string]string{
+	"grok-sessions/%2Fother/child-a/usage.json": `
+{"sessionId": "child-a", "session": {"modelCalls": 2, "inputTokens": 300, "cachedReadTokens": 100}}`,
+	"grok-sessions/%2Frepo/parent-missing/subagents/child-a/meta.json": `
+{"parent_session_id": "parent-missing", "child_session_id": "child-a"}`,
+	"grok-sessions/%2Frepo/parent-missing/subagents/child-gone/meta.json": `
+{"parent_session_id": "parent-missing", "child_session_id": "child-gone"}`,
+	"grok-sessions/%2Frepo/parent-missing/summary.json": `
+{"current_model_id":"grok-example-1"}`,
+	"grok-sessions/%2Frepo/parent-missing/updates.jsonl": `
+{"method":"session/update","params":{"sessionId":"parent-missing","update":{"sessionUpdate":"user_message_chunk","content":{"type":"text","text":"Go."}}},"timestamp":1794948001}
+{"method":"session/update","params":{"sessionId":"parent-missing","update":{"sessionUpdate":"tool_call","toolCallId":"call-1","title":"read_file","rawInput":{"path":"/home/u/.agents/skills/hive-rule-tests/SKILL.md"},"_meta":{"x.ai/tool":{"name":"read_file"}}}},"timestamp":1794948002}
+{"method":"session/update","params":{"sessionId":"parent-missing","update":{"sessionUpdate":"tool_call","toolCallId":"call-2","title":"run_terminal_command","rawInput":{"command":"python3 -I /home/u/.agents/skills/flow-close/scripts/cleanup_branches.py"},"_meta":{"x.ai/tool":{"name":"run_terminal_command"}}}},"timestamp":1794948003}
+{"method":"session/update","params":{"sessionId":"parent-missing","update":{"sessionUpdate":"tool_call","toolCallId":"call-3","title":"read_file","rawInput":{"path":"/repo/.claude/worktrees/w/content/skills/x/SKILL.md"},"_meta":{"x.ai/tool":{"name":"read_file"}}}},"timestamp":1794948004}
+{"method":"session/update","params":{"sessionId":"parent-missing","update":{"sessionUpdate":"tool_call","toolCallId":"call-4","title":"run_terminal_command","rawInput":{"command":"sed -n 1,20p /home/u/.agents/skills/flow-close/references/branch-cleanup.md"},"_meta":{"x.ai/tool":{"name":"run_terminal_command"}}}},"timestamp":1794948005}
+{"method":"session/update","params":{"sessionId":"parent-missing","update":{"sessionUpdate":"tool_call","toolCallId":"call-5","title":"run_terminal_command","rawInput":{"command":"cat README.md"},"_meta":{"x.ai/tool":{"name":"run_terminal_command"}}}},"timestamp":1794948006}
+{"method":"_x.ai/session/update","params":{"sessionId":"parent-missing","update":{"sessionUpdate":"turn_completed","stop_reason":"end_turn","usage":{"modelCalls":3,"inputTokens":1000,"cachedReadTokens":400}}},"timestamp":1794948007}
+{"method":"_x.ai/session/update","params":{"sessionId":"parent-missing","update":{"sessionUpdate":"auto_compact_completed"}},"timestamp":1794948008}
+{"method":"session/update","params":{"sessionId":"parent-missing","update":{"sessionUpdate":"user_message_chunk","content":{"type":"text","text":"More."}}},"timestamp":1794948009}
+{"method":"_x.ai/session/update","params":{"sessionId":"parent-missing","update":{"sessionUpdate":"turn_completed","stop_reason":"end_turn","usage":{"modelCalls":4,"inputTokens":2000,"cachedReadTokens":500}}},"timestamp":1794948010}
+`,
+	"grok-sessions/%2Frepo/parent-none/updates.jsonl": `
+{"method":"session/update","params":{"sessionId":"p","update":{"sessionUpdate":"user_message_chunk","content":{"type":"text","text":"Hi"}}},"timestamp":1794948001}
+`,
+	"grok-sessions/%2Frepo/parent-ok/subagents/child-a/meta.json": `
+{"parent_session_id": "parent-ok", "child_session_id": "child-a"}`,
+	"grok-sessions/%2Frepo/parent-ok/summary.json": `
+{"current_model_id":"grok-example-1"}`,
+	"grok-sessions/%2Frepo/parent-ok/updates.jsonl": `
+{"method":"session/update","params":{"sessionId":"parent-ok","update":{"sessionUpdate":"user_message_chunk","content":{"type":"text","text":"Go."}}},"timestamp":1794948001}
+{"method":"session/update","params":{"sessionId":"parent-ok","update":{"sessionUpdate":"tool_call","toolCallId":"call-1","title":"read_file","rawInput":{"path":"/home/u/.agents/skills/hive-rule-tests/SKILL.md"},"_meta":{"x.ai/tool":{"name":"read_file"}}}},"timestamp":1794948002}
+{"method":"session/update","params":{"sessionId":"parent-ok","update":{"sessionUpdate":"tool_call","toolCallId":"call-2","title":"run_terminal_command","rawInput":{"command":"python3 -I /home/u/.agents/skills/flow-close/scripts/cleanup_branches.py"},"_meta":{"x.ai/tool":{"name":"run_terminal_command"}}}},"timestamp":1794948003}
+{"method":"session/update","params":{"sessionId":"parent-ok","update":{"sessionUpdate":"tool_call","toolCallId":"call-3","title":"read_file","rawInput":{"path":"/repo/.claude/worktrees/w/content/skills/x/SKILL.md"},"_meta":{"x.ai/tool":{"name":"read_file"}}}},"timestamp":1794948004}
+{"method":"session/update","params":{"sessionId":"parent-ok","update":{"sessionUpdate":"tool_call","toolCallId":"call-4","title":"run_terminal_command","rawInput":{"command":"sed -n 1,20p /home/u/.agents/skills/flow-close/references/branch-cleanup.md"},"_meta":{"x.ai/tool":{"name":"run_terminal_command"}}}},"timestamp":1794948005}
+{"method":"session/update","params":{"sessionId":"parent-ok","update":{"sessionUpdate":"tool_call","toolCallId":"call-5","title":"run_terminal_command","rawInput":{"command":"cat README.md"},"_meta":{"x.ai/tool":{"name":"run_terminal_command"}}}},"timestamp":1794948006}
+{"method":"_x.ai/session/update","params":{"sessionId":"parent-ok","update":{"sessionUpdate":"turn_completed","stop_reason":"end_turn","usage":{"modelCalls":3,"inputTokens":1000,"cachedReadTokens":400}}},"timestamp":1794948007}
+{"method":"_x.ai/session/update","params":{"sessionId":"parent-ok","update":{"sessionUpdate":"auto_compact_completed"}},"timestamp":1794948008}
+{"method":"session/update","params":{"sessionId":"parent-ok","update":{"sessionUpdate":"user_message_chunk","content":{"type":"text","text":"More."}}},"timestamp":1794948009}
+{"method":"_x.ai/session/update","params":{"sessionId":"parent-ok","update":{"sessionUpdate":"turn_completed","stop_reason":"end_turn","usage":{"modelCalls":4,"inputTokens":2000,"cachedReadTokens":500}}},"timestamp":1794948010}
+`,
 }

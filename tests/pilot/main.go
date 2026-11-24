@@ -381,7 +381,15 @@ func main() {
 	auditSession := flag.String("audit-session", "", "audit a real session transcript (with --host claude|codex|grok) and print the criteria as JSON; runs no model")
 	auditBase := flag.String("base", "", "base branch for --audit-session; default: Base branch of the session cwd AGENTS.md")
 	auditCwd := flag.String("cwd", "", "working directory for --audit-session when the session's repository has moved; default: the cwd the transcript records")
+	auditCompare := flag.Bool("audit-compare", false, "compare the auditor of --auditor-ref with the working tree's on the session paths given as arguments and print only the changed statuses; runs no model")
+	auditorRef := flag.String("auditor-ref", "", "git ref of the old auditor for --audit-compare")
 	flag.Parse()
+	if *auditCompare {
+		src, err := filepath.Abs(*source)
+		must(err)
+		must(auditCompareMain(src, *auditorRef, *host, flag.Args(), auditOptions{Base: *auditBase, Cwd: *auditCwd}, os.Stdout))
+		return
+	}
 	if *auditSession != "" {
 		must(auditSessionMain(*auditSession, *host, auditOptions{Base: *auditBase, Cwd: *auditCwd}, os.Stdout))
 		return

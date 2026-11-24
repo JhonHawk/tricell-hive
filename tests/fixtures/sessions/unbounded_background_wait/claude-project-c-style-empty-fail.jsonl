@@ -1,4 +1,0 @@
-{"type": "user", "timestamp": "2026-01-01T10:00:01.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": "Wait for the deploy."}}
-{"type": "assistant", "timestamp": "2026-01-01T10:00:02.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "w1", "name": "Bash", "input": {"command": "for ((;;)); do sleep 5; done", "description": "example", "run_in_background": true}}]}}
-{"type": "user", "timestamp": "2026-01-01T10:00:03.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "w1", "content": "started", "is_error": false}]}}
-{"type": "assistant", "timestamp": "2026-01-01T10:00:04.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "Waiting."}]}}
