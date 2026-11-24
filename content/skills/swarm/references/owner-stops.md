@@ -8,7 +8,7 @@ You work only in your worktree and at the plan-file path your brief assigns. You
 
 1. Read each ticket of your group with its comments, the code they touch, the project's `AGENTS.md` and `## Hive` settings, and the contract specs the change touches, as [flow-plan](../../flow-plan/SKILL.md) step 1 sets.
 2. Weigh the approaches as flow-plan step 2 sets, writing them in your return instead of asking. Measure each fact outside the repository yourself, as a read-only command and the excerpt of its output that shows the fact.
-3. Write one plan file for the group at your assigned path as [plan record](../../hive-core/plan/plan-record.md) sets, named from its first ticket's key, with the acceptance criteria of every ticket, each written `- AC<n> (<key>) — …` with the key of the ticket it belongs to, and the task verification lines flow-plan step 3 sets, running each verification command once in your worktree. Leave `## Delivery` and `## Effects` for the coordinator.
+3. Write one plan file for the group at your assigned path as [plan record](../../hive-core/plan/plan-record.md) sets, named from its first ticket's key, with the acceptance criteria of every ticket, each written `- AC<n> (<key>) — …` with the key of the ticket it belongs to, and the task verification lines [Verification lines](../../flow-plan/SKILL.md#verification-lines) sets, running each verification command once in your worktree. Leave `## Delivery` and `## Effects` for the coordinator.
 4. Write the checkpoint with `tasks.py <plan-file> checkpoint`, check that `git status` shows your worktree clean, then stop with the plan return.
 
 ## Run 2: build
