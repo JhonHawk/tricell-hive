@@ -89,7 +89,7 @@ Base `development` en `cf490341`, rama `fix/public-tree-private-identifiers` en 
 
 ### T4 — Regla y enforcer
 
-- [ ] Root `AGENTS.md` dice que el repositorio es público y qué no entra, y `rule-enforcers.md` nombra el test
+- [x] Root `AGENTS.md` dice que el repositorio es público y qué no entra, y `rule-enforcers.md` nombra el test
 
 **Closes:** AC2
 
@@ -131,16 +131,29 @@ Base `development` en `cf490341`, rama `fix/public-tree-private-identifiers` en 
 ## Checkpoint
 
 - Updated: 2026-11-24
-- Stage: flow-build · 2 · T1
-- Last commit: cf490341
-- Open findings: none
-- Next: T1: test TestNoPrivateIdentifiers (tdd)
-- Rules: flow-build/stage.md · extra: security-boundaries
+- Stage: flow-verify · 6 · push y PR
+- Last commit: f47696cb
+- Open findings: H12 · El test no revisa el destino de un symlink versionado (preexistente; hoy no hay symlinks) · al cierre; H13 · La segunda alternativa de prefijo distingue mayúsculas según cómo se escriba en la lista · al cierre; H14 · Prefijo corto con espacio o _ puede chocar con palabras comunes; no ocurre con la lista actual · al cierre; H15 · Con -run/-skip que excluyan el subtest, los nombres no se revisan sin aviso · al cierre; H16 · Plurales y uniones camelCase del término no se detectan · al cierre; H17 · Nombre del mantenedor en tooling/management/voice_test.go e IP de red local en un registro archivado · al cierre
+- Next: push, PR, merge, hive update, AC4, flow-close; luego retomar D10
+- Rules: flow-build/stage.md, flow-verify/stage-entry.md · extra: security-boundaries
 - Principles: none
 
 ### Evidence
 
 - before captures: none (no screen)
+- go vet ./... · exit 0 · a17d57b4
+- go test -count=1 ./... · exit 0 · a17d57b4
+- python unittest tests/skills · OK 416 · a17d57b4
+- texto AGENTS.md Checks by path · exit 0 · a17d57b4 (tras T4)
+- pil_scan · files 0 lines 0; TestNoPrivateIdentifiers ok · 4700a9ba
+- UUIDs intactos en el diff de T3 (0 quitados, 0 añadidos)
+- visor: install/check/lint/test/build/verify:dist/2º build sin diff; solo sourceDigest cambió (hijo T3)
+- local CI: sin jobs de tests (master-source-branch.yml, CI-only)
+- AC1: TestNoPrivateIdentifiers ok con lista; escaneo del revisor de seguridad: 0 formas restantes · f47696cb
+- AC2: sonda sin trackear falla con archivo:línea y regla, término no impreso · 6150b566
+- AC3: sin lista pasa y salta la parte de nombres · 6150b566
+- go test ./... ok, go vet ok · e16a16d9; tests/content ok · f47696cb
+- /code-review 1 (4 important) y hive-review-security (1 P1, 1 P2) arreglados en e16a16d9; /code-review 2 (3 important) arreglados en f47696cb (Unreviewed)
 
 ## Review status and progress
 
@@ -148,3 +161,5 @@ Base `development` en `cf490341`, rama `fix/public-tree-private-identifiers` en 
 2026-11-24 — T1 · e42503bd · unverified: AC1 hasta T3
 2026-11-24 — T2 · 72162233 · unverified: AC4 tras el merge y hive update
 2026-11-24 — T3 · 4700a9ba · unverified: none
+2026-11-24 — T4 · a17d57b4 · unverified: none
+2026-11-24 — Verificación: AC1–AC3 observados. `/code-review` y `hive-review-security` encontraron formas que la primera pasada no veía (minúsculas, `_`, espacio, prefijo suelto) y que el test imprimía términos de rutas; corregido en e16a16d9. La corrección de claves de 6150b566 rompió un `<proyecto>-<hash>`, restaurado. La segunda revisión encontró tres fallos en esos arreglos, corregidos en f47696cb con `Unreviewed:`. Los menores quedan como H12–H17.
