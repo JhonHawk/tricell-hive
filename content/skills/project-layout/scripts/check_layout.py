@@ -7,7 +7,9 @@ Rules (see references/layout.md):
   LAYOUT-03  tracked code file outside _support/, not a test, whose code (not a comment)
              cites work material: _support/{workspace,data,scripts,secrets,evidence,reports}
              (review: a script cannot tell application code from a tool that manages _support/)
-  LAYOUT-04  top-level _support/ entry outside the convention (review)
+  LAYOUT-04  top-level _support/ entry outside the convention, a legacy home among them
+             (sessions, evidence, reports, archive, archived, backups, plan, spec), or a
+             change register under _support/openspec/changes (review)
   LAYOUT-05  document missing from the index, broken index link, tool not indexed
   LAYOUT-06  coordinator table row whose repo is missing, has another remote,
              is not ignored or is not re-included in .ignore
@@ -41,6 +43,8 @@ SUPPORT_CHILDREN = {
     "docs", "openspec", "workspace", "data", "scripts", "secrets",
     "README.md", ".gitkeep", ".DS_Store",
 }
+# Homes of earlier layouts, which Hive no longer creates; project-layout migrates them.
+LEGACY_HOMES = {"sessions", "evidence", "reports", "archive", "archived", "backups", "plan", "spec"}
 UNTRACKED_SUPPORT = ("scripts", "secrets", "workspace", "data")
 IGNORED_NAMES = {"__pycache__", ".DS_Store"}
 # Dependency and build output, from the github/gitignore templates of each ecosystem.
@@ -348,12 +352,25 @@ def check_support_entries(root, out):
     if not os.path.isdir(support):
         return
     for name in sorted(os.listdir(support)):
-        if name not in SUPPORT_CHILDREN:
+        if name in LEGACY_HOMES:
+            out.append(Finding(
+                "LAYOUT-04", "review", os.path.join(support, name),
+                "legacy home of an earlier layout",
+                f"run plan_layout.py plan --root {root} and migrate it with project-layout",
+            ))
+        elif name not in SUPPORT_CHILDREN:
             out.append(Finding(
                 "LAYOUT-04", "review", os.path.join(support, name),
                 "top-level _support/ entry outside the convention",
                 "classify it with project-layout organize mode",
             ))
+    changes = os.path.join(support, "openspec", "changes")
+    if os.path.isdir(changes):
+        out.append(Finding(
+            "LAYOUT-04", "review", changes,
+            "legacy change register of an earlier layout",
+            f"run plan_layout.py plan --root {root} and migrate it with project-layout",
+        ))
 
 
 def check_index(root, index, layout, out):

@@ -35,7 +35,7 @@ Create only the folders and records the work needs. `<work>` is a short English 
 - Anything else is scratch.
 
 Code never depends on the work material under `_support/` (`workspace/`, `data/`, `scripts/`, `secrets/`, and any legacy `sessions/`, `evidence/` or `reports/` folder), which a fresh clone does not have, and the running application never reads `_support/` at all: a path it needs, such as a log or a report folder, is its own configuration. Tooling may read the versioned knowledge in `_support/docs` and `_support/openspec`.
-- A work's verification material, such as walk outputs, captures and raw CI, cloud or tool output, goes in its `workspace/YYYY-MM-DD-<work>/evidence/` folder and is retained as [Retain evidence](#retain-evidence) sets. Do not create a top-level `evidence/` folder; an existing one is legacy material, cleaned up on request with [project-layout](../SKILL.md), whose planner moves each untracked subfolder to `workspace/<date>-<work>/evidence/` and curates it there.
+- A work's verification material, such as walk outputs, captures and raw CI, cloud or tool output, goes in its `workspace/YYYY-MM-DD-<work>/evidence/` folder and is retained as [Retain evidence](#retain-evidence) sets. Do not create a top-level `evidence/` folder; an existing one is legacy material, cleaned up on request with [project-layout](../SKILL.md), whose planner moves each subfolder, tracked or not, and each loose file to `workspace/<date>-<work>/evidence/` (a tracked item also leaves Git, as [migrate](migrate.md#old-change-register-and-records) sets) and curates it there.
 
 **Condition:** producing UI review images or recordings.
 

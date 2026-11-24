@@ -10,9 +10,9 @@ List every entry of each support home: the `_support/` folder at the root of the
 
 - `docs/`: living knowledge; its documents are candidates only for moving or for pruning as [Living documentation](#living-documentation) sets.
 - `workspace/`: ignored working material, the one home of each work (`<YYYY-MM-DD>-<work>/`) and the earlier manifests of this skill; an item there is removed only with the positive evidence [project-layout](../SKILL.md) step 5 sets.
-- `sessions/`: a legacy home, which Hive no longer creates; classify each folder by its content as [migrate](migrate.md) HA-PL-03 does.
-- `evidence/`: legacy material, which Hive no longer creates; apply the test of [Retain evidence](../../project-layout/references/layout.md#retain-evidence) to each item.
-- Folders and files of earlier layouts, such as `plan/`, `spec/`, `reports/`, `archive/`, `assets/`, a `PROJECT.md`, a `premise.md` or a `README.md`: current knowledge, which stays or moves to `docs/`, or a record of past work, which is classified like `evidence/`. Classify by content as [migrate](migrate.md) HA-PL-03 does.
+- `sessions/`, `archive/`, `archived/`, `plan/`, `spec/`: legacy homes, which Hive no longer creates; the planner maps each child to a work folder, and [migrate](migrate.md#old-change-register-and-records) sets what it moves, deletes and keeps.
+- `evidence/`, `reports/`: legacy material, which Hive no longer creates; apply the test of [Retain evidence](../../project-layout/references/layout.md#retain-evidence) to each item.
+- Folders and files of earlier layouts, such as `assets/`, a `PROJECT.md`, a `premise.md` or a `README.md`: current knowledge, which stays or moves to `docs/`, or a record of past work, which is classified like `evidence/`. Classify by content as [migrate](migrate.md) HA-PL-03 does.
 
 ## Documentation homes
 
@@ -24,10 +24,10 @@ Never propose removing these; list each with its path and size, and name it amon
 
 - `secrets/`: list its file names and count only; never open, print or search a file in it.
 - `scripts/` named by a `HIVE.local.md`, and every `HIVE.local.md`.
-- Under `<Specs>`: the contract specs in `specs/`, and the change folders of work still open in a project that has them. Archived change folders under `changes/archive/` are legacy records, which [migrate](migrate.md) cleans.
+- Under `<Specs>`: the contract specs in `specs/`, and the change folders of work still open in a project that has them. The change archive and each change folder whose last commit is on the base are legacy records, which [migrate](migrate.md#old-change-register-and-records) cleans; a folder not on the base stays.
 - An architecture decision record: when a newer decision replaces it, mark it superseded with a link to its successor, as its convention sets; never remove it.
 - `worktrees/` and any Git worktree: [branch cleanup](../../flow-close/references/branch-cleanup.md) removes a merged one.
-- `backups/`, migration data, dumps and exports: they may hold the only copy of data. Removing one is a decision of its own, asked apart from the manifest.
+- `backups/`, migration data, dumps and exports: they may hold the only copy of data. The planner moves them to `_support/data/`; removing one is a decision of its own, asked apart from the manifest.
 - Sensitive evidence: it stays in its private location; the manifest describes its access limits without copying any secret.
 
 ## Promote a conclusion

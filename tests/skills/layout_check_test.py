@@ -331,6 +331,20 @@ class CheckLayoutTest(unittest.TestCase):
         self.assertFinding(result, "LAYOUT-04", severity="review", fragment="sessions")
         self.assertFinding(result, "LAYOUT-08", fragment="sessions/2026-01-02-fix/run.py")
 
+    def test_every_legacy_home_is_reported_with_the_migration_pointer(self):
+        repo = self.tmp() / "r"
+        clean_repo(repo)
+        homes = ("sessions", "evidence", "reports", "archive", "archived", "backups", "plan", "spec")
+        for home in homes:
+            write(repo, f"_support/{home}/note.md", "# n\n")
+        write(repo, "_support/openspec/changes/2026-01-02-x/proposal.md", "# x\n")
+        result = self.run_check(repo)
+        for home in homes:
+            self.assertFinding(result, "LAYOUT-04", severity="review", fragment=f"_support/{home}:")
+        lines = [l for l in result.stdout.splitlines() if l.startswith("LAYOUT-04")]
+        self.assertTrue([l for l in lines if "legacy home" in l and "plan_layout.py" in l], lines)
+        self.assertFinding(result, "LAYOUT-04", severity="review", fragment="openspec/changes")
+
     def test_json_output(self):
         repo = self.tmp() / "r"
         clean_repo(repo)
