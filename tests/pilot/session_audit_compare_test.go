@@ -46,10 +46,10 @@ func TestAuditCompareShowsOnlyChangedStatusesWithoutSessionText(t *testing.T) {
 
 func TestAuditCompareDeducesHostFromPathAndHostFlagOverrides(t *testing.T) {
 	for path, want := range map[string]string{
-		"/h/.claude/projects/-p/abc.jsonl":                                      "claude",
-		"/h/.codex/sessions/2026/11/23/r.jsonl":                                 "codex",
-		"/h/.codex/archived_sessions/rollout-2026-11-23T10-00-00-abc.jsonl.zst": "codex",
-		"/h/.grok/sessions/proj/id/updates.jsonl":                               "grok",
+		"/h/.claude/projects/-p/abc.jsonl":                                  "claude",
+		"/h/.codex/sessions/2026/11/23/r.jsonl":                             "codex",
+		"/h/.codex/archived_sessions/rollout-2026-11-23T10-00-00-abc.jsonl": "codex",
+		"/h/.grok/sessions/proj/id/updates.jsonl":                           "grok",
 	} {
 		var got string
 		run := func(p, host string) (auditReport, error) { got = host; return auditReport{}, nil }
@@ -96,5 +96,20 @@ func TestAuditCompareReportsAnUnknownHostAndContinues(t *testing.T) {
 	run := func(p, host string) (auditReport, error) { got = host; return auditReport{}, nil }
 	if err := compareAudit(&bytes.Buffer{}, []string{unknown}, "grok", run, run); err != nil || got != "grok" {
 		t.Fatalf("override: host %q err %v", got, err)
+	}
+}
+
+func TestAuditCompareSkipsCompressedSessions(t *testing.T) {
+	called := false
+	run := func(p, host string) (auditReport, error) { called = true; return auditReport{}, nil }
+	var out bytes.Buffer
+	if err := compareAudit(&out, []string{"/h/.codex/archived_sessions/rollout-x.jsonl.zst"}, "", run, run); err != nil {
+		t.Fatal(err)
+	}
+	if called {
+		t.Fatal("a compressed session was audited; it would read as empty and hide every change")
+	}
+	if !strings.Contains(out.String(), "compressed") {
+		t.Fatalf("no notice for the compressed session: %q", out.String())
 	}
 }

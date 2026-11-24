@@ -93,6 +93,10 @@ func changedLines(before, after criterionAssessment) string {
 
 func compareAudit(w io.Writer, paths []string, hostOverride string, before, after auditRunner) error {
 	for _, path := range paths {
+		if strings.HasSuffix(path, ".zst") {
+			fmt.Fprintf(w, "%s · compressed: decompress it first, an auditor reads it as empty\n", sessionLabel(path))
+			continue
+		}
 		host := hostOverride
 		if host == "" {
 			host = auditHostFromPath(path)
