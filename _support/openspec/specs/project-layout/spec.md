@@ -151,3 +151,25 @@ When the planner's plan is applied, each current reference to a moved path SHALL
 - **GIVEN** a working tree with another work's uncommitted edit in a file the plan rewrites
 - **WHEN** the plan is applied and then undone
 - **THEN** the tree's status and diff equal those before the apply, the other work's edit included
+
+### Requirement: Legacy records leave the tree one item at a time
+
+The placement planner SHALL plan the legacy homes `sessions/`, `evidence/`, `reports/`, `archive/` and `archived/` at the root of each Git repository as it plans those under `_support/`: each child moves to `workspace/<date>-<work>/` of the support home, which is the repository's own `_support/` when it exists and otherwise the `_support/` of the workspace folder when that folder is also a root of the plan (written `../_support/workspace/...`), and each tracked child leaves Git. A folder that a document or configuration cites as a path, a folder that holds code, and a child that is a repository of its own SHALL go to review instead of moving, and a destination SHALL be compared by absolute path across every root of the plan. The planner SHALL plan the change archive one child per row: a child that is tracked and has no uncommitted, untracked, ignored or index-hidden change is deleted, and any other child is kept with its reason, without keeping the rest of the archive. A root outside Git SHALL plan nothing inside a repository of its own or inside another root of the plan.
+
+#### Scenario: Top-level records of a repository inside a workspace
+
+- **GIVEN** a workspace folder outside Git, a child repository with no `_support/` that tracks `evidence/` and `sessions/` at its root, and both folders as roots of the plan
+- **WHEN** the planner runs and the plan is applied after the archive tag
+- **THEN** each child of those folders is at `workspace/<date>-<work>/` of the workspace's `_support/`, no longer tracked by the repository, and undo restores it
+
+#### Scenario: A folder the project still cites
+
+- **GIVEN** a document that cites `evidence/` as a path, and another that only uses the word "reports"
+- **WHEN** the planner runs
+- **THEN** `evidence/` is a review row, and `reports/` moves
+
+#### Scenario: One dirty archived change
+
+- **GIVEN** a change archive of tracked folders, one of which holds an untracked file
+- **WHEN** the planner runs
+- **THEN** the clean children are deleted, the child with the untracked file is kept with its reason, and a plan with a workspace root outside Git has no row for the repository's folders under that root

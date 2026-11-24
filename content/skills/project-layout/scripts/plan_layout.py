@@ -33,6 +33,7 @@ VERSION = 1
 STATUS_ALL = ("status", "--porcelain", "--untracked-files=all", "--ignored=matching")  # a `??` or `!!` line is a file no commit holds
 UNDO_VERSION = 2  # 2 records the exact index entries of every row that leaves Git
 IGNORED_HOMES = ("_support/workspace", "_support/data")  # the folders Git ignores: only a move there leaves Git
+HIDING_FLAGS = 0x40000000 | 0x8000  # skip-worktree, assume-unchanged: edits that git status does not show
 INDEX_FLAGS = 0x20000000 | 0x40000000 | 0x8000  # intent-to-add, skip-worktree, assume-unchanged
 KEPT, KEPT_WITH = "kept by user", "kept with the kept files that use it"
 MANIFESTS = (
@@ -62,6 +63,8 @@ LEGACY_EVIDENCE = ("evidence", "reports")
 LEGACY_DATA = ("backups", "migration-data", "exports", "dumps")
 # Homes of earlier layouts that hold dated records of past work: each child becomes a work folder.
 LEGACY_RECORDS = ("sessions", "archive", "archived", "plan", "spec")
+# The legacy homes a repository may keep at its own root, when its support home is the workspace's.
+TOP_LEGACY = ("sessions", "evidence", "reports", "archive", "archived")
 # Output that tooling regenerates: a legacy home holding it proposes its deletion.
 REPRODUCIBLE = {"coverage", "htmlcov", "playwright-report", "test-results", ".pytest_cache", "Thumbs.db"}
 RUNTIME_CONFIG_EXTENSIONS = {".json", ".yaml", ".yml", ".toml", ".ini", ".env", ".cfg", ".conf"}
@@ -97,6 +100,20 @@ GLOB_CHARS = re.compile(r"[*?\[]")
 KEEP_REF_RE = re.compile(r"^(?P<path>.+?)(?::(?P<line>\d+))?$")
 
 
+CASE_INSENSITIVE = None  # whether paths that differ only by case name one file; found once per run, a test may force it
+
+
+def fold(path):
+    """A path in the form destinations are compared in: case-folded on a case-insensitive filesystem."""
+    global CASE_INSENSITIVE
+    if CASE_INSENSITIVE is None:
+        with tempfile.TemporaryDirectory(prefix="plan-layout-case-") as scratch:
+            open(os.path.join(scratch, "probe"), "w").close()
+            CASE_INSENSITIVE = os.path.exists(os.path.join(scratch, "PROBE"))
+    path = os.path.normcase(path)
+    return path.casefold() if CASE_INSENSITIVE else path
+
+
 def fail(message):
     print(f"plan_layout.py: {message}", file=sys.stderr)
     return 1
@@ -109,14 +126,16 @@ def git(root, *args, **kwargs):
 def leaves_git_home(dest):
     """Whether a row moved to dest leaves Git: only a move into a folder Git ignores does; any other
     destination is a tracked home, and a move there stays tracked (git mv)."""
+    if dest and dest.startswith("../"):
+        return True  # outside the repository: no commit of it can hold the file, whatever the folder is called
     return bool(dest) and any(under(dest, home) is not None for home in IGNORED_HOMES)
 
 
-def nested_collides(root, outer, dest):
-    """Whether dest, which lies inside the destination of the moving folder row outer, names a path the
-    folder already holds: the second move would then land on the first one's content."""
-    inside = dest[len(outer["destination"]) + 1:]
-    return os.path.lexists(os.path.join(root, outer["source"], inside))
+def nested_collides(outer_source, outer_dest, dest):
+    """Whether dest, which lies inside outer_dest, the destination of a moving folder, names a path the
+    folder already holds at outer_source: the second move would then land on the first one's content.
+    All three are absolute paths."""
+    return os.path.lexists(os.path.join(outer_source, dest[len(outer_dest) + 1:]))
 
 
 def is_build_ignore(rel):
@@ -189,7 +208,7 @@ def build_status(root, ignore_file, paths):
     A path outside the file's folder is not in that build, so it counts as left out. A folder
     path ending in / is probed through a child, since Git matches a folder pattern only then."""
     base = ignore_base(ignore_file)
-    probes = {p: under(p.rstrip("/"), base) for p in paths}
+    probes = {p: None if p.startswith("../") else under(p.rstrip("/"), base) for p in paths}
     asked = {p: (local + "/.layout-probe" if p.endswith("/") else local) for p, local in probes.items() if local}
     left_out = excluded_by(os.path.join(root, ignore_file), list(asked.values()))
     return {p: (asked[p] in left_out if p in asked else True) for p in paths}
@@ -313,7 +332,7 @@ class Root:
         self.packages = self._packages()
 
     def abs(self, rel):
-        return os.path.join(self.path, rel)
+        return os.path.normpath(os.path.join(self.path, rel))
 
     def _packages(self):
         found = set()
@@ -442,6 +461,9 @@ class Planner:
                 for name in sorted(os.listdir(support)):
                     if name not in cl.SUPPORT_CHILDREN:
                         self.add_entry(i, name)
+            if root.is_git:
+                for name in TOP_LEGACY:
+                    self.add_top_legacy(i, name)
 
     def new_row(self, i, rel, kind, entry, subpath=""):
         root = self.roots[i]
@@ -476,6 +498,29 @@ class Planner:
                 self.review(i, base, "no rule", f"{len(rest)} other files stay; classify them by hand")
             return
         self.rows[(i, base)] = self.new_row(i, base, "folder", name)
+
+    def add_top_legacy(self, i, name):
+        """A legacy home at the repository's own root: a folder of records, never one that holds code."""
+        root = self.roots[i]
+        files = [r for r in root.files if r.startswith(name + "/")]
+        if os.path.islink(root.abs(name)) or not os.path.isdir(root.abs(name)):
+            return
+        if not files and not any(os.path.exists(os.path.join(root.abs(name), c, ".git")) for c in os.listdir(root.abs(name))):
+            return
+        if any(os.path.splitext(r)[1].lower() in cl.CODE_EXTENSIONS for r in files):
+            return self.review(i, name, "no rule", f"{name}/ holds code, so it is not a legacy home of records; classify it by hand")
+        self.rows[(i, name)] = self.new_row(i, name, "folder", name)
+
+    def support_home(self, i, rel):
+        """Where the work folders of root i go: the repository's own _support/, else, for a legacy home at
+        the repository's root, the _support/ of the workspace folder when that folder is also a root of the plan."""
+        root = self.roots[i]
+        if rel.startswith("_support/") or os.path.isdir(root.abs("_support")):
+            return "_support"
+        parent = os.path.dirname(root.path)
+        if any(other.path == parent for k, other in enumerate(self.roots) if k != i):
+            return "../_support"
+        return "_support"
 
     def review(self, i, path, reason, detail):
         self.reviews.append({"root": i, "path": path, "reason": reason, "detail": detail})
@@ -769,6 +814,10 @@ class Planner:
         name = row["entry"]
         base = row["source"]
         if name in LEGACY_EVIDENCE + LEGACY_DATA + LEGACY_RECORDS:
+            if base == name:
+                citing = self.top_citations(i, name)
+                if citing:
+                    return self.set_review(key, "F2", f"living path: a document or configuration cites {name}/: " + ", ".join(citing[:5]))
             citing = self.runtime_citations(root.abs(base))
             if citing:
                 return self.set_review(key, "F2", "runtime path: code or configuration cites it: " + ", ".join(citing[:5]))
@@ -801,6 +850,42 @@ class Planner:
                 if any(t == folder or t.startswith(folder + os.sep) for t in hits):
                     found.append(f"{os.path.basename(self.roots[j].path)}/{rel}:{number}")
                     break
+        return sorted(found)
+
+    def top_citations(self, i, name):
+        """Lines of other files, in any root, that cite the root's top-level folder as a path (`name/...`,
+        also relative to the citing file); the files under the folder and history records do not count."""
+        folder = self.roots[i].abs(name)
+        pattern = re.compile(r"(?<![\w@.-])((?:\.{1,2}/)*" + re.escape(name) + r"(?:/[\w.@+*-]*)*)(?![\w-]|\.\w)")
+        found = []
+        for (j, rel), text in self.corpus():
+            if j == i and (rel == name or rel.startswith(name + "/")):
+                continue
+            if not (rel.endswith(MARKDOWN) or os.path.splitext(rel)[1].lower() in cl.CODE_EXTENSIONS | RUNTIME_CONFIG_EXTENSIONS):
+                continue
+            if name not in text:
+                continue
+            extension = os.path.splitext(rel)[1].lower()
+            prose = rel.endswith(MARKDOWN)  # a plain word in prose is no path; in code or configuration it is a value
+            comment = cl.COMMENT_BY_EXTENSION.get(extension)
+            citing_dir = os.path.dirname(self.roots[j].abs(rel))
+            for number, line in enumerate(text.splitlines(), 1):
+                if name not in line or (comment and comment.match(line)):
+                    continue
+                for match in pattern.finditer(line):
+                    cited = match.group(1)
+                    before = line[:match.start(1)]
+                    if prose and not (cited.startswith(".") or cited.endswith("/") or "/" in cited[len(name):]
+                                      or before.endswith(("`", "]("))):
+                        continue  # a plain word, not a path
+                    path = cited.rstrip("/.")
+                    targets = {os.path.normpath(os.path.join(citing_dir, path)), os.path.normpath(os.path.join(self.roots[j].path, path))}
+                    if any(t == folder or t.startswith(folder + os.sep) for t in targets):
+                        found.append(f"{os.path.basename(self.roots[j].path)}/{rel}:{number}")
+                        break
+                else:
+                    continue
+                break
         return sorted(found)
 
     def record_date(self, i, rel):
@@ -839,11 +924,14 @@ class Planner:
         """Each child of a legacy home becomes a work folder, dated by its name, else its first commit,
         else its oldest file; what regenerates is deleted. sub is the folder kept inside the work folder."""
         root = self.roots[i]
+        home = self.support_home(i, base)
         loose = []
         for child in sorted(os.listdir(root.abs(base))):
             child_rel = f"{base}/{child}"
             key = (i, child_rel)
             folder = os.path.isdir(root.abs(child_rel))
+            if self.embedded_repository(i, child_rel):
+                continue
             if self.regenerable(i, child_rel, child, name):
                 self.rows[key] = self.new_row(i, child_rel, "folder" if folder else "file", name)
                 self.set_delete(key, "L3", "reproducible: tooling regenerates it")
@@ -851,7 +939,7 @@ class Planner:
                 work = kebab(DATE_RE.sub("", child, count=1)) or kebab(name)
                 self.rows[key] = self.new_row(i, child_rel, "folder", name)
                 self.place_record(key, name, os.path.join(
-                    "_support/workspace", f"{self.record_date(i, child_rel)}-{work}", sub))
+                    home, "workspace", f"{self.record_date(i, child_rel)}-{work}", sub))
             else:
                 loose.append(child_rel)
         if loose:
@@ -860,7 +948,7 @@ class Planner:
                 key = (i, rel)
                 self.rows[key] = self.new_row(i, rel, "file", name)
                 self.place_record(key, name, os.path.join(
-                    "_support/workspace", f"{date}-legacy-{kebab(name)}", sub, os.path.basename(rel)))
+                    home, "workspace", f"{date}-legacy-{kebab(name)}", sub, os.path.basename(rel)))
         self.review_current_knowledge(i, base, name)
 
     def regenerable(self, i, rel, child, home):
@@ -894,9 +982,39 @@ class Planner:
         names = [cl.norm_path(self.declared(i, "Specs") or ""), "_support/openspec", "openspec"]
         found = []
         for name in names:
-            if name and not name.startswith(("..", "/")) and name not in found and os.path.isdir(root.abs(name + "/changes")):
+            if (name and not name.startswith(("..", "/")) and name not in found and os.path.isdir(root.abs(name + "/changes"))
+                    and not self.in_other_repository(i, name)):
                 found.append(name)
         return found
+
+    def embedded_repository(self, i, rel):
+        """Whether rel is not this root's to plan: a repository of its own, which a move would carry off with
+        its history, is reviewed; a path another root of the plan covers is that root's, and is skipped."""
+        if not self.in_other_repository(i, rel):
+            return False
+        absolute = self.roots[i].abs(rel)
+        covered = any(k != i and len(other.path) > len(self.roots[i].path)
+                      and (absolute == other.path or absolute.startswith(other.path + os.sep))
+                      for k, other in enumerate(self.roots))
+        if not covered and os.path.exists(os.path.join(absolute, ".git")):
+            self.review(i, rel, "embedded repository",
+                        "it holds its own .git: plan it as a root of its own, or move it by hand")
+        return True
+
+    def in_other_repository(self, i, rel):
+        """Whether rel lies inside a repository of its own below root i, or inside another root of the plan,
+        which plans it: a workspace folder outside Git never judges what its child repositories hold."""
+        root = self.roots[i]
+        absolute = root.abs(rel)
+        if any(k != i and len(other.path) > len(root.path) and (absolute == other.path or absolute.startswith(other.path + os.sep))
+               for k, other in enumerate(self.roots)):
+            return True
+        parent = absolute
+        while parent != root.path and len(parent) > len(root.path):
+            if os.path.exists(os.path.join(parent, ".git")):
+                return True
+            parent = os.path.dirname(parent)
+        return False
 
     def base_ref(self, i):
         """origin/<base> from the declared Base branch, else the remote's default; None when neither resolves."""
@@ -921,22 +1039,50 @@ class Planner:
                 changes = f"{home}/changes"
                 for child in sorted(os.listdir(root.abs(changes))):
                     rel = f"{changes}/{child}"
-                    key = (i, rel)
                     folder = os.path.isdir(root.abs(rel))
+                    if child == "archive" and folder and root.is_git:
+                        self.archive_children(i, rel)
+                        continue
+                    key = (i, rel)
                     self.rows[key] = self.new_row(i, rel, "folder" if folder else "file", "changes")
                     if child == "archive" or not folder:
-                        verdict = self.unmodified(i, rel)
-                        if verdict is None:
-                            self.set_delete(key, "L1", "change archive: a record of past work" if folder
-                                            else "index of the change register")
-                        else:
-                            self.set_keep(key, *verdict)
+                        self.judge_record(key, i, rel, folder)
                         continue
                     verdict = self.integration(i, rel, ref)
                     if verdict is None:
                         self.set_delete(key, "L1", f"integrated: its last commit is on {ref}")
                     else:
                         self.set_keep(key, *verdict)
+
+    def archive_children(self, i, archive):
+        """One row per child of the change archive, so a child with an untracked, ignored or edited file
+        stays without keeping the others: the manifest lists each archived change on its own."""
+        root = self.roots[i]
+        for child in sorted(os.listdir(root.abs(archive))):
+            rel = f"{archive}/{child}"
+            if self.embedded_repository(i, rel):
+                continue
+            folder = os.path.isdir(root.abs(rel))
+            key = (i, rel)
+            self.rows[key] = self.new_row(i, rel, "folder" if folder else "file", "changes")
+            self.judge_record(key, i, rel, folder)
+
+    def judge_record(self, key, i, rel, folder):
+        """The change archive (or one of its children) and a loose file of changes/: deleted when tracked
+        and clean, kept with the reason otherwise."""
+        verdict = self.unmodified(i, rel)
+        if verdict is None:
+            self.set_delete(key, "L1", "change archive: a record of past work" if folder else "index of the change register")
+        else:
+            self.set_keep(key, *verdict)
+
+    def hides_edits(self, i, rel):
+        """Whether an index entry under rel carries assume-unchanged or skip-worktree, which hide edits
+        from git status; None when Git cannot list them."""
+        flags = git(self.roots[i].path, "ls-files", "--debug", "--", rel)
+        if flags is None or flags.returncode != 0:
+            return None
+        return any(int(f, 16) & HIDING_FLAGS for f in re.findall(r"flags: ([0-9a-f]+)", flags.stdout))
 
     def unmodified(self, i, rel):
         """None when rel is tracked and has no uncommitted change, so history holds all of it; else (reason, detail)."""
@@ -950,6 +1096,9 @@ class Planner:
             return "owner uncertain", "git status failed: cannot tell whether it has uncommitted changes"
         if dirty.stdout.strip():
             return "owner uncertain", "it has uncommitted or untracked changes: commit or discard them first"
+        hidden = self.hides_edits(i, rel)
+        if hidden is None or hidden:
+            return "owner uncertain", "an index entry is assume-unchanged or skip-worktree, which hides edits from git status"
         return None
 
     def integration(self, i, rel, ref):
@@ -969,6 +1118,9 @@ class Planner:
             return "owner uncertain", "git status failed"
         if dirty.stdout.strip():
             return "owner uncertain", "it has uncommitted changes: commit or discard them first"
+        hidden = self.hides_edits(i, rel)
+        if hidden is None or hidden:
+            return "owner uncertain", "an index entry is assume-unchanged or skip-worktree, which hides edits from git status"
         reachable = git(root.path, "merge-base", "--is-ancestor", sha, ref)
         if reachable is not None and reachable.returncode == 0:
             return None
@@ -988,13 +1140,22 @@ class Planner:
         self.review(row["root"], row["source"], reason, detail)
 
     def report_unignored(self):
-        """Moved legacy rows land in _support/workspace or _support/data: Git must ignore them."""
+        """Moved legacy rows land in _support/workspace or _support/data: Git must ignore them. A ../
+        destination lands in the workspace folder's own _support/, checked in that folder's repository."""
         for i, root in enumerate(self.roots):
-            tops = {"/".join(r["destination"].split("/")[:2]) for k, r in self.rows.items()
-                    if k[0] == i and r["untrack"] and r["destination"]}
+            moved = [r["destination"] for k, r in self.rows.items() if k[0] == i and r["untrack"] and r["destination"]]
+            tops = {"/".join(d.split("/")[:2]) for d in moved if not d.startswith("../")}
             for top in sorted(tops - root.ignored(sorted(tops))):
                 self.review(i, top, "workspace not ignored",
                             f"add {top}/ to .gitignore before applying, or the moved files show up as untracked")
+            outside = {"/".join(d.split("/")[1:3]) for d in moved
+                       if any(d.startswith("../" + home + "/") for home in IGNORED_HOMES)}
+            for k, parent in enumerate(self.roots):
+                if k == i or parent.path != os.path.dirname(root.path) or not parent.is_git:
+                    continue
+                for top in sorted(outside - parent.ignored(sorted(outside))):
+                    self.review(k, top, "workspace not ignored",
+                                f"add {top}/ to .gitignore before applying, or the moved files show up as untracked")
 
     def override_for(self, row):
         root = self.roots[row["root"]]
@@ -1039,6 +1200,7 @@ class Planner:
             raise SystemExit(fail(f"--keep and --override both name {row['source']}: choose one"))
         if override:
             row["rule"], row["destination"], row["override"] = rule, override, True
+            row["untrack"] = bool(row["tracked"] and leaves_git_home(override))
             return
         row["rule"], row["destination"], row["override"] = rule, None, False
         row["notes"].append(KEPT_WITH if follows else KEPT)
@@ -1055,6 +1217,8 @@ class Planner:
         row["rule"] = rule
         row["destination"] = override or os.path.normpath(dest).replace(os.sep, "/")
         row["override"] = bool(override)
+        if override:
+            row["untrack"] = bool(row["tracked"] and leaves_git_home(override))
 
     def set_review(self, key, rule, reason):
         row = self.rows[key]
@@ -1064,6 +1228,7 @@ class Planner:
         row["rule"] = rule
         if override:
             row["destination"], row["override"] = override, True
+            row["untrack"] = bool(row["tracked"] and leaves_git_home(override))
             return
         row["destination"] = None
         self.review(row["root"], row["source"], rule, reason)
@@ -1102,7 +1267,9 @@ class Planner:
         folders, one question per exclusion file and direction."""
         for i, root in enumerate(self.roots):
             ignore_files = [rel for rel in root.files if is_build_ignore(rel)]
-            moving = [k for k in sorted(self.rows) if k[0] == i and self.rows[k]["destination"]]
+            # a ../ destination leaves the repository, and with it every build the exclusion files shape
+            moving = [k for k in sorted(self.rows) if k[0] == i and self.rows[k]["destination"]
+                      and not self.rows[k]["destination"].startswith("../")]
             for ignore_file in ignore_files:
                 paths = {}
                 for key in moving:
@@ -1196,9 +1363,9 @@ class Planner:
         for key in claimants:
             row = self.rows[key]
             if row["destination"]:
-                seen[(row["root"], row["destination"])].append(key)
-        for (i, dest), keys in sorted(seen.items()):
-            exists = os.path.lexists(self.roots[i].abs(dest))
+                seen[fold(self.roots[row["root"]].abs(row["destination"]))].append(key)
+        for _, keys in sorted(seen.items()):
+            exists = os.path.lexists(self.roots[self.rows[keys[0]]["root"]].abs(self.rows[keys[0]]["destination"]))
             if not exists and len(keys) == 1:
                 continue
             chosen = [k for k in keys if self.rows[k]["override"]]
@@ -1210,10 +1377,11 @@ class Planner:
                 losers = [k for k in keys if k in movable] or keys
             for key in losers:
                 row = self.rows[key]
+                shown = row["destination"]
                 row["notes"].append("collision")
                 row["override"] = False
                 row["destination"] = None
-                self.review(row["root"], row["source"], row["rule"], f"collision at {dest}")
+                self.review(row["root"], row["source"], row["rule"], f"collision at {shown}")
         for key in claimants:
             row = self.rows[key]
             if row["destination"] and self.nested_in_other(key):
@@ -1229,11 +1397,15 @@ class Planner:
         """Whether the row's destination lies inside the destination of a folder row that moves elsewhere,
         unless that folder moves in the same plan and holds nothing at the path (apply moves it first)."""
         row = self.rows[key]
+        dest = self.roots[row["root"]].abs(row["destination"])
         for other_key, other in self.rows.items():
-            if (other_key != key and other["root"] == row["root"] and other["kind"] == "folder" and other["destination"]
-                    and row["destination"].startswith(other["destination"] + "/")
-                    and not row["source"].startswith(other["source"] + "/")):
-                if not nested_collides(self.roots[row["root"]].path, other, row["destination"]):
+            if other_key == key or other["kind"] != "folder" or not other["destination"]:
+                continue
+            outer = self.roots[other["root"]]
+            outer_dest = outer.abs(other["destination"])
+            same_tree = (other["root"] == row["root"] and row["source"].startswith(other["source"] + "/"))
+            if fold(dest).startswith(fold(outer_dest) + os.sep) and not same_tree:
+                if not nested_collides(outer.abs(other["source"]), outer_dest, dest):
                     continue
                 return True
         return False
@@ -1587,6 +1759,9 @@ def validate(plan):
             errors.append(f"{row['source']}: changed since the plan")
         if os.path.lexists(os.path.join(base, row["destination"])):
             errors.append(f"{row['destination']}: destination exists")
+        if row["tracked"] and row["destination"].startswith("../") and not row.get("untrack"):
+            errors.append(f"{row['source']}: it is tracked and moves outside the repository, so it must leave Git: "
+                          "plan it again")
         if row.get("untrack") and row["tracked"]:
             staged = git(base, "diff", "--cached", "--name-only", "--", row["source"])
             if staged is None or staged.returncode != 0 or staged.stdout.strip():
@@ -1597,11 +1772,18 @@ def validate(plan):
             elif any(int(f, 16) & INDEX_FLAGS for f in re.findall(r"flags: ([0-9a-f]+)", flags.stdout)):
                 errors.append(f"{row['source']}: an index entry is intent-to-add, skip-worktree or assume-unchanged, "
                               "which undo cannot restore: clear the flag (git update-index) or keep it with --keep")
-    moving = sorted((r for r in plan["rows"] if r["destination"]), key=lambda r: (r["root"], r["destination"]))
+    def absolute(row, field):
+        return os.path.normpath(os.path.join(root_path(plan, row["root"]), row[field]))
+
+    moving = sorted((r for r in plan["rows"] if r["destination"]), key=lambda r: fold(absolute(r, "destination")))
     for n, row in enumerate(moving):
+        dest = absolute(row, "destination")
         for other in moving[n + 1:]:
-            if other["root"] == row["root"] and other["destination"].startswith(row["destination"] + "/"):
-                if row["kind"] == "folder" and not nested_collides(root_path(plan, row["root"]), row, other["destination"]):
+            other_dest = absolute(other, "destination")
+            if fold(other_dest) == fold(dest):
+                errors.append(f"{other['destination']}: {row['source']} and {other['source']} move to the same path")
+            elif fold(other_dest).startswith(fold(dest) + os.sep):
+                if row["kind"] == "folder" and not nested_collides(absolute(row, "source"), dest, other_dest):
                     continue  # the outer folder moves first, in this plan, and holds nothing at that path
                 errors.append(f"{other['destination']}: nested inside the destination {row['destination']}")
     for i, root in enumerate(plan["roots"]):
@@ -1677,11 +1859,15 @@ def cmd_apply(args):
                 undo["rewrites"].append({"root": i, "file": rel, "line": number,
                                          "before": before[number - 1], "after": lines[number - 1]})
             save_undo(undo_path, undo)
-        moves = sorted((r for r in plan["rows"] if r["destination"]), key=lambda r: (r["root"], r["destination"].count("/"), r["source"]))  # outer destinations first
+        moves = sorted((r for r in plan["rows"] if r["destination"]),
+                       key=lambda r: (os.path.normpath(os.path.join(root_path(plan, r["root"]), r["destination"])).count(os.sep),
+                                      r["root"], r["source"]))  # outer destinations first
         for row in moves:
             root = root_path(plan, row["root"])
             source = os.path.join(root, row["source"])
-            dest = os.path.join(root, row["destination"])
+            dest = os.path.normpath(os.path.join(root, row["destination"]))
+            if os.path.lexists(dest):
+                raise RuntimeError(f"{row['destination']}: destination exists; {row['source']} stays")
             missing = []
             parent = os.path.dirname(dest)
             while not os.path.isdir(parent):
@@ -1819,6 +2005,8 @@ def build_residuals(plan):
     by_file = collections.defaultdict(list)
     for row in plan["rows"]:
         for build in row.get("builds", []):
+            if row["destination"].startswith("../"):
+                continue  # a plan an earlier script wrote: a ../ destination left the repository, so no build here holds it
             suffix = "/" if row["kind"] != "file" else ""
             by_file[(row["root"], build["file"])].append((row["destination"] + suffix, build))
     residual = []

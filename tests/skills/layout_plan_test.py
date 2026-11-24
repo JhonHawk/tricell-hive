@@ -771,7 +771,7 @@ class LegacyMigrationTest(Fixture, unittest.TestCase):
 
     def test_the_change_archive_and_integrated_folders_are_deleted_and_the_unintegrated_one_is_kept(self):
         plan = self.plan_json(legacy_repo(self.tmp()))
-        for gone in ("_support/openspec/changes/archive", "_support/openspec/changes/done-change"):
+        for gone in ("_support/openspec/changes/archive/2026-01-03-y", "_support/openspec/changes/archive/README.md", "_support/openspec/changes/done-change"):
             row = self.row(plan, gone)
             self.assertEqual((row["action"], row["destination"]), ("delete", None), gone)
         kept = self.row(plan, "_support/openspec/changes/open-change")
@@ -791,7 +791,7 @@ class LegacyMigrationTest(Fixture, unittest.TestCase):
         git(repo, "remote", "remove", "origin")
         plan = self.plan_json(repo)
         self.assertEqual(self.row(plan, "_support/openspec/changes/done-change")["action"], "keep")
-        self.assertEqual(self.row(plan, "_support/openspec/changes/archive")["action"], "delete")
+        self.assertEqual(self.row(plan, "_support/openspec/changes/archive/2026-01-03-y")["action"], "delete")
 
     def test_an_undated_item_takes_its_first_commit_date(self):
         repo = legacy_repo(self.tmp())
@@ -1009,21 +1009,22 @@ class LegacyMigrationTest(Fixture, unittest.TestCase):
                 write(repo, f"_support/openspec/changes/archive/{extra}", "mine\n")
                 plan = self.plan_json(repo)
                 self.assertEqual(self.row(plan, "_support/openspec/changes/done-change")["action"], "keep")
-                self.assertEqual(self.row(plan, "_support/openspec/changes/archive")["action"], "keep")
+                self.assertEqual(self.row(plan, f"_support/openspec/changes/archive/{extra}")["action"], "keep")
+                self.assertEqual(self.row(plan, "_support/openspec/changes/archive/2026-01-03-y")["action"], "delete", "a loose file keeps only itself")
 
     def test_an_override_into_a_tracked_home_stays_tracked_and_one_into_the_workspace_leaves_git(self):
         repo = legacy_repo(self.tmp())
         plan_file = self.make_plan(repo, "--override", "_support/openspec/changes/open-change=_support/docs/open-change",
-                                   "--override", "_support/openspec/changes/archive=_support/docs/arch",
+                                   "--override", "_support/openspec/changes/archive/2026-01-03-y=_support/docs/arch",
                                    "--override", "_support/sessions/2026-01-02-x=_support/workspace/2026-01-02-kept")
         plan = json.loads(plan_file.read_text())
         self.assertFalse(self.row(plan, "_support/openspec/changes/open-change")["untrack"])
-        self.assertFalse(self.row(plan, "_support/openspec/changes/archive")["untrack"])
+        self.assertFalse(self.row(plan, "_support/openspec/changes/archive/2026-01-03-y")["untrack"])
         self.assertTrue(self.row(plan, "_support/sessions/2026-01-02-x")["untrack"])
         self.assertEqual(self.apply_after_tag(repo, plan_file).returncode, 0)
         tracked = git(repo, "ls-files").stdout
         self.assertIn("_support/docs/open-change/proposal.md", tracked)
-        self.assertIn("_support/docs/arch/README.md", tracked)
+        self.assertIn("_support/docs/arch/proposal.md", tracked)
         self.assertNotIn("_support/workspace", tracked)
 
     def test_reproducible_output_is_deleted_only_when_untracked_ignored_and_outside_records_of_evidence(self):
@@ -1075,12 +1076,14 @@ class LegacyMigrationTest(Fixture, unittest.TestCase):
     def test_an_archive_is_deleted_only_when_tracked_and_clean(self):
         repo = legacy_repo(self.tmp())
         write(repo, "_support/openspec/changes/archive/README.md", "# index, edited\n")
-        row = self.row(self.plan_json(repo), "_support/openspec/changes/archive")
-        self.assertEqual(row["action"], "keep", "edited")
+        plan = self.plan_json(repo)
+        self.assertEqual(self.row(plan, "_support/openspec/changes/archive/README.md")["action"], "keep", "edited")
+        self.assertEqual(self.row(plan, "_support/openspec/changes/archive/2026-01-03-y")["action"], "delete")
         repo = legacy_repo(self.tmp())
         write(repo, "_support/openspec/changes/archive/2026-02-02-new/p.md", "# untracked\n")
-        row = self.row(self.plan_json(repo), "_support/openspec/changes/archive")
-        self.assertEqual(row["action"], "keep", "untracked file inside")
+        plan = self.plan_json(repo)
+        self.assertEqual(self.row(plan, "_support/openspec/changes/archive/2026-02-02-new")["action"], "keep", "untracked child")
+        self.assertEqual(self.row(plan, "_support/openspec/changes/archive/2026-01-03-y")["action"], "delete", "its siblings still go")
         repo = legacy_repo(self.tmp())
         write(repo, "_support/openspec/changes/INDEX.md", "# loose, untracked\n")
         plan = self.plan_json(repo)
@@ -1140,6 +1143,386 @@ class LegacyMigrationTest(Fixture, unittest.TestCase):
         row = self.row(plan, "_support/openspec/changes/done-change")
         self.assertEqual(row["action"], "keep")
         self.assertIn("git status failed", " ".join(r["detail"] for r in plan["reviews"] if r["path"] == row["source"]))
+
+
+def specs_workspace(base, clean=3):
+    """A workspace folder outside Git holding a specs repository with a tracked change archive, one
+    archived change with untracked files, and tracked top-level evidence/ and sessions/ folders."""
+    ws = base / "ws"
+    write(ws, "AGENTS.md", "# Workspace\n\n## Hive\n\n- Specs: specs-repo/openspec\n")
+    specs = ws / "specs-repo"
+    specs.mkdir(parents=True)
+    git(specs, "init", "-q", "-b", "main")
+    git(specs, "config", "user.email", "t@example.invalid")
+    git(specs, "config", "user.name", "t")
+    origin = base / "origin.git"
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+    git(specs, "remote", "add", "origin", str(origin))
+    write(specs, "AGENTS.md", "# Specs\n\n## Hive\n\n- Base branch: main\n")
+    for n in range(clean):
+        write(specs, f"openspec/changes/archive/2026-01-0{n + 1}-done-{n}/proposal.md", "# done\n")
+        write(specs, f"openspec/changes/archive/2026-01-0{n + 1}-done-{n}/tasks.md", "- [x] ok\n")
+    write(specs, "openspec/changes/archive/2026-02-01-dirty/proposal.md", "# dirty\n")
+    write(specs, "evidence/2026-03-04-audit/shot.txt", "shot\n")
+    write(specs, "evidence/loose.txt", "loose\n")
+    write(specs, "sessions/2026-03-05-review/a.md", "# a\n")
+    git(specs, "add", "-A")
+    dated_commit(specs, "2026-03-06")
+    git(specs, "push", "-q", "origin", "main")
+    write(specs, "openspec/changes/live/proposal.md", "# live, not on the base\n")
+    git(specs, "add", "-A")
+    git(specs, "commit", "-q", "-m", "live")
+    for n in range(4):
+        write(specs, f"openspec/changes/archive/2026-02-01-dirty/extra-{n}.md", "# untracked\n")
+    return ws, specs
+
+
+class LegacyGapsTest(Fixture, unittest.TestCase):
+    @staticmethod
+    def row(plan, root, source):
+        rows = [r for r in plan["rows"] if r["root"] == root and r["source"] == source]
+        assert rows, f"no row for {source}: {[(r['root'], r['source']) for r in plan['rows']]}"
+        return rows[0]
+
+    def test_the_change_archive_is_planned_per_child(self):
+        ws, specs = specs_workspace(self.tmp())
+        plan = self.plan_json(specs)
+        archive = "openspec/changes/archive"
+        for n in range(3):
+            row = self.row(plan, 0, f"{archive}/2026-01-0{n + 1}-done-{n}")
+            self.assertEqual((row["action"], row["destination"]), ("delete", None), row["source"])
+        dirty = self.row(plan, 0, f"{archive}/2026-02-01-dirty")
+        self.assertEqual(dirty["action"], "keep")
+        reasons = [r for r in plan["reviews"] if r["path"] == dirty["source"]]
+        self.assertEqual(len(reasons), 1, plan["reviews"])
+        self.assertIn("untracked", reasons[0]["detail"])
+        self.assertFalse([r for r in plan["rows"] if r["source"] == archive], "no row judges the archive as a whole")
+        self.assertEqual(self.row(plan, 0, "openspec/changes/live")["action"], "keep", "not on the base: unchanged rule")
+
+    def test_a_loose_file_inside_the_archive_is_judged_like_a_child(self):
+        ws, specs = specs_workspace(self.tmp(), clean=1)
+        write(specs, "openspec/changes/archive/README.md", "# untracked index\n")
+        plan = self.plan_json(specs)
+        self.assertEqual(self.row(plan, 0, "openspec/changes/archive/README.md")["action"], "keep")
+        self.assertEqual(self.row(plan, 0, "openspec/changes/archive/2026-01-01-done-0")["action"], "delete")
+
+    def test_a_workspace_root_outside_git_skips_the_repositories_inside_it(self):
+        ws, specs = specs_workspace(self.tmp())
+        plan = self.plan_json(ws, specs)
+        self.assertEqual([r["source"] for r in plan["rows"] if r["root"] == 0 and "specs-repo" in r["source"]], [])
+        self.assertTrue([r for r in plan["rows"] if r["root"] == 1 and r["action"] == "delete"])
+        self.assertFalse([r for r in plan["reviews"] if r["root"] == 0 and "no repository" in r["detail"]], plan["reviews"])
+
+    def test_top_level_legacy_homes_move_to_the_workspace_support_home_and_leave_git(self):
+        ws, specs = specs_workspace(self.tmp())
+        plan = self.plan_json(ws, specs)
+        shot = self.row(plan, 1, "evidence/2026-03-04-audit")
+        self.assertEqual((shot["action"], shot["destination"], shot["untrack"]),
+                         ("move", "../_support/workspace/2026-03-04-audit/evidence", True))
+        session = self.row(plan, 1, "sessions/2026-03-05-review")
+        self.assertEqual((session["action"], session["destination"], session["untrack"]),
+                         ("move", "../_support/workspace/2026-03-05-review", True))
+        loose = self.row(plan, 1, "evidence/loose.txt")
+        self.assertEqual((loose["action"], loose["untrack"]), ("move", True))
+        self.assertTrue(loose["destination"].startswith("../_support/workspace/"), loose)
+        self.assertFalse([r for r in plan["reviews"] if r["reason"] == "workspace not ignored"], plan["reviews"])
+
+    def test_top_level_legacy_homes_use_the_repository_support_home_when_it_exists(self):
+        ws, specs = specs_workspace(self.tmp())
+        write(specs, "_support/docs/README.md", "# Index\n")
+        write(specs, ".gitignore", "_support/workspace/\n")
+        commit(specs)
+        plan = self.plan_json(specs)
+        row = self.row(plan, 0, "sessions/2026-03-05-review")
+        self.assertEqual((row["destination"], row["untrack"]), ("_support/workspace/2026-03-05-review", True))
+
+    def test_every_top_level_legacy_home_is_found(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, "_support/docs/README.md", "# Index\n")
+        for home in ("sessions", "evidence", "reports", "archive", "archived"):
+            write(repo, f"{home}/2026-06-07-{home}-item/a.md", "# a\n")
+        commit(repo)
+        plan = self.plan_json(repo)
+        for home in ("sessions", "evidence", "reports", "archive", "archived"):
+            row = self.row(plan, 0, f"{home}/2026-06-07-{home}-item")
+            self.assertEqual((row["action"], row["untrack"]), ("move", True), home)
+            self.assertTrue(row["destination"].startswith("_support/workspace/2026-06-07-"), row)
+
+    def test_a_top_level_folder_a_document_cites_waits_for_review(self):
+        ws, specs = specs_workspace(self.tmp())
+        write(specs, "README.md", "Captures live in `evidence/2026-03-04-audit/shot.txt`.\n")
+        commit(specs)
+        plan = self.plan_json(ws, specs)
+        row = self.row(plan, 1, "evidence")
+        self.assertEqual((row["action"], row["destination"]), ("review", None))
+        reviews = [r for r in plan["reviews"] if r["path"] == "evidence"]
+        self.assertIn("README.md:1", reviews[0]["detail"])
+        self.assertEqual(self.row(plan, 1, "sessions/2026-03-05-review")["action"], "move")
+        kept = self.plan_json(ws, specs, extra=["--keep", str(specs / "evidence")])
+        self.assertEqual(self.row(kept, 1, "evidence")["action"], "keep")
+
+    def test_apply_moves_top_level_homes_into_the_workspace_and_undo_restores_them(self):
+        ws, specs = specs_workspace(self.tmp())
+        plan_file = ws.parent / "plan.json"
+        self.plan(ws, specs, extra=["--out", str(plan_file)])
+        before = git(specs, "ls-files", "-s").stdout
+        git(specs, "tag", "archive/test")
+        run = lambda c: subprocess.run(["python3", "-I", str(SCRIPT), c, "--plan", str(plan_file)], text=True, capture_output=True)
+        applied = run("apply")
+        self.assertEqual(applied.returncode, 0, applied.stderr)
+        self.assertTrue((ws / "_support/workspace/2026-03-05-review/a.md").exists())
+        self.assertTrue((ws / "_support/workspace/2026-03-04-audit/evidence/shot.txt").exists())
+        self.assertFalse((specs / "sessions").exists())
+        self.assertEqual(git(specs, "ls-files", "sessions", "evidence").stdout, "")
+        undone = run("undo")
+        self.assertEqual(undone.returncode, 0, undone.stderr)
+        self.assertTrue((specs / "sessions/2026-03-05-review/a.md").exists())
+        self.assertEqual(git(specs, "ls-files", "-s").stdout, before)
+        self.assertFalse((ws / "_support/workspace/2026-03-05-review").exists())
+
+
+def sibling_repos(base, names=("a", "b"), with_workspace_sessions=False):
+    """Two repositories under a workspace folder outside Git, each with an untracked sessions/notes.md
+    of the same date, so the work folder both would use is the same absolute path."""
+    ws = base / "ws"
+    ws.mkdir(parents=True)
+    repos = []
+    for name in names:
+        repo = small_repo(ws / name)
+        write(repo, "sessions/notes.md", f"{name}\n")
+        os.utime(repo / "sessions/notes.md", (FIXED, FIXED))
+        repos.append(repo)
+    if with_workspace_sessions:
+        write(ws, "_support/sessions/notes.md", "workspace\n")
+        os.utime(ws / "_support/sessions/notes.md", (FIXED, FIXED))
+    return ws, repos
+
+
+class LegacyReviewTest(Fixture, unittest.TestCase):
+    @staticmethod
+    def rows(plan, root=None):
+        return [r for r in plan["rows"] if root is None or r["root"] == root]
+
+    def run_cmd(self, command, plan_file):
+        return subprocess.run(["python3", "-I", str(SCRIPT), command, "--plan", str(plan_file)], text=True, capture_output=True)
+
+    def test_destinations_are_compared_by_absolute_path_across_roots(self):
+        ws, (a, b) = sibling_repos(self.tmp(), with_workspace_sessions=True)
+        plan = self.plan_json(ws, a, b)
+        moving = [os.path.normpath(os.path.join(plan["roots"][r["root"]]["path"], r["destination"]))
+                  for r in plan["rows"] if r["destination"]]
+        self.assertEqual(len(moving), len(set(moving)), "two rows share one destination: " + str(moving))
+        notes = [r for r in plan["rows"] if r["source"].endswith("notes.md")]
+        self.assertEqual(sorted(r["action"] for r in notes), ["review"] * 3, notes)
+
+    def test_apply_refuses_two_rows_that_share_a_destination_and_overwrites_nothing(self):
+        ws, (a, b) = sibling_repos(self.tmp())
+        write(b, "sessions/notes.md", "b\n")
+        os.rename(b / "sessions/notes.md", b / "sessions/other.md")
+        os.utime(b / "sessions/other.md", (FIXED, FIXED))
+        plan_file = ws.parent / "plan.json"
+        self.plan(ws, a, b, extra=["--out", str(plan_file)])
+        plan = json.loads(plan_file.read_text())
+        shared = "../_support/workspace/2026-01-02-legacy-sessions/z.md"
+        for row in plan["rows"]:
+            if row["action"] == "move":
+                row["destination"] = shared
+        plan_file.write_text(json.dumps(plan))
+        result = self.run_cmd("apply", plan_file)
+        self.assertNotEqual(result.returncode, 0, result.stdout)
+        self.assertEqual((a / "sessions/notes.md").read_text(), "a\n")
+        self.assertEqual((b / "sessions/other.md").read_text(), "b\n")
+        self.assertFalse((ws / "_support/workspace/2026-01-02-legacy-sessions/z.md").exists())
+
+    def test_a_move_out_of_the_repository_is_not_a_build_change(self):
+        ws, specs = specs_workspace(self.tmp())
+        write(specs, ".dockerignore", "node_modules\n")
+        git(specs, "add", ".dockerignore")
+        git(specs, "commit", "-q", "-m", "ignore")
+        plan_file = ws.parent / "plan.json"
+        plan = json.loads(self.plan(ws, specs, extra=["--out", str(plan_file)]).stdout)
+        self.assertFalse([r for r in plan["rows"] if r.get("builds")], "a ../ destination leaves every build")
+        self.assertFalse([r for r in plan["reviews"] if r["reason"] == "build contents"], plan["reviews"])
+        git(specs, "tag", "archive/test")
+        self.assertEqual(self.run_cmd("apply", plan_file).returncode, 0)
+        verified = self.run_cmd("verify", plan_file)
+        self.assertNotIn(".dockerignore", verified.stdout + verified.stderr)
+
+    def test_a_plain_word_is_not_a_citation_of_a_top_level_folder(self):
+        ws, specs = specs_workspace(self.tmp())
+        write(specs, "reports/2026-04-05-q1/a.md", "# q1\n")
+        write(specs, "AGENTS.md", "# Specs\n\n## Hive\n\n- Base branch: main\n\nWeekly reports are mailed. The evidence-based approach and sessions-heavy work stay.\n")
+        commit(specs)
+        plan = self.plan_json(ws, specs)
+        for name in ("reports", "evidence", "sessions"):
+            self.assertFalse([r for r in plan["rows"] if r["source"] == name], name)
+        self.assertEqual([r for r in plan["rows"] if r["source"] == "reports/2026-04-05-q1"][0]["action"], "move")
+        write(specs, "AGENTS.md", "# Specs\n\nSee `reports` and the evidence/ folder.\n")
+        commit(specs)
+        plan = self.plan_json(ws, specs)
+        for name in ("reports", "evidence"):
+            self.assertEqual([r for r in plan["rows"] if r["source"] == name][0]["action"], "review", name)
+
+    def test_a_coordinator_repository_must_ignore_the_workspace_folder_a_move_creates(self):
+        ws, specs = specs_workspace(self.tmp())
+        git(ws, "init", "-q", "-b", "main")
+        write(ws, ".gitignore", "specs-repo/\n")
+        plan = self.plan_json(ws, specs)
+        reviews = [r for r in plan["reviews"] if r["reason"] == "workspace not ignored"]
+        self.assertEqual([(r["root"], r["path"]) for r in reviews], [(0, "_support/workspace")], plan["reviews"])
+        write(ws, ".gitignore", "specs-repo/\n_support/workspace/\n")
+        plan = self.plan_json(ws, specs)
+        self.assertFalse([r for r in plan["reviews"] if r["reason"] == "workspace not ignored"], plan["reviews"])
+
+    def test_an_embedded_clone_inside_a_legacy_home_is_reviewed_and_never_moved(self):
+        ws, specs = specs_workspace(self.tmp())
+        write(specs, "archive/2026-05-01-x/a.md", "# a\n")
+        clone = specs / "archive/old-repo"
+        clone.mkdir()
+        git(clone, "init", "-q", "-b", "main")
+        write(clone, "f.md", "# f\n")
+        inner = specs / "openspec/changes/archive/old-repo"
+        inner.mkdir()
+        git(inner, "init", "-q", "-b", "main")
+        write(inner, "f.md", "# f\n")
+        plan = self.plan_json(ws, specs)
+        for source in ("archive/old-repo", "openspec/changes/archive/old-repo"):
+            self.assertFalse([r for r in plan["rows"] if r["source"] == source], source)
+            self.assertEqual([r["reason"] for r in plan["reviews"] if r["path"] == source], ["embedded repository"], source)
+        self.assertEqual([r for r in plan["rows"] if r["source"] == "archive/2026-05-01-x"][0]["action"], "move")
+
+    def test_a_file_that_hides_its_edits_from_git_status_is_never_deleted(self):
+        for flag in ("--assume-unchanged", "--skip-worktree"):
+            with self.subTest(flag):
+                ws, specs = specs_workspace(self.tmp())
+                child = "openspec/changes/archive/2026-01-01-done-0"
+                git(specs, "update-index", flag, f"{child}/proposal.md")
+                write(specs, f"{child}/proposal.md", "# edited locally\n")
+                self.assertEqual(git(specs, "status", "--porcelain", "--", child).stdout, "", "git status hides it")
+                plan = self.plan_json(specs)
+                row = [r for r in plan["rows"] if r["source"] == child][0]
+                self.assertEqual(row["action"], "keep")
+
+    def test_a_dotdot_override_leaves_git_whatever_its_name(self):
+        repo = legacy_repo(self.tmp())
+        plan = self.plan_json(repo, extra=["--override", "_support/sessions/2026-01-02-x=../elsewhere/x"])
+        row = [r for r in plan["rows"] if r["source"] == "_support/sessions/2026-01-02-x"][0]
+        self.assertEqual((row["destination"], row["untrack"]), ("../elsewhere/x", True))
+
+
+def load_planner():
+    spec = importlib.util.spec_from_file_location("plan_layout_under_test", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class LegacyLastRoundTest(Fixture, unittest.TestCase):
+    def run_cmd(self, command, plan_file):
+        return subprocess.run(["python3", "-I", str(SCRIPT), command, "--plan", str(plan_file)], text=True, capture_output=True)
+
+    @staticmethod
+    def row(plan, source, root=0):
+        rows = [r for r in plan["rows"] if r["root"] == root and r["source"] == source]
+        assert rows, f"no row for {source}"
+        return rows[0]
+
+    def reports_repo(self, **files):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, "_support/docs/README.md", "# Index\n")
+        write(repo, "reports/2026-04-05-q1/a.md", "# q1\n")
+        for rel, text in files.items():
+            write(repo, rel.replace("__", "/").replace("_dot_", "."), text)
+        commit(repo)
+        return repo
+
+    def test_a_bare_folder_name_in_code_or_configuration_is_a_citation(self):
+        for rel, text in (("config.yml", "output_dir: reports\n"), ("app.py", 'OUT = "reports"\n'),
+                          ("settings.json", '{"dir": "reports"}\n')):
+            with self.subTest(rel):
+                repo = small_repo(self.tmp() / "r")
+                write(repo, "_support/docs/README.md", "# Index\n")
+                write(repo, "reports/2026-04-05-q1/a.md", "# q1\n")
+                write(repo, rel, text)
+                commit(repo)
+                self.assertEqual(self.row(self.plan_json(repo), "reports")["action"], "review")
+
+    def test_a_file_name_that_starts_with_the_folder_name_is_not_a_citation(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, "_support/docs/README.md", "# Index\n")
+        write(repo, "reports/2026-04-05-q1/a.md", "# q1\n")
+        write(repo, "AGENTS.md", "# A\n\nSee `reports.md` and reports.md.\n")
+        commit(repo)
+        row = self.row(self.plan_json(repo), "reports/2026-04-05-q1")
+        self.assertEqual(row["action"], "move")
+
+    def test_destinations_that_differ_only_by_case_collide_on_a_case_insensitive_filesystem(self):
+        module = load_planner()
+        module.CASE_INSENSITIVE = True
+        base = self.tmp()
+        ws = base / "ws"
+        ws.mkdir()
+        repos = []
+        for name, file in (("a", "Notes.md"), ("b", "notes.md")):
+            repo = small_repo(ws / name)
+            write(repo, f"evidence/{file}", name + "\n")
+            os.utime(repo / f"evidence/{file}", (FIXED, FIXED))
+            repos.append(repo)
+        plan = module.Planner([str(ws), str(repos[0]), str(repos[1])], [], {}).plan()
+        notes = [r for r in plan["rows"] if r["source"].lower().endswith("notes.md")]
+        self.assertEqual([r["action"] for r in notes], ["review", "review"], notes)
+        plan_file = base / "plan.json"
+        for row, name in zip(notes, ("Notes.md", "notes.md")):
+            row["action"], row["destination"] = "move", f"../_support/workspace/2026-01-02-x/evidence/{name}"
+        plan_file.write_text(json.dumps(plan))
+        errors, _ = module.validate(json.loads(plan_file.read_text()))
+        self.assertTrue([e for e in errors if "same path" in e], errors)
+
+    def test_a_dotdot_override_on_a_review_or_dest_row_leaves_git(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, "_support/docs/README.md", "# Index\n")
+        write(repo, "_support/notes/a.md", "# a\n")
+        write(repo, "_support/misc/a.bin", "x\n")
+        commit(repo)
+        extra = ["--override", "_support/notes=../elsewhere/notes", "--override", "_support/misc=../elsewhere/misc"]
+        plan = self.plan_json(repo, extra=extra)
+        for source in ("_support/notes", "_support/misc"):
+            row = self.row(plan, source)
+            self.assertEqual((row["destination"], row["untrack"]), (f"../elsewhere/{source.split('/')[1]}", True), source)
+
+    def test_apply_refuses_a_tracked_row_outside_the_repository_that_is_not_marked_to_leave_git(self):
+        repo = legacy_repo(self.tmp())
+        plan_file = repo.parent / "plan.json"
+        self.plan(repo, extra=["--out", str(plan_file)])
+        plan = json.loads(plan_file.read_text())
+        row = [r for r in plan["rows"] if r["source"] == "_support/sessions/2026-01-02-x"][0]
+        row["destination"], row["untrack"] = "../elsewhere/x", False
+        plan_file.write_text(json.dumps(plan))
+        git(repo, "tag", "archive/test")
+        result = self.run_cmd("apply", plan_file)
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("leave Git", result.stderr)
+        self.assertTrue((repo / "_support/sessions/2026-01-02-x/a.md").exists())
+
+    def test_the_outside_ignore_check_covers_only_the_workspace_and_data_homes(self):
+        ws, specs = specs_workspace(self.tmp())
+        git(ws, "init", "-q", "-b", "main")
+        write(ws, ".gitignore", "specs-repo/\n_support/workspace/\n")
+        plan = self.plan_json(ws, specs, extra=["--override", f"{specs}/evidence/loose.txt=../_support/other/loose.txt"])
+        self.assertEqual(self.row(plan, "evidence/loose.txt", 1)["untrack"], True)
+        self.assertFalse([r for r in plan["reviews"] if r["reason"] == "workspace not ignored"], plan["reviews"])
+
+    def test_a_path_another_root_plans_is_skipped_without_a_review(self):
+        ws, specs = specs_workspace(self.tmp())
+        write(specs, "archive/2026-05-01-x/a.md", "# a\n")
+        inner = specs / "archive/inner"
+        inner.mkdir()
+        git(inner, "init", "-q", "-b", "main")
+        plain = specs / "archive/plain"
+        write(plain, "p.md", "# p\n")
+        plan = self.plan_json(ws, specs, inner, plain)
+        self.assertFalse([r for r in plan["reviews"] if r["reason"] == "embedded repository"], plan["reviews"])
+        self.assertFalse([r for r in plan["rows"] if r["root"] == 1 and r["source"] in ("archive/inner", "archive/plain")])
 
 
 if __name__ == "__main__":
