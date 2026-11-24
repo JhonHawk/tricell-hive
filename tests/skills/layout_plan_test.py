@@ -1307,7 +1307,6 @@ class LegacyGapsTest(Fixture, unittest.TestCase):
         self.assertEqual(resolved, os.path.normpath(os.path.join(specs, row["destination"], "inventory-2026-06-25.md")))
 
 
-
 def sibling_repos(base, names=("a", "b"), with_workspace_sessions=False):
     """Two repositories under a workspace folder outside Git, each with an untracked sessions/notes.md
     of the same date, so the work folder both would use is the same absolute path."""
