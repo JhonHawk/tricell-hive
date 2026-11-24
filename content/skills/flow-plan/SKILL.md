@@ -40,7 +40,7 @@ A task's `Verification:` line names the check the project guidance assigns to th
 - Never run one that changes tracked files, a non-local database, or shared, remote or external resources.
 - One whose last measured run took over 5 minutes runs only its shortest form, such as one test; one never measured is cut to it at 5 minutes, in place of the 30-minute question of [checks](../hive-core/build/checks.md#long-checks).
 - Record each in the verified context as command, result and date, or `not measured` with the first task that runs it, as for one needing a service the build starts.
-- A command failing for a missing script, runner or dependency no task adds, or a module that does not load, is a plan gap to fix before step 5's review.
+- A command failing for a missing script, runner or dependency no task adds, or a module that does not load, is a plan gap to fix before the plan's review.
 - A revision reruns each command whose text, runner, dependency or imported module it changes, on the working tree during a build, and updates its line before the next review round.
 
 ## Where the plan lives
