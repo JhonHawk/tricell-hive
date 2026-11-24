@@ -18,8 +18,8 @@ import (
 const privateListPath = "_support/workspace/local-context/private-identifiers.local"
 
 var (
-	localUserPath = regexp.MustCompile(`/Users/([A-Za-z0-9._-]+)/|-Users-([A-Za-z0-9._]+)-`)
-	exampleUsers  = map[string]bool{"alice": true, "someone": true, "test": true, "me": true, "example": true, "user": true, "you": true, "x": true, "u": true}
+	localUserPath = regexp.MustCompile(`/Users/([A-Za-z0-9_-]+)(?:[/"'\s]|$)|-Users-([A-Za-z0-9_]+)(?:[-/"'\s]|$)`)
+	exampleUsers  = map[string]bool{"alice": true, "someone": true, "test": true, "me": true, "example": true, "user": true, "you": true, "x": true, "u": true, "o": true}
 )
 
 type privateTerm struct {
@@ -52,8 +52,25 @@ func parsePrivateTerms(data string) (terms []privateTerm, problems []string) {
 	return terms, problems
 }
 
-// privateIdentifierProblems names a file by its position in files when its
-// path holds a private term, so the report never prints the term.
+// maskedPath hides each private term and local user name in a file path,
+// so a report about the file never prints them.
+func maskedPath(file string, terms []privateTerm) string {
+	masked := file
+	for _, m := range localUserPath.FindAllStringSubmatchIndex(file, -1) {
+		for g := 2; g < len(m); g += 2 {
+			if m[g] >= 0 && !exampleUsers[file[m[g]:m[g+1]]] {
+				masked = masked[:m[g]] + strings.Repeat("*", m[g+1]-m[g]) + masked[m[g+1]:]
+			}
+		}
+	}
+	for _, term := range terms {
+		for _, m := range term.re.FindAllStringIndex(masked, -1) {
+			masked = masked[:m[0]] + strings.Repeat("*", m[1]-m[0]) + masked[m[1]:]
+		}
+	}
+	return masked
+}
+
 func privateIdentifierProblems(root string, files []string, terms []privateTerm, skipPaths string) []string {
 	var problems []string
 	check := func(where, text string, paths bool) {
@@ -69,16 +86,11 @@ func privateIdentifierProblems(root string, files []string, terms []privateTerm,
 			}
 		}
 	}
-	for i, file := range files {
-		name := file
-		for _, term := range terms {
-			if term.re.MatchString(file) {
-				name = fmt.Sprintf("file #%d of git ls-files", i+1)
-				problems = append(problems, fmt.Sprintf("%s: its path matches line %d of %s", name, term.line, privateListPath))
-				break
-			}
+	for _, file := range files {
+		name := maskedPath(file, terms)
+		if name != file {
+			problems = append(problems, name+": its path holds a private term or a local user name, shown as *")
 		}
-		check(name+" (path)", file, true)
 		data, err := os.ReadFile(filepath.Join(root, file))
 		if err != nil {
 			continue
@@ -136,11 +148,15 @@ func TestNoPrivateIdentifiers(t *testing.T) {
 func TestPrivateIdentifierScanHidesTheTerm(t *testing.T) {
 	root := t.TempDir()
 	files := map[string]string{
-		"a.md":            "see Zorblax here\nlog at /Users/realperson/work\nticket ZQ-12 and ZQ34, zq-5, zq_6 and zq 7\nplaceholder ZQ-XXX and ZQ\\u0007\n$zorblax_log and tmp/-Users-realperson-x\n",
-		"b.md":            "Zorblaxes and /Users/me/ and /Users/x/ are fine; ZQX-1 too, and -Users-me-\n",
-		"zorblax-plan.md": "plain\n",
+		"a.md":                       "see Zorblax here\nlog at /Users/realperson/work\nticket ZQ-12 and ZQ34, zq-5, zq_6 and zq 7\nplaceholder ZQ-XXX and ZQ\\u0007\n$zorblax_log and tmp/-Users-realperson-x\n",
+		"b.md":                       "Zorblaxes and /Users/me/ and /Users/x/ are fine; ZQX-1 too, and -Users-me-\n",
+		"zorblax-plan.md":            "plain\n",
+		"-Users-realperson/notes.md": "cd /Users/realperson\n",
 	}
 	for name, text := range files {
+		if err := os.MkdirAll(filepath.Dir(filepath.Join(root, name)), 0o700); err != nil {
+			t.Fatal(err)
+		}
 		if err := os.WriteFile(filepath.Join(root, name), []byte(text), 0o600); err != nil {
 			t.Fatal(err)
 		}
@@ -149,8 +165,8 @@ func TestPrivateIdentifierScanHidesTheTerm(t *testing.T) {
 	if len(malformed) != 1 || !strings.Contains(malformed[0], "line 3") || strings.Contains(malformed[0], "separator") {
 		t.Fatalf("malformed line report = %q, want line 3 without its content", malformed)
 	}
-	got := strings.Join(privateIdentifierProblems(root, []string{"a.md", "b.md", "zorblax-plan.md"}, terms, ""), "\n")
-	for _, want := range []string{"a.md:1: matches line 1", "a.md:2: a local user path", "a.md:3: matches line 2", "a.md:4: matches line 2", "a.md:5: matches line 1", "a.md:5: a local user path", "file #3 of git ls-files: its path matches line 1"} {
+	got := strings.Join(privateIdentifierProblems(root, []string{"a.md", "b.md", "zorblax-plan.md", "-Users-realperson/notes.md"}, terms, ""), "\n")
+	for _, want := range []string{"a.md:1: matches line 1", "a.md:2: a local user path", "a.md:3: matches line 2", "a.md:4: matches line 2", "a.md:5: matches line 1", "a.md:5: a local user path", "plan.md: its path holds", "-Users-**********/notes.md: its path holds", "-Users-**********/notes.md:1: a local user path"} {
 		if !strings.Contains(got, want) {
 			t.Errorf("problems lack %q:\n%s", want, got)
 		}
