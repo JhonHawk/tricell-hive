@@ -23,6 +23,21 @@ Ask them in the round of the manifest, as [decision format](../../hive-core/mess
 - **HA-PL-04 — Current requirements.** Identify where current behavior is described today. A product map (`product/<module>/<view>.md` with rules in force) is the project's current-requirements home: `keep` it in place and never propose moving it into `<specs>/specs/`. Another folder that already holds only rules in force maps to `<specs>/specs/`; a document that mixes current rules with delivery history stays in place (`keep`) and remains authoritative for its areas until a change moves them, because extracting current requirements is authoring, not a move. Flag instructions that still call such documents the single source of truth so they can name the transition.
 - **HA-PL-05 — Misplaced material.** Report content whose home is another repository or level, such as infrastructure configuration inside a specs repository, secrets or raw evidence inside a versioned path, or support material at a repository root. These checks propose no removal of versioned evidence or legacy records: project-layout's classes in its step 3 decide them. `HIVE.local.md` at a repository or workspace root is not misplaced: [local write](../../hive-core/local/local-write.md) keeps it there.
 
+## Old change register and records
+
+Read when the planner reports a legacy row: `<Specs>/changes/` (the archive and each change folder), `sessions/`, top-level `evidence/` and `reports/`, `archive/`, `archived/`, `backups/`, `plan/` or `spec/`. The planner, not you, decides each row's `action`:
+
+- **move** to `_support/workspace/<YYYY-MM-DD>-<work>/`, dated by the item's name, else its first commit, else its oldest file; dumps and exports go to `_support/data/`, which is never deleted without the user's answer. A tracked item leaves Git (`untrack`): the project's delivery commit carries the removal, and history keeps it.
+- **delete** the change archive and each change folder whose last commit is reachable from `origin/<base>` (the `Base branch` of `## Hive`, else the remote's default), and output tooling regenerates.
+- **keep** a change folder that is not reachable, named in the manifest with its last commit; one with uncommitted edits; every change folder when `_support/` is outside Git or the base does not resolve. Ask about it; never delete it to make the list shorter.
+
+`plan/` and `spec/` may hold current knowledge: promote what is current to the docs home before moving the rest.
+
+Two steps need judgment, so the script leaves them to you; propose each one at a time, with the evidence, and apply only the answered ones:
+
+1. **Specs that only restate guidance.** For each spec under `<Specs>/specs/`, read it against the guidance and code it describes. Propose removing it only when every requirement in it is stated in the guidance in force or enforced by a test; keep the contract specs (installer, viewer, site, branch promotion) and every requirement with no other home.
+2. **Memory records of the old archive.** List the `archive-pending/` records of the project's memory (Engram topic or the host's own memory) with their titles and dates, and ask the user which to discard; delete only the records the answer names.
+
 ## Migration manifest
 
 Group entries by repository, in the order they can be applied. Each entry has:
