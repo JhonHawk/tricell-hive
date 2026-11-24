@@ -1,43 +1,41 @@
 #!/usr/bin/env python3
-"""Check that a change folder stays coherent after its plan is revised.
+"""Check that a plan file stays coherent after it is revised.
 
-Usage: python3 check_change.py <change-folder> [--archive]
+Usage: python3 check_change.py <plan.md>
 
-Reads proposal.md, tasks.md, design.md and specs/**/*.md and prints one
-`<file>:<line>: <finding>` line per problem:
+Reads the one plan file `<YYYY-MM-DD>-<work>.plan.md` and prints one
+`<plan file>:<line>: <finding>` line per problem:
 
-- a criterion defined in proposal.md, outside its progress section, that no
-  **Closes:** line of tasks.md names (ranges such as AC3–AC5 count, in either
-  order), unless it is retired or replaced; markers may be written `**Closes:**`,
-  `**Closes**:` or `Closes:`;
-- a **Closes:** line that names a criterion proposal.md does not define;
+- a criterion, written as an `AC<n>` line (a bullet or not) before the first
+  `### T<n>` task heading and outside the progress section, that no **Closes:**
+  line of the tasks names (ranges such as AC3–AC5 count, in either order), unless
+  it is retired or replaced; markers may be written `**Closes:**`, `**Closes**:` or
+  `Closes:`;
+- a **Closes:** line that names a criterion the plan does not define;
 - a mention of an ID listed right after a **Replaces:** marker (D4-A names
   that option only, D4 any option), or of a criterion a **Retired:** marker
-  retired, outside the lines that may keep it: the marker lines, the
-  proposal.md line that defines the old ID, a line that also names its
-  replacement, and the progress section (a `##` heading containing
-  "progress", "progreso" or "avance", or a `## Checkpoint` heading with its
-  `###` subsections);
-- a **Closes:** line naming a criterion when proposal.md has no `- AC<n>` bullet;
-- a criterion, neither retired nor replaced, none of whose bullets, read with
-  the lines indented under it up to a nested criterion, names a place after
-  its last **Observed in:** (also `**Observed in**:` or `Observed in:`); an empty
-  marker, a dash or a `<…>` placeholder that is not a link is no place; not
-  checked with --archive;
-- without --archive, a malformed unit heading or box under `## Delivery units` in
-  tasks.md: headings `### E<n> — <unit> · depends on: <…> · files: <…>` (or
-  `· depends on: … · files: …`); boxes `unit: <command>`, `live: <scenario> · pass:
-  <predicate>`, `perf: <metric> · base: <value> · fail: <threshold>` (or `falla:`);
-  a predicate written `n/a: <reason>` replaces pass, base and threshold;
-- without --archive, a malformed `- Rules:` or `- Principles:` line in the
-  `## Checkpoint` section of tasks.md: Rules is one or more
-  `<flow>/stage[-<name>].md` joined by `, `, optionally followed by ` · extra: <leaf>, <leaf>`; Principles is `none` or
-  principle names (`[a-z0-9-]+`) joined by `, `, never `none` with a name;
-- with --archive, each unchecked `- [ ]` box of tasks.md, then their count; a
-  delivery-unit box written `n/a: <reason>` is not counted.
+  retired, outside the lines that may keep it: the marker lines, the line that
+  defines the old ID, a line that also names its replacement, and the progress
+  section (a `##` heading containing "progress", "progreso" or "avance", or a
+  `## Checkpoint` heading with its `###` subsections);
+- a **Closes:** line naming a criterion when the plan has no `AC<n>` line;
+- a criterion, neither retired nor replaced, none of whose lines, read with the
+  lines indented under it up to a nested criterion, names a place after its last
+  **Observed in:** (also `**Observed in**:` or `Observed in:`); an empty marker, a
+  dash or a `<…>` placeholder that is not a link is no place;
+- a malformed unit heading or box under `## Delivery units`: headings
+  `### E<n> — <unit> · depends on: <…> · files: <…>` (or `· depende de: … · archivos: …`); boxes
+  `unit: <command>`, `live: <scenario> · pass: <predicate>`, `perf: <metric> · base: <value> ·
+  fail: <threshold>` (or `falla:`); a predicate written `n/a: <reason>` replaces pass, base and
+  threshold;
+- a malformed line under `## Business rules`;
+- a malformed `- Rules:` or `- Principles:` line in the `## Checkpoint` section: Rules is one
+  or more `<flow>/stage[-<name>].md` joined by `, `, optionally followed by ` · extra: <leaf>, <leaf>`;
+  Principles is `none` or principle names (`[a-z0-9-]+`) joined by `, `, never `none` with a name;
+- a `- Execution record:` pointer in `## Checkpoint` whose record fails `tasks.py` validation.
 
-Exit status: 0 when nothing is printed, 1 when something is, 2 when the folder,
-its proposal.md or its tasks.md cannot be read. It only reads.
+Exit status: 0 when nothing is printed, 1 when something is, 2 when the arguments are
+invalid or the plan cannot be read. It only reads.
 """
 
 import re
@@ -63,9 +61,9 @@ RETIRED = marker("Retired")
 CLOSES = re.compile(marker("Closes").pattern + r"(.*)$")
 OBSERVED = marker("Observed in")
 PLACEHOLDER = re.compile(r"^<(?![A-Za-z][A-Za-z0-9+.-]*:)[^>]*>")
-AC_DEFINITION = re.compile(r"^\s*[-*]\s+\**AC(\d+)\b")
+AC_DEFINITION = re.compile(r"^\s*(?:[-*]\s+)?\**AC(\d+)\b")
+TASK_HEADING = re.compile(r"^###\s+T\d+\b")
 AC_REFERENCE = re.compile(r"AC(\d+)(?:\s*[-–—]\s*(?:AC)?(\d+))?")
-UNCHECKED = re.compile(r"^\s*[-*]\s+\[ \]\s*(.*)$")
 PROGRESS_HEADING = re.compile(r"^##\s.*(progress|progreso|avance)|^##\s+checkpoint\s*$", re.IGNORECASE)
 BUSINESS_RULES_HEADING = re.compile(r"^##\s+Business rules\s*$")
 LEVEL2_HEADING = re.compile(r"^##\s")
@@ -111,10 +109,9 @@ def read_lines(path):
     return path.read_text(encoding="utf-8").splitlines()
 
 
-def scanned_files(folder):
-    files = [folder / name for name in ("proposal.md", "design.md", "tasks.md")]
-    files += sorted((folder / "specs").rglob("*.md")) if (folder / "specs").is_dir() else []
-    return [f for f in files if f.is_file()]
+def task_start(lines):
+    """The index of the first `### T<n>` task heading, or the number of lines when there is none."""
+    return next((i for i, line in enumerate(lines) if TASK_HEADING.match(line)), len(lines))
 
 
 def exempt_progress(lines):
@@ -128,74 +125,75 @@ def exempt_progress(lines):
     return exempt
 
 
-def collect_replacements(docs):
+def collect_replacements(lines, name):
     """Map each replaced or retired ID to its label, origin, patterns and kind."""
     old = {}
-    for rel, lines in docs.items():
-        for n, line in enumerate(lines, 1):
-            found = REPLACES.search(line)
-            if found:
-                before = ID_TOKEN.findall(line[: found.start()])
-                listed = ID_LIST.match(line[found.end():])
-                listed = listed.group(1) if listed else ""
-                ids = ID_TOKEN.findall(listed)
-                for start, end in AC_RANGE.findall(listed):
-                    first, last = sorted((int(start), int(end)))
-                    ids += [("AC", str(k), "") for k in range(first, min(last, first + 999) + 1)]
-                for prefix, number, letter in ids:
-                    new = None
-                    if before:
-                        # The replacement keeps its letter only when it is another option of the same decision.
-                        same = (before[0][0], before[0][1]) == (prefix, number)
-                        new = id_pattern(*before[0]) if same else id_pattern(before[0][0], before[0][1])
-                    old.setdefault((prefix, number, letter), {
-                        "label": id_label(prefix, number, letter), "where": f"{rel}:{n}", "how": "replaced",
-                        "pattern": id_pattern(prefix, number, letter), "new": new,
-                        "definition": re.compile(rf"^\s*[-*]\s+\**{prefix}{number}(?![0-9])"),
-                    })
-            if RETIRED.search(line):
-                match = AC_DEFINITION.match(line)
-                if match:
-                    number = match.group(1)
-                    old.setdefault(("AC", number, ""), {
-                        "label": f"AC{number}", "where": f"{rel}:{n}", "how": "retired",
-                        "pattern": id_pattern("AC", number), "new": None,
-                        "definition": re.compile(rf"^\s*[-*]\s+\**AC{number}(?![0-9])"),
-                    })
+    for n, line in enumerate(lines, 1):
+        found = REPLACES.search(line)
+        if found:
+            before = ID_TOKEN.findall(line[: found.start()])
+            listed = ID_LIST.match(line[found.end():])
+            listed = listed.group(1) if listed else ""
+            ids = ID_TOKEN.findall(listed)
+            for start, end in AC_RANGE.findall(listed):
+                first, last = sorted((int(start), int(end)))
+                ids += [("AC", str(k), "") for k in range(first, min(last, first + 999) + 1)]
+            for prefix, number, letter in ids:
+                new = None
+                if before:
+                    # The replacement keeps its letter only when it is another option of the same decision.
+                    same = (before[0][0], before[0][1]) == (prefix, number)
+                    new = id_pattern(*before[0]) if same else id_pattern(before[0][0], before[0][1])
+                old.setdefault((prefix, number, letter), {
+                    "label": id_label(prefix, number, letter), "where": f"{name}:{n}", "how": "replaced",
+                    "pattern": id_pattern(prefix, number, letter), "new": new,
+                    "definition": re.compile(rf"^\s*(?:[-*]\s+)?\**{prefix}{number}(?![0-9])"),
+                })
+        if RETIRED.search(line):
+            match = AC_DEFINITION.match(line)
+            if match:
+                number = match.group(1)
+                old.setdefault(("AC", number, ""), {
+                    "label": f"AC{number}", "where": f"{name}:{n}", "how": "retired",
+                    "pattern": id_pattern("AC", number), "new": None,
+                    "definition": re.compile(rf"^\s*(?:[-*]\s+)?\**AC{number}(?![0-9])"),
+                })
     return old
 
 
-def stale_mentions(docs, old):
+def stale_mentions(lines, old, name):
     findings = []
-    for rel, lines in docs.items():
-        progress = exempt_progress(lines)
-        for i, line in enumerate(lines):
-            if i in progress or REPLACES.search(line) or RETIRED.search(line):
+    progress = exempt_progress(lines)
+    first_task = task_start(lines)
+    for i, line in enumerate(lines):
+        if i in progress or REPLACES.search(line) or RETIRED.search(line):
+            continue
+        for item in old.values():
+            if not item["pattern"].search(line):
                 continue
-            for item in old.values():
-                if not item["pattern"].search(line):
-                    continue
-                if rel == "proposal.md" and item["definition"].match(line):
-                    continue  # the proposal line that defines the old ID keeps it
-                if item["new"] is not None and item["new"].search(line):
-                    continue  # the line names the replacement too
-                findings.append(f"{rel}:{i + 1}: {item['label']} was {item['how']} ({item['where']}) but is still named here")
+            if i < first_task and item["definition"].match(line):
+                continue  # the line that defines the old ID keeps it
+            if item["new"] is not None and item["new"].search(line):
+                continue  # the line names the replacement too
+            findings.append(f"{name}:{i + 1}: {item['label']} was {item['how']} ({item['where']}) but is still named here")
     return findings
 
 
-def criteria_findings(proposal, tasks, old):
-    progress = exempt_progress(proposal)
+def criteria_findings(lines, old, name):
+    progress = exempt_progress(lines)
+    first_task = task_start(lines)
     defined = {}
-    for i, line in enumerate(proposal):
+    for i, line in enumerate(lines[:first_task]):
         match = AC_DEFINITION.match(line)
         if match and i not in progress:
             defined.setdefault(int(match.group(1)), i + 1)
-    closes = [(n, m.group(1)) for n, line in enumerate(tasks, 1) if (m := CLOSES.search(line))]
+    closes = [(n, m.group(1)) for n, line in enumerate(lines, 1)
+              if n > first_task and (m := CLOSES.search(line))]
     if not defined:
         named = [(n, AC_REFERENCE.search(text).group(0)) for n, text in closes if AC_REFERENCE.search(text)]
         if named:
             n, ac = named[0]
-            return [f"tasks.md:{n}: {ac} in **Closes:**, but proposal.md writes no criterion as a `- AC<n>` bullet"]
+            return [f"{name}:{n}: {ac} in **Closes:**, but the plan writes no criterion as an `AC<n>` line"]
         return []
     findings, closed = [], set()
     for n, text in closes:
@@ -203,20 +201,20 @@ def criteria_findings(proposal, tasks, old):
             first, last = sorted((int(start), int(end or start)))
             for named in sorted({first, last}):
                 if named not in defined:
-                    findings.append(f"tasks.md:{n}: AC{named} in **Closes:** is not defined in proposal.md")
+                    findings.append(f"{name}:{n}: AC{named} in **Closes:** is not defined in the plan")
             closed.update(range(first, min(last, first + 999) + 1))
     gone = {int(number) for prefix, number, _ in old if prefix == "AC"}
     for number, n in sorted(defined.items()):
         if number not in closed and number not in gone:
-            findings.append(f"proposal.md:{n}: AC{number} is named by no **Closes:** line in tasks.md")
+            findings.append(f"{name}:{n}: AC{number} is named by no **Closes:** line")
     return findings
 
 
-def criterion_lines(proposal, start):
-    """Return a criterion's bullet with the lines indented under it, up to a nested criterion."""
-    indent = len(proposal[start]) - len(proposal[start].lstrip())
-    lines = [proposal[start]]
-    for following in proposal[start + 1:]:
+def criterion_lines(plan, start):
+    """Return a criterion's line with the lines indented under it, up to a nested criterion."""
+    indent = len(plan[start]) - len(plan[start].lstrip())
+    lines = [plan[start]]
+    for following in plan[start + 1:]:
         if not following.strip():
             continue
         if len(following) - len(following.lstrip()) <= indent or AC_DEFINITION.match(following):
@@ -233,20 +231,20 @@ def names_place(lines):
     return bool(place) and not PLACEHOLDER.match(place)
 
 
-def observed_findings(proposal, old):
-    """Report each active criterion none of whose bullets names a place where it is observed."""
-    progress = exempt_progress(proposal)
+def observed_findings(plan, old, name):
+    """Report each active criterion none of whose lines names a place where it is observed."""
+    progress = exempt_progress(plan)
     gone = {int(number) for prefix, number, _ in old if prefix == "AC"}
     named, last = {}, {}
-    for i, line in enumerate(proposal):
+    for i, line in enumerate(plan[:task_start(plan)]):
         match = AC_DEFINITION.match(line)
         if not match or i in progress or int(match.group(1)) in gone:
             continue
         number = int(match.group(1))
         last[number] = i + 1
-        named[number] = named.get(number, False) or names_place(criterion_lines(proposal, i))
+        named[number] = named.get(number, False) or names_place(criterion_lines(plan, i))
     return [
-        f"proposal.md:{last[number]}: AC{number} names no **Observed in:** place"
+        f"{name}:{last[number]}: AC{number} names no **Observed in:** place"
         for number in sorted(named) if not named[number]
     ]
 
@@ -268,13 +266,13 @@ def box_is_not_applicable(text):
     return kind.strip() in ("live", "perf") and bool(NOT_APPLICABLE.match(rest.strip()))
 
 
-def delivery_unit_findings(tasks):
+def delivery_unit_findings(plan, name):
     findings = []
-    for n, line in delivery_units(tasks):
+    for n, line in delivery_units(plan):
         if UNIT_HEADING.match(line):
             if not UNIT_TITLE.match(line.strip()):
                 findings.append(
-                    f"tasks.md:{n}: invalid delivery unit heading, expected "
+                    f"{name}:{n}: invalid delivery unit heading, expected "
                     f"`### E<n> — <unit> · depends on: <…> · files: <…>`: {line.strip()}"
                 )
             continue
@@ -292,10 +290,10 @@ def delivery_unit_findings(tasks):
             ok = PERF_BOX.match(text)
             expected = "perf: <metric> · base: <value> · fail: <threshold>, or perf: n/a: <reason>"
         else:
-            findings.append(f"tasks.md:{n}: delivery unit box must start with unit:, live: or perf:: {text}")
+            findings.append(f"{name}:{n}: delivery unit box must start with unit:, live: or perf:: {text}")
             continue
         if not ok:
-            findings.append(f"tasks.md:{n}: invalid delivery unit box, expected `{expected}`: {text}")
+            findings.append(f"{name}:{n}: invalid delivery unit box, expected `{expected}`: {text}")
     return findings
 
 
@@ -309,16 +307,16 @@ def valid_business_rule_line(trimmed):
         return False, "invalid line in ## Business rules"
     status = m.group(3).strip()
     if status.startswith("stated:"):
-        return False, "stated: status is only valid in examples.md, not in proposal.md ## Business rules"
+        return False, "stated: status is only valid in examples.md, not in a plan's ## Business rules"
     if not BR_STATUS.match(status):
         return False, f"invalid rule status in ## Business rules: {status}"
     return True, ""
 
 
-def business_rules_findings(proposal):
+def business_rules_findings(plan, name):
     findings = []
     inside = False
-    for i, line in enumerate(proposal):
+    for i, line in enumerate(plan):
         if LEVEL2_HEADING.match(line):
             inside = bool(BUSINESS_RULES_HEADING.match(line))
             continue
@@ -329,18 +327,19 @@ def business_rules_findings(proposal):
             continue
         ok, reason = valid_business_rule_line(trimmed)
         if not ok:
-            findings.append(f"proposal.md:{i + 1}: {reason}: {trimmed}")
+            findings.append(f"{name}:{i + 1}: {reason}: {trimmed}")
     return findings
 
 
-def execution_findings(folder, tasks):
-    """An optional checkpoint pointer stays local and uses the owning validator."""
+def execution_findings(plan_path, plan):
+    """An optional checkpoint pointer uses the owning validator."""
     pointers = [(n, line[len("- Execution record: "):].strip())
-                for n, line in enumerate(tasks, 1) if line.startswith("- Execution record: ")]
+                for n, line in enumerate(plan, 1) if line.startswith("- Execution record: ")]
     if not pointers:
         return []
+    name = plan_path.name
     if len(pointers) != 1:
-        return ["tasks.md:1: multiple execution record pointers"]
+        return [f"{name}:1: multiple execution record pointers"]
     n, pointer = pointers[0]
     spec = importlib.util.spec_from_file_location("hive_tasks", Path(__file__).with_name("tasks.py"))
     module = importlib.util.module_from_spec(spec)
@@ -348,11 +347,11 @@ def execution_findings(folder, tasks):
     try:
         sys.dont_write_bytecode = True
         spec.loader.exec_module(module)
-        record = folder / pointer
-        module.execution_location(folder, record)
-        module.validate_execution(module.load_record(record), folder.resolve(), record)
+        record = plan_path.parent / pointer
+        module.execution_location(plan_path, record)
+        module.validate_execution(module.load_record(record), plan_path.resolve(), record)
     except (module.Failure, OSError, UnicodeError, ValueError, TypeError, KeyError) as error:
-        return [f"tasks.md:{n}: execution record: {error}"]
+        return [f"{name}:{n}: execution record: {error}"]
     finally:
         sys.dont_write_bytecode = previous
     return []
@@ -365,10 +364,10 @@ RULES_LINE = re.compile(rf"^{PACKET_PATH}(?:, {PACKET_PATH})*(?: · extra: {LEAF
 PRINCIPLES_LINE = re.compile(rf"^(?:none|(?!none(?:,|$)){LEAF_NAME}(?:, (?!none(?:,|$)){LEAF_NAME})*)$")
 
 
-def checkpoint_line_findings(tasks):
+def checkpoint_line_findings(plan, name):
     """The Rules and Principles lines of the checkpoint, which a resumed session reads."""
     findings, inside = [], False
-    for n, line in enumerate(tasks, 1):
+    for n, line in enumerate(plan, 1):
         if line.startswith("## "):
             inside = bool(CHECKPOINT_HEADING.match(line))
             continue
@@ -377,46 +376,33 @@ def checkpoint_line_findings(tasks):
         for label, shape in (("Rules", RULES_LINE), ("Principles", PRINCIPLES_LINE)):
             prefix = f"- {label}:"
             if line.startswith(prefix) and not shape.match(line[len(prefix):].strip()):
-                findings.append(f"tasks.md:{n}: malformed checkpoint line: {line.strip()}")
+                findings.append(f"{name}:{n}: malformed checkpoint line: {line.strip()}")
     return findings
 
 
 def main(argv):
-    args = [a for a in argv if a != "--archive"]
-    if len(args) != 1:
+    if len(argv) != 1 or argv[0].startswith("--"):
         print(__doc__.strip().splitlines()[2], file=sys.stderr)
         return 2
-    folder = Path(args[0])
-    for required in ("proposal.md", "tasks.md"):
-        if not (folder / required).is_file():
-            print(f"check_change: {folder / required}: not found", file=sys.stderr)
-            return 2
+    plan_path = Path(argv[0])
+    if not plan_path.is_file():
+        print(f"check_change: {plan_path}: not a plan file (pass the path of <YYYY-MM-DD>-<work>.plan.md, not a folder)", file=sys.stderr)
+        return 2
     try:
-        docs = {f.relative_to(folder).as_posix(): read_lines(f) for f in scanned_files(folder)}
+        plan = read_lines(plan_path)
     except (OSError, UnicodeDecodeError) as error:
         print(f"check_change: {error}", file=sys.stderr)
         return 2
 
-    old = collect_replacements(docs)
-    findings = criteria_findings(docs["proposal.md"], docs["tasks.md"], old)
-    if "--archive" not in argv:
-        findings += observed_findings(docs["proposal.md"], old)
-        findings += business_rules_findings(docs["proposal.md"])
-        findings += execution_findings(folder, docs["tasks.md"])
-        findings += delivery_unit_findings(docs["tasks.md"])
-        findings += checkpoint_line_findings(docs["tasks.md"])
-    findings += stale_mentions(docs, old)
-    if "--archive" in argv:
-        resolved = {n for n, line in delivery_units(docs["tasks.md"])
-                    if (m := UNCHECKED.match(line)) and box_is_not_applicable(m.group(1).strip())}
-        boxes = [
-            f"tasks.md:{n}: unchecked box: {m.group(1).strip()}"
-            for n, line in enumerate(docs["tasks.md"], 1)
-            if (m := UNCHECKED.match(line)) and n not in resolved
-        ]
-        if boxes:
-            findings += boxes
-            findings.append(f"{len(boxes)} unchecked box" + ("" if len(boxes) == 1 else "es"))
+    name = plan_path.name
+    old = collect_replacements(plan, name)
+    findings = criteria_findings(plan, old, name)
+    findings += observed_findings(plan, old, name)
+    findings += business_rules_findings(plan, name)
+    findings += execution_findings(plan_path, plan)
+    findings += delivery_unit_findings(plan, name)
+    findings += checkpoint_line_findings(plan, name)
+    findings += stale_mentions(plan, old, name)
     for line in findings:
         print(line)
     return 1 if findings else 0

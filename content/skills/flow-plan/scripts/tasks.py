@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
-"""Record task progress and the build checkpoint in a change folder's tasks.md.
+"""Record task progress and the build checkpoint in a plan file.
 
 Usage:
-  python3 -I tasks.py <change-folder> status
-  python3 -I tasks.py <change-folder> done T<n> --commit <sha>|none --unverified "<text>|none"
-  python3 -I tasks.py <change-folder> checkpoint --stage <stage> --step <step> --commit <sha>|none
+  python3 -I tasks.py <plan.md> done T<n> --commit <sha>|none --unverified "<text>|none"
+  python3 -I tasks.py <plan.md> checkpoint --stage <stage> --step <step> --commit <sha>|none
           --next "<action>" [--finding "<ID: decision>"]... [--check "<command> · <result> · <commit>"]...
           [--worktree "<path> · <branch>"] [--unwritten "<text>|none"]
           [--rules "<flow>/<packet>.md[, …][ · extra: <leaf>, …]"|none] [--principles "<name>, …"|none]
-          [--out FILE]
-  python3 -I tasks.py <change-folder> versioned [--work-repo DIR]
+  python3 -I tasks.py <plan.md> execution init|check|update|validate-handoff --record FILE ...
+
+<plan.md> is the one plan file of a work, `<YYYY-MM-DD>-<work>.plan.md`, in its folder
+under `<support>/workspace/`. A folder is not accepted.
 
 A task is a `### T<n> — <title>` heading; its boxes are the `- [ ]` and `- [x]`
 lines up to the next `##` or `###` heading.
 
-- status: one line per task (`T1 [x] 2/2 · title`), then `<done>/<total> tasks`.
 - done: ticks only that task's boxes, appends `<date> — T<n> · <sha> · unverified: <text>`
   to the `## ... progress` section unless a line for that task and commit is there,
   and prints `✓ T<n> · <tasks done>/<tasks> · <title>`.
@@ -33,33 +33,15 @@ lines up to the next `##` or `###` heading.
   decision: new names join the line's names without duplicates, `none` is written only
   while the line holds no name and a name replaces it, and no value removes the line.
   Boxes under `## Delivery units` belong to no task: `done` never ticks them.
-  --out FILE writes only the `## Checkpoint` block to FILE, outside the folder's repository,
-  starting from FILE's block (an empty FILE counts as none; a FILE holding anything else is
-  refused) or else tasks.md's, and never writes tasks.md.
-- integrated folder: once the folder is on origin/<base> (as `versioned` finds it), every task
-  is done in that integrated copy of tasks.md and the working copy matches it outside
-  `## Checkpoint`, `checkpoint` without --out and `done` write nothing and exit 1: nothing is
-  written to the folder until the hygiene batch archives it. Any Git error lets the write through.
-- versioned: reads only (no fetch, commit or push) whether the folder is versioned in the
-  repository that holds it, found from the folder itself, so it answers the same from a
-  repository, a monorepo's package or a workspace root outside Git. Versioned means its last
-  commit is on a remote branch (on origin/<base> when that repository's `## Hive` declares
-  `Delivery: direct-base`) and, when that repository is not the work's (--work-repo, compared
-  by Git common dir), no file under it is untracked or modified; in the work's repository such
-  files are warnings for the close report, a tasks.md whose only change is its checkpoint
-  gets the `git -C <checkout> restore` that removes it, and the folder's uncommitted files in
-  the repository's other worktrees are named without a restore, since they may be another
-  session's work. Prints the repository, `versioned:
-  yes|no`, one line per missing state or warning, and, when not versioned, the next step. With
-  --work-repo, warns when that repository declares no Specs or one that does not hold the folder.
-  Exits 0 when versioned, 1 when not or outside Git, 2 on invalid arguments.
+- execution: init, check, update and validate-handoff keep a local execution record (see
+  ../references/execution-record.md). Its grant_ref names a section of this plan
+  (`<YYYY-MM-DD>-<work>.plan.md#decisiones`), its criteria are the `AC<n>` lines of the plan,
+  its plan_ref is this plan's path, and `init` links it from `## Checkpoint`. The record sits
+  outside the plan's work folder, inside the repository's `_support/workspace`.
 
-Optional: execution init/check/update/validate-handoff (see ../references/execution-record.md).
-
-Writes tasks.md directly (versioned writes nothing). Exit status: 0 on success, 1 when versioned
-finds the folder not versioned, 2 when the arguments are invalid,
-the folder or tasks.md cannot be read or written, the task does not exist, or the
-progress section is missing for `done`. Standard library only; self-contained.
+Writes the plan file directly. Exit status: 0 on success, 2 when the arguments are invalid,
+the plan cannot be read or written, the task does not exist, or the progress section is
+missing for `done`. Standard library only; self-contained.
 """
 
 import argparse
@@ -122,7 +104,7 @@ def write(path, lines):
     text = "\n".join(lines) + "\n"
     temp = None
     try:
-        fd, temp = tempfile.mkstemp(dir=str(path.parent), prefix=".tasks-", suffix=".tmp")
+        fd, temp = tempfile.mkstemp(dir=str(path.parent), prefix=".plan-", suffix=".tmp")
         with os.fdopen(fd, "w", encoding="utf-8", newline="") as handle:
             handle.write(text)
         if path.exists():
@@ -179,25 +161,16 @@ def today():
     return datetime.date.today().isoformat()
 
 
-def cmd_status(lines, args):
-    tasks = parse_tasks(lines)
-    for task in tasks:
-        mark = "x" if complete(lines, task) else " "
-        print(f"{task['id']} [{mark}] {ticked(lines, task)}/{len(task['boxes'])} · {task['title']}")
-    print(f"{sum(1 for t in tasks if complete(lines, t))}/{len(tasks)} tasks")
-    return None
-
-
 def cmd_done(lines, args):
     tasks = parse_tasks(lines)
     task = next((t for t in tasks if t["id"] == args.task), None)
     if task is None:
-        raise Failure(f"{args.task}: no such task in tasks.md")
+        raise Failure(f"{args.task}: no such task in the plan")
     if not task["boxes"]:
         raise Failure(f"{args.task}: the task has no boxes to tick")
     bounds = section_bounds(lines, PROGRESS)
     if bounds is None:
-        raise Failure("tasks.md has no progress section (a `##` heading with progress, progreso or avance)")
+        raise Failure("the plan has no progress section (a `##` heading with progress, progreso or avance)")
     for j in task["boxes"]:
         match = BOX.match(lines[j])
         lines[j] = f"{match.group(1)}x{match.group(3)}"
@@ -408,24 +381,19 @@ def load_record(path):
     return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=json_object)
 
 
-def plan_revision(folder):
-    """Ignore mutable task progress, but bind task definitions and every spec."""
+def plan_revision(plan):
+    """Hash the plan, ignoring mutable task progress: the boxes' ticks, `## Checkpoint` and the progress section."""
+    kept, inside = [], False
+    for line in read(plan):
+        if LEVEL2.match(line):
+            inside = bool(PROGRESS.match(line) or CHECKPOINT.match(line))
+        if not inside:
+            kept.append(re.sub(r"^(\s*[-*]\s+\[)[xX](\])", r"\1 \2", line))
     digest = hashlib.sha256()
-    files = [folder / name for name in ("proposal.md", "design.md", "tasks.md")]
-    files += sorted((folder / "specs").rglob("*.md"))
-    for path in files:
-        if not path.is_file():
-            continue
-        lines, kept, inside = read(path), [], False
-        for line in lines:
-            if LEVEL2.match(line):
-                inside = bool(PROGRESS.match(line) or CHECKPOINT.match(line))
-            if not inside:
-                kept.append(re.sub(r"^(\s*[-*]\s+\[)[xX](\])", r"\1 \2", line))
-        digest.update(path.relative_to(folder).as_posix().encode())
-        digest.update(b"\0")
-        digest.update("\n".join(kept).rstrip().encode())
-        digest.update(b"\0")
+    digest.update(plan.name.encode())
+    digest.update(b"\0")
+    digest.update("\n".join(kept).rstrip().encode())
+    digest.update(b"\0")
     return digest.hexdigest()
 
 
@@ -471,10 +439,10 @@ def repo_identity(repo):
     return state, (Path(repo) / common).resolve()
 
 
-def execution_location(folder, record):
+def execution_location(plan, record):
     # The record belongs to the checkout that holds it, which may be the coordinator's
-    # checkout while the change folder lies in a worktree or another repository.
-    folder = folder.resolve()
+    # checkout while the plan lies in a worktree or another repository.
+    folder = plan.resolve().parent
     require(record.parent.is_dir(), "record directory must already exist")
     state = git_reader(record.parent.resolve())
     root = Path(git_out(state, "rev-parse", "--show-toplevel")).resolve()
@@ -483,7 +451,7 @@ def execution_location(folder, record):
     workspace = root / "_support/workspace"
     require(not workspace.is_symlink() and workspace.resolve().is_relative_to(root), "workspace must stay inside repository without symlink escape")
     require(record.resolve().is_relative_to(workspace.resolve()), "record must be inside this repository's _support/workspace")
-    require(not record.resolve().is_relative_to(folder), "execution record must be outside the change folder")
+    require(not record.resolve().is_relative_to(folder), "execution record must be outside the plan's work folder")
     # Check both the record and an arbitrary sibling (including the lock) before writing.
     for path in (record, record.parent / ".execution-local-check"):
         code, _, _ = state.git_run("check-ignore", "-q", "--", str(path.resolve()))
@@ -589,28 +557,27 @@ def validate_integration(data, record):
             require(error is None and ancestor, "integration head does not contain verified unit head")
 
 
-def validate_execution(data, folder, record, check_git=True, revision=True):
+def validate_execution(data, plan, record, check_git=True, revision=True):
     object_fields(data, ROOT_FIELDS - {"integration_scope", "integration_head", "joint_check", "publication"},
                   {"integration_scope", "integration_head", "joint_check", "publication"}, "execution")
     require(type(data["schema_version"]) is int and data["schema_version"] == 1, "unsupported schema_version")
     require(type(data["generation"]) is int and data["generation"] >= 0, "invalid generation")
     require(nonempty(data["coordinator_id"]), "coordinator_id missing")
-    require(data["plan_ref"] == str(folder.resolve()), "plan_ref differs from change folder")
+    require(data["plan_ref"] == str(plan.resolve()), "plan_ref differs from the plan path")
     if revision:
-        require(data["plan_revision"] == plan_revision(folder), "plan revision changed; reconcile assignments with --reconcile-plan")
+        require(data["plan_revision"] == plan_revision(plan), "plan revision changed; reconcile assignments with --reconcile-plan")
     require(isinstance(data["plan_revision"], str) and re.fullmatch(r"[0-9a-f]{64}", data["plan_revision"]), "invalid plan_revision")
     require(data.get("integration_scope") is None or data["integration_scope"] in {"local", "remote"}, "integration_scope must be local or remote")
     require(data.get("integration_head") is None or isinstance(data["integration_head"], str) and FULL_SHA.fullmatch(data["integration_head"]), "integration_head must be null or full SHA")
     require(nonempty(data["grant_ref"]), "grant_ref missing")
-    grant = data["grant_ref"].split("#", 1)[0]
-    require(grant and not Path(grant).is_absolute() and ".." not in Path(grant).parts
-            and (folder / grant).resolve().is_relative_to(folder.resolve()) and (folder / grant).is_file(), "grant_ref must name an existing file in change folder")
+    require(data["grant_ref"].split("#", 1)[0] == plan.name, "grant_ref must point inside the plan: <plan file name>#<section>")
     target = data["integration_target"]
     object_fields(target, {"repo", "worktree", "branch"}, set(), "integration_target")
     for field in target:
         require(nonempty(target[field]), "integration target field missing")
-    task_ids = {task["id"] for task in parse_tasks(read(folder / "tasks.md"))}
-    criteria = set(re.findall(r"^\s*[-*]\s+\**(AC\d+)\b", (folder / "proposal.md").read_text(), re.MULTILINE))
+    plan_lines = read(plan)
+    task_ids = {task["id"] for task in parse_tasks(plan_lines)}
+    criteria = set(re.findall(r"^\s*(?:[-*]\s+)?\**(AC\d+)\b", "\n".join(plan_lines[:next((i for i, line in enumerate(plan_lines) if TASK_HEADING.match(line)), len(plan_lines))]), re.MULTILINE))
     units = data["units"]
     require(isinstance(units, list) and units, "units must be a nonempty list")
     ids, assignments, active = set(), set(), []
@@ -759,15 +726,9 @@ def atomic_record(record, data):
             os.unlink(temp)
 
 
-def link_execution(folder, record):
-    # A record in another checkout stays out of the versioned tasks.md, which would
-    # otherwise carry a path of this machine; the coordinator's batch checkpoint names it.
-    root = Path(git_out(git_reader(folder), "rev-parse", "--show-toplevel")).resolve()
-    if not record.resolve().is_relative_to(root):
-        return
-    path = folder / "tasks.md"
-    lines = read(path)
-    pointer = "- Execution record: " + os.path.relpath(record, folder)
+def link_execution(plan, record):
+    lines = read(plan)
+    pointer = "- Execution record: " + os.path.relpath(record, plan.resolve().parent)
     existing = [i for i, line in enumerate(lines) if line.startswith("- Execution record: ")]
     require(len(existing) <= 1, "checkpoint has multiple execution record pointers")
     if existing:
@@ -780,15 +741,15 @@ def link_execution(folder, record):
                                                        rules=None, principles=None))
         bounds = section_bounds(lines, CHECKPOINT)
     lines.insert(bounds[0] + 2, pointer)
-    write(path, lines)
+    write(plan, lines)
 
 
 def cmd_execution(args):
-    folder, record = args.folder.resolve(), args.record.absolute()
-    execution_location(folder, record)
+    plan, record = args.plan.resolve(), args.record.absolute()
+    execution_location(plan, record)
     if args.operation in {"check", "validate-handoff"}:
         data = load_record(record)
-        validate_execution(data, folder, record)
+        validate_execution(data, plan, record)
         if args.operation == "validate-handoff":
             unit = next((u for u in data["units"] if u["id"] == args.unit), None)
             require(unit is not None, "unknown unit")
@@ -796,25 +757,25 @@ def cmd_execution(args):
         print(f"execution {args.operation} · generation {data['generation']} · metadata checked; inspect evidence independently")
         return
     with execution_lock(record):
-        operation_revision = plan_revision(folder)
+        operation_revision = plan_revision(plan)
         data = load_record(args.input)
         require(isinstance(data, dict), "execution input must be an object")
         if args.operation == "init":
             require(not record.exists(), "execution record already exists; refusing overwrite")
             for field, value in {"schema_version": 1, "generation": 0, "coordinator_id": args.coordinator,
-                                 "plan_ref": str(folder), "plan_revision": operation_revision}.items():
+                                 "plan_ref": str(plan), "plan_revision": operation_revision}.items():
                 require(field not in data or data[field] == value, f"init {field} mismatch")
                 data[field] = value
             data.setdefault("publication", None)
             for unit in data.get("units", []):
                 require(isinstance(unit, dict) and unit.get("state") == "assigned", "init units must be assigned")
                 require(not unit.get("history") and unit.get("verifier") is None, "init cannot invent assignment history or verdict")
-            validate_execution(data, folder, record)
+            validate_execution(data, plan, record)
             # Link first: a crash can leave a missing pointer target, never an orphaned authoritative record.
-            link_execution(folder, record)
+            link_execution(plan, record)
         else:
             old = load_record(record)
-            validate_execution(old, folder, record, check_git=False, revision=False)
+            validate_execution(old, plan, record, check_git=False, revision=False)
             require(args.coordinator == old["coordinator_id"] == data.get("coordinator_id"), "only recorded coordinator may update")
             require(args.expected_generation == old["generation"] == data.get("generation"), "stale generation; read and reconcile current record")
             require(data.get("plan_revision") == old["plan_revision"], "input plan revision differs from recorded revision")
@@ -824,267 +785,16 @@ def cmd_execution(args):
             transition_execution(old, data, record, reconcile=args.reconcile_plan)
             data["generation"] += 1
             data["plan_revision"] = operation_revision
-            validate_execution(data, folder, record)
-        require(plan_revision(folder) == operation_revision, "plan revision changed during operation; read and reconcile before retrying")
+            validate_execution(data, plan, record)
+        require(plan_revision(plan) == operation_revision, "plan revision changed during operation; read and reconcile before retrying")
         atomic_record(record, data)
     print(f"execution {args.operation} · generation {data['generation']}")
 
 
-HIVE_KEY = re.compile(r"^-\s*(Base branch|Delivery|Specs):\s*(.+?)\s*$")
-
-
-def hive_settings(top, workspace):
-    """The `## Hive` keys the versioned check reads from top/AGENTS.md."""
-    settings = {}
-    for line in workspace.hive_lines(workspace.read_text(str(Path(top) / "AGENTS.md"))):
-        match = HIVE_KEY.match(line)
-        if match and match.group(1) not in settings:
-            settings[match.group(1)] = match.group(2).replace("`", "").strip()
-    return settings
-
-
-def printable(text):
-    """A path as one output line: control characters escaped."""
-    return "".join(c if c.isprintable() else repr(c)[1:-1] for c in text)
-
-
-def git_root(path):
-    """(toplevel, common dir) of the repository holding path, or None outside Git."""
-    state = git_reader(path)
-    code, top, _ = state.git_run("rev-parse", "--show-toplevel")
-    if code != 0 or not top.strip():
-        return None
-    top = Path(top.strip()).resolve()
-    code, common, err = state.git_run("rev-parse", "--git-common-dir")
-    require(code == 0, f"Git check failed: {err}")
-    common = Path(common.strip())
-    return top, (common if common.is_absolute() else Path(path) / common).resolve()
-
-
-def git_paths(state, *args):
-    code, out, err = state.git_run(*args)
-    require(code == 0, f"Git check failed: {err}")
-    return [p for p in out.split("\0") if p]
-
-
-def without_checkpoint(lines):
-    """The lines that are not blank and not in the `## Checkpoint` section."""
-    bounds = section_bounds(lines, CHECKPOINT)
-    kept = lines if not bounds else lines[:bounds[0]] + lines[bounds[1]:]
-    return [l for l in kept if l.strip()]
-
-
-def checkpoint_only(state, top, path):
-    """Whether a modified tasks.md differs from HEAD only inside its `## Checkpoint` section."""
-    if Path(path).name != "tasks.md":
-        return False
-    code, committed, _ = state.git_run("show", f"HEAD:{path}")
-    if code != 0:
-        return False
-    try:
-        current = read(Path(top) / path)
-    except Failure:
-        return False
-    return without_checkpoint(committed.splitlines()) == without_checkpoint(current)
-
-
-def edit_warning(state, top, kind, path, where=""):
-    """The close's instruction for one uncommitted file of the folder in the checkout at top.
-    Another worktree's file is only named: it may be another session's work."""
-    if not where and kind == "modified" and checkpoint_only(state, top, path):
-        return (f"warning: modified {printable(path)}{where}: only its checkpoint changed;"
-                f" restore it with git -C {printable(str(top))} restore -- {printable(path)}")
-    return f"warning: {kind} {printable(path)}{where}: name it in the close report"
-
-
-def other_worktree_edits(state, top, rel):
-    """Warnings for the folder's uncommitted files in the repository's other worktrees."""
-    code, out, _ = state.git_run("worktree", "list", "--porcelain")
-    if code != 0:
-        return []
-    found = []
-    for line in out.splitlines():
-        if not line.startswith("worktree "):
-            continue
-        tree = Path(line[len("worktree "):]).resolve()
-        if tree == Path(top).resolve() or not tree.is_dir():
-            continue
-        try:
-            other = git_reader(tree)
-            edits = [("untracked", p) for p in git_paths(other, "ls-files", "--others", "--exclude-standard", "-z", "--", rel)]
-            edits += [("modified", p) for p in git_paths(other, "diff", "--name-only", "-z", "HEAD", "--", rel)]
-        except Failure:
-            continue
-        found += [edit_warning(other, tree, kind, path, f" in {printable(str(tree))}") for kind, path in edits]
-    return found
-
-
-def resolve_base(top, workspace):
-    """(base, source) from `## Hive` Base branch, else origin/HEAD; base is "—" when neither resolves."""
-    declared = hive_settings(top, workspace).get("Base branch", "")
-    if re.fullmatch(r"\S+", declared):
-        return declared, "Hive"
-    return workspace.base_branch_of(str(top)), "origin/HEAD"
-
-
-def on_origin_base(state, last, base, rel):
-    """Whether the folder's last commit, or its content after a squash or rebase merge, is on origin/<base>."""
-    if base == "—":
-        return False
-    base_ref = f"refs/remotes/origin/{base}"
-    code, _, _ = state.git_run("merge-base", "--is-ancestor", last, base_ref)
-    if code != 0:
-        # A squash or rebase merge leaves the folder's commit on no remote branch once the
-        # pull request's branch is deleted; its content on the base still counts.
-        code, _, _ = state.git_run("diff", "--quiet", last, base_ref, "--", rel)
-    return code == 0
-
-
-def integrated_and_done(folder):
-    """origin/<base> when the folder is on it with every task done in that copy, else None.
-    Any failure to answer lets the write through."""
-    try:
-        folder = folder.resolve()
-        root = git_root(folder)
-        if root is None:
-            return None
-        top = root[0]
-        base, _ = resolve_base(top, sibling_script("workspace-repo/scripts/workspace_repo.py", "hive_workspace_repo"))
-        state = git_reader(top)
-        rel = str(folder.relative_to(top))
-        code, out, _ = state.git_run("log", "-1", "--format=%H", "--", rel)
-        if code != 0 or not out.strip() or not on_origin_base(state, out.strip(), base, rel):
-            return None
-        code, text, _ = state.git_run("show", f"refs/remotes/origin/{base}:{rel}/tasks.md")
-        if code != 0:
-            return None
-        integrated = text.splitlines()
-        tasks = parse_tasks(integrated)
-        if not tasks or not all(complete(integrated, t) for t in tasks):
-            return None  # an open task on the base: a later unit goes on
-        if without_checkpoint(read(folder / "tasks.md")) != without_checkpoint(integrated):
-            return None  # the working copy reopened or recorded work not yet committed
-        return f"origin/{base}"
-    except Exception:  # the check never blocks a write it cannot prove wrong
-        return None
-    return None
-
-
-def refusal(folder, base, with_out):
-    text = (f"refused: {printable(str(folder))} is on {base} with every task done; nothing is written to it"
-            " until the hygiene batch archives it.")
-    if with_out:
-        text += (f" Write the checkpoint with --out <host temp>/<repo>-{printable(folder.name)}-checkpoint.md;"
-                 " to continue the work, reopen its task on a new branch first.")
-    else:
-        text += " To continue the work, reopen its task on a new branch first."
-    return text
-
-
-def checkpoint_out(folder, args):
-    out = args.out.expanduser().resolve()
-    root = None
-    try:
-        root = git_root(folder.resolve())
-    except Failure:
-        root = None
-    if root is not None and out.is_relative_to(root[0]):
-        print(f"refused: --out {printable(str(out))} must be outside the repository {printable(str(root[0]))}")
-        return 1
-    if out.exists() and out.read_text(encoding="utf-8").strip():
-        lines = read(out)
-        headings = [l for l in lines if LEVEL2.match(l)]
-        first = next((l for l in lines if l.strip()), "")
-        if not CHECKPOINT.match(first) or len(headings) != 1:
-            print(f"refused: --out {printable(str(out))} is not a checkpoint file; choose another path")
-            return 1
-    else:
-        source = read(folder / "tasks.md")
-        bounds = section_bounds(source, CHECKPOINT)
-        lines = source[bounds[0]:bounds[1]] if bounds else []
-    new_lines, _ = cmd_checkpoint(lines, args)
-    start, end = section_bounds(new_lines, CHECKPOINT)
-    block = new_lines[start:end]
-    while block and not block[-1].strip():
-        block.pop()
-    write(out, block)
-    print(f"checkpoint written to {out}")
-    return 0
-
-
-def cmd_versioned(args):
-    folder = args.folder.resolve()
-    root = git_root(folder)
-    if root is None:
-        print(f"versioned: no · {folder} is in no Git repository, so it cannot be versioned")
-        return 1
-    top, common = root
-    work_top, work_common = top, common
-    if args.work_repo is not None:
-        work = args.work_repo.resolve()
-        require(work.is_dir(), f"--work-repo {args.work_repo}: directory unavailable")
-        work_root = git_root(work)
-        require(work_root is not None, f"--work-repo {args.work_repo}: not a Git repository")
-        work_top, work_common = work_root
-    same_repo = work_common == common
-    workspace = sibling_script("workspace-repo/scripts/workspace_repo.py", "hive_workspace_repo")
-    settings = hive_settings(top, workspace)
-    direct_base = settings.get("Delivery", "").split()[:1] == ["direct-base"]
-    base, base_source = resolve_base(top, workspace)
-    print(f"repo: {top} · base: {base} ({base_source}) · delivery: {'direct-base' if direct_base else 'not declared'}"
-          f" · work repo: {'same' if same_repo else work_top}")
-    state = git_reader(top)
-    rel = str(folder.relative_to(top)) if folder != top else "."
-    problems, warnings = [], []
-    if args.work_repo is None:
-        warnings.append("warning: no --work-repo given; the folder's repository is taken as the work's")
-    untracked = git_paths(state, "ls-files", "--others", "--exclude-standard", "-z", "--", rel)
-    last = git_paths(state, "log", "-1", "--format=%H%x00", "--", rel)
-    modified = git_paths(state, "diff", "--name-only", "-z", "HEAD", "--", rel) if last else []
-    edits = [("untracked", p) for p in untracked] + [("modified", p) for p in modified]
-    for kind, path in edits:
-        if same_repo and last:
-            warnings.append(edit_warning(state, top, kind, path))
-        else:
-            problems.append(f"{kind}: {printable(path)}")
-    if same_repo and last:
-        warnings.extend(other_worktree_edits(state, top, rel))
-    on_base = bool(last) and on_origin_base(state, last[0], base, rel)
-    if not last:
-        problems.append("not committed: the folder has no commit")
-    elif direct_base:
-        if base == "—":
-            problems.append("not pushed: Delivery is direct-base but no base branch resolves (no Base branch, no origin/HEAD)")
-        elif not on_base:
-            problems.append(f"not pushed: {last[0][:12]} is not on origin/{base}")
-    elif not on_base and not git_paths(state, "branch", "-r", "--contains", last[0], "--format=%(refname)%00"):
-        problems.append(f"not pushed: {last[0][:12]} is on no remote branch")
-    if args.work_repo is not None:
-        specs = hive_settings(work_top, workspace).get("Specs")
-        if specs is None:
-            warnings.append(f"warning: {work_top} declares no Specs; declare Specs: {os.path.relpath(folder.parent.parent, work_top)}")
-        else:
-            value = specs.split(" · ")[0].strip()
-            target = Path(value) if Path(value).is_absolute() else work_top / value
-            if not folder.is_relative_to(target.resolve()):
-                warnings.append(f"warning: {work_top} Specs {printable(value)} does not hold the folder; declare Specs: {os.path.relpath(folder.parent.parent, work_top)}")
-    print(f"versioned: {'no' if problems else 'yes'}")
-    for line in problems + warnings:
-        print(line)
-    if problems:
-        print("next: commit and deliver the folder as git-workflow step 4 sets, then run versioned again; if it still"
-              " prints `versioned: no`, the close report lists the folder as pending with its path and its question,"
-              " asked after the report as close-modes sets")
-    if warnings:
-        print("next: name each warning in the close report")
-    return 1 if problems else 0
-
-
 def build_parser():
-    parser = argparse.ArgumentParser(prog="tasks.py", description="Record task progress in a change folder's tasks.md.")
-    parser.add_argument("folder", type=Path)
+    parser = argparse.ArgumentParser(prog="tasks.py", description="Record task progress in a plan file.")
+    parser.add_argument("plan", type=Path, help="the plan file, <YYYY-MM-DD>-<work>.plan.md")
     sub = parser.add_subparsers(dest="command", required=True)
-    sub.add_parser("status")
     done = sub.add_parser("done")
     done.add_argument("task", type=task_id)
     done.add_argument("--commit", required=True, type=sha)
@@ -1100,9 +810,6 @@ def build_parser():
     cp.add_argument("--unwritten", type=single_line, help="what no file holds yet, asked at a pause, kept by later calls; 'none' removes it")
     cp.add_argument("--rules", type=rules_value, help="'<flow>/<packet>.md[, …][ · extra: <leaf>, …]' the flow read; joins the line while the flow stays the same, starts a new line for another flow; 'none' removes it")
     cp.add_argument("--principles", type=principles_value, help="principle names that changed a decision, joined by ', ', merged into the line; 'none' only while it has none")
-    cp.add_argument("--out", type=Path, help="write only the checkpoint block to this file, outside the repository, instead of tasks.md")
-    versioned = sub.add_parser("versioned", help="whether the change folder is committed and on a remote branch")
-    versioned.add_argument("--work-repo", type=Path, help="the work's repository, checked for a Specs that holds the folder")
     execution = sub.add_parser("execution", help="coordinator-owned local execution record")
     operations = execution.add_subparsers(dest="operation", required=True)
     for name in ("init", "check", "update", "validate-handoff"):
@@ -1121,30 +828,20 @@ def build_parser():
 
 def main(argv):
     args = build_parser().parse_args(argv)
-    path = args.folder / "tasks.md"
+    path = args.plan
     try:
-        if args.command == "versioned":
-            require(args.folder.is_dir(), f"{args.folder}: not a directory")
-            return cmd_versioned(args)
         if not path.is_file():
-            raise Failure(f"{path}: not found")
+            raise Failure(f"{path}: not a plan file (pass the path of <YYYY-MM-DD>-<work>.plan.md, not a folder)")
         lines = read(path)
         if args.command == "execution":
             cmd_execution(args)
             return 0
-        if args.command == "checkpoint" and args.out is not None:
-            return checkpoint_out(args.folder, args)
-        if args.command in ("checkpoint", "done"):
-            base = integrated_and_done(args.folder)
-            if base is not None:
-                print(refusal(args.folder, base, args.command == "checkpoint"))
-                return 1
-        handler = {"status": cmd_status, "done": cmd_done, "checkpoint": cmd_checkpoint}[args.command]
+        handler = {"done": cmd_done, "checkpoint": cmd_checkpoint}[args.command]
         result = handler(lines, args)
         if result is not None:
             new_lines, message = result
             write(path, new_lines)
-            print(message)  # only once tasks.md holds the change
+            print(message)  # only once the plan holds the change
     except (Failure, OSError, UnicodeError, ValueError, TypeError, KeyError) as error:
         print(f"tasks: {error}", file=sys.stderr)
         return 2

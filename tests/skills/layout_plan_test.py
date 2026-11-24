@@ -74,6 +74,7 @@ def monorepo(repo, backend="backend", web="web"):
     git(repo, "add", "-A")
     git(repo, "commit", "-q", "-m", "fixture")
     # ignored material
+    write(repo, "_support/scripts/backfill-orders.sh", "echo once, never committed\n")
     write(repo, "_support/evidence/2026-01-02-abc-1-x/shot.png", b"png")
     write(repo, "_support/evidence/ABC-2-2026-03-04-y/log.txt", "log\n")
     write(repo, "_support/reports/run/out.txt", "out\n")
@@ -135,9 +136,13 @@ class PlanLayoutTest(Fixture, unittest.TestCase):
         }
         for source, want in expected.items():
             self.assertEqual(self.dest(plan, source), want, source)
-        destination, rule = self.dest(plan, "_support/scripts/backfill-users.sh")
+        destination, rule = self.dest(plan, "_support/scripts/backfill-orders.sh")
         self.assertEqual(rule, "R9")
-        self.assertRegex(destination, r"^_support/sessions/\d{4}-\d{2}-\d{2}-backfill-users/backfill-users\.sh$")
+        self.assertRegex(destination, r"^_support/workspace/\d{4}-\d{2}-\d{2}-backfill-orders/backfill-orders\.sh$")
+        tracked = [r for r in plan["reviews"] if r["path"] == "_support/scripts/backfill-users.sh"]
+        self.assertEqual(len(tracked), 1, "a tracked one-off script cannot move into the ignored workspace")
+        self.assertEqual(tracked[0]["reason"], "R9")
+        self.assertIn("_support/workspace/", tracked[0]["detail"])
         reviews = {(r["path"], r["reason"]) for r in plan["reviews"]}
         for name in ("docs-scripts.sha256.sh", "node20-check.sh", "fixture-loader.sh"):
             self.assertIn((f"_support/scripts/{name}", "R10"), reviews)

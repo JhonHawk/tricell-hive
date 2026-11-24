@@ -382,7 +382,6 @@ func TestAuditCriteria(t *testing.T) {
 	const reply = "analysis_reply_block"
 	const wait = "unbounded_background_wait"
 	const cards = "card_option_format"
-	const folder = "change_folder_uncommitted"
 	const planRoute = "plan_without_build_route"
 	const suite, rounds = "full_suite_after_text_fix", "review_rounds_per_candidate"
 	cases := []sessionCase{
@@ -443,34 +442,6 @@ func TestAuditCriteria(t *testing.T) {
 {"type": "assistant", "message": {"id": "msg_0", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "Round."}]}, "timestamp": "2026-01-01T11:00:02.000Z", "cwd": "/work/project", "isSidechain": false}
 {"type": "assistant", "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "q0", "name": "AskUserQuestion", "input": {"questions": [{"question": "D1 — Which approach?", "header": "D1", "multiSelect": false, "options": [{"label": "A - (★) Template", "description": "x"}, {"label": "B - Inline", "description": "x"}]}, {"question": "Delivery — Which delivery mode?", "header": "Delivery", "multiSelect": false, "options": [{"label": "A - (★) interactive", "description": "x"}, {"label": "B - automatic", "description": "x"}]}, {"question": "Review — Which review?", "header": "Review", "multiSelect": false, "options": [{"label": "A - (★) Native: Claude Code /code-review", "description": "x"}, {"label": "B - Agent: hive-review-code", "description": "x"}]}]}}]}, "timestamp": "2026-01-01T11:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
 {"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "q0", "content": "Your questions have been answered.", "is_error": false}]}, "timestamp": "2026-01-01T11:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
-`},
-		{name: "change folder codex patched and never committed", host: "codex", criterion: folder, want: "fail", evidence: []string{"changes/demo-change", "rollout.jsonl:"}, transcript: `
-{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000cf", "cwd": "/work/code", "source": "cli"}}
-{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "/work/code"}}
-{"timestamp": "2026-01-01T11:00:03.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
-{"timestamp": "2026-01-01T11:00:04.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "build DEMO-1"}]}}
-{"timestamp": "2026-01-01T11:00:05.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "FileChange", "id": "p4", "changes": {"/work/specs/openspec/changes/demo-change/proposal.md": {"type": "add", "content": "x"}}}}}
-{"timestamp": "2026-01-01T11:00:06.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "CommandExecution", "id": "c5", "command": ["/bin/zsh", "-lc", "python3 -I /skills/git-workflow/scripts/git_state.py commit --repo /work/code -m 'feat: demo' -- src/a.ts"], "status": "completed", "exit_code": 0, "aggregated_output": ""}}}
-{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "CommandExecution", "id": "c6", "command": ["/bin/zsh", "-lc", "cd /work/code && gh pr merge 7 --merge --match-head-commit abc123"], "status": "completed", "exit_code": 0, "aggregated_output": ""}}}
-{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m7", "content": [{"type": "output_text", "text": "Closed. The pull request is merged."}]}}
-`},
-		{name: "change folder codex versioned exited 0", host: "codex", criterion: folder, want: "pass", transcript: `
-{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000cf", "cwd": "/work/code", "source": "cli"}}
-{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "/work/code"}}
-{"timestamp": "2026-01-01T11:00:03.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
-{"timestamp": "2026-01-01T11:00:04.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "build DEMO-1"}]}}
-{"timestamp": "2026-01-01T11:00:05.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "FileChange", "id": "p4", "changes": {"/work/specs/openspec/changes/demo-change/design.md": {"type": "add", "content": "x"}}}}}
-{"timestamp": "2026-01-01T11:00:06.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "CommandExecution", "id": "c5", "command": ["/bin/zsh", "-lc", "cd /work/code && gh pr merge 7 --merge --match-head-commit abc123"], "status": "completed", "exit_code": 0, "aggregated_output": ""}}}
-{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "CommandExecution", "id": "c6", "command": ["/bin/zsh", "-lc", "python3 -I /skills/flow-plan/scripts/tasks.py /work/specs/openspec/changes/demo-change versioned --work-repo /work/code"], "status": "completed", "exit_code": 0, "aggregated_output": ""}}}
-{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m7", "content": [{"type": "output_text", "text": "Closed. The pull request is merged."}]}}
-`},
-		{name: "change folder codex no text after the merge", host: "codex", criterion: folder, want: "review", transcript: `
-{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000cf", "cwd": "/work/code", "source": "cli"}}
-{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "/work/code"}}
-{"timestamp": "2026-01-01T11:00:03.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
-{"timestamp": "2026-01-01T11:00:04.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "build DEMO-1"}]}}
-{"timestamp": "2026-01-01T11:00:05.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "FileChange", "id": "p4", "changes": {"/work/specs/openspec/changes/demo-change/design.md": {"type": "add", "content": "x"}}}}}
-{"timestamp": "2026-01-01T11:00:06.000Z", "type": "event_msg", "payload": {"type": "item_completed", "thread_id": "th", "turn_id": "t1", "item": {"type": "CommandExecution", "id": "c5", "command": ["/bin/zsh", "-lc", "cd /work/code && gh pr merge 7 --merge --match-head-commit abc123"], "status": "completed", "exit_code": 0, "aggregated_output": ""}}}
 `},
 		{name: "close claude fail", host: "claude", criterion: close, want: "fail", transcript: `
 {"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Merge it."}}
@@ -1470,7 +1441,7 @@ func TestAuditHelperInvocationSeesWrappers(t *testing.T) {
 		{"python3 -X utf8 scripts/cleanup_branches.py --apply", true},
 		{"python3 -W ignore scripts/cleanup_branches.py --apply", true},
 		{"rg -n -- --apply scripts/cleanup_branches.py", false},
-		{"python3 scripts/apply_deltas.py --apply", false},
+		{"python3 scripts/sync_labels.py --apply", false},
 	} {
 		got := false
 		for _, args := range shellSegments(tc.cmd, 0) {

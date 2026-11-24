@@ -325,3 +325,40 @@ func containsField(fields []string, want string) bool {
 	}
 	return false
 }
+
+// shellAssignment is a `NAME=value` assignment where a command can start.
+var shellAssignment = regexp.MustCompile(`(?:^|[;&|(\n]\s*)([A-Za-z_][A-Za-z0-9_]*)=("[^"\n]*"|'[^'\n]*'|[^\s;&|)"']+)`)
+
+// maxExpandedCommand bounds the size of a command after expansion: a chain of
+// assignments that each repeat the one before doubles it at every step.
+const maxExpandedCommand = 64 << 10
+
+// expandAssignments replaces `$NAME` and `${NAME}` after a `NAME=value`
+// assignment of the same command with its value, so a path built from a
+// variable matches as written. A value made by a substitution is left as is. A
+// command that grows past maxExpandedCommand, or starts past it, is returned
+// unexpanded.
+func expandAssignments(command string) string {
+	if len(command) > maxExpandedCommand {
+		return command
+	}
+	expanded := command
+	for from := 0; from < len(expanded); {
+		loc := shellAssignment.FindStringSubmatchIndex(expanded[from:])
+		if loc == nil {
+			break
+		}
+		name := expanded[from+loc[2] : from+loc[3]]
+		value := strings.Trim(expanded[from+loc[4]:from+loc[5]], "\"'")
+		end := from + loc[1]
+		if !strings.Contains(value, "$(") && !strings.Contains(value, "`") {
+			rest := strings.NewReplacer("${"+name+"}", value, "$"+name, value).Replace(expanded[end:])
+			if end+len(rest) > maxExpandedCommand {
+				return command
+			}
+			expanded = expanded[:end] + rest
+		}
+		from = end
+	}
+	return expanded
+}

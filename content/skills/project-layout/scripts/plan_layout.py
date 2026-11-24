@@ -721,7 +721,7 @@ class Planner:
         date = root.first_commit_date(row["source"]) if row["tracked"] else None
         date = date or oldest_mtime(root.abs(row["source"]))
         stem = kebab(os.path.splitext(os.path.basename(row["source"]))[0])
-        return os.path.join("_support/sessions", f"{date}-{stem}", os.path.basename(row["source"]))
+        return os.path.join("_support/workspace", f"{date}-{stem}", os.path.basename(row["source"]))
 
     def corpus(self):
         if not hasattr(self, "_corpus"):
