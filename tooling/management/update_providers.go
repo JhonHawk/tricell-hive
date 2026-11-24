@@ -41,6 +41,9 @@ func packageProvidersPreflight(p Plan, state State) error {
 	if j.CodexLines != nil && !j.CodexLines.Skip && j.CodexLines.Before != j.CodexLines.After {
 		return fmt.Errorf("package wait floor changed")
 	}
+	if j.PiConfig != nil && !j.PiConfig.Skip && j.PiConfig.Before != j.PiConfig.After {
+		return fmt.Errorf("package pi subagent config changed")
+	}
 	for _, en := range j.HostHooks {
 		if en.Before != en.After {
 			return fmt.Errorf("package hooks changed")

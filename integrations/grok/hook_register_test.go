@@ -25,10 +25,10 @@ func TestRenderSessionEventsHookRunsTheProgramDirectly(t *testing.T) {
 	if err := json.Unmarshal(out, &f); err != nil {
 		t.Fatalf("not JSON: %v\n%s", err, out)
 	}
-	if len(f.Hooks) != 4 {
+	if len(f.Hooks) != 5 {
 		t.Fatalf("events = %v", f.Hooks)
 	}
-	for _, event := range []string{"SessionStart", "UserPromptSubmit", "Stop", "SessionEnd"} {
+	for _, event := range []string{"SessionStart", "UserPromptSubmit", "SubagentStart", "Stop", "SessionEnd"} {
 		groups := f.Hooks[event]
 		if len(groups) != 1 || len(groups[0].Hooks) != 1 {
 			t.Fatalf("%s: %+v", event, groups)

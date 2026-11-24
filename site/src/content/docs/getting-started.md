@@ -41,21 +41,73 @@ are `Environments`, `Other trackers` (trackers besides the main one, such as a
 client's Jira, each with its ticket key prefixes), `Delivery: direct-base` (marks
 a support repository), `Completion` (a later completion point for tickets, one
 per tracker), and `Hive guidance`. With `Other trackers`, the agent reads and
-searches every declared tracker, moves and comments each ticket in the tracker its
+searches every declared tracker, moves and comments each ticket, and writes its business rules, in the tracker its
 key belongs to, and creates new tickets only in the main one.
 The delivery mode, the review mechanism and the `UI verification` level are not
 keys: the agent asks them each session and reuses your answers for that session.
+When your project's guidance names a review mechanism that runs on the agent's
+host, the agent states it in one line instead of asking it.
 A section that still holds `Review`, `UI verification` or `Delivery: automatic`
 or `interactive` is retired: it answers no question, the agent asks it each session,
 and the old value only informs the recommended option. `hive doctor` warns
 about those lines.
 Each key's meaning and accepted values are in
-[project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md).
+[project settings](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/plan/project-settings.md).
 `hive project set` edits the section for you after a confirmation, and the
-[harness audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/SKILL.md)
+[harness audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-harness/SKILL.md)
 can create or update it for you: ask it to set up your repository's Hive section,
 and it proposes the facts with their evidence, asks the decisions it cannot
 deduce, and writes only what you accept.
+
+Skills that your project installs for its stack, such as Expo, Flutter or
+Next.js skills, can be listed in a separate `## Skills` section of the same
+`AGENTS.md`. Each line names a condition and the `SKILL.md` to read before work
+that matches it, so the agent does not depend on a skill activating by itself,
+and the main agent copies the lines that apply into each helper's brief. The
+section sits outside `## Hive`, which keeps facts only. Ask the
+[harness audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-harness/SKILL.md) to set it up: it runs a
+read-only script that detects your stack from its files and prints the official
+skill sources for it, asks which to install, checks the installer and pins each
+source to a commit before installing it into your project only, and writes the
+section. The same script later reports a listed path that does not exist and an
+installed skill that no line lists. For a workspace of several repositories, the
+workspace's `AGENTS.md` repeats each repository's lines with the repository's
+folder as a prefix, because most hosts do not discover skills in subfolders. The
+[skills registry rule](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-harness/references/instruction-files.md)
+and the [stack skills procedure](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-harness/references/stack-skills.md)
+hold the format and the steps. Hive lists no official skills for iOS, and
+installs nothing without your answer.
+
+Facts that hold only on your machine and that a later session would run or
+check again go in two untracked files. Those of one project, such as the ports
+your local stack ends up on or which cloud profile serves its QA environment,
+go in `HIVE.local.md` at the repository root, or at the workspace root when your
+work spans several repositories. Those that hold in any project, such as a
+command your system lacks or the cloud profiles you have, go in the machine file
+`~/.config/hive/HIVE.local.md`. Each fact is one short line that says what your
+machine or project has or uses, such as which containers a project runs, that a
+design app is installed, or which account a tool signs in with. When the
+machine has Engram, steps and workarounds that do not fit a line go there and
+the line points to them; without it only the line is kept. Past 50 lines the
+agent drops the entries that stopped working and suggests pruning the file with
+you. Diagnoses, counts, events,
+the state of a piece of work and whether a host answers right now go in neither.
+You neither create nor commit them: the agent reads
+both at the start of each session, adds each fact it verified with its date,
+marks the ones that stop working as stale, names the file that holds a password
+instead of writing it, and keeps the files out of Git. You can edit it by hand, and the
+[local instructions mode of audit-harness](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-harness/references/local-instructions.md)
+fills it the first time from what already worked in your recent sessions, asking
+you which facts to keep. A fact that
+holds for every clone belongs in `AGENTS.md`, so the agent names it in its
+report instead. A helper that only your machine needs, such as a script that
+creates a database for each worktree, goes in `_support/scripts/` next to the
+file that names it, also kept out of Git: the agent writes it while it builds,
+names it in its report, and runs it from any worktree through the main
+checkout's path. From a worktree the host isolates, the agent adds new
+entries and scripts through the shell, under your permission settings, and
+names any other change in its report. The [worktree rule](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/local/local-write/worktree.md)
+holds the details.
 
 Then ask for an outcome and state its limits:
 
@@ -73,7 +125,10 @@ Implement the agreed change locally and verify it. Do not commit or publish.
 
 If a CLI behaves differently from what these pages describe, check [Host limits](/host-limits/).
 
-Start with [Research](/flows/research/) when facts are missing, [Plan](/flows/plan/)
-for consequential decisions, or [Build](/flows/build/) for an authorized change.
-[Close](/flows/close/) records the result and cleans up the session. The
+Start with [Hive mode](/flows/hive-mode/) when facts are missing,
+[Create design](/flows/create-design/) for a new screen you want to see first,
+[Plan](/flows/plan/) for consequential decisions, or [Build](/flows/build/) for an authorized change.
+[Close](/flows/close/) records the result and cleans up the session.
+[Create issue](/flows/create-issue/) writes a ticket for work that will be done later or by someone else.
+[Create PRD](/flows/create-prd/) writes the requirement document of a module or feature. The
 [Skills catalog](/skills/) links to each procedure and supporting capability.

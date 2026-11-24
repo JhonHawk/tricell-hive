@@ -11,7 +11,7 @@ by the repository. Publishing a package is separate from building it.
 ```sh
 ./install.sh
 ./install.sh --dry-run
-./install.sh --hosts codex,claude,grok,pi,opencode,cursor
+./install.sh --hosts codex,claude,grok,pi,opencode,cursor,antigravity
 ```
 
 The entrypoint verifies the package platform and binary checksum before invoking
@@ -31,7 +31,7 @@ curl -fsSL https://hive.tricell.tech/install.sh | sh -s -- --version 0.1.0 --hos
 
 `https://hive.tricell.tech/install.sh` redirects to `get-hive.sh` on `master`.
 The script automates the manual steps below with the same checks and needs
-`curl`, `tar`, `shasum` or `sha256sum`, and basic POSIX utilities (`mktemp`,
+`curl`, `tar`, `gzip` (GNU tar runs it to read the `.tar.gz` package), `shasum` or `sha256sum`, and basic POSIX utilities (`mktemp`,
 `uname`, `find`, `wc`, `mv`, `rm`, `rmdir`, `mkdir`); it checks for them before
 any download. `--help` prints its usage. It:
 
@@ -101,7 +101,7 @@ shared legacy resources can require selecting additional consumers together.
 
 After the hosts, the installer offers optional capabilities for the selected
 hosts: Engram, Context7, `agent-browser`, CodeGraph for Claude, Codex, Cursor or
-OpenCode, only with the Pi host pi-subagents, and only with the Codex host the
+OpenCode (Antigravity gets Context7 and `agent-browser` only), only with the Pi host pi-subagents, and only with the Codex host the
 Codex question card (`codex-question-card`) and the Codex wait floor (`codex-wait-floor`).
 Their inventory and limits are in [optional tool dependencies](tool-dependencies.md).
 Engram, Context7 and CodeGraph have no provider recipes: a selected one is shown with its

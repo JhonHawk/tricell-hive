@@ -20,7 +20,7 @@ const normalizedCanonical = "---\nname: plan-review\n---\n\n# Plan review\n\n1. 
 func readOutputV2(canonical string) string {
 	lines := strings.Split(strings.TrimSuffix(canonical, "\n"), "\n")
 	var b strings.Builder
-	b.WriteString("Read file /skills/flow-plan/references/plan-review.md, lines 1-" + strconv.Itoa(len(lines)))
+	b.WriteString("Read file /skills/flow-plan/SKILL.md, lines 1-" + strconv.Itoa(len(lines)))
 	for i, line := range lines {
 		b.WriteString("\n")
 		b.WriteString(strconv.Itoa(i+1) + ": " + line)
@@ -31,7 +31,7 @@ func readOutputV2(canonical string) string {
 func readOutputV1(canonical string) string {
 	lines := strings.Split(strings.TrimSuffix(canonical, "\n"), "\n")
 	var b strings.Builder
-	b.WriteString("<path>/skills/flow-plan/references/plan-review.md</path>\n<type>file</type>\n<content>")
+	b.WriteString("<path>/skills/flow-plan/SKILL.md</path>\n<type>file</type>\n<content>")
 	for i, line := range lines {
 		b.WriteString("\n")
 		b.WriteString(strings.Repeat("0", 5-len(strconv.Itoa(i+1))) + strconv.Itoa(i+1) + "| " + line)
@@ -94,7 +94,7 @@ func TestFlashObserverNormalizesReadOutput(t *testing.T) {
 	script := `import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 import { inspectReference } from './observer.js';
-const resource = 'flow-plan/references/plan-review.md';
+const resource = 'flow-plan/SKILL.md';
 const [expectedHash] = process.argv.slice(2);
 const read = (name) => fs.readFile(name, 'utf8');
 const canonical = await read('canonical.txt');

@@ -53,7 +53,7 @@ const (
 )
 
 // Event is one translated fact. Host is the canonical viewer host name
-// (claude-code, codex, grok, opencode, pi, cursor).
+// (claude-code, codex, grok, opencode, pi, cursor, antigravity).
 type Event struct {
 	Host      string
 	SessionID string

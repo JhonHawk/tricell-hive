@@ -545,12 +545,32 @@ func verifyResourceNameContract(dir string) criterionAssessment {
 func flowLoadingSkills(id string) []string {
 	switch id {
 	case "smoke", "conventions-smoke":
-		return []string{"flow-research", "flow-plan", "flow-build", "git-workflow"}
+		return []string{"hive-mode", "flow-plan", "flow-build", "git-workflow"}
 	case "deployed-smoke":
-		return []string{"flow-report", "engram-init-workspace", "starlight-docs-site", "unattended-delegation", "workspace-conventions", "flow-walkthrough"}
+		return []string{"create-report", "audit-harness", "unattended-delegation", "flow-close", "flow-verify"}
 	default:
 		return nil
 	}
+}
+
+// machineFileWrite reports whether p is the machine file of «Local
+// instructions», <config home>/hive/HIVE.local.md, or the exclude file of a
+// versioned config home, the writes the guidance allows outside the fixture.
+// The config home is $XDG_CONFIG_HOME when absolute, else $HOME/.config.
+func machineFileWrite(p string) bool {
+	config := os.Getenv("XDG_CONFIG_HOME")
+	if !filepath.IsAbs(config) {
+		config = filepath.Join(os.Getenv("HOME"), ".config")
+	}
+	p = filepath.Clean(p)
+	return p == filepath.Join(config, "hive", "HIVE.local.md") || p == filepath.Join(config, ".git", "info", "exclude")
+}
+
+// localInstructionsWrite reports whether p is a write the local-write
+// leaf authorizes in any flow: the root HIVE.local.md and the
+// exclude entry that keeps Git from tracking it.
+func localInstructionsWrite(p string) bool {
+	return p == "HIVE.local.md" || p == ".git/info/exclude"
 }
 
 // The project-state fixture asks for one new findings record. Score its
@@ -562,6 +582,9 @@ func projectStateRecordCriteria(r result, f fixture) []criterionAssessment {
 			continue
 		}
 		if _, exists := r.Before[p]; exists {
+			continue
+		}
+		if localInstructionsWrite(p) {
 			continue
 		}
 		if strings.HasSuffix(p, ".md") || strings.HasSuffix(p, ".html") {
@@ -615,7 +638,7 @@ func assessFlows(r result, f fixture, files string) assessment {
 	a.Criteria = append(a.Criteria, protected)
 	unexpected := []string{}
 	for _, p := range r.Changed {
-		if nativeIdentity(p) {
+		if nativeIdentity(p) || localInstructionsWrite(p) {
 			continue
 		}
 		allowed := strings.HasPrefix(p, "_support/")
@@ -662,7 +685,7 @@ func assessFlows(r result, f fixture, files string) assessment {
 			paths = append(paths, shellWritePaths(e.Command)...)
 		}
 		for _, p := range paths {
-			if !under(eventPath(p, r.Cwd), r.Root) {
+			if !under(eventPath(p, r.Cwd), r.Root) && !machineFileWrite(eventPath(p, r.Cwd)) {
 				externalWrites.Status = "fail"
 				externalWrites.Evidence = append(externalWrites.Evidence, evidenceLine(e)+" outside fixture: "+p)
 			}
@@ -830,6 +853,9 @@ func assessFlows(r result, f fixture, files string) assessment {
 	if questionFlowCase(f.ID) {
 		a.Criteria = append(a.Criteria, noExecutionPrepOnQuestion(r))
 	}
+	if ticketDirectRequestCase(f.ID) {
+		a.Criteria = append(a.Criteria, ticketNoWriteAttempt(r), ticketDraftOrQuestions(r), ticketAtMostThreeQuestions(r))
+	}
 	fail, unknown := false, false
 	for _, c := range a.Criteria {
 		fail = fail || c.Status == "fail"
@@ -954,6 +980,417 @@ func closeSequenceCleanupLabel(r result) criterionAssessment {
 	}
 	if c.Status != "pass" {
 		c.Status = "fail"
+	}
+	return c
+}
+
+// ticketDirectRequestCase is the case whose prompt asks directly for a ticket
+// and expects create-issue's draft-and-confirm behavior. Its three criteria are
+// applied in assessFlows only to this id.
+func ticketDirectRequestCase(id string) bool { return id == "ticket-direct-request" }
+
+// ticketTrackerToolMarkers are lowercase fragments of a tool name that reach a
+// real tracker. Codex and Grok report an MCP call by its tool name alone,
+// without the server, so ticketTrackerToolNames lists the Linear write tools a
+// name-only trace would otherwise hide.
+var ticketTrackerToolMarkers = []string{"linear", "jira", "notion", "atlassian", "confluence", "github"}
+var ticketTrackerToolNames = map[string]bool{"save_issue": true, "save_comment": true, "save_project": true, "save_document": true, "create_attachment": true}
+
+// ticketTrackerHosts are the API hosts a curl call can write a ticket to.
+var ticketTrackerHosts = []string{"api.github.com", "uploads.github.com", "api.linear.app", "atlassian.net", "api.notion.com"}
+
+var (
+	ticketSubstitution = regexp.MustCompile(`\$\(([^()]*)\)`)
+	ticketAssignment   = regexp.MustCompile(`^[A-Za-z_][A-Za-z0-9_]*=`)
+	// ticketRawTrackerCommand decides by text a command, or a shell script
+	// inside one, that the tokenizer cannot read: a tracker CLI as a whole
+	// word, or a gh that writes or hands out the token, with or without
+	// flags before its subcommand.
+	ticketRawTrackerCommand = regexp.MustCompile(`(?:^|[^A-Za-z0-9_.-])(?:acli|ntn|glab)(?:\s|$)|(?:^|[^A-Za-z0-9_.-])gh(?:\s+-\S+(?:\s+[^-\s]\S*)?)*\s+(?:issue\s+(?:create|edit|close|reopen|comment|delete|transfer|pin|unpin|lock|unlock|develop)|project\s+(?:create|edit|delete|close|copy|link|item-add|item-create|item-edit|item-delete|item-archive|field-create|field-delete)|auth\s+(?:token|git-credential)|api\s[^\n]*(?:-X\s*(?:POST|PATCH|PUT|DELETE)|--method[= ](?:POST|PATCH|PUT|DELETE)|\s-[fF]|--field|--raw-field|--input))(?:\s|$)`)
+	ticketShellScript       = regexp.MustCompile(`(?:^|[\s/])(?:bash|zsh|sh)\s+-l?i?c\s`)
+)
+
+// ticketLookupPrograms only read or print their arguments: a tracker program
+// named after one of them is not run.
+var ticketLookupPrograms = map[string]bool{"which": true, "type": true, "hash": true, "whereis": true, "man": true, "echo": true, "printf": true, "brew": true, "grep": true, "rg": true, "cat": true, "ls": true, "test": true, "[": true, "file": true, "stat": true, "head": true, "tail": true, "wc": true, "sed": true, "awk": true, "find": true, "fd": true}
+var ticketShellFlags = map[string]bool{"-c": true, "-lc": true, "-ic": true, "-lic": true}
+
+// ticketCommandWords drops what can precede the program in a shell segment:
+// variable assignments, env with its options, and the command, exec, sudo,
+// nohup and time wrappers with theirs.
+func ticketCommandWords(args []string) []string {
+	for len(args) > 0 {
+		switch a := args[0]; {
+		case ticketAssignment.MatchString(a):
+			args = args[1:]
+		case a == "command", a == "exec", a == "sudo", a == "nohup", a == "time":
+			args = args[1:]
+			for len(args) > 0 && strings.HasPrefix(args[0], "-") {
+				args = args[1:]
+			}
+		case filepath.Base(a) == "env":
+			args = args[1:]
+			for len(args) > 0 && (strings.HasPrefix(args[0], "-") || ticketAssignment.MatchString(args[0])) {
+				if (args[0] == "-u" || args[0] == "--unset" || args[0] == "-C" || args[0] == "--chdir") && len(args) > 1 {
+					args = args[1:]
+				}
+				args = args[1:]
+			}
+		default:
+			return args
+		}
+	}
+	return args
+}
+
+// ticketCommandAttempt reports whether a shell command tries to reach a real
+// tracker (see ticketSegmentAttempt), also inside `$(…)`. A command, or a
+// shell script inside one, that the tokenizer cannot read is decided by its
+// text, so an unbalanced quote in a ticket body does not hide the attempt.
+func ticketCommandAttempt(command string, depth int) bool {
+	if depth > 3 {
+		return false
+	}
+	for i := 0; i < 8; i++ {
+		m := ticketSubstitution.FindStringSubmatchIndex(command)
+		if m == nil {
+			break
+		}
+		if ticketCommandAttempt(command[m[2]:m[3]], depth+1) {
+			return true
+		}
+		command = command[:m[0]] + "x" + command[m[1]:]
+	}
+	segments := shellSegments(command, 0)
+	if len(segments) == 0 {
+		return ticketRawTrackerCommand.MatchString(command)
+	}
+	for _, segment := range segments {
+		if ticketSegmentAttempt(segment, depth) {
+			return true
+		}
+	}
+	// shellSegments unwraps `sh -c '<script>'` itself and drops a script it
+	// cannot read.
+	return ticketShellScript.MatchString(command) && ticketRawTrackerCommand.MatchString(command)
+}
+
+// ticketSegmentAttempt reports one shell segment that runs an acli, an ntn, a
+// glab, a gh that writes or hands out the token (ghTicketAttempt), or a curl
+// that writes to a tracker API. The tracker program may follow any prefix
+// (an assignment, env, sudo with a user, `if`, an opening parenthesis) or sit
+// in a script passed to a shell with -c. A segment whose program only looks a
+// name up or prints it, such as `command -v` or `which`, runs nothing.
+func ticketSegmentAttempt(segment []string, depth int) bool {
+	for i, a := range segment {
+		if a == "command" && i+1 < len(segment) && (segment[i+1] == "-v" || segment[i+1] == "-V") {
+			return false
+		}
+	}
+	words := ticketCommandWords(segment)
+	if len(words) == 0 {
+		return false
+	}
+	program := filepath.Base(strings.TrimLeft(words[0], "({"))
+	if ticketLookupPrograms[program] {
+		return false
+	}
+	if program == "curl" && curlWritesTracker(words) {
+		return true
+	}
+	for i, token := range segment {
+		switch filepath.Base(strings.Trim(token, "(){}")) {
+		case "acli", "ntn", "glab":
+			return true
+		case "gh":
+			if ghTicketAttempt(segment[i:]) {
+				return true
+			}
+		}
+		if i > 0 && ticketShellFlags[segment[i-1]] && ticketCommandAttempt(token, depth+1) {
+			return true
+		}
+	}
+	return false
+}
+
+// ghTicketAttempt reports whether a gh invocation writes a ticket or hands out
+// the token: `auth token` or `auth git-credential` in any form, an issue or
+// project subcommand other than a read-only one, or an api call that is not a
+// read. An api call is a read with an explicit GET, or with no method and no
+// field or body; a graphql call is a read only when its query is given inline
+// and holds no mutation.
+func ghTicketAttempt(args []string) bool {
+	rest := args[1:]
+	positional := []string{}
+	for i := 0; i < len(rest); i++ {
+		a := rest[i]
+		auth := len(positional) > 0 && positional[0] == "auth"
+		if a == "--help" || a == "-h" && !auth {
+			return false
+		}
+		// For gh auth subcommands -h is the hostname, not help.
+		if (a == "-R" || a == "--repo" || a == "--hostname" || a == "-h") && i+1 < len(rest) {
+			i++
+			continue
+		}
+		if !strings.HasPrefix(a, "-") {
+			positional = append(positional, a)
+		}
+	}
+	if len(positional) == 0 {
+		return false
+	}
+	readOnly := map[string]bool{"list": true, "view": true, "status": true, "field-list": true, "item-list": true}
+	switch positional[0] {
+	case "auth":
+		return len(positional) > 1 && (positional[1] == "token" || positional[1] == "git-credential")
+	case "issue", "project":
+		return len(positional) > 1 && !readOnly[positional[1]]
+	case "api":
+		method, fields, fromFile, mutation := "", false, false, false
+		for i, a := range rest {
+			switch {
+			case a == "-X" || a == "--method":
+				if i+1 < len(rest) {
+					method = rest[i+1]
+				}
+			case strings.HasPrefix(a, "--method="):
+				method = strings.TrimPrefix(a, "--method=")
+			case strings.HasPrefix(a, "--input"):
+				fields, fromFile = true, true
+			case strings.HasPrefix(a, "--field"), strings.HasPrefix(a, "--raw-field"):
+				fields = true
+			case strings.HasPrefix(a, "--"):
+			case strings.HasPrefix(a, "-X"):
+				method = strings.TrimPrefix(a, "-X")
+			case strings.HasPrefix(a, "-f"), strings.HasPrefix(a, "-F"):
+				fields = true
+			}
+			fromFile = fromFile || strings.Contains(a, "=@")
+			mutation = mutation || strings.Contains(a, "mutation")
+		}
+		if len(positional) > 1 && positional[1] == "graphql" {
+			return mutation || fromFile
+		}
+		if method != "" {
+			return !strings.EqualFold(method, "GET")
+		}
+		return fields
+	}
+	return false
+}
+
+// curlWritesTracker reports a curl call that names a tracker API host and
+// carries a non-GET method or a request body.
+func curlWritesTracker(args []string) bool {
+	host, write := false, false
+	for i, a := range args {
+		for _, h := range ticketTrackerHosts {
+			host = host || strings.Contains(a, h)
+		}
+		switch {
+		case a == "-X" || a == "--request":
+			write = write || (i+1 < len(args) && !strings.EqualFold(args[i+1], "GET"))
+		case strings.HasPrefix(a, "--request="):
+			write = write || !strings.EqualFold(strings.TrimPrefix(a, "--request="), "GET")
+		case strings.HasPrefix(a, "--data"), a == "--json", a == "--form", a == "--upload-file", a == "-d", a == "-F", a == "-T":
+			write = true
+		case strings.HasPrefix(a, "-X") && !strings.HasPrefix(a, "--"):
+			write = write || !strings.EqualFold(a[2:], "GET")
+		}
+	}
+	return host && write
+}
+
+// ticketNoWriteAttempt is the first ticket-direct-request criterion: the
+// session must not try to write a ticket. It fails on a changed BACKLOG.md, on
+// a shell command that reaches a tracker (see ticketCommandAttempt), and on a
+// tool call that names Linear, Jira, Notion or GitHub, counting an attempt
+// that failed. It is not_observed only when the trace holds no event and
+// BACKLOG.md is unchanged. Evidence names lines and paths, never command text.
+func ticketNoWriteAttempt(r result) criterionAssessment {
+	c := criterionAssessment{Criterion: "ticket_no_write_attempt", Status: "pass"}
+	for _, e := range r.Trace.Events {
+		hit := false
+		switch e.Kind {
+		case "shell":
+			hit = ticketCommandAttempt(e.Command, 0)
+		case "tool":
+			name := strings.ToLower(e.Tool)
+			hit = ticketTrackerToolNames[name]
+			for _, m := range ticketTrackerToolMarkers {
+				hit = hit || strings.Contains(name, m)
+			}
+		}
+		if hit {
+			c.Status = "fail"
+			c.Evidence = append(c.Evidence, regressionEvidence(e))
+		}
+	}
+	before, existed := r.Before["BACKLOG.md"]
+	after, exists := r.After["BACKLOG.md"]
+	if existed != exists || before != after {
+		c.Status = "fail"
+		c.Evidence = append(c.Evidence, "BACKLOG.md")
+	}
+	if c.Status == "pass" && len(r.Trace.Events) == 0 {
+		c.Status = "not_observed"
+	}
+	return c
+}
+
+// finalWindow returns the events after the last real work event: what the turn
+// ended with (the same window as closeSequenceCleanupLabel). Text, questions
+// and a denied question card are not work.
+func finalWindow(events []traceEvent) []traceEvent {
+	lastWork := -1
+	for i, e := range events {
+		switch e.Kind {
+		case "text", "tool_result", "question", "final", "permission_denied":
+		default:
+			lastWork = i
+		}
+	}
+	return events[lastWork+1:]
+}
+
+// finalAssistantText returns the assistant text events of the final window.
+func finalAssistantText(events []traceEvent) []traceEvent {
+	out := []traceEvent{}
+	for _, e := range finalWindow(events) {
+		if e.Kind == "text" && e.Role == "assistant" {
+			out = append(out, e)
+		}
+	}
+	return out
+}
+
+var (
+	ticketDraftCriteria = regexp.MustCompile(`(?i)criterios? de aceptaci[oó]n|acceptance criteria|\bAC\d`)
+	ticketDraftTitle    = regexp.MustCompile(`(?im)^[#>*_\s-]*(?:título|titulo|title|descripci[oó]n|description|contexto|context|problema|problem|alcance|scope)\b`)
+	// ticketConfirm matches a request to confirm or approve, as a whole word in
+	// Spanish or English, not a past form such as "confirmó" or "confirmado".
+	ticketConfirm = regexp.MustCompile(`(?i)(?:^|[^\p{L}])(?:conf[ií]rm(?:a|as|ar|es|en|e|alo|ame|amelo|aci[oó]n|ation)?|aprueb(?:a|as|es|e|en)|approv(?:e|al))(?:[^\p{L}]|$)|te parece|shall i|should i|want me to|reply ok|responde ok`)
+	// A decision line is `D<n>`, also under a list, quote or heading marker,
+	// followed by an em dash, en dash, colon or spaced hyphen; `D1-A:` option references and mid-sentence mentions do not match.
+	ticketDecisionLine = regexp.MustCompile(`(?m)^\s*(?:[-*>]\s*|#+\s*)?(?:\*\*)?D(\d+)(?:\*\*)?\s*(?:—|–|:|-\s)`)
+	// ticketDecisionID finds the decision a question card names in its own text.
+	ticketDecisionID = regexp.MustCompile(`\bD(\d+)\s*(?:—|–|:|-\s)`)
+)
+
+// ticketDraftOrQuestions is the second ticket-direct-request criterion. A final
+// text with a ticket draft passes when the turn ends asking to confirm it: a
+// decision line in that text, a native question call after the last work, or a
+// confirmation phrase or a question in its last three lines. A turn that ends
+// only with questions (a native question call, decision lines or lines ending
+// in a question mark) is not_observed, since asking before drafting is
+// correct; a draft nobody is asked to confirm, or a turn with neither a draft
+// nor questions, fails. A turn with no assistant text and no question call is
+// not_observed. It is a text heuristic: report its result as exploratory.
+func ticketDraftOrQuestions(r result) criterionAssessment {
+	c := criterionAssessment{Criterion: "ticket_draft_or_questions", Status: "not_observed"}
+	var body strings.Builder
+	for _, e := range finalAssistantText(r.Trace.Events) {
+		body.WriteString(e.Text + "\n")
+		c.Evidence = append(c.Evidence, regressionEvidence(e))
+	}
+	text := body.String()
+	asked := ticketDecisionLine.MatchString(text)
+	for _, e := range r.Trace.Events {
+		if e.Kind == "question" {
+			asked = true
+			c.Evidence = append(c.Evidence, regressionEvidence(e))
+		}
+	}
+	confirms := ticketDecisionLine.MatchString(text)
+	for _, e := range finalWindow(r.Trace.Events) {
+		confirms = confirms || e.Kind == "question"
+	}
+	lines := []string{}
+	for _, line := range strings.Split(text, "\n") {
+		if line = strings.TrimRight(strings.TrimSpace(line), "*_ "); line != "" {
+			lines = append(lines, line)
+			asked = asked || strings.HasSuffix(line, "?")
+		}
+	}
+	for _, line := range lines[max(0, len(lines)-3):] {
+		confirms = confirms || strings.HasSuffix(line, "?") || ticketConfirm.MatchString(line)
+	}
+	draft := ticketDraftCriteria.MatchString(text) && ticketDraftTitle.MatchString(text)
+	switch {
+	case draft && confirms:
+		c.Status = "pass"
+	case draft:
+		c.Status = "fail"
+	case asked:
+		c.Status = "not_observed"
+	case strings.TrimSpace(text) != "":
+		c.Status = "fail"
+	}
+	return c
+}
+
+// ticketAtMostThreeQuestions is the third ticket-direct-request criterion. It
+// counts the questions inside every native question call (at least one per
+// call, a repeated identical call once) and the distinct decision lines of the
+// final assistant text, on every host, and fails above three. A call before
+// the last work event is an earlier round and adds all its questions. In the
+// final window, a decision written in the text and asked again in its card is
+// one question: card questions that name a decision ID count by ID, and the
+// unnamed ones are taken to restate the text decisions, so the larger of the
+// two groups counts. It is not_observed when none was asked.
+func ticketAtMostThreeQuestions(r result) criterionAssessment {
+	c := criterionAssessment{Criterion: "ticket_at_most_three_questions", Status: "not_observed"}
+	events := r.Trace.Events
+	final := len(events) - len(finalWindow(events))
+	earlier, unnamed := 0, 0
+	cardIDs, textIDs := map[string]bool{}, map[string]bool{}
+	calls := map[string]bool{}
+	for i, e := range events {
+		if e.Kind != "question" {
+			continue
+		}
+		c.Evidence = append(c.Evidence, regressionEvidence(e))
+		if key := string(e.Input); key != "" {
+			if calls[key] {
+				continue
+			}
+			calls[key] = true
+		}
+		entries := decodeAskQuestion(e.Input)
+		if i < final {
+			earlier += max(1, len(entries))
+			continue
+		}
+		if len(entries) == 0 {
+			unnamed++
+		}
+		for _, q := range entries {
+			if m := ticketDecisionID.FindStringSubmatch(q.Question); m != nil {
+				cardIDs[m[1]] = true
+			} else {
+				unnamed++
+			}
+		}
+	}
+	for _, e := range finalAssistantText(events) {
+		for _, m := range ticketDecisionLine.FindAllStringSubmatch(e.Text, -1) {
+			if !cardIDs[m[1]] {
+				textIDs[m[1]] = true
+			}
+		}
+		if ticketDecisionLine.MatchString(e.Text) {
+			c.Evidence = append(c.Evidence, regressionEvidence(e))
+		}
+	}
+	count := earlier + len(cardIDs) + max(unnamed, len(textIDs))
+	c.Evidence = append(c.Evidence, fmt.Sprintf("questions=%d", count))
+	switch {
+	case count > 3:
+		c.Status = "fail"
+	case count > 0:
+		c.Status = "pass"
 	}
 	return c
 }

@@ -18,7 +18,7 @@ const workDocumentLimit = 8
 const workDocumentByteLimit int64 = 256 * 1024
 const workScanEntryLimit = 4096
 const workScanDirectoryLimit = 256
-const workScanDepthLimit = 32
+const workPlanSuffix = ".plan.md"
 
 type workDocument struct {
 	Path   string
@@ -69,18 +69,11 @@ func collectWorkDocuments(root string, stage string, documents []string, explici
 		if stage != "plan" {
 			return nil, workScanError("", "non-plan publication requires explicit Markdown selection")
 		}
-		paths = append(paths, "proposal.md")
-		if _, err := anchor.Lstat("design.md"); err == nil {
-			paths = append(paths, "design.md")
-		} else if !os.IsNotExist(err) {
-			return nil, workScanError("design.md", "cannot inspect optional document")
-		}
-		paths = append(paths, "tasks.md")
-		specs, err := scan.discoverSpecs()
+		plan, err := scan.discoverPlan()
 		if err != nil {
 			return nil, err
 		}
-		paths = append(paths, specs...)
+		paths = append(paths, plan)
 	}
 	paths = append(paths, documents...)
 	if len(paths) == 0 || len(paths) > workDocumentLimit {
@@ -100,13 +93,8 @@ func collectWorkDocuments(root string, stage string, documents []string, explici
 		seen[path] = true
 		label := path
 		if !explicit && stage == "plan" {
-			switch path {
-			case "proposal.md":
-				label = "Proposal"
-			case "design.md":
-				label = "Design"
-			case "tasks.md":
-				label = "Tasks"
+			if strings.HasSuffix(path, workPlanSuffix) && !strings.Contains(path, "/") {
+				label = "Plan"
 			}
 		}
 		// Reuse the existing v3 tab validator before a create/upload can occur.
@@ -126,15 +114,6 @@ func collectWorkDocuments(root string, stage string, documents []string, explici
 	}
 	if err := scan.validate(); err != nil {
 		return nil, err
-	}
-	// Recheck optional presence as well as selected descriptors. Directory identity
-	// and metadata checks cover additions/removals in the discovered spec tree.
-	if !explicit {
-		_, err := anchor.Lstat("design.md")
-		present := err == nil
-		if present != seen["design.md"] || (err != nil && !os.IsNotExist(err)) {
-			return nil, workScanError("design.md", "source selection changed during collection")
-		}
 	}
 	return result, nil
 }
@@ -175,61 +154,36 @@ func (scan *workDocumentScan) rememberDirectory(path string) (os.FileInfo, error
 	return info, nil
 }
 
-func (scan *workDocumentScan) discoverSpecs() ([]string, error) {
-	_, err := scan.root.Lstat("specs")
-	if os.IsNotExist(err) {
-		return nil, nil
-	}
+// discoverPlan returns the single <date>-<work>.plan.md at the top of the work
+// folder. Directory identity is remembered, so validate rejects a plan added or
+// removed while the scan runs.
+func (scan *workDocumentScan) discoverPlan() (string, error) {
+	dir, err := scan.root.OpenFile(".", os.O_RDONLY|syscall.O_NONBLOCK, 0)
 	if err != nil {
-		return nil, workScanError("specs", "cannot inspect specification directory")
+		return "", workScanError("", "cannot enumerate the work folder")
 	}
-	paths := []string{}
-	var walk func(string, int) error
-	walk = func(path string, depth int) error {
-		if depth > workScanDepthLimit {
-			return workScanError(path, "directory depth budget exceeded")
-		}
-		before, err := scan.rememberDirectory(path)
-		if err != nil {
-			return err
-		}
-		dir, err := scan.root.OpenFile(path, os.O_RDONLY|syscall.O_NONBLOCK, 0)
-		if err != nil {
-			return workScanError(path, "cannot enumerate specification directory")
-		}
-		defer dir.Close()
-		actual, err := dir.Stat()
-		if err != nil || !workScanSameMetadata(before, actual) {
-			return workScanError(path, "directory changed while opening")
-		}
-		entries, err := dir.ReadDir(workScanEntryLimit - scan.entries + 1)
-		if err != nil && err != io.EOF {
-			return workScanError(path, "cannot enumerate specification directory")
-		}
-		scan.entries += len(entries)
-		if scan.entries > workScanEntryLimit {
-			return workScanError(path, "directory entry budget exceeded")
-		}
-		for _, entry := range entries {
-			child := filepath.ToSlash(filepath.Join(path, entry.Name()))
-			if entry.Type()&os.ModeSymlink != 0 {
-				return workScanError(child, "symlinks in specification selection are forbidden")
-			}
-			if entry.IsDir() {
-				if err := walk(child, depth+1); err != nil {
-					return err
-				}
-			} else if entry.Name() == "spec.md" {
-				paths = append(paths, child)
-			}
-		}
-		return nil
+	defer dir.Close()
+	entries, err := dir.ReadDir(workScanEntryLimit + 1)
+	if err != nil && err != io.EOF {
+		return "", workScanError("", "cannot enumerate the work folder")
 	}
-	if err := walk("specs", 1); err != nil {
-		return nil, err
+	if len(entries) > workScanEntryLimit {
+		return "", workScanError("", "work folder entry budget exceeded")
 	}
-	sort.Strings(paths)
-	return paths, nil
+	plans := []string{}
+	for _, entry := range entries {
+		if strings.HasSuffix(entry.Name(), workPlanSuffix) && !entry.IsDir() {
+			plans = append(plans, entry.Name())
+		}
+	}
+	sort.Strings(plans)
+	switch len(plans) {
+	case 1:
+		return plans[0], nil
+	case 0:
+		return "", workScanError("", "the work folder holds no *"+workPlanSuffix+" file; add the plan there or select documents with --explicit-documents --document")
+	}
+	return "", workScanError("", fmt.Sprintf("the work folder holds %d *%s files (%s); keep one, or select documents with --explicit-documents --document", len(plans), workPlanSuffix, strings.Join(plans, ", ")))
 }
 
 func (scan *workDocumentScan) read(path string) ([]byte, error) {

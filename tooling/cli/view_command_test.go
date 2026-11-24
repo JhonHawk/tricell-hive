@@ -638,10 +638,10 @@ func TestViewGitRemoteOnlyAnswersForAGitToplevel(t *testing.T) {
 
 func TestViewHiveProjectReadsAWorkspaceAgentsFileWithoutGit(t *testing.T) {
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "AGENTS.md"), []byte("## Hive\n\n- Project: cam\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "AGENTS.md"), []byte("## Hive\n\n- Project: project-g\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if name, ok := viewHiveProject(root); !ok || name != "cam" {
+	if name, ok := viewHiveProject(root); !ok || name != "project-g" {
 		t.Fatalf("Project = %q, %v", name, ok)
 	}
 }

@@ -559,7 +559,8 @@ func (v *modelsView) openPanel() tea.Cmd {
 // only the current value and "Other…".
 func (v *modelsView) loadCatalog() tea.Cmd {
 	p, host := v.panel, v.host
-	if v.cfg.catalogRunner == nil && v.cfg.Options.Home != "" && host != "claude" {
+	_, fixed := fixedModels(host)
+	if v.cfg.catalogRunner == nil && v.cfg.Options.Home != "" && !fixed {
 		p.noCatalog = true
 		return nil
 	}

@@ -43,7 +43,7 @@ func mustShowUnwrapped(t *testing.T, d *appDriver, want string) {
 func listRows(d *appDriver) []string {
 	var rows []string
 	for _, line := range d.lines() {
-		for _, name := range []string{"Engram", "Context7", "pi-subagents", "Pi codemode", "agent-browser", "CodeGraph", "Codex question card", "Codex wait floor"} {
+		for _, name := range []string{"Engram", "Context7", "pi-subagents", "Pi codemode", "Pi subagent activation", "agent-browser", "CodeGraph", "Codex question card", "Codex wait floor"} {
 			if strings.HasPrefix(line, "> "+name) || strings.HasPrefix(line, "  "+name) {
 				rows = append(rows, line)
 			}
@@ -66,18 +66,18 @@ func cursorRow(t *testing.T, d *appDriver) string {
 	return found[0]
 }
 
-func TestIntegrationsViewShowsTitleHeaderAndSixRowsWithPi(t *testing.T) {
+func TestIntegrationsViewShowsTitleHeaderAndSevenRowsWithPi(t *testing.T) {
 	o, f, _, _ := integrationsFixture(t)
 	_, d, _ := openIntegrationsView(t, o, f, 80, 24)
 	d.mustShow("Integrations", "Onboarding record", "No onboarding record yet")
 	rows := listRows(d)
-	if len(rows) != 6 {
+	if len(rows) != 7 {
 		t.Fatalf("%d list rows:\n%s", len(rows), d.screen())
 	}
 	if !strings.HasPrefix(rows[0], "> Engram") {
 		t.Fatalf("the cursor starts on %q", rows[0])
 	}
-	for i, name := range []string{"Engram", "Context7", "pi-subagents", "Pi codemode", "agent-browser", "CodeGraph"} {
+	for i, name := range []string{"Engram", "Context7", "pi-subagents", "Pi codemode", "Pi subagent activation", "agent-browser", "CodeGraph"} {
 		if !strings.Contains(rows[i], name) {
 			t.Fatalf("row %d = %q, want %s", i, rows[i], name)
 		}
@@ -85,16 +85,16 @@ func TestIntegrationsViewShowsTitleHeaderAndSixRowsWithPi(t *testing.T) {
 	assertFits(t, d, 80, 24)
 }
 
-func TestIntegrationsViewFitsEightRowsWithPiAndCodex(t *testing.T) {
+func TestIntegrationsViewFitsNineRowsWithPiAndCodex(t *testing.T) {
 	o, f, _, _ := integrationsFixtureHosts(t, "claude,pi,codex")
 	_, d, _ := openIntegrationsView(t, o, f, 80, 24)
 	d.mustShow("Integrations", "Onboarding record", "Codex question card")
 	rows := listRows(d)
-	if len(rows) != 8 {
+	if len(rows) != 9 {
 		t.Fatalf("%d list rows:\n%s", len(rows), d.screen())
 	}
-	if !strings.Contains(rows[5], "CodeGraph") || !strings.Contains(rows[6], "Codex question card") || !strings.Contains(rows[7], "Codex wait floor") {
-		t.Fatalf("last rows = %q, %q, %q", rows[5], rows[6], rows[7])
+	if !strings.Contains(rows[6], "CodeGraph") || !strings.Contains(rows[7], "Codex question card") || !strings.Contains(rows[8], "Codex wait floor") {
+		t.Fatalf("last rows = %q, %q, %q", rows[6], rows[7], rows[8])
 	}
 	assertFits(t, d, 80, 24)
 }
@@ -128,6 +128,11 @@ func TestIntegrationsViewArrowsMoveTheCursorAndTheDetail(t *testing.T) {
 	d.mustShow("Not part of onboarding")
 	mustShowUnwrapped(t, d, "Source: "+piCodemodeSource)
 	mustShowUnwrapped(t, d, `"defaultTools": ["+codemode"]`)
+	d.key("down")
+	if got := cursorRow(t, d); !strings.HasPrefix(got, "> Pi subagent activation") {
+		t.Fatalf("cursor = %q", got)
+	}
+	mustShowUnwrapped(t, d, "toolActivation")
 	d.key("down")
 	if got := cursorRow(t, d); !strings.HasPrefix(got, "> agent-browser") {
 		t.Fatalf("cursor = %q", got)
@@ -271,7 +276,7 @@ func TestIntegrationsViewShowsATamperedRecordAsAnErrorInside(t *testing.T) {
 	d.mustNotShow("Last onboarding: Cannot read")
 	d.mustNotShow("No onboarding record yet")
 	assertFits(t, d, 80, 24)
-	d.key("down", "down", "down", "down") // agent-browser: its local checks show
+	d.key("down", "down", "down", "down", "down") // agent-browser: its local checks show
 	d.mustShow("Source: "+agentBrowserSource, "r to retry after fixing it")
 }
 

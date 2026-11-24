@@ -7,8 +7,8 @@ import (
 )
 
 func TestSkillShellReadEvidence(t *testing.T) {
-	path := "/home/.agents/skills/flow-report/SKILL.md"
-	body := "---\nname: flow-report\ndescription: Visual reports\n---\n# Reports\nUse evidence.\n"
+	path := "/home/.agents/skills/create-report/SKILL.md"
+	body := "---\nname: create-report\ndescription: Visual reports\n---\n# Reports\nUse evidence.\n"
 	for _, tc := range []struct {
 		name, command, output string
 		exit                  int
@@ -17,9 +17,9 @@ func TestSkillShellReadEvidence(t *testing.T) {
 		{"wrapped-multiple", `/bin/zsh -lc "wc -l ` + path + ` && sed -n '1,220p' ` + path + ` && cat /other"`, body, 0, "pass"},
 		{"literal", "cat " + path, body, 0, "pass"},
 		{"failed", "cat " + path, body, 1, "not_observed"},
-		{"wrong-output", "cat " + path, "I read flow-report", 0, "not_observed"},
+		{"wrong-output", "cat " + path, "I read create-report", 0, "not_observed"},
 		{"echo", "echo 'cat " + path + "'", body, 0, "not_observed"},
-		{"variable", `cat "$SKILL/flow-report/SKILL.md"`, body, 0, "not_observed"},
+		{"variable", `cat "$SKILL/create-report/SKILL.md"`, body, 0, "not_observed"},
 		{"redirect", "cat " + path + " > /tmp/out", body, 0, "not_observed"},
 		{"pipe", "cat " + path + " | head", body, 0, "not_observed"},
 		{"or", "cat " + path + " || true", body, 0, "not_observed"},
@@ -28,7 +28,7 @@ func TestSkillShellReadEvidence(t *testing.T) {
 			event := map[string]any{"type": "item.completed", "item": map[string]any{"id": "cmd", "type": "command_execution", "command": tc.command, "aggregated_output": tc.output, "exit_code": tc.exit, "status": "completed"}}
 			data, _ := json.Marshal(event)
 			r := result{Trace: parseTrace("codex", strings.NewReader(string(data)))}
-			if got := observeSkill(r, "flow-report").Read.Status; got != tc.want {
+			if got := observeSkill(r, "create-report").Read.Status; got != tc.want {
 				t.Fatalf("got %s want %s", got, tc.want)
 			}
 			if observeSkill(r, "workspace-archive").Read.Status == "pass" {
@@ -67,8 +67,8 @@ func TestSourceShellReadRequiresMatchingOutputAndPaths(t *testing.T) {
 }
 
 func TestPartialSkillReadDoesNotPassFailedCommand(t *testing.T) {
-	path := "/home/.agents/skills/flow-research/SKILL.md"
-	body := "---\nname: flow-research\ndescription: Research\n---\n# Research\nEvidence.\ncat: /missing: No such file or directory"
+	path := "/home/.agents/skills/hive-mode/SKILL.md"
+	body := "---\nname: hive-mode\ndescription: Research\n---\n# Research\nEvidence.\ncat: /missing: No such file or directory"
 	for _, tc := range []struct {
 		command, output string
 		want            bool
@@ -85,12 +85,12 @@ func TestPartialSkillReadDoesNotPassFailedCommand(t *testing.T) {
 			{Kind: "shell", ID: "cmd", Command: tc.command, Success: &no},
 			{Kind: "tool_result", ID: "cmd", Text: tc.output, Success: &no},
 		}}}
-		got := observeSkill(r, "flow-research")
+		got := observeSkill(r, "hive-mode")
 		if (got.PartialRead != nil) != tc.want || got.Read.Status == "pass" {
 			t.Fatalf("unexpected observation: %+v for %s", got, tc.command)
 		}
 		r.Trace.Events[1].ID = "other"
-		if observeSkill(r, "flow-research").PartialRead != nil {
+		if observeSkill(r, "hive-mode").PartialRead != nil {
 			t.Fatal("uncorrelated result accepted")
 		}
 	}

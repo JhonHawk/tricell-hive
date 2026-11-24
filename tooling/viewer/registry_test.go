@@ -1,6 +1,7 @@
 package viewer
 
 import (
+	"bytes"
 	"errors"
 	"os"
 	"os/exec"
@@ -213,20 +214,24 @@ func TestRegistryConcurrentProcessesLoseNoEntry(t *testing.T) {
 	state := t.TempDir()
 	const n = 8
 	var cmds []*exec.Cmd
+	var outs []*bytes.Buffer
 	var want []string
 	for i := 0; i < n; i++ {
 		repo := newRepo(t)
 		want = append(want, repo)
 		cmd := exec.Command(os.Args[0], "-test.run=^TestRegistryHelperProcess$")
 		cmd.Env = append(os.Environ(), "HIVE_VIEWER_HELPER="+state+"|"+repo)
+		out := &bytes.Buffer{}
+		cmd.Stdout, cmd.Stderr = out, out
 		if err := cmd.Start(); err != nil {
 			t.Fatal(err)
 		}
 		cmds = append(cmds, cmd)
+		outs = append(outs, out)
 	}
-	for _, cmd := range cmds {
+	for i, cmd := range cmds {
 		if err := cmd.Wait(); err != nil {
-			t.Fatalf("helper failed: %v", err)
+			t.Fatalf("helper failed: %v\n%s", err, outs[i])
 		}
 	}
 	got := map[string]bool{}
@@ -293,7 +298,7 @@ func TestRegistryWorkspaceRuleWinsOverTheEnclosingGitRepository(t *testing.T) {
 func TestRegistryNestedGitRepositoryInAWorkspaceKeepsItsOwnToplevel(t *testing.T) {
 	state := t.TempDir()
 	root, _ := newWorkspace(t)
-	nested := filepath.Join(root, "cam-monorepo")
+	nested := filepath.Join(root, "project-g-monorepo")
 	os.MkdirAll(filepath.Join(nested, ".git"), 0o755)
 	sub := filepath.Join(nested, "src")
 	os.MkdirAll(sub, 0o755)

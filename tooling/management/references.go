@@ -5,28 +5,83 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"strconv"
 	"strings"
 	"tricell-hive/integrations/mdlinks"
 )
 
-// These checks cover authored Markdown instruction links, not arbitrary prose,
-// generated assets, remote URLs, heading anchors or runtime project inputs.
+// These checks cover authored Markdown instruction links, including ATX heading
+// anchors (#fragment), not arbitrary prose, generated assets, remote URLs or
+// runtime project inputs.
 var inlineResourceLink = regexp.MustCompile(`\[[^\]\n]*\]\(\s*(<[^>\n]+>|[^\s)]+)(?:\s+"[^"\n]*")?\s*\)`)
 var definedResourceLink = regexp.MustCompile(`(?m)^ {0,3}\[[^\]\n]+\]:\s*(<[^>\n]+>|[^\s]+)`)
 var personalResourcePath = regexp.MustCompile(`(?:/Users/|/home/|/Volumes/|[A-Za-z]:\\Users\\)`)
+var atxHeading = regexp.MustCompile(`^ {0,3}#{1,6}[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$`)
+var inlineMarkdownLink = regexp.MustCompile(`!?\[([^\]\n]*)\]\([^)\n]*\)`)
+var slugDropped = regexp.MustCompile(`[^\p{L}\p{M}\p{N}\p{Pc} -]`)
 
-func instructionMarkdown(source string) bool {
+func instructionMarkdown(source string) bool { return instructionMarkdownIn(source, nil) }
+
+// instructionMarkdownIn also covers the Markdown of a skill's declared domain
+// folders, by skill name.
+func instructionMarkdownIn(source string, domains map[string]map[string]bool) bool {
+	if parts := strings.Split(source, "/"); strings.HasSuffix(source, ".md") && len(parts) >= 5 && parts[0] == "content" && parts[1] == "skills" && domains[parts[2]][parts[3]] {
+		return true
+	}
 	return strings.HasSuffix(source, ".md") && (source == GlobalSource || strings.HasPrefix(source, "content/agents/") ||
-		(strings.HasPrefix(source, "content/skills/") && (strings.HasSuffix(source, "/SKILL.md") || strings.Contains(source, "/references/"))))
+		(strings.HasPrefix(source, "content/skills/") && (strings.HasSuffix(source, "/SKILL.md") || (strings.Contains(source, "/references/") || strings.Contains(source, "/playbooks/")))) || generatedStagePacket(source))
 }
 
-func validateInstructionReferences(r Release) error {
+// headingAnchors returns the anchors that a Markdown file's headings define
+// outside fenced code, following github-slugger: the rendered text, lowercased,
+// without punctuation, spaces turned into hyphens, and a numeric suffix for a
+// slug already taken.
+func headingAnchors(data string) map[string]bool {
+	anchors := map[string]bool{}
+	counts := map[string]int{}
+	for _, line := range strings.Split(mdlinks.OutsideFences(data), "\n") {
+		m := atxHeading.FindStringSubmatch(line)
+		if m == nil {
+			continue
+		}
+		text := inlineMarkdownLink.ReplaceAllString(m[1], "$1")
+		base := strings.ReplaceAll(slugDropped.ReplaceAllString(strings.ToLower(text), ""), " ", "-")
+		if base == "" {
+			continue
+		}
+		slug := base
+		for anchors[slug] {
+			counts[base]++
+			slug = base + "-" + strconv.Itoa(counts[base])
+		}
+		anchors[slug] = true
+	}
+	return anchors
+}
+
+func validateInstructionReferences(r Release, domains map[string]map[string]bool) error {
 	entries := make(map[string]bool, len(r.Files))
+	contents := make(map[string]string, len(r.Files))
+	anchors := make(map[string]map[string]bool)
 	for _, f := range r.Files {
 		entries[f.Path] = true
+		if strings.HasSuffix(f.Path, ".md") {
+			contents[f.Path] = string(f.Data)
+		}
+	}
+	hasAnchor := func(target, fragment string) bool {
+		if !strings.HasSuffix(target, ".md") {
+			return false
+		}
+		set, ok := anchors[target]
+		if !ok {
+			set = headingAnchors(contents[target])
+			anchors[target] = set
+		}
+		return set[fragment]
 	}
 	for _, f := range r.Files {
-		if !instructionMarkdown(f.Path) {
+		if !instructionMarkdownIn(f.Path, domains) {
 			continue
 		}
 		body := mdlinks.OutsideFences(string(f.Data))
@@ -37,7 +92,7 @@ func validateInstructionReferences(r Release) error {
 		matches = append(matches, definedResourceLink.FindAllStringSubmatch(body, -1)...)
 		for _, m := range matches {
 			raw := strings.Trim(m[1], "<>")
-			if err := validateInstructionLink(f.Path, raw, entries); err != nil {
+			if err := validateInstructionLink(f.Path, raw, entries, hasAnchor); err != nil {
 				return err
 			}
 		}
@@ -45,11 +100,15 @@ func validateInstructionReferences(r Release) error {
 	return nil
 }
 
-func validateInstructionLink(source, raw string, entries map[string]bool) error {
+func validateInstructionLink(source, raw string, entries map[string]bool, hasAnchor func(target, fragment string) bool) error {
 	fail := func(reason string) error {
 		return fmt.Errorf("instruction reference %s -> %s: %s", source, raw, reason)
 	}
 	if strings.HasPrefix(raw, "#") {
+		frag, err := url.PathUnescape(raw[1:])
+		if err != nil || frag == "" || !hasAnchor(source, frag) {
+			return fail("missing heading anchor")
+		}
 		return nil
 	}
 	u, err := url.Parse(raw)
@@ -58,6 +117,10 @@ func validateInstructionLink(source, raw string, entries map[string]bool) error 
 	}
 	if u.Scheme == "http" || u.Scheme == "https" || u.Scheme == "mailto" {
 		return nil
+	}
+	hasHash := strings.Contains(raw, "#")
+	if hasHash && u.Fragment == "" {
+		return fail("missing heading anchor")
 	}
 	var resource string
 	if u.Scheme == "skill" {
@@ -88,9 +151,18 @@ func validateInstructionLink(source, raw string, entries map[string]bool) error 
 		return fail("target escapes distributed skills")
 	}
 	if entries[resource] {
+		if hasHash {
+			frag, err := url.PathUnescape(u.Fragment)
+			if err != nil || frag == "" || !hasAnchor(resource, frag) {
+				return fail("missing heading anchor")
+			}
+		}
 		return nil
 	}
 	if strings.HasSuffix(u.Path, "/") || strings.HasSuffix(u.Opaque, "/") {
+		if hasHash {
+			return fail("missing heading anchor")
+		}
 		for entry := range entries {
 			if strings.HasPrefix(entry, strings.TrimSuffix(resource, "/")+"/") {
 				return nil

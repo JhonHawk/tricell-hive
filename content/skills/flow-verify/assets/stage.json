@@ -1,0 +1,18 @@
+{
+  "stage-entry": [
+    "hive-core/build/verification-floor.md",
+    "hive-core/review/no-comments.md",
+    "hive-core/review/blast-radius.md",
+    "hive-core/build/prose.md",
+    "hive-core/review/suppression-review.md",
+    "hive-core/build/checks.md",
+    "hive-core/plan/checkpoint.md"
+  ],
+  "stage-exit": [
+    "hive-core/delegation/reviewer-brief.md",
+    "hive-core/messages/questions.md",
+    "hive-core/review/review-findings.md",
+    "hive-core/git/merge-gate.md",
+    "hive-core/git/pr-reviews.md"
+  ]
+}

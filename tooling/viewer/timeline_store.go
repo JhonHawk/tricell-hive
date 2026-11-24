@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	"tricell-hive/tooling/durable"
 )
 
 const timelineStorageVersion = 3
@@ -131,7 +132,7 @@ func (s *Store) timelineSyncDir(path string) error {
 		return err
 	}
 	defer f.Close()
-	if err = f.Sync(); err != nil {
+	if err = durable.Sync(f); err != nil {
 		return err
 	}
 	return s.timelineFaultAt("after_directory_sync", path)
@@ -189,7 +190,7 @@ func (s *Store) timelineDurableWrite(path string, raw []byte) error {
 		err = s.timelineFaultAt("before_file_sync", path)
 	}
 	if err == nil {
-		err = f.Sync()
+		err = durable.Sync(f)
 	}
 	if err == nil {
 		err = s.timelineFaultAt("after_file_sync", path)

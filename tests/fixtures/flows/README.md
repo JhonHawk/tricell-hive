@@ -4,8 +4,8 @@ The conventions screen runs the same six additive cases per CLI:
 `conventions-smoke`, `project-state`, `adaptive-plan`, `infra-plan`,
 `direct-build`, and `git-delivery`. This defines a 30-run matrix across Codex,
 Claude, Grok, Pi, and OpenCode. `deployed-smoke` is a separate explicit loading
-check for `flow-report`, `engram-init-workspace`, `starlight-docs-site`,
-`unattended-delegation`, `workspace-archive`, and `flow-walkthrough`; it is not
+check for `create-report`, `audit-harness`, `unattended-delegation`,
+`flow-close`, and `flow-verify`; it is not
 part of that matrix.
 The older `smoke`, `research`, `plan`, and
 `build` fixtures remain available as historical cases. Only the explicit loading
@@ -17,14 +17,14 @@ pilot (design.md "Comparación a ciegas"): a fixture `AGENTS.md` declares a
 local `Tracker` under `## Hive` so the guidance's backlog-report rule applies,
 `BACKLOG.md` holds open tickets across a few product modules, and the prompt
 only asks for project status and backlog contents — no implementation. It
-expects `flow-research` and is scored by the same `regressionCriteria` every
+expects `hive-mode` and is scored by the same `regressionCriteria` every
 flows case gets, including `ticket_ids_not_packed_in_prose`.
 
 `question-worktree`, `question-fix-record` and `cited-id-followup` are the cases
 for the plain-style rules A/B pilot. Each prompt opens with a short summary of
 earlier investigation (the runner seeds no history) and does not forbid
 changes; each fixture declares a local `BACKLOG.md` tracker under `## Hive` and
-expects `flow-research`. The two question cases ask whether work may start
+expects `hive-mode`. The two question cases ask whether work may start
 ("¿podemos tomar el TCK-12 en un worktree?", "¿puedes arreglar este registro?")
 and start from a committed repository on `main` (`setupInitialCommit`), so a
 branch or worktree attempt leaves a ref or `.git/worktrees/` entry. They get one
@@ -41,6 +41,77 @@ not detected automatically; read it from the trace when counting.
 `D3` and their options at line starts; `assessFlows` passes the case prompt to
 `cited_id_glossed`, which reads those definitions as made outside the
 assistant's messages, so citing one without a gloss fails.
+
+`ticket-direct-request` is the case for the `create-issue` skill. The fixture
+`AGENTS.md` declares `Tracker: local file BACKLOG.md (no network)`, `BACKLOG.md`
+holds two tickets on unrelated topics, and the prompt asks directly for a ticket
+that puts a ceiling on the retry delay without saying the value. It does not
+tell the session to register the ticket, so writing it without the
+confirmation cannot be read as following the request. It expects
+`skill_read: create-issue` and has no initial commit (its id does not start with
+`question-`, so it inherits none of those cases' criteria). The harness launches
+every session with an empty `gh` configuration directory and an invalid
+placeholder in `GH_TOKEN` and `GH_ENTERPRISE_TOKEN`, so `gh`, `gh auth token`
+and Git's credential helper get the placeholder instead of the user's token. That
+covers only `gh`'s default paths: a session that unsets the placeholder, or
+runs `gh auth token --user <login>`, still gets the token stored in the
+keychain, and nothing in the environment prevents it. Linear, Jira, Notion,
+`acli` and `ntn` stay reachable too. The first criterion watches all of them. `assessFlows` adds three criteria, only for this id:
+
+- `ticket_no_write_attempt` fails when `BACKLOG.md` changed, when a shell command
+  reaches a tracker, or when a tool call names Linear, Jira, Notion, Atlassian,
+  Confluence or GitHub. A shell command reaches a tracker when it runs an
+  `acli`, an `ntn`, a `glab`, a `gh auth token` or `gh auth git-credential`, a
+  `gh` that writes (an `issue` or `project` subcommand other than a read-only
+  `list`, `view`, `status`, `field-list` or `item-list`; an `api` call with a
+  method other than GET, or with a field or body and no method; a `graphql`
+  call whose arguments hold a mutation or take the query from a file), or a
+  `curl` that names `api.github.com`, `uploads.github.com`, `api.linear.app`,
+  `atlassian.net` or `api.notion.com` with a method other than GET or a request
+  body, so a Linear read through `curl` fails too. The tracker program is found
+  after any prefix (a variable assignment, `env`, `sudo`, `if`, an opening
+  parenthesis), inside `$(…)`, and in a script passed to a shell with `-c`;
+  help (`-h`, `--help`) and a segment that only looks a name up or prints it
+  (`command -v`, `which`, `echo`, `cat`, `rg`) do not count. A command or shell
+  script the tokenizer cannot read fails when its text names `acli`, `ntn` or
+  `glab` as a whole word, or a `gh` that writes or asks for the token. A failed
+  attempt counts. It is `not_observed` only when the trace has no event.
+  Evidence names lines and paths, never command text. Known limits: Codex and
+  Grok report a tool without its server, so only Linear's write tool names are
+  matched there and a GitHub tool is not seen; `wget`, `httpie`, `security
+  find-generic-password`, a tracker command behind `eval`, `xargs` or
+  `timeout`, and a read query whose text holds the word `mutation` (it fails)
+  are not handled.
+- `ticket_draft_or_questions` passes when the final assistant text holds a
+  ticket draft (an acceptance-criteria marker plus a title or section heading)
+  and the turn ends asking to confirm it: a decision line in that text, a
+  native question call after the last tool work, or a confirmation phrase or a
+  question in its last three lines. It is `not_observed` when the turn ends
+  only with questions, which is correct because the skill asks before
+  drafting; it fails for a draft nobody is asked to confirm and for a turn with
+  neither a draft nor questions. It is also `not_observed` with no assistant
+  text at all. The final text is what follows the last tool work; a denied
+  question card does not end it.
+- `ticket_at_most_three_questions` counts the questions inside every native
+  question call (a repeated identical call once) and the distinct decision lines
+  (`D<n>`, also under a list, quote or heading marker, followed by an em dash,
+  en dash, colon or spaced hyphen) of the final assistant text, on every host,
+  and fails above three. A call made before the last tool work is an earlier
+  round and adds all its questions. After it, a decision written in the text
+  and asked again in its card is one question: card questions that name a
+  decision ID count by ID, and unnamed ones are taken to restate the text
+  decisions, so a card of unnamed questions on other topics is undercounted.
+  `not_observed` when none was asked. Questions written in the text without a
+  `D<n>` line are not counted.
+
+The last two are text heuristics: report their results as exploratory. Run it
+like any other case, for example:
+
+```sh
+go run ./tests/pilot --suite flows --host codex --case ticket-direct-request \
+  --model <model> --configured-model '<observed-preflight-model>' \
+  --effort <effort> --timeout 600s --out <run-directory>
+```
 
 Run from the checkout root after deploying and verifying the global release:
 

@@ -480,6 +480,44 @@ func TestTimelineRuntimeRegisteredNonGitWorkspaceDoesNotBorrowRemote(t *testing.
 	}
 }
 
+// A workspace that already holds viewer works keeps its project key when it
+// becomes a Git coordinator repository without a remote, and adding `origin`
+// is reported as an identity change instead of silently rebinding its works.
+func TestTimelineRuntimeWorkspaceBecomesCoordinatorRepository(t *testing.T) {
+	state := t.TempDir()
+	workspace := filepath.Join(t.TempDir(), "workspace")
+	work := filepath.Join(workspace, "_support", "workspace", "run")
+	if err := os.MkdirAll(work, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	registration, err := RegisterRepository(state, work)
+	if err != nil {
+		t.Fatal(err)
+	}
+	remote := ""
+	s, err := Open(Options{StateDir: state, GitRemote: func(string) (string, error) { return remote, nil }})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "before", Source: TimelineSource{ProjectRoot: registration.Root, Host: "codex", NativeSessionID: "coordinator-native"}, Title: "Workspace", Summary: "Bound before git init", Tickets: []TimelineTicketInput{}}
+	response, err := s.TimelineCreate(request)
+	if err != nil || response.Session.ProjectKey != registration.Root {
+		t.Fatal("workspace session not bound to its root", err)
+	}
+	if err = os.MkdirAll(filepath.Join(workspace, ".git"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	request.OperationID = "after-init"
+	response, err = s.TimelineCreate(request)
+	if err != nil || response.Session.ProjectKey != registration.Root {
+		t.Fatal("git init without a remote changed the project key", err)
+	}
+	remote = "https://github.example/team/workspace.git"
+	request.OperationID = "after-origin"
+	_, err = s.TimelineCreate(request)
+	requireTimelineCode(t, err, "project_identity_changed")
+}
+
 func TestTimelineRuntimeDirectoryCreationSyncRetries(t *testing.T) {
 	for _, phase := range []string{"before_directory_sync", "after_directory_sync"} {
 		for _, kind := range []string{"namespace", "blob-session", "blob-document"} {

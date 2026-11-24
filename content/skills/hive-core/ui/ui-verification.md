@@ -1,0 +1,16 @@
+# Proportional UI verification
+
+Read before verifying, capturing or reviewing a UI change. Read its [Browser tool](#browser-tool) section also before driving a browser for any other check, such as the functional walk of a deployed environment. It covers a UI change, including its first view, final verification and corrections.
+
+For a web interface, drive the browser as [Browser tool](#browser-tool) sets. For a native or cross-platform mobile app, drive the device or emulator as [Device tool](ui-verification/device-tool.md) sets and check the device's own screen in place of the widths below. Exercise changed screens, relevant states and regions displaced, resized or reflowed, with realistic data, and capture what a person needs to review. For a web app that runs only on mobile, as [draw](../../create-design/references/draw.md#width) sets, check the 440 px mobile viewport alone and compare it against its approved example. Otherwise check desktop and, when the application has a responsive layout (a breakpoint or a viewport meta tag) and the diff changes a rendered component, style or layout, the mobile viewport of 440 × 956 CSS pixels (iPhone 16 Pro Max), and each affected supported theme. That is the only mobile width: check the reflow of [criteria](../../create-design/references/criteria.md#accessibility-floors) in it, and another narrow width only when the project or the ticket names it. Record which widths, themes and states were checked, and claim no coverage for one that was not exercised.
+
+For a correction, check and recapture only the affected screens and states, including neighbors, widths or themes whose layout can change; keep earlier evidence for unaffected views and distinguish the new revision. Repeat a complete mobile journey only when navigation or the flow changed or the user asks.
+
+## Browser tool
+
+- Use the `agent-browser` skill through the shell when it is installed (`command -v agent-browser`): its snapshots are smaller than an MCP browser's, and a stable flow chains in one command. An installed MCP browser server is not a reason to prefer it. A child uses the tool its brief assigns.
+- Use Chrome DevTools MCP only for Lighthouse audits, performance traces, CPU throttling and heap snapshots, or for an independent reproduction after `agent-browser` failed twice. Without `agent-browser`, use the host's browser tool. Report which tool drove each check.
+- `agent-browser` has no timeout for `open`, `eval`, `snapshot`, `screenshot` or `close`, and one stuck command blocks its session. Run each command through a 45-second limit: `timeout 45 agent-browser …`, or `gtimeout 45`, or `perl -e 'alarm shift; exec @ARGV' 45 agent-browser …` when neither exists. When the limit expires, run `agent-browser doctor`, close that session and continue in a fresh one; do not resend the command into it.
+- Give each flow its own `--session` and close every session you opened with `agent-browser close --session <name>` when the flow ends.
+
+The caller owns acceptance and review. For publishing captures, use [walkthrough](walkthrough.md); follow [layout and retention](../../project-layout/references/layout.md) for the evidence destination.

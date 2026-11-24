@@ -43,6 +43,9 @@ site/.wrangler
 site/.dev.vars*
 site/.env*
 
+# Pinned parsers for the audit-comments template test
+tests/content/testdata/audit-comments/node_modules/
+
 # Viewer frontend: keep source and generated embedded bundle, exclude local state
 tooling/viewer/frontend/node_modules/
 tooling/viewer/frontend/.env*

@@ -2,22 +2,19 @@
 
 ## Purpose
 
-How Hive delivers its guidance to each host: the global core through managed instruction channels, situational procedures through packaged skill resources, the validation of their references before installation, the optional OpenCode context loader, and the declared reading footprint of common scenarios.
+What the manager installs for each host and what it refuses before writing: validated instruction references, the optional inactive OpenCode loader, fixed-role context, the Antigravity rules and roles, and the skill registry check.
 
 ## Requirements
 
-### Requirement: Portable kernel and situational procedures
-Hive SHALL deliver a canonical global core (`content/guidance/global.md`) through its existing managed instruction channels and situational procedures through packaged skill resources. Each host's discovery prerequisites, including Cursor's project pointer, SHALL remain explicit; delivery SHALL NOT be presented as proof of universal automatic loading. Authorization, preservation, secret handling and basic artifact placement SHALL remain in the global core without depending on a loader. Moving a procedure SHALL retain a canonical destination and an explicit read condition for its consumers. The content SHALL distinguish installation, discovery, context delivery and behavior evidence.
-
-#### Scenario: A host without the optional loader
-- **WHEN** a supported host uses the reorganized guidance without a native loader
-- **THEN** the global core retains essential boundaries and directs the agent to the required packaged procedure before the dependent action.
-
 ### Requirement: Kernel references validated before installation
-The manager SHALL validate the global core's packaged instruction dependencies before preparing or applying installation writes, including saved plans with internally recomputed hashes. It SHALL retain the existing exclusions for fenced examples and external URLs.
+The manager SHALL validate the global core's packaged instruction dependencies, including Markdown heading anchors (`#fragment`) on relative, in-file and `skill:` links across the global core, roles and skills, before preparing or applying installation writes, including saved plans with internally recomputed hashes. It SHALL retain the existing exclusions for fenced examples and external URLs.
 
 #### Scenario: Missing global core dependency
 - **WHEN** the global core links a skill resource absent from the release payload
+- **THEN** preparing and applying the installation reject the payload before writing native destinations.
+
+#### Scenario: Broken heading anchor in an instruction link
+- **WHEN** the global core, a role or a skill links a Markdown file with a `#fragment` that matches no ATX heading slug in the target file
 - **THEN** preparing and applying the installation reject the payload before writing native destinations.
 
 ### Requirement: Optional inactive OpenCode context resource
@@ -51,8 +48,8 @@ manager from an old manager binary that cannot verify manifest version `2`.
 The manager SHALL generate the two fixed reference snapshots from its validated release payload into the installed plugin, serializing content as data and validating derived identity before writes. When explicitly active, the loader SHALL resolve the native agent's identifier and supply that generated snapshot for `hive-review-plan` or `hive-review-harness` before model dispatch without opening reference or metadata files in its request loop. It SHALL NOT infer prompt intent, alter tools, permissions or generation settings, or persist message changes. Source resources missing or invalid at generation SHALL reject delivery before writes; runtime missing-snapshot diagnostics SHALL be bounded and SHALL NOT claim native request abortion. The global core's obligation to report dependencies remains. Unknown roles SHALL remain unchanged.
 
 The fixed mappings SHALL be `hive-review-plan` to
-`flow-plan/references/plan-review.md` and `hive-review-harness` to
-`harness-audit/SKILL.md`. The identifier SHALL be resolved from the native
+`flow-plan/SKILL.md` and `hive-review-harness` to
+`audit-harness/SKILL.md`. The identifier SHALL be resolved from the native
 agent lookup's `data.id`, then its `id`, then the hook event's agent value (also
 when the lookup fails), and SHALL NOT be taken from the display name.
 Deduplication SHALL affect only parts added by this plugin to the current
@@ -66,30 +63,30 @@ request, not foreign content or persistent session flags.
 - **WHEN** a local reference is edited or its directory replaced after the plugin snapshot was generated
 - **THEN** the request loop supplies the previously generated snapshot, performs no live read of that reference, and changes only after regeneration and plugin reload.
 
-### Requirement: Declared source footprint without token claims
-The size check SHALL report the global core separately from explicit simple-query,
-question and retained plan/build scenarios. Each scenario SHALL name its read
-conditions and source files, include selected activity entrypoints and required
-procedures, and count each source once. Missing required sources SHALL fail the
-measurement. The simple-query scenario SHALL count the reporting reference as a
-conservative upper bound; this SHALL NOT be read as a rule that every reply
-requires reading it, since the global core requires no read for a greeting or a
-short direct answer. Source bytes and Unicode characters SHALL NOT be presented
-as actual tokens, observed native delivery or model reliability. Unmeasured
-native metadata/rendering, repetition, project inputs, history and host policy
-SHALL remain explicit exclusions, without a new quota.
+### Requirement: Antigravity global core in size-bounded always-on rules
+For the Antigravity host, Hive SHALL deliver the global core as one or more Hive-owned rule files `<AntigravityHome>/rules/hive-NN.md` under the resolved `~/.gemini/config`, each beginning with the frontmatter `trigger: always_on` and each at or below 24,000 bytes, because Antigravity truncates every rule file above that size, the global ones included. The parts SHALL be cut only at `##` headings outside fenced code blocks, in order, so that their managed texts joined in order reproduce the rewritten global core; a section that alone exceeds the limit SHALL fail the plan with an error naming it. The voice block SHALL appear only in the first part, and setting or changing the voice SHALL change only that part. Hive SHALL NOT write `~/.gemini/GEMINI.md` for this host.
 
-#### Scenario: Standalone user decision
-- **WHEN** the declared scenario is a user decision without an activity, delegation or artifact
-- **THEN** its current source union includes the global core, reporting and questions, without unconditionally adding every packaged reference.
+#### Scenario: Guidance larger than one rule file
+- **WHEN** a user-scope plan for Antigravity renders a global core larger than one rule file allows
+- **THEN** it proposes as many `hive-NN.md` parts as needed, each with the `always_on` frontmatter and at or below 24,000 bytes, and their managed texts joined in order equal the rewritten global core.
 
-### Requirement: Layered global core with owning skills
-The global core (`content/guidance/global.md`) SHALL hold every rule that applies in any flow or outside one, such as authorization, preservation, secrets, questions and routes, delivery, project settings, persistent memory and scope changes, because each host loads it with its system instructions and keeps it after compaction. Each read pointer in it SHALL state literally when to read its target, naming an observable act or event, such as "Before a commit, pull request, or merge, read …". A procedure that belongs to one activity SHALL live in the skill that owns that activity, or in a reference that skill links with its read condition, each with one canonical home. No rule SHALL depend on a model choosing to load a skill from its description; there is no shared core skill.
+#### Scenario: Part count changes on update
+- **WHEN** an update renders the global core into fewer or more parts than the recorded installation
+- **THEN** it writes the new parts and removes only the surplus Hive-owned parts, leaving every other file in `rules/` unchanged.
 
-#### Scenario: A rule moved out of the global core
-- **WHEN** a procedure moves from the global core to an owning skill
-- **THEN** the global core keeps the rule's minimal invariant, or a literal read condition for it, and the procedure text appears once under `content/`, in its destination.
+### Requirement: Antigravity roles inherit the session model
+For the Antigravity host, Hive SHALL render each canonical role as `<AntigravityHome>/agents/<role>.md` with `name`, `description` and `model: "inherit"` unless the user set another model with `hive models set`, and SHALL NOT render a `tools` list or a reasoning effort. Read-only roles SHALL rely on their role instructions, since Antigravity offers no read-only field.
 
-#### Scenario: A host that never selects an activity skill
-- **WHEN** a supported host lists the activity skills but the model selects none of them
-- **THEN** authorization, preservation, secret handling, questions, delivery and basic artifact placement still act from the global core, and every procedure the agent needs is reached through a read condition stated in the global core or in the active skill.
+#### Scenario: Observe role rendered
+- **WHEN** a role with `observe` access is rendered for Antigravity
+- **THEN** its file carries `model: "inherit"` and no `tools` or effort field, and its body keeps the role's read-only instructions.
+
+### Requirement: Project skill registry check
+
+`skill_registry.py check` of `audit-harness` SHALL read the `## Skills` section of a repository's `AGENTS.md`, outside `## Hive`, where each line names an observable trigger and the path of a `SKILL.md`. It SHALL exit non-zero naming each listed path that does not exist and each installed skill, other than those Hive installed, whose name no line lists. In a declared workspace it SHALL also report each line of a child repository's `## Skills` that the workspace root does not repeat with the child's path as prefix, a registry placed inside `## Hive`, a `skills-lock.json` entry that is not installed, and an unsafe path.
+
+#### Scenario: An installed skill missing from the registry
+
+- **GIVEN** a repository with `.agents/skills/expo-router/SKILL.md` and an `AGENTS.md` whose `## Skills` does not list it
+- **WHEN** `skill_registry.py check` runs on the repository
+- **THEN** it exits non-zero and names `expo-router`

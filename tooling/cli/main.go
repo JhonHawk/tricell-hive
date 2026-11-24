@@ -18,6 +18,10 @@ import (
 func main() {
 	if err := run(os.Args[1:]); err != nil {
 		fmt.Fprintln(os.Stderr, "hive:", err)
+		var ee *exitError
+		if errors.As(err, &ee) {
+			os.Exit(ee.code)
+		}
 		os.Exit(1)
 	}
 }
@@ -80,6 +84,8 @@ func run(args []string) error {
 		return runProject(rest)
 	case "view":
 		return runView(rest, os.Stdout, realViewDeps())
+	case "time":
+		return runTime(rest, os.Stdout)
 	case "tui":
 		return runInterfaceCommand(rest)
 	case "hook":
@@ -95,14 +101,15 @@ func run(args []string) error {
 
 func printHelp() {
 	fmt.Println("hive tui [--home DIR] [--state-dir DIR] [--source DIR]  (full-screen interface; bare `hive` in a terminal opens it too; without a terminal use the text commands below)")
-	fmt.Println("hive install [--hosts codex,claude,grok,pi,opencode,cursor] [--dry-run]  (interactive installer)")
+	fmt.Println("hive install [--hosts codex,claude,grok,pi,opencode,cursor,antigravity] [--dry-run]  (interactive installer)")
 	fmt.Println("hive setup [--home DIR]  (read-only optional Context7 guidance)")
-	fmt.Println("hive plan install|remove --hosts codex,claude,grok,pi,opencode,cursor --scope user [--out FILE]\nhive plan install|remove --hosts codex,claude --scope project --root DIR [--out FILE]\nhive apply --plan FILE\nhive status --hosts codex,claude,grok,pi,opencode,cursor --scope user\nhive recover [--state-dir DIR]")
+	fmt.Println("hive plan install|remove --hosts codex,claude,grok,pi,opencode,cursor,antigravity --scope user [--out FILE]\nhive plan install|remove --hosts codex,claude --scope project --root DIR [--out FILE]\nhive apply --plan FILE\nhive status --hosts codex,claude,grok,pi,opencode,cursor,antigravity --scope user\nhive recover [--state-dir DIR]")
 	fmt.Println("hive update [--version X.Y.Z | --source DIR [--rev REV]] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]  (update the binary and integrations from a release; explicit source updates require Git)\nhive releases [--home DIR] [--state-dir DIR]  (list retained release snapshots)")
 	fmt.Println("hive voice list [--source DIR]  (print each voice's ID and description)\nhive voice set ID [--address sir|name|none] [--name NAME] [--intensity subtle|marked] [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]\nhive voice off [--source DIR] [--home DIR] [--state-dir DIR] [--dry-run] [--out FILE]")
 	fmt.Println("hive doctor [--home DIR] [--state-dir DIR] [--project DIR]  (read-only diagnostics: CLIs, installation, sessions, integrations, project)\nhive models [--home DIR] [--state-dir DIR]  (read-only effective model and effort per role)")
 	fmt.Println("hive models set --host H (--role R | --group G) [--model M] [--effort E] [--home DIR] [--state-dir DIR] [--dry-run | --out FILE]\nhive models reset --host H ((--role R | --group G) [--only model|effort] | --all) [--home DIR] [--state-dir DIR] [--dry-run | --out FILE]  (override a role's or a group's model or effort; reset returns to the release's values)")
 	printViewHelp(os.Stdout)
+	fmt.Println("hive time [--since RFC3339] [--factor 1..3] [--host claude-code|codex|grok|pi (--session-file FILE | --session ID)] [--home DIR] [--state-dir DIR]  (active time of the current session read from its transcript, as JSON)")
 	fmt.Println("hive project set [--project DIR] --set 'Key: value'... [--unset Key...] [--dry-run]  (edit the ## Hive section of the repository's AGENTS.md after confirmation)")
 }
 
@@ -154,7 +161,7 @@ func runDoctor(args []string, w io.Writer, deps doctorDeps) error {
 	renderDoctorText(report, w)
 	// Only the Project section fails the command (D6-A): a blocking finding in
 	// a section that exists, and, for an explicit --project, a missing file or
-	// section, or a path that cannot be checked (D10-A, D11-A), so harness-audit can tell that its write did not land.
+	// section, or a path that cannot be checked (D10-A, D11-A), so audit-harness can tell that its write did not land.
 	if report.Project.Blocking || (explicit && (report.Project.Absent || report.Project.Unchecked || report.Project.Err != "")) {
 		return errors.New(projectBlockingMessage)
 	}
@@ -206,7 +213,7 @@ func planFlagSet(name string, o *management.Options, hosts *string) *flag.FlagSe
 	fs.StringVar(&o.Home, "home", "", "explicit synthetic home; ignores host environment paths")
 	fs.StringVar(&o.Root, "root", "", "project root")
 	fs.StringVar(&o.StateDir, "state-dir", "", "state directory (default: user Application Support/tricell-hive)")
-	fs.StringVar(hosts, "hosts", "", "comma-separated codex,claude,grok,pi,opencode,cursor (project scope: codex,claude)")
+	fs.StringVar(hosts, "hosts", "", "comma-separated codex,claude,grok,pi,opencode,cursor,antigravity (project scope: codex,claude)")
 	return fs
 }
 

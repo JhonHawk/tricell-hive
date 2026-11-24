@@ -939,3 +939,35 @@ func TestInstallPackagePreviewCancelAndCommandConflict(t *testing.T) {
 		})
 	}
 }
+
+func TestInstallSummaryDescribesThePiSubagentActivationStep(t *testing.T) {
+	path := "/synthetic-home/.pi/agent/extensions/subagent/config.json"
+	cases := []struct {
+		step management.PiSubagentConfigStep
+		want []string
+	}{
+		{management.PiSubagentConfigStep{Status: management.PiConfigWrite, Path: path, Key: "toolActivation", Value: `"eager"`}, []string{`set "toolActivation" to "eager" in`, path, "Restart open Pi sessions"}},
+		{management.PiSubagentConfigStep{Status: management.PiConfigApplied, Path: path, Key: "toolActivation", Value: `"eager"`}, []string{"already set by Hive"}},
+		{management.PiSubagentConfigStep{Status: management.PiConfigUserSet, Path: path, Key: "toolActivation", Value: `"auto"`}, []string{`left as you set it ("auto")`}},
+		{management.PiSubagentConfigStep{Status: management.PiConfigManual, Path: path, Key: "toolActivation", Value: `"eager"`, Detail: "the pi-subagents config is a symbolic link"}, []string{"manual step", "the pi-subagents config is a symbolic link", `set "toolActivation": "eager" in`, path}},
+		{management.PiSubagentConfigStep{Status: management.PiConfigOtherHome, Path: path, Key: "toolActivation", Value: `"eager"`, Detail: "/other/extensions/subagent/config.json"}, []string{"not written", "/other/extensions/subagent/config.json"}},
+	}
+	for _, c := range cases {
+		t.Run(c.step.Status, func(t *testing.T) {
+			step := c.step
+			var out bytes.Buffer
+			showInstallSummary(&out, management.Plan{PiSubagentConfig: &step}, onboardingPreview{}, true, false, false)
+			got := out.String()
+			for _, w := range c.want {
+				if !strings.Contains(got, w) {
+					t.Fatalf("summary lacks %q:\n%s", w, got)
+				}
+			}
+			for _, line := range strings.Split(got, "\n") {
+				if !strings.Contains(line, "/") && len(line) > 80 {
+					t.Fatalf("line exceeds 80 columns: %q", line)
+				}
+			}
+		})
+	}
+}

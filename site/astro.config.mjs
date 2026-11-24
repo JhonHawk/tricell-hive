@@ -5,6 +5,9 @@ import { ion } from "starlight-ion-theme";
 
 export default defineConfig({
   site: "https://hive.tricell.tech",
+  redirects: {
+    "/flows/figma-design": "/flows/create-design/",
+  },
   integrations: [
     starlight({
       title: "Hive",
@@ -76,12 +79,15 @@ export default defineConfig({
             { label: "Overview", slug: "skills" },
             { label: "Changes and loops", slug: "flows/overview" },
             { slug: "flows/status" },
-            { slug: "flows/research" },
+            { slug: "flows/hive-mode" },
+            { slug: "flows/create-design" },
             { slug: "flows/plan" },
             { slug: "flows/build" },
             { slug: "flows/verify" },
             { slug: "flows/security" },
             { slug: "flows/close" },
+            { slug: "flows/create-issue" },
+            { slug: "flows/create-prd" },
             { slug: "flows/deploy" },
           ],
         },

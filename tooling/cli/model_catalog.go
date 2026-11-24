@@ -51,6 +51,21 @@ var defaultCatalogRunner catalogRunner = newCatalogRunner(catalogTimeout, catalo
 // command, so nothing is executed for it.
 var claudeAliases = []string{"fable", "opus", "sonnet", "haiku"}
 
+// antigravityTiers are the agent model tiers agy documents for a subagent's
+// model field. agy has no command that lists them, so nothing is executed.
+var antigravityTiers = []string{"inherit", "flash_lite", "flash", "pro"}
+
+// fixedModels returns the models a host offers without a listing command.
+func fixedModels(host string) ([]string, bool) {
+	switch host {
+	case "claude":
+		return claudeAliases, true
+	case "antigravity":
+		return antigravityTiers, true
+	}
+	return nil, false
+}
+
 // catalogCommand is the executable and fixed arguments that list a host's
 // models.
 func catalogCommand(host string) (bin string, args []string, ok bool) {
@@ -81,9 +96,9 @@ func listHostModels(ctx context.Context, host string, run catalogRunner) ([]cata
 	if catalogQueryHook != nil {
 		catalogQueryHook(host)
 	}
-	if host == "claude" {
-		models := make([]catalogModel, 0, len(claudeAliases))
-		for _, id := range claudeAliases {
+	if fixed, ok := fixedModels(host); ok {
+		models := make([]catalogModel, 0, len(fixed))
+		for _, id := range fixed {
 			models = append(models, catalogModel{ID: id})
 		}
 		return models, nil

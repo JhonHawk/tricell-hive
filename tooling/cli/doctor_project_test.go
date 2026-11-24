@@ -118,7 +118,7 @@ func TestHiveSectionMissingAgentsFile(t *testing.T) {
 	root := newProjectRepo(t)
 	text := projectText(t, root)
 	mustContain(t, text, "AGENTS.md: not found")
-	mustContain(t, text, "Add a ## Hive section with: Project, Base branch, Tracker, Specs")
+	mustContain(t, text, "Add a ## Hive section with: Project, Base branch, Tracker")
 	mustNotContain(t, text, "Valid")
 }
 
@@ -135,7 +135,7 @@ func TestHiveSectionMissingAndDuplicatedSection(t *testing.T) {
 	writeAgents(t, root, "# Guidance\n\n## Hive settings\n\n- Project: x\n")
 	text := projectText(t, root)
 	mustContain(t, text, "## Hive: section not found")
-	mustContain(t, text, "Add a ## Hive section with: Project, Base branch, Tracker, Specs")
+	mustContain(t, text, "Add a ## Hive section with: Project, Base branch, Tracker")
 	mustNotContain(t, text, "Valid")
 
 	writeAgents(t, root, "## Hive\n\n- Project: a\n\n## Hive\n\n- Project: b\n")
@@ -314,7 +314,7 @@ func TestDoctorProjectWarnsOnEachRetiredKeyWithoutBlocking(t *testing.T) {
 			writeAgents(t, root, strings.Replace(validHiveSection, "- Specs:", "- "+c.line+"\n- Specs:", 1))
 			sec := collectProject(root, doctorDeps{})
 			text := projectText(t, root)
-			mustContain(t, text, c.subject+" retired; Hive asks it each session, and the old value only informs the recommended option — remove it with hive project set --unset "+c.key+" or run harness-audit")
+			mustContain(t, text, c.subject+" retired; Hive asks it each session, and the old value only informs the recommended option — remove it with hive project set --unset "+c.key+" or run audit-harness")
 			mustNotContain(t, text, "unknown key", "Known keys:", "Valid")
 			if sec.Blocking {
 				t.Fatalf("a retired setting must not block:\n%s", text)
@@ -444,23 +444,24 @@ func TestHiveSectionGitNotFoundIsAnErrorNotAFinding(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 // projectSettingsSection returns the canonical settings declaration, split into
-// prose lines and lines inside fenced code blocks. It lives in the global
-// guidance, which every session loads.
+// prose lines and lines inside fenced code blocks. It lives in the project-settings
+// leaf of hive-core, which the global guidance's index names.
 func projectSettingsSection(t *testing.T) (prose, code []string) {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join("..", "..", "content", "guidance", "global.md"))
+	data, err := os.ReadFile(filepath.Join("..", "..", "content", "skills", "hive-core", "plan", "project-settings.md"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	in, fenced := false, false
-	for _, line := range strings.Split(string(data), "\n") {
+	text := string(data)
+	if strings.HasPrefix(text, "---\n") {
+		if end := strings.Index(text[4:], "\n---\n"); end >= 0 {
+			text = text[4+end+5:]
+		}
+	}
+	fenced := false
+	for _, line := range strings.Split(text, "\n") {
 		trimmed := strings.TrimSpace(line)
 		switch {
-		case !fenced && strings.HasPrefix(line, "## "):
-			in = strings.TrimSpace(strings.TrimPrefix(line, "## ")) == "Project settings"
-			continue
-		case !in:
-			continue
 		case strings.HasPrefix(trimmed, "```"):
 			fenced = !fenced
 		case fenced:
@@ -490,7 +491,7 @@ func TestHiveSettingKeysAppearInTheGuidance(t *testing.T) {
 			}
 		}
 		if !ok {
-			t.Errorf("key %q is not the start of any backtick-quoted text in the canonical project-settings.md declaration", k.Name)
+			t.Errorf("key %q is not the start of any backtick-quoted text in the canonical «Project settings» declaration of the project-settings leaf", k.Name)
 		}
 	}
 }
@@ -509,7 +510,7 @@ func TestHiveSettingKeysCoverTheGuidanceExample(t *testing.T) {
 		}
 		seen++
 		if !knownHiveKey(strings.TrimSpace(name)) {
-			t.Errorf("the example in project-settings.md uses key %q, which hiveSettingKeys does not know", strings.TrimSpace(name))
+			t.Errorf("the example in the project-settings leaf uses key %q, which hiveSettingKeys does not know", strings.TrimSpace(name))
 		}
 	}
 	if seen == 0 {
@@ -524,7 +525,7 @@ func TestHiveSettingKeysRequiredSet(t *testing.T) {
 			required = append(required, k.Name)
 		}
 	}
-	if got := strings.Join(required, ","); got != "Project,Base branch,Tracker,Specs" {
+	if got := strings.Join(required, ","); got != "Project,Base branch,Tracker" {
 		t.Fatalf("required keys: %s", got)
 	}
 	for _, name := range []string{"Other trackers", "Environments", "Delivery", "Completion", "Hive guidance"} {
@@ -540,7 +541,7 @@ func TestHiveSettingKeysRequiredSet(t *testing.T) {
 }
 
 // The retired keys and Delivery values the manager warns about are the ones
-// project-settings.md names on its «Retired keys:» line.
+// the global guidance's «Project settings» names on its «Retired keys:» line.
 func TestRetiredHiveKeysMatchTheGuidance(t *testing.T) {
 	prose, _ := projectSettingsSection(t)
 	var line string
@@ -550,7 +551,7 @@ func TestRetiredHiveKeysMatchTheGuidance(t *testing.T) {
 		}
 	}
 	if line == "" {
-		t.Fatal("project-settings.md has no line starting \"Retired keys:\"")
+		t.Fatal("the project-settings leaf has no line starting \"Retired keys:\"")
 	}
 	var sentence string
 	sentence, _, _ = strings.Cut(line, ".")
@@ -593,68 +594,22 @@ func TestCheckProjectReportsAFileAsNotADirectoryWithoutCallingGit(t *testing.T) 
 	mustNotContain(t, strings.Join(sec.Lines, "\n"), outsideGitLine)
 }
 
-// writeChangeFile writes content under <root>/_support/openspec/changes/<rel>.
-func writeChangeFile(t *testing.T, root, rel, content string) {
-	t.Helper()
-	p := filepath.Join(root, "_support", "openspec", "changes", filepath.FromSlash(rel))
-	if err := os.MkdirAll(filepath.Dir(p), 0o755); err != nil {
-		t.Fatal(err)
+func TestHiveSectionWithoutSpecsHasNoMissingKeyWarning(t *testing.T) {
+	root := newProjectRepo(t)
+	writeAgents(t, root, strings.Replace(validHiveSection, "- Specs: _support/openspec\n", "", 1))
+	sec := collectProject(root, doctorDeps{})
+	text := projectText(t, root)
+	if sec.Blocking {
+		t.Fatalf("a section without Specs must not block:\n%s", text)
 	}
-	if err := os.WriteFile(p, []byte(content), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	mustContain(t, text, "Valid")
+	mustNotContain(t, text, "Specs", "missing")
 }
 
-func TestDoctorProjectChangeRecordChecksWarnWithoutBlocking(t *testing.T) {
-	proposal := "# P\n\n- AC1 — one\n- AC2 — two\n- AC3 — three\n"
-	cases := []struct {
-		name    string
-		files   map[string]string
-		want    []string
-		notWant []string
-	}{
-		{"covered set", map[string]string{"good-change/proposal.md": proposal, "good-change/tasks.md": "**Closes:** AC1, AC2\n**Closes:** AC3\n"}, nil, []string{"Closes", "kebab"}},
-		{"missing AC", map[string]string{"good-change/proposal.md": proposal, "good-change/tasks.md": "**Closes:** AC1, AC3\n"},
-			[]string{`Specs: change "good-change": AC2 in proposal.md not named by any **Closes:** line in tasks.md`}, nil},
-		{"closes with extra words and ranges", map[string]string{"good-change/proposal.md": proposal, "good-change/tasks.md": "**Closes:** AC1 (forma), AC2–AC3 (UI)\n"}, nil, []string{"Closes"}},
-		{"slash and short range", map[string]string{"good-change/proposal.md": proposal, "good-change/tasks.md": "**Closes:** AC1/AC2-3\n"}, nil, []string{"Closes"}},
-		{"folder without tasks", map[string]string{"good-change/proposal.md": proposal}, nil, []string{"Closes"}},
-		{"non-kebab folder", map[string]string{"Bad_Change/notes.md": "x"},
-			[]string{`Specs: change folder "Bad_Change" is not English kebab-case`}, nil},
-		{"bad archive name", map[string]string{"archive/2026-09-25-ok-name/x.md": "x", "archive/old-thing/x.md": "x", "archive/2026-9-1-late/x.md": "x"},
-			[]string{`Specs: archived change "old-thing" does not match YYYY-MM-DD-<kebab-case>`, `Specs: archived change "2026-9-1-late" does not match`},
-			[]string{`"2026-09-25-ok-name"`, "kebab-case (lowercase"}},
-		{"archive itself is not a change", map[string]string{"archive/2026-09-25-ok/x.md": "x"}, nil, []string{"kebab", "archived"}},
-		{"no changes folder", nil, nil, []string{"kebab", "Closes", "archived"}},
-	}
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			root := projectRepoWithSpecs(t, validHiveSection)
-			for rel, content := range c.files {
-				writeChangeFile(t, root, rel, content)
-			}
-			sec := collectProject(root, doctorDeps{})
-			text := projectText(t, root)
-			if sec.Blocking {
-				t.Fatalf("change record warnings must not block:\n%s", text)
-			}
-			mustContain(t, text, c.want...)
-			mustNotContain(t, text, c.notWant...)
-			if len(c.want) == 0 {
-				mustContain(t, text, "Valid")
-			} else {
-				mustNotContain(t, text, "Valid")
-			}
-		})
-	}
-}
-
-func TestDoctorProjectChangeChecksIgnoreAMissingSpecsDirectory(t *testing.T) {
+func TestHiveSectionSpecsPathStillWarnsWhenGivenAndMissing(t *testing.T) {
 	root := newProjectRepo(t)
 	writeAgents(t, root, validHiveSection) // Specs points at a directory that does not exist
-	text := projectText(t, root)
-	mustContain(t, text, "Specs: _support/openspec is not an existing directory")
-	mustNotContain(t, text, "kebab", "Closes", "archived")
+	mustContain(t, projectText(t, root), "Specs: _support/openspec is not an existing directory")
 }
 
 // withLines puts extra `- Key: value` lines into the valid section.
@@ -717,4 +672,177 @@ func TestDoctorProjectWarnsOnMalformedOtherTrackersAndCompletionValues(t *testin
 			}
 		})
 	}
+}
+
+func TestDoctorProjectLocalInstructionsAndSecrets(t *testing.T) {
+	t.Run("unignored HIVE.local.md and overlong or secret entry block", func(t *testing.T) {
+		root := projectRepoWithSpecs(t, validHiveSection)
+		longFact := "- " + strings.Repeat("a", 205) + " · 2026-11-16\n"
+		token := "ghp_" + "A1b2C3d4E5f6G7h8I9j0K1l2M3n4O5p6Q7r8"
+		secretFact := "- token " + token + " · 2026-11-16\n"
+		if err := os.WriteFile(filepath.Join(root, "HIVE.local.md"), []byte("Per-machine facts.\n\n"+longFact+secretFact), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		sec := collectProject(root, doctorDeps{})
+		text := projectText(t, root)
+		mustContain(t, text, "HIVE.local.md: not ignored by Git")
+		mustContain(t, text, "HIVE.local.md: line 3 exceeds 200 characters")
+		mustContain(t, text, "HIVE.local.md: line 4 contains a secret-like value")
+		if !sec.Blocking {
+			t.Fatalf("expected blocking findings:\n%s", text)
+		}
+	})
+
+	t.Run("valid ignored HIVE.local.md and properly permissioned _support/secrets pass", func(t *testing.T) {
+		root := projectRepoWithSpecs(t, validHiveSection)
+		exclude := filepath.Join(root, ".git", "info", "exclude")
+		if err := os.WriteFile(exclude, []byte("HIVE.local.md\n_support/secrets/\n_support/scripts/\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		// STALE prefix does not count toward 200-char limit
+		stalePrefix := "STALE 2026-11-16 (port changed inside container after upgrade): "
+		body := "- " + stalePrefix + strings.Repeat("b", 180) + " · 2026-11-10\n"
+		if err := os.WriteFile(filepath.Join(root, "HIVE.local.md"), []byte("Per-machine facts.\n\n## Runtime\n"+body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		secretsDir := filepath.Join(root, "_support", "secrets")
+		if err := os.MkdirAll(secretsDir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chmod(secretsDir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(secretsDir, "ACCOUNTS.md"), []byte("| env | role | id | source | reach | status |\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(secretsDir, "api.key"), []byte("secret"), 0o600); err != nil {
+			t.Fatal(err)
+		}
+		sec := collectProject(root, doctorDeps{})
+		text := projectText(t, root)
+		mustContain(t, text, "Valid")
+		if sec.Blocking {
+			t.Fatalf("unexpected blocking finding:\n%s", text)
+		}
+	})
+
+	t.Run("password assignment and non-bullet line block like local_instructions.py", func(t *testing.T) {
+		root := projectRepoWithSpecs(t, validHiveSection)
+		exclude := filepath.Join(root, ".git", "info", "exclude")
+		if err := os.WriteFile(exclude, []byte("HIVE.local.md\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		secretAssign := "DB_" + "PASSWORD=" + "SuperSecretPass123"
+		body := fmt.Sprintf("Per-machine facts.\n\n- %s · 2026-11-16\nstray line · 2026-11-16\n", secretAssign)
+		if err := os.WriteFile(filepath.Join(root, "HIVE.local.md"), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		for _, benign := range []string{
+			"- Container image ghcr.io/AcmeOrg/dev-postgres:16 runs on port 5432 · 2026-11-16",
+			"- Repo mirror git@github.com:JhonHawk/tricell-hive.git · 2026-11-16",
+			"- Uses AWS role arn:aws:iam::123456789012:role/DevDeployRole in us-east-1 · 2026-11-16",
+			"- DB postgres://postgres:postgres@localhost:5432/app · 2026-11-16",
+			"- DB postgres://user:password@localhost/app · 2026-11-16",
+			"- Xcode at /Applications/Xcode/Contents/Developer · 2026-11-16",
+			"- Daemons in Library/LaunchDaemons/ServiceAgents · 2026-11-16",
+			"- Registry https://npm.corp.example:8080/packages/@scope/pkg · 2026-11-16",
+		} {
+			if containsSecretToken(benign) {
+				t.Fatalf("benign operational entry flagged as secret: %s", benign)
+			}
+		}
+		for _, secret := range []string{
+			"- Staging AWS secret wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY · 2026-11-16",
+			"- DB url ssh://deploy:Zq8vR2mX4pL9tK7wN3s@db.internal · 2026-11-16",
+			"- API https://svc:Zq8vR2mX4pL9tK7wN3s@api.internal/v1 · 2026-11-16",
+			"- DB ssh://deploy:Zq8@vR2mX4pL9tK7wN3s@db.internal · 2026-11-16",
+		} {
+			if !containsSecretToken(secret) {
+				t.Fatalf("bare secret not flagged: %s", secret)
+			}
+		}
+		sec := collectProject(root, doctorDeps{})
+		text := projectText(t, root)
+		mustContain(t, text, "HIVE.local.md: line 3 contains a secret-like value")
+		mustContain(t, text, "HIVE.local.md: line 4 is not a '- ' entry")
+		if !sec.Blocking {
+			t.Fatalf("expected blocking findings:\n%s", text)
+		}
+	})
+
+	t.Run("over 50 entries without STALE warns without blocking, with STALE blocks", func(t *testing.T) {
+		root := projectRepoWithSpecs(t, validHiveSection)
+		exclude := filepath.Join(root, ".git", "info", "exclude")
+		if err := os.WriteFile(exclude, []byte("HIVE.local.md\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		var b strings.Builder
+		b.WriteString("Per-machine facts.\n\n")
+		for i := 1; i <= 51; i++ {
+			fmt.Fprintf(&b, "- fact number %d verified · 2026-11-16\n", i)
+		}
+		if err := os.WriteFile(filepath.Join(root, "HIVE.local.md"), []byte(b.String()), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		sec := collectProject(root, doctorDeps{})
+		text := projectText(t, root)
+		mustContain(t, text, "HIVE.local.md: 51 entries (> 50 with no STALE entries); curate with audit-harness")
+		if sec.Blocking {
+			t.Fatalf("over 50 current entries without STALE must not block:\n%s", text)
+		}
+
+		b.WriteString("- STALE 2026-11-16 (old): old fact · 2026-11-01\n")
+		if err := os.WriteFile(filepath.Join(root, "HIVE.local.md"), []byte(b.String()), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		sec2 := collectProject(root, doctorDeps{})
+		text2 := projectText(t, root)
+		mustContain(t, text2, "HIVE.local.md: 52 entries (> 50) with unpruned STALE entries")
+		if !sec2.Blocking {
+			t.Fatalf("over 50 entries with STALE must block:\n%s", text2)
+		}
+	})
+}
+
+// A workspace coordinator repository ignores its child repositories and its
+// local support folders; doctor checks its own section and is not blocked by
+// the nested child repositories or an ignored HIVE.local.md.
+func TestDoctorProjectWorkspaceCoordinatorRepository(t *testing.T) {
+	root := projectRepoWithSpecs(t, `# Workspace
+
+## Hive
+
+- Project: demo
+- Base branch: main
+- Tracker: GitHub Issues · org/demo
+- Specs: _support/openspec
+- Delivery: direct-base
+
+## Repositories
+
+| Repo | Path | Remote | Base | Role |
+| --- | --- | --- | --- | --- |
+| backend | demo-backend | https://github.example/org/demo-backend.git | main | API |
+`)
+	ignore := "/demo-backend/\n/HIVE.local.md\n/_support/workspace/\n/_support/data/\n/_support/scripts/\n/_support/secrets/\n"
+	if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte(ignore), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	child := filepath.Join(root, "demo-backend")
+	if err := os.MkdirAll(child, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	gitIn(t, child, "init", "-q", "-b", "main")
+	if err := os.WriteFile(filepath.Join(root, "HIVE.local.md"), []byte("Per-machine facts.\n\n- demo runs on port 3000 · 2026-11-18\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Join(root, "_support", "scripts"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	sec := collectProject(root, doctorDeps{})
+	text := projectText(t, root)
+	if sec.Blocking {
+		t.Fatalf("coordinator repository has blocking findings:\n%s", text)
+	}
+	mustContain(t, text, "Delivery: direct-base")
 }

@@ -3,62 +3,27 @@ title: Viewer
 description: Follow published work, inspect evidence, and manage the local viewer.
 ---
 
-The local viewer presents a timeline of work published by an agent. A work can have several native producer sessions contributing to it; the viewer groups their published stages, tasks and evidence. A producer's presence in the timeline does not prove that its host is still running. The viewer is separate from the host's native history and from Engram.
+The local viewer shows the UI captures an agent publishes, with the iteration each one belongs to. A work can have several native producer sessions contributing to it; the viewer groups what they published. A producer's presence in the timeline does not prove that its host is still running. The viewer is separate from the host's native history and from Engram.
 
-The [flow-walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md) skill is what publishes stages, documents and captures to the viewer; the viewer shows what has been published to it. Each work gets its own entry: a work tied to a ticket keeps one entry across the flows of that ticket in the same agent session, and a work without a ticket uses its own stable work key. The agent does not open the viewer by itself: at each point with something to review (a plan or a screen to validate) it offers to open it within the question or reply that point already asks, never as a question of its own, and stops offering once you accept. The agent declares each stage change once, with its state and reason, and registers a plan's tasks when a build starts so **Tasks** follows their progress. Hive's host hooks add what the host already knows (session start, activity, end and, on some hosts, its task list) without the agent publishing it; see [Host-observed activity](#host-observed-activity).
+The [walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/ui/walkthrough.md) of the Verify skill is what publishes captures to the viewer; the viewer shows what has been published to it. Only Build and Verify publish, and only when they capture an interface: Plan and Hive mode publish nothing, and a flow without captures creates no work in the viewer. Each work gets its own entry, created at its first capture: a work tied to a ticket keeps one entry across the flows of that ticket in the same agent session, and a work without a ticket uses its own stable work key. The agent does not open the viewer by itself: at each point with captures to review (a screen to validate) it offers to open it within the question or reply that point already asks, never as a question of its own, and stops offering once you accept. Hive's host hooks add what the host already knows (session start, activity, end and, on some hosts, its task list) without the agent publishing it; see [Host-observed activity](#host-observed-activity).
 
 ## Start and stop
 
 Start the viewer explicitly with `hive view start`, then use `hive view open` to open it. Use `hive view status` to check the service and `hive view stop` to stop it. Retention is manual: stopping the service does not mean the stored timeline has been deleted.
 
-Protocol 3 requires a fresh state directory when coming from an earlier storage format. For the timeline revision 3 update within protocol 3, update the CLI, viewer assets and server together, then reload the viewer. Keep a private backup of viewer state before the upgrade and retain it as evidence; the update preserves stored works and the publisher journal. A revision mismatch blocks timeline writes and asks for an update or reload. The [viewer publication procedure](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/references/viewer-publication.md) describes the producer's publication contract.
+Protocol 3 requires a fresh state directory when coming from an earlier storage format. For the timeline revision 3 update within protocol 3, update the CLI, viewer assets and server together, then reload the viewer. Keep a private backup of viewer state before the upgrade and retain it as evidence; the update preserves stored works and the publisher journal. A revision mismatch blocks timeline writes and asks for an update or reload. The [viewer publication procedure](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/ui/viewer.md) describes the producer's publication contract.
 
-## Publish Markdown on demand
+## Publish captures
 
-The agent keeps the plan files in their change folder and calls
-`hive view work publish` when a revision is ready to review. The binary scans
-that directory, uploads the original Markdown and verifies the stored copy.
-Nothing watches the files: editing one does not publish it (the hooks below report host events, not file edits). An unchanged
-publication returns `unchanged` without adding remote history.
+The agent publishes each batch of captures of one screen with one command, `hive view work capture`. It opens the work and its stage when needed, links the commit the capture was taken at and numbers the iteration in the view's title: a later capture of the same screen supersedes the earlier view as `SCREEN · #2`, and the earlier one stays in the timeline. After a correction, only the screens it changed are captured again. The agent passes no host or session identity: the `hive` binary resolves the real native session from the host's session variable or from the map the session hook wrote, and rejects the command, writing nothing, when it cannot tell. At close, the agent finishes the work with `hive view work close`, or leaves it in review, paused or awaiting validation with one `hive view work sync`. The exact options and the rules the agent follows are in the [viewer publication procedure](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/ui/viewer.md); `hive view work capture --help` lists the options.
 
-Each work has a stable key and returned ID. Revising ticket 10 reuses its ID;
-starting ticket 11 in another folder creates a separate work, even in the same
-native session. The explicit directory binding prevents a changed working
-directory from selecting the wrong work. `hive view work list --project ROOT`
-finds works, and `hive view work show --work-id ID` shows their observed state.
+Each work has a stable key and returned ID. Revising ticket 10 reuses its ID; starting ticket 11 creates a separate work, even in the same native session. `hive view work list --project ROOT` finds works, and `hive view work show --work-id ID` shows their observed state.
 
-The plan's default tabs are Proposal, optional Design, Tasks and existing spec
-deltas. An explicit selection can replace those defaults. Publications have at
-most eight tabs, each at most 256 KiB of UTF-8 Markdown; oversized selections
-fail instead of being truncated. The renderer stays the same: it does not load
-local images, execute HTML or navigate relative file links as a documentation
-site. Original sources remain authoritative.
-
-The agent separately registers structured tasks and sends short task/stage
-updates. Editing a Markdown checkbox never changes live task progress. Snapshot
-status is not approval, and finishing a task does not close the work.
-
-### One declaration per stage change
-
-For a work without a change folder (a build with no plan) the agent needs three
-commands, each answering in one short reply: `hive view work open`, `sync` and
-`close`, plus `evidence` when it has captures. `sync` is one declaration per
-stage change: it starts or updates the stage with its state and reason, registers
-the tasks the work lacks and moves their states. Repeating a declaration answers
-`unchanged`. The agent passes no host or session identity: the `hive` binary
-resolves the real native session from the host's session variable or from the map
-the session hook wrote, and rejects the command, writing nothing, when it cannot
-tell. Run `hive view work contract` for the exact commands.
+The viewer still renders other published records, such as stages, tasks and Markdown documents, but agents no longer declare them. They remain available as advanced operations of the binary (`work open`, `sync`, `evidence`, `tasks`, `publish` and `contract`), for a person who wants them; `hive view work contract` is their reference.
 
 ### While the viewer is stopped
 
-The agent never starts the viewer. When it is stopped, `open`, `sync` and
-`evidence` answer `queued`: the declaration is stored locally and sent, in
-order, by the next command on that work or the next hook run of its session once
-the viewer is running. A declaration that no longer applies, for example a stage
-another producer already completed, is reported as rejected and does not
-overwrite what the viewer holds. Commands on different works do not block each
-other.
+The agent never starts the viewer. When it is stopped, `capture` answers `queued`: the capture and its images are stored locally and sent, in order, by the next command on that work or the next hook run of its session once the viewer is running. The work, stage and iteration number are resolved when it is sent, so two captures of the same screen taken while the viewer was stopped still arrive as `#1` and `#2`. A capture that no longer applies is reported as rejected and does not overwrite what the viewer holds. Commands on different works do not block each other.
 
 ## Host-observed activity
 
@@ -79,7 +44,7 @@ publishes, and shows **From host** (**Del host** in Spanish) on them.
   captures and validations stay with the agent.
 - **Queue.** With the viewer stopped, hook events wait in a local queue and are
   sent, with a reconciliation from the host's session files, by the next hook run
-  or semantic command once it is running. Hooks print nothing and always exit
+  or semantic command once it is running. Hooks print nothing (Antigravity's print the small JSON reply `agy` requires) and always exit
   successfully, so a failing viewer never disturbs the host.
 
 What each host registers and its known limits:
@@ -90,6 +55,7 @@ What each host registers and its known limits:
 | Codex | Entries in `~/.codex/hooks.json` (session start and end, prompts, subagent start). | Hive never writes Codex's trust: approve the hook once from `/hooks`, and until then Codex skips it. No native task events. |
 | Grok Build | A second hook file, `~/.grok/hooks/hive-session-events.json`. | Restart open sessions after installing. No native task events. |
 | Cursor CLI | Entries in `~/.cursor/hooks.json`. | Verified only in the installed code; Cursor CLI's use of that file is not documented. No native task events. |
+| Antigravity | A named hook `hive` in `~/.gemini/config/hooks.json` (session start, each prompt, and each turn end). | `agy` has no session-end event, so a turn end counts as activity and never closes the session. Observed with the `agy` CLI; sessions in the Antigravity App are not identified for the viewer. No native task events. |
 | OpenCode | An event plugin, `hive-events.js`, in `~/.config/opencode/plugins/`. | It runs in a shared background service and passes the session explicitly. The optional context loader stays inactive. |
 | Pi | An extension, `hive-events.ts`, in `~/.pi/agent/extensions/`. | No native task events. |
 
@@ -99,24 +65,26 @@ from running agent sessions; the
 [verification record](https://github.com/JhonHawk/tricell-hive/blob/master/_support/docs/architecture/host-session-events.md)
 marks each one. If a hook is not installed, not approved or not yet running, the
 agent can pass the host and session identity explicitly, as
-[host session identity](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/references/host-session-identity.md)
+[host session identity](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/ui/viewer/host-session-identity.md)
 describes.
 
 ## Interface language
 
 System labels use English by default and Spanish when the browser's primary language is Spanish (es or es-*). Other or unavailable languages fall back to English. The same rule applies to controls, accessible names, status labels and dates; the work does not store a language preference.
 
-Stage names come from their declared stage key and appear once in the browser's language. An agent may add short contextual text after that name. Task descriptions, custom activity titles, captions and published documents stay exactly as authored, so Spanish content can legitimately appear inside an English interface. The offline `hive view contract` catalog exposes the supported languages and reserved label keys.
+Stage names appear once in the browser's language. Task descriptions, custom activity titles, view titles, captions and published documents stay exactly as authored, so Spanish content can legitimately appear inside an English interface. The offline `hive view contract` catalog exposes the supported languages and reserved label keys.
 
 ## Follow a work
 
 Within each project group, works are ordered by their last substantive work activity, with its local date and time shown alongside the state: In progress, In review, Awaiting validation, Paused, Finished or Failed. Renaming, pinning, archiving and restoring do not change that activity. Select a work to see its timeline in chronological order. Stages group their activity; **Go to current** takes you to the current stage. Open **Sessions** to see the participating producers and the lead. A producer can contribute without taking the lead; the browser can reassign the lead through the explicit **Reassign lead** dialog when recovery is needed, or `hive view work recover` can do it from the terminal.
 
-Open **Tasks** in the horizontal toolbar for the global task list; each stage shows only its own task segments. The list shows published task states and their segments in each stage. A task can span stages: for example, seven tasks can have six segments completed in Build while the seventh has a completed Verification segment and a pending Delivery segment. Its overall state is not complete until its work is complete across its segments. Tasks with review content open a detail panel with **Summary**, **Evidence** and **History**. A task containing only a short description expands inline instead of opening an empty panel. Image, document, block and CI indicators are visible even while the task is collapsed. For a blocked task, **See how to unblock** opens its instructions, including the responsible person and the condition for resuming when published.
+Open **Tasks** in the horizontal toolbar for the global task list, which has entries when tasks were published with the advanced commands or reported by the host; each stage shows only its own task segments. The list shows published task states and their segments in each stage. A task can span stages: for example, seven tasks can have six segments completed in Build while the seventh has a completed Verification segment and a pending Delivery segment. Its overall state is not complete until its work is complete across its segments. Tasks with review content open a detail panel with **Summary**, **Evidence** and **History**. A task containing only a short description expands inline instead of opening an empty panel. Image, document, block and CI indicators are visible even while the task is collapsed. For a blocked task, **See how to unblock** opens its instructions, including the responsible person and the condition for resuming when published.
 
 ## Project groups and source
 
 The sidebar groups registered roots that explicitly declare the same `project_name` in their root `.engram/config.json`. For example, a workspace and its API repository can both declare `example-project`: their works appear in one flat group, with the original workspace or repository shown beside each work's ticket and date. This reads the local configuration file; it does not require Engram to be installed or running. Names are compared exactly after trimming outer whitespace, including case.
+
+When a registered worktree has been removed, its works can stay in the group of an available registered source with the same stored project identity and an unambiguous explicit name. Their original source remains visible. If no such source is available, or its names conflict, the viewer keeps the original group and notice.
 
 Grouping is navigation only. Each work keeps its ID, links, original source, documents and collaboration permissions. The viewer does not infer membership from parent folders, matching `AGENTS.md` names or an Engram alias. A root without this configuration keeps its original project group. Changing or removing the name updates the grouping on the next refresh, including existing works; an invalid or unreadable configuration leaves works accessible in their original groups and shows a retryable notice.
 
@@ -134,4 +102,4 @@ Open the CI detail for **Summary**, **Checks** and **Attempts**. The viewer disp
 
 ## Manage a work
 
-Use **Edit title** to rename a work and **Session actions** to archive or restore, pin or unpin, or delete it. A finished, unpinned work is automatically archived two hours after its recorded closure; if that time cannot be established, it gets a full two-hour window from the first evaluation. Other states are not automatically archived. Archiving changes visibility only: use **Include archived** to find a work and **Restore** to bring it back. Pinning prevents automatic archival; unpinning uses the original deadline. A manual restore exempts that closure until the work is reopened and closed again. Reopening restores an automatically archived work, while a manually archived work stays archived. Manually archiving shows a temporary notification naming the archived work, with **Undo** to restore it. The notification hides after eight seconds or can be dismissed; navigating to another work does not make that work archived. Content retention is manual, with no age-based deletion or TTL setting. Deleting a session removes its stored timeline events and captures from the viewer; original project files are preserved. Each management action also has a command, `hive view work rename|archive|restore|pin|unpin|delete`; `delete` needs `--confirm` with the work ID. They act as the local viewer, distinct from the native producer's publication of work and evidence, and an agent runs them only when you ask for that action on a named work. For the agent's procedure, see [flow-walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md).
+Use **Edit title** to rename a work and **Session actions** to archive or restore, pin or unpin, or delete it. A finished, unpinned work is automatically archived two hours after its recorded closure; if that time cannot be established, it gets a full two-hour window from the first evaluation. Other states are not automatically archived. Archiving changes visibility only: use **Include archived** to find a work and **Restore** to bring it back. Pinning prevents automatic archival; unpinning uses the original deadline. A manual restore exempts that closure until the work is reopened and closed again. Reopening restores an automatically archived work, while a manually archived work stays archived. Manually archiving shows a temporary notification naming the archived work, with **Undo** to restore it. The notification hides after eight seconds or can be dismissed; navigating to another work does not make that work archived. Content retention is manual, with no age-based deletion or TTL setting. Deleting a session removes its stored timeline events and captures from the viewer; original project files are preserved. Each management action also has a command, `hive view work rename|archive|restore|pin|unpin|delete`; `delete` needs `--confirm` with the work ID. They act as the local viewer, distinct from the native producer's publication of work and evidence, and an agent runs them only when you ask for that action on a named work. For the agent's procedure, see [walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/ui/walkthrough.md).

@@ -1,0 +1,7 @@
+# Review of weakened checks
+
+Read before reviewing any candidate. Read it also before adding a suppression directive, a skipped test or a configuration exclusion that weakens a check: the justified disposition below is what that addition needs. It applies to every candidate, whatever review mechanism is selected; the verifier supplies it in the review brief, including through a native review's instruction mechanism, and reports this review as unverified when it cannot be supplied or verified.
+
+Inventory each added or widened suppression directive, skipped test and configuration exclusion in the diff with its location and the check it weakens, or report that the diff contains none. For each, record a justified disposition with evidence of the scope and requirements it affects. A green check alone does not establish that a suppressed failure is fixed.
+
+Report a defect when evidence shows a concrete failure scenario or a broken contract that the change caused or left exposed; a directive, a textual match or an explanatory comment alone is not one, and a justified exception consistent with the requirements can be accepted. Preserve the cause comment of an authorized workaround under [defect fix](../build/defect-fix.md), or the marker [no comments](no-comments.md) sets where the project's lint bans comments. Return the inventory and dispositions with the review evidence, and state what remains unverified.

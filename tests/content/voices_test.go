@@ -8,7 +8,8 @@ import (
 )
 
 // voiceBudget caps each voice's always-loaded cost: the preamble plus one
-// voice text is added to every session that enables it.
+// voice text is added to every session that enables it. A loading budget, not
+// a host limit: it changes only by the user's decision.
 const voiceBudget = 3072
 
 var voiceMarkers = []string{
@@ -80,7 +81,7 @@ func TestVoiceTextsExistStayUnmarkedAndWithinBudget(t *testing.T) {
 			}
 		}
 		if size := len(preamble) + len(text); size > voiceBudget {
-			t.Errorf("%s: preamble plus voice is %d bytes, over the %d-byte budget", id, size, voiceBudget)
+			t.Errorf("%s: preamble plus voice is %d bytes, over the %d-byte budget: shorten the voice text; raising the budget is the user's decision", id, size, voiceBudget)
 		}
 	}
 }

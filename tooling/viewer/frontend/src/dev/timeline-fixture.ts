@@ -78,18 +78,18 @@ export const timelineFixture: TimelineSessionResponse = {
       {
         ticket_id: "ticket-1",
         external_scope: "https://example.test/tracker",
-        external_id: "COM-1",
-        key: "COM-1",
+        external_id: "PRJ-1",
+        key: "PRJ-1",
         title: "Espaciado del perfil",
-        url: "https://example.test/tickets/COM-1",
+        url: "https://example.test/tickets/PRJ-1",
       },
       {
         ticket_id: "ticket-2",
         external_scope: "https://example.test/tracker",
-        external_id: "COM-2",
-        key: "COM-2",
+        external_id: "PRJ-2",
+        key: "PRJ-2",
         title: "Filtros de conversaciones",
-        url: "https://example.test/tickets/COM-2",
+        url: "https://example.test/tickets/PRJ-2",
       },
     ],
     events: [
@@ -108,15 +108,15 @@ export const timelineFixture: TimelineSessionResponse = {
           {
             ticket_id: "ticket-1",
             snapshot: {
-              key: "COM-1",
-              url: "https://example.test/tickets/COM-1",
+              key: "PRJ-1",
+              url: "https://example.test/tickets/PRJ-1",
             },
           },
           {
             ticket_id: "ticket-2",
             snapshot: {
-              key: "COM-2",
-              url: "https://example.test/tickets/COM-2",
+              key: "PRJ-2",
+              url: "https://example.test/tickets/PRJ-2",
             },
           },
         ],
@@ -136,15 +136,15 @@ export const timelineFixture: TimelineSessionResponse = {
           {
             ticket_id: "ticket-1",
             snapshot: {
-              key: "COM-1",
-              url: "https://example.test/tickets/COM-1",
+              key: "PRJ-1",
+              url: "https://example.test/tickets/PRJ-1",
             },
           },
           {
             ticket_id: "ticket-2",
             snapshot: {
-              key: "COM-2",
-              url: "https://example.test/tickets/COM-2",
+              key: "PRJ-2",
+              url: "https://example.test/tickets/PRJ-2",
             },
           },
         ],
@@ -166,15 +166,15 @@ export const timelineFixture: TimelineSessionResponse = {
           {
             ticket_id: "ticket-1",
             snapshot: {
-              key: "COM-1",
-              url: "https://example.test/tickets/COM-1",
+              key: "PRJ-1",
+              url: "https://example.test/tickets/PRJ-1",
             },
           },
           {
             ticket_id: "ticket-2",
             snapshot: {
-              key: "COM-2",
-              url: "https://example.test/tickets/COM-2",
+              key: "PRJ-2",
+              url: "https://example.test/tickets/PRJ-2",
             },
           },
         ],
@@ -205,15 +205,15 @@ export const timelineFixture: TimelineSessionResponse = {
           {
             ticket_id: "ticket-1",
             snapshot: {
-              key: "COM-1",
-              url: "https://example.test/tickets/COM-1",
+              key: "PRJ-1",
+              url: "https://example.test/tickets/PRJ-1",
             },
           },
           {
             ticket_id: "ticket-2",
             snapshot: {
-              key: "COM-2",
-              url: "https://example.test/tickets/COM-2",
+              key: "PRJ-2",
+              url: "https://example.test/tickets/PRJ-2",
             },
           },
         ],
@@ -227,8 +227,8 @@ export const timelineFixture: TimelineSessionResponse = {
               {
                 ticket_id: "ticket-1",
                 snapshot: {
-                  key: "COM-1",
-                  url: "https://example.test/tickets/COM-1",
+                  key: "PRJ-1",
+                  url: "https://example.test/tickets/PRJ-1",
                 },
               },
             ],
@@ -256,8 +256,8 @@ export const timelineFixture: TimelineSessionResponse = {
               {
                 ticket_id: "ticket-2",
                 snapshot: {
-                  key: "COM-2",
-                  url: "https://example.test/tickets/COM-2",
+                  key: "PRJ-2",
+                  url: "https://example.test/tickets/PRJ-2",
                 },
               },
             ],
@@ -296,8 +296,8 @@ export const timelineFixture: TimelineSessionResponse = {
           {
             ticket_id: "ticket-2",
             snapshot: {
-              key: "COM-2",
-              url: "https://example.test/tickets/COM-2",
+              key: "PRJ-2",
+              url: "https://example.test/tickets/PRJ-2",
             },
           },
         ],
@@ -325,8 +325,8 @@ export const timelineFixture: TimelineSessionResponse = {
           {
             ticket_id: "ticket-2",
             snapshot: {
-              key: "COM-2",
-              url: "https://example.test/tickets/COM-2",
+              key: "PRJ-2",
+              url: "https://example.test/tickets/PRJ-2",
             },
           },
         ],
@@ -340,8 +340,8 @@ export const timelineFixture: TimelineSessionResponse = {
               {
                 ticket_id: "ticket-2",
                 snapshot: {
-                  key: "COM-2",
-                  url: "https://example.test/tickets/COM-2",
+                  key: "PRJ-2",
+                  url: "https://example.test/tickets/PRJ-2",
                 },
               },
             ],

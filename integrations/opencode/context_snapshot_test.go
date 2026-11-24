@@ -12,7 +12,7 @@ func TestContextLoaderSnapshotRendering(t *testing.T) {
 	template := []byte("const data = " + contextSnapshotMarker + ";\n")
 	files := map[string][]byte{
 		"content/skills/flow-plan/SKILL.md":     []byte("\ufeff\"'` \\ 雪😀\r\n" + contextSnapshotMarker + "\n\u2028\x00"),
-		"content/skills/harness-audit/SKILL.md": []byte("# Harness\n"),
+		"content/skills/audit-harness/SKILL.md": []byte("# Harness\n"),
 		"content/skills/unused/SKILL.md":        []byte("Not a selected role"),
 	}
 	script, metadata, err := RenderContextLoader(template, files)
@@ -40,7 +40,7 @@ func TestContextLoaderSnapshotRendering(t *testing.T) {
 		t.Fatal("invalid provenance schema")
 	}
 	wantReferences := []struct{ role, resource string }{
-		{"hive-review-harness", "harness-audit/SKILL.md"},
+		{"hive-review-harness", "audit-harness/SKILL.md"},
 		{"hive-review-plan", "flow-plan/SKILL.md"},
 	}
 	for i, mapping := range wantReferences {

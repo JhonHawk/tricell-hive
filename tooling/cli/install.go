@@ -19,14 +19,14 @@ import (
 	"tricell-hive/tooling/providers"
 )
 
-var installerHosts = []string{"claude", "codex", "cursor", "grok", "opencode", "pi"}
+var installerHosts = []string{"antigravity", "claude", "codex", "cursor", "grok", "opencode", "pi"}
 
 // hostBinaries lists, for a host whose executables are not just its own name,
 // the programs whose presence on PATH shows its CLI is installed. The first one
 // is the CLI itself and reports the version; the others only count as evidence.
 // Cursor's CLI is cursor-agent, while the cursor launcher may be the only one
 // installed. Both installer detection and Diagnostics read this list.
-var hostBinaries = map[string][]string{"cursor": {"cursor-agent", "cursor"}}
+var hostBinaries = map[string][]string{"cursor": {"cursor-agent", "cursor"}, "antigravity": {"agy"}}
 
 // detectionBinaries returns the executables to look for on PATH for a host.
 func detectionBinaries(host string) []string {
@@ -966,6 +966,9 @@ func showInstallSummary(out io.Writer, p management.Plan, preview onboardingPrev
 			fmt.Fprintf(out, "Warning: %s hooks will be skipped in %s (%s).\n", st.Host, st.Path, st.Skipped)
 		}
 	}
+	for _, line := range piConfigSummaryLines(p.PiSubagentConfig) {
+		fmt.Fprintln(out, line)
+	}
 	if !dry && mentionDryRunFlag {
 		fmt.Fprintln(out, "Use --dry-run to see the full file list before applying.")
 	}
@@ -1088,7 +1091,7 @@ func sharedResourceRoots(p management.Plan, additional []string) []string {
 }
 
 func installRoots(paths []string, c target.Config) []string {
-	roots := []string{c.CodexHome, c.ClaudeHome, c.GrokHome, c.PiHome, c.OpenCodeHome, c.CursorHome, filepath.Join(c.Home, ".agents"), filepath.Join(c.Home, ".codex"), filepath.Join(c.Home, ".claude"), filepath.Join(c.Home, ".grok"), filepath.Join(c.Home, ".pi", "agent"), filepath.Join(c.Home, ".config", "opencode")}
+	roots := []string{c.CodexHome, c.ClaudeHome, c.GrokHome, c.PiHome, c.OpenCodeHome, c.CursorHome, c.AntigravityHome, filepath.Join(c.Home, ".agents"), filepath.Join(c.Home, ".codex"), filepath.Join(c.Home, ".claude"), filepath.Join(c.Home, ".grok"), filepath.Join(c.Home, ".pi", "agent"), filepath.Join(c.Home, ".config", "opencode")}
 	sort.Slice(roots, func(i, j int) bool { return len(roots[i]) > len(roots[j]) })
 	seen := map[string]bool{}
 	for _, path := range paths {
@@ -1170,4 +1173,39 @@ func confirmInstall(terminal installTerminal, prompt string, allowBack bool) (in
 		}
 	}
 	return installCancelled, nil
+}
+
+// piConfigSummaryLines describes the pi-subagents toolActivation step in the
+// install summary: what Hive writes, or why it writes nothing. It never shows
+// other text from the file.
+func piConfigSummaryLines(st *management.PiSubagentConfigStep) []string {
+	if st == nil {
+		return nil
+	}
+	const name = "Pi subagent activation"
+	switch st.Status {
+	case management.PiConfigWrite:
+		return []string{
+			fmt.Sprintf("%s: set %q to %s in", name, st.Key, st.Value),
+			"  " + st.Path,
+			"  Restart open Pi sessions so they start with the subagent tool active.",
+		}
+	case management.PiConfigApplied:
+		return []string{fmt.Sprintf("%s: already set by Hive (%s).", name, st.Value)}
+	case management.PiConfigUserSet:
+		return []string{fmt.Sprintf("%s: left as you set it (%s).", name, st.Value)}
+	case management.PiConfigManual:
+		return []string{
+			fmt.Sprintf("%s: manual step; Hive does not edit the file:", name),
+			"  " + st.Detail + ".",
+			fmt.Sprintf("  To activate it, set %q: %s in", st.Key, st.Value),
+			"  " + st.Path,
+		}
+	case management.PiConfigOtherHome:
+		return []string{
+			fmt.Sprintf("%s: not written; Hive's record is for", name),
+			"  " + st.Detail,
+		}
+	}
+	return nil
 }

@@ -140,11 +140,11 @@ func ReadProfiles(data []byte) (Profiles, error) {
 		return p, fmt.Errorf("trailing agent profile data")
 	}
 	if p.Version != 1 {
-		return p, fmt.Errorf("agent profiles require version 1 and the five base hosts")
+		return p, fmt.Errorf("agent profiles require version 1 and the five base hosts plus optional cursor and antigravity")
 	}
 	for host := range p.Hosts {
 		switch host {
-		case "claude", "codex", "grok", "pi", "opencode", "cursor":
+		case "claude", "codex", "grok", "pi", "opencode", "cursor", "antigravity":
 		default:
 			return p, fmt.Errorf("unsupported agent profile host %q", host)
 		}
@@ -154,8 +154,12 @@ func ReadProfiles(data []byte) (Profiles, error) {
 	if _, ok := p.Hosts["cursor"]; ok {
 		hosts = append(hosts, "cursor")
 	}
+	// Antigravity is optional too, so a release frozen before it stays readable.
+	if _, ok := p.Hosts["antigravity"]; ok {
+		hosts = append(hosts, "antigravity")
+	}
 	if len(p.Hosts) != len(hosts) {
-		return p, fmt.Errorf("agent profiles require version 1 and the five base hosts")
+		return p, fmt.Errorf("agent profiles require version 1 and the five base hosts plus optional cursor and antigravity")
 	}
 	for _, host := range hosts {
 		h, ok := p.Hosts[host]
@@ -322,6 +326,9 @@ func validateAccess(host string, values map[string]json.RawMessage) error {
 				}
 			}
 		default:
+			// Antigravity has no access keys: its read-only roles rely on the
+			// role's instruction, because agy has no readonly field and a
+			// misspelled tool name in a tools list hangs the subagent.
 			return fmt.Errorf("unsupported agent access key %s/%s", host, key)
 		}
 	}
@@ -394,7 +401,7 @@ func ValidateOverride(host string, o ModelOverride) error {
 	return nil
 }
 
-var knownHosts = map[string]struct{}{"claude": {}, "codex": {}, "grok": {}, "pi": {}, "opencode": {}, "cursor": {}}
+var knownHosts = map[string]struct{}{"claude": {}, "codex": {}, "grok": {}, "pi": {}, "opencode": {}, "cursor": {}, "antigravity": {}}
 
 // OverrideError marks a failure that comes from a model override, as opposed to
 // the release's own roles and profiles. Dropping the override fixes it.

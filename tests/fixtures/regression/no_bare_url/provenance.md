@@ -1,6 +1,6 @@
 # Provenance — no_bare_url
 
-Derived 2026-09-26 from `_support/openspec/changes/report-readability/design.md`'s
+Derived 2026-09-26 from `report-readability/design.md` (now in the git history of `_support/openspec/changes/`)'s
 "URLs sueltas" finding and targeted `jq` field extraction on the source
 transcript: only `.message.content[].text` (assistant text blocks) was read,
 via a boolean `test("https?://")` and a second boolean `test("\\]\\(https?:
@@ -35,7 +35,7 @@ into a fixture verbatim).
 Not derived from a single transcript line: no session inspected here has one
 assistant text block exercising every excluded form design.md lists in one
 place. Built directly from the criterion's own contract
-(`_support/openspec/changes/report-readability/design.md`, "no_bare_url") to
+(`report-readability/design.md` (now in the git history of `_support/openspec/changes/`), "no_bare_url") to
 cover all five: a Markdown link (`[label](url)`), an angle-bracket autolink
 (`<url>`), a single-backtick inline-code URL, a URL inside a ` ``` ` fenced
 block, and a URL inside a `~~~` fenced block — five distinct

@@ -360,8 +360,12 @@ func cliSection(deps doctorDeps, st doctorState) doctorSection {
 		}()
 	}
 	wg.Wait()
+	nameWidth := 0
+	for _, host := range installerHosts {
+		nameWidth = max(nameWidth, len(host))
+	}
 	for i, host := range installerHosts {
-		parts := []string{fmt.Sprintf("%-8s", host)}
+		parts := []string{fmt.Sprintf("%-*s", nameWidth, host)}
 		switch {
 		case editorOnly(deps.lookPath, host, detected[i]):
 			parts = append(parts, "editor only")
@@ -596,13 +600,19 @@ func bareRecoverReaches(stateDir string) bool {
 // title is a placeholder that has nothing to show and is skipped.
 func doctorSectionsText(sections ...doctorSection) string {
 	var b strings.Builder
+	prevSkipped := false
 	for _, s := range sections {
 		if s.Title == "" {
 			continue
 		}
-		if b.Len() > 0 {
+		// Consecutive sections that only say "Not checked: ... (see above)"
+		// stay together with no blank line between them, so an unreadable
+		// state does not push the later headings off an 80x24 screen.
+		skipped := s.Err == stateNotChecked && len(s.Lines) == 0
+		if b.Len() > 0 && !(skipped && prevSkipped) {
 			b.WriteString("\n")
 		}
+		prevSkipped = skipped
 		b.WriteString(s.Title + "\n")
 		switch {
 		case s.Err == stateNotChecked:

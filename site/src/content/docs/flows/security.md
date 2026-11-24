@@ -7,11 +7,11 @@ Hive has two security tools, and neither starts on its own. One reviews a change
 
 ## Reviewing a change
 
-The [hive-review-security](https://github.com/JhonHawk/tricell-hive/blob/master/content/agents/review/hive-review-security.md) role is an independent reviewer that reads and tests but changes nothing. It looks at the places where a change meets a security boundary: authentication, authorization, untrusted input, command or process execution, secrets, cryptography, dependencies and data exposure. It traces a suspected problem from its source to where it does harm, runs the scanners your project already has, and reports a secret by its type and location, never its value.
+The [hive-review-security](https://github.com/JhonHawk/tricell-hive/blob/master/content/agents/review/hive-review-security.md) role is an independent reviewer that reads and tests but changes nothing. It looks at the places where a change meets a security boundary, the eight topics that [security boundaries](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/build/security-boundaries.md) lists. It traces a suspected problem from its source to where it does harm, runs the scanners your project already has, and reports a secret by its type and location, never its value.
 
 ### When it runs
 
-Only when you ask for it. The agent does not start it by itself and your answer to the code review question does not count as asking. Once you ask, [Verify](/flows/verify/) runs it on the candidate at the start of verification, before you are asked to validate. You can also ask for it on a change that is already merged.
+When you ask for it, or accept it when the agent recommends it for a change that touches one of those topics. The agent does not start it without your answer, and your answer to the code review question does not count as one. Once you accept, [Verify](/flows/verify/) runs it on the candidate at the start of verification, before you are asked to validate. You can also ask for it on a change that is already merged.
 
 Example requests:
 
@@ -26,7 +26,7 @@ A report of findings by priority, each with the conditions that make it exploita
 
 ## Checking an advisory
 
-Use the [security-advisory](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/security-advisory/SKILL.md) skill when a CVE, a published advisory or a package compromise makes you ask whether it affects your projects. It reads the advisory from a primary source, inspects the repositories you name without changing them, and reports for each one whether it is affected, mitigated, not affected or unknown, with the file and line that show it. If an application's exposure depends on how its code reaches the vulnerable path, it offers a reachability assessment by the security reviewer, which runs only if you ask. Fixes then happen in each project's own session.
+Use the [dependency-security playbook](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-mode/playbooks/dependency-security.md) of the Hive mode skill when a CVE, a published advisory or a package compromise makes you ask whether it affects your projects. It reads the advisory from a primary source, inspects the repositories you name without changing them, and reports for each one whether it is affected, mitigated, not affected or unknown, with the file and line that show it. If an application's exposure depends on how its code reaches the vulnerable path, it offers a reachability assessment by the security reviewer, which runs when you ask for it or accept it. Fixes then happen in each project's own session.
 
 Example request:
 
@@ -40,11 +40,11 @@ It is not for reviewing a change, and not for checking a package before you inst
 
 - [Verify](/flows/verify/) is where a requested security review runs.
 - [Build](/flows/build/) mentions the review when a change crosses a boundary.
-- [Research](/flows/research/) is the method the advisory sweep follows.
+- [Hive mode](/flows/hive-mode/) is the method the advisory sweep follows.
 
 ## FAQ
 
 ### Is a security review part of every change?
-No. Ask for it when a change touches a security boundary or you want a second look.
+No. The agent recommends it for each change that touches a security boundary and runs it when you accept; you can also ask for it on any change.
 
 Source: [content/agents/review/hive-review-security.md](https://github.com/JhonHawk/tricell-hive/blob/master/content/agents/review/hive-review-security.md)

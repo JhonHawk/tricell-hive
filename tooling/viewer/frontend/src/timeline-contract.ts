@@ -64,7 +64,8 @@ export type TimelineHost =
   | "grok"
   | "pi"
   | "opencode"
-  | "cursor";
+  | "cursor"
+  | "antigravity";
 export type TimelineState =
   | "in_review"
   | "failed"
@@ -520,7 +521,15 @@ export class TimelineContractError extends Error {
   }
 }
 type ObjectValue = Record<string, unknown>;
-const hosts = ["codex", "claude-code", "grok", "pi", "opencode", "cursor"];
+const hosts = [
+  "codex",
+  "claude-code",
+  "grok",
+  "pi",
+  "opencode",
+  "cursor",
+  "antigravity",
+];
 const states = [
   "active",
   "in_review",

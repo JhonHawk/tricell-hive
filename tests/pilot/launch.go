@@ -1,10 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"slices"
 	"strings"
+	"time"
 )
 
 // Setting Cmd.Env explicitly prevents os/exec from updating PWD for Cmd.Dir.
@@ -17,6 +21,109 @@ func environmentInDirectory(env []string, cwd string) []string {
 		}
 	}
 	return append(out, "PWD="+cwd)
+}
+
+// gh reads a token from these variables before its configuration directory.
+var githubTokenVariables = []string{"GH_TOKEN", "GITHUB_TOKEN", "GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN"}
+
+// githubPlaceholderToken is not a secret: an invalid value that gh and git's
+// credential helper take instead of the token stored in the system keychain,
+// which an empty configuration directory alone does not hide.
+const githubPlaceholderToken = "hive-pilot-no-github-access"
+
+// A launched session must not reach GitHub as the user: gh finds no stored
+// session in configDir and takes the placeholder for every host instead of a
+// real token from the environment or the keychain. PATH is left alone, since
+// the hosts' shells rebuild it from their startup files. This covers gh's
+// default paths only: a session that unsets the placeholder, or asks for the
+// stored account by name (`gh auth token --user <login>`), still reaches the
+// keychain token. Nothing in the environment prevents that; the ticket case
+// reports those commands.
+func withoutGitHubCredentials(env []string, configDir string) []string {
+	out := make([]string, 0, len(env)+1)
+	for _, item := range env {
+		name, _, _ := strings.Cut(item, "=")
+		if name != "GH_CONFIG_DIR" && !slices.Contains(githubTokenVariables, name) {
+			out = append(out, item)
+		}
+	}
+	return append(out, "GH_CONFIG_DIR="+configDir, "GH_TOKEN="+githubPlaceholderToken, "GH_ENTERPRISE_TOKEN="+githubPlaceholderToken)
+}
+
+// githubAccessReport holds variable names only, never their values.
+type githubAccessReport struct {
+	ConfigDirectory    string
+	PreflightCommand   string
+	CLIFound           bool
+	AuthStatusExitCode int
+	AuthToken          string
+	Variables          []string
+}
+
+// prepareGitHubIsolation trims env, then asks gh itself, under that same
+// environment and before any model runs, whether it still has a session and
+// which token it hands out. A gh that answers as signed in, or returns a token
+// other than the placeholder, stops the launch; a missing gh is recorded.
+func prepareGitHubIsolation(output string, env []string) ([]string, githubAccessReport, error) {
+	return prepareGitHubIsolationWithin(output, env, time.Now().Add(20*time.Second))
+}
+
+func prepareGitHubIsolationWithin(output string, env []string, deadline time.Time) ([]string, githubAccessReport, error) {
+	report := githubAccessReport{ConfigDirectory: "gh-config", PreflightCommand: "gh auth status"}
+	configDir := filepath.Join(output, report.ConfigDirectory)
+	if err := os.Mkdir(configDir, 0700); err != nil {
+		return nil, report, fmt.Errorf("create empty gh configuration directory: %w", err)
+	}
+	env = withoutGitHubCredentials(env, configDir)
+	for _, item := range env {
+		name, _, _ := strings.Cut(item, "=")
+		if strings.HasPrefix(name, "GH_") || strings.HasPrefix(name, "GITHUB_") {
+			report.Variables = append(report.Variables, name)
+		}
+	}
+	slices.Sort(report.Variables)
+	bin, err := exec.LookPath("gh")
+	if err != nil {
+		return env, report, nil
+	}
+	report.CLIFound = true
+	status := exec.Command(bin, "auth", "status")
+	status.Env = env
+	_, code, message := setupOutputWithin(status, deadline)
+	switch {
+	case code == 0:
+		return nil, report, fmt.Errorf("gh still answers as signed in under the child environment")
+	case code > 0:
+		report.AuthStatusExitCode = code
+	default:
+		return nil, report, fmt.Errorf("gh auth status preflight did not finish: %s", message)
+	}
+	token := exec.Command(bin, "auth", "token")
+	token.Env = env
+	// The output may be a real token: compare it, never store or print it.
+	stdout, code, message := setupOutputWithin(token, deadline)
+	if code < 0 {
+		return nil, report, fmt.Errorf("gh auth token preflight did not finish: %s", message)
+	}
+	switch strings.TrimSpace(string(stdout)) {
+	case githubPlaceholderToken:
+		report.AuthToken = "placeholder_only"
+	case "":
+		report.AuthToken = "none"
+	default:
+		return nil, report, fmt.Errorf("gh auth token returns a token other than the placeholder under the child environment")
+	}
+	return env, report, nil
+}
+
+// Capture only stdout in memory, preserving the caller's redaction boundary.
+// runProcess owns the process group, so a setup helper's descendant cannot
+// retain an inherited pipe or survive cancellation of its parent.
+func setupOutputWithin(cmd *exec.Cmd, deadline time.Time) ([]byte, int, string) {
+	var stdout bytes.Buffer
+	cmd.Stdout = &stdout
+	code, message := runProcess(cmd, time.Until(deadline))
+	return stdout.Bytes(), code, message
 }
 
 func validHost(host string) bool {
@@ -47,7 +154,7 @@ func launchArgs(r result, output, prompt string) ([]string, error) {
 		}
 		// Codex 0.155.1 native collaboration cannot resolve an ephemeral parent
 		// thread. Keep persistence only for this explicit delegation probe.
-		if r.Case == "native-agent-dispatch" {
+		if r.Case == "native-agent-dispatch" || r.Case == e2eCaseID {
 			a = slices.DeleteFunc(a, func(arg string) bool { return arg == "--ephemeral" })
 		}
 		if r.Effort != "" {
@@ -56,6 +163,15 @@ func launchArgs(r result, output, prompt string) ([]string, error) {
 		return append(a, "-"), nil
 	case "claude":
 		a := []string{"-p", "--model", r.ModelRequested, "--output-format", "stream-json", "--verbose", "--no-session-persistence", "--permission-mode", "acceptEdits", "--allowedTools", "Read,Write,Edit,Glob,Grep,Bash"}
+		if r.Case == e2eCaseID {
+			a = slices.DeleteFunc(a, func(arg string) bool { return arg == "--no-session-persistence" })
+			for i, arg := range a {
+				if arg == "--allowedTools" {
+					a[i+1] += ",Agent,Skill,TaskStop"
+				}
+			}
+			a = append(a, "--settings", filepath.Join(output, "native-settings.json"))
+		}
 		if r.Effort != "" {
 			a = append(a, "--effort", r.Effort)
 		}

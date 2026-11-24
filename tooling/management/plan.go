@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 	"tricell-hive/integrations/agents"
+	"tricell-hive/integrations/antigravity"
 	"tricell-hive/integrations/claude"
 	"tricell-hive/integrations/codex"
 	"tricell-hive/integrations/cursor"
@@ -45,6 +46,8 @@ var skillsDirFor = func(host string, c target.Config) string {
 		dir = opencode.SkillsDir(c)
 	case "cursor":
 		dir = cursor.SkillsDir(c)
+	case "antigravity":
+		dir = antigravity.SkillsDir(c)
 	}
 	if c.Scope == "project" {
 		if rel, err := filepath.Rel(c.Root, dir); err == nil {
@@ -155,6 +158,8 @@ func resolve(c target.Config, hosts []string, sources ...string) ([]target.Targe
 			ts, err = opencode.Resolve(c, sources...)
 		case "cursor":
 			ts, err = cursor.Resolve(c, sources...)
+		case "antigravity":
+			ts, err = antigravity.Resolve(c, sources...)
 		default:
 			return nil, fmt.Errorf("unsupported host %q", h)
 		}
@@ -225,6 +230,12 @@ func loadRelease(o Options, stateDir string) (Release, error) {
 		if err != nil {
 			return r, err
 		}
+		if err := rejectHandWrittenPolicies(paths); err != nil {
+			return r, err
+		}
+		if err := rejectHandWrittenPackets(paths); err != nil {
+			return r, err
+		}
 		sources := []string{GlobalSource}
 		for _, path := range paths {
 			relative, err := filepath.Rel(o.Source, path)
@@ -232,7 +243,11 @@ func loadRelease(o Options, stateDir string) (Release, error) {
 				return r, err
 			}
 			sources = append(sources, filepath.ToSlash(relative))
-			for _, leaf := range []string{"references", "scripts", "assets"} {
+			domains, err := skillDomainFolders(o.Source, path)
+			if err != nil {
+				return r, err
+			}
+			for _, leaf := range append(append([]string{}, fixedSkillFolders...), domains...) {
 				root := filepath.Join(filepath.Dir(path), leaf)
 				if err := collectResources(o.Source, root, &sources); err != nil {
 					return r, err
@@ -314,7 +329,7 @@ func loadRelease(o Options, stateDir string) (Release, error) {
 	return r, validateRelease(r)
 }
 
-var resourceExtensions = map[string]bool{".md": true, ".html": true, ".py": true, ".sh": true, ".json": true, ".ts": true, ".mjs": true, ".astro": true, ".mdx": true, ".css": true, ".yaml": true, ".yml": true}
+var resourceExtensions = map[string]bool{".md": true, ".html": true, ".py": true, ".sh": true, ".json": true, ".ts": true, ".mjs": true, ".astro": true, ".mdx": true, ".css": true, ".yaml": true, ".yml": true, ".tsv": true}
 
 func collectResources(source, root string, out *[]string) error {
 	if err := target.Safe(root); err != nil {
@@ -359,7 +374,7 @@ func validSource(source string) bool {
 	if regexp.MustCompile(`^content/agents/[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*\.md$`).MatchString(source) {
 		return true
 	}
-	return regexp.MustCompile(`^content/skills/[a-z0-9]+(-[a-z0-9]+)*/(SKILL\.md|(references|scripts|assets)/([A-Za-z0-9][A-Za-z0-9._-]*/)*(\.gitignore|[A-Za-z0-9][A-Za-z0-9._-]*\.(md|html|py|sh|json|ts|mjs|astro|mdx|css|yaml|yml)))$`).MatchString(source)
+	return regexp.MustCompile(`^content/skills/[a-z0-9]+(-[a-z0-9]+)*/(SKILL\.md|[a-z0-9]+(-[a-z0-9]+)*/([A-Za-z0-9][A-Za-z0-9._-]*/)*(\.gitignore|[A-Za-z0-9][A-Za-z0-9._-]*\.(md|html|py|sh|json|ts|mjs|astro|mdx|css|yaml|yml|tsv)))$`).MatchString(source)
 }
 func releaseSources(r *Release) []string {
 	sources := []string{}
@@ -375,10 +390,14 @@ func releaseSources(r *Release) []string {
 
 // initialLeading is what goes before a block written into a file Hive does
 // not own yet: a newline after text that lacks one, or, for the Cursor rule
-// file Hive creates, the frontmatter that makes Cursor apply it always.
-func initialLeading(t target.Target, current []byte) string {
+// file and the Antigravity rule parts Hive creates, the frontmatter that makes
+// the host apply them always.
+func initialLeading(c target.Config, t target.Target, current []byte) string {
 	if len(current) == 0 && t.Path != "" && filepath.Ext(t.Path) == ".mdc" {
 		return cursor.RuleFrontmatter
+	}
+	if _, ok := antigravity.RulePartNumber(c.AntigravityHome, t.Path); ok && t.Kind == "block" && len(current) == 0 {
+		return antigravity.RuleFrontmatter
 	}
 	if len(current) > 0 && !bytes.HasSuffix(current, []byte("\n")) {
 		return "\n"
@@ -455,7 +474,16 @@ func validateRelease(r Release) error {
 			return err
 		}
 	}
-	return validateInstructionReferences(r)
+	domains, err := releaseDomains(r)
+	if err != nil {
+		return err
+	}
+	packets, err := stagePacketPayloads(r)
+	if err != nil {
+		return err
+	}
+	r.Files = append(append([]Payload{}, r.Files...), packets...)
+	return validateInstructionReferences(r, domains)
 }
 
 func renderContextLoader(r *Release) ([]byte, []byte, error) {
@@ -573,6 +601,12 @@ func buildPlan(action string, o Options, adjust func(*Plan, State) error) (Plan,
 		if action == "install" && ch.Before == nil && t.Kind == "hook" && s.Exists {
 			return p, fmt.Errorf("unowned hook collision: %s", t.Path)
 		}
+		// A rule part Hive did not create would get a block without the
+		// always_on frontmatter, so a file with content under its name stops
+		// the install instead of being rewritten.
+		if _, isPart := antigravity.RulePartNumber(c.AntigravityHome, t.Path); isPart && action == "install" && ch.Before == nil && s.Exists && len(s.Data) > 0 {
+			return p, fmt.Errorf("unowned Antigravity rule file: %s; Hive writes its guidance parts under that name, so rename or remove the file and retry", t.Path)
+		}
 		if action == "install" && ch.Before == nil && (t.Kind == "skill" || t.Kind == "agent") {
 			if t.Kind == "agent" && s.Exists {
 				return p, fmt.Errorf("unowned agent file: %s", t.Path)
@@ -625,6 +659,9 @@ func buildPlan(action string, o Options, adjust func(*Plan, State) error) (Plan,
 		return p, err
 	}
 	if err := planPiPackage(&p); err != nil {
+		return p, err
+	}
+	if err := planPiSubagentConfig(&p, state); err != nil {
 		return p, err
 	}
 	if err := planCodexWaitFloor(&p, o, state); err != nil {
@@ -712,6 +749,15 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 	if g.Target.Kind == "skill" || g.Target.Kind == "agent" || g.Target.Kind == "plugin" {
 		r.Mode = payloadMode(p.Release, g.Target.Source)
 	}
+	if generatedSkillPolicy(g.Target.Source) {
+		// The file is generated, so it takes the mode of the entry it belongs to.
+		entry, _ := strings.CutSuffix(g.Target.Source, "/"+codex.SkillPolicyFile)
+		r.Mode = payloadMode(p.Release, entry+"/SKILL.md")
+	}
+	if generatedStagePacket(g.Target.Source) {
+		// A packet takes the mode of the entry of the flow it belongs to.
+		r.Mode = payloadMode(p.Release, path.Dir(g.Target.Source)+"/SKILL.md")
+	}
 	if g.Target.Kind == "hook" {
 		r.Mode = 0644
 	}
@@ -727,6 +773,11 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 		var text []byte
 		for _, c := range g.Consumers {
 			rewritten := []byte(mdlinks.RewriteSkillLinks(string(payload(p.Release, g.Target.Source)), skillsDirFor(c.Host, p.Config)))
+			if part, isPart, err := antigravityRulePart(p.Config, p.Release, g.Target); err != nil {
+				return nil, err
+			} else if isPart {
+				rewritten = []byte(part)
+			}
 			if text != nil && !bytes.Equal(text, rewritten) {
 				return nil, fmt.Errorf("shared block rendering differs by host: %s", g.Target.Path)
 			}
@@ -734,9 +785,25 @@ func nextRecord(p Plan, g resource, old *Record, s snapshot, gone bool) (*Record
 		}
 		r.Managed = managedBlock(text, s.Data, hiveMarkers)
 		if old == nil || gone {
-			r.Leading = initialLeading(g.Target, s.Data)
+			r.Leading = initialLeading(p.Config, g.Target, s.Data)
 		}
 	case "skill":
+		if generatedSkillPolicy(g.Target.Source) {
+			body, err := renderSkillPolicy(g.Target, p)
+			if err != nil {
+				return nil, err
+			}
+			r.Managed = body
+			break
+		}
+		if generatedStagePacket(g.Target.Source) {
+			body, err := renderStagePacket(g.Target, p)
+			if err != nil {
+				return nil, err
+			}
+			r.Managed = body
+			break
+		}
 		r.Managed = payload(p.Release, g.Target.Source)
 	case "plugin":
 		if g.Target.Source != opencode.ContextLoaderSource || p.Config.Scope != "user" {
@@ -868,7 +935,7 @@ func BindSourceCommit(plan Plan, commit string) (Plan, error) {
 
 func validatePlan(p Plan, state State) error {
 	if p.ReleaseUpdate {
-		if p.Action != "install" || p.Config.Scope != "user" || p.UpdatePackage == nil || p.PiPackage != nil || p.CodexWaitFloor != nil {
+		if p.Action != "install" || p.Config.Scope != "user" || p.UpdatePackage == nil || p.PiPackage != nil || p.CodexWaitFloor != nil || p.PiSubagentConfig != nil {
 			return fmt.Errorf("invalid release update core plan; repair providers separately with hive install")
 		}
 		if err := releasePiPreflight(p); err != nil {
@@ -881,8 +948,9 @@ func validatePlan(p Plan, state State) error {
 	} else if p.UpdatePackage != nil {
 		return fmt.Errorf("unexpected update package")
 	}
-	// Plans saved before Cursor support omit cursor_home and still hash correctly.
-	if p.Version != stateVersion || p.ID != planID(p) || p.Config.CursorHome == "" {
+	// Plans saved before Cursor or Antigravity support omit cursor_home or
+	// antigravity_home; they are rejected so the current manager regenerates them.
+	if p.Version != stateVersion || p.ID != planID(p) || p.Config.CursorHome == "" || p.Config.AntigravityHome == "" {
 		return fmt.Errorf("invalid or legacy plan; regenerate with the current manager")
 	}
 	if p.SourceCommit != "" && !sourceCommitPattern.MatchString(p.SourceCommit) {
@@ -902,7 +970,7 @@ func validatePlan(p Plan, state State) error {
 	if p.Config.Scope != "user" && p.Config.Scope != "project" {
 		return fmt.Errorf("invalid plan scope")
 	}
-	for _, path := range []string{p.Config.Home, p.Config.CodexHome, p.Config.ClaudeHome, p.Config.GrokHome, p.Config.PiHome, p.Config.OpenCodeHome, p.Config.CursorHome, p.StateDir} {
+	for _, path := range []string{p.Config.Home, p.Config.CodexHome, p.Config.ClaudeHome, p.Config.GrokHome, p.Config.PiHome, p.Config.OpenCodeHome, p.Config.CursorHome, p.Config.AntigravityHome, p.StateDir} {
 		if path == "" || !filepath.IsAbs(path) || filepath.Clean(path) != path {
 			return fmt.Errorf("invalid root")
 		}
@@ -948,6 +1016,9 @@ func validatePlan(p Plan, state State) error {
 	if err := validateCodexWaitFloor(p); err != nil {
 		return err
 	}
+	if err := validatePiSubagentConfig(p); err != nil {
+		return err
+	}
 	if err := validateHostHooks(p); err != nil {
 		return err
 	}
@@ -988,7 +1059,7 @@ func validatePlan(p Plan, state State) error {
 				if old == nil || freshGone {
 					expected.Leading = ch.After.Leading
 				}
-				if expected.Leading != "" && expected.Leading != "\n" && expected.Leading != cursor.RuleFrontmatter {
+				if expected.Leading != "" && expected.Leading != "\n" && expected.Leading != cursor.RuleFrontmatter && expected.Leading != antigravity.RuleFrontmatter {
 					return fmt.Errorf("invalid separator")
 				}
 			}
@@ -1002,7 +1073,7 @@ func validatePlan(p Plan, state State) error {
 				return err
 			}
 			if finger(current) == ch.Expected && ch.After != nil && (old == nil || freshGone) && g.Target.Kind == "block" {
-				if ch.After.Leading != initialLeading(g.Target, current.Data) {
+				if ch.After.Leading != initialLeading(p.Config, g.Target, current.Data) {
 					return fmt.Errorf("invalid initial ownership")
 				}
 			}
@@ -1028,6 +1099,9 @@ func validateVoiceChanges(p Plan, state State) error {
 			return fmt.Errorf("duplicate voice change: %s", vc.Path)
 		}
 		seen[vc.Path] = true
+		if skipsVoice(p.Config, vc.Path) {
+			return fmt.Errorf("voice change on an Antigravity rule part after the first: %s", vc.Path)
+		}
 		if !voicePathIsRegisteredHiveBlock(p, state, vc.Path) {
 			return fmt.Errorf("voice change on an unregistered path: %s", vc.Path)
 		}
@@ -1118,6 +1192,28 @@ func Status(o Options) ([]StatusEntry, error) {
 	if err != nil {
 		return nil, err
 	}
+	policies, err := skillPolicyTargets(ts, state, nil)
+	if err != nil {
+		return nil, err
+	}
+	ts = append(ts, policies...)
+	packets, err := stagePacketTargets(ts, state, nil)
+	if err != nil {
+		return nil, err
+	}
+	ts = append(ts, packets...)
+	ruleParts, err := antigravityRuleTargets(c, h, state, nil)
+	if err != nil {
+		return nil, err
+	}
+	if len(ruleParts) == 0 && c.Scope == "user" {
+		for _, host := range h {
+			if host == "antigravity" {
+				ruleParts = append(ruleParts, target.Target{Source: GlobalSource, Path: antigravity.RulePath(c.AntigravityHome, 1), Kind: "block", Host: "antigravity", Scope: c.Scope, Context: c.Home})
+			}
+		}
+	}
+	ts = append(ts, ruleParts...)
 	pending, err := read(filepath.Join(dir, "pending.json"))
 	if err != nil {
 		return nil, err

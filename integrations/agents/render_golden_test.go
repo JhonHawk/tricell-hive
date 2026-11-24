@@ -36,7 +36,7 @@ func renderEverything(t *testing.T) []byte {
 			t.Fatal(err)
 		}
 		canonical := "content/agents/synthetic/" + filepath.Base(path)
-		for _, host := range []string{"claude", "codex", "cursor", "grok", "opencode", "pi"} {
+		for _, host := range []string{"antigravity", "claude", "codex", "cursor", "grok", "opencode", "pi"} {
 			rendered, err := Render(canonical, data, profiles, host, "/skills", nil)
 			if err != nil {
 				t.Fatalf("Render(%s, %s): %v", host, canonical, err)
@@ -49,6 +49,17 @@ func renderEverything(t *testing.T) []byte {
 	return out.Bytes()
 }
 
+// TestRenderGolden is the owner of every host's output format. Two choices it
+// pins have a reason that the bytes alone do not show:
+//
+// pi-subagents v0.67.0 parses list fields by splitting a scalar on commas;
+// JSON array syntax would make the two effective names `[\"write\"` and
+// `\"edit\"]`, neither of which matches Pi's built-in tools, so Pi renders
+// `excludeTools: write,edit`.
+//
+// An observe role on Antigravity carries no tools list and no readonly field:
+// agy has none, and a misspelled tool name hangs the subagent, so the role's
+// own instruction is the only restriction and must stay in the body.
 func TestRenderGolden(t *testing.T) {
 	got := renderEverything(t)
 	if *updateGolden {

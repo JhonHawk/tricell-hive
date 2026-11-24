@@ -1,0 +1,17 @@
+# Close modes
+
+Read when a close starts. Read it before step 1 of [flow-close](../../flow-close/SKILL.md). Find the row that fits, then run the steps as it says. A step with nothing to act on, such as the ticket move of work that was not integrated, is skipped.
+
+| Situation | Runs now | Waits | Ends with |
+| --- | --- | --- | --- |
+| Completion point reached, or an operational task ends ([proportionality](../plan/proportionality.md)) | Steps 1 to 7 in order, the branch cleanup included | Only an item that needs the user, each with its own question, asked after step 6: what the cleanup helper keeps for a reason the user resolves, a dump or export, and each remote resource | Step 8's [footer](../messages/report-endings.md#the-close-footer) |
+| Follow-up close of a pull request that waited at its completion point, abandoned work, a deploy's cleanup close, a hygiene request or the session's end for a work item with no earlier close, or any close under [unattended delegation](../../unattended-delegation/SKILL.md) other than a pause close | Every step | Nothing; it asks only the items the first row names | The report, without the footer, as [report endings](../messages/report-endings.md) sets |
+| Hygiene request, or the session's end, after the work item's close | Only the items still pending; the session's end repeats step 5 first | Nothing | What ran, as [close report](close-report.md#variants) sets, without the footer |
+| Work delivered under `hold`, before it is delivered | Step 1 pauses its viewer session; step 2 lists its support material without acting on it; step 5 stops the processes and containers it started and keeps everything else; step 6 reports as the `hold` row of [close report](close-report.md#variants) sets; step 7 records it in the close record; the checkpoint's `--unwritten` names what no file holds yet, as [checkpoint](../plan/checkpoint.md) sets, and no `wip:` commit is made | The full close, until the work is delivered and reaches its completion point | The report, without the footer, as [report endings](../messages/report-endings.md) sets |
+| Work paused outside `hold`, such as a plan paused before its build | As the `hold` row; the plan file stays local | The full close | The report, without the footer, as [report endings](../messages/report-endings.md) sets |
+
+- Step 1's viewer readback and receipts are kept as [close the viewer](../ui/viewer-close.md) sets.
+- Items that wait run in order when the user chooses to close (the footer's **Close** reply, which exists only while an item is pending), starts another work item or ends the session; report what they did, and update memory. If the session stops without a reply, a later close or hygiene request resumes them from step 7's close record in memory.
+- The session's end is a user message that ends it without asking for more work. Before the last message, repeat step 5; that message lists each item still pending with its question, each kept branch as ``kept `<branch>`: <reason>`` ([branch cleanup](../../flow-close/references/branch-cleanup.md) «Report»).
+
+Close a work item once. The follow-up close of a pull request that waited at its completion point, and the full close of `hold` work after its pause close, are part of that close, not a repeat. After the footer's reply, act on it; do not run the close or its final report again.

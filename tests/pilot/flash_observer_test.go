@@ -42,7 +42,7 @@ import fs from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import plugin, { requestText, inspectReference } from './pilot-observer/index.js';
 const canonical = '# Canonical reference\nDo not execute the reviewed plan.\n';
-const resource = 'flow-plan/references/plan-review.md';
+const resource = 'flow-plan/SKILL.md';
 await fs.writeFile('canonical.md', canonical);
 const hooks = new Map(); let disposed = 0;
 const ctx = { options: {output:'proof.jsonl',canonical:'canonical.md',resource,role:'hive-review-plan'},

@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"sort"
+	"strings"
 	"testing"
 	"unicode/utf8"
 )
@@ -50,17 +53,26 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 	const skills = "content/skills/"
 	// Predicates are explicit scenarios, not a transitive inventory of links.
 	common := []string{global}
-	question := common
+	// The question rules live in rule leaves the index and the flow steps link.
+	question := []string{global, skills + "hive-core/messages/questions.md"}
 	cycle := append(append([]string{}, question...),
+		skills+"hive-core/git/delivery-ask.md", skills+"hive-core/plan/project-settings.md", skills+"hive-core/tracker/ticket-state.md",
 		skills+"flow-plan/SKILL.md", skills+"flow-build/SKILL.md", skills+"flow-close/SKILL.md",
-		skills+"flow-research/SKILL.md", skills+"flow-verify/SKILL.md",
+		skills+"hive-mode/SKILL.md", skills+"flow-verify/SKILL.md",
+		skills+"hive-core/plan/proportionality.md", skills+"hive-core/close/close-cleanup.md",
 		"content/agents/review/hive-review-plan.md",
 		"content/agents/development/hive-build-backend.md",
 		"content/agents/quality/hive-verify-task.md",
 	)
 	// Minimal skills (skills-rebuild): sources absent from the baseline commit.
 	moved := map[string]bool{
-		skills + "flow-verify/SKILL.md": true,
+		skills + "flow-verify/SKILL.md":               true,
+		skills + "hive-core/messages/questions.md":    true,
+		skills + "hive-core/git/delivery-ask.md":      true,
+		skills + "hive-core/plan/project-settings.md": true,
+		skills + "hive-core/tracker/ticket-state.md":  true,
+		skills + "hive-core/plan/proportionality.md":  true,
+		skills + "hive-core/close/close-cleanup.md":   true,
 	}
 	scenarios := []struct {
 		name, predicate string
@@ -95,7 +107,7 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 				return size
 			}
 			before := measure("A d5164f71", baseline, func(path string) ([]byte, error) {
-				return exec.Command("git", "show", "d5164f71:"+path).Output()
+				return exec.Command("git", "show", "d5164f71:"+baselinePath(path)).Output()
 			})
 			after := measure("B working tree", scenario.paths, func(path string) ([]byte, error) {
 				return os.ReadFile("../../" + path)
@@ -104,4 +116,288 @@ func TestGuidanceReadingFootprint(t *testing.T) {
 		})
 	}
 	t.Log("C uses B's canonical sources; mapped plan-review injection adds no unique source to this cycle. Raw source frontmatter is counted. This is not per-request context or actual tokens. Native rendering and skill/role discovery metadata, plugin metadata/wrappers, repeated text across readers/requests, history, project inputs and host policy are not measured. Pilots must observe delivery and token usage separately.")
+}
+
+// baselinePath maps a current path to the path it had at a baseline commit:
+// hive-mode was flow-research there, so its entry compares with the old one.
+func baselinePath(path string) string {
+	return strings.Replace(path, "content/skills/hive-mode/", "content/skills/flow-research/", 1)
+}
+
+// Compare the same pre-existing sources on both sides; new sources are separate.
+// The legacy scenario above remains identifiable rather than being silently expanded.
+func TestRequiredProcedureReadingFootprint(t *testing.T) {
+	const base = "2bb96478"
+	root, err := filepath.Abs("../..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	skills := "content/skills/"
+	cycle := []string{
+		"content/guidance/global.md",
+		skills + "hive-core/messages/questions.md",
+		skills + "hive-core/git/delivery-ask.md", skills + "hive-core/plan/project-settings.md",
+		skills + "hive-core/tracker/ticket-state.md",
+		skills + "hive-core/plan/proportionality.md", skills + "hive-core/close/close-cleanup.md",
+		skills + "hive-core/close/close-modes.md", skills + "hive-core/close/close-hygiene.md", skills + "hive-core/close/close-report.md",
+		skills + "hive-mode/SKILL.md", skills + "flow-plan/SKILL.md",
+		skills + "flow-build/SKILL.md", skills + "flow-verify/SKILL.md", skills + "flow-close/SKILL.md",
+		skills + "hive-core/delegation/delegation.md", skills + "hive-core/delegation/child-brief.md", skills + "hive-core/delegation/reviewer-brief.md",
+		skills + "flow-plan/references/plan-handoff.md",
+		skills + "hive-core/business/business-rules.md", skills + "hive-core/business/business-record.md", skills + "hive-core/business/business-ticket.md",
+		skills + "project-layout/references/layout.md", skills + "flow-close/references/support-material.md",
+		skills + "hive-core/review/suppression-review.md",
+		skills + "hive-core/plan/reuse-before-writing.md", skills + "hive-core/build/tests.md", skills + "hive-core/plan/checkpoint.md",
+		skills + "hive-core/build/checks.md", skills + "hive-core/plan/plan-record.md", skills + "hive-core/review/review-findings.md",
+		skills + "hive-core/review/review-evidence.md",
+		skills + "hive-core/messages/report-endings.md", skills + "hive-core/git/git-commit.md", skills + "hive-core/git/merge-gate.md",
+		"content/agents/review/hive-review-plan.md", "content/agents/development/hive-build-backend.md",
+		"content/agents/quality/hive-verify-task.md", "content/agents/review/hive-review-code.md",
+	}
+	e2e := append(append([]string{}, cycle...),
+		skills+"flow-build/references/e2e-coordination.md", skills+"flow-plan/references/execution-record.md",
+		skills+"hive-core/build/defect-fix.md", skills+"git-workflow/SKILL.md",
+		skills+"flow-close/references/branch-cleanup.md", "content/agents/development/hive-build-owner.md",
+		skills+"hive-core/git/pr-reviews.md",
+		// flow-verify reads project verification only for E2E work or a change to a verification command.
+		skills+"hive-core/build/project-verification.md", skills+"hive-core/build/project-verification-format.md",
+	)
+	// baselineCycle is the plan-build-required list as 2bb96478 declared it: the
+	// sources the same scenario read before the rules moved into leaves.
+	baselineCycle := []string{
+		"content/guidance/global.md",
+		skills + "flow-research/SKILL.md", skills + "flow-plan/SKILL.md",
+		skills + "flow-build/SKILL.md", skills + "flow-verify/SKILL.md", skills + "flow-close/SKILL.md",
+		skills + "flow-build/references/delegation.md",
+		skills + "flow-plan/references/plan-handoff.md", skills + "flow-plan/references/business-rules.md",
+		skills + "project-layout/references/layout.md", skills + "flow-close/references/support-material.md",
+		skills + "flow-verify/references/project-verification.md", skills + "flow-verify/references/suppression-review.md",
+		"content/agents/review/hive-review-plan.md", "content/agents/development/hive-build-backend.md",
+		"content/agents/quality/hive-verify-task.md", "content/agents/review/hive-review-code.md",
+	}
+	// A source is new when its baseline path does not exist at the base commit.
+	added := func(path string) bool {
+		return exec.Command("git", "-C", root, "cat-file", "-e", base+":"+baselinePath(path)).Run() != nil
+	}
+	for _, scenario := range []struct {
+		name, predicate string
+		paths           []string
+	}{
+		{"plan-build-required", "retained backend plan, delegated implementation and independent reviews; project verification contract maintained; hold and pause; no UI, external system, data migration, defect correction or unattended authority", cycle},
+		{"e2e", "same backend plan with explicit multiunit E2E grant, local owners, correction, replacement, independent verification and authorized Git integration; no UI, data migration, deployment or unattended authority", e2e},
+		{"executable-resources", "execution rather than mandatory source reading: task/plan, project contract, scoped Git and cleanup helpers; never added to the prose union", []string{skills + "flow-plan/scripts/tasks.py", skills + "flow-plan/scripts/check_change.py", skills + "flow-verify/scripts/check_contract.py", skills + "git-workflow/scripts/git_state.py", skills + "flow-close/scripts/cleanup_branches.py"}},
+	} {
+		t.Run(scenario.name, func(t *testing.T) {
+			t.Logf("predicate: %s", scenario.predicate)
+			before, comparable, fresh, prose, references, code := 0, 0, 0, 0, 0, 0
+			_, err := readingUnion(scenario.paths, func(path string) ([]byte, error) {
+				data, err := os.ReadFile(filepath.Join(root, path))
+				if err != nil {
+					return nil, err
+				}
+				kind := "prose"
+				if isReferencePath(root, path) {
+					kind = "reference"
+					references += len(data)
+				} else if strings.HasSuffix(path, ".py") {
+					kind = "code"
+					code += len(data)
+				} else {
+					prose += len(data)
+				}
+				if added(path) {
+					fresh += len(data)
+					t.Logf("new %s %s: %d B", kind, path, len(data))
+				} else {
+					old, err := exec.Command("git", "-C", root, "show", base+":"+baselinePath(path)).Output()
+					if err != nil {
+						return nil, fmt.Errorf("baseline %s: %w", path, err)
+					}
+					before += len(old)
+					comparable += len(data)
+					t.Logf("same-path %s %s: %d -> %d B", kind, path, len(old), len(data))
+				}
+				return data, nil
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Logf("same-path baseline %s: %d B -> %d B (%+d); new sources %d B; total %d B; prose %d B; references %d B; executable code %d B", base, before, comparable, comparable-before, fresh, comparable+fresh, prose, references, code)
+			if scenario.name == "plan-build-required" {
+				declared, err := readingUnion(baselineCycle, func(path string) ([]byte, error) {
+					return exec.Command("git", "-C", root, "show", base+":"+path).Output()
+				})
+				if err != nil {
+					t.Fatal(err)
+				}
+				// The baseline reads files that no longer exist; the candidate reads
+				// their rules through leaves, which the new-source line above reports apart.
+				// git-commit and merge-gate select moments the baseline list never read
+				// (it held no git-workflow), so they are reported apart too and the
+				// comparison with the baseline is made without them.
+				extra := 0
+				for _, path := range []string{skills + "hive-core/git/git-commit.md", skills + "hive-core/git/merge-gate.md"} {
+					data, err := os.ReadFile(filepath.Join(root, path))
+					if err != nil {
+						t.Fatal(err)
+					}
+					extra += len(data)
+				}
+				like := comparable + fresh - extra
+				t.Logf("plan/build union at %s (its declared list): %d B; candidate with every selected leaf: %d B (%+d B, %+.2f%%), of which new sources %d B", base, declared.bytes, comparable+fresh, comparable+fresh-declared.bytes, 100*float64(comparable+fresh-declared.bytes)/float64(declared.bytes), fresh)
+				t.Logf("moments the baseline list did not read (git-commit, merge-gate): %d B; candidate without them: %d B (%+d B, %+.2f%%)", extra, like, like-declared.bytes, 100*float64(like-declared.bytes)/float64(declared.bytes))
+				// The change conditional-plan-reviewers grew the union by 182 B after its
+				// cuts (the domain condition and counting rules of flow-plan step 5 and the
+				// plan reviewers' reread in reviewer-brief); the user accepted that growth
+				// on 2026-11-21.
+				const planReviewAllowance = 182
+				// The change reporting-family-leaves moved the text of next-step-block and
+				// close-footer, which this list did not read, into report-endings and
+				// close-report, which it reads whole at each stage's end; the user accepted
+				// that growth on 2026-11-21 (D12 A), measured again after the fixes of
+				// its review findings.
+				const reportingFamilyAllowance = 9230
+				// The change reuse-sound-base grew rung 2 of reuse-before-writing and the
+				// code reviewer's check of what new code reuses; the user accepted that
+				// growth on 2026-11-21 (D1 A); measured again after decision D2 A, on
+				// development at 01efd12c.
+				const reuseSoundBaseAllowance = 1111
+				// The change project-skill-registry-mobile added the brief's copy of a
+				// project's ## Skills lines to child-brief and reviewer-brief; the user
+				// accepted that growth on 2026-11-21 (D6 A), on development at 867f5463.
+				const skillRegistryAllowance = 353
+				allowance := planReviewAllowance + reportingFamilyAllowance + reuseSoundBaseAllowance + skillRegistryAllowance
+				if like >= declared.bytes+allowance {
+					t.Errorf("plan-build-required union without the moments the baseline did not read is %d B, not below the baseline %d B plus the %d B allowance", like, declared.bytes, allowance)
+				}
+			}
+		})
+	}
+	t.Run("plan-build-packets", func(t *testing.T) {
+		t.Logf("predicate: the plan-build-required route when each flow it enters reads its stage packet whole at entry; a source a packet holds is not read again")
+		packetReads := planBuildPacketReads(t, root, cycle)
+		if len(packetReads.reads) > planBuildPacketReadLimit {
+			t.Errorf("plan/build with packets declares %d file reads, over %d: %v", len(packetReads.reads), planBuildPacketReadLimit, packetReads.reads)
+		}
+		t.Logf("file reads: %d (without packets: %d)", len(packetReads.reads), len(cycle))
+		t.Logf("bytes without repetitions: %d B", packetReads.unique)
+		t.Logf("leaves the packets bring that the route did not read: %d B %v", packetReads.newBytes, packetReads.newLeaves)
+		t.Logf("bytes with repetitions (each packet counts its members again): %d B", packetReads.repeated)
+	})
+	t.Log("Explicit source unions, not transitive loading or observed tokens. Excludes native metadata/rendering, repeated reads, project inputs, history and host policies. Executable resources are measured separately, not presumed read by a model. No aggregate quota; each entrypoint keeps its 16000-byte check and each other whole-read file its 24000-byte check.")
+}
+
+// planBuildPacketReadLimit is the most file reads the plan/build route may
+// declare once its flows read stage packets (D6 A).
+const planBuildPacketReadLimit = 26
+
+// planBuildRouteFlows are the flows the plan/build route enters; each reads its
+// stage packets at entry.
+var planBuildRouteFlows = []string{"hive-mode", "flow-plan", "flow-build", "flow-verify", "flow-close"}
+
+type packetRoute struct {
+	reads            []string
+	unique, repeated int
+	newBytes         int
+	newLeaves        []string
+}
+
+// planBuildPacketReads replaces each source of the route that a packet of the
+// route's flows holds by that packet, read once. The packet's size is the sum
+// of its members plus one heading per member and its end line, before the
+// manager rewrites links. The comparison with the baseline stays on the route's
+// own sources: the leaves a packet adds and the repeated members are reported
+// apart and do not count against it.
+func planBuildPacketReads(t *testing.T, root string, route []string) packetRoute {
+	t.Helper()
+	skills := "content/skills/"
+	size := func(path string) int {
+		data, err := os.ReadFile(filepath.Join(root, path))
+		if err != nil {
+			t.Fatal(err)
+		}
+		return len(data)
+	}
+	held := map[string]bool{}
+	var result packetRoute
+	for _, flow := range planBuildRouteFlows {
+		manifest := readStageManifest(t, flow)
+		keys := make([]string, 0, len(manifest))
+		for key := range manifest {
+			keys = append(keys, key)
+		}
+		sort.Strings(keys)
+		for _, key := range keys {
+			members := manifest[key]
+			packet := len("<!-- hive packet end: " + key + " ·  -->\n")
+			for _, member := range members {
+				held[skills+member] = true
+				packet += size(skills+member) + len("## "+strings.TrimSuffix(member, ".md")+"\n\n") + len(member)
+			}
+			result.reads = append(result.reads, skills+flow+"/"+key+".md")
+			result.repeated += packet
+		}
+	}
+	inRoute := map[string]bool{}
+	for _, path := range route {
+		inRoute[path] = true
+		if !held[path] {
+			result.reads = append(result.reads, path)
+			result.repeated += size(path)
+		}
+	}
+	for path := range held {
+		result.unique += size(path)
+		if !inRoute[path] {
+			result.newBytes += size(path)
+			result.newLeaves = append(result.newLeaves, strings.TrimSuffix(filepath.Base(path), ".md"))
+		}
+	}
+	for _, path := range route {
+		if !held[path] {
+			result.unique += size(path)
+		}
+	}
+	sort.Strings(result.newLeaves)
+	return result
+}
+
+// isReferencePath classifies a source of the reading union as a reference: a
+// file under a skill's references folder or in a hive-core domain folder.
+func isReferencePath(root, path string) bool {
+	if strings.Contains(path, "/references/") {
+		return true
+	}
+	coreDir := "content/skills/" + coreSkillName + "/"
+	if !strings.HasPrefix(path, coreDir) {
+		return false
+	}
+	domains, err := readDomains(filepath.Join(root, "content", "skills", coreSkillName))
+	if err != nil {
+		return false
+	}
+	for _, domain := range domains {
+		if strings.HasPrefix(path, coreDir+domain+"/") {
+			return true
+		}
+	}
+	return false
+}
+
+func TestIsReferencePathFollowsTheDomainList(t *testing.T) {
+	root := t.TempDir()
+	writeFile(t, filepath.Join(root, "content", "skills", coreSkillName, "assets", "domains.json"), `{"domains": ["build", "principles"]}`)
+	for path, want := range map[string]bool{
+		"content/skills/hive-core/build/tests.md":            true,
+		"content/skills/hive-core/principles/index.md":       true,
+		"content/skills/hive-core/scripts/x/run.py":          false,
+		"content/skills/hive-core/other/x.md":                false,
+		"content/skills/flow-plan/references/plan.md":        true,
+		"content/skills/flow-plan/SKILL.md":                  false,
+		"content/skills/hive-core/build/checks/run-check.md": true,
+	} {
+		if got := isReferencePath(root, path); got != want {
+			t.Errorf("isReferencePath(%q) = %v, want %v", path, got, want)
+		}
+	}
 }

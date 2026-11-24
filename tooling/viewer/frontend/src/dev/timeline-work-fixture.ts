@@ -5,7 +5,7 @@ import type {
 } from "../timeline-contract";
 import type { TimelineTaskState } from "../timeline-contract-v3";
 import { timelineFixture } from "./timeline-fixture";
-export function workFixture(scenario = "cam"): TimelineSessionResponse {
+export function workFixture(scenario = "project-g"): TimelineSessionResponse {
   const data = structuredClone(timelineFixture),
     s = data.session;
   s.candidates.push({

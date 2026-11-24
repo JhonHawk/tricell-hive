@@ -18,25 +18,25 @@ func workKeyRequest(base TimelineCreateSessionRequest, operation string, key *st
 
 func TestTimelineWorkKeysSplitAndResumeWorkInOneNativeSession(t *testing.T) {
 	s, base := newTimelineFixture(t)
-	first, err := s.TimelineCreate(workKeyRequest(base, "op-a", timelineString("COM-1")))
+	first, err := s.TimelineCreate(workKeyRequest(base, "op-a", timelineString("PRJ-1")))
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, err := s.TimelineCreate(workKeyRequest(base, "op-b", timelineString("COM-2")))
+	second, err := s.TimelineCreate(workKeyRequest(base, "op-b", timelineString("PRJ-2")))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if first.Session.ViewerSessionID == second.Session.ViewerSessionID {
 		t.Fatal("two work keys shared one viewer session")
 	}
-	resumed, err := s.TimelineCreate(workKeyRequest(base, "op-c", timelineString("COM-1")))
+	resumed, err := s.TimelineCreate(workKeyRequest(base, "op-c", timelineString("PRJ-1")))
 	if err != nil {
 		t.Fatal(err)
 	}
 	if resumed.Session.ViewerSessionID != first.Session.ViewerSessionID || resumed.Created == nil || *resumed.Created {
 		t.Fatalf("same work key did not resume: %+v", resumed.Created)
 	}
-	if first.Session.WorkKey == nil || *first.Session.WorkKey != "COM-1" || resumed.Session.WorkKey == nil || *resumed.Session.WorkKey != "COM-1" {
+	if first.Session.WorkKey == nil || *first.Session.WorkKey != "PRJ-1" || resumed.Session.WorkKey == nil || *resumed.Session.WorkKey != "PRJ-1" {
 		t.Fatal("response did not echo the requested work key")
 	}
 	if _, err = s.TimelineGet(first.Session.ViewerSessionID); err != nil {
@@ -44,7 +44,7 @@ func TestTimelineWorkKeysSplitAndResumeWorkInOneNativeSession(t *testing.T) {
 	}
 	other := base
 	other.Source.NativeSessionID = "native-2"
-	elsewhere, err := s.TimelineCreate(workKeyRequest(other, "op-d", timelineString("COM-1")))
+	elsewhere, err := s.TimelineCreate(workKeyRequest(other, "op-d", timelineString("PRJ-1")))
 	if err != nil || elsewhere.Session.ViewerSessionID == first.Session.ViewerSessionID {
 		t.Fatal("work key crossed native sessions", err)
 	}
@@ -81,7 +81,7 @@ func TestTimelineWithoutWorkKeyCreatesOneWorkPerOperation(t *testing.T) {
 
 func TestTimelineWorkKeysSurviveRestart(t *testing.T) {
 	s, base := newTimelineFixture(t)
-	keyed := createTimeline(t, s, workKeyRequest(base, "op-k", timelineString("COM-9")))
+	keyed := createTimeline(t, s, workKeyRequest(base, "op-k", timelineString("PRJ-9")))
 	anonymous := createTimeline(t, s, workKeyRequest(base, "op-x", nil))
 	restarted, err := Open(Options{StateDir: filepath.Dir(s.Dir())})
 	if err != nil {
@@ -93,7 +93,7 @@ func TestTimelineWorkKeysSurviveRestart(t *testing.T) {
 			t.Fatal("restart lost a work", err)
 		}
 	}
-	again, err := restarted.TimelineCreate(workKeyRequest(base, "op-later", timelineString("COM-9")))
+	again, err := restarted.TimelineCreate(workKeyRequest(base, "op-later", timelineString("PRJ-9")))
 	if err != nil || again.Session.ViewerSessionID != keyed.ViewerSessionID || *again.Created {
 		t.Fatal("restart changed the work key derivation", err)
 	}
@@ -184,7 +184,7 @@ func TestTimelineEmptyWorkKeyKeepsThePinnedDerivation(t *testing.T) {
 
 func TestTimelineCreateRejectsInvalidWorkKeys(t *testing.T) {
 	s, base := newTimelineFixture(t)
-	for _, bad := range []string{"", " COM-1", "COM 1", "COM\u0007", strings.Repeat("k", 129)} {
+	for _, bad := range []string{"", " PRJ-1", "PRJ 1", "PRJ\u0007", strings.Repeat("k", 129)} {
 		_, err := s.TimelineCreate(workKeyRequest(base, "op-bad", timelineString(bad)))
 		requireTimelineCode(t, err, "invalid_text")
 	}
@@ -194,7 +194,7 @@ func TestTimelineCreateRejectsInvalidWorkKeys(t *testing.T) {
 // names no work, so /files/ must not treat it as owned.
 func TestTimelineKeyedWorkDoesNotOwnTheBareTupleID(t *testing.T) {
 	s, base := newTimelineFixture(t)
-	v := createTimeline(t, s, workKeyRequest(base, "op-keyed", timelineString("COM-9")))
+	v := createTimeline(t, s, workKeyRequest(base, "op-keyed", timelineString("PRJ-9")))
 	if !s.timelineHasID(v.ViewerSessionID) {
 		t.Fatal("work does not own its own ID")
 	}

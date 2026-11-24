@@ -25,6 +25,10 @@
     "cursor": {
       "models": {"execution": {"model": "inherit"}, "reasoning": {"model": "inherit"}, "inherit": {"model": "inherit"}, "verifier": {"model": "inherit"}},
       "access": {"observe": {"readonly": true}, "implement": {}, "verify": {}}
+    },
+    "antigravity": {
+      "models": {"execution": {"model": "inherit"}, "reasoning": {"model": "inherit"}, "inherit": {"model": "inherit"}, "verifier": {"model": "inherit"}},
+      "access": {"observe": {}, "implement": {}, "verify": {}}
     }
   }
 }

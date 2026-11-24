@@ -115,7 +115,7 @@ func TestWorkSyncBuildWithoutPlanInThreeCommands(t *testing.T) {
 		}
 	}
 	// The work is no longer current: a command without --work-id has none to act on.
-	if _, err := s.run("", "close", "--outcome", "completed", "--reason", "Again"); err == nil || !strings.Contains(err.Error(), "required semantic field missing") {
+	if _, err := s.run("", "close", "--outcome", "completed", "--reason", "Again"); err == nil || !strings.Contains(err.Error(), "work-id required: this session has no open work") {
 		t.Fatalf("a closed work stayed current: %v", err)
 	}
 }
@@ -159,6 +159,54 @@ func TestWorkSyncAddsTasksLaterAndWalksThroughStates(t *testing.T) {
 	}
 }
 
+// A registered task moves with its key and state alone, as the publication
+// reference tells agents; only a task sync has to create needs a title, and a
+// declaration that would create one without it writes nothing.
+func TestWorkSyncMovesARegisteredTaskByKeyAndState(t *testing.T) {
+	s := newSyncCLI(t)
+	open := decodeSync(t, s.must("", "open", "--project", s.project, "--key", "by-key", "--title", "By key", "--summary", "State updates name the task by key"))
+	s.must(syncThreeTasks, "sync", "--stage", "build", "--state", "in_progress", "--reason", "Start", "--tasks", "-")
+	r := decodeSync(t, s.must(`[{"key":"T1","state":"completed"},{"key":"T2","state":"in_progress"}]`, "sync", "--stage", "build", "--state", "in_progress", "--reason", "Progress", "--tasks", "-"))
+	if r.Result != "updated" || len(r.Tasks) != 2 || r.Tasks[0].State != "completed" || r.Tasks[1].State != "in_progress" {
+		t.Fatalf("%+v", r)
+	}
+	work := s.session(open.WorkID)
+	if got := workLifecycleTask(work, "T1"); got == nil || got.Title != "Parse the input" || got.Segments[0].State != "completed" {
+		t.Fatalf("T1 %+v", got)
+	}
+	before := work.Version
+	_, err := s.run(`[{"key":"T1","state":"completed"},{"key":"T4","state":"in_progress"}]`, "sync", "--stage", "build", "--state", "in_progress", "--reason", "New task", "--tasks", "-")
+	if err == nil || !strings.Contains(err.Error(), "task_title_required") {
+		t.Fatalf("a new task without a title: %v", err)
+	}
+	if after := s.session(open.WorkID); after.Version != before || len(after.Tasks) != 3 {
+		t.Fatalf("the rejected declaration wrote: version %d -> %d, %d tasks", before, after.Version, len(after.Tasks))
+	}
+}
+
+// A sync on a closed work reports the closed work, not the title a task it
+// names lacks, so the agent fixes the real condition first.
+func TestWorkSyncOnAClosedWorkReportsItBeforeAMissingTitle(t *testing.T) {
+	s := newSyncCLI(t)
+	open := decodeSync(t, s.must("", "open", "--project", s.project, "--key", "closed-first", "--title", "Closed first", "--summary", "Error order"))
+	s.must("", "sync", "--stage", "build", "--state", "in_progress", "--reason", "Start", "--close", "completed")
+	_, err := s.run(`[{"key":"T5","state":"in_progress"}]`, "sync", "--work-id", open.WorkID, "--stage", "build", "--state", "in_progress", "--reason", "Late", "--previous-stage", "build", "--tasks", "-")
+	if err == nil || !strings.Contains(err.Error(), "session_closed") {
+		t.Fatalf("got %v, want session_closed", err)
+	}
+}
+
+// show acts on the session's current work when --work-id is omitted, as the
+// publication reference says.
+func TestWorkShowUsesTheCurrentWork(t *testing.T) {
+	s := newSyncCLI(t)
+	open := decodeSync(t, s.must("", "open", "--project", s.project, "--key", "show-current", "--title", "Show current", "--summary", "No work ID"))
+	out := s.must("", "show")
+	if !strings.Contains(out, open.WorkID) {
+		t.Fatalf("show without --work-id: %.200s", out)
+	}
+}
+
 func TestWorkSyncRejectsInvalidDeclarationsOffline(t *testing.T) {
 	id := strings.Repeat("a", 64)
 	base := []string{"sync", "--work-id", id, "--host", "codex", "--native-session-id", "s1", "--stage", "build", "--state", "in_progress", "--reason", "Sync", "--tasks", "-"}
@@ -169,7 +217,7 @@ func TestWorkSyncRejectsInvalidDeclarationsOffline(t *testing.T) {
 		{"state", `[{"key":"T1","title":"A","state":"done"}]`, "tasks[0].state: unsupported state"},
 		{"blocked without block", `[{"key":"T1","title":"A","state":"blocked"}]`, "tasks[0]"},
 		{"unknown field", `[{"key":"T1","title":"A","order":1}]`, "tasks[0].order: unknown field"},
-		{"missing title", `[{"key":"T1"}]`, "tasks[0].title"},
+		{"empty title", `[{"key":"T1","title":" "}]`, "tasks[0].title"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			_, err := parseViewWorkCommand(base, strings.NewReader(tc.raw))

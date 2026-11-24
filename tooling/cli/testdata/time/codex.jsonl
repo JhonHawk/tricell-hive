@@ -1,0 +1,23 @@
+{"timestamp":"2026-01-01T10:00:00.000Z","type":"session_meta","payload":{"id":"c"}}
+{"timestamp":"2026-01-01T10:00:00.500Z","type":"event_msg","payload":{"type":"task_started"}}
+{"timestamp":"2026-01-01T10:00:01.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"# AGENTS.md instructions for /project\n\n<INSTRUCTIONS>rules</INSTRUCTIONS>"}]}}
+{"timestamp":"2026-01-01T10:00:02.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"hello"}]}}
+{"timestamp":"2026-01-01T10:00:10.000Z","type":"response_item","payload":{"type":"function_call","name":"exec_command","arguments":"{\"cmd\":\"gh pr checks 1 --watch --interval 10\"}","call_id":"c1"}}
+{"timestamp":"2026-01-01T10:00:11.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"c1","output":"{\"chunk_id\":\"a\",\"wall_time_seconds\":1.0,\"session_id\":777,\"output\":\"Refreshing checks\"}"}}
+{"timestamp":"2026-01-01T10:00:20.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","input":"text(await tools.write_stdin({session_id:777,chars:\"\",yield_time_ms:45000}))","call_id":"c2"}}
+{"timestamp":"2026-01-01T10:00:21.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"c2","output":"Script running with cell ID g1:2\nWall time 1.0 seconds\nOutput:\n"}}
+{"timestamp":"2026-01-01T10:00:30.000Z","type":"response_item","payload":{"type":"function_call","name":"wait","arguments":"{\"cell_id\":\"g1:2\",\"yield_time_ms\":45000}","call_id":"c3"}}
+{"timestamp":"2026-01-01T10:03:00.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"steer: keep going"}]}}
+{"timestamp":"2026-01-01T10:05:30.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"c3","output":[{"type":"input_text","text":"Script completed\nWall time 300.0 seconds\nOutput:\n"}]}}
+{"timestamp":"2026-01-01T10:05:40.000Z","type":"response_item","payload":{"type":"function_call","name":"request_user_input","arguments":"{\"questions\":[]}","call_id":"c4"}}
+{"timestamp":"2026-01-01T10:06:10.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"c4","output":"{\"answers\":{}}"}}
+{"timestamp":"2026-01-01T10:06:20.000Z","type":"event_msg","payload":{"type":"task_complete"}}
+{"timestamp":"2026-01-01T10:07:19.800Z","type":"event_msg","payload":{"type":"task_started"}}
+{"timestamp":"2026-01-01T10:07:20.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"next step"}]}}
+{"timestamp":"2026-01-01T10:07:20.100Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"<skill>\n<name>flow-build</name>\n</skill>"}]}}
+{"timestamp":"2026-01-01T10:07:30.000Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"working"}]}}
+{"timestamp":"2026-01-01T10:08:00.000Z","type":"event_msg","payload":{"type":"task_complete"}}
+{"timestamp":"2026-01-01T10:09:00.000Z","type":"event_msg","payload":{"type":"user_message","message":"thanks"}}
+{"timestamp":"2026-01-01T10:09:00.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"thanks"}]}}
+{"timestamp":"2026-01-01T10:09:20.000Z","type":"response_item","payload":{"type":"message","role":"assistant","content":[{"type":"output_text","text":"welcome"}]}}
+{"timestamp":"2026-01-01T10:09:30.000Z","type":"event_msg","payload":{"type":"task_complete"}}

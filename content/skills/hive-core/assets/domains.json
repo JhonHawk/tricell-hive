@@ -1,0 +1,16 @@
+{
+  "domains": [
+    "messages",
+    "git",
+    "plan",
+    "build",
+    "delegation",
+    "ui",
+    "review",
+    "business",
+    "close",
+    "local",
+    "tracker",
+    "principles"
+  ]
+}

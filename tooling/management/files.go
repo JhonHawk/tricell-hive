@@ -9,10 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync/atomic"
 	"syscall"
-	"testing"
 	"tricell-hive/integrations/target"
+	"tricell-hive/tooling/durable"
 	"tricell-hive/tooling/legacy"
 )
 
@@ -72,6 +71,9 @@ func removeOrphanWrites(stateDir string, j journal) {
 	if j.CodexLines != nil {
 		dirs[filepath.Dir(j.CodexLines.Path)] = true
 	}
+	if j.PiConfig != nil {
+		dirs[filepath.Dir(j.PiConfig.Path)] = true
+	}
 	for _, le := range j.HostHooks {
 		dirs[filepath.Dir(le.Path)] = true
 	}
@@ -107,7 +109,7 @@ func write(path string, s snapshot) error {
 		_, err = f.Write(s.Data)
 	}
 	if err == nil {
-		err = syncFile(f)
+		err = durable.Sync(f)
 	}
 	cerr := f.Close()
 	if err == nil {
@@ -127,34 +129,9 @@ func write(path string, s snapshot) error {
 		return err
 	}
 	defer d.Close()
-	return syncFile(d)
+	return durable.Sync(d)
 }
 
-// skipDiskSync, when set, stops writes from being flushed to stable storage.
-// Its zero value keeps syncing on in production; only test code sets it.
-var skipDiskSync atomic.Bool
-
-// isTestBinary reports whether the process is a test binary. It is a variable
-// so a test can simulate a production binary.
-var isTestBinary = testing.Testing
-
-// DisableDiskSyncForTests turns off fsync for the rest of the process. Only
-// test binaries call it, from TestMain: production code must keep its
-// durability guarantee, so it panics anywhere else.
-func DisableDiskSyncForTests() {
-	if !isTestBinary() {
-		panic("DisableDiskSyncForTests called outside a test binary")
-	}
-	skipDiskSync.Store(true)
-}
-
-// syncFile flushes a file or directory unless disk sync is disabled.
-func syncFile(f *os.File) error {
-	if skipDiskSync.Load() {
-		return nil
-	}
-	return f.Sync()
-}
 func writeJSON(path string, v any) error {
 	return write(path, snapshot{Exists: true, Data: encode(v), Mode: 0600})
 }

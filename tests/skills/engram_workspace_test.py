@@ -6,7 +6,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-HELPER = ROOT / "content/skills/engram-init-workspace/scripts/init_workspace.py"
+HELPER = ROOT / "content/skills/audit-harness/scripts/init_workspace.py"
 
 
 class EngramWorkspaceHelperTest(unittest.TestCase):

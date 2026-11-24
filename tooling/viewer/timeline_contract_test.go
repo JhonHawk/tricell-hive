@@ -3,6 +3,7 @@ package viewer
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"os"
 	"strings"
 	"testing"
@@ -445,5 +446,185 @@ func TestTimelineContractDocumentResponsePreservesUTF8BOM(t *testing.T) {
 	}
 	if response.Document.SHA256 != "d58e2f6d5d846c4960387b9afdac5ec7aba37d6785782cd7d6f9d057990eeb43" {
 		t.Fatal("BOM bytes omitted from digest")
+	}
+}
+
+// timelineKindBase returns a valid append-event request of the given kind, so
+// that adding one kind-dependent field is the only reason it can be rejected.
+func timelineKindBase(t *testing.T, kind string) TimelineAppendEventRequest {
+	t.Helper()
+	fixture, err := DecodeTimelineAppendEvent(timelineFixture(t, "append-validation.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	one := int64(1)
+	r := TimelineAppendEventRequest{SchemaVersion: 3, OperationID: "kind:" + kind, Kind: TimelineEventKind(kind), Title: "Context", Summary: "What happened", TicketIDs: []string{}, Actor: fixture.Actor}
+	switch kind {
+	case "stage":
+		r.Title, r.Stage, r.StageState, r.ExpectedSessionVersion, r.Reason = "", "build", "in_progress", &one, "Start the build"
+	case "validation":
+		r.Views = fixture.Views
+	case "iteration":
+		r.Views = append([]TimelineViewInput(nil), fixture.Views...)
+		r.Views[0].Supersedes = &TimelineSupersedes{EventID: "event-1", EvidenceID: "evidence-1", ViewID: "view-1"}
+	case "changes_reported", "approval_reported":
+		r.Target = &TimelineDecisionTarget{Kind: "evidence", EventID: "event-1", EvidenceID: "evidence-1"}
+		r.SourceReference = "Reported in chat"
+	case "delivery":
+		r.DeliveryIDs = []string{"delivery-1"}
+	case "closure":
+		r.Closure, r.Reason = &TimelineClosure{Reason: "completed", Result: "Done"}, "Work finished"
+	case "review":
+		r.ReviewStatus, r.TargetStageEventID = "in_progress", "event-1"
+	}
+	if err := r.Validate(); err != nil {
+		t.Fatalf("base %s request rejected: %v", kind, err)
+	}
+	return r
+}
+
+func timelineContractErrorOf(err error) (string, string) {
+	var contract *TimelineContractError
+	if errors.As(err, &contract) {
+		return contract.Field, contract.Code
+	}
+	return "", ""
+}
+
+// Every kind-dependent field is accepted by exactly the kinds the table names
+// and otherwise rejected with forbidden_for_kind on that same field.
+func TestTimelineKindFieldsMatchValidator(t *testing.T) {
+	set := timelineKindSetters(t)
+	kinds := timelineKindsWithBase
+	rows := TimelineEventKindFields()
+	if len(rows) != len(set) {
+		t.Fatalf("table has %d fields, the test sets %d", len(rows), len(set))
+	}
+	for _, row := range rows {
+		apply, ok := set[row.Field]
+		if !ok {
+			t.Fatalf("no setter for table field %s", row.Field)
+		}
+		for _, kind := range kinds {
+			r := timelineKindBase(t, kind)
+			apply(&r)
+			field, code := timelineContractErrorOf(r.Validate())
+			forbidden := field == row.Field && code == "forbidden_for_kind"
+			if allowed := contains(row.Kinds, kind); allowed == forbidden {
+				t.Errorf("%s on kind %s: allowed by table %v, validator returned %s on %s", row.Field, kind, allowed, code, field)
+			}
+		}
+	}
+}
+
+// timelineKindsWithBase are the event kinds a native producer may publish:
+// every kind except those only the server writes.
+var timelineKindsWithBase = func() []string {
+	var kinds []string
+	for _, kind := range timelineEventKinds {
+		if !contains([]string{"state_transition", "producer_joined", "foreground_transferred", "task_state_transition", "local_action"}, kind) {
+			kinds = append(kinds, kind)
+		}
+	}
+	return kinds
+}()
+
+// timelineKindSetters sets one kind-dependent field to a valid nonempty value.
+func timelineKindSetters(t *testing.T) map[string]func(*TimelineAppendEventRequest) {
+	t.Helper()
+	one := int64(1)
+	fixture, err := DecodeTimelineAppendEvent(timelineFixture(t, "append-validation.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return map[string]func(*TimelineAppendEventRequest){
+		"stage":                    func(r *TimelineAppendEventRequest) { r.Stage = "build" },
+		"stage_state":              func(r *TimelineAppendEventRequest) { r.StageState = "in_progress" },
+		"expected_session_version": func(r *TimelineAppendEventRequest) { r.ExpectedSessionVersion = &one },
+		"views":                    func(r *TimelineAppendEventRequest) { r.Views = fixture.Views },
+		"target": func(r *TimelineAppendEventRequest) {
+			r.Target = &TimelineDecisionTarget{Kind: "evidence", EventID: "event-1", EvidenceID: "evidence-1"}
+		},
+		"source_reference":      func(r *TimelineAppendEventRequest) { r.SourceReference = "Reported in chat" },
+		"delivery_ids":          func(r *TimelineAppendEventRequest) { r.DeliveryIDs = []string{"delivery-1"} },
+		"closure":               func(r *TimelineAppendEventRequest) { r.Closure = &TimelineClosure{Reason: "completed", Result: "Done"} },
+		"review_status":         func(r *TimelineAppendEventRequest) { r.ReviewStatus = "in_progress" },
+		"target_stage_event_id": func(r *TimelineAppendEventRequest) { r.TargetStageEventID = "event-1" },
+		"task_id":               func(r *TimelineAppendEventRequest) { r.TaskID = "task-1" },
+		"segment_id":            func(r *TimelineAppendEventRequest) { r.SegmentID = "segment-1" },
+	}
+}
+
+// The server-side stage-target resolution agrees with the table row.
+func TestTimelineKindFieldsMatchStageTargetResolution(t *testing.T) {
+	s := timelineFixtureSession(t)
+	var accepts []string
+	for _, row := range TimelineEventKindFields() {
+		if row.Field == "target_stage_event_id" {
+			accepts = row.Kinds
+		}
+	}
+	for _, kind := range []string{"request", "work_started", "stage", "closure"} {
+		if contains(accepts, kind) {
+			t.Fatalf("table accepts target_stage_event_id on %s", kind)
+		}
+		r := timelineKindBase(t, kind)
+		r.TargetStageEventID = "event-1"
+		if field, code := timelineContractErrorOf(ValidateTimelineEventReferences(s, r)); field != "target_stage_event_id" || code != "forbidden_for_kind" {
+			t.Errorf("kind %s: got %s on %s", kind, code, field)
+		}
+	}
+}
+
+func TestTimelineContractValidationEventNamesSessionVersion(t *testing.T) {
+	raw := []byte(`{"schema_version":3,"operation_id":"validation:2","kind":"validation","title":"Check","summary":"Checked","ticket_ids":[],"actor":{"kind":"native_producer","producer_id":"producer-original"},"expected_session_version":47,"views":[{"title":"V","ticket_ids":[],"steps":["Open"],"expected_result":"Shown","image_refs":[{"artifact_id":"artifact_chat","caption":"c"}]}]}`)
+	_, err := DecodeTimelineAppendEvent(raw)
+	if field, code := timelineContractErrorOf(err); field != "expected_session_version" || code != "forbidden_for_kind" {
+		t.Fatalf("got %s on %s", code, field)
+	}
+}
+
+func TestTimelineContractStoredNonStageEventNamesLifecycleField(t *testing.T) {
+	cases := map[string]func(*TimelineSession, *TimelineEvent){
+		"stage":              func(_ *TimelineSession, e *TimelineEvent) { e.Stage = "build" },
+		"stage_state":        func(_ *TimelineSession, e *TimelineEvent) { e.StageState = "completed" },
+		"started_at":         func(_ *TimelineSession, e *TimelineEvent) { e.StartedAt = "2026-11-05T10:00:00Z" },
+		"finished_at":        func(_ *TimelineSession, e *TimelineEvent) { e.FinishedAt = "2026-11-05T10:05:00Z" },
+		"document_snapshots": func(_ *TimelineSession, e *TimelineEvent) { e.DocumentSnapshots = []TimelineDocumentSnapshot{} },
+	}
+	for name, change := range cases {
+		t.Run(name, func(t *testing.T) {
+			s, err := DecodeTimelineSession(timelineFixture(t, "v3-session.json"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			i := -1
+			for j, e := range s.Events {
+				if e.Kind != "stage" {
+					i = j
+					break
+				}
+			}
+			if i < 0 {
+				t.Fatal("fixture has no non-stage event")
+			}
+			change(&s, &s.Events[i])
+			if field, code := timelineContractErrorOf(ValidateTimelineSession(s)); field != name || code != "forbidden_for_kind" {
+				t.Fatalf("got %s on %s", code, field)
+			}
+		})
+	}
+}
+
+// A mistyped or missing kind is reported as such, not as a field its stage
+// target would be forbidden on.
+func TestTimelineContractUnknownKindWithStageTargetNamesTheKind(t *testing.T) {
+	for _, kind := range []string{"valdation", ""} {
+		r := timelineKindBase(t, "validation")
+		r.Kind = TimelineEventKind(kind)
+		r.TargetStageEventID = "event-1"
+		if field, code := timelineContractErrorOf(r.Validate()); field != "kind" || code != "unsupported_kind" {
+			t.Errorf("kind %q: got %s on %s", kind, code, field)
+		}
 	}
 }

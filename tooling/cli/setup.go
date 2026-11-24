@@ -82,7 +82,7 @@ func context7Candidates(home string, env func(string) string) []string {
 		return fallback
 	}
 	roots := []string{
-		filepath.Join(home, ".agents"), filepath.Join(home, ".claude"),
+		filepath.Join(home, ".agents"), filepath.Join(home, ".claude"), filepath.Join(home, ".gemini", "config"),
 		pick("CLAUDE_CONFIG_DIR", filepath.Join(home, ".claude")),
 		pick("CODEX_HOME", filepath.Join(home, ".codex")),
 		pick("GROK_HOME", filepath.Join(home, ".grok")),

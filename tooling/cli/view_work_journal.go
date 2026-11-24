@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"tricell-hive/tooling/durable"
 	"tricell-hive/tooling/management"
 	"tricell-hive/tooling/viewer"
 )
@@ -258,7 +259,7 @@ func writePrivateWorkFile(dir, path string, raw []byte) error {
 		_, err = f.Write(raw)
 	}
 	if err == nil {
-		err = f.Sync()
+		err = durable.Sync(f)
 	}
 	closeErr := f.Close()
 	if err == nil {
@@ -275,7 +276,7 @@ func writePrivateWorkFile(dir, path string, raw []byte) error {
 		return err
 	}
 	defer d.Close()
-	return d.Sync()
+	return durable.Sync(d)
 }
 func definitiveWorkRejection(code string) bool {
 	switch code {

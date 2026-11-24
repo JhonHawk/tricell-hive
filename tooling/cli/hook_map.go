@@ -23,7 +23,7 @@ var hookProcessArgs = func(pid int) (string, error) { return psField(pid, "args"
 // not tell sessions apart (OpenCode runs every session in one shared service).
 func hookUsesMap(host string) bool {
 	switch host {
-	case "claude-code", "codex", "grok", "cursor":
+	case "claude-code", "codex", "grok", "cursor", "antigravity":
 		return true
 	}
 	return false
@@ -63,15 +63,7 @@ func findHostProcess(deps viewIdentityDeps, host string) (int, bool) {
 		if deps.processName == nil {
 			return true, nil
 		}
-		comm, err := deps.processName(pid)
-		if err != nil {
-			return false, nil
-		}
-		args := ""
-		if base := filepath.Base(strings.TrimSpace(comm)); base == "node" || base == "bun" || base == "deno" {
-			args, _ = hookProcessArgs(pid)
-		}
-		switch processHost(comm, args) {
+		switch hostOfProcess(deps, pid) {
 		case "":
 			return false, nil
 		case host:

@@ -28,6 +28,7 @@ import {
   validateTimelineEventWithdrawal,
   validateTimelineOperationRetry,
   validateTimelineSessionPatch,
+  validateTimelineSource,
 } from "../timeline-contract";
 
 const fixture = (name: string) =>
@@ -439,4 +440,20 @@ test("shared document response preserves UTF8 BOM bytes, size and digest", async
       TimelineContractError,
     );
   }
+});
+
+test("timeline sources accept the Antigravity host and still reject unknown ones", () => {
+  const source = {
+    project_root: "/work/app",
+    host: "antigravity",
+    native_session_id: "agy-conv-1",
+  };
+  validateTimelineSource(source);
+  assert.throws(
+    () => validateTimelineSource({ ...source, host: "gemini" }),
+    (error: unknown) =>
+      error instanceof TimelineContractError &&
+      error.field === "source.host" &&
+      error.code === "unsupported_host",
+  );
 });

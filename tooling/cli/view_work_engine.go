@@ -95,7 +95,7 @@ func workLockScope(c viewWorkCommand, j *viewWorkJournal) string {
 	if c.WorkID != "" {
 		return workScopeOf(j, c.WorkID)
 	}
-	if (c.Action == "open" || c.Action == "publish") && c.Key != "" && c.Project != "" {
+	if (c.Action == "open" || c.Action == "publish" || c.Action == "capture") && c.Key != "" && c.Project != "" {
 		if project, err := canonicalWorkDir(c.Project); err == nil {
 			return queuedWorkHandle(project, c.Host, c.NativeSessionID, c.Key)
 		}
@@ -728,6 +728,14 @@ func (e *viewWorkEngine) dispatch(c viewWorkCommand, w io.Writer) error {
 		}
 		r.Queue = e.queueReport()
 		capViewWorkEvidenceResult(&r)
+		return writeViewWorkBoundedJSON(w, r)
+	case "capture":
+		r, err := e.capture(c)
+		if err != nil {
+			return err
+		}
+		r.Queue = e.queueReport()
+		capViewWorkCaptureResult(&r)
 		return writeViewWorkBoundedJSON(w, r)
 	case "open":
 		s, err := e.open(c)

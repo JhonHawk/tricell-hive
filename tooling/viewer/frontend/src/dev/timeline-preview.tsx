@@ -35,7 +35,7 @@ function TimelineSingleDevelopmentPreview() {
     ].includes(scenario ?? "")
       ? completeFixture()
       : [
-            "cam",
+            "project-g",
             "host",
             "closed-host",
             "mixed",
@@ -43,9 +43,9 @@ function TimelineSingleDevelopmentPreview() {
             "future",
             "recovery-conflict",
           ].includes(scenario ?? "")
-        ? workFixture(scenario ?? "cam")
+        ? workFixture(scenario ?? "project-g")
         : scenario === "agent-only"
-          ? workFixture("cam")
+          ? workFixture("project-g")
           : structuredClone(timelineFixture);
     if (scenario === "context") {
       const stage = fixture.session.events.find(

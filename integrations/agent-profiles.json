@@ -6,11 +6,11 @@
       "access": {"observe": {"permissionMode": "plan", "disallowedTools": ["Write", "Edit", "NotebookEdit"]}, "implement": {}, "verify": {}}
     },
     "codex": {
-      "models": {"execution": {"model": "gpt-6.1-sol", "effort": "medium"}, "focused": {"model": "gpt-6.1-terra", "effort": "medium"}, "reasoning": {"model": "gpt-6.1-sol", "effort": "high"}, "inherit": {"effort": "high"}, "verifier": {"model": "gpt-6.1-sol", "effort": "high"}},
+      "models": {"execution": {"model": "gpt-6.2-sol", "effort": "medium"}, "focused": {"model": "gpt-6.1-terra", "effort": "medium"}, "reasoning": {"model": "gpt-6.2-sol", "effort": "high"}, "inherit": {"effort": "high"}, "verifier": {"model": "gpt-6.2-sol", "effort": "high"}},
       "access": {"observe": {}, "implement": {}, "verify": {}}
     },
     "grok": {
-      "models": {"execution": {}, "focused": {}, "reasoning": {}, "inherit": {}, "verifier": {"model": "grok-4.6"}},
+      "models": {"execution": {}, "focused": {}, "reasoning": {}, "inherit": {}, "verifier": {"model": "grok-4.7"}},
       "access": {"observe": {"permissionMode": "plan", "disallowedTools": ["Write", "Edit", "NotebookEdit", "write", "search_replace", "write_file", "apply_patch"]}, "implement": {}, "verify": {}}
     },
     "pi": {
@@ -25,6 +25,10 @@
     "cursor": {
       "models": {"execution": {"model": "inherit"}, "focused": {"model": "inherit"}, "reasoning": {"model": "inherit"}, "inherit": {"model": "inherit"}, "verifier": {"model": "inherit"}},
       "access": {"observe": {"readonly": true}, "implement": {}, "verify": {}}
+    },
+    "antigravity": {
+      "models": {"execution": {"model": "inherit"}, "focused": {"model": "inherit"}, "reasoning": {"model": "inherit"}, "inherit": {"model": "inherit"}, "verifier": {"model": "inherit"}},
+      "access": {"observe": {}, "implement": {}, "verify": {}}
     }
   }
 }

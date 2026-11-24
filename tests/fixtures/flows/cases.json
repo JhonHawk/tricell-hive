@@ -6,7 +6,7 @@
       "files": {
         "README.md": "# Disposable flow loading check\n"
       },
-      "prompt": "Sin modificar archivos, consulta explícitamente las skills flow-research, flow-plan y flow-build mediante las herramientas nativas. Para cada una indica su propósito y una condición de uso. Distingue disponibilidad, lectura efectiva y lo que no puedes observar.",
+      "prompt": "Sin modificar archivos, consulta explícitamente las skills hive-mode, flow-plan y flow-build mediante las herramientas nativas. Para cada una indica su propósito y una condición de uso. Distingue disponibilidad, lectura efectiva y lo que no puedes observar.",
       "expected": {
         "skill_read": "explicit_loading_check",
         "criteria": []
@@ -18,7 +18,7 @@
       "files": {
         "README.md": "# Disposable conventions loading check\n"
       },
-      "prompt": "Sin modificar archivos, consulta explícitamente mediante las herramientas nativas las skills flow-research, flow-plan, flow-build y git-workflow. Para cada una, indica su propósito y una condición de uso. Distingue disponibilidad, lectura efectiva y lo que no puedes observar.",
+      "prompt": "Sin modificar archivos, consulta explícitamente mediante las herramientas nativas las skills hive-mode, flow-plan, flow-build y git-workflow. Para cada una, indica su propósito y una condición de uso. Distingue disponibilidad, lectura efectiva y lo que no puedes observar.",
       "expected": {
         "skill_read": "explicit_loading_check",
         "criteria": []
@@ -30,7 +30,7 @@
       "files": {
         "README.md": "# Disposable deployed-surface loading check\n"
       },
-      "prompt": "Esta es una sesión en español. Sin modificar archivos y sin lanzar subagentes, consulta explícitamente mediante las herramientas nativas las skills flow-report, engram-init-workspace, starlight-docs-site, unattended-delegation, workspace-archive y flow-walkthrough. Para cada una indica su propósito y una condición en la que no debe usarse. Después indica si este host anuncia los agentes hive-read-state y hive-review-code y, si el anuncio muestra un modelo, cuál es. No los ejecutes. Distingue disponibilidad, lectura efectiva y lo que no puedes observar.",
+      "prompt": "Esta es una sesión en español. Sin modificar archivos y sin lanzar subagentes, consulta explícitamente mediante las herramientas nativas las skills create-report, audit-harness, unattended-delegation, flow-close y flow-verify. Para cada una indica su propósito y una condición en la que no debe usarse. Después indica si este host anuncia los agentes hive-read-state y hive-review-code y, si el anuncio muestra un modelo, cuál es. No los ejecutes. Distingue disponibilidad, lectura efectiva y lo que no puedes observar.",
       "expected": {
         "skill_read": "explicit_loading_check",
         "criteria": []
@@ -75,7 +75,7 @@
       },
       "prompt": "Esta es una sesión en español. No cambies código, documentación existente, backlog, tracker, configuraciones globales ni Git. No lances subagentes ni delegues esta investigación: resuélvela en este mismo proceso. Puedes crear únicamente un nuevo reporte de hallazgos para retomarlo. Investiga el estado actual de DIS-42 contrastando backlog, documentación, código, pruebas y el log exportado. Conserva hechos observados, estado declarado, discrepancias e incertidumbres.",
       "expected": {
-        "skill_read": "flow-research",
+        "skill_read": "hive-mode",
         "criteria": []
       }
     },
@@ -170,7 +170,7 @@
       },
       "prompt": "Esta es una sesión en español. No hagas commit, push ni cambies configuraciones globales. Investiga qué comportamiento tiene realmente limitItems y si docs/limits.md es confiable. Contrasta el código con las pruebas disponibles y conserva los hallazgos sustentados para retomarlos en otra sesión. No implementes ni corrijas código o documentación existente.",
       "expected": {
-        "skill_read": "flow-research",
+        "skill_read": "hive-mode",
         "criteria": []
       }
     },
@@ -218,7 +218,7 @@
       },
       "prompt": "Esta es una sesión en español. No cambies código, documentación, el backlog, configuraciones globales ni Git. No implementes nada ni propongas código. Puedes crear únicamente un nuevo reporte de hallazgos para retomar la consulta si hace falta. ¿Cuál es el estado del proyecto y qué hay en el backlog?",
       "expected": {
-        "skill_read": "flow-research",
+        "skill_read": "hive-mode",
         "criteria": []
       }
     },
@@ -234,7 +234,7 @@
       },
       "prompt": "Seguimos con la sesión de ayer. Ya revisé el TCK-12 del backlog y leí `src/retry.ts`: el retraso crece de forma lineal (1 s por intento) y no hay pruebas que dependan de ese comportamiento. El cambio parece pequeño y local. ¿Podemos tomar el TCK-12 en un worktree?",
       "expected": {
-        "skill_read": "flow-research",
+        "skill_read": "hive-mode",
         "criteria": []
       }
     },
@@ -251,7 +251,7 @@
       },
       "prompt": "Retomo la investigación de ayer. Ya vimos que el pedido 1042 de `data/orders.json` tiene el total mal calculado: guarda 45 y debería ser 60 (15 por 4 unidades). La función `orderTotal` de `src/orders.ts` es correcta, así que el error está solo en ese registro. ¿Puedes arreglar este registro?",
       "expected": {
-        "skill_read": "flow-research",
+        "skill_read": "hive-mode",
         "criteria": []
       }
     },
@@ -267,7 +267,23 @@
       },
       "prompt": "Esta es la continuación de una sesión. Este fue el mensaje anterior del asistente, después de revisar `src/catalog.ts`:\n\nLa búsqueda recorre todo el catálogo en cada consulta. Hay tres decisiones abiertas.\n\nD1: ¿dónde guardamos el índice?\n- D1-A: en memoria del proceso (Recomendada).\n- D1-B: en un archivo en disco.\n\nD2: ¿cuándo se reconstruye?\n- D2-A: al arrancar el servicio.\n- D2-B: cada vez que cambia un producto.\n\nD3: ¿cómo se valida el resultado?\n- D3-A: con pruebas unitarias del índice.\n- D3-B: comparando contra la búsqueda actual.\n\nMi respuesta: elijo D1-B; ¿cómo afecta eso a D2 y D3 y qué recomiendas ahora?",
       "expected": {
-        "skill_read": "flow-research",
+        "skill_read": "hive-mode",
+        "criteria": []
+      }
+    },
+    {
+      "id": "ticket-direct-request",
+      "cwd": ".",
+      "files": {
+        "AGENTS.md": "# queue-fixture fixture guidance\n\nThis is a small TypeScript fixture.\n\n## Hive\n- Project: queue-fixture\n- Base branch: main\n- Tracker: local file BACKLOG.md (no network)\n- Specs: _support/openspec\n",
+        "package.json": "{\"name\":\"queue-fixture\",\"private\":true,\"type\":\"module\"}\n",
+        "README.md": "# Queue fixture\nA small job queue with a retry policy and a task list.\n",
+        "src/retry.ts": "export function nextDelayMs(attempt: number): number {\n  return 1000 * 2 ** attempt;\n}\n",
+        "BACKLOG.md": "# Backlog\n\n## Task list\n- QUE-7 (Todo): add a CSV export of finished tasks.\n- QUE-9 (Todo): rename the `owner` column to `assignee` in the task list.\n"
+      },
+      "prompt": "Necesito un ticket para ponerle un máximo al retraso entre reintentos de la cola: hoy `nextDelayMs` en `src/retry.ts` crece sin tope.",
+      "expected": {
+        "skill_read": "create-issue",
         "criteria": []
       }
     }

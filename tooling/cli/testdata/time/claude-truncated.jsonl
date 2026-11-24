@@ -1,0 +1,5 @@
+{"type":"user","timestamp":"2026-01-01T10:00:00.000Z","sessionId":"s","message":{"role":"user","content":"start the work"},"origin":{"kind":"human"}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:10.000Z","sessionId":"s","message":{"role":"assistant","content":[{"type":"tool_use","id":"t1","name":"Bash","input":{"command":"gh pr checks 1 --watch","run_in_background":true}}],"stop_reason":"tool_use"}}
+{"type":"user","timestamp":"2026-01-01T10:00:11.000Z","sessionId":"s","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"t1","content":"Command running in background with ID: b1"}]},"toolUseResult":{"ok":true}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:20.000Z","sessionId":"s","message":{"role":"assistant","content":[{"type":"text","text":"waiting for CI"}],"stop_reason":"end_turn"}}
+{"type":"system","timestamp":"2026-01-01

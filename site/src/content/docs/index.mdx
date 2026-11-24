@@ -36,6 +36,9 @@ read. Other references are read when their stated conditions apply. A file being
 installed, discovered,
 supplied to a model and followed are different things. Smaller global text does
 not prove smaller total context or improved reliability for any model family.
+The guidance is written for Claude Opus 5.5 and OpenAI gpt-6.2-sol, the writing target of the
+[support floor](https://github.com/JhonHawk/tricell-hive/blob/master/_support/docs/harness-engineering/model-floor.md);
+failures observed one tier above (Fable 5.2, gpt-6.2-astra), one tier below (Sonnet 5.5, gpt-6.1-terra) and on Grok 4.7 also count toward corrections.
 
 ## Install
 
@@ -50,13 +53,16 @@ Run the same command again later to update. Other platforms and install routes a
 ## Start with these
 
 - [Status](/flows/status/): see the backlog and unfinished work, read-only, and what to take next.
-- [Research](/flows/research/): answer a question with evidence, without changing anything.
+- [Hive mode](/flows/hive-mode/): answer a question with evidence, without changing anything.
+- [Create design](/flows/create-design/): draw a new screen in Figma, following your existing screens, and approve it before planning; also review a design someone else drew, and create or refresh `DESIGN.md`.
 - [Plan](/flows/plan/): settle the decisions of a larger change and split it into tasks you can check.
 - [Build](/flows/build/): make an approved change and hand over a built candidate.
 - [Verify](/flows/verify/): check the candidate at a level you can raise or lower, then integrate it.
-- [Security review](/flows/security/): an independent review of a change's security boundaries, only when you ask.
+- [Security review](/flows/security/): an independent review of a change's security boundaries, recommended when a change touches one.
 - [Close](/flows/close/): wrap up a finished piece of work and tidy what it left behind.
 - [Deploy](/flows/deploy/): promote an integrated change through your environments and check what is served.
+- [Create issue](/flows/create-issue/): write a ticket someone else can work, or break larger work down into tickets.
+- [Create PRD](/flows/create-prd/): write the requirement document of a module or feature, or review one against the code.
 
 ## Getting started
 
@@ -75,11 +81,12 @@ Implement the agreed change locally and verify it. Do not commit or publish.
 
 From a question to finished work, in order. You can start at any step that fits.
 
-1. [Research](/flows/research/) turns an open question into an answer you can act on.
-2. [Plan](/flows/plan/) turns a larger change into decisions, contracts and checkable tasks.
-3. [Build](/flows/build/) carries out the change you approved and hands over a built candidate.
-4. [Verify](/flows/verify/) checks the candidate and integrates it; [Security review](/flows/security/) joins it when you ask.
-5. [Close](/flows/close/) records where the work ended and cleans up after it.
+1. [Hive mode](/flows/hive-mode/) turns an open question into an answer you can act on.
+2. [Create design](/flows/create-design/), optional, draws a new screen in Figma so you can approve it before planning.
+3. [Plan](/flows/plan/) turns a larger change into decisions, contracts and checkable tasks.
+4. [Build](/flows/build/) carries out the change you approved and hands over a built candidate.
+5. [Verify](/flows/verify/) checks the candidate and integrates it; [Security review](/flows/security/) joins it when you accept the recommendation or ask for it.
+6. [Close](/flows/close/) records where the work ended and cleans up after it.
 
 [Deploy](/flows/deploy/) is a separate step after integration, when you ask to promote.
 
@@ -91,20 +98,24 @@ The agent picks these up when the task calls for them.
 
 - [Shared rules](https://github.com/JhonHawk/tricell-hive/blob/master/content/guidance/global.md): the always-loaded guidance every flow relies on to ask you decisions, handle a change you request mid-work, ask before an effect beyond your machine, and read the repository's settings.
 - [git-workflow](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/git-workflow/SKILL.md): branches, worktrees, commits, pull requests and merges, done only when you allowed them.
-- [flow-report](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-report/SKILL.md): a designed HTML report, comparison, explainer or deck.
-- [starlight-docs-site](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/starlight-docs-site/SKILL.md): start, extend or audit a documentation site like this one.
-- [harness-audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/harness-audit/SKILL.md): audit a project's agent instructions, skills and roles, ask what the findings need, and apply what you accept, including setting up the repository's `## Hive` section.
-- [security-advisory](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/security-advisory/SKILL.md): find which of your repositories a published advisory or package compromise affects, with the evidence for each one; the fixes stay in each project's own session.
-- [test-audit](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/test-audit/SKILL.md): trim one area's tests to one owning test per behavior, and show with a separate review and deliberate code changes that nothing lost its only test.
-- [hive-ui-criteria](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-ui-criteria/SKILL.md): detects a project's component library, its installed version and its customization layer, keeps them in a verified `DESIGN.md`, and gives design, build and review work measurable screen criteria that stay below the project's own design system.
-- [flow-walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-walkthrough/SKILL.md): publishes session milestones and evidence to the viewer and walks a built screen for you to validate, asking before it opens the viewer.
-- [workspace-conventions](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/workspace-conventions/SKILL.md): sort support files, keep the evidence worth keeping, turn findings into lasting guidance, and archive finished work sessions you choose.
+- [create-report](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/create-report/SKILL.md): a designed HTML report, comparison, explainer or deck.
+- [create-report docs-site mode](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/create-report/references/docs-site.md): start, extend or audit a documentation site like this one.
+- [audit-harness](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-harness/SKILL.md): audit a project's agent instructions, skills and roles, ask what the findings need, and apply what you accept, including setting up the repository's `## Hive` section and its `## Skills` registry of the stack skills to read.
+- [audit-harness local instructions mode](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-harness/references/local-instructions.md): fill the project's `HIVE.local.md` and the machine file `~/.config/hive/HIVE.local.md` from what already worked in recent sessions, asking you which facts to keep, or prune it when it grows.
+- [hive-mode dependency-security playbook](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-mode/playbooks/dependency-security.md): find which of your repositories a published advisory or package compromise affects, with the evidence for each one; the fixes stay in each project's own session.
+- [audit-comments](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-comments/SKILL.md): remove a codebase's unneeded comments in batches, keep what they recorded in tickets and a decision record, and add a lint that rejects new ones.
+- [audit-issues](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-issues/SKILL.md): check the open tickets against the code, close the ones that no longer apply and group the related ones under a parent so they are fixed together.
+- [audit-tests](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-tests/SKILL.md): trim one area's tests to one owning test per behavior, and show with a separate review and deliberate code changes that nothing lost its only test.
+- [UI criteria](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/create-design/references/ui-criteria.md), a reference of Create design: detects a project's component library, its installed version and its customization layer, keeps them in a verified `DESIGN.md`, and gives design, build and review work measurable screen criteria that stay below the project's own design system.
+- [flow-verify walkthrough](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/ui/walkthrough.md): publishes UI captures and their iteration to the viewer and walks a built screen for you to validate, asking before it opens the viewer.
+- [project-layout](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/project-layout/SKILL.md): where a project's documentation, scripts and data belong, a check against it, and its cleanup or migration from a plan you confirm
+- [workspace-repo](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/workspace-repo/SKILL.md): turn a workspace of several repositories into a coordinator repository, only when you ask
 - [unattended-delegation](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/unattended-delegation/SKILL.md): let the agent keep working without you, within a goal and a deadline you set, on the work already running when you say you are leaving, or on the work you already routed, once each delivery and review value it needs is answered, when you go quiet. A message that tells it to continue, asks about the work, or adds a resource, feedback or a correction within the goal does not end that; changing the goal, the scope or an earlier answer, asking for other work or telling it to stop hands control back to you. When you delegate or say you are leaving before the delivery questions were asked, it asks them at once without stopping, and without your answers it stops at a verified local result. It says when it starts, and every message shows whether it is still active. It decides on its own, never does anything irreversible or destructive except spending you authorized in advance within a ceiling, and reports every decision at the end.
-- [engram-init-workspace](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/engram-init-workspace/SKILL.md): give a workspace one Engram memory identity, only when you ask for it.
+- [audit-harness Engram workspace mode](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-harness/references/engram-workspace.md): give a workspace one Engram memory identity, only when you ask for it.
 
 ## Specialist roles
 
-For bounded pieces of work, the agent hands off to helper roles with a clear brief: design, building, documentation, quality checks and independent review. Each host runs them with the model and permissions Hive configures for it. The definitions are in [content/agents](https://github.com/JhonHawk/tricell-hive/tree/master/content/agents).
+For bounded pieces of work, the agent hands off to helper roles with a clear brief: design, building (including mobile apps in any stack, through one stack-neutral mobile builder that reads your project's skill registry), documentation, quality checks and independent review. Each host runs them with the model and permissions Hive configures for it. The definitions are in [content/agents](https://github.com/JhonHawk/tricell-hive/tree/master/content/agents).
 
 ## Optional OpenCode V2 context loader
 
@@ -141,7 +152,7 @@ blocked on verifying safe, exact memory cleanup.
 
 ## Learn more
 
-- **Start here**: [Research](/flows/research/), the flow most sessions begin with.
+- **Start here**: [Hive mode](/flows/hive-mode/), the flow most sessions begin with.
 - **Host limits**: [what Hive cannot hide in each CLI](/host-limits/) and what to do about it.
 - **Principles**: [Why Hive](https://github.com/JhonHawk/tricell-hive#why-hive) explains the ideas behind it.
 - **What changed**: the [changelog](/changelog/) and the [releases](https://github.com/JhonHawk/tricell-hive/releases).

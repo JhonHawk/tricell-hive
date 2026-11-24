@@ -1,11 +1,9 @@
 package agents
 
 import (
-	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 )
@@ -15,68 +13,6 @@ import (
 // inherit the session model on OpenCode, so the variant mapping, which still
 // applies to model overrides and to frozen releases, is tested against this copy.
 var openCodeGoProfiles = filepath.Join("testdata", "opencode-go-profiles.json")
-
-var renderedOpenCodeModel = regexp.MustCompile(`(?m)^model: "?([^"\n#]+)(?:#([^"\n]+))?"?$`)
-
-// TestOpenCodeRolesRequestOfferedVariants renders every shipped role for
-// OpenCode with the OpenCode Go profiles and fails when the resulting variant is
-// not one the model offers. OpenCode 2.0.27 rejects such a launch with
-// "Variant unavailable for <model>: <variant>" before any provider call.
-func TestOpenCodeRolesRequestOfferedVariants(t *testing.T) {
-	profiles, err := os.ReadFile(openCodeGoProfiles)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Current roles include focused work; preserve the historical variant
-	// mapping without modifying the frozen release fixture.
-	var current Profiles
-	if err := json.Unmarshal(profiles, &current); err != nil {
-		t.Fatal(err)
-	}
-	for _, host := range current.Hosts {
-		host.Models["focused"] = host.Models["execution"]
-	}
-	profiles, err = json.Marshal(current)
-	if err != nil {
-		t.Fatal(err)
-	}
-	p, err := ReadProfiles(profiles)
-	if err != nil {
-		t.Fatal(err)
-	}
-	declared := p.Hosts["opencode"].Variants
-	if len(declared) == 0 {
-		t.Fatal("repository profiles declare no OpenCode variants")
-	}
-	sources, err := filepath.Glob(filepath.Join("..", "..", "content", "agents", "*", "*.md"))
-	if err != nil || len(sources) == 0 {
-		t.Fatalf("no roles found: %v", err)
-	}
-	for _, path := range sources {
-		data, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		source := "content/agents/" + filepath.Base(filepath.Dir(path)) + "/" + filepath.Base(path)
-		out, err := Render(source, data, profiles, "opencode", "/skills", nil)
-		if err != nil {
-			t.Fatalf("Render(%s): %v", source, err)
-		}
-		m := renderedOpenCodeModel.FindSubmatch(out)
-		if m == nil {
-			t.Fatalf("%s: no model line in the OpenCode render:\n%s", source, out)
-		}
-		model, variant := string(m[1]), string(m[2])
-		offered, known := declared[model]
-		if !known {
-			t.Errorf("%s: model %q has no declared variants", source, model)
-			continue
-		}
-		if variant == "" || !oneOf(variant, offered...) {
-			t.Errorf("%s: %s requests variant %q, offered %v", source, model, variant, offered)
-		}
-	}
-}
 
 func TestNearestOffered(t *testing.T) {
 	flash := []string{"low", "high", "max"}
@@ -104,22 +40,25 @@ func TestReadProfilesOpenCodeVariants(t *testing.T) {
 		t.Fatal(err)
 	}
 	table := `"variants": {"opencode-go/deepseek-v4.1-flash": ["low", "high", "max"], "opencode-go/deepseek-v4-pro": ["high", "max"], "opencode-go/glm-5.3": ["low", "high", "max"]}`
-	for name, c := range map[string]struct{ from, to string }{
-		"profile effort not offered":   {`"execution": {"model": "opencode-go/deepseek-v4.1-flash", "effort": "high"}`, `"execution": {"model": "opencode-go/deepseek-v4.1-flash", "effort": "medium"}`},
-		"embedded variant not offered": {`deepseek-v4.1-flash#max`, `deepseek-v4.1-flash#medium`},
-		"empty list":                   {table, `"variants": {"opencode-go/glm-5.3": []}`},
-		"unknown effort":               {table, `"variants": {"opencode-go/glm-5.3": ["fast"]}`},
-		"repeated effort":              {table, `"variants": {"opencode-go/glm-5.3": ["low", "low"]}`},
-		"model with variant":           {table, `"variants": {"opencode-go/glm-5.3#high": ["high"]}`},
-		"empty table":                  {table, `"variants": {}`},
-		"other host declares one":      {`"codex": {`, `"codex": {"variants": {"m": ["low"]}, `},
+	// An extra entry no profile uses, so the rejection can only come from the
+	// guard the row names and not from a profile that depends on the table.
+	withExtra := func(entry string) string { return strings.Replace(table, "}", ", "+entry+"}", 1) }
+	for name, c := range map[string]struct{ from, to, want string }{
+		"profile effort not offered":   {`"execution": {"model": "opencode-go/deepseek-v4.1-flash", "effort": "high"}`, `"execution": {"model": "opencode-go/deepseek-v4.1-flash", "effort": "medium"}`, "does not offer"},
+		"embedded variant not offered": {`deepseek-v4.1-flash#max`, `deepseek-v4.1-flash#medium`, "does not offer"},
+		"empty list":                   {table, withExtra(`"x/extra": []`), "declares no variants"},
+		"unknown effort":               {table, withExtra(`"x/extra": ["fast"]`), "invalid or repeated variant"},
+		"repeated effort":              {table, withExtra(`"x/extra": ["low", "low"]`), "invalid or repeated variant"},
+		"model with variant":           {table, withExtra(`"x/extra#high": ["high"]`), "invalid model"},
+		"empty table":                  {table, `"variants": {}`, "empty variants table"},
+		"other host declares one":      {`"codex": {`, `"codex": {"variants": {"m": ["low"]}, `, "does not declare model variants"},
 	} {
 		bad := strings.Replace(string(base), c.from, c.to, 1)
 		if bad == string(base) {
 			t.Fatalf("%s: replacement did not apply", name)
 		}
-		if _, err := ReadProfiles([]byte(bad)); err == nil {
-			t.Errorf("%s: ReadProfiles accepted it", name)
+		if _, err := ReadProfiles([]byte(bad)); err == nil || !strings.Contains(err.Error(), c.want) {
+			t.Errorf("%s: ReadProfiles = %v, want an error containing %q", name, err, c.want)
 		}
 	}
 }
@@ -151,16 +90,32 @@ func TestOpenCodeOverrideEffortNotOfferedIsRefused(t *testing.T) {
 	}
 }
 
+// TestOpenCodeModelOnlyOverrideMapsAgainstNewModel asserts the variant each
+// effort maps to on the OpenCode Go profiles, with and without a model
+// override. OpenCode 2.0.27 rejects a launch that names a variant the model
+// does not offer with "Variant unavailable for <model>: <variant>" before any
+// provider call.
 func TestOpenCodeModelOnlyOverrideMapsAgainstNewModel(t *testing.T) {
-	// A role's medium maps against the model that is rendered, not the release's.
-	m, err := resolveOpenCode(t, "execution", "medium", &ModelOverride{Model: "opencode-go/deepseek-v4-pro"})
-	if err != nil || m.Model != "opencode-go/deepseek-v4-pro#high" {
-		t.Fatalf("got %v %v", m, err)
-	}
-	// An unlisted model keeps the role's effort unmapped.
-	m, err = resolveOpenCode(t, "execution", "medium", &ModelOverride{Model: "x/y"})
-	if err != nil || m.Model != "x/y#medium" {
-		t.Fatalf("got %v %v", m, err)
+	const flash, pro = "opencode-go/deepseek-v4.1-flash", "opencode-go/deepseek-v4-pro"
+	for _, c := range []struct {
+		name, roleEffort string
+		o                *ModelOverride
+		want             string
+	}{
+		{"no override medium", "medium", nil, flash + "#high"},
+		{"no override xhigh", "xhigh", nil, flash + "#max"},
+		// With a model override the role's effort maps against the rendered model,
+		// not the release's: flash keeps low, pro offers high and max only.
+		{"new model xhigh", "xhigh", &ModelOverride{Model: pro}, pro + "#max"},
+		{"new model low", "low", &ModelOverride{Model: pro}, pro + "#high"},
+		{"unlisted model", "medium", &ModelOverride{Model: "x/y"}, "x/y#medium"},
+	} {
+		t.Run(c.name, func(t *testing.T) {
+			m, err := resolveOpenCode(t, "execution", c.roleEffort, c.o)
+			if err != nil || m.Model != c.want {
+				t.Fatalf("got %v, %v; want %s", m, err, c.want)
+			}
+		})
 	}
 }
 

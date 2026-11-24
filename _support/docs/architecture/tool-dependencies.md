@@ -19,18 +19,25 @@ mistaken for an installed one. With the operator's consent, given in the
 install summary, Hive runs the host's own command that writes a host
 configuration file: `pi install npm:pi-subagents` for Pi's `settings.json` and
 `codex features enable default_mode_request_user_input` for Codex's
-`config.toml`. The Codex wait floor is the one exception: with the same consent
-Hive writes two keys into Codex's `config.toml` itself (below). Existing binaries, packages, histories, credentials,
+`config.toml`. Two steps are exceptions: with the same consent Hive writes two
+keys into Codex's `config.toml` itself (the Codex wait floor, below), and a
+user-scope install, package installation or committed-source update that
+includes Pi writes `"toolActivation": "eager"` into pi-subagents'
+`extensions/subagent/config.json` when that key is missing (change
+`pi-subagent-eager-activation`): pi-subagents 0.83 otherwise starts a session
+with only its `subagents_enable` loader, and with some providers the
+`subagent` tool appears only on the user's next prompt. Hive keeps a value the
+user set, records what it wrote, and `plan remove` deletes only that. Existing binaries, packages, histories, credentials,
 memory stores and services are untouched.
 
 | Capability | Purpose | Relevant hosts | Official source | Why manual |
 | --- | --- | --- | --- | --- |
 | Engram | Persistent memory and optional host integration | Claude, Codex, Cursor, OpenCode, Pi; Grok reads Claude's MCP configuration | Engram installation docs (versioned, checksummed release artifacts; `engram setup <agent>` is separate from the binary) | No platform asset, checksum, target location and host integration has passed a native gate |
-| Context7 | Current library documentation through its CLI and vendor skills | Codex, Claude, Cursor, OpenCode | Context7 CLI docs (`ctx7 setup --cli`, npm distribution; needs Node.js 18+) | Setup is interactive and may authenticate; Hive installs no runtime |
+| Context7 | Current library documentation through its CLI and vendor skills | Codex, Claude, Cursor, OpenCode, Antigravity | Context7 CLI docs (`ctx7 setup --cli`, npm distribution; needs Node.js 18+) | Setup is interactive and may authenticate; Hive installs no runtime |
 | pi-subagents | Pi delegated children | Pi | pi-subagents docs (`pi install npm:pi-subagents`) | Upstream validation covers only Pi 0.86.1 on Linux x64; undoing only an added entry (#29) needs Pi's native gate |
-| `agent-browser` | Browser automation for UI review and in-vivo checks | All six | agent-browser README (`brew install agent-browser`, `npm install -g agent-browser`, `agent-browser install`) | Installable after consent on macOS arm64 (Homebrew) and Linux amd64 (Node 24+, writable npm prefix); manual elsewhere |
-| CodeGraph | A queryable code graph (symbols, callers, impact) through an MCP server and CLI; the `hive-core` evidence-tools reference says when to use it, when to run `codegraph sync -q`, and what to confirm | Claude, Codex, Cursor, OpenCode | CodeGraph README (`github.com/colbymchenry/codegraph`; `codegraph install` writes each host's MCP entry and its own instruction block) | Its installer writes several hosts' configuration, which Hive does not run; manual-only, with no recipe |
-| Codex question card (`codex-question-card`) | Codex's synchronous question card in Default mode, so decisions are asked through a card that waits instead of text | Codex | Codex CLI (`codex features enable default_mode_request_user_input`, `codex features disable …`, `codex features list`); feature at stage "under development" in `rust-v0.163.0`, not in the official configuration reference | Executable after consent when `codex` is on `PATH` and `codex features list` reports the feature, selected by default in interactive installs; manual when `codex` is missing, too old, or the home is synthetic |
+| `agent-browser` | Browser automation for UI review and in-vivo checks | All seven | agent-browser README (`brew install agent-browser`, `npm install -g agent-browser`, `agent-browser install`) | Installable after consent on macOS arm64 (Homebrew) and Linux amd64 (Node 24+, writable npm prefix); manual elsewhere |
+| CodeGraph | A queryable code graph (symbols, callers, impact) through an MCP server and CLI; Hive's distributed guidance carries no CodeGraph instructions since `7a37381b`, so when to use it comes from the instruction block its own installer writes | Claude, Codex, Cursor, OpenCode | CodeGraph README (`github.com/colbymchenry/codegraph`; `codegraph install` writes each host's MCP entry and its own instruction block) | Its installer writes several hosts' configuration, which Hive does not run; manual-only, with no recipe |
+| Codex question card (`codex-question-card`) | Codex's synchronous question card in Default mode, so Hive can ask each round of decisions through a card that waits | Codex | Codex CLI (`codex features enable default_mode_request_user_input`, `codex features disable …`, `codex features list`); feature at stage "under development" in `rust-v0.163.0`, not in the official configuration reference | Executable after consent when `codex` is on `PATH` and `codex features list` reports the feature, selected by default in interactive installs; manual when `codex` is missing, too old, or the home is synthetic |
 | Codex wait floor (`codex-wait-floor`) | Keeps a parent agent from waking every 60 seconds while a delegated child works, by raising Codex's minimum and default wait under `[features.multi_agent_v2]` | Codex 0.164.0 or later | Codex source, tag `rust-v0.164.0` (`github.com/openai/codex`); not in the official configuration reference | Not manual: Hive writes the lines after consent, selected by default in interactive `install` and `hive update` while unapplied; not offered with an older Codex, without `codex`, or under a synthetic home |
 
 The Codex question card recipe runs one local command, Codex's own
@@ -41,8 +48,9 @@ as verified and never writes it. With the flag, Codex registers the card in
 Default mode and the model waits for the answer; the TUI auto-resolves an
 untouched card with empty answers after 60 s hidden plus 60 s of visible
 countdown, and any key pressed in the card cancels the countdown (observed in
-the `rust-v0.163.0` sources). Hive's question rule already asks a timed-out
-question again in text. Codex warns that under-development features may change;
+the `rust-v0.163.0` sources). The host's current instructions govern what follows
+an unanswered card; see [unanswered card](../../../content/skills/hive-core/messages/questions/unanswered.md).
+Codex warns that under-development features may change;
 `codex features disable default_mode_request_user_input` turns it off.
 Installations made before this capability enable it by hand with the same
 command, which `hive doctor` names.

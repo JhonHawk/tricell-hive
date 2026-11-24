@@ -17,6 +17,8 @@ func SessionEventsFile(c target.Config) hostevent.JSONHookFile {
 		Word:   "codex",
 		Path:   filepath.Join(c.CodexHome, "hooks.json"),
 		Events: []string{"SessionStart", "UserPromptSubmit", "SubagentStart", "SessionEnd"},
+		// Codex caps SessionEnd at 3 s; larger values emit a startup warning.
+		Timeouts: map[string]int{"SessionEnd": 3},
 		// Codex's /hooks screen names a hook by its statusMessage.
 		StatusMessages: map[string]string{
 			"SessionStart":     "Hive: report session start to the viewer",

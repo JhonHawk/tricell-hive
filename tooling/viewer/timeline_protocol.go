@@ -55,7 +55,7 @@ func TimelineProtocolContract(operation string) (TimelineProtocolDescription, er
 	actor := TimelineActor{Kind: "native_producer", ProducerID: "producer-example"}
 	one := int64(1)
 	source := TimelineSource{ProjectRoot: "/workspace/example", Host: "codex", NativeSessionID: "native-example"}
-	create := TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "create-example", Source: source, Title: "Example", Summary: "Scope", Tickets: []TimelineTicketInput{}, WorkKey: timelineStringPointer("COM-123")}
+	create := TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "create-example", Source: source, Title: "Example", Summary: "Scope", Tickets: []TimelineTicketInput{}, WorkKey: timelineStringPointer("PRJ-123")}
 	stage := TimelineAppendEventRequest{Actor: actor, SchemaVersion: 3, OperationID: "stage-example", Reason: "Start plan", Kind: "stage", Title: "", Summary: "Prepare the plan", TicketIDs: []string{}, Stage: "plan", StageState: "in_progress", ExpectedSessionVersion: &one}
 	state := TimelineStageState("completed")
 	patch := TimelineEventPatchRequest{Actor: actor, SchemaVersion: 3, OperationID: "complete-example", Reason: "Plan completed", ExpectedVersion: 1, StageState: &state, ExpectedSessionVersion: &one}
@@ -362,6 +362,24 @@ func timelineProtocolSchema(t reflect.Type) map[string]any {
 				"if":   map[string]any{"properties": map[string]any{"kind": map[string]any{"const": "stage"}}, "required": []string{"kind"}},
 				"else": map[string]any{"properties": map[string]any{"title": map[string]any{"minLength": 1}}},
 			}}
+		}
+		if t == reflect.TypeOf(TimelineAppendEventRequest{}) {
+			// One branch per kind-dependent field: kinds outside the table's row
+			// may not carry it. Values stay inside if/then/not so the per-flow
+			// briefs, which collect enums from allOf branches, do not grow.
+			conditions := result["allOf"].([]any)
+			for _, row := range timelineKindFields {
+				then := map[string]any{"not": map[string]any{"required": []string{row.Field}}}
+				if field, _ := properties[row.Field].(map[string]any); field["type"] == "string" {
+					// The validator ignores an empty string, so only a nonempty one is forbidden.
+					then = map[string]any{"properties": map[string]any{row.Field: map[string]any{"maxLength": 0}}}
+				}
+				conditions = append(conditions, map[string]any{
+					"if":   map[string]any{"properties": map[string]any{"kind": map[string]any{"not": map[string]any{"enum": append([]string(nil), row.Kinds...)}}}, "required": []string{"kind"}},
+					"then": then,
+				})
+			}
+			result["allOf"] = conditions
 		}
 		return result
 	case reflect.Slice, reflect.Array:

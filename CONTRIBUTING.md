@@ -6,7 +6,7 @@ needs.
 
 ## Set up
 
-Install **Go 1.27.0 or later**, as declared in [go.mod](go.mod), plus Python 3 for
+Install **Go 1.27.4 or later**, as declared in [go.mod](go.mod), plus Python 3 for
 the skill tests. Clone the repository and work from its root. The first build
 needs access to the Go modules unless they are already cached.
 
@@ -22,6 +22,10 @@ go vet ./...
 go test ./...
 python3 -m unittest discover -s tests/skills -p '*_test.py'
 ```
+
+While you fix a change, run the narrower check that
+[AGENTS.md «Checks by path»](AGENTS.md#checks-by-path) assigns to each path you
+edited, and the whole suite once on the final candidate.
 
 Run the suite with the default `umask 022`: under a stricter mask such as `077`,
 `tooling/management` and `tooling/package` fail on file modes.
@@ -65,6 +69,7 @@ and preserve the shared offline renderer byte for byte. See the
 
 ## Branches and commits
 
+- The repository is public: before naming a client, a ticket or a local path in any text, read root `AGENTS.md` «Scope and preservation».
 - Branch from `development`, the base branch, and open pull requests against it.
   `master` is the release branch and receives changes only by promotion.
   GitHub enforces it: a ruleset on `master` blocks direct pushes, force pushes
@@ -95,7 +100,7 @@ and preserve the shared offline renderer byte for byte. See the
 The site in `site/` uses Astro Starlight with the Ion theme and Hive's brand
 accents. Its navigation is Home, Getting started, and Changelog, followed by a
 separator, a collapsible Skills group, and an Inspiration page. Skills links to its catalog
-and the guides of the main flows (research, plan, build, verify, security, close and deploy). Inspiration lists OpenSpec, gentle-ai,
+and the guides of the main flows (research, plan, build, verify, security, close, create-issue, create-prd and deploy). Inspiration lists OpenSpec, gentle-ai,
 Superpowers, and Skills For Real Engineers, in that order. Keep its existing routes, logo assets, and
 metadata when updating its presentation. Flow pages explain the user experience and link to the canonical
 skill; they do not duplicate the procedural rules in `content/`.
@@ -176,8 +181,10 @@ follow its maintainer workflows (such as local installation refreshes).
 ## Model behavior pilots
 
 Pilots that measure how a model follows the guidance are paused. Do not add or
-run them in a contribution. Ordinary non-model tests, as listed above, are
-unaffected.
+run them in a contribution. This includes the model qualification tool
+(`qualify run` in `tests/pilot`): it is maintainer measurement, and running it
+needs the maintainer's authorization. Ordinary non-model tests, as listed
+above, are unaffected.
 
 ## Reporting security issues
 

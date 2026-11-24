@@ -108,6 +108,10 @@ func codexMemoryArgs(args, env []string, cwd string) ([]string, error) {
 func engramDataDir(output string) string { return filepath.Join(output, "engram-data") }
 
 func prepareMemoryIsolation(output string, parentEnv []string) (*memoryIsolation, []string, error) {
+	return prepareMemoryIsolationWithin(output, parentEnv, time.Now().Add(10*time.Second))
+}
+
+func prepareMemoryIsolationWithin(output string, parentEnv []string, deadline time.Time) (*memoryIsolation, []string, error) {
 	dataDir := engramDataDir(output)
 	if err := os.Mkdir(dataDir, 0700); err != nil {
 		return nil, nil, fmt.Errorf("create isolated Engram data directory: %w", err)
@@ -131,12 +135,10 @@ func prepareMemoryIsolation(output string, parentEnv []string) (*memoryIsolation
 		return nil, nil, fmt.Errorf("Engram CLI is required for isolated pilot runs")
 	}
 	env := isolatedMemoryEnvironment(parentEnv, dataDir)
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	cmd := exec.CommandContext(ctx, bin, "projects", "list")
+	cmd := exec.Command(bin, "projects", "list")
 	cmd.Env = env
-	stdout, err := cmd.Output()
-	if err != nil {
+	stdout, code, _ := setupOutputWithin(cmd, deadline)
+	if code != 0 {
 		return nil, nil, fmt.Errorf("Engram isolation preflight failed")
 	}
 	if !emptyEngramProjects(stdout) {
@@ -165,6 +167,10 @@ func emptyEngramProjects(stdout []byte) bool {
 // HTTP-backed native extensions must reach the same isolated store as stdio MCP.
 // The pilot owns this native Engram process and never reuses the everyday server.
 func (m *memoryIsolation) startHTTP(env []string, cwd string) ([]string, error) {
+	return m.startHTTPWithin(env, cwd, time.Now().Add(10*time.Second))
+}
+
+func (m *memoryIsolation) startHTTPWithin(env []string, cwd string, deadline time.Time) ([]string, error) {
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		return nil, fmt.Errorf("reserve isolated Engram port: %w", err)
@@ -172,13 +178,11 @@ func (m *memoryIsolation) startHTTP(env []string, cwd string) ([]string, error) 
 	port := strconv.Itoa(listener.Addr().(*net.TCPAddr).Port)
 	listener.Close()
 	env = append(env, "ENGRAM_PORT="+port, "ENGRAM_URL=http://127.0.0.1:"+port)
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	idCmd := exec.CommandContext(ctx, "engram", "instance-id")
+	idCmd := exec.Command("engram", "instance-id")
 	idCmd.Env = env
 	idCmd.Dir = cwd
-	id, err := idCmd.Output()
-	if err != nil || len(strings.TrimSpace(string(id))) != 32 {
+	id, code, _ := setupOutputWithin(idCmd, deadline)
+	if code != 0 || len(strings.TrimSpace(string(id))) != 32 {
 		return nil, fmt.Errorf("isolated Engram identity unavailable")
 	}
 	m.serverMu.Lock()
@@ -196,8 +200,11 @@ func (m *memoryIsolation) startHTTP(env []string, cwd string) ([]string, error) 
 	}
 	m.serverMu.Unlock()
 	client := &http.Client{Timeout: 250 * time.Millisecond}
-	deadline := time.Now().Add(5 * time.Second)
-	for time.Now().Before(deadline) {
+	healthDeadline := time.Now().Add(5 * time.Second)
+	if deadline.Before(healthDeadline) {
+		healthDeadline = deadline
+	}
+	for time.Now().Before(healthDeadline) {
 		response, err := client.Get("http://127.0.0.1:" + port + "/health")
 		if err == nil {
 			var health struct {

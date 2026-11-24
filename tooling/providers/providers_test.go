@@ -39,7 +39,7 @@ func TestCatalogOrderIsStableAndAgentBrowserPrecedesCodexQuestionCard(t *testing
 	}
 
 	browser := catalog[3]
-	want := []string{"claude", "codex", "cursor", "grok", "opencode", "pi"}
+	want := []string{"antigravity", "claude", "codex", "cursor", "grok", "opencode", "pi"}
 	got := append([]string(nil), browser.Hosts...)
 	sort.Strings(got)
 	if strings.Join(got, ",") != strings.Join(want, ",") {

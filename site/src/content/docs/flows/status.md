@@ -7,14 +7,14 @@ Status answers "where are we?" in one screen. The agent reads your tracker and G
 
 ## When it starts
 
-Use Status when you ask for the project's status, its backlog, unfinished work, or what to work on next.
+Use Status when you ask for the project's status, its backlog, unfinished work, or what to work on next. It is the ticket-status playbook of [Hive mode](/flows/hive-mode/): ask for it in your own words, or type `/hive-mode status`; it has no command of its own.
 
 ```text wrap
 What is the status of the project?
 What should I take next?
 ```
 
-To investigate one question or assess one ticket, use [Research](/flows/research/) instead.
+To investigate one question or assess one ticket, use [Hive mode](/flows/hive-mode/) instead. To clean up the open tickets, closing the ones that no longer apply and grouping the related ones, ask for an audit of them, which the [audit-issues](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/audit-issues/SKILL.md) skill runs.
 
 ## What it asks you
 
@@ -23,7 +23,7 @@ Nothing. The report is never replaced by a question card, and the flow is read-o
 ## What it reads
 
 - The tickets in every non-terminal state, as short summaries.
-- Unfinished local work: the current branch, uncommitted changes, branches not yet merged, worktrees, open pull requests, and change folders with work outside Git in the specs repository, even when it is a separate one: a folder never committed, or uncommitted edits to one, in any checkout or worktree.
+- Unfinished local work: the current branch, uncommitted changes, branches not yet merged, worktrees, open pull requests, and plan files under `workspace/` in any checkout or worktree whose `Status` is not `Completed`.
 - The work left open on purpose: the `Pending:` records [Close](/flows/close/) keeps in persistent memory, each marked ready to resume when everything that unblocks it is resolved. Status never deletes a record; a close does.
 
 ## What the report holds
@@ -37,6 +37,6 @@ One block, in this order:
 
 ## How it ends
 
-A plain status request ends with the recommendations. When you asked what to take next, the report ends with the recommended ticket and the command that assesses it, which starts [Research](/flows/research/) for that ticket. Your reply is what starts it.
+A plain status request ends with the recommendations. When you asked what to take next, the report ends with the recommended ticket and the command that assesses it, which starts [Hive mode](/flows/hive-mode/) for that ticket. Your reply is what starts it.
 
-Source: [content/skills/flow-status/SKILL.md](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/flow-status/SKILL.md)
+Source: [content/skills/hive-mode/SKILL.md](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-mode/SKILL.md)

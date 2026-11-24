@@ -37,6 +37,9 @@ type journal struct {
 	// CodexLines is the wait floor edit of Codex's config.toml, journaled by
 	// lines (fingerprints and owned lines), never by the file's bytes.
 	CodexLines *linesEntry `json:",omitempty"`
+	// PiConfig is the toolActivation edit of pi-subagents' config.json,
+	// journaled by fingerprints and flags, never by the file's bytes.
+	PiConfig *piConfigEntry `json:",omitempty"`
 	// HostHooks are the edits of the shared JSON hook files, journaled by
 	// fingerprints and Hive's own entries, never by the files' bytes.
 	HostHooks []*hostHooksEntry `json:",omitempty"`
@@ -183,6 +186,93 @@ func cleanupDirs(dirs []string) []string {
 	return retained
 }
 
+// retireSkillCaches runs after a transaction commits, so the retirement is
+// already recorded. For each Hive skill folder the plan retired whole (no
+// record left under it, and Hive created it) it deletes the regular *.pyc
+// files of every __pycache__ directory, then the directory once empty, so the
+// folder itself can go with the other empty directories. It never follows a
+// link: a __pycache__ that is a link is left alone, and a directory with any
+// other file is kept. It returns one note per directory it left.
+func retireSkillCaches(p Plan, next State) []string {
+	bundles := map[string]bool{}
+	for _, ch := range p.Changes {
+		if ch.After != nil || ch.Before == nil || ch.Target.Kind != "skill" || !strings.HasPrefix(ch.Target.Source, "content/skills/") {
+			continue
+		}
+		bundle := ch.Target.Path
+		for range strings.Split(ch.Target.Source, "/")[3:] {
+			bundle = filepath.Dir(bundle)
+		}
+		bundles[bundle] = true
+	}
+	var names []string
+	for b := range bundles {
+		names = append(names, b)
+	}
+	sort.Strings(names)
+	var notes []string
+	for _, bundle := range names {
+		if !slices.Contains(next.CreatedDirs, bundle) || target.Safe(bundle) != nil {
+			continue
+		}
+		stillOwned := false
+		for path := range next.Records {
+			if strings.HasPrefix(path, bundle+string(filepath.Separator)) {
+				stillOwned = true
+				break
+			}
+		}
+		if stillOwned {
+			continue
+		}
+		_ = filepath.WalkDir(bundle, func(path string, d os.DirEntry, err error) error {
+			if err != nil || d.Name() != "__pycache__" {
+				return nil
+			}
+			if d.Type()&os.ModeSymlink != 0 {
+				notes = append(notes, "left "+path+" untouched: it is a link")
+				return nil
+			}
+			if !d.IsDir() {
+				return nil
+			}
+			if note := removePycache(path); note != "" {
+				notes = append(notes, note)
+			}
+			return filepath.SkipDir
+		})
+	}
+	return notes
+}
+
+// removePycache deletes the regular *.pyc files of dir and then dir when it is
+// empty. It returns a note when dir keeps a file that is not one of them.
+func removePycache(dir string) string {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return "kept " + dir + ": " + err.Error()
+	}
+	kept := false
+	for _, e := range entries {
+		path := filepath.Join(dir, e.Name())
+		info, err := os.Lstat(path)
+		if err != nil || !info.Mode().IsRegular() || !strings.HasSuffix(e.Name(), ".pyc") || target.Safe(path) != nil {
+			kept = true
+			continue
+		}
+		if os.Remove(path) != nil {
+			kept = true
+		}
+	}
+	if kept {
+		return "kept " + dir + ": it holds files other than .pyc"
+	}
+	if err := os.Remove(dir); err != nil && !os.IsNotExist(err) {
+		return "kept " + dir + ": " + err.Error()
+	}
+	return ""
+}
+
 // anyUserScopeHiveBlockRemains reports whether s.Records still has any
 // "block"-kind record with at least one user-scope consumer: whether there
 // is still somewhere a voice choice could apply.
@@ -220,6 +310,7 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 	next.Voice = state.Voice
 	next.PiSubagentsSource = state.PiSubagentsSource
 	next.CodexWaitFloor = copyWaitFloorRecord(state.CodexWaitFloor)
+	next.PiSubagentConfig = copyPiRecord(state.PiSubagentConfig)
 	next.HostHooks = copyHostHooks(state.HostHooks)
 	if state.VoiceSpans != nil {
 		next.VoiceSpans = map[string]VoiceSpan{}
@@ -320,6 +411,13 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 	if j.CodexLines != nil && !j.CodexLines.Skip {
 		changed = true
 	}
+	if err := preparePiConfig(p, state, &next, &j); err != nil {
+		return journal{}, State{}, nil, false, err
+	}
+	// A Skip entry only carries a note, unless it clears a record (the file is gone).
+	if j.PiConfig != nil && (!j.PiConfig.Skip || state.PiSubagentConfig != nil && next.PiSubagentConfig == nil) {
+		changed = true
+	}
 	if err := prepareHostHooks(p, state, &next, &j); err != nil {
 		return journal{}, State{}, nil, false, err
 	}
@@ -337,6 +435,9 @@ func prepareTransaction(p Plan, state State, transactionID string) (journal, Sta
 		if !slices.Contains(next.CreatedDirs, d) {
 			next.CreatedDirs = append(next.CreatedDirs, d)
 		}
+	}
+	if err := finishPiConfigDirs(p, &next, &j, dirsToCreate); err != nil {
+		return journal{}, State{}, nil, false, err
 	}
 	id := make([]byte, 16)
 	if _, err = rand.Read(id); err != nil {
@@ -444,6 +545,9 @@ func (e Engine) commitTransaction(p Plan, j *journal, state State, next *State, 
 		return err
 	}
 	if err := applyCodexLines(j, jp, e.fail); err != nil {
+		return err
+	}
+	if err := applyPiConfig(j, jp, e.fail); err != nil {
 		return err
 	}
 	if err := applyHostHooks(j, jp, e.fail); err != nil {
@@ -769,6 +873,14 @@ func (e Engine) Apply(p Plan) (string, error) {
 			warning = strings.TrimPrefix(warning+"; "+n, "; ")
 		}
 	}
+	if j.PiConfig != nil {
+		for _, n := range j.PiConfig.Notes {
+			warning = strings.TrimPrefix(warning+"; "+n, "; ")
+		}
+	}
+	for _, n := range retireSkillCaches(p, next) {
+		warning = strings.TrimPrefix(warning+"; "+n, "; ")
+	}
 	id, err := finishApply(p, j.ID, next)
 	if err != nil {
 		if warning != "" {
@@ -876,6 +988,11 @@ func (e Engine) Recover(stateDir string) (string, error) {
 		if err != nil {
 			return "", err
 		}
+		// A file the migration edited and the Pi step then edited is judged as
+		// it will be once the step's key is out.
+		if cur, err = piConfigAfterUndo(j, en.Change.Target.Path, cur); err != nil {
+			return "", err
+		}
 		currents[i] = cur
 		if same(cur, en.Before) {
 			inverses[i] = cur
@@ -946,6 +1063,12 @@ func (e Engine) Recover(stateDir string) (string, error) {
 	// Only now, once Recover is going ahead: it must not undo the lines of an
 	// operation it then refuses to recover.
 	if err := undoCodexInstall(j); err != nil {
+		return "", err
+	}
+	if err := undoPiConfigInstall(j); err != nil {
+		return "", err
+	}
+	if err := restorePiConfigRemoval(j); err != nil {
 		return "", err
 	}
 	if err := undoHostHooksInstall(j); err != nil {

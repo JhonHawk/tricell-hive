@@ -17,7 +17,7 @@
 </div>
 
 Hive brings shared working practices to **Claude Code, Codex, Grok Build, Pi,
-OpenCode V2, and Cursor CLI**. It supplies guidance, activity skills, specialist
+OpenCode V2, Cursor CLI, and Antigravity**. It supplies guidance, activity skills, specialist
 role definitions, and a manager that installs them in the host's native locations.
 Each CLI keeps its own model loop, authentication, tools, permissions, and history.
 
@@ -27,6 +27,29 @@ explanations and messages with external links or IDs; greetings and short direct
 answers need no reference read. Questions, delegation, artifact details and project
 settings have explicit read conditions. Installing a reference makes it available, not necessarily read
 or followed. This organization does not establish reliability for any model family.
+
+**Entry router, playbooks and rule leaves.** Every request to do work enters
+[hive-mode](content/skills/hive-mode/SKILL.md), which classifies it by kind of work and
+opens the [playbook](content/skills/hive-mode/playbooks/) of the kinds that have steps of their own. The
+rules that apply at one moment, such as staging a commit, moving a ticket or asking a
+round of questions, live in small files called rule leaves, stored as `content/skills/hive-core/<domain>/<name>.md`, one folder per domain. The
+[«Rule leaves» index](content/guidance/global.md) of the global guidance names the
+moment that requires each one, and the flow steps link them where they apply. A leaf
+is read as a file at that moment; it is not invoked as a skill. The leaves belong to
+one hidden skill, `hive-core`, marked `disable-model-invocation: true`, which Claude
+Code reads; for Codex the manager generates a hidden-skill policy file,
+`agents/openai.yaml`, beside that skill; Antigravity lists the skill in its catalog
+with a one-line description. For the other hosts no hiding mechanism is verified, so
+they may list it. An update retires the earlier one-skill-per-leaf folders, the earlier `references/` folder of `hive-core` and the earlier principle skills. A leaf installed is not proof that a session
+read it; `go run ./tests/pilot --audit-session` checks, for a real session, that the
+leaf of a commit, a ticket move or a question card was read before that action.
+Code principles follow the same pattern: the hidden
+[principles index](content/skills/hive-core/principles/index.md) lists each
+principle with the moment it applies, and the visible
+[`hive-typescript`](content/skills/hive-typescript/SKILL.md) skill covers `.ts` and `.tsx` files; the agent reads it when its description or the index sends it there, not automatically.
+The guidance is written for Claude Opus 5.5 and OpenAI gpt-6.2-sol, the writing target of the
+[support floor](_support/docs/harness-engineering/model-floor.md); failures observed one tier above
+(Fable 5.2, gpt-6.2-astra), one tier below (Sonnet 5.5, gpt-6.1-terra) and on Grok 4.7 also count toward corrections.
 
 OpenCode V2 also receives an **optional, inactive context loader** at user scope in
 `<OpenCodeHome>/hive/context-loader/{index.js,context-loader.json}`, outside
@@ -46,7 +69,7 @@ Use it to investigate an uncertain request, plan a consequential change, or carr
 an understood task through implementation and verification—with clear boundaries
 between what was requested, what was authorized, and what was demonstrated.
 
-> **Version 0.9.0 · complete release updates, stable command migration, and recoverable offline plans**
+> **Version 0.10.0 · a 13-skill catalogue with create- and audit- skills, a mobile build role, the swarm mode, and guidance written for Claude Opus 5.5 and gpt-6.2-sol**
 > Each release sets [VERSION](VERSION) to its product version; between releases,
 > `development` carries `dev`. Packages for macOS Apple
 > Silicon and Linux arm64/amd64 are published on
@@ -61,8 +84,8 @@ between what was requested, what was authorized, and what was demonstrated.
 - **Make handoffs useful.** Specialist roles receive a bounded task, owned paths,
   relevant context, and evidence to return. Implementation, review, and
   verification have separate responsibilities.
-- **Keep decisions connected to evidence.** Requirements and change records
-  preserve context; findings distinguish observed results from assumptions and
+- **Keep decisions connected to evidence.** Requirements and the pull request
+  body preserve context; findings distinguish observed results from assumptions and
   unfinished work.
 - **Manage guidance without replacing the host.** Installation previews affected
   destinations, checks ownership and drift, preserves user content outside managed
@@ -87,11 +110,14 @@ It asks which hosts to install and confirms before it writes.
 
 - **Preview first:** append `-s -- --dry-run`. No host changes; the package is
   still downloaded; behavior depends on the selected package version.
-- **Pick a release or hosts:** append `-s -- --version 0.9.0 --hosts claude,codex`.
+- **Pick a release or hosts:** append `-s -- --version 0.10.0 --hosts claude,codex`.
 - **Afterwards:** packages with the new update protocol register
   `~/.local/bin/hive` as the stable command. The installer does not edit `PATH`
   or overwrite an unowned file there. Older packages print their versioned path.
-- **Requirements:** `curl`, `tar`, and `shasum` or `sha256sum`.
+- **Requirements:** `curl`, `tar`, `gzip`, and `shasum` or `sha256sum`. Some skills
+  also run bundled scripts with `python3` (3.7 or later), such as the change
+  folder checks and the Git-state and task-progress helpers; the last two fall
+  back to the commands they replace when `python3` is missing.
 
 The [installer contract](_support/docs/architecture/installer.md#one-line-installation)
 lists what the script checks.
@@ -135,7 +161,7 @@ GitHub's automatic **Source code** archives are not packages; use the
 
 ### From a source checkout
 
-From the checkout root, with **Go 1.27.0 or later** as declared in [go.mod](go.mod):
+From the checkout root, with **Go 1.27.4 or later** as declared in [go.mod](go.mod):
 
 ```sh
 # Build a binary at a stable path: a user-scope install writes that path into
@@ -169,9 +195,9 @@ an interactive install offers on macOS arm64 (Homebrew) and Linux amd64 (Node
 it shows; and the Codex question card (`codex-question-card`), which an
 interactive install with the Codex host offers selected by default when the
 installed Codex supports it (0.163.0 or later) and, after you consent, enables with `codex features enable
-default_mode_request_user_input`, Codex's own command, so Codex asks its
-decisions through a card that waits in Default mode (uncheck it, or type `none`,
-to skip it; `codex features disable default_mode_request_user_input` turns it
+default_mode_request_user_input`, Codex's own command, making the waiting card
+available in Default mode, where Hive asks each round of decisions through it (uncheck it,
+or type `none`, to skip it; `codex features disable default_mode_request_user_input` turns it
 off). The Codex wait floor (`codex-wait-floor`) is the fourth: an interactive
 install or a committed-source `hive update` with the Codex host offers it, selected by default, while
 the setting is not applied and Codex is 0.164 or later (a dry run offers
@@ -187,10 +213,13 @@ Hive wrote that still have their values, then the backup after a clean revert;
 if Codex's file is one Hive cannot edit safely, the offer becomes a manual step
 instead. The minimum applies to Codex's v2 multi-agent runtime; v1 is not
 verified. An older Hive binary that rewrites Hive's state loses the record of
-the write, and then `plan remove` leaves the lines in place. The wait floor is
-the only step where Hive writes a host configuration file itself; pi-subagents
-and the question card run the host's own command, and `agent-browser` runs
-Homebrew or npm. Selecting a manual capability leaves the installed core intact but returns a non-zero exit status
+the write, and then `plan remove` leaves the lines in place. Hive writes a host
+configuration file itself in two steps: the wait floor, and, when you install
+for Pi, `"toolActivation": "eager"` in pi-subagents'
+`extensions/subagent/config.json` when that key is missing, so Pi can start
+helper roles from a session's first request; it keeps a value you set and
+`plan remove` takes back only its own. pi-subagents' package and the question
+card run the host's own command, and `agent-browser` runs Homebrew or npm. Selecting a manual capability leaves the installed core intact but returns a non-zero exit status
 to signal unfinished setup.
 `hive setup` reports local discovery without installing tools; discovery does not
 establish authentication, service access, or host loading.
@@ -204,7 +233,7 @@ for capability requirements.
 
 ## Hosts
 
-Six host adapters are implemented. Their presence and installation on disk do
+Seven host adapters are implemented. Their presence and installation on disk do
 not prove that a particular session loaded the content or followed it.
 
 | Host | Scope | Requirements and limits |
@@ -215,8 +244,9 @@ not prove that a particular session loaded the content or followed it.
 | Pi | User | Delegated roles need pi-subagents (installed through npm as described above). Roles run on the session's model by default; set others with `hive models set`. Honors `PI_CODING_AGENT_DIR`. |
 | OpenCode V2 | User | Needs your own model providers. Roles run on the session's model and effort by default; set others with `hive models set`. |
 | Cursor CLI | User | Loads no global instruction file; each repository needs a pointer line (below). Cursor CLI 2026.10.22 loads no user-level subagents, only those in the repository's `.cursor/agents`, `.claude/agents` and `.grok/agents`, so Hive's user-level roles run as generic agents that receive the role's instructions. |
+| Antigravity | User | The `agy` CLI (1.5.2 observed) and the Antigravity App (2.29 observed), which share `~/.gemini/config`; the IDE extensions are not covered. `agy` truncates every rule file at 24,000 bytes, global ones included (observed 2026-11-06), so Hive writes the guidance as always-on parts `~/.gemini/config/rules/hive-NN.md` of at most 22,000 bytes each. Roles are `~/.gemini/config/agents/<role>.md` and run on the session's model; `agy` has no read-only field, so read-only roles rely on their instructions, and `hive models set` offers `inherit`, `flash_lite`, `flash` and `pro` with no effort. Hive does not write `~/.gemini/GEMINI.md`. Hive cannot read `agy`'s native history, and `agy` keeps its own memory ("Knowledge"). |
 
-Only Claude Code and Codex support `--scope project`; the other four reject it.
+Only Claude Code and Codex support `--scope project`; the other five reject it.
 Project scope writes inside one repository:
 
 ```sh
@@ -239,6 +269,12 @@ this line to its `AGENTS.md`, near the top and outside its `## Hive` section:
 ```markdown
 Cursor sessions: unless your loaded instructions contain the line "# Tricell Hive guidance" as a heading of its own, read `~/.cursor/rules/hive.mdc` before any other action and follow it. If that file is missing, say so and continue.
 ```
+
+Your own rules for every project, which the personal rules mode of
+[audit-harness](content/skills/audit-harness/references/personal-rules.md) keeps in
+`~/.config/hive/rules.md` and copies to each host, land in Cursor as
+`~/.cursor/rules/personal-rules.mdc`. That pointer names only `hive.mdc`, so a
+repository outside your home folder does not load them.
 
 See [native destinations](_support/docs/architecture/deployment-manager.md#content-and-native-destinations)
 and [agent delivery](_support/docs/architecture/agent-delivery.md) for documented
@@ -304,6 +340,10 @@ hive doctor
 hive models
 ```
 
+`hive time` prints, as JSON, the current agent session's active time, the time
+it spent waiting for you and on remote CI, and that time converted for a
+ticket's worklog; the agents use it to record the time worked on Jira tickets.
+
 **Releases.** `hive releases` lists the release snapshots Hive keeps.
 
 **Recover.** An interrupted operation blocks further plans until recovery runs:
@@ -334,26 +374,29 @@ covers exact revision selection.
 Start where the request belongs. These are available routes, not a mandatory
 sequence for every task. Authorization and preservation apply throughout.
 
-Start each flow by typing its command, such as `/flow-status` or `/flow-plan COM-833`
+Start each flow by typing its command, such as `/hive-mode status` or `/flow-plan ABC-123`
 (`$flow-plan` in Codex, `/skill:flow-plan` in Pi, `@flow-plan` in OpenCode). A typed
 command loads the skill whole for that flow, which the host's automatic selection does
-not guarantee. A request to do work does not need a command: it enters Research, which
-continues into Build in the same turn when the request is complete. Where a flow needs
+not guarantee. A request to do work does not need a command: it enters Hive mode, which
+continues into Build in the same turn when the request is complete, unless it brings a
+new screen and the host can write to Figma, when it offers Create design first. Where a flow needs
 your go-ahead for the next one, it ends by naming that command.
 
 ```mermaid
 flowchart TD
     Entry{"What is needed?"}
-    Entry -->|Status or what's next| Status["flow-status"]
-    Entry -->|Any request to do work, a question or a ticket| Research["flow-research"]
+    Entry -->|Status or what's next| Status["hive-mode (status)"]
+    Entry -->|Any request to do work, a question or a ticket| HiveMode["hive-mode"]
     Entry -.->|You ask for a plan| Plan["flow-plan"]
 
-    Status -->|User picks a ticket| Research
-    Research -->|The how has a decision for you| Plan
-    Research -->|The how is settled| Build
-    Research -->|An analysis| Findings["Findings, no flow recommended"]
-    Plan --> Build["flow-build<br/><small>tasks · first rendered view (flow-walkthrough)</small>"]
-    Build --> Verify["flow-verify<br/><small>suite · UX review · code review · validation (flow-walkthrough)</small>"]
+    Status -->|User picks a ticket| HiveMode
+    HiveMode -->|New or recomposed screen| Figma["create-design"]
+    Figma -->|Example approved| Plan
+    HiveMode -->|The how has a decision for you| Plan
+    HiveMode -->|The how is settled| Build
+    HiveMode -->|An analysis| Findings["Findings, no flow recommended"]
+    Plan --> Build["flow-build<br/><small>tasks · first rendered view (walkthrough)</small>"]
+    Build --> Verify["flow-verify<br/><small>suite · UX review · code review · validation (walkthrough)</small>"]
     Build -->|Mechanical change| Close
     Verify --> Close["flow-close"]
     Verify -->|Promotion requested| Deploy["flow-deploy"]
@@ -365,7 +408,7 @@ flowchart TD
 
     classDef activity fill:#eaf0f6,stroke:#496580,color:#172b3a
     classDef rules fill:#f6f3e8,stroke:#8a7a45,color:#3a321a
-    class Status,Research,Plan,Build,Verify,Close,Deploy activity
+    class Status,HiveMode,Figma,Plan,Build,Verify,Close,Deploy activity
     class Rules rules
 ```
 
@@ -375,15 +418,34 @@ work, and gets its own destination when it is a separate topic; the [shared guid
 classifies it, and the [flows overview](https://hive.tricell.tech/flows/overview/)
 lists where each flow loops.
 
-- Status ([skill](content/skills/flow-status/SKILL.md)) reports the backlog grouped by
+- Status, a playbook of Hive mode ([reference](content/skills/hive-mode/playbooks/ticket-status.md)), reports the backlog grouped by
   module and the unfinished local work, and recommends what to take next. It is read-only.
-- [Research](https://hive.tricell.tech/flows/research/) ([skill](content/skills/flow-research/SKILL.md)) is the entry for every
+- [Hive mode](https://hive.tricell.tech/flows/hive-mode/) ([skill](content/skills/hive-mode/SKILL.md)) is the entry for every
   request to do work: it settles what you need, reading before it asks and asking one
   open question at a time. A complete request is checked and done, or continues into
-  Build in the same turn; Plan comes only when the how has a decision for you or the work
+  Build in the same turn, except a new screen it offers to Create design first; Plan comes only when the how has a decision for you or the work
   cannot be finished from your request and the `git diff`. It also turns uncertainty into
-  a supported answer and assesses a ticket you pick. An analysis ends at its findings
+  a supported answer, assesses a ticket you pick, and audits the codebase for what to
+  improve when you ask. It also classifies the work by kind: the kinds with steps of their own have a playbook
+  (`content/skills/hive-mode/playbooks/`), the rest carry what is specific to them in the router's
+  table, and work that fits no kind follows the general route. An analysis ends at its findings
   with no flow recommended. It does not publish to the viewer.
+- [Create design](https://hive.tricell.tech/flows/create-design/) ([skill](content/skills/create-design/SKILL.md)) is an optional
+  stage between Hive mode and Plan for a new or recomposed screen: it draws one example
+  as frames in the project's Figma file, following your existing screens, has a reviewer
+  agent check it, asks you to approve or correct the completed set once, and records
+  the approved examples that
+  Plan, Build and Verify compare against, with a rule card beside each frame for the
+  business rules it does not say. A work's business rules are written to its ticket
+  when you approve the example, when the build starts and at the close. It draws alternatives only for a screen you
+  name. Applicable mobile frames are ready before approval; corrections return only
+  the affected screens for approval. Hive mode recommends it only when the host can
+  write to Figma. A web app is drawn at its desktop width plus 440 px when served on
+  mobile; an app that runs only on mobile is drawn once at 440 px. A yes to recording the
+  Figma file or library in `DESIGN.md` stays pending and the plan writes it. The same skill
+  also corrects frames you name, reviews a design someone else drew (a Figma link or an
+  image; a reviewer agent returns findings and a verdict, and nothing is drawn), and creates
+  or refreshes `DESIGN.md`. It does not publish to the viewer.
 - [Plan](https://hive.tricell.tech/flows/plan/) ([skill](content/skills/flow-plan/SKILL.md)) settles the how: it presents two or
   three approaches before the tasks, resolves the decisions that are yours, and
   defines contracts, verifiable tasks, and acceptance criteria.
@@ -391,25 +453,34 @@ lists where each flow loops.
   implements authorized work. It ends at a built candidate and hands it to Verify.
 - [Verify](https://hive.tricell.tech/flows/verify/) ([skill](content/skills/flow-verify/SKILL.md)) checks the candidate at a level
   your delivery, review and UI answers and your request set: affected tests, runtime and UI
-  checks, the full suite and the dedicated review, a security review only when you
-  ask for it, and your validation through a walkthrough, and then integrates it.
-- [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) moves the ticket and reports at
+  checks, the full suite and the code review every change that is not mechanical
+  gets, a security review recommended when the change touches a security
+  boundary, and your validation through a walkthrough, and then integrates it.
+  The checks that always run for each kind of change hold in every delivery
+  mode, and the final report ends with how to try the change yourself.
+- [Close](https://hive.tricell.tech/flows/close/) ([skill](content/skills/flow-close/SKILL.md)) moves the ticket, writes the work's business rules to it and reports at
   integration, also when a project declares a later completion point in its
-  `Completion` key, then ends with a footer that recommends closing and lists replies
-  from the context, such as resolving a finding. The record archive and the cleanup run on
-  your reply, when you start other work or when the session ends: the work's resources,
-  plus your earlier merged branches and their clean worktrees in each repository the work
-  touched. A pause commits the change folder where the specs repository allows it, and a
+  `Completion` key, then ends as the close's situation sets: with a footer that lists
+  replies from the context, such as closing or resolving a finding, or with the report alone
+  for a deploy's cleanup, abandoned work, a session-hygiene request or unattended work. At the merge the cleanup runs
+  before the report, with no question: the work's resources and the evidence its ticket
+  or pull request holds, plus your earlier merged branches and their clean worktrees in
+  each repository the work touched. Only what needs your answer waits for a close reply,
+  other work or the end of the session; with nothing waiting, closing is not offered. The plan file stays local and nothing is archived; the pull request body is
+  the work's public record. A
   promotion not yet made keeps nothing. Unfinished work is preserved.
 - [Deploy](https://hive.tricell.tech/flows/deploy/) ([skill](content/skills/flow-deploy/SKILL.md)) is a separate stage after
   integration: it promotes through the declared environments and checks what is
   served. It never holds a close open: when a project declares a later
   completion point in its `Completion` key, Deploy moves the ticket to its final
-  state once the condition holds and no functional walk is pending in that environment.
+  state once the condition holds: when the functional walk runs, only a ticket
+  whose criteria it observed there moves; without a walk, the ticket moves and the
+  report names it as not walked.
 
 The [shared guidance](content/guidance/global.md) keeps the authorization,
-preservation, secrets, evidence, questions and routes, project settings, memory
-and artifact-placement rules every session needs; each flow's procedure lives in its skill. Local edits, commits, publication,
+preservation, secrets, artifact-placement, delivery-mode and memory rules every
+session needs, with one line for evidence and short invariants for questions and routes, and
+indexes the rule leaves that hold the rest; each flow's procedure lives in its skill. Local edits, commits, publication,
 merges, and deployments are distinct effects; a plan or skill selection does not
 provide authorization for them.
 
@@ -429,7 +500,7 @@ Two commands tune the setup from a terminal:
   decisions are asked once per work item when still open, and
   `hive doctor` warns about leftover `Review`, `UI verification` or
   `Delivery: automatic|interactive` lines. `hive doctor` exits non-zero when the
-  `## Hive` section has a blocking finding, and `harness-audit` can create or
+  `## Hive` section has a blocking finding, and `audit-harness` can create or
   update the section for you.
 - `hive voice` lists the voices (`hive voice list`), selects one with `hive voice set ID`,
   and turns it off with `hive voice off`.
@@ -457,27 +528,31 @@ hive view status     # service status without its access token
 hive view stop
 ```
 
-Publish retained Markdown on demand with `hive view work publish`: the binary
-scans the selected directory, uploads the bytes and returns a compact work/revision
-receipt. `hive view work contract` describes the semantic commands. A stable key
-and retained work ID keep two change folders separate within one native session;
-`work list` lists them. Repeating unchanged content makes no remote write.
+The viewer holds only UI captures and the iteration each belongs to. Build and
+Verify publish a batch of captures of one screen with one command, `hive view
+work capture --stage build|verify --view-title SCREEN --image FILE[:caption]`;
+it opens the work and stage when needed, links the current commit and numbers
+each later capture of the same title as `SCREEN · #N`, superseding the previous
+one. Plan and Hive mode publish nothing, and a flow without captures creates no
+work. A stable key and retained work ID keep two works separate within one
+native session; `work list` lists them. The binary still offers stage, task,
+evidence and Markdown publication (`work open|sync|evidence|tasks|publish`) as
+advanced operations, described by `hive view work contract`.
 Everything the browser manages also has a command: `hive view work rename`,
 `archive`, `restore`, `pin`, `unpin`, `recover` (reassign the lead to a pending
 join request, with a reason) and `delete` (with `--confirm` set to the work ID).
 They act as the local viewer, not as a producer, and an agent runs them only
 when you ask for that action on a named work.
-The agent declares each stage change once with `hive view work sync` (state,
-reason and task states in one call) and, for a build without a plan, needs only
-`open`, `sync`, `evidence` and `close`; it passes no host or session identity,
-because the binary resolves it. With the viewer stopped these commands answer
-`queued` and the next command or hook run sends them in order. Nothing watches
+The agent passes no host or session identity, because the binary resolves it,
+and finishes a work with `work close` (or one `work sync` to leave it in review,
+paused or awaiting validation). With the viewer stopped, `capture` answers
+`queued` and the next command or hook run sends it in order. Nothing watches
 your files, and editing a checklist does not change live task status. Source
 files stay in the repository.
 
 #### Host hooks
 
-A user-scope install also registers a silent `hive hook` command in each host,
+A user-scope install also registers a `hive hook` command in each host (silent, except on Antigravity, which requires a JSON reply on every run),
 which reports the session's start, activity and end, and where the host has one
 its native task list, to the viewer. The viewer shows them as *From host*, apart
 from what the agent publishes, and they never start or complete a stage, approve
@@ -491,6 +566,7 @@ anything or close a work.
 | Cursor CLI | `~/.cursor/hooks.json` | Verified only in the installed code. |
 | OpenCode V2 | `~/.config/opencode/plugins/hive-events.js` | Event plugin; the context loader stays inactive. |
 | Pi | `~/.pi/agent/extensions/hive-events.ts` | Extension, auto-loaded. |
+| Antigravity | `~/.gemini/config/hooks.json`, named hook `hive` | Reports session start and activity; `agy` has no session-end event, so a turn end is activity. Observed with `agy` 1.5.2: the hook runs and identifies the session. Sessions in the Antigravity App are not identified, since its agent process is not named `agy`. |
 
 Hive edits the shared JSON files entry by entry, keeps a backup of each, leaves
 other tools' hooks byte-identical and removes only its own on uninstall. Hosts
@@ -503,15 +579,16 @@ flow's brief (research, plan, build, verify, delivery, close, collab or local), 
 names every operation with its flows, `--section rules` prints the shared rules,
 and `--operation NAME` narrows to one operation.
 JSON inputs use `--json FILE` or `--json -`. The
-[publication skill](content/skills/flow-walkthrough/SKILL.md) owns the agent's
+[walkthrough reference](content/skills/hive-core/ui/walkthrough.md) owns the agent's
 procedure; the [viewer manual](https://hive.tricell.tech/viewer/) explains how to
 read and manage published work.
 
 System labels follow the browser: English by default, Spanish for a Spanish primary language. Producer-authored content remains verbatim.
 
-Stages contain their own activity. The Tasks Popover lists the single task
-registry; each stage projects its assigned segments, including tasks that span
-verification and delivery. Status, pauses and CI waits are declared records,
+Stages contain their own activity. When tasks exist (published through the
+advanced commands or reported by the host), the Tasks Popover lists the single
+task registry; each stage projects its assigned segments, including tasks that
+span verification and delivery. Status, pauses and CI waits are declared records,
 not proof of host liveness or human approval. Documents, galleries and review
 panels preserve the snapshot you opened until you choose an update. Tickets and
 Git deliveries have canonical IDs: a metadata correction updates current links
@@ -558,7 +635,7 @@ native locations. The files an agent should read first are in
 - `integrations/` is distributable: per-host destinations and role profiles.
 - `tooling/` is the Go manager, distribution logic, and package builder.
 - `_support/` is internal maintainer material: architecture docs, research, and
-  change records under `_support/openspec/`. It is not installed.
+  contract specs under `_support/openspec/`. It is not installed.
 - `tests/` holds content checks, fixtures, and evaluation tooling. It is not
   installed.
 - `site/` is the source of the documentation site for people. It is
@@ -574,8 +651,7 @@ native locations. The files an agent should read first are in
   [security policy](SECURITY.md).
 - [Architecture](_support/docs/architecture/repository-and-distribution.md) —
   structure, ownership, managed instruction blocks, and preservation.
-- [Requirements and changes](_support/openspec/) — versioned requirements and
-  retained change records.
+- [Contract specs](_support/openspec/) — versioned contracts.
 - [Harness engineering research](_support/docs/harness-engineering/README.md) —
   research sources and the measurement standard.
 - [content/](content/) — canonical guidance, skills, specialist roles, and voices.

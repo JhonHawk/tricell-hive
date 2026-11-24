@@ -15,7 +15,7 @@ Each folder holds one deterministic criterion from `tests/pilot/regression.go`, 
 
 ## Add a case
 
-New cases are no longer added for session findings; see the Measurement section of the root `AGENTS.md`. This procedure remains as the record of how the existing cases were built.
+New cases are no longer added for session findings; see the Measurement section of the root `AGENTS.md`. This procedure remains as the record of how the existing cases were built. A criterion that reads real session transcripts belongs to `go run ./tests/pilot --audit-session` instead: its cases are transcripts written inline in its test, in each host's transcript format rather than the pilots' streamed output, as root `AGENTS.md` «Measurement» sets; write each inline case from scratch with neutral names, paths and keys, never by copying a real transcript, and `tests/content/private_identifiers_test.go` rejects a listed private term or a local user path in them.
 
 1. **Name the finding.** Record the session (host, session ID, line numbers, date) and the guidance rule it breaks. Confirm the trace model in `tests/pilot/trace.go` can express it; if it cannot, state why in the change and record the gap in the tracker instead of adding a fixture.
 2. **Locate without printing.** Find the lines with `jq` that outputs only line numbers, event types, and tool names, or with `rg -c`/`rg -l`. Never run a command that prints whole transcript lines, and never read `tool_result` payloads. If the session read a secret, do not open its transcript: rebuild the shape from the recorded tool, key name, and path.
@@ -32,8 +32,9 @@ In zsh or bash, this scan must produce no output (it prints file names only, exe
 rg -l -i -P '/Users/|/home/|/Volumes/|/private/|~/|password=|secret=|(?<!EXAMPLE_API_)token=' -g '!README.md' tests/fixtures/regression
 ```
 
+
 Then run `go vet ./...` and `go test ./tests/pilot/...`. A new criterion is appended in `assessFlows` before the case status, so a `fail` also fails the flows case when an existing run directory is re-assessed with `--assess`.
 
 ## Limits
 
-Each criterion's declared gaps, such as unjudged commands or secret file families, are listed in the doc comment of its function in `tests/pilot/regression.go` and in `_support/openspec/changes/gh-31-finding-regression-cases/design.md` (S1, S3, S5), `_support/openspec/changes/work-close-sequence/design.md` (`close_question_after_report`, `merged_branch_deleted`), `_support/openspec/changes/report-readability/design.md` (`cited_id_glossed`, `no_bare_url`), or `_support/openspec/changes/archive/2026-09-26-backlog-report-scope/design.md` (`ticket_ids_not_packed_in_prose`); assessments do not repeat them. A Claude `Grep` without an explicit `output_mode` counts as content, because its default mode is unverified. Claude pilot runs do not allow `AskUserQuestion`, so `question_after_detail` is observed only through fixtures there.
+Each criterion's declared gaps, such as unjudged commands or secret file families, are listed in the doc comment of its function in `tests/pilot/regression.go`; the design notes that first listed them are in the git history of `_support/openspec/changes/`.

@@ -8,10 +8,11 @@ package main
 //  1. explicit flags (handled by the caller; this file is never reached);
 //  2. the session variable the host exposes to its agent's shell, only the ones
 //     in host-session-events.md marked usable: CLAUDE_CODE_SESSION_ID,
-//     PI_SESSION_ID and OPENCODE_SESSION_ID, and only when no nearer host
-//     process or session map belongs to another host (a nested host inherits the
-//     outer variable). Codex's CODEX_THREAD_ID and Cursor's
-//     CURSOR_CONVERSATION_ID are unverified and deliberately not read;
+//     PI_SESSION_ID, OPENCODE_SESSION_ID and CODEX_SESSION_ID. A nested host
+//     inherits the outer variable, so the variable of the nearest host process
+//     or session map wins; when that host has none among them, only its own map
+//     applies. Codex's CODEX_THREAD_ID (a subagent's own thread) and Cursor's
+//     CURSOR_CONVERSATION_ID are deliberately not read;
 //  3. the process-to-session map <state>/hooks/sessions/<pid>.json written by
 //     the host's session-start hook (this file only reads it), looked up on the
 //     nearest process ancestor that has one. The format and writer rules are
@@ -289,7 +290,10 @@ func resolveViewWorkContext(c *viewWorkCommand) error {
 		}
 		return state, nil
 	}
-	if c.Host == "" && c.NativeSessionID == "" && c.Action != "list" && c.Action != "show" {
+	// list reads by project and show by work ID; show without --work-id needs the
+	// session's identity to find its current work.
+	needsIdentity := c.Action != "list" && (c.Action != "show" || c.WorkID == "")
+	if c.Host == "" && c.NativeSessionID == "" && needsIdentity {
 		dir, err := stateDir()
 		if err != nil {
 			return err
@@ -300,9 +304,17 @@ func resolveViewWorkContext(c *viewWorkCommand) error {
 			c.Host, c.NativeSessionID = id.Host, id.NativeSessionID
 		case errors.Is(err, errViewIdentityAmbiguous):
 			return workInput("native identity ambiguous: pass --host and --native-session-id")
+		case errors.Is(err, errViewIdentityMissing):
+			return workInput("native identity missing: pass --host and --native-session-id")
+		default:
+			return workInput("native identity unresolved: pass --host and --native-session-id")
 		}
 	}
-	if c.WorkID == "" && c.Host != "" && c.NativeSessionID != "" && viewWorkActionNeedsWork(c.Action) && !hostReconcile(*c) {
+	// A capture acts on the session's one open work and opens one when it has
+	// none, so it reads the current works but never reports their absence. A
+	// capture with --key names its work itself: opening by key is idempotent.
+	capture := c.Action == "capture"
+	if c.WorkID == "" && c.Host != "" && c.NativeSessionID != "" && (viewWorkActionNeedsWork(c.Action) || capture && c.Key == "") && !hostReconcile(*c) {
 		dir, err := stateDir()
 		if err != nil {
 			return err
@@ -313,6 +325,9 @@ func resolveViewWorkContext(c *viewWorkCommand) error {
 		}
 		switch len(ids) {
 		case 0:
+			if !capture {
+				return workInput("work-id required: this session has no open work")
+			}
 		case 1:
 			c.WorkID = ids[0]
 		default:

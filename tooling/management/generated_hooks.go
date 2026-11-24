@@ -35,10 +35,12 @@ func generatedHooks() map[string]generatedHook {
 	}
 }
 
-// generatedSource reports whether source names a payload the manager generates.
+// generatedSource reports whether source names a payload the manager generates:
+// a hook file, a hidden skill's policy file (hidden_skills.go) or a stage
+// packet (stage_packets.go).
 func generatedSource(source string) bool {
 	_, ok := generatedHooks()[source]
-	return ok
+	return ok || generatedSkillPolicy(source) || generatedStagePacket(source)
 }
 
 // validRecordedHook checks a recorded hook's shape: a known source, its file

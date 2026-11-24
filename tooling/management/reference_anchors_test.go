@@ -6,45 +6,10 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
-	"strconv"
 	"strings"
 	"testing"
 	"tricell-hive/integrations/mdlinks"
 )
-
-// Release validation checks that an instruction link's target exists but not
-// its heading anchor, so a renamed heading would silently break every link
-// that points to it. This test closes that gap for the repository's own
-// content, with the same link grammar and fence rule as release validation.
-
-var atxHeading = regexp.MustCompile(`^ {0,3}#{1,6}[ \t]+(.+?)(?:[ \t]+#+)?[ \t]*$`)
-var inlineMarkdownLink = regexp.MustCompile(`!?\[([^\]\n]*)\]\([^)\n]*\)`)
-var slugDropped = regexp.MustCompile(`[^\p{L}\p{M}\p{N}\p{Pc} -]`)
-
-// headingAnchors returns the anchors that a Markdown file's headings define
-// outside fenced code, following github-slugger: the rendered text, lowercased,
-// without punctuation, spaces turned into hyphens, and a numeric suffix for a
-// slug already taken.
-func headingAnchors(data string) map[string]bool {
-	anchors := map[string]bool{}
-	counts := map[string]int{}
-	for _, line := range strings.Split(mdlinks.OutsideFences(data), "\n") {
-		m := atxHeading.FindStringSubmatch(line)
-		if m == nil {
-			continue
-		}
-		text := inlineMarkdownLink.ReplaceAllString(m[1], "$1")
-		base := strings.ReplaceAll(slugDropped.ReplaceAllString(strings.ToLower(text), ""), " ", "-")
-		slug := base
-		for anchors[slug] {
-			counts[base]++
-			slug = base + "-" + strconv.Itoa(counts[base])
-		}
-		anchors[slug] = true
-	}
-	return anchors
-}
 
 func TestHeadingAnchorsFollowGitHub(t *testing.T) {
 	data := "# Report a running or completed item\n## Step\n## Step\n## Step 1\n" +

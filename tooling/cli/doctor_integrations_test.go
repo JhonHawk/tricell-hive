@@ -141,7 +141,7 @@ func TestIntegrationsSectionListsTheSixRowsInOrderWithPi(t *testing.T) {
 	}
 	text := sectionText(sec)
 	last := -1
-	for _, name := range []string{"Engram", "Context7", "pi-subagents", "Pi codemode", "agent-browser", "CodeGraph"} {
+	for _, name := range []string{"Engram", "Context7", "pi-subagents", "Pi codemode", "Pi subagent activation", "agent-browser", "CodeGraph"} {
 		i := strings.Index(text, name)
 		if i < 0 || i < last {
 			t.Fatalf("%s missing or out of order in:\n%s", name, text)
@@ -175,14 +175,14 @@ func TestPiCodemodeRowTexts(t *testing.T) {
 	for _, r := range rows {
 		ids = append(ids, r.ID)
 	}
-	if got, want := strings.Join(ids, ","), "engram,context7,pi-subagents,pi-codemode,agent-browser,codegraph"; got != want {
+	if got, want := strings.Join(ids, ","), "engram,context7,pi-subagents,pi-codemode,pi-subagent-activation,agent-browser,codegraph"; got != want {
 		t.Fatalf("rows = %s, want %s", got, want)
 	}
 	r := rowByID(t, rows, "pi-codemode")
 	if r.Name != "Pi codemode" || r.Found != "not checked" {
 		t.Fatalf("row = %+v", r)
 	}
-	if len(r.Evidence) != 1 || r.Evidence[0] != "Not checked: finding it would mean reading Pi's configuration, which Hive does not do." {
+	if len(r.Evidence) != 1 || r.Evidence[0] != "Not checked: finding it would mean reading Pi's settings.json, which Hive does not do." {
 		t.Fatalf("evidence = %q", r.Evidence)
 	}
 	if r.Record != recordNotTracked || r.RecordDetail != "Not part of onboarding: Hive does not configure Pi's tools." {
@@ -435,7 +435,7 @@ func TestIntegrationsNextStepIsConcretePerCase(t *testing.T) {
 		{"nothing found", func(t *testing.T, f *doctorFake, home string) {}, map[string][]string{
 			"context7":      {"To install it, run " + ctx7, "sign in"},
 			"engram":        {"Install it from the official source (see Source above)", "Hive does not install it"},
-			"pi-subagents":  {"cannot check it without reading Pi's configuration", "If you use Pi, install it with Pi's own package manager", "see Source above"},
+			"pi-subagents":  {"cannot check it without reading Pi's settings.json", "If you use Pi, install it with Pi's own package manager", "see Source above"},
 			"agent-browser": {"Optional", "hive install", "follow the official instructions (see Source above)"},
 			"codegraph":     {"Optional", "Install it from the official source (see Source above)", "its own codegraph install", "Hive does not install it"},
 		}},

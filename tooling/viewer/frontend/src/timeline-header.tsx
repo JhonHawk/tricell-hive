@@ -306,14 +306,10 @@ export function TimelineHeader({
             className="flex max-w-full flex-wrap items-center justify-end gap-2"
             aria-busy={pending}
           >
-            <ButtonGroup aria-label={t.states[session.state]}>
-              <ButtonGroupText>
-                <Badge variant={statusVariant}>
-                  <Circle aria-hidden className="size-2 fill-current" />
-                  {t.states[session.state]}
-                </Badge>
-              </ButtonGroupText>
-            </ButtonGroup>
+            <Badge variant={statusVariant}>
+              <Circle aria-hidden className="size-2 fill-current" />
+              {t.states[session.state]}
+            </Badge>
             <ButtonGroup aria-label={t.actions}>
               <Popover>
                 <PopoverTrigger

@@ -42,7 +42,7 @@ The sections below describe the retained historical A/B project mode. Their sixt
 ## Inputs
 
 - **A — inline baseline:** `baseline/global.md`, frozen from the authored source before the split. SHA-256: `141b4baf16baf0c7222ca45d428ec684fbbb0942c0e9d90b8aaf227eb1be2e63`. Do not edit or distribute this historical fixture as current policy.
-- **B — split candidate:** current [`global.md`](../../../content/guidance/global.md) plus [`workspace-conventions/SKILL.md`](../../../content/skills/workspace-conventions/SKILL.md). Record their exact hashes before running and retain the tested versions with the run evidence if they are not committed.
+- **B — split candidate:** current [`global.md`](../../../content/guidance/global.md) plus `workspace-conventions/SKILL.md` (historical: condense-skill-catalogue folded it into flow-close references, and its procedure was the `docs-cleanup` skill from 2026-11-16 and is the [`project-layout`](../../../content/skills/project-layout/SKILL.md) skill since 2026-11-18). Record their exact hashes before running and retain the tested versions with the run evidence if they are not committed.
 - `cases.json`: four independent setups, Spanish task prompts, and evaluator-only observable criteria. `files` maps relative paths to exact UTF-8 content; `cwd` selects the task directory. No real credentials or external services are involved.
 
 ## Prepare and load

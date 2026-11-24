@@ -63,7 +63,7 @@ func TestProjectViewWithoutHiveSectionListsTheRequiredKeys(t *testing.T) {
 					writeAgents(t, root, agents)
 				}
 				_, d, _ := openProjectView(t, root, nil, size[0], size[1])
-				d.mustShow("Add a ## Hive section with: Project, Base branch, Tracker, Specs")
+				d.mustShow("Add a ## Hive section with: Project, Base branch, Tracker")
 				assertFits(t, d, size[0], size[1])
 			})
 		}
@@ -339,11 +339,11 @@ func TestProjectViewFormOpensWithEightFieldsAndSuggestions(t *testing.T) {
 				}
 				last = at
 			}
-			for _, want := range []string{"> Project", "r", "main", "GitHub Issues · o/r", "_support/openspec", "‹ none ›"} {
+			for _, want := range []string{"> Project", "r", "main", "GitHub Issues · o/r", "‹ none ›"} {
 				d.mustShow(want)
 			}
-			if n := strings.Count(screen, "suggested"); n != 4 {
-				t.Fatalf("%d suggested labels, want 4:\n%s", n, screen)
+			if n := strings.Count(screen, "suggested"); n != 3 {
+				t.Fatalf("%d suggested labels, want 3:\n%s", n, screen)
 			}
 			assertFits(t, d, size[0], size[1])
 		})
@@ -513,7 +513,7 @@ func TestProjectViewFormApplyWritesWhatTheCommandWrites(t *testing.T) {
 	other := formRepo(t)
 	var out bytes.Buffer
 	args := []string{"--project", other, "--set", "Project: r", "--set", "Base branch: main",
-		"--set", "Tracker: GitHub Issues · o/r", "--set", "Specs: _support/openspec", "--set", "Delivery: direct-base"}
+		"--set", "Tracker: GitHub Issues · o/r", "--set", "Delivery: direct-base"}
 	if err := projectSet(args, strings.NewReader("y\n"), &out, true); err != nil {
 		t.Fatalf("%v\n%s", err, out.String())
 	}

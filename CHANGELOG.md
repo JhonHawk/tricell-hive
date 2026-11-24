@@ -10,6 +10,702 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-24
+
+### Added
+
+- The swarm mode, a hidden skill the user starts with its command or by naming
+  it, coordinates two to four tickets in one session: a round 0 gives each
+  ticket a verdict, then one `hive-ticket-owner` child per group of tickets
+  researches, plans and builds in its own worktree, stopping after the plan
+  and after the build; the main thread asks the decisions, verifies each
+  group independently and publishes it on its own pull request. The new role
+  writes its group's plan and commits locally in its assigned paths, and the
+  execution record accepts it and a record in the coordinator's checkout.
+
+- The swarm mode groups related tickets: round 0 proposes groups with their
+  reason, and each group gets one owner, worktree, branch, change folder,
+  verifier and pull request naming its tickets, so tickets that touch the same
+  files are no longer split across owners. The plan stop compares each group's
+  paths with the other groups'.
+
+- `AGENTS.md` «Checks by path» assigns a narrower check to each path of this
+  repository, so a fix to guidance text runs about 80 s of tests instead of
+  the whole suite, which still runs once on the final candidate. The refresh
+  steps read the deployed commit with `hive releases` instead of searching
+  for it.
+
+- `--audit-session` reports two new criteria: `full_suite_after_text_fix`, a
+  whole-suite run repeated after a passing one with only text changed between
+  them, and `review_rounds_per_candidate`, more than two code review rounds
+  before a push, a merge or a new work item.
+
+### Changed
+
+- The `no-comments` review removes a comment that restates a rule the code,
+  its tests or its configuration already express, even when it states only
+  part of the rule, once the evidence names what expresses it; the comment is
+  cut down to the part the code does not express, which is sorted on its own. `audit-comments`
+  also writes a `## Comments` section in the audited repository's
+  `AGENTS.md`: the lint and the paths it checks, where each fact goes
+  instead of a comment, and the only comments that stay.
+
+- A fix round whose paths all have an assigned check runs only those checks
+  and reuses the candidate's passing suite. A second code review runs only
+  when the fixes change code or a contract, and a review leaves out files the
+  diff only moves. A plan gets one reread round while it is planned, and what
+  survives goes to the user. A review mechanism the project guidance names is
+  stated in one line instead of asked, and `hold` asks the delivery again when
+  an earlier work item left uncommitted changes. A question card's
+  `Situation:` line does not replace the text before the card.
+
+- The `hive-write-ledger` role writes the ledger of each lane that
+  `audit-comments` and `audit-tests` delegate. Those skills briefed
+  `hive-research`, which renders read-only on most hosts and could not write
+  the ledger; it keeps that access. A child whose only write is its own file
+  in the host's temporary location now runs side by side with the others, as
+  a read-only child does.
+
+- The `audit-issues` skill audits a tracker's open tickets against the current
+  code. It counts them and suggests a pass, gives each ticket a verdict with
+  its evidence, proposes closing the false positives, duplicates and tickets
+  already fixed, and groups the rest under parent tickets by root cause,
+  domain or module so they are fixed together. It writes to the tracker only
+  after one approval of the whole set, and a ticket someone else wrote gets a
+  comment instead of a close. `hive-mode` routes ticket audits to it, and
+  `create-issue` leaves them to it.
+
+- The `audit-comments` skill audits the comments of a codebase or an area and
+  removes them in batches. It files a ticket for each comment that excuses a
+  shortcut, moves each decision a comment records to the project's decision
+  record, and wires a lint that rejects new comments while the rest wait. The
+  lint compares each changed file with its version at the Git base. The skill
+  also estimates the lines a full cleanup sheds, and generates the project's
+  own skill in `.agents/skills` with links in `.claude/skills`. Its
+  JavaScript and TypeScript template parses with `@babel/parser`, since
+  TypeScript 7 no longer exports its classic parser, and its suite runs with
+  parser 8.1.2 and 7.29.14 (`npm ci --ignore-scripts --prefix
+  tests/content/testdata/audit-comments`). It leaves vendored third-party
+  code out of the audit by its path from the repository root, and the
+  ratchet's `--same-code` rejects a batch that changes any tracked file under
+  an excluded path, so that code stays inside the proof that a batch removed
+  only comments.
+
+- A project can list the third-party skills an agent must read, and when, in
+  a `## Skills` section of its `AGENTS.md` (`audit-harness` rule HA-IF-19).
+  `audit-harness/scripts/skill_registry.py check` compares that section with
+  the skills installed in `.agents/skills`, `.claude/skills`, `.grok/skills`
+  and `skills-lock.json`, for a repository or a declared workspace, and
+  `propose` prints the official skill sources of the stack a repository's
+  files show. Onboarding installs only the sources the user approves, through
+  the `skills` CLI pinned to a commit. The main thread copies the lines that
+  apply into each child's brief. Each Hive skill now ships
+  `assets/hive-managed.json` so the check skips the skills Hive installed.
+- `hive-build-mobile` implements mobile changes in the repository's stack
+  (Flutter, Expo or React Native, Kotlin Multiplatform, native Android or
+  iOS), reads the project's `## Skills` lines, and verifies on the device or
+  emulator its brief assigns.
+
+- The rule leaf `hive-rule-background-wait` restores the rule the skills
+  rebuild dropped: a polling loop or background wait ends on every outcome,
+  including output it does not recognize, has a deadline for the whole wait,
+  and wakes the agent in 5- to 10-minute stretches when the host signals only
+  on exit. `--audit-session` gains `unbounded_background_wait`, which fails a
+  Claude Code or Grok background loop with `sleep` and no deadline.
+- `integrations/agents` tests now cover the error paths of agent parsing,
+  CRLF frontmatter, and the escaping of control characters in Codex TOML,
+  which no test caught before.
+
+- `--audit-session` gains `analysis_reply_block`, which fails a turn that
+  ends an analysis with replies listed under italic labels, or with lettered
+  options and no question heading, and says whether the report-endings rule
+  was read. It also fails a turn that loaded `hive-mode` and ends a report of
+  six or more lines with no reply block at all, unless that turn wrote a file
+  or delivered work.
+- The close brings the local base up to date: `cleanup_branches.py --apply`
+  fetches the base and fast-forwards the main checkout's copy when it is on
+  the base and no incoming file is changed, untracked or ignored there, and
+  reports why it left the base otherwise (`base_update`).
+- `--audit-session` reports `main_thread_cost`: the main thread's model calls,
+  input tokens, compactions and tool calls, with reads of installed Hive
+  skills and runs of their scripts, for Claude, Codex and Grok, without the
+  children's usage.
+
+- `hive-rule-checks/scripts/run_check.py` runs a check whose output is saved:
+  it writes the whole output to a log under a 64 MiB cap, closes the log and
+  only then shows its last lines, and exits with the check's own status. The
+  checks leaf requires it, and the session auditor gains `self_feeding_log`,
+  which fails a shell command whose trap or block reads the file the block
+  redirects into, the pattern that once grew a local CI log to 1.53 TB.
+- Agents take an open decision without asking when its recommended option
+  wins with a consequence the others lack and none of six criteria holds:
+  scope, a cheaper now against rework later, a business rule nothing names,
+  something hard to reverse, a recommendation on an unverified fact, or a
+  contradiction. They list each one, at most five, with the alternative
+  discarded and how to reverse it, and the reply accepts the ones it does not
+  correct. A chosen ticket's assessment is written in blocks: summary, a
+  verdict naming each failed readiness check, proposed criteria, the decisions
+  taken, and a card with only what the criteria send to the user. The session
+  auditor gains `ticket_assessment_ending` and an informational count of cards
+  answered with the recommended option.
+- Explicit E2E coordination gives the coordinator responsibility for independent
+  deliverables through the authorized endpoint. Assigned local owners may commit
+  in their own branches and worktrees; independent verification binds each head,
+  and the coordinator integrates and checks the units together. This mode does
+  not require the user to be away and does not itself grant unattended authority.
+- A project verification contract indexes existing launch, readiness, journey,
+  evidence and cleanup capabilities. Structural validation does not execute the
+  commands or establish that a feature works. Repeatable defect fixes record the
+  enforcement mechanism and a negative check; reviews inventory weakened checks
+  and assess each candidate against evidence.
+
+- `project-layout` is a skill that holds a project's layout convention and
+  applies it to a repository, a workspace or a monorepo, with or without Hive.
+  The convention says where each document, script and data set belongs: code
+  that every clone needs lives in the repository that owns it, never in
+  `_support/`; a script run once against shared data stays in its session with
+  its output and its revert; an operation's data goes in `_support/data/`; and
+  an index lists what the project has, with a `Layout:` line for the homes a
+  project keeps on purpose. A script climbs from disposable to internal tool
+  only on evidence. Its check reports, with the correction, what does not
+  follow the convention, and its cleanup and migration list every support and
+  documentation folder by content, write the plan as a manifest and act only
+  after you confirm. It prunes a current document only when a newer source
+  contradicts it, never touches secrets, current specs, change records,
+  decision records, worktrees, backups, dumps or operation data, and tags each
+  repository's state before removing anything, so any file can be restored. It
+  replaces Close's support maintenance reference and Close's layout reference,
+  and takes over audit-harness's layout checks.
+- `workspace-repo` is a skill that turns a workspace of several repositories
+  into a coordinator repository, on your request: it versions the workspace's
+  guidance, its repository table and its knowledge, keeps each repository an
+  independent clone inside it that a search from the root still finds, and
+  clones what a coordinator lists. It never creates a remote or pushes.
+- Verification evidence is no longer kept in Git: it stays in the work's
+  unversioned folder, the merged pull request is the record, and only
+  measurements, rehearsals and reviews that later work reuses move into the
+  documentation, with their figures, method, date and provenance.
+- `create-prd` is a skill for writing requirement documents: a PRD for a module
+  or feature whose rules each have a code, a priority, a state and a source, a
+  document someone else wrote restructured without editing the original, an
+  update with its author's answers, or its review against the code. It checks
+  each version against a ready list, has a separate reviewer read it, never
+  decides a business rule nobody decided, and freezes each approved version.
+  The document lives in Notion, Google Docs or Claude Docs when the session
+  can write there, otherwise as a Markdown file with a PDF. Research now sends
+  a request for a requirement document to it, and a page joins the
+  documentation site.
+- Figma design groups everything it draws in named, numbered sections instead
+  of leaving frames loose on the page: by default one for the pieces the work
+  defines, one for reference material and one per user flow, or the grouping
+  you ask for. It names the sections before drawing, regroups them when you
+  reply, and never moves a frame that already existed without asking.
+- `create-issue` is a skill for writing tracker tickets: one ticket of four
+  types (story, bug, task or spike) checked against a fixed ready list, a parent
+  ticket with children approved once as a set, or the check of a ticket that
+  already exists. It searches every declared tracker first, asks at most three
+  questions per round, and reads each ticket back after writing it. Research,
+  Close and unattended work now follow it when a finding or separate topic
+  becomes a ticket, and Plan treats a ticket's solution hint as a claim to
+  verify. A ticket page joins the documentation site.
+- Build fixes a defect at its cause: it names the cause before editing and
+  fixes it there, in any module of the repository, with the smallest change.
+  A guard, retry or fallback where the symptom showed is not a fix unless the
+  contract allows that state or it comes from untrusted input. It asks you
+  before a workaround when the cause needs a repository outside the project, a
+  contract, stored data or a larger change, and marks and reports each
+  workaround or incident mitigation that changes code, with a ticket proposed
+  for the cause. Reuse no longer copies an existing workaround, the
+  verification round fixes a defect at its cause, and the code review checks
+  both. Build's stored-data and security rules moved to references of their
+  own.
+  Its placement planner sends each script, Terraform file and legacy folder
+  under `_support/` to the same destination on every run, from who calls it:
+  a package's `scripts/`, `scripts/ci/`, `scripts/hooks/`, `scripts/ops/` or
+  `infra/`, reusing the folders a project already has. It rewrites the
+  references to what it moves, lists the ones it cannot rewrite safely, and
+  undoes exactly what it applied. Its check ignores dependency and build
+  folders of every language and fails on code kept under `_support/`.
+  An item you choose to keep stays where it is with `--keep`, with the
+  tests beside it, and a committed `vendor/` library is never taken for
+  one of your packages. A move that changes what a Docker build or a
+  published package takes, through `.dockerignore`, `.gcloudignore`,
+  `.vercelignore`, `.npmignore` or `.helmignore`, is reported, and its
+  verification fails until that file is settled; files Git ignores that a
+  move leaves behind are listed; and a reference you keep on purpose stays
+  as it is with `--keep-ref`.
+
+- Research audits a codebase when you ask for it, or for what to improve in
+  it. It reads the project's check commands and decision records first,
+  audits nine categories from the most changed files, opens every cited
+  location before showing a finding, puts first what unblocks other fixes,
+  ranks the rest by impact, confidence, effort and fix risk, lists ideas for
+  the project's direction apart, and says what it did not audit. It runs your
+  tests or a dependency audit only when you ask. Findings you reject are remembered per repository and not raised
+  again while their code stays the same. The method is inspired by
+  shadcn/improve.
+
+- Figma design stage: one decision approves or corrects the completed set of
+  screens, with applicable mobile frames ready; corrections return only the
+  affected screens for approval while the others retain theirs.
+
+- Design record: a `**Design library:**` field names the app's published Figma
+  library, written only at the user's instruction. The Figma design stage draws
+  with instances of that library's components and variables, defines its own
+  pieces only for what the library lacks, and lists each such piece in the
+  example's record as a candidate for the library.
+- Figma design stage: the library binds even when `DESIGN.md` does not declare
+  it. The stage draws with the library you name or share in the conversation,
+  otherwise the declared one, otherwise the one it detects in your existing
+  screens, their records or the file's enabled libraries. Before drawing it
+  writes an inventory of the components those screens use and of what it
+  searched in the library, and a work of several screens gets one screen drawn
+  and reviewed before the rest.
+- Figma design stage: each business rule a frame decides that nothing settled,
+  such as whether a rejection needs a comment, is recorded and asked as a
+  decision of its own beside the set's approval; minor ones are listed as
+  assumptions, and a rule that adds a capability, changes shared data or
+  settings, or changes a permission sends the work back to research. The UX
+  reviewer looks for these rules on its own, and the plan takes the approved
+  ones as decisions.
+- «Local instructions» in the global guidance: agents read an untracked
+  `HIVE.local.md` at the repository or workspace root and the machine file
+  `~/.config/hive/HIVE.local.md` at session start, and record there, dated and
+  without secret values, the facts a later session would run or check again:
+  start commands and ports in the project's file, missing tools and cloud
+  profiles in the machine file; never diagnoses, counts or momentary states.
+- The `local-instructions` skill creates or prunes both files from what
+  already worked in recent Claude Code and Codex sessions, after asking which
+  facts to keep; its extraction script masks every value before printing.
+- Figma design stage: for a new or rearranged screen whose composition is open,
+  `hive-mode` recommends the optional `flow-figma-design` stage in its
+  next-step block, also after assessing a ticket, when the host can write to
+  Figma. The stage draws proposals as frames in the design file the app's
+  `DESIGN.md` declares (or one you name), loads the design system first, warns
+  of the manual steps in Figma, and has you pick or correct one. The approved
+  example becomes the reference of the plan, the build's first view, the
+  verification walk and the UX review. A request for the design itself runs the
+  stage directly and is not reported as done before you approve it.
+- Plans that touch a system outside the repository measure each external fact
+  before the tasks, with a read-only command and its output (one read-only
+  helper per system when there are two or more), and ask one decision per
+  class of effect, with a spending ceiling, in the delivery round; `flow-deploy`
+  does not ask again for what an approved class covers, and a production deployment
+  keeps its own question.
+- Unattended work states an amount for unforeseen spend when it starts: within
+  it, a reversible effect that no answer covers can go ahead and is listed in
+  the final report; with no amount it is zero and the effect is skipped and
+  reported, as before.
+- Business rules: each rule a work item adopts that its ticket and
+  documentation did not state, whether it appears in research, the design, the
+  plan, the build or the verification, is recorded in one list for that work,
+  and a rule that replaces another keeps the earlier one as cancelled, with the
+  reason. Hive writes those rules to the work's ticket without asking, when you
+  approve a design example, when the build starts and at the close: a section
+  of its own in the description, which leaves the rest of the text untouched,
+  and a comment that says what was added and what was cancelled and why.
+  Research now reads a ticket's comments.
+- Figma design stage: a rule card beside each frame lists the business rules
+  the frame does not say by itself, each with its origin: the specification, a
+  decision, an assumption or still to decide. When the plan or the build later
+  changes a rule on a card, the card is corrected and keeps the earlier rule as
+  cancelled; a frame that a later decision contradicts is recorded and named at
+  the close, not redrawn.
+
+- Hygiene is offered only once 10 or more change folders wait for their
+  archive. Below that, the close footer, a close report's **Next** and the
+  session's last message leave out the hygiene reply and the pending archives,
+  so a first close no longer reads as work left half done. The status report
+  still gives the count at any size and adds the hygiene reply from 10. The
+  rule lives in `close-hygiene` «When to offer hygiene».
+
+- Rule leaves, principle leaves, playbooks and skill references share one
+  24,000-byte limit, the one stage packets already have. The 4,000, 7,000 and
+  9,000-byte leaf limits, the leaf exception list and the 7,000-byte playbook
+  limit are gone, and references move from 16,000 bytes. A leaf a stage
+  packet holds still fits that packet's 24,000 bytes, and the language leaf
+  `hive-typescript` keeps its 4,000-byte budget. A `SKILL.md` keeps
+  16,000 bytes, since Claude Code keeps only the first 5,000 tokens of an
+  invoked skill after compaction. `audit-harness` HA-SK-02 now allows a
+  reference up to 24,000 bytes. A failing size test names what to move.
+
+- Hive's guidance is now written for Claude Opus 5.5 and OpenAI gpt-6.2-sol.
+  Failures observed one tier above (Fable 5.2, gpt-6.2-astra), one tier below
+  (Sonnet 5.5, gpt-6.1-terra) and on Grok 4.7 count toward corrections; Haiku,
+  Luna, flash-class models and superseded versions no longer do. The user's
+  decision may now rest on a writing-target vendor's prompting guidance to
+  relax or remove a rule.
+- The distributed guidance was pruned for those models: restatements,
+  tautologies, generic engineering advice, scaffolding and verbose wording
+  left the rule leaves, the skills and the roles, while authorization,
+  secrets, irreversible effects, preservation and the rules frontier models
+  do not follow unprompted stay. The playbooks `investigate`, `bugfix`,
+  `feature`, `hotfix`, `infra-ci`, `pr-review-deploy` and `deliverable` are now
+  rows of the `hive-mode` table, and the remaining playbooks no longer repeat
+  the report row `flow-close` picks. Role names and profiles are unchanged.
+
+- In a project whose lint bans comments, the `no-comments` review moves a
+  comment it would keep to the project's decision record, and an accepted
+  workaround carries a one-line marker, `workaround:` and its ticket, that
+  `no-comments` defines and `defect-fix` and `suppression-review` link.
+- A cleanup of the rule leaves removes dangling and circular references and
+  conflicting wordings, so each rule has one home and the other places link it.
+  The merge of a pull request the work did not write is now set in `merge-gate`,
+  the close record of `flow-close` lists the steps that wait for an answer, and
+  `flow-close` updates the ticket's worklog through the time reference. `flow-build`
+  and `flow-verify` read the checkpoint's `Playbook` record at entry, and the flows
+  link `git-workflow`, `scope-changes`, `project-settings` and `reasons-and-blockers`
+  at the step where each applies. The security-boundaries leaf lists eight topics
+  (untrusted input, permissions, process execution, data exposure, authentication,
+  secrets, cryptography, dependencies), and the security reviewer and the build link
+  it instead of listing them. `flow-verify` no longer preloads the project
+  verification leaf, and `flow-build` no longer preloads the stored-data and
+  security leaves; each is read under its condition. The reviewer brief keeps
+  what every verify needs, and the briefs for drawn frames and for another person's
+  design moved to `create-design`. `host-session-identity` moved to
+  `hive-core/ui/viewer/`.
+- Repository guidance fixes the evidence for relaxing or removing a rule (a
+  comparison of real sessions with `--audit-session`, or the rule's own reason
+  verified as no longer holding) and limits "never" and "always" to invariants in
+  text that is written or edited. Two content tests detect a citation of a
+  section or step that does not exist and a stage-packet line that differs from
+  its manifest.
+- The global guidance keeps only invariants for three rules and moves their
+  procedure to the leaf read at that moment. The list of what a close may clean up
+  is the new `close-cleanup` leaf; the definitions of a mechanical change, a small
+  understood change and an operational task are the new `proportionality` leaf;
+  the external-project procedure is a section of `scope-changes`. `global.md` goes
+  from 28,000 B to under 26,000 B.
+- Outside its home, a rule is cited only by its moment and a link, anchored to
+  the exact section when needed, never restated. About 50 partial restatements in
+  the global guidance, skills, roles and rule leaves became such citations, and the
+  copies that disagreed with their home now follow it. The global guidance keeps
+  one invariant line for questions and routes and groups the «Rule leaves» index
+  under one heading per domain, with the verify-current-state principle listed.
+- A commit the work did not make that appears after its last push, such as a
+  bot's autofix, is named and asked about before the merge or the `ready` stop.
+- With a `Completion` key, a ticket moves after a deployment only when the
+  functional walk observed its criteria; without a walk it moves and the report
+  names it as not walked.
+- The rule leaves of `hive-core` live in one folder per domain (`messages`,
+  `git`, `plan`, `build`, `delegation`, `ui`, `review`, `business`, `close`,
+  `local`, `tracker`), in place of the single `references/` folder, and the
+  nine code principles and their index move into the same skill as the
+  `principles/` domain. `hive-core/assets/domains.json` lists the domains: the
+  manager installs, validates and links only the folders it lists, and rejects
+  a release whose manifest is malformed or whose files sit in an unlisted
+  folder. The `hive-principle-*` skills no longer exist, so the update retires
+  them and the old `references/` files. `hive-typescript` stays a visible
+  skill. The text of each leaf is unchanged except its links. This is a minor
+  version change: it removes skills and moves every installed leaf path.
+  Sessions opened before the update keep the old paths in their loaded
+  guidance and must restart. Rebuild the manager binary before deploying the
+  content, because an older binary cannot read the state it records.
+- Nothing is written to a change folder after its merge. `tasks.py checkpoint`
+  and `done` exit 1 without writing once the folder is on `origin/<base>` with
+  every task done and nothing uncommitted beyond its checkpoint, from any
+  checkout; the close keeps its checkpoint with `checkpoint --out <file>` in
+  the host's temporary location, and `versioned` gives the `git -C <checkout>
+  restore` for a `tasks.md` whose only change is its checkpoint and names, without
+  restoring, the folder's edits left in other worktrees.
+  The archive stays in the hygiene batch.
+- At the merge, `flow-close` now cleans up before its report: the merged
+  branch and its clean worktree, earlier merged branches, processes,
+  temporaries, and the verification material the ticket's attachment list or
+  the merged pull request body holds. Only what needs the user waits for the
+  footer's Close reply. The support-material step asks nothing and never
+  commits or archives; the hygiene batch archives change folders only. The end
+  of the session after a close runs what is pending without a second report.
+  `cleanup_branches.py` reports full clones left under worktree folders as
+  `stray_clones`, and `--audit-session` fails `close_before_branch_cleanup` and
+  `merged_branch_deleted` when a close reports first or a session ends with the
+  work's merged branch left.
+
+- The 60 rule leaves moved from one skill folder each, `content/skills/hive-rule-<name>/SKILL.md`,
+  into one hidden skill, `hive-core`: a leaf is now
+  `content/skills/hive-core/references/<name>.md` without frontmatter, its own
+  references are in `references/<name>/` and its scripts in `scripts/<name>/`
+  (`checks/run_check.py`, `trackers/jira_rest.py`, `trackers/work_time.py`). A host
+  lists one rule skill instead of 60, and the «Rule leaves» index of the global
+  guidance stays the only router. Updating retires the `hive-rule-*` folders.
+  Pull-request links and local notes that name an old path need the new one.
+- Eight flows read a stage packet at entry: `hive-mode`, `flow-plan`,
+  `flow-build`, `flow-verify` (one at entry and one at its reviews), `flow-close`,
+  `git-workflow`, `flow-deploy` and `unattended-delegation`. A flow's
+  `assets/stage.json` lists the leaves of each packet, and the manager writes
+  `<flow>/<key>.md` at install time with one heading per leaf and an end line.
+  The plan/build route declares 24 file reads instead of 39. A missing packet
+  falls back to the linked leaves, and a hand-written `stage*.md` in a skill is
+  rejected. `--audit-session` counts a packet read as a read of its leaves only
+  when the result holds every heading and the end line.
+- The checkpoint records the stage packets a flow read and the code principles
+  that changed a decision: `tasks.py checkpoint --rules` writes `- Rules:`,
+  `--principles` adds names to `- Principles:`, and `check_change.py` rejects a
+  malformed line. After a compaction the agent reads the checkpoint, the
+  `HIVE.local.md` files, the packets that line names and its extra leaves, then
+  memory. Close takes the principles line from the checkpoint before removing it.
+- Seven flows name the reply that ends them in one `Reply:` line, which links the
+  row of `report-endings` or `close-report` and adds only what the row lacks.
+- Reporting has two homes. `hive-rule-close-report` holds the final report with
+  one row per variant (close at the completion point, pull request left open,
+  deployment, `hold`, pause) and the findings round of the close;
+  `hive-rule-report-endings` holds how every message ends, the close footer and
+  the same-turn continuations. `flow-close` step 6 writes the only final report
+  of a work item: `git-workflow` and `flow-deploy` hand it what they observed,
+  `flow-build` hands it the line of code principles that changed a decision,
+  and `unattended-delegation` summarizes the session and links each close's
+  report. A close ends as its `hive-rule-close-modes` row sets, not always with
+  the footer. Each `hive-mode` playbook names its rows, and `hive-rule-close-hygiene`
+  covers steps 4, 5 and 7 only. `hive-rule-report-endings` has a 9,000-byte limit
+  and the plan/build reading-footprint test a second allowance of 9,230 bytes.
+
+- A plan whose tasks touch two or more of server, client, guidance,
+  infrastructure or a data-entry screen gets one `hive-review-plan` per
+  domain, up to three, launched together (`flow-plan/references/plan-review.md`).
+  A revision is reread by the same reviewer through a follow-up message, and
+  with several reviewers only by those whose domain it touched. Other plans
+  keep one reviewer.
+- A plan runs each command a task's `Verification:` line names once on the
+  base before its review, in parallel when the commands share no database,
+  port, lock or output directory, and records the result in its verified
+  context. A command over 5 minutes runs only in its shortest form, and one
+  that would change tracked files or a shared resource is written as
+  `not measured`. A revision reruns a command it changes, and the plan
+  reviewer reports a command with no line (`flow-plan` step 3).
+- The close no longer archives a change folder or commits the support items
+  the user keeps in Git: it records them under `archive-pending/<change-id>`
+  and discards checkpoint-only edits. A hygiene request archives every folder
+  still under `changes/` on the base, in the order each reached it, and applies
+  the recorded support actions in one delivery, asking only the delivery
+  question when none is in force (`flow-close/references/batch-archive.md`).
+  This replaces one archive pull request per work. Plans and the planless
+  spec-delta path read the pending deltas, and the status report counts the
+  pending archives. Specs in another repository keep archiving at the close.
+
+- In `--audit-session`, `merged_branch_deleted` fails only when a close report
+  follows the last merge with no branch deletion; a session still open, such
+  as one in the middle of a promotion, now reads as review.
+- `flow-figma-design` and `hive-ui-criteria` are now one skill, `create-design`,
+  with four entries: draw a screen, correct frames, review an existing design
+  (a Figma link or an image, drawing nothing) and create or refresh `DESIGN.md`.
+  A mobile-only app is drawn once at 440 px, a yes to recording the Figma file
+  or library stays pending for the plan to write, and the site page moves from
+  `flows/figma-design/` to `flows/create-design/`, which redirects.
+
+- The `integrations/agents` tests were audited: 17 tests that repeated a
+  contract another test already proves were removed or folded into it, and 5
+  that passed with the guarded code broken now check that code. Each change
+  is proven by a mutation recorded in the change folder's `ledger.md`.
+
+- Codex's execution, reasoning and verifier roles run `gpt-6.2-sol`, and the
+  Grok verifier runs `grok-4.7`. The model floor keeps `gpt-6.1-sol` and
+  `grok-4.6` outside the writing target.
+- An acceptance criterion whose observation reads data, such as a count, a
+  total, records or a generated file, names the expected value and a source
+  that does not run the code under test, such as the seed or a database
+  query, and the walk closes it only when the two match.
+- A plan that changes a behavior an existing spec describes writes a change
+  folder, whose spec delta the close merges, instead of editing the spec
+  directly, which the spec-delta test rejects for any requirement that already
+  has an archived delta. A change built without a plan does the same, writing
+  its change folder from Plan's templates without a plan review.
+- Build's first rendered view of a screen change lives in
+  `flow-build/references/first-view.md`, read from step 4, which frees room
+  in the plan and build reading for the failing-check and «Proportionality»
+  pointers it had dropped.
+- A user's grant to merge with `--admin` lasts the session for the work's pull
+  requests whose required checks passed, or whose base requires none, and lifts a reviewer's hold whose
+  approval is on an earlier commit; it never covers the production branch, a
+  direct push, a promotion-path deviation, a requested reviewer or requested
+  changes.
+
+- `hive-mode` replaces `flow-research`, and `/flow-research` is gone. It
+  settles what the work is, picks at most one of 13 playbooks for its kind,
+  such as `bugfix`, `ui-change` or `deliverable`, and sends the work to
+  `flow-build` or `flow-plan`. It edits no file. The plan records the
+  playbook in its `Playbook` field.
+- The rules that applied only at one moment moved out of the global guidance
+  and the flow skills into 61 hidden rule leaves, `hive-rule-*`. The global
+  guidance keeps the invariants and an index that names when to read each
+  leaf. A host does not list the leaves as skills; Codex gets an
+  `agents/openai.yaml` that turns off their implicit invocation.
+- Eight hidden code principles, `hive-principle-*`, and the visible
+  `hive-typescript` skill for `.ts` and `.tsx` files. Build and code review
+  name the principles that changed a decision.
+- Verify reads the no-comments, blast-radius and prose leaves before any
+  review, and offers an adversarial review as its own yes or no decision per
+  work item.
+- Unattended and E2E work log each decision and external effect, with how to
+  undo it, in `decisions.tsv` under the work's folder in `workspace/`.
+- A plan can split its tasks into delivery units under `## Delivery units`
+  in `tasks.md`, each with its unit, live and performance checks.
+- A pause records what no file holds yet with `tasks.py checkpoint
+  --unwritten` instead of a `wip:` commit.
+- Close asks about a work's own support material with what it would delete
+  first, each file with its size and reason and the total, and names old
+  versioned material it finds, such as an `evidence/` folder, in one line
+  with the `project-layout` command instead of acting on it. Cleaning up
+  material earlier work left moved from Close to `project-layout`.
+- Research offers the Figma design stage only when your project's Figma file is
+  known: you named it in the conversation, your app's `DESIGN.md` declares it,
+  or the project's memory records it. The offer names that file and passes its
+  link in the command. Without a known file the work goes to the plan with text
+  sketches, as it does without a Figma connection.
+
+- `HIVE.local.md`: an entry is now one line of at most 200 characters that
+  says what the machine or the project has, lacks, uses or needs, or a limitation of
+  a tool with its workaround, with the date it was verified. Steps and commands
+  that do not fit go to persistent memory under `local/<slug>`, in the file's
+  project or in the project `hive-machine` for the machine file, and the line
+  ends with its pointer; without Engram the line stands alone. Events, the
+  state of a work item and facts the repository states are not recorded there,
+  and a user's instruction is saved as a decision with one line for what it
+  constrains. The cap drops from 100 to 50 lines per file, and the
+  `local-instructions` skill, when it curates, proposes for each existing
+  entry to keep, split, relocate or retire it.
+- Figma design stage: when the Figma file or the library is not declared, or
+  `DESIGN.md` declares another one, it asks once whether to record them and, on a yes, writes those two fields in
+  the app's `DESIGN.md` itself, shows the change and delivers it at once,
+  instead of leaving the write to a plan. It is the one repository file the
+  stage edits; without a `DESIGN.md` the entry stays pending.
+- `hive-review-ux` runs on the `reasoning` profile instead of `focused`: Opus
+  at high effort on Claude and GPT-6.1 Sol at high effort on Codex, for design
+  frames and built screens alike, so a UX review takes longer and uses more
+  quota. For design frames it also reads each sibling screen's image, checks
+  the pieces against the bound library and the inventory, and does not pass
+  while a comparison it could run was not run.
+- A round of decisions larger than the host's question card, such as more than
+  three on Codex, is asked whole in consecutive cards with no message between
+  them, instead of listing the rest in the text and asking them again later.
+
+- `flow-figma-design` draws one example per screen that follows the app's
+  existing screens and recorded decisions, and alternatives only for a screen
+  the user names. The main thread draws by script from shared pieces on the
+  tool's automatic layout instead of a child, records the frames as under
+  review, and has `hive-review-ux`, which gains a design-file frames mode,
+  review them before the user sees them. Research recommends the stage for
+  every new screen when the host can write to Figma, and a convention the user
+  sets while correcting an example can be recorded in `DESIGN.md`.
+- Raise the minimum Go toolchain to 1.27.4, incorporating the upstream
+  security and bug fixes, and align the source-build documentation and
+  standard-library license notices.
+
+- Verify checks mobile only at the iPhone width of 440 × 956 CSS px, plus any
+  narrower width the project or the ticket names; it no longer loads changed
+  regions at 320 px, even when the project declares an accessibility
+  requirement, and its reflow floor no longer establishes WCAG 1.4.10.
+
+- A decision the agent asks now carries a `Situation:` line, an
+  `If you choose it:` line under each option and an `I recommend` line, and
+  the round says how many decisions are still to come. Each acceptance criterion
+  ends with `Observed in: <place>`, where its real effect shows: a check
+  against a mock, a stub, an emulation or a dry run supports a task but does
+  not close the criterion, and a criterion whose place a stage has not reached,
+  such as a deployed environment, is reported as not verified. The plan
+  coherence check reports a criterion without the marker.
+- Reuse before writing now reuses existing code only when it is a sound
+  base. Code that is a workaround, breaks the repository's standards, needs a
+  flag only the new code turns on, or duplicates logic that diverges is not
+  copied or extended: the build fixes it first when the fix is small, and
+  otherwise the plan offers that fix as an approach or the build asks before
+  building on it. The code reviewer flags new code that copies or extends such
+  a base.
+
+### Removed
+
+- `hive-build-kmp`, replaced by `hive-build-mobile`. An update removes it
+  from every host. A model override set with `hive models set` on
+  `hive-build-kmp` no longer applies; set it again on `hive-build-mobile`.
+- The rule leaves `hive-rule-next-step-block` and `hive-rule-close-footer`: their
+  text moved to `hive-rule-report-endings` and `hive-rule-close-report`.
+  Installed copies disappear on `hive update`; restart open sessions.
+
+- The skill catalogue goes from 20 to 13 skills. Seven skills that sessions
+  rarely loaded, or never invoked by name, become references or modes of the
+  skill that already runs that work, so their descriptions no longer load in
+  every session. Their procedures do not change. The next `hive update`
+  removes the old skills from each host it installs; a project-scope install
+  keeps them until that project is reinstalled.
+  - `flow-walkthrough` → the walkthrough reference of `flow-verify`, which also
+    answers a walkthrough or demo you ask for.
+  - `flow-status` → the `ticket-status` playbook of `hive-mode`: ask for the
+    status or what comes next; `/flow-status` is gone.
+  - `security-advisory` → the `dependency-security` playbook of `hive-mode`.
+  - `local-instructions` → the local instructions mode of `audit-harness`.
+  - `engram-init-workspace` → the Engram workspace mode of `audit-harness`,
+    still only on explicit request.
+  - `workspace-conventions` → the support maintenance reference of
+    `flow-close`, with `artifact-layout.md`, `archive.md` and the archive
+    helper.
+  - `starlight-docs-site` → the docs-site mode of `create-report`, with its
+    assets under `assets/starlight/`.
+- `flow-report` is renamed `create-report`, next to `create-issue` and
+  `create-prd`: each skill that makes a deliverable starts with `create-`.
+  Type `/create-report`; `/flow-report` is gone. Reports that opt in to
+  external assets keep the `flow-report-assets` meta tag, so existing reports
+  pass the checker unchanged.
+- `harness-audit` is renamed `audit-harness` and `test-audit` is renamed
+  `audit-tests`, next to the new `audit-comments`: each skill that audits
+  starts with `audit-`, so the three sort together. Type `/audit-harness` and
+  `/audit-tests`; `/harness-audit` and `/test-audit` are gone. The next
+  `hive update` removes the old folders from each host.
+
+### Migration
+
+- Change folders in progress receive the new coherence-check finding the next
+  time their plan is revised: add `Observed in:` to each active criterion. A
+  criterion without the marker is still verified through its real path. Archived change
+  folders are not checked and need no edit.
+
+### Fixed
+
+- `get-hive.sh` requires `gzip` before any request. GNU tar runs it to read
+  the package, so on a Linux host without `gzip` the installer used to fail
+  at the archive check with a message that did not name the missing tool.
+- The viewer reads a state file again when an atomic replace lands between
+  its open and its stat. Concurrent first registrations on Linux failed with
+  `invalid_storage` (issue #545).
+- Guidance now delegates supported mechanical checks to the existing validators
+  instead of repeating their recipes, while retaining required inputs, permissions,
+  preservation rules, semantic review and handling for unsupported cases.
+
+- Agents no longer give a rule as the reason for what they did, skipped, ask
+  or stop for, such as "the flow-build rule requires it": wherever a
+  message gives a reason, it is the effect on you or your work. Until now this
+  held only for a decision's recommendation line. An instruction you or your
+  project wrote, such as your `AGENTS.md`, can still be named as the reason
+  with what it changes in the work; commands and skill names are written as
+  before.
+- Seven rules that gave two readings of the same moment now give one. A human
+  reviewer's pending approval holds the merge in every delivery mode: the
+  agent stops with the pull request open and reports the merge as pending. Under unattended
+  delegation, adding test infrastructure, opening a finding's ticket and the
+  close's support-material decision take the recommended option, within that
+  mode's limits, and the end report presents each one. A blocking finding and
+  a P1 finding are the same thing. A close that defers no step still asks the
+  support-material decision. Plan continues into build without a reply only
+  when the user asked for it beforehand or unattended delegation is active. A
+  mechanical change under `interactive` still stops before the push. A fix-now
+  answer that is not a small understood change goes to `flow-plan`.
+
+- Codex's generated `SessionEnd` hook uses its supported 3-second timeout,
+  removing the startup clamping warning on new installs and updates.
+
+- Viewer status labels render a single Badge without a second bordered container.
+
+- Verify reads each check's result from its exit status, keeping it with
+  the filtering command or a saved output file, and a round of fixes reruns the
+  edited packages' tests, each failing test and each failing non-test check
+  after each fix, and the affected checks once, after the round's last fix.
+- After a merge or a push to the base, the wait for its CI runs in the
+  background while the close proceeds, on hosts that report a background
+  command's exit; the close leaves it running and its report names it.
+
+- Removed worktrees retain their navigation group when an available registered
+  source of the same stored project identity supplies one unambiguous explicit
+  name. Historical sources and records remain unchanged; missing or conflicting
+  witnesses keep the fallback and diagnostic.
+
 ## [0.9.0] - 2026-11-05
 
 ### Fixed
@@ -470,7 +1166,7 @@ raise the minor or the patch version.
 - Moving from one flow to the next is no longer a question card. A report ends
   with a separate next-step block: the recommended flow, its reason, and the
   command to type, written once in the syntax of the host you run in (for
-  example `/flow-plan COM-833` in Claude Code, `$flow-plan COM-833` in
+  example `/flow-plan PRJ-833` in Claude Code, `$flow-plan PRJ-833` in
   Codex), with a real ticket or a recommendation to create it first. Only your
   reply starts the next flow.
 - Every child (delegated role) starts with a fresh context window, not a copy
@@ -928,7 +1624,7 @@ raise the minor or the patch version.
 
 - UI evidence is refreshed for affected views and journeys after any later fix,
   including code-review fixes after approval. A changed visible result needs
-  approval again; unaffected evidence remains valid. Adopted after the Facti
+  approval again; unaffected evidence remains valid. Adopted after the project-f
   Claude Code session `c574e5a1-ec3e-44da-995e-2a9a89ba2e6b` of 2026-10-23.
 - Gaps found in two sessions of 2026-10-19 (Grok `01a15706`, Codex `01a156af`;
   issue #93). A notice that only reports the exit of a process the agent
@@ -942,7 +1638,7 @@ raise the minor or the patch version.
   with corrections written in the answer's free text. When an answer leaves a
   selection to the agent, it lists what goes in and what stays out and asks for
   confirmation before acting.
-- Two costs seen in both Grok cam sessions of 2026-10-20 (`01a1579f`,
+- Two costs seen in both Grok project-g sessions of 2026-10-20 (`01a1579f`,
   `01a157db`; issue #94): after a context compaction the agent rereads only a
   reference whose condition applies to its next action, plus the active
   `SKILL.md` when its steps are not in the summary, instead of every reference
@@ -982,7 +1678,7 @@ raise the minor or the patch version.
   instead of a collapsible sidebar group.
 
 - Waits, messages and the first rendered view follow one rule each (the
-  analysis of cam session `e2c8d39f`, 2026-10-18). Every progress or decision
+  analysis of project-g session `e2c8d39f`, 2026-10-18). Every progress or decision
   message opens with a bold context line, stage · ticket · progress, and a
   question card opens with the stage and ticket. A turn that a notification
   starts without changing what you need is that line followed by the change,
@@ -1068,25 +1764,25 @@ raise the minor or the patch version.
   also supports the default `/favicon.ico` request, without third-party requests.
 
 - A pull request is merged with the method the repository declares or its base
-  branch's recent merges show, a merge commit by default (Grok cam session
+  branch's recent merges show, a merge commit by default (Grok project-g session
   `01a1579f`, 2026-10-20: PR #239 was squashed while the base branch's earlier
   merges were merge commits, collapsing the per-task commits).
 
 - Close deletes a branch merged by squash or rebase, with its clean worktree,
   once `gh` shows its pull request merged from the same head; `git branch -d`
-  refused them, so both Grok cam sessions of 2026-10-20 (`01a1579f`,
+  refused them, so both Grok project-g sessions of 2026-10-20 (`01a1579f`,
   `01a157db`) left orphan branches and worktrees. The retained checkout leaves
   the branch and eligible clean worktrees are removed before branch deletion.
 
 - A process the agent waits on gets a bounded watch besides its exit signal, so
   a hung run still wakes the agent, and a turn that ends with work running says
-  what will wake it and the duration or deadline of the current wait (Grok cam
+  what will wake it and the duration or deadline of the current wait (Grok project-g
   session `01a1579f`, 2026-10-20: a hung backend
   integration suite left the session silent until the user asked; issue #95).
 
 - A stalled local integration run is handed to the pull request's CI only after
   confirming that CI runs that suite on pull requests; otherwise it is rerun
-  locally or reported as not run (Grok cam session `01a157db`, 2026-10-20:
+  locally or reported as not run (Grok project-g session `01a157db`, 2026-10-20:
   a never-run test was committed on the assumption that PR CI would run it).
 
 - The walkthrough viewer distinguishes local and unknown sources, skips new

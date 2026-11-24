@@ -348,7 +348,7 @@ func TestWorkLocalContractDescribesTheCommands(t *testing.T) {
 			t.Fatalf("contract missing %q", want)
 		}
 	}
-	if !strings.Contains(text, "«Shared work and authority»") || strings.Contains(text, "Run them only when") {
+	if !strings.Contains(text, "«Manage a work»") || strings.Contains(text, "Run them only when") {
 		t.Fatal("contract restates the agent rule instead of pointing to its home")
 	}
 	if !strings.Contains(text, "work_gone and delete_pending are errors with a non-zero exit") {

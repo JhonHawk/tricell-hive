@@ -1,0 +1,9 @@
+{
+  "stage": [
+    "hive-core/git/delivery-ask.md",
+    "hive-core/plan/external-effects.md",
+    "hive-core/messages/questions.md",
+    "hive-core/delegation/delegation.md",
+    "hive-core/delegation/unattended-effects.md"
+  ]
+}

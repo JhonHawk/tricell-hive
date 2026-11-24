@@ -23,7 +23,8 @@ func inspectJSONHooks(cur []byte, f hostevent.JSONHookFile, rec *HostHooksRecord
 	if root.kind != '{' {
 		return nil, "the top level is not a JSON object"
 	}
-	hooksM, err := root.member("hooks")
+	container := f.ContainerKey()
+	hooksM, err := root.member(container)
 	if err != nil {
 		return nil, err.Error() + " in the top level object"
 	}
@@ -31,7 +32,7 @@ func inspectJSONHooks(cur []byte, f hostevent.JSONHookFile, rec *HostHooksRecord
 		return present, ""
 	}
 	if hooksM.val.kind != '{' {
-		return nil, "\"hooks\" is not an object"
+		return nil, fmt.Sprintf("%q is not an object", container)
 	}
 	var recorded map[string]bool
 	if rec != nil {
@@ -40,13 +41,13 @@ func inspectJSONHooks(cur []byte, f hostevent.JSONHookFile, rec *HostHooksRecord
 	for _, event := range f.Events {
 		em, err := hooksM.val.member(event)
 		if err != nil {
-			return nil, err.Error() + " in \"hooks\""
+			return nil, fmt.Sprintf("%s in %q", err.Error(), container)
 		}
 		if em == nil {
 			continue
 		}
 		if em.val.kind != '[' {
-			return nil, fmt.Sprintf("\"hooks.%s\" is not an array", event)
+			return nil, fmt.Sprintf("\"%s.%s\" is not an array", container, event)
 		}
 		present[event] = len(ownEntries(cur, em.val, f, event, recorded)) > 0
 	}
