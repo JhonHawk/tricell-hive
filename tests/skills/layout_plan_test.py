@@ -1410,5 +1410,120 @@ class LegacyReviewTest(Fixture, unittest.TestCase):
         self.assertEqual((row["destination"], row["untrack"]), ("../elsewhere/x", True))
 
 
+def load_planner():
+    spec = importlib.util.spec_from_file_location("plan_layout_under_test", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+class LegacyLastRoundTest(Fixture, unittest.TestCase):
+    def run_cmd(self, command, plan_file):
+        return subprocess.run(["python3", "-I", str(SCRIPT), command, "--plan", str(plan_file)], text=True, capture_output=True)
+
+    @staticmethod
+    def row(plan, source, root=0):
+        rows = [r for r in plan["rows"] if r["root"] == root and r["source"] == source]
+        assert rows, f"no row for {source}"
+        return rows[0]
+
+    def reports_repo(self, **files):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, "_support/docs/README.md", "# Index\n")
+        write(repo, "reports/2026-04-05-q1/a.md", "# q1\n")
+        for rel, text in files.items():
+            write(repo, rel.replace("__", "/").replace("_dot_", "."), text)
+        commit(repo)
+        return repo
+
+    def test_a_bare_folder_name_in_code_or_configuration_is_a_citation(self):
+        for rel, text in (("config.yml", "output_dir: reports\n"), ("app.py", 'OUT = "reports"\n'),
+                          ("settings.json", '{"dir": "reports"}\n')):
+            with self.subTest(rel):
+                repo = small_repo(self.tmp() / "r")
+                write(repo, "_support/docs/README.md", "# Index\n")
+                write(repo, "reports/2026-04-05-q1/a.md", "# q1\n")
+                write(repo, rel, text)
+                commit(repo)
+                self.assertEqual(self.row(self.plan_json(repo), "reports")["action"], "review")
+
+    def test_a_file_name_that_starts_with_the_folder_name_is_not_a_citation(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, "_support/docs/README.md", "# Index\n")
+        write(repo, "reports/2026-04-05-q1/a.md", "# q1\n")
+        write(repo, "AGENTS.md", "# A\n\nSee `reports.md` and reports.md.\n")
+        commit(repo)
+        row = self.row(self.plan_json(repo), "reports/2026-04-05-q1")
+        self.assertEqual(row["action"], "move")
+
+    def test_destinations_that_differ_only_by_case_collide_on_a_case_insensitive_filesystem(self):
+        module = load_planner()
+        module.CASE_INSENSITIVE = True
+        base = self.tmp()
+        ws = base / "ws"
+        ws.mkdir()
+        repos = []
+        for name, file in (("a", "Notes.md"), ("b", "notes.md")):
+            repo = small_repo(ws / name)
+            write(repo, f"evidence/{file}", name + "\n")
+            os.utime(repo / f"evidence/{file}", (FIXED, FIXED))
+            repos.append(repo)
+        plan = module.Planner([str(ws), str(repos[0]), str(repos[1])], [], {}).plan()
+        notes = [r for r in plan["rows"] if r["source"].lower().endswith("notes.md")]
+        self.assertEqual([r["action"] for r in notes], ["review", "review"], notes)
+        plan_file = base / "plan.json"
+        for row, name in zip(notes, ("Notes.md", "notes.md")):
+            row["action"], row["destination"] = "move", f"../_support/workspace/2026-01-02-x/evidence/{name}"
+        plan_file.write_text(json.dumps(plan))
+        errors, _ = module.validate(json.loads(plan_file.read_text()))
+        self.assertTrue([e for e in errors if "same path" in e], errors)
+
+    def test_a_dotdot_override_on_a_review_or_dest_row_leaves_git(self):
+        repo = small_repo(self.tmp() / "r")
+        write(repo, "_support/docs/README.md", "# Index\n")
+        write(repo, "_support/notes/a.md", "# a\n")
+        write(repo, "_support/misc/a.bin", "x\n")
+        commit(repo)
+        extra = ["--override", "_support/notes=../elsewhere/notes", "--override", "_support/misc=../elsewhere/misc"]
+        plan = self.plan_json(repo, extra=extra)
+        for source in ("_support/notes", "_support/misc"):
+            row = self.row(plan, source)
+            self.assertEqual((row["destination"], row["untrack"]), (f"../elsewhere/{source.split('/')[1]}", True), source)
+
+    def test_apply_refuses_a_tracked_row_outside_the_repository_that_is_not_marked_to_leave_git(self):
+        repo = legacy_repo(self.tmp())
+        plan_file = repo.parent / "plan.json"
+        self.plan(repo, extra=["--out", str(plan_file)])
+        plan = json.loads(plan_file.read_text())
+        row = [r for r in plan["rows"] if r["source"] == "_support/sessions/2026-01-02-x"][0]
+        row["destination"], row["untrack"] = "../elsewhere/x", False
+        plan_file.write_text(json.dumps(plan))
+        git(repo, "tag", "archive/test")
+        result = self.run_cmd("apply", plan_file)
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("leave Git", result.stderr)
+        self.assertTrue((repo / "_support/sessions/2026-01-02-x/a.md").exists())
+
+    def test_the_outside_ignore_check_covers_only_the_workspace_and_data_homes(self):
+        ws, specs = specs_workspace(self.tmp())
+        git(ws, "init", "-q", "-b", "main")
+        write(ws, ".gitignore", "specs-repo/\n_support/workspace/\n")
+        plan = self.plan_json(ws, specs, extra=["--override", f"{specs}/evidence/loose.txt=../_support/other/loose.txt"])
+        self.assertEqual(self.row(plan, "evidence/loose.txt", 1)["untrack"], True)
+        self.assertFalse([r for r in plan["reviews"] if r["reason"] == "workspace not ignored"], plan["reviews"])
+
+    def test_a_path_another_root_plans_is_skipped_without_a_review(self):
+        ws, specs = specs_workspace(self.tmp())
+        write(specs, "archive/2026-05-01-x/a.md", "# a\n")
+        inner = specs / "archive/inner"
+        inner.mkdir()
+        git(inner, "init", "-q", "-b", "main")
+        plain = specs / "archive/plain"
+        write(plain, "p.md", "# p\n")
+        plan = self.plan_json(ws, specs, inner, plain)
+        self.assertFalse([r for r in plan["reviews"] if r["reason"] == "embedded repository"], plan["reviews"])
+        self.assertFalse([r for r in plan["rows"] if r["root"] == 1 and r["source"] in ("archive/inner", "archive/plain")])
+
+
 if __name__ == "__main__":
     unittest.main()
