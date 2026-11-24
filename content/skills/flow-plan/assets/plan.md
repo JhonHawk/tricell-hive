@@ -57,7 +57,7 @@ None: the build needs nothing from outside the repository.
 
 - <external fact> · <read-only command or source> · <result, or not measured> · <date>
 
-<!-- One line per command a task's `Verification:` line names, as flow-plan step 3 sets: the command, its result or not measured, and the date. -->
+<!-- One line per command a task's `Verification:` line names, as flow-plan's Verification lines (`flow-plan/SKILL.md#verification-lines`) sets: the command, its result or not measured, and the date. -->
 
 - <verification command> · <result, or not measured with the task that meets it first> · <date>
 
