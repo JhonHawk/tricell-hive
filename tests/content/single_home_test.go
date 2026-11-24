@@ -78,7 +78,7 @@ var homePhrases = []homePhrase{
 	{"Tasks are never declared in the viewer", "content/skills/hive-core/plan/checkpoint.md"},
 	{"never the full suite after each fix", "content/skills/hive-core/build/checks.md"},
 	{"Its non-blocking findings are sorted as above with no fix of their own", "content/skills/hive-core/review/review-findings.md"},
-	{"a P3 or an unconfirmed finding is listed, never asked", "content/skills/hive-core/review/review-findings.md"},
+	{"Each takes the first of these decisions that matches it", "content/skills/hive-core/review/review-findings.md"},
 	{"A reviewer's assertion alone does not confirm a finding", "content/skills/hive-core/review/review-evidence.md"},
 	{"Do not create a second active source", "content/skills/hive-core/build/project-verification.md"},
 	{"Duplicate keys, IDs, array entries, unknown fields and unknown versions are errors", "content/skills/hive-core/build/project-verification-format.md"},
