@@ -69,7 +69,7 @@ Use it to investigate an uncertain request, plan a consequential change, or carr
 an understood task through implementation and verification—with clear boundaries
 between what was requested, what was authorized, and what was demonstrated.
 
-> **Version 0.9.0 · complete release updates, stable command migration, and recoverable offline plans**
+> **Version 0.10.0 · a 13-skill catalogue with create- and audit- skills, a mobile build role, the swarm mode, and guidance written for Claude Opus 5.5 and gpt-6.2-sol**
 > Each release sets [VERSION](VERSION) to its product version; between releases,
 > `development` carries `dev`. Packages for macOS Apple
 > Silicon and Linux arm64/amd64 are published on
@@ -110,7 +110,7 @@ It asks which hosts to install and confirms before it writes.
 
 - **Preview first:** append `-s -- --dry-run`. No host changes; the package is
   still downloaded; behavior depends on the selected package version.
-- **Pick a release or hosts:** append `-s -- --version 0.9.0 --hosts claude,codex`.
+- **Pick a release or hosts:** append `-s -- --version 0.10.0 --hosts claude,codex`.
 - **Afterwards:** packages with the new update protocol register
   `~/.local/bin/hive` as the stable command. The installer does not edit `PATH`
   or overwrite an unowned file there. Older packages print their versioned path.
