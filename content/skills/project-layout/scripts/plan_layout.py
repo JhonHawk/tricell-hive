@@ -380,7 +380,8 @@ class Root:
 
 
 class Planner:
-    def __init__(self, roots, overrides, homes, keeps=(), keep_refs=()):
+    def __init__(self, roots, overrides, homes, keeps=(), keep_refs=(), legacy="move"):
+        self.legacy = legacy
         self.roots = [Root(r) for r in roots]
         self.overrides = overrides
         self.used_overrides = set()
@@ -963,10 +964,14 @@ class Planner:
         return not tracked and rel in root.ignored([rel])
 
     def place_record(self, key, home, dest):
-        """A child of plan/ or spec/ may hold current knowledge: it waits for --keep or --override."""
+        """A child of plan/ or spec/ may hold current knowledge: it waits for --keep or --override. With
+        --legacy remove, a tracked child with no uncommitted or hidden edit is deleted: history and the
+        archive tag hold all of it; any other child still moves."""
         row = self.rows[key]
         if home in ("plan", "spec") and not (self.keep_for(row) or self.override_for(row)):
             return self.set_review(key, "F3", f"{home}/ may hold current knowledge: promote it, or name --keep or --override")
+        if self.legacy == "remove" and home not in ("plan", "spec") and self.unmodified(row["root"], row["source"]) is None:
+            return self.set_delete(key, "F3", "aged record: history and the archive tag keep it")
         self.set_legacy_dest(key, "F3", dest)
 
     # ---- the change register of an earlier layout ---------------------------------
@@ -1657,6 +1662,7 @@ class Planner:
         rewrites = sorted({json.dumps(r, sort_keys=True) for r in self.rewrites})
         return {
             "version": VERSION,
+            "legacy": self.legacy,
             "roots": [{"path": r.path, "head": r.head, "git": r.is_git} for r in self.roots],
             "rows": rows,
             "rewrites": sorted((json.loads(r) for r in rewrites), key=lambda r: (r["root"], r["file"], r["line"], r["col"])),
@@ -1708,7 +1714,7 @@ def cmd_plan(args):
     for root in args.root:
         if not os.path.isdir(root):
             return fail(f"not a directory: {root}")
-    plan = Planner(args.root, overrides, homes, args.keep or [], args.keep_ref or []).plan()
+    plan = Planner(args.root, overrides, homes, args.keep or [], args.keep_ref or [], args.legacy).plan()
     text = json.dumps(plan, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
     if args.out:
         with open(args.out, "w", encoding="utf-8") as handle:
@@ -2099,6 +2105,8 @@ def main(argv=None):
     plan.add_argument("--keep-ref", action="append", metavar="FILE[:LINE]",
                       help="leave the references in this file, or on this line, as they are; verify accepts them")
     plan.add_argument("--home", action="append", metavar="KEY=PATH")
+    plan.add_argument("--legacy", choices=("move", "remove"), default="move",
+                      help="aged legacy records: move them to workspace/ (default), or delete the tracked, unmodified ones")
     plan.add_argument("--json", action="store_true")
     plan.add_argument("--out")
     for name in ("apply", "verify", "undo"):

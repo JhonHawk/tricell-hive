@@ -154,13 +154,19 @@ When the planner's plan is applied, each current reference to a moved path SHALL
 
 ### Requirement: Legacy records leave the tree one item at a time
 
-The placement planner SHALL plan the legacy homes `sessions/`, `evidence/`, `reports/`, `archive/` and `archived/` at the root of each Git repository as it plans those under `_support/`: each child moves to `workspace/<date>-<work>/` of the support home, which is the repository's own `_support/` when it exists and otherwise the `_support/` of the workspace folder when that folder is also a root of the plan (written `../_support/workspace/...`), and each tracked child leaves Git. A folder that a document or configuration cites as a path, a folder that holds code, and a child that is a repository of its own SHALL go to review instead of moving, and a destination SHALL be compared by absolute path across every root of the plan. The planner SHALL plan the change archive one child per row: a child that is tracked and has no uncommitted, untracked, ignored or index-hidden change is deleted, and any other child is kept with its reason, without keeping the rest of the archive. A root outside Git SHALL plan nothing inside a repository of its own or inside another root of the plan.
+The placement planner SHALL plan the legacy homes `sessions/`, `evidence/`, `reports/`, `archive/` and `archived/` at the root of each Git repository as it plans those under `_support/`: each child moves to `workspace/<date>-<work>/` of the support home, which is the repository's own `_support/` when it exists and otherwise the `_support/` of the workspace folder when that folder is also a root of the plan (written `../_support/workspace/...`), and each tracked child leaves Git. A folder that a document or configuration cites as a path, a folder that holds code, and a child that is a repository of its own SHALL go to review instead of moving, and a destination SHALL be compared by absolute path across every root of the plan. The planner SHALL plan the change archive one child per row: a child that is tracked and has no uncommitted, untracked, ignored or index-hidden change is deleted, and any other child is kept with its reason, without keeping the rest of the archive. A root outside Git SHALL plan nothing inside a repository of its own or inside another root of the plan. With `--legacy remove`, a tracked child with no uncommitted, untracked, ignored or hidden edit SHALL be deleted instead of moved; an untracked or edited child still moves, and the default is `--legacy move`.
 
 #### Scenario: Top-level records of a repository inside a workspace
 
 - **GIVEN** a workspace folder outside Git, a child repository with no `_support/` that tracks `evidence/` and `sessions/` at its root, and both folders as roots of the plan
 - **WHEN** the planner runs and the plan is applied after the archive tag
 - **THEN** each child of those folders is at `workspace/<date>-<work>/` of the workspace's `_support/`, no longer tracked by the repository, and undo restores it
+
+#### Scenario: Aged records removed on request
+
+- **GIVEN** `plan --legacy remove`, a tracked and unmodified `_support/sessions/<date>-x`, a tracked top-level `evidence/<date>-y`, an untracked record, a record with an untracked file inside, a `backups/` folder, a `plan/` child and a folder a document cites
+- **WHEN** the planner runs
+- **THEN** the two tracked unmodified records are `delete` rows noted "aged record: history and the archive tag keep it" and need the archive tag at apply time, the untracked record and the record with the untracked file still move, `backups/` still goes to `data/`, the `plan/` child and the cited folder stay in review, `plan.json` records `legacy: remove`, and without the flag (`move`) every one of them moves as before
 
 #### Scenario: A folder the project still cites
 

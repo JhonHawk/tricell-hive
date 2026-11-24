@@ -1248,6 +1248,61 @@ class LegacyGapsTest(Fixture, unittest.TestCase):
             self.assertEqual((row["action"], row["untrack"]), ("move", True), home)
             self.assertTrue(row["destination"].startswith("_support/workspace/2026-06-07-"), row)
 
+    def test_legacy_remove_deletes_only_tracked_unmodified_records(self):
+        base = self.tmp()
+        repo = legacy_repo(base)
+        write(repo, "_support/backups/db.dump", "dump\n")
+        write(repo, "_support/sessions/2026-07-08-untracked/a.md", "# u\n")
+        write(repo, "_support/sessions/2026-01-02-x/extra.md", "# untracked inside\n")
+        plan = self.plan_json(repo, extra=["--legacy", "remove"])
+        self.assertEqual(plan["legacy"], "remove")
+        dirty = self.row(plan, 0, "_support/sessions/2026-01-02-x")
+        self.assertEqual((dirty["action"], dirty["untrack"]), ("move", True), "an untracked file inside keeps the move")
+        self.assertEqual(self.row(plan, 0, "_support/sessions/2026-07-08-untracked")["action"], "move")
+        self.assertEqual(self.row(plan, 0, "_support/backups")["action"], "move")
+        self.assertTrue(self.row(plan, 0, "_support/backups")["destination"].startswith("_support/data/"))
+        clean = self.row(plan, 0, "_support/evidence/b.txt")
+        self.assertEqual((clean["action"], clean["destination"], clean["untrack"]), ("delete", None, False))
+        self.assertIn("aged record: history and the archive tag keep it", clean["notes"])
+        ws, specs = specs_workspace(self.tmp())
+        write(specs, "evidence/2026-07-01-new/a.txt", "untracked\n")
+        write(specs, "sessions/2026-03-05-review/extra.md", "# untracked inside\n")
+        top = self.plan_json(specs, extra=["--legacy", "remove"])
+        self.assertEqual(self.row(top, 0, "evidence/2026-03-04-audit")["action"], "delete")
+        self.assertEqual(self.row(top, 0, "evidence/loose.txt")["action"], "delete")
+        self.assertEqual(self.row(top, 0, "evidence/2026-07-01-new")["action"], "move")
+        self.assertEqual(self.row(top, 0, "sessions/2026-03-05-review")["action"], "move")
+
+    def test_legacy_remove_keeps_every_row_that_needs_a_decision(self):
+        repo = legacy_repo(self.tmp())
+        for home in ("plan", "spec"):
+            write(repo, f"_support/{home}/2026-06-07-{home}-item/a.md", "# a\n")
+        commit(repo)
+        plan = self.plan_json(repo, extra=["--legacy", "remove"])
+        for home in ("plan", "spec"):
+            self.assertEqual(self.row(plan, 0, f"_support/{home}/2026-06-07-{home}-item")["action"], "review", home)
+        ws, specs = specs_workspace(self.tmp())
+        write(specs, "README.md", "Captures live in `evidence/2026-03-04-audit/shot.txt`.\n")
+        commit(specs)
+        cited = self.plan_json(ws, specs, extra=["--legacy", "remove"])
+        self.assertEqual(self.row(cited, 1, "evidence")["action"], "review")
+        outside = self.plan_json(ws, extra=["--legacy", "remove"])
+        self.assertFalse([r for r in outside["rows"] if r["action"] == "delete" and "specs-repo" in r["source"]])
+
+    def test_the_legacy_policy_defaults_to_move_and_a_removal_needs_the_archive_tag(self):
+        repo = legacy_repo(self.tmp())
+        plan = self.plan_json(repo)
+        self.assertEqual(plan["legacy"], "move")
+        self.assertEqual(self.row(plan, 0, "_support/evidence/b.txt")["action"], "move")
+        plan_file = repo.parent / "remove.json"
+        self.plan(repo, extra=["--legacy", "remove", "--out", str(plan_file)])
+        result = subprocess.run(["python3", "-I", str(SCRIPT), "apply", "--plan", str(plan_file)], text=True, capture_output=True)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("archive/", result.stderr)
+        git(repo, "tag", "archive/test")
+        result = subprocess.run(["python3", "-I", str(SCRIPT), "apply", "--plan", str(plan_file)], text=True, capture_output=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_a_top_level_folder_a_document_cites_waits_for_review(self):
         ws, specs = specs_workspace(self.tmp())
         write(specs, "README.md", "Captures live in `evidence/2026-03-04-audit/shot.txt`.\n")
