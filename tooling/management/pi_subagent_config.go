@@ -3,10 +3,12 @@ package management
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+	"syscall"
 	"unicode"
 
 	"tricell-hive/integrations/pi"
@@ -357,7 +359,7 @@ func piConfigUnchanged(p Plan, s State) (bool, error) {
 // file, so its answer then says nothing about the file.
 func piConfigReachable(path string) bool {
 	_, err := os.Stat(path)
-	return !os.IsNotExist(err)
+	return !errors.Is(err, fs.ErrNotExist) && !errors.Is(err, syscall.ENOTDIR)
 }
 
 // applyPiConfig performs the journaled write (install) or the key-level

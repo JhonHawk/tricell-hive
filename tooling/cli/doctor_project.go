@@ -674,16 +674,46 @@ var (
 	unverifiedFailPattern  = regexp.MustCompile(`\bunverified \d{4}-\d{2}-\d{2} \([^)]*\):\s*`)
 	secretTokenSplitter    = regexp.MustCompile(`[\s|,;]+`)
 	secretFlagKeyRegexp    = regexp.MustCompile(`(?i)(?:secret|token|password|passwd|pwd|api[_-]?key|apikey|credential|auth|bearer|private[_-]?key|client[_-]?secret)`)
-	urlPasswordRegexp      = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9+.-]*://[^/@\s]*:([^@\s]+)@`)
 	base64TokenRegexp      = regexp.MustCompile(`^[A-Za-z0-9+/]{20,}={0,2}$`)
-	pathWordRegexp         = regexp.MustCompile(`^[a-z0-9]{3,}$`)
+	pathWordRegexp         = regexp.MustCompile(`^(?:[a-z0-9]{3,}|[A-Z][a-z]{2,})$`)
 	knownSecretTokenRegexp = regexp.MustCompile(`\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|glpat-[A-Za-z0-9_-]{20,}|(?:AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|xox[baprs]-[A-Za-z0-9-]{10,}|sk-(?:ant-|proj-|live-)?[A-Za-z0-9_-]{20,})\b|-----BEGIN (?:[A-Z0-9 ]+ )?PRIVATE KEY-----`)
 )
 
-// isLiteralSecretValue reports whether a credential value is written out rather
-// than a placeholder such as $VAR or <password>.
+// urlPassword returns the password of a URL's userinfo: the authority ends at
+// the first / and the userinfo at its last @, so a password may hold @.
+func urlPassword(tok string) string {
+	_, rest, ok := strings.Cut(tok, "://")
+	if !ok {
+		return ""
+	}
+	authority, _, _ := strings.Cut(rest, "/")
+	at := strings.LastIndexByte(authority, '@')
+	if at < 0 {
+		return ""
+	}
+	_, password, _ := strings.Cut(authority[:at], ":")
+	return password
+}
+
+// isLiteralSecretValue reports whether a URL password is written out rather
+// than a placeholder such as $VAR or <password> or a short default word such
+// as postgres: 12 or more characters of at least two character classes.
 func isLiteralSecretValue(v string) bool {
-	return len(v) >= 8 && !strings.HasPrefix(v, "$") && !(strings.HasPrefix(v, "<") && strings.HasSuffix(v, ">"))
+	if len(v) < 12 || strings.HasPrefix(v, "$") || (strings.HasPrefix(v, "<") && strings.HasSuffix(v, ">")) {
+		return false
+	}
+	classes := 0
+	for _, class := range []string{"abcdefghijklmnopqrstuvwxyz", "ABCDEFGHIJKLMNOPQRSTUVWXYZ", "0123456789"} {
+		if strings.ContainsAny(v, class) {
+			classes++
+		}
+	}
+	if strings.IndexFunc(v, func(r rune) bool {
+		return !(r >= 'a' && r <= 'z' || r >= 'A' && r <= 'Z' || r >= '0' && r <= '9')
+	}) >= 0 {
+		classes++
+	}
+	return classes >= 2
 }
 
 // isBase64Secret reports a base64 value whose / would otherwise split it into
@@ -750,10 +780,7 @@ func containsSecretToken(line string) bool {
 	}
 	for _, raw := range secretTokenSplitter.Split(line, -1) {
 		tok := strings.Trim(raw, "'\"`()[]{}")
-		if m := urlPasswordRegexp.FindStringSubmatch(tok); m != nil && isLiteralSecretValue(m[1]) {
-			return true
-		}
-		if isBase64Secret(tok) {
+		if isLiteralSecretValue(urlPassword(tok)) {
 			return true
 		}
 		if tok == "" || strings.HasPrefix(tok, "http://") || strings.HasPrefix(tok, "https://") ||
@@ -762,6 +789,9 @@ func containsSecretToken(line string) bool {
 			strings.HasPrefix(tok, "op://") || strings.HasPrefix(tok, "/") ||
 			strings.HasPrefix(tok, "~/") || strings.HasPrefix(tok, "./") {
 			continue
+		}
+		if isBase64Secret(tok) {
+			return true
 		}
 		if eq := strings.IndexByte(tok, '='); eq > 0 {
 			k, v := tok[:eq], strings.Trim(tok[eq+1:], "'\"`")

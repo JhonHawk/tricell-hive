@@ -274,7 +274,9 @@ class SecretLikeTest(unittest.TestCase):
             self.assertTrue(self.secret_like(key), key)
 
     def test_dated_folder_names_stay_readable(self):
-        for name in ["feature-branch-20261107", "release-2026-11-24", "python3.12-venv"]:
+        for name in ["feature-branch-20261107", "release-2026-11-24", "python3.12-venv",
+                     "node-v20.11.0-darwin-arm64", "go1.22.3.darwin-arm64", "ubuntu22-arm64-runner",
+                     "feature-v2-oauth2-login"]:
             self.assertFalse(self.secret_like(name), name)
 
 

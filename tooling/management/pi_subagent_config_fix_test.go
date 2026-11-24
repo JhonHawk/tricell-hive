@@ -234,6 +234,26 @@ func TestRemovePiConfigKeepsTheRecordWhenALinkedFolderHoldsTheFile(t *testing.T)
 	}
 }
 
+// A file where a config folder belongs means config.json cannot exist: the
+// record is cleared.
+func TestRemovePiConfigClearsTheRecordWhenAFileTakesAFoldersPlace(t *testing.T) {
+	o := pcOptions(t)
+	pcInstall(t, o)
+	dir := filepath.Dir(pcConfig(o))
+	if err := os.RemoveAll(dir); err != nil {
+		t.Fatal(err)
+	}
+	put(t, dir, "not a folder")
+	p := plan(t, "remove", o)
+	if unchanged, err := PlanUnchanged(p); err != nil || unchanged {
+		t.Fatalf("unchanged = %v, err = %v", unchanged, err)
+	}
+	apply(t, p)
+	if pcState(t, o).PiSubagentConfig != nil {
+		t.Fatal("the record survived although config.json cannot exist")
+	}
+}
+
 // Item 1: the migration edits the file, but the folders around it still decide.
 func TestPlanPiConfigPostMigrationStillChecksTheFolders(t *testing.T) {
 	arrange := map[string]func(t *testing.T, o Options){
