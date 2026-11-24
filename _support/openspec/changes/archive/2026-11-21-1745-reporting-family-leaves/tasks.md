@@ -163,7 +163,7 @@ Caminata humana: no hay pantalla; la validación es leer las dos hojas resultant
 - Last commit: 856149db
 - Open findings: none
 - Next: push, PR, merge, despliegue; archivo pendiente (higiene)
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/reporting-family-leaves · fix/reporting-findings
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/reporting-family-leaves · fix/reporting-findings
 
 ### Evidence
 

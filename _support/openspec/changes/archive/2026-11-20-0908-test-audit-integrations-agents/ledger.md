@@ -98,7 +98,7 @@ Mutants that the whole `integrations/agents` package passes: m_badeffort (ReadPr
 
 ## Appendix: mutants run (copies of agents.go replaced through `go test -overlay`; the repository files were not edited)
 
-Overlay copies and the runner live in /private/tmp/claude-501/-Users-jmartinez-Development-projects-tricell-tricell-hive/1940eec0-a694-4885-b213-833a8c2bd0af/scratchpad/test-audit/mut (run.sh, m_*.go, m_*.json). Failing tests in `./integrations/agents` per mutant:
+Overlay copies and the runner live in /private/tmp/claude-501/-Users-me-Development-projects-tricell-tricell-hive/1940eec0-a694-4885-b213-833a8c2bd0af/scratchpad/test-audit/mut (run.sh, m_*.go, m_*.json). Failing tests in `./integrations/agents` per mutant:
 - m_pilist (Pi list rendered `[..]`): TestPiObserveUsesNativeSimpleToolList, TestRenderGolden.
 - m_cursoreffort (cursor in acceptsProfileEffort): TestProfilesRejectCursorEffort, TestValidateOverrideTable (lane B).
 - m_prof_grok (grok in acceptsProfileEffort): TestValidateOverrideTable, TestResolveOverrideRejectsInvalidValues (lane B), TestReadProfilesValidatesVerifierLikeOtherProfiles.

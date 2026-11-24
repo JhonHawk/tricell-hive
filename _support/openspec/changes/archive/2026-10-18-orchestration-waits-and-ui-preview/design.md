@@ -2,7 +2,7 @@
 
 ## Contexto verificado
 
-**Evidencia de la sesión cam.** Sesión de Claude Code `e2c8d39f` del proyecto cam, 2026-10-18, modelo opus-5-5, con Hive desplegado `9c131d3b` (y `flow-walkthrough` leído en `df6e550e`). Lo que se comprobó en el transcript:
+**Evidencia de la sesión project-g.** Sesión de Claude Code `e2c8d39f` del proyecto project-g, 2026-10-18, modelo opus-5-5, con Hive desplegado `9c131d3b` (y `flow-walkthrough` leído en `df6e550e`). Lo que se comprobó en el transcript:
 
 - **Hijo detenido:** el hijo `Verify T4` (`hive-verify-task`) cerró su turno con «Waiting for the monitor to report» a las 23:13:05Z. Su transcript no tiene eventos hasta las 00:31:07Z, cuando se lo reanudó a mano, y en ese tiempo el orquestador escribió «sigue en curso» cuatro veces.
 - **Commit antes de la primera vista:** T6 se comprometió a las 17:01 hora local (`38c8cf88`), antes de la primera vista (17:05) y de la revisión de interfaz (18:07), y acabó con cuatro commits.
@@ -18,7 +18,7 @@
   - `delegation.md:65`: una línea por tramo de espera bloqueante.
   - `flow-walkthrough/SKILL.md:24`: «nothing is repeated for them», excepción local con tarjeta.
   - `flow-build/SKILL.md:67`: vida del hijo solo tras silencio largo.
-  - `hive-verify-task.md:14`: primer plano. El hijo de cam lo incumplió.
+  - `hive-verify-task.md:14`: primer plano. El hijo de project-g lo incumplió.
 - **Apertura del mensaje (M2):**
   - «Lead with the result» en `global.md:16` y `reporting.md:9`.
   - Ítem en curso primero (`reporting.md:9,47`).
@@ -40,7 +40,7 @@
   - `ui-gate.md:21`;
   - `plan-review.md:26`, que ya pasa rutas de skills a los revisores del plan.
 
-Los briefs de cam no pasaron `heroui-pro-design-taste` ni `heroui-baseline.md`, aunque la regla condicional del proyecto los activaba (fuente: el propio orquestador de cam, no verificado en el repositorio cam).
+Los briefs de project-g no pasaron `heroui-pro-design-taste` ni `heroui-baseline.md`, aunque la regla condicional del proyecto los activaba (fuente: el propio orquestador de project-g, no verificado en el repositorio project-g).
 
 **Pruebas que verifican texto:** ningún detector ni prueba Go verifica el texto de estas reglas. `tests/content/voices_test.go:40` fija la primera frase del preámbulo de voces. Las anclas no las valida ninguna prueba.
 

@@ -414,10 +414,10 @@ Ronda 1: AC21 y AC23–AC26 se cumplen, y AC22, AC2 y AC4 se mantienen. Correcci
 **Execution:** hilo principal. Toca `global.md`. Su margen se calcula después de T10: FR3 y FR5 quitan bytes, FA1 agrega. Si el resultado pasa de 17.500 B sin quitar ninguna regla, se te pregunta si se sube el tope.
 
 **Commits:** cada commit nombra la sesión y el fallo que corrige:
-- FR1, FR2 y FR4: Grok `01a180ab-1142-7f20-94f4-3cd2257186f3` (dened, 2026-10-27). El usuario validó esa conducta.
-- FR3: Claude `4afe6d47-9740-4543-aa24-36d25b0ba7b5` (cam), Claude `1776e095-87b6-41f6-98b2-7fd502ce0604` (carvento) y la de Grok. Las tres omitieron la línea en las notas cortas.
-- FR5: carvento, que respondió 4 rondas bien sin releer.
-- FA1: cam Claude y Codex `01a180de-c680-7f91-81d7-6c50a9e02ef1` (cam, 2026-10-28).
+- FR1, FR2 y FR4: Grok `01a180ab-1142-7f20-94f4-3cd2257186f3` (project-e, 2026-10-27). El usuario validó esa conducta.
+- FR3: Claude `4afe6d47-9740-4543-aa24-36d25b0ba7b5` (project-g), Claude `1776e095-87b6-41f6-98b2-7fd502ce0604` (project-a) y la de Grok. Las tres omitieron la línea en las notas cortas.
+- FR5: project-a, que respondió 4 rondas bien sin releer.
+- FA1: project-g Claude y Codex `01a180de-c680-7f91-81d7-6c50a9e02ef1` (project-g, 2026-10-28).
 
 **Test approach:** check: `go test ./...`, `wc -c` y lectura contra AC21 y AC23–AC26.
 

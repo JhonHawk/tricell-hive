@@ -1166,7 +1166,7 @@ raise the minor or the patch version.
 - Moving from one flow to the next is no longer a question card. A report ends
   with a separate next-step block: the recommended flow, its reason, and the
   command to type, written once in the syntax of the host you run in (for
-  example `/flow-plan COM-833` in Claude Code, `$flow-plan COM-833` in
+  example `/flow-plan PRJ-833` in Claude Code, `$flow-plan PRJ-833` in
   Codex), with a real ticket or a recommendation to create it first. Only your
   reply starts the next flow.
 - Every child (delegated role) starts with a fresh context window, not a copy
@@ -1624,7 +1624,7 @@ raise the minor or the patch version.
 
 - UI evidence is refreshed for affected views and journeys after any later fix,
   including code-review fixes after approval. A changed visible result needs
-  approval again; unaffected evidence remains valid. Adopted after the Facti
+  approval again; unaffected evidence remains valid. Adopted after the project-f
   Claude Code session `c574e5a1-ec3e-44da-995e-2a9a89ba2e6b` of 2026-10-23.
 - Gaps found in two sessions of 2026-10-19 (Grok `01a15706`, Codex `01a156af`;
   issue #93). A notice that only reports the exit of a process the agent
@@ -1638,7 +1638,7 @@ raise the minor or the patch version.
   with corrections written in the answer's free text. When an answer leaves a
   selection to the agent, it lists what goes in and what stays out and asks for
   confirmation before acting.
-- Two costs seen in both Grok cam sessions of 2026-10-20 (`01a1579f`,
+- Two costs seen in both Grok project-g sessions of 2026-10-20 (`01a1579f`,
   `01a157db`; issue #94): after a context compaction the agent rereads only a
   reference whose condition applies to its next action, plus the active
   `SKILL.md` when its steps are not in the summary, instead of every reference
@@ -1678,7 +1678,7 @@ raise the minor or the patch version.
   instead of a collapsible sidebar group.
 
 - Waits, messages and the first rendered view follow one rule each (the
-  analysis of cam session `e2c8d39f`, 2026-10-18). Every progress or decision
+  analysis of project-g session `e2c8d39f`, 2026-10-18). Every progress or decision
   message opens with a bold context line, stage · ticket · progress, and a
   question card opens with the stage and ticket. A turn that a notification
   starts without changing what you need is that line followed by the change,
@@ -1764,25 +1764,25 @@ raise the minor or the patch version.
   also supports the default `/favicon.ico` request, without third-party requests.
 
 - A pull request is merged with the method the repository declares or its base
-  branch's recent merges show, a merge commit by default (Grok cam session
+  branch's recent merges show, a merge commit by default (Grok project-g session
   `01a1579f`, 2026-10-20: PR #239 was squashed while the base branch's earlier
   merges were merge commits, collapsing the per-task commits).
 
 - Close deletes a branch merged by squash or rebase, with its clean worktree,
   once `gh` shows its pull request merged from the same head; `git branch -d`
-  refused them, so both Grok cam sessions of 2026-10-20 (`01a1579f`,
+  refused them, so both Grok project-g sessions of 2026-10-20 (`01a1579f`,
   `01a157db`) left orphan branches and worktrees. The retained checkout leaves
   the branch and eligible clean worktrees are removed before branch deletion.
 
 - A process the agent waits on gets a bounded watch besides its exit signal, so
   a hung run still wakes the agent, and a turn that ends with work running says
-  what will wake it and the duration or deadline of the current wait (Grok cam
+  what will wake it and the duration or deadline of the current wait (Grok project-g
   session `01a1579f`, 2026-10-20: a hung backend
   integration suite left the session silent until the user asked; issue #95).
 
 - A stalled local integration run is handed to the pull request's CI only after
   confirming that CI runs that suite on pull requests; otherwise it is rerun
-  locally or reported as not run (Grok cam session `01a157db`, 2026-10-20:
+  locally or reported as not run (Grok project-g session `01a157db`, 2026-10-20:
   a never-run test was committed on the assumption that PR CI would run it).
 
 - The walkthrough viewer distinguishes local and unknown sources, skips new

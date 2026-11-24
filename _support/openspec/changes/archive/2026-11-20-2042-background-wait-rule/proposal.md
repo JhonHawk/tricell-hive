@@ -27,7 +27,7 @@ None: the work adopts no business rule beyond what its ticket and documentation 
 
 > «A, y B, validemos como teníamos las reglas anteriores, porque no recuerdo que tuviéramos un problema» (2026-11-20). La A era planear la regla de esperas y su criterio de auditoría; la B, corregir `merged_branch_deleted`.
 
-El origen es la sesión de Grok `01a1f7e8-7f68-70b2-b053-db12af2bb562` en cam (CAM-22, 2026-11-20). Un bucle en segundo plano esperaba dos builds de Amplify y comparaba `"$c$b"` con `SUCCEEDSUCCEED`. Pero `aws amplify list-jobs --max-items 1 --output text` imprime además una línea `None`, así que ninguna rama coincidió nunca. El bucle no tenía plazo, Grok solo despierta al agente cuando la tarea termina, y la sesión quedó quieta 8 h 51 min, hasta que el usuario preguntó.
+El origen es la sesión de Grok `01a1f7e8-7f68-70b2-b053-db12af2bb562` en project-g (PRK-22, 2026-11-20). Un bucle en segundo plano esperaba dos builds de Amplify y comparaba `"$c$b"` con `SUCCEEDSUCCEED`. Pero `aws amplify list-jobs --max-items 1 --output text` imprime además una línea `None`, así que ninguna rama coincidió nunca. El bucle no tenía plazo, Grok solo despierta al agente cuando la tarea termina, y la sesión quedó quieta 8 h 51 min, hasta que el usuario preguntó.
 
 ## Objetivo
 
@@ -48,7 +48,7 @@ Fuera del alcance:
 - el detector `merged_branch_deleted` de los pilotos (`regression.go`), que no cambia;
 - la rama de adelgazamiento.
 
-La sesión de cam sigue abierta y crece. Por eso AC1 y AC2 se observan sobre una copia cortada en sus primeras 3909 líneas, la de hasta el «cómo vamos?» de las 13:13. La copia está en `_support/workspace/background-wait-rule/grok-01a1f7e8-3909.jsonl`, que Git ignora; es privada (modo 600), porque trae datos de cam, y no se versiona.
+La sesión de project-g sigue abierta y crece. Por eso AC1 y AC2 se observan sobre una copia cortada en sus primeras 3909 líneas, la de hasta el «cómo vamos?» de las 13:13. La copia está en `_support/workspace/background-wait-rule/grok-01a1f7e8-3909.jsonl`, que Git ignora; es privada (modo 600), porque trae datos de project-g, y no se versiona.
 
 - AC1 — `go run ./tests/pilot --audit-session _support/workspace/background-wait-rule/grok-01a1f7e8-3909.jsonl --host grok` reporta `unbounded_background_wait` en `fail` con la evidencia de la línea 3855 · falso hoy porque la salida no tiene ese criterio · Observed in: la auditoría de la copia de la sesión real de Grok `01a1f7e8`
 - AC2 — La misma auditoría reporta `merged_branch_deleted` en `review`, no en `fail` · falso hoy porque reporta `fail` con evidencia en la línea 3776 (corrido el 2026-11-20) · Observed in: la auditoría de la copia de la sesión real de Grok `01a1f7e8`
@@ -66,9 +66,9 @@ None: the build needs nothing from outside the repository.
 - `git grep` en HEAD no encuentra `every outcome` ni `bounded watch` en `content/`.
 - pstack (`93b916d4`) resuelve la espera de CI con un script, `watch-pr`: plazo opcional, tope de errores y estados desconocidos tratados como fallo. No tiene ninguna regla escrita para bucles hechos a mano.
 - La auditoría registra `merged_branch_deleted` en `tests/pilot/session_audit.go:1110` (`existingAuditCriteria`) y reutiliza `mergedBranchDeletedWith` de `regression.go:596`. `isCloseReport` ya existe.
-- `traceEvent.Input` conserva los argumentos del tool. En la sesión de cam, la llamada de Grok que lanzó el bucle trae `block_until_ms: 0` y le sigue `task_backgrounded`.
+- `traceEvent.Input` conserva los argumentos del tool. En la sesión de project-g, la llamada de Grok que lanzó el bucle trae `block_until_ms: 0` y le sigue `task_backgrounded`.
 - `content/guidance/global.md` pesa 32,148 bytes en `27875867`. La rama `refactor/global-guidance-slimming` (punta `089cd08b`, sin integrar) fija un presupuesto de 27,500, y su índice va sin negrita, así que la línea nueva se reformatea cuando esa rama se rebase.
-- La observación para el commit, según «Measurement» de AGENTS.md: Grok Build, modelo `grok-4.7-build-fast` (fila del piso, provisional), sesión `01a1f7e8-7f68-70b2-b053-db12af2bb562`, cam, 2026-11-20, 8 h 51 min sin actividad. Las anteriores: Claude Code `e5edd628` y `b6644329` (2026-10-16), Grok `01a1579f` (2026-10-20) y Claude Code `b4b1285f` (2026-11-05).
+- La observación para el commit, según «Measurement» de AGENTS.md: Grok Build, modelo `grok-4.7-build-fast` (fila del piso, provisional), sesión `01a1f7e8-7f68-70b2-b053-db12af2bb562`, project-g, 2026-11-20, 8 h 51 min sin actividad. Las anteriores: Claude Code `e5edd628` y `b6644329` (2026-10-16), Grok `01a1579f` (2026-10-20) y Claude Code `b4b1285f` (2026-11-05).
 - Riesgo medido solo en parte: el prompt de Claude Code sugiere `run_in_background` con `until …; do sleep …; done` sin plazo, así que el criterio puede fallar en muchas sesiones de Claude. Es coherente con la hoja, pero no medimos cuántas.
 - `aws amplify list-jobs --max-items 1 --query 'jobSummaries[0].status' --output text` imprime `SUCCEED\nNone\n`. Reproducido el 2026-11-20 con lectura de solo lectura.
 

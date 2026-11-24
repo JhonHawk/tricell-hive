@@ -298,7 +298,7 @@ func TestRegistryWorkspaceRuleWinsOverTheEnclosingGitRepository(t *testing.T) {
 func TestRegistryNestedGitRepositoryInAWorkspaceKeepsItsOwnToplevel(t *testing.T) {
 	state := t.TempDir()
 	root, _ := newWorkspace(t)
-	nested := filepath.Join(root, "cam-monorepo")
+	nested := filepath.Join(root, "project-g-monorepo")
 	os.MkdirAll(filepath.Join(nested, ".git"), 0o755)
 	sub := filepath.Join(nested, "src")
 	os.MkdirAll(sub, 0o755)

@@ -15,22 +15,22 @@ Investigación del 2026-10-16 y 2026-10-17, con tres subagentes `hive-research` 
 | Host (versión) | Memoria propia | Engram |
 | --- | --- | --- |
 | Claude Code 2.1.302 | Auto memory: la escribe el modelo; `MEMORY.md` se carga siempre (200 líneas o 25 KB). Documentado en code.claude.com/docs/en/memory | MCP + plugin con hooks |
-| Grok Build 1.0.62 | memory-v2: captura tras cada turno; el índice se carga una vez por sesión. Documentado como experimental (`~/.grok/docs/user-guide/13-memory.md`), pero activo en las sesiones de cam | Por `compat.claude.mcps`, que por defecto lee la configuración MCP de Claude (`26-config-reference.md:122`). Observado: `engram__mem_save` en la sesión `01a138cb` |
+| Grok Build 1.0.62 | memory-v2: captura tras cada turno; el índice se carga una vez por sesión. Documentado como experimental (`~/.grok/docs/user-guide/13-memory.md`), pero activo en las sesiones de project-g | Por `compat.claude.mcps`, que por defecto lee la configuración MCP de Claude (`26-config-reference.md:122`). Observado: `engram__mem_save` en la sesión `01a138cb` |
 | Codex 0.163.0 | `memories`, encendida el 2026-10-17. Documentado como "generated state", sin edición manual recomendada | MCP `engram` y plugin con hooks, activos desde el 2026-10-17 (`codex mcp list`) |
 | OpenCode 2.0.32, Cursor 2026.10.14, Pi 1.1.0 | Ninguna documentada | MCP (OpenCode, Cursor) o paquete `gentle-engram` (Pi) |
 
 **Divergencia (muestra de conveniencia de 33 hechos, del 12 al 16 de octubre):**
 - 15 iguales.
 - 4 viejos en la memoria nativa y 3 viejos en Engram.
-- 3 contradictorios: la reversión de `/register` en cam no llegó a Grok.
+- 3 contradictorios: la reversión de `/register` en project-g no llegó a Grok.
 - 4 solo en la nativa y 4 solo en Engram.
 
 La memoria nativa ya cita a Engram en varios sitios, con `topic_key`, `#ID` o `sync_id`, sin un formato estable. Engram cita a la nativa solo en prosa.
 
 **Sesiones reales donde se actuó sobre memoria vieja o duplicada:**
-- **Grok cam `01a138cb` (2026-10-13) y `01a139b4` (2026-10-14):** la restricción contra `/register` quedó en Engram (#15503, #15514, #15549) y en `cam-whatsapp-meta.md`, `preferences.md` y `cam-production.md`. La sesión del 14 actuó sobre ella. La reversión D5 del 2026-10-16 llegó a Engram y no a Grok hasta la sesión `01a1483c` del usuario.
-- **Carvento (Engram #13424, 2026-09-25):** un traspaso entre sesiones salió de memoria vieja y se corrigió al consultar Linear.
-- **El patrón "memoria presentada como estado actual"** ya tenía conteo 2 (carvento y rfp) en la auditoría del 2026-10-16.
+- **Grok project-g `01a138cb` (2026-10-13) y `01a139b4` (2026-10-14):** la restricción contra `/register` quedó en Engram (#15503, #15514, #15549) y en `project-g-whatsapp-meta.md`, `preferences.md` y `project-g-production.md`. La sesión del 14 actuó sobre ella. La reversión D5 del 2026-10-16 llegó a Engram y no a Grok hasta la sesión `01a1483c` del usuario.
+- **project-a (Engram #13424, 2026-09-25):** un traspaso entre sesiones salió de memoria vieja y se corrigió al consultar Linear.
+- **El patrón "memoria presentada como estado actual"** ya tenía conteo 2 (project-a y rfp) en la auditoría del 2026-10-16.
 
 **Lo que la guía ya dice:**
 - `global.md:31`: "search persistent memory for the finding".
@@ -84,7 +84,7 @@ Tras la re-revisión, el texto se partió en dos puntos (N1) y se quitó "this i
 ## Nota para el commit de T1
 
 `feat(guidance): make Engram the persistent memory and keep host memory to pointers (T1)`. El cuerpo nombra:
-- Grok cam `01a138cb` (2026-10-13) y `01a139b4` (2026-10-14): la restricción duplicada y la reversión que no llegó a la memoria de Grok.
-- Carvento (Engram #13424, 2026-09-25).
+- Grok project-g `01a138cb` (2026-10-13) y `01a139b4` (2026-10-14): la restricción duplicada y la reversión que no llegó a la memoria de Grok.
+- project-a (Engram #13424, 2026-09-25).
 - La decisión R2-A del usuario (2026-10-17).
 - El crecimiento de `global.md` en bytes.

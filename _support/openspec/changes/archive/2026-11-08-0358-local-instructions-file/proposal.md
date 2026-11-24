@@ -41,8 +41,8 @@ Sin ticket. Fuera de alcance: un script o esquema que guarde o valide los datos 
 ## Objective
 
 Hoy ninguna regla dice dónde guardar lo que un agente verificó de esta máquina, así que cada sesión lo vuelve a deducir. Sesiones reales del 2026-10-16 al 11-07:
-- carvento, Claude Code `8d09a5eb` (2026-11-02): 53 min re-derivando puertos, el parche de `dist` y CSRF que la sesión `94440d0a` (2026-10-24) ya había resuelto.
-- cam: Codex `01a1a844` (2026-11-04), unos 27 min montando un stack aislado; `timeout` inexistente en macOS en 17 sesiones de cam y 22 de Hive; región de AWS barrida en `b7986711` (2026-10-27) y otra vez en `1776e095` (2026-10-28).
+- project-a, Claude Code `8d09a5eb` (2026-11-02): 53 min re-derivando puertos, el parche de `dist` y CSRF que la sesión `94440d0a` (2026-10-24) ya había resuelto.
+- project-g: Codex `01a1a844` (2026-11-04), unos 27 min montando un stack aislado; `timeout` inexistente en macOS en 17 sesiones de project-g y 22 de Hive; región de AWS barrida en `b7986711` (2026-10-27) y otra vez en `1776e095` (2026-10-28).
 - En 21 de 39 sesiones con búsquedas de nube, el agente leyó Engram y aun así re-derivó el dato.
 
 Con el cambio, la guía global manda leer `HIVE.local.md` al iniciar la sesión y añadir ahí, con fecha, cada dato de la máquina que se verificó, sin valores secretos.

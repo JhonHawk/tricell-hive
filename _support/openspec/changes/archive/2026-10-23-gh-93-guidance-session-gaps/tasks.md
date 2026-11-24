@@ -227,7 +227,7 @@ No hay efecto de UI renderizado: solo cambia texto de guía, así que no aplican
 
 ## Continuación y ajustes posteriores del 2026-10-23
 
-- La auditoría de ocho sesiones principales (seis con trabajo sustantivo) se entregó en la conversación. La última Claude de Facti ejercitó runtime local real, identidad del candidato, navegador asignado y aprobación; no ejercitó todos los caminos de la guía. No se afirma una mejora general de fiabilidad.
+- La auditoría de ocho sesiones principales (seis con trabajo sustantivo) se entregó en la conversación. La última Claude de project-f ejercitó runtime local real, identidad del candidato, navegador asignado y aprobación; no ejercitó todos los caminos de la guía. No se afirma una mejora general de fiabilidad.
 - La suite de Go, `go vet`, 55 pruebas de skills y check/lint/build del sitio pasaron sobre `5fa7d308` antes de los ajustes posteriores. Los tres avisos del build del sitio coinciden con los ya documentados; no hubo errores.
 - Ajustes P1–P3 aprobados por D1-A: verificación tras cambios posteriores a aprobación, mensaje con límite de espera y orden ejecutable de limpieza. Son correcciones posteriores a las tareas ya verificadas; la verificación final de estos ajustes queda pendiente antes de sus commits.
 - Ejecución delegada sin historial: tres workers, con propiedad separada para candidato, espera y limpieza; sin commits ni efectos externos. El coordinador integra y verifica. No hubo revisión dedicada ni pilotos.

@@ -2,7 +2,7 @@
 
 Base `development` en `1b87f0a7`, rama `feat/audit-round-detection`, worktree `.claude/worktrees/audit-round-detection`. Todas las tareas corren en el hilo principal: tocan el mismo paquete Go y comparten patrones (`roundTitleLine`, `roundOptionStar`, `optionLine`), así que en paralelo chocarían, y cada una es menor que su brief.
 
-`<copia de facti>` es `/private/tmp/claude-501/-Users-jmartinez-Development-projects-tricell-tricell-hive/fe7ea3a1-1f06-4409-be29-f99dfb5d78ac/scratchpad/facti-01a20155.jsonl`. Es una copia local del rollout de Codex `~/.codex/sessions/2026/11/21/rollout-2026-11-21T21-38-50-01a20155-ce5a-7030-a04e-ebef68ef4ca0.jsonl`, 2530 líneas, sha256 `a5e67ee8b84606ed…`, y no se versiona. Si un reinicio la borra, se vuelve a copiar del rollout y se toman sus primeras 2530 líneas. Los fixtures nuevos usan texto sintético: ninguno lleva claves de ticket, correos ni nombres de entornos de ese proyecto.
+`<copia de project-f>` es `/private/tmp/claude-501/-Users-me-Development-projects-tricell-tricell-hive/fe7ea3a1-1f06-4409-be29-f99dfb5d78ac/scratchpad/project-f-01a20155.jsonl`. Es una copia local del rollout de Codex `~/.codex/sessions/2026/11/21/rollout-2026-11-21T21-38-50-01a20155-ce5a-7030-a04e-ebef68ef4ca0.jsonl`, 2530 líneas, sha256 `a5e67ee8b84606ed…`, y no se versiona. Si un reinicio la borra, se vuelve a copiar del rollout y se toman sus primeras 2530 líneas. Los fixtures nuevos usan texto sintético: ninguno lleva claves de ticket, correos ni nombres de entornos de ese proyecto.
 
 `<barrido>` corre `--audit-session` sobre cada fixture y escribe una línea por archivo con el estado de cada criterio: `for f in tests/fixtures/sessions/*/*.jsonl; do printf '%s\t' "$f"; <binario> --audit-session "$f" --host "$(basename "$f" | sed 's/[-.].*//')" | python3 -I -c 'import json,sys; d=json.load(sys.stdin); print(" ".join(c["criterion"]+"="+c["status"] for c in d["criteria"]))'; done`, desde la raíz del worktree. El binario de la base se compila antes de la primera edición: `go -C <worktree> build -o <tmp>/pilot-base ./tests/pilot`.
 
@@ -26,11 +26,11 @@ Base `development` en `1b87f0a7`, rama `feat/audit-round-detection`, worktree `.
 - `reviewQuestionTitle` suma solo `revis(?:amos|ar) el c[oó]digo`. Un `revis\w+` suelto queda descartado porque tomaría títulos ajenos.
 
 Fixtures:
-- `text_round_without_card`, `decision_round_format` y `review_question_native_option` reciben cada uno una ronda con la forma de la línea 278 de facti, con texto sintético (`fail`).
+- `text_round_without_card`, `decision_round_format` y `review_question_native_option` reciben cada uno una ronda con la forma de la línea 278 de project-f, con texto sintético (`fail`).
 - Un análisis con una lista numerada de preguntas sin opciones con estrella (`not_observed` en los tres).
 - Una elección numerada en prosa sin letras, «**1. ¿interactive o hold?**», que sigue fallando en `prose_choice_without_card`.
 
-**Verification:** `go test ./tests/pilot/ -run 'TestAuditNewCriteria'` pasa con los fixtures nuevos. `go run ./tests/pilot --audit-session <copia de facti> --host codex` da `fail` en la línea 278 para `text_round_without_card`, `decision_round_format` y `review_question_native_option`.
+**Verification:** `go test ./tests/pilot/ -run 'TestAuditNewCriteria'` pasa con los fixtures nuevos. `go run ./tests/pilot --audit-session <copia de project-f> --host codex` da `fail` en la línea 278 para `text_round_without_card`, `decision_round_format` y `review_question_native_option`.
 
 ### T2 — Elecciones en prosa: confirmación imperativa y respuestas entre comillas
 
@@ -56,7 +56,7 @@ Fixtures:
 - Las respuestas entre comillas (`review`).
 - «el log confirma que la entrega…» (`not_observed`).
 
-**Verification:** `go test ./tests/pilot/ -run 'TestAuditNewCriteria'` pasa. La auditoría de la copia de facti incluye la línea 266 en la evidencia de `prose_choice_without_card`.
+**Verification:** `go test ./tests/pilot/ -run 'TestAuditNewCriteria'` pasa. La auditoría de la copia de project-f incluye la línea 266 en la evidencia de `prose_choice_without_card`.
 
 ### T3 — Paquetes leídos dentro de una celda `exec` de Codex
 
@@ -80,7 +80,7 @@ Fixtures:
 - Una celda con un `grep` de los encabezados y una lectura parcial del mismo paquete (no contada).
 - Una celda con más salidas planas que comandos (no contada).
 
-**Verification:** `go test ./tests/pilot/ -run 'TestAuditNewCriteria|TestAnalysisReplyBlockEvidenceSaysIfTheRuleWasRead|TestLeafReadBeforeActionEdgeCases|Packet'` pasa. La auditoría de la copia de facti dice «report-endings rule was read» en la evidencia de la línea 83.
+**Verification:** `go test ./tests/pilot/ -run 'TestAuditNewCriteria|TestAnalysisReplyBlockEvidenceSaysIfTheRuleWasRead|TestLeafReadBeforeActionEdgeCases|Packet'` pasa. La auditoría de la copia de project-f dice «report-endings rule was read» en la evidencia de la línea 83.
 
 ### T4 — El reporte que juzga Try it
 
@@ -101,7 +101,7 @@ Fixtures:
 Fixtures:
 - Un reporte de cierre sin Try it, cargado con un rango de `sed`, seguido de otro trabajo con un último mensaje distinto. La evidencia debe apuntar al reporte.
 
-**Verification:** `go test ./tests/pilot/ -run 'TestAuditNewCriteria'` pasa. La auditoría de la copia de facti da la evidencia de `try_it_block_in_report` en la línea 1784.
+**Verification:** `go test ./tests/pilot/ -run 'TestAuditNewCriteria'` pasa. La auditoría de la copia de project-f da la evidencia de `try_it_block_in_report` en la línea 1784.
 
 ### T5 — Nuevo criterio `plan_without_build_route`
 
@@ -130,7 +130,7 @@ Fixtures:
 - Un mensaje que solo nombra `/flow-plan` (`fail`).
 - Una hija (`not_observed`).
 
-**Verification:** `go test ./tests/pilot/ -run 'TestAuditNewCriteria|TestAuditRunsTheSevenExistingCriteria'` pasa. La auditoría de la copia de facti da `plan_without_build_route` en `fail` con evidencia en la línea 210.
+**Verification:** `go test ./tests/pilot/ -run 'TestAuditNewCriteria|TestAuditRunsTheSevenExistingCriteria'` pasa. La auditoría de la copia de project-f da `plan_without_build_route` en `fail` con evidencia en la línea 210.
 
 ## Verification and human review
 
@@ -139,7 +139,7 @@ Fixtures:
 | Tests of each task | When the task closes, locally | The task's command passes | Covered by the implementation |
 | Full suite | Final candidate, locally | `go test ./tests/pilot/ ./tests/content/` and `go vet ./tests/pilot/` | Covered by the implementation |
 | Fixture verdicts | Final candidate, locally | `<barrido>` with the base binary and with the candidate. They differ only in the rows of the new fixtures and in the new column `plan_without_build_route` | Covered by the implementation |
-| Real session | Final candidate, locally | `go run ./tests/pilot --audit-session <copia de facti> --host codex`: AC1–AC7 and AC9 against the lines named | Covered by the implementation |
+| Real session | Final candidate, locally | `go run ./tests/pilot --audit-session <copia de project-f> --host codex`: AC1–AC7 and AC9 against the lines named | Covered by the implementation |
 | Code review | Final candidate, before the push | `Native: Claude Code /code-review` | The review answer |
 
 ## Checkpoint
@@ -160,7 +160,7 @@ Fixtures:
 - go test ./... · ok (4m23s) · 6818b23f
 - go vet ./tests/pilot/ · ok · 6818b23f
 - fixture sweep · 342 fixtures, no verdict change outside new fixtures and the new column · 6818b23f
-- facti audit · AC1–AC7 lines 278/278/278/266/210/83/1784 · 6818b23f
+- project-f audit · AC1–AC7 lines 278/278/278/266/210/83/1784 · 6818b23f
 - go test ./tests/pilot/ · ok 67s · 35a94a21 (before the plan-turn tweak; NewCriteria rerun ok)
 - go test ./tests/pilot/ ./tests/content/ · ok · d2916d67
 - go test ./... · ok 4m23s · 6818b23f (only tests/pilot changed since)

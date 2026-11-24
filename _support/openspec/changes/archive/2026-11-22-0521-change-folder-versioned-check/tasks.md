@@ -53,7 +53,7 @@ Base `development` en `867f5463`; rama `feat/change-folder-versioned-check`. Ord
 
 ### T3 — Criterio `change_folder_uncommitted` en `--audit-session`
 
-- [x] `--audit-session` reporta el criterio en fail, pass, review y not_observed, con fixtures y las dos sesiones reales de cam
+- [x] `--audit-session` reporta el criterio en fail, pass, review y not_observed, con fixtures y las dos sesiones reales de project-g
 
 **Closes:** AC10
 
@@ -68,14 +68,14 @@ Base `development` en `867f5463`; rama `feat/change-folder-versioned-check`. Ord
 **Changes:**
 - Codex en modo código lanza los comandos interpolados con `exec_command`, cuyo resultado llega sin código de salida (llega por `write_stdin`); el mismo rollout trae un evento `item_completed` con el comando resuelto y `exit_code`. `codexCompletedItem` pasa ese código al éxito de los eventos `exec_item`, solo de ese tipo; el contrato de los eventos `shell` («éxito desconocido no es un merge», `TestAuditUnknownSuccessIsNotRecordedAsSuccess`) no cambia.
 - El criterio lee merges, commits y rutas del comando resuelto: los eventos `exec_item` exitosos de Codex y los `shell` exitosos de Claude Code. Su propio lector de merges cuenta también `gh pr merge … --delete-branch`, que `auditMerges` excluye.
-- Folder = segmento `changes/<id>` fuera de `archive/` de una ruta escrita. Cuenta como escritura solo un parche, una herramienta de escritura o un comando con forma de escritura conocida: `tasks.py <folder> done|checkpoint|execution`, una redirección (`>`, `>>`, `tee`) o un comando que nombra el segmento y contiene `write_text(` u `open(` con modo `'w'` o `'a'` (como `p = Path('<folder>/…'); p.write_text(…)` de CAM-25). Leer (`cat`, `rg`, `check_change.py`) no cuenta.
+- Folder = segmento `changes/<id>` fuera de `archive/` de una ruta escrita. Cuenta como escritura solo un parche, una herramienta de escritura o un comando con forma de escritura conocida: `tasks.py <folder> done|checkpoint|execution`, una redirección (`>`, `>>`, `tee`) o un comando que nombra el segmento y contiene `write_text(` u `open(` con modo `'w'` o `'a'` (como `p = Path('<folder>/…'); p.write_text(…)` de PRK-25). Leer (`cat`, `rg`, `check_change.py`) no cuenta.
 - Si todas las escrituras de la sesión al folder son `tasks.py done|checkpoint` posteriores al último merge, el folder ya venía versionado de otra sesión y sus ediciones esperan el archivo (`git-workflow` paso 4): `review`, no `fail`.
 - Comandos de Codex: la unión de los `exec_item` con su código de salida y los eventos `shell` con éxito conocido (rollouts sin `CommandExecution`, como los fixtures `adapters/codex-rollout`); no se emparejan, porque contar dos veces un merge o un commit no cambia el resultado.
 - `pass`: después de la primera escritura al folder, un `git commit` o `git_state.py commit` cuyo comando nombra el segmento, o un `tasks.py <folder> versioned` sobre él con salida 0. `fail`: un texto del asistente sigue al último merge y no hubo nada de eso. `review`: ningún texto del asistente sigue al último merge. `not_observed`: sin escritura al folder o sin merge. La evidencia nombra el folder.
-- Fixtures recortados de Codex y Claude Code: fail, pass por commit, pass por `versioned`, review sin texto tras el merge, review por solo checkpoint tras el merge, escritura por `Path(…).write_text` en un heredoc (de CAM-25), un folder ajeno solo leído (`not_observed`) y sin merge.
+- Fixtures recortados de Codex y Claude Code: fail, pass por commit, pass por `versioned`, review sin texto tras el merge, review por solo checkpoint tras el merge, escritura por `Path(…).write_text` en un heredoc (de PRK-25), un folder ajeno solo leído (`not_observed`) y sin merge.
 - Fila del rubric en «Hive behavior checks» · Delivery. La fila `detects` de `rule-enforcers.md` la escribe T2.
 
-**Verification:** `go test ./tests/pilot -run Audit` y `go test ./tests/content/...` pasan; `go run ./tests/pilot --audit-session <rollout CAM-20> --host codex` y `<rollout CAM-25>` muestran `change_folder_uncommitted` en `fail` con el folder.
+**Verification:** `go test ./tests/pilot -run Audit` y `go test ./tests/content/...` pasan; `go run ./tests/pilot --audit-session <rollout PRK-20> --host codex` y `<rollout PRK-25>` muestran `change_folder_uncommitted` en `fail` con el folder.
 
 ## Verification and human review
 
@@ -86,7 +86,7 @@ Base `development` en `867f5463`; rama `feat/change-folder-versioned-check`. Ord
 | Code review | Final candidate, before the push | Claude Code `/code-review` | The review answer |
 | Security review | Final candidate, before the push | `hive-review-security` | The security answer |
 
-Recorrido de solo lectura sobre folders reales: `versioned` en `facti-specs/openspec/changes/fac-235-close-internet-exposure` con `--work-repo` del portal `facti-web-client-reforge`, corrido desde la raíz del workspace `facti/` (esperado: 1, archivos sin rastrear y aviso de `Specs` sin declarar); y en `_support/openspec/changes/archive/2026-11-22-0350-reuse-sound-base` de este repo (esperado: 0).
+Recorrido de solo lectura sobre folders reales: `versioned` en `project-f-specs/openspec/changes/prm-235-close-internet-exposure` con `--work-repo` del portal `project-f-web-client-reforge`, corrido desde la raíz del workspace `project-f/` (esperado: 1, archivos sin rastrear y aviso de `Specs` sin declarar); y en `_support/openspec/changes/archive/2026-11-22-0350-reuse-sound-base` de este repo (esperado: 0).
 
 ## Checkpoint
 
@@ -112,7 +112,7 @@ Recorrido de solo lectura sobre folders reales: `versioned` en `facti-specs/open
 - python3 -m unittest discover -s tests/skills -p *_test.py · OK · 68eb563f; tasks_test.py · OK · 2c68b46b
 - review: native /code-review medium on 867f5463..be6375c0 (3 blocking fixed in c2a97948, 68eb563f) and on be6375c0..68eb563f (2 blocking fixed locally in b5ee1400, 2c68b46b, Unreviewed)
 - security: hive-review-security on be6375c0, 1 low fixed in 68eb563f
-- walk: facti fac-235 from workspace root exit 1 + Specs warning; tricell-hive archived folder from tooling/ exit 0; audit CAM-20/CAM-25 fail, PRs 572/575/577 pass
+- walk: project-f prm-235 from workspace root exit 1 + Specs warning; tricell-hive archived folder from tooling/ exit 0; audit PRK-20/PRK-25 fail, PRs 572/575/577 pass
 
 ## Review status and progress
 

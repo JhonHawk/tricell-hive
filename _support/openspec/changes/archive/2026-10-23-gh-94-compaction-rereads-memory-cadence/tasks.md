@@ -100,7 +100,7 @@ Sin efecto de UI. Pilotos pausados. No se agregan casos de regresión.
   - `global.md` quedó en 31 550 → 32 571 bytes (+1021, por encima de los 700–900 estimados por el quinto momento de escritura).
   - Implementador: hilo principal, Claude Opus 5.5, observado. Verificadores lanzados con `model: opus`, configurado y no observado.
 
-- 2026-10-23: auditoría de sesiones entregada en la conversación. Se observó relectura focalizada tras compactación en Claude Hive, y guardados fuera de la cadencia en CAM y Facti. No se afirma eficacia general; el riesgo de precedencia del plugin permanece. La suite final compartida de Go/vet, 55 pruebas Python y check/lint/build del sitio pasó antes de publicar la rama. El usuario autorizó push/merge y PR posterior de cierre de ambos planes.
+- 2026-10-23: auditoría de sesiones entregada en la conversación. Se observó relectura focalizada tras compactación en Claude Hive, y guardados fuera de la cadencia en project-g y project-f. No se afirma eficacia general; el riesgo de precedencia del plugin permanece. La suite final compartida de Go/vet, 55 pruebas Python y check/lint/build del sitio pasó antes de publicar la rama. El usuario autorizó push/merge y PR posterior de cierre de ambos planes.
 
 ## Cierre del 2026-10-23
 

@@ -64,7 +64,7 @@ None: the build needs nothing from outside the repository.
 
 ## Verified context
 
-- 28 sesiones de Claude Code (2026-11-20..22) auditadas con `--audit-session` y leídas por cuatro hijos `hive-research`; transcripciones en `~/.claude/projects/-Users-jmartinez-Development-projects-tricell-tricell-hive/`.
+- 28 sesiones de Claude Code (2026-11-20..22) auditadas con `--audit-session` y leídas por cuatro hijos `hive-research`; transcripciones en `~/.claude/projects/-Users-me-Development-projects-tricell-tricell-hive/`.
 - Comparación de tres versiones (pstack, Hive anterior, Hive actual) en la conversación: `99e51eab` (suite una vez), `5f22e14f`/`ec58364a` (re-review a lo sumo una), `591b85de`/`ec58364a` (una relectura de plan), `2cbc0706` (quitó «No dedicated review» sin fallo citado).
 - `hive releases` lee `releases/<id>.commits.json` escrito por `tooling/management/apply.go:794` `recordSourceCommit`; ninguna guía lo menciona.
 - `development` no tiene CI: `.github/workflows/` solo tiene `master-source-branch.yml`.
@@ -76,7 +76,7 @@ None: the build needs nothing from outside the repository.
 - `hive releases | jq -r '[.[]|select(.consumers|length>0)][0].commits[-1]'` · `6d1ab6f03443259eecfc34c5f9ac94a524ea8ad5` · 2026-11-23
 - Check del texto (`go test -count=1 ./tests/content/... ./integrations/...` y, con `-run`, `TestRealStagePacketsKeepAMarginUnderTheCap|TestRealContentInstallsHiveCoreAndResolvesEveryGlobalLink|TestRepositoryInstructionAnchorsResolve|TestRepositoryCatalogueInstructionReferences|TestAntigravityRulePartsFromRealGuidanceFitAndReproduceIt` en `./tooling/management/`, `TestFrozenInputsIncludeRuntimeAndLocalDependencies` en `./tooling/package/` y `TestVoiceListShowsRepositoryVoices` en `./tooling/cli/`) · pass, 80 s · 2026-11-23
 - `python3 -m unittest discover -s tests/skills -p '*_test.py'` · OK, 87 s · 2026-11-23
-- `go run ./tests/pilot --audit-session ~/.claude/projects/-Users-jmartinez-Development-projects-tricell-tricell-hive/7319321c-5a79-42a9-91a8-17c47fcfbb69.jsonl --host claude` (forma más cercana de la verificación de T7, con el binario de la base) · corre, sin los criterios nuevos · 2026-11-23
+- `go run ./tests/pilot --audit-session ~/.claude/projects/-Users-me-Development-projects-tricell-tricell-hive/7319321c-5a79-42a9-91a8-17c47fcfbb69.jsonl --host claude` (forma más cercana de la verificación de T7, con el binario de la base) · corre, sin los criterios nuevos · 2026-11-23
 - `go vet ./... && go test ./... && python3 -m unittest discover -s tests/skills -p '*_test.py'` · not measured: no se corre en el plan (`go test ./...` midió 5,5 min en sesiones); lo corre la verificación del candidato final una vez.
 
 ## Effects

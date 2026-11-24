@@ -15,7 +15,7 @@ Leído en `development` 0afaa7c6 el 2026-10-29.
 - `content/skills/git-workflow/SKILL.md:28` hace obligatorios los hooks y, si no pueden correr, compara el CI con el hook. El archivo tiene 13,269 bytes.
 - `site/src/content/docs/flows/verify.md:24-25` describe las pruebas afectadas y la suite completa.
 
-**Evidencia de cam** (hijo `hive-research`, corridas revisadas por el hilo principal):
+**Evidencia de project-g** (hijo `hive-research`, corridas revisadas por el hilo principal):
 
 - Fallaron antes del merge 14 jobs, en 8 de 77 PRs. De esos, 11 se podían detectar localmente:
   - 6 pruebas unitarias o de convención: #226 (corrida 39232905374) y cuatro en #296.
@@ -23,7 +23,7 @@ Leído en `development` 0afaa7c6 el 2026-10-29.
   - 1 de i18n: #214 (39112524802).
 - Los otros 3 eran 2 de integración con servicios (#227, #246) y 1 incierto (#272).
 - La mediana del CI de un PR es de 234 s, y ver el fallo tarda unos 3.5 min. El tiempo local se estima en 0.5 a 2 min por comando, a partir de los tiempos de los jobs; no se midió en esta máquina.
-- El `lefthook.yml` de cam corre en pre-commit biome y oxlint, y en pre-push `turbo run typecheck`. Dice que las pruebas unitarias "stay in CI".
+- El `lefthook.yml` de project-g corre en pre-commit biome y oxlint, y en pre-push `turbo run typecheck`. Dice que las pruebas unitarias "stay in CI".
 
 ## Enfoque
 

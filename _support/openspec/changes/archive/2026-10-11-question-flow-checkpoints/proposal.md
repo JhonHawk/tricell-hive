@@ -69,7 +69,7 @@ Criterios de aceptación:
 - AC9. La prueba de tamaño de `content/guidance/global.md` informa los bytes y caracteres sin fallar nunca, y `AGENTS.md` pide indicar el cambio de tamaño en el PR en lugar de «fits the size budget». *Falso en la base cuando* `tests/content/budget_test.go:20` llama a `t.Fatalf` por encima de 46.040 bytes y `AGENTS.md:24` dice «fits the size budget».
 - AC10. Al entregar un plan listo sin implementar, `flow-plan` resume el plan en la conversación: objetivo, decisiones vigentes con su ID, una línea por tarea, verificación, entrega, lo que queda abierto y la ruta del plan. Termina con la pregunta de ruta para empezar `flow-build` o parar. *Falso en la base cuando* `rg -c -i "summar" content/skills/flow-plan/SKILL.md` da 0 y `flow-plan/SKILL.md:61` solo pide «state the concrete next step».
 
-Sesiones reales que respaldan el cambio, citadas en `design.md`: `b136f225`, `bf305ba1` y `1528596c` (Claude, hive); `2812ca14` (Claude, carvento); `b6185612` (Cursor, carvento); `7d3001ac` y `13035f46` (Cursor, cam); `070aac31` (Codex, dened); `b8c6aeeb` y `5aa1a929` (Claude, 2026-10-03).
+Sesiones reales que respaldan el cambio, citadas en `design.md`: `b136f225`, `bf305ba1` y `1528596c` (Claude, hive); `2812ca14` (Claude, project-a); `b6185612` (Cursor, project-a); `7d3001ac` y `13035f46` (Cursor, project-g); `070aac31` (Codex, project-e); `b8c6aeeb` y `5aa1a929` (Claude, 2026-10-03).
 
 ## Entrega final
 

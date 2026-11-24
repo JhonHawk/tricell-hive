@@ -15,7 +15,7 @@ Elegido: un archivo libre `HIVE.local.md` y una sección de la guía global que 
 
 ## Ubicación y qué archivo se escribe
 
-En la raíz del repositorio que contiene el directorio de trabajo, y en la raíz del workspace declarado que lo contiene (cam y carvento tienen su `_support/` a nivel de workspace, fuera de cualquier repo). En un worktree se lee y se escribe el del checkout principal, como `ACCOUNTS.md`. Un dato que concierne a un repositorio va en el de ese repositorio; uno que concierne a varios o a toda la máquina, en el del workspace. Es el único archivo de soporte en la raíz, para que el usuario lo vea en el Explorer; HA-PL-05 y `artifact-layout.md` lo exceptúan.
+En la raíz del repositorio que contiene el directorio de trabajo, y en la raíz del workspace declarado que lo contiene (project-g y project-a tienen su `_support/` a nivel de workspace, fuera de cualquier repo). En un worktree se lee y se escribe el del checkout principal, como `ACCOUNTS.md`. Un dato que concierne a un repositorio va en el de ese repositorio; uno que concierne a varios o a toda la máquina, en el del workspace. Es el único archivo de soporte en la raíz, para que el usuario lo vea en el Explorer; HA-PL-05 y `artifact-layout.md` lo exceptúan.
 
 ## Supuestos (decisiones menores, revisión del plan)
 

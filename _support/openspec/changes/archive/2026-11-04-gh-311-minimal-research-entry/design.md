@@ -52,8 +52,8 @@ La sesión de visor empieza al entrar a plan o build, con un resumen de casi un 
 Enfoques para el primer commit de la carpeta de cambio:
 
 - **A — Con la entrega del código (elegido, D26 A).** Con `Specs` en el mismo repositorio, la carpeta va en la rama del trabajo antes del push y se integra con el PR; con `Specs` aparte, se commitea allí en el punto de completitud. El cierre solo la mueve a `archive/`. Coincide con la regla del usuario y no cambia cómo se escribe el plan.
-- **B — Al aprobar el plan.** Como en septiembre de 2026 (`docs(openspec): plan COM-…` en cam-specs). Protege desde el primer día, pero cada revisión del plan deja un commit y, con `direct-base`, publica en la base planes sin construir.
-- **C — Solo al pausar o esperar.** Menos commits, pero un trabajo integrado sin pendientes queda sin commit hasta la respuesta del pie (caso COM-915).
+- **B — Al aprobar el plan.** Como en septiembre de 2026 (`docs(openspec): plan PRJ-…` en project-g-specs). Protege desde el primer día, pero cada revisión del plan deja un commit y, con `direct-base`, publica en la base planes sin construir.
+- **C — Solo al pausar o esperar.** Menos commits, pero un trabajo integrado sin pendientes queda sin commit hasta la respuesta del pie (caso PRJ-915).
 
 Casa canónica: `git-workflow` paso 4 dice cuándo y dónde se commitea, incluido el traslado al worktree; `flow-close` lo ejecuta en la primera parte del cierre para el repositorio aparte, ligado al punto de completitud, y solo enlaza; `plan-handoff.md` apunta. La carpeta se sigue archivando al cerrar aunque queden pendientes: estos viven en el ticket y en el registro. El registro `pending/<change-id>` vive en `flow-close` paso 7; `flow-status` solo lo lee. La guía global dice únicamente las dos autorizaciones (comentario y borrado), que deben actuar sin leer `flow-close`.
 

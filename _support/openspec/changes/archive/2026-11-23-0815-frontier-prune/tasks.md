@@ -152,7 +152,7 @@ Delivery is `hold`: the verified working tree is the result. If the user later i
 - Last commit: 34395b92
 - Open findings: none
 - Next: user picks a delivery mode to integrate; then full close (archive, branch and worktree cleanup)
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/frontier-prune · refactor/frontier-prune
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/frontier-prune · refactor/frontier-prune
 - Unwritten: none: every decision is in proposal.md; only the delivery choice is pending with the user
 - Rules: flow-verify/stage-entry.md
 - Principles: none

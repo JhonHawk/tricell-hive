@@ -108,7 +108,7 @@ Base: `origin/development` 048ad0c3 más `4a6b0ea6` en `feat/gh-311-minimal-rese
 | Suite completa | Candidato final, local | `go test ./...`, `go vet ./...`, build del sitio | Cubierto por la implementación |
 | Revisión de código | Candidato final, antes del push | Claude Code `/code-review` (D8 A) | La respuesta de revisión |
 
-Antes del push se nombran los commits de la rama que no son de esta obra (gh-311 y `4a6b0ea6`), como pide «Delivery». El mensaje de cada commit que corrige una falla observada nombra sus sesiones: H11 (Codex cam 01a1a5b7, 01a1a457; tricell-hive 01a1a55e; 2026-11-04) y H12 (Claude Code facti d3ff7bd2, tricell-hive f9f55a91; Grok cam 01a1a4f3; 2026-11-04).
+Antes del push se nombran los commits de la rama que no son de esta obra (gh-311 y `4a6b0ea6`), como pide «Delivery». El mensaje de cada commit que corrige una falla observada nombra sus sesiones: H11 (Codex project-g 01a1a5b7, 01a1a457; tricell-hive 01a1a55e; 2026-11-04) y H12 (Claude Code project-f d3ff7bd2, tricell-hive f9f55a91; Grok project-g 01a1a4f3; 2026-11-04).
 
 ## Estado de la revisión y avance
 

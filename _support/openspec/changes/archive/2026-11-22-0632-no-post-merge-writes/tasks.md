@@ -74,7 +74,7 @@ Sin parada de validación humana (`automatic`).
 - Last commit: d8748c75
 - Open findings: none
 - Next: verify: /code-review, walk AC2/AC4/AC6, push/PR/merge, close observes AC5
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/no-post-merge-writes · fix/no-post-merge-writes
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/no-post-merge-writes · fix/no-post-merge-writes
 - Rules: flow-verify/stage-entry.md
 - Principles: none
 

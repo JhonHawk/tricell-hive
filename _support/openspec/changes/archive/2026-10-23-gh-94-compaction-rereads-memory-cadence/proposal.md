@@ -10,15 +10,15 @@
 
 ## Solicitud
 
-> se abrieron dos sesiones de grok en cam, las dos ultimas revisalas, siento que han tardado demasiado y se han equivocado
+> se abrieron dos sesiones de grok en project-g, las dos ultimas revisalas, siento que han tardado demasiado y se han equivocado
 
 > Tambien analiza si algo de la metodología lo hacer ser lento, no solo si se equivoca, si no que haga algo qu eno haya tenido valor y solo haya inflado el tiempo
 
-Tras el análisis, el usuario eligió D18-A: planear P1 y P2, dejar en observación los casos de una sola sesión y llevar P3 a una sesión de cam. También eligió D19-A, abrir un issue, y D20-A: Hive fija el ritmo de guardado y prevalece sobre las instrucciones del plugin.
+Tras el análisis, el usuario eligió D18-A: planear P1 y P2, dejar en observación los casos de una sola sesión y llevar P3 a una sesión de project-g. También eligió D19-A, abrir un issue, y D20-A: Hive fija el ritmo de guardado y prevalece sobre las instrucciones del plugin.
 
 ## Objetivo
 
-Dos sesiones de Grok en cam del 2026-10-20 (`01a1579f` y `01a157db`) perdieron minutos en dos pasos sin valor.
+Dos sesiones de Grok en project-g del 2026-10-20 (`01a1579f` y `01a157db`) perdieron minutos en dos pasos sin valor.
 
 - **P1:** después de cada compactación, el agente releyó completas las referencias de la etapa. Las relecturas fueron entre el 42 y el 48 % de todo lo que leyó de la guía, y ese peso adelantó la compactación siguiente.
 - **P2:** el agente escribió en Engram después de cada decisión o tarea y resolvió un juicio de conflicto por cada guardado. En una de las sesiones nunca leyó Engram. Ese ritmo lo impone el plugin de Engram; la guía de Hive solo dice dónde guardar.
@@ -30,8 +30,8 @@ El cambio fija en la guía global qué releer después de compactar y en qué mo
 Incluye dos reglas en `content/guidance/global.md` y el ajuste de `flow-close` (pasos 3 y 5) para que sus escrituras en memoria vayan en una sola pasada al cierre.
 
 Excluye:
-- los casos W16–W22, que siguen en observación (`watch/2026-10-20-grok-cam-method-cost`);
-- P3, declarar Delivery, Review y UI verification en cam, que corresponde a una sesión de cam;
+- los casos W16–W22, que siguen en observación (`watch/2026-10-20-grok-project-g-method-cost`);
+- P3, declarar Delivery, Review y UI verification en project-g, que corresponde a una sesión de project-g;
 - cambiar la configuración del plugin de Engram;
 - el hook de Grok `hive-read-whole-references`.
 
@@ -45,7 +45,7 @@ Restricciones: cada regla tiene una sola casa, la suite de contenido sigue pasan
 
 ## Decisiones
 
-- D18-A, ruta, 2026-10-20: planear P1 y P2; el resto queda en observación y P3 va a cam.
+- D18-A, ruta, 2026-10-20: planear P1 y P2; el resto queda en observación y P3 va a project-g.
 - D19-A, issue, 2026-10-20: abrir #94.
 - D22-A, cierre, 2026-10-20: un commit por tarea y despliegue local desde la rama.
 - D21-A, ruta, 2026-10-20: empezar `flow-build`. Se reusan D4-A (rama de prueba sin commits hasta pedirlo) y D5-A (sin revisión dedicada).
@@ -53,7 +53,7 @@ Restricciones: cada regla tiene una sola casa, la suite de contenido sigue pasan
 
 ## Continuación del 2026-10-23
 
-La auditoría observó una relectura focalizada después de compactación en Claude Hive, compatible con el cambio, y guardados de avances fuera de la cadencia en dos sesiones independientes, CAM y Facti. No se presenta cumplimiento universal ni mejora de rendimiento. El riesgo de precedencia del plugin sigue reconocido. El usuario autorizó entrega a `development` y, en D2, un PR posterior de cierre para archivar ambos planes; se conserva la decisión de no hacer revisión dedicada.
+La auditoría observó una relectura focalizada después de compactación en Claude Hive, compatible con el cambio, y guardados de avances fuera de la cadencia en dos sesiones independientes, project-g y project-f. No se presenta cumplimiento universal ni mejora de rendimiento. El riesgo de precedencia del plugin sigue reconocido. El usuario autorizó entrega a `development` y, en D2, un PR posterior de cierre para archivar ambos planes; se conserva la decisión de no hacer revisión dedicada.
 
 ## Cierre del 2026-10-23
 

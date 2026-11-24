@@ -56,7 +56,7 @@ Queda fuera:
 - La release que publica el portal: el usuario la pide aparte, cuando AC14 esté integrado.
 - Reanudar pilotos de comportamiento: siguen pausados por `AGENTS.md`.
 - Una clave nueva de `## Hive` y cualquier cambio en Go (D6-A).
-- Renombrar `Delivery: direct-base`: lo declaran `cam-specs`, `carvento-specs` y `cam-frontend-mocks`.
+- Renombrar `Delivery: direct-base`: lo declaran `project-g-specs`, `project-a-specs` y `project-g-frontend-mocks`.
 - El PR de cierre del registro por cada cambio: es una decisión de diseño vigente.
 - Los casos de `tests/fixtures/regression/`: no se agregan ni se cambian, como pide `AGENTS.md`.
 

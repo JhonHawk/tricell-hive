@@ -73,7 +73,7 @@ Sin parada de validación (`automatic`). Tras el merge: recompilar el binario y 
 - Last commit: 314b7317
 - Open findings: none
 - Next: push, PR, merge; rebuild binary; deploy; read installed roles; flow-close
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/floor-versions · feat/floor-versions-reply-block
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/floor-versions · feat/floor-versions-reply-block
 
 ### Evidence
 

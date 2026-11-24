@@ -2,7 +2,7 @@
 
 ## Enfoques
 
-Para dibujar hay un solo camino sensato: el hilo principal, por script y con un solo ejemplo, porque es lo que el usuario decidió y lo que produjo frames exactos en FSR-856. La alternativa de dar mejores instrucciones al subagente que dibuja no resuelve que el subagente arranque sin el contexto de la sesión, que fue la causa de que las decisiones se perdieran entre tickets.
+Para dibujar hay un solo camino sensato: el hilo principal, por script y con un solo ejemplo, porque es lo que el usuario decidió y lo que produjo frames exactos en PRL-856. La alternativa de dar mejores instrucciones al subagente que dibuja no resuelve que el subagente arranque sin el contexto de la sesión, que fue la causa de que las decisiones se perdieran entre tickets.
 
 Para evaluar se presentaron tres caminos (D1): ampliar `hive-review-ux` con un modo para frames (elegido: es de solo lectura, ya revisa contra requisitos y no suma un rol que desplegar en 7 hosts), un rol nuevo `hive-review-design` (rol exclusivo, ~4 archivos más y un rol más que mantener), o convertir `hive-design-ui` en revisor (tendría permisos de escritura y mezclaría diseñar con evaluar).
 

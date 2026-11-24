@@ -11,7 +11,7 @@
 ## Pedido
 
 > Sobre el verificador de UX/UI:
-> - Valida la sesión de pi en carvento, y aunque en contraste tiene algo de razón esto obliga a personalizar el tema por defecto de shadcn, tema que ya tiene numerosos estudios al respecto sobre su funcionamiento y valides visual.
+> - Valida la sesión de pi en project-a, y aunque en contraste tiene algo de razón esto obliga a personalizar el tema por defecto de shadcn, tema que ya tiene numerosos estudios al respecto sobre su funcionamiento y valides visual.
 > - Veamos qué temas deben respetarse por: tema, framework de ui, reglas previas del proyecto (y otros puntos que no estoy mencionando)
 > - Esto implicara ajustar lo que valida esa etapa y subagente, dame una propuesta al respecto
 > - Puedes analizar otros tickets para ver si esto nos ha hecho cambios que eran innecesarios, tiempo consumido o que vaya en contra de lo que menciono arriba

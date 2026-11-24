@@ -30,7 +30,7 @@ Make the current evidence identifiable per screen and publication round, retain 
 - AC7 — Go and Python accept legacy v1 without rewriting it, accept the new versioned contract with identical validation outcomes, and reject malformed/conflicting history, unsafe resources and changed bytes behind retained capture hashes. False today: both validators reject schema_version other than 1 and there is no history/hash contract.
 - AC8 — Cleanup deletes only groups whose member keys/hashes atomically match the authorized historical inventory, suppresses unchanged return and reports partial failures; mismatched/new groups and project sources/settings remain intact. False today: deletion lacks this atomic precondition and no inventory has been deleted. Authenticated read-only planning inventory: 32 copies/27 groups, 29 archived copies, zero pinned/excluded copies, one ingest error outside deletion scope.
 
-Out of scope: implementing issue #281's before/base-versus-after comparator; Jira attachments or CAM changes; reconstructing old revision relations; public hosting; model pilots; new packages; global rule expansion; a new bulk-delete product UI; automatic acceptance inferred from closed status; changes to the existing TTL.
+Out of scope: implementing issue #281's before/base-versus-after comparator; Jira attachments or project-g changes; reconstructing old revision relations; public hosting; model pilots; new packages; global rule expansion; a new bulk-delete product UI; automatic acceptance inferred from closed status; changes to the existing TTL.
 
 ## Prerequisites
 
@@ -40,7 +40,7 @@ None external for the local candidate: use synthetic data and isolated viewer st
 
 2026-10-31: inspected current manifest/publisher, Go validator/store/delete/status, shared renderer, React document/application/controller, installed base-nova components, and walkthrough-viewer spec. Compared relevant sources on development: revision/history fields and in-progress confirmation are absent there as well. Current branch has unrelated pre-existing changes relative to development; do not revert, rebase, duplicate or independently integrate them. User selected this branch, superseding the earlier suggestion to wait for its integration.
 
-Observed CAM Codex session: 01a19339-c0d8-7ca1-b7a7-ecc165466e7a, 2026-10-31. It republished corrections under reused capture names, then retained two CAM-4 walkthrough segments without explicit supersession. The user asked to open Finder because filter captures were hard to distinguish. Preserve this failure attribution in the eventual guidance-fix commit. This is one observed session; the user's acceptance of the proposal and subsequent build approval authorize adoption without claiming recurrence or measured time savings.
+Observed project-g Codex session: 01a19339-c0d8-7ca1-b7a7-ecc165466e7a, 2026-10-31. It republished corrections under reused capture names, then retained two PRK-4 walkthrough segments without explicit supersession. The user asked to open Finder because filter captures were hard to distinguish. Preserve this failure attribution in the eventual guidance-fix commit. This is one observed session; the user's acceptance of the proposal and subsequent build approval authorize adoption without claiming recurrence or measured time savings.
 
 ## Delivery
 

@@ -14,7 +14,7 @@
 - **D5 A** — ¿Qué hace la etapa cuando hay conexión a Figma pero el proyecto no declara su archivo? Pide el enlace una vez, en el texto, con la salida de ir al plan.
 - **D6 A** — ¿Se anota el archivo de diseño en el `DESIGN.md` del proyecto? La etapa lo pregunta una vez, junto con la aprobación del ejemplo, cuando el archivo aún no está declarado.
 - **D7 A** — ¿Puede el hijo que dibuja crear componentes y variables? Sí, solo los propios del trabajo, en su página; cambiar lo existente o una librería compartida vuelve al usuario como decisión.
-- **D8 A** — ¿Entran ya las cuatro correcciones observadas en cam? Sí, como pasos de la skill; la aprobación del usuario sustituye la segunda observación que pide «Measurement».
+- **D8 A** — ¿Entran ya las cuatro correcciones observadas en project-g? Sí, como pasos de la skill; la aprobación del usuario sustituye la segunda observación que pide «Measurement».
 - **D9** — ¿Qué produce la etapa sin herramienta de diseño? Quedó resuelta por la decisión de nombre y alcance (D10 A): sin conexión a Figma no hay etapa, y los bocetos en texto quedan solo en el plan.
 - **D10 A** — ¿La skill es específica de Figma o neutral? Específica: se llama `flow-figma-design`; el campo del `DESIGN.md` sigue llamándose «Design file».
 - **D11 A** — ¿Cómo se entrega el cambio? Automática: se integra en `development` sin parada de validación.
@@ -22,7 +22,7 @@
 
 ## Solicitud
 
-Del usuario, en la conversación del 2026-11-10: «solo en fleetsystem, nunca me ofrecio usar figma para presentarme propuestas»; «no deberia ser un paso intermedio? entre research - plan? research - design ui - plan»; «creo que por ahi teniamos una skill hecha de diseño no? podemos evaluarla si sigue aplicando o debemos considerar algo mas»; «Tambien consideremos qué pasa si el usuario no tiene figma»; «amenos que la skill sea flow-figma-design».
+Del usuario, en la conversación del 2026-11-10: «solo en project-b, nunca me ofrecio usar figma para presentarme propuestas»; «no deberia ser un paso intermedio? entre research - plan? research - design ui - plan»; «creo que por ahi teniamos una skill hecha de diseño no? podemos evaluarla si sigue aplicando o debemos considerar algo mas»; «Tambien consideremos qué pasa si el usuario no tiene figma»; «amenos que la skill sea flow-figma-design».
 
 Sin ticket. Fuera de alcance: mostrar las propuestas en el visor, maquetas HTML, una preferencia por proyecto del tipo «vistas previas siempre en Figma», y otras herramientas de diseño.
 
@@ -61,7 +61,7 @@ Leído y observado el 2026-11-10, sobre `development` en `a1c6c9ac`:
 - Enumeran los flujos `content/guidance/global.md:90`, `README.md:355-399`, `llms.txt:30-40`, `site/astro.config.mjs:76-88`, `site/src/content/docs/index.mdx:55-90`, `skills.md:14-21` y `getting-started.md:100`.
 - Ningún manifiesto ni prueba de contenido enumera las skills: el despliegue las descubre por patrón (`tooling/management/plan.go:229`) y `tests/content/skill_size_test.go` y `skill_frontmatter_test.go` también. La sintaxis de comandos por host es un patrón (`global.md:94`), no una lista por flujo.
 - `flow-close/SKILL.md` está a 10 bytes del tope de 16.000; este cambio no lo toca.
-- Sesiones que motivan el cambio: Claude Code, `claude-fable-5-2`, sesión `c71dd314` (fleetsystem, 2026-11-10), donde la evaluación de FSR-855/856 seguida de `/flow-plan` no alcanzó la oferta; y Claude Code, `claude-fable-5-2`, sesión `01acdb18` (cam, 2026-11-10), donde el dibujo no cargó el sistema de diseño, usó 390 px en móvil, dejó el registro sin actualizar tras la aprobación y no avisó los pasos manuales. Ambos modelos están fuera del piso de soporte; la adopción descansa en la aprobación del usuario (D8 A) y en que la ruta por tickets es un hueco sin regla.
+- Sesiones que motivan el cambio: Claude Code, `claude-fable-5-2`, sesión `c71dd314` (project-b, 2026-11-10), donde la evaluación de PRL-855/856 seguida de `/flow-plan` no alcanzó la oferta; y Claude Code, `claude-fable-5-2`, sesión `01acdb18` (project-g, 2026-11-10), donde el dibujo no cargó el sistema de diseño, usó 390 px en móvil, dejó el registro sin actualizar tras la aprobación y no avisó los pasos manuales. Ambos modelos están fuera del piso de soporte; la adopción descansa en la aprobación del usuario (D8 A) y en que la ruta por tickets es un hueco sin regla.
 
 ## Effects
 

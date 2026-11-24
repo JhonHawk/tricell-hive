@@ -2,7 +2,7 @@
 
 Base: `development` en `9b9450c5`, rama `feat/run-check-helper` en un worktree de `.claude/worktrees/`. T3 edita más de 3 archivos del auditor y va a un hijo `hive-build-backend`; su interfaz queda fijada en `design.md` («Criterio del auditor», con el campo nuevo `CommandTemplate`). T1, T2 y T4 editan como máximo 3 archivos cada una y quedan en el hilo principal, a la vez que el hijo, porque sus archivos no se cruzan.
 
-Los commits de este cambio nombran la observación que lo originó: Codex 0.170.0, `gpt-6.2-sol` medium, rollout de cam `01a1f5d4-3ec7-7631-97d8-ba540210ac98`, 2026-11-19, un log de CI local de 1.53 TB.
+Los commits de este cambio nombran la observación que lo originó: Codex 0.170.0, `gpt-6.2-sol` medium, rollout de project-g `01a1f5d4-3ec7-7631-97d8-ba540210ac98`, 2026-11-19, un log de CI local de 1.53 TB.
 
 ### T1 — Script `run_check.py`
 
@@ -86,7 +86,7 @@ Ningún fixture de otro criterio cambia de resultado.
 
 **Verification:** `go -C <worktree> test ./tests/pilot/...` y `go vet ./tests/pilot/...` pasan, con los fixtures vistos fallar antes. Sobre las transcripciones reales:
 - `01a1f5d4` da `fail` con la línea 535 entre su evidencia, y ninguna línea que solo tenga comandos simples con redirección;
-- `bf678880` (`~/.claude/projects/-Users-jmartinez-Development-projects-tricell-tricell-hive/bf678880-6647-425a-bdd7-3f024aa3193a.jsonl`) da `not_observed`.
+- `bf678880` (`~/.claude/projects/-Users-me-Development-projects-tricell-tricell-hive/bf678880-6647-425a-bdd7-3f024aa3193a.jsonl`) da `not_observed`.
 
 La salida de los otros criterios sobre `01a1f5d4` no cambia.
 
@@ -127,7 +127,7 @@ Sin parada de validación (entrega `automatic`). La adopción del helper en sesi
 - Last commit: 1aa389b
 - Open findings: none
 - Next: push, PR, merge, deploy, close
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/run-check · feat/run-check-helper
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/run-check · feat/run-check-helper
 
 ### Evidence
 

@@ -3,7 +3,7 @@
 | Campo | Valor actual |
 | --- | --- |
 | Estado | Completado · integrado en `development` por [PR #64](https://github.com/JhonHawk/tricell-hive/pull/64) (`4dc73c28`), 2026-10-17 |
-| Tracker · GitHub Issues | Sin issue: nace de la prueba en Carvento del 2026-10-17 |
+| Tracker · GitHub Issues | Sin issue: nace de la prueba en project-a del 2026-10-17 |
 | Git | rama de prueba activa `feat/delegation-threshold-global` · commit por tarea y despliegue local (C1-A) · sin push ni merge |
 | Verificación | comprobaciones `rg` por criterio · `go vet ./...`, `go test ./...` y `python3 -m unittest discover -s tests/skills -p '*_test.py'` |
 | Siguiente paso | Ninguno: cambio cerrado y archivado |
@@ -14,13 +14,13 @@
 
 (2026-10-17.) La opción decía: "Con flow-plan, en la rama de prueba: toda respuesta que termina pidiéndote algo, incluidas las ofertas, o se hace (si ya está autorizada y es solo lectura) o se pregunta con la tarjeta. Va en el aviso de global.md y en questions.md. Es barato y ataca la causa que comparten los hosts."
 
-Contexto previo del usuario, el mismo día: "Abri una sesión nueva en carvento con claude" y "jeje, no habia nada".
+Contexto previo del usuario, el mismo día: "Abri una sesión nueva en project-a con claude" y "jeje, no habia nada".
 
 ## Objetivo
 
-La guía nueva, desplegada en `aa17fbe1`, fija el orden de una pregunta: primero la línea de espera, después la tarjeta. Pero solo se activa cuando el agente reconoce que está formulando "una decisión". En la primera sesión de prueba (Carvento `1a3ab3ea`, 2026-10-17, claude-opus-5-5, con la guía nueva cargada), el agente cerró con "¿La reviso para que decidas?". No leyó `questions.md`, no puso línea de espera y no usó tarjeta. Además pedía permiso para algo de solo lectura. Lo mismo pasa en otros hosts con las ofertas del tipo "¿quieres que…?":
-- OpenCode dened `ses_ebcb6cbd7ffe` (2026-10-16): dos ofertas en texto.
-- fleetsystem `02891730` (2026-10-17, 06:42Z): "si abro desde aquí los tickets".
+La guía nueva, desplegada en `aa17fbe1`, fija el orden de una pregunta: primero la línea de espera, después la tarjeta. Pero solo se activa cuando el agente reconoce que está formulando "una decisión". En la primera sesión de prueba (project-a `1a3ab3ea`, 2026-10-17, claude-opus-5-5, con la guía nueva cargada), el agente cerró con "¿La reviso para que decidas?". No leyó `questions.md`, no puso línea de espera y no usó tarjeta. Además pedía permiso para algo de solo lectura. Lo mismo pasa en otros hosts con las ofertas del tipo "¿quieres que…?":
+- OpenCode project-e `ses_ebcb6cbd7ffe` (2026-10-16): dos ofertas en texto.
+- project-b `02891730` (2026-10-17, 06:42Z): "si abro desde aquí los tickets".
 
 El cambio trata como pregunta toda respuesta que termina pidiéndole algo al usuario, incluidas las ofertas. Si la acción ya está autorizada y solo lee o reporta, el agente la hace en vez de ofrecerla. Si no, pregunta con el procedimiento de `questions.md` y la tarjeta. Siguiendo la norma adoptada hoy (`a2437302`), la regla completa va en `questions.md` y `global.md` solo amplía su aviso.
 

@@ -21,9 +21,9 @@ const candidate = {
 const stamp = "2026-10-31T18:00:00-06:00";
 const ticket = {
   ticket_id: "ticket-one",
-  snapshot: { key: "COM-1", url: "https://example.com/tickets/COM-1" },
+  snapshot: { key: "PRJ-1", url: "https://example.com/tickets/PRJ-1" },
 };
-const secondTicket = { ticket_id: "ticket-two", snapshot: { key: "COM-2" } };
+const secondTicket = { ticket_id: "ticket-two", snapshot: { key: "PRJ-2" } };
 function fixture(): TimelineSessionResponse {
   const event: TimelineEvent = {
     actor: { kind: "native_producer", producer_id: "producer-original" },
@@ -183,7 +183,7 @@ test("timeline is ascending, shared tickets do not duplicate a view, and steps s
   }
   assert.equal(container.textContent?.includes("Open Chat."), false);
   assert.equal(
-    container.querySelectorAll('a[href="https://example.com/tickets/COM-1"]')
+    container.querySelectorAll('a[href="https://example.com/tickets/PRJ-1"]')
       .length,
     2,
   );

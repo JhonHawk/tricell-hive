@@ -12,7 +12,7 @@
 
 Mensaje del usuario, 2026-10-26:
 
-> Sobre la skill de trabajo desatendido, alguna vecez lo lanzo y me quedo uno sminutos, al ver la sesión dor retro, y eso la desactiva antes de siguiera irme, haz research al respecto porque incluso podria lanzar las preguntas para preautorizar flujos, tengo sesión abierta de pi en carvente y claude en cam
+> Sobre la skill de trabajo desatendido, alguna vecez lo lanzo y me quedo uno sminutos, al ver la sesión dor retro, y eso la desactiva antes de siguiera irme, haz research al respecto porque incluso podria lanzar las preguntas para preautorizar flujos, tengo sesión abierta de pi en carvente y claude en project-g
 
 Respuestas siguientes, 2026-10-26, en tarjetas nativas:
 

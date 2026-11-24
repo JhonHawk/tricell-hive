@@ -22,7 +22,7 @@
 
 > En el diseño de los flujos pueden ir surgiendo dudas a resolverse no? como reglas de negocio, qué pasa en estas situaciones?
 
-**Evidencia:** sesión Codex `01a1c93d-7172-74f0-a2cc-581c66a4aeb8` (fleetsystem FSR-858, gpt-6.1-sol, 2026-11-11).
+**Evidencia:** sesión Codex `01a1c93d-7172-74f0-a2cc-581c66a4aeb8` (project-b PRL-858, gpt-6.1-sol, 2026-11-11).
 - D20 y D21 llevaban reglas dentro de la aprobación visual: «permite registrar una nueva aprobación de una versión rechazada» y «el comentario es opcional en esta propuesta».
 - La política de aprobación de toda la empresa quedó dentro del asistente de un solo workflow, y ni quien dibujó ni el revisor la señalaron.
 

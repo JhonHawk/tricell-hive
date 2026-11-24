@@ -10,7 +10,7 @@
 
 ## Solicitud
 
-> aun asi, son 10 horas para este ticket https://linear.app/tricell/issue/COM-847/retirar-desde-la-plataforma-una-cuenta-o-un-numero-de-whatsapp-que-ya
+> aun asi, son 10 horas para este ticket https://linear.app/tricell/issue/PRJ-847/retirar-desde-la-plataforma-una-cuenta-o-un-numero-de-whatsapp-que-ya
 
 > D1-B Corregir la guía ya
 
@@ -22,7 +22,7 @@ El issue #259 se abrió el 2026-10-28 desde esta sesión; sus criterios son los 
 
 ## Objetivo
 
-En la sesión de Codex `01a180de-c680-7f91-81d7-6c50a9e02ef1` (Codex CLI 0.165.0, 2026-10-27/28, proyecto cam, ticket COM-847), el plan recomendó en cada pregunta la opción más pesada (D2-A, D3-A, D4-A y D7-A). Nunca ofreció una opción que resolviera solo el problema del ticket, y la ruta de build (D8) solo permitía construir AC1–AC9 o conservar el plan, sin tamaño. El ticket pedía un endpoint transaccional de soft-delete. Salieron 22 commits, 182 archivos y ~30.6k líneas (~6.6k de fuente escrita a mano) en ~9 h activas. El usuario observa además que, cuando se da un rango de tiempo, se calcula como esfuerzo de una persona (2-3 h) para trabajo que el agente termina en menos de 10 min.
+En la sesión de Codex `01a180de-c680-7f91-81d7-6c50a9e02ef1` (Codex CLI 0.165.0, 2026-10-27/28, proyecto project-g, ticket PRJ-847), el plan recomendó en cada pregunta la opción más pesada (D2-A, D3-A, D4-A y D7-A). Nunca ofreció una opción que resolviera solo el problema del ticket, y la ruta de build (D8) solo permitía construir AC1–AC9 o conservar el plan, sin tamaño. El ticket pedía un endpoint transaccional de soft-delete. Salieron 22 commits, 182 archivos y ~30.6k líneas (~6.6k de fuente escrita a mano) en ~9 h activas. El usuario observa además que, cuando se da un rango de tiempo, se calcula como esfuerzo de una persona (2-3 h) para trabajo que el agente termina en menos de 10 min.
 
 El cambio hace que una pregunta que decide cuánto se construye ofrezca siempre la opción mínima suficiente y justifique una Recomendada mayor. También hace que la ruta de build del plan dé siempre el tamaño del plan, y que el rango de tiempo mida el tiempo del agente con evidencia ya disponible, sin investigar solo para estimarlo.
 

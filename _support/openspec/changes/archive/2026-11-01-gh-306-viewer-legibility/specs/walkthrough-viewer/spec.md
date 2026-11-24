@@ -206,7 +206,7 @@ Blocked transitions SHALL require reason, concrete steps, owner and resume condi
 
 Task content SHALL identify task_id/segment_id and its actual stage occurrence; references SHALL belong to that work, segment and origin stage. Activity from multiple stages SHALL stay attributable without duplicating task entities or blobs. Per-stage expansions SHALL show only relevant content, while the Sheet aggregates it. Decisions SHALL retain exact evidence/revision targets. Images SHALL be optional. Bounds SHALL fail atomically without preventing terminal cleanup.
 
-#### Scenario: CAM task crossing stages
+#### Scenario: project-g task crossing stages
 - WHEN Build tasks T1–T6 are complete and T7 has a completed verify segment and pending delivery segment
 - THEN Build shows 6/6, Verify 1/1 and Delivery 0/1 when that stage exists, while the work remains 6/7 unique tasks.
 - AND T7 does not appear within Build or create a fake future Delivery occurrence.
@@ -261,7 +261,7 @@ Wait IDs/versions and operation receipts SHALL be durable. Same candidate/check 
 
 ## Operational constraint
 
-Building and testing this candidate SHALL use an isolated output binary, port and v3 state directory. While CAM depends on the installed binary/viewer, this work SHALL NOT replace that binary, run the installed-content refresh, restart the habitual viewer or change its configuration/state. The maintainer auto-refresh exception SHALL NOT override this user constraint. A later real cutover SHALL require a separate concrete instruction.
+Building and testing this candidate SHALL use an isolated output binary, port and v3 state directory. While project-g depends on the installed binary/viewer, this work SHALL NOT replace that binary, run the installed-content refresh, restart the habitual viewer or change its configuration/state. The maintainer auto-refresh exception SHALL NOT override this user constraint. A later real cutover SHALL require a separate concrete instruction.
 
 
 ## ADDED Requirements

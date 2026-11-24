@@ -30,7 +30,7 @@ None: the work adopts no business rule beyond what its ticket and documentation 
 
 > «A, pero recuerda que ahora el contenido de la sesión tambien se commitea, lo que recuerda que manteniamos aparte era el tema de evidencias, imagenes/videos , eso puede seguir asi, y recordando que los tickets se actualizan con evidencia y comentarios antes de declarar el cierre (y se reporte en ese mismo paso), o sea, si el agente reporta como siguiente paso cerrar, es porque la evidencia ya cumplió su proposito y es seguro eliminarla (aunque aun no lo haga)»
 
-Origen: investigación de cierres posteriores al breakpoint `2bb96478` en fleetsystem, cam, carvento y kin, más una línea base anterior. Sin ticket.
+Origen: investigación de cierres posteriores al breakpoint `2bb96478` en project-b, project-g, project-a y kin, más una línea base anterior. Sin ticket.
 
 ## Objetivo
 
@@ -44,13 +44,13 @@ Dentro: `close-modes`, `flow-close`, `close-hygiene`, `support-material`, `batch
 - AC2 — El paso 2 no pregunta: borra la evidencia de `workspace/` cuyo adjunto muestra la lista de adjuntos del ticket leída en el paso 1, o cuyo URL está en el cuerpo del PR fusionado, y conserva sin versionar lo demás; una promoción propuesta se nombra en «Next»; `global.md` «Preservation» autoriza ese borrado · false today because `support-material.md` pide una decisión para toda acción distinta de keep, solo acepta el cuerpo del PR, y `global.md:32` no autoriza borrar material de verificación · Observed in: `support-material.md`, `layout.md` y el bloque global instalados
 - AC3 — El registro `archive-pending/<id>` lleva solo la carpeta, el PR y el merge, y el lote no aplica acciones de soporte · false today because `batch-archive.md` paso 6 aplica commit, archivo y promoción del material · Observed in: `batch-archive.md` y `close-hygiene.md` instalados
 - AC4 — Cuando nada necesita al usuario, el pie ofrece a lo sumo una respuesta de limpieza, «Hygiene» con el número de archivos pendientes; un pedido de higiene tras el cierre de una obra corre solo lo pendiente y el lote, y reporta solo eso, sin un segundo reporte final · false today because el pie ofrece «Close» mientras los pasos 2 y 5 esperan, y `close-modes.md:9` y `close-report.md:24` hacen correr «Every step» y escribir el reporte a un pedido de higiene · Observed in: `report-endings.md`, `close-modes.md` y `close-report.md` instalados
-- AC5 — `--audit-session` falla `merged_branch_deleted` cuando el usuario termina la sesión («es todo», «terminamos», «por hoy», «that's all») después de un merge cuya rama no se borra luego · false today because la sesión Codex `01a1f86e-f093` (FSR-900) da `review` · Observed in: `go run ./tests/pilot --audit-session` sobre esa sesión real
+- AC5 — `--audit-session` falla `merged_branch_deleted` cuando el usuario termina la sesión («es todo», «terminamos», «por hoy», «that's all») después de un merge cuya rama no se borra luego · false today because la sesión Codex `01a1f86e-f093` (PRL-900) da `review` · Observed in: `go run ./tests/pilot --audit-session` sobre esa sesión real
 - AC6 — `--audit-session` falla `close_before_branch_cleanup` cuando un reporte de cierre precede al borrado de una rama fusionada antes que él, y da review solo si ese reporte nombra la rama como conservada · false today because `closeBeforeCleanupStatus` es siempre `review` · Observed in: `--audit-session` sobre la sesión real Grok `01a1fb69`
-- AC7 — `cleanup_branches.py` lista en `stray_clones` cada repositorio con su propio `.git` bajo las carpetas de worktrees cuyo `origin` coincide con el del repositorio, con su rama y si tiene cambios, y nunca lo borra · false today because su salida no tiene esa clave y `.worktrees/fsr-905-906-frontend` no aparece · Observed in: el helper sin `--apply` sobre `fleetsystem-frontend-monorepo` (solo lectura)
+- AC7 — `cleanup_branches.py` lista en `stray_clones` cada repositorio con su propio `.git` bajo las carpetas de worktrees cuyo `origin` coincide con el del repositorio, con su rama y si tiene cambios, y nunca lo borra · false today because su salida no tiene esa clave y `.worktrees/prl-905-906-frontend` no aparece · Observed in: el helper sin `--apply` sobre `project-b-frontend-monorepo` (solo lectura)
 
 ## Prerequisites
 
-- [x] Archivos locales fuera del repositorio que observan AC5 a AC7: el rollout Codex `01a1f86e-f093`, la sesión Grok `01a1fb69` y el clon `fleetsystem/.worktrees/fsr-905-906-frontend` · owner: usuario (no borrarlos antes de T2 y T3) · needed by: T2, T3. Si el clon ya no existe, T2 observa AC7 sobre la fixture de su prueba.
+- [x] Archivos locales fuera del repositorio que observan AC5 a AC7: el rollout Codex `01a1f86e-f093`, la sesión Grok `01a1fb69` y el clon `project-b/.worktrees/prl-905-906-frontend` · owner: usuario (no borrarlos antes de T2 y T3) · needed by: T2, T3. Si el clon ya no existe, T2 observa AC7 sobre la fixture de su prueba.
 
 ## Contexto verificado
 
@@ -65,10 +65,10 @@ Leído el 2026-11-21 en `development` `2eef1969`: `close-modes.md`, `close-hygie
 - `go test ./tests/content/ -run 'TestStage|TestReadingFootprint' -count=1` · cubierto por `go test ./tests/content/` (ok); margen del paquete de cierre: miembros 22.099 B de 22.500 B; `global.md` 29.433 B de 30.000 B · 2026-11-21
 - `rg -n 'Steps 2 and 5|\*\*Support\.\*\*|step 2.s question' content/` · 5 resultados (`flow-verify/SKILL.md:27`, que queda, y `close-modes.md:7`, `:9`, `:17`, `batch-archive.md:12`, que T1 quita) · 2026-11-21
 - `rg -n 'support decision|support-material decision|only a capture whose URL|never a disposable input|replaced only when|counts as replaced only|only when its upload' content/ _support/docs/architecture/` · 9 resultados, que T1 y T5 quitan · 2026-11-21
-- `python3 /Users/jmartinez/.agents/skills/flow-plan/scripts/check_change.py _support/openspec/changes/close-cleans-at-completion` · exit 0 · 2026-11-21
+- `python3 /Users/me/.agents/skills/flow-plan/scripts/check_change.py _support/openspec/changes/close-cleans-at-completion` · exit 0 · 2026-11-21
 - `go run ./tests/pilot --audit-session <rollout Codex 01a1f86e-f093> --host codex` · `merged_branch_deleted` = review · 2026-11-21
 - `go run ./tests/pilot --audit-session <Grok 01a1fb69 updates.jsonl> --host grok` · `close_before_branch_cleanup` = review · 2026-11-21
-- `python3 -I content/skills/flow-close/scripts/cleanup_branches.py --repo /Users/jmartinez/Development/projects/comsys/fleetsystem/fleetsystem-frontend-monorepo --base development` · not measured: `stray_clones` lo añade T2
+- `python3 -I content/skills/flow-close/scripts/cleanup_branches.py --repo /Users/me/Development/projects/org-a/project-b/project-b-frontend-monorepo --base development` · not measured: `stray_clones` lo añade T2
 
 ## Effects
 
@@ -76,7 +76,7 @@ None: the tasks take no effect on an external system.
 
 ## Entrega
 
-`automatic` (respuesta de la sesión, 2026-11-21): revisión, push, PR y merge sin parar; después, el refresco de la instalación local que `AGENTS.md` autoriza en el checkout del mantenedor. Revisión de código: Native: Claude Code `/code-review`. No autoriza release, ni cambios en otros proyectos (los restos de fleetsystem y cam se limpian desde sus propias sesiones).
+`automatic` (respuesta de la sesión, 2026-11-21): revisión, push, PR y merge sin parar; después, el refresco de la instalación local que `AGENTS.md` autoriza en el checkout del mantenedor. Revisión de código: Native: Claude Code `/code-review`. No autoriza release, ni cambios en otros proyectos (los restos de project-b y project-g se limpian desde sus propias sesiones).
 
 ## Estado de la revisión y progreso
 

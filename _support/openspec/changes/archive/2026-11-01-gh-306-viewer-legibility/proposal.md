@@ -55,9 +55,9 @@ La flecha despliega un resumen breve y el título abre el panel de la tarea (D73
 La tarea pertenece al trabajo y conserva su identidad a través de las etapas (D74 A). El usuario precisa:
 > “en build solo se muestran las tareas de esa etapa, y las de verify u otras etapas las que correspon”
 > “la espera del CI entiendo que pertenece a entrega, que tenga su nodo de espera tambien”
-> “Puedes ir contruyendo y probando sin alterar el binario que esta usando la sesión de cam verdad?”
+> “Puedes ir contruyendo y probando sin alterar el binario que esta usando la sesión de project-g verdad?”
 
-La última restricción se conserva: build y pruebas aislados; ningún reemplazo del binario instalado, hive update, reinicio habitual ni corte final v3 mientras CAM dependa de ese runtime. Esta consulta no es una instrucción de flow-build.
+La última restricción se conserva: build y pruebas aislados; ningún reemplazo del binario instalado, hive update, reinicio habitual ni corte final v3 mientras project-g dependa de ese runtime. Esta consulta no es una instrucción de flow-build.
 
 ## Objective
 
@@ -65,7 +65,7 @@ Leer el trabajo en orden, ver pausas y revisiones y continuarlo entre sesiones s
 
 ## Scope and acceptance
 
-Dentro: corte limpio a contrato/storage v3 sin lectores ni migración v1/v2, etapa Entrega y espera de CI, productores incorporados explícitamente, conductor único, historial de transiciones, agrupación ascendente, Sheet común, tareas independientes expandibles, revisiones, legibilidad y guía de publicación. Fuera: contenido ejecutable/interactivo, autenticar procesos por productor, importar/fusionar sesiones históricas, CAM, pilotos de modelos, release y producción.
+Dentro: corte limpio a contrato/storage v3 sin lectores ni migración v1/v2, etapa Entrega y espera de CI, productores incorporados explícitamente, conductor único, historial de transiciones, agrupación ascendente, Sheet común, tareas independientes expandibles, revisiones, legibilidad y guía de publicación. Fuera: contenido ejecutable/interactivo, autenticar procesos por productor, importar/fusionar sesiones históricas, project-g, pilotos de modelos, release y producción.
 
 AC1–AC10 conservan sus IDs con los textos actuales que reemplazan la versión anterior; AC11–AC27 amplían el alcance.
 
@@ -97,7 +97,7 @@ AC1–AC10 conservan sus IDs con los textos actuales que reemplazan la versión 
 - AC23 — Adjuntos y resultados opcionales se vinculan al task_id y a evidencia/documentos del mismo trabajo con etapa real de origen y tramo asignado explícitos; la expansión puede mostrar capturas pertinentes y el Sheet conserva detalle e historial; nuevo contenido vinculado incrementa atómicamente task_version y ofrece actualizar el snapshot sin cambiarlo solo, mientras una tarea ajena no dispara aviso. Tareas sin imágenes funcionan igual, y terminar/corregir conserva evidencia anterior sin mezclarla con otra tarea. · Falso: solo se asocia contenido a sesión/evento, no a tarea.
 - AC24 — Transiciones condicionales de tarea conservan actor e historial, sobreviven reinicio/retry y actualizan el mismo nodo sin duplicarlo; corregir un tramo finalizado lo reabre explícitamente con motivo. Los conteos de etapa usan tramos asignados; el global cuenta tareas únicas finalizadas en todos sus tramos requeridos, sin inferir porcentaje, aprobación o estado por índice visual. · Falso: no hay estado/historial/contador de tareas.
 
-- AC25 — Una tarea que atraviesa etapas conserva un task_id y tiene estado independiente por tramo: una proyección en cada etapa explícitamente asignada, sin replicar la entidad ni sus adjuntos. El caso CAM muestra Build 6/6, Verificación T7 finalizada en ese tramo y Entrega T7 pendiente/en curso, mientras el total sigue 6/7 hasta terminar T7 completa. Tareas de etapas futuras no aparecen dentro de Build ni crean etapas ficticias. · Falso: no hay tarea global/tramos/conteos.
+- AC25 — Una tarea que atraviesa etapas conserva un task_id y tiene estado independiente por tramo: una proyección en cada etapa explícitamente asignada, sin replicar la entidad ni sus adjuntos. El caso project-g muestra Build 6/6, Verificación T7 finalizada en ese tramo y Entrega T7 pendiente/en curso, mientras el total sigue 6/7 hasta terminar T7 completa. Tareas de etapas futuras no aparecen dentro de Build ni crean etapas ficticias. · Falso: no hay tarea global/tramos/conteos.
 - AC26 — Entrega es una etapa propia posterior a Verificación; muestra un nodo de espera de CI con punto de pausa y Sheet que identifica candidato/PR, checks requeridos, resultados observados y enlaces reales. No afirma CI correcto sin confirmar el conjunto requerido para el commit actual ni equivale a integración. · Falso: no existe etapa delivery ni nodo de espera.
 - AC27 — El nodo CI conserva identidad durante la misma espera, sus intentos/resultados y tiempos observados; solo el intento aplicable de cada check determina el estado actual, nunca una observación atrasada de un intento anterior; fallo/cancelación/desconocido no se presentan como éxito ni habilitan merge. Reejecuciones conservan historia y un candidato nuevo no reutiliza el resultado anterior; retries/versiones/reinicio no duplican nodos ni pierden resultados. · Falso: no hay contrato/almacén de espera CI.
 
@@ -118,11 +118,11 @@ None: the build needs nothing from outside the repository. Preparar un directori
 
 2026-11-01: checkout 2f0a133b, development 044664a0; tooling/viewer sin diferencias entre ambos. Leídos contratos/store/server/CLI, timeline-content/documents/copy, spec walkthrough-viewer y componentes instalados Sheet/Badge/Tabs, patrones Popover/Select. Visor habitual pid 49211 puerto 4483, revisión 0b6f2380 modified=true: distinto al checkout.
 
-CAM 01a195f8 tenía research/plan completos y build activo. Claude cfb6fcae publicó cuatro documentos idénticos a los archivos previos, pero etapa in_progress pese al plan listo. No se demostró escritura cruzada: colaboración es requisito adoptado, no causa afirmada. Esta ampliación tiene registro propio b31295ed… con identidad real Codex 01a19638-64aa-7e73-af2a-7559b46529c4. Antes de decidir documentos, colaboración y estados (D68–D70) se verificó awaiting_validation y etapa paused.
+project-g 01a195f8 tenía research/plan completos y build activo. Claude cfb6fcae publicó cuatro documentos idénticos a los archivos previos, pero etapa in_progress pese al plan listo. No se demostró escritura cruzada: colaboración es requisito adoptado, no causa afirmada. Esta ampliación tiene registro propio b31295ed… con identidad real Codex 01a19638-64aa-7e73-af2a-7559b46529c4. Antes de decidir documentos, colaboración y estados (D68–D70) se verificó awaiting_validation y etapa paused.
 
 ## Delivery
 
-Entrega interactiva: validación antes del push y después PR y merge a `development` (D65 A). Revisión de código: Codex `/review` (D77 A), que reemplazó a Claude Code `/code-review` (D66 A) porque este pedía un PR. Rama actual, nombrando y consultando los commits ajenos antes de publicar (D67 C); los 15 previos entran en la misma publicación (D80 A). No autoriza build en este flujo, release ni cambios en otros proyectos. La restricción actual del usuario prevalece sobre el refresh de mantenedor: no reemplazar el binario instalado ni actualizar guía/globales ni reiniciar el visor habitual mientras CAM lo use. Integrar no autoriza ese corte; solicitar la acción concreta separada cuando corresponda.
+Entrega interactiva: validación antes del push y después PR y merge a `development` (D65 A). Revisión de código: Codex `/review` (D77 A), que reemplazó a Claude Code `/code-review` (D66 A) porque este pedía un PR. Rama actual, nombrando y consultando los commits ajenos antes de publicar (D67 C); los 15 previos entran en la misma publicación (D80 A). No autoriza build en este flujo, release ni cambios en otros proyectos. La restricción actual del usuario prevalece sobre el refresh de mantenedor: no reemplazar el binario instalado ni actualizar guía/globales ni reiniciar el visor habitual mientras project-g lo use. Integrar no autoriza ese corte; solicitar la acción concreta separada cuando corresponda.
 
 ## Review status and progress
 
@@ -134,7 +134,7 @@ Entrega interactiva: validación antes del push y después PR y merge a `develop
 
 2026-11-01 — Usuario autoriza flow-build. Continúa en checkout existente por instrucción posterior explícita, sin worktree; no habrá cambios de otras sesiones hasta terminar. HEAD de arranque 5e956577, con commit ajeno de viewport móvil preservado.
 
-2026-11-01 — Usuario pide Inicio, toolbar/popover y fuente única para todas las referencias, autorizando ajustar schema ahora. Se añaden AC28–AC35 y T9–T12; contrato propietario canonical-references.md, protocolo, schema y storage final v3 con corte limpio de v1 y v2. T1–T6 completados verifican la base v2; sus recorridos afectados se repiten sobre v3. Se conservan la entrega interactiva (D65 A), la rama actual (D67 C) y la restricción de CAM; la revisión de código queda pendiente de decidir (D77). No publicación, instalación ni cambio habitual.
+2026-11-01 — Usuario pide Inicio, toolbar/popover y fuente única para todas las referencias, autorizando ajustar schema ahora. Se añaden AC28–AC35 y T9–T12; contrato propietario canonical-references.md, protocolo, schema y storage final v3 con corte limpio de v1 y v2. T1–T6 completados verifican la base v2; sus recorridos afectados se repiten sobre v3. Se conservan la entrega interactiva (D65 A), la rama actual (D67 C) y la restricción de project-g; la revisión de código queda pendiente de decidir (D77). No publicación, instalación ni cambio habitual.
 
 ## Additional acceptance criteria — browser language and reading space
 - AC36: English is the UI default/fallback; es/es-* browser languages select Spanish consistently in production and preview, including system headings, controls, accessible names, status/date text and document language. Producer content is unchanged.

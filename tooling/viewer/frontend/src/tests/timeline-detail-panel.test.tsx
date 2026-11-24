@@ -457,7 +457,7 @@ test("canonical ticket and PR changes offer manual refresh scoped to the open ta
     sheet.querySelector('a[href="https://example.test/tickets/updated"]'),
   );
   await click("Close");
-  data = workFixture("cam");
+  data = workFixture("project-g");
   await render();
   await click("Open CI");
   sheet = region('[data-slot="sheet-content"]');

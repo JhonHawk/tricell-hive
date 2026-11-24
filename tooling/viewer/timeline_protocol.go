@@ -55,7 +55,7 @@ func TimelineProtocolContract(operation string) (TimelineProtocolDescription, er
 	actor := TimelineActor{Kind: "native_producer", ProducerID: "producer-example"}
 	one := int64(1)
 	source := TimelineSource{ProjectRoot: "/workspace/example", Host: "codex", NativeSessionID: "native-example"}
-	create := TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "create-example", Source: source, Title: "Example", Summary: "Scope", Tickets: []TimelineTicketInput{}, WorkKey: timelineStringPointer("COM-123")}
+	create := TimelineCreateSessionRequest{SchemaVersion: 3, OperationID: "create-example", Source: source, Title: "Example", Summary: "Scope", Tickets: []TimelineTicketInput{}, WorkKey: timelineStringPointer("PRJ-123")}
 	stage := TimelineAppendEventRequest{Actor: actor, SchemaVersion: 3, OperationID: "stage-example", Reason: "Start plan", Kind: "stage", Title: "", Summary: "Prepare the plan", TicketIDs: []string{}, Stage: "plan", StageState: "in_progress", ExpectedSessionVersion: &one}
 	state := TimelineStageState("completed")
 	patch := TimelineEventPatchRequest{Actor: actor, SchemaVersion: 3, OperationID: "complete-example", Reason: "Plan completed", ExpectedVersion: 1, StageState: &state, ExpectedSessionVersion: &one}

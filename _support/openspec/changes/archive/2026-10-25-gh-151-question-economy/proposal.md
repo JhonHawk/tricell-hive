@@ -12,7 +12,7 @@
 
 Mensajes del usuario, 2026-10-25:
 
-> Analiza las sesiones de los ultimos 5 dias en los diferentes proyectos, y sobre todo la sesiones de cam y carvento.
+> Analiza las sesiones de los ultimos 5 dias en los diferentes proyectos, y sobre todo la sesiones de project-g y project-a.
 >
 > La premisa es que ahora siento que hace muchas más preguntas innecesarias, por ejemplo que si a alguna le dices que no, simplemente ya no se puede cumplir la tarea/ticket, o que se podrian haber agrupado en una sola pregunta:
 >
@@ -20,7 +20,7 @@ Mensajes del usuario, 2026-10-25:
 
 > Ojo que esto no es algo que deba arreglarse en un solo punto, esto va sobre todo nuestros flujo y skills de flow
 
-> tambien tenemos una sesión activa en cam de claude y para un ticket pequeño senti muchas preguntas
+> tambien tenemos una sesión activa en project-g de claude y para un ticket pequeño senti muchas preguntas
 
 > Para ciertas cosas se debe tener cierto criterio:
 > - No es lo mismo crear insumos para un entorno de desarrollo o qa, que para producción. Ademas, de que el usuario puede optar por usar una cuenta o insumo ya existente, talvez una de las opciones que proponga esta pregunta es investigar si se pueden usar ya existentes (no se hace por defecto porque esta investigación toma tiempo),
@@ -32,7 +32,7 @@ Respuesta a D4, en texto libre:
 
 Corrección a la pregunta de ruta D11, 2026-10-25:
 
-> ojo, en caso de tricell y sus clientes es local -> dev -> qa -> prod, pero para otros puede ser diferente, de hecho nosotros tenemos facti, que es local -> gamma -> prod, hay que tomar en cuenta que se pregunte desde la etapa de planeación los permisos para lo que desbloquee la validación de la implementación en caso de carvento, pues eran los insumos de QA (consideremos que talvez el ticket solo consideraba hasta development, por eso no entraba este cuestionamiento y lo siguiente si entraba a una etapa posterior)
+> ojo, en caso de tricell y sus clientes es local -> dev -> qa -> prod, pero para otros puede ser diferente, de hecho nosotros tenemos project-f, que es local -> gamma -> prod, hay que tomar en cuenta que se pregunte desde la etapa de planeación los permisos para lo que desbloquee la validación de la implementación en caso de project-a, pues eran los insumos de QA (consideremos que talvez el ticket solo consideraba hasta development, por eso no entraba este cuestionamiento y lo siguiente si entraba a una etapa posterior)
 
 Criterios de aceptación de [#151](https://github.com/JhonHawk/tricell-hive/issues/151), leídos el 2026-10-25:
 
@@ -54,7 +54,7 @@ Criterios de aceptación de [#151](https://github.com/JhonHawk/tricell-hive/issu
 - D13-A (2026-10-25, durante la revisión de código): en modo desatendido, con autorización previa para ese destino y tope, se puede gastar dentro del tope y hacer lo crítico reversible. El resto de lo irreversible sigue prohibido, aunque esté autorizado.
 - D10-A (2026-10-25): en modo desatendido, un efecto crítico solo se ejecuta si se autorizó de antemano para ese destino y ese tope exactos. Si no, se salta, se sigue con lo que no depende de él y se reporta con destino, costo y reversión. Lo reversible y sin costo sigue el modo desatendido como hoy.
 - Decisiones del agente, sin preguntar:
-  - La regla vive en una referencia nueva, `content/skills/flow-plan/references/effect-authorization.md`, junto a `questions.md`, y en la guía global queda solo lo mínimo indispensable. Se eligió así porque estas autorizaciones también aparecen en la investigación (los accesos en facti), no solo en build.
+  - La regla vive en una referencia nueva, `content/skills/flow-plan/references/effect-authorization.md`, junto a `questions.md`, y en la guía global queda solo lo mínimo indispensable. Se eligió así porque estas autorizaciones también aparecen en la investigación (los accesos en project-f), no solo en build.
   - Sin delta de specs: el cambio altera solo la guía distribuida, como en los cambios #143/#144 y #147.
 
 ## Objetivo
@@ -77,9 +77,9 @@ Exclusiones:
 - Declarar `Delivery`, `Review` o `UI verification` en los proyectos de cliente: pertenece a la sesión de cada proyecto.
 - Los gates obligatorios de validación de UI y la pregunta de cierre no cambian.
 - Quedan como observación, con un caso cada uno:
-  - La delegación desatendida que terminó con "continúa" (cam Codex).
-  - El hallazgo incidental propuesto a mitad del build (cam Codex D36).
-  - Los detalles de estilo preguntados al cierre (carvento F5–F8).
+  - La delegación desatendida que terminó con "continúa" (project-g Codex).
+  - El hallazgo incidental propuesto a mitad del build (project-g Codex D36).
+  - Los detalles de estilo preguntados al cierre (project-a F5–F8).
 - `README.md` y `llms.txt` no describen estas reglas y no cambian.
 
 Restricciones que deben seguir cumpliéndose:

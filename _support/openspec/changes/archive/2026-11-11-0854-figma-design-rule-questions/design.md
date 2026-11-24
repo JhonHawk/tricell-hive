@@ -3,7 +3,7 @@
 ## Approaches
 
 - **A — Dentro de la etapa, con salida a investigación (elegido, D6 A).** La regla se dibuja recomendada, se anota como propuesta y se pregunta aparte en la ronda de aprobación. Las que cambian el alcance llevan a investigación. Así la regla se decide viendo la pantalla, y solo sale de la etapa lo que cambia el alcance.
-- **B — Siempre a investigación.** Separa más, pero cada duda obliga a salir, reentrar y redibujar. En FSR-858, D10–D16 tomaron unos 25 min.
+- **B — Siempre a investigación.** Separa más, pero cada duda obliga a salir, reentrar y redibujar. En PRL-858, D10–D16 tomaron unos 25 min.
 - **C — Solo marcar y que el plan decida.** Hay menos preguntas al diseñar, pero la regla llega después de aprobar la pantalla, y un cambio obliga a volver a Figma.
 
 ## Decisions

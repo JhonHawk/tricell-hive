@@ -6,7 +6,7 @@
 | Tracker · GitHub Issues | Sin issue: el usuario lleva este trabajo desde la memoria y los registros de cambio |
 | Git | Integrado por merge del PR #57 sobre la base `0b2e0bac`; la rama `feat/guidance-pruning` y su worktree se eliminaron tras el merge |
 | Verificación | `go test ./tests/content/...` por tarea · `go test ./...` y tamaños sobre el candidato final · `hive-verify-change` al cerrar |
-| Siguiente paso | Ninguno; registro cerrado. Cambio aparte decidido: clave `Done:` por proyecto (C2b-A), cuando cam, carvento y dened fijen su punto de cierre. Lotes 2 y 3: no ahora (DD7) |
+| Siguiente paso | Ninguno; registro cerrado. Cambio aparte decidido: clave `Done:` por proyecto (C2b-A), cuando project-g, project-a y project-e fijen su punto de cierre. Lotes 2 y 3: no ahora (DD7) |
 
 ## Solicitud
 
@@ -24,12 +24,12 @@ Respuestas del usuario (2026-10-15, tarjetas nativas y texto):
 - D2 (retención): "Sí, en el registro de cambio": los dos inventarios viven en `inventory/`.
 - D3 (tras el análisis adversarial): "Reducir a lote 1 corregido": duplicados literales reales menos los que lee un rol sin guía global, los tres conflictos resueltos por tarjeta, punteros intactos, sin tocar `AGENTS.md`; los lotes 2 y 3 quedan como "no ahora".
 - C1 (hallazgos de revisión), texto: "Movamos el tema de la severidad solo cuando es ejecutado desde flow-build, o acotemoslo al flujo completo (cuando hay research o plan previo), la intención es que las ejecuciones directas para tareas menores no tengan esta carga de razonamiento, solo que ataquen o resuelvan los que se les indico".
-- C2 (ticket hecho frente a CI posterior al merge), texto: "esto talvez vaya a ser dinamico, en el caso de de cam / carvento, no hay qa explicito que detenga los tickets de linear (pero si los de jira), por eso el ciclo funciona diferente, en muchos equipos tendran su propia definición y ciclo de cierre, talvez sea algo que se tenga que definir si no lo esta y colocar en las reglas del AGENTS.md de cada proyecto (research sobre esto)".
+- C2 (ticket hecho frente a CI posterior al merge), texto: "esto talvez vaya a ser dinamico, en el caso de de project-g / project-a, no hay qa explicito que detenga los tickets de linear (pero si los de jira), por eso el ciclo funciona diferente, en muchos equipos tendran su propia definición y ciclo de cierre, talvez sea algo que se tenga que definir si no lo esta y colocar en las reglas del AGENTS.md de cada proyecto (research sobre esto)".
 - C3 (alcance del borrado de ramas): "Ampliar global a las ramas fusionadas del repo".
 - Restricción del usuario (texto): `global.md` no debe crecer con este cambio.
 - C1b (tras la segunda ronda de revisión): "No, C1 solo cubre la revisión": la regla de hallazgos incidentales de `global.md:31` no cambia.
 - D4 (ruta): "Arrancar flow-build ahora": T2–T4 en el hilo principal, T5 delegada; diff sin commit.
-- C2b (tras el research de T5): "Clave `Done:` en otro cambio": opción A (`Done: base | <entorno> | manual`) como registro aparte, cuando cam, carvento y dened fijen su punto; este cambio no toca el punto de "ticket hecho".
+- C2b (tras el research de T5): "Clave `Done:` en otro cambio": opción A (`Done: base | <entorno> | manual`) como registro aparte, cuando project-g, project-a y project-e fijen su punto; este cambio no toca el punto de "ticket hecho".
 
 ## Objetivo
 

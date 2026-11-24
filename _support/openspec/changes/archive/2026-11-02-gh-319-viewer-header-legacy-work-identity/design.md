@@ -75,8 +75,8 @@
 Antes:
 
 ```
-cam (workspace `..`)
-COM-907 · actualización de dependencias [✎]
+project-g (workspace `..`)
+PRJ-907 · actualización de dependencias [✎]
 2 nov 2026 · 2 validaciones
            [● Validación][🎫1][⑂0][👥1][▣][⋯]
 ──────────────────────────────────────────────
@@ -88,7 +88,7 @@ ventana de 7 días…                    Ver más
 Después (desde `lg`):
 
 ```
-COM-907 · actualización de dependencias [✎]
+PRJ-907 · actualización de dependencias [✎]
 Decisión de alcance:       [● Validación][✓2]
 separar HeroUI… Ver más     [🎫1][⑂0][👥1][▣][⋯]
 ──────────────────────────────────────────────
@@ -98,7 +98,7 @@ separar HeroUI… Ver más     [🎫1][⑂0][👥1][▣][⋯]
 En pantallas angostas:
 
 ```
-COM-907 · actualización de dep… [✎]
+PRJ-907 · actualización de dep… [✎]
 Decisión de alcance: separar HeroUI
 por la ventana de 7 días… Ver más
    [● Validación][✓2][🎫1][⑂0][👥1][▣][⋯]

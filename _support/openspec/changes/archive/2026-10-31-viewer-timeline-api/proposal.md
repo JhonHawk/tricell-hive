@@ -45,7 +45,7 @@ Present a session as a compact evidence timeline. Let the agent publish bounded,
 - AC23 — An offline CLI contract command returns versioned usage, schemas, limits and examples that agree with actual validators, without exposing credentials or starting the server. False on development: no contract command exists.
 - AC24 — Each participating flow uses one short pointer to the canonical viewer publication skill, while retaining its own review/capture/approval policy; hygiene deletes only task-owned disposable upload inputs after exact committed document/image readback. Failed or uncertain publication preserves inputs. False on development: walkthrough-specific publication does not cover research/plan stages or document receipts.
 
-Scope includes typed API/CLI, JSON persistence, required identity, header/timeline/evidence UI, legacy reading and existing offline fallback, updated flow documentation, and the already authorized bounded cleanup. Excludes human approval/comment endpoints/UI, feedback polling/SSE, automatic host wakeup, cloud hosting, a second daemon/database/framework, base-versus-candidate comparison, historical event reconstruction, CAM/Jira modifications, dependency upgrades and model pilots.
+Scope includes typed API/CLI, JSON persistence, required identity, header/timeline/evidence UI, legacy reading and existing offline fallback, updated flow documentation, and the already authorized bounded cleanup. Excludes human approval/comment endpoints/UI, feedback polling/SSE, automatic host wakeup, cloud hosting, a second daemon/database/framework, base-versus-candidate comparison, historical event reconstruction, project-g/Jira modifications, dependency upgrades and model pilots.
 
 ## Prerequisites
 
@@ -59,7 +59,7 @@ Real publication requires a user-started running viewer and an actual source ses
 
 ReUI MCP consulted Timeline API, timeline-3 block, c-button-group-5, Popover/Dropdown metadata; installed Button/ButtonGroup/Dialog/Badge/Frame implementations were read. Missing registry component files are an implementation prerequisite handled in T8, not permission to guess their API. The existing composition fits Record detail; no bespoke design pattern or theme deviation is proposed.
 
-The motivating CAM Codex session is 01a19339-c0d8-7ca1-b7a7-ecc165466e7a, 2026-10-31: reused image names and separate follow-up walkthroughs obscured current evidence, and the user requested Finder to distinguish it. One observed session; user-approved adoption replaces a recurrence claim. The eventual guidance-fix commit names this session/failure. No measured time savings or model reliability claim.
+The motivating project-g Codex session is 01a19339-c0d8-7ca1-b7a7-ecc165466e7a, 2026-10-31: reused image names and separate follow-up walkthroughs obscured current evidence, and the user requested Finder to distinguish it. One observed session; user-approved adoption replaces a recurrence claim. The eventual guidance-fix commit names this session/failure. No measured time savings or model reliability claim.
 
 ## Delivery
 

@@ -25,7 +25,7 @@ Base `development` en `867f5463`, rama `feat/skill-registry-mobile`, worktree `.
 
 **Changes:** biblioteca estándar solamente; lectura sin escrituras ni red. Carga `workspace-repo/scripts/workspace_repo.py` por ruta con `importlib` para leer `## Repositories`, como `personal_rules.py:58` carga su dependencia. Formato, regla de lectura, qué cuenta como listada, códigos de salida y detección: los de `design.md` «Decisions». Mide primero, leyendo el código del manager y una instalación de prueba en un directorio temporal con `go run ./tooling/cli plan install --scope project` (vista previa de solo lectura), si una carpeta de skill instalada por Hive lleva una marca propia; si no la lleva, se detiene y vuelve como decisión, porque la exclusión solo valdría en máquinas con el manager.
 
-**Verification:** `python3 -m unittest discover -s tests/skills -p 'skill_registry_test.py'` pasa; `python3 -I content/skills/harness-audit/scripts/skill_registry.py check /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/skill-registry-mobile` sale con 1 y nombra `reui` una sola vez.
+**Verification:** `python3 -m unittest discover -s tests/skills -p 'skill_registry_test.py'` pasa; `python3 -I content/skills/harness-audit/scripts/skill_registry.py check /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/skill-registry-mobile` sale con 1 y nombra `reui` una sola vez.
 
 ### T2 — HA-IF-19 y el procedimiento de onboarding en `harness-audit`
 
@@ -59,7 +59,7 @@ Base `development` en `867f5463`, rama `feat/skill-registry-mobile`, worktree `.
 
 **Test approach:** check — par nuevo en `single_home_test.go` para la viñeta de `child-brief.md`.
 
-**Changes:** una viñeta en «Every child» de `child-brief.md` y una en `reviewer-brief.md` que remite a ella (`reviewer-brief.md` está en el paquete de salida de `flow-verify`, con 3,080 bytes libres); en `agent-delivery.md` se corrigen las líneas 61, 63, 65 y 123 y se cita el registro como la fuente de convenciones del proyecto; `instruction-resources.md:68` nombra las líneas del registro. `delegation.md` no cambia, porque está en el paquete de etapa de `flow-build`. El commit nombra la observación del caso vigilado (cam, sesión `e2c8d39f`, Claude Code, opus-5-5, 2026-10-18) y la entrada `watch/child-brief-project-skills-and-browser-isolation` se actualiza al cerrar.
+**Changes:** una viñeta en «Every child» de `child-brief.md` y una en `reviewer-brief.md` que remite a ella (`reviewer-brief.md` está en el paquete de salida de `flow-verify`, con 3,080 bytes libres); en `agent-delivery.md` se corrigen las líneas 61, 63, 65 y 123 y se cita el registro como la fuente de convenciones del proyecto; `instruction-resources.md:68` nombra las líneas del registro. `delegation.md` no cambia, porque está en el paquete de etapa de `flow-build`. El commit nombra la observación del caso vigilado (project-g, sesión `e2c8d39f`, Claude Code, opus-5-5, 2026-10-18) y la entrada `watch/child-brief-project-skills-and-browser-isolation` se actualiza al cerrar.
 
 **Verification:** `go test ./tests/content/...` pasa; `grep -n 'stack routing registry are needed' _support/docs/architecture/agent-delivery.md` no devuelve nada.
 
@@ -137,7 +137,7 @@ Sin parada de validación humana (`automatic`).
 - Last commit: 59e77a86
 - Open findings: none
 - Next: wait /code-review and hive-review-security; review findings round; push, PR, merge (automatic)
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/skill-registry-mobile · feat/skill-registry-mobile
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/skill-registry-mobile · feat/skill-registry-mobile
 - Rules: flow-verify/stage-entry.md · extra: viewer
 - Principles: none
 

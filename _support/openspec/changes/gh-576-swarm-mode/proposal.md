@@ -70,12 +70,12 @@ Dentro: el skill `swarm` y sus referencias, el rol `hive-ticket-owner` con su bl
 
 None: the build needs nothing from outside the repository.
 
-La observación de AC5, AC6, AC8, AC12 y AC13 necesita después del despliegue una sesión real del usuario con 2 a 4 tickets aptos (propuesta: COM-931, COM-933 y COM-944 si su veredicto los admite); no es un piloto y no la ejecuta este trabajo.
+La observación de AC5, AC6, AC8, AC12 y AC13 necesita después del despliegue una sesión real del usuario con 2 a 4 tickets aptos (propuesta: PRJ-931, PRJ-933 y PRJ-944 si su veredicto los admite); no es un piloto y no la ejecuta este trabajo.
 
 ## Verified context
 
 - Investigación de esta sesión (2026-11-23): 93 sesiones de ciclo completo desde el 2026-11-04; pico de contexto del hilo principal con mediana de 447k en proyectos de producto y 8 de 34 sobre 800k; 64–71 % con preguntas después de empezar a editar. Base de D11 y de la salida por bloqueo.
-- Sesión de Pi `01a206d8` (fleetsystem, 2026-11-23): 103 hijos, hasta 20 a la vez, 31 tickets integrados, ~$184 en ~75 min, cortada por créditos; otra sesión la terminó desde git. Base de D12 y AC12.
+- Sesión de Pi `01a206d8` (project-b, 2026-11-23): 103 hijos, hasta 20 a la vez, 31 tickets integrados, ~$184 en ~75 min, cortada por créditos; otra sesión la terminó desde git. Base de D12 y AC12.
 - `hive-build-owner` tiene acceso `implement` y su excepción de commits la fija `tests/content/agent_boundary_test.go:44` y `tests/content/single_home_test.go:116`; `content/guidance/global.md:24` nombra solo E2E.
 - `content/skills/flow-plan/scripts/tasks.py:622` exige `unit role must be hive-build-owner`, y `cmd_checkpoint` (`tasks.py:284–347`) reescribe la cabecera del checkpoint conservando solo sus líneas conocidas.
 - `tooling/management/hidden_skills.go:14` traduce `disable-model-invocation: true` a la política de invocación de Codex de forma genérica.

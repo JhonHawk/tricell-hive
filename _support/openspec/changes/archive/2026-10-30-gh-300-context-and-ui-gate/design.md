@@ -24,9 +24,9 @@ Leído el 2026-10-30 sobre `83c9d3b5` (`development`).
   - `content/skills/flow-verify/references/ui-gate.md:7` ya excluye el backend sin efecto visual y los cambios solo de texto o estilo.
   - `content/skills/flow-plan/references/ui-verification-decision.md:7` condiciona la pregunta, pero no exige declarar la exclusión.
   - En 2 sesiones independientes con la versión vigente de la condición (sin cambios desde `d1cc2a97`, 2026-10-26), el agente abrió la pregunta y lanzó `hive-verify-change` en trabajo sin efecto visual o solo de texto:
-    - Grok cam `01a1855f-cdbe-7200-8434-7323a59ff52b` (COM-901, 2026-10-28): backend, cuyo plan decía «The plan changes no screen». Costó $6.58 más ~$2.7 del hilo principal.
-    - Grok cam `01a18abb-b9c6-7db3-a80a-31bbc5fad8fb` (COM-838, 2026-10-29): el texto de un aviso. Hubo 5 recorridos, 4 de ellos reintentos.
-    - Codex cam `01a180de` y Cursor cam `afaeb558` reintentaron recorridos sobre un candidato sin servir, pero su trabajo sí tenía UI. Son otro patrón y no cuentan aquí.
+    - Grok project-g `01a1855f-cdbe-7200-8434-7323a59ff52b` (PRJ-901, 2026-10-28): backend, cuyo plan decía «The plan changes no screen». Costó $6.58 más ~$2.7 del hilo principal.
+    - Grok project-g `01a18abb-b9c6-7db3-a80a-31bbc5fad8fb` (PRJ-838, 2026-10-29): el texto de un aviso. Hubo 5 recorridos, 4 de ellos reintentos.
+    - Codex project-g `01a180de` y Cursor project-g `afaeb558` reintentaron recorridos sobre un candidato sin servir, pero su trabajo sí tenía UI. Son otro patrón y no cuentan aquí.
   - La lectura de la decisión está condicionada a «a rendered UI effect» en `ui-verification-decision.md:5`, `delivery-decisions.md:40`, `flow-build/SKILL.md:25,27` y `flow-verify/SKILL.md:20`, así que en trabajo de backend la decisión no se lee. La línea de no aplica debe vivir en la ronda que sí corre siempre: `delivery-decisions.md`.
 - **Cursor (hecho).** El bundle instalado de `cursor-agent` 2026.10.22 (`~/.local/share/cursor-agent/versions/2026.10.22-27dcf5f/`) construye las fuentes de subagentes con `computeAgentsDirs()`, que devuelve `<workspace>/.cursor/agents` y, con la extensibilidad de terceros, `<workspace>/.claude/agents` y `<workspace>/.grok/agents`. Ninguna fuente de usuario carga agentes. En la sesión de Cursor del 28-oct los roles corrieron como hijos genéricos con el contrato incluido, sin efecto observado en los resultados.
 

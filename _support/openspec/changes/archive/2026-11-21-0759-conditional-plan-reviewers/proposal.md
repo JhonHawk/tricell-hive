@@ -58,7 +58,7 @@ None: the build needs nothing from outside the repository.
 ## Contexto verificado
 
 - Evidencia interna (360 revisiones de plan reales, Claude Code y Grok, antes y después del 30 de octubre de 2026):
-  - Los revisores por dominio encontraron cosas distintas cuando el plan cruzaba superficies independientes, como gh-192 y COM-838, y se repetían cuando leían los mismos archivos, como gh-89, la fila de COM-896 y el login de dened.
+  - Los revisores por dominio encontraron cosas distintas cuando el plan cruzaba superficies independientes, como gh-192 y PRJ-838, y se repetían cuando leían los mismos archivos, como gh-89, la fila de PRJ-896 y el login de project-e.
   - Una ronda con varios revisores costó unas 2,6 veces los tokens.
   - Retomar al mismo revisor costó 39 s y 149k tokens, frente a 250k–430k de uno nuevo.
 - Evidencia externa: Claude Code Code Review, Cloudflare y Comfy usan revisores en paralelo con un paso que verifica y quita duplicados. Una segunda ronda de revisión bajó el F1 de 0,376 a 0,263 (arXiv 2603.16244). Ninguna fuente mide la revisión de planes.

@@ -12,14 +12,14 @@ Se eligió el primero porque da la etapa con comando propio y arregla la ruta po
 
 ## Decisions
 
-- **Nombre y alcance (D10 A).** `flow-figma-design`, solo Figma. Los pasos pueden nombrar lo concreto de Figma (publicar la librería, variables y componentes locales, las instrucciones propias del conector), que es donde la sesión de cam se desvió. El campo del registro de diseño conserva su nombre neutral, «Design file».
+- **Nombre y alcance (D10 A).** `flow-figma-design`, solo Figma. Los pasos pueden nombrar lo concreto de Figma (publicar la librería, variables y componentes locales, las instrucciones propias del conector), que es donde la sesión de project-g se desvió. El campo del registro de diseño conserva su nombre neutral, «Design file».
 - **Sin Figma no hay etapa (D9, D10 A).** Desaparecen de la etapa las opciones «bocetos en texto» y «sin propuestas», y con ellas la tarjeta de oferta: quien no tiene conexión a Figma va de la investigación al plan, que sigue dibujando sus bocetos en texto. El ejemplo aprobado pasa a ser siempre un frame.
 - **Entrada por bloque, no por tarjeta (D4 A).** Pasar de un flujo a otro ya se hace con un bloque de siguiente paso y un comando; la investigación recomienda `flow-figma-design` y deja «ir directo al plan» como otra respuesta.
 - **Archivo no declarado (D5 A).** La etapa pide el enlace una vez como pregunta abierta en el texto; sin respuesta, termina con la ruta al plan.
 - **Registro en `DESIGN.md` (D6 A).** Se pregunta en la misma ronda que la aprobación del ejemplo, con opciones que valen bajo cualquier respuesta de aprobación. La etapa no edita el `DESIGN.md`: guarda el sí en el registro del ejemplo y el plan de la pantalla agrega la tarea que escribe el campo, porque esa edición es un cambio del repositorio que necesita su entrega. Cuando el entregable era el diseño y no hay plan, el cierre la nombra como pendiente.
 - **Quién autoriza escribir en Figma.** Al desaparecer la tarjeta de oferta, la respuesta del usuario que inicia la etapa (escribir su comando o elegirla en el bloque) es la instrucción para esas escrituras; una escritura que gasta dinero o cuota de pago conserva su propia pregunta.
 - **Límites del hijo (D7 A).** Crea frames en la página del trabajo y componentes y variables locales al archivo (en Figma las variables viven en colecciones del archivo, no de una página), anota sus identificadores en el registro y borra solo lo que creó, incluidos los que solo usaban los ejemplos no elegidos.
-- **Correcciones de cam (D8 A).** Cuatro pasos explícitos: cargar el sistema de diseño, encargo con los anchos, actualizar el registro al aprobarse y avisar los pasos manuales.
+- **Correcciones de project-g (D8 A).** Cuatro pasos explícitos: cargar el sistema de diseño, encargo con los anchos, actualizar el registro al aprobarse y avisar los pasos manuales.
 
 Decisiones menores tomadas sin preguntar:
 

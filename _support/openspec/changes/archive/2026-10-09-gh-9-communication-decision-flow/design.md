@@ -18,7 +18,7 @@ Base: `development` en `9c285026` (2026-10-08). Las líneas citadas son de esa r
 **Sesiones reales del 1 al 8 de octubre de 2026** (observado; detectores por patrones de texto, así que los conteos aproximados son máximos):
 - **Tarjetas sin texto:** 82 de 208 respuestas de Claude Code con `AskUserQuestion` no traen texto (Opus 5.5; recontado por el orquestador). Codex: 0 de 18. Grok dejó de fallar al pasar a texto.
 - **Decisiones que no quedaron en el chat**, en tres sesiones independientes:
-  - Carvento `71388ddc`: las alternativas quedaron solo en COM-786 y el usuario respondió «En lista los tres arreglos».
+  - project-a `71388ddc`: las alternativas quedaron solo en PRJ-786 y el usuario respondió «En lista los tres arreglos».
   - State-research `5aa1a929` #245–#250: las opciones estaban solo en la tarjeta; el usuario la rechazó y escribió «recuérdame cómo quedan las opciones».
   - `35bd0059`.
 - **Seguimientos tipo «¿qué queda pendiente?»:** 18 de 329 (5,5 %), sin relación con la longitud del reporte.

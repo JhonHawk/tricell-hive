@@ -2,7 +2,7 @@
 
 ## Estado
 
-Plan v4 completado e integrado mediante PR #124 (`59e2e627`), 2026-10-23. Estado actual: las cuatro tareas y controles compartidos pasaron; validación humana aprobada. Falta confirmar en el visor cotidiano la copia final con delivery; se conserva la unidad de evidencia y su worktree. Contexto inicial histórico: Base real del build `3394a43beeb2d193064cafa94c78f1e361826405`; worktree `/Users/jmartinez/.codex/worktrees/fa01/tricell-hive`, rama `feat/viewer-session-segments`. D6 autoriza implementación. Desde la base inspeccionada sólo cambiaron instrucciones de planificación, sin invalidar contratos del visor. Las tareas son secuenciales por sus contratos y archivos compartidos; la revisión por dominios se realizó en paralelo.
+Plan v4 completado e integrado mediante PR #124 (`59e2e627`), 2026-10-23. Estado actual: las cuatro tareas y controles compartidos pasaron; validación humana aprobada. Falta confirmar en el visor cotidiano la copia final con delivery; se conserva la unidad de evidencia y su worktree. Contexto inicial histórico: Base real del build `3394a43beeb2d193064cafa94c78f1e361826405`; worktree `/Users/me/.codex/worktrees/fa01/tricell-hive`, rama `feat/viewer-session-segments`. D6 autoriza implementación. Desde la base inspeccionada sólo cambiaron instrucciones de planificación, sin invalidar contratos del visor. Las tareas son secuenciales por sus contratos y archivos compartidos; la revisión por dominios se realizó en paralelo.
 
 ## T1 — Contrato de entregas validado por ambos lectores
 

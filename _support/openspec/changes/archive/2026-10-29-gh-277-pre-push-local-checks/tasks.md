@@ -64,7 +64,7 @@ C1 — T1 y T2 — es el único punto de control. T1 no tiene dos tareas posteri
 | --- | --- | --- | --- |
 | Suite completa | Candidato final, local | `go test ./...` pasa | Cubierto por la implementación |
 | Revisión dedicada | Candidato local, antes del push | `/code-review` de Claude Code; cada hallazgo se resuelve o se refuta | Respuesta reutilizada de esta sesión (D7-A) |
-| Prueba en vivo | — | No aplica: es contenido de guía. El efecto real se observará en sesiones de cam con la guía nueva | — |
+| Prueba en vivo | — | No aplica: es contenido de guía. El efecto real se observará en sesiones de project-g con la guía nueva | — |
 
 ## Estado de la revisión y progreso
 
@@ -98,6 +98,6 @@ C1 — T1 y T2 — es el único punto de control. T1 no tiene dos tareas posteri
   - el sitio y el CHANGELOG quedaron alineados.
 - Dos hallazgos de la primera ronda quedan sin adoptar, con su razón:
   - El repositorio cuyo CI solo corre después del merge no queda cubierto: ampliar la regla rompía AC1 y obligaba a una pregunta antes del push.
-  - El typecheck se repite con el hook de cam: cuesta poco y evita depender del momento en que corre el hook.
+  - El typecheck se repite con el hook de project-g: cuesta poco y evita depender del momento en que corre el hook.
 - T1 y T2 se verificaron otra vez sobre 9deb3a4c: AC1–AC6 cumplidos. Vuelven a `[x]`.
 - `go test ./...` pasa sobre 9deb3a4c. Integrado por el PR #278 (merge abc5e2bf).

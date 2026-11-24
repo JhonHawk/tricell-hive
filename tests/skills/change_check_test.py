@@ -395,8 +395,8 @@ class ChangeCheckTest(unittest.TestCase):
         valid_rules = """
     ## Business rules
 
-    ticket section: COM-833 · Reglas de negocio · export
-    ticket write: 2026-11-16 · build start · COM-833
+    ticket section: PRJ-833 · Reglas de negocio · export
+    ticket write: 2026-11-16 · build start · PRJ-833
     rule: Only admins may export CSV · screen Export · approved 2026-11-16: D2 A · found by plan
     rule: Default format is UTF-8 · screen none · assumption · found by build
     rule: Old rule · screen Export · cancelled 2026-11-16: replaced by admin rule · replaced by Only admins may export CSV · found by research

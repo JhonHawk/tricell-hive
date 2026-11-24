@@ -51,15 +51,15 @@ Las sesiones las revisaron tres hijos `hive-research` el 2026-10-28; el hilo pri
   - En Claude, Codex y Grok hubo 227 pausas a mitad de build en 65 sesiones: 18 % evitables o previsibles, 25 % genuinas y 59 % paradas prescritas.
   - Después de #224 siguieron siendo evitables 6 de 25.
 - **Fallo de CI:**
-  - Codex cam `01a15822`, 2026-10-23 06:32Z: «una prueba falla en CI… ¿Cómo continuamos?».
-  - Claude carvento `576e4f6d`, 2026-10-17 08:15Z: «CI fallida… ¿Qué hacemos?».
-  - Claude cam `df8c65a1`, 2026-10-27 04:00Z: D10.
+  - Codex project-g `01a15822`, 2026-10-23 06:32Z: «una prueba falla en CI… ¿Cómo continuamos?».
+  - Claude project-a `576e4f6d`, 2026-10-17 08:15Z: «CI fallida… ¿Qué hacemos?».
+  - Claude project-g `df8c65a1`, 2026-10-27 04:00Z: D10.
 - **Efectos de entorno:**
-  - Codex cam `01a1679c`, COM-867: nueve pausas para el primer corte a QA.
-  - Pi carvento `01a17176`: cinco autorizaciones escalonadas de datos de prueba en QA.
-  - Pi carvento `01a175b4`, 2026-10-26, D7: la allowlist de Atlas, tres minutos después de iniciar el build.
-  - Claude cam `df8c65a1`, D11: un grant en QA.
-- **Decisiones de diseño a mitad de build:** 42 pausas, entre ellas Claude carvento `94440d`, D39 y D40, con 538 min de espera.
+  - Codex project-g `01a1679c`, PRJ-867: nueve pausas para el primer corte a QA.
+  - Pi project-a `01a17176`: cinco autorizaciones escalonadas de datos de prueba en QA.
+  - Pi project-a `01a175b4`, 2026-10-26, D7: la allowlist de Atlas, tres minutos después de iniciar el build.
+  - Claude project-g `df8c65a1`, D11: un grant en QA.
+- **Decisiones de diseño a mitad de build:** 42 pausas, entre ellas Claude project-a `94440d`, D39 y D40, con 538 min de espera.
 - **Reglas que lo provocan** (leídas en `development` `3bb1e623`):
   - `content/skills/flow-build/references/verification.md:56`: «the failure comes from the change's code… report the failed jobs… as a pending item».
   - `content/skills/flow-build/references/foreseen-authorizations.md:9`: «what the plan, or for work without a plan the request, already names… an effect neither covers is asked when it arises».

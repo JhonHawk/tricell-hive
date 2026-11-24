@@ -18,11 +18,11 @@
 
 ## Solicitud
 
-> «analiza la sesión en curso de fleetsystem, las dos, a nivel diseño, creo que parte de la skill debe ser que se adjunten las reglas de negocio adhoc a la vista, y si se toman algunas que no vengan en la doc o ticket, que esta misma skill se encargue de actualizar (aunque no se si esto segundo deba venir en la skill de figma o sea mas amplio, porque puede pasar desde el plan o build)»
+> «analiza la sesión en curso de project-b, las dos, a nivel diseño, creo que parte de la skill debe ser que se adjunten las reglas de negocio adhoc a la vista, y si se toman algunas que no vengan en la doc o ticket, que esta misma skill se encargue de actualizar (aunque no se si esto segundo deba venir en la skill de figma o sea mas amplio, porque puede pasar desde el plan o build)»
 
 Tras el análisis, el usuario eligió preparar el cambio completo: tarjetas en `flow-figma-design` y un registro común con escritura al ticket. Sin ticket.
 
-Fuera de alcance: la falta de una salida «ver alternativas» en la ronda aprobar/corregir, el registro de FSR-860 que no se actualizó al aprobar, la numeración de decisiones que se traslapa entre sesiones y los cambios a la librería de Figma sin preguntar (hallazgos H6 a H9 del análisis).
+Fuera de alcance: la falta de una salida «ver alternativas» en la ronda aprobar/corregir, el registro de PRL-860 que no se actualizó al aprobar, la numeración de decisiones que se traslapa entre sesiones y los cambios a la librería de Figma sin preguntar (hallazgos H6 a H9 del análisis).
 
 ## Objetivo
 
@@ -65,8 +65,8 @@ Leído el 2026-11-13 en `development` (`b9113a3c`):
 
 Observaciones que motivan el cambio (hueco sin regla y función nueva; las adopta la decisión del usuario):
 
-- Claude Code 2.1.323, `claude-opus-5-5`, sesión `62cf4d39-a32c-4b21-afcf-9839dde244f8`, fleetsystem, 2026-11-13: el usuario pidió tarjetas de reglas junto a los frames (38 tarjetas, 89 filas, aprobadas sin corrección) y a las 08:51Z pidió llevar las reglas a la descripción de FSR-855 a FSR-860; hasta entonces vivían en `examples.md`, Engram y las tarjetas.
-- Claude Code 2.1.323, `claude-opus-5-5`, sesión `9ff8a1c8-a4af-46e0-bef8-a7bc544214da`, fleetsystem, 2026-11-13: de 20 decisiones de regla fuera del PDF y del ticket de FSR-859, 3 nacieron en research, 3 en diseño, 12 en el plan y 2 en el build; ninguna se escribió en Jira ni en Figma. El frame 310:1468 quedó contradiciendo una decisión del plan y una tarjeta siguió en «Por decidir».
+- Claude Code 2.1.323, `claude-opus-5-5`, sesión `62cf4d39-a32c-4b21-afcf-9839dde244f8`, project-b, 2026-11-13: el usuario pidió tarjetas de reglas junto a los frames (38 tarjetas, 89 filas, aprobadas sin corrección) y a las 08:51Z pidió llevar las reglas a la descripción de PRL-855 a PRL-860; hasta entonces vivían en `examples.md`, Engram y las tarjetas.
+- Claude Code 2.1.323, `claude-opus-5-5`, sesión `9ff8a1c8-a4af-46e0-bef8-a7bc544214da`, project-b, 2026-11-13: de 20 decisiones de regla fuera del PDF y del ticket de PRL-859, 3 nacieron en research, 3 en diseño, 12 en el plan y 2 en el build; ninguna se escribió en Jira ni en Figma. El frame 310:1468 quedó contradiciendo una decisión del plan y una tarjeta siguió en «Por decidir».
 
 ## Effects
 

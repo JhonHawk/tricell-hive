@@ -150,7 +150,7 @@ No hay efecto de UI renderizado: no corren `hive-review-ux` ni `hive-verify-chan
 
 - **Modo:** `Delivery: automatic`, declarado en `AGENTS.md`. Rama `feat/gh-173-ui-review-design-baseline` desde `development`, commits por tarea al reportarla, push, PR a `development`, `/code-review`, y merge cuando pasen las verificaciones y se atiendan los hallazgos.
 - **Lo que no incluye:** promoción a `master` y release.
-- **Commit y ticket:** el mensaje nombra las sesiones reales (Claude Code 2026-10-24, la de COM-645 en el proyecto del cliente; Pi 2026-10-25, `01a172af`) y el fallo observado, como pide `AGENTS.md` (Measurement). Al integrar, #173 se cierra.
+- **Commit y ticket:** el mensaje nombra las sesiones reales (Claude Code 2026-10-24, la de PRJ-645 en el proyecto del cliente; Pi 2026-10-25, `01a172af`) y el fallo observado, como pide `AGENTS.md` (Measurement). Al integrar, #173 se cierra.
 - **Instalación local:** como existe el marcador de mantenedor, al llegar a `development` se corre `hive update`; es un cambio de contenido.
 - **Registro de cambio:** se cierra con un PR pequeño sin revisión dedicada.
 
@@ -199,15 +199,15 @@ Hay que sumar `content/skills/unattended-delegation/SKILL.md` y `content/guidanc
 **Convención legacy (investigada con `hive-research`, 124 s, 140 k tokens).** El Hive legacy no tenía nombres de archivo para UI, solo la regla de ubicación. Ambos proyectos ya tienen un archivo que registra la base y las desviaciones. Se resolvió sin preguntar con una segunda línea en `ui-planning.md` (T3): ese archivo es la guía para la base de diseño y no se crea otro. Motivo: es lo que pidió el usuario, «no dejan de ser más archivos por mantener». Se revierte quitando esa línea.
 
 **Hallazgos de otros proyectos.** Se reportan para la sesión de cada proyecto; no se tocan desde aquí:
-- **Proyecto con shadcn (carvento):**
+- **Proyecto con shadcn (project-a):**
   - «Zinc» desactualizado en cinco lugares;
   - el bloque HSL de Tailwind v3 en las dos FRONTEND-GUIDELINES §10;
   - accesibilidad repartida en tres archivos;
-  - COM-707 contradice `design-tokens.md` §3;
+  - PRJ-707 contradice `design-tokens.md` §3;
   - checkbox y radio en 1.26:1;
   - `--destructive-hover`, `--destructive-foreground` y sonner sin registrar.
-- **Proyecto con HeroUI (CAM):**
-  - `heroui-baseline.md` y `cam-monorepo/AGENTS.md` siguen tratando el mock congelado como referencia visual;
+- **Proyecto con HeroUI (project-g):**
+  - `heroui-baseline.md` y `project-g-monorepo/AGENTS.md` siguen tratando el mock congelado como referencia visual;
   - `visual-identity.md` tiene un acento desactualizado.
 
 **Implementación:** sin empezar.

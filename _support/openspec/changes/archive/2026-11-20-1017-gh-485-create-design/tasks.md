@@ -128,7 +128,7 @@ Recorrido humano: leer `content/skills/create-design/SKILL.md` y `references/rev
 - Last commit: e152d372
 - Open findings: H-nit: readsFlowSkill counts any create-design load as a flow start (review/DESIGN.md entries) · close findings
 - Next: judge second review, push, PR, merge, refresh install, flow-close
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/create-design · feat/create-design
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/create-design · feat/create-design
 
 ### Evidence
 

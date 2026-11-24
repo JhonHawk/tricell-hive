@@ -2,7 +2,7 @@
 
 Base: `development` en `8a4443a2`, rama `feat/base-sync-admin-grant` en `.claude/worktrees/base-sync`. T3 edita más de 3 archivos del auditor (loaders de las tres hosts, el bloque nuevo, pruebas y fixtures) y va a un hijo `hive-build-backend`; su interfaz queda fijada en `design.md` («Bloque `main_thread_cost` del auditor»). T1 y T2 editan como máximo 3 archivos cada una y quedan en el hilo principal mientras el hijo trabaja, porque sus archivos no se cruzan. T4 va después de T1–T3 porque documenta lo que dejan; T5 va al final porque usa el bloque de T3.
 
-Los commits nombran la observación que originó el cambio: Grok Build, `grok-4.7-build-fast` high (en el floor como modelo de las sesiones del usuario; los commits dicen por error «outside the floor»), sesión `01a1f5fc-60ea-7971-8d04-ca82a187fa9e` en fleetsystem, 2026-11-19: base de specs 20 commits atrás tras el cierre, `--admin` pedido dos veces y un hilo principal de 599 llamadas.
+Los commits nombran la observación que originó el cambio: Grok Build, `grok-4.7-build-fast` high (en el floor como modelo de las sesiones del usuario; los commits dicen por error «outside the floor»), sesión `01a1f5fc-60ea-7971-8d04-ca82a187fa9e` en project-b, 2026-11-19: base de specs 20 commits atrás tras el cierre, `--admin` pedido dos veces y un hilo principal de 599 llamadas.
 
 ### T1 — Base local al día en `cleanup_branches.py`
 
@@ -20,7 +20,7 @@ Los commits nombran la observación que originó el cambio: Grok Build, `grok-4.
 
 **Changes:** Las reglas 1–7 de `design.md` («Base al día»), en ese orden, con el fetch y el avance antes de planear la limpieza y `status`, `diff` y `merge` en el checkout principal. Sin `git pull` ni `rebase`; no cambia la rama de ningún checkout. La salida sigue siendo 0 sin errores y 1 con alguno.
 
-**Verification:** `python3 -m unittest discover -s /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/base-sync/tests/skills -p 'cleanup_branches_test.py'` pasa, con cada caso nuevo visto fallar antes. Casos:
+**Verification:** `python3 -m unittest discover -s /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/base-sync/tests/skills -p 'cleanup_branches_test.py'` pasa, con cada caso nuevo visto fallar antes. Casos:
 - base detrás y limpia: avanza, `fast_forward` con `commits` y `from`/`to`;
 - base al día: `current`;
 - lo que llega toca un archivo modificado: `keep` con ese archivo en `paths`, la base no se mueve;
@@ -49,7 +49,7 @@ Los commits nombran la observación que originó el cambio: Grok Build, `grok-4.
 
 **Changes:** El texto de `design.md` («Permiso de admin-merge por sesión»), el final del punto del revisor humano, la excepción de tamaño con su comentario y las tres frases del global. No reescribe el resto de la hoja. Se quedan las frases de `single_home_test.go`. No cambia `hive-rule-promotion-path`. El pull request da el tamaño de `global.md` antes y después y los lugares revisados (la regla solo vive en la hoja; búsqueda en `content/`, `site/`, `_support/docs/`, `tests/pilot/`, `README.md`, `llms.txt`).
 
-**Verification:** `go -C /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/base-sync test ./tests/content/...` pasa (tamaño de hojas, frases de una sola casa, huella de lectura). Lectura de la hoja y del global contra AC7: las cinco exclusiones, los PR sin checks, la rama de producción definida, el revisor vuelto a pedir y la aprobación vieja están, y «does not cover later ones» ya no. AC4 queda sin verificar hasta una sesión real tras el despliegue.
+**Verification:** `go -C /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/base-sync test ./tests/content/...` pasa (tamaño de hojas, frases de una sola casa, huella de lectura). Lectura de la hoja y del global contra AC7: las cinco exclusiones, los PR sin checks, la rama de producción definida, el revisor vuelto a pedir y la aprobación vieja están, y «does not cover later ones» ya no. AC4 queda sin verificar hasta una sesión real tras el despliegue.
 
 ### T3 — Bloque `main_thread_cost` en `--audit-session`
 
@@ -67,7 +67,7 @@ Los commits nombran la observación que originó el cambio: Grok Build, `grok-4.
 
 **Changes:** La forma de `design.md` («Bloque `main_thread_cost` del auditor»), con la resta de hijos de Grok, los `token_count` repetidos de Codex y las lecturas solo de skills instaladas. El uso se guarda en `auditSession`, no en `traceEvent`; ningún criterio cambia de veredicto. Las fixtures son sintéticas y pequeñas: por host, dos llamadas con uso, una compactación, una lectura de una skill instalada, una de `content/skills/` (que no cuenta), un script de Hive y una lectura de otro archivo; Claude con un mensaje repetido en dos bloques para probar que se cuenta una vez; Codex con un `token_count` repetido; Grok con un hijo cuyo `usage.json` se resta y otro caso donde falta y queda `per_turn_with_children`.
 
-**Verification:** `go -C /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/base-sync test ./tests/pilot/...` y `go -C … vet ./tests/pilot/...` pasan, con los casos nuevos vistos fallar antes. Sobre sesiones reales: Grok `01a1f5fc` da `model_calls` 410 e `input_tokens` 55115725 con `usage_source` `per_turn`; una de Claude y una de Codex dan llamadas y tokens procesados que coinciden con `measure-delegation.py`, salvo los `token_count` repetidos de Codex, contados aparte; los demás criterios de esas tres sesiones no cambian frente a la base.
+**Verification:** `go -C /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/base-sync test ./tests/pilot/...` y `go -C … vet ./tests/pilot/...` pasan, con los casos nuevos vistos fallar antes. Sobre sesiones reales: Grok `01a1f5fc` da `model_calls` 410 e `input_tokens` 55115725 con `usage_source` `per_turn`; una de Claude y una de Codex dan llamadas y tokens procesados que coinciden con `measure-delegation.py`, salvo los `token_count` repetidos de Codex, contados aparte; los demás criterios de esas tres sesiones no cambian frente a la base.
 
 ### T4 — Documentación
 
@@ -83,7 +83,7 @@ Los commits nombran la observación que originó el cambio: Grok Build, `grok-4.
 
 **Changes:** La referencia pide reportar `base_update`, su línea 3 nombra el avance de la base como efecto que autoriza, y deja «return its checkout to the base» solo como volver a la base; el sitio dice que el cierre deja la base al día cuando es seguro y cuándo no, y que un permiso de `--admin` dura la sesión con sus límites (donde describe la retención de un revisor); la rúbrica gana una fila para `main_thread_cost` (sección 5) y el permiso por sesión (Authorization); `rule-enforcers.md` anota el avance de la base como hecho por script. Sin nombres de sesiones privadas en el sitio.
 
-**Verification:** `go -C /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/base-sync test ./tests/content/...` pasa; `rg -n 'grants no other effect|return its checkout' content/skills/flow-close` muestra el texto nuevo.
+**Verification:** `go -C /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/base-sync test ./tests/content/...` pasa; `rg -n 'grants no other effect|return its checkout' content/skills/flow-close` muestra el texto nuevo.
 
 ### T5 — Medición de 3 sesiones
 
@@ -99,7 +99,7 @@ Los commits nombran la observación que originó el cambio: Grok Build, `grok-4.
 
 **Test approach:** check
 
-**Changes:** Corre `--audit-session` sobre fleetsystem Grok `01a1f5fc`, cam Codex `01a1f5d4` y Claude `bf678880`, y da por sesión llamadas, tokens de entrada, contexto por llamada, compactaciones y la parte de lecturas y scripts de Hive. No propone ni cambia reglas; las conclusiones quedan como candidatas para que el usuario decida.
+**Changes:** Corre `--audit-session` sobre project-b Grok `01a1f5fc`, project-g Codex `01a1f5d4` y Claude `bf678880`, y da por sesión llamadas, tokens de entrada, contexto por llamada, compactaciones y la parte de lecturas y scripts de Hive. No propone ni cambia reglas; las conclusiones quedan como candidatas para que el usuario decida.
 
 **Verification:** las tres salidas JSON leídas y la tabla en el reporte.
 
@@ -121,7 +121,7 @@ Sin parada de validación (`automatic`).
 - Last commit: 6cdd97f3
 - Open findings: none
 - Next: merge PR, deploy, flow-close
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/base-sync · feat/base-sync-admin-grant
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/base-sync · feat/base-sync-admin-grant
 
 ### Evidence
 

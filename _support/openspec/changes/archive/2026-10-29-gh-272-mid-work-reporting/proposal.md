@@ -51,7 +51,7 @@ El cambio quita esas obligaciones. Conserva la regla que de verdad evita las par
 
 **Excluido:**
 
-- E4 (una afirmación de cierre sin verificar, Claude `bc3842f3`), E5 (una revisión no hecha puesta como recordatorio, cam `4afe6d47`) y E6 (tres mensajes de cierre seguidos, Grok `01a1855f`). Se vieron en una sola sesión cada uno y quedan en observación: un watch item de Engram en `decisions/mid-work-reporting-removal`.
+- E4 (una afirmación de cierre sin verificar, Claude `bc3842f3`), E5 (una revisión no hecha puesta como recordatorio, project-g `4afe6d47`) y E6 (tres mensajes de cierre seguidos, Grok `01a1855f`). Se vieron en una sola sesión cada uno y quedan en observación: un watch item de Engram en `decisions/mid-work-reporting-removal`.
 - Las reglas de código en inglés, i18n, commits y convenciones de desarrollo (`global.md` Language, `hive-core/references/language.md`), por decisión del usuario.
 - La glosa de IDs y el formato de enlaces, que se mantienen.
 - El vocabulario del proyecto en los tickets (`ticket-body.md:11`) y el del usuario en la revisión de UI (`ui-review-criteria.md:67`), porque tratan del producto y no de los reportes.

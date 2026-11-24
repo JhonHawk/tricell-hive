@@ -29,7 +29,7 @@ def git(path, *args, check=True):
 
 
 def monorepo(repo, backend="backend", web="web"):
-    """A monorepo with the support folder shapes the real carvento run met."""
+    """A monorepo with the support folder shapes the real project-a run met."""
     repo.mkdir(parents=True)
     git(repo, "init", "-q", "-b", "main")
     git(repo, "config", "user.email", "t@example.invalid")
@@ -576,12 +576,12 @@ class ReviewFindingsTest(Fixture, unittest.TestCase):
     def test_version_names_are_not_one_off_and_loose_files_are_files(self):
         repo = small_repo(self.tmp() / "r")
         write(repo, "_support/scripts/setup-node-18.sh", "echo\n")
-        write(repo, "_support/scripts/load-COM-645.sh", "echo\n")
+        write(repo, "_support/scripts/load-PRJ-645.sh", "echo\n")
         write(repo, "_support/notes.txt", "x\n")
         commit(repo)
         plan = self.plan_json(repo)
         self.assertEqual(self.dest(plan, "_support/scripts/setup-node-18.sh")[1], "R10")
-        self.assertEqual(self.dest(plan, "_support/scripts/load-COM-645.sh")[1], "R9")
+        self.assertEqual(self.dest(plan, "_support/scripts/load-PRJ-645.sh")[1], "R9")
         self.assertEqual([r["kind"] for r in plan["rows"] if r["source"] == "_support/notes.txt"], ["file"])
 
     @staticmethod

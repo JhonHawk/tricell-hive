@@ -69,6 +69,7 @@ and preserve the shared offline renderer byte for byte. See the
 
 ## Branches and commits
 
+- The repository is public: before naming a client, a ticket or a local path in any text, read root `AGENTS.md` «Scope and preservation».
 - Branch from `development`, the base branch, and open pull requests against it.
   `master` is the release branch and receives changes only by promotion.
   GitHub enforces it: a ruleset on `master` blocks direct pushes, force pushes

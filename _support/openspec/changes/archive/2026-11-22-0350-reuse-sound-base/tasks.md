@@ -56,7 +56,7 @@ Revisión humana: leer el peldaño 2 nuevo y el texto del revisor en el diff.
 - Last commit: 9fa7cf19
 - Open findings: spec rationale: 'a workaround whose comment names its cause, which a user already accepted' is false for an incident mitigation · close finding; an accepted workaround is re-asked on each later task and may get a duplicate ticket proposal · close finding (user decision); spec scenario title 'too large to fix in passing' implies small diverging duplication is fixed silently · close finding; the second review does not cover what the first missed · noted
 - Next: push, PR ready, CI wait, PR reviews, stop
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/reuse-sound-base · feat/reuse-sound-base
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/reuse-sound-base · feat/reuse-sound-base
 - Rules: flow-verify/stage-entry.md, flow-verify/stage-exit.md
 - Principles: none
 

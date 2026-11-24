@@ -21,7 +21,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -38,20 +38,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -220,7 +220,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -237,20 +237,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -419,7 +419,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -436,20 +436,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -618,7 +618,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -635,20 +635,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -817,7 +817,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -834,20 +834,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -1016,7 +1016,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -1033,20 +1033,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -1215,7 +1215,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -1232,20 +1232,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -1414,7 +1414,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -1431,20 +1431,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -1610,7 +1610,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -1627,20 +1627,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -1806,7 +1806,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -1823,20 +1823,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -2004,7 +2004,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -2021,20 +2021,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -2202,7 +2202,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -2219,20 +2219,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -2400,7 +2400,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -2417,20 +2417,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -2603,7 +2603,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -2620,20 +2620,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -2806,7 +2806,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -2823,20 +2823,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -3009,7 +3009,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -3026,20 +3026,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -3214,7 +3214,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -3231,20 +3231,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -3418,7 +3418,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -3435,20 +3435,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -3622,7 +3622,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -3639,20 +3639,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -3826,7 +3826,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -3843,20 +3843,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -4032,7 +4032,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -4049,20 +4049,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -4238,7 +4238,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -4255,20 +4255,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -4444,7 +4444,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -4461,20 +4461,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -4650,7 +4650,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -4667,20 +4667,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -4854,7 +4854,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -4871,20 +4871,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -5061,7 +5061,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -5078,20 +5078,20 @@
       "validation_count": 0,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -5245,7 +5245,7 @@
       "schema_version": 3,
       "viewer_session_id": "1111111111111111111111111111111111111111111111111111111111111111",
       "project_key": "example.com/fixture/project",
-      "project_name": "CAM fixture",
+      "project_name": "project-g fixture",
       "source": {
         "project_root": "/fixture/project",
         "host": "codex",
@@ -5262,20 +5262,20 @@
       "validation_count": 2,
       "tickets": [
         {
-          "key": "COM-1",
-          "url": "https://example.com/issues/COM-1",
+          "key": "PRJ-1",
+          "url": "https://example.com/issues/PRJ-1",
           "title": "Profile spacing",
           "ticket_id": "ticket-1",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-1"
+          "external_id": "PRJ-1"
         },
         {
-          "key": "COM-2",
-          "url": "https://example.com/issues/COM-2",
+          "key": "PRJ-2",
+          "url": "https://example.com/issues/PRJ-2",
           "title": "Chat filters",
           "ticket_id": "ticket-2",
           "external_scope": "https://example.test/tracker",
-          "external_id": "COM-2"
+          "external_id": "PRJ-2"
         }
       ],
       "events": [
@@ -5293,15 +5293,15 @@
             {
               "ticket_id": "ticket-1",
               "snapshot": {
-                "key": "COM-1",
-                "url": "https://example.com/issues/COM-1"
+                "key": "PRJ-1",
+                "url": "https://example.com/issues/PRJ-1"
               }
             },
             {
               "ticket_id": "ticket-2",
               "snapshot": {
-                "key": "COM-2",
-                "url": "https://example.com/issues/COM-2"
+                "key": "PRJ-2",
+                "url": "https://example.com/issues/PRJ-2"
               }
             }
           ],
@@ -5324,15 +5324,15 @@
             {
               "ticket_id": "ticket-1",
               "snapshot": {
-                "key": "COM-1",
-                "url": "https://example.com/issues/COM-1"
+                "key": "PRJ-1",
+                "url": "https://example.com/issues/PRJ-1"
               }
             },
             {
               "ticket_id": "ticket-2",
               "snapshot": {
-                "key": "COM-2",
-                "url": "https://example.com/issues/COM-2"
+                "key": "PRJ-2",
+                "url": "https://example.com/issues/PRJ-2"
               }
             }
           ],
@@ -5356,15 +5356,15 @@
             {
               "ticket_id": "ticket-1",
               "snapshot": {
-                "key": "COM-1",
-                "url": "https://example.com/issues/COM-1"
+                "key": "PRJ-1",
+                "url": "https://example.com/issues/PRJ-1"
               }
             },
             {
               "ticket_id": "ticket-2",
               "snapshot": {
-                "key": "COM-2",
-                "url": "https://example.com/issues/COM-2"
+                "key": "PRJ-2",
+                "url": "https://example.com/issues/PRJ-2"
               }
             }
           ],
@@ -5376,8 +5376,8 @@
                 {
                   "ticket_id": "ticket-1",
                   "snapshot": {
-                    "key": "COM-1",
-                    "url": "https://example.com/issues/COM-1"
+                    "key": "PRJ-1",
+                    "url": "https://example.com/issues/PRJ-1"
                   }
                 }
               ],
@@ -5400,15 +5400,15 @@
                 {
                   "ticket_id": "ticket-1",
                   "snapshot": {
-                    "key": "COM-1",
-                    "url": "https://example.com/issues/COM-1"
+                    "key": "PRJ-1",
+                    "url": "https://example.com/issues/PRJ-1"
                   }
                 },
                 {
                   "ticket_id": "ticket-2",
                   "snapshot": {
-                    "key": "COM-2",
-                    "url": "https://example.com/issues/COM-2"
+                    "key": "PRJ-2",
+                    "url": "https://example.com/issues/PRJ-2"
                   }
                 }
               ],
@@ -5447,15 +5447,15 @@
             {
               "ticket_id": "ticket-1",
               "snapshot": {
-                "key": "COM-1",
-                "url": "https://example.com/issues/COM-1"
+                "key": "PRJ-1",
+                "url": "https://example.com/issues/PRJ-1"
               }
             },
             {
               "ticket_id": "ticket-2",
               "snapshot": {
-                "key": "COM-2",
-                "url": "https://example.com/issues/COM-2"
+                "key": "PRJ-2",
+                "url": "https://example.com/issues/PRJ-2"
               }
             }
           ],
@@ -5467,15 +5467,15 @@
                 {
                   "ticket_id": "ticket-1",
                   "snapshot": {
-                    "key": "COM-1",
-                    "url": "https://example.com/issues/COM-1"
+                    "key": "PRJ-1",
+                    "url": "https://example.com/issues/PRJ-1"
                   }
                 },
                 {
                   "ticket_id": "ticket-2",
                   "snapshot": {
-                    "key": "COM-2",
-                    "url": "https://example.com/issues/COM-2"
+                    "key": "PRJ-2",
+                    "url": "https://example.com/issues/PRJ-2"
                   }
                 }
               ],
@@ -5518,15 +5518,15 @@
             {
               "ticket_id": "ticket-1",
               "snapshot": {
-                "key": "COM-1",
-                "url": "https://example.com/issues/COM-1"
+                "key": "PRJ-1",
+                "url": "https://example.com/issues/PRJ-1"
               }
             },
             {
               "ticket_id": "ticket-2",
               "snapshot": {
-                "key": "COM-2",
-                "url": "https://example.com/issues/COM-2"
+                "key": "PRJ-2",
+                "url": "https://example.com/issues/PRJ-2"
               }
             }
           ],
@@ -5558,15 +5558,15 @@
             {
               "ticket_id": "ticket-1",
               "snapshot": {
-                "key": "COM-1",
-                "url": "https://example.com/issues/COM-1"
+                "key": "PRJ-1",
+                "url": "https://example.com/issues/PRJ-1"
               }
             },
             {
               "ticket_id": "ticket-2",
               "snapshot": {
-                "key": "COM-2",
-                "url": "https://example.com/issues/COM-2"
+                "key": "PRJ-2",
+                "url": "https://example.com/issues/PRJ-2"
               }
             }
           ],

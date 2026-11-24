@@ -6,8 +6,8 @@
 
 | Host | Modelo | Finales de respuesta con decisión |
 | --- | --- | --- |
-| Claude Code, fleetsystem `02891730` | claude-opus-5-5 | 6 tarjetas a mitad del flujo. 3 finales solo en texto (06:20Z, 06:42Z, 07:09Z); los dos últimos, después de leer `questions.md`, `flow-close` y `reporting.md` |
-| Claude Code, fleetsystem `8168b9a2` | claude-opus-5-5 | 1 final solo en texto (06:54Z); nunca leyó `questions.md` |
+| Claude Code, project-b `02891730` | claude-opus-5-5 | 6 tarjetas a mitad del flujo. 3 finales solo en texto (06:20Z, 06:42Z, 07:09Z); los dos últimos, después de leer `questions.md`, `flow-close` y `reporting.md` |
+| Claude Code, project-b `8168b9a2` | claude-opus-5-5 | 1 final solo en texto (06:54Z); nunca leyó `questions.md` |
 | Grok, 5 sesiones | grok-4.7-build-fast | 7 de 7 con línea de espera y tarjeta |
 | OpenCode, 5 sesiones | deepseek-v4.1-flash | 2 de 2 decisiones con tarjeta. Su razonamiento citó `global.md:20` y dudó si la línea de espera reemplaza a la tarjeta |
 | Codex, 3 sesiones | gpt-6.1-sol | Sin finales con decisión. En modo por defecto el texto es lo correcto (`default_mode_request_user_input = false`; `agent-delivery.md:208`) |
@@ -111,8 +111,8 @@ La fila de `harness-audit-rules.md:24` cambia así:
 ## Notas para los commits
 
 Cada commit nombra:
-- Claude Code fleetsystem `02891730` y `8168b9a2` (2026-10-17): preguntas al final de la respuesta sin tarjeta.
-- Carvento (auditoría del 2026-10-16, Engram #15642).
+- Claude Code project-b `02891730` y `8168b9a2` (2026-10-17): preguntas al final de la respuesta sin tarjeta.
+- project-a (auditoría del 2026-10-16, Engram #15642).
 - La decisión R4-A y, en T4, D1-B.
 
 T2 declara el cambio de tamaño de `global.md`.

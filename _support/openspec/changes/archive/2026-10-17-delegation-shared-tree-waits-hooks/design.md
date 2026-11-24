@@ -12,8 +12,8 @@ Comprobado en esta sesión salvo donde se indica.
   - **U1:** a las 20:53Z, el hijo `hive-build-backend`, limitado a `pnpm11/`, ejecutó `git stash -q`, luego un `git stash pop` que falló y luego `git checkout stash@{0} -- pnpm11`, todo en el checkout compartido. Con eso guardó en el stash los cambios del hilo principal en `pnpm/`. El hilo principal hizo `git stash drop` comprobando solo que una cadena siguiera presente. El stash `1100eebc` aún existe y todas sus líneas están en el árbol, así que no se perdió nada.
   - **U2:** los vigilantes usaban `grep -q -E "^(Finished|error: could not compile|...)"`. Cargo imprime `    Finished` con sangría, y el error de dashmap (`error: patch location ...`) no coincidía. Hubo esperas de 15 minutos (21:18–21:33Z) y de 27 minutos (21:59–22:26Z); en la segunda el check ya había terminado en 14 s.
   - **U3:** los 8 commits usaron `--no-verify` sin preguntar. El hook de pre-commit contiene la guarda del proyecto contra commits de Claude en `main`. `pnpm/scripts/pre-push-rust.sh:11` se salta todos los chequeos de Rust cuando falta `cargo`, y Dylint falló en CI cuatro rondas (archivo de más de 400 líneas, orden de ítems, función de más de 40 líneas).
-- **carvento `039a9a2b` (2026-10-13), U1:** un hijo `hive-build-frontend` ejecutó `git stash -q; git stash pop -q` en el monorepo compartido mientras otro hijo editaba `apps/backend`. Esto viene de la observación de Engram #15433; no lo releí en esta sesión.
-- **fleetsystem `b6644329` (Claude Code, claude-opus-5-5, 2026-10-16), U2:** se lanzaron en segundo plano `gh pr checks 186 --watch --interval 30` (00:13:45Z y 00:17:44Z), y la sesión los sustituyó por bucles que primero esperan a que exista el run (00:40:56Z). En esta sesión comprobé esos comandos. La salida "no checks reported" la reporta el hijo auditor.
+- **project-a `039a9a2b` (2026-10-13), U1:** un hijo `hive-build-frontend` ejecutó `git stash -q; git stash pop -q` en el monorepo compartido mientras otro hijo editaba `apps/backend`. Esto viene de la observación de Engram #15433; no lo releí en esta sesión.
+- **project-b `b6644329` (Claude Code, claude-opus-5-5, 2026-10-16), U2:** se lanzaron en segundo plano `gh pr checks 186 --watch --interval 30` (00:13:45Z y 00:17:44Z), y la sesión los sustituyó por bucles que primero esperan a que exista el run (00:40:56Z). En esta sesión comprobé esos comandos. La salida "no checks reported" la reporta el hijo auditor.
 
 ### Texto actual
 
@@ -40,7 +40,7 @@ En `delegation.md:29` (brief), después de la primera frase, se añade esta otra
 
 > A Git command that rewrites working-tree files, such as `git stash`, `git reset`, `git checkout` or `git restore` of paths, `git clean`, or `git switch`, changes paths outside the child's own: the child never runs one in a working tree shared with other writers, and neither does the main thread while a child works in that tree; both compare with the base through read-only Git commands or a separate worktree.
 
-Por qué en los dos sitios: el hijo lee su pie, no `delegation.md`, y el hilo principal lee `delegation.md` para preparar el brief. Esto ya pasa hoy con "named paths". La frase del hilo principal también cubre el `git stash` que hizo el hilo principal de fleetsystem a las 01:00:32Z mientras un hijo leía el árbol.
+Por qué en los dos sitios: el hijo lee su pie, no `delegation.md`, y el hilo principal lee `delegation.md` para preparar el brief. Esto ya pasa hoy con "named paths". La frase del hilo principal también cubre el `git stash` que hizo el hilo principal de project-b a las 01:00:32Z mientras un hijo leía el árbol.
 
 ### U2: una señal de fin que cubra todos los resultados
 
@@ -99,7 +99,7 @@ En `site/src/content/docs/flows/build.md` se añade una frase en "Who commits an
 
 Según AGENTS.md, nombra las sesiones de origen:
 - pnpm `e5edd628` (Claude Code, 2026-10-16);
-- carvento `039a9a2b` (Claude Code, 2026-10-13);
-- fleetsystem `b6644329` (Claude Code, 2026-10-16).
+- project-a `039a9a2b` (Claude Code, 2026-10-13);
+- project-b `b6644329` (Claude Code, 2026-10-16).
 
 Y la decisión del usuario D1-A para U3, que tiene un solo caso.

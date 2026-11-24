@@ -19,7 +19,7 @@ Verificado por `hive-verify-task` (AC1 cumplido). Antes del commit se corrigió 
 - `delegation.md`: «not interim status» ausente, y una coincidencia de «as the global delegation rule sets».
 - `agent-delivery.md`: una coincidencia de «min_wait_timeout_ms».
 
-**Changes:** redacción de [design.md](design.md#redacción-de-la-guía-t1). `hive-review-plan.md` no tiene la frase de cierre y no cambia. El commit nombra las sesiones `01a15822` (2026-10-20) y `01a1679c` (2026-10-23) de cam en Codex y la falla observada (regla de admisión).
+**Changes:** redacción de [design.md](design.md#redacción-de-la-guía-t1). `hive-review-plan.md` no tiene la frase de cierre y no cambia. El commit nombra las sesiones `01a15822` (2026-10-20) y `01a1679c` (2026-10-23) de project-g en Codex y la falla observada (regla de admisión).
 **Verification:** los comandos dan lo esperado, y `go test ./tests/content/... ./integrations/agents/...` pasa en verde (tamaño, enlaces y render de roles; actualizar el golden solo si cambia el render).
 
 ## T2 — Lector y editor de `[features.multi_agent_v2]`

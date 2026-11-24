@@ -2,7 +2,7 @@
 
 ## Approaches
 
-1. **Solo `flow-figma-design`.** La skill dibuja las tarjetas y escribe el ticket. Descartado: en la sesión de FSR-859, 14 de 20 reglas nacieron en plan y build, y un trabajo sin pantalla nunca pasa por la etapa.
+1. **Solo `flow-figma-design`.** La skill dibuja las tarjetas y escribe el ticket. Descartado: en la sesión de PRL-859, 14 de 20 reglas nacieron en plan y build, y un trabajo sin pantalla nunca pasa por la etapa.
 2. **Regla común con escritura solo al cierre.** Una escritura por trabajo. Descartado por D1 A: el ticket quedaría atrasado durante el build, cuando otras sesiones lo leen.
 3. **Regla común con escritura en cada aprobación y al cierre (elegido, D1 A).** Una referencia única; cada flujo lleva un puntero en el paso que la ejecuta. Reutiliza lo que ya existe: las líneas `rule:` de `examples.md`, las decisiones de `proposal.md` y los dos momentos en que Hive ya escribe el tracker (arranque del build y cierre).
 

@@ -64,7 +64,7 @@ None: the build needs nothing from outside the repository.
 - `rg -n 'does not copy an existing workaround' site/src/content/docs/flows/build.md` · línea 26 · 2026-11-21.
 - `pnpm --dir site check` · 0 errores, 0 avisos, 0 sugerencias (1 s), medido en el checkout principal; en el worktree del build, not measured hasta T2, tras su `install --frozen-lockfile --offline` · 2026-11-21.
 - Sesión en paralelo (`feat/close-cleans-at-completion`, último commit `53f4ba24`, sin PR abierto): cambia 62 archivos y ninguno de los que edita este plan; su delta de `workflow-lifecycle` toca otros requisitos; su entrada de CHANGELOG está al inicio de `### Changed` de `[Unreleased]`; cambia 8 archivos de la unión de lectura (cubierto por la medida en los dos órdenes) · 2026-11-21.
-- `python3 -I /Users/jmartinez/.agents/skills/flow-plan/scripts/check_change.py _support/openspec/changes/reuse-sound-base` · sale con 0 · 2026-11-21.
+- `python3 -I /Users/me/.agents/skills/flow-plan/scripts/check_change.py _support/openspec/changes/reuse-sound-base` · sale con 0 · 2026-11-21.
 
 ## Effects
 

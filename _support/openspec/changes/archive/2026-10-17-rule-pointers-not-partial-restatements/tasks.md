@@ -154,4 +154,4 @@ Base del cambio: `c6c1ee16` (`feat/delegation-threshold-global`), confirmada al 
 - **Commits en `feat/delegation-threshold-global`:** `a2437302` (T1), `541475e3` (T2), `13163f80` (T3) y `aa17fbe1` (T4), sin push.
 - **Despliegue:** `hive update --out` + `hive apply --plan` desde `aa17fbe1`, transacción `adfe8bf8…`. El texto nuevo está en las instrucciones globales de Claude (que también usa Grok), Codex, OpenCode, Pi y Cursor, y en las skills instaladas.
 - **Estado:** desplegado en local para tus pruebas. Siguiente paso: tú lo pruebas en sesiones nuevas de Claude Code y decides el merge a `development`.
-- **Límites:** no se verificaron la evidencia externa ni las sesiones de fleetsystem más allá de la auditoría. Las demás reglas con copias quedan para cuando un cambio las edite.
+- **Límites:** no se verificaron la evidencia externa ni las sesiones de project-b más allá de la auditoría. Las demás reglas con copias quedan para cuando un cambio las edite.

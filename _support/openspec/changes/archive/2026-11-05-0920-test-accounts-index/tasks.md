@@ -86,7 +86,7 @@ En el hilo principal corren T1, que fija el texto de la regla, y después T3 y T
 | Revisión de código | Candidato final, antes del push | Claude Code `/code-review` (D3 A) | La respuesta de revisión |
 | CI | Tras el push a la rama del PR #352 | Checks requeridos en verde | Entrega `ready` (D2 A) |
 
-El mensaje de cada commit nombra las sesiones que motivaron el cambio, con host, ID y fecha: Claude Code `32cffc1d` (cam, 2026-11-02), Claude Code `40d074af` (cam, 2026-11-03) y Claude Code `8d09a5eb` (carvento, 2026-11-02). El PR lista los lugares revisados (sección «Contexto verificado» de `proposal.md`) y el cambio de tamaño de `global.md`.
+El mensaje de cada commit nombra las sesiones que motivaron el cambio, con host, ID y fecha: Claude Code `32cffc1d` (project-g, 2026-11-02), Claude Code `40d074af` (project-g, 2026-11-03) y Claude Code `8d09a5eb` (project-a, 2026-11-02). El PR lista los lugares revisados (sección «Contexto verificado» de `proposal.md`) y el cambio de tamaño de `global.md`.
 
 ## Estado de la revisión y avance
 

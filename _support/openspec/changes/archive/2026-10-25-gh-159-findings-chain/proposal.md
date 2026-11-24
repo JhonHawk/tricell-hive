@@ -10,7 +10,7 @@
 
 ## Solicitud
 
-> otro detalle a agregar y es muy notorio en la sesión actual de claude en cam, un circulo vicioso en el tema de hallazgos -> resuelven -> mas hallazgos, y casi todos son detalles menores
+> otro detalle a agregar y es muy notorio en la sesión actual de claude en project-g, un circulo vicioso en el tema de hallazgos -> resuelven -> mas hallazgos, y casi todos son detalles menores
 
 > El tema es que: 1) Son tickets estrechamente relacionados con lo que ya se esta trabajando 2) cada defecto menor lo considera un ticket 3) Cada que resuelve un ticket, encuentra otros ~5 hallazgos, entonces termina resolviendo lo que acaba de encontrar, esos son los tickets encadenados
 

@@ -27,7 +27,7 @@
 
 ## Objetivo
 
-Hoy ninguna regla de Hive dice dónde buscar una cuenta de prueba antes de crearla. En las sesiones del 11-02 al 11-04, las cuentas de cam estaban repartidas en 7 archivos, uno por ticket y sin índice; Engram no devolvió nada en 3 búsquedas; una org se recreó; y en QA se perdieron ~39 min por usar una cuenta que no veía el dato a probar. En carvento, la cuenta que documenta `AGENTS.md:151` da 401 en local.
+Hoy ninguna regla de Hive dice dónde buscar una cuenta de prueba antes de crearla. En las sesiones del 11-02 al 11-04, las cuentas de project-g estaban repartidas en 7 archivos, uno por ticket y sin índice; Engram no devolvió nada en 3 búsquedas; una org se recreó; y en QA se perdieron ~39 min por usar una cuenta que no veía el dato a probar. En project-a, la cuenta que documenta `AGENTS.md:151` da 401 en local.
 
 Con el cambio, toda prueba que necesite iniciar sesión, en cualquier flujo o fuera de uno, lee primero el índice del proyecto y reutiliza la cuenta que encaje. En local se crea solo lo que falta y se anota en el índice. En QA y en desplegados no se crea nada sin permiso. Al cierre del trabajo, las filas del índice, sin valores, quedan en Engram.
 
@@ -35,7 +35,7 @@ Con el cambio, toda prueba que necesite iniciar sesión, en cualquier flujo o fu
 
 Dentro: «Secrets» y la sección nueva «Test accounts» de `content/guidance/global.md`; los punteros en `flow-verify`, `flow-build`, `flow-walkthrough`, `flow-deploy/references/deployment-checks.md`, `flow-close`, `flow-plan`, los roles `hive-verify-change` y `hive-review-ux`, y `workspace-conventions/references/artifact-layout.md`; el detector de lectura de secretos de `tests/pilot/regression.go`; una spec delta `test-accounts`; las páginas `verify.md`, `deploy.md` y `close.md` del sitio.
 
-Fuera: llenar los índices de cam, carvento, fleetsystem o facti (va en sesiones de cada proyecto); scripts de seed; una clave nueva en `## Hive`; cambiar el permiso que pide `deployment-checks.md`; los casos de `tests/fixtures/regression/`.
+Fuera: llenar los índices de project-g, project-a, project-b o project-f (va en sesiones de cada proyecto); scripts de seed; una clave nueva en `## Hive`; cambiar el permiso que pide `deployment-checks.md`; los casos de `tests/fixtures/regression/`.
 
 - AC1 — Antes de una prueba por el camino real que inicia sesión o usa registros que el entorno ya tiene, la guía global indica leer `ACCOUNTS.md` en la ubicación de secretos y reutilizar la cuenta que encaje por entorno, rol y alcance; desde un worktree se lee y escribe el archivo del checkout principal, y si falta se reconstruye desde la entrada de memoria `accounts/index` · falso hoy porque `rg -n 'ACCOUNTS.md' content` no devuelve nada.
 - AC2 — La guía global define «local» como base de datos y servicios en esta máquina, donde se crea solo lo que falta y se anota; en QA, una base de desarrollo compartida o en la nube y los entornos desplegados no se crean cuentas, registros ni datos mock por iniciativa propia, se usa lo existente y se pide permiso antes de crear · falso hoy porque `rg -n -i 'mock data|own initiative|run on this machine' content/guidance/global.md` no devuelve nada.
@@ -52,7 +52,7 @@ Ninguno: el build no necesita nada de fuera del repositorio.
 
 ## Contexto verificado
 
-- 2026-11-04: análisis de 117 transcripts del 11-02 al 11-04 (cam, carvento, fleetsystem, facti y el visor de Hive), con 4 hijos `hive-research`; los hallazgos H1 a H5 se dieron en la conversación.
+- 2026-11-04: análisis de 117 transcripts del 11-02 al 11-04 (project-g, project-a, project-b, project-f y el visor de Hive), con 4 hijos `hive-research`; los hallazgos H1 a H5 se dieron en la conversación.
 - `62c3afaa` (#284, 2026-10-29) agregó la regla de reutilizar stack y cuentas en `flow-verify/references/review-and-gates.md`; `7a37381b` (2026-10-30, recorte «minimal core») la eliminó, junto con su texto en `site/.../flows/build.md`.
 - `content/guidance/global.md:38`: el único almacén de secretos es «the project's declared untracked secret location», en modo `0600`.
 - `_support/openspec/specs/context-delivery/spec.md:87`: la guía global contiene toda regla que aplica en cualquier flujo o fuera de uno.

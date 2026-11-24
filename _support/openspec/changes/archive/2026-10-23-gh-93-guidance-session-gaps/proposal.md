@@ -10,7 +10,7 @@
 
 ## Solicitud
 
-> Analiza las sesiones de hoy con grok en cam y de codex en tricell-hive (solo la ultima)
+> Analiza las sesiones de hoy con grok en project-g y de codex en tricell-hive (solo la ultima)
 > - Grok, tuvo cierres muy raros, practicamente a medias
 > - codex, fue sumamente lento en la implementación del cambio de front
 
@@ -73,10 +73,10 @@ Restricciones:
 
 ## Continuación del 2026-10-23
 
-- El usuario pidió auditar las sesiones de CAM, Facti e Hive desde el 20 de octubre y autorizó commits y push en la rama actual y merge a `development`. La investigación se entregó en la conversación; no se creó un documento de research.
+- El usuario pidió auditar las sesiones de project-g, project-f e Hive desde el 20 de octubre y autorizó commits y push en la rama actual y merge a `development`. La investigación se entregó en la conversación; no se creó un documento de research.
 - D1-A (ajustes posteriores): se aprueban P1, revalidar la evidencia afectada por cambios posteriores a aprobación y pedir aprobación nueva si cambia lo visible; P2, comunicar el límite de la espera; P3, salir de la rama y retirar el worktree limpio antes de borrarla. Los incumplimientos restantes quedan en observación, sin hooks ni reglas globales nuevas.
 - D2 (cierre): se autoriza un PR pequeño posterior, sin revisión dedicada, con archivo de los dos planes y merge a `development` por el agente.
-- Se conserva la decisión de no ejecutar revisión dedicada y la pausa de pilotos. La auditoría distingue resultados observados de mejora general no demostrada; la sesión de CAM activa al corte no tiene cierre evaluado.
+- Se conserva la decisión de no ejecutar revisión dedicada y la pausa de pilotos. La auditoría distingue resultados observados de mejora general no demostrada; la sesión de project-g activa al corte no tiene cierre evaluado.
 
 ## Cierre del 2026-10-23
 

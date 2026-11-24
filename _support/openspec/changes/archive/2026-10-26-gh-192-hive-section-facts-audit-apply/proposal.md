@@ -12,7 +12,7 @@
 
 > Ayudame con lo siguiente:
 >
-> Las instrucciones en los proyectos, cam, carvento, facti
+> Las instrucciones en los proyectos, project-g, project-a, project-f
 >
 > - Qué tanto estan ayudando a que Hive funcione correctamente?
 > - Esa pleca que configura hive en cada proyecto tiene pre-desiciones, creo que debemos ajustar el formato
@@ -42,8 +42,8 @@ Los `AC<n>` de abajo los reemplazan.
 
 ## Objetivo
 
-Hoy la sección `## Hive` mezcla hechos verificables (rama base, tracker, specs) con decisiones que autorizan efectos sin preguntar (`Delivery`, `Review`, `UI verification`). Además, las decisiones permanentes que el formato no admite terminan en prosa con fuerza dispar, como el punto de terminado o los bypass. La auditoría de cam, carvento y facti del 2026-10-26 lo mostró:
-- secciones ausentes (facti tiene una de cuatro);
+Hoy la sección `## Hive` mezcla hechos verificables (rama base, tracker, specs) con decisiones que autorizan efectos sin preguntar (`Delivery`, `Review`, `UI verification`). Además, las decisiones permanentes que el formato no admite terminan en prosa con fuerza dispar, como el punto de terminado o los bypass. La auditoría de project-g, project-a y project-f del 2026-10-26 lo mostró:
+- secciones ausentes (project-f tiene una de cuatro);
 - un bypass permanente a `qa` que corre migraciones;
 - el punto de terminado duplicado en prosa;
 - rutas de `Specs` incompletas.
@@ -61,7 +61,7 @@ Este cambio deja la sección como ficha de hechos. La entrega, la revisión y la
 - el sitio, el README, `llms.txt`, la documentación de arquitectura y el CHANGELOG.
 
 **Excluye:**
-- Editar cam, carvento o facti: son otros proyectos. Se corrigen corriendo `harness-audit` en la sesión de cada uno.
+- Editar project-g, project-a o project-f: son otros proyectos. Se corrigen corriendo `harness-audit` en la sesión de cada uno.
 - Una clave para permisos permanentes (D3-A).
 - Una pilot de modelo para medir la skill: las pilots están en pausa.
 

@@ -35,7 +35,7 @@ The content pane SHALL present project, inline-editable title, date/walkthrough 
 Each validation/iteration SHALL associate evidence with explicit views and related tickets. Shared views SHALL not duplicate their image collection for each ticket; distinct screens SHALL remain separately labeled within one timeline. Each view SHALL open its event/evidence-ID-bound instructions in a Dialog and its image collection in a carousel. Later iterations SHALL identify only affected views and link superseded evidence without changing images in an already-open historical dialog.
 
 #### Scenario: Two tickets, one view
-- WHEN COM-1 and COM-2 are verified by the same Chat screen
+- WHEN PRJ-1 and PRJ-2 are verified by the same Chat screen
 - THEN one view/image collection displays both ticket links.
 
 #### Scenario: Focused later iteration

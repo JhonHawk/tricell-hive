@@ -88,7 +88,7 @@ AC1 se observa tras el merge, al refrescar la instalación local (marcador de ma
 - Last commit: 0dbc206d
 - Open findings: none
 - Next: apply /code-review findings, then push, PR, merge, refresh install, observe AC1/AC3-AC6
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/audit-issues · feat/audit-issues
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/audit-issues · feat/audit-issues
 - Rules: flow-verify/stage-entry.md
 - Principles: none
 

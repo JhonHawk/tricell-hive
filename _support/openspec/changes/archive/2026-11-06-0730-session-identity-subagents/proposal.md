@@ -18,9 +18,9 @@
 
 ## Solicitud
 
-> «Analiza la sesión sobre grok en carvento, no pudo generar la sesión porque no tiene id» · «y esa sesión en el visor, fuera de abrirse no recibió updates» · «A» (corregir Grok y Codex ahora, Cursor como seguimiento) · «Que el seguimiento del visor sea tarea solo del padre».
+> «Analiza la sesión sobre grok en project-a, no pudo generar la sesión porque no tiene id» · «y esa sesión en el visor, fuera de abrirse no recibió updates» · «A» (corregir Grok y Codex ahora, Cursor como seguimiento) · «Que el seguimiento del visor sea tarea solo del padre».
 
-Fuera de alcance: Cursor (sus subagentes no están verificados), guardar el `work_id` en el frontmatter del plan, y cerrar la work huérfana «Retirar código que nadie usa» de carvento.
+Fuera de alcance: Cursor (sus subagentes no están verificados), guardar el `work_id` en el frontmatter del plan, y cerrar la work huérfana «Retirar código que nadie usa» de project-a.
 
 ## Objetivo
 
@@ -32,7 +32,7 @@ Al terminar, la sesión principal de Grok conserva su identidad con subagentes y
 
 En alcance: el traductor de hooks de Grok, el resolver de identidad (variable de Codex y selección entre varias variables), sus tests, el delta del spec `walkthrough-viewer` y las dos referencias de identidad de host.
 
-- AC1 — En Grok, durante y después de un subagente, `hive view work` sin flags sigue resolviendo la sesión principal · falso hoy porque la sonda `01a1af4a` (mapa `82328.json`) dejó al subagente como única sesión viva a las 05:18:10Z y cero sesiones vivas a las 05:18:18Z, y carvento recibió `accepted_producer_required` y `native identity ambiguous`.
+- AC1 — En Grok, durante y después de un subagente, `hive view work` sin flags sigue resolviendo la sesión principal · falso hoy porque la sonda `01a1af4a` (mapa `82328.json`) dejó al subagente como única sesión viva a las 05:18:10Z y cero sesiones vivas a las 05:18:18Z, y project-a recibió `accepted_producer_required` y `native identity ambiguous`.
 - AC2 — El `SubagentStart` de Grok llega al visor como `subagent_started` de la sesión padre con el `subagentId`, también sin los hooks de Claude Code, y ningún evento que traiga `subagentType` escribe en el mapa ni se reporta con el id de sesión del hijo · falso hoy porque el hook de Grok no registra `SubagentStart` (`integrations/grok/hook_register.go`), el traductor lo trata como actividad genérica sin agente y el `UserPromptSubmit` del hijo quedó registrado en `82328.json`.
 - AC3 — En una shell de un hilo de Codex, `hive view work` sin flags resuelve la identidad desde `CODEX_SESSION_ID` aunque otro hilo del mismo daemon haya recibido un prompt después · falso hoy porque `viewIdentityVariables` no incluye Codex y el mapa `35839.json` muestra que `01a1aebf` desplazó a `01a1adfa` mientras esta seguía trabajando.
 - AC4 — Con dos variables de identidad presentes (un host lanzado desde la shell de otro), se usa la del host del proceso más cercano, reconocido también bajo un intérprete, y no se rechaza como ambiguo · falso hoy porque `resolveViewIdentity` devuelve `errViewIdentityAmbiguous` en cuanto encuentra más de una variable, por ejemplo Pi (proceso `node`) lanzado desde Claude Code con `PI_SESSION_ID` y `CLAUDE_CODE_SESSION_ID`.
@@ -46,7 +46,7 @@ En alcance: el traductor de hooks de Grok, el resolver de identidad (variable de
 ## Contexto verificado
 
 - Las fechas del documento son hora local (UTC−6); los timestamps citados están en UTC, que ya es 2026-11-06.
-- Sesión Grok de carvento `01a1aed2-ced4-79d2-bc52-4b55d46873bf` (2026-11-05 local): `open` a las 03:52:28Z; `sync` rechazado a las 03:52:35Z, `accepted_producer_required` a las 03:52:42Z y 03:55:55Z y `native identity ambiguous` a las 03:59:10Z, con el subagente `01a1aefc` vivo de 03:52:35Z a 03:58:21Z.
+- Sesión Grok de project-a `01a1aed2-ced4-79d2-bc52-4b55d46873bf` (2026-11-05 local): `open` a las 03:52:28Z; `sync` rechazado a las 03:52:35Z, `accepted_producer_required` a las 03:52:42Z y 03:55:55Z y `native identity ambiguous` a las 03:59:10Z, con el subagente `01a1aefc` vivo de 03:52:35Z a 03:58:21Z.
 - Sonda con Grok 1.0.77 en un repositorio desechable: payloads capturados con hook de proyecto. El `SubagentStart` lleva el `sessionId` del padre más `subagentId` y `subagentType`; el `UserPromptSubmit`, el `SubagentStop` y el `SessionEnd` del hijo llevan el id del hijo y `subagentType`; los eventos del padre no llevan `subagentType`.
 - `integrations/codex/hook_event.go`: patrón de referencia (eventos con `agent_id` del subagente descartados salvo inicio y fin).
 - `codex-rs/core/src/exec_env.rs:41` en `rust-v0.167.0`: `inject_session_env` pone `CODEX_SESSION_ID` en las shells. El binario instalado contiene la cadena. No hay documentación pública.

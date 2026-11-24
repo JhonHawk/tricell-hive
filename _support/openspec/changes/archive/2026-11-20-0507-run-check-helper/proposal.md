@@ -30,7 +30,7 @@ None: the work adopts no business rule beyond what its ticket and documentation 
 
 > «a» — usuario, 2026-11-19, eligiendo: «Planear un helper `run_check` en `hive-rule-checks` que corra el comando con la salida a un archivo temporal con tope de tamaño, cierre el archivo y solo después muestre las últimas líneas conservando el estado, y que la hoja mande usarlo; más un criterio del auditor que detecte un `trap` que lee el mismo archivo que redirige.»
 
-Origen: sesión Codex en cam `01a1f5d4` (CAM-20, `gpt-6.2-sol`, 2026-11-19 ~22:3xZ). El envoltorio `{ … } >"$cam_log" 2>&1` con `set -e` y `trap 'tail -35 "$cam_log"' EXIT` hizo que `tail` escribiera en el log que leía; el archivo llegó a 1.53 TB y llenó el disco. El agente usó ese envoltorio en nueve comandos de la sesión. Watch: `engram:tricell-hive/watch/self-feeding-check-log`. Decisión: `engram:tricell-hive/decision/run-check-helper`.
+Origen: sesión Codex en project-g `01a1f5d4` (PRK-20, `gpt-6.2-sol`, 2026-11-19 ~22:3xZ). El envoltorio `{ … } >"$project_g_log" 2>&1` con `set -e` y `trap 'tail -35 "$project_g_log"' EXIT` hizo que `tail` escribiera en el log que leía; el archivo llegó a 1.53 TB y llenó el disco. El agente usó ese envoltorio en nueve comandos de la sesión. Watch: `engram:tricell-hive/watch/self-feeding-check-log`. Decisión: `engram:tricell-hive/decision/run-check-helper`.
 
 ## Objective
 
@@ -43,7 +43,7 @@ Dentro: `content/skills/hive-rule-checks/` (hoja, `references/run-check.md` y `s
 - AC1 — `python3 -I content/skills/hive-rule-checks/scripts/run_check.py -- <comando>` imprime primero la ruta del log, guarda en él la salida completa del comando, imprime al final como mucho 40 líneas y 16 KiB fuera del log y sale con el código del comando (127 si no existe, 128+n si lo terminó una señal); el log termina con el tamaño de la salida del comando, sin copias de su final, y ningún proceso del grupo sobrevive · false today because el script no existe · Observed in: `python3 -m unittest discover -s tests/skills -p 'run_check_test.py'` y una corrida a mano sobre `go -C <repo> test ./tests/content/...` con un test roto a propósito
 - AC2 — Un comando cuya salida supera `--max-bytes` termina (con su grupo de procesos), el log se detiene cerca del tope y el script sale con 125 y un mensaje con la ruta y el tope · false today because no hay tope · Observed in: `run_check_test.py` con un productor sin fin y un tope de 1 MiB, y una corrida a mano con `yes`
 - AC3 — `hive-rule-checks` exige `run_check.py` para un check cuya salida se guarda, su referencia da el respaldo sin `python3`, y ningún archivo de `content/` ni `site/` repite la forma «save the whole output to a file … and filter the file» · false today because la hoja la tiene en «Check reuse» · Observed in: el candidato (`rg` y `go test ./tests/content/...`) y la hoja instalada tras `hive update`; la adopción en sesiones reales se sigue en el watch
-- AC4 — `--audit-session` da `self_feeding_log` = `fail` en la transcripción Codex `01a1f5d4` con la línea 535 (`cam20-hygiene` y `cam20-turbo`) entre su evidencia y ninguna línea que solo tenga comandos simples con redirección, `not_observed` en la sesión Claude `bf678880`, y los demás criterios no cambian sobre `01a1f5d4` · false today because el criterio no existe · Observed in: la salida del auditor sobre `~/.codex/sessions/2026/11/19/rollout-2026-11-19T16-01-30-01a1f5d4-3ec7-7631-97d8-ba540210ac98.jsonl`
+- AC4 — `--audit-session` da `self_feeding_log` = `fail` en la transcripción Codex `01a1f5d4` con la línea 535 (`prk20-hygiene` y `prk20-turbo`) entre su evidencia y ninguna línea que solo tenga comandos simples con redirección, `not_observed` en la sesión Claude `bf678880`, y los demás criterios no cambian sobre `01a1f5d4` · false today because el criterio no existe · Observed in: la salida del auditor sobre `~/.codex/sessions/2026/11/19/rollout-2026-11-19T16-01-30-01a1f5d4-3ec7-7631-97d8-ba540210ac98.jsonl`
 
 ## Prerequisites
 
@@ -54,7 +54,7 @@ None: the build needs nothing from outside the repository.
 - `content/skills/hive-rule-checks/SKILL.md:15` (2,900 bytes; tope de una hoja: 4,000) pide «save the whole output to a file in the host's temporary location and filter the file»; ningún otro archivo de `content/` o `site/` lo repite (`rg`, 2026-11-19, `9b9450c5`).
 - Convención de scripts: Python con `python3 -I <dir>/scripts/<x>.py` (`hive-rule-trackers/scripts/work_time.py`, `jira_rest.py`); pruebas en `tests/skills/*_test.py` con `unittest` (`CONTRIBUTING.md:23`); `_support/docs/architecture/instruction-resources.md:36` describe `hive-rule-checks`.
 - `hive-rule-security-boundaries`: argumentos de proceso estructurados, nunca interpolados en un shell.
-- El envoltorio que falló está en el rollout `01a1f5d4` (cuatro usos: `cam20-hygiene`, `cam20-turbo`, `cam20-integration`, `cam20-turbo-retry`).
+- El envoltorio que falló está en el rollout `01a1f5d4` (cuatro usos: `prk20-hygiene`, `prk20-turbo`, `prk20-integration`, `prk20-turbo-retry`).
 
 ## Effects
 

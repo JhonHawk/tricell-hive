@@ -57,7 +57,7 @@ AC1 se observa en el home sintético de T1 y otra vez en la instalación local t
 - Last commit: 8d42b183
 - Open findings: none
 - Next: code review + security review, then push/PR/merge, refresh install, observe AC1-AC4
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/ledger-writer-role · feat/ledger-writer-role
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/ledger-writer-role · feat/ledger-writer-role
 - Rules: flow-verify/stage-entry.md
 - Principles: none
 

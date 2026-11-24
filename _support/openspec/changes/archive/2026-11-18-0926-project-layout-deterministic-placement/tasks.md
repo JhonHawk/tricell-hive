@@ -29,7 +29,7 @@
 
 **Changes:** cambian la enumeración, la regla nueva, la clave `infra` de `parse_layout` y el docstring. No cambian LAYOUT-01 a 07 ni su severidad.
 
-**Verification:** `python3 -m unittest discover -s tests/skills -p 'layout_check_test.py'` pasa. Además, `python3 -I content/skills/project-layout/scripts/check_layout.py --root /Users/jmartinez/Development/projects/comsys/carvento/carvento-specs` (solo lectura) no lista nada de `node_modules`.
+**Verification:** `python3 -m unittest discover -s tests/skills -p 'layout_check_test.py'` pasa. Además, `python3 -I content/skills/project-layout/scripts/check_layout.py --root /Users/me/Development/projects/org-a/project-a/project-a-specs` (solo lectura) no lista nada de `node_modules`.
 
 ### T2 — `plan_layout.py plan`: destinos y reescrituras por reglas fijas
 
@@ -43,7 +43,7 @@
 
 **Execution:** hilo principal
 
-**Test approach:** tdd, con una fixture monorepo que reproduce los casos de carvento:
+**Test approach:** tdd, con una fixture monorepo que reproduce los casos de project-a:
 - `apps/backend/package.json` llama con `../../_support/scripts/backend/x.sh`;
 - un workflow llama `_support/scripts/ci.sh`;
 - `lefthook.yml` llama un hook;
@@ -96,13 +96,13 @@ Se agregan una segunda fixture idéntica con otros nombres de proyecto, dos corr
 
 **Verification:** `python3 -m unittest discover -s tests/skills -p 'layout_plan_test.py'` pasa.
 
-### T4 — Verificación con datos reales de carvento
+### T4 — Verificación con datos reales de project-a
 
 - [x] Se corren cuatro verificaciones y sus resultados quedan en el checkpoint:
-  - el plan, `apply`, `verify` y `undo` sobre clones en el scratch de carvento-monorepo en `5f06d0c1` y carvento-specs en `965a73d8`;
+  - el plan, `apply`, `verify` y `undo` sobre clones en el scratch de project-a-monorepo en `5f06d0c1` y project-a-specs en `965a73d8`;
   - el plan en seco sobre la raíz real del workspace;
   - el plan en seco sobre el árbol real del monorepo;
-  - el check sobre el checkout real de carvento-specs.
+  - el check sobre el checkout real de project-a-specs.
 
 **Closes:** AC16, AC17, AC18, AC19, AC20, AC21, AC22, AC23, AC29
 
@@ -114,7 +114,7 @@ Se agregan una segunda fixture idéntica con otros nombres de proyecto, dos corr
 
 **Test approach:** check
 
-**Changes:** ninguno en tricell-hive ni en carvento. Las carpetas reales de carvento solo se leen.
+**Changes:** ninguno en tricell-hive ni en project-a. Las carpetas reales de project-a solo se leen.
 
 **Verification:**
 - dos corridas de `plan` dan JSON idénticos (`cmp`);
@@ -123,7 +123,7 @@ Se agregan una segunda fixture idéntica con otros nombres de proyecto, dos corr
 - tras `apply` en el clon, `verify` sale 0 salvo las revisiones listadas, y las pruebas `*.test.sh` del clon, encontradas con el descubrimiento ajustado a mano según la revisión de AC21, pasan con `bash`, sin servicios externos;
 - el plan sobre la raíz del workspace y sobre el árbol real del monorepo lista las carpetas de AC23 (incluidas `_support/contracts` y `_support/product`) con sus destinos, y no cambia nada (`git status --porcelain` y un listado de `find` iguales antes y después);
 - en el clon, con un cambio local añadido a `ci.yml`, `apply` seguido de `undo` deja `git status` y `git diff` iguales;
-- el check sobre el checkout real de carvento-specs no lista `node_modules`, mientras se cumpla la precondición de AC16.
+- el check sobre el checkout real de project-a-specs no lista `node_modules`, mientras se cumpla la precondición de AC16.
 
 ### T5 — La convención y la skill usan el planificador
 
@@ -181,7 +181,7 @@ Se agregan una segunda fixture idéntica con otros nombres de proyecto, dos corr
 - en Engram se agregan `watch/review-question-native-option`, con conteo 1, `01a1ed72` y `Enforceable: --audit-session review_question_native_option`, y `watch/external-project-question-format`, con conteo 1, `01a1ed72` y `Enforceable: judgment`.
 
 **Verification:**
-- `go -C /Users/jmartinez/Development/projects/tricell/tricell-hive test ./tests/pilot/...` pasa;
+- `go -C /Users/me/Development/projects/tricell/tricell-hive test ./tests/pilot/...` pasa;
 - `go run ./tests/pilot --audit-session <01a1ed72> --host codex` da `fail` en los dos criterios;
 - sobre `01a1ecec` da `pass` en `review_question_native_option`.
 
@@ -191,10 +191,10 @@ Se agregan una segunda fixture idéntica con otros nombres de proyecto, dos corr
 | --- | --- | --- | --- |
 | Tests of each task | When the task closes, locally | The task's command passes | Covered by the implementation |
 | Full suite | Final candidate, locally | `go vet ./...`, `go test ./...` (known flake `TestE2ESetupDeadlinesOwnDescendantsAndPipes` aside), `python3 -m unittest discover -s tests/skills -p '*_test.py'`, site check | Covered by the implementation |
-| Real data | Final candidate, scratch clones of carvento | T4 outputs in the checkpoint | Covered by the implementation (read-only on the projects) |
+| Real data | Final candidate, scratch clones of project-a | T4 outputs in the checkpoint | Covered by the implementation (read-only on the projects) |
 | Code review | Final candidate, before the push | Claude Code `/code-review` | The review answer in force |
 
-La entrega es `ready`: el PR queda abierto para el merge del usuario. La validación real de AC28 es la próxima sesión de project-layout que el usuario corra en carvento.
+La entrega es `ready`: el PR queda abierto para el merge del usuario. La validación real de AC28 es la próxima sesión de project-layout que el usuario corra en project-a.
 
 ## Checkpoint
 
@@ -206,8 +206,8 @@ La entrega es `ready`: el PR queda abierto para el merge del usuario. La validac
 
 ### Evidence
 
-- check_layout on real carvento-specs checkout: 0 node_modules findings (was 309) · pass · 9c92c9d
-- check_layout on scratch clone carvento-monorepo 5f06d0c1: 57 LAYOUT-08 fail, rc 1 · pass · 9c92c9d
+- check_layout on real project-a-specs checkout: 0 node_modules findings (was 309) · pass · 9c92c9d
+- check_layout on scratch clone project-a-monorepo 5f06d0c1: 57 LAYOUT-08 fail, rc 1 · pass · 9c92c9d
 - plan twice on clones mono+specs: cmp identical · pass · 73852f6
 - AC19 destinations on clone (detect-changes→scripts/ci, backup/set-channel→apps/backend/scripts, check-i18n→apps/backoffice/scripts, verify-contracts-push→scripts/hooks, rollback-environment→scripts/ops, infra/terraform, infra/aws incl README, iam policy review) · pass · c3cf289
 - apply on clone: 107 moves, 108 rewrites, no commit, git grep old file paths outside archive empty · pass · c3cf289
@@ -229,8 +229,8 @@ La entrega es `ready`: el PR queda abierto para el merge del usuario. La validac
 ## Review status and progress
 
 2026-11-18 — T1 · 9c92c9d · unverified: AC17 on real data pending T4
-2026-11-18 — T2 · 73852f6 · unverified: AC18, AC19, AC21, AC23 on real carvento data pending T4
-2026-11-18 — T3 · 04d561e · unverified: AC20, AC29 on real carvento data pending T4
+2026-11-18 — T2 · 73852f6 · unverified: AC18, AC19, AC21, AC23 on real project-a data pending T4
+2026-11-18 — T3 · 04d561e · unverified: AC20, AC29 on real project-a data pending T4
 2026-11-18 — T4 · c3cf289 · unverified: none
 2026-11-18 — T6 · ad29e1d · unverified: none
-2026-11-18 — T5 · 8aac1ea · unverified: AC28 observed only in the user's next real carvento session
+2026-11-18 — T5 · 8aac1ea · unverified: AC28 observed only in the user's next real project-a session

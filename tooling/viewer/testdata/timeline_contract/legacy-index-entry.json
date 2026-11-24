@@ -12,12 +12,12 @@
     "session_id": "codex-20261019T150000Z",
     "session_status": "closed",
     "host": "codex",
-    "ticket": "COM-1",
+    "ticket": "PRJ-1",
     "title": "Historical review",
     "kind": "final",
     "created_at": "2026-10-19T15:00:00Z",
     "project_key": "example.com/fixture/project",
-    "project_name": "CAM fixture",
+    "project_name": "project-g fixture",
     "fileBase": "/files/9999999999999999999999999999999999999999999999999999999999999999/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/"
   }
 }

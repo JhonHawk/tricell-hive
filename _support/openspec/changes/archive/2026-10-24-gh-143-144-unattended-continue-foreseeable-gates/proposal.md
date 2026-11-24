@@ -12,7 +12,7 @@
 
 Mensajes del usuario, 2026-10-24:
 
-> Ahora, considerando esto, necesito que revisemos la sesión de cam en codex, se esta haciendo eterna, y pareciera haber perdido ciertas reglas, asi como la de carvento, que inicialmente se inicio con claude y ahorita se retomo con PI, muchas cosas quedaron inconclusas hasta el momento de que ya era un problema [...] ve si puedes retroceder al 19 de octubre para analizar las sesiones
+> Ahora, considerando esto, necesito que revisemos la sesión de project-g en codex, se esta haciendo eterna, y pareciera haber perdido ciertas reglas, asi como la de project-a, que inicialmente se inicio con claude y ahorita se retomo con PI, muchas cosas quedaron inconclusas hasta el momento de que ya era un problema [...] ve si puedes retroceder al 19 de octubre para analizar las sesiones
 
 > no solo de esos harness, de todos los que se hana visto involucrados en ese rango de fechas, porfa
 
@@ -20,7 +20,7 @@ Mensajes del usuario, 2026-10-24:
 
 Respuestas siguientes, 2026-10-24, en tarjetas nativas:
 
-- D6-A: investigar las 48 decisiones de cam.
+- D6-A: investigar las 48 decisiones de project-g.
 - P1-A: «Plan de los 3 cambios»: la duración y reactivación del modo desatendido; las pruebas costosas y las preguntas previsibles mientras el usuario está presente, incluida la autorización anticipada de efectos encadenados; el tercer punto, que E1 reemplazó.
 - P2-A: abrir los issues [#143](https://github.com/JhonHawk/tricell-hive/issues/143) y [#144](https://github.com/JhonHawk/tricell-hive/issues/144).
 - E1-B: «Endurecer ya las tareas tardías». Una tarea agregada a mitad del build o tras la validación cumple los mismos criterios y pasa por `hive-verify-task`, y los cambios posteriores a la revisión se preguntan. El usuario adopta esta corrección sin esperar una segunda sesión (AGENTS.md, Measurement).
@@ -41,11 +41,11 @@ Criterios de aceptación de #144, citados textualmente (leído el 2026-10-24):
 
 ## Objetivo
 
-La revisión de las sesiones de cam en Codex, del 20 al 24 de octubre, mostró que unas 88 h de la obra fueron espera de respuestas del usuario.
+La revisión de las sesiones de project-g en Codex, del 20 al 24 de octubre, mostró que unas 88 h de la obra fueron espera de respuestas del usuario.
 
 - **Delegación desatendida.** Unas 20 h se perdieron porque un «continúa» terminó la delegación: la skill dice que expira cuando «the user writes again», y el agente volvió a preguntar con el usuario ausente.
 - **Preguntas tardías.** Otras ~25 h vinieron de confirmaciones que el plan ya preveía (un presupuesto para un ensayo local de 128 s, publicar imágenes, preparar el VPS de QA). Se preguntaron al llegar a cada paso, no en la ronda en la que el usuario estaba presente.
-- **Tarea tardía sin verificar.** En carvento, una tarea agregada al plan después de la validación (T19) se entregó sin `hive-verify-task` y después de la revisión de código, y su defecto apareció en el primer uso real.
+- **Tarea tardía sin verificar.** En project-a, una tarea agregada al plan después de la validación (T19) se entregó sin `hive-verify-task` y después de la revisión de código, y su defecto apareció en el primer uso real.
 
 Tras el cambio:
 
@@ -98,10 +98,10 @@ Criterios de aceptación:
 
 Sesiones reales que motivan el cambio (para los mensajes de commit, AGENTS.md, Measurement):
 
-- Codex CLI 0.163.0 y 0.164.0, proyecto cam, hilos `01a15822-b9bc-7923-8fc2-ba2b68161fa2` (2026-10-20 a 10-23) y `01a1679c-7ed3-7030-b5f5-345d62c1dcba` (2026-10-23 a 10-24):
+- Codex CLI 0.163.0 y 0.164.0, proyecto project-g, hilos `01a15822-b9bc-7923-8fc2-ba2b68161fa2` (2026-10-20 a 10-23) y `01a1679c-7ed3-7030-b5f5-345d62c1dcba` (2026-10-23 a 10-24):
   - la delegación termina con un «continúa» (D22 y D23, unas 20 h de espera);
   - autorizaciones previsibles preguntadas tarde (D29, D30, D42, D43).
-- Claude Code, proyecto carvento, sesión `94440d0a-42ac-491f-ba69-d327f8cdae5b` (2026-10-24): T19, una tarea agregada tras la validación, entregada sin `hive-verify-task` y después de la revisión.
+- Claude Code, proyecto project-a, sesión `94440d0a-42ac-491f-ba69-d327f8cdae5b` (2026-10-24): T19, una tarea agregada tras la validación, entregada sin `hive-verify-task` y después de la revisión.
 
 ## Entrega
 

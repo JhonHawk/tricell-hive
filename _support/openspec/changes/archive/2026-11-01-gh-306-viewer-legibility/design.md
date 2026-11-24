@@ -79,7 +79,7 @@ Comparar label/document_id detecta pestañas cambiadas/nuevas/quitadas, no diff 
 
 La tarea pertenece al trabajo, nunca exclusivamente a una ocurrencia de etapa. task_id de servidor estable, task_key T<n> único por trabajo, title corto 1–120, task_version, plan_revision_id cuando existe y segments[] explícitos. El conductor declara todo el plan, incluidas tareas futuras; el navegador no parsea Markdown ni deduce etapa por título, orden, foreground o checklist.
 
-Cada segmento tiene segment_id estable, planned_stage de research/plan/build/verify/delivery, order positivo único dentro de su etapa de presentación, state, assigned_producer_id aceptado y display_stage_event_id opcional hasta que exista la ocurrencia real. Una tarea normal tiene un segmento; una tarea como T7 de CAM puede declarar verify y delivery sin convertirse en T7a/T7b ni aumentar el total global. La asignación viene del alcance del plan. El tramo delivery de T7 puede incluir la reconciliación de cierre; closure sigue siendo evento terminal, no otra etapa.
+Cada segmento tiene segment_id estable, planned_stage de research/plan/build/verify/delivery, order positivo único dentro de su etapa de presentación, state, assigned_producer_id aceptado y display_stage_event_id opcional hasta que exista la ocurrencia real. Una tarea normal tiene un segmento; una tarea como T7 de project-g puede declarar verify y delivery sin convertirse en T7a/T7b ni aumentar el total global. La asignación viene del alcance del plan. El tramo delivery de T7 puede incluir la reconciliación de cierre; closure sigue siendo evento terminal, no otra etapa.
 
 Al abrir una etapa real, conductor vincula explícitamente sus segmentos pendientes con la ocurrencia del mismo tipo mediante task_patch condicional. Una etapa muestra únicamente segmentos vinculados a ella, cada fila con task_key/title y el estado de ese tramo. Tareas futuras sin ocurrencia cuentan globalmente y se consultan en el documento del plan; no se muestran dentro de Build ni crean nodos falsos de etapa. Una tarea puede tener proyección en Verify y Delivery si fue asignada a ambas: son referencias al mismo task_id, no entidades duplicadas. Se elimina la propuesta previa de una única fila principal excluyente de las otras etapas; esta es la corrección de presentación posterior a D74.
 
@@ -123,7 +123,7 @@ Una observación siempre incluye attempt_id/check_key/IDs externos y solo puede 
 
 succeeded exige confirmar todos los checks requeridos del candidato actual conforme a política real del proveedor/base; la consulta incluye autoridad/origen y momento de esa política, no inferir que los checks visibles son todos los obligatorios. Si la política observada confirma que no hay checks requeridos y no hay CI pendiente, no inventar espera ni éxito: registrar “Sin CI requerido” como observación de entrega; si hay checks opcionales en ejecución, pueden observarse pero no se presentan como regla obligatoria. Política no accesible es unknown, no ausencia de requisitos. Resultado fallido/cancelado/pendiente/desconocido no habilita integrar por sí mismo. Incluso succeeded solo declara CI observado: merge exige aceptación/revisiones/autoridad de entrega dadas y evidencia real de integración. El nodo no ejecuta merge por sí mismo ni dispara CI automáticamente.
 
-Errores de CI no convierten automáticamente una tarea en blocked sin pasos: productor publica fallo de espera y luego, si corresponde, transición bloqueada con desbloqueo completo. Sheet de espera muestra candidato/PR/checks/última observación/intentos/enlaces y next_action seguro cuando falla o falta acceso. Durante espera, leer no implica que el proceso siga vivo. Sin cambios al binario/servicio/guía que usa CAM.
+Errores de CI no convierten automáticamente una tarea en blocked sin pasos: productor publica fallo de espera y luego, si corresponde, transición bloqueada con desbloqueo completo. Sheet de espera muestra candidato/PR/checks/última observación/intentos/enlaces y next_action seguro cuando falla o falta acceso. Durante espera, leer no implica que el proceso siga vivo. Sin cambios al binario/servicio/guía que usa project-g.
 
 ## UI
 
@@ -348,7 +348,7 @@ Conservar Ver investigación/plan/implementación/verificación, Cambió/Nuevo/Q
 
 ## Impact
 
-Go/TS contracts, store/server, CLI, frontend, fixtures, documentación y guía canónica flow-walkthrough. Revisar dependencias en global, flows plan/build/verify/close, roles, site, arquitectura y detectores tests/pilot sin ejecutar pilotos. La espera ya es regla: corregir aplicación, no agregar ceremonia. Colaboración/estados son requisitos adoptados D69/D70, no corrección inferida de un único caso. No cambios a CAM ni producción; datos sintéticos de volumen para UI; no importar registros viejos de CAM.
+Go/TS contracts, store/server, CLI, frontend, fixtures, documentación y guía canónica flow-walkthrough. Revisar dependencias en global, flows plan/build/verify/close, roles, site, arquitectura y detectores tests/pilot sin ejecutar pilotos. La espera ya es regla: corregir aplicación, no agregar ceremonia. Colaboración/estados son requisitos adoptados D69/D70, no corrección inferida de un único caso. No cambios a project-g ni producción; datos sintéticos de volumen para UI; no importar registros viejos de project-g.
 
 ## Recovery
 
@@ -356,7 +356,7 @@ El candidato v3 se verifica con binario/puerto/estado nuevos. La ruta anterior n
 
 ## Runtime isolation constraint
 
-La pregunta/restricción del usuario se aplica al build y a cualquier integración posterior: compilar con -o a ruta propia, frontend servido desde candidato, puerto libre y estado v3 nuevo. No reemplazar command -v hive, no hive update, no reiniciar ni cambiar la configuración/estado del visor habitual mientras CAM lo usa. Las pruebas no ejecutan procesos con la ruta del binario habitual como destino. El refresh implícito de mantenedor queda suspendido para este trabajo bajo esta restricción; la entrega puede integrar código, pero instalar/cortar requiere instrucción separada sobre blanco concreto.
+La pregunta/restricción del usuario se aplica al build y a cualquier integración posterior: compilar con -o a ruta propia, frontend servido desde candidato, puerto libre y estado v3 nuevo. No reemplazar command -v hive, no hive update, no reiniciar ni cambiar la configuración/estado del visor habitual mientras project-g lo usa. Las pruebas no ejecutan procesos con la ruta del binario habitual como destino. El refresh implícito de mantenedor queda suspendido para este trabajo bajo esta restricción; la entrega puede integrar código, pero instalar/cortar requiere instrucción separada sobre blanco concreto.
 
 ### Correcciones de revisión visual — 2026-11-01
 

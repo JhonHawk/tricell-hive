@@ -220,7 +220,7 @@ Resumed old occurrences SHALL retain their original group position; timestamps S
 Each validation/iteration SHALL associate evidence with explicit views and related tickets. Shared views SHALL not duplicate their image collection for each ticket; distinct screens SHALL remain separately labeled within one timeline. Each view SHALL open its event/evidence-ID-bound instructions in a Dialog and its image collection in a carousel. Later iterations SHALL identify only affected views and link superseded evidence without changing images in an already-open historical dialog.
 
 #### Scenario: Two tickets, one view
-- WHEN COM-1 and COM-2 are verified by the same Chat screen
+- WHEN PRJ-1 and PRJ-2 are verified by the same Chat screen
 - THEN one view/image collection displays both ticket links.
 
 #### Scenario: Focused later iteration
@@ -341,7 +341,7 @@ Blocked transitions SHALL require reason, concrete steps, owner and resume condi
 
 Task content SHALL identify task_id/segment_id and its actual stage occurrence; references SHALL belong to that work, segment and origin stage. Activity from multiple stages SHALL stay attributable without duplicating task entities or blobs. Per-stage expansions SHALL show only relevant content, while the Sheet aggregates it. Decisions SHALL retain exact evidence/revision targets. Images SHALL be optional. Bounds SHALL fail atomically without preventing terminal cleanup.
 
-#### Scenario: CAM task crossing stages
+#### Scenario: project-g task crossing stages
 - WHEN Build tasks T1–T6 are complete and T7 has a completed verify segment and pending delivery segment
 - THEN Build shows 6/6, Verify 1/1 and Delivery 0/1 when that stage exists, while the work remains 6/7 unique tasks.
 - AND T7 does not appear within Build or create a fake future Delivery occurrence.

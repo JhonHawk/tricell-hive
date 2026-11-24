@@ -122,7 +122,7 @@ Blocked transitions SHALL require reason, concrete steps, owner and resume condi
 
 Task content SHALL identify task_id/segment_id and its actual stage occurrence; references SHALL belong to that work, segment and origin stage. Activity from multiple stages SHALL stay attributable without duplicating task entities or blobs. Per-stage expansions SHALL show only relevant content, while the Sheet aggregates it. Decisions SHALL retain exact evidence/revision targets. Images SHALL be optional. Bounds SHALL fail atomically without preventing terminal cleanup.
 
-#### Scenario: CAM task crossing stages
+#### Scenario: project-g task crossing stages
 - WHEN Build tasks T1–T6 are complete and T7 has a completed verify segment and pending delivery segment
 - THEN Build shows 6/6, Verify 1/1 and Delivery 0/1 when that stage exists, while the work remains 6/7 unique tasks.
 - AND T7 does not appear within Build or create a fake future Delivery occurrence.

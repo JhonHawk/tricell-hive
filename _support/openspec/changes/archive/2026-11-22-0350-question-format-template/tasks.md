@@ -18,7 +18,7 @@ Base: `development` en `19f3b7be`; rama `feat/question-format-template` en el wo
 
 **Changes:** agrega el criterio a la salida con una lectura propia de cada tarjeta mostrada (la de `cardAnswersOf` salta las que no tienen resultado); no cambia los demás criterios ni `card_answers`. La evidencia sale de `regressionEvidence` más el número de la pregunta en la tarjeta.
 
-**Verification:** `go test -count=1 ./tests/pilot/ -run 'TestAudit'` pasa; `go run ./tests/pilot --audit-session ~/.claude/projects/-Users-jmartinez-Development-projects-tricell-tricell-hive/aa27a201-bc12-44e0-af29-ca245d12f8cc.jsonl --host claude` da `card_option_format` `fail` en las líneas 3849, 6616 y 6940; el mismo comando sobre `1140329b-708e-457b-83d3-7a550b97972b.jsonl`, `e8ef9855-1d4b-48f7-b8f5-2879ea4fdc14.jsonl` y `7bcc87ae-674d-42c9-b444-80a774e5661d.jsonl` da `pass`; con `--host codex` sobre `~/.codex/sessions/2026/11/20/rollout-2026-11-20T01-26-41-01a1f7d9-b225-7b12-bfa1-7fa2b09db920.jsonl` da `fail` y sobre `~/.codex/sessions/2026/11/18/rollout-2026-11-18T14-09-13-01a1f047-170e-7201-8341-51c978d9de47.jsonl` da `pass`.
+**Verification:** `go test -count=1 ./tests/pilot/ -run 'TestAudit'` pasa; `go run ./tests/pilot --audit-session ~/.claude/projects/-Users-me-Development-projects-tricell-tricell-hive/aa27a201-bc12-44e0-af29-ca245d12f8cc.jsonl --host claude` da `card_option_format` `fail` en las líneas 3849, 6616 y 6940; el mismo comando sobre `1140329b-708e-457b-83d3-7a550b97972b.jsonl`, `e8ef9855-1d4b-48f7-b8f5-2879ea4fdc14.jsonl` y `7bcc87ae-674d-42c9-b444-80a774e5661d.jsonl` da `pass`; con `--host codex` sobre `~/.codex/sessions/2026/11/20/rollout-2026-11-20T01-26-41-01a1f7d9-b225-7b12-bfa1-7fa2b09db920.jsonl` da `fail` y sobre `~/.codex/sessions/2026/11/18/rollout-2026-11-18T14-09-13-01a1f047-170e-7201-8341-51c978d9de47.jsonl` da `pass`.
 
 ### T2 — Plantillas de la ronda y de la tarjeta en `questions.md`
 
@@ -91,7 +91,7 @@ Recorrido humano: leer las plantillas en `questions.md` y `report-endings.md`; t
 - Last commit: 09cbbcc9
 - Open findings: none
 - Next: code review result, then push
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/question-format-template · feat/question-format-template
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/question-format-template · feat/question-format-template
 - Rules: flow-verify/stage-entry.md
 - Principles: none
 

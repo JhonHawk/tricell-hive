@@ -12,7 +12,7 @@
 
 > Y tambien, sobre esos proyectos [...] ademas de por ejemplo, en este mismo proyecto hay otra sesión de claude trabajando y para cosas que consideraba sencillas o claras, lleva cerca de dos horas trabajando, eso tambien es un cuello de botella
 
-> otro detalle a agregar y es muy notorio en la sesión actual de claude en cam, un circulo vicioso en el tema de hallazgos -> resuelven -> mas hallazgos, y casi todos son detalles menores
+> otro detalle a agregar y es muy notorio en la sesión actual de claude en project-g, un circulo vicioso en el tema de hallazgos -> resuelven -> mas hallazgos, y casi todos son detalles menores
 
 Respuesta a la ruta D3: «Ticket + flow-plan (Recomendada)» (2026-10-25).
 
@@ -31,7 +31,7 @@ En la sesión `14a79ad0` de este repositorio (143 min), más de la mitad del tie
 
 Incluye `content/skills/flow-plan/references/questions.md` (hogar del formato de las opciones), `content/skills/flow-close/SKILL.md` (pregunta de cierre), `content/skills/flow-plan/references/plan-review.md`, `AGENTS.md` (`## Hive` y la línea 57) y las páginas `site/src/content/docs/flows/plan.md` y `close.md`.
 
-El ciclo de hallazgos menores de la sesión de cam va en [#159](https://github.com/JhonHawk/tricell-hive/issues/159) (E5-A), con su propio cambio.
+El ciclo de hallazgos menores de la sesión de project-g va en [#159](https://github.com/JhonHawk/tricell-hive/issues/159) (E5-A), con su propio cambio.
 
 Fuera de alcance: dejar que una tarea dependiente arranque antes de verificar su predecesora (`plan-execution.md:26`), corrección con un solo caso, en vigilancia; reducir la verificación, la revisión del plan o `/code-review`.
 

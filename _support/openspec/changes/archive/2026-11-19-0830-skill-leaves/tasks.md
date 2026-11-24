@@ -451,7 +451,7 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 - Last commit: 0aace9ff
 - Open findings: none
 - Next: On «close»: support-material question, archive the change folder, remove worktree, branches and scratch
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/skill-leaves · feat/skill-leaves-principles
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/skill-leaves · feat/skill-leaves-principles
 
 ### Evidence
 
@@ -461,8 +461,8 @@ Tu validación antes de cada push: lee `hive-rule-question-channel`, `hive-rule-
 - go test ./tests/content and tooling/management release checks · pass · c33681da
 - hive rebuilt from worktree (backup: scratchpad/hive.backup-before-canary) and applied c33681da · leaf, agents/openai.yaml and Claude link installed · c33681da
 - PR #491 merged addf3256; trial ref, branch and worktree removed; question-card-alone archived 0a1aab75
-- canary Codex cam 01a1f20a · pass · c33681da
-- canary Claude Code cam a9f82c64 · pass: cat of leaf 05:06:19Z before first commit 05:11:39Z via git_state.py, no broad git add · c33681da
+- canary Codex project-g 01a1f20a · pass · c33681da
+- canary Claude Code project-g a9f82c64 · pass: cat of leaf 05:06:19Z before first commit 05:11:39Z via git_state.py, no broad git add · c33681da
 - synthetic-home install (claude, codex, antigravity) of candidate: 61 leaves, Codex openai.yaml, 13 playbooks, 61 Antigravity links · pass · 5a958cd7
 - revert rehearsal: development applied with candidate binary removes leaves and yaml, restores flow-research; development binary dry-run on that state: no changes · pass
 - suppression inventory: none added (no skip, nolint, noqa, ts-ignore in diff); 6 task-history comments removed (no-comments)
