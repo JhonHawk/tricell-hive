@@ -896,6 +896,62 @@ func TestAuditCriteria(t *testing.T) {
 {"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"m1","content":"merged","is_error":false}]}}
 {"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_2","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Merged, promoting next."}]}}
 `},
+		{name: "merged branch deleted: the cleanup helper run without --apply is a dry run", host: "claude", criterion: "merged_branch_deleted", want: "fail", transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Merge it."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_m1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"m1","name":"Bash","input":{"command":"gh pr merge 1 --repo example/repo --merge","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"m1","content":"merged","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_d1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"d1","name":"Bash","input":{"command":"python3 -I scripts/cleanup_branches.py --repo . --base development --merged-pr topic=abc","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:05.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"d1","content":"done","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:06.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_e1","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Finished."}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:07.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_e2","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"**Close** - work item done."}]}}
+`},
+		{name: "merged branch deleted: the head is that of another pull request", host: "claude", criterion: "merged_branch_deleted", want: "fail", opts: auditOptions{Base: "development"}, transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Merge it."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_v1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"v1","name":"Bash","input":{"command":"gh pr view 41 --repo example/repo --json headRefName","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"v1","content":"{\"headRefName\":\"development\"}","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_m1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"m1","name":"Bash","input":{"command":"gh pr merge 42 --repo example/repo --squash","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:05.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"m1","content":"merged","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:06.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_e1","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Merged."}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:07.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"es todo"}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:08.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_e2","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Bye."}]}}
+`},
+		{name: "merged branch deleted: a local merge with no base branch is not observed", host: "claude", criterion: "merged_branch_deleted", want: "not_observed", evidence: []string{"base branch"}, transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Merge locally."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_m1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"m1","name":"Bash","input":{"command":"git merge topic","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"m1","content":"ok","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_p1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"p1","name":"Bash","input":{"command":"git push origin development","description":"example"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:05.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"p1","content":"ok","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:06.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_e1","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Finished."}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:07.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_e2","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"**Close** - work item done."}]}}
+`},
+		{name: "leaf claude stage packet cut in the middle", host: "claude", criterion: leaf, want: "not_observed", evidence: []string{"does not show the leaf whole"}, transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Do the work."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_r1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"/home/example/.agents/skills/flow-build/stage.md"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r1","content":"     1\u2192## hive-core/git/git-commit\n     2\u2192\n     3\u2192# Git commit\n     4\u2192\n\u202612 lines truncated\u2026\n\n<!-- hive packet end: stage \u00b7 hive-core/git/git-commit -->\n","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_g1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"g1","name":"Bash","input":{"command":"git add notes.txt"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:05.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"g1","content":"ok","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:06.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_e1","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Done."}]}}
+`},
+		{name: "leaf claude stage packet cut before its end line", host: "claude", criterion: leaf, want: "not_observed", evidence: []string{"does not show the leaf whole"}, transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Do the work."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_r1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"/home/example/.agents/skills/flow-build/stage.md"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"r1","content":"     1\u2192## hive-core/git/git-commit\n     2\u2192\n     3\u2192# Git commit\n     4\u2192\n     5\u2192Rules.","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_g1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"g1","name":"Bash","input":{"command":"git add notes.txt"}}]}}
+{"type":"user","timestamp":"2026-01-01T10:00:05.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"g1","content":"ok","is_error":false}]}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:06.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_e1","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Done."}]}}
+`},
+		{name: "leaf codex git add after a shell command the host withheld", host: "codex", criterion: leaf, want: "review", transcript: `
+{"timestamp":"2026-01-01T11:00:01.000Z","type":"session_meta","payload":{"id":"00000000-0000-0000-0000-000000000042","cwd":"project","source":"cli"}}
+{"timestamp":"2026-01-01T11:00:02.000Z","type":"turn_context","payload":{"model":"gpt-example","cwd":"project"}}
+{"timestamp":"2026-01-01T11:00:03.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t1"}}
+{"timestamp":"2026-01-01T11:00:04.000Z","type":"response_item","payload":{"type":"message","role":"user","content":[{"type":"input_text","text":"Do the work."}]}}
+{"timestamp":"2026-01-01T11:00:05.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"c1","input":"text(await tools.exec_command({cmd:\"cat \" + dir + \"/notes.txt\"}));"}}
+{"timestamp":"2026-01-01T11:00:06.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"c1","output":[{"type":"input_text","text":"Script completed"},{"type":"input_text","text":"{\"output\": \"x\", \"exit_code\": 0}"}]}}
+{"timestamp":"2026-01-01T11:00:07.000Z","type":"response_item","payload":{"type":"custom_tool_call","name":"exec","call_id":"c2","input":"text(await tools.exec_command({cmd:\"git add notes.txt\"}));"}}
+{"timestamp":"2026-01-01T11:00:08.000Z","type":"response_item","payload":{"type":"custom_tool_call_output","call_id":"c2","output":[{"type":"input_text","text":"Script completed"},{"type":"input_text","text":"{\"output\": \"ok\", \"exit_code\": 0}"}]}}
+{"timestamp":"2026-01-01T11:00:09.000Z","type":"response_item","payload":{"type":"message","role":"assistant","id":"m1","content":[{"type":"output_text","text":"Done."}]}}
+{"timestamp":"2026-01-01T11:00:10.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t1"}}
+`},
 		{name: "git add -A", host: "claude", criterion: "no_broad_git_add", want: "fail", disk: []string{"docs/", "notes.txt"}, transcript: `
 {"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Stage it."}}
 {"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"tool_use","id":"a1","name":"Bash","input":{"command":"git add -A","description":"example"}}]}}

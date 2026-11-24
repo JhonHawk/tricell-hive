@@ -28,12 +28,21 @@ func auditHostFromPath(path string) string {
 	switch {
 	case strings.Contains(p, "/.claude/projects/"):
 		return "claude"
-	case strings.Contains(p, "/.codex/sessions/"):
+	case strings.Contains(p, "/.codex/sessions/"), strings.Contains(p, "/.codex/archived_sessions/"):
 		return "codex"
 	case strings.Contains(p, "/.grok/sessions/") && filepath.Base(path) == "updates.jsonl":
 		return "grok"
 	}
 	return ""
+}
+
+// sessionLabel names a session in the output: its file name, or for Grok,
+// whose transcripts are all called updates.jsonl, its folder name (the session id).
+func sessionLabel(path string) string {
+	if filepath.Base(path) == "updates.jsonl" {
+		return filepath.Base(filepath.Dir(path))
+	}
+	return filepath.Base(path)
 }
 
 var compareEvidenceLine = regexp.MustCompile(`^[^:]*:(\d+)\b`)
@@ -89,7 +98,8 @@ func compareAudit(w io.Writer, paths []string, hostOverride string, before, afte
 			host = auditHostFromPath(path)
 		}
 		if host == "" {
-			return fmt.Errorf("%s: cannot tell the host from the path; pass --host", path)
+			fmt.Fprintf(w, "%s · host unknown: cannot tell the host from the path; pass --host\n", sessionLabel(path))
+			continue
 		}
 		old, err := before(path, host)
 		if err != nil {
@@ -129,7 +139,7 @@ func compareAudit(w io.Writer, paths []string, hostOverride string, before, afte
 			if b == a {
 				continue
 			}
-			fmt.Fprintf(w, "%s · %s · %s → %s · %s\n", filepath.Base(path), name, b, a, changedLines(oi[name], ni[name]))
+			fmt.Fprintf(w, "%s · %s · %s → %s · %s\n", sessionLabel(path), name, b, a, changedLines(oi[name], ni[name]))
 		}
 	}
 	return nil
@@ -145,31 +155,31 @@ func buildRefAuditor(source, ref string, opts auditOptions) (run auditRunner, cl
 	}
 	cleanup = func() { os.RemoveAll(dir) }
 	fail := func(e error) (auditRunner, func(), error) { cleanup(); return nil, nil, e }
-	var stderr bytes.Buffer
+	var archiveErr, tarErr, buildErr bytes.Buffer
 	archive := exec.Command("git", "-C", source, "archive", "--format=tar", ref)
-	archive.Stderr = &stderr
+	archive.Stderr = &archiveErr
 	tar := exec.Command("tar", "-x", "-C", dir)
 	pipe, err := archive.StdoutPipe()
 	if err != nil {
 		return fail(err)
 	}
 	tar.Stdin = pipe
-	tar.Stderr = &stderr
+	tar.Stderr = &tarErr
 	if err := tar.Start(); err != nil {
 		return fail(err)
 	}
 	if err := archive.Run(); err != nil {
 		tar.Wait()
-		return fail(fmt.Errorf("git archive %s: %v: %s", ref, err, strings.TrimSpace(stderr.String())))
+		return fail(fmt.Errorf("git archive %s: %v: %s", ref, err, strings.TrimSpace(archiveErr.String())))
 	}
 	if err := tar.Wait(); err != nil {
-		return fail(fmt.Errorf("extracting %s: %v", ref, err))
+		return fail(fmt.Errorf("extracting %s: %v: %s", ref, err, strings.TrimSpace(tarErr.String())))
 	}
 	bin := filepath.Join(dir, "pilot-ref")
 	build := exec.Command("go", "-C", dir, "build", "-o", bin, "./tests/pilot")
-	build.Stderr = &stderr
+	build.Stderr = &buildErr
 	if out, err := build.Output(); err != nil {
-		return fail(fmt.Errorf("building %s: %v: %s%s", ref, err, out, stderr.String()))
+		return fail(fmt.Errorf("building %s: %v: %s%s", ref, err, out, buildErr.String()))
 	}
 	return func(path, host string) (auditReport, error) {
 		args := []string{"--audit-session", path, "--host", host}

@@ -4,7 +4,7 @@ Base `development` en `51f1949d`. Son cuatro PRs, en el checkout principal y en 
 
 ### T1 — Casos del auditor dentro del test y borrado de fixtures (PR 1)
 
-- [ ] Cada criterio de `--audit-session` y cada adaptador se prueban con transcripciones escritas dentro del test, y `tests/fixtures/sessions/` desaparece
+- [x] Cada criterio de `--audit-session` y cada adaptador se prueban con transcripciones escritas dentro del test, y `tests/fixtures/sessions/` desaparece
 
 **Closes:** AC1
 
@@ -29,7 +29,7 @@ Base `development` en `51f1949d`. Son cuatro PRs, en el checkout principal y en 
 
 ### T2 — Modo `--audit-compare` (PR 1)
 
-- [ ] `go run ./tests/pilot --audit-compare --auditor-ref <ref> <sesiones…>` imprime solo los estados que cambian
+- [x] `go run ./tests/pilot --audit-compare --auditor-ref <ref> <sesiones…>` imprime solo los estados que cambian
 
 **Closes:** AC2
 
@@ -52,7 +52,7 @@ Base `development` en `51f1949d`. Son cuatro PRs, en el checkout principal y en 
 
 ### T3 — Tope de prioridad heurística y documentación del auditor (PR 1)
 
-- [ ] «Findings» limita a P2 los hallazgos heurísticos construidos por el revisor, y los documentos del auditor nombran la comparación
+- [x] «Findings» limita a P2 los hallazgos heurísticos construidos por el revisor, y los documentos del auditor nombran la comparación
 
 **Closes:** AC3
 
@@ -318,3 +318,10 @@ Base `development` en `51f1949d`. Son cuatro PRs, en el checkout principal y en 
 ## Review status and progress
 
 2026-11-24 — Plan escrito y revisado; ver el progreso de `proposal.md`.
+2026-11-24 — T1 · 866e36f0 · unverified: cobertura session_audit*.go 91,3% → 78,5%: lista en el progreso
+2026-11-24 — T2 · d1c71e57 · unverified: none
+2026-11-24 — T3 · 2ef7fafe · unverified: AC3 tras merge y hive update
+2026-11-24 — Cobertura de `session_audit*.go` tras T1: 91,3 % → 78,5 % (428 sentencias en 105 funciones).
+- A 0 %: `cardResultIsEmpty`, `emptyCardResult`, `resultOf` (session_audit.go), `matchingOpen` (logs), `namesOnlyPaths`, `printfLine` (reruns), `questionBetween` (routes), `commitsAll`, `hasArg`, `stagesAll` (specs).
+- Mayores caídas: `loopHasDeadline` 92→24 %, `statusMark` 100→42 %, `echoMark` 86→21 %, `runShownToPass` 100→57 %, `promotionBranches` 100→40 %, `tableRounds` 100→40 %, `mergedAfterClose` 94→55 %, `mergeHead` 93→70 %, `ghPrTarget` 100→56 %, `changeFolderUncommitted` 99→77 %, `folderCoverage` 100→76 %, `folderRenames` 92→54 %.
+- Esos bordes se validan con `--audit-compare` sobre sesiones reales. La ronda de la revisión de código devolvió los casos `review` de `leaf_read_before_action` y los guardas de limpieza en seco, cabeza del PR y merge local sin base.
