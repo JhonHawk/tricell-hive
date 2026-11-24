@@ -416,6 +416,8 @@ class Planner:
             if root.is_git:
                 for rel in cl.code_under_support(sorted(root.tracked)):
                     entry = rel.split("/")[1]
+                    if entry in cl.LEGACY_HOMES:
+                        continue  # its work folder carries the code; a row of its own would block that folder
                     self.add_file(i, rel, f"_support/{entry}/", entry)
             support = root.abs("_support")
             if os.path.isdir(support):
@@ -824,13 +826,13 @@ class Planner:
             child_rel = f"{base}/{child}"
             key = (i, child_rel)
             folder = os.path.isdir(root.abs(child_rel))
-            if child in REPRODUCIBLE or child in cl.IGNORED_NAMES:
+            if self.regenerable(i, child_rel, child, name):
                 self.rows[key] = self.new_row(i, child_rel, "folder" if folder else "file", name)
                 self.set_delete(key, "L3", "reproducible: tooling regenerates it")
             elif folder:
                 work = kebab(DATE_RE.sub("", child, count=1)) or kebab(name)
                 self.rows[key] = self.new_row(i, child_rel, "folder", name)
-                self.set_legacy_dest(key, "F3", os.path.join(
+                self.place_record(key, name, os.path.join(
                     "_support/workspace", f"{self.record_date(i, child_rel)}-{work}", sub))
             else:
                 loose.append(child_rel)
@@ -839,9 +841,27 @@ class Planner:
             for rel in loose:
                 key = (i, rel)
                 self.rows[key] = self.new_row(i, rel, "file", name)
-                self.set_legacy_dest(key, "F3", os.path.join(
+                self.place_record(key, name, os.path.join(
                     "_support/workspace", f"{date}-legacy-{kebab(name)}", sub, os.path.basename(rel)))
         self.review_current_knowledge(i, base, name)
+
+    def regenerable(self, i, rel, child, home):
+        """Whether the child is tooling output safe to delete by name: untracked, ignored by Git,
+        and not under evidence/ or reports/, where a name alone says nothing about what it holds."""
+        if child not in REPRODUCIBLE and child not in cl.IGNORED_NAMES:
+            return False
+        root = self.roots[i]
+        if home in LEGACY_EVIDENCE or not root.is_git:
+            return False
+        tracked = rel in root.tracked or any(r.startswith(rel + "/") for r in root.tracked)
+        return not tracked and rel in root.ignored([rel])
+
+    def place_record(self, key, home, dest):
+        """A child of plan/ or spec/ may hold current knowledge: it waits for --keep or --override."""
+        row = self.rows[key]
+        if home in ("plan", "spec") and not (self.keep_for(row) or self.override_for(row)):
+            return self.set_review(key, "F3", f"{home}/ may hold current knowledge: promote it, or name --keep or --override")
+        self.set_legacy_dest(key, "F3", dest)
 
     # ---- the change register of an earlier layout ---------------------------------
     def declared(self, i, key):
@@ -887,13 +907,32 @@ class Planner:
                     folder = os.path.isdir(root.abs(rel))
                     self.rows[key] = self.new_row(i, rel, "folder" if folder else "file", "changes")
                     if child == "archive" or not folder:
-                        self.set_delete(key, "L1", "change archive: a record of past work" if folder else "index of the change register")
+                        verdict = self.unmodified(i, rel)
+                        if verdict is None:
+                            self.set_delete(key, "L1", "change archive: a record of past work" if folder
+                                            else "index of the change register")
+                        else:
+                            self.set_keep(key, *verdict)
                         continue
                     verdict = self.integration(i, rel, ref)
                     if verdict is None:
                         self.set_delete(key, "L1", f"integrated: its last commit is on {ref}")
                     else:
                         self.set_keep(key, *verdict)
+
+    def unmodified(self, i, rel):
+        """None when rel is tracked and has no uncommitted change, so history holds all of it; else (reason, detail)."""
+        root = self.roots[i]
+        if not root.is_git:
+            return "owner uncertain", "no repository: no history holds it"
+        if not (rel in root.tracked or any(r.startswith(rel + "/") for r in root.tracked)):
+            return "owner uncertain", "it is not tracked: no history holds it"
+        dirty = git(root.path, "status", "--porcelain", "--", rel)
+        if dirty is None or dirty.returncode != 0:
+            return "owner uncertain", "git status failed: cannot tell whether it has uncommitted changes"
+        if dirty.stdout.strip():
+            return "owner uncertain", "it has uncommitted or untracked changes: commit or discard them first"
+        return None
 
     def integration(self, i, rel, ref):
         """None when the folder's last commit is reachable from ref, else (reason, detail)."""
@@ -908,7 +947,9 @@ class Planner:
         if not sha:
             return "owner uncertain", "no commit holds it: nothing shows it landed"
         dirty = git(root.path, "status", "--porcelain", "--", rel)
-        if dirty is not None and dirty.stdout.strip():
+        if dirty is None or dirty.returncode != 0:
+            return "owner uncertain", "git status failed"
+        if dirty.stdout.strip():
             return "owner uncertain", "it has uncommitted changes: commit or discard them first"
         reachable = git(root.path, "merge-base", "--is-ancestor", sha, ref)
         if reachable is not None and reachable.returncode == 0:
@@ -917,6 +958,13 @@ class Planner:
 
     def set_keep(self, key, reason, detail):
         row = self.rows[key]
+        if self.keep_for(row):
+            return self.set_kept(key, "L1")
+        override = self.override_for(row)
+        if override:
+            row["rule"], row["destination"], row["override"] = "L1", override, True
+            row["untrack"] = bool(row["tracked"])
+            return
         row["rule"] = "L1"
         row["notes"].append(f"kept: {reason}")
         self.review(row["root"], row["source"], reason, detail)
@@ -1148,6 +1196,26 @@ class Planner:
                 row["override"] = False
                 row["destination"] = None
                 self.review(row["root"], row["source"], row["rule"], f"collision at {dest}")
+        for key in claimants:
+            row = self.rows[key]
+            if row["destination"] and self.nested_in_other(key):
+                dest = row["destination"]
+                row["notes"].append("collision")
+                row["override"] = False
+                row["destination"] = None
+                self.review(row["root"], row["source"], row["rule"],
+                            f"nested destination: {dest} lies inside the destination of another folder; "
+                            "move one of them with --override, or keep it with --keep")
+
+    def nested_in_other(self, key):
+        """Whether the row's destination lies inside the destination of a folder row that moves elsewhere."""
+        row = self.rows[key]
+        for other_key, other in self.rows.items():
+            if (other_key != key and other["root"] == row["root"] and other["kind"] == "folder" and other["destination"]
+                    and row["destination"].startswith(other["destination"] + "/")
+                    and not row["source"].startswith(other["source"] + "/")):
+                return True
+        return False
 
     def mark_split_tests(self):
         """A kept test whose subject moves may run it by a path that breaks: ask."""
@@ -1498,6 +1566,20 @@ def validate(plan):
             errors.append(f"{row['source']}: changed since the plan")
         if os.path.lexists(os.path.join(base, row["destination"])):
             errors.append(f"{row['destination']}: destination exists")
+        if row.get("untrack") and row["tracked"]:
+            staged = git(base, "diff", "--cached", "--name-only", "--", row["source"])
+            if staged is None or staged.returncode != 0 or staged.stdout.strip():
+                errors.append(f"{row['source']}: it has staged changes (or Git cannot say): commit or unstage them first")
+    moving = sorted((r for r in plan["rows"] if r["destination"]), key=lambda r: (r["root"], r["destination"]))
+    for n, row in enumerate(moving):
+        for other in moving[n + 1:]:
+            if other["root"] == row["root"] and other["destination"].startswith(row["destination"] + "/"):
+                errors.append(f"{other['destination']}: nested inside the destination {row['destination']}")
+    for i, root in enumerate(plan["roots"]):
+        removing = [r for r in plan["rows"] if r["root"] == i and (r.get("untrack") or r["action"] == "delete")]
+        if root["git"] and removing and not tagged(root["path"], root["head"]):
+            errors.append(f"{root['path']}: {len(removing)} rows leave Git or are deleted and no archive/* tag points at "
+                          f"{(root['head'] or '')[:8]}: create it first, as project-layout step 5 sets")
     originals = {}
     for item in plan["rewrites"]:
         key = (item["root"], item["file"])
@@ -1512,6 +1594,22 @@ def validate(plan):
         if sha256_bytes(line.encode()) != item["sha256_line"] or line[item["col"]:item["col"] + len(item["old"])] != item["old"]:
             errors.append(f"{item['file']}:{item['line']}: line changed since the plan")
     return sorted(set(errors)), originals
+
+
+def untracked_entries(root, source):
+    """The index entries under source, as `git ls-files -s -z` prints them, or None when Git cannot say."""
+    result = git(root, "ls-files", "-s", "-z", "--", source)
+    return result.stdout if result is not None and result.returncode == 0 else None
+
+
+def restore_entries(root, entries):
+    result = git(root, "update-index", "-z", "--index-info", input=entries)
+    return result is not None and result.returncode == 0
+
+
+def tagged(root, head):
+    result = git(root, "tag", "--list", "--points-at", head, "archive/*")
+    return result is not None and result.returncode == 0 and bool(result.stdout.strip())
 
 
 def cmd_apply(args):
@@ -1559,11 +1657,18 @@ def cmd_apply(args):
             else:
                 os.replace(source, dest)
                 if leaves_git:
+                    entries = untracked_entries(root, row["source"])
+                    if entries is None:
+                        raise RuntimeError(f"git ls-files {row['source']}: failed")
+                    undo["moves"].append({"root": row["root"], "source": row["source"], "destination": row["destination"],
+                                          "git": False, "untracked": True, "index": entries})
+                    save_undo(undo_path, undo)
                     result = git(root, "rm", "-r", "-q", "--cached", "--", row["source"])
                     if result is None or result.returncode != 0:
                         raise RuntimeError(f"git rm --cached {row['source']}: {result.stderr.strip() if result else 'failed'}")
-            undo["moves"].append({"root": row["root"], "source": row["source"], "destination": row["destination"],
-                                  "git": bool(row["tracked"]) and not leaves_git, "untracked": leaves_git})
+            if not leaves_git:
+                undo["moves"].append({"root": row["root"], "source": row["source"], "destination": row["destination"],
+                                      "git": bool(row["tracked"]), "untracked": False})
             parent = os.path.dirname(source)
             while os.path.basename(parent) != "_support" and parent.startswith(root + os.sep):
                 if os.listdir(parent):
@@ -1702,10 +1807,8 @@ def cmd_undo(args):
                 conflicts.append(f"git mv back failed for {move['destination']}")
         else:
             os.replace(os.path.join(root, move["destination"]), os.path.join(root, move["source"]))
-            if move.get("untracked"):
-                result = git(root, "add", "-f", "--", move["source"])
-                if result is None or result.returncode != 0:
-                    conflicts.append(f"git add back failed for {move['source']}")
+            if move.get("untracked") and not restore_entries(root, move.get("index", "")):
+                conflicts.append(f"restoring the index entries of {move['source']} failed")
     for created in reversed(undo["created_dirs"]):
         path = os.path.join(root_path(plan, created["root"]), created["dir"])
         try:

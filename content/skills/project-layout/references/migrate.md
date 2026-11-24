@@ -28,10 +28,9 @@ Ask them in the round of the manifest, as [decision format](../../hive-core/mess
 Read when the planner reports a legacy row: `<Specs>/changes/` (the archive and each change folder), `sessions/`, top-level `evidence/` and `reports/`, `archive/`, `archived/`, `backups/`, `plan/` or `spec/`. The planner, not you, decides each row's `action`:
 
 - **move** to `_support/workspace/<YYYY-MM-DD>-<work>/`, dated by the item's name, else its first commit, else its oldest file; dumps and exports go to `_support/data/`, which is never deleted without the user's answer. A tracked item leaves Git (`untrack`): the project's delivery commit carries the removal, and history keeps it.
-- **delete** the change archive and each change folder whose last commit is reachable from `origin/<base>` (the `Base branch` of `## Hive`, else the remote's default), and output tooling regenerates.
-- **keep** a change folder that is not reachable, named in the manifest with its last commit; one with uncommitted edits; every change folder when `_support/` is outside Git or the base does not resolve. Ask about it; never delete it to make the list shorter.
-
-`plan/` and `spec/` may hold current knowledge: promote what is current to the docs home before moving the rest.
+- **delete** the change archive and loose files of `changes/` when they are tracked and have no uncommitted or untracked change, each change folder whose last commit is reachable from `origin/<base>` (the `Base branch` of `## Hive`, else the remote's default), and output tooling regenerates that Git ignores and that sits outside `evidence/` and `reports/` (anything else moves like a record).
+- **keep** a change folder that is not reachable, named in the manifest with its last commit; one with uncommitted edits; the archive or a loose file that is untracked or edited; every change folder, the archive and loose files when `_support/` is outside Git, the base does not resolve or `git status` fails; `--keep` or `--override` settles any of them. Ask about it; never delete it to make the list shorter.
+- **review** each child of `plan/` and `spec/`, which may hold current knowledge: promote what is current to the docs home, then name the rest with `--keep` or `--override`. A destination that nests inside another row's destination (the same work in `sessions/` and `evidence/`) is a review row too.
 
 Two steps need judgment, so the script leaves them to you; propose each one at a time, with the evidence, and apply only the answered ones:
 
