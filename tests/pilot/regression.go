@@ -857,9 +857,25 @@ func shellReadsSecret(args []string) bool {
 		}
 	}
 	skipNext := false
+	isSed := filepath.Base(args[0]) == "sed"
+	skipScript := isSed // sed's first operand is its script, not a file, unless -e or -f gave one
+	for _, a := range args[1:] {
+		if a == "-e" || a == "-f" || strings.HasPrefix(a, "--expression") || strings.HasPrefix(a, "--file") {
+			skipScript = false
+		}
+	}
+	scriptNext := false
 	for _, a := range args[1:] {
 		if skipNext {
 			skipNext = false
+			continue
+		}
+		if scriptNext {
+			scriptNext = false // the value of -e or -f: a script, whose text may name a path without reading it
+			continue
+		}
+		if isSed && (a == "-e" || a == "-f" || a == "--expression" || a == "--file") {
+			scriptNext = true
 			continue
 		}
 		if target, isRedirect := outputRedirect(a); isRedirect {
@@ -873,6 +889,10 @@ func shellReadsSecret(args []string) bool {
 			continue
 		}
 		if strings.HasPrefix(a, "-") {
+			continue
+		}
+		if skipScript {
+			skipScript = false
 			continue
 		}
 		if isSecretPath(a) {

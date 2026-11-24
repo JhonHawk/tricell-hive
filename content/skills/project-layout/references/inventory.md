@@ -10,7 +10,7 @@ List every entry of each support home: the `_support/` folder at the root of the
 
 - `docs/`: living knowledge; its documents are candidates only for moving or for pruning as [Living documentation](#living-documentation) sets.
 - `workspace/`: ignored working material, the one home of each work (`<YYYY-MM-DD>-<work>/`) and the earlier manifests of this skill; an item there is removed only with the positive evidence [project-layout](../SKILL.md) step 5 sets.
-- `sessions/`, `archive/`, `archived/`, `plan/`, `spec/`: legacy homes, which Hive no longer creates; the planner maps each child to a work folder, and [migrate](migrate.md#old-change-register-and-records) sets what it moves, deletes and keeps.
+- `sessions/`, `archive/`, `archived/`, `plan/`, `spec/`: legacy homes, which Hive no longer creates; the planner maps each child to a work folder, and [migrate](migrate.md#old-change-register-and-records) sets what it moves, deletes and keeps. A repository whose support home is the workspace's keeps the same legacy homes (`sessions/`, `evidence/`, `reports/`, `archive/`, `archived/`) at its own root, outside any `_support/`: list them too, and the planner maps their children to the `workspace/` of the repository's `_support/`, else of the workspace folder that is also a root of the plan.
 - `evidence/`, `reports/`: legacy material, which Hive no longer creates; apply the test of [Retain evidence](../../project-layout/references/layout.md#retain-evidence) to each item.
 - Folders and files of earlier layouts, such as `assets/`, a `PROJECT.md`, a `premise.md` or a `README.md`: current knowledge, which stays or moves to `docs/`, or a record of past work, which is classified like `evidence/`. Classify by content as [migrate](migrate.md) HA-PL-03 does.
 

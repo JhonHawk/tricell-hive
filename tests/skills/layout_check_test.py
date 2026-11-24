@@ -293,6 +293,17 @@ class CheckLayoutTest(unittest.TestCase):
         result = self.run_check(base)
         self.assertNotIn("child", result.stdout)
 
+    def test_a_workspace_outside_git_judges_nothing_inside_its_child_repositories(self):
+        base = self.tmp() / "ws"
+        write(base, "_support/docs/README.md", "# Index\n")
+        child = base / "specs-repo"
+        init_repo(child)
+        write(child, "openspec/changes/archive/2026-01-01-x/proposal.md", "# x\n")
+        write(child, "sessions/2026-01-02-y/a.md", "# y\n")
+        write(child, "_support/sessions/2026-01-02-y/a.md", "# y\n")
+        result = self.run_check(base)
+        self.assertNotIn("specs-repo", result.stdout)
+
     def test_layout_01_sees_an_ignored_local_script(self):
         repo = self.tmp() / "r"
         clean_repo(repo)  # .gitignore ignores _support/scripts/
