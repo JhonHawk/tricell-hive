@@ -1,6 +1,0 @@
-{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000cc", "cwd": "project", "source": "cli"}}
-{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
-{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
-{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "Analyze the cache."}]}}
-{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m0", "content": [{"type": "output_text", "text": "**Analysis · EX · the cache is read twice**\n\nThe loader reads the cache before and after the lock.\n\n**▶ How do we continue?**\n\nA — (★) Fix it: removes the second read.\nB — Leave it: record it as known."}]}}
-{"timestamp": "2026-01-01T11:00:09.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}

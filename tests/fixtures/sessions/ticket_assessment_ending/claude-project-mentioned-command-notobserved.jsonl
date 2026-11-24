@@ -1,2 +1,0 @@
-{"type": "user", "message": {"role": "user", "content": "Why did /hive-mode not ask anything about EX-1?"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
-{"type": "assistant", "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "It read the ticket and wrote its assessment without a round."}]}, "timestamp": "2026-01-01T11:00:04.000Z", "cwd": "/work/project", "isSidechain": false}

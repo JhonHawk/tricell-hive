@@ -1,6 +1,0 @@
-{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-000000000009", "cwd": "project", "source": "vscode"}}
-{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
-{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}, {"type": "function", "name": "request_user_input", "description": "only available in Default or Plan mode"}]}]}}
-{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
-{"timestamp": "2026-01-01T11:00:08.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "**Verify · EXAMPLE · findings**\n\n**D5 — ¿Aplico ahora los hallazgos de la revisión de código?**\n\nSituación: dos hallazgos.\n\n- **A · (★) Aplicar**\nSi la eliges: se corrigen ahora.\n- **B · Posponer**\nSi la eliges: quedan como ticket.\n\nEspero D5."}]}}
-{"timestamp": "2026-01-01T11:00:09.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
