@@ -68,7 +68,7 @@ When the selected native question tool waits for the answer and gives each optio
 
 ### Requirement: The session audit fails a plan that ends without a build route
 
-`go run ./tests/pilot --audit-session` SHALL report `plan_without_build_route` for Claude, Codex and Grok sessions. A plan stage SHALL run from a load of `flow-plan`, through the skill call, a Codex user message that carries the skill as typed by the user, such as `$flow-plan`, or a read of its installed `SKILL.md`, to the next load of a different flow's skill or the end of the session; a further load of `flow-plan`, a search event or a `grep` or `rg` of a flow's `SKILL.md` SHALL NOT end it. The criterion SHALL pass a stage in which an assistant message holds the command of `flow-build` or `create-design` in any host's syntax, such as `/flow-build`, `$flow-build` or `**/flow-build**`, together with a `▶` line; SHALL fail a stage in which the command appears only in messages without a `▶` line at the start of a line, giving the line of the first such message, unless one of the review cases below for a stage another flow load ends applies; SHALL fail a stage that a later flow load ends with no such message, giving the line of the `flow-plan` load, except that it SHALL report review when that load is in the turn of the stage's latest `flow-plan` load with no question card between them, a continuation the user may have asked for, or follows a load of the installed `unattended-delegation` skill; SHALL report review for a stage the end of the session ends with no such message, since the session may still be open; SHALL report not_observed when the session loads no `flow-plan`; and SHALL NOT judge a child session.
+`go run ./tests/pilot --audit-session` SHALL report `plan_without_build_route` for Claude, Codex and Grok sessions. A plan stage SHALL run from a load of `flow-plan`, through the skill call, a Codex user message that carries the skill as typed by the user, such as `$flow-plan`, or a read of its installed `SKILL.md`, to the next load of a different flow's skill or the end of the session; a further load of `flow-plan`, a search event or a `grep` or `rg` of a flow's `SKILL.md` SHALL NOT end it. The criterion SHALL pass a stage in which an assistant message holds the command of `flow-build` or `create-design` in any host's syntax, such as `/flow-build`, `$flow-build` or `**/flow-build**`, together with a `▶` line; SHALL fail a stage in which the command appears only in messages without a `▶` line at the start of a line, giving the line of the first such message, unless the review case below for a load in the same turn, measured from that message, or for an unattended load before that message applies; SHALL fail a stage that a later flow load ends with no such message, giving the line of the `flow-plan` load, except that it SHALL report review when that load is in the turn of the stage's latest `flow-plan` load with no question card between them, a continuation the user may have asked for, or follows a load of the installed `unattended-delegation` skill; SHALL report review for a stage the end of the session ends with no message naming the command, since the session may still be open; SHALL report not_observed when the session loads no `flow-plan`; and SHALL NOT judge a child session.
 
 #### Scenario: A plan kept in the conversation that never names the build command
 
@@ -88,6 +88,18 @@ When the selected native question tool waits for the answer and gives each optio
 - **WHEN** the audit runs on it
 - **THEN** `plan_without_build_route` fails with that message's line
 
+#### Scenario: A next-step marker in the middle of a line
+
+- **GIVEN** a plan message that says «El bloque ▶ va al final; corre `$flow-build EX-1`» with no line that opens with `▶`, ended by a load of `flow-build` in a later turn
+- **WHEN** the audit runs on it
+- **THEN** `plan_without_build_route` fails with that message's line
+
+#### Scenario: A bare build command continued in the same turn
+
+- **GIVEN** a user who asked to plan and build without stopping, and a plan message that names `$flow-build` without a `▶` line, followed by a load of `flow-build` in the same turn with no card between
+- **WHEN** the audit runs on it
+- **THEN** `plan_without_build_route` reports review
+
 #### Scenario: A plan and its build in one turn
 
 - **GIVEN** a session whose user asks to plan and build without stopping, and that loads `flow-plan` and then `flow-build` in the same turn with no flow command in its messages
@@ -104,7 +116,7 @@ When the selected native question tool waits for the answer and gives each optio
 
 ### Requirement: The session audit fails an asynchronous round while the waiting card is offered
 
-`go run ./tests/pilot --audit-session` SHALL report `async_card_when_waiting_offered` for Codex sessions. For each call to `request_user_input_async` in a main session it SHALL fail when the session offers `request_user_input` in any of its turns, and SHALL fail when it does not and no assistant text earlier in the same turn is a round written in the text; a call at or after the start of unattended delegation SHALL fail only when no round is written in the text earlier in its turn; otherwise it SHALL pass. It SHALL report not_observed for a session with no such call, SHALL NOT judge a child session, and its evidence SHALL name the line, never the text.
+`go run ./tests/pilot --audit-session` SHALL report `async_card_when_waiting_offered` for Codex sessions. For each call to `request_user_input_async` in a main session it SHALL fail when the session offers `request_user_input` in any of its turns, and SHALL fail when it does not and no assistant text earlier in the same turn is a round written in the text; a call after a load of the installed `unattended-delegation` skill, not a search of a repository copy, SHALL fail only when no round is written in the text earlier in its turn; otherwise it SHALL pass. It SHALL report not_observed for a session with no such call, SHALL NOT judge a child session, and its evidence SHALL name the line, never the text.
 
 #### Scenario: Async card with the waiting card offered
 
@@ -115,6 +127,12 @@ When the selected native question tool waits for the answer and gives each optio
 #### Scenario: Async card as the only tool, round written first
 
 - **GIVEN** a Codex session that offers only `request_user_input_async` and writes the round in the text in full before calling it in the same turn
+- **WHEN** the audit runs on it
+- **THEN** `async_card_when_waiting_offered` passes
+
+#### Scenario: Async card after unattended delegation
+
+- **GIVEN** a Codex session that offers `request_user_input`, loads the installed `unattended-delegation` skill, then writes a round in the text and calls `request_user_input_async` in the same turn
 - **WHEN** the audit runs on it
 - **THEN** `async_card_when_waiting_offered` passes
 

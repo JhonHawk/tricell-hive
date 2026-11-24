@@ -10,7 +10,7 @@ func asyncCardWhenWaitingOffered(s auditSession) criterionAssessment {
 	if child(s) {
 		return c
 	}
-	unattended := unattendedActivation(s.Trace.Events)
+	unattended := unattendedLoad(s.Trace.Events)
 	var failed, passed []string
 	for i, e := range s.Trace.Events {
 		if e.Kind != "question" || e.Tool != "request_user_input_async" {

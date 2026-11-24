@@ -259,12 +259,18 @@ func planWithoutBuildRoute(s auditSession) criterionAssessment {
 		case flow == "flow-plan":
 			latest = i
 		case flow != "" && start >= 0:
+			// A bare command sets the stage's anchor: the user's reply to it
+			// is what a later load of the flow may continue.
+			anchor, unattendedBy := latest, i
+			if bare >= 0 {
+				anchor, unattendedBy = bare, bare
+			}
 			switch {
 			case routed:
 				passed = append(passed, regressionEvidence(events[start]))
-			case s.Turn[latest] == s.Turn[i] && !questionBetween(events, latest, i):
+			case s.Turn[anchor] == s.Turn[i] && !questionBetween(events, anchor, i):
 				review = append(review, regressionEvidence(events[start])+" flow started in the plan's own turn")
-			case unattended >= 0 && unattended < i:
+			case unattended >= 0 && unattended < unattendedBy:
 				review = append(review, regressionEvidence(events[start])+" after unattended delegation")
 			case bare >= 0:
 				failed = append(failed, regressionEvidence(events[bare])+" build command without a next-step block")
