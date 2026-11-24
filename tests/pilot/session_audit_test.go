@@ -421,6 +421,7 @@ func TestAuditNewCriteria(t *testing.T) {
 		{"prose choice codex pending delivery with a recommended mode in backticks", "codex", prose, []string{prose, "codex-rollout-pending-recommend-fail.jsonl"}, auditOptions{}, "fail"},
 		{"prose choice codex delivery only left pending", "codex", prose, []string{prose, "codex-rollout-pending-only-review.jsonl"}, auditOptions{}, "review"},
 		{"prose choice codex recommended backticks with no delivery mode word", "codex", prose, []string{prose, "codex-rollout-mode-substring-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"prose choice codex quoted recommendation in a report is not counted", "codex", prose, []string{prose, "codex-rollout-quoted-recommend-notobserved.jsonl"}, auditOptions{}, "not_observed"},
 		{"plan codex typed skill, build command without a next-step block", "codex", planRoute, []string{planRoute, "codex-rollout-typed-skill-no-block-fail.jsonl"}, auditOptions{}, "fail"},
 		{"plan codex typed skill, build command without a next-step block, session ends in the stage", "codex", planRoute, []string{planRoute, "codex-rollout-typed-skill-no-block-open-fail.jsonl"}, auditOptions{}, "fail"},
 		{"plan codex typed skill, build command with the next-step block", "codex", planRoute, []string{planRoute, "codex-rollout-typed-skill-block-pass.jsonl"}, auditOptions{}, "pass"},

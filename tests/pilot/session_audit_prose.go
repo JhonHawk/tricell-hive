@@ -50,6 +50,12 @@ var (
 	leftPending = regexp.MustCompile(`(?i)\b(?:queda|quedan|falta|faltan)\s+(?:por|de)\s+confirmar\b|\bpendientes?\s+de\s+confirm(?:ar|aci[oó]n)\b|\bstill\s+needs?\s+confirm(?:ing|ation)\b|\bawaiting\s+your\s+confirmation\b`)
 )
 
+// unquoted drops the text in quotation marks, so a report that quotes another
+// session's recommendation does not count as one.
+func unquoted(s string) string {
+	return quotedReply.ReplaceAllString(s, "")
+}
+
 // proseChoices returns the questions of a message that ask the user to choose:
 // alternatives in prose, or a session question asked as a yes or no.
 func proseChoices(text string) (choices []string, session bool) {
@@ -69,10 +75,10 @@ func proseChoices(text string) (choices []string, session bool) {
 		case imperativeConfirm.MatchString(s) && sessionChoice.MatchString(s):
 			choices = append(choices, s)
 			session = true
-		case recommends.MatchString(s) && backtickedMode.MatchString(s):
+		case recommends.MatchString(unquoted(s)) && backtickedMode.MatchString(unquoted(s)):
 			choices = append(choices, s)
 			session = true
-		case leftPending.MatchString(s) && sessionChoice.MatchString(s):
+		case leftPending.MatchString(unquoted(s)) && sessionChoice.MatchString(unquoted(s)):
 			choices = append(choices, s)
 		case offeredReplies.MatchString(s) && len(quotedReply.FindAllString(s, -1)) >= 2:
 			choices = append(choices, s)
