@@ -83,7 +83,7 @@ For the Antigravity host, Hive SHALL render each canonical role as `<Antigravity
 
 ### Requirement: Project skill registry check
 
-`skill_registry.py check` of `audit-harness` SHALL read the `## Skills` section of a repository's `AGENTS.md`, outside `## Hive`, where each line names an observable trigger and the path of a `SKILL.md`. It SHALL exit non-zero naming each listed path that does not exist and each installed skill, other than those Hive installed, whose name no line lists.
+`skill_registry.py check` of `audit-harness` SHALL read the `## Skills` section of a repository's `AGENTS.md`, outside `## Hive`, where each line names an observable trigger and the path of a `SKILL.md`. It SHALL exit non-zero naming each listed path that does not exist and each installed skill, other than those Hive installed, whose name no line lists. In a declared workspace it SHALL also report each line of a child repository's `## Skills` that the workspace root does not repeat with the child's path as prefix, a registry placed inside `## Hive`, a `skills-lock.json` entry that is not installed, and an unsafe path.
 
 #### Scenario: An installed skill missing from the registry
 
