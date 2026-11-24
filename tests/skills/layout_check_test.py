@@ -132,6 +132,14 @@ class CheckLayoutTest(unittest.TestCase):
         lines = [l for l in result.stdout.splitlines() if l.startswith("LAYOUT-03")]
         self.assertEqual(len(lines), 2, lines)
 
+    def test_layout_03_flags_code_reading_the_legacy_sessions_home(self):
+        repo = self.tmp() / "r"
+        clean_repo(repo)
+        write(repo, "src/bad.py", "x = 1\nopen('_support/sessions/x')\n")
+        commit_all(repo)
+        result = self.run_check(repo)
+        self.assertFinding(result, "LAYOUT-03", "review", "bad.py:2")
+
     def test_layout_03_exempt_files_alone_pass(self):
         repo = self.tmp() / "r"
         clean_repo(repo)
@@ -299,7 +307,6 @@ class CheckLayoutTest(unittest.TestCase):
         write(repo, "_support/aws/role/policy.json", "{}\n")
         write(repo, "_support/aws/role/README.md", "# role\n")
         write(repo, "_support/tools/run.py", "print(1)\n")
-        write(repo, "_support/sessions/2026-01-02-fix/run.py", "print(1)\n")
         write(repo, "_support/docs/example.py", "print(1)\n")
         write(repo, "_support/docs/README.md", "# Index\n\n- [Guide](guide.md) read first\n")
         write(repo, "_support/scripts/ci.sh", "echo\n")
@@ -312,8 +319,17 @@ class CheckLayoutTest(unittest.TestCase):
         self.assertFinding(result, "LAYOUT-08", fragment="run.py")
         self.assertIn("plan_layout.py", [l for l in result.stdout.splitlines() if l.startswith("LAYOUT-08")][0])
         lines = [l for l in result.stdout.splitlines() if l.startswith("LAYOUT-08")]
-        self.assertFalse([l for l in lines if "README.md" in l or "sessions" in l or "example.py" in l or "ci.sh" in l], lines)
+        self.assertFalse([l for l in lines if "README.md" in l or "example.py" in l or "ci.sh" in l], lines)
         self.assertFinding(result, "LAYOUT-02", fragment="ci.sh")
+
+    def test_sessions_is_no_longer_a_home(self):
+        repo = self.tmp() / "r"
+        clean_repo(repo)
+        write(repo, "_support/sessions/2026-01-02-fix/run.py", "print(1)\n")
+        commit_all(repo, force=["_support/sessions/2026-01-02-fix/run.py"])
+        result = self.run_check(repo)
+        self.assertFinding(result, "LAYOUT-04", severity="review", fragment="sessions")
+        self.assertFinding(result, "LAYOUT-08", fragment="sessions/2026-01-02-fix/run.py")
 
     def test_json_output(self):
         repo = self.tmp() / "r"

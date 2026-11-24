@@ -49,7 +49,7 @@ Creation fields and --work-id are exclusive. Change paths bind to explicit keys 
 
 STAGE: research|plan|build|verify|delivery. Stage STATE: in_progress|in_review|awaiting_validation|completed|paused|failed. A terminal stage needs explicit --previous-stage for reentry. Existing publication never starts a stage. The creation variant explicitly starts the requested stage with --summary/--reason.
 
-Plan defaults: proposal.md and tasks.md required, design.md optional, sorted specs/**/spec.md. --document RELATIVE.md adds extras; --explicit-documents replaces defaults and needs at least one. Non-plan stages require explicit --document and --document-key. The plan key defaults to plan. At most 8 tabs, 256 KiB per Markdown, no truncation, no linked-file traversal; limits are checked before mutation and bytes freeze before it.
+Plan default: --change DIR (work folder) publishes its one top-level *.plan.md; none or several is refused. --document RELATIVE.md adds extras; --explicit-documents replaces defaults and needs at least one. Non-plan stages require explicit --document and --document-key. The plan key defaults to plan. At most 8 tabs, 256 KiB per Markdown, no truncation, no link traversal; limits are checked before mutation and bytes freeze before it.
 
 Registration JSON, a nonempty array (max 100):
 [{"key":"T1","title":"Implement export","summary":"Add the requested export","order":1,"segments":[{"stage":"build","order":1},{"stage":"verify","order":2}]}]

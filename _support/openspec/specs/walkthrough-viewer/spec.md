@@ -472,7 +472,7 @@ The manager SHALL bind canonical source directories to explicit work keys/IDs an
 - THEN mutation is rejected without selecting another work or impersonating its lead.
 
 ### Requirement: Safe bounded document collection
-The manager SHALL validate all selected files and their containment/types/limits before any publication mutation. Default plan collection SHALL include required proposal/tasks, optional design and deterministically ordered spec deltas. Explicit Markdown selection SHALL support retained documents outside that default shape without implicit linked-file traversal. It SHALL reject escapes, symlink components beneath the canonical root, shared inodes, nonregular files, unstable reads, invalid UTF-8 and exceeded existing limits. No document SHALL be silently truncated or omitted to fit a limit. Frozen bytes SHALL not change when source files are later edited.
+The manager SHALL validate all selected files and their containment/types/limits before any publication mutation. Default plan collection from a work folder SHALL be the one `*.plan.md` at its top, labelled Plan, and SHALL be refused with a message naming the files when the folder holds none or several. Explicit Markdown selection SHALL support retained documents outside that default shape without implicit linked-file traversal. It SHALL reject escapes, symlink components beneath the canonical root, shared inodes, nonregular files, unstable reads, invalid UTF-8 and exceeded existing limits. No document SHALL be silently truncated or omitted to fit a limit. Frozen bytes SHALL not change when source files are later edited.
 
 #### Scenario: Invalid member of a set
 - WHEN any selected member fails preflight

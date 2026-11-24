@@ -8,6 +8,7 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[2]
 CHECK = ROOT / "content/skills/flow-plan/scripts/check_change.py"
+PLAN_NAME = "2026-11-24-demo.plan.md"
 sys.dont_write_bytecode = True  # keep __pycache__ out of the distributed skill folder
 
 
@@ -56,21 +57,29 @@ TASKS = """
     """
 
 
+def plan_text(proposal, tasks):
+    """One plan file: the proposal's sections, then `## Tareas` with the task blocks and their progress section."""
+    head = textwrap.dedent(proposal).lstrip().split("## Estado de la revisión y avance")[0].rstrip()
+    body = textwrap.dedent(tasks).lstrip().replace("# Tasks\n\n", "", 1)
+    return f"{head}\n\n## Tareas\n\n{body}"
+
+
 class ChangeCheckTest(unittest.TestCase):
-    def run_check(self, folder, *args):
+    def run_check(self, plan, *args):
         return subprocess.run(
-            [sys.executable, "-B", str(CHECK), str(folder), *args],
+            [sys.executable, "-B", str(CHECK), str(plan), *args],
             text=True,
             capture_output=True,
         )
 
     def folder(self, tmp, proposal=PROPOSAL, tasks=TASKS):
-        change = Path(tmp) / "demo"
-        write(change, "proposal.md", proposal)
-        write(change, "tasks.md", tasks)
-        return change
+        """Write the plan file in its work folder and return its path."""
+        plan = Path(tmp) / "2026-11-24-demo" / PLAN_NAME
+        plan.parent.mkdir(parents=True, exist_ok=True)
+        plan.write_text(plan_text(proposal, tasks))
+        return plan
 
-    def test_coherent_folder_passes(self):
+    def test_coherent_plan_passes(self):
         with tempfile.TemporaryDirectory() as tmp:
             result = self.run_check(self.folder(tmp))
             self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
@@ -81,7 +90,7 @@ class ChangeCheckTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             result = self.run_check(self.folder(tmp, tasks=tasks))
             self.assertEqual(result.returncode, 1)
-            self.assertIn("proposal.md:13: AC4", result.stdout)
+            self.assertIn(f"{PLAN_NAME}:13: AC4", result.stdout)
             self.assertNotIn("AC2", result.stdout)
 
     def test_reports_a_closes_line_naming_an_undefined_criterion(self):
@@ -89,7 +98,7 @@ class ChangeCheckTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             result = self.run_check(self.folder(tmp, tasks=tasks))
             self.assertEqual(result.returncode, 1)
-            self.assertIn("tasks.md:8: AC9", result.stdout)
+            self.assertIn(f"{PLAN_NAME}:23: AC9", result.stdout)
 
     def test_reports_each_stale_mention_of_a_replaced_or_retired_id(self):
         tasks = TASKS.replace(
@@ -97,27 +106,12 @@ class ChangeCheckTest(unittest.TestCase):
             "**Changes:** commit by D4-A and close AC2.",
         )
         with tempfile.TemporaryDirectory() as tmp:
-            change = self.folder(tmp, tasks=tasks)
-            write(change, "design.md", "# Design\n\nCommits follow D4 A, not D40.\n")
-            write(change, "specs/export/spec.md", "### Requirement: Export\n\nJoint commit per D4-A.\n")
-            result = self.run_check(change)
+            result = self.run_check(self.folder(tmp, tasks=tasks))
             self.assertEqual(result.returncode, 1)
             lines = result.stdout.splitlines()
-            self.assertIn("tasks.md:10: D4-A", result.stdout)
-            self.assertIn("tasks.md:10: AC2", result.stdout)
-            self.assertIn("design.md:3: D4-A", result.stdout)
-            self.assertIn("specs/export/spec.md:3: D4-A", result.stdout)
-            self.assertEqual(len(lines), 4, result.stdout)
-
-    def test_archive_lists_each_unchecked_box(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            change = self.folder(tmp)
-            plain = self.run_check(change)
-            archive = self.run_check(change, "--archive")
-            self.assertEqual(plain.returncode, 0)
-            self.assertEqual(archive.returncode, 1)
-            self.assertIn("tasks.md:6: unchecked box: Export file written", archive.stdout)
-            self.assertIn("1 unchecked box", archive.stdout.splitlines()[-1])
+            self.assertIn(f"{PLAN_NAME}:25: D4-A", result.stdout)
+            self.assertIn(f"{PLAN_NAME}:25: AC2", result.stdout)
+            self.assertEqual(len(lines), 2, result.stdout)
 
     def test_a_changed_option_letter_is_a_replacement(self):
         proposal = PROPOSAL.replace("- **D12 A** — Commit each task when reported. **Replaces:** D4-A", "- **D4 B** — Commit each task when reported. **Replaces:** D4-A")
@@ -127,13 +121,13 @@ class ChangeCheckTest(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stdout)
             tasks = TASKS.replace("**Changes:** commit by D12-A, which replaced D4-A.", "**Changes:** commit per D4-A.")
             result = self.run_check(self.folder(tmp, proposal=proposal, tasks=tasks))
-            self.assertIn("tasks.md:10: D4-A", result.stdout)
+            self.assertIn(f"{PLAN_NAME}:25: D4-A", result.stdout)
 
-    def test_only_the_proposal_definition_keeps_an_old_id(self):
+    def test_only_the_defining_line_keeps_an_old_id(self):
         tasks = TASKS.replace("**Changes:** commit by D12-A, which replaced D4-A.", "- AC2 — check the retired thing still")
         with tempfile.TemporaryDirectory() as tmp:
             result = self.run_check(self.folder(tmp, tasks=tasks))
-            self.assertIn("tasks.md:10: AC2", result.stdout)
+            self.assertIn(f"{PLAN_NAME}:25: AC2", result.stdout)
 
     def test_prose_after_the_replaced_ids_is_not_replaced(self):
         proposal = PROPOSAL.replace("**Replaces:** D4-A", "**Replaces:** D4-A (asked again after T1)")
@@ -148,7 +142,7 @@ class ChangeCheckTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             result = self.run_check(self.folder(tmp, proposal=proposal, tasks=tasks))
             self.assertEqual(result.stdout.splitlines(), [
-                "tasks.md:10: D4-A was replaced (proposal.md:6) but is still named here"])
+                f"{PLAN_NAME}:25: D4-A was replaced ({PLAN_NAME}:6) but is still named here"])
 
     def test_criteria_are_defined_outside_the_progress_section_only(self):
         proposal = PROPOSAL + "- AC9 verified in the browser\n"
@@ -175,7 +169,7 @@ class ChangeCheckTest(unittest.TestCase):
             tasks = TASKS.replace("**Changes:** commit by D12-A, which replaced D4-A.", f"**Changes:** still {stale} here.")
             with self.subTest(marker=marker), tempfile.TemporaryDirectory() as tmp:
                 result = self.run_check(self.folder(tmp, proposal=proposal, tasks=tasks))
-                self.assertIn(f"tasks.md:10: {stale}", result.stdout)
+                self.assertIn(f"{PLAN_NAME}:25: {stale}", result.stdout)
                 self.assertNotIn("named by no", result.stdout)
 
     def test_naming_the_replacement_without_its_letter_exempts_the_line(self):
@@ -228,7 +222,7 @@ class ChangeCheckTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             result = self.run_check(self.folder(tmp, proposal=proposal))
             self.assertEqual(result.returncode, 1, result.stdout)
-            self.assertEqual(result.stdout.splitlines(), ["proposal.md:12: AC3 names no **Observed in:** place"])
+            self.assertEqual(result.stdout.splitlines(), [f"{PLAN_NAME}:12: AC3 names no **Observed in:** place"])
 
     def test_the_observed_place_may_sit_in_a_sub_bullet_or_after_a_blank_line(self):
         proposal = PROPOSAL.replace(
@@ -276,12 +270,6 @@ class ChangeCheckTest(unittest.TestCase):
                 result = self.run_check(self.folder(tmp, proposal=PROPOSAL.replace(marker, new)))
                 self.assertIn("AC3 names no **Observed in:** place", result.stdout)
 
-    def test_archive_does_not_ask_for_the_observed_place(self):
-        proposal = PROPOSAL.replace(" · **Observed in:** the exported file", "")
-        with tempfile.TemporaryDirectory() as tmp:
-            result = self.run_check(self.folder(tmp, proposal=proposal), "--archive")
-            self.assertNotIn("Observed in", result.stdout)
-
     UNITS = """
     ## Delivery units
 
@@ -312,7 +300,7 @@ class ChangeCheckTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             result = self.run_check(self.units_folder(tmp, units))
             self.assertEqual(result.returncode, 1)
-            self.assertIn("tasks.md:17:", result.stdout)
+            self.assertIn(f"{PLAN_NAME}:32:", result.stdout)
             self.assertEqual(len(result.stdout.splitlines()), 1, result.stdout)
 
     def test_perf_box_without_base_or_threshold_is_rejected(self):
@@ -321,7 +309,7 @@ class ChangeCheckTest(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmp:
                 result = self.run_check(self.units_folder(tmp, units))
                 self.assertEqual(result.returncode, 1, broken)
-                self.assertIn("tasks.md:18:", result.stdout)
+                self.assertIn(f"{PLAN_NAME}:33:", result.stdout)
 
     def test_unit_box_needs_a_command_and_unknown_kinds_are_rejected(self):
         for broken in ("- [ ] unit:", "- [ ] manual: look at it"):
@@ -329,14 +317,14 @@ class ChangeCheckTest(unittest.TestCase):
             with tempfile.TemporaryDirectory() as tmp:
                 result = self.run_check(self.units_folder(tmp, units))
                 self.assertEqual(result.returncode, 1, broken)
-                self.assertIn("tasks.md:16:", result.stdout)
+                self.assertIn(f"{PLAN_NAME}:31:", result.stdout)
 
     def test_unit_heading_needs_its_dependencies_and_files(self):
         units = self.UNITS.replace(" · archivos: a.py, b.py", "")
         with tempfile.TemporaryDirectory() as tmp:
             result = self.run_check(self.units_folder(tmp, units))
             self.assertEqual(result.returncode, 1)
-            self.assertIn("tasks.md:14:", result.stdout)
+            self.assertIn(f"{PLAN_NAME}:29:", result.stdout)
 
     def test_n_a_needs_a_reason(self):
         units = self.UNITS.replace("live: n/a: no interaction changes", "live: n/a:")
@@ -352,44 +340,30 @@ class ChangeCheckTest(unittest.TestCase):
                 result = self.run_check(self.units_folder(tmp, units))
                 self.assertEqual(result.returncode, 1, result.stdout)
 
-    def test_archive_lists_an_unticked_perf_box(self):
-        units = self.UNITS.replace("- [ ] live: n/a: no interaction changes",
-                                   "- [ ] perf: p95 · base: 120ms · falla: 200ms")
-        with tempfile.TemporaryDirectory() as tmp:
-            changed = self.run_check(self.units_folder(tmp, units), "--archive").stdout
-        self.assertIn("perf: p95 · base: 120ms · falla: 200ms", changed)
-
     def test_upper_case_n_a_replaces_a_whole_predicate(self):
         units = self.UNITS.replace("- [ ] live: n/a: no interaction changes", "- [ ] live: N/A: no interaction changes")
         with tempfile.TemporaryDirectory() as tmp:
             result = self.run_check(self.units_folder(tmp, units))
             self.assertEqual(result.stdout, "")
 
-    def test_archive_does_not_count_n_a_boxes_as_unchecked(self):
+    def test_archive_option_and_a_folder_are_refused(self):
         with tempfile.TemporaryDirectory() as tmp:
-            result = self.run_check(self.units_folder(tmp, self.UNITS), "--archive")
-            self.assertEqual(result.returncode, 1)
-            lines = result.stdout.splitlines()
-            self.assertEqual(sum("unchecked box:" in l for l in lines), 5, result.stdout)
-            self.assertNotIn("n/a", result.stdout)
-            self.assertEqual(lines[-1], "5 unchecked boxes")
+            plan = self.folder(tmp)
+            archive = self.run_check(plan, "--archive")
+            self.assertEqual(archive.returncode, 2)
+            self.assertEqual(archive.stdout, "")
+            folder = self.run_check(plan.parent)
+            self.assertEqual(folder.returncode, 2)
+            self.assertIn("not a plan file", folder.stderr)
+            missing = self.run_check(Path(tmp) / "missing.plan.md")
+            self.assertEqual(missing.returncode, 2)
 
-    def test_archive_does_not_validate_the_unit_grammar(self):
-        units = self.UNITS.replace(" · pass: the button renders", "")
+    def test_a_criterion_may_be_a_plain_line_and_a_task_line_is_not_a_criterion(self):
+        proposal = PROPOSAL.replace("    - AC1 —", "    AC1 —")
+        tasks = TASKS.replace("**Changes:** commit by D12-A, which replaced D4-A.", "AC9 — a note inside a task")
         with tempfile.TemporaryDirectory() as tmp:
-            result = self.run_check(self.units_folder(tmp, units), "--archive")
-            self.assertNotIn("live:", result.stdout.replace("unchecked box: live:", ""))
-
-    def test_a_folder_without_units_is_unchanged(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            result = self.run_check(self.folder(tmp), "--archive")
-            self.assertEqual(result.stdout.splitlines()[-1], "1 unchecked box")
-
-    def test_unreadable_folder_exits_2(self):
-        with tempfile.TemporaryDirectory() as tmp:
-            result = self.run_check(Path(tmp) / "missing")
-            self.assertEqual(result.returncode, 2)
-            self.assertIn("proposal.md", result.stderr)
+            result = self.run_check(self.folder(tmp, proposal=proposal, tasks=tasks))
+            self.assertEqual(result.returncode, 0, result.stdout)
 
     def test_valid_business_rules_section_passes_and_malformed_lines_fail(self):
         valid_rules = """
@@ -421,9 +395,15 @@ class ChangeCheckTest(unittest.TestCase):
             res_bad = self.run_check(self.folder(tmp, proposal=proposal_bad))
             self.assertEqual(res_bad.returncode, 1)
             self.assertIn("Business rules", res_bad.stdout)
-            # With --archive, Business rules grammar is not checked
-            res_arch = self.run_check(self.folder(tmp, proposal=proposal_bad, tasks=TASKS.replace("- [ ]", "- [x]")), "--archive")
-            self.assertEqual(res_arch.returncode, 0, res_arch.stdout)
+
+
+    def test_quoted_ticket_criteria_are_not_plan_criteria(self):
+        proposal = PROPOSAL.replace("    ## Scope and acceptance", "    ## Request\n\n    - AC4 — quoted from the ticket\n    - AC5 — quoted from the ticket\n\n    ## Scope and acceptance")
+        proposal = proposal.replace("    - AC4 — Pagination works · false today\n      **Observed in**: the list page served locally\n", "")
+        tasks = TASKS.replace("AC1, AC3–AC4", "AC1, AC3")
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.folder(tmp, proposal=proposal, tasks=tasks))
+            self.assertEqual(result.returncode, 0, result.stdout)
 
 
 if __name__ == "__main__":

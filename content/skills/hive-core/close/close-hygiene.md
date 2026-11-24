@@ -1,12 +1,6 @@
-# Record the archive, clean up and record pending work
+# Clean up and record pending work
 
-Read at steps 4, 5 and 7 of [flow-close](../../flow-close/SKILL.md).
-
-## Archive the change folder
-
-With `Specs` in the work's repository, do not archive: create or extend the memory record `archive-pending/<id>`, titled `Archive waiting: <id>` (`<id>` is the `<change-id>`, else the ticket key or a slug), with the folder, the pull request and the merge commit. A hygiene request archives as [batch archive](../../flow-close/references/batch-archive.md) sets. With `Specs` in another repository, archive now as that reference sets for one folder.
-
-**When to offer hygiene.** Count, by reading only, the folders under `<Specs>/changes/` on the base, outside `archive/`, that have an `archive-pending/` record and that no open pull request carries. Offer hygiene, in the close footer's **Hygiene** reply, a close report's **Next** or the session's last message, and name the pending archives there, only when that count is 10 or more: fewer reads to the user as work left half done, while each record keeps its folder until a batch. The status report gives the count at any size and adds the hygiene reply only from 10.
+Read at steps 5 and 7 of [flow-close](../../flow-close/SKILL.md).
 
 ## Clean up
 
@@ -18,5 +12,5 @@ A work item leaves something open on purpose when a task of its plan runs after 
 
 At step 7, including a pause close, in this order:
 
-1. Search persistent memory, in the project «Persistent memory» names and with an explicit result limit, for `Pending:` records under `pending/` (not `archive-pending/`) that name this work's ticket or `<change-id>`. Remove from each the items this work resolved, and soft-delete a record left with none with `engram delete <id>` using the ID the search returned, never `--hard`, which erases the record beyond recovery; this work's own record is the exception when item 2 rewrites it, and an abandoned work soft-deletes its own. Without Engram, use the host's memory, or say in the report that the entry could not be removed.
-2. When this work leaves something open on purpose, write its own record under the topic `pending/<change-id>`, titled `Pending: <change-id>`, replacing any earlier content, with the change folder's `<change-id>` or, for a plan without one, the ticket key or a short slug, as [flow-plan](../plan/change-folder.md#change-folder) names it. For each open item, state what remains, why, who owns it, and the tickets or conditions that unblock it. Comment the same items on the ticket, when there is one.
+1. Search persistent memory, in the project «Persistent memory» names and with an explicit result limit, for `Pending:` records under `pending/` that name this work's ticket or `<work>`. Remove from each the items this work resolved, and soft-delete a record left with none with `engram delete <id>` using the ID the search returned, never `--hard`, which erases the record beyond recovery; this work's own record is the exception when item 2 rewrites it, and an abandoned work soft-deletes its own. Without Engram, use the host's memory, or say in the report that the entry could not be removed.
+2. When this work leaves something open on purpose, write its own record under the topic `pending/<work>`, titled `Pending: <work>`, replacing any earlier content, with the `<work>` name of its plan file or, for a plan kept in the conversation, the ticket key or a short slug, as [plan record](../plan/plan-record.md#plan-file) names it. For each open item, state what remains, why, who owns it, and the tickets or conditions that unblock it. Comment the same items on the ticket, when there is one.

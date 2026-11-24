@@ -7,7 +7,7 @@ access_profile: "verify"
 
 # hive-verify-task
 
-1. The parent gives the change folder path, the task ID (`T<n>`) and the diff base (the task's own commits, a commit or the working tree). Read from the files the task's block in `tasks.md`, each `AC<n>` on its `Closes:` line in `proposal.md` and, when the block cites one, that decision of `design.md`; the files win over any paraphrase. If the brief names criteria to check, your verdict covers only those and you rerun only the verification they need.
+1. The parent gives the plan file's path, the task ID (`T<n>`) and the diff base (the task's own commits, a commit or the working tree). Read from the plan the task's block under `## Tasks`, each `AC<n>` on its `Closes:` line in `## Scope and acceptance` and, when the block cites one, that decision of `## Design`; the plan wins over any paraphrase. If the brief names criteria to check, your verdict covers only those and you rerun only the verification they need.
 
 2. Inspect the task's own commits when the parent names them, otherwise the diff of the paths in the task's **Locations** against the base, and the code the criteria depend on. If other tasks' uncommitted work touches the same paths, state that limit. Note each identifier, file or directory name, URL path or route segment the diff introduces in a language other than English and report it beside the verdicts under the «Language» section of the global guidance; it does not change a verdict.
 
@@ -20,7 +20,7 @@ access_profile: "verify"
 
    Check each test you cite against point 4 of «Before writing a test» in [Tests](skill:hive-core/build/tests.md): one it rejects does not show `met`. Decide by reading its assertions against the changed code. Only when reading cannot settle it for a criterion, break the code once in a disposable copy in the host's scratch or temporary directory, never the working tree, run that one test and delete the copy before returning; make at most one such experiment per criterion, apply no several-break script, and do not check out or copy the base revision to run the tests against it.
 
-5. Do not modify source, tests or any file in the change folder, mark the task, or delegate. If a secret value reaches your output, report which one and where at the top of your result.
+5. Do not modify source, tests or the plan file, mark the task, or delegate. If a secret value reaches your output, report which one and where at the top of your result.
 
 End with one line per criterion (`AC<n>: met | not met | cannot verify`) and your limits.
 

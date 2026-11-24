@@ -5,7 +5,7 @@ description: Turn a declared workspace of several repositories into a coordinato
 
 # Turn a workspace into a repository
 
-Git is initialized at a workspace root only through this skill and only on the user's request, as the global guidance's «Support folder» sets. The coordinator versions what the whole workspace shares: its `AGENTS.md` with the `## Hive` section and a `## Repositories` table, the knowledge home `_support/docs` with its index, and the change records in `_support/openspec`. Each child repository keeps its own history, branches and complete `## Hive` section.
+Git is initialized at a workspace root only through this skill and only on the user's request, as the global guidance's «Support folder» sets. The coordinator versions what the whole workspace shares: its `AGENTS.md` with the `## Hive` section and a `## Repositories` table, the knowledge home `_support/docs` with its index, and the specs in `_support/openspec`. Each child repository keeps its own history, branches and complete `## Hive` section.
 
 When the user asks to set up a coordinator they already cloned, run `python3 -I <workspace-repo-dir>/scripts/workspace_repo.py setup --root <root>` ([workspace repo](scripts/workspace_repo.py)), which clones each repository of the table that is missing, report what it cloned, and stop.
 
@@ -13,7 +13,7 @@ When the user asks to set up a coordinator they already cloned, run `python3 -I 
 2. **Ask one round** with the assessment, as [questions](../hive-core/messages/questions.md) sets:
    - whether to create the coordinator, or the monorepo when the viability test passes;
    - its tracker, proposing the one its children share, since `hive doctor` requires it in the coordinator's `## Hive`;
-   - whether its `## Hive` declares `Delivery: direct-base`, recommended so that knowledge and change records are committed straight to the coordinator's base; say it is the only value that authorizes those commits without asking;
+   - whether its `## Hive` declares `Delivery: direct-base`, recommended so that knowledge and specs are committed straight to the coordinator's base; say it is the only value that authorizes those commits without asking;
    - what happens to a specs repository: kept as a child, retired once project-layout's migration moves its current knowledge into the coordinator, or promoted to be the coordinator while keeping its history, which is manual, as **Promote a specs repository** below sets;
    - which findings of the check project-layout organizes in this work, recommending those that move current knowledge into `_support/docs` and `_support/openspec`.
 3. **Apply.** Run `workspace_repo.py apply` with the repositories, `--tracker` and, only when the user chose it, `--direct-base`. It writes the `.gitignore` (each child, `HIVE.local.md`, `.engram/`, `_support/{workspace,data,scripts,secrets}`), a `.ignore` re-including each child for searches from the root, the `## Hive` and `## Repositories` sections of `AGENTS.md` (preserving its other text), `_support/openspec/` and the index `_support/docs/README.md`, then runs `git init`; it never creates a remote, pushes or commits. Commit its files through [git_state.py](../git-workflow/scripts/git_state.py) `commit` with explicit paths, then run project-layout's organize steps for the findings the user chose, with the coordinator as the destination of the knowledge they move.

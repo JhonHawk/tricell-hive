@@ -2,7 +2,7 @@
 
 Read before the first `git add` or commit of a task, in any flow. The authorization to commit comes from the delivery answer in force or a rule of the global guidance; this leaf sets only how.
 
-- Stage only the paths and portions that belong to the result, naming each file. Never run `git add -A`, `git add .`, or `git add` on a directory, even `openspec/changes/`, since it takes other work in it. A `git mv` stages its source and destination; name both.
+- Stage only the paths and portions that belong to the result, naming each file. Never run `git add -A`, `git add .`, or `git add` on a directory, since it takes other work in it. A `git mv` stages its source and destination; name both.
 - Commit whole authorized files with `python3 -I <git-workflow-dir>/scripts/git_state.py commit --repo <dir> -m <msg> [--unreviewed-fix <reason>] -- <paths>` ([state](../../git-workflow/scripts/git_state.py)), which preserves unrelated staged paths, scans `<paths>` for secrets, and runs `git commit --only -- <paths>`. For partial-file staging or without `python3`, record the pre-existing index, commit only the authorized portions, and verify the remaining index and diff afterward.
 - Write commit messages and the pull request body as [prose](../build/prose.md) sets, one reviewable, revertable concern per commit.
 - Never rewrite, amend, force-push, clean or alter existing history or unrelated work without explicit authorization, except, in [unattended delegation](../../unattended-delegation/SKILL.md), a `--force-with-lease` on the exact remote commit, recording the previous commit to revert; a failed lease stops the push.

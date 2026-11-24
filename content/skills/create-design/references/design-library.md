@@ -4,7 +4,7 @@ Read at step 3 of [create-design](../SKILL.md), before step 4, whatever the app'
 
 ## Sibling records
 
-Search the project's change folders, archived ones included, and the `examples.md` files of its work folders under `_support/workspace/` for the file's location together with each sibling's frame node, since node identifiers repeat across files; use a filtered read. Read the record of the example a sibling was approved from when one is found: its corrections are decisions too.
+Search the plan files and the `examples.md` files of the work folders under `_support/workspace/` for the file's location together with each sibling's frame node, since node identifiers repeat across files; use a filtered read. Read the record of the example a sibling was approved from when one is found: its corrections are decisions too.
 
 ## Which library binds
 

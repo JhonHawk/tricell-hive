@@ -4,7 +4,7 @@ Read from [flow-plan](../SKILL.md) step 5 when the plan's tasks change files of 
 
 ## Domains
 
-A domain counts when a task's `Locations:` change files of it. Tests and documentation count with the domain they check or describe. Repository-wide files, such as manifests, lockfiles, build configuration, the changelog and the change folder, count with the other files of the task that changes them, or with server when that task changes no other file, and any other file no row names counts with server. A task that changes files of two domains counts in both.
+A domain counts when a task's `Locations:` change files of it. Tests and documentation count with the domain they check or describe. Repository-wide files, such as manifests, lockfiles, build configuration and the changelog, count with the other files of the task that changes them, or with server when that task changes no other file, and any other file no row names counts with server. A task that changes files of two domains counts in both.
 
 | Domain | Files | What its reviewer examines beyond the role's checks |
 | --- | --- | --- |
@@ -28,4 +28,4 @@ Merge a finding that several reviewers report into one, naming each reviewer, th
 
 ## Reread a revision
 
-When a revision is reread, as [Revise a plan in progress](../../hive-core/plan/change-folder.md#revise-a-plan-in-progress) step 4 sets with its trigger and its limit, the reviewer of each domain whose tasks or criteria it changed rereads it, as [reviewer brief](../../hive-core/delegation/reviewer-brief.md) sets; the first assignment also rereads a change to an external fact or a verification line, and every reviewer rereads a change that belongs to no single domain.
+When a revision is reread, as [Revise a plan in progress](../../hive-core/plan/plan-record.md#revise-a-plan-in-progress) step 4 sets with its trigger and its limit, the reviewer of each domain whose tasks or criteria it changed rereads it, as [reviewer brief](../../hive-core/delegation/reviewer-brief.md) sets; the first assignment also rereads a change to an external fact or a verification line, and every reviewer rereads a change that belongs to no single domain.

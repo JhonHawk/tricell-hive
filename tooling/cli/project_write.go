@@ -338,7 +338,8 @@ func parseGitHubOrigin(raw string) (owner, repo string, ok bool) {
 
 // suggestHiveValues proposes values for the settings of the repository at
 // root. They are read-only queries and only suggestions: the user confirms
-// them. Optional settings are never suggested.
+// them. Optional settings are not suggested, except Specs when the project
+// already holds its specs folder.
 func suggestHiveValues(root string, git gitRunner) map[string]string {
 	out := map[string]string{}
 	if name := filepath.Base(root); name != "" && sanitizeLine(name) == name {
@@ -355,7 +356,7 @@ func suggestHiveValues(root string, git gitRunner) map[string]string {
 			out["Base branch"] = branch
 		}
 	}
-	if info, err := os.Stat(filepath.Join(root, "_support", "openspec")); err == nil && info.IsDir() {
+	if info, err := os.Stat(filepath.Join(root, "_support", "openspec", "specs")); err == nil && info.IsDir() {
 		out["Specs"] = "_support/openspec"
 	}
 	return out

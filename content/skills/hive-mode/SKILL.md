@@ -65,6 +65,6 @@ A playbook orders the stages of a kind of work and names what is specific to it.
 | `perf` | a measured speed or size goal: [playbook](playbooks/perf.md) |
 
 - **Changing playbook.** A switch, such as `investigate` to `bugfix` once the user asks for the fix of a confirmed defect, is a scope change stated with its class and destination in one line, as [scope changes](../hive-core/plan/scope-changes.md) sets; record the new playbook.
-- **Record.** With a change folder, the flow that writes it records the name in the `Playbook` field of its `proposal.md`. Without one, `flow-build` writes a `- Playbook: <kind>` line by hand in the work's checkpoint file ([checkpoint](../hive-core/plan/checkpoint.md)). Each later stage reads it from there.
+- **Record.** With a plan file, the flow that writes it records the name in the `Playbook` field of its header table. Without one, `flow-build` writes a `- Playbook: <kind>` line by hand in the work's checkpoint file ([checkpoint](../hive-core/plan/checkpoint.md)). Each later stage reads it from there.
 
 Reply: ends as the row of [report endings](../hive-core/messages/report-endings.md) that fits the request: the analysis row, the ticket-assessment row, or [the next-step block](../hive-core/messages/report-endings.md#the-next-step-block) toward `flow-plan`, `create-design` or `flow-build`, with step 5's scope line before it.

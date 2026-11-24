@@ -5,15 +5,15 @@ Rules (see references/layout.md):
   LAYOUT-01  script under _support/scripts/ that HIVE.local.md does not name
   LAYOUT-02  tracked file under _support/{scripts,secrets,workspace,data}
   LAYOUT-03  tracked code file outside _support/, not a test, whose code (not a comment)
-             cites work material: _support/{workspace,data,scripts,secrets,sessions,evidence,reports}
+             cites work material: _support/{workspace,data,scripts,secrets,evidence,reports}
              (review: a script cannot tell application code from a tool that manages _support/)
   LAYOUT-04  top-level _support/ entry outside the convention (review)
   LAYOUT-05  document missing from the index, broken index link, tool not indexed
   LAYOUT-06  coordinator table row whose repo is missing, has another remote,
              is not ignored or is not re-included in .ignore
   LAYOUT-07  undeclared root docs/ folder with Markdown (review)
-  LAYOUT-08  tracked code or infrastructure under _support/ outside docs, openspec,
-             sessions and the LAYOUT-02 homes
+  LAYOUT-08  tracked code or infrastructure under _support/ outside docs, openspec
+             and the LAYOUT-02 homes
 
 Files inside dependency or build output folders of any ecosystem are never read:
 inside Git, only tracked and non-ignored files are listed, plus the ignored files
@@ -38,7 +38,7 @@ CODE_EXTENSIONS = {
     ".php", ".java", ".kt", ".cs", ".sh", ".sql", ".ps1",
 }
 SUPPORT_CHILDREN = {
-    "docs", "openspec", "sessions", "workspace", "data", "scripts", "secrets",
+    "docs", "openspec", "workspace", "data", "scripts", "secrets",
     "README.md", ".gitkeep", ".DS_Store",
 }
 UNTRACKED_SUPPORT = ("scripts", "secrets", "workspace", "data")
@@ -64,13 +64,13 @@ DEPENDENCY_NAMES = ("vendor", "deps")
 IAC_EXTENSIONS = {".tf", ".tfvars", ".hcl"}
 IAC_FAMILY = {"infra", "infrastructure", "terraform", "deployments", "aws", "gcp", "azure", "iam", "cloud"}
 CONFIG_EXTENSIONS = {".json", ".yaml", ".yml"}
-NOT_CODE_HOMES = {"docs", "openspec", "sessions"}
+NOT_CODE_HOMES = {"docs", "openspec"}
 LINK_RE = re.compile(r"\]\((<[^>]+>|[^)\s]+)")
 SCHEME_RE = re.compile(r"^(?:[a-zA-Z][a-zA-Z0-9+.-]*:|#|/)")
 TEST_PATH_RE = re.compile(r"(?:^|/)(?:tests?|__tests__|spec|e2e)/|[._-](?:test|spec)\.[a-z]+$|_test\.[a-z]+$|(?:^|/)test_[^/]*$")
 # Code may read versioned knowledge (_support/docs, _support/openspec); it must not
 # depend on work material, which a fresh clone does not have.
-WORK_MATERIAL_RE = re.compile(r"_support/(?:workspace|data|scripts|secrets|sessions|evidence|reports)\b")
+WORK_MATERIAL_RE = re.compile(r"_support/(?:workspace|data|scripts|secrets|evidence|reports|sessions)\b")
 # Whole-line comment markers by language, so a shell flag line such as
 # `  --input _support/data/x` is still code.
 HASH_COMMENT = re.compile(r"^\s*#")

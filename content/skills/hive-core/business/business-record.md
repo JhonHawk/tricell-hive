@@ -20,7 +20,7 @@ Never delete a rule's line or change the rule it states. When a decision replace
 The record lives in one place at a time:
 
 - During the design stage, the `examples.md` that [create-design](../../create-design/SKILL.md) writes.
-- Once the plan writes a change folder, the `## Business rules` section of its `proposal.md`, which governs from then on. The plan copies there the `rule:` lines of `examples.md` except the `stated` ones, and the ticket's control lines; when a design stage runs again, its revision copies the changed lines and removes the `card stale:` and `frame stale:` lines that stage corrected.
-- For work without a change folder, once its plan or build starts, the work's checkpoint file that [flow-build](../../flow-build/SKILL.md) keeps.
+- Once the plan writes a plan file, its `## Business rules` section, which governs from then on. The plan copies there the `rule:` lines of `examples.md` except the `stated` ones, and the ticket's control lines; when a design stage runs again, its revision copies the changed lines and removes the `card stale:` and `frame stale:` lines that stage corrected.
+- For work without a plan file, once its plan or build starts, the work's checkpoint file that [flow-build](../../flow-build/SKILL.md) keeps.
 
 The record also holds the ticket's control lines, `ticket section: <key> · <heading>` and `ticket write: <date> · <moment> · <key>`, and the `card stale:` and `frame stale:` lines of [rule cards](../../create-design/references/rule-cards.md); the `card:` lines stay in the example's record.

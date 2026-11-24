@@ -73,7 +73,7 @@ var leafLinks = []leafLink{
 	{"viewer-open", "content/skills/flow-build/references/first-view.md"},
 	{"viewer-open", "content/skills/flow-verify/SKILL.md"},
 	{"viewer-close", "content/skills/flow-close/SKILL.md"},
-	{"change-folder", "content/skills/flow-plan/SKILL.md"},
+	{"plan-record", "content/skills/flow-plan/SKILL.md"},
 	{"checkpoint", "content/skills/flow-build/SKILL.md"},
 	{"checkpoint", "content/skills/flow-verify/SKILL.md"},
 	{"checks", "content/skills/flow-build/SKILL.md"},
