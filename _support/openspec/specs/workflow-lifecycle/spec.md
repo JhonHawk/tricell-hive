@@ -1701,7 +1701,7 @@ At the completion point, and when an operational task ends, `flow-close` SHALL r
 
 #### Scenario: A clone left by an unanswered worktree question
 
-- **GIVEN** a workspace whose `.worktrees/fsr-905-906-frontend` is a full clone of the frontend repository over SSH while the repository's `origin` is HTTPS
+- **GIVEN** a workspace whose `.worktrees/prl-905-906-frontend` is a full clone of the frontend repository over SSH while the repository's `origin` is HTTPS
 - **WHEN** the helper plans the frontend repository's cleanup
 - **THEN** `stray_clones` lists that folder with its branch and its unpushed commit count, and the folder is still on disk after `--apply`
 

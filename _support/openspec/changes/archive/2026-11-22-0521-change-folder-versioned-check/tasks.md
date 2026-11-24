@@ -86,7 +86,7 @@ Base `development` en `867f5463`; rama `feat/change-folder-versioned-check`. Ord
 | Code review | Final candidate, before the push | Claude Code `/code-review` | The review answer |
 | Security review | Final candidate, before the push | `hive-review-security` | The security answer |
 
-Recorrido de solo lectura sobre folders reales: `versioned` en `project-f-specs/openspec/changes/fac-235-close-internet-exposure` con `--work-repo` del portal `project-f-web-client-reforge`, corrido desde la raíz del workspace `project-f/` (esperado: 1, archivos sin rastrear y aviso de `Specs` sin declarar); y en `_support/openspec/changes/archive/2026-11-22-0350-reuse-sound-base` de este repo (esperado: 0).
+Recorrido de solo lectura sobre folders reales: `versioned` en `project-f-specs/openspec/changes/prm-235-close-internet-exposure` con `--work-repo` del portal `project-f-web-client-reforge`, corrido desde la raíz del workspace `project-f/` (esperado: 1, archivos sin rastrear y aviso de `Specs` sin declarar); y en `_support/openspec/changes/archive/2026-11-22-0350-reuse-sound-base` de este repo (esperado: 0).
 
 ## Checkpoint
 
@@ -112,7 +112,7 @@ Recorrido de solo lectura sobre folders reales: `versioned` en `project-f-specs/
 - python3 -m unittest discover -s tests/skills -p *_test.py · OK · 68eb563f; tasks_test.py · OK · 2c68b46b
 - review: native /code-review medium on 867f5463..be6375c0 (3 blocking fixed in c2a97948, 68eb563f) and on be6375c0..68eb563f (2 blocking fixed locally in b5ee1400, 2c68b46b, Unreviewed)
 - security: hive-review-security on be6375c0, 1 low fixed in 68eb563f
-- walk: project-f fac-235 from workspace root exit 1 + Specs warning; tricell-hive archived folder from tooling/ exit 0; audit PRK-20/PRK-25 fail, PRs 572/575/577 pass
+- walk: project-f prm-235 from workspace root exit 1 + Specs warning; tricell-hive archived folder from tooling/ exit 0; audit PRK-20/PRK-25 fail, PRs 572/575/577 pass
 
 ## Review status and progress
 

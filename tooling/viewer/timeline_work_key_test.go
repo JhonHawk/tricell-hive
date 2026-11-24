@@ -184,7 +184,7 @@ func TestTimelineEmptyWorkKeyKeepsThePinnedDerivation(t *testing.T) {
 
 func TestTimelineCreateRejectsInvalidWorkKeys(t *testing.T) {
 	s, base := newTimelineFixture(t)
-	for _, bad := range []string{"", " PRJ-1", "COM 1", "COM\u0007", strings.Repeat("k", 129)} {
+	for _, bad := range []string{"", " PRJ-1", "PRJ 1", "PRJ\u0007", strings.Repeat("k", 129)} {
 		_, err := s.TimelineCreate(workKeyRequest(base, "op-bad", timelineString(bad)))
 		requireTimelineCode(t, err, "invalid_text")
 	}

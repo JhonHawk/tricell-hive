@@ -72,7 +72,7 @@ None: the build needs nothing from outside the repository.
 - `rg -n 'versioned' content/skills/flow-close/SKILL.md` · sin coincidencias en la base (el paso no existe) · 2026-11-21
 - `rg -n 'versioned' ~/.agents/skills/flow-close/SKILL.md` · not measured: lo cumple el refresco de la instalación tras el merge
 - `go run ./tests/pilot --audit-session <rollout PRK-25> --host codex` · sale 0; el criterio aún no existe · 2026-11-21
-- Recorrido: `tasks.py <fac-235> versioned` · not measured: T1 lo cumple primero; `project-f-specs/openspec/changes/fac-235-close-internet-exposure` está sin rastrear hoy y los folders de PRK-20 y del onboarding Amazon V2 ya se archivaron (`382d266`, `14abf21`)
+- Recorrido: `tasks.py <prm-235> versioned` · not measured: T1 lo cumple primero; `project-f-specs/openspec/changes/prm-235-close-internet-exposure` está sin rastrear hoy y los folders de PRK-20 y del onboarding Amazon V2 ya se archivaron (`382d266`, `14abf21`)
 
 ## Effects
 

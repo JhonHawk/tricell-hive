@@ -16,7 +16,7 @@
 - **D1 A** — ¿Cómo se deja ver el visor antes de decidir una aprobación? Con el patrón de v0.6.0: «Abrir el visor» es una opción dentro de la propia pregunta de aprobación. Al elegirla, el agente abre el visor y vuelve a hacer la misma pregunta, con el mismo ID y sin esa opción.
 - **D3 A y D4 A** — ¿Cómo se entrega? En modo `automatic`, con la revisión nativa `/code-review` de Claude Code.
 - **D5 A** — ¿Qué hace el barrido con el worktree mergeado de un trabajo cuyo cierre sigue pendiente en memoria? Lo limpia cuando el registro tiene más de 24 horas; antes, lo conserva y lo reporta.
-- **D6 A** — ¿Qué pasa al pausar un plan en un repo de specs separado sin `direct-base`? El folder queda sin commit, se registra como pendiente y el reporte recomienda declarar `Delivery: direct-base`. Así, fac-235 se resuelve cuando project-f-specs declare `direct-base`.
+- **D6 A** — ¿Qué pasa al pausar un plan en un repo de specs separado sin `direct-base`? El folder queda sin commit, se registra como pendiente y el reporte recomienda declarar `Delivery: direct-base`. Así, prm-235 se resuelve cuando project-f-specs declare `direct-base`.
 - **D2 A** — ¿Cuándo corre la limpieza de ramas y worktrees de un trabajo ya mergeado? Se mantiene la espera al pie del cierre que fijó #311. Se añaden el barrido de las otras ramas propias ya mergeadas (de v0.6.0) en cada cierre y en cada higiene, el recorrido de los repos del workspace, y que una promoción no justifique conservar nada.
 
 ## Solicitud
@@ -36,7 +36,7 @@ Fuera de alcance:
 
 Hoy, en la parada de validación, «¿Abro el visor?» va como otra pregunta de la misma tarjeta (`viewer-publication.md:52`). El usuario tiene que responder la aprobación antes de poder ver. Lo observamos en Claude Code 5ff8bac1, 062c567a y 98476eca, y en Codex 01a1a00a y 01a1a30f.
 
-La limpieza del cierre solo cubre la rama del trabajo actual y solo su repositorio. Un repo de specs `direct-base` recibe ramas y worktrees por ticket, que es el caso de PRK-9 en project-g-specs. Un plan pausado queda sin versionar, como fac-235 en project-f-specs desde el 2026-10-29. Además, una promoción pendiente se usa como motivo para conservar worktrees («por el seguimiento de QA»).
+La limpieza del cierre solo cubre la rama del trabajo actual y solo su repositorio. Un repo de specs `direct-base` recibe ramas y worktrees por ticket, que es el caso de PRK-9 en project-g-specs. Un plan pausado queda sin versionar, como prm-235 en project-f-specs desde el 2026-10-29. Además, una promoción pendiente se usa como motivo para conservar worktrees («por el seguimiento de QA»).
 
 Cuando el cambio esté hecho:
 - El usuario abre el visor desde la propia pregunta de aprobación y después decide.
@@ -104,7 +104,7 @@ Ninguno: la construcción no necesita nada de fuera del repositorio.
   - Ninguna de las dos versiones cubría la pausa.
 - **Evidencia en sesiones.**
   - Visor: los episodios citados en el Objetivo.
-  - Higiene: project-g-specs tiene el worktree de PRK-9, limpio y ya mergeado, aunque project-g-specs declara `Delivery: direct-base`. En Codex 01a1aa61 el usuario tuvo que pedir la higiene. fac-235 sigue sin commit en project-f-specs.
+  - Higiene: project-g-specs tiene el worktree de PRK-9, limpio y ya mergeado, aunque project-g-specs declara `Delivery: direct-base`. En Codex 01a1aa61 el usuario tuvo que pedir la higiene. prm-235 sigue sin commit en project-f-specs.
 
 ## Entrega
 

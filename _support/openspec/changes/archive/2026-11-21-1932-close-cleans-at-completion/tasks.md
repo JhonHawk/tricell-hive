@@ -54,7 +54,7 @@ Base `2eef1969` de `development`, rama `feat/close-cleans-at-completion`. T1 y T
 
 **Changes:** una función que recorre las carpetas de worktrees del checkout principal y su padre. No borra ni mueve nada; `apply_cleanup` no cambia.
 
-**Verification:** `python3 -m unittest tests.skills.cleanup_branches_test -q` pasa. `go test ./tests/content/ -count=1` pasa. `python3 -I content/skills/flow-close/scripts/cleanup_branches.py --repo /Users/me/Development/projects/org-a/project-b/project-b-frontend-monorepo --base development` (sin `--apply`, solo lectura) lista `.worktrees/fsr-905-906-frontend` en `stray_clones` (AC7), y sus campos coinciden con los que nombra `branch-cleanup.md` «Report»; si el clon ya no existe, AC7 se observa en la prueba.
+**Verification:** `python3 -m unittest tests.skills.cleanup_branches_test -q` pasa. `go test ./tests/content/ -count=1` pasa. `python3 -I content/skills/flow-close/scripts/cleanup_branches.py --repo /Users/me/Development/projects/org-a/project-b/project-b-frontend-monorepo --base development` (sin `--apply`, solo lectura) lista `.worktrees/prl-905-906-frontend` en `stray_clones` (AC7), y sus campos coinciden con los que nombra `branch-cleanup.md` «Report»; si el clon ya no existe, AC7 se observa en la prueba.
 
 ### T3 — La auditoría falla lo que hoy marca como revisión
 
@@ -121,5 +121,5 @@ Base `2eef1969` de `development`, rama `feat/close-cleans-at-completion`. T1 y T
 - go test ./... · exit 0 · 53f4ba24
 - python3 -m unittest discover · OK 321 tests · 4d739708 (python unchanged since)
 - audit Codex 01a1f86e-f093 merged_branch_deleted=fail; Grok 01a1fb69 close_before_branch_cleanup=fail · 53f4ba24
-- helper on project-b-frontend lists .worktrees/fsr-905-906-frontend · 50a4ccb6
+- helper on project-b-frontend lists .worktrees/prl-905-906-frontend · 50a4ccb6
 - /code-review 2 rounds: 6+4 important fixed (de6bda8e, 4d739708, 53f4ba24 Unreviewed); nits to close findings

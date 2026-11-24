@@ -71,8 +71,8 @@ Ninguno: el build no necesita nada de fuera del repositorio.
 
 - **Sesiones revisadas.** 11 hijos `hive-review-ux` en Codex del 2026-11-03 y 2026-11-04, en 6 sesiones de project-g y tricell-hive:
   - 7 primeros veredictos «no aprobado» solo por defectos previos;
-  - 4 casos de cobertura incompleta: PRK-8 (2 turnos), PRJ-920 `qa_ux_review` y PRK-9 `cam9_ux_fix_readback`;
-  - 1 revisor nuevo para releer correcciones, `cam9_ux_fix_readback`, con 232 llamadas y 23,7 M de tokens. Los seguimientos acotados al mismo hijo (project-g `01a1a2e6…83822e` y tricell-hive `…2b6abb`) tardaron 1 min.
+  - 4 casos de cobertura incompleta: PRK-8 (2 turnos), PRJ-920 `qa_ux_review` y PRK-9 `prk9_ux_fix_readback`;
+  - 1 revisor nuevo para releer correcciones, `prk9_ux_fix_readback`, con 232 llamadas y 23,7 M de tokens. Los seguimientos acotados al mismo hijo (project-g `01a1a2e6…83822e` y tricell-hive `…2b6abb`) tardaron 1 min.
 - **Sesiones que fundan cada hallazgo** (host, ID, fecha):
   - H16: Codex project-g `01a1a844-a92a-7c93-b7a3-214c8be7c47d` (PRK-8, 2026-11-04), Codex project-g `01a1a457-db8b-7380-b1de-2401ccbd7690` (PRJ-920, empezó el 2026-11-03 21:30 local) y Codex project-g `01a1a8a8-b19f-7562-9db8-8319d3b6ade1` (PRK-9, 2026-11-04).
   - H17: Codex project-g `01a1a8a8-b19f-7562-9db8-8319d3b6ade1` (PRK-9).

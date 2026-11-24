@@ -43,7 +43,7 @@ Origen: sesión Grok Build `01a1f5fc-60ea-7971-8d04-ca82a187fa9e` en project-b (
 - El usuario autorizó `--admin` para el PR 291 del backend a las 18:59 y tuvo que repetirlo a las 20:53 para el PR 31 de specs.
 - La sesión hizo 599 llamadas al modelo con 70.8 M de tokens de entrada (unos $32.5 en total); restando los 12 hijos (189 llamadas, 15.7 M), el hilo principal hizo 410 llamadas con 55.1 M. Cerca del 25 % de sus llamadas a herramientas leyeron reglas o corrieron scripts de Hive, y hubo 5 compactaciones.
 
-Decisión: `engram:tricell-hive/decision/fleet-fsr928-base-sync-admin-grant-length`.
+Decisión: `engram:tricell-hive/decision/fleet-prl928-base-sync-admin-grant-length`.
 
 ## Objective
 

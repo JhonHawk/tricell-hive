@@ -1,6 +1,6 @@
 # Session review rubric
 
-Read before analyzing a real agent session, with or without Hive. It lists what a review checks and how to report it. It is a living document: when a review checks something new that the user wants checked again, add a row with the date and the session that motivated it, and remove a row only by the user's decision. Cite a session by host, model, session ID and date, without its client project or ticket, as root `AGENTS.md` «Scope and preservation» sets.
+Read before analyzing a real agent session, with or without Hive. It lists what a review checks and how to report it. It is a living document: when a review checks something new that the user wants checked again, add a row with the date and the session that motivated it, and remove a row only by the user's decision. Before citing a session's project or ticket, read root `AGENTS.md` «Scope and preservation».
 
 ## 0. Automated first pass
 
