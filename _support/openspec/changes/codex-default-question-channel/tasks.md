@@ -4,7 +4,7 @@ Base `development` en `15ac9aa5`, rama `fix/codex-default-question-channel`, wor
 
 ### T1 — `prose_choice_without_card` lee una decisión de sesión pendiente en prosa
 
-- [ ] La línea 408 de la sesión `01a20c02` falla, y una frase que solo deja pendiente la entrega da `review`
+- [x] La línea 408 de la sesión `01a20c02` falla, y una frase que solo deja pendiente la entrega da `review`
 
 **Closes:** AC1
 
@@ -22,7 +22,7 @@ Base `development` en `15ac9aa5`, rama `fix/codex-default-question-channel`, wor
 
 ### T2 — Criterio `async_card_when_waiting_offered`
 
-- [ ] La línea 421 de la sesión `01a20c02` falla; una async sin la tarjeta que espera y con la ronda escrita pasa
+- [x] La línea 421 de la sesión `01a20c02` falla; una async sin la tarjeta que espera y con la ronda escrita pasa
 
 **Closes:** AC2
 
@@ -40,7 +40,7 @@ Base `development` en `15ac9aa5`, rama `fix/codex-default-question-channel`, wor
 
 ### T3 — El `$flow-x` tecleado en Codex cuenta como carga, y la ruta al build exige el bloque `▶`
 
-- [ ] La línea 496 de la sesión `01a20c02` falla en `plan_without_build_route`
+- [x] La línea 496 de la sesión `01a20c02` falla en `plan_without_build_route`
 
 **Closes:** AC3
 
@@ -66,7 +66,7 @@ Base `development` en `15ac9aa5`, rama `fix/codex-default-question-channel`, wor
 
 ### T4 — La regla y su descripción
 
-- [ ] La fila del canal y la página del sitio dicen lo que pide AC4
+- [x] La fila del canal y la página del sitio dicen lo que pide AC4
 
 **Closes:** AC4, AC5
 
@@ -92,7 +92,7 @@ Base `development` en `15ac9aa5`, rama `fix/codex-default-question-channel`, wor
 
 ### T5 — Rúbrica, enforcers y spec
 
-- [ ] Los criterios nuevos y cambiados tienen su fila y su requisito
+- [x] Los criterios nuevos y cambiados tienen su fila y su requisito
 
 **Closes:** AC1, AC2, AC3
 
@@ -133,18 +133,37 @@ Sin recorrido humano: la entrega es `automatic`, y el efecto de la regla en sesi
 ## Checkpoint
 
 - Updated: 2026-11-24
-- Stage: flow-build · 2 · T1–T3 (hive-build-backend) y T4–T5 (hive-write-docs) en paralelo
-- Last commit: 15ac9aa5
-- Open findings: none
-- Next: integrar las dos salidas: go test ./tests/pilot/, comprobación de texto, checks del sitio; luego commits por tarea
+- Stage: flow-verify · 6 · push y PR
+- Last commit: 99a36919
+- Open findings: H7 · cardAvailable/cardAfterInTurn cuentan request_user_input_async como tarjeta que espera (preexistente) · al cierre; H8 · imperativeConfirm todavía lee texto citado («confirma …» en un informe) (preexistente) · al cierre; H9 · «falta confirmar» sin por/de y «Recomiendo: `automatic`» partido en el ':' no se detectan · al cierre; H10 · nextStepBlock de proseChoices no está anclado al inicio de línea como el ▶ de la ruta · al cierre; H11 · startsWithMode acepta `ready-for-review` o `hold-off` por el \b antes del guion · al cierre
+- Next: push, PR, CI, merge, hive update, leer la regla instalada (AC4), flow-close
 - Worktree: .claude/worktrees/codex-question-channel · fix/codex-default-question-channel
-- Rules: flow-build/stage.md · extra: child-brief
+- Rules: flow-verify/stage-entry.md, flow-verify/stage-exit.md
 - Principles: none
 
 ### Evidence
 
 - before captures: none (no screen)
+- go vet ./... · exit 0 · 310ae128
+- go test -count=1 ./... · exit 0 (23 paquetes ok) · 310ae128
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · OK 416 tests · 310ae128
+- texto de AGENTS.md Checks by path · exit 0 · candidata sin commit equivalente a 310ae128
+- pnpm check/lint/build en site · exit 0 · equivalente a 310ae128
+- local CI: sin jobs de tests; master-source-branch.yml solo vigila la rama hacia master (CI-only)
+- go test -count=1 ./tests/pilot/ · ok 63,3 s · 4bd8da2f (fix de cita; full suite reutilizada, solo tests/pilot cambió)
+- blast radius: audit base vs candidata · 12 sesiones Claude Code sin cambios; 10 Codex solo los previstos (01a20c02 L408/L421/L496/carga tecleada; 01a20bcd async L213) · 4bd8da2f
+- AC1–AC3 observados en rollout 01a20c02 · fail 408, 421, 496 · 4bd8da2f
+- AC5 observado en site/dist/host-limits/index.html · 4bd8da2f
+- base mergeada (15002a38) en 99a36919: texto exit 0, tests/pilot ok 65,5 s, site check/lint/build 0
+- /code-review 1 sobre 4bd8da2f: 3 important arreglados en 0e238602, nits y preexistentes al cierre
+- /code-review 2 sobre 4bd8da2f..0e238602: 3 important arreglados en f1e2c51f (Unreviewed), resto al cierre
 
 ## Review status and progress
 
 2026-11-24 — Plan escrito.
+2026-11-24 — T1 · 50544854 · unverified: none
+2026-11-24 — T2 · 50544854 · unverified: none
+2026-11-24 — T3 · 50544854 · unverified: none
+2026-11-24 — T4 · c0085b44 · unverified: AC4: la regla instalada se lee tras el merge y hive update
+2026-11-24 — T5 · 310ae128 · unverified: none
+2026-11-24 — Verificación: el alcance real se midió comparando el auditor de la base con el de la candidata sobre 12 sesiones de Claude Code y 10 de Codex; apareció un falso positivo por una recomendación citada, corregido en 4bd8da2f. Dos rondas de /code-review: sus hallazgos important se corrigieron en 0e238602 y f1e2c51f; los nits y los hallazgos preexistentes (H7–H11) quedan para el cierre. Base 15002a38 mergeada en 99a36919.
