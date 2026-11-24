@@ -176,7 +176,7 @@ test("allowed directives and the workaround marker pass", (t) => {
   const base = r.commit("base");
   r.write(
     "src/a.ts",
-    '/// <reference types="node" />\n// workaround: COM-1\nexport const a = 1;\n',
+    '/// <reference types="node" />\n// workaround: ABC-1\nexport const a = 1;\n',
   );
   const result = r.run(["--base", base]);
   assert.equal(result.status, 0, result.stderr);
@@ -190,7 +190,7 @@ test("license headers and JSX forms of directives and the marker pass", (t) => {
   r.write("src/c.ts", "/* Copyright 2026 Example Ltd. */\nexport const c = 1;\n");
   r.write(
     "src/a.tsx",
-    "declare const X: (p: { a: string }) => null;\nexport const A = () => (\n  <div>\n    {/* @ts-expect-error */}\n    <X a={1} />\n    {/* workaround: COM-1 */}\n    <p>x</p>\n  </div>\n);\n",
+    "declare const X: (p: { a: string }) => null;\nexport const A = () => (\n  <div>\n    {/* @ts-expect-error */}\n    <X a={1} />\n    {/* workaround: ABC-1 */}\n    <p>x</p>\n  </div>\n);\n",
   );
   const result = r.run(["--base", base]);
   assert.equal(result.status, 0, result.stderr);
@@ -204,7 +204,7 @@ test("license words below the file header are a new comment", (t) => {
     "// we skip the @license check here",
     "/*! remember to update this before 2027 */",
     "// Copyright notice is broken, fix later",
-    "/* workaround: COM-2 */",
+    "/* workaround: ABC-2 */",
     "/*! TODO: check license header later */",
     "// (c) fall back to the cache",
   ];

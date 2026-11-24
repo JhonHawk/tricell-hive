@@ -374,7 +374,7 @@ covers exact revision selection.
 Start where the request belongs. These are available routes, not a mandatory
 sequence for every task. Authorization and preservation apply throughout.
 
-Start each flow by typing its command, such as `/hive-mode status` or `/flow-plan COM-833`
+Start each flow by typing its command, such as `/hive-mode status` or `/flow-plan ABC-123`
 (`$flow-plan` in Codex, `/skill:flow-plan` in Pi, `@flow-plan` in OpenCode). A typed
 command loads the skill whole for that flow, which the host's automatic selection does
 not guarantee. A request to do work does not need a command: it enters Hive mode, which

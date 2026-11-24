@@ -24,7 +24,7 @@ Example requests:
 ```text wrap
 Investigate why this endpoint times out. Read only; report evidence and options.
 Compare the two queue libraries we could use and tell me which fits this project.
-Assess COM-833 before I start it.
+Assess ABC-123 before I start it.
 Audit this codebase and tell me what is worth improving.
 ```
 

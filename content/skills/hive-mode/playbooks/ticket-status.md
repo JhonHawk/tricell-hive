@@ -24,15 +24,15 @@ Write it in one code block so its columns align, in this order:
 ```
 13 open · 4 waiting for QA · 10 waiting for production
 
-Meta self-service (COM-826)
-  To Deploy  COM-829  Number lifecycle
-  Backlog    COM-832  Embedded Signup v4 · blocked by COM-835
+Invoice exports (ABC-126)
+  To Deploy  ABC-129  Export retry
+  Backlog    ABC-132  CSV templates · blocked by ABC-135
 
 Local work
   • 7 stray package lockfiles → delete
 
 Recommendation
-  1. Promote development → qa: closes COM-829.
+  1. Promote development → qa: closes ABC-129.
 ```
 
 ## Find the next ticket
