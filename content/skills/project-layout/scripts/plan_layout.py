@@ -21,6 +21,7 @@ import json
 import os
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 import time
@@ -29,6 +30,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import check_layout as cl  # noqa: E402  (python3 -I leaves the script's folder off sys.path)
 
 VERSION = 1
+STATUS_ALL = ("status", "--porcelain", "--untracked-files=all", "--ignored=matching")  # a `??` or `!!` line is a file no commit holds
+UNDO_VERSION = 2  # 2 records the exact index entries of every row that leaves Git
+IGNORED_HOMES = ("_support/workspace", "_support/data")  # the folders Git ignores: only a move there leaves Git
+INDEX_FLAGS = 0x20000000 | 0x40000000 | 0x8000  # intent-to-add, skip-worktree, assume-unchanged
 KEPT, KEPT_WITH = "kept by user", "kept with the kept files that use it"
 MANIFESTS = (
     "package.json", "go.mod", "pyproject.toml", "setup.py", "composer.json", "Gemfile", "pom.xml",
@@ -99,6 +104,19 @@ def fail(message):
 
 def git(root, *args, **kwargs):
     return cl.git(root, *args, **kwargs)
+
+
+def leaves_git_home(dest):
+    """Whether a row moved to dest leaves Git: only a move into a folder Git ignores does; any other
+    destination is a tracked home, and a move there stays tracked (git mv)."""
+    return bool(dest) and any(under(dest, home) is not None for home in IGNORED_HOMES)
+
+
+def nested_collides(root, outer, dest):
+    """Whether dest, which lies inside the destination of the moving folder row outer, names a path the
+    folder already holds: the second move would then land on the first one's content."""
+    inside = dest[len(outer["destination"]) + 1:]
+    return os.path.lexists(os.path.join(root, outer["source"], inside))
 
 
 def is_build_ignore(rel):
@@ -798,7 +816,7 @@ class Planner:
         """Place a legacy row; a tracked one leaves Git when it moves (the project's delivery commit removes it)."""
         self.set_dest(key, rule, dest)
         row = self.rows[key]
-        row["untrack"] = bool(row["tracked"] and row["destination"])
+        row["untrack"] = bool(row["tracked"] and leaves_git_home(row["destination"]))
 
     def set_delete(self, key, rule, reason):
         row = self.rows[key]
@@ -808,7 +826,7 @@ class Planner:
         row["rule"] = rule
         if override:
             row["destination"], row["override"] = override, True
-            row["untrack"] = bool(row["tracked"])
+            row["untrack"] = bool(row["tracked"] and leaves_git_home(override))
             return
         row["delete"], row["destination"] = True, None
         row["notes"].append(reason)
@@ -927,7 +945,7 @@ class Planner:
             return "owner uncertain", "no repository: no history holds it"
         if not (rel in root.tracked or any(r.startswith(rel + "/") for r in root.tracked)):
             return "owner uncertain", "it is not tracked: no history holds it"
-        dirty = git(root.path, "status", "--porcelain", "--", rel)
+        dirty = git(root.path, *STATUS_ALL, "--", rel)
         if dirty is None or dirty.returncode != 0:
             return "owner uncertain", "git status failed: cannot tell whether it has uncommitted changes"
         if dirty.stdout.strip():
@@ -946,7 +964,7 @@ class Planner:
         sha = last.stdout.strip() if last is not None and last.returncode == 0 else ""
         if not sha:
             return "owner uncertain", "no commit holds it: nothing shows it landed"
-        dirty = git(root.path, "status", "--porcelain", "--", rel)
+        dirty = git(root.path, *STATUS_ALL, "--", rel)
         if dirty is None or dirty.returncode != 0:
             return "owner uncertain", "git status failed"
         if dirty.stdout.strip():
@@ -963,7 +981,7 @@ class Planner:
         override = self.override_for(row)
         if override:
             row["rule"], row["destination"], row["override"] = "L1", override, True
-            row["untrack"] = bool(row["tracked"])
+            row["untrack"] = bool(row["tracked"] and leaves_git_home(override))
             return
         row["rule"] = "L1"
         row["notes"].append(f"kept: {reason}")
@@ -1208,12 +1226,15 @@ class Planner:
                             "move one of them with --override, or keep it with --keep")
 
     def nested_in_other(self, key):
-        """Whether the row's destination lies inside the destination of a folder row that moves elsewhere."""
+        """Whether the row's destination lies inside the destination of a folder row that moves elsewhere,
+        unless that folder moves in the same plan and holds nothing at the path (apply moves it first)."""
         row = self.rows[key]
         for other_key, other in self.rows.items():
             if (other_key != key and other["root"] == row["root"] and other["kind"] == "folder" and other["destination"]
                     and row["destination"].startswith(other["destination"] + "/")
                     and not row["source"].startswith(other["source"] + "/")):
+                if not nested_collides(self.roots[row["root"]].path, other, row["destination"]):
+                    continue
                 return True
         return False
 
@@ -1570,10 +1591,18 @@ def validate(plan):
             staged = git(base, "diff", "--cached", "--name-only", "--", row["source"])
             if staged is None or staged.returncode != 0 or staged.stdout.strip():
                 errors.append(f"{row['source']}: it has staged changes (or Git cannot say): commit or unstage them first")
+            flags = git(base, "ls-files", "--debug", "--", row["source"])
+            if flags is None or flags.returncode != 0:
+                errors.append(f"{row['source']}: Git cannot list its index entries")
+            elif any(int(f, 16) & INDEX_FLAGS for f in re.findall(r"flags: ([0-9a-f]+)", flags.stdout)):
+                errors.append(f"{row['source']}: an index entry is intent-to-add, skip-worktree or assume-unchanged, "
+                              "which undo cannot restore: clear the flag (git update-index) or keep it with --keep")
     moving = sorted((r for r in plan["rows"] if r["destination"]), key=lambda r: (r["root"], r["destination"]))
     for n, row in enumerate(moving):
         for other in moving[n + 1:]:
             if other["root"] == row["root"] and other["destination"].startswith(row["destination"] + "/"):
+                if row["kind"] == "folder" and not nested_collides(root_path(plan, row["root"]), row, other["destination"]):
+                    continue  # the outer folder moves first, in this plan, and holds nothing at that path
                 errors.append(f"{other['destination']}: nested inside the destination {row['destination']}")
     for i, root in enumerate(plan["roots"]):
         removing = [r for r in plan["rows"] if r["root"] == i and (r.get("untrack") or r["action"] == "delete")]
@@ -1597,9 +1626,20 @@ def validate(plan):
 
 
 def untracked_entries(root, source):
-    """The index entries under source, as `git ls-files -s -z` prints them, or None when Git cannot say."""
-    result = git(root, "ls-files", "-s", "-z", "--", source)
-    return result.stdout if result is not None and result.returncode == 0 else None
+    """The index entries under source, as `git ls-files -s -z` prints them, or None when Git cannot say.
+    Read as bytes: a name that is not UTF-8 raises RuntimeError, since the undo record holds text."""
+    env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    try:
+        result = subprocess.run(["git", "-C", root, "ls-files", "-s", "-z", "--", source],
+                                capture_output=True, env=env, timeout=60)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode != 0:
+        return None
+    try:
+        return result.stdout.decode("utf-8")
+    except UnicodeDecodeError:
+        raise RuntimeError(f"{source}: an index entry has a name that is not UTF-8, which the undo record cannot hold")
 
 
 def restore_entries(root, entries):
@@ -1620,7 +1660,7 @@ def cmd_apply(args):
             print(f"refused: {error}", file=sys.stderr)
         return 1
     undo_path = args.plan + ".undo.json"
-    undo = {"rewrites": [], "moves": [], "removed_dirs": [], "created_dirs": []}
+    undo = {"version": UNDO_VERSION, "rewrites": [], "moves": [], "removed_dirs": [], "created_dirs": []}
     save_undo(undo_path, undo)  # from here on, every step is recorded before the next one
     by_file = collections.defaultdict(list)
     for item in plan["rewrites"]:
@@ -1637,7 +1677,7 @@ def cmd_apply(args):
                 undo["rewrites"].append({"root": i, "file": rel, "line": number,
                                          "before": before[number - 1], "after": lines[number - 1]})
             save_undo(undo_path, undo)
-        moves = sorted((r for r in plan["rows"] if r["destination"]), key=lambda r: (r["root"], r["source"]))
+        moves = sorted((r for r in plan["rows"] if r["destination"]), key=lambda r: (r["root"], r["destination"].count("/"), r["source"]))  # outer destinations first
         for row in moves:
             root = root_path(plan, row["root"])
             source = os.path.join(root, row["source"])
@@ -1655,14 +1695,21 @@ def cmd_apply(args):
                 if result is None or result.returncode != 0:
                     raise RuntimeError(f"git mv {row['source']}: {result.stderr.strip() if result else 'failed'}")
             else:
-                os.replace(source, dest)
-                if leaves_git:
+                if leaves_git:  # the index entries are recorded before the files move: they are the only copy
                     entries = untracked_entries(root, row["source"])
-                    if entries is None:
+                    if not entries:
                         raise RuntimeError(f"git ls-files {row['source']}: failed")
                     undo["moves"].append({"root": row["root"], "source": row["source"], "destination": row["destination"],
                                           "git": False, "untracked": True, "index": entries})
                     save_undo(undo_path, undo)
+                try:
+                    os.replace(source, dest)
+                except OSError:
+                    if leaves_git:
+                        undo["moves"].pop()
+                        save_undo(undo_path, undo)
+                    raise
+                if leaves_git:
                     result = git(root, "rm", "-r", "-q", "--cached", "--", row["source"])
                     if result is None or result.returncode != 0:
                         raise RuntimeError(f"git rm --cached {row['source']}: {result.stderr.strip() if result else 'failed'}")
@@ -1796,6 +1843,13 @@ def cmd_undo(args):
     except OSError:
         return fail(f"no undo record at {undo_path}")
     plan = load(args.plan)
+    old = [m for m in undo["moves"] if m.get("untracked") and not m.get("index")]
+    if old:
+        for move in old:
+            print(f"refused: {move['source']}: the record was written by an earlier script and holds no index entries; "
+                  f"undo would leave it untracked. Move {move['destination']} back to {move['source']} by hand, "
+                  f"then run `git add -- {move['source']}`", file=sys.stderr)
+        return 1
     conflicts = []
     for removed in reversed(undo["removed_dirs"]):
         os.makedirs(os.path.join(root_path(plan, removed["root"]), removed["dir"]), exist_ok=True)
@@ -1806,8 +1860,11 @@ def cmd_undo(args):
             if result is None or result.returncode != 0:
                 conflicts.append(f"git mv back failed for {move['destination']}")
         else:
-            os.replace(os.path.join(root, move["destination"]), os.path.join(root, move["source"]))
-            if move.get("untracked") and not restore_entries(root, move.get("index", "")):
+            moved, back = os.path.join(root, move["destination"]), os.path.join(root, move["source"])
+            if not os.path.lexists(moved) and os.path.lexists(back):
+                continue  # recorded before the files moved, and apply stopped first
+            os.replace(moved, back)
+            if move.get("untracked") and not restore_entries(root, move["index"]):
                 conflicts.append(f"restoring the index entries of {move['source']} failed")
     for created in reversed(undo["created_dirs"]):
         path = os.path.join(root_path(plan, created["root"]), created["dir"])

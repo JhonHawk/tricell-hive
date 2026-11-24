@@ -1,4 +1,6 @@
 from pathlib import Path
+import argparse
+import importlib.util
 import json
 import os
 import subprocess
@@ -300,7 +302,7 @@ class ApplyLayoutTest(Fixture, unittest.TestCase):
     def planned(self, repo, *extra):
         plan_file = repo.parent / "plan.json"
         self.plan(repo, extra=["--out", str(plan_file), *extra])
-        git(repo, "tag", "archive/test", check=False)  # rows that leave Git or are deleted need it
+        git(repo, "tag", "archive/test")  # rows that leave Git or are deleted need it
         return plan_file
 
     def state(self, repo):
@@ -870,31 +872,159 @@ class LegacyMigrationTest(Fixture, unittest.TestCase):
         self.plan(repo, extra=["--out", str(plan_file), *extra])
         return plan_file
 
-    def test_a_work_in_sessions_and_evidence_never_leaves_a_half_applied_migration(self):
+    def test_a_work_in_sessions_and_evidence_moves_together_and_undo_restores_both(self):
         repo = legacy_repo(self.tmp())
         write(repo, "_support/evidence/2026-01-02-x/shot.txt", "shot\n")
         commit(repo)
+        before = git(repo, "ls-files", "-s").stdout
         plan_file = self.make_plan(repo)
         plan = json.loads(plan_file.read_text())
-        self.assertEqual(self.row(plan, "_support/evidence/2026-01-02-x")["action"], "review")
-        self.assertIn("nested", " ".join(r["detail"] for r in plan["reviews"] if r["path"] == "_support/evidence/2026-01-02-x"))
+        self.assertEqual(self.row(plan, "_support/evidence/2026-01-02-x")["destination"], "_support/workspace/2026-01-02-x/evidence")
         result = self.apply_after_tag(repo, plan_file)
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertTrue((repo / "_support/workspace/2026-01-02-x/a.md").exists())
-        self.assertTrue((repo / "_support/evidence/2026-01-02-x/shot.txt").exists(), "the reviewed row stays where it is")
+        self.assertTrue((repo / "_support/workspace/2026-01-02-x/evidence/shot.txt").exists())
+        self.assertFalse((repo / "_support/evidence/2026-01-02-x").exists())
+        undone = self.run_cmd("undo", plan_file)
+        self.assertEqual(undone.returncode, 0, undone.stderr)
+        self.assertTrue((repo / "_support/sessions/2026-01-02-x/a.md").exists())
+        self.assertTrue((repo / "_support/evidence/2026-01-02-x/shot.txt").exists())
+        self.assertFalse((repo / "_support/workspace/2026-01-02-x").exists())
+        self.assertEqual(git(repo, "ls-files", "-s").stdout, before)
+        self.assertEqual(git(repo, "status", "--porcelain").stdout, "")
 
-    def test_apply_refuses_destinations_that_nest_in_each_other(self):
+    def test_apply_refuses_a_nested_destination_the_outer_folder_already_holds(self):
         repo = legacy_repo(self.tmp())
         plan_file = self.make_plan(repo)
         plan = json.loads(plan_file.read_text())
         session = self.row(plan, "_support/sessions/2026-01-02-x")
         evidence = self.row(plan, "_support/evidence/b.txt")
-        evidence["destination"] = session["destination"] + "/evidence/b.txt"
+        evidence["destination"] = session["destination"] + "/a.md"
         plan_file.write_text(json.dumps(plan))
         result = self.apply_after_tag(repo, plan_file)
         self.assertEqual(result.returncode, 1)
         self.assertIn("nested", result.stderr)
         self.assertTrue((repo / "_support/sessions/2026-01-02-x/a.md").exists())
+        self.assertTrue((repo / "_support/evidence/b.txt").exists())
+
+    def test_apply_records_the_index_entries_before_the_files_move(self):
+        repo = legacy_repo(self.tmp())
+        plan_file = self.make_plan(repo)
+        git(repo, "tag", "archive/test")
+        spec = importlib.util.spec_from_file_location("plan_layout_under_test", SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        undo_path = Path(str(plan_file) + ".undo.json")
+        seen, real = [], os.replace
+
+        def replace(src, dst):
+            if str(src).endswith("_support/sessions/2026-01-02-x"):
+                seen.append(json.loads(undo_path.read_text())["moves"])
+            return real(src, dst)
+
+        module.os.replace = replace
+        try:
+            self.assertEqual(module.cmd_apply(argparse.Namespace(plan=str(plan_file))), 0)
+        finally:
+            module.os.replace = real
+        self.assertEqual(len(seen), 1)
+        self.assertEqual([m["source"] for m in seen[0]], ["_support/sessions/2026-01-02-x"], "recorded before the move")
+        self.assertIn("a.md", seen[0][0]["index"])
+
+    def test_a_move_that_fails_leaves_the_files_and_no_recorded_move(self):
+        repo = legacy_repo(self.tmp())
+        plan_file = self.make_plan(repo)
+        git(repo, "tag", "archive/test")
+        spec = importlib.util.spec_from_file_location("plan_layout_under_test", SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        real = os.replace
+
+        def refuse(src, dst):
+            raise OSError("no space left")
+
+        module.os.replace = refuse
+        try:
+            self.assertEqual(module.cmd_apply(argparse.Namespace(plan=str(plan_file))), 1)
+        finally:
+            module.os.replace = real
+        self.assertEqual(json.loads(Path(str(plan_file) + ".undo.json").read_text())["moves"], [])
+        self.assertTrue((repo / "_support/sessions/2026-01-02-x/a.md").exists())
+        self.assertIn("_support/sessions/2026-01-02-x/a.md", git(repo, "ls-files").stdout)
+        self.assertEqual(self.run_cmd("undo", plan_file).returncode, 0)
+
+    def test_an_index_entry_with_a_name_that_is_not_utf8_stops_before_the_move(self):
+        repo = legacy_repo(self.tmp())
+        blob = subprocess.run(["git", "-C", str(repo), "hash-object", "-w", "/dev/null"], capture_output=True, text=True, check=True).stdout.strip()
+        git(repo, "update-index", "--add", "--cacheinfo", f"100644,{blob},_support/sessions/2026-01-02-x/bad\udcff.md")
+        spec = importlib.util.spec_from_file_location("plan_layout_under_test", SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        with self.assertRaises(RuntimeError) as caught:
+            module.untracked_entries(str(repo), "_support/sessions/2026-01-02-x")
+        self.assertIn("UTF-8", str(caught.exception))
+
+    def test_apply_refuses_a_source_whose_index_flags_undo_cannot_restore(self):
+        for flag in ("skip-worktree", "assume-unchanged", "intent-to-add"):
+            with self.subTest(flag=flag):
+                repo = legacy_repo(self.tmp())
+                if flag == "intent-to-add":
+                    write(repo, "_support/sessions/2026-01-02-x/new.md", "# new\n")
+                    git(repo, "add", "-N", "_support/sessions/2026-01-02-x/new.md")
+                else:
+                    git(repo, "update-index", f"--{flag}", "_support/sessions/2026-01-02-x/a.md")
+                plan_file = self.make_plan(repo)
+                result = self.apply_after_tag(repo, plan_file)
+                self.assertEqual(result.returncode, 1, result.stdout)
+                self.assertIn("intent-to-add, skip-worktree or assume-unchanged", result.stderr)
+                self.assertTrue((repo / "_support/sessions/2026-01-02-x/a.md").exists())
+
+    def test_undo_refuses_a_record_an_earlier_script_wrote_without_index_entries(self):
+        repo = legacy_repo(self.tmp())
+        plan_file = self.make_plan(repo)
+        self.assertEqual(self.apply_after_tag(repo, plan_file).returncode, 0)
+        undo_path = Path(str(plan_file) + ".undo.json")
+        record = json.loads(undo_path.read_text())
+        self.assertEqual(record["version"], 2)
+        del record["version"]
+        for move in record["moves"]:
+            move.pop("index", None)
+        undo_path.write_text(json.dumps(record))
+        result = self.run_cmd("undo", plan_file)
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("_support/sessions/2026-01-02-x", result.stderr)
+        self.assertIn("git add --", result.stderr)
+        self.assertTrue((repo / "_support/workspace/2026-01-02-x/a.md").exists(), "nothing is moved back half way")
+        self.assertTrue(undo_path.exists())
+
+    def test_uncommitted_untracked_and_ignored_files_keep_a_change_folder_whatever_the_status_config(self):
+        for name, ignored in (("untracked", False), ("ignored", True)):
+            with self.subTest(name):
+                repo = legacy_repo(self.tmp())
+                git(repo, "config", "status.showUntrackedFiles", "no")
+                write(repo, ".gitignore", "_support/backups/\n_support/data/\n_support/workspace/\n*.log\n")
+                commit(repo)
+                extra = "x.log" if ignored else "x.md"
+                write(repo, f"_support/openspec/changes/done-change/{extra}", "mine\n")
+                write(repo, f"_support/openspec/changes/archive/{extra}", "mine\n")
+                plan = self.plan_json(repo)
+                self.assertEqual(self.row(plan, "_support/openspec/changes/done-change")["action"], "keep")
+                self.assertEqual(self.row(plan, "_support/openspec/changes/archive")["action"], "keep")
+
+    def test_an_override_into_a_tracked_home_stays_tracked_and_one_into_the_workspace_leaves_git(self):
+        repo = legacy_repo(self.tmp())
+        plan_file = self.make_plan(repo, "--override", "_support/openspec/changes/open-change=_support/docs/open-change",
+                                   "--override", "_support/openspec/changes/archive=_support/docs/arch",
+                                   "--override", "_support/sessions/2026-01-02-x=_support/workspace/2026-01-02-kept")
+        plan = json.loads(plan_file.read_text())
+        self.assertFalse(self.row(plan, "_support/openspec/changes/open-change")["untrack"])
+        self.assertFalse(self.row(plan, "_support/openspec/changes/archive")["untrack"])
+        self.assertTrue(self.row(plan, "_support/sessions/2026-01-02-x")["untrack"])
+        self.assertEqual(self.apply_after_tag(repo, plan_file).returncode, 0)
+        tracked = git(repo, "ls-files").stdout
+        self.assertIn("_support/docs/open-change/proposal.md", tracked)
+        self.assertIn("_support/docs/arch/README.md", tracked)
+        self.assertNotIn("_support/workspace", tracked)
 
     def test_reproducible_output_is_deleted_only_when_untracked_ignored_and_outside_records_of_evidence(self):
         repo = legacy_repo(self.tmp())
