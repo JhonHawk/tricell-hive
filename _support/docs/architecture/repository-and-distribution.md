@@ -16,7 +16,7 @@ Reviewed: 2026-10-25. The shared guidance, activity skills, seven host adapters,
 | `tests/{content,fixtures,pilot,skills}/` | Content, fixture, pilot, and skill verification | Integration and management tests live beside their Go packages |
 | `site/` | Documentation site for people | Starlight site published from `master`; not packaged or deployed by the manager |
 | `_support/docs/` | Durable research and decisions | Existing |
-| `_support/sessions/` | Resumable work records | Available |
+| `sessions/` under `_support/` | Retired since 2026-11-24: a work's plan and records live in its `_support/workspace/<date>-<work>/` folder | Not created |
 | `_support/evidence/` | Retired since 2026-11-16: verification material stays in `_support/workspace/` and reusable conclusions go to `_support/docs/`; a legacy folder is cleaned up through the project-layout skill | Not created |
 | `_support/workspace/` | Local scratch; retains `hive-retirement/` | Only `.gitkeep` markers are versionable |
 | `dist/` | Generated distribution artifacts | Ignored by Git; generated when needed |

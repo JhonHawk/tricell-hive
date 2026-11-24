@@ -84,8 +84,8 @@ between what was requested, what was authorized, and what was demonstrated.
 - **Make handoffs useful.** Specialist roles receive a bounded task, owned paths,
   relevant context, and evidence to return. Implementation, review, and
   verification have separate responsibilities.
-- **Keep decisions connected to evidence.** Requirements and change records
-  preserve context; findings distinguish observed results from assumptions and
+- **Keep decisions connected to evidence.** Requirements and the pull request
+  body preserve context; findings distinguish observed results from assumptions and
   unfinished work.
 - **Manage guidance without replacing the host.** Installation previews affected
   destinations, checks ownership and drift, preserves user content outside managed
@@ -462,12 +462,12 @@ lists where each flow loops.
   integration, also when a project declares a later completion point in its
   `Completion` key, then ends as the close's situation sets: with a footer that lists
   replies from the context, such as closing or resolving a finding, or with the report alone
-  for a deploy's cleanup, abandoned work, a hygiene request or unattended work. At the merge the cleanup runs
+  for a deploy's cleanup, abandoned work, a session-hygiene request or unattended work. At the merge the cleanup runs
   before the report, with no question: the work's resources and the evidence its ticket
   or pull request holds, plus your earlier merged branches and their clean worktrees in
   each repository the work touched. Only what needs your answer waits for a close reply,
-  other work or the end of the session; with nothing waiting, closing is not offered. The change record is recorded as waiting for its archive; hygiene is offered
-  once 10 or more wait, and a hygiene request archives every waiting record in one delivery. A pause commits the change folder where the specs repository allows it, and a
+  other work or the end of the session; with nothing waiting, closing is not offered. The plan file stays local and nothing is archived; the pull request body is
+  the work's public record. A
   promotion not yet made keeps nothing. Unfinished work is preserved.
 - [Deploy](https://hive.tricell.tech/flows/deploy/) ([skill](content/skills/flow-deploy/SKILL.md)) is a separate stage after
   integration: it promotes through the declared environments and checks what is
@@ -635,7 +635,7 @@ native locations. The files an agent should read first are in
 - `integrations/` is distributable: per-host destinations and role profiles.
 - `tooling/` is the Go manager, distribution logic, and package builder.
 - `_support/` is internal maintainer material: architecture docs, research, and
-  change records under `_support/openspec/`. It is not installed.
+  requirements under `_support/openspec/`. It is not installed.
 - `tests/` holds content checks, fixtures, and evaluation tooling. It is not
   installed.
 - `site/` is the source of the documentation site for people. It is
@@ -651,8 +651,7 @@ native locations. The files an agent should read first are in
   [security policy](SECURITY.md).
 - [Architecture](_support/docs/architecture/repository-and-distribution.md) —
   structure, ownership, managed instruction blocks, and preservation.
-- [Requirements and changes](_support/openspec/) — versioned requirements and
-  retained change records.
+- [Requirements](_support/openspec/) — versioned requirements.
 - [Harness engineering research](_support/docs/harness-engineering/README.md) —
   research sources and the measurement standard.
 - [content/](content/) — canonical guidance, skills, specialist roles, and voices.

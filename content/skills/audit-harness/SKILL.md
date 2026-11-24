@@ -13,7 +13,7 @@ A role launched read-only, such as `hive-review-harness`, or a delegated auditor
 
 ## Scope
 
-Before applying an outcome that writes `Specs`, creates a specs directory, or creates or continues a change record, read [change folder](../hive-core/plan/change-folder.md#change-folder); before writing or cleaning supporting artifacts, read [layout and retention](../project-layout/references/layout.md). An audit that applies nothing needs neither.
+Before applying an outcome that writes `Specs`, creates a specs directory, or writes or cleans supporting artifacts, read [layout and retention](../project-layout/references/layout.md). An audit that applies nothing needs no such read.
 
 Establish before reading deeply:
 
@@ -27,7 +27,7 @@ Establish before reading deeply:
 1. For instruction files, read [hierarchy](references/hierarchy.md) and compute the effective set per host and entry point before judging any single file. When sessions start at more than one entry point, or the caller asks why they behave differently by where they start, or asks to audit or clean memory, read [memory](references/memory.md) too: it covers HA-HI-08 to HA-HI-11, and for a memory request every host in use and the project's Engram records, even from a single entry point. Then read [instruction files](references/instruction-files.md) and apply its admission test and rules.
 2. For skills or agents, read [skills and agents](references/skills-and-agents.md), together with the project's own authoring conventions.
 3. Before running a native tool, relying on its output, or asserting version-sensitive loading behavior, read [native tools](references/native-tools.md); to check or update a project's `HIVE.local.md` and `_support/secrets/` invariants, use [local_instructions.py](scripts/local_instructions.py).
-4. For a project's layout or a layout migration, use [project-layout](../project-layout/SKILL.md); the onboarding below reads only its check of `Specs`.
+4. For a project's layout or a layout migration, use [project-layout](../project-layout/SKILL.md); the onboarding below reads only its check of `Specs`, which is optional: a project without contract specs omits the key.
 5. Before proposing `delete`, `demote` or `soften`, or reporting `already lean`, for any artifact type, read HA-IF-10, HA-IF-13 and HA-IF-14 in [instruction files](references/instruction-files.md) and recover the rule's rationale (HA-IF-10).
 6. Report in the format below: each `high` and `medium` finding in full, `low` and `info` findings grouped by rule ID with a count.
 7. Ask the decisions as [Ask](#ask) sets; after the user's answer, read [apply](references/apply.md).
