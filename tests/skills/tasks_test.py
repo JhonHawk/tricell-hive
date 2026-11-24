@@ -439,6 +439,8 @@ class ExecutionRecordTest(unittest.TestCase):
             coordinator = self.coordinator_repo(tmp)
             change, record, source, _, worktree = self.setup_execution(
                 tmp, role="hive-ticket-owner", record_root=coordinator)
+            # A pointer across checkouts would put a machine path in the versioned tasks.md.
+            self.assertNotIn("- Execution record:", self.text(change))
             self.assertEqual(self.operation(change, record, "check").returncode, 0)
             self.returned(change, record, source, worktree)
             result = self.operation(change, record, "validate-handoff", "--unit", "U1")
@@ -469,6 +471,21 @@ class ExecutionRecordTest(unittest.TestCase):
                                         "--input", str(source), "--coordinator", "root")
                 self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
                 self.assertFalse(record.exists())
+
+    def test_execution_record_behind_a_symlink_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            coordinator = self.coordinator_repo(tmp)
+            change, _, source, _, _ = self.setup_execution(tmp)
+            outside = Path(tmp) / "outside"
+            outside.mkdir()
+            workspace = coordinator / "_support/workspace"
+            workspace.mkdir(parents=True)
+            (workspace / "run").symlink_to(outside, target_is_directory=True)
+            record = workspace / "run" / "execution.json"
+            result = self.run_tasks(change, "execution", "init", "--record", str(record),
+                                    "--input", str(source), "--coordinator", "root")
+            self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+            self.assertFalse((outside / "execution.json").exists())
 
     def test_execution_init_links_checkpoint_without_overwrite(self):
         with tempfile.TemporaryDirectory() as tmp:

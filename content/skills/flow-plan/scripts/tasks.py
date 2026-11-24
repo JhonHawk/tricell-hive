@@ -760,6 +760,11 @@ def atomic_record(record, data):
 
 
 def link_execution(folder, record):
+    # A record in another checkout stays out of the versioned tasks.md, which would
+    # otherwise carry a path of this machine; the coordinator's batch checkpoint names it.
+    root = Path(git_out(git_reader(folder), "rev-parse", "--show-toplevel")).resolve()
+    if not record.resolve().is_relative_to(root):
+        return
     path = folder / "tasks.md"
     lines = read(path)
     pointer = "- Execution record: " + os.path.relpath(record, folder)
