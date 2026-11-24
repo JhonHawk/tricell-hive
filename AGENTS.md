@@ -131,7 +131,7 @@ Before analyzing a real session, read [the session review rubric](_support/docs/
 - `_support/docs/architecture/workspace-and-artifacts.md` — workspace scope, artifact organization, retention, and hygiene.
 - `_support/docs/harness-engineering/README.md` — durable research index and measurement standard.
 - `_support/docs/harness-engineering/2026-09-20-portable-harness-research.md` — source-backed host comparison, limits, and evaluation approach.
-- `_support/openspec/` — current requirements and change records; `_support/workspace/` — ignored working material whose versioning is undecided.
+- `_support/openspec/` — contract specs (installer, viewer, site, branch promotion and the scripts' contracts), edited in the pull request that changes the contract; `_support/workspace/` — ignored working material whose versioning is undecided.
 
 <!-- BEGIN:reui-agent-rules -->
 ## ReUI design rules (every UI edit, follow-ups included)

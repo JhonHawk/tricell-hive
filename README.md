@@ -635,7 +635,7 @@ native locations. The files an agent should read first are in
 - `integrations/` is distributable: per-host destinations and role profiles.
 - `tooling/` is the Go manager, distribution logic, and package builder.
 - `_support/` is internal maintainer material: architecture docs, research, and
-  requirements under `_support/openspec/`. It is not installed.
+  contract specs under `_support/openspec/`. It is not installed.
 - `tests/` holds content checks, fixtures, and evaluation tooling. It is not
   installed.
 - `site/` is the source of the documentation site for people. It is
@@ -651,7 +651,7 @@ native locations. The files an agent should read first are in
   [security policy](SECURITY.md).
 - [Architecture](_support/docs/architecture/repository-and-distribution.md) —
   structure, ownership, managed instruction blocks, and preservation.
-- [Requirements](_support/openspec/) — versioned requirements.
+- [Contract specs](_support/openspec/) — versioned contracts.
 - [Harness engineering research](_support/docs/harness-engineering/README.md) —
   research sources and the measurement standard.
 - [content/](content/) — canonical guidance, skills, specialist roles, and voices.

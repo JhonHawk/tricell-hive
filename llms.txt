@@ -74,5 +74,5 @@ Source-byte unions are not actual tokens or evidence of small-model reliability.
 - [Harness engineering research](_support/docs/harness-engineering/README.md): research sources and the measurement standard
 - [Model support floor](_support/docs/harness-engineering/model-floor.md): the models the guidance is written for (Opus 5.5 and gpt-6.2-sol) and the floor candidates one tier above and below, plus Grok 4.7, whose observed failures count toward a correction
 - [History and provenance](_support/docs/history/history-and-provenance.md): how the project evolved
-- [Requirements](_support/openspec/): versioned requirements
+- [Contract specs](_support/openspec/): versioned contracts
 - [Tests](tests/): content checks, fixtures, and evaluation tooling
