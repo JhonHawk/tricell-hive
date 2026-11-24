@@ -38,6 +38,16 @@ var (
 	// and quotedReply is one of them in quotation marks.
 	offeredReplies = regexp.MustCompile(`(?i)\b(?:puedes responder|responde|you can reply|reply with)\b`)
 	quotedReply    = regexp.MustCompile(`«[^»\n]+»|"[^"\n]+"|“[^”\n]+”`)
+	// recommends and backtickedMode read a sentence that recommends a text in
+	// backticks holding a delivery mode as a whole word, such as «Recomiendo
+	// `automatic, Codex, sí`»: a session question answered for the user, with no
+	// options. A backticked word that only contains a mode, such as
+	// `threshold`, does not count.
+	recommends     = regexp.MustCompile(`(?i)\b(?:recomiendo|i recommend)\b`)
+	backtickedMode = regexp.MustCompile("`[^`\\n]*\\b(?:interactive|automatic|ready|hold|direct-base)\\b[^`\\n]*`")
+	// leftPending names a decision as still to confirm, such as «queda por
+	// confirmar la entrega»: the question is open and nothing asks it.
+	leftPending = regexp.MustCompile(`(?i)\b(?:queda|quedan|falta|faltan)\s+(?:por|de)\s+confirmar\b|\bpendientes?\s+de\s+confirm(?:ar|aci[oó]n)\b|\bstill\s+needs?\s+confirm(?:ing|ation)\b|\bawaiting\s+your\s+confirmation\b`)
 )
 
 // proseChoices returns the questions of a message that ask the user to choose:
@@ -59,6 +69,11 @@ func proseChoices(text string) (choices []string, session bool) {
 		case imperativeConfirm.MatchString(s) && sessionChoice.MatchString(s):
 			choices = append(choices, s)
 			session = true
+		case recommends.MatchString(s) && backtickedMode.MatchString(s):
+			choices = append(choices, s)
+			session = true
+		case leftPending.MatchString(s) && sessionChoice.MatchString(s):
+			choices = append(choices, s)
 		case offeredReplies.MatchString(s) && len(quotedReply.FindAllString(s, -1)) >= 2:
 			choices = append(choices, s)
 		}

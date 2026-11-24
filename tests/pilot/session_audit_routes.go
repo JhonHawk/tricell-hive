@@ -228,12 +228,15 @@ func questionBetween(events []traceEvent, from, to int) bool {
 
 // planWithoutBuildRoute checks that each plan stage, from a load of flow-plan
 // to the next load of another flow, has an assistant message that names the
-// build command. A stage another flow ends without it fails at the flow-plan
-// load, unless that flow starts in the turn of the stage's latest flow-plan
-// load with no question card between them, a continuation the user may have
-// asked for, or after unattended delegation started: both are reviews. One the
-// session's end ends without it is a review too, since the session may still
-// be open. Loading flow-plan again does not end the stage.
+// build command together with a ▶ line, the next-step block. A stage in which
+// the command appears only in messages without a ▶ line fails at the first
+// such message, however the stage ends. A stage another flow ends with no
+// message naming the command fails at the flow-plan load, unless that flow
+// starts in the turn of the stage's latest flow-plan load with no question
+// card between them, a continuation the user may have asked for, or after
+// unattended delegation started: both are reviews. One the session's end ends
+// without it is a review too, since the session may still be open. Loading
+// flow-plan again does not end the stage.
 func planWithoutBuildRoute(s auditSession) criterionAssessment {
 	c := criterionAssessment{Criterion: "plan_without_build_route", Status: "not_observed", Evidence: []string{}}
 	if child(s) {
@@ -242,18 +245,20 @@ func planWithoutBuildRoute(s auditSession) criterionAssessment {
 	events := s.Trace.Events
 	unattended := unattendedLoad(events)
 	var failed, review, passed []string
-	start, latest, routed := -1, -1, false
+	start, latest, routed, bare := -1, -1, false, -1
 	for i, e := range events {
 		flow := loadedFlow(e)
 		switch {
 		case flow == "flow-plan" && start < 0:
-			start, latest, routed = i, i, false
+			start, latest, routed, bare = i, i, false, -1
 		case flow == "flow-plan":
 			latest = i
 		case flow != "" && start >= 0:
 			switch {
 			case routed:
 				passed = append(passed, regressionEvidence(events[start]))
+			case bare >= 0:
+				failed = append(failed, regressionEvidence(events[bare])+" build command without a next-step block")
 			case s.Turn[latest] == s.Turn[i] && !questionBetween(events, latest, i):
 				review = append(review, regressionEvidence(events[start])+" flow started in the plan's own turn")
 			case unattended >= 0 && unattended < i:
@@ -263,13 +268,20 @@ func planWithoutBuildRoute(s auditSession) criterionAssessment {
 			}
 			start = -1
 		case start >= 0 && e.Kind == "text" && e.Role == "assistant" && buildRoute.MatchString(e.Text):
-			routed = true
+			if strings.Contains(e.Text, "▶") {
+				routed = true
+			} else if bare < 0 {
+				bare = i
+			}
 		}
 	}
 	if start >= 0 {
-		if routed {
+		switch {
+		case routed:
 			passed = append(passed, regressionEvidence(events[start]))
-		} else {
+		case bare >= 0:
+			failed = append(failed, regressionEvidence(events[bare])+" build command without a next-step block")
+		default:
 			review = append(review, regressionEvidence(events[start])+" session ended inside the plan stage")
 		}
 	}

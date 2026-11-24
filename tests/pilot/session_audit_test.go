@@ -402,6 +402,7 @@ func TestAuditNewCriteria(t *testing.T) {
 	const route, format, ux = "flow_entered_without_route", "decision_round_format", "ui_change_without_ux_review"
 	const cache, tryIt = "tracker_states_cache_written", "try_it_block_in_report"
 	const prose = "prose_choice_without_card"
+	const asyncCard = "async_card_when_waiting_offered"
 	const assess = "ticket_assessment_ending"
 	const feed = "self_feeding_log"
 	const reply = "analysis_reply_block"
@@ -411,6 +412,18 @@ func TestAuditNewCriteria(t *testing.T) {
 	const planRoute = "plan_without_build_route"
 	const suite, rounds = "full_suite_after_text_fix", "review_rounds_per_candidate"
 	cases := []newCriterionCase{
+		{"async card while the waiting card is offered", "codex", asyncCard, []string{asyncCard, "codex-rollout-waiting-offered-fail.jsonl"}, auditOptions{}, "fail"},
+		{"async card while the waiting card is offered, round written first", "codex", asyncCard, []string{asyncCard, "codex-rollout-waiting-offered-round-written-fail.jsonl"}, auditOptions{}, "fail"},
+		{"async card as the only tool, no round in the text", "codex", asyncCard, []string{asyncCard, "codex-rollout-async-only-no-round-fail.jsonl"}, auditOptions{}, "fail"},
+		{"async card as the only tool, round written first", "codex", asyncCard, []string{asyncCard, "codex-rollout-async-only-round-pass.jsonl"}, auditOptions{}, "pass"},
+		{"async card in a child session", "codex", asyncCard, []string{asyncCard, "codex-rollout-child-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"async card, session without an async call", "codex", asyncCard, []string{prose, "codex-rollout-card-pass.jsonl"}, auditOptions{}, "not_observed"},
+		{"prose choice codex pending delivery with a recommended mode in backticks", "codex", prose, []string{prose, "codex-rollout-pending-recommend-fail.jsonl"}, auditOptions{}, "fail"},
+		{"prose choice codex delivery only left pending", "codex", prose, []string{prose, "codex-rollout-pending-only-review.jsonl"}, auditOptions{}, "review"},
+		{"prose choice codex recommended backticks with no delivery mode word", "codex", prose, []string{prose, "codex-rollout-mode-substring-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"plan codex typed skill, build command without a next-step block", "codex", planRoute, []string{planRoute, "codex-rollout-typed-skill-no-block-fail.jsonl"}, auditOptions{}, "fail"},
+		{"plan codex typed skill, build command without a next-step block, session ends in the stage", "codex", planRoute, []string{planRoute, "codex-rollout-typed-skill-no-block-open-fail.jsonl"}, auditOptions{}, "fail"},
+		{"plan codex typed skill, build command with the next-step block", "codex", planRoute, []string{planRoute, "codex-rollout-typed-skill-block-pass.jsonl"}, auditOptions{}, "pass"},
 		{"plan codex stage ended by a build without the command", "codex", planRoute, []string{planRoute, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
 		{"plan codex next-step block naming /flow-build", "codex", planRoute, []string{planRoute, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
 		{"plan codex session ends inside the stage", "codex", planRoute, []string{planRoute, "codex-rollout-open-review.jsonl"}, auditOptions{}, "review"},
@@ -1480,5 +1493,12 @@ func TestAuditExpandAssignmentsIsBoundedAndExpandsAValueOnce(t *testing.T) {
 	}
 	if big := strings.Repeat("x", maxExpandedCommand+1) + "; F=a; echo $F"; expandAssignments(big) != big {
 		t.Fatal("a command past the bound must stay unexpanded")
+	}
+}
+
+func TestPlanWithoutBuildRouteNamesTheMessageWithoutTheBlock(t *testing.T) {
+	got := auditStatus(t, auditFixture(t, "codex", auditOptions{}, "plan_without_build_route", "codex-rollout-typed-skill-no-block-fail.jsonl"), "plan_without_build_route")
+	if got.Status != "fail" || len(got.Evidence) != 1 || !strings.Contains(got.Evidence[0], "codex-rollout-typed-skill-no-block-fail.jsonl:6 ") {
+		t.Fatalf("plan_without_build_route = %+v, want fail at the message on line 6", got)
 	}
 }

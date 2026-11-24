@@ -368,9 +368,9 @@ func (b *codexBuilder) codexItem(line int, p map[string]any) {
 // codexCompletedItem records what Codex reports after an exec block's call
 // ran: an MCP call with its arguments and result, which the block's source
 // cannot give, the command a shell call executed, interpolation resolved, with
-// its exit code when Codex reports one, and the paths a patch changed. They get
-// kinds of their own so the criteria that read calls from the block do not
-// count them twice.
+// its exit code when Codex reports one, the paths a patch changed, and the
+// skill the user typed. The first three get kinds of their own so the criteria
+// that read calls from the block do not count them twice.
 func (b *codexBuilder) codexCompletedItem(line int, item map[string]any) {
 	switch str(item["type"]) {
 	case "McpToolCall":
@@ -393,6 +393,14 @@ func (b *codexBuilder) codexCompletedItem(line int, item map[string]any) {
 			e.Success = &okay
 		}
 		b.add(e)
+	case "UserMessage":
+		// A skill the user typed, such as $flow-plan, reaches the model as a
+		// skill entry of the message and no call or read follows it.
+		for _, raw := range list(item["content"]) {
+			if entry := object(raw); str(entry["type"]) == "skill" && str(entry["name"]) != "" {
+				b.add(traceEvent{Line: line, Kind: "skill_invocation", Text: str(entry["name"])})
+			}
+		}
 	case "FileChange":
 		// The paths a patch changed, interpolation resolved, which the exec
 		// block's source cannot give.
@@ -2045,7 +2053,7 @@ func skillNamedAsReason(s auditSession) criterionAssessment {
 
 func auditCriteria(s auditSession, base string) []criterionAssessment {
 	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s), reviewQuestionNativeOption(s), leafReadBeforeAction(s),
-		flowEnteredWithoutRoute(s), decisionRoundFormat(s), uiChangeWithoutUXReview(s), trackerStatesCacheWritten(s), tryItBlockInReport(s), proseChoiceWithoutCard(s), ticketAssessmentEnding(s), selfFeedingLog(s), analysisReplyBlock(s), unboundedBackgroundWait(s), cardOptionFormat(s), changeFolderUncommitted(s, base), planWithoutBuildRoute(s), fullSuiteAfterTextFix(s), reviewRoundsPerCandidate(s))
+		flowEnteredWithoutRoute(s), decisionRoundFormat(s), uiChangeWithoutUXReview(s), trackerStatesCacheWritten(s), tryItBlockInReport(s), proseChoiceWithoutCard(s), ticketAssessmentEnding(s), selfFeedingLog(s), analysisReplyBlock(s), unboundedBackgroundWait(s), cardOptionFormat(s), changeFolderUncommitted(s, base), planWithoutBuildRoute(s), fullSuiteAfterTextFix(s), reviewRoundsPerCandidate(s), asyncCardWhenWaitingOffered(s))
 }
 
 var (
