@@ -344,7 +344,18 @@ class ExecutionRecordTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         return result.stdout.strip()
 
-    def setup_execution(self, tmp):
+    def coordinator_repo(self, tmp, ignore=True):
+        coordinator = Path(tmp) / "coordinator"
+        coordinator.mkdir()
+        self.git(coordinator, "init", "-b", "main")
+        self.git(coordinator, "config", "user.email", "fixture@example.invalid")
+        self.git(coordinator, "config", "user.name", "Fixture")
+        (coordinator / ".gitignore").write_text("_support/workspace/\n" if ignore else "\n")
+        self.git(coordinator, "add", ".gitignore")
+        self.git(coordinator, "commit", "-m", "base")
+        return coordinator
+
+    def setup_execution(self, tmp, role="hive-build-owner", record_root=None):
         repo = Path(tmp) / "repo"
         repo.mkdir()
         self.git(repo, "init", "-b", "main")
@@ -362,11 +373,11 @@ class ExecutionRecordTest(unittest.TestCase):
         base = self.git(repo, "rev-parse", "HEAD")
         worktree = Path(tmp) / "owner"
         self.git(repo, "worktree", "add", "-b", "unit-a", str(worktree), base)
-        record = repo / "_support/workspace/run/execution.json"
+        record = (record_root or repo) / "_support/workspace/run/execution.json"
         record.parent.mkdir(parents=True)
         (record.parent / "check.txt").write_text("observed command exit 0\n")
         unit = dict(id="U1", tasks=["T2"], criteria=["AC2"], depends_on=[],
-                    assignment_id="A1", owner_id="owner-1", role="hive-build-owner",
+                    assignment_id="A1", owner_id="owner-1", role=role,
                     repo=str(repo), worktree=str(worktree), branch="unit-a", base_sha=base,
                     allowed_paths=["a.txt"], resources=["port:fixture-a"], state="assigned",
                     returned_head=None, evidence=[], verifier=None, limitations=[],
@@ -407,6 +418,57 @@ class ExecutionRecordTest(unittest.TestCase):
     def verdict(self, head):
         return dict(id="verifier-1", head=head, criteria=["AC2"],
                     checks=[dict(command="fixture-check", result="pass", path="check.txt")])
+
+    def test_execution_accepts_the_two_owner_roles_and_rejects_others(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            change, record, source, _, _ = self.setup_execution(tmp, role="hive-ticket-owner")
+            self.assertEqual(self.operation(change, record, "check").returncode, 0)
+            manifest = json.loads(source.read_text())
+            manifest["units"][0]["role"] = "hive-build-backend"
+            source.write_text(json.dumps(manifest))
+            other = record.parent.parent / "run-2" / "execution.json"
+            other.parent.mkdir()
+            result = self.run_tasks(change, "execution", "init", "--record", str(other),
+                                    "--input", str(source), "--coordinator", "root")
+            self.assertEqual(result.returncode, 2, result.stdout)
+            self.assertIn("unit role", result.stdout + result.stderr)
+            self.assertFalse(other.exists())
+
+    def test_execution_record_lives_in_the_coordinator_checkout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            coordinator = self.coordinator_repo(tmp)
+            change, record, source, _, worktree = self.setup_execution(
+                tmp, role="hive-ticket-owner", record_root=coordinator)
+            self.assertEqual(self.operation(change, record, "check").returncode, 0)
+            self.returned(change, record, source, worktree)
+            result = self.operation(change, record, "validate-handoff", "--unit", "U1")
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            check = ROOT / "content/skills/flow-plan/scripts/check_change.py"
+            result = subprocess.run([sys.executable, "-I", "-B", str(check), str(change)],
+                                    text=True, capture_output=True, timeout=60)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+
+    def test_execution_record_in_another_checkout_keeps_location_rules(self):
+        cases = {
+            "not ignored": dict(ignore=False, relative="_support/workspace/run/execution.json", track=False),
+            "tracked": dict(ignore=True, relative="_support/workspace/run/execution.json", track=True),
+            "outside workspace": dict(ignore=True, relative="notes/run/execution.json", track=False),
+        }
+        for name, case in cases.items():
+            with self.subTest(name), tempfile.TemporaryDirectory() as tmp:
+                coordinator = self.coordinator_repo(tmp, ignore=case["ignore"])
+                change, _, source, _, _ = self.setup_execution(tmp)
+                record = coordinator / case["relative"]
+                record.parent.mkdir(parents=True)
+                if case["track"]:
+                    record.write_text("{}\n")
+                    self.git(coordinator, "add", "-f", case["relative"])
+                    self.git(coordinator, "commit", "-m", "track record")
+                    record.unlink()
+                result = self.run_tasks(change, "execution", "init", "--record", str(record),
+                                        "--input", str(source), "--coordinator", "root")
+                self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                self.assertFalse(record.exists())
 
     def test_execution_init_links_checkpoint_without_overwrite(self):
         with tempfile.TemporaryDirectory() as tmp:
