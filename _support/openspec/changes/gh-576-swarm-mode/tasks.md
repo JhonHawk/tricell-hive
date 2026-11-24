@@ -6,7 +6,7 @@ Base: `development` en `d5d9ba65`; rama propuesta `feat/swarm-mode`. T1–T3 y T
 
 - [x] Existe `content/skills/swarm/` con su `SKILL.md` (activación, ronda 0 y veredicto por ticket, deberes del coordinador, topes, recuperación) y `references/owner-stops.md` (corridas del owner, formatos de parada 1, parada 2 y bloqueo, líneas `Ruling:`, excepciones de capturas previas, puertos y ruta del change folder), más `assets/hive-managed.json`; el skill no se invoca solo; HA-SK-04 de `audit-harness` ya no lo marcaría.
 
-**Closes:** AC2, AC5, AC6, AC8, AC11, AC12
+**Closes:** AC2, AC5, AC6, AC8, AC12, AC13
 
 **Depends on:** none
 
@@ -110,15 +110,15 @@ Base: `development` en `d5d9ba65`; rama propuesta `feat/swarm-mode`. T1–T3 y T
 | Installed skill | After the integration and the maintainer refresh | `~/.agents/skills/swarm/agents/openai.yaml`, `~/.agents/skills/swarm/SKILL.md` y el enlace `~/.claude/skills/swarm` | Maintainer refresh rule of `AGENTS.md` |
 | Real session | After the refresh | The first real swarm session, reviewed with the session rubric | The user's own session |
 
-Validación humana (`interactive`): antes del push, el usuario lee `content/skills/swarm/SKILL.md`, `references/owner-stops.md`, el rol y la línea global. AC5, AC6, AC8, AC11 y AC12 quedan sin verificar hasta la primera sesión real del modo; AC2, hasta el refresco.
+Validación humana (`interactive`): antes del push, el usuario lee `content/skills/swarm/SKILL.md`, `references/owner-stops.md`, el rol y la línea global. AC5, AC6, AC8, AC12 y AC13 quedan sin verificar hasta la primera sesión real del modo; AC2, hasta el refresco.
 
 ## Checkpoint
 
 - Updated: 2026-11-23
-- Stage: verify · validation stop
-- Last commit: f8aa2d8f
-- Open findings: none
-- Next: user validation; code review and security review running
+- Stage: verify · round of fixes done
+- Last commit: 42f5528f
+- Open findings: code-review CR1/CR2/CR4 (P1) fixed in 42f5528f; security F1/F2 (P2, user-selected) fixed in 42f5528f; open for close: CR5 cross-ticket overlap and re-verify after merge (P2); CR6 second record pointer, CR7 execution-record.md pointer wording, CR8/F3 symlink into another repo, F4 pre-existing relpath pointer, F5 silence vs unattended, F6 specs checkout watch (P3)
+- Next: plan reread result, then push + PR to development + merge gate
 - Rules: flow-verify/stage-entry.md
 - Principles: none
 
@@ -135,6 +135,8 @@ Validación humana (`interactive`): antes del push, el usuario lee `content/skil
 - pnpm site check/lint/build · pass · f8aa2d8f (T4 child)
 - full suite (go vet ./..., go test ./..., python unittest) · pass · f8aa2d8f · 254 s
 - local CI: only workflow is master-source-branch (PRs to master), nothing to reproduce for development
+- text check · pass · 42f5528f
+- full suite reused from f8aa2d8f: fixes only in .md with an assigned check
 
 ## Review status and progress
 
