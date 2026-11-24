@@ -1482,7 +1482,8 @@ class Planner:
             if ref["kind"] == "literal":
                 new_target = self.new_abs(ref["keys"][0])
                 if new_target is None and ref["keys"][0] in self.rows and self.is_kept(self.rows[ref["keys"][0]]):
-                    new_target = root.abs(ref["keys"][0][1])  # it stays; the citing file may move
+                    cited = ref["keys"][0]  # it stays, in its own root; the citing file may move
+                    new_target = self.roots[cited[0]].abs(cited[1])
                 if new_target is None:
                     continue
                 if ref["inside"]:
