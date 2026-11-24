@@ -858,14 +858,23 @@ class LegacyMigrationTest(Fixture, unittest.TestCase):
 
     def test_verify_reports_a_dead_link_to_a_deleted_row(self):
         repo = legacy_repo(self.tmp())
-        write(repo, "docs/guide.md", "See [y](../_support/openspec/changes/archive/2026-01-03-y/proposal.md).\n")
-        commit(repo)
         plan_file = self.make_plan(repo)
+        write(repo, "docs/guide.md", "See [y](../_support/openspec/changes/archive/2026-01-03-y/proposal.md).\n")
         self.assertEqual(self.apply_after_tag(repo, plan_file).returncode, 0)
         shutil.rmtree(repo / "_support/openspec/changes/archive/2026-01-03-y")
         result = self.run_cmd("verify", plan_file)
         self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("docs/guide.md:1", result.stdout)
+
+    def test_verify_passes_after_a_plain_move_whatever_a_placeholder_or_a_new_path_says(self):
+        repo = legacy_repo(self.tmp())
+        write(repo, "docs/guide.md", "Layout: `_support/sessions/YYYY-MM-DD-work/`, `_support/sessions/*`, "
+                                     "`_support/sessions/2026-01-02-x/never-existed.md`.\n")
+        commit(repo)
+        plan_file = self.make_plan(repo)
+        self.assertEqual(self.apply_after_tag(repo, plan_file).returncode, 0)
+        result = self.run_cmd("verify", plan_file)
+        self.assertEqual((result.returncode, result.stdout), (0, ""))
 
     def test_a_workspace_folder_git_does_not_ignore_is_reviewed(self):
         repo = legacy_repo(self.tmp())
@@ -1301,17 +1310,22 @@ class LegacyGapsTest(Fixture, unittest.TestCase):
         outside = self.plan_json(ws, extra=["--legacy", "remove"])
         self.assertFalse([r for r in outside["rows"] if r["action"] == "delete" and "specs-repo" in r["source"]])
 
-    def test_legacy_remove_never_deletes_a_record_that_holds_a_dump_or_an_export(self):
+    def test_legacy_remove_sends_a_record_that_holds_data_to_the_data_home(self):
         repo = legacy_repo(self.tmp())
-        write(repo, "_support/sessions/2026-01-05-dbfix/prod.sql", "select 1;\n")
+        held = {"2026-01-05-dbfix": "prod.sql", "2026-01-06-gz": "dump.sql.gz", "2026-01-07-cols": "rows.parquet",
+                "2026-01-09-zip": "files.zip", "2026-01-10-named": "users-backup.json"}
+        for name, data in held.items():
+            write(repo, f"_support/sessions/{name}/{data}", "x\n")
         write(repo, "_support/evidence/2026-01-06-run/export.csv", "a,b\n")
-        write(repo, "_support/evidence/2026-01-07-run/users-backup.json", "{}\n")
         write(repo, "_support/sessions/2026-01-08-plain/notes.md", "# n\n")
         commit(repo)
         plan = self.plan_json(repo, extra=["--legacy", "remove"])
-        for source in ("_support/sessions/2026-01-05-dbfix", "_support/evidence/2026-01-06-run",
-                       "_support/evidence/2026-01-07-run"):
-            self.assertEqual(self.row(plan, 0, source)["action"], "move", source)
+        for name in held:
+            row = self.row(plan, 0, f"_support/sessions/{name}")
+            self.assertEqual((row["action"], row["destination"]), ("move", f"_support/data/{name}"), name)
+            self.assertIn("holds a dump or export: its removal is a decision of its own", row["notes"])
+        csv = self.row(plan, 0, "_support/evidence/2026-01-06-run")
+        self.assertEqual(csv["destination"], "_support/data/2026-01-06-run/evidence")
         self.assertEqual(self.row(plan, 0, "_support/sessions/2026-01-08-plain")["action"], "delete")
 
     def test_legacy_remove_reviews_a_record_a_living_document_cites(self):
@@ -1327,6 +1341,49 @@ class LegacyGapsTest(Fixture, unittest.TestCase):
         self.assertIn("docs/guide.md:1", reviews[0]["detail"])
         self.assertEqual(self.row(plan, 0, "_support/sessions/2026-01-02-x")["action"], "delete")
 
+    def test_a_record_whose_name_appears_in_any_text_file_that_stays_goes_to_review(self):
+        repo = legacy_repo(self.tmp())
+        for name in ("2026-03-01-ws", "2026-03-02-enc", "2026-03-03-plan", "2026-03-04-free"):
+            write(repo, f"_support/sessions/{name}/a.md", "# a\n")
+        write(repo, "_support/sessions/2026-03-05 spaced/a.md", "# a\n")
+        write(repo, "_support/workspace/2026-03-09-x/notes.md", "see the 2026-03-01-ws run\n")
+        write(repo, "docs/guide.md", "[s](../_support/sessions/2026-03-05%20spaced/a.md)\n")
+        write(repo, "_support/plan/2026-03-10-p/a.md", "follows 2026-03-03-plan\n")
+        write(repo, "src/app.py", "print('2026-03-02-enc')\n")
+        write(repo, "_support/sessions/2026-03-04-free/a.md", "# a, mentions 2026-03-04-free itself\n")
+        commit(repo)
+        plan = self.plan_json(repo, extra=["--legacy", "remove"])
+        for name, where in (("2026-03-01-ws", "_support/workspace/2026-03-09-x/notes.md:1"),
+                            ("2026-03-02-enc", "src/app.py:1"), ("2026-03-03-plan", "_support/plan/2026-03-10-p/a.md:1"),
+                            ("2026-03-05 spaced", "docs/guide.md:1")):
+            row = self.row(plan, 0, f"_support/sessions/{name}")
+            self.assertEqual((row["action"], row["destination"]), ("review", None), name)
+            self.assertIn(where, [r["detail"] for r in plan["reviews"] if r["path"] == row["source"]][0])
+        self.assertEqual(self.row(plan, 0, "_support/sessions/2026-03-04-free")["action"], "delete")
+
+    def test_files_inside_rows_the_plan_deletes_do_not_count_as_citations(self):
+        repo = legacy_repo(self.tmp())
+        write(repo, "_support/sessions/2026-03-01-a/a.md", "# a\n")
+        write(repo, "_support/sessions/2026-03-02-b/b.md", "follows 2026-03-01-a\n")
+        commit(repo)
+        plan = self.plan_json(repo, extra=["--legacy", "remove"])
+        self.assertEqual(self.row(plan, 0, "_support/sessions/2026-03-01-a")["action"], "delete")
+        write(repo, "_support/sessions/2026-03-02-b/c.sql", "select 1;\n")
+        commit(repo)
+        plan = self.plan_json(repo, extra=["--legacy", "remove"])
+        self.assertEqual(self.row(plan, 0, "_support/sessions/2026-03-01-a")["action"], "review", "its citer now stays")
+
+    def test_cited_change_archive_children_and_regenerable_output_go_to_review(self):
+        repo = legacy_repo(self.tmp())
+        write(repo, ".gitignore", "_support/workspace/\n_support/archive/coverage/\n")
+        write(repo, "_support/archive/coverage/index.html", "ignored\n")
+        write(repo, "docs/guide.md", "Archived: openspec/changes/archive/2026-01-03-y and the coverage report.\n")
+        commit(repo)
+        plan = self.plan_json(repo)
+        self.assertEqual(self.row(plan, 0, "_support/openspec/changes/archive/2026-01-03-y")["action"], "review")
+        self.assertEqual(self.row(plan, 0, "_support/archive/coverage")["action"], "review")
+        self.assertEqual(self.row(plan, 0, "_support/openspec/changes/archive/README.md")["action"], "delete")
+
     def test_legacy_remove_moves_a_record_with_an_ignored_or_hidden_file_and_deletes_a_clean_folder(self):
         repo = legacy_repo(self.tmp())
         write(repo, ".gitignore", "_support/workspace/\n*.log\n")
@@ -1341,6 +1398,13 @@ class LegacyGapsTest(Fixture, unittest.TestCase):
             self.assertEqual(self.row(plan, 0, f"_support/sessions/2026-02-01-{name}")["action"], "move", name)
         clean = self.row(plan, 0, "_support/sessions/2026-02-01-clean")
         self.assertEqual((clean["kind"], clean["action"]), ("folder", "delete"))
+
+    def test_a_shell_variable_before_the_folder_is_still_a_citation_of_it(self):
+        for line in ('cp out.log "$ROOT/evidence/out.log"', 'ls ${REPO}/evidence', 'ls "$(dirname "$0")/../evidence"'):
+            ws, specs = specs_workspace(self.tmp())
+            write(specs, "scripts/ci.sh", line + "\n")
+            commit(specs)
+            self.assertEqual(self.row(self.plan_json(ws, specs), 1, "evidence")["action"], "review", line)
 
     def test_a_support_path_is_no_citation_of_the_root_folder_of_the_same_name(self):
         ws, specs = specs_workspace(self.tmp())
