@@ -105,7 +105,7 @@ CITED_LIMIT = 10  # citations a row lists; the rest are counted
 OWN_DIR_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-project-layout$")
 OWN_PATH_RE = re.compile(r"/_support/workspace/\d{4}-\d{2}-\d{2}-project-layout/")
 # A path written after a git ref names what the ref holds, not a path in the working tree.
-GIT_REF_RE = re.compile(r"(?:(?<![\w./-])archive/[\w./-]+|(?<![\w./-])(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}):$")
+GIT_REF_RE = re.compile(r"(?P<ref>(?<![\w./-])archive/[\w./-]+|(?<![\w./-])(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}):$")
 TOOL_RULES = ("R4", "R5", "R6", "R7", "R8")
 # Files that decide what a build or a published package takes from their folder.
 BUILD_IGNORES = (".dockerignore", ".gcloudignore", ".vercelignore", ".npmignore", ".helmignore")
@@ -1754,10 +1754,20 @@ class Planner:
             raise SystemExit(fail("--keep-ref names no reference: " + ", ".join(unused)))
         self.internal_paths()
         self.build_index_lines()
-        actions = {key: ("delete" if row["delete"] else "move" if row["destination"]
-                         else "keep" if any(n.startswith("kept") for n in row["notes"]) else "review")
-                   for key, row in self.rows.items()}
-        cited = self.citations([key for key, action in actions.items() if action in ("delete", "move")])
+        def action_of(row):
+            return ("delete" if row["delete"] else "move" if row["destination"]
+                    else "keep" if any(n.startswith("kept") for n in row["notes"]) else "review")
+
+        cited = self.citations([key for key, row in self.rows.items() if action_of(row) in ("delete", "move")])
+        for key, (count, _) in sorted(cited.items()):
+            row = self.rows[key]
+            if row["delete"] and not row["tracked"] and count:
+                row["delete"] = False
+                row["notes"] = [n for n in row["notes"] if n != row.get("delete_note")]
+                self.review(row["root"], row["source"], "cited and not in Git: no tag restores it",
+                            f"{count} citations, such as {cited[key][1][0]}: keep it, or name --override to move it")
+        actions = {key: action_of(row) for key, row in self.rows.items()}
+        cited = {key: value for key, value in cited.items() if actions[key] in ("delete", "move")}
         rows = []
         for key in sorted(self.rows):
             row = self.rows[key]
@@ -2081,12 +2091,26 @@ def cmd_verify(args):
                 inner = os.path.relpath(target, source).replace(os.sep, "/")
                 if row["destination"]:
                     return os.path.lexists(os.path.join(roots[row["root"]], row["destination"], inner))
+                if not row["tracked"]:
+                    return True  # no commit holds it, so the plan's HEAD says nothing: it may have existed
                 head = plan["roots"][row["root"]]["head"]
                 found = git(roots[row["root"]], "cat-file", "-e", f"{head}:{row['source']}/{inner}") if head else None
                 return found is not None and found.returncode == 0
         return False
 
+    def ref_holds(ref, path, i):
+        """Whether `ref` holds `path` in the repository of a row whose source covers it, else of the citing file."""
+        path = os.path.normpath(path)
+        owners = {row["root"] for row in sources.values()
+                  if path == row["source"] or path.startswith(row["source"] + os.sep)} or {i}
+        for owner in owners:
+            found = git(roots[owner], "cat-file", "-e", f"{ref}:{path}")
+            if found is not None and found.returncode == 0:
+                return True
+        return False
+
     residual = []
+    reported = set()  # (root, file, line) the token pass reported
     kept = {(k["root"], k["file"], k["sha256_line"]) for k in plan.get("kept_refs", [])}
 
     def is_kept(i, rel, line):
@@ -2103,15 +2127,49 @@ def cmd_verify(args):
                 if is_kept(i, rel, line):
                     continue
                 for col, pre, path in tokens(line, relative):
-                    if GIT_REF_RE.search(line[:col]):
-                        continue  # `archive/<tag>:<path>` is a repointed citation: the ref holds the path
                     targets = [t for _, t in planner.resolutions(i, rel, pre, path)]
                     if not targets or any(os.path.lexists(t) for t in targets):
                         continue
                     if any(c in path for c in "*<>{}$") or "YYYY" in path:
                         continue  # a glob or a placeholder names no single path
                     if any(t in gone or existed_inside(t) for t in targets):
-                        residual.append(f"{roots[i]}/{rel}:{number}: {pre}{path}")
+                        ref = GIT_REF_RE.search(line[:col])
+                        if ref and ref_holds(ref["ref"], path, i):
+                            continue  # `archive/<tag>:<path>` is a repointed citation, and the ref holds the path
+                        reported.add((i, rel, number))
+                        residual.append(f"{roots[i]}/{rel}:{number}: " + (f"{ref['ref']}:{pre}{path}: ref does not hold the path"
+                                                                         if ref else f"{pre}{path}"))
+    for row in sources.values():
+        needle = row["source"]
+        destination = os.path.normpath(os.path.join(roots[row["root"]], row["destination"])) if row["destination"] else None
+        for j, rel, _ in planner.text_files():
+            absolute = os.path.join(roots[j], rel)
+            if HISTORY_RE.search(rel) or (destination and (absolute == destination or absolute.startswith(destination + os.sep))):
+                continue
+            text = planner.content(j, rel)  # a file that is not valid UTF-8 is reported as unreadable, never scanned
+            if not text:
+                continue
+            at = text.find(needle)
+            while at >= 0:
+                follows = at + len(needle)
+                before = text[max(0, at - 40):at]
+                owned = (not before or not (before[-1].isalnum() or before[-1] in "_-.")) and (
+                    not before.endswith("/") or re.search(r"(?:\.|\)|\}|\"|'|\$\w+)/$", before))
+                if owned:
+                    full = needle + re.match(r"[\w.@+/*-]*", text[follows:]).group().rstrip(".")
+                    inner = full[len(needle):].strip("/")
+                    start = text.rfind("\n", 0, at) + 1
+                    end = text.find("\n", at)
+                    line = text[start:end if end >= 0 else len(text)]
+                    number = text.count("\n", 0, at) + 1
+                    placeholder = any(c in full for c in "*<>{}$") or "YYYY" in full
+                    if (not placeholder and (j, rel, number) not in reported and not is_kept(j, rel, line)
+                            and (not inner or existed_inside(os.path.join(roots[row["root"]], row["source"], inner)))):
+                        ref = GIT_REF_RE.search(line[:at - start])
+                        if not (ref and ref_holds(ref["ref"], full, row["root"])):
+                            residual.append(f"{roots[j]}/{rel}:{number}: " + (
+                                f"{ref['ref']}:{full}: ref does not hold the path" if ref else full))
+                at = text.find(needle, follows)
     for path, old_dir, owner in moved_markdown:
         text = read_text_strict(path) or ""
         for number, line in enumerate(text.splitlines(), 1):
