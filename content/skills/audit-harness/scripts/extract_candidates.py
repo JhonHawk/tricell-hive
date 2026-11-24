@@ -53,9 +53,14 @@ ENTROPY = re.compile(r"^(?=.*[A-Za-z])(?=.*\d)[^/]{16,}$")
 
 
 def secret_like(text):
-    """Key-like: mixed case over 12 characters, or a run of 16+ letters and digits between - . _ separators,
-    so a name such as feature-branch-20261107 stays readable."""
-    return bool(MIXED.match(text) or any(ENTROPY.match(part) for part in re.split(r"[-._]", text)))
+    """Key-like: mixed case over 12 characters, a run of 16+ letters and digits between - . _ separators,
+    or 20+ characters with two key-like parts (letters and digits mixed over 8+ characters, or hex over 4+),
+    as a UUID has, so names such as feature-branch-20261107 or node-v20.11.0-darwin-arm64 stay readable."""
+    parts = re.split(r"[-._]", text)
+    mixed_parts = sum(1 for part in parts if re.search(r"[A-Za-z]", part) and re.search(r"\d", part)
+                      and (len(part) >= 8 or re.fullmatch(r"[0-9a-fA-F]{4,}", part)))
+    return bool(MIXED.match(text) or any(ENTROPY.match(part) for part in parts)
+                or (len(text) >= 20 and "/" not in text and mixed_parts >= 2))
 
 
 def safe_path(token):

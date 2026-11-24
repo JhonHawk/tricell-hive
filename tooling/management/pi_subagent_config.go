@@ -3,10 +3,12 @@ package management
 import (
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
 	"strings"
+	"syscall"
 	"unicode"
 
 	"tricell-hive/integrations/pi"
@@ -280,7 +282,7 @@ func preparePiConfig(p Plan, state State, next *State, j *journal) error {
 				Notes: []string{"Pi subagent activation: not removed; the state records " + rec.Path + ", which is not the current pi-subagents config.json"}}
 			return nil
 		}
-		if refusal != nil && exists {
+		if refusal != nil && (exists || piConfigReachable(rec.Path)) {
 			// The file cannot be edited safely, so the key stays: so does the
 			// record, for a later removal.
 			j.PiConfig = &piConfigEntry{Path: rec.Path, Remove: true, Skip: true, Record: rec,
@@ -349,7 +351,15 @@ func piConfigUnchanged(p Plan, s State) (bool, error) {
 	if err != nil && !errors.As(err, &refusal) {
 		return false, fmt.Errorf("pi subagent activation: %w", err)
 	}
-	return refusal != nil && exists, nil
+	return refusal != nil && (exists || piConfigReachable(rec.Path)), nil
+}
+
+// piConfigReachable reports whether config.json may exist behind a refused
+// folder: the target check stops at a symbolic link before it looks for the
+// file, so its answer then says nothing about the file.
+func piConfigReachable(path string) bool {
+	_, err := os.Stat(path)
+	return !errors.Is(err, fs.ErrNotExist) && !errors.Is(err, syscall.ENOTDIR)
 }
 
 // applyPiConfig performs the journaled write (install) or the key-level

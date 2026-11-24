@@ -259,5 +259,26 @@ class ExtractCandidatesTest(unittest.TestCase):
         self.assertEqual({c["command"]: c for c in alone["commands"]}["pnpm start"]["where"], ["."])
 
 
+class SecretLikeTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        sys.path.insert(0, str(SCRIPT.parent))
+        try:
+            import extract_candidates
+        finally:
+            sys.path.pop(0)
+        cls.secret_like = staticmethod(extract_candidates.secret_like)
+
+    def test_separated_keys_stay_secret_like(self):
+        for key in ["6f1c2e8a-3b4d-4c5e-9f7a-1b2c3d4e5f60", "abc123def456.ghi789jkl012x"]:
+            self.assertTrue(self.secret_like(key), key)
+
+    def test_dated_folder_names_stay_readable(self):
+        for name in ["feature-branch-20261107", "release-2026-11-24", "python3.12-venv",
+                     "node-v20.11.0-darwin-arm64", "go1.22.3.darwin-arm64", "ubuntu22-arm64-runner",
+                     "feature-v2-oauth2-login"]:
+            self.assertFalse(self.secret_like(name), name)
+
+
 if __name__ == "__main__":
     unittest.main()

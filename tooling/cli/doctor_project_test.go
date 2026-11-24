@@ -741,9 +741,24 @@ func TestDoctorProjectLocalInstructionsAndSecrets(t *testing.T) {
 			"- Container image ghcr.io/AcmeOrg/dev-postgres:16 runs on port 5432 · 2026-11-16",
 			"- Repo mirror git@github.com:JhonHawk/tricell-hive.git · 2026-11-16",
 			"- Uses AWS role arn:aws:iam::123456789012:role/DevDeployRole in us-east-1 · 2026-11-16",
+			"- DB postgres://postgres:postgres@localhost:5432/app · 2026-11-16",
+			"- DB postgres://user:password@localhost/app · 2026-11-16",
+			"- Xcode at /Applications/Xcode/Contents/Developer · 2026-11-16",
+			"- Daemons in Library/LaunchDaemons/ServiceAgents · 2026-11-16",
+			"- Registry https://npm.corp.example:8080/packages/@scope/pkg · 2026-11-16",
 		} {
 			if containsSecretToken(benign) {
 				t.Fatalf("benign operational entry flagged as secret: %s", benign)
+			}
+		}
+		for _, secret := range []string{
+			"- Staging AWS secret wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY · 2026-11-16",
+			"- DB url ssh://deploy:Zq8vR2mX4pL9tK7wN3s@db.internal · 2026-11-16",
+			"- API https://svc:Zq8vR2mX4pL9tK7wN3s@api.internal/v1 · 2026-11-16",
+			"- DB ssh://deploy:Zq8@vR2mX4pL9tK7wN3s@db.internal · 2026-11-16",
+		} {
+			if !containsSecretToken(secret) {
+				t.Fatalf("bare secret not flagged: %s", secret)
 			}
 		}
 		sec := collectProject(root, doctorDeps{})
