@@ -114,6 +114,19 @@ def task_start(lines):
     return next((i for i, line in enumerate(lines) if TASK_HEADING.match(line)), len(lines))
 
 
+ACCEPTANCE_HEADING = re.compile(r"^##\s+(?:Alcance y aceptación|Scope and acceptance)\s*$", re.IGNORECASE)
+
+
+def acceptance_range(lines):
+    """The (start, end) line indexes of the scope-and-acceptance section, before the first task; empty when absent."""
+    limit = task_start(lines)
+    for i, line in enumerate(lines[:limit]):
+        if ACCEPTANCE_HEADING.match(line):
+            end = next((j for j in range(i + 1, limit) if LEVEL2_HEADING.match(lines[j])), limit)
+            return i + 1, end
+    return 0, 0
+
+
 def exempt_progress(lines):
     """Return the indexes of the lines inside a progress or checkpoint section."""
     exempt, inside = set(), False
@@ -183,7 +196,9 @@ def criteria_findings(lines, old, name):
     progress = exempt_progress(lines)
     first_task = task_start(lines)
     defined = {}
-    for i, line in enumerate(lines[:first_task]):
+    start, end = acceptance_range(lines)
+    for i in range(start, end):
+        line = lines[i]
         match = AC_DEFINITION.match(line)
         if match and i not in progress:
             defined.setdefault(int(match.group(1)), i + 1)
@@ -236,7 +251,9 @@ def observed_findings(plan, old, name):
     progress = exempt_progress(plan)
     gone = {int(number) for prefix, number, _ in old if prefix == "AC"}
     named, last = {}, {}
-    for i, line in enumerate(plan[:task_start(plan)]):
+    start, end = acceptance_range(plan)
+    for i in range(start, end):
+        line = plan[i]
         match = AC_DEFINITION.match(line)
         if not match or i in progress or int(match.group(1)) in gone:
             continue

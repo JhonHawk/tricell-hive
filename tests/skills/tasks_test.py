@@ -351,6 +351,18 @@ class TasksScriptTest(unittest.TestCase):
             self.assertEqual(self.checkpoint(change, "build", "T4", "next").returncode, 0)
 
 
+    def test_status_set_writes_the_header_status_value(self):
+        plan_text = "| Field | Value |\n| --- | --- |\n| Status | In build |\n| Tracker | none |\n\n" + PLAN_MD
+        with tempfile.TemporaryDirectory() as tmp:
+            change = self.folder(tmp, tasks=plan_text)
+            result = self.run_tasks(change, "status-set", "Completed")
+            self.assertEqual(result.returncode, 0, result.stderr)
+            text = self.text(change)
+            self.assertIn("| Status | Completed |\n| Tracker | none |", text)
+            self.assertEqual(self.run_tasks(change, "status-set", "Done").returncode, 2)
+            self.assertEqual(self.run_tasks(self.folder(Path(tmp) / "x"), "status-set", "Completed").returncode, 2)
+
+
 class ExecutionRecordTest(unittest.TestCase):
     """The CLI owns this persisted contract; fixtures use real Git and files."""
 
@@ -377,7 +389,7 @@ class ExecutionRecordTest(unittest.TestCase):
         self.git(coordinator, "commit", "-m", "base")
         return coordinator
 
-    def setup_execution(self, tmp, role="hive-build-owner", record_root=None):
+    def setup_execution(self, tmp, role="hive-build-owner", record_root=None, criteria=("AC2",), quoted=False, expect=0):
         repo = Path(tmp) / "repo"
         repo.mkdir()
         self.git(repo, "init", "-b", "main")
@@ -390,13 +402,15 @@ class ExecutionRecordTest(unittest.TestCase):
         self.git(repo, "commit", "-m", "base")
         base = self.git(repo, "rev-parse", "HEAD")
         change = self.folder(repo)
+        if quoted:
+            change.write_text(self.text(change).replace("## Alcance y aceptación", "## Request\n\n- AC9 — quoted from the ticket\n\n## Alcance y aceptación"), encoding="utf-8")
         base = self.git(repo, "rev-parse", "HEAD")
         worktree = Path(tmp) / "owner"
         self.git(repo, "worktree", "add", "-b", "unit-a", str(worktree), base)
         record = (record_root or repo) / "_support/workspace/run/execution.json"
         record.parent.mkdir(parents=True)
         (record.parent / "check.txt").write_text("observed command exit 0\n")
-        unit = dict(id="U1", tasks=["T2"], criteria=["AC2"], depends_on=[],
+        unit = dict(id="U1", tasks=["T2"], criteria=list(criteria), depends_on=[],
                     assignment_id="A1", owner_id="owner-1", role=role,
                     repo=str(repo), worktree=str(worktree), branch="unit-a", base_sha=base,
                     allowed_paths=["a.txt"], resources=["port:fixture-a"], state="assigned",
@@ -409,7 +423,7 @@ class ExecutionRecordTest(unittest.TestCase):
         source.write_text(json.dumps(manifest))
         result = self.run_tasks(change, "execution", "init", "--record", str(record),
                                 "--input", str(source), "--coordinator", "root")
-        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.returncode, expect, result.stderr)
         return change, record, source, repo, worktree
 
     def operation(self, change, record, operation, *extra):
@@ -438,6 +452,10 @@ class ExecutionRecordTest(unittest.TestCase):
     def verdict(self, head):
         return dict(id="verifier-1", head=head, criteria=["AC2"],
                     checks=[dict(command="fixture-check", result="pass", path="check.txt")])
+
+    def test_execution_ignores_criteria_quoted_outside_the_acceptance_section(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.setup_execution(tmp, criteria=("AC9",), quoted=True, expect=2)
 
     def test_execution_accepts_the_two_owner_roles_and_rejects_others(self):
         with tempfile.TemporaryDirectory() as tmp:

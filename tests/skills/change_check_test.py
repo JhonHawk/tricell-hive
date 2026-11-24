@@ -397,5 +397,14 @@ class ChangeCheckTest(unittest.TestCase):
             self.assertIn("Business rules", res_bad.stdout)
 
 
+    def test_quoted_ticket_criteria_are_not_plan_criteria(self):
+        proposal = PROPOSAL.replace("    ## Scope and acceptance", "    ## Request\n\n    - AC4 — quoted from the ticket\n    - AC5 — quoted from the ticket\n\n    ## Scope and acceptance")
+        proposal = proposal.replace("    - AC4 — Pagination works · false today\n      **Observed in**: the list page served locally\n", "")
+        tasks = TASKS.replace("AC1, AC3–AC4", "AC1, AC3")
+        with tempfile.TemporaryDirectory() as tmp:
+            result = self.run_check(self.folder(tmp, proposal=proposal, tasks=tasks))
+            self.assertEqual(result.returncode, 0, result.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()

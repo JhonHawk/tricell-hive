@@ -509,7 +509,11 @@ func TestSuggestHiveValuesBranchAndNoSpecs(t *testing.T) {
 	os.MkdirAll(filepath.Join(root, "_support", "openspec"), 0o755)
 	got := suggestHiveValues(root, git)
 	if _, ok := got["Specs"]; ok {
-		t.Error("Specs is optional and must not be suggested")
+		t.Error("Specs must not be suggested without an openspec/specs folder")
+	}
+	os.MkdirAll(filepath.Join(root, "_support", "openspec", "specs"), 0o755)
+	if got := suggestHiveValues(root, git); got["Specs"] != "_support/openspec" {
+		t.Errorf("Specs %q, want _support/openspec", got["Specs"])
 	}
 	if got["Base branch"] != "main" {
 		t.Fatalf("suggestions %v", got)

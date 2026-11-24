@@ -34,7 +34,7 @@ Create only the folders and records the work needs. `<work>` is a short English 
 - A helper only this machine needs is a local script under `scripts/`.
 - Anything else is scratch.
 
-Code never depends on the work material under `_support/` (`workspace/`, `data/`, `scripts/`, `secrets/`, and any legacy `evidence/` or `reports/` folder), which a fresh clone does not have, and the running application never reads `_support/` at all: a path it needs, such as a log or a report folder, is its own configuration. Tooling may read the versioned knowledge in `_support/docs` and `_support/openspec`.
+Code never depends on the work material under `_support/` (`workspace/`, `data/`, `scripts/`, `secrets/`, and any legacy `sessions/`, `evidence/` or `reports/` folder), which a fresh clone does not have, and the running application never reads `_support/` at all: a path it needs, such as a log or a report folder, is its own configuration. Tooling may read the versioned knowledge in `_support/docs` and `_support/openspec`.
 - A work's verification material, such as walk outputs, captures and raw CI, cloud or tool output, goes in its `workspace/YYYY-MM-DD-<work>/evidence/` folder and is retained as [Retain evidence](#retain-evidence) sets. Do not create a top-level `evidence/` folder; an existing one is legacy material, cleaned up on request with [project-layout](../SKILL.md), whose planner moves each untracked subfolder to `workspace/<date>-<work>/evidence/` and curates it there.
 
 **Condition:** producing UI review images or recordings.
@@ -47,7 +47,7 @@ Keep source plans, user-selected output, unique evidence of work not yet integra
 
 - On resume of a retained record, reconcile it with current sources and state: keep current status and next steps consistent, retain superseded statements only as labeled history, and reuse the same work folder and canonical record across conversations.
 - Name new records in the work's folder `<YYYY-MM-DD>-<work>.<type>.<extension>`, with an English type: `plan` for the work's plan, `research` for retained investigations (including findings called a report), `report` for distinct execution, closure or presentation deliverables. Use Markdown for ordinary research and honor an explicitly requested format; tool-defined filenames keep their names.
-- Dated folders use the work's initial ISO date; internal filenames do not repeat it, and continuing work keeps its initial date, scope and location. Existing material is not renamed or migrated to this layout automatically.
+- Dated folders use the work's initial ISO date, which the files inside repeat as the prefix the work folder's naming sets, and continuing work keeps its initial date, scope and location. Existing material is not renamed or migrated to this layout automatically.
 - Date human-authored records and folders with the user's local calendar date, checking the clock and timezone when uncertain; preserve original evidence timestamps, with explicit offsets when time affects interpretation.
 
 ## Retain evidence

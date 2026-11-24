@@ -70,7 +70,7 @@ SCHEME_RE = re.compile(r"^(?:[a-zA-Z][a-zA-Z0-9+.-]*:|#|/)")
 TEST_PATH_RE = re.compile(r"(?:^|/)(?:tests?|__tests__|spec|e2e)/|[._-](?:test|spec)\.[a-z]+$|_test\.[a-z]+$|(?:^|/)test_[^/]*$")
 # Code may read versioned knowledge (_support/docs, _support/openspec); it must not
 # depend on work material, which a fresh clone does not have.
-WORK_MATERIAL_RE = re.compile(r"_support/(?:workspace|data|scripts|secrets|evidence|reports)\b")
+WORK_MATERIAL_RE = re.compile(r"_support/(?:workspace|data|scripts|secrets|evidence|reports|sessions)\b")
 # Whole-line comment markers by language, so a shell flag line such as
 # `  --input _support/data/x` is still code.
 HASH_COMMENT = re.compile(r"^\s*#")

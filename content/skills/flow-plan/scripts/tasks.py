@@ -7,6 +7,7 @@ Usage:
           --next "<action>" [--finding "<ID: decision>"]... [--check "<command> · <result> · <commit>"]...
           [--worktree "<path> · <branch>"] [--unwritten "<text>|none"]
           [--rules "<flow>/<packet>.md[, …][ · extra: <leaf>, …]"|none] [--principles "<name>, …"|none]
+  python3 -I tasks.py <plan.md> status-set Draft|"Ready for flow-build"|"In build"|Completed
   python3 -I tasks.py <plan.md> execution init|check|update|validate-handoff --record FILE ...
 
 <plan.md> is the one plan file of a work, `<YYYY-MM-DD>-<work>.plan.md`, in its folder
@@ -33,6 +34,9 @@ lines up to the next `##` or `###` heading.
   decision: new names join the line's names without duplicates, `none` is written only
   while the line holds no name and a name replaces it, and no value removes the line.
   Boxes under `## Delivery units` belong to no task: `done` never ticks them.
+- status-set: writes the value of the `| Status | … |` row of the header table, above the first
+  `##` heading. The value stays in English whatever the session language. Exit 2 when the row
+  or the value is invalid.
 - execution: init, check, update and validate-handoff keep a local execution record (see
   ../references/execution-record.md). Its grant_ref names a section of this plan
   (`<YYYY-MM-DD>-<work>.plan.md#decisiones`), its criteria are the `AC<n>` lines of the plan,
@@ -155,6 +159,36 @@ def section_bounds(lines, heading):
                     break
             return i, end
     return None
+
+
+STATUS_VALUES = ("Draft", "Ready for flow-build", "In build", "Completed")
+STATUS_ROW = re.compile(r"^(\|\s*Status\s*\|)\s*.*?\s*\|\s*$")
+
+
+def cmd_status_set(lines, args):
+    require(args.value in STATUS_VALUES, f"status must be one of: {', '.join(STATUS_VALUES)}")
+    for i, line in enumerate(lines):
+        if LEVEL2.match(line):
+            break
+        match = STATUS_ROW.match(line)
+        if match:
+            lines = list(lines)
+            lines[i] = f"{match.group(1)} {args.value} |"
+            return lines, f"status set · {args.value}"
+    raise Failure("no `| Status | … |` row in the header table above the first `##` heading")
+
+
+ACCEPTANCE_HEADING = re.compile(r"^##\s+(?:Alcance y aceptación|Scope and acceptance)\s*$", re.IGNORECASE)
+
+
+def acceptance_section(lines):
+    """The lines of the scope-and-acceptance section, before the first task; quoted ticket criteria sit elsewhere."""
+    first_task = next((i for i, line in enumerate(lines) if TASK_HEADING.match(line)), len(lines))
+    for i, line in enumerate(lines[:first_task]):
+        if ACCEPTANCE_HEADING.match(line):
+            end = next((j for j in range(i + 1, first_task) if LEVEL2.match(lines[j])), first_task)
+            return lines[i + 1:end]
+    return []
 
 
 def today():
@@ -577,7 +611,7 @@ def validate_execution(data, plan, record, check_git=True, revision=True):
         require(nonempty(target[field]), "integration target field missing")
     plan_lines = read(plan)
     task_ids = {task["id"] for task in parse_tasks(plan_lines)}
-    criteria = set(re.findall(r"^\s*(?:[-*]\s+)?\**(AC\d+)\b", "\n".join(plan_lines[:next((i for i, line in enumerate(plan_lines) if TASK_HEADING.match(line)), len(plan_lines))]), re.MULTILINE))
+    criteria = set(re.findall(r"^\s*(?:[-*]\s+)?\**(AC\d+)\b", "\n".join(acceptance_section(plan_lines)), re.MULTILINE))
     units = data["units"]
     require(isinstance(units, list) and units, "units must be a nonempty list")
     ids, assignments, active = set(), set(), []
@@ -799,6 +833,8 @@ def build_parser():
     done.add_argument("task", type=task_id)
     done.add_argument("--commit", required=True, type=sha)
     done.add_argument("--unverified", required=True, type=single_line)
+    status = sub.add_parser("status-set")
+    status.add_argument("value", type=single_line)
     cp = sub.add_parser("checkpoint")
     cp.add_argument("--stage", required=True, type=single_line)
     cp.add_argument("--step", required=True, type=single_line)
@@ -836,7 +872,7 @@ def main(argv):
         if args.command == "execution":
             cmd_execution(args)
             return 0
-        handler = {"done": cmd_done, "checkpoint": cmd_checkpoint}[args.command]
+        handler = {"done": cmd_done, "checkpoint": cmd_checkpoint, "status-set": cmd_status_set}[args.command]
         result = handler(lines, args)
         if result is not None:
             new_lines, message = result

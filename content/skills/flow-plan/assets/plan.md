@@ -1,6 +1,6 @@
 # <TICKET, or the work name without a ticket> — <one-line title>
 
-<!-- Template from flow-plan. Write the text and the headings in the session language; keep code, identifiers and the headings `## Effects`, `## Business rules`, `## Checkpoint` and `## Review status and progress` as they are, since the rules and `scripts/tasks.py` look for them. Name the first field `Status` and start its value with the phase. This file lives at `<support>/workspace/<YYYY-MM-DD>-<work>/<YYYY-MM-DD>-<work>.plan.md` and is never committed. Delete these comments and any section that does not apply. -->
+<!-- Template from flow-plan. Write the text and the headings in the session language; keep code, identifiers and the headings `## Effects`, `## Business rules`, `## Checkpoint` and `## Review status and progress` as they are, since the rules and `scripts/tasks.py` look for them. Name the first field `Status` and start its value with the phase; keep the field name and its values `Draft`, `Ready for flow-build`, `In build` and `Completed` in English whatever the session language, since `scripts/tasks.py status-set` writes them and the ticket-status playbook reads `Completed`. This file lives at `<support>/workspace/<YYYY-MM-DD>-<work>/<YYYY-MM-DD>-<work>.plan.md` and is never committed. Delete these comments and any section that does not apply. -->
 
 | Field | Value |
 | --- | --- |

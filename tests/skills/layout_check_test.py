@@ -132,6 +132,14 @@ class CheckLayoutTest(unittest.TestCase):
         lines = [l for l in result.stdout.splitlines() if l.startswith("LAYOUT-03")]
         self.assertEqual(len(lines), 2, lines)
 
+    def test_layout_03_flags_code_reading_the_legacy_sessions_home(self):
+        repo = self.tmp() / "r"
+        clean_repo(repo)
+        write(repo, "src/bad.py", "x = 1\nopen('_support/sessions/x')\n")
+        commit_all(repo)
+        result = self.run_check(repo)
+        self.assertFinding(result, "LAYOUT-03", "review", "bad.py:2")
+
     def test_layout_03_exempt_files_alone_pass(self):
         repo = self.tmp() / "r"
         clean_repo(repo)
