@@ -1280,6 +1280,33 @@ class LegacyGapsTest(Fixture, unittest.TestCase):
         self.assertEqual(git(specs, "ls-files", "-s").stdout, before)
         self.assertFalse((ws / "_support/workspace/2026-03-05-review").exists())
 
+    def cited_workspace(self, citation, home="evidence", name="inventory-2026-06-25.md"):
+        """A workspace README citing a top-level home of the specs repository, which its own notes also cite."""
+        ws, specs = specs_workspace(self.tmp())
+        write(specs, f"{home}/{name}", "# inventory\n")
+        write(specs, "NOTES.md", f"- see `{home}/{name}`\n")
+        git(specs, "add", "-A")
+        git(specs, "commit", "-q", "-m", "home")
+        write(ws, "_support/README.md", f"- see `{citation}` for the audit\n")
+        return ws, specs
+
+    def test_a_kept_top_level_home_cited_from_another_root_is_not_rewritten(self):
+        ws, specs = self.cited_workspace("../specs-repo/evidence/inventory-2026-06-25.md")
+        plan = self.plan_json(ws, specs, extra=["--keep", "evidence", "--keep", "sessions"])
+        self.assertEqual(self.row(plan, 1, "evidence")["action"], "keep")
+        self.assertEqual([r for r in plan["rewrites"] if r["file"] == "_support/README.md"], [])
+
+    def test_a_moved_top_level_home_cited_from_another_root_resolves_to_its_destination(self):
+        ws, specs = self.cited_workspace("../specs-repo/evidence/inventory-2026-06-25.md")
+        plan = self.plan_json(ws, specs, extra=["--override", "evidence=_support/workspace/old-evidence"])
+        row = self.row(plan, 1, "evidence")
+        self.assertEqual(row["action"], "move")
+        rewrites = [r for r in plan["rewrites"] if r["file"] == "_support/README.md"]
+        self.assertEqual(len(rewrites), 1, plan["rewrites"])
+        resolved = os.path.normpath(os.path.join(ws, "_support", rewrites[0]["new"]))
+        self.assertEqual(resolved, os.path.normpath(os.path.join(specs, row["destination"], "inventory-2026-06-25.md")))
+
+
 
 def sibling_repos(base, names=("a", "b"), with_workspace_sessions=False):
     """Two repositories under a workspace folder outside Git, each with an untracked sessions/notes.md
