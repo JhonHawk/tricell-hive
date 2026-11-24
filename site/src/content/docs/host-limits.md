@@ -67,7 +67,14 @@ verified.
   every round of decisions through `request_user_input` when the mode offers it,
   the delivery and review questions included: a choice asked as a question in
   the chat, such as "interactive or hold?", counts as a round asked the wrong
-  way.
+  way. A session observed on 2026-11-24 showed the same drift: the delivery,
+  review and security questions came back as one recommended line in the chat,
+  and the next round went through the asynchronous card. While Codex offers
+  `request_user_input`, Hive does not use the asynchronous card, which returns
+  at once, and asks the delivery, review and validation questions through the
+  waiting card, although the Default-mode instructions send required input to
+  one plain-text question. Those instructions' form stays for Codex's own
+  sandbox and approval requests.
   Without the card, the round goes in the chat with its full format: ID, options
   with their consequences and the recommended one marked (★). An unanswered card
   grants no permission.
