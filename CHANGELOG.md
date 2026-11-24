@@ -10,6 +10,8 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-24
+
 ### Added
 
 - The swarm mode, a hidden skill the user starts with its command or by naming
@@ -309,8 +311,6 @@ raise the minor or the patch version.
   changes a rule on a card, the card is corrected and keeps the earlier rule as
   cancelled; a frame that a later decision contradicts is recorded and named at
   the close, not redrawn.
-
-### Changed
 
 - Hygiene is offered only once 10 or more change folders wait for their
   archive. Below that, the close footer, a close report's **Next** and the
