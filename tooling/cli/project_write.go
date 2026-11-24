@@ -355,9 +355,6 @@ func suggestHiveValues(root string, git gitRunner) map[string]string {
 			out["Base branch"] = branch
 		}
 	}
-	if info, err := os.Stat(filepath.Join(root, "_support", "openspec")); err == nil && info.IsDir() {
-		out["Specs"] = "_support/openspec"
-	}
 	return out
 }
 

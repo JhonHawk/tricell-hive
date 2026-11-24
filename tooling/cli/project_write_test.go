@@ -151,8 +151,8 @@ func TestHiveTextSeparatesBlockingFromWarnings(t *testing.T) {
 		}
 	}
 	blocking, _ = checkHiveText(nil, root, git)
-	if len(blocking) != 4 {
-		t.Errorf("empty items: blocking %q, want the four required keys", blocking)
+	if len(blocking) != 3 {
+		t.Errorf("empty items: blocking %q, want the three required keys", blocking)
 	}
 }
 
@@ -497,7 +497,7 @@ func TestSuggestHiveValues(t *testing.T) {
 	}
 }
 
-func TestSuggestHiveValuesBranchAndSpecs(t *testing.T) {
+func TestSuggestHiveValuesBranchAndNoSpecs(t *testing.T) {
 	git := newGitRunner()
 	root := newProjectRepo(t)
 	if got := suggestHiveValues(root, git); got["Base branch"] != "" || got["Specs"] != "" {
@@ -508,7 +508,10 @@ func TestSuggestHiveValuesBranchAndSpecs(t *testing.T) {
 	gitIn(t, root, "symbolic-ref", "refs/remotes/origin/HEAD", "refs/remotes/origin/main")
 	os.MkdirAll(filepath.Join(root, "_support", "openspec"), 0o755)
 	got := suggestHiveValues(root, git)
-	if got["Base branch"] != "main" || got["Specs"] != "_support/openspec" {
+	if _, ok := got["Specs"]; ok {
+		t.Error("Specs is optional and must not be suggested")
+	}
+	if got["Base branch"] != "main" {
 		t.Fatalf("suggestions %v", got)
 	}
 	if _, ok := got["Delivery"]; ok {

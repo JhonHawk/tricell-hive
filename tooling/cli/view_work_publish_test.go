@@ -37,6 +37,11 @@ type workPublishFixture struct {
 	dropLocal      atomic.Value
 }
 
+// plan is the single plan file a work folder publishes by default.
+func (f *workPublishFixture) plan() string {
+	return filepath.Join(f.change, "2026-11-24-export.plan.md")
+}
+
 func newWorkPublishFixture(t *testing.T) *workPublishFixture {
 	t.Helper()
 	f := &workPublishFixture{state: t.TempDir(), root: t.TempDir()}
@@ -52,10 +57,8 @@ func newWorkPublishFixture(t *testing.T) *workPublishFixture {
 	if err := os.Mkdir(f.change, 0700); err != nil {
 		t.Fatal(err)
 	}
-	for name, body := range map[string]string{"proposal.md": "# Proposal\nOriginal proposal\n", "tasks.md": "# Tasks\nT1: implement\n"} {
-		if err := os.WriteFile(filepath.Join(f.change, name), []byte(body), 0600); err != nil {
-			t.Fatal(err)
-		}
+	if err := os.WriteFile(f.plan(), []byte("# Plan\nT1: implement\n"), 0600); err != nil {
+		t.Fatal(err)
 	}
 	store, err := viewer.Open(viewer.Options{StateDir: f.state})
 	if err != nil {
@@ -213,7 +216,7 @@ func TestWorkPublishRealV3NoopAndRevision(t *testing.T) {
 	if second.Result != "unchanged" || second.RevisionID != first.RevisionID || second.SessionVersion != first.SessionVersion {
 		t.Fatalf("no-op mutated remote work: %+v -> %+v", first, second)
 	}
-	if err := os.WriteFile(filepath.Join(f.change, "tasks.md"), []byte("# Tasks\nUpdated task description\n"), 0600); err != nil {
+	if err := os.WriteFile(f.plan(), []byte("# Plan\nUpdated task description\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	third, err := f.run(t, "publish", "--work-id", first.WorkID, "--change", f.change, "--stage", "plan")
@@ -231,7 +234,7 @@ func TestWorkPublishRealV3NoopAndRevision(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(observed.Session.Documents) != 3 {
+	if len(observed.Session.Documents) != 2 {
 		t.Fatalf("expected immutable original plus one changed document, got %d", len(observed.Session.Documents))
 	}
 	snapshots := 0
@@ -241,8 +244,8 @@ func TestWorkPublishRealV3NoopAndRevision(t *testing.T) {
 		}
 		snapshots += len(event.DocumentSnapshots)
 		for _, snapshot := range event.DocumentSnapshots {
-			if len(snapshot.Tabs) != 2 || snapshot.Tabs[0].Label != "Proposal" || snapshot.Tabs[1].Label != "Tasks" {
-				t.Fatal("wrong tab order")
+			if len(snapshot.Tabs) != 1 || snapshot.Tabs[0].Label != "Plan" {
+				t.Fatal("wrong tab set")
 			}
 		}
 	}
@@ -292,11 +295,11 @@ func TestWorkPublishLostResponsesReplayFrozenBytes(t *testing.T) {
 				f.pending(t)
 			}
 			// Editing/deleting live sources cannot alter an already prepared request.
-			if err := os.WriteFile(filepath.Join(f.change, "tasks.md"), []byte("# Tasks\nDifferent content after interruption\n"), 0600); err != nil {
+			if err := os.WriteFile(f.plan(), []byte("# Plan\nDifferent content after interruption\n"), 0600); err != nil {
 				t.Fatal(err)
 			}
 			if path == "/api/timeline/sessions" {
-				if err := os.Remove(filepath.Join(f.change, "tasks.md")); err != nil {
+				if err := os.Remove(f.plan()); err != nil {
 					t.Fatal(err)
 				}
 			}
@@ -311,7 +314,7 @@ func TestWorkPublishLostResponsesReplayFrozenBytes(t *testing.T) {
 				t.Fatal(err)
 			}
 			s := f.observe(t, result.WorkID)
-			if len(s.Documents) != 2 {
+			if len(s.Documents) != 1 {
 				t.Fatalf("replay duplicated or changed documents: %d", len(s.Documents))
 			}
 			count := 0
@@ -319,7 +322,7 @@ func TestWorkPublishLostResponsesReplayFrozenBytes(t *testing.T) {
 				for _, snapshot := range event.DocumentSnapshots {
 					count++
 					for _, tab := range snapshot.Tabs {
-						if tab.Label != "Tasks" {
+						if tab.Label != "Plan" {
 							continue
 						}
 						raw, err := viewTimelineHTTP(f.info, "GET", "/api/timeline/sessions/"+s.ViewerSessionID+"/documents/"+tab.DocumentID, "", nil, viewer.TimelineMaxBody)
@@ -330,7 +333,7 @@ func TestWorkPublishLostResponsesReplayFrozenBytes(t *testing.T) {
 						if err != nil {
 							t.Fatal(err)
 						}
-						if doc.Content != "# Tasks\nT1: implement\n" {
+						if doc.Content != "# Plan\nT1: implement\n" {
 							t.Fatal("resume read edited live source")
 						}
 					}
@@ -434,16 +437,13 @@ func TestWorkPublishConflictReconcileAndFreshIntent(t *testing.T) {
 		t.Fatal("reconciliation discarded frozen evidence")
 	}
 }
-func TestWorkPublishOptionalRemovalAndStatusCreateRevisions(t *testing.T) {
+func TestWorkPublishPlanEditAndStatusCreateRevisions(t *testing.T) {
 	f := newWorkPublishFixture(t)
-	if err := os.WriteFile(filepath.Join(f.change, "design.md"), []byte("# Design\nOriginal design\n"), 0600); err != nil {
-		t.Fatal(err)
-	}
 	first, err := f.run(t, "publish", "--project", f.root, "--change", f.change, "--key", "ticket-10", "--title", "Plan export", "--summary", "Prepare export implementation", "--stage", "plan", "--reason", "Start the requested plan")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Remove(filepath.Join(f.change, "design.md")); err != nil {
+	if err := os.WriteFile(f.plan(), []byte("# Plan\nRevised plan\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	second, err := f.run(t, "publish", "--work-id", first.WorkID, "--change", f.change, "--stage", "plan")
@@ -455,21 +455,47 @@ func TestWorkPublishOptionalRemovalAndStatusCreateRevisions(t *testing.T) {
 		t.Fatal(err)
 	}
 	if first.RevisionID == second.RevisionID || second.RevisionID == third.RevisionID {
-		t.Fatal("document removal or status was treated as unchanged")
+		t.Fatal("plan edit or status was treated as unchanged")
 	}
 	s := f.observe(t, first.WorkID)
-	if len(s.Documents) != 3 {
-		t.Fatal("optional removal deleted historical document")
+	if len(s.Documents) != 2 {
+		t.Fatal("plan edit deleted the historical document")
 	}
 	tip, _ := publicationTip(s, "plan")
-	if len(tip.Tabs) != 2 || tip.Status != "complete" {
+	if len(tip.Tabs) != 1 || tip.Status != "complete" {
 		t.Fatal("wrong current snapshot")
+	}
+}
+
+func TestWorkPublishRefusesAWorkFolderWithoutExactlyOnePlan(t *testing.T) {
+	for _, scenario := range []string{"none", "several"} {
+		t.Run(scenario, func(t *testing.T) {
+			f := newWorkPublishFixture(t)
+			if scenario == "none" {
+				if err := os.Remove(f.plan()); err != nil {
+					t.Fatal(err)
+				}
+			} else if err := os.WriteFile(filepath.Join(f.change, "2026-11-25-other.plan.md"), []byte("# Plan\nOther\n"), 0600); err != nil {
+				t.Fatal(err)
+			}
+			_, err := f.run(t, "publish", "--project", f.root, "--change", f.change, "--key", "ticket-10", "--title", "Plan export", "--summary", "Prepare export implementation", "--stage", "plan", "--reason", "Start the requested plan")
+			want := "holds no *.plan.md file"
+			if scenario == "several" {
+				want = "holds 2 *.plan.md files (2026-11-24-export.plan.md, 2026-11-25-other.plan.md)"
+			}
+			if err == nil || !strings.Contains(err.Error(), want) {
+				t.Fatalf("want refusal containing %q, got %v", want, err)
+			}
+			if f.mutations.Load() != 0 {
+				t.Fatal("refused publication mutated remote state")
+			}
+		})
 	}
 }
 
 func TestWorkPublishPreflightAndExplicitResearchSelection(t *testing.T) {
 	f := newWorkPublishFixture(t)
-	if err := os.Remove(filepath.Join(f.change, "tasks.md")); err != nil {
+	if err := os.Remove(f.plan()); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := f.run(t, "publish", "--project", f.root, "--change", f.change, "--key", "ticket-10", "--title", "Plan export", "--summary", "Prepare export implementation", "--stage", "plan", "--reason", "Start the requested plan"); err == nil {
@@ -533,17 +559,13 @@ func TestWorkPublishDeletionOverridesPendingIntent(t *testing.T) {
 }
 
 func TestWorkPublishTabLabelPreflightHasNoMutations(t *testing.T) {
-	for _, name := range []string{strings.Repeat("a", 90), "control\x01label"} {
+	for _, name := range []string{strings.Repeat("a", 100) + ".md", "control\x01label.md"} {
 		t.Run(name, func(t *testing.T) {
 			f := newWorkPublishFixture(t)
-			dir := filepath.Join(f.change, "specs", name)
-			if err := os.MkdirAll(dir, 0700); err != nil {
+			if err := os.WriteFile(filepath.Join(f.change, name), []byte("# Notes\nDocument payload\n"), 0600); err != nil {
 				t.Fatal(err)
 			}
-			if err := os.WriteFile(filepath.Join(dir, "spec.md"), []byte("# Spec\nDocument payload\n"), 0600); err != nil {
-				t.Fatal(err)
-			}
-			if _, err := f.run(t, "publish", "--project", f.root, "--change", f.change, "--key", "ticket-10", "--title", "Plan export", "--summary", "Prepare export implementation", "--stage", "plan", "--reason", "Start the requested plan"); err == nil {
+			if _, err := f.run(t, "publish", "--project", f.root, "--change", f.change, "--key", "ticket-10", "--title", "Plan export", "--summary", "Prepare export implementation", "--stage", "plan", "--reason", "Start the requested plan", "--explicit-documents", "--document", name); err == nil {
 				t.Fatal("invalid v3 tab label accepted")
 			}
 			if f.mutations.Load() != 0 {
@@ -565,7 +587,7 @@ func TestWorkPublishLostCreationThroughAliasUsesFrozenSource(t *testing.T) {
 	if _, err := f.run(t, args...); err == nil || !strings.Contains(err.Error(), "outcome_unknown") {
 		t.Fatalf("missing uncertain creation: %v", err)
 	}
-	if err := os.Remove(filepath.Join(f.change, "tasks.md")); err != nil {
+	if err := os.Remove(f.plan()); err != nil {
 		t.Fatal(err)
 	}
 	result, err := f.run(t, args...)
@@ -573,7 +595,7 @@ func TestWorkPublishLostCreationThroughAliasUsesFrozenSource(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := f.observe(t, result.WorkID)
-	if len(s.Documents) != 2 {
+	if len(s.Documents) != 1 {
 		t.Fatal("alias recovery did not publish original frozen set")
 	}
 	index, err := viewIndex(f.info)
@@ -634,7 +656,7 @@ func TestWorkPublishCreationSelectorsResumeSavedReceipt(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-			if err := os.Remove(filepath.Join(f.change, "tasks.md")); err != nil {
+			if err := os.Remove(f.plan()); err != nil {
 				t.Fatal(err)
 			}
 			result, err := f.run(t, args...)
@@ -642,7 +664,7 @@ func TestWorkPublishCreationSelectorsResumeSavedReceipt(t *testing.T) {
 				t.Fatal(err)
 			}
 			s := f.observe(t, result.WorkID)
-			if len(s.Documents) != 2 {
+			if len(s.Documents) != 1 {
 				t.Fatal("original creation selectors rescanned live files")
 			}
 			index, err := viewIndex(f.info)

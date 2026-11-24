@@ -44,7 +44,7 @@ var hiveSettingKeys = []hiveKey{
 	{"Base branch", true},
 	{"Tracker", true},
 	{"Other trackers", false},
-	{"Specs", true},
+	{"Specs", false},
 	{"Environments", false},
 	{"Delivery", false},
 	{"Completion", false},
@@ -563,12 +563,6 @@ func validateHiveSection(root, content string, git gitRunner) hiveVerdict {
 		findings = append(findings, f.Text)
 		blocking = blocking || f.Blocking
 	}
-	for _, it := range items {
-		if it.Key == "Specs" {
-			findings = append(findings, changeFindings(root, it.Value)...)
-			break
-		}
-	}
 	for _, f := range localProjectFindings(root, git) {
 		findings = append(findings, f.Text)
 		blocking = blocking || f.Blocking
@@ -858,4 +852,23 @@ func localProjectFindings(root string, git gitRunner) []hiveFinding {
 		}
 	}
 	return out
+}
+
+// readLimited reads a regular file up to hiveFileLimit bytes.
+func readLimited(path string) (string, error) {
+	info, err := os.Stat(path)
+	if err != nil {
+		return "", err
+	}
+	if !info.Mode().IsRegular() {
+		return "", os.ErrInvalid
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return "", err
+	}
+	if len(data) > hiveFileLimit {
+		data = data[:hiveFileLimit]
+	}
+	return string(data), nil
 }
