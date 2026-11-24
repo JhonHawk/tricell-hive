@@ -402,6 +402,7 @@ func TestAuditNewCriteria(t *testing.T) {
 	const route, format, ux = "flow_entered_without_route", "decision_round_format", "ui_change_without_ux_review"
 	const cache, tryIt = "tracker_states_cache_written", "try_it_block_in_report"
 	const prose = "prose_choice_without_card"
+	const asyncCard = "async_card_when_waiting_offered"
 	const assess = "ticket_assessment_ending"
 	const feed = "self_feeding_log"
 	const reply = "analysis_reply_block"
@@ -411,17 +412,40 @@ func TestAuditNewCriteria(t *testing.T) {
 	const planRoute = "plan_without_build_route"
 	const suite, rounds = "full_suite_after_text_fix", "review_rounds_per_candidate"
 	cases := []newCriterionCase{
+		{"async card while the waiting card is offered", "codex", asyncCard, []string{asyncCard, "codex-rollout-waiting-offered-fail.jsonl"}, auditOptions{}, "fail"},
+		{"async card while the waiting card is offered, round written first", "codex", asyncCard, []string{asyncCard, "codex-rollout-waiting-offered-round-written-fail.jsonl"}, auditOptions{}, "fail"},
+		{"async card as the only tool, no round in the text", "codex", asyncCard, []string{asyncCard, "codex-rollout-async-only-no-round-fail.jsonl"}, auditOptions{}, "fail"},
+		{"async card as the only tool, round written first", "codex", asyncCard, []string{asyncCard, "codex-rollout-async-only-round-pass.jsonl"}, auditOptions{}, "pass"},
+		{"async card after unattended delegation, round written first", "codex", asyncCard, []string{asyncCard, "codex-rollout-unattended-round-written-pass.jsonl"}, auditOptions{}, "pass"},
+		{"async card after a grep of the repository's unattended skill", "codex", asyncCard, []string{asyncCard, "codex-rollout-unattended-grep-fail.jsonl"}, auditOptions{}, "fail"},
+		{"async card after unattended delegation, no round in the text", "codex", asyncCard, []string{asyncCard, "codex-rollout-unattended-no-round-fail.jsonl"}, auditOptions{}, "fail"},
+		{"async card in a child session", "codex", asyncCard, []string{asyncCard, "codex-rollout-child-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"async card, session without an async call", "codex", asyncCard, []string{prose, "codex-rollout-card-pass.jsonl"}, auditOptions{}, "not_observed"},
+		{"prose choice codex pending delivery with a recommended mode in backticks", "codex", prose, []string{prose, "codex-rollout-pending-recommend-fail.jsonl"}, auditOptions{}, "fail"},
+		{"prose choice codex delivery only left pending", "codex", prose, []string{prose, "codex-rollout-pending-only-review.jsonl"}, auditOptions{}, "review"},
+		{"prose choice codex recommended backticks with no delivery mode word", "codex", prose, []string{prose, "codex-rollout-mode-substring-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"prose choice codex recommended option followed by a later code span", "codex", prose, []string{prose, "codex-rollout-span-gap-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"prose choice codex recommendation that only names a command ending in a mode word", "codex", prose, []string{prose, "codex-rollout-ready-command-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"prose choice codex quoted recommendation in a report is not counted", "codex", prose, []string{prose, "codex-rollout-quoted-recommend-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"plan codex typed skill, build command without a next-step block", "codex", planRoute, []string{planRoute, "codex-rollout-typed-skill-no-block-fail.jsonl"}, auditOptions{}, "fail"},
+		{"plan codex typed skill, build command without a next-step block, session ends in the stage", "codex", planRoute, []string{planRoute, "codex-rollout-typed-skill-no-block-open-fail.jsonl"}, auditOptions{}, "fail"},
+		{"plan codex typed skill, build command with the next-step block", "codex", planRoute, []string{planRoute, "codex-rollout-typed-skill-block-pass.jsonl"}, auditOptions{}, "pass"},
 		{"plan codex stage ended by a build without the command", "codex", planRoute, []string{planRoute, "codex-rollout-fail.jsonl"}, auditOptions{}, "fail"},
 		{"plan codex next-step block naming /flow-build", "codex", planRoute, []string{planRoute, "codex-rollout-pass.jsonl"}, auditOptions{}, "pass"},
 		{"plan codex session ends inside the stage", "codex", planRoute, []string{planRoute, "codex-rollout-open-review.jsonl"}, auditOptions{}, "review"},
 		{"plan codex re-read of flow-plan keeps the stage open", "codex", planRoute, []string{planRoute, "codex-rollout-reread-pass.jsonl"}, auditOptions{}, "pass"},
 		{"plan codex message naming only /flow-plan", "codex", planRoute, []string{planRoute, "codex-rollout-plan-command-only-fail.jsonl"}, auditOptions{}, "fail"},
 		{"plan codex child session", "codex", planRoute, []string{planRoute, "codex-rollout-child-notobserved.jsonl"}, auditOptions{}, "not_observed"},
+		{"plan codex bare build command, then the flow in the plan's own turn", "codex", planRoute, []string{planRoute, "codex-rollout-same-turn-bare-command-review.jsonl"}, auditOptions{}, "review"},
+		{"plan codex bare build command, then the flow after unattended delegation", "codex", planRoute, []string{planRoute, "codex-rollout-unattended-bare-command-review.jsonl"}, auditOptions{}, "review"},
+		{"plan codex marker in the middle of a line is no next-step block", "codex", planRoute, []string{planRoute, "codex-rollout-midline-marker-fail.jsonl"}, auditOptions{}, "fail"},
 		{"plan codex build in the plan's own turn", "codex", planRoute, []string{planRoute, "codex-rollout-same-turn-review.jsonl"}, auditOptions{}, "review"},
 		{"plan codex build command in bold", "codex", planRoute, []string{planRoute, "codex-rollout-bold-command-pass.jsonl"}, auditOptions{}, "pass"},
 		{"plan codex grep of flow-build while planning", "codex", planRoute, []string{planRoute, "codex-rollout-grep-build-pass.jsonl"}, auditOptions{}, "pass"},
 		{"plan codex card answered in the plan's turn, then the build", "codex", planRoute, []string{planRoute, "codex-rollout-card-then-build-fail.jsonl"}, auditOptions{}, "fail"},
 		{"plan codex build loaded by a sed range chained with rg", "codex", planRoute, []string{planRoute, "codex-rollout-load-with-rg-fail.jsonl"}, auditOptions{}, "fail"},
+		{"plan codex bare build command, then unattended delegation loads in a later turn", "codex", planRoute, []string{planRoute, "codex-rollout-unattended-after-bare-command-fail.jsonl"}, auditOptions{}, "fail"},
+		{"plan codex bare build command, then a re-read of flow-plan and the flow in a later turn", "codex", planRoute, []string{planRoute, "codex-rollout-reread-plan-later-turn-bare-command-fail.jsonl"}, auditOptions{}, "fail"},
 		{"plan codex grep of the repository's unattended skill", "codex", planRoute, []string{planRoute, "codex-rollout-unattended-grep-fail.jsonl"}, auditOptions{}, "fail"},
 		{"try it codex later tweak without verify keeps the close report", "codex", tryIt, []string{tryIt, "codex-rollout-later-tweak-pass.jsonl"}, auditOptions{}, "pass"},
 		{"review codex fixed Review header offering only the agent", "codex", review, []string{review, "codex-rollout-header-agent-only-fail.jsonl"}, auditOptions{}, "fail"},
@@ -1480,5 +1504,12 @@ func TestAuditExpandAssignmentsIsBoundedAndExpandsAValueOnce(t *testing.T) {
 	}
 	if big := strings.Repeat("x", maxExpandedCommand+1) + "; F=a; echo $F"; expandAssignments(big) != big {
 		t.Fatal("a command past the bound must stay unexpanded")
+	}
+}
+
+func TestPlanWithoutBuildRouteNamesTheMessageWithoutTheBlock(t *testing.T) {
+	got := auditStatus(t, auditFixture(t, "codex", auditOptions{}, "plan_without_build_route", "codex-rollout-typed-skill-no-block-fail.jsonl"), "plan_without_build_route")
+	if got.Status != "fail" || len(got.Evidence) != 1 || !strings.Contains(got.Evidence[0], "codex-rollout-typed-skill-no-block-fail.jsonl:6 ") {
+		t.Fatalf("plan_without_build_route = %+v, want fail at the message on line 6", got)
 	}
 }

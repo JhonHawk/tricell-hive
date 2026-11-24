@@ -157,6 +157,10 @@ func flowEnteredWithoutRoute(s auditSession) criterionAssessment {
 // syntax.
 var buildRoute = regexp.MustCompile(`(?:^|[\s\x60(>*_])(?:[/$@]|/skill:)(?:flow-build|create-design)\b`)
 
+// nextStepMarker is the ▶ that opens a next-step block's title line, after
+// optional markup; a ▶ inside a sentence is not a block.
+var nextStepMarker = regexp.MustCompile(`(?m)^[\s*_>#-]*▶`)
+
 // partialRead is a shell command that searches a skill instead of loading it,
 // such as a grep of one rule while planning.
 var partialRead = regexp.MustCompile(`(?:^|[\s;&|(])(?:rg|grep)\b`)
@@ -228,12 +232,16 @@ func questionBetween(events []traceEvent, from, to int) bool {
 
 // planWithoutBuildRoute checks that each plan stage, from a load of flow-plan
 // to the next load of another flow, has an assistant message that names the
-// build command. A stage another flow ends without it fails at the flow-plan
-// load, unless that flow starts in the turn of the stage's latest flow-plan
-// load with no question card between them, a continuation the user may have
-// asked for, or after unattended delegation started: both are reviews. One the
-// session's end ends without it is a review too, since the session may still
-// be open. Loading flow-plan again does not end the stage.
+// build command together with a ▶ line, the next-step block. A stage another
+// flow ends with no such message fails, unless that flow starts in the turn of
+// the stage's latest flow-plan load with no question card between them, a
+// continuation the user may have asked for, or after unattended delegation
+// started: both are reviews, even when a message named the command without a
+// ▶ line. The failure lands on the first message that names the command
+// without one, else on the flow-plan load. A stage the session's end ends
+// without a block fails when a message named the command bare, else it is a
+// review, since the session may still be open. Loading flow-plan again does
+// not end the stage.
 func planWithoutBuildRoute(s auditSession) criterionAssessment {
 	c := criterionAssessment{Criterion: "plan_without_build_route", Status: "not_observed", Evidence: []string{}}
 	if child(s) {
@@ -242,34 +250,49 @@ func planWithoutBuildRoute(s auditSession) criterionAssessment {
 	events := s.Trace.Events
 	unattended := unattendedLoad(events)
 	var failed, review, passed []string
-	start, latest, routed := -1, -1, false
+	start, latest, routed, bare := -1, -1, false, -1
 	for i, e := range events {
 		flow := loadedFlow(e)
 		switch {
 		case flow == "flow-plan" && start < 0:
-			start, latest, routed = i, i, false
+			start, latest, routed, bare = i, i, false, -1
 		case flow == "flow-plan":
 			latest = i
 		case flow != "" && start >= 0:
+			// A bare command sets the stage's anchor: the user's reply to it
+			// is what a later load of the flow may continue.
+			anchor, unattendedBy := latest, i
+			if bare >= 0 {
+				anchor, unattendedBy = bare, bare
+			}
 			switch {
 			case routed:
 				passed = append(passed, regressionEvidence(events[start]))
-			case s.Turn[latest] == s.Turn[i] && !questionBetween(events, latest, i):
+			case s.Turn[anchor] == s.Turn[i] && !questionBetween(events, anchor, i):
 				review = append(review, regressionEvidence(events[start])+" flow started in the plan's own turn")
-			case unattended >= 0 && unattended < i:
+			case unattended >= 0 && unattended < unattendedBy:
 				review = append(review, regressionEvidence(events[start])+" after unattended delegation")
+			case bare >= 0:
+				failed = append(failed, regressionEvidence(events[bare])+" build command without a next-step block")
 			default:
 				failed = append(failed, regressionEvidence(events[start]))
 			}
 			start = -1
 		case start >= 0 && e.Kind == "text" && e.Role == "assistant" && buildRoute.MatchString(e.Text):
-			routed = true
+			if nextStepMarker.MatchString(e.Text) {
+				routed = true
+			} else if bare < 0 {
+				bare = i
+			}
 		}
 	}
 	if start >= 0 {
-		if routed {
+		switch {
+		case routed:
 			passed = append(passed, regressionEvidence(events[start]))
-		} else {
+		case bare >= 0:
+			failed = append(failed, regressionEvidence(events[bare])+" build command without a next-step block")
+		default:
 			review = append(review, regressionEvidence(events[start])+" session ended inside the plan stage")
 		}
 	}

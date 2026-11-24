@@ -38,7 +38,34 @@ var (
 	// and quotedReply is one of them in quotation marks.
 	offeredReplies = regexp.MustCompile(`(?i)\b(?:puedes responder|responde|you can reply|reply with)\b`)
 	quotedReply    = regexp.MustCompile(`«[^»\n]+»|"[^"\n]+"|“[^”\n]+”`)
+	// recommends and codeSpan, with startsWithMode, read a sentence that
+	// recommends a text in backticks that begins with a delivery mode as a whole
+	// word, such as «Recomiendo `automatic, Codex, sí`»: a session question
+	// answered for the user, with no options. A span that only contains a mode,
+	// such as `gh pr ready` or `threshold`, does not count, and spans are
+	// collected whole so the text between two of them is never read as one.
+	recommends     = regexp.MustCompile(`(?i)\b(?:recomiendo|i recommend)\b`)
+	codeSpan       = regexp.MustCompile("`[^`\\n]*`")
+	startsWithMode = regexp.MustCompile("^`\\s*(?:interactive|automatic|ready|hold|direct-base)\\b")
+	// leftPending names a decision as still to confirm, such as «queda por
+	// confirmar la entrega»: the question is open and nothing asks it.
+	leftPending = regexp.MustCompile(`(?i)\b(?:queda|quedan|falta|faltan)\s+(?:por|de)\s+confirmar\b|\bpendientes?\s+de\s+confirm(?:ar|aci[oó]n)\b|\bstill\s+needs?\s+confirm(?:ing|ation)\b|\bawaiting\s+your\s+confirmation\b`)
 )
+
+func backtickedMode(s string) bool {
+	for _, span := range codeSpan.FindAllString(s, -1) {
+		if startsWithMode.MatchString(span) {
+			return true
+		}
+	}
+	return false
+}
+
+// unquoted drops the text in quotation marks, so a report that quotes another
+// session's recommendation does not count as one.
+func unquoted(s string) string {
+	return quotedReply.ReplaceAllString(s, "")
+}
 
 // proseChoices returns the questions of a message that ask the user to choose:
 // alternatives in prose, or a session question asked as a yes or no.
@@ -59,6 +86,11 @@ func proseChoices(text string) (choices []string, session bool) {
 		case imperativeConfirm.MatchString(s) && sessionChoice.MatchString(s):
 			choices = append(choices, s)
 			session = true
+		case recommends.MatchString(unquoted(s)) && backtickedMode(unquoted(s)):
+			choices = append(choices, s)
+			session = true
+		case leftPending.MatchString(unquoted(s)) && sessionChoice.MatchString(unquoted(s)):
+			choices = append(choices, s)
 		case offeredReplies.MatchString(s) && len(quotedReply.FindAllString(s, -1)) >= 2:
 			choices = append(choices, s)
 		}
