@@ -4,9 +4,9 @@ Base: `development` en `d5d9ba65`; rama propuesta `feat/swarm-mode`. T1–T3 y T
 
 ### T1 — Skill `swarm`
 
-- [ ] Existe `content/skills/swarm/` con su `SKILL.md` (activación, ronda 0 y veredicto por ticket, deberes del coordinador, topes, recuperación) y `references/owner-stops.md` (corridas del owner, formatos de parada 1, parada 2 y bloqueo, líneas `Ruling:`, excepciones de capturas previas, puertos y ruta del change folder), más `assets/hive-managed.json`; el skill no se invoca solo; HA-SK-04 de `audit-harness` ya no lo marcaría.
+- [x] Existe `content/skills/swarm/` con su `SKILL.md` (activación, ronda 0 y veredicto por ticket, deberes del coordinador, topes, recuperación) y `references/owner-stops.md` (corridas del owner, formatos de parada 1, parada 2 y bloqueo, líneas `Ruling:`, excepciones de capturas previas, puertos y ruta del change folder), más `assets/hive-managed.json`; el skill no se invoca solo; HA-SK-04 de `audit-harness` ya no lo marcaría.
 
-**Closes:** AC2, AC3, AC5, AC6, AC7, AC8
+**Closes:** AC2, AC5, AC6, AC8, AC11, AC12
 
 **Depends on:** none
 
@@ -29,7 +29,7 @@ Base: `development` en `d5d9ba65`; rama propuesta `feat/swarm-mode`. T1–T3 y T
 
 ### T2 — Rol `hive-ticket-owner`
 
-- [ ] Existe `content/agents/development/hive-ticket-owner.md` (`model_profile: reasoning`, `access_profile: implement`) con sus dos corridas por enlace a `owner-stops.md`, y termina con un bloque de límites propio que la prueba de límites fija y que solo él lleva.
+- [x] Existe `content/agents/development/hive-ticket-owner.md` (`model_profile: reasoning`, `access_profile: implement`) con sus dos corridas por enlace a `owner-stops.md`, y termina con un bloque de límites propio que la prueba de límites fija y que solo él lleva.
 
 **Closes:** AC4
 
@@ -47,7 +47,7 @@ Base: `development` en `d5d9ba65`; rama propuesta `feat/swarm-mode`. T1–T3 y T
 
 ### T3 — Línea global y prueba de alcance del modo
 
-- [ ] `content/guidance/global.md:24` nombra E2E y el modo swarm con sus roles, enlaza `skill:swarm/SKILL.md` para cuando el usuario nombra el modo y nombra la única ruta de change folder asignada como el solo lugar donde un owner de ticket escribe fuera de su worktree, y una prueba de contenido nueva falla cuando un archivo distribuido fuera del skill, el rol, esa línea y `tasks.py` nombra el modo o el rol.
+- [x] `content/guidance/global.md:24` nombra E2E y el modo swarm con sus roles, enlaza `skill:swarm/SKILL.md` para cuando el usuario nombra el modo y nombra la única ruta de change folder asignada como el solo lugar donde un owner de ticket escribe fuera de su worktree, y una prueba de contenido nueva falla cuando un archivo distribuido fuera del skill, el rol, esa línea y `tasks.py` nombra el modo o el rol.
 
 **Closes:** AC1, AC2, AC4
 
@@ -65,7 +65,7 @@ Base: `development` en `d5d9ba65`; rama propuesta `feat/swarm-mode`. T1–T3 y T
 
 ### T4 — Documentación y rúbrica
 
-- [ ] La página de skills y la vista general de flujos del sitio, `llms.txt`, `CHANGELOG.md`, `_support/docs/architecture/instruction-resources.md` y `agent-delivery.md` nombran el modo y el rol; la rúbrica de sesiones gana las filas que auditan una sesión del modo (ronda 0, paradas, topes, puertos, `Ruling` en el log y verificación por ticket).
+- [x] La página de skills y la vista general de flujos del sitio, `llms.txt`, `CHANGELOG.md`, `_support/docs/architecture/instruction-resources.md` y `agent-delivery.md` nombran el modo y el rol; la rúbrica de sesiones gana las filas que auditan una sesión del modo (ronda 0, paradas, topes, puertos, `Ruling` en el log y verificación por ticket).
 
 **Closes:** AC9
 
@@ -83,7 +83,7 @@ Base: `development` en `d5d9ba65`; rama propuesta `feat/swarm-mode`. T1–T3 y T
 
 ### T5 — El registro de ejecución acepta al owner de ticket
 
-- [ ] `tasks.py` acepta una unidad con rol `hive-ticket-owner` y un registro en el `_support/workspace` ignorado del checkout del coordinador aunque el change folder esté en otro repositorio o worktree; sigue rechazando otros roles y ubicaciones inseguras; `validate-handoff` comprueba esa unidad como a un owner de E2E.
+- [x] `tasks.py` acepta una unidad con rol `hive-ticket-owner` y un registro en el `_support/workspace` ignorado del checkout del coordinador aunque el change folder esté en otro repositorio o worktree; sigue rechazando otros roles y ubicaciones inseguras; `validate-handoff` comprueba esa unidad como a un owner de E2E.
 
 **Closes:** AC10
 
@@ -110,19 +110,36 @@ Base: `development` en `d5d9ba65`; rama propuesta `feat/swarm-mode`. T1–T3 y T
 | Installed skill | After the integration and the maintainer refresh | `~/.agents/skills/swarm/agents/openai.yaml`, `~/.agents/skills/swarm/SKILL.md` y el enlace `~/.claude/skills/swarm` | Maintainer refresh rule of `AGENTS.md` |
 | Real session | After the refresh | The first real swarm session, reviewed with the session rubric | The user's own session |
 
-Validación humana (`interactive`): antes del push, el usuario lee `content/skills/swarm/SKILL.md`, `references/owner-stops.md`, el rol y la línea global. AC3 y AC5–AC8 quedan sin verificar hasta la primera sesión real del modo; AC2, hasta el refresco.
+Validación humana (`interactive`): antes del push, el usuario lee `content/skills/swarm/SKILL.md`, `references/owner-stops.md`, el rol y la línea global. AC5, AC6, AC8, AC11 y AC12 quedan sin verificar hasta la primera sesión real del modo; AC2, hasta el refresco.
 
 ## Checkpoint
 
 - Updated: 2026-11-23
-- Stage: build · start
-- Last commit: d5d9ba65
+- Stage: verify · validation stop
+- Last commit: f8aa2d8f
 - Open findings: none
-- Next: T5 tasks.py role and record location (tdd), then T1
-- Rules: flow-build/stage.md · extra: security-boundaries, ticket-state, trackers
+- Next: user validation; code review and security review running
+- Rules: flow-verify/stage-entry.md
+- Principles: none
 
 ### Evidence
 
 - before captures: none (no screen changed)
+- T5 hive-verify-task a9fbbdc7: AC10 met; follow-up fix 5274596a (cross-checkout pointer, symlink test)
+- text check · pass · e4ad1eb7
+- python3 -m unittest discover -s tests/skills -p '*_test.py' · pass 416 · 5274596a
+- hive-verify-task T1 e4ad1eb7: 4 text gaps fixed in 53d9d34b
+- hive-verify-task T2 aa3d1133: AC4 met
+- hive-verify-task T3 c364d687: AC1 met, AC4 met (T3 part), AC2 pending refresh
+- text check · pass · f8aa2d8f
+- pnpm site check/lint/build · pass · f8aa2d8f (T4 child)
+- full suite (go vet ./..., go test ./..., python unittest) · pass · f8aa2d8f · 254 s
+- local CI: only workflow is master-source-branch (PRs to master), nothing to reproduce for development
 
 ## Review status and progress
+
+2026-11-23 — T5 · a9fbbdc7 · unverified: hive-verify-task pending
+2026-11-23 — T1 · e4ad1eb7 · unverified: AC2 hasta el refresco; AC3, AC5–AC8 hasta la primera sesión real; hive-verify-task pendiente
+2026-11-23 — T2 · aa3d1133 · unverified: none
+2026-11-23 — T3 · c364d687 · unverified: AC2 instalación tras el refresco
+2026-11-23 — T4 · f8aa2d8f · unverified: none

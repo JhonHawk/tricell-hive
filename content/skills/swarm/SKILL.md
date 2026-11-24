@@ -19,7 +19,8 @@ Each holds only inside this mode, and each names what it changes:
 - **Who creates worktrees.** The coordinator creates one worktree per eligible ticket on the answer to round 0, which is the user's request for those worktrees. Git-workflow step 3 otherwise creates a worktree only for the work in progress.
 - **Who captures a screen before it changes.** The owner of a ticket that changes a screen serves its worktree on the port the coordinator assigned and takes the before captures there, before its first edit of that screen, and the after captures once it is built. [Before captures](../hive-core/ui/before-captures.md) otherwise has the main thread capture and a child's brief ask for none.
 - **The execution record.** Each ticket has its own [execution record](../flow-plan/references/execution-record.md), one unit with the role `hive-ticket-owner`, in the coordinator checkout's `_support/workspace`, created when the ticket's plan is approved rather than before the first dispatch.
-- **What the owner delegates.** Nothing: it launches no children, so it does inline what an ordinary flow would give a child, and the coordinator launches every reviewer and verifier, including the `hive-verify-task` child [flow-build](../flow-build/SKILL.md) step 3 gives a risky task.
+- **What the owner delegates.** Nothing: it launches no children, so it does inline what an ordinary flow would give a child, and the coordinator launches every reviewer and verifier.
+- **Task verification.** Each ticket gets one `hive-verify-task` child for all its tasks and criteria at the returned head, in place of the one per risky task [flow-build](../flow-build/SKILL.md) step 3 sets; its verdict is the unit's verifier on the record.
 
 ## 1. Round 0
 
@@ -28,9 +29,10 @@ Read each ticket with its comments, and the code it names, enough to give its ve
 - it passes the [ready list](../create-issue/references/ticket-types.md#ready-list);
 - its estimated scope stays within one repository and ten files;
 - it writes no stored data and runs no migration;
-- when it changes a screen, the project's dev server accepts a port set by a flag or an environment variable, read from its own scripts.
+- when it changes a screen, the project's dev server accepts a port set by a flag or an environment variable, read from its own scripts;
+- when the project's specs live in another repository, that repository declares `Delivery: direct-base`.
 
-Then ask one round, as [questions](../hive-core/messages/questions.md) sets, with the verdict of each ticket in its report and each ineligible ticket named with the failed condition, left for its own session. The round asks: the eligible tickets to take, at least two and at most four; the [delivery and review](../hive-core/git/delivery-ask.md) of each repository they touch, unless answers are in force; the caps on simultaneous owners (at most four) and on owner runs per ticket (recommend three: plan, build and one resume after a blocker); and the creation of one worktree per ticket. With fewer than two eligible tickets, recommend the ordinary flow instead of the mode.
+Then ask one round, as [questions](../hive-core/messages/questions.md) sets, with the verdict of each ticket in its report and each ineligible ticket named with the failed condition, left for its own session. The round asks: the eligible tickets to take, at least two and at most four; the [delivery and review](../hive-core/git/delivery-ask.md) of each repository they touch, unless answers are in force, with `hold` left out, since owners hand back committed heads (a repository whose answer in force is `hold` is asked again, and when the user keeps `hold`, recommend the ordinary flow); the caps on simultaneous owners (at most four) and on owner runs per ticket (recommend three: plan, build and one resume after a blocker); and the creation of one worktree per ticket. With fewer than two eligible tickets, recommend the ordinary flow instead of the mode.
 
 ## 2. Prepare
 
@@ -42,7 +44,7 @@ Then ask one round, as [questions](../hive-core/messages/questions.md) sets, wit
 
 ## 3. Owner runs
 
-Before every launch, read the caps from the batch checkpoint: launch nothing that would exceed them. Launch the owners of all tickets together, as [delegation](../hive-core/delegation/delegation.md#when-children-run-at-the-same-time) sets for children that write disjoint files. Brief each as [child brief](../hive-core/delegation/child-brief.md) sets, naming its ticket, worktree, branch, base commit, change-folder path, allowed paths, port and the run it starts; the role's [owner stops](references/owner-stops.md) set what it does and returns.
+Before every launch, read the caps from the batch checkpoint. Launch owners together up to the cap on simultaneous owners; the other tickets wait in the batch checkpoint, and each starts when a running owner stops. Launch the owners of a round together, as [delegation](../hive-core/delegation/delegation.md#when-children-run-at-the-same-time) sets for children that write disjoint files. Brief each as [child brief](../hive-core/delegation/child-brief.md) sets, naming its ticket, worktree, branch, base commit, change-folder path, allowed paths, port and the run it starts; the role's [owner stops](references/owner-stops.md) set what it does and returns.
 
 To continue an owner after a stop, message the same child when the host documents resuming a child with its history; otherwise launch a new `hive-ticket-owner` that reads the plan and checkpoint. Either counts as a run.
 
@@ -55,17 +57,17 @@ For each ticket that returns its plan:
 3. Run `python3 -I <flow-plan-dir>/scripts/check_change.py <folder>` on its change folder.
 4. When the plan is a risky change, launch its `hive-review-plan` child, briefed as [reviewer brief](../hive-core/delegation/reviewer-brief.md) sets.
 5. Ask the decisions of every ticket that has stopped, together, in rounds as questions sets: number them on through the session, and name the ticket in each question's context line. Ask each ticket's [effects round](../hive-core/plan/external-effects.md) in the same rounds.
-6. Once a ticket's plan is answered and approved, move the ticket to in progress as [ticket state](../hive-core/tracker/ticket-state.md) sets, write its business rules as [ticket write](../hive-core/business/business-ticket.md) sets, create its execution record, commit a change folder that lies in another repository, and continue its owner.
+6. Once a ticket's plan is answered and approved, move the ticket to in progress as [ticket state](../hive-core/tracker/ticket-state.md) sets, write its business rules as [ticket write](../hive-core/business/business-ticket.md) sets, create its execution record with the ticket's change-folder path among the unit's allowed paths when the folder lies in its worktree, commit a change folder that lies in the specs repository as git-workflow step 3 sets for a `direct-base` specs repository, and continue its owner.
 
 A blocker an owner returns during its build follows steps 1, 2 and 5 for that decision alone, then continues the owner.
 
 ## 5. At the build stop
 
-For each ticket that returns a head, write its `Ruling:` lines to the decision log and run `validate-handoff` on its record. Launch one `hive-verify-task` child for each risky task of its plan, and record each verdict on the record as [E2E coordination](../flow-build/references/e2e-coordination.md#check-correct-and-integrate) sets for a verifier. Then take the ticket through [flow-verify](../flow-verify/SKILL.md) with its worktree head as the candidate: the owner's own checks are not its evidence, and `hive-review-ux` reviews a ticket that changes a screen, served on that ticket's port. Publish the owner's before and after captures as [walkthrough](../hive-core/ui/walkthrough.md) sets, and carry them into the pull request's before and after table. Each ticket is integrated on its own branch and pull request under the delivery in force, and closed with [flow-close](../flow-close/SKILL.md). A ticket that fails or is blocked does not stop the others.
+For each ticket that returns a head, write its `Ruling:` lines to the decision log and run `validate-handoff` on its record. Launch the ticket's one `hive-verify-task` child, briefed with every task and criterion of its plan at that head, and record its verdict as the unit's verifier as [E2E coordination](../flow-build/references/e2e-coordination.md#check-correct-and-integrate) sets. Then take the ticket through [flow-verify](../flow-verify/SKILL.md) with its worktree head as the candidate: the owner's own checks are not its evidence, and `hive-review-ux` reviews a ticket that changes a screen, served on that ticket's port. Publish the owner's before and after captures as [walkthrough](../hive-core/ui/walkthrough.md) sets, and carry them into the pull request's before and after table. Each ticket is integrated on its own branch and pull request under the delivery in force, and closed with [flow-close](../flow-close/SKILL.md). A ticket that fails or is blocked does not stop the others.
 
 ## Caps and end
 
-When a cap is reached, launch no further owner, and report each open ticket with its worktree, branch, last head and checkpoint, and the decision log's path. The final report lists each ticket with its state, pull request or reason, and what the user still owns.
+When a ticket reaches its cap on runs, launch no further owner for it, and report it with its worktree, branch, last head and checkpoint, and the decision log's path; the other tickets continue. The final report lists each ticket with its state, pull request or reason, and what the user still owns.
 
 ## Recovery
 

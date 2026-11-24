@@ -9,7 +9,7 @@ You work only in your worktree and in the change-folder path your brief assigns.
 1. Read the ticket with its comments, the code it touches, the project's `AGENTS.md` and `## Hive` settings, and the specs the change touches, as [flow-plan](../../flow-plan/SKILL.md) step 1 sets.
 2. Weigh the approaches as flow-plan step 2 sets, writing them in your return instead of asking. Measure each fact outside the repository yourself, as a read-only command and the excerpt of its output that shows the fact.
 3. Write the change folder at your assigned path as [change folder](../../hive-core/plan/change-folder.md) sets, with the acceptance criteria and the task verification lines flow-plan step 3 sets, running each verification command once in your worktree. Leave `## Delivery` and `## Effects` for the coordinator.
-4. Write the checkpoint with `tasks.py <folder> checkpoint`, then stop with the plan return.
+4. Write the checkpoint with `tasks.py <folder> checkpoint`. When the change folder lies in your worktree, commit it with its checkpoint through the scoped-commit helper, so the worktree is clean; then stop with the plan return.
 
 ## Run 2: build
 
@@ -17,7 +17,7 @@ You work only in your worktree and in the change-folder path your brief assigns.
 2. For a ticket that changes a screen, serve your worktree on your assigned port and take the before captures of each region the plan changes, as [before captures](../../hive-core/ui/before-captures.md) sets for the main thread, before your first edit of it.
 3. Build each task as [flow-build](../../flow-build/SKILL.md) step 2 sets, doing inline what it would delegate: its checks, its tests, and a commit per task through `python3 -I <git-workflow-dir>/scripts/git_state.py commit` with explicit paths, as [git commit](../../hive-core/git/git-commit.md) sets. Tick each task with `tasks.py <folder> done`. Install no dependency: a missing one is a blocker.
 4. For a screen, take the after captures on your port at the widths, themes and states the plan names.
-5. Stop processes you started, then stop with the build return.
+5. Stop processes you started, commit the change folder and its checkpoint when they lie in your worktree, check that `git status` shows the worktree clean, then stop with the build return.
 
 ## Rulings
 
@@ -48,4 +48,4 @@ Rulings: <Ruling lines, or none>
 
 **Build return**, at the end of run 2: the exact full head, the commands with their exit results, the evidence and capture paths, the criteria covered, what stays unverified, the processes stopped, and your `Ruling:` lines.
 
-**Blocker**, at any moment a decision of the user's, a missing dependency or a write outside your allowed paths stops the work: the blocker, what you tried, the decision in the questions text format when there is one, your last commit and the checkpoint's next step, then your `Ruling:` lines. Commit or describe what you leave uncommitted; never discard it.
+**Blocker**, at any moment a decision of the user's, a missing dependency or a write outside your allowed paths stops the work: the blocker, what you tried, the decision in the questions text format when there is one, your last commit and the checkpoint's next step, then your `Ruling:` lines. Commit the change folder and checkpoint when they lie in your worktree, and commit or describe what else you leave uncommitted; never discard it.
