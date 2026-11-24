@@ -61,6 +61,10 @@ DOC_EXTENSIONS = {".md", ".mdx", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp
 MARKDOWN = (".md", ".mdx")
 LEGACY_EVIDENCE = ("evidence", "reports")
 LEGACY_DATA = ("backups", "migration-data", "exports", "dumps")
+# Files that are a dump, backup or export of data: a record holding one is never deleted as aged.
+DATA_EXTENSIONS = (".sql", ".dump", ".bak", ".sqlite", ".sqlite3", ".db", ".csv", ".tsv", ".ndjson")
+DATA_ARCHIVE_EXTENSIONS = (".json", ".xml", ".xlsx", ".zip", ".tar", ".gz", ".tgz")
+DATA_NAME_RE = re.compile(r"dump|export|backup", re.I)
 # Homes of earlier layouts that hold dated records of past work: each child becomes a work folder.
 LEGACY_RECORDS = ("sessions", "archive", "archived", "plan", "spec")
 # The legacy homes a repository may keep at its own root, when its support home is the workspace's.
@@ -857,7 +861,7 @@ class Planner:
         """Lines of other files, in any root, that cite the root's top-level folder as a path (`name/...`,
         also relative to the citing file); the files under the folder and history records do not count."""
         folder = self.roots[i].abs(name)
-        pattern = re.compile(r"(?<![\w@.-])((?:\.{1,2}/)*" + re.escape(name) + r"(?:/[\w.@+*-]*)*)(?![\w-]|\.\w)")
+        pattern = re.compile(r"(?<![\w@./-])((?:\.{1,2}/)*" + re.escape(name) + r"(?:/[\w.@+*-]*)*)(?![\w-]|\.\w)")
         found = []
         for (j, rel), text in self.corpus():
             if j == i and (rel == name or rel.startswith(name + "/")):
@@ -970,9 +974,44 @@ class Planner:
         row = self.rows[key]
         if home in ("plan", "spec") and not (self.keep_for(row) or self.override_for(row)):
             return self.set_review(key, "F3", f"{home}/ may hold current knowledge: promote it, or name --keep or --override")
-        if self.legacy == "remove" and home not in ("plan", "spec") and self.unmodified(row["root"], row["source"]) is None:
+        if (self.legacy == "remove" and home not in ("plan", "spec") and not self.holds_data(row["root"], row["source"])
+                and self.unmodified(row["root"], row["source"]) is None):
+            citing = self.record_citations(row["root"], row["source"])
+            if citing:
+                return self.set_review(key, "F2", "living path: a document or configuration cites it: " + ", ".join(citing[:5]))
             return self.set_delete(key, "F3", "aged record: history and the archive tag keep it")
         self.set_legacy_dest(key, "F3", dest)
+
+    def holds_data(self, i, rel):
+        """Whether the record is, or holds, a dump, backup or export: removing data is a decision of its own."""
+        base = self.roots[i].abs(rel)
+        names = [os.path.basename(base)] if os.path.isfile(base) else [
+            name for _, _, files in os.walk(base) for name in files]
+        for name in names:
+            stem, extension = os.path.splitext(name.lower())
+            if extension in DATA_EXTENSIONS or (extension in DATA_ARCHIVE_EXTENSIONS and DATA_NAME_RE.search(stem)):
+                return True
+        return False
+
+    def record_citations(self, i, rel):
+        """Lines of other files, in any root, whose path token resolves into the record at rel."""
+        target = self.roots[i].abs(rel)
+        found = []
+        for (j, other), text in self.corpus():
+            if j == i and (other == rel or other.startswith(rel + "/")):
+                continue
+            relative = self.scans_relative(other)
+            if not text or (not relative and os.path.basename(target) not in text):
+                continue
+            for number, line in enumerate(text.splitlines(), 1):
+                for _, pre, path in tokens(line, relative):
+                    if any(t == target or t.startswith(target + os.sep) for _, t in self.resolutions(j, other, pre, path)):
+                        found.append(f"{os.path.basename(self.roots[j].path)}/{other}:{number}")
+                        break
+                else:
+                    continue
+                break
+        return sorted(found)
 
     # ---- the change register of an earlier layout ---------------------------------
     def declared(self, i, key):
@@ -1933,7 +1972,7 @@ def cmd_verify(args):
     gone = set()
     moved_markdown = []
     for row in plan["rows"]:
-        if not row["destination"]:
+        if not row["destination"] and row["action"] != "delete":
             continue
         source = os.path.join(roots[row["root"]], row["source"])
         if not os.path.lexists(source):
@@ -1942,6 +1981,8 @@ def cmd_verify(args):
             while parent not in roots and parent != os.path.dirname(parent) and not os.path.lexists(parent):
                 gone.add(parent)
                 parent = os.path.dirname(parent)
+        if not row["destination"]:
+            continue
         dest = os.path.join(roots[row["root"]], row["destination"])
         if not HISTORY_RE.search(row["source"]):
             for f in ([dest] if os.path.isfile(dest) else cl.list_files(dest)):
@@ -1966,7 +2007,7 @@ def cmd_verify(args):
                     continue
                 for _, pre, path in tokens(line, relative):
                     targets = [t for _, t in planner.resolutions(i, rel, pre, path)]
-                    if targets and not any(os.path.lexists(t) for t in targets) and any(t in gone for t in targets):
+                    if targets and not any(os.path.lexists(t) for t in targets) and any(t in gone or any(t.startswith(g + os.sep) for g in gone) for t in targets):
                         residual.append(f"{roots[i]}/{rel}:{number}: {pre}{path}")
     for path, old_dir, owner in moved_markdown:
         text = read_text_strict(path) or ""

@@ -3,6 +3,7 @@ import argparse
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 import tempfile
 import unittest
@@ -855,6 +856,17 @@ class LegacyMigrationTest(Fixture, unittest.TestCase):
         self.assertTrue((repo / "_support/sessions/2026-01-02-x/a.md").exists())
         self.assertEqual(git(repo, "status", "--porcelain").stdout, "")
 
+    def test_verify_reports_a_dead_link_to_a_deleted_row(self):
+        repo = legacy_repo(self.tmp())
+        write(repo, "docs/guide.md", "See [y](../_support/openspec/changes/archive/2026-01-03-y/proposal.md).\n")
+        commit(repo)
+        plan_file = self.make_plan(repo)
+        self.assertEqual(self.apply_after_tag(repo, plan_file).returncode, 0)
+        shutil.rmtree(repo / "_support/openspec/changes/archive/2026-01-03-y")
+        result = self.run_cmd("verify", plan_file)
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("docs/guide.md:1", result.stdout)
+
     def test_a_workspace_folder_git_does_not_ignore_is_reviewed(self):
         repo = legacy_repo(self.tmp())
         write(repo, ".gitignore", "")
@@ -1288,6 +1300,54 @@ class LegacyGapsTest(Fixture, unittest.TestCase):
         self.assertEqual(self.row(cited, 1, "evidence")["action"], "review")
         outside = self.plan_json(ws, extra=["--legacy", "remove"])
         self.assertFalse([r for r in outside["rows"] if r["action"] == "delete" and "specs-repo" in r["source"]])
+
+    def test_legacy_remove_never_deletes_a_record_that_holds_a_dump_or_an_export(self):
+        repo = legacy_repo(self.tmp())
+        write(repo, "_support/sessions/2026-01-05-dbfix/prod.sql", "select 1;\n")
+        write(repo, "_support/evidence/2026-01-06-run/export.csv", "a,b\n")
+        write(repo, "_support/evidence/2026-01-07-run/users-backup.json", "{}\n")
+        write(repo, "_support/sessions/2026-01-08-plain/notes.md", "# n\n")
+        commit(repo)
+        plan = self.plan_json(repo, extra=["--legacy", "remove"])
+        for source in ("_support/sessions/2026-01-05-dbfix", "_support/evidence/2026-01-06-run",
+                       "_support/evidence/2026-01-07-run"):
+            self.assertEqual(self.row(plan, 0, source)["action"], "move", source)
+        self.assertEqual(self.row(plan, 0, "_support/sessions/2026-01-08-plain")["action"], "delete")
+
+    def test_legacy_remove_reviews_a_record_a_living_document_cites(self):
+        repo = legacy_repo(self.tmp())
+        write(repo, "_support/evidence/2026-01-05-run/shot.png", b"png")
+        write(repo, "docs/guide.md", "![shot](../_support/evidence/2026-01-05-run/shot.png)\n")
+        commit(repo)
+        plan = self.plan_json(repo, extra=["--legacy", "remove"])
+        cited = self.row(plan, 0, "_support/evidence/2026-01-05-run")
+        self.assertEqual((cited["action"], cited["destination"]), ("review", None))
+        reviews = [r for r in plan["reviews"] if r["path"] == cited["source"]]
+        self.assertIn("living path", reviews[0]["detail"])
+        self.assertIn("docs/guide.md:1", reviews[0]["detail"])
+        self.assertEqual(self.row(plan, 0, "_support/sessions/2026-01-02-x")["action"], "delete")
+
+    def test_legacy_remove_moves_a_record_with_an_ignored_or_hidden_file_and_deletes_a_clean_folder(self):
+        repo = legacy_repo(self.tmp())
+        write(repo, ".gitignore", "_support/workspace/\n*.log\n")
+        for name in ("ignored", "skipped", "assumed", "clean"):
+            write(repo, f"_support/sessions/2026-02-01-{name}/a.md", "# a\n")
+        commit(repo)
+        write(repo, "_support/sessions/2026-02-01-ignored/trace.log", "ignored\n")
+        git(repo, "update-index", "--skip-worktree", "_support/sessions/2026-02-01-skipped/a.md")
+        git(repo, "update-index", "--assume-unchanged", "_support/sessions/2026-02-01-assumed/a.md")
+        plan = self.plan_json(repo, extra=["--legacy", "remove"])
+        for name in ("ignored", "skipped", "assumed"):
+            self.assertEqual(self.row(plan, 0, f"_support/sessions/2026-02-01-{name}")["action"], "move", name)
+        clean = self.row(plan, 0, "_support/sessions/2026-02-01-clean")
+        self.assertEqual((clean["kind"], clean["action"]), ("folder", "delete"))
+
+    def test_a_support_path_is_no_citation_of_the_root_folder_of_the_same_name(self):
+        ws, specs = specs_workspace(self.tmp())
+        write(specs, "README.md", "Captures: `../_support/evidence/2026-03-04-audit/shot.txt`.\n")
+        commit(specs)
+        row = self.row(self.plan_json(ws, specs), 1, "evidence/2026-03-04-audit")
+        self.assertEqual(row["action"], "move")
 
     def test_the_legacy_policy_defaults_to_move_and_a_removal_needs_the_archive_tag(self):
         repo = legacy_repo(self.tmp())
