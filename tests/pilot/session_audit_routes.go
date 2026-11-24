@@ -157,6 +157,10 @@ func flowEnteredWithoutRoute(s auditSession) criterionAssessment {
 // syntax.
 var buildRoute = regexp.MustCompile(`(?:^|[\s\x60(>*_])(?:[/$@]|/skill:)(?:flow-build|create-design)\b`)
 
+// nextStepMarker is the ▶ that opens a next-step block's title line, after
+// optional markup; a ▶ inside a sentence is not a block.
+var nextStepMarker = regexp.MustCompile(`(?m)^[\s*_>#-]*▶`)
+
 // partialRead is a shell command that searches a skill instead of loading it,
 // such as a grep of one rule while planning.
 var partialRead = regexp.MustCompile(`(?:^|[\s;&|(])(?:rg|grep)\b`)
@@ -228,15 +232,16 @@ func questionBetween(events []traceEvent, from, to int) bool {
 
 // planWithoutBuildRoute checks that each plan stage, from a load of flow-plan
 // to the next load of another flow, has an assistant message that names the
-// build command together with a ▶ line, the next-step block. A stage in which
-// the command appears only in messages without a ▶ line fails at the first
-// such message, however the stage ends. A stage another flow ends with no
-// message naming the command fails at the flow-plan load, unless that flow
-// starts in the turn of the stage's latest flow-plan load with no question
-// card between them, a continuation the user may have asked for, or after
-// unattended delegation started: both are reviews. One the session's end ends
-// without it is a review too, since the session may still be open. Loading
-// flow-plan again does not end the stage.
+// build command together with a ▶ line, the next-step block. A stage another
+// flow ends with no such message fails, unless that flow starts in the turn of
+// the stage's latest flow-plan load with no question card between them, a
+// continuation the user may have asked for, or after unattended delegation
+// started: both are reviews, even when a message named the command without a
+// ▶ line. The failure lands on the first message that names the command
+// without one, else on the flow-plan load. A stage the session's end ends
+// without a block fails when a message named the command bare, else it is a
+// review, since the session may still be open. Loading flow-plan again does
+// not end the stage.
 func planWithoutBuildRoute(s auditSession) criterionAssessment {
 	c := criterionAssessment{Criterion: "plan_without_build_route", Status: "not_observed", Evidence: []string{}}
 	if child(s) {
@@ -257,18 +262,18 @@ func planWithoutBuildRoute(s auditSession) criterionAssessment {
 			switch {
 			case routed:
 				passed = append(passed, regressionEvidence(events[start]))
-			case bare >= 0:
-				failed = append(failed, regressionEvidence(events[bare])+" build command without a next-step block")
 			case s.Turn[latest] == s.Turn[i] && !questionBetween(events, latest, i):
 				review = append(review, regressionEvidence(events[start])+" flow started in the plan's own turn")
 			case unattended >= 0 && unattended < i:
 				review = append(review, regressionEvidence(events[start])+" after unattended delegation")
+			case bare >= 0:
+				failed = append(failed, regressionEvidence(events[bare])+" build command without a next-step block")
 			default:
 				failed = append(failed, regressionEvidence(events[start]))
 			}
 			start = -1
 		case start >= 0 && e.Kind == "text" && e.Role == "assistant" && buildRoute.MatchString(e.Text):
-			if strings.Contains(e.Text, "▶") {
+			if nextStepMarker.MatchString(e.Text) {
 				routed = true
 			} else if bare < 0 {
 				bare = i

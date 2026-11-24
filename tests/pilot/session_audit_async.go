@@ -2,18 +2,22 @@ package main
 
 // The asynchronous card returns before the answer, so it is the channel only
 // where no waiting card is offered, after the round is written in the text.
-// A child is not judged: its parent owns the questions.
+// Unattended delegation offers no waiting card, so from its activation only
+// the round written first is judged. A child is not judged: its parent owns
+// the questions.
 func asyncCardWhenWaitingOffered(s auditSession) criterionAssessment {
 	c := criterionAssessment{Criterion: "async_card_when_waiting_offered", Status: "not_observed", Evidence: []string{}}
 	if child(s) {
 		return c
 	}
+	unattended := unattendedActivation(s.Trace.Events)
 	var failed, passed []string
 	for i, e := range s.Trace.Events {
 		if e.Kind != "question" || e.Tool != "request_user_input_async" {
 			continue
 		}
-		if s.QuestionOffered || !roundWrittenBefore(s, i) {
+		offered := s.QuestionOffered && (unattended < 0 || i < unattended)
+		if offered || !roundWrittenBefore(s, i) {
 			failed = append(failed, regressionEvidence(e))
 		} else {
 			passed = append(passed, regressionEvidence(e))
