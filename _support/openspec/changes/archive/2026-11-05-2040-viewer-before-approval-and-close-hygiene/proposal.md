@@ -36,7 +36,7 @@ Fuera de alcance:
 
 Hoy, en la parada de validación, «¿Abro el visor?» va como otra pregunta de la misma tarjeta (`viewer-publication.md:52`). El usuario tiene que responder la aprobación antes de poder ver. Lo observamos en Claude Code 5ff8bac1, 062c567a y 98476eca, y en Codex 01a1a00a y 01a1a30f.
 
-La limpieza del cierre solo cubre la rama del trabajo actual y solo su repositorio. Un repo de specs `direct-base` recibe ramas y worktrees por ticket, que es el caso de project-g-9 en project-g-specs. Un plan pausado queda sin versionar, como fac-235 en project-f-specs desde el 2026-10-29. Además, una promoción pendiente se usa como motivo para conservar worktrees («por el seguimiento de QA»).
+La limpieza del cierre solo cubre la rama del trabajo actual y solo su repositorio. Un repo de specs `direct-base` recibe ramas y worktrees por ticket, que es el caso de PRK-9 en project-g-specs. Un plan pausado queda sin versionar, como fac-235 en project-f-specs desde el 2026-10-29. Además, una promoción pendiente se usa como motivo para conservar worktrees («por el seguimiento de QA»).
 
 Cuando el cambio esté hecho:
 - El usuario abre el visor desde la propia pregunta de aprobación y después decide.
@@ -104,7 +104,7 @@ Ninguno: la construcción no necesita nada de fuera del repositorio.
   - Ninguna de las dos versiones cubría la pausa.
 - **Evidencia en sesiones.**
   - Visor: los episodios citados en el Objetivo.
-  - Higiene: project-g-specs tiene el worktree de project-g-9, limpio y ya mergeado, aunque project-g-specs declara `Delivery: direct-base`. En Codex 01a1aa61 el usuario tuvo que pedir la higiene. fac-235 sigue sin commit en project-f-specs.
+  - Higiene: project-g-specs tiene el worktree de PRK-9, limpio y ya mergeado, aunque project-g-specs declara `Delivery: direct-base`. En Codex 01a1aa61 el usuario tuvo que pedir la higiene. fac-235 sigue sin commit en project-f-specs.
 
 ## Entrega
 

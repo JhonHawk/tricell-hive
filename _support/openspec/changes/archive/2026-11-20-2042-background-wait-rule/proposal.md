@@ -27,7 +27,7 @@ None: the work adopts no business rule beyond what its ticket and documentation 
 
 > «A, y B, validemos como teníamos las reglas anteriores, porque no recuerdo que tuviéramos un problema» (2026-11-20). La A era planear la regla de esperas y su criterio de auditoría; la B, corregir `merged_branch_deleted`.
 
-El origen es la sesión de Grok `01a1f7e8-7f68-70b2-b053-db12af2bb562` en project-g (project-g-22, 2026-11-20). Un bucle en segundo plano esperaba dos builds de Amplify y comparaba `"$c$b"` con `SUCCEEDSUCCEED`. Pero `aws amplify list-jobs --max-items 1 --output text` imprime además una línea `None`, así que ninguna rama coincidió nunca. El bucle no tenía plazo, Grok solo despierta al agente cuando la tarea termina, y la sesión quedó quieta 8 h 51 min, hasta que el usuario preguntó.
+El origen es la sesión de Grok `01a1f7e8-7f68-70b2-b053-db12af2bb562` en project-g (PRK-22, 2026-11-20). Un bucle en segundo plano esperaba dos builds de Amplify y comparaba `"$c$b"` con `SUCCEEDSUCCEED`. Pero `aws amplify list-jobs --max-items 1 --output text` imprime además una línea `None`, así que ninguna rama coincidió nunca. El bucle no tenía plazo, Grok solo despierta al agente cuando la tarea termina, y la sesión quedó quieta 8 h 51 min, hasta que el usuario preguntó.
 
 ## Objetivo
 

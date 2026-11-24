@@ -233,7 +233,7 @@ Antes de leer cada almacén se aplica la sección «Secrets» de la guía global
 
 **Depends on:** T6
 
-**Locations:** los archivos de `~/.claude/projects/*/memory/` y los temas de `~/.grok/memory-v2/workspaces/{project-g-893b42f2,project-a-bd41b901,project-b-63775406}/topics/` de la lista de T6, una nota nueva en `~/.codex/memories/extensions/ad_hoc/notes/`
+**Locations:** los archivos de `~/.claude/projects/*/memory/` y los temas de `~/.grok/memory-v2/workspaces/{PRK-893b42f2,project-a-bd41b901,project-b-63775406}/topics/` de la lista de T6, una nota nueva en `~/.codex/memories/extensions/ad_hoc/notes/`
 
 **Execution:** main thread
 

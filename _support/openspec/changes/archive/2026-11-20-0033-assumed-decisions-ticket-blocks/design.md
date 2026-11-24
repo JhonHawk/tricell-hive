@@ -19,7 +19,7 @@
 ## Forma de la evaluación de un ticket
 
 ```
-**Revisión · project-g-20 · no listo**            ← línea de contexto
+**Revisión · PRK-20 · no listo**            ← línea de contexto
 Resumen                                       ← como hoy: impacto, complejidad, dependencias
 Veredicto   Listo: no — fallan 2 (criterios), 5 (fuera de alcance), 6 (límite de solicitudes)
 Criterios propuestos   AC1…ACn
