@@ -866,6 +866,49 @@ class LegacyMigrationTest(Fixture, unittest.TestCase):
         self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("docs/guide.md:1", result.stdout)
 
+    def test_verify_reports_a_dead_link_to_a_record_removed_by_legacy_remove_and_accepts_a_repoint(self):
+        repo = legacy_repo(self.tmp())
+        write(repo, "docs/guide.md", "See `_support/sessions/2026-01-02-x/a.md` and `_support/evidence/b.txt`.\n")
+        commit(repo)
+        plan_file = self.make_plan(repo, "--legacy", "remove")
+        self.assertEqual(self.apply_after_tag(repo, plan_file).returncode, 0)
+        for gone in ("_support/sessions/2026-01-02-x", "_support/evidence/b.txt"):
+            git(repo, "rm", "-rq", gone)
+        result = self.run_cmd("verify", plan_file)
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("docs/guide.md:1: _support/sessions/2026-01-02-x/a.md", result.stdout)
+        self.assertIn("docs/guide.md:1: _support/evidence/b.txt", result.stdout)
+        write(repo, "docs/guide.md", "See `archive/2026-01-02-layout:_support/sessions/2026-01-02-x/a.md` and "
+                                     "`0123abc:_support/evidence/b.txt`, and the home `_support/sessions`.\n")
+        result = self.run_cmd("verify", plan_file)
+        self.assertEqual((result.returncode, result.stdout), (0, ""))
+
+    def test_a_path_after_a_git_ref_is_a_repoint_only_for_a_real_ref(self):
+        repo = legacy_repo(self.tmp())
+        write(repo, "docs/env.md", "PYTHONPATH=_support/archive/lib:_support/sessions/2026-01-02-x/a.md\n"
+                                   "at 1700000000:_support/sessions/2026-01-02-x/a.md\n"
+                                   "see xarchive/t:_support/sessions/2026-01-02-x/a.md\n")
+        commit(repo)
+        plan_file = self.make_plan(repo, "--legacy", "remove")
+        self.assertEqual(self.apply_after_tag(repo, plan_file).returncode, 0)
+        git(repo, "rm", "-rq", "_support/sessions/2026-01-02-x")
+        result = self.run_cmd("verify", plan_file)
+        self.assertEqual(result.returncode, 1, result.stdout)
+        for line in (1, 2, 3):
+            self.assertIn(f"docs/env.md:{line}: _support/sessions/2026-01-02-x/a.md", result.stdout)
+
+    def test_verify_ignores_the_manifest_of_the_skills_own_folder(self):
+        repo = legacy_repo(self.tmp())
+        folder = repo / "_support/workspace/2026-11-24-project-layout"
+        folder.mkdir(parents=True)
+        plan_file = folder / "plan.json"
+        self.plan(repo, extra=["--legacy", "remove", "--out", str(plan_file)])
+        self.assertEqual(self.apply_after_tag(repo, plan_file).returncode, 0)
+        git(repo, "rm", "-rq", "_support/sessions/2026-01-02-x")
+        write(repo, "_support/workspace/2026-11-24-project-layout/manifest.md", "`_support/sessions/2026-01-02-x/a.md`\n")
+        result = self.run_cmd("verify", plan_file)
+        self.assertEqual((result.returncode, result.stdout), (0, ""))
+
     def test_verify_passes_after_a_plain_move_whatever_a_placeholder_or_a_new_path_says(self):
         repo = legacy_repo(self.tmp())
         write(repo, "docs/guide.md", "Layout: `_support/sessions/YYYY-MM-DD-work/`, `_support/sessions/*`, "
@@ -1303,7 +1346,7 @@ class LegacyGapsTest(Fixture, unittest.TestCase):
         for home in ("plan", "spec"):
             self.assertEqual(self.row(plan, 0, f"_support/{home}/2026-06-07-{home}-item")["action"], "review", home)
         ws, specs = specs_workspace(self.tmp())
-        write(specs, "README.md", "Captures live in `evidence/2026-03-04-audit/shot.txt`.\n")
+        write(specs, "config.json", '{"out": "evidence"}\n')
         commit(specs)
         cited = self.plan_json(ws, specs, extra=["--legacy", "remove"])
         self.assertEqual(self.row(cited, 1, "evidence")["action"], "review")
@@ -1328,61 +1371,109 @@ class LegacyGapsTest(Fixture, unittest.TestCase):
         self.assertEqual(csv["destination"], "_support/data/2026-01-06-run/evidence")
         self.assertEqual(self.row(plan, 0, "_support/sessions/2026-01-08-plain")["action"], "delete")
 
-    def test_legacy_remove_reviews_a_record_a_living_document_cites(self):
+    def test_a_record_a_document_or_code_cites_is_deleted_and_lists_its_citations(self):
         repo = legacy_repo(self.tmp())
-        write(repo, "_support/evidence/2026-01-05-run/shot.png", b"png")
-        write(repo, "docs/guide.md", "![shot](../_support/evidence/2026-01-05-run/shot.png)\n")
-        commit(repo)
-        plan = self.plan_json(repo, extra=["--legacy", "remove"])
-        cited = self.row(plan, 0, "_support/evidence/2026-01-05-run")
-        self.assertEqual((cited["action"], cited["destination"]), ("review", None))
-        reviews = [r for r in plan["reviews"] if r["path"] == cited["source"]]
-        self.assertIn("living path", reviews[0]["detail"])
-        self.assertIn("docs/guide.md:1", reviews[0]["detail"])
-        self.assertEqual(self.row(plan, 0, "_support/sessions/2026-01-02-x")["action"], "delete")
-
-    def test_a_record_whose_name_appears_in_any_text_file_that_stays_goes_to_review(self):
-        repo = legacy_repo(self.tmp())
-        for name in ("2026-03-01-ws", "2026-03-02-enc", "2026-03-03-plan", "2026-03-04-free"):
+        for name in ("2026-03-01-ws", "2026-03-02-enc", "2026-03-04-free"):
             write(repo, f"_support/sessions/{name}/a.md", "# a\n")
         write(repo, "_support/sessions/2026-03-05 spaced/a.md", "# a\n")
+        write(repo, "_support/evidence/2026-01-05-run/shot.png", b"png")
         write(repo, "_support/workspace/2026-03-09-x/notes.md", "see the 2026-03-01-ws run\n")
-        write(repo, "docs/guide.md", "[s](../_support/sessions/2026-03-05%20spaced/a.md)\n")
-        write(repo, "_support/plan/2026-03-10-p/a.md", "follows 2026-03-03-plan\n")
+        write(repo, "docs/guide.md", "![shot](../_support/evidence/2026-01-05-run/shot.png)\n")
         write(repo, "src/app.py", "print('2026-03-02-enc')\n")
         write(repo, "_support/sessions/2026-03-04-free/a.md", "# a, mentions 2026-03-04-free itself\n")
         commit(repo)
         plan = self.plan_json(repo, extra=["--legacy", "remove"])
-        for name, where in (("2026-03-01-ws", "_support/workspace/2026-03-09-x/notes.md:1"),
-                            ("2026-03-02-enc", "src/app.py:1"), ("2026-03-03-plan", "_support/plan/2026-03-10-p/a.md:1"),
-                            ("2026-03-05 spaced", "docs/guide.md:1")):
-            row = self.row(plan, 0, f"_support/sessions/{name}")
-            self.assertEqual((row["action"], row["destination"]), ("review", None), name)
-            self.assertIn(where, [r["detail"] for r in plan["reviews"] if r["path"] == row["source"]][0])
-        self.assertEqual(self.row(plan, 0, "_support/sessions/2026-03-04-free")["action"], "delete")
+        name = os.path.basename(repo)
+        for source, where in (("_support/sessions/2026-03-01-ws", "_support/workspace/2026-03-09-x/notes.md:1"),
+                              ("_support/sessions/2026-03-02-enc", "src/app.py:1"),
+                              ("_support/evidence/2026-01-05-run", "docs/guide.md:1")):
+            row = self.row(plan, 0, source)
+            self.assertEqual((row["action"], row["destination"]), ("delete", None), source)
+            self.assertEqual(row["cited_by"], [f"{name}/{where}"], source)
+            self.assertIn(f"cited by 1: {name}/{where}", row["notes"])
+            self.assertFalse([r for r in plan["reviews"] if r["path"] == source], source)
+        free = self.row(plan, 0, "_support/sessions/2026-03-04-free")
+        self.assertEqual((free["action"], free["cited_by"]), ("delete", []), "its own files are not citations")
+        self.assertNotIn("cited_by_more", free)
 
-    def test_files_inside_rows_the_plan_deletes_do_not_count_as_citations(self):
-        repo = legacy_repo(self.tmp())
-        write(repo, "_support/sessions/2026-03-01-a/a.md", "# a\n")
-        write(repo, "_support/sessions/2026-03-02-b/b.md", "follows 2026-03-01-a\n")
-        commit(repo)
-        plan = self.plan_json(repo, extra=["--legacy", "remove"])
-        self.assertEqual(self.row(plan, 0, "_support/sessions/2026-03-01-a")["action"], "delete")
-        write(repo, "_support/sessions/2026-03-02-b/c.sql", "select 1;\n")
-        commit(repo)
-        plan = self.plan_json(repo, extra=["--legacy", "remove"])
-        self.assertEqual(self.row(plan, 0, "_support/sessions/2026-03-01-a")["action"], "review", "its citer now stays")
-
-    def test_cited_change_archive_children_and_regenerable_output_go_to_review(self):
+    def test_a_cited_change_archive_child_and_regenerable_output_are_deleted_with_their_citations(self):
         repo = legacy_repo(self.tmp())
         write(repo, ".gitignore", "_support/workspace/\n_support/archive/coverage/\n")
         write(repo, "_support/archive/coverage/index.html", "ignored\n")
         write(repo, "docs/guide.md", "Archived: openspec/changes/archive/2026-01-03-y and the coverage report.\n")
         commit(repo)
         plan = self.plan_json(repo)
-        self.assertEqual(self.row(plan, 0, "_support/openspec/changes/archive/2026-01-03-y")["action"], "review")
-        self.assertEqual(self.row(plan, 0, "_support/archive/coverage")["action"], "review")
-        self.assertEqual(self.row(plan, 0, "_support/openspec/changes/archive/README.md")["action"], "delete")
+        child = self.row(plan, 0, "_support/openspec/changes/archive/2026-01-03-y")
+        self.assertEqual((child["action"], len(child["cited_by"])), ("delete", 1))
+        coverage = self.row(plan, 0, "_support/archive/coverage")
+        self.assertEqual((coverage["action"], len(coverage["cited_by"])), ("delete", 1))
+
+    def test_a_citation_list_is_sorted_capped_and_counts_the_rest(self):
+        repo = legacy_repo(self.tmp())
+        write(repo, "_support/sessions/2026-03-01-popular/a.md", "# a\n")
+        for n in range(12):
+            write(repo, f"docs/g{n:02d}.md", "\nsee 2026-03-01-popular\n")
+        commit(repo)
+        row = self.row(self.plan_json(repo, extra=["--legacy", "remove"]), 0, "_support/sessions/2026-03-01-popular")
+        name = os.path.basename(repo)
+        self.assertEqual(row["action"], "delete")
+        self.assertEqual(row["cited_by"], [f"{name}/docs/g{n:02d}.md:2" for n in range(10)])
+        self.assertEqual(row["cited_by_more"], 2)
+        self.assertIn(f"cited by 12: {name}/docs/g00.md:2, {name}/docs/g01.md:2, {name}/docs/g02.md:2, ...", row["notes"])
+
+    def test_citations_of_a_moved_row_are_listed_without_changing_its_action(self):
+        repo = legacy_repo(self.tmp())
+        write(repo, "docs/guide.md", "the 2026-01-02-x run\n")
+        commit(repo)
+        row = self.row(self.plan_json(repo), 0, "_support/sessions/2026-01-02-x")
+        self.assertEqual(row["action"], "move")
+        self.assertEqual(row["cited_by"], [f"{os.path.basename(repo)}/docs/guide.md:1"])
+
+    def test_a_config_cited_top_level_folder_still_goes_to_review_and_a_document_does_not(self):
+        ws, specs = specs_workspace(self.tmp())
+        write(specs, "README.md", "Captures live in `evidence/2026-03-04-audit/shot.txt`.\n")
+        commit(specs)
+        plan = self.plan_json(ws, specs, extra=["--legacy", "remove"])
+        self.assertFalse([r for r in plan["rows"] if r["source"] == "evidence"], "a document alone holds nothing back")
+        self.assertEqual(self.row(plan, 1, "evidence/2026-03-04-audit")["action"], "delete")
+        write(specs, "scripts/build.sh", 'cp out.log "$ROOT/evidence/out.log"\n')
+        commit(specs)
+        plan = self.plan_json(ws, specs, extra=["--legacy", "remove"])
+        row = self.row(plan, 1, "evidence")
+        self.assertEqual((row["action"], row["destination"]), ("review", None))
+        self.assertIn("scripts/build.sh:1", [r for r in plan["reviews"] if r["path"] == "evidence"][0]["detail"])
+        kept = self.plan_json(ws, specs, extra=["--keep", str(specs / "evidence")])
+        self.assertEqual(self.row(kept, 1, "evidence")["action"], "keep")
+
+    def test_re_planning_with_a_manifest_in_the_skills_own_folder_changes_nothing(self):
+        repo = legacy_repo(self.tmp())
+        extra = ["--legacy", "remove"]
+        first = self.plan(repo, extra=extra).stdout
+        folder = repo / "_support/workspace/2026-11-24-project-layout"
+        out = folder / "plan.json"
+        folder.mkdir(parents=True)
+        self.plan(repo, extra=[*extra, "--out", str(out)])
+        write(repo, "_support/workspace/2026-11-24-project-layout/manifest.md", "| 2026-01-02-x | delete |\n")
+        self.assertEqual(self.plan(repo, extra=[*extra, "--out", str(out)]).stdout, first)
+        in_root = repo / "plan.json"
+        self.plan(repo, extra=[*extra, "--out", str(in_root)])
+        self.assertEqual(self.plan(repo, extra=[*extra, "--out", str(in_root)]).stdout, first, "the --out file is no citer")
+        in_root.unlink()
+        write(repo, "docs/2026-11-24-project-layout-extra/x.md", "2026-01-02-x\n")
+        row = self.row(self.plan_json(repo, extra=extra), 0, "_support/sessions/2026-01-02-x")
+        self.assertEqual(len(row["cited_by"]), 1, "only the exact folder name is the skill's own")
+
+    def test_citations_scan_a_large_file_quickly(self):
+        import time
+        repo = legacy_repo(self.tmp())
+        write(repo, "_support/sessions/2026-03-01-big/a.md", "# a\n")
+        write(repo, "docs/big.txt", "2026-03-01-big and padding padding padding padding padding padding\n" * 40000)
+        self.assertGreater((repo / "docs/big.txt").stat().st_size, 2_500_000)
+        commit(repo)
+        started = time.monotonic()
+        row = self.row(self.plan_json(repo, extra=["--legacy", "remove"]), 0, "_support/sessions/2026-03-01-big")
+        self.assertLess(time.monotonic() - started, 2)
+        self.assertEqual(row["cited_by_more"], 40000 - 10)
 
     def test_legacy_remove_moves_a_record_with_an_ignored_or_hidden_file_and_deletes_a_clean_folder(self):
         repo = legacy_repo(self.tmp())
@@ -1427,19 +1518,6 @@ class LegacyGapsTest(Fixture, unittest.TestCase):
         result = subprocess.run(["python3", "-I", str(SCRIPT), "apply", "--plan", str(plan_file)], text=True, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
 
-    def test_a_top_level_folder_a_document_cites_waits_for_review(self):
-        ws, specs = specs_workspace(self.tmp())
-        write(specs, "README.md", "Captures live in `evidence/2026-03-04-audit/shot.txt`.\n")
-        commit(specs)
-        plan = self.plan_json(ws, specs)
-        row = self.row(plan, 1, "evidence")
-        self.assertEqual((row["action"], row["destination"]), ("review", None))
-        reviews = [r for r in plan["reviews"] if r["path"] == "evidence"]
-        self.assertIn("README.md:1", reviews[0]["detail"])
-        self.assertEqual(self.row(plan, 1, "sessions/2026-03-05-review")["action"], "move")
-        kept = self.plan_json(ws, specs, extra=["--keep", str(specs / "evidence")])
-        self.assertEqual(self.row(kept, 1, "evidence")["action"], "keep")
-
     def test_apply_moves_top_level_homes_into_the_workspace_and_undo_restores_them(self):
         ws, specs = specs_workspace(self.tmp())
         plan_file = ws.parent / "plan.json"
@@ -1460,10 +1538,11 @@ class LegacyGapsTest(Fixture, unittest.TestCase):
         self.assertFalse((ws / "_support/workspace/2026-03-05-review").exists())
 
     def cited_workspace(self, citation, home="evidence", name="inventory-2026-06-25.md"):
-        """A workspace README citing a top-level home of the specs repository, which its own notes also cite."""
+        """A workspace README citing a top-level home of the specs repository, which its own configuration also cites."""
         ws, specs = specs_workspace(self.tmp())
         write(specs, f"{home}/{name}", "# inventory\n")
         write(specs, "NOTES.md", f"- see `{home}/{name}`\n")
+        write(specs, "config.json", json.dumps({"out": home}) + "\n")
         git(specs, "add", "-A")
         git(specs, "commit", "-q", "-m", "home")
         write(ws, "_support/README.md", f"- see `{citation}` for the audit\n")
@@ -1566,7 +1645,11 @@ class LegacyReviewTest(Fixture, unittest.TestCase):
         commit(specs)
         plan = self.plan_json(ws, specs)
         for name in ("reports", "evidence"):
-            self.assertEqual([r for r in plan["rows"] if r["source"] == name][0]["action"], "review", name)
+            self.assertFalse([r for r in plan["rows"] if r["source"] == name], f"a document is no citation of {name}")
+        write(specs, "app.py", 'OUT = "reports"\n')
+        commit(specs)
+        row = [r for r in self.plan_json(ws, specs)["rows"] if r["source"] == "reports"][0]
+        self.assertEqual(row["action"], "review")
 
     def test_a_coordinator_repository_must_ignore_the_workspace_folder_a_move_creates(self):
         ws, specs = specs_workspace(self.tmp())

@@ -15,6 +15,7 @@ Never reads _support/secrets/ or _support/data/.
 """
 
 import argparse
+import bisect
 import collections
 import hashlib
 import json
@@ -25,7 +26,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import urllib.parse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import check_layout as cl  # noqa: E402  (python3 -I leaves the script's folder off sys.path)
@@ -101,6 +101,11 @@ RELATIVE_TOKEN_RE = re.compile(r"(?<![\w@./-])(?P<path>(?:\.{1,2}/)+[\w.@+-][\w.
 ANCHOR_RE = re.compile(r"BASH_SOURCE|dirname \"?\$0|\$\(dirname|__dirname|import\.meta\.url|__file__")
 REL_LITERAL_RE = re.compile(r"(?<![\w.])((?:\.\./)*\.\.(?:/[\w.@-]+)*)(?![\w.])")
 MAX_READ = 5 * 1024 * 1024
+CITED_LIMIT = 10  # citations a row lists; the rest are counted
+OWN_DIR_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-project-layout$")
+OWN_PATH_RE = re.compile(r"/_support/workspace/\d{4}-\d{2}-\d{2}-project-layout/")
+# A path written after a git ref names what the ref holds, not a path in the working tree.
+GIT_REF_RE = re.compile(r"(?:(?<![\w./-])archive/[\w./-]+|(?<![\w./-])(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}):$")
 TOOL_RULES = ("R4", "R5", "R6", "R7", "R8")
 # Files that decide what a build or a published package takes from their folder.
 BUILD_IGNORES = (".dockerignore", ".gcloudignore", ".vercelignore", ".npmignore", ".helmignore")
@@ -388,8 +393,14 @@ class Root:
 
 
 class Planner:
-    def __init__(self, roots, overrides, homes, keeps=(), keep_refs=(), legacy="move"):
+    def __init__(self, roots, overrides, homes, keeps=(), keep_refs=(), legacy="move", out=None):
         self.legacy = legacy
+        self.out_real = None  # the plan file, when it lies strictly inside a root
+        self._real_dirs = {}
+        if out:
+            real = os.path.realpath(out)
+            if any(real.startswith(os.path.realpath(r) + os.sep) for r in roots):
+                self.out_real = real
         self.roots = [Root(r) for r in roots]
         self.overrides = overrides
         self.used_overrides = set()
@@ -427,7 +438,8 @@ class Planner:
     def readable_files(self, i):
         """Files whose paths are references: not history, secrets, data or ignore lists."""
         for rel in self.roots[i].files:
-            if NEVER_READ.search("/" + rel) or HISTORY_RE.search(rel) or os.path.basename(rel).endswith("ignore"):
+            if (NEVER_READ.search("/" + rel) or HISTORY_RE.search(rel) or os.path.basename(rel).endswith("ignore")
+                    or self.own_work(i, rel)):
                 continue
             yield rel
 
@@ -826,7 +838,7 @@ class Planner:
             if base == name:
                 citing = self.top_citations(i, name)
                 if citing:
-                    return self.set_review(key, "F2", f"living path: a document or configuration cites {name}/: " + ", ".join(citing[:5]))
+                    return self.set_review(key, "F2", f"living path: code or configuration cites {name}/: " + ", ".join(citing[:5]))
             citing = self.runtime_citations(root.abs(base))
             if citing:
                 return self.set_review(key, "F2", "runtime path: code or configuration cites it: " + ", ".join(citing[:5]))
@@ -862,32 +874,25 @@ class Planner:
         return sorted(found)
 
     def top_citations(self, i, name):
-        """Lines of other files, in any root, that cite the root's top-level folder as a path (`name/...`,
-        also relative to the citing file); the files under the folder and history records do not count."""
+        """Lines of code or configuration, in any root, that cite the root's top-level folder as a path
+        (`name/...`, also relative to the citing file) or as a value: a tag does not fix a broken build.
+        Documents are not read; the files under the folder and history records do not count."""
         folder = self.roots[i].abs(name)
         pattern = re.compile(r"(?<![\w@.-])(?<!_support/)((?:\.{1,2}/)*" + re.escape(name) + r"(?:/[\w.@+*-]*)*)(?![\w-]|\.\w)")
         found = []
         for (j, rel), text in self.corpus():
             if j == i and (rel == name or rel.startswith(name + "/")):
                 continue
-            if not (rel.endswith(MARKDOWN) or os.path.splitext(rel)[1].lower() in cl.CODE_EXTENSIONS | RUNTIME_CONFIG_EXTENSIONS):
-                continue
-            if name not in text:
-                continue
             extension = os.path.splitext(rel)[1].lower()
-            prose = rel.endswith(MARKDOWN)  # a plain word in prose is no path; in code or configuration it is a value
+            if extension not in cl.CODE_EXTENSIONS | RUNTIME_CONFIG_EXTENSIONS or name not in text:
+                continue
             comment = cl.COMMENT_BY_EXTENSION.get(extension)
             citing_dir = os.path.dirname(self.roots[j].abs(rel))
             for number, line in enumerate(text.splitlines(), 1):
                 if name not in line or (comment and comment.match(line)):
                     continue
                 for match in pattern.finditer(line):
-                    cited = match.group(1)
-                    before = line[:match.start(1)]
-                    if prose and not (cited.startswith(".") or cited.endswith("/") or "/" in cited[len(name):]
-                                      or before.endswith(("`", "]("))):
-                        continue  # a plain word, not a path
-                    path = cited.rstrip("/.")
+                    path = match.group(1).rstrip("/.")
                     targets = {os.path.normpath(os.path.join(citing_dir, path)), os.path.normpath(os.path.join(self.roots[j].path, path))}
                     if any(t == folder or t.startswith(folder + os.sep) for t in targets):
                         found.append(f"{os.path.basename(self.roots[j].path)}/{rel}:{number}")
@@ -1006,7 +1011,8 @@ class Planner:
 
     def text_files(self):
         """(root index, relative path, text) of every text file of every root, ignored folders included, but
-        for .git, node_modules, binary files and ignore lists: where a record's name may be written."""
+        for .git, node_modules, binary files, files over the size limit, ignore lists, secrets and data, and
+        the skill's own work: where a record's name may be written."""
         if not hasattr(self, "_text_files"):
             self._text_files, seen = [], set()
             for j, root in enumerate(self.roots):
@@ -1017,6 +1023,9 @@ class Planner:
                         if path in seen or name.endswith("ignore") or os.path.islink(path):
                             continue
                         seen.add(path)
+                        rel = os.path.relpath(path, root.path).replace(os.sep, "/")
+                        if NEVER_READ.search("/" + rel) or self.own_work(j, rel):
+                            continue
                         try:
                             if os.path.getsize(path) > TEXT_FILE_LIMIT:
                                 continue
@@ -1026,43 +1035,54 @@ class Planner:
                             continue
                         if b"\0" in data[:8192]:
                             continue
-                        self._text_files.append((j, os.path.relpath(path, root.path).replace(os.sep, "/"),
-                                                 data.decode("utf-8", "replace")))
+                        self._text_files.append((j, rel, data.decode("utf-8", "replace")))
         return self._text_files
 
-    def review_cited_deletions(self):
-        """A delete row whose name occurs in a text file that stays goes to review with the citing line:
-        a substring match, so a false hit only costs a review. The files inside rows this plan deletes do
-        not count; a row sent to review stops excluding its own files, so the check repeats to a fixed point."""
-        deleting = {key for key, row in self.rows.items() if row["delete"]}
-        changed = bool(deleting)
-        while changed:
-            changed = False
-            inside = [self.roots[i].abs(rel) for i, rel in deleting]
-            cited = {}
-            for j, other, text in self.text_files():
-                path = self.roots[j].abs(other)
-                if any(path == p or path.startswith(p + os.sep) for p in inside):
+    def citations(self, keys):
+        """key -> (count, first CITED_LIMIT of `root/file:line`) for each row key: the lines, in any text file
+        of any root outside the row itself, that contain the row's basename as a plain substring. Informative
+        only: it never changes an action."""
+        names = {}
+        for key in keys:
+            names.setdefault(os.path.basename(key[1]), []).append(key)
+        found = {key: [] for key in keys}
+        for j, rel, text in self.text_files():
+            starts = None
+            for name, group in names.items():
+                at = text.find(name)
+                if at < 0:
                     continue
-                for key in deleting:
-                    if key in cited:
+                if starts is None:
+                    starts = [0] + [m.end() for m in re.finditer("\n", text)]
+                lines = set()
+                while at >= 0:
+                    lines.add(bisect.bisect_right(starts, at))
+                    at = text.find(name, at + 1)
+                for key in group:
+                    if j == key[0] and (rel == key[1] or rel.startswith(key[1] + "/")):
                         continue
-                    name = os.path.basename(key[1])
-                    for needle in (name, urllib.parse.quote(name)):
-                        at = text.find(needle)
-                        if at >= 0:
-                            line = text.count("\n", 0, at) + 1
-                            cited[key] = f"{os.path.basename(self.roots[j].path)}/{other}:{line}"
-                            break
-            for key, where in sorted(cited.items()):
-                row = self.rows[key]
-                row["delete"] = False
-                row["notes"] = [n for n in row["notes"] if n != row.get("delete_note")]
-                self.set_review(key, row["rule"], f"living path: its name occurs in {where}")
-                deleting.discard(key)
-                changed = True
+                    found[key].extend((j, rel, n) for n in lines)
+        result = {}
+        for key, hits in found.items():
+            hits.sort()
+            result[key] = (len(hits), [f"{os.path.basename(self.roots[j].path)}/{rel}:{n}" for j, rel, n in hits[:CITED_LIMIT]])
+        return result
 
-    # ---- the change register of an earlier layout ---------------------------------
+    def own_work(self, j, rel):
+        """Whether the file is the skill's own work, which no scan reads: the --out file, the files beside it
+        in a folder named `<date>-project-layout`, and any file under `_support/workspace/<date>-project-layout/`."""
+        if OWN_PATH_RE.search("/" + rel):
+            return True
+        if self.out_real is None:
+            return False
+        folder = os.path.dirname(self.roots[j].abs(rel))
+        if folder not in self._real_dirs:
+            self._real_dirs[folder] = os.path.realpath(folder)
+        real = self._real_dirs[folder]
+        out_dir = os.path.dirname(self.out_real)
+        return os.path.join(real, os.path.basename(rel)) == self.out_real or (
+            real == out_dir and OWN_DIR_RE.match(os.path.basename(out_dir)) is not None)
+
     def declared(self, i, key):
         for name in ("AGENTS.md", "CLAUDE.md"):
             match = re.search(rf"^\s*[-*]?\s*{key}:\s*`?([^\s`·]+)", cl.read_text(self.roots[i].abs(name)), re.M)
@@ -1715,7 +1735,6 @@ class Planner:
         refs = self.references()
         self.classify(refs)
         self.legacy_changes()
-        self.review_cited_deletions()
         self.guard()
         self.apply_homes()
         unused = sorted({spec for spec, _ in self.overrides} - self.used_overrides)
@@ -1735,16 +1754,28 @@ class Planner:
             raise SystemExit(fail("--keep-ref names no reference: " + ", ".join(unused)))
         self.internal_paths()
         self.build_index_lines()
+        actions = {key: ("delete" if row["delete"] else "move" if row["destination"]
+                         else "keep" if any(n.startswith("kept") for n in row["notes"]) else "review")
+                   for key, row in self.rows.items()}
+        cited = self.citations([key for key, action in actions.items() if action in ("delete", "move")])
         rows = []
         for key in sorted(self.rows):
             row = self.rows[key]
-            action = ("delete" if row["delete"] else "move" if row["destination"]
-                      else "keep" if any(n.startswith("kept") for n in row["notes"]) else "review")
+            notes = sorted(set(row["notes"]))
+            extra = {}
+            if key in cited:
+                count, first = cited[key]
+                extra["cited_by"] = first
+                if count > len(first):
+                    extra["cited_by_more"] = count - len(first)
+                if count:
+                    notes = sorted(set(notes + [f"cited by {count}: " + ", ".join(first[:3]) + (", ..." if count > 3 else "")]))
             rows.append({
                 "root": row["root"], "source": row["source"], "kind": row["kind"], "tracked": row["tracked"],
-                "action": action, "untrack": row["untrack"],
-                "rule": row["rule"], "destination": row["destination"], "notes": sorted(set(row["notes"])),
+                "action": actions[key], "untrack": row["untrack"],
+                "rule": row["rule"], "destination": row["destination"], "notes": notes,
                 "override": row["override"], "fingerprint": fingerprint(self.roots[row["root"]].abs(row["source"])),
+                **extra,
                 **({"builds": sorted(row["builds"], key=lambda b: b["file"])} if row.get("builds") else {}),
             })
         reviews = sorted({json.dumps(r, sort_keys=True) for r in self.reviews})
@@ -1803,7 +1834,7 @@ def cmd_plan(args):
     for root in args.root:
         if not os.path.isdir(root):
             return fail(f"not a directory: {root}")
-    plan = Planner(args.root, overrides, homes, args.keep or [], args.keep_ref or [], args.legacy).plan()
+    plan = Planner(args.root, overrides, homes, args.keep or [], args.keep_ref or [], args.legacy, args.out).plan()
     text = json.dumps(plan, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
     if args.out:
         with open(args.out, "w", encoding="utf-8") as handle:
@@ -2030,8 +2061,8 @@ def cmd_verify(args):
             gone.add(source)
             sources[source] = row
             parent = os.path.dirname(source)
-            while parent not in roots and parent != os.path.dirname(parent) and not os.path.lexists(parent):
-                gone.add(parent)
+            while row["destination"] and parent not in roots and parent != os.path.dirname(parent) and not os.path.lexists(parent):
+                gone.add(parent)  # a moved row leaves its emptied home dead; a deleted one names only itself
                 parent = os.path.dirname(parent)
         if not row["destination"]:
             continue
@@ -2061,7 +2092,7 @@ def cmd_verify(args):
     def is_kept(i, rel, line):
         return (i, rel, None) in kept or (i, rel, line_hash(line)) in kept
 
-    planner = Planner(roots, [], {})
+    planner = Planner(roots, [], {}, out=args.plan)
     for i in range(len(roots)):
         for rel in planner.readable_files(i):
             text = planner.content(i, rel)
@@ -2071,7 +2102,9 @@ def cmd_verify(args):
             for number, line in enumerate(text.splitlines(), 1):
                 if is_kept(i, rel, line):
                     continue
-                for _, pre, path in tokens(line, relative):
+                for col, pre, path in tokens(line, relative):
+                    if GIT_REF_RE.search(line[:col]):
+                        continue  # `archive/<tag>:<path>` is a repointed citation: the ref holds the path
                     targets = [t for _, t in planner.resolutions(i, rel, pre, path)]
                     if not targets or any(os.path.lexists(t) for t in targets):
                         continue
