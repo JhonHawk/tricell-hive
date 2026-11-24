@@ -674,8 +674,31 @@ var (
 	unverifiedFailPattern  = regexp.MustCompile(`\bunverified \d{4}-\d{2}-\d{2} \([^)]*\):\s*`)
 	secretTokenSplitter    = regexp.MustCompile(`[\s|,;]+`)
 	secretFlagKeyRegexp    = regexp.MustCompile(`(?i)(?:secret|token|password|passwd|pwd|api[_-]?key|apikey|credential|auth|bearer|private[_-]?key|client[_-]?secret)`)
+	urlPasswordRegexp      = regexp.MustCompile(`^[A-Za-z][A-Za-z0-9+.-]*://[^/@\s]*:([^@\s]+)@`)
+	base64TokenRegexp      = regexp.MustCompile(`^[A-Za-z0-9+/]{20,}={0,2}$`)
+	pathWordRegexp         = regexp.MustCompile(`^[a-z0-9]{3,}$`)
 	knownSecretTokenRegexp = regexp.MustCompile(`\b(?:gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|glpat-[A-Za-z0-9_-]{20,}|(?:AKIA|ASIA)[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{35}|xox[baprs]-[A-Za-z0-9-]{10,}|sk-(?:ant-|proj-|live-)?[A-Za-z0-9_-]{20,})\b|-----BEGIN (?:[A-Z0-9 ]+ )?PRIVATE KEY-----`)
 )
+
+// isLiteralSecretValue reports whether a credential value is written out rather
+// than a placeholder such as $VAR or <password>.
+func isLiteralSecretValue(v string) bool {
+	return len(v) >= 8 && !strings.HasPrefix(v, "$") && !(strings.HasPrefix(v, "<") && strings.HasSuffix(v, ">"))
+}
+
+// isBase64Secret reports a base64 value whose / would otherwise split it into
+// pieces too short to judge; a relative path has a lowercase word among its parts.
+func isBase64Secret(tok string) bool {
+	if !base64TokenRegexp.MatchString(tok) || !isMixedClassSecret(tok) {
+		return false
+	}
+	for _, part := range strings.Split(tok, "/") {
+		if pathWordRegexp.MatchString(part) {
+			return false
+		}
+	}
+	return true
+}
 
 func shannonEntropy(s string) float64 {
 	if len(s) == 0 {
@@ -727,6 +750,12 @@ func containsSecretToken(line string) bool {
 	}
 	for _, raw := range secretTokenSplitter.Split(line, -1) {
 		tok := strings.Trim(raw, "'\"`()[]{}")
+		if m := urlPasswordRegexp.FindStringSubmatch(tok); m != nil && isLiteralSecretValue(m[1]) {
+			return true
+		}
+		if isBase64Secret(tok) {
+			return true
+		}
 		if tok == "" || strings.HasPrefix(tok, "http://") || strings.HasPrefix(tok, "https://") ||
 			strings.HasPrefix(tok, "engram:") || strings.HasPrefix(tok, "arn:") ||
 			strings.HasPrefix(tok, "git@") || strings.HasPrefix(tok, "ssh://") ||

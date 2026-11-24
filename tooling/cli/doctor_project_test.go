@@ -746,6 +746,15 @@ func TestDoctorProjectLocalInstructionsAndSecrets(t *testing.T) {
 				t.Fatalf("benign operational entry flagged as secret: %s", benign)
 			}
 		}
+		for _, secret := range []string{
+			"- Staging AWS secret wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY · 2026-11-16",
+			"- DB url ssh://deploy:Zq8vR2mX4pL9tK7wN3s@db.internal · 2026-11-16",
+			"- API https://svc:Zq8vR2mX4pL9tK7wN3s@api.internal/v1 · 2026-11-16",
+		} {
+			if !containsSecretToken(secret) {
+				t.Fatalf("bare secret not flagged: %s", secret)
+			}
+		}
 		sec := collectProject(root, doctorDeps{})
 		text := projectText(t, root)
 		mustContain(t, text, "HIVE.local.md: line 3 contains a secret-like value")

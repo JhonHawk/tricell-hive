@@ -211,6 +211,29 @@ func TestRemovePiConfigClearsTheRecordWhenThereIsNoFile(t *testing.T) {
 	}
 }
 
+// A folder moved behind a symbolic link still holds the key: the remove leaves
+// it and keeps the record, so a later remove can still undo it.
+func TestRemovePiConfigKeepsTheRecordWhenALinkedFolderHoldsTheFile(t *testing.T) {
+	o := pcOptions(t)
+	pcInstall(t, o)
+	dir := filepath.Dir(pcConfig(o))
+	real := filepath.Join(filepath.Dir(o.Home), "real-dir")
+	if err := os.Rename(dir, real); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(real, dir); err != nil {
+		t.Fatal(err)
+	}
+	p := plan(t, "remove", o)
+	id := apply(t, p)
+	if pcState(t, o).PiSubagentConfig == nil {
+		t.Fatal("the record was cleared while config.json still holds the key")
+	}
+	if n := pcNotes(t, o, id); !strings.Contains(n, "left toolActivation") || strings.Contains(n, "is gone") {
+		t.Fatalf("notes = %q", n)
+	}
+}
+
 // Item 1: the migration edits the file, but the folders around it still decide.
 func TestPlanPiConfigPostMigrationStillChecksTheFolders(t *testing.T) {
 	arrange := map[string]func(t *testing.T, o Options){
