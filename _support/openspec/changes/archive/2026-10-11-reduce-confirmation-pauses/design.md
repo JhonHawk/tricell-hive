@@ -62,6 +62,6 @@ Después: «Repeated approvals are not standing permission; an iterative route t
 - D4-B, inferir la autorización del objetivo: obliga a reescribir la regla central de autorización y quita al usuario el momento de aceptar el tope.
 - D5-B/D5-C: tope fijo o sin tope (ver propuesta).
 
-## Ejemplo en cam
+## Ejemplo en project-g
 
-En D8 el agente habría ofrecido: «Ruta iterativa — medir en una copia de CAM, corregir el resolver y volver a medir, hasta 4 vueltas o hasta que una vuelta no reduzca los enlaces falsos; solo en el espacio de trabajo local, sin instalar ni reindexar CAM». Al elegirla, D9–D12 habrían sido líneas de progreso.
+En D8 el agente habría ofrecido: «Ruta iterativa — medir en una copia de project-g, corregir el resolver y volver a medir, hasta 4 vueltas o hasta que una vuelta no reduzca los enlaces falsos; solo en el espacio de trabajo local, sin instalar ni reindexar project-g». Al elegirla, D9–D12 habrían sido líneas de progreso.

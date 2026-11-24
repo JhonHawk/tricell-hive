@@ -65,7 +65,7 @@ None: la construcción no necesita nada de fuera del repositorio.
 - Fuentes externas (investigación del 2026-11-22): Anthropic y Cursor recomiendan una copia canónica más punteros («Reference files with @ instead of copying», cursor.com/docs/context/rules; «Prefer pointers to copies», HumanLayer 2025-11-25); ninguna fuente recomienda IDs de cláusula para instrucciones, y la «constitution» de Anthropic es un documento de entrenamiento, no un formato; Vercel midió (2026-01-27) que un índice de 8 KB dentro de AGENTS.md pasó el 100 % de sus evals contra 53–79 % de skills que dependen de invocarse, y que «You MUST invoke» dio peores resultados; la documentación de Claude Code re-inyecta el archivo raíz tras compactar y no las rutas cargadas bajo demanda; ninguna fuente defiende tests de frases obligatorias, y Anthropic recomienda evals de comportamiento · 2026-11-22
 - `wc -c content/guidance/global.md` · 29.210 B · 2026-11-22
 - `go test ./... -count=1` · ok · 2026-11-22 (tras PR #587)
-- Escaneo de 6 palabras, como lo define `design.md` «Overlap scan» (copia de esta sesión: `/private/tmp/claude-501/-Users-jmartinez-Development-projects-tricell-tricell-hive/2e5de8b8-cadc-4f7b-af48-d72138a2a0ab/scratchpad/overlap_detail.py <repo> <salida.json>`) · 58 pares · 2026-11-22
+- Escaneo de 6 palabras, como lo define `design.md` «Overlap scan» (copia de esta sesión: `/private/tmp/claude-501/-Users-me-Development-projects-tricell-tricell-hive/2e5de8b8-cadc-4f7b-af48-d72138a2a0ab/scratchpad/overlap_detail.py <repo> <salida.json>`) · 58 pares · 2026-11-22
 - `python3 -I -m unittest discover -s tests/skills -p '*_test.py'` · 412 OK · 2026-11-22
 
 ## Effects

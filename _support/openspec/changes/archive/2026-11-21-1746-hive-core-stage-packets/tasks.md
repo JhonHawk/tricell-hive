@@ -377,7 +377,7 @@ Si otra sesión refresca antes (D10 A), cada unidad funciona sola, y el reporte 
 - Last commit: 2a1faa7d
 - Open findings: none
 - Next: push + PR E3 + merge; luego aviso de refresco (D9 A) y esperar a que se cierren las sesiones; refresco binario+contenido; hive status; flow-close; actualizar artifact «Skills de Hive»
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/hive-core-stage-packets · feat/stage-rules-reply
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/hive-core-stage-packets · feat/stage-rules-reply
 
 ### Evidence
 

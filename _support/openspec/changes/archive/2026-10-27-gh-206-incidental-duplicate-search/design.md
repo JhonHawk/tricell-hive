@@ -16,4 +16,4 @@
 - **H4.** Una frase en la regla global, junto a la de pruebas que fallan: un fallo de un comando o herramienta que no bloquea el trabajo y que se esquiva, por ejemplo reintentando con otra ruta o flag, es un hallazgo incidental; se reporta con el fallo y el rodeo. El que pertenece al host o a otro proyecto se reporta por la regla de otros proyectos (`global.md:30`). Hereda el alcance de la viñeta («authorized implementation or review»), sin ampliarlo; un fallo que bloquea el trabajo sigue la regla de defectos bloqueantes (`global.md:33`). Va en `global.md` porque debe actuar durante el trabajo, sin que se haya leído la referencia.
 - **Sitio.** Close y Build describen el comportamiento y enlazan la regla, sin copiarla.
 
-Alternativa descartada: mover la búsqueda en memoria solo a la referencia y quitarla de `global.md`. Dejaría sin la búsqueda a quien propone durante el trabajo sin leer la referencia, que es el caso de fleetsystem.
+Alternativa descartada: mover la búsqueda en memoria solo a la referencia y quitarla de `global.md`. Dejaría sin la búsqueda a quien propone durante el trabajo sin leer la referencia, que es el caso de project-b.

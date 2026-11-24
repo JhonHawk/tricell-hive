@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	// ticketKey is a Jira or Linear key in a prompt, such as CAM-20. Its
+	// ticketKey is a Jira or Linear key in a prompt, such as project-g-20. Its
 	// prefix is checked against standardPrefixes, which name standards and
 	// algorithms that look like keys.
 	ticketKey        = regexp.MustCompile(`(?:^|[^A-Za-z0-9_-])([A-Z]{2,}[A-Z0-9]*)-\d+\b`)

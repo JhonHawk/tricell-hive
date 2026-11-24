@@ -47,7 +47,7 @@ Base: tricell-hive `development` en `9f67fead` (2026-11-17). Rama `feat/project-
 ### T3 — `check_layout.py`
 
 - [x] Script con las siete reglas de `design.md` «check_layout.py», que busca el índice en el orden definido y lee su línea `Layout:` antes de aplicarlas, y su test con fixtures temporales: un caso por regla, uno por exención de la regla 3, uno con solo `docs/README.md` y `Layout: docs at docs/ · tools at scripts/`, el mismo sin la línea (regla 7), uno con `Index:` en `AGENTS.md`, y un fixture limpio.
-- [x] Corrida de solo lectura sobre cam, carvento, fleetsystem y facti; registrar en el checkpoint los hallazgos contra la lista de «Verified context» de `proposal.md`.
+- [x] Corrida de solo lectura sobre project-g, project-a, project-b y project-f; registrar en el checkpoint los hallazgos contra la lista de «Verified context» de `proposal.md`.
 
 **Closes:** AC5, AC13, AC15
 
@@ -164,7 +164,7 @@ Base: tricell-hive `development` en `9f67fead` (2026-11-17). Rama `feat/project-
 | --- | --- | --- | --- |
 | Tests of each task | When the task closes, locally | El comando de la tarea pasa | Covered by the implementation |
 | Full suite | Final candidate, locally | `go vet ./...`, `go test ./...`, `python3 -m unittest discover -s tests/skills -p '*_test.py'`, `cd site && pnpm run check && pnpm run lint && pnpm run build` | Covered by the implementation |
-| Real-path check | Final candidate, read-only on cam, carvento, fleetsystem, facti | `check_layout.py` contra la lista de «Verified context» | Covered by the implementation (solo lectura) |
+| Real-path check | Final candidate, read-only on project-g, project-a, project-b, project-f | `check_layout.py` contra la lista de «Verified context» | Covered by the implementation (solo lectura) |
 | Installed hosts | Final candidate, locally | `hive update --source <checkout> --rev <head> --dry-run` lista `docs-cleanup` como retirado | Covered by the implementation (sin aplicar) |
 | Code review | Final candidate, before the push | Claude Code `/code-review` | The review answer |
 
@@ -180,7 +180,7 @@ Sin parada de validación humana: la entrega es `ready`, que se detiene con el P
 
 ### Evidence
 
-- AC5 read-only check_layout on 16 real roots · cam 10 LAYOUT-01; carvento-monorepo 46 LAYOUT-02; facti-2020-new 65, facti-backend-client 16 LAYOUT-02; facti LAYOUT-03 cancel-payment-complements.js and global-emision.js; fleetsystem evidence/ and migration-data/ LAYOUT-04, no LAYOUT-01 · fc8099f6
+- AC5 read-only check_layout on 16 real roots · project-g 10 LAYOUT-01; project-a-monorepo 46 LAYOUT-02; project-f-2020-new 65, project-f-backend-client 16 LAYOUT-02; project-f LAYOUT-03 cancel-payment-complements.js and global-emision.js; project-b evidence/ and migration-data/ LAYOUT-04, no LAYOUT-01 · fc8099f6
 - before captures: none (no UI)
 - full suite: go vet ok, go test ok except known flake TestE2ESetupDeadlinesOwnDescendantsAndPipes, python unittest ok, site check/lint/build ok · 610f7765
 - /code-review: 10 findings fixed in f994d453 · plan reviews 4 rounds applied

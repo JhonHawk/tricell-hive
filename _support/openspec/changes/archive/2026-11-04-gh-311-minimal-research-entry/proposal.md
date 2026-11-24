@@ -20,7 +20,7 @@
 - ¿Qué se quita de Context7 en las herramientas? Nada: se quedan `hive setup` y el instalador opcional, que deja las reglas por defecto de Context7; en el contenido de Hive solo una o dos líneas en la guía global que invitan a usarlo. (D7, respuesta libre)
 - ¿Cuándo corre la limpieza pendiente sin elegir cerrar? Al elegir cerrar, al empezar otro trabajo (primero el cierre del anterior, dicho en una línea) o al terminar la sesión; si la sesión se corta, la recoge el siguiente cierre o higiene. (D8 A)
 - ¿Hay que escribir `/flow-build` cuando el research dejó resuelto el cómo de un cambio pedido? No: sigue a build en el mismo turno; el comando escrito queda para research→plan y plan→build. (D9 A)
-2026-11-04 (sesión Claude Code `f9f55a91`, tras ver cinco carpetas sin versionar en cam-specs)
+2026-11-04 (sesión Claude Code `f9f55a91`, tras ver cinco carpetas sin versionar en project-g-specs)
 - ¿Qué pasa con una carpeta de cambio cuando el desarrollo está completo? Se commitea aunque queden tareas abiertas: «es mejor tenerlo y editarlo que perderlo por algún accidente». (regla del usuario)
 - ¿Qué pasa con lo que queda abierto a propósito? Queda como comentario en el ticket y en Engram, y `flow-status` lo lista desde la memoria; una vez resuelto, el registro se borra. (regla del usuario)
 - ¿Cuándo se commitea la carpeta por primera vez? Con la entrega del código: en la rama del trabajo antes del push cuando `Specs` vive en el mismo repositorio; en el repositorio de specs al llegar al punto de completitud cuando vive aparte. (D26 A)

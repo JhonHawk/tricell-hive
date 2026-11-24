@@ -4,7 +4,7 @@
 
 - **A — `plan_layout.py` con `plan` y `apply` (elegido, D20 A).** Es el mismo patrón que `workspace_repo.py`. Reutiliza la enumeración de archivos y los ayudantes de `check_layout.py`, importándolo desde la carpeta del script, porque `python3 -I` no añade esa carpeta a `sys.path`. El comprobador sigue sin escribir nada.
 - **B — Subcomandos dentro de `check_layout.py`.** Queda un solo archivo, pero el check pasa a escribir y crece a unas 900 líneas.
-- **C — Tabla en prosa en `layout.md` aplicada por el agente.** Es lo que falló en carvento: el destino depende de cada corrida.
+- **C — Tabla en prosa en `layout.md` aplicada por el agente.** Es lo que falló en project-a: el destino depende de cada corrida.
 
 ## Decisions
 
@@ -15,8 +15,8 @@
 
 Supuestos menores, porque no cambian alcance, contratos, datos, costo ni reversibilidad:
 
-- Un JSON o YAML de un árbol de infraestructura que ningún archivo versionado cita, por ruta o por nombre, sale como revisión en lugar de moverse: puede ser código muerto, como `github-actions-terraform-policy.json` en carvento.
-- Las carpetas de conocimiento en la raíz de un repositorio de specs (`carvento-specs/contracts`) quedan fuera del planificador: no son material de soporte, y su destino lo fija la migración entre layouts. En el monorepo de carvento, la migración en curso ya las copió a `_support/contracts` y `_support/product`, donde el planificador sí las ve.
+- Un JSON o YAML de un árbol de infraestructura que ningún archivo versionado cita, por ruta o por nombre, sale como revisión en lugar de moverse: puede ser código muerto, como `github-actions-terraform-policy.json` en project-a.
+- Las carpetas de conocimiento en la raíz de un repositorio de specs (`project-a-specs/contracts`) quedan fuera del planificador: no son material de soporte, y su destino lo fija la migración entre layouts. En el monorepo de project-a, la migración en curso ya las copió a `_support/contracts` y `_support/product`, donde el planificador sí las ve.
 
 ## Proposed shape
 
@@ -207,7 +207,7 @@ Nunca hace commit, push ni `git add` de archivos que no mueve.
   - `workspace-repo/SKILL.md`, en sus pasos 1 y 4: el paso 4 exige que el check salga 0, y LAYOUT-08 puede romperlo;
   - `tests/skills/layout_check_test.py` y `tests/skills/workspace_repo_test.py`;
   - `rule-enforcers.md`.
-- **LAYOUT-08** hace fallar un check que hoy pasa en proyectos con código bajo `_support/`, como carvento y facti; es el efecto buscado.
+- **LAYOUT-08** hace fallar un check que hoy pasa en proyectos con código bajo `_support/`, como project-a y project-f; es el efecto buscado.
 - **La enumeración nueva** quita falsos positivos y vuelve a ver lo ignorado bajo `_support/`.
 - **El detector y el criterio** solo afectan a `--audit-session`.
 - **Producción:** no se toca.

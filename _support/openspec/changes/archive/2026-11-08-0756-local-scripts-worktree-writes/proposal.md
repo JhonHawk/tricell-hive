@@ -112,7 +112,7 @@ Ninguno: el build no necesita nada de fuera del repositorio.
 - La documentación de Claude Code (worktrees) confirma el bloqueo de `Edit`/`Write` y que un worktree solo trae lo versionado; `.worktreeinclude` copia ignorados, pero solo en los worktrees que crea Claude Code.
 - `content/guidance/global.md` mide 41 843 bytes en `b14ae746`; ninguna prueba lo limita. `content/skills/flow-close/SKILL.md` mide 15 998 bytes (límite de 16 000, `tests/content/skill_size_test.go`).
 - `git-workflow` paso 3: «Use the host's own worktree feature when it has one». Engram `hosts/grok-native-worktrees-specs` (issue #97): los worktrees de Grok son copias independientes.
-- Casos que motivan el cambio: cam clona una base por worker de tests con `CREATE DATABASE … TEMPLATE` (`comsys/cam/cam-monorepo/apps/backend/test/global-setup-integration.ts`), y el workspace cam ya tiene `_support/scripts/`.
+- Casos que motivan el cambio: project-g clona una base por worker de tests con `CREATE DATABASE … TEMPLATE` (`org-a/project-g/project-g-monorepo/apps/backend/test/global-setup-integration.ts`), y el workspace project-g ya tiene `_support/scripts/`.
 
 ## Delivery
 

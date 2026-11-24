@@ -30,7 +30,7 @@ Una función `plan_base(repo, base, main_checkout)` calcula la entrada sin cambi
 6. Algún archivo que cambia entre `HEAD` y `origin/<base>` (`git diff --name-only HEAD origin/<base>`) aparece en `git status --porcelain=v1 -uall --ignored` del checkout principal (modificado, preparado, sin seguimiento o ignorado) → `keep`, «incoming changes touch local files», con esos archivos en `paths`.
 7. Si no → `fast_forward`; con `--apply` corre `git merge --ff-only --no-overwrite-ignore origin/<base>` en el checkout principal.
 
-`merge --ff-only` no depende de `pull.rebase`, que en fleetsystem hizo fallar al `git pull`. Las pruebas llaman a `main(argv)` para los casos de fetch y de `--apply`, y a `plan_base` para las reglas. La referencia `branch-cleanup.md` pide reportar `base_update` con lo demás, su línea 3 nombra el avance como efecto que el procedimiento autoriza, y «return its checkout to the base» queda solo como volver a la base, no como actualizarla.
+`merge --ff-only` no depende de `pull.rebase`, que en project-b hizo fallar al `git pull`. Las pruebas llaman a `main(argv)` para los casos de fetch y de `--apply`, y a `plan_base` para las reglas. La referencia `branch-cleanup.md` pide reportar `base_update` con lo demás, su línea 3 nombra el avance como efecto que el procedimiento autoriza, y «return its checkout to the base» queda solo como volver a la base, no como actualizarla.
 
 ### Permiso de admin-merge por sesión
 

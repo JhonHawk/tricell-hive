@@ -12,12 +12,12 @@
 
 > Creo que ya podemos ir revisando sesiones de los diferentes proyectos y hosts, entre los temas más relevantes:
 >
-> - En el cambio de cam, del manual hizo todos los cambios pero no me presento como iba a quedar y subio directamente
-> - En carvento, una funcionalidad no la revisó porque no habia información, cuando localmente se puede generar sin problema alguno, lo dejo como bloqueante para esa parte y aun asi cerro
+> - En el cambio de project-g, del manual hizo todos los cambios pero no me presento como iba a quedar y subio directamente
+> - En project-a, una funcionalidad no la revisó porque no habia información, cuando localmente se puede generar sin problema alguno, lo dejo como bloqueante para esa parte y aun asi cerro
 >
 > Esas son mis anotaciones, pero busca más temas
 
-> lo de cam, fue con grok
+> lo de project-g, fue con grok
 
 > Planear H1,H2,H4,H6,H8 (Recomendada)
 
@@ -33,8 +33,8 @@ El issue #262 se abrió el 2026-10-28 desde esta sesión; sus criterios de acept
 
 Una revisión de 24 sesiones reales iniciadas después de hive-core (2026-10-28T03:18Z) en Claude Code, Codex y Grok confirmó las dos notas del usuario y encontró dos fallas más que vale la pena corregir.
 
-- **H1.** En una sesión Grok de cam (`01a183d9`), el agente rehízo la tabla del manual y en un solo comando hizo commit y push a `master` de un repositorio `Delivery: direct-base`. Ese push desplegó en Vercel sin build, sin captura previa y sin pregunta. La regla de `direct-base` pide preguntar antes de un push que despliega "when no question is otherwise asked". El agente aplicó al rediseño el "actualicemos" que el usuario había dado para el cambio anterior. Además, la guía clasifica "documentación" como cambio mecánico aunque altere el layout, así que el agente no cargó la primera vista renderizada.
-- **H2.** En una sesión Grok de carvento (`01a18466`, COM-900), el plan condicionó la caminata funcional a que "exista la cuenta" y el build terminó sin sembrar datos locales. El agente los generó en 2 minutos cuando el usuario se lo pidió. `review-and-gates.md` ya pide preparar cuentas, roles y datos semilla locales, pero `flow-build` y los marcadores del plan dicen "prerequisites unavailable" sin separar lo que el agente puede crear de lo que solo el usuario puede dar.
+- **H1.** En una sesión Grok de project-g (`01a183d9`), el agente rehízo la tabla del manual y en un solo comando hizo commit y push a `master` de un repositorio `Delivery: direct-base`. Ese push desplegó en Vercel sin build, sin captura previa y sin pregunta. La regla de `direct-base` pide preguntar antes de un push que despliega "when no question is otherwise asked". El agente aplicó al rediseño el "actualicemos" que el usuario había dado para el cambio anterior. Además, la guía clasifica "documentación" como cambio mecánico aunque altere el layout, así que el agente no cargó la primera vista renderizada.
+- **H2.** En una sesión Grok de project-a (`01a18466`, PRJ-900), el plan condicionó la caminata funcional a que "exista la cuenta" y el build terminó sin sembrar datos locales. El agente los generó en 2 minutos cuando el usuario se lo pidió. `review-and-gates.md` ya pide preparar cuentas, roles y datos semilla locales, pero `flow-build` y los marcadores del plan dicen "prerequisites unavailable" sin separar lo que el agente puede crear de lo que solo el usuario puede dar.
 - **H4.** Codex omitió la línea de contexto en 181 de 202 mensajes. Leyó la excepción "a one-line progress note" como "cualquier párrafo escrito en una sola línea".
 - **H8.** La guía manda consultar Context7 con la skill instalada, que corre `npx ctx7@latest`, y la revisión de dependencias exige revisar todo `npx` puntual y prohíbe `@latest`. El usuario eligió eximir esa CLI (D2-B).
 

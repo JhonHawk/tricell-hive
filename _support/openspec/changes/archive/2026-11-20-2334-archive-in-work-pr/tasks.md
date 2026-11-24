@@ -192,7 +192,7 @@ Sin parada de validación: la entrega es `ready`, que se detiene con el PR abier
 - Last commit: b8d24d8e
 - Open findings: none
 - Next: push, PR non-draft, ready stop; follow-up close records this folder's archive (AC4)
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/archive-in-work-pr · feat/archive-in-work-pr
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/archive-in-work-pr · feat/archive-in-work-pr
 
 ### Evidence
 

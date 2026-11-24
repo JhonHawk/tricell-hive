@@ -207,7 +207,7 @@ Parada de validación: el usuario lee `content/skills/create-prd/SKILL.md` y sus
 - Last commit: 57849508
 - Open findings: none
 - Next: al responder «cerrar»: inventario de soporte, archivar la carpeta (rama nueva desde development con las ediciones sin confirmar de este worktree), quitar worktree y rama feat/create-prd
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/create-prd · feat/create-prd
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/create-prd · feat/create-prd
 
 ### Evidence
 

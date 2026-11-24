@@ -164,7 +164,7 @@ Sin parada de validación (entrega `automatic`). Queda abierto a propósito tras
 - Last commit: 6f39a06
 - Open findings: none
 - Next: Push, PR to development, merge gate, merge, then flow-close and local refresh
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/assumed-decisions · feat/assumed-decisions-ticket-blocks
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/assumed-decisions · feat/assumed-decisions-ticket-blocks
 
 ### Evidence
 

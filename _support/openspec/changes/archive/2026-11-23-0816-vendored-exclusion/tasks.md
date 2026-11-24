@@ -55,7 +55,7 @@ AC1 se observa en la suite del candidato; AC2 y AC3, en los archivos instalados 
 - Last commit: 5cad7ea7
 - Open findings: none
 - Next: /code-review, then push/PR/merge, refresh install, observe AC2-AC3
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/vendored-exclusion · feat/vendored-exclusion
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/vendored-exclusion · feat/vendored-exclusion
 - Rules: flow-verify/stage-entry.md
 - Principles: none
 

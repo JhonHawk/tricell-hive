@@ -6,7 +6,7 @@
 | Tracker · GitHub Issues | • [#277 — Antes del primer push el agente no corre localmente lo que el CI va a rechazar](https://github.com/JhonHawk/tricell-hive/issues/277) |
 | Git | `automatic` · PR a `development` y merge al pasar las pruebas · sin parada humana |
 | Verificación | `go test ./...` · búsquedas · `astro build` · `/code-review` |
-| Siguiente paso | Ninguno. Observar en sesiones de cam con la guía nueva si el agente corre los chequeos locales antes del push |
+| Siguiente paso | Ninguno. Observar en sesiones de project-g con la guía nueva si el agente corre los chequeos locales antes del push |
 
 ## Pedido
 
@@ -27,7 +27,7 @@ El plan no toca `verification.md`, porque la regla vive en `review-and-gates.md`
 
 Con la entrega `automatic` y un CI presente, la guía deja la cobertura de regresión al CI. Por eso el agente sube el cambio después de correr solo las pruebas de los archivos que tocó, y espera unos 3.5 minutos para ver un fallo que se podía detectar en uno o dos minutos con un comando local.
 
-En `cam-monorepo`, del 15 al 29 de octubre, 11 de los 14 jobs fallidos antes del merge eran de este tipo: pruebas unitarias o de convención, cambios incompatibles de contrato e i18n.
+En `project-g-monorepo`, del 15 al 29 de octubre, 11 de los 14 jobs fallidos antes del merge eran de este tipo: pruebas unitarias o de convención, cambios incompatibles de contrato e i18n.
 
 El cambio agrega una regla para el momento antes del push. El agente corre localmente las suites de los paquetes cambiados y de sus dependientes, y los jobs del CI que son deterministas y no necesitan servicios. El CI queda para la integración con servicios, el e2e y los despliegues.
 
@@ -42,7 +42,7 @@ El cambio agrega una regla para el momento antes del push. El agente corre local
 **Excluido:**
 - Correr la integración con servicios antes del push: necesita Postgres y Redis, tarda de 3 a 6 minutos o más y compite con otras sesiones por esos servicios.
 - Las fallas intermitentes de integración después del merge.
-- Los hooks de cam.
+- Los hooks de project-g.
 - Un cambio mecánico, que sigue verificándose con los chequeos que ya lo cubren.
 
 **Restricciones:**

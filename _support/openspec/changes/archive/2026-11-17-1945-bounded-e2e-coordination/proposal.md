@@ -77,7 +77,7 @@ No hacen falta cuentas externas para los contratos ni sus pruebas determinístic
 
 ## Verified context
 
-- Base comprobada el 2026-11-17: `git -C /Users/jmartinez/Development/projects/tricell/tricell-hive rev-parse HEAD` devuelve `15b2e402c72543b74d63e50df1bc2b188638212a`.
+- Base comprobada el 2026-11-17: `git -C /Users/me/Development/projects/tricell/tricell-hive rev-parse HEAD` devuelve `15b2e402c72543b74d63e50df1bc2b188638212a`.
 - `content/skills/flow-build/SKILL.md`, paso 5: continuación en el mismo turno a flow-verify.
 - `content/skills/flow-build/references/delegation.md`: los hijos actuales no hacen commits y usan normalmente el checkout principal; los cambios en paralelo exigen interfaces fijas y archivos disjuntos.
 - `content/agents/development/hive-build-backend.md` y `tests/content/agent_boundary_test.go`: la prohibición de commits forma parte del contrato de los implementadores y de su comprobación de contenido.

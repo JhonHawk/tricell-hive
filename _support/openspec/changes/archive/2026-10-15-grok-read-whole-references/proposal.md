@@ -3,7 +3,7 @@
 | Campo | Valor actual |
 | --- | --- |
 | Estado | Integrado en `development` el 2026-10-15 por el [PR #52](https://github.com/JhonHawk/tricell-hive/pull/52), merge `1307b1fb`; desplegado en local desde `development` y archivado el 2026-10-15. Estado previo (historia): En validación · commits a90e51e9 (T1), 848baf14 (T2), 591ed32f (T3) en `feat/flash-class-guidance`; desplegado localmente en 71ef341d el 2026-10-13 |
-| Tracker · GitHub Issues | Sin issue; nace de la auditoría de la sesión carvento Grok `01a1371f` (2026-10-13) |
+| Tracker · GitHub Issues | Sin issue; nace de la auditoría de la sesión project-a Grok `01a1371f` (2026-10-13) |
 | Git | Integrado por merge del PR #52; la rama `feat/flash-class-guidance` y su worktree se eliminaron tras el merge |
 | Verificación | go vet · go test · `/code-review` · prueba real en Grok (D2-A) |
 | Siguiente paso | Ninguno; registro cerrado |
@@ -26,7 +26,7 @@ El cambio instala, con el manager, un hook global de Grok que reescribe esas lec
 
 Incluye: el subcomando del hook, el tipo de recurso `hook` del manager con propiedad por archivo, su instalación para Grok, la documentación del manager y la prueba real.
 
-Excluye: hooks para otros hosts (Claude Code lee parcial solo en 3 % de las lecturas), cambios a la guía distribuida, lecturas de scripts y assets de las skills (sus lecturas parciales son legítimas), y la sesión de carvento auditada.
+Excluye: hooks para otros hosts (Claude Code lee parcial solo en 3 % de las lecturas), cambios a la guía distribuida, lecturas de scripts y assets de las skills (sus lecturas parciales son legítimas), y la sesión de project-a auditada.
 
 Restricciones: `go vet ./...` y `go test ./...` siguen en verde; los archivos ajenos en `~/.grok/hooks/` (engram, herdr) no se tocan; un `hive` anterior que lea un `state.json` con un registro `hook` lo rechaza (`invalid recorded kind`), así que se reconstruye el binario antes de desplegar, como ya pide `AGENTS.md`.
 

@@ -38,7 +38,7 @@ None: the work adopts no business rule beyond what its ticket and documentation 
 
 > «Super importante para el manejo de los tickets, que registren el tiempo trabajado» · «solo se coloca el tiempo, no se razona al respecto» · «quitemos el sondeo, y solo se haga hasta que explícitamente se solicite» · «que se le pida al usuario una variable global» (usuario, 2026-11-19).
 
-Origen: revisión de las sesiones de Codex `01a1f358` y `01a1f37d` (fleetsystem, 2026-11-19) y los watch items `watch/tracker-states-cache-not-written` y `watch/final-report-without-try-it`.
+Origen: revisión de las sesiones de Codex `01a1f358` y `01a1f37d` (project-b, 2026-11-19) y los watch items `watch/tracker-states-cache-not-written` y `watch/final-report-without-try-it`.
 
 ## Objective
 
@@ -69,7 +69,7 @@ Dentro: `hive time` en el gestor; el script de marcas y suma; la escritura en Ji
 - En las transcripciones de Claude, las entradas `user` incluyen notificaciones de tareas (`origin.kind == "task-notification"`) y continuaciones tras compactar, además de las humanas · revisión del plan, 2026-11-19.
 - Los lectores de transcripciones de Claude, Codex y Grok con horas de mensajes viven en `tests/pilot/session_audit.go` (no se distribuyen) · leído 2026-11-19.
 - `acli` 1.3.40 (la versión actual del cask de Homebrew) no tiene comando de worklog y su JSON de edición no tiene campos de tiempo · `acli jira workitem --help`, `acli jira workitem edit --generate-json` · 2026-11-19.
-- La API REST de Jira agrega worklogs y lista transiciones con autenticación básica email:token: la sesión de Codex `01a1f386` (fleetsystem, 2026-11-19) leyó el token de un archivo de una línea, el email y el sitio de `acli jira auth status`, listó `issue/<KEY>/transitions` y registró 25 min en FSR-905 y 15 min en FSR-906, leídos de vuelta · rollout `01a1f386` · 2026-11-19.
+- La API REST de Jira agrega worklogs y lista transiciones con autenticación básica email:token: la sesión de Codex `01a1f386` (project-b, 2026-11-19) leyó el token de un archivo de una línea, el email y el sitio de `acli jira auth status`, listó `issue/<KEY>/transitions` y registró 25 min en PRL-905 y 15 min en PRL-906, leídos de vuelta · rollout `01a1f386` · 2026-11-19.
 - Actualizar un worklog y subir un adjunto por REST · no medido · T8.
 - Escribir un worklog o un adjunto por el MCP de Atlassian (`https://mcp.atlassian.com/v2/mcp`; su documentación en Context7 lista búsqueda, creación y comentarios) · no medido · T8.
 - Codex quita de los comandos que lanza las variables cuyo nombre contiene `KEY`, `SECRET` o `TOKEN` salvo `ignore_default_excludes` (documentación de Codex, `shell_environment.rs`); `~/.codex/config.toml` no lo cambia · documentación, no ejecutado · 2026-11-19 (motivo de D50).

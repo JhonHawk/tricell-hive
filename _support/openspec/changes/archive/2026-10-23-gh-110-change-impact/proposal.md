@@ -10,7 +10,7 @@
 
 ## Solicitud
 
-> Analiza la sesión de facti con claude code, algo que creo no habiamos considerado en la etapa de research es el impacto, ese ejemplo es de una parte legacy, y tuve que redirigir varias veces en temas que deba y ebe revisar por la naturaleza legacy de lkos componentes. Deep research y dame una propuesta
+> Analiza la sesión de project-f con claude code, algo que creo no habiamos considerado en la etapa de research es el impacto, ese ejemplo es de una parte legacy, y tuve que redirigir varias veces en temas que deba y ebe revisar por la naturaleza legacy de lkos componentes. Deep research y dame una propuesta
 
 > recuerda que esto no es una regla fija, hay puntos que pueden o no escalar dependiendo la complejidad d el atarea
 
@@ -44,7 +44,7 @@ Excluye, con su motivo:
 - Un revisor dedicado de impacto: no hay evidencia de que reduzca regresiones y suma costo.
 - Pruebas de caracterización obligatorias: ya existen para refactors; exigirlas aquí sería ceremonia.
 - Cambios en la regla de incidentales de `content/guidance/global.md`: ya cubre «defects that affect the current work». El único cambio en `global.md` es la excepción de T5 (D7-A).
-- Cambios en facti: es otro proyecto.
+- Cambios en project-f: es otro proyecto.
 
 Criterios:
 

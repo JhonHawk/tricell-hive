@@ -80,7 +80,7 @@ Date · 2 walkthroughs         [many actions]
 After header (ButtonGroup aligned far right on desktop):
 
 ```text
-CAM
+project-g
 Profile, invitations and filters                 [Edit]
 31 Oct 2026 · 2 walkthroughs
               [dot Awaiting validation][2][1][Archive][…]
@@ -99,21 +99,21 @@ Environment / provenance
 After content (Timeline-4 feed, 512px maximum, centered in canvas):
 
 ```text
-19:10  Iteration 2 — compact filter          COM-2
+19:10  Iteration 2 — compact filter          PRJ-2
   Chat mobile · supersedes validation 1
   [thumb 320][thumb 390] [Instructions]
 18:55  Changes requested · reported from chat
   Show only the filter icon on mobile.
-18:30  Validation 1                      COM-1 COM-2
-  Profile · COM-1
+18:30  Validation 1                      PRJ-1 PRJ-2
+  Profile · PRJ-1
   [thumb desktop][thumb mobile] [Instructions]
-  Chat · COM-2
+  Chat · PRJ-2
   [thumb desktop][thumb mobile] [Instructions]
 17:30  Work started · fix/profile-chat
-17:20  Request                          COM-1 COM-2
+17:20  Request                          PRJ-1 PRJ-2
 ```
 
-Shared screen variant: one Chat view labeled COM-1 COM-2, one thumbnail collection, one instruction dialog. Different screen variant above uses two view groups. Session header links are the union, never a separate timeline per ticket. The walkthrough count counts nonwithdrawn validation/iteration publications, not arbitrary event nodes. An older view says Superseded with a link to the new event; if some views in that event remain current, label only the superseded view. Later copy edits do not reorder events.
+Shared screen variant: one Chat view labeled PRJ-1 PRJ-2, one thumbnail collection, one instruction dialog. Different screen variant above uses two view groups. Session header links are the union, never a separate timeline per ticket. The walkthrough count counts nonwithdrawn validation/iteration publications, not arbitrary event nodes. An older view says Superseded with a link to the new event; if some views in that event remain current, label only the superseded view. Later copy edits do not reorder events.
 
 Instructions/carousel before: inline step list and existing capture enlargement. After:
 

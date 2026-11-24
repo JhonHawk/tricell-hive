@@ -3,14 +3,14 @@
 | Campo | Valor actual |
 | --- | --- |
 | Estado | Completado · integrado en `development` por [PR #64](https://github.com/JhonHawk/tricell-hive/pull/64) (`4dc73c28`), 2026-10-17 |
-| Tracker · GitHub Issues | Sin issue: nace de la auditoría de las sesiones de fleetsystem del 2026-10-17 |
+| Tracker · GitHub Issues | Sin issue: nace de la auditoría de las sesiones de project-b del 2026-10-17 |
 | Git | rama de prueba activa `feat/delegation-threshold-global` · commit por tarea y despliegue local (C1-A) · sin push ni merge |
 | Verificación | comprobaciones `rg` por criterio · `go vet ./...`, `go test ./...` y `python3 -m unittest discover -s tests/skills -p '*_test.py'` |
 | Siguiente paso | Ninguno: cambio cerrado y archivado |
 
 ## Petición
 
-> Analizando la sesión /Users/jmartinez/Development/projects/comsys/fleetsystem no esta usando la herramiento de preguntas, no al final
+> Analizando la sesión /Users/me/Development/projects/org-a/project-b no esta usando la herramiento de preguntas, no al final
 
 > Aqui tengo una duda, es mejor tener la regla de "usar tarjeta" disperso en varios lugares onde se hace mención el uso o una sola vez la regla con todas las menciones? aunque este es un ejemplo, hablo en general
 
@@ -26,7 +26,7 @@
 
 ## Objetivo
 
-Dos sesiones de Claude Code en fleetsystem (`02891730` y `8168b9a2`, 2026-10-17, claude-opus-5-5) terminaron varias respuestas con una pregunta en texto y la línea de espera, sin la tarjeta nativa. Grok, OpenCode y Codex no muestran el fallo en sus sesiones del 16 y 17 de octubre. Antes, carvento había mostrado lo mismo (auditoría del 2026-10-16).
+Dos sesiones de Claude Code en project-b (`02891730` y `8168b9a2`, 2026-10-17, claude-opus-5-5) terminaron varias respuestas con una pregunta en texto y la línea de espera, sin la tarjeta nativa. Grok, OpenCode y Codex no muestran el fallo en sus sesiones del 16 y 17 de octubre. Antes, project-a había mostrado lo mismo (auditoría del 2026-10-16).
 
 El procedimiento completo vive en `questions.md:25-37`: primero la línea de espera y después la tarjeta. Pero unas diez partes de la guía lo resumen como "termina con la línea de espera" o remiten a "las reglas globales de elección", que son a su vez un resumen. Un modelo que sigue la versión corta omite la tarjeta.
 

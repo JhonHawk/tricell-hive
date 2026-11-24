@@ -4,7 +4,7 @@
 
 Leído el 2026-10-13 en `feat/flash-class-guidance` (`982f9828`); el código de `tooling/` e `integrations/` de Grok coincide con `development`.
 
-- Grok 1.0.55 (`grok --version`). `read_file` (definición de herramienta de la sesión carvento `01a1371f`) lee hasta 1000 líneas, falla si la lectura es demasiado grande e ignora `offset`/`limit` solo en `SKILL.md`, `AGENTS.md` y `CLAUDE.md`.
+- Grok 1.0.55 (`grok --version`). `read_file` (definición de herramienta de la sesión project-a `01a1371f`) lee hasta 1000 líneas, falla si la lectura es demasiado grande e ignora `offset`/`limit` solo en `SKILL.md`, `AGENTS.md` y `CLAUDE.md`.
 - Hooks de Grok (`~/.grok/docs/user-guide/10-hooks.md`): los globales viven en `~/.grok/hooks/*.json` y siempre son de confianza (tabla "Hook Locations"); un grupo `PreToolUse` con `matcher: "read_file"` recibe el evento por stdin (`toolName`, `toolInput`, `cwd`); la respuesta `{"hookSpecificOutput":{"hookEventName":"PreToolUse","updatedInput":{…}}}` reemplaza la entrada completa en silencio (líneas 378 y 393); una entrada que no cumple el esquema bloquea la llamada (línea 395); un comando que no arranca o sale distinto de 0 y 2 falla abierto ("Exit Codes"). La documentación muestra la ruta como `target_file` (esquema de la herramienta) y como `path` (`14-headless-mode.md:270`): no verificado cuál llega al hook.
 - Inferido, no verificado: el hook corre también en las sesiones de los hijos (`10-hooks.md` describe `UserPromptSubmit` "observe-only" en sesiones de subagente, lo que implica que los hooks se cargan allí). Lo comprueba AC6.
 - Manager: los destinos de Grok son un bloque, skills y roles (`integrations/grok/grok.go:23-38`, `:284-292`). No existe un tipo para hooks: `normalizeState` acepta solo `block|skill|agent|symlink` (`tooling/management/ownership.go:48`); `nextRecord` rechaza otros tipos (`tooling/management/plan.go:614`); `transform` borra y protege por archivo solo `skill` y `agent` (`tooling/management/files.go:332-342`); `validSource` admite solo fuentes de `content/` (`plan.go:265-273`).
@@ -20,7 +20,7 @@ Leído el 2026-10-13 en `feat/flash-class-guidance` (`982f9828`); el código de 
 `hive grok-hook read-whole --skills <dir>` es un comando oculto (no aparece en la ayuda). Lee un evento JSON de stdin y:
 
 1. Toma `toolInput`; si no tiene `offset` ni `limit`, termina sin salida.
-2. Toma la ruta de `target_file` (la clave requerida del esquema de `read_file`, verificada en la definición de herramienta de la sesión carvento `01a1371f`) o, si falta, de `path`; si es relativa, la resuelve contra `workspaceRoot` del evento y, si falta, contra `cwd`.
+2. Toma la ruta de `target_file` (la clave requerida del esquema de `read_file`, verificada en la definición de herramienta de la sesión project-a `01a1371f`) o, si falta, de `path`; si es relativa, la resuelve contra `workspaceRoot` del evento y, si falta, contra `cwd`.
 3. Exige que la ruta limpia, con enlaces simbólicos resueltos cuando existen, quede dentro de `<dir>` (también resuelto), que termine en `.md`, que sea un archivo regular, que tenga hasta 1000 líneas y hasta 64 KiB (por debajo del tope de unos 25 000 tokens de lectura de Grok).
 4. Si se cumple, imprime la respuesta con `updatedInput` = `toolInput` sin `offset` ni `limit`, conservando las demás claves y valores tal como llegaron.
 

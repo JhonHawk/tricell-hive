@@ -18,7 +18,7 @@
 
 ## Pedido
 
-El usuario aprobó corregir H18 («A», 2026-11-06), observado en la sesión Pi `01a1b3d3` (Pi 1.5.0, Grok 4.7, Carvento CAR-5):
+El usuario aprobó corregir H18 («A», 2026-11-06), observado en la sesión Pi `01a1b3d3` (Pi 1.5.0, Grok 4.7, project-a CAR-5):
 
 - pi-subagents 0.83.0 abre cada sesión solo con el cargador `subagents_enable`;
 - el agente lo llamó a las 20:33 y a las 20:59, y se detuvo con «responde lo que sea para seguir»;

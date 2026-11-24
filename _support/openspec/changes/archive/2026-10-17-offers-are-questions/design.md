@@ -2,7 +2,7 @@
 
 ## Contexto verificado
 
-- **Carvento `1a3ab3ea`** (Claude Code, claude-opus-5-5): la sesión abrió a las 07:42:56Z, después del despliegue de `aa17fbe1` (`~/.claude/CLAUDE.md` del 01:41:44 local). Su transcripción contiene la frase nueva de `global.md:20` y no la vieja. A "revisa si hay ramas viejas sin fusionar en carvento-monorepo y dime qué hacemos con ellas" respondió con una tabla. Cerró con las dos salidas de la PR #306 en texto y "¿La reviso para que decidas?". No llamó a ninguna herramienta de preguntas, no leyó skills ni referencias, y no puso línea de espera.
+- **project-a `1a3ab3ea`** (Claude Code, claude-opus-5-5): la sesión abrió a las 07:42:56Z, después del despliegue de `aa17fbe1` (`~/.claude/CLAUDE.md` del 01:41:44 local). Su transcripción contiene la frase nueva de `global.md:20` y no la vieja. A "revisa si hay ramas viejas sin fusionar en project-a-monorepo y dime qué hacemos con ellas" respondió con una tabla. Cerró con las dos salidas de la PR #306 en texto y "¿La reviso para que decidas?". No llamó a ninguna herramienta de preguntas, no leyó skills ni referencias, y no puso línea de espera.
 - **Causa probable (inferencia):**
   - `global.md:20` y `questions.md:5` activan la lectura "before formulating a decision", y el modelo no clasificó la oferta como decisión.
   - `questions.md:11` ya dice "Never ask only for leave to proceed or to show something you could show", pero solo lo lee quien abrió el archivo.
@@ -67,15 +67,15 @@ Así se conserva la oferta que pide la regla y deja de ser una frase suelta (H6)
   - Si no es ninguna de las dos, se omite.
 
   La tercera sigue a `questions.md:9` (solo se pregunta lo que es del usuario) y a `flow-research/SKILL.md:40` (una respuesta completa no termina en pregunta de ruta). Completa R5-A sin reabrirla: ninguna oferta queda como frase de cierre en texto.
-- **`tests/pilot/regression.go:386-424` (`closeQuestionAfterReport`):** da por buena una oferta en texto que termina en "?", así que el fallo de Carvento `1a3ab3ea` contaría como acierto. Con los pilotos pausados no se cambia; se nombra en el pull request (H7).
+- **`tests/pilot/regression.go:386-424` (`closeQuestionAfterReport`):** da por buena una oferta en texto que termina en "?", así que el fallo de project-a `1a3ab3ea` contaría como acierto. Con los pilotos pausados no se cambia; se nombra en el pull request (H7).
 - **`flow-build/references/verification.md:49` y `content/agents/`:** coherentes.
 
 ## Notas para los commits
 
 Cada commit nombra:
-- Carvento `1a3ab3ea` (Claude Code, 2026-10-17, con `aa17fbe1` desplegado).
-- fleetsystem `02891730` (2026-10-17).
-- OpenCode dened `ses_ebcb6cbd7ffe` (2026-10-16).
+- project-a `1a3ab3ea` (Claude Code, 2026-10-17, con `aa17fbe1` desplegado).
+- project-b `02891730` (2026-10-17).
+- OpenCode project-e `ses_ebcb6cbd7ffe` (2026-10-16).
 - La decisión R5-A.
 
 T2 declara el cambio de tamaño de `global.md`.

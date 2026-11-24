@@ -2,10 +2,10 @@
 
 ## Contexto verificado (base `b3edd8f4`, 2026-10-26)
 
-**Auditoría de cam, carvento y facti** (tres `hive-review-harness`; hallazgos principales comprobados en la fuente):
-- **cam:** `cam-monorepo/AGENTS.md:24` da un bypass administrativo permanente a `qa` «including … data changes», y un push a `qa` corre `prisma migrate deploy` (`.github/workflows/deploy-backend.yml`). Los `Specs` relativos no llevan URL y se rompen en los worktrees.
-- **carvento:** `carvento-monorepo` quedó sin `Delivery`, `Review` ni `UI verification` (382b8dfdb retiró Bugbot). `AGENTS.md:53` mueve el ticket a In Progress «when you pick it». Hay otra frase ambigua sobre la etiqueta `production-approved`.
-- **facti:** solo `facti-2020-new` tiene sección, y `Specs: ../facti-specs` no incluye `/openspec`. La raíz manda planear en `facti-specs/sessions/`, sin uso desde el 2026-09-17, mientras `openspec/changes/` está activo. El `CLAUDE.md` de reforge es una plantilla anterior a Hive.
+**Auditoría de project-g, project-a y project-f** (tres `hive-review-harness`; hallazgos principales comprobados en la fuente):
+- **project-g:** `project-g-monorepo/AGENTS.md:24` da un bypass administrativo permanente a `qa` «including … data changes», y un push a `qa` corre `prisma migrate deploy` (`.github/workflows/deploy-backend.yml`). Los `Specs` relativos no llevan URL y se rompen en los worktrees.
+- **project-a:** `project-a-monorepo` quedó sin `Delivery`, `Review` ni `UI verification` (382b8dfdb retiró Bugbot). `AGENTS.md:53` mueve el ticket a In Progress «when you pick it». Hay otra frase ambigua sobre la etiqueta `production-approved`.
+- **project-f:** solo `project-f-2020-new` tiene sección, y `Specs: ../project-f-specs` no incluye `/openspec`. La raíz manda planear en `project-f-specs/sessions/`, sin uso desde el 2026-09-17, mientras `openspec/changes/` está activo. El `CLAUDE.md` de reforge es una plantilla anterior a Hive.
 - **En los tres:** casi todas las sesiones arrancan en la raíz del workspace.
 
 **Hive:**

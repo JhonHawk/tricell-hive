@@ -4,7 +4,7 @@ Estado: decidido el 2026-10-30. El usuario eligió la opción recomendada en D1�
 
 ## Contexto verificado
 
-### Costo de COM-829 por fase (Grok `01a18c56`, cam, 2026-10-30)
+### Costo de PRJ-829 por fase (Grok `01a18c56`, project-g, 2026-10-30)
 
 Hilo principal, según los turnos de `usage.json`, sumado a los subagentes que registraron uso. Las horas son CST.
 
@@ -73,11 +73,11 @@ Comparado con hoy:
 
 | # | Ceremonia | Hoy | Propuesta (recomendada) | Por qué |
 |---|---|---|---|---|
-| D1 | Verificador por tarea | Cada tarea de un plan, más los recheques | Solo tareas de riesgo (datos guardados, migración, seguridad, dinero, concurrencia, contrato público); el resto lo cubren sus tests y el verify final | 0.03 altos por corrida en 649 corridas; en COM-829, 5 corridas sin defectos nuevos |
-| D2 | Revisión del plan | Un revisor por dominio afectado (3 en COM-829) | Un solo revisor, y solo si el plan cruza contrato, datos, seguridad o dependencias; ninguno en los demás | 0.21 por corrida, en riesgos evitados; vale en los planes riesgosos, sobra triplicado |
+| D1 | Verificador por tarea | Cada tarea de un plan, más los recheques | Solo tareas de riesgo (datos guardados, migración, seguridad, dinero, concurrencia, contrato público); el resto lo cubren sus tests y el verify final | 0.03 altos por corrida en 649 corridas; en PRJ-829, 5 corridas sin defectos nuevos |
+| D2 | Revisión del plan | Un revisor por dominio afectado (3 en PRJ-829) | Un solo revisor, y solo si el plan cruza contrato, datos, seguridad o dependencias; ninguno en los demás | 0.21 por corrida, en riesgos evitados; vale en los planes riesgosos, sobra triplicado |
 | D3 | Code review | Revisión, refutación de cada P0/P1, arreglo, recheque y re-revisión | Una revisión; el hilo principal comprueba las líneas citadas; re-revisión solo si un arreglo cambia un contrato; sin `hive-refute-claim` de rutina | La revisión es lo que más rinde (0.35); la refutación rinde 0.02 con 34 % de falsos positivos |
-| D4 | UI gate | `hive-review-ux` + `hive-verify-change`, base servida en otro puerto, 5 viewports × 2 temas | La primera vista en el build; un `hive-review-ux` contra la guía de UI, sin servir la base salvo cambios de shell o layout compartido; `hive-verify-change` solo si cambia un recorrido; un Medium introducido en las vistas tocadas se corrige antes de validar o se ofrece como opción, nunca se recomienda aprobarlo | COM-829: la gate costó ~$9 y el defecto se pagó otra vez en la corrección ($10.71) |
-| D4b | Gate tras aceptar una corrección | `hive-review-ux`, `hive-verify-change` y `hive-verify-task` vuelven a correr sobre lo que el usuario acaba de aprobar | Solo el code review del arreglo y los tests afectados. `hive-review-ux` solo si la corrección cambia vistas o tamaños de pantalla que el usuario no vio. El walkthrough de cada corrección incluye capturas en móvil (390 y 320) para que su aprobación cubra esos tamaños | COM-829, tramo final: 56 min entre la aceptación (13:10) y el merge; `hive-review-ux` fue el camino crítico (25 min) y solo encontró un Medium a 390/320 que unas capturas móviles habrían mostrado |
+| D4 | UI gate | `hive-review-ux` + `hive-verify-change`, base servida en otro puerto, 5 viewports × 2 temas | La primera vista en el build; un `hive-review-ux` contra la guía de UI, sin servir la base salvo cambios de shell o layout compartido; `hive-verify-change` solo si cambia un recorrido; un Medium introducido en las vistas tocadas se corrige antes de validar o se ofrece como opción, nunca se recomienda aprobarlo | PRJ-829: la gate costó ~$9 y el defecto se pagó otra vez en la corrección ($10.71) |
+| D4b | Gate tras aceptar una corrección | `hive-review-ux`, `hive-verify-change` y `hive-verify-task` vuelven a correr sobre lo que el usuario acaba de aprobar | Solo el code review del arreglo y los tests afectados. `hive-review-ux` solo si la corrección cambia vistas o tamaños de pantalla que el usuario no vio. El walkthrough de cada corrección incluye capturas en móvil (390 y 320) para que su aprobación cubra esos tamaños | PRJ-829, tramo final: 56 min entre la aceptación (13:10) y el merge; `hive-review-ux` fue el camino crítico (25 min) y solo encontró un Medium a 390/320 que unas capturas móviles habrían mostrado |
 | D5 | Registro de avance | IDs de verificadores, modelo «configurado, no observado», segundos, citas releídas | Una línea por tarea: marcador, commit y lo que quedó sin verificar | Nadie lo lee y alarga cada turno |
 | D6 | Preguntas de entrega, revisión y UI | Una ronda al cerrar el plan o al iniciar el build, reutilizada en la sesión | Igual (se mantiene) | Ya se pregunta una vez; el problema no estaba ahí |
 

@@ -16,7 +16,7 @@ Base `e0bb3a95` en `development`; rama `feat/local-instructions-file`. Todas las
 
 **Test approach:** check
 
-**Changes:** añade una sección de cinco puntos. No toca «Secrets», «Test accounts», «Persistent memory» ni «Support folder»: la excepción de la raíz y la autorización de escritura quedan dentro de la sección nueva. El commit nombra las sesiones que motivan el cambio (Claude Code `8d09a5eb` y `94440d0a` de carvento, Codex `01a1a844` de cam, Claude Code `b7986711` y `1776e095` de carvento), como pide «Measurement».
+**Changes:** añade una sección de cinco puntos. No toca «Secrets», «Test accounts», «Persistent memory» ni «Support folder»: la excepción de la raíz y la autorización de escritura quedan dentro de la sección nueva. El commit nombra las sesiones que motivan el cambio (Claude Code `8d09a5eb` y `94440d0a` de project-a, Codex `01a1a844` de project-g, Claude Code `b7986711` y `1776e095` de project-a), como pide «Measurement».
 
 **Verification:** cada frase de AC6-AC14 devuelve 1 coincidencia con `rg -c -F "<frase>" content/guidance/global.md`; `go test ./tests/content/...` pasa y registra el tamaño nuevo de `global.md` (base 37 751 bytes) para el PR.
 
@@ -134,7 +134,7 @@ Revisión humana (D5 A): leer la sección nueva de `global.md` y el diff de los 
 
 2026-11-07 — Segunda revisión del plan aplicada y D12 A: T4 script, T5 skill, T6 enlaces. Hay un borrador sin commitear de la skill en `content/skills/local-instructions/` escrito antes de esa revisión; T5 lo reescribe.
 
-2026-11-07 — T4 hecho en `1b2c5683` y `bc19cd24` (tdd: el test falló antes del script y otra vez antes del enmascarado por lista de permitidos); prueba real sobre cam, carvento y fleetsystem sin fugas en un escaneo de patrones.
+2026-11-07 — T4 hecho en `1b2c5683` y `bc19cd24` (tdd: el test falló antes del script y otra vez antes del enmascarado por lista de permitidos); prueba real sobre project-g, project-a y project-b sin fugas en un escaneo de patrones.
 2026-11-07 — T5 hecho en `cf28726f`: frases de AC17, AC24 y AC26-AC29 presentes; tests de contenido pasan.
 2026-11-07 — T6 hecho en el commit siguiente: frases de AC30 y AC31 en `global.md` (40 228 bytes, +2 477 sobre la base); el sitio construye.
 

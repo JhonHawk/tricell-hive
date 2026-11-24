@@ -177,8 +177,8 @@ Engram:
   - **Quitar la ruta:** decisiones, resúmenes de sesión, hallazgos y demás; unos 205. Se elimina la frase o línea con la ruta y se conserva el resto. Si quitarla deja la frase sin sentido, se reescribe esa frase sin la ruta.
 - Se mide por qué vía se edita un registro sin perder su id: `mem_update` con `find`/`replace` para el contenido, y sus campos `title` y `topic_key` cuando la ruta está ahí. Se prueba en una copia del almacén, nunca en un registro real.
 - Siempre se conservan:
-  - los temas `local/*` a los que apunta un `HIVE.local.md`, como `comsys-fleetsystem local/worktree-env`;
-  - los registros de un worktree que sigue en algún `git worktree list` de los repositorios de su proyecto. Cada proyecto de Engram corresponde a los repositorios de la carpeta de su workspace; por ejemplo, `comsys-cam` corresponde a `comsys/cam/*`.
+  - los temas `local/*` a los que apunta un `HIVE.local.md`, como `org-a-project-b local/worktree-env`;
+  - los registros de un worktree que sigue en algún `git worktree list` de los repositorios de su proyecto. Cada proyecto de Engram corresponde a los repositorios de la carpeta de su workspace; por ejemplo, `org-a-project-g` corresponde a `org-a/project-g/*`.
 - Antes de borrar:
   - se exporta cada proyecto afectado entero con `engram export <archivo> --project <proyecto>` al respaldo;
   - se prueba la restauración en una copia del almacén (el directorio de datos de Engram copiado y apuntado con su opción de directorio de datos, medida aquí). En la copia se hace `engram delete <id>`, después `engram import <export>`, y se comprueba que el registro vuelve a estar activo con el mismo id. Si no vuelve, se para y se pregunta otra vía antes de T7. Ningún registro real se toca antes de que el usuario valide la lista;
@@ -233,7 +233,7 @@ Antes de leer cada almacén se aplica la sección «Secrets» de la guía global
 
 **Depends on:** T6
 
-**Locations:** los archivos de `~/.claude/projects/*/memory/` y los temas de `~/.grok/memory-v2/workspaces/{cam-893b42f2,carvento-bd41b901,fleetsystem-63775406}/topics/` de la lista de T6, una nota nueva en `~/.codex/memories/extensions/ad_hoc/notes/`
+**Locations:** los archivos de `~/.claude/projects/*/memory/` y los temas de `~/.grok/memory-v2/workspaces/{project-g-893b42f2,project-a-bd41b901,project-b-63775406}/topics/` de la lista de T6, una nota nueva en `~/.codex/memories/extensions/ad_hoc/notes/`
 
 **Execution:** main thread
 

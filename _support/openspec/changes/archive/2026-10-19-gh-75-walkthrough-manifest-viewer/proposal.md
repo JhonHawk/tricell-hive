@@ -43,7 +43,7 @@ El issue #75 no declara criterios de aceptación propios: resume la investigaci�
 - **D1-A:** el registro del servidor es un índice JSON reconstruible, sin SQLite.
 - **D2 (respuesta libre):** el agente registra el repositorio con un comando del CLI de `hive`, y la skill lo documenta.
 - **R1-B (2026-10-19):** el agente nunca abre la página, el visor ni un navegador para mostrárselos al usuario; da una línea con la ruta de la página y `hive view open` cuando el registro funcionó. Reemplaza la preferencia del 2026-10-18.
-- **W1-A (2026-10-19):** el registro acepta workspaces cuya raíz no es Git (como `comsys/cam` y `comsys/carvento`).
+- **W1-A (2026-10-19):** el registro acepta workspaces cuya raíz no es Git (como `org-a/project-g` y `org-a/project-a`).
 - **S2-A (2026-10-19):** las lecturas del visor también exigen el token.
 - **K1-A (2026-10-19):** las vistas se preparan como bloques mediante un registro interno; el contrato JSON no cambia.
 - **Aclaración del servidor:** es un servidor de larga vida que el usuario inicia y detiene (como `herdr` u OpenCode V2), nunca un proceso que lance el agente.

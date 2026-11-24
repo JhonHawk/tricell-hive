@@ -21,7 +21,7 @@
 
 ## Objective
 
-Las skills de flujo actuales piden pasos cuyo costo supera lo que aportan, y les faltan los pasos baratos que habrían evitado los defectos. En la sesión Grok `01a18c56` (cam, COM-829, 2026-10-30) el ticket costó 8 % de la cuota semanal, y la UI llegó a la validación con los botones apilados que el revisor de UX ya había marcado como Medium. El objetivo es reconstruir `flow-research`, `flow-plan`, `flow-build`, `flow-verify`, `flow-walkthrough` y `flow-close` contra un flujo mínimo, trayendo de la línea base solo las reglas que pasen el filtro del inventario.
+Las skills de flujo actuales piden pasos cuyo costo supera lo que aportan, y les faltan los pasos baratos que habrían evitado los defectos. En la sesión Grok `01a18c56` (project-g, PRJ-829, 2026-10-30) el ticket costó 8 % de la cuota semanal, y la UI llegó a la validación con los botones apilados que el revisor de UX ya había marcado como Medium. El objetivo es reconstruir `flow-research`, `flow-plan`, `flow-build`, `flow-verify`, `flow-walkthrough` y `flow-close` contra un flujo mínimo, trayendo de la línea base solo las reglas que pasen el filtro del inventario.
 
 ## Scope
 

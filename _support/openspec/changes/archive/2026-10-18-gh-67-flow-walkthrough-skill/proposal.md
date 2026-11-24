@@ -22,7 +22,7 @@ Respuestas del 2026-10-17: D1-A (skill nueva que absorbe la sección de entrega 
 
 ## Objetivo
 
-Hoy la entrega de una interfaz para que la valides vive dentro de la referencia de verificación de `flow-build`, en la sección "Human UI handoff", mezclada con las puertas de CI y despliegue en un archivo de 4.383 palabras. Produce capturas y un mensaje con pasos, pero no graba el flujo, no presenta una tabla de comprobaciones y no se puede invocar sola para una funcionalidad ya construida. Además, los dos hijos independientes de UI (`hive-review-ux` y `hive-verify-change`) son obligatorios para todo cambio con efecto visual, y sus rondas superan con frecuencia los cinco minutos (vigilancia V1-A; caso carvento del 2026-10-13: unos 73 y 40 minutos).
+Hoy la entrega de una interfaz para que la valides vive dentro de la referencia de verificación de `flow-build`, en la sección "Human UI handoff", mezclada con las puertas de CI y despliegue en un archivo de 4.383 palabras. Produce capturas y un mensaje con pasos, pero no graba el flujo, no presenta una tabla de comprobaciones y no se puede invocar sola para una funcionalidad ya construida. Además, los dos hijos independientes de UI (`hive-review-ux` y `hive-verify-change`) son obligatorios para todo cambio con efecto visual, y sus rondas superan con frecuencia los cinco minutos (vigilancia V1-A; caso project-a del 2026-10-13: unos 73 y 40 minutos).
 
 El cambio hace dos cosas. Primero, crea la skill `flow-walkthrough` como única casa del recorrido para validación humana: cuándo aplica, la primera vista rendida, las rondas de corrección y sus marcadores, las capturas, una pasada limpia grabada por flujo, y la entrega en dos medios: el mensaje con bloques por flujo y la línea de espera, y una página HTML solo en modo oscuro en la carpeta de trabajo, con la tabla de validación, las capturas y el video. Segundo, convierte la verificación independiente de UI en un ajuste del proyecto: la clave `UI verification` de `## Hive` con `full`, `functional` y `none`; sin clave, `flow-build` pregunta una vez por repositorio y sesión, en la misma ronda que la pregunta de revisión, y el manager valida la clave.
 
@@ -55,7 +55,7 @@ Queda fuera:
 Restricciones que deben mantenerse:
 
 - `go vet ./...`, `go test ./...` y `python3 -m unittest discover -s tests/skills -p '*_test.py'` pasan; `pnpm -C site build` sale con 0.
-- `content/guidance/global.md` no cambia por este cambio (4.563 palabras en la base). Nota: el commit `76408ee7` de la misma rama, decidido aparte (R1-A del 2026-10-18 tras auditar la sesión de cam), añade 20 palabras a la regla de idioma; el PR lo declara como cambio independiente.
+- `content/guidance/global.md` no cambia por este cambio (4.563 palabras en la base). Nota: el commit `76408ee7` de la misma rama, decidido aparte (R1-A del 2026-10-18 tras auditar la sesión de project-g), añade 20 palabras a la regla de idioma; el PR lo declara como cambio independiente.
 - Cada regla conserva una sola casa: lo que se mueve a la skill desaparece de la referencia de verificación, y los puntos de uso solo apuntan.
 - El texto distribuido va en inglés, con el criterio y el alcance de cada regla explícitos, para los modelos del perfil `execution`.
 

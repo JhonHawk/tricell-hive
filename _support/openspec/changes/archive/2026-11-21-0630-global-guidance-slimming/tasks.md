@@ -154,7 +154,7 @@ La revisión humana es la decisión de fusión tras leer `trial.md`.
 - Last commit: 860b73cf (development 059868cd merged in)
 - Open findings: none
 - Next: D1 A (2026-11-20) — keep the trial running; after more Claude and Codex sessions in other projects, re-audit #29 (HIVE.local.md read at start) and the auditor criteria, then the user decides merge
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/global-guidance-slimming · refactor/global-guidance-slimming
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/global-guidance-slimming · refactor/global-guidance-slimming
 
 ### Evidence
 

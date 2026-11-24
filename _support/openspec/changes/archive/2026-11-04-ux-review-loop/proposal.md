@@ -16,7 +16,7 @@
 
 ## Solicitud
 
-El usuario, el 2026-11-04, después del análisis de las sesiones Codex de CAM-8, CAM-9 y COM-920: «/flow-plan sobre los tres hallazgos».
+El usuario, el 2026-11-04, después del análisis de las sesiones Codex de project-g-8, project-g-9 y PRJ-920: «/flow-plan sobre los tres hallazgos».
 
 Los tres hallazgos, H16, H17 y H18 de ese análisis:
 
@@ -69,14 +69,14 @@ Ninguno: el build no necesita nada de fuera del repositorio.
 
 ## Contexto verificado
 
-- **Sesiones revisadas.** 11 hijos `hive-review-ux` en Codex del 2026-11-03 y 2026-11-04, en 6 sesiones de cam y tricell-hive:
+- **Sesiones revisadas.** 11 hijos `hive-review-ux` en Codex del 2026-11-03 y 2026-11-04, en 6 sesiones de project-g y tricell-hive:
   - 7 primeros veredictos «no aprobado» solo por defectos previos;
-  - 4 casos de cobertura incompleta: CAM-8 (2 turnos), COM-920 `qa_ux_review` y CAM-9 `cam9_ux_fix_readback`;
-  - 1 revisor nuevo para releer correcciones, `cam9_ux_fix_readback`, con 232 llamadas y 23,7 M de tokens. Los seguimientos acotados al mismo hijo (cam `01a1a2e6…83822e` y tricell-hive `…2b6abb`) tardaron 1 min.
+  - 4 casos de cobertura incompleta: project-g-8 (2 turnos), PRJ-920 `qa_ux_review` y project-g-9 `cam9_ux_fix_readback`;
+  - 1 revisor nuevo para releer correcciones, `cam9_ux_fix_readback`, con 232 llamadas y 23,7 M de tokens. Los seguimientos acotados al mismo hijo (project-g `01a1a2e6…83822e` y tricell-hive `…2b6abb`) tardaron 1 min.
 - **Sesiones que fundan cada hallazgo** (host, ID, fecha):
-  - H16: Codex cam `01a1a844-a92a-7c93-b7a3-214c8be7c47d` (CAM-8, 2026-11-04), Codex cam `01a1a457-db8b-7380-b1de-2401ccbd7690` (COM-920, empezó el 2026-11-03 21:30 local) y Codex cam `01a1a8a8-b19f-7562-9db8-8319d3b6ade1` (CAM-9, 2026-11-04).
-  - H17: Codex cam `01a1a8a8-b19f-7562-9db8-8319d3b6ade1` (CAM-9).
-  - H18: Codex tricell-hive con padres `…43b7a5` (2026-11-03), `…2b6abb` (2026-11-03) y `…e6e4da` (2026-11-04), además de cam `01a1a2e6…83822e` (2026-11-03), `01a1a5b7…3d7fa1` (CAM-7) y COM-920.
+  - H16: Codex project-g `01a1a844-a92a-7c93-b7a3-214c8be7c47d` (project-g-8, 2026-11-04), Codex project-g `01a1a457-db8b-7380-b1de-2401ccbd7690` (PRJ-920, empezó el 2026-11-03 21:30 local) y Codex project-g `01a1a8a8-b19f-7562-9db8-8319d3b6ade1` (project-g-9, 2026-11-04).
+  - H17: Codex project-g `01a1a8a8-b19f-7562-9db8-8319d3b6ade1` (project-g-9).
+  - H18: Codex tricell-hive con padres `…43b7a5` (2026-11-03), `…2b6abb` (2026-11-03) y `…e6e4da` (2026-11-04), además de project-g `01a1a2e6…83822e` (2026-11-03), `01a1a5b7…3d7fa1` (project-g-7) y PRJ-920.
 - **Admisión según «Measurement».**
   - H18 cumple la recurrencia: seis sesiones independientes, todas posteriores a `6bf808f4` (2026-11-02), el último cambio del veredicto del rol.
   - H16 no cuenta como recurrencia: el «Reviewer brief» que lo rige cambió en `6b80fc65` (2026-11-04 16:30 local), después de que empezaran sus tres sesiones.

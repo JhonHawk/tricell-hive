@@ -4,11 +4,11 @@
 
 El análisis de sesiones se hizo el 2026-10-25 con cuatro hijos `hive-research`, y las frases decisivas se comprobaron en las transcripciones. Lo que encontró:
 
-- **Pi carvento `01a17176`.** El agente preguntó D1–D5 en 53 min para un solo conjunto de datos de prueba en QA. El texto dice «conviene autorizarla por etapas» y «antes de escribir, confirmaré registros exactos, cambios y reversión». Esta segunda frase es la regla de `global.md:28`.
-- **Codex cam `01a1679c`.** D42–D44 (imágenes, copia al VPS, QA) eran pasos del plan aprobado en D38. Los merges de cada PR de corrección (D33, D34, D45, D47, D48 y D54) vinieron de la condición del usuario «el merge se mantiene sin aprobación hasta que regrese», que el agente siguió aplicando después de esa vuelta.
-- **Claude cam `6b6eb569` (COM-878).** Hubo 13 preguntas en 43 min. D59, D60, D66 y D67 eran decisiones menores, y D65–D67 salieron de la revisión del plan. En D57 se preguntó «¿con qué seguimos?» cuando la memoria ya tenía D56-A. Los datos locales se crearon sin preguntar, como dice `verification.md:51` y `:55`.
-- **Claude facti `c574e5a1` y `42b8e06a`.** El mismo acceso a producción se pidió cuatro veces para el security group y dos para Atlas.
-- **Tickets en cam Codex.** D26 y D50 fueron la pregunta de ticket que `flow-research/SKILL.md:38` exige en cada ronda. D36 fue un hallazgo incidental a mitad del build, un solo caso.
+- **Pi project-a `01a17176`.** El agente preguntó D1–D5 en 53 min para un solo conjunto de datos de prueba en QA. El texto dice «conviene autorizarla por etapas» y «antes de escribir, confirmaré registros exactos, cambios y reversión». Esta segunda frase es la regla de `global.md:28`.
+- **Codex project-g `01a1679c`.** D42–D44 (imágenes, copia al VPS, QA) eran pasos del plan aprobado en D38. Los merges de cada PR de corrección (D33, D34, D45, D47, D48 y D54) vinieron de la condición del usuario «el merge se mantiene sin aprobación hasta que regrese», que el agente siguió aplicando después de esa vuelta.
+- **Claude project-g `6b6eb569` (PRJ-878).** Hubo 13 preguntas en 43 min. D59, D60, D66 y D67 eran decisiones menores, y D65–D67 salieron de la revisión del plan. En D57 se preguntó «¿con qué seguimos?» cuando la memoria ya tenía D56-A. Los datos locales se crearon sin preguntar, como dice `verification.md:51` y `:55`.
+- **Claude project-f `c574e5a1` y `42b8e06a`.** El mismo acceso a producción se pidió cuatro veces para el security group y dos para Atlas.
+- **Tickets en project-g Codex.** D26 y D50 fueron la pregunta de ticket que `flow-research/SKILL.md:38` exige en cada ronda. D36 fue un hallazgo incidental a mitad del build, un solo caso.
 
 Reglas implicadas, leídas en `2bdf9357`:
 - `global.md:28`, que confirma registros exactos para datos compartidos o de producción sin definir «compartido», y `global.md:68`, que define la prueba costosa.
@@ -25,15 +25,15 @@ Fuera de `content/`, el comportamiento aparece en `site/src/content/docs/flows/{
 
 ## Enfoque
 
-1. **Un hogar nuevo para autorizar efectos:** `flow-plan/references/effect-authorization.md`, que dice cómo se clasifican, qué pregunta lleva cada clase y qué cubre una respuesta. `global.md:28` conserva el invariante completo en una frase, porque estas autorizaciones también aparecen fuera de los flujos, por ejemplo en la investigación de facti. `verification.md:26` sigue siendo el hogar del *momento*, la ronda de entrega y revisión, y remite a la referencia para el *qué*.
+1. **Un hogar nuevo para autorizar efectos:** `flow-plan/references/effect-authorization.md`, que dice cómo se clasifican, qué pregunta lleva cada clase y qué cubre una respuesta. `global.md:28` conserva el invariante completo en una frase, porque estas autorizaciones también aparecen fuera de los flujos, por ejemplo en la investigación de project-f. `verification.md:26` sigue siendo el hogar del *momento*, la ronda de entrega y revisión, y remite a la referencia para el *qué*.
 2. **Agrupar y reutilizar** son reglas generales de cualquier pregunta y van en `questions.md`.
 3. **Decisiones menores de la revisión del plan:** van en `plan-review.md`, que es donde se concilian los hallazgos, y el resumen del plan las muestra.
 4. **Vigencia de las condiciones y PRs de corrección:** van en `delivery-decisions.md:24`, junto a la regla de merge.
 5. **Ticket dentro de la ruta:** `flow-research/SKILL.md:38` es su hogar. `global.md:76` y `reporting.md:98` se alinean con él.
 
-Alternativa descartada: ampliar `verification.md:26`. Esa referencia se lee solo para integración, runtime, UI y gates, y los accesos de facti ocurrieron durante una investigación.
+Alternativa descartada: ampliar `verification.md:26`. Esa referencia se lee solo para integración, runtime, UI y gates, y los accesos de project-f ocurrieron durante una investigación.
 
-**Revisión 2026-10-25, a pedido del usuario.** Los entornos varían por proyecto: los de Tricell y sus clientes son `local → dev → qa → prod`, y facti es `local → gamma → prod`. Por eso las clases se toman de `Environments` y no de los nombres dev o QA. Además, los permisos que desbloquean la validación se piden al planear, para cada entorno que alcanza el alcance. Cuando el trabajo pasa a un entorno posterior que el ticket no cubría, como la validación en QA de carvento cuando el ticket solo llegaba a development, se piden todos juntos al empezar esa etapa.
+**Revisión 2026-10-25, a pedido del usuario.** Los entornos varían por proyecto: los de Tricell y sus clientes son `local → dev → qa → prod`, y project-f es `local → gamma → prod`. Por eso las clases se toman de `Environments` y no de los nombres dev o QA. Además, los permisos que desbloquean la validación se piden al planear, para cada entorno que alcanza el alcance. Cuando el trabajo pasa a un entorno posterior que el ticket no cubría, como la validación en QA de project-a cuando el ticket solo llegaba a development, se piden todos juntos al empezar esa etapa.
 
 ## Redacción propuesta
 

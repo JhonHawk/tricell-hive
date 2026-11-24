@@ -24,7 +24,7 @@ Respuestas siguientes, 2026-10-24, tarjetas nativas:
 
 ## Objetivo
 
-En la sesión de carvento del 2026-10-24 (Claude Code, sesión `94440d0a`, COM-645), el plan de la tarjeta de MaxiPublica volvía a pedir por unidad marca, modelo, año y versión, aunque la unidad ya guarda marca y modelo. Ninguno de los tres revisores del plan lo vio: el de Frontend/UI llegó a recomendar reutilizar la cascada marca → modelo, porque su lista de preguntas en `plan-review.md` mira patrones, reutilización, estados y accesibilidad, no qué datos pide la pantalla ni si el sistema ya los tiene. El usuario lo detectó en la primera vista, ya construido.
+En la sesión de project-a del 2026-10-24 (Claude Code, sesión `94440d0a`, PRJ-645), el plan de la tarjeta de MaxiPublica volvía a pedir por unidad marca, modelo, año y versión, aunque la unidad ya guarda marca y modelo. Ninguno de los tres revisores del plan lo vio: el de Frontend/UI llegó a recomendar reutilizar la cascada marca → modelo, porque su lista de preguntas en `plan-review.md` mira patrones, reutilización, estados y accesibilidad, no qué datos pide la pantalla ni si el sistema ya los tiene. El usuario lo detectó en la primera vista, ya construido.
 
 El cambio hace que un plan con una vista donde el usuario captura o elige datos registre cada dato que pide, de dónde sale y cuántas veces se pide, y que un revisor aparte recorra la tarea real del usuario buscando datos pedidos dos veces. Además ajusta la regla de admisión de `AGENTS.md` a lo que decidió el usuario: la exigencia de dos sesiones reales aplica a las correcciones; las funciones y requisitos nuevos, incluidos los de referencias externas, y los huecos se adoptan con la decisión del usuario.
 
@@ -36,7 +36,7 @@ Excluido:
 - `hive-review-plan` y `hive-review-ux`: el rol de revisión de planes no tiene áreas propias (las áreas viven en `plan-review.md`) y `hive-review-ux` revisa la interfaz renderizada, no planes.
 - `content/guidance/global.md`: la regla de admisión solo vive en `AGENTS.md`, que gobierna este repositorio; `global.md` no cambia de tamaño.
 - Las vigilancias ya registradas de referencias externas (HF1, Q1, WA1–WA5, PR1/PR2, PM1, SEC1 y otras): la regla nueva no las reabre; cada una se puede reconsiderar cuando el usuario lo pida.
-- Los hallazgos de otros proyectos (carvento: cilindrada, color y carrocería todavía duplicados; facti sin `Delivery` ni `Review`; cam): se reportan para sus propias sesiones.
+- Los hallazgos de otros proyectos (project-a: cilindrada, color y carrocería todavía duplicados; project-f sin `Delivery` ni `Review`; project-g): se reportan para sus propias sesiones.
 
 Restricciones: `go vet ./...`, `go test ./...` y el build del sitio siguen pasando; la validación de enlaces de instrucciones pasa; ninguna regla queda con dos hogares (`AGENTS.md`, «Guidance structure»).
 

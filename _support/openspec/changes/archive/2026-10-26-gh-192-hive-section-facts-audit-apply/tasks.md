@@ -214,7 +214,7 @@ El comportamiento con modelo no se verifica (pilots en pausa); queda registrado 
 | UI `functional` (D8-A) | candidato final | `hive-verify-change` abre la vista Project del TUI en un repositorio desechable (identidad: el binario compilado del candidato; base `b3edd8f4`; terminal de 100×30): ocho campos, `Delivery` cicla entre vacío y `direct-base`, `Completion` acepta texto, guardar escribe lo mismo que `hive project set`, y una línea `Review` heredada se muestra y se puede quitar | respondida en D8 |
 | Revisión dedicada | candidato local, antes del push | `/code-review` sobre el diff completo, según «Dedicated review timing» de `delivery-decisions.md` para `automatic` | declarada en `AGENTS.md` (vigente hasta este cambio) |
 
-La skill con modelo (`harness-audit` aplicando) no se ejerce: las pilots están en pausa. Queda como límite declarado. El usuario puede probarla en la sesión de cam, carvento o facti.
+La skill con modelo (`harness-audit` aplicando) no se ejerce: las pilots están en pausa. Queda como límite declarado. El usuario puede probarla en la sesión de project-g, project-a o project-f.
 
 ## Estado de la revisión y progreso
 
@@ -268,5 +268,5 @@ Todos los hallazgos se aceptaron, como propuestas de los revisores o como decisi
 **Incidente:** un `hive-verify-change` corrió `tmux kill-server` en su primera pasada; se informó al usuario.
 
 **Temas abiertos:**
-- Los arreglos de cam, carvento y facti. Destino: la sesión de cada proyecto, con `harness-audit`.
+- Los arreglos de project-g, project-a y project-f. Destino: la sesión de cada proyecto, con `harness-audit`.
 - La release menor. Destino: se propone en el reporte de cierre.

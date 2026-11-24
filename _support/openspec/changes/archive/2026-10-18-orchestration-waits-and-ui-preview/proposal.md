@@ -1,4 +1,4 @@
-# Esperas del orquestador, mensajes con contexto y preview de UI en HTML (C1–C6 del research de la sesión cam e2c8d39f)
+# Esperas del orquestador, mensajes con contexto y preview de UI en HTML (C1–C6 del research de la sesión project-g e2c8d39f)
 
 | Campo | Valor actual |
 | --- | --- |
@@ -10,7 +10,7 @@
 
 ## Petición
 
-> Analiza la sesión de cam actual, aunque no esta usando la versión desplegada, debemos responder:
+> Analiza la sesión de project-g actual, aunque no esta usando la versión desplegada, debemos responder:
 >
 > - Qué etapas generaron demasiado tiempo de iteración?
 > - qué mensajes de espera para el usuario no generaron la pausa necesaria (o se generaron mientras subagentes seguian trabajando) generando nuevos turnos y practicamente rezagando el mensaje de espera.
@@ -32,7 +32,7 @@ Cambios adoptados, tal como se presentaron:
 
 ## Objetivo
 
-En la sesión de Claude Code `e2c8d39f` del proyecto cam (2026-10-18, opus-5-5, Hive desplegado `9c131d3b`), de 7 h 14 min el orquestador trabajó 31 min, esperó a subagentes 151 y al usuario 253. El tiempo perdido no vino de la iteración en sí, sino de cuatro patrones que Hive hoy no impide:
+En la sesión de Claude Code `e2c8d39f` del proyecto project-g (2026-10-18, opus-5-5, Hive desplegado `9c131d3b`), de 7 h 14 min el orquestador trabajó 31 min, esperó a subagentes 151 y al usuario 253. El tiempo perdido no vino de la iteración en sí, sino de cuatro patrones que Hive hoy no impide:
 
 - una verificación que terminó su turno esperando su propio vigilante quedó parada 68 min mientras el orquestador repetía «sigue en curso»;
 - una tarea de interfaz comprometida antes de su primera vista y de la revisión de interfaz se rehízo tres veces;

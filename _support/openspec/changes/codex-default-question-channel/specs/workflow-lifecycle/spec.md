@@ -84,7 +84,7 @@ When the selected native question tool waits for the answer and gives each optio
 
 #### Scenario: A plan route without the next-step block
 
-- **GIVEN** a Codex session whose user types `$flow-plan` and whose plan message ends «**Siguiente paso · Implementar COM-933**» followed by `` `$flow-build COM-933` `` with no `▶` line
+- **GIVEN** a Codex session whose user types `$flow-plan` and whose plan message ends «**Siguiente paso · Implementar PRJ-933**» followed by `` `$flow-build PRJ-933` `` with no `▶` line
 - **WHEN** the audit runs on it
 - **THEN** `plan_without_build_route` fails with that message's line
 

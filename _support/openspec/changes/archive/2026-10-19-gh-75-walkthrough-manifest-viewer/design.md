@@ -46,7 +46,7 @@
 - Ningún host documenta que un proceso lanzado por el agente sobreviva a la sesión.
 - Solo Claude Code (`CLAUDE_CODE_SESSION_ID`) y Pi (`PI_SESSION_ID`) documentan un ID de sesión legible desde el shell.
 
-**Nombres de proyecto.** Engram sin config cae a `git_remote`, `git_root` y `dir_basename`. Es una observación con engram 3.4.0. `engram projects list` tiene entradas accidentales como `jmartinez`.
+**Nombres de proyecto.** Engram sin config cae a `git_remote`, `git_root` y `dir_basename`. Es una observación con engram 3.4.0. `engram projects list` tiene entradas accidentales como `me`.
 
 **Antecedentes externos.** Herramientas de skills de terceros tienen servidores locales efímeros: uno arma la página desde un payload JSON, con latido y apagado por inactividad; otro es un servidor sin dependencias en loopback, con clave y verificación de `Origin`. Ninguno es persistente para varios proyectos, y no se adapta código de ellos.
 
@@ -322,7 +322,7 @@ viewer/
 │      claude  │ ── Comprobaciones ─────────────────── │
 │  ▸ gh-67-…   │ AC1 …                          pass   │
 │  ▸ sin ticket│ ── Flujo 1 ────────────────────────── │
-│ carvento     │ 1. …  2. …                            │
+│ project-a     │ 1. …  2. …                            │
 │  ▸ cvt-12-…  │ [img][img][img]  → carrusel 2 / 3     │
 │ TTL 14 d · 1⚠│ Acción requerida · Entorno            │
 └──────────────┴───────────────────────────────────────┘

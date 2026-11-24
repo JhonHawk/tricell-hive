@@ -41,7 +41,7 @@ function mount(t: TestContext) {
   });
   return { root, container };
 }
-test("CAM stage counts use bound segments and work total deduplicates T7", async (t) => {
+test("project-g stage counts use bound segments and work total deduplicates T7", async (t) => {
   const { root, container } = mount(t);
   const data = workFixture();
   let target: TimelineDetailTarget | undefined;

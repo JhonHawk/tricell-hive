@@ -26,7 +26,7 @@ Incluido: la sección «Dedicated code review» de `content/skills/flow-verify/r
 
 Excluido, con destino:
 - Cadencia de la suite completa en las rondas (H6): en observación; se reabre si otra sesión con la regla nueva repite más de dos suites completas sobre cambios solo de `content/`.
-- Espera del CI tras el merge y re-corrida por base movida en cam (H1, H2): reporte para la sesión de cam (correr el job de integración también en los PR).
+- Espera del CI tras el merge y re-corrida por base movida en project-g (H1, H2): reporte para la sesión de project-g (correr el job de integración también en los PR).
 - Tope de tamaño al lote final sin revisar: descartado; la cláusula de contrato ya manda esos casos al usuario.
 - Revisión de las correcciones de la validación humana (`review-and-gates.md:51`): fuera de alcance; es una etapa distinta, pedida por el usuario.
 

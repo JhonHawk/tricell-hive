@@ -21,7 +21,7 @@
 
 ## Pedido
 
-Del issue #328 (leído el 2026-11-02): tres cambios que salieron de revisar 16 sesiones de Claude Code (tricell-hive, cam y carvento, del 31-oct al 2-nov). Criterios en borrador del issue, citados:
+Del issue #328 (leído el 2026-11-02): tres cambios que salieron de revisar 16 sesiones de Claude Code (tricell-hive, project-g y project-a, del 31-oct al 2-nov). Criterios en borrador del issue, citados:
 
 - «AC1: A route that needs a missing ticket ends with the question whether to create it; no tracker write happens before the answer.»
 - «AC2: The next-step block offers compaction at plan → build in the same session and after a close followed by another work item, and nowhere based on a percentage.»
@@ -33,8 +33,8 @@ Fuera del issue: la fase 2 del visor (verbos con archivo de estado), un servidor
 ## Objetivo
 
 Hoy:
-- Una acción suelta, como crear un ticket, se ofrece con un bloque de siguiente paso que pide responder una frase o escribir un comando; en cam `32cffc1d` y tricell-hive `9187491a` eso costó una o dos respuestas extra.
-- Nada recomienda compactar: los builds de cam, carvento y #319 empezaron con 207–324k tokens y un ticket nuevo de cam corrió sobre 543–602k del anterior.
+- Una acción suelta, como crear un ticket, se ofrece con un bloque de siguiente paso que pide responder una frase o escribir un comando; en project-g `32cffc1d` y tricell-hive `9187491a` eso costó una o dos respuestas extra.
+- Nada recomienda compactar: los builds de project-g, project-a y #319 empezaron con 207–324k tokens y un ticket nuevo de project-g corrió sobre 543–602k del anterior.
 - Publicar en el visor se llevó entre 5 y 16% de los tokens procesados: el contrato se pidió 16–33 veces por sesión, `viewer-publication.md` se releyó hasta 18 veces y `session get` corrió 13–43 veces.
 
 Con el cambio: las acciones sueltas se preguntan en la ronda, el bloque de siguiente paso ofrece compactar en los dos momentos acordados, y el visor se publica leyendo una vez la referencia y el contrato del flujo en curso, que pesa entre 1k y 6k caracteres.
@@ -67,7 +67,7 @@ Ninguno: el build no necesita nada de fuera del repositorio.
 
 ## Entrega
 
-Automática (D10 A): reviso, hago push, abro el PR a `development` y lo fusiono con la CI en verde, sin parada de validación. Revisión de código: Claude Code `/code-review` sobre el diff del candidato (D11 A). El commit nombra las sesiones observadas (cam `32cffc1d`, carvento `8d09a5eb`, tricell-hive `98476eca`, `9187491a`, `7bcc87ae`, `da51e1c1`; Claude Code, 2026-11-02). Con el marcador de mantenedor, al integrarse se reconstruye el binario y se corre `hive update`. No autoriza una release.
+Automática (D10 A): reviso, hago push, abro el PR a `development` y lo fusiono con la CI en verde, sin parada de validación. Revisión de código: Claude Code `/code-review` sobre el diff del candidato (D11 A). El commit nombra las sesiones observadas (project-g `32cffc1d`, project-a `8d09a5eb`, tricell-hive `98476eca`, `9187491a`, `7bcc87ae`, `da51e1c1`; Claude Code, 2026-11-02). Con el marcador de mantenedor, al integrarse se reconstruye el binario y se corre `hive update`. No autoriza una release.
 
 ## Revisión y avance
 

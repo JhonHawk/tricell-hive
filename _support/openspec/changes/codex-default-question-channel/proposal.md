@@ -10,7 +10,7 @@
 ## Decisiones
 
 2026-11-24
-- **D1 A** — ¿Cómo seguimos tras revisar la sesión Codex de carvento `01a20c02`? Registrar la observación en los watch items y planear la corrección.
+- **D1 A** — ¿Cómo seguimos tras revisar la sesión Codex de project-a `01a20c02`? Registrar la observación en los watch items y planear la corrección.
 - **D4 A** — ¿Qué enfoque toma la corrección? Una línea acotada en la regla de preguntas (sin `request_user_input_async` cuando Codex ofrece `request_user_input`; entrega, revisión y validación son rondas, no permisos), con los criterios del auditor primero. Se descartan «nunca async» en `global.md` (B) y solo auditor (C).
 - **Entrega A** — `automatic`. **Dónde A** — worktree.
 - **Supuesto** — Una frase que recomienda un texto entre backticks que contiene un modo de entrega como palabra entera («Recomiendo `automatic, Codex, sí`») da `fail` cuando no sigue una tarjeta en su turno. Una frase que solo deja pendiente una decisión de sesión («queda por confirmar la entrega») da `review`. Cada frase se juzga por separado. Descartado: `fail` también para la frase que solo deja algo pendiente, porque marcaría como fallo un informe que menciona una entrega pendiente como hecho.
@@ -24,13 +24,13 @@ None: the work adopts no business rule beyond what its ticket and documentation 
 
 ## Solicitud
 
-«no se si lo mas facil sea pedir que nunca se use el modo async en una regla global para codex» (2026-11-24), tras la revisión de la sesión Codex `01a20c02-5d3c-76b2-ad76-f221fd88dd04` (carvento, `gpt-6.2-sol` high, modo Default, 2026-11-24 05:24–05:42Z), que mostró antes del build:
+«no se si lo mas facil sea pedir que nunca se use el modo async en una regla global para codex» (2026-11-24), tras la revisión de la sesión Codex `01a20c02-5d3c-76b2-ad76-f221fd88dd04` (project-a, `gpt-6.2-sol` high, modo Default, 2026-11-24 05:24–05:42Z), que mostró antes del build:
 
 - L200: tarjeta D2 con opciones sin letra («Clave firmada (Recommended)»), cerrada por tiempo.
 - L236: la ronda en texto sin `Situation:`, «Si la eliges:», «Recomiendo» ni línea de espera.
 - L408: entrega, revisión y seguridad reducidas a «Recomiendo **`automatic, Codex, sí`**», sin tarjeta.
 - L421: `request_user_input_async` con opciones planas y sin la ronda en el texto, con `request_user_input` ofrecido.
-- L496: «**Siguiente paso · Implementar COM-933**» en lugar del bloque `▶`.
+- L496: «**Siguiente paso · Implementar PRJ-933**» en lugar del bloque `▶`.
 
 El auditor marca L200 y L236 y no ve L408, L421 ni L496.
 

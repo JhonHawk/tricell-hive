@@ -25,7 +25,7 @@ El cambio hace del ticket un destino para el trabajo que de verdad espera, recom
 ## Evidencia (inspeccionada en esta sesión por tres hijos `hive-research`, citas comprobadas por el hilo principal)
 
 - 32 de 166 tarjetas ofrecían abrir un ticket; en 23 era la opción recomendada; el usuario lo rechazó o cambió en 10.
-- Hallazgos incidentales al cierre con «Abrir ticket» recomendado: 6 (Claude cam `c00e1e7f` ×3, cam `df8c65a1` H1 y H3, facti `9f73a051` F1); el usuario eligió resolver o investigar en los 6.
+- Hallazgos incidentales al cierre con «Abrir ticket» recomendado: 6 (Claude project-g `c00e1e7f` ×3, project-g `df8c65a1` H1 y H3, project-f `9f73a051` F1); el usuario eligió resolver o investigar en los 6.
 - Investigaciones que pararon a los 1–5 minutos con una inferencia decidiendo la recomendación, corregidas después en 5 de 7: Claude `1624fa4f`, `abdd6ea1`, `5fdb6aad`, `c00e1e7f`, `9f73a051`; Codex `01a179e0`; Pi `01a177d3`.
 - Reglas que lo provocan: `content/guidance/global.md:21` (destinos de temas abiertos con el ticket primero), `:24` y `:78` (pregunta de ruta con «opening a ticket and stopping» obligatorio, desde `c3363b70`), `:34` («propose an issue in the report»); `content/skills/flow-research/SKILL.md:42` («one more option opens the ticket and stops») y `:46`; `content/skills/flow-close/references/incidental-findings.md:9` («mark which ones you recommend opening and why»); `flow-research/SKILL.md:26` y `content/agents/review/hive-research.md` (parar cuando la evidencia converge; `complete` cuando converge); ninguna regla define suficiencia.
 

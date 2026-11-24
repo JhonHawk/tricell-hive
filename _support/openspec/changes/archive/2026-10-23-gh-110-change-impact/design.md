@@ -4,7 +4,7 @@
 
 Base: `development` en `ad6099c1` (2026-10-23).
 
-**Hechos inspeccionados en las sesiones** (transcripts en `~/.claude/projects/-Users-jmartinez-Development-projects-visooal-facti/`):
+**Hechos inspeccionados en las sesiones** (transcripts en `~/.claude/projects/-Users-me-Development-projects-org-b-project-f/`):
 
 - `42b8e06a`, 09:06 UTC: el informe de investigación recomendó como R1 «Cerrar 3306 y 22 del MySQL». El usuario respondió en D1: «si el legacy pierde comunicación con él, se cae». La configuración del repositorio del API ya apuntaba a la IP pública de ese MySQL. El agente leyó entonces `flow-research`, cuyo paso de inspección solo cubre el repositorio.
 - Misma sesión: el usuario pidió después ampliar la ventana de captura a 24 h, mirar si la base seguía recibiendo escrituras, «una forma rápida de revertirla» y «riesgo 0» antes de desplegar. Los revisores del plan (backend/datos e infraestructura) sí señalaron impactos sobre el portal moderno y la reversión. El code-review y la revisión previa al despliegue hallaron que corregir la recuperación de contraseña reactivaba código muerto y que el despliegue ampliaba el acceso a `admin.*`.

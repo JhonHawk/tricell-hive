@@ -3,14 +3,14 @@
 | Campo | Valor actual |
 | --- | --- |
 | Estado | Completado · integrado en `development` por PR #46, commit `16028d3575e7286cc028985cd2138c3268257add` · registro archivado |
-| Tracker · GitHub Issues | Sin issue; la evidencia vive en este cambio y en Engram (`monitoring/codex-cam-excess-pauses-2026-10-11`) |
+| Tracker · GitHub Issues | Sin issue; la evidencia vive en este cambio y en Engram (`monitoring/codex-project-g-excess-pauses-2026-10-11`) |
 | Git | `feat/guidance-rework` integrada por [PR #46](https://github.com/JhonHawk/tricell-hive/pull/46) · publicación autorizada D3-A/D10-A el 2026-10-11 · cierre del registro por PR separado |
 | Verificación | comprobaciones `rg` por criterio · `go test ./...` · medición en sesiones reales tras un despliegue que el usuario pida |
 | Siguiente paso | Sin tareas técnicas pendientes de este cambio; la reorganización nueva continúa en su propio registro |
 
 ## Pedido
 
-> Valida la sesión de codex en cam, sigue pasando el tema de que hace demasiada pausas,
+> Valida la sesión de codex en project-g, sigue pasando el tema de que hace demasiada pausas,
 
 Respuestas del usuario (2026-10-11):
 
@@ -22,9 +22,9 @@ Respuestas del usuario (2026-10-11):
 
 ## Objetivo
 
-En la sesión de Codex en cam `01a129d5` (2026-10-11), el agente se detuvo 13 veces para pedir una decisión y el usuario eligió la opción recomendada en todas. Cinco de esas pausas (D8–D12) fueron preguntas de ruta entre rondas de investigación e implementación, todas hacia un mismo objetivo (mejorar la precisión de un candidato local de CodeGraph) y todas con efectos solo locales y reversibles. `flow-research` ya permite llevar los hallazgos a una tarea más amplia autorizada sin otra aprobación, pero ninguna respuesta del usuario autorizó esa tarea más amplia: cada opción autorizaba un solo flujo, y la regla global «repeated approvals are not standing permission» empuja a preguntar en cada vuelta.
+En la sesión de Codex en project-g `01a129d5` (2026-10-11), el agente se detuvo 13 veces para pedir una decisión y el usuario eligió la opción recomendada en todas. Cinco de esas pausas (D8–D12) fueron preguntas de ruta entre rondas de investigación e implementación, todas hacia un mismo objetivo (mejorar la precisión de un candidato local de CodeGraph) y todas con efectos solo locales y reversibles. `flow-research` ya permite llevar los hallazgos a una tarea más amplia autorizada sin otra aprobación, pero ninguna respuesta del usuario autorizó esa tarea más amplia: cada opción autorizaba un solo flujo, y la regla global «repeated approvals are not standing permission» empuja a preguntar en cada vuelta.
 
-Este cambio añade una ruta iterativa a la pregunta de ruta. La opción declara el objetivo, los efectos que cubre (solo locales y reversibles), un número de vueltas que propone el agente y las condiciones de parada. Si el usuario la elige, el agente encadena rondas de `flow-research` y `flow-build` sin nuevas preguntas de ruta, informa en una línea por vuelta, y pregunta solo cuando la ruta se detiene. Resultado esperado: trabajo como el de cam sigue con una sola autorización y con un tope visible.
+Este cambio añade una ruta iterativa a la pregunta de ruta. La opción declara el objetivo, los efectos que cubre (solo locales y reversibles), un número de vueltas que propone el agente y las condiciones de parada. Si el usuario la elige, el agente encadena rondas de `flow-research` y `flow-build` sin nuevas preguntas de ruta, informa en una línea por vuelta, y pregunta solo cuando la ruta se detiene. Resultado esperado: trabajo como el de project-g sigue con una sola autorización y con un tope visible.
 
 ## Alcance y aceptación
 

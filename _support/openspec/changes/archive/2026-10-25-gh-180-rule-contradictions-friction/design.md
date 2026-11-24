@@ -6,8 +6,8 @@ Leído en `development` `70d2bb13` el 2026-10-25. Los hallazgos vienen de cuatro
 
 - **Revisión dedicada sin momento fijo.** «as the delivery mode sets» o «at the point the delivery mode sets» aparece en `content/skills/flow-verify/SKILL.md:30,46,62`, `flow-verify/references/review-and-gates.md:9`, `flow-verify/references/ui-gate.md:38` y `flow-plan/references/delivery-decisions.md:26`. La tabla de modos (`delivery-decisions.md:9-12`) solo dice «the agreed review» para `interactive` y «agreed checks/review» para `automatic`. `review-and-gates.md:9-10` nombra dos momentos: el candidato local y la publicación.
 - **`automatic` con UI.** `delivery-decisions.md:10` dice: «when project guidance requires one for the change, such as a visual check of a changed screen, mark automatic unavailable». En cambio, `project-settings.md:9` dice: «under `Delivery: automatic`, `none` merges a UI change with only the implementer's checks and no person». `flow-walkthrough/SKILL.md:24` pregunta por la primera vista sin condición de modo, y `flow-build/SKILL.md:12,62` exige que esa vista quede aceptada.
-- **Punto de cierre posterior.** `global.md:34` dice «unless the project declares a later completion point», y `project-settings.md` no lo define. Tres proyectos lo declaran en prosa: CAM (`comsys/cam/AGENTS.md:45`), Carvento (`comsys/carvento/AGENTS.md:58`) y Facti (`visooal/facti/AGENTS.md:86`), con «the completion point is QA».
-- **`direct-base`.** Lo declaran `cam-specs`, `carvento-specs` y `cam-frontend-mocks` (`AGENTS.md` de cada uno). El TUI y `doctor` conocen las claves de `## Hive` (`tooling/cli/tui_project_view.go:313`, `doctor_project_test.go:492`); una clave nueva exige cambios en Go.
+- **Punto de cierre posterior.** `global.md:34` dice «unless the project declares a later completion point», y `project-settings.md` no lo define. Tres proyectos lo declaran en prosa: project-g (`org-a/project-g/AGENTS.md:45`), project-a (`org-a/project-a/AGENTS.md:58`) y project-f (`org-b/project-f/AGENTS.md:86`), con «the completion point is QA».
+- **`direct-base`.** Lo declaran `project-g-specs`, `project-a-specs` y `project-g-frontend-mocks` (`AGENTS.md` de cada uno). El TUI y `doctor` conocen las claves de `## Hive` (`tooling/cli/tui_project_view.go:313`, `doctor_project_test.go:492`); una clave nueva exige cambios en Go.
 - **Preguntas en secuencia.** `flow-plan/references/questions.md:25-27` agrupa las preguntas independientes. `:29-31` pide una sola pregunta para elecciones en secuencia «even when a later step depends on an earlier one's result».
 - **Tamaño.** `flow-close/SKILL.md` pesa 15 955 bytes y `flow-plan/SKILL.md` 15 799. `tests/content/skill_size_test.go:13` fija el límite en 16 000. `global.md` (38 338 bytes) no tiene límite; `tests/content/budget_test.go` solo lo registra.
 - **Portal.** `master` = `v0.5.0` (`8c2882bd`, 2026-10-23). Hay 284 commits de `development` sin publicar. `https://hive.tricell.tech/flows/verify/` respondió 404 el 2026-10-25, y `README.md:344` la enlaza. El sitio se publica solo con una release (`CONTRIBUTING.md:136-137`; `_support/openspec/specs/documentation-site/spec.md:9-18`).
@@ -34,7 +34,7 @@ Cada regla queda en un solo hogar y los demás lugares apuntan a él (`AGENTS.md
 
 ### Punto de cierre posterior (`project-settings.md`, hogar; D6-A)
 
-Un proyecto lo declara en su guía, nombrando el ambiente y su condición, como «Done = on `origin/qa`» en CAM y Carvento o `origin/gamma` en Facti. El comportamiento es uno solo:
+Un proyecto lo declara en su guía, nombrando el ambiente y su condición, como «Done = on `origin/qa`» en project-g y project-a o `origin/gamma` en project-f. El comportamiento es uno solo:
 - La obra se cierra al integrarse en la rama base. `flow-close` la cierra ahí.
 - El ticket va al estado intermedio que la guía del proyecto nombre.
 - Pasa al estado final cuando se cumple la condición que nombra la guía del proyecto. `flow-deploy` aplica ese movimiento cuando corre la promoción; si la promoción la hizo otra persona o sesión, la siguiente sesión que vea cumplida la condición lo aplica.
@@ -171,8 +171,8 @@ Revisión de las conversaciones principales de los seis hosts, del 2026-10-01 al
 
 - **H18, confirmado.** 20 rondas con una dependencia clara, de 316 rondas con varias preguntas (cerca del 6 %): Claude 17, Grok 1, Pi 1, OpenCode 1. En 8, la respuesta del usuario a la primera pregunta dejó sin sentido o equivocada la segunda. Ejemplos:
   - Claude `c119a25b` (2026-10-24): D25 ofrecía recortes pensados para el límite de 18 000 bytes de D24, y el usuario eligió 16 000.
-  - Claude `c574e5a1` (2026-10-23, facti): D12 daba por abierto el ticket de H5, y el usuario eligió «Medir antes en prod».
-  - Grok `01a0fa92` (2026-10-02, cam): «Si abriste H3…», y el usuario descartó H3.
+  - Claude `c574e5a1` (2026-10-23, project-f): D12 daba por abierto el ticket de H5, y el usuario eligió «Medir antes en prod».
+  - Grok `01a0fa92` (2026-10-02, project-g): «Si abriste H3…», y el usuario descartó H3.
   - Además, en 11 rondas de 6 sesiones el usuario respondió con texto libre («resolvamos / resolvamoslo de una vez») en lugar de una opción, cuando una pregunta de «¿abro tickets para estos hallazgos?» iba junto a otra de «¿qué sigue?».
 - **AC3.** De 25 entregas `automatic`, la pregunta de revisión se hizo en todas. En 7, el agente recomendó «Sin revisión dedicada», el usuario la eligió y se integró sin revisión.
 - **H3, confirmado.** 3 rondas descartaron `automatic` por pantallas nuevas: Claude `94440d0a`, Claude `c6b1930e` y Codex `01a16bf8`.

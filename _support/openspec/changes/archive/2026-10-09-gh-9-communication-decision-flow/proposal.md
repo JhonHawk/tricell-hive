@@ -54,8 +54,8 @@ Criterios de aceptación:
 - `CHANGELOG.md`: el PR agrega su entrada en `[Unreleased]`, como exige CONTRIBUTING. Es un arreglo de nivel parche de la guía; al cerrar se propondrá una release si se cumple el criterio de CONTRIBUTING.
 - Registro del cambio: se versiona una vez al cerrar, con un PR pequeño de cierre que fusiona el agente, como en cierres anteriores.
 - Mensajes de commit (AGENTS.md, Measurement), con las sesiones reales que motivan el cambio:
-  - Claude Code `71388ddc-1b5f-48f1-a08b-29fa4b834cc2`, carvento COM-786, 2026-10-08: las alternativas quedaron solo en el ticket.
+  - Claude Code `71388ddc-1b5f-48f1-a08b-29fa4b834cc2`, project-a PRJ-786, 2026-10-08: las alternativas quedaron solo en el ticket.
   - Claude Code `5aa1a929-d0e5-45a4-a5c9-7600b39a83f9`, state-research, 2026-10-03 a 2026-10-05: las opciones quedaron solo en una tarjeta rechazada.
-  - Claude Code `35bd0059-a362-404a-8354-b57a80ded0f6`, dened, 2026-10-02 a 2026-10-06: el usuario tuvo que pedir qué convenía.
+  - Claude Code `35bd0059-a362-404a-8354-b57a80ded0f6`, project-e, 2026-10-02 a 2026-10-06: el usuario tuvo que pedir qué convenía.
   - Las tres sesiones del 2026-10-05 que registra #9, más el conteo de 82 de 208 tarjetas sin texto del 1 al 8 de octubre.
 - Fuera de la entrega: la release y la medición posterior, que se ofrecen al cerrar.

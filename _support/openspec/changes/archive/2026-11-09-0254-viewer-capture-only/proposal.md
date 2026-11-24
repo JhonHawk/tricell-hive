@@ -22,7 +22,7 @@
 
 ## Objective
 
-Hoy el visor se lleva ~9 % de los tokens procesados en las sesiones que lo usan (Hive, 24 sesiones tras #374: 7,2 % en llamadas + 1,9 % arrastrado; cam y carvento, 14 sesiones: 4,9 % + 2,8 %). Solo ~7 % de sus llamadas suben capturas; el resto declara etapas y tareas, lee el contrato (8.995 bytes) y relee la sesión. Publicar una captura exige `work open`, `work sync` y `work evidence --candidate`, y la iteración no lleva número.
+Hoy el visor se lleva ~9 % de los tokens procesados en las sesiones que lo usan (Hive, 24 sesiones tras #374: 7,2 % en llamadas + 1,9 % arrastrado; project-g y project-a, 14 sesiones: 4,9 % + 2,8 %). Solo ~7 % de sus llamadas suben capturas; el resto declara etapas y tareas, lee el contrato (8.995 bytes) y relee la sesión. Publicar una captura exige `work open`, `work sync` y `work evidence --candidate`, y la iteración no lleva número.
 
 Al terminar, un flujo sin capturas no toca el visor; un flujo con capturas publica cada lote con una llamada a `hive view work capture`, que numera la iteración, y el cierre hace un `work close`. La referencia de publicación pasa de 14 KB a ≤ 4 KB.
 

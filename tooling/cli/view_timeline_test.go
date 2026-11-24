@@ -489,10 +489,10 @@ func TestTimelineCLICreateReadbackChecksTheWorkKey(t *testing.T) {
 		ok           bool
 	}{
 		{"no key sent and null returned", nil, nil, true},
-		{"key sent and echoed", "COM-1", "COM-1", true},
-		{"key sent and null returned", "COM-1", nil, false},
-		{"key sent and another returned", "COM-1", "COM-2", false},
-		{"no key sent and a key returned", nil, "COM-1", false},
+		{"key sent and echoed", "PRJ-1", "PRJ-1", true},
+		{"key sent and null returned", "PRJ-1", nil, false},
+		{"key sent and another returned", "PRJ-1", "PRJ-2", false},
+		{"no key sent and a key returned", nil, "PRJ-1", false},
 	} {
 		var out bytes.Buffer
 		err := viewTimelineDecodeOutput(&out, command, request(c.sent), response(c.echoed))

@@ -23,7 +23,7 @@ El usuario, tras el diagnóstico de los rechazos `forbidden_for_kind` del visor 
 
 ## Objetivo
 
-Hoy un productor que manda un campo que su tipo de evento no acepta recibe el nombre de otro campo y reintenta a ciegas: en cam (Codex, 2026-11-04 21:43) un evento `validation` con `expected_session_version` falló cuatro veces seguidas con `forbidden_for_kind on stage`. En total hubo unos 37 rechazos `invalid timeline input` en 14 sesiones de Codex entre el 3 y el 5 de noviembre. Al terminar, el error nombra el campo que sobra y dice qué tipos lo aceptan, y la operación completa del contrato declara esos campos por tipo.
+Hoy un productor que manda un campo que su tipo de evento no acepta recibe el nombre de otro campo y reintenta a ciegas: en project-g (Codex, 2026-11-04 21:43) un evento `validation` con `expected_session_version` falló cuatro veces seguidas con `forbidden_for_kind on stage`. En total hubo unos 37 rechazos `invalid timeline input` en 14 sesiones de Codex entre el 3 y el 5 de noviembre. Al terminar, el error nombra el campo que sobra y dice qué tipos lo aceptan, y la operación completa del contrato declara esos campos por tipo.
 
 ## Alcance y aceptación
 
@@ -31,7 +31,7 @@ Dentro: los validadores de Go de `append_event` y del estado de la sesión, el m
 
 Fuera: el validador espejo del frontend (`tooling/viewer/frontend/src/timeline-contract.ts`; en ejecución nada usa su rama de `append_event`, solo sus tipos), regenerar el bundle, los briefs por flujo (`--for`), los otros códigos de error y cualquier campo que dependa de tipos que no son de evento (tickets, artefactos, entregas).
 
-- AC1 — `hive view event add` con `kind: validation` y `expected_session_version` falla con `invalid timeline input: forbidden_for_kind on expected_session_version` · hoy es falso porque reporta `on stage` (observado en cam, 2026-11-04).
+- AC1 — `hive view event add` con `kind: validation` y `expected_session_version` falla con `invalid timeline input: forbidden_for_kind on expected_session_version` · hoy es falso porque reporta `on stage` (observado en project-g, 2026-11-04).
 - AC2 — Cada campo que depende del tipo se nombra a sí mismo cuando se rechaza: `stage_state` y `source_reference` en `append_event`, `task_id` y `segment_id` en eventos `stage` o `closure` (hoy `timeline_contract_v3.go:347` los nombra `target_stage_event_id`), y `stage_state`, `started_at`, `finished_at` y `document_snapshots` en la validación de estado · hoy es falso porque se agrupan bajo `stage` o `target`.
 - AC3 — Cuando la validación local de `event add` rechaza con `forbidden_for_kind` un campo que depende del tipo, el mensaje del CLI agrega qué tipos lo aceptan, como `invalid timeline input: forbidden_for_kind on expected_session_version; only kind stage accepts it` · hoy es falso porque el mensaje termina en el nombre del campo.
 - AC6 — Cuando el visor rechaza `event add`, `event update` o `stage update` con `forbidden_for_kind` en un campo que depende del tipo, como `stage_state` en un evento que no es de etapa, el mensaje del CLI agrega qué tipos lo aceptan, como `viewer request failed (HTTP 400: forbidden_for_kind on stage_state; only kind stage accepts it)` · hoy es falso porque `viewErrorDetail` (`tooling/cli/view_timeline.go:603-616`) termina en el nombre del campo.

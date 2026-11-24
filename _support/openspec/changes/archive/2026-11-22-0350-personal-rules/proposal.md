@@ -10,7 +10,7 @@
 ## Decisiones
 
 2026-11-21
-- **D7 A** — ¿Se escribe la regla «dónde trabajar» (mismo checkout, worktree o `sbx`) y se prueba? Sí; la prueba en cam (worktree temporal montado en `sbx`) confirmó que funciona con el `.git` del repo montado en solo lectura, `TURBO_CACHE_DIR` dentro del worktree y el store de pnpm fuera de él. El usuario pidió que sea compatible con todos los hosts, en el equivalente de la guía global, no en `~/.claude/rules`.
+- **D7 A** — ¿Se escribe la regla «dónde trabajar» (mismo checkout, worktree o `sbx`) y se prueba? Sí; la prueba en project-g (worktree temporal montado en `sbx`) confirmó que funciona con el `.git` del repo montado en solo lectura, `TURBO_CACHE_DIR` dentro del worktree y el store de pnpm fuera de él. El usuario pidió que sea compatible con todos los hosts, en el equivalente de la guía global, no en `~/.claude/rules`.
 - **D8** — ¿Solo Claude Code o todos los hosts? Todos los hosts.
 - **D9 A** — ¿Con qué enfoque llegan las reglas personales a todos los hosts? Un bloque del manager con el patrón del bloque de voz, desplegado por `hive update` desde un archivo del usuario; descartados la lectura al iniciar la sesión y solo documentarlo.
 - **D10 A** — ¿Dónde va el bloque y qué dice sobre su prioridad? Al final, después del bloque de Hive y del de voz, con una línea inicial: son reglas propias del usuario y, donde contradigan la guía de Hive, mandan estas.

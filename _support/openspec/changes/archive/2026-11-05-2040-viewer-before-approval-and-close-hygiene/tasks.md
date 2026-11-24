@@ -4,7 +4,7 @@ El plan parte de la base `development` en `6670e799`. Se trabaja en la rama `fix
 
 Cada commit nombra en su mensaje las sesiones donde se observó la falla (host, ID de sesión y fecha), como pide «Measurement» de `AGENTS.md`:
 - **Visor:** Claude Code 5ff8bac1, 062c567a y 98476eca; Codex 01a1a00a y 01a1a30f.
-- **Higiene:** Codex 01a1a8a8 y 01a1aa61, y Claude Code 746d5e32 (facti).
+- **Higiene:** Codex 01a1a8a8 y 01a1aa61, y Claude Code 746d5e32 (project-f).
 
 Quién hace cada tarea:
 - **T1** edita cuatro archivos con su texto ya fijado en `design.md`. Supera el umbral de «edits more than 3 files» de `delegation.md`, así que va a un hijo `hive-write-docs`.

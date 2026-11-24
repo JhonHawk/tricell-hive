@@ -28,7 +28,7 @@ Durante la planificación:
 
 ## Objetivo
 
-Claude Code, Grok y ahora Codex guardan su propia memoria nativa además de Engram, y ninguna de las dos lee a la otra. En una muestra de 33 hechos de la semana del 12 al 16 de octubre, 11 estaban viejos o se contradecían entre las dos memorias. En cam, una restricción (no llamar a `POST /register`) se guardó en las dos, y su reversión del 16 de octubre llegó a Engram pero no a la memoria de Grok, hasta que el usuario lo corrigió a mano.
+Claude Code, Grok y ahora Codex guardan su propia memoria nativa además de Engram, y ninguna de las dos lee a la otra. En una muestra de 33 hechos de la semana del 12 al 16 de octubre, 11 estaban viejos o se contradecían entre las dos memorias. En project-g, una restricción (no llamar a `POST /register`) se guardó en las dos, y su reversión del 16 de octubre llegó a Engram pero no a la memoria de Grok, hasta que el usuario lo corrigió a mano.
 
 Hive no tiene hoy una regla que diga qué memoria manda. La guía dice "persistent memory" en `global.md:31`, `git-workflow` y `flow-close` sin decir cuál es. El cambio agrega esa regla en `global.md`, en la sección de continuidad:
 - Engram es la memoria persistente cuando el host lo tiene.

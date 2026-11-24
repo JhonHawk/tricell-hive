@@ -1808,11 +1808,11 @@ At the completion point of work not delivered under `hold`, `flow-close` SHALL r
 
 In `go run ./tests/pilot --audit-session`, `change_folder_uncommitted` SHALL read commands from their resolved form, which for Codex is the completed command item with its exit code, falling back to the shell call when its success is known and no completed item exists, SHALL take as the change folder each `changes/<id>` segment outside `archive/` of a path the session wrote through a patch, a write tool or a command of a known writing form, never through a read, and SHALL count a merge whether or not it deletes the branch. It SHALL report pass when, after the first write to the folder, a successful commit command names that segment or a `tasks.py <folder> versioned` on it exits 0; fail, naming the folder, when assistant text follows the last merge and neither happened; review when no assistant text follows the last merge, or when the session's only writes to the folder are `tasks.py` progress or checkpoint records after the last merge; and not_observed when the session wrote no change folder or merged nothing.
 
-#### Scenario: The CAM-20 close
+#### Scenario: The project-g-20 close
 
-- **GIVEN** the real Codex session `01a1f5d4` that merged PR #384 through an interpolated command and closed with «No quedan pendientes de esta entrega» without committing `cam-specs/openspec/changes/cam-20-profile-save`
+- **GIVEN** the real Codex session `01a1f5d4` that merged PR #384 through an interpolated command and closed with «No quedan pendientes de esta entrega» without committing `project-g-specs/openspec/changes/project-g-20-profile-save`
 - **WHEN** the session audit reads it
-- **THEN** `change_folder_uncommitted` reports fail and names `changes/cam-20-profile-save`
+- **THEN** `change_folder_uncommitted` reports fail and names `changes/project-g-20-profile-save`
 
 #### Scenario: A folder committed before the merge
 

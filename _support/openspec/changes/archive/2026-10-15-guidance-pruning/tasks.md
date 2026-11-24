@@ -78,13 +78,13 @@ Ejecución: T2–T4 en el hilo principal, porque cada edición son una o dos fra
 
 ### T5 — C2: research del punto de "ticket hecho" por proyecto
 
-- [x] Un hijo `hive-research` entrega, en solo lectura, cómo cierran hoy cam, carvento y dened (estados de Linear y Jira, quién mueve el ticket y cuándo), qué fijan `verification.md:88` y `flow-close:14,56,66`, y dos o tres formas de declarar el punto de cierre en `## Hive` (nombre del ajuste, valores, valor por defecto); el orquestador escribe las opciones fundamentadas en `design.md` (DD5, apartado C2b), presenta la tarjeta C2b y registra la respuesta en `proposal.md`.
+- [x] Un hijo `hive-research` entrega, en solo lectura, cómo cierran hoy project-g, project-a y project-e (estados de Linear y Jira, quién mueve el ticket y cuándo), qué fijan `verification.md:88` y `flow-close:14,56,66`, y dos o tres formas de declarar el punto de cierre en `## Hive` (nombre del ajuste, valores, valor por defecto); el orquestador escribe las opciones fundamentadas en `design.md` (DD5, apartado C2b), presenta la tarjeta C2b y registra la respuesta en `proposal.md`.
 
 **Closes:** AC8.
 
 **Depends on:** ninguna (independiente de T2–T4).
 
-**Locations:** `content/skills/flow-plan/references/project-settings.md`; `content/skills/flow-build/references/verification.md:88`; `content/skills/flow-close/SKILL.md:14,56,66`; `AGENTS.md` y memoria de Grok/Engram de `/Users/jmartinez/Development/projects/comsys/{cam,carvento,dened}` (solo lectura, proyectos externos). Fuentes de estado de tickets: Linear por la herramienta `linear` cuando esté autenticada y, si no, los estados citados en los registros archivados y la memoria del mantenedor; Jira por `acli` como en dened; el brief dice qué fuente no estuvo disponible.
+**Locations:** `content/skills/flow-plan/references/project-settings.md`; `content/skills/flow-build/references/verification.md:88`; `content/skills/flow-close/SKILL.md:14,56,66`; `AGENTS.md` y memoria de Grok/Engram de `/Users/me/Development/projects/org-a/{project-g,project-a,project-e}` (solo lectura, proyectos externos). Fuentes de estado de tickets: Linear por la herramienta `linear` cuando esté autenticada y, si no, los estados citados en los registros archivados y la memoria del mantenedor; Jira por `acli` como en project-e; el brief dice qué fuente no estuvo disponible.
 
 **Execution:** delegada a `hive-research` con brief que fija lo ya sabido (C2 del usuario) y la parada (cuando las tres formas estén fundamentadas o una fuente falte).
 

@@ -2,7 +2,7 @@
 
 ## Why
 
-In a real session (Claude Code, Opus 5.5, session `db6a272b`, 2026-11-15, project facti), research recommended the Figma design stage for 4–5 new screens. Its only basis was that the Figma tools appeared in the host's deferred tool list. The app had no `DESIGN.md`, and the session had no record of any Figma file for the project. The user then had to supply the file. The user decided that the stage is not offered when no memory or other source identifies the project's Figma file.
+In a real session (Claude Code, Opus 5.5, session `db6a272b`, 2026-11-15, project project-f), research recommended the Figma design stage for 4–5 new screens. Its only basis was that the Figma tools appeared in the host's deferred tool list. The app had no `DESIGN.md`, and the session had no record of any Figma file for the project. The user then had to supply the file. The user decided that the stage is not offered when no memory or other source identifies the project's Figma file.
 
 This adds a condition to an existing rule at the user's decision. It needs no recurrence.
 

@@ -102,7 +102,7 @@ Base: `development` @ `ea4195ab`; rama `feat/figma-design-main-thread-review` en
 | Code review | Final candidate, before the push | `/code-review` de Claude Code | D5 A |
 | Copia instalada | Tras la integración, con el refresco del mantenedor | `hive update` y lectura de la skill instalada | `AGENTS.md` «Refreshing a local installation» |
 
-El PR lista los lugares revisados y declara que el tamaño de `content/guidance/global.md` no cambia. El commit nombra las observaciones: Codex `01a1c819` (`gpt-6-astra`) y `01a1c8e0` (`gpt-6.1-sol`), fleetsystem, 2026-11-10, y la aprobación del usuario para adoptar la corrección.
+El PR lista los lugares revisados y declara que el tamaño de `content/guidance/global.md` no cambia. El commit nombra las observaciones: Codex `01a1c819` (`gpt-6-astra`) y `01a1c8e0` (`gpt-6.1-sol`), project-b, 2026-11-10, y la aprobación del usuario para adoptar la corrección.
 
 ## Checkpoint
 

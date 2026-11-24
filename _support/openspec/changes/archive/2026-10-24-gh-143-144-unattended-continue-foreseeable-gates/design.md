@@ -23,7 +23,7 @@
   - `plan-execution.md:17` ata `hive-verify-task` al enfoque `tdd`/`check`.
   - `plan-execution.md:30` hace el commit de cada tarea cuando llega a `[x]`, y no antes.
   - `verification.md:43` dice que las ediciones posteriores a la revisión se informan y se pregunta si revisarlas.
-  - En carvento, T19 tenía `Closes: AC18` y `Test approach: check`; las reglas existían y no se cumplieron. Es una corrección adoptada por decisión del usuario (E1-B).
+  - En project-a, T19 tenía `Closes: AC18` y `Test approach: check`; las reglas existían y no se cumplieron. Es una corrección adoptada por decisión del usuario (E1-B).
 - **Validación por pruebas.**
   - `tests/content/skill_links_test.go` solo valida los enlaces `skill:` de `global.md`.
   - Los enlaces relativos de skills y referencias los valida `tooling/management` dentro de `go test ./...`.

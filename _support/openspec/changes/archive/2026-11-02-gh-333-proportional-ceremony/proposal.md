@@ -45,10 +45,10 @@ Ninguno: el build no necesita nada fuera del repositorio.
 ## Contexto verificado
 
 - 2026-11-02, `development` @ `452b4e3e`, árbol limpio salvo `_support/sessions/2026-11-02-subagent-effort-per-call/` (ajeno).
-- Sesiones revisadas: Claude Code cam `32cffc1d`, `9a6a7fe6`; carvento `8d09a5eb`, `b950c7b3`; OpenCode fleetsystem `ses_e62ddddbbffeZnFbV22SUxvq9u` (todas 2026-11-02). Evidencia y decisiones: Engram `tricell-hive/decision/session-review-2026-11-02-ceremony`.
+- Sesiones revisadas: Claude Code project-g `32cffc1d`, `9a6a7fe6`; project-a `8d09a5eb`, `b950c7b3`; OpenCode project-b `ses_e62ddddbbffeZnFbV22SUxvq9u` (todas 2026-11-02). Evidencia y decisiones: Engram `tricell-hive/decision/session-review-2026-11-02-ceremony`.
 - 0.6.0: `_support/workspace/2026-10-30-skills-rebuild/baseline/content/skills/flow-plan/references/delivery-decisions.md:23-24`, `flow-plan/SKILL.md:69`, `flow-close/references/incidental-findings.md:15`, `flow-research/SKILL.md:42`. El criterio de entrega se quitó en `7a37381b`.
 - Hoy el cierre se alcanza solo por `git-workflow/SKILL.md:31` (paso 10) y `flow-deploy`.
-- Trackers: `gh issue create --parent/--blocked-by/--blocking` (gh 2.103.3) y `acli jira workitem link create` verificados localmente; Linear `save_issue` con `relatedTo` observado en las sesiones de cam.
+- Trackers: `gh issue create --parent/--blocked-by/--blocking` (gh 2.103.3) y `acli jira workitem link create` verificados localmente; Linear `save_issue` con `relatedTo` observado en las sesiones de project-g.
 - Sin delta de specs: `_support/openspec/specs/` cubre instalación, visor, sitio y entrega de contexto; ninguno declara estas reglas de flujo, como en #328.
 
 ## Entrega

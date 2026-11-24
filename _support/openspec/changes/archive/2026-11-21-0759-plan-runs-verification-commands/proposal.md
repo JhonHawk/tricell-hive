@@ -15,7 +15,7 @@
 - **D2 A** — ¿Se suman a este plan los revisores del plan en paralelo? No: van en un cambio aparte, después de este. Un revisor por superficie solo cuando el plan cruza dos o más superficies de código independientes, el ángulo de UX en formularios de captura, y la re-revisión retomando al mismo revisor.
 - **D3 A** — ¿Hasta cuánto puede tardar un comando que el plan ejecuta completo? 5 minutos según su última corrida medida, local o en CI; uno más largo se ejecuta solo en su forma más corta con el mismo runner, por ejemplo un archivo de prueba.
 - **Corrección del usuario (2026-11-21, durante el build)** — «se ejecuten los comandos en paralelo». Los comandos que no comparten base de datos, puerto, lock ni carpeta de salida arrancan juntos y se esperan juntos; los demás, uno tras otro. Cambia la regla y el delta, no el resultado: entra como revisión del plan.
-- **Supuesto** — Una prueba que escribe en una base de datos local de pruebas que ya está corriendo sí se ejecuta durante el plan; solo queda fuera la base que no es local, como la regla global de efectos críticos. Alternativa descartada: excluir toda base de datos, lo que habría dejado sin ejecutar la prueba Jest contra Postgres del caso FSR-937. Para revertirlo, se quita «que no es local» de la regla.
+- **Supuesto** — Una prueba que escribe en una base de datos local de pruebas que ya está corriendo sí se ejecuta durante el plan; solo queda fuera la base que no es local, como la regla global de efectos críticos. Alternativa descartada: excluir toda base de datos, lo que habría dejado sin ejecutar la prueba Jest contra Postgres del caso PRL-937. Para revertirlo, se quita «que no es local» de la regla.
 - **Supuesto** — La sesión de revisión agrega una fila a `session-review-rubric.md` para observar la regla en sesiones reales. Alternativa descartada: no agregarla. Para revertirlo, se borra la fila.
 - **Supuesto** — `rule-enforcers.md` agrega la regla como `judgment`, porque ningún archivo muestra si un comando se ejecutó. Alternativa descartada: no listarla. Para revertirlo, se borra la fila.
 
@@ -31,7 +31,7 @@ Sin ticket.
 
 ## Objetivo
 
-Hoy un plan escribe en el campo `Verification:` de cada tarea un comando que nadie ejecuta antes de la revisión. Cuando el comando no puede correr (el runner es otro, falta una dependencia, el módulo no carga), lo descubre el revisor del plan, o el build. Y cada corrección tras la revisión puede traer otro comando sin probar. En la sesión de Grok `01a1fb69` (fleetsystem, FSR-937/938, 2026-11-20) eso costó dos rondas extra de `hive-review-plan`, de 7 a 10 minutos cada una.
+Hoy un plan escribe en el campo `Verification:` de cada tarea un comando que nadie ejecuta antes de la revisión. Cuando el comando no puede correr (el runner es otro, falta una dependencia, el módulo no carga), lo descubre el revisor del plan, o el build. Y cada corrección tras la revisión puede traer otro comando sin probar. En la sesión de Grok `01a1fb69` (project-b, PRL-937/938, 2026-11-20) eso costó dos rondas extra de `hive-review-plan`, de 7 a 10 minutos cada una.
 
 Al terminar, el plan ejecuta sobre la base cada comando de verificación que escribe, o su forma existente más cercana, y lo registra en su contexto verificado. Un comando que no puede correr se corrige antes de la revisión. Una revisión del plan que cambia un comando lo ejecuta otra vez antes de la ronda siguiente. El revisor del plan señala el comando que no tiene su línea.
 
@@ -53,7 +53,7 @@ None: the build needs nothing from outside the repository.
 ## Contexto verificado
 
 - Sesión Grok `01a1fb69-6507-79e1-874d-14f8c3a0976f`, `grok-4.7-build-fast` alto (en el piso de modelos, `model-floor.md` línea 36). Rondas de `hive-review-plan` a las 18:32, 18:46 y 18:54 (hora local). La edición de las 18:45–18:46 prescribió Vitest; la ronda 2 encontró que Fleet Manager corre `node --test`. La edición de las 18:54 cambió a `node --test`; la ronda 3 encontró que Node no carga el módulo. Ninguna edición ejecutó el comando. Fuente: `updates.jsonl` líneas 1310–1499 y `subagents/*/output.json`.
-- El caso se ve con lectura: `git -C fleetsystem-frontend-monorepo show 1024669:apps/fleet-manager/package.json` da `"test": "node --test test/*.test.mjs"` y no lista Vitest (2026-11-21).
+- El caso se ve con lectura: `git -C project-b-frontend-monorepo show 1024669:apps/fleet-manager/package.json` da `"test": "node --test test/*.test.mjs"` y no lista Vitest (2026-11-21).
 - `hive-rule-change-folder` «Revise» paso 4 pide una ronda de revisión por revisión que cambie un criterio o el delta: las tres rondas de esa sesión cumplían la regla.
 - La regla vecina es `hive-rule-external-facts`: mide datos externos y los escribe como «dato · comando · resultado o not measured · fecha» en el contexto verificado. El revisor revisa esas líneas sin ejecutar. Su requisito es `workflow-lifecycle` «A plan measures the external facts it depends on».
 - `flow-plan/SKILL.md` pesa 7860 bytes, con tope de 16 000. `global.md` pesa 28 593, con tope de 30 000, y no se toca.

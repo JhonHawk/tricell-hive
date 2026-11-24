@@ -175,7 +175,7 @@ Parada humana (`interactive`): antes de cada push, el diff y la salida de `hive 
 - Last commit: 2f456f75
 - Open findings: none
 - Next: archive decision (T8 open)
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/ticket-worklog · docs/archive-ticket-worklog
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/ticket-worklog · docs/archive-ticket-worklog
 
 ### Evidence
 

@@ -2,7 +2,7 @@
 
 ## Contexto verificado (2026-10-25)
 
-- **Transcripciones de cam en Codex** (`rollout-2026-10-20T01-07-13-01a15822-…`, `rollout-2026-10-23T01-14-31-01a1679c-…`).
+- **Transcripciones de project-g en Codex** (`rollout-2026-10-20T01-07-13-01a15822-…`, `rollout-2026-10-23T01-14-31-01a1679c-…`).
   - La línea 1 trae, en las instrucciones base, «Avoid performing blocking sleep or wait calls longer than 60 seconds, as they may prevent you from communicating with the user for their duration» y «without a commentary update for more than 60 seconds».
   - La línea 4 trae, en el rol multiagente, «prefer longer waits (minutes) to avoid busy polling».
   - El hilo principal leyó `delegation.md` (líneas 22 y 1331) antes de su primera espera (línea 1610, 60 000 ms). Las 158 esperas usaron 60 000, con mediana de 23 s, porque cada mensaje de un hijo despierta la espera.
@@ -64,7 +64,7 @@ La misma oración, palabra por palabra, en `global.md` y en los roles; en los ro
 - `content/skills/flow-research/references/delegation.md:65`: reemplazar «A delegated child still returns its final result, not interim status.» por «A delegated child returns only its final result, as the global delegation rule sets.»
 - `content/skills/flow-research/references/delegation.md:39`: precisar que una fuente que el hijo no puede leer se informa en la respuesta final, junto con lo que no pudo hacer, salvo que bloquee todo el encargo, y entonces es el aviso de bloqueo.
 - `_support/docs/architecture/agent-delivery.md`: en la variante de Codex (incluida la fila de `:150`), explicar el tope de 60 s de las instrucciones base, la espera v2 que despierta con cada mensaje y la capacidad que fija el mínimo. Fuentes: versión 0.164.0 y la etiqueta `rust-v0.164.0`.
-- Regla de admisión (AGENTS.md, Measurement): es una corrección observada en dos sesiones reales independientes (cam en Codex, `01a15822`, 2026-10-20, y `01a1679c`, 2026-10-23). Que los mensajes fueran avances es una inferencia por el tiempo (unos 25 s), porque están cifrados; D19-A fija dónde va la regla. El commit nombra host, IDs de sesión, fecha y la falla observada.
+- Regla de admisión (AGENTS.md, Measurement): es una corrección observada en dos sesiones reales independientes (project-g en Codex, `01a15822`, 2026-10-20, y `01a1679c`, 2026-10-23). Que los mensajes fueran avances es una inferencia por el tiempo (unos 25 s), porque están cifrados; D19-A fija dónde va la regla. El commit nombra host, IDs de sesión, fecha y la falla observada.
 
 ## Casos del editor (T2)
 

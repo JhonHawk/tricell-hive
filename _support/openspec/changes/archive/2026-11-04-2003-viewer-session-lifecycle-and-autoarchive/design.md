@@ -66,32 +66,32 @@ Use a title line followed by one compact state/date line, plus the existing tick
 Illustrative fixture, not a fresh measurement of live sessions; 3 works in the same group before and after:
 
 ```text
-Before: Sidebar / Collapsible — cam (3)
+Before: Sidebar / Collapsible — project-g (3)
   Portal choice borders
-    COM-915 · 3 nov, 23:20       [dot: En curso]
+    PRJ-915 · 3 nov, 23:20       [dot: En curso]
   Meta Graph API
-    COM-910 · 3 nov, 03:19       [dot: Cerrada]
+    PRJ-910 · 3 nov, 03:19       [dot: Cerrada]
   Transactional
-    COM-920 · 3 nov, 20:15       [dot: En curso]
+    PRJ-920 · 3 nov, 20:15       [dot: En curso]
 
-After: Sidebar / Collapsible — cam (3)
+After: Sidebar / Collapsible — project-g (3)
   Portal choice borders
     [Badge: Finalizada]       4 nov, 01:44
-    COM-915
+    PRJ-915
   Transactional
     [Badge: Esperando validación] 3 nov, 21:33
-    COM-920
+    PRJ-920
   Meta Graph API
     [Badge: Finalizada]       3 nov, 11:28
-    COM-910
+    PRJ-910
 
-After overdue eligible archives: cam (2)
+After overdue eligible archives: project-g (2)
   Portal choice borders
     [Badge: Finalizada]       4 nov, 01:44
-    COM-915
+    PRJ-915
   Transactional
     [Badge: Esperando validación] 3 nov, 21:33
-    COM-920
+    PRJ-920
   [Include archived toggle: off]
 ```
 

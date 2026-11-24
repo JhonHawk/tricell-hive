@@ -30,7 +30,7 @@ None: the work adopts no business rule beyond what its ticket and documentation 
 
 > «a» — usuario, 2026-11-19, eligiendo: «Planear un helper `run_check` en `hive-rule-checks` que corra el comando con la salida a un archivo temporal con tope de tamaño, cierre el archivo y solo después muestre las últimas líneas conservando el estado, y que la hoja mande usarlo; más un criterio del auditor que detecte un `trap` que lee el mismo archivo que redirige.»
 
-Origen: sesión Codex en cam `01a1f5d4` (CAM-20, `gpt-6.2-sol`, 2026-11-19 ~22:3xZ). El envoltorio `{ … } >"$cam_log" 2>&1` con `set -e` y `trap 'tail -35 "$cam_log"' EXIT` hizo que `tail` escribiera en el log que leía; el archivo llegó a 1.53 TB y llenó el disco. El agente usó ese envoltorio en nueve comandos de la sesión. Watch: `engram:tricell-hive/watch/self-feeding-check-log`. Decisión: `engram:tricell-hive/decision/run-check-helper`.
+Origen: sesión Codex en project-g `01a1f5d4` (project-g-20, `gpt-6.2-sol`, 2026-11-19 ~22:3xZ). El envoltorio `{ … } >"$cam_log" 2>&1` con `set -e` y `trap 'tail -35 "$cam_log"' EXIT` hizo que `tail` escribiera en el log que leía; el archivo llegó a 1.53 TB y llenó el disco. El agente usó ese envoltorio en nueve comandos de la sesión. Watch: `engram:tricell-hive/watch/self-feeding-check-log`. Decisión: `engram:tricell-hive/decision/run-check-helper`.
 
 ## Objective
 

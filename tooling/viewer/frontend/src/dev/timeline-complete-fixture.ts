@@ -12,7 +12,7 @@ import { completeTaskPlan } from "./timeline-plan-fixture";
 import { workFixture } from "./timeline-work-fixture";
 
 export function completeFixture(): TimelineSessionResponse {
-  const data = workFixture("cam"),
+  const data = workFixture("project-g"),
     s = data.session;
   const actor = {
     kind: "native_producer" as const,

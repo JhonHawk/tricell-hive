@@ -210,7 +210,7 @@ En cada parada de validación: el diff de la unidad, el tamaño de `global.md`, 
 - Last commit: 0e3fa537
 - Open findings: none
 - Next: user validates E3+E4 together; then merge E3 then E4, deploy, close
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/questions-floor · feat/tracker-home
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/questions-floor · feat/tracker-home
 
 ### Evidence
 

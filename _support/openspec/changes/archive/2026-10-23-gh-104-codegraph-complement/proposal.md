@@ -12,14 +12,14 @@
 
 > La premisa es la siguiente: https://dashbit.co/blog/evolving-ai-era analiza este articulo en contraste con hive
 
-> ojo, valida que ya tenemos un par de proyectos usando codegraph (no recuerdo si cam o carvento) es reciente y parece funcionar
+> ojo, valida que ya tenemos un par de proyectos usando codegraph (no recuerdo si project-g o project-a) es reciente y parece funcionar
 
 > tal vez, valga la pena valida que codegraph este actualizado y meterlo como un complemento relevante (asi como engram)
 
 Decisiones del usuario (2026-10-23):
 
 - D4-A: adoptarlo por decisión explícita, abrir el issue y planificar.
-- D5-A: sincronizar ya los índices de cam y carvento (hecho).
+- D5-A: sincronizar ya los índices de project-g y project-a (hecho).
 - D6-A: complemento manual en el catálogo.
 - D7-A: regla de uso en `content/guidance/global.md`, que sustituye la nota local.
 - D8-A: regla de `codegraph sync`, sin hooks nuevos.
@@ -30,7 +30,7 @@ El issue #104 no tiene criterios de aceptación propios; los de abajo salen de e
 
 ## Objetivo
 
-CodeGraph 1.6.2 se usa desde el 2026-10-09 en cam y carvento para saber quién llama a qué, pero vive fuera de Hive. Su instalador escribe un bloque de instrucciones propio y una nota local añade sus límites. Hive no lo ofrece en su catálogo, `hive doctor` no lo ve, y ninguna regla distribuida dice cómo mantener el índice al día. El 2026-10-23 el índice de cam tenía 314 archivos sin indexar, y las relaciones (quién llama, a qué afecta un cambio) salían de un grafo viejo sin avisar.
+CodeGraph 1.6.2 se usa desde el 2026-10-09 en project-g y project-a para saber quién llama a qué, pero vive fuera de Hive. Su instalador escribe un bloque de instrucciones propio y una nota local añade sus límites. Hive no lo ofrece en su catálogo, `hive doctor` no lo ve, y ninguna regla distribuida dice cómo mantener el índice al día. El 2026-10-23 el índice de project-g tenía 314 archivos sin indexar, y las relaciones (quién llama, a qué afecta un cambio) salían de un grafo viejo sin avisar.
 
 El cambio añade CodeGraph como complemento manual: catálogo y diagnóstico en el gestor, una regla corta en la guía global sobre cuándo usarlo, cuándo sincronizarlo y qué confirmar, y la documentación que enumera los complementos. Después del merge, la nota local de los tres hosts se retira, porque Hive pasa a cubrirla.
 

@@ -165,7 +165,7 @@ En cada lane, el orden es fijo: agregar o extender los keepers con las asercione
 - Last commit: 8d01b652
 - Open findings: H11 P3 pre-existing: readPrivateWorkFile and readSafeMapFile in tooling/cli reject a file replaced after open, same pattern as #545 · close findings
 - Next: wait hive-review-security on get-hive.sh and state_v3.go, commit folder, push, merge
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/test-audit-agents · test/audit-integrations-agents
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/test-audit-agents · test/audit-integrations-agents
 
 ### Evidence
 

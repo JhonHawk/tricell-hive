@@ -8,8 +8,8 @@
 - `content/skills/flow-build/references/verification.md:27` pide las autorizaciones previstas «while the user is present: in the round that settles the delivery and review questions, before the plan is declared ready or before the first edit». Con un «me voy» durante la investigación, esa ronda todavía no ocurrió.
 - `content/skills/flow-plan/references/questions.md`, sección «Use text when no waiting card carries the question», enumera tres condiciones: no hay herramienta, la herramienta vuelve antes de la respuesta, o una pregunta descartada se repite.
 - Evidencia de sesión (en #200):
-  - **cam** (`c00e1e7f`, Claude Code 2.1.310, `claude-opus-5-5`): la delegación sobrevivió solo porque el aviso de `bb1` incluía «ahora si me voy a dormir». No hubo pregunta de entrega, y el agente planeó un PR igual.
-  - **carvento** (`01a177d3`, Pi, `claude-sonnet-5-5`): la delegación paró en «¿hago commit, PR…?» hasta que el usuario pidió «lanzame las preguntas de autorización».
+  - **project-g** (`c00e1e7f`, Claude Code 2.1.310, `claude-opus-5-5`): la delegación sobrevivió solo porque el aviso de `bb1` incluía «ahora si me voy a dormir». No hubo pregunta de entrega, y el agente planeó un PR igual.
+  - **project-a** (`01a177d3`, Pi, `claude-sonnet-5-5`): la delegación paró en «¿hago commit, PR…?» hasta que el usuario pidió «lanzame las preguntas de autorización».
 - Supuesto, sin verificar contra la documentación de cada host: una tarjeta nativa que espera respuesta detiene el hilo principal hasta que se contesta. Por eso D3-A pide texto. La regla se escribe por capacidad («a tool that blocks your turn until the answer»), sin nombrar herramientas.
 
 ## Enfoque

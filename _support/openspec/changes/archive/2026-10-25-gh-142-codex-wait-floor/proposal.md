@@ -46,7 +46,7 @@ Los dos primeros solo se pueden observar en una sesión real posterior al merge,
 
 ## Objetivo
 
-En Codex, el hilo principal espera a sus hijos en tramos de 60 s y los hijos le mandan avances. Cada avance lo despierta y le hace volver a procesar entre 200 000 y 450 000 tokens. La causa son las instrucciones base de Codex: «Avoid performing blocking sleep or wait calls longer than 60 seconds», más un aviso al usuario cada 60 s como mucho. El modelo las prefirió a la regla de Hive, que había leído antes de su primera espera en los dos hilos de cam (10-20 y 10-23).
+En Codex, el hilo principal espera a sus hijos en tramos de 60 s y los hijos le mandan avances. Cada avance lo despierta y le hace volver a procesar entre 200 000 y 450 000 tokens. La causa son las instrucciones base de Codex: «Avoid performing blocking sleep or wait calls longer than 60 seconds», más un aviso al usuario cada 60 s como mucho. El modelo las prefirió a la regla de Hive, que había leído antes de su primera espera en los dos hilos de project-g (10-20 y 10-23).
 
 El cambio corrige los dos lados:
 - **El host:** Codex sube por su cuenta cualquier espera menor al mínimo configurado, y Hive ofrece escribir ese mínimo.

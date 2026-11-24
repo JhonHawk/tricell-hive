@@ -46,10 +46,10 @@ Primary action in each evidence region is opening a capture. History is a second
 Before:
 
 ```text
-CAM-4 — filters
+project-g-4 — filters
 [Desktop] [Mobile]
 [capture strip]
-CAM-4 — follow-up
+project-g-4 — follow-up
 [another capture strip]
 ```
 
@@ -59,13 +59,13 @@ After (session shell, 3 screens):
 Round 4 — compact mobile filter
 Updated: Chat · Retained: Profile, invitation
 
-CAM-4 — Chat                  [Updated · R4]
+project-g-4 — Chat                  [Updated · R4]
 Filter shows only its icon on mobile
 [Desktop] [Mobile]
 [current captures; date and candidate]
 [History · 3 revisions]
 
-CAM-1 — Profile          [Retained from R1]
+project-g-1 — Profile          [Retained from R1]
 [Desktop] [Mobile]
 [current captures]
 ```
@@ -73,7 +73,7 @@ CAM-1 — Profile          [Retained from R1]
 After (expanded history and mixed capture provenance):
 
 ```text
-CAM-4 — Chat                  [Updated · R4]
+project-g-4 — Chat                  [Updated · R4]
 [Mobile]
 Filter · R4 · 390px · dark      [New]
 Header · R3 · 390px · dark      [Retained]

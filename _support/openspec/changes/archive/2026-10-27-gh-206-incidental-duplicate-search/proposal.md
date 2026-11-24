@@ -27,11 +27,11 @@ El cambio hace que la referencia nombre las dos búsquedas, amplía su condició
 Incluido: `content/skills/flow-close/references/incidental-findings.md` (condición de lectura y viñeta *Duplicate check*), `content/guidance/global.md:34` (regla de hallazgos incidentales), las páginas Close y Build de `site/` y `CHANGELOG.md`.
 
 Excluido, con su razón:
-- H3 (tracker de fleetsystem sin sección `## Hive`): un solo caso, y su causa principal es la falta de esa sección, que corresponde a la sesión de fleetsystem con `harness-audit`. Queda en vigilancia (conteo 1).
-- H5 (Pi no reportó un P3 en carvento): `review-and-gates.md:16` ya pide reportar los P3; un solo caso. Queda en vigilancia (conteo 1).
+- H3 (tracker de project-b sin sección `## Hive`): un solo caso, y su causa principal es la falta de esa sección, que corresponde a la sesión de project-b con `harness-audit`. Queda en vigilancia (conteo 1).
+- H5 (Pi no reportó un P3 en project-a): `review-and-gates.md:16` ya pide reportar los P3; un solo caso. Queda en vigilancia (conteo 1).
 - El paso 5 de `flow-close/SKILL.md` y `verification.md:51`: ya apuntan a la referencia o a la regla global sin repetir sus pasos.
 
-Admisión (AGENTS.md, Measurement): H1 es una corrección observada en dos sesiones independientes (Claude cam `c00e1e7f`, Claude fleetsystem `e2b47f4f`). H2 es un cambio de puntero que no añade regla. H4 es un hueco: ninguna regla cubre un fallo esquivado; lo adopta la decisión del usuario D7-A.
+Admisión (AGENTS.md, Measurement): H1 es una corrección observada en dos sesiones independientes (Claude project-g `c00e1e7f`, Claude project-b `e2b47f4f`). H2 es un cambio de puntero que no añade regla. H4 es un hueco: ninguna regla cubre un fallo esquivado; lo adopta la decisión del usuario D7-A.
 
 Restricciones:
 - `go test ./...` sigue pasando, incluido `tests/content/skill_size_test.go` (referencias ≤ 16 000 bytes).

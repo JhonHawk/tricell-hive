@@ -65,7 +65,7 @@ Desvío del diseño: `tests/content/reading_footprint_test.go` queda sin cambios
 - `go test ./tests/content/... ./tooling/management/...` en verde: enlaces `skill:` y relativos, tamaño de las skills y la prueba de huella.
 - Leer la referencia confirma seis cosas:
   - Las cuatro clases cubren el caso del socio y la sucursal en QA, el acceso temporal en producción y la migración de datos existentes.
-  - Con `local → gamma → prod` (facti), gamma es no productivo y prod es producción. Sin `Environments`, un entorno de nombre ambiguo se trata como producción.
+  - Con `local → gamma → prod` (project-f), gamma es no productivo y prod es producción. Sin `Environments`, un entorno de nombre ambiguo se trata como producción.
   - Reutilizar una cuenta de QA existente como insumo cae en desarrollo o QA, y modificar sus campos cae en crítica.
   - La clase crítica coincide punto por punto con D9-A.
   - Ninguna frase de la referencia fija el momento de la pregunta, que vive en `verification.md`, ni repite la cobertura que `verification.md` enlaza.

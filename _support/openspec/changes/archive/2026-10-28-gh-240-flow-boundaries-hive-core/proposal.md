@@ -155,30 +155,30 @@ Restricciones que deben seguir valiendo en todas las fases: `go test ./...` pasa
 - **Pruebas de compactación (D19-B, 2026-10-27):** autorizadas después de T1. Corre una sesión corta por host en un proyecto desechable del scratchpad, sin editar ninguna configuración real. Los resultados completan `compaction-survival.md`.
 - **Tope de AC4 (D20-A, 2026-10-27):** 17.500 B. El de 16.500 B se estimó antes de fijar la capa 1 y no alcanzaba para conservar sus reglas.
 - **Permiso para mover tickets (D17-A, 2026-10-27):** el invariante se queda en la capa 1 y el detalle va a `hive-core`. D17-A reemplaza a D12-A solo en U2.
-- **Revisión de sesiones reales (D22-A, 2026-10-27; en la sesión se preguntó como D1):** se revisaron tres sesiones abiertas después del despliegue de la fase 1: carvento y cam en Claude Code 2.1.312 con Opus 5.5, y dened en Grok con grok-4.7-build-fast. Ninguna rompió rutas y ninguna se compactó. Lo que se decidió:
+- **Revisión de sesiones reales (D22-A, 2026-10-27; en la sesión se preguntó como D1):** se revisaron tres sesiones abiertas después del despliegue de la fase 1: project-a y project-g en Claude Code 2.1.312 con Opus 5.5, y project-e en Grok con grok-4.7-build-fast. Ninguna rompió rutas y ninguna se compactó. Lo que se decidió:
   - R1 (AC21) y R2 (AC22) entran en la fase 2. R1 se retiró el 2026-10-28 por D24-A, y AC21 ahora dice lo contrario (ver abajo). R1 era una corrección vista en una sola sesión; la adoptas ahora, como permite `AGENTS.md` (Measurement), porque toca producción. El commit nombra la sesión de Grok `01a180ab-1142-7f20-94f4-3cd2257186f3`. R2 corrige un disparador ambiguo y no necesita recurrencia.
   - Quedan en observación, con su conteo de sesiones:
-    - H6: falta la línea de contexto en notas cortas de una línea. Conteo 3 (carvento, cam, dened). Ya cumple la recurrencia, pero no hay línea base anterior al despliegue; se reabre si una comparación con sesiones previas muestra que la separación en capas la empeoró.
+    - H6: falta la línea de contexto en notas cortas de una línea. Conteo 3 (project-a, project-g, project-e). Ya cumple la recurrencia, pero no hay línea base anterior al despliegue; se reabre si una comparación con sesiones previas muestra que la separación en capas la empeoró.
     - H9: `questions.md` no se relee cuando llega la respuesta. Conteo 2, con el archivo todavía en contexto, así que el valor de corregirlo es bajo.
-    - Memoria sin leer `memory.md`: conteo 1 (carvento).
-    - `## Hive` resuelto sin leer `project-settings.md`: conteo 1 (dened).
-    - Espera externa sin leer `delegation.md`: conteo 1 (dened).
+    - Memoria sin leer `memory.md`: conteo 1 (project-a).
+    - `## Hive` resuelto sin leer `project-settings.md`: conteo 1 (project-e).
+    - Espera externa sin leer `delegation.md`: conteo 1 (project-e).
     - Cada una se reabre con una segunda sesión independiente.
   - H7 (`evidence-tools.md` sin leer en dos sesiones de Claude) no cambia nada: el bloque CodeGraph del usuario, que está fuera de Hive, ya produce la conducta correcta.
-- **Segunda revisión de sesiones y menos fricción (D23-A y D24 A–D, 2026-10-28):** se revisaron los tramos restantes de carvento, cam y dened, más la sesión Codex de cam `01a180de-c680-7f91-81d7-6c50a9e02ef1` con sus 12 hijos. Lo que se observó y lo que se decidió:
-  - **Compactación:** carvento (Claude Code, línea 1944) y Codex (línea 1030) compactaron. Los dos hosts reinyectaron el global completo (carvento línea 1980, Codex línea 1031), y no se observó pérdida de ninguna regla de la capa 1. Grok no compactó (`compactionCount: 0`). Por D16-B se descarta la fase 3. #240 se cierra con la fase 2. No se observaron Pi, OpenCode ni Cursor.
-  - **Lo que el usuario validó:** según el usuario, la sesión de Grok en dened "funcionó como esperaba". Ejecutó efectos críticos que su mensaje nombraba ("corre el script", "borra ambas") y efectos que la guía de release del proyecto prescribe (merge con administrador, force-push). Por eso R1 se retira y AC21 pasa a decir lo contrario. El usuario pidió quitar fricción y burocracia, y eligió FR1–FR5 para la fase 2.
-  - **FA1 se adopta por recurrencia:** el hook de Engram empujó escrituras de memoria fuera de la regla de cuándo escribirla en dos sesiones independientes. En cam Claude `4afe6d47` hubo dos guardados a mitad de trabajo tras un `MEMORY REMINDER`. En Codex `01a180de` hubo dos `mem_session_summary` tras el aviso posterior a la compactación.
-  - **No eran fallos:** los pushes directos a `master` en cam-specs y carvento-specs. Los dos repositorios declaran `Delivery: direct-base`.
+- **Segunda revisión de sesiones y menos fricción (D23-A y D24 A–D, 2026-10-28):** se revisaron los tramos restantes de project-a, project-g y project-e, más la sesión Codex de project-g `01a180de-c680-7f91-81d7-6c50a9e02ef1` con sus 12 hijos. Lo que se observó y lo que se decidió:
+  - **Compactación:** project-a (Claude Code, línea 1944) y Codex (línea 1030) compactaron. Los dos hosts reinyectaron el global completo (project-a línea 1980, Codex línea 1031), y no se observó pérdida de ninguna regla de la capa 1. Grok no compactó (`compactionCount: 0`). Por D16-B se descarta la fase 3. #240 se cierra con la fase 2. No se observaron Pi, OpenCode ni Cursor.
+  - **Lo que el usuario validó:** según el usuario, la sesión de Grok en project-e "funcionó como esperaba". Ejecutó efectos críticos que su mensaje nombraba ("corre el script", "borra ambas") y efectos que la guía de release del proyecto prescribe (merge con administrador, force-push). Por eso R1 se retira y AC21 pasa a decir lo contrario. El usuario pidió quitar fricción y burocracia, y eligió FR1–FR5 para la fase 2.
+  - **FA1 se adopta por recurrencia:** el hook de Engram empujó escrituras de memoria fuera de la regla de cuándo escribirla en dos sesiones independientes. En project-g Claude `4afe6d47` hubo dos guardados a mitad de trabajo tras un `MEMORY REMINDER`. En Codex `01a180de` hubo dos `mem_session_summary` tras el aviso posterior a la compactación.
+  - **No eran fallos:** los pushes directos a `master` en project-g-specs y project-a-specs. Los dos repositorios declaran `Delivery: direct-base`.
   - **Observaciones que se cierran:** H6 (línea de contexto en notas) queda resuelta por FR3, y H9 (relectura de `questions.md`) por FR5.
   - **Observaciones que siguen abiertas, con conteo:**
-    - Memoria escrita sin leer `memory.md`: 2 (carvento y Codex). Ya cumple la recurrencia, pero no hay una regla más estricta que proponer; FA1 quita la causa principal.
-    - Afirmaciones de estado sin verificar: 3, en situaciones distintas (carvento tras compactar, dened y Codex).
+    - Memoria escrita sin leer `memory.md`: 2 (project-a y Codex). Ya cumple la recurrencia, pero no hay una regla más estricta que proponer; FA1 quita la causa principal.
+    - Afirmaciones de estado sin verificar: 3, en situaciones distintas (project-a tras compactar, project-e y Codex).
     - Codex lee varios archivos en un solo `cat` y la salida llega truncada: 1.
-    - flow-verify sin leer antes de un PR o un merge: 1 (carvento).
-    - Tarjeta de pregunta sin mensaje visible: 1 (carvento).
-    - `## Hive` resuelto sin leer `project-settings.md`: 1 (dened).
-    - Espera externa sin leer `delegation.md`: 1 (dened).
+    - flow-verify sin leer antes de un PR o un merge: 1 (project-a).
+    - Tarjeta de pregunta sin mensaje visible: 1 (project-a).
+    - `## Hive` resuelto sin leer `project-settings.md`: 1 (project-e).
+    - Espera externa sin leer `delegation.md`: 1 (project-e).
 - **Refresco local:** tras cada merge se refresca la instalación local (`go build` del binario si cambia `tooling/` o `integrations/`, luego `hive update`), porque existe `_support/workspace/maintainer.local`.
 - **Revisión de seguridad:** con la fase 3 descartada, ninguna fase cruza un límite de seguridad. La revisión de seguridad corre con `flow-security` solo si la pides.
 - **Revisión de UI:** sin efecto visual. Las páginas de `site/` solo cambian texto y enlaces.

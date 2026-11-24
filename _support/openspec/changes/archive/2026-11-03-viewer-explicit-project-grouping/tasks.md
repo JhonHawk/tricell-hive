@@ -64,7 +64,7 @@ Antes de T1, inspeccionar Git y leer git-workflow; crear un worktree limpio desd
 | Code review | antes de validación o push | nativa Codex `/review` | decisión de revisión |
 | Validación humana | entrega interactiva | agrupación real, origen legible, navegar dos recorridos | decisión de entrega |
 
-No se necesita cuenta externa: visor temporal autenticado por su mecanismo local. No imprimir tokens. El usuario valida sólo las capturas/vista del candidato; no editar CAM para el ejercicio. Sólo detener y limpiar procesos/state reproducible creados por esta tarea al cierre; preservar evidencia única y estado habitual.
+No se necesita cuenta externa: visor temporal autenticado por su mecanismo local. No imprimir tokens. El usuario valida sólo las capturas/vista del candidato; no editar project-g para el ejercicio. Sólo detener y limpiar procesos/state reproducible creados por esta tarea al cierre; preservar evidencia única y estado habitual.
 
 ## Completion evidence
 

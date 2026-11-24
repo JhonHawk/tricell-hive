@@ -55,7 +55,7 @@ AC1–AC3 se observan en los archivos instalados tras el merge y el refresco loc
 - Last commit: b37cd578
 - Open findings: close: workspace pointer to child ## Comments (HA-HI-05); close: HA-IF-05 vs the section's first sentence
 - Next: push, PR, CI wait, merge (automatic), refresh install, observe AC1-AC3, flow-close
-- Worktree: /Users/jmartinez/Development/projects/tricell/tricell-hive/.claude/worktrees/comment-rule-restatement · feat/comment-rule-restatement
+- Worktree: /Users/me/Development/projects/tricell/tricell-hive/.claude/worktrees/comment-rule-restatement · feat/comment-rule-restatement
 - Rules: flow-verify/stage-entry.md, flow-verify/stage-exit.md
 - Principles: none
 

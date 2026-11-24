@@ -73,7 +73,7 @@ Refrescar el ejecutable no reemplaza un proceso de visor ya activo ni sus assets
 
 ## Fuentes técnicas para implementación
 
-Leer `AGENTS.md`, `CONTRIBUTING.md`, `/Users/jmartinez/.agents/skills/flow-build/references/security-boundaries.md`, `data-changes.md`, `verification.md` y `browser-automation.md` según superficie. Para assets distribuidos, leer `_support/docs/architecture/instruction-resources.md`. No modificar reglas distribuidas: cambio previsto de tamaño de `content/guidance/global.md` igual a cero. Revisar README/llms/site y actualizar sólo afirmaciones afectadas.
+Leer `AGENTS.md`, `CONTRIBUTING.md`, `/Users/me/.agents/skills/flow-build/references/security-boundaries.md`, `data-changes.md`, `verification.md` y `browser-automation.md` según superficie. Para assets distribuidos, leer `_support/docs/architecture/instruction-resources.md`. No modificar reglas distribuidas: cambio previsto de tamaño de `content/guidance/global.md` igual a cero. Revisar README/llms/site y actualizar sólo afirmaciones afectadas.
 
 ## Correspondencia de verificación
 
