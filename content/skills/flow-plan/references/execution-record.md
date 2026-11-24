@@ -6,7 +6,7 @@ Only the coordinator writes the record or invokes its mutations. `--coordinator`
 
 ## Location and initialization
 
-The record lives at `<repo>/_support/workspace/<run>/execution.json`: outside the change folder, already Git-ignored and untracked, with no symlink escape, mode 0600; the helper creates no ignore rules or worktrees. Evidence paths are relative files inside the record's directory; missing files, `..`, absolute paths and symlink escapes fail validation. Keep native identities and raw outputs there, out of versioned plans.
+The record lives at `<repo>/_support/workspace/<run>/execution.json`, where `<repo>` is the checkout that holds the record, which need not hold the change folder: outside the change folder, already Git-ignored and untracked, with no symlink escape, mode 0600; the helper creates no ignore rules or worktrees. Evidence paths are relative files inside the record's directory; missing files, `..`, absolute paths and symlink escapes fail validation. Keep native identities and raw outputs there, out of versioned plans.
 
 `init` reads a JSON manifest, refuses overwrite, adds the server-owned fields (`schema_version`, `generation`, `coordinator_id`, `plan_ref`, `plan_revision`) and links the record from `## Checkpoint` in `tasks.md` with a relative `- Execution record:` pointer that later checkpoint writes keep. Run it with absolute paths: `python3 -I <tasks.py> <change-folder> execution init --record <execution.json> --input <manifest.json> --coordinator <native-root-id>`. The manifest fields:
 

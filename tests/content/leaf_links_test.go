@@ -113,6 +113,7 @@ var leafLinks = []leafLink{
 	{"defect-fix", "content/agents/review/hive-review-code.md"},
 	{"principles/index", "content/agents/review/hive-review-code.md"},
 	{"principles/index", "content/agents/development/hive-build-owner.md"},
+	{"principles/index", "content/agents/development/hive-ticket-owner.md"},
 	{"review-evidence", "content/agents/review/hive-review-code.md"},
 	{"suppression-review", "content/agents/review/hive-review-code.md"},
 	{"security-boundaries", "content/agents/review/hive-review-security.md"},

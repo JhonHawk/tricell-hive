@@ -12,15 +12,16 @@ import (
 // scope, git, dependency, service or process rule without any other signal.
 // The block a role needs depends on what its access profile lets it do.
 const (
-	boundaryScope       = "Stay within the parent’s assigned scope, write ownership, and output destination. "
-	boundaryWrites      = "Do not commit, push, open or merge pull requests, write to trackers or launch children. Modify or delete only the paths the brief names, list planned deletions first, and stop and report when the work needs a change outside them. "
-	boundaryOwnerWrites = "Only under an explicit E2E assignment, create local commits in the assigned repository, worktree, branch and allowed paths through the scoped-commit helper and its secret scan, preserving unrelated staging. Do not publish, push, open or merge pull requests, write to trackers, launch children, create or switch worktrees or branches, integrate other units, or use unassigned resources. Modify or delete only the paths the brief names, list planned deletions first, and stop and report when the work needs a change outside them. "
-	boundaryGit         = "Never run `git stash`, `git reset`, `git checkout` or `git restore` of paths, `git clean` or `git switch` in a working tree other agents may be writing, and never `git stash` while another agent works in any worktree of the repository, since the stash list is shared. "
-	boundaryDeps        = "Unless the brief says your dependency installation is not shared, run no command that installs, prunes or relinks dependencies and add none to a manifest or lockfile; pause only the work that needs one, name it in your report, and continue. "
-	boundarySvc         = "Run a test suite that sets up, resets or binds a local service only on the instance the brief assigns; with none assigned, do not run it and report it as not run. "
-	boundaryRun         = "Run install, build and test commands in the foreground with a timeout of at most 10 minutes; report a timeout as not completed. "
-	boundaryStop        = "Stop any process you started before returning. "
-	boundaryReturn      = "Return evidence, limitations and needed decisions in one final reply; before it, send at most one message to the parent, for a blocker that needs its decision, and make that the final reply when no independent work remains."
+	boundaryScope             = "Stay within the parent’s assigned scope, write ownership, and output destination. "
+	boundaryWrites            = "Do not commit, push, open or merge pull requests, write to trackers or launch children. Modify or delete only the paths the brief names, list planned deletions first, and stop and report when the work needs a change outside them. "
+	boundaryOwnerWrites       = "Only under an explicit E2E assignment, create local commits in the assigned repository, worktree, branch and allowed paths through the scoped-commit helper and its secret scan, preserving unrelated staging. Do not publish, push, open or merge pull requests, write to trackers, launch children, create or switch worktrees or branches, integrate other units, or use unassigned resources. Modify or delete only the paths the brief names, list planned deletions first, and stop and report when the work needs a change outside them. "
+	boundaryTicketOwnerWrites = "Only in the swarm mode, write your ticket's change folder and checkpoint in your worktree or in the one change-folder path the brief assigns in another repository's checkout, and create local commits only in your assigned worktree, branch and allowed paths through the scoped-commit helper and its secret scan, preserving unrelated staging; never commit in that other repository. Do not publish, push, open or merge pull requests, write to trackers or persistent memory, launch children, create or switch worktrees or branches, or use unassigned resources. Modify or delete only the paths the brief names, list planned deletions first, and stop and report when the work needs a change outside them. "
+	boundaryGit               = "Never run `git stash`, `git reset`, `git checkout` or `git restore` of paths, `git clean` or `git switch` in a working tree other agents may be writing, and never `git stash` while another agent works in any worktree of the repository, since the stash list is shared. "
+	boundaryDeps              = "Unless the brief says your dependency installation is not shared, run no command that installs, prunes or relinks dependencies and add none to a manifest or lockfile; pause only the work that needs one, name it in your report, and continue. "
+	boundarySvc               = "Run a test suite that sets up, resets or binds a local service only on the instance the brief assigns; with none assigned, do not run it and report it as not run. "
+	boundaryRun               = "Run install, build and test commands in the foreground with a timeout of at most 10 minutes; report a timeout as not completed. "
+	boundaryStop              = "Stop any process you started before returning. "
+	boundaryReturn            = "Return evidence, limitations and needed decisions in one final reply; before it, send at most one message to the parent, for a blocker that needs its decision, and make that the final reply when no independent work remains."
 )
 
 // A role's closing paragraph may start with its own final instruction, so the
@@ -44,6 +45,10 @@ var boundaryOverrides = map[string]struct {
 	"hive-build-owner": {
 		block:  boundaryScope + boundaryOwnerWrites + boundaryGit + boundaryDeps + boundarySvc + boundaryRun + boundaryStop + boundaryReturn,
 		reason: "only this explicitly assigned E2E role may commit locally; ordinary implementers retain the no-commit boundary",
+	},
+	"hive-ticket-owner": {
+		block:  boundaryScope + boundaryTicketOwnerWrites + boundaryGit + boundaryDeps + boundarySvc + boundaryRun + boundaryStop + boundaryReturn,
+		reason: "only the swarm mode's ticket owner writes its plan and commits locally in its assigned worktree; ordinary implementers retain the no-commit boundary",
 	},
 	"hive-review-ux": {
 		block:  boundaryByProfile["verify"],
@@ -88,7 +93,7 @@ func TestAgentBoundaryBlock(t *testing.T) {
 			continue
 		}
 		if override, ok := boundaryOverrides[name]; ok {
-			if name == "hive-build-owner" && profile != "implement" {
+			if (name == "hive-build-owner" || name == "hive-ticket-owner") && profile != "implement" {
 				t.Errorf("%s: local owner must use existing implement access profile, got %q", rel, profile)
 			}
 			want = override.block

@@ -350,6 +350,7 @@ def cmd_checkpoint(lines, args):
 
 
 # Execution records are local declarations, not credentials or a scheduler.
+OWNER_ROLES = {"hive-build-owner", "hive-ticket-owner"}
 FULL_SHA = re.compile(r"^[0-9a-f]{40}$")
 UNIT_STATES = {"assigned", "running", "returned", "verified", "integrated", "blocked"}
 TRANSITIONS = {
@@ -471,8 +472,11 @@ def repo_identity(repo):
 
 
 def execution_location(folder, record):
+    # The record belongs to the checkout that holds it, which may be the coordinator's
+    # checkout while the change folder lies in a worktree or another repository.
     folder = folder.resolve()
-    state = git_reader(folder)
+    require(record.parent.is_dir(), "record directory must already exist")
+    state = git_reader(record.parent.resolve())
     root = Path(git_out(state, "rev-parse", "--show-toplevel")).resolve()
     require(record.name == "execution.json", "record must be named execution.json")
     require(not record.is_symlink(), "execution record must not be a symlink")
@@ -480,7 +484,6 @@ def execution_location(folder, record):
     require(not workspace.is_symlink() and workspace.resolve().is_relative_to(root), "workspace must stay inside repository without symlink escape")
     require(record.resolve().is_relative_to(workspace.resolve()), "record must be inside this repository's _support/workspace")
     require(not record.resolve().is_relative_to(folder), "execution record must be outside the change folder")
-    require(record.parent.is_dir(), "record directory must already exist")
     # Check both the record and an arbitrary sibling (including the lock) before writing.
     for path in (record, record.parent / ".execution-local-check"):
         code, _, _ = state.git_run("check-ignore", "-q", "--", str(path.resolve()))
@@ -619,7 +622,7 @@ def validate_execution(data, folder, record, check_git=True, revision=True):
         ids.add(unit["id"])
         require(unit["assignment_id"] not in assignments, "duplicate assignment ID")
         assignments.add(unit["assignment_id"])
-        require(unit["role"] == "hive-build-owner", "unit role must be hive-build-owner")
+        require(unit["role"] in OWNER_ROLES, "unit role must be one of " + ", ".join(sorted(OWNER_ROLES)))
         require(unit["state"] in UNIT_STATES, "unknown unit state")
         for field in ("tasks", "criteria", "allowed_paths"):
             unique_strings(unit[field], field, False)
@@ -757,6 +760,11 @@ def atomic_record(record, data):
 
 
 def link_execution(folder, record):
+    # A record in another checkout stays out of the versioned tasks.md, which would
+    # otherwise carry a path of this machine; the coordinator's batch checkpoint names it.
+    root = Path(git_out(git_reader(folder), "rev-parse", "--show-toplevel")).resolve()
+    if not record.resolve().is_relative_to(root):
+        return
     path = folder / "tasks.md"
     lines = read(path)
     pointer = "- Execution record: " + os.path.relpath(record, folder)
