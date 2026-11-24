@@ -118,13 +118,13 @@ ACCEPTANCE_HEADING = re.compile(r"^##\s+(?:Alcance y aceptación|Scope and accep
 
 
 def acceptance_range(lines):
-    """The (start, end) line indexes of the scope-and-acceptance section, before the first task; empty when absent."""
+    """The (start, end) line indexes of the scope-and-acceptance section, before the first task; everything before the first task when the heading is worded otherwise."""
     limit = task_start(lines)
     for i, line in enumerate(lines[:limit]):
         if ACCEPTANCE_HEADING.match(line):
             end = next((j for j in range(i + 1, limit) if LEVEL2_HEADING.match(lines[j])), limit)
             return i + 1, end
-    return 0, 0
+    return 0, limit
 
 
 def exempt_progress(lines):

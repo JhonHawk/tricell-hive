@@ -162,7 +162,7 @@ def section_bounds(lines, heading):
 
 
 STATUS_VALUES = ("Draft", "Ready for flow-build", "In build", "Completed")
-STATUS_ROW = re.compile(r"^(\|\s*Status\s*\|)\s*.*?\s*\|\s*$")
+STATUS_ROW = re.compile(r"^(\|\s*(?:Status|Estado|Estatus)\s*\|)\s*([^|]*?)\s*(\|.*)$")
 
 
 def cmd_status_set(lines, args):
@@ -172,8 +172,11 @@ def cmd_status_set(lines, args):
             break
         match = STATUS_ROW.match(line)
         if match:
+            value = match.group(2)
+            phase = next((p for p in sorted(STATUS_VALUES, key=len, reverse=True) if value.startswith(p)), None)
+            rest = value[len(phase):] if phase else ""
             lines = list(lines)
-            lines[i] = f"{match.group(1)} {args.value} |"
+            lines[i] = f"{match.group(1)} {args.value}{rest} {match.group(3)}"
             return lines, f"status set · {args.value}"
     raise Failure("no `| Status | … |` row in the header table above the first `##` heading")
 
@@ -182,13 +185,13 @@ ACCEPTANCE_HEADING = re.compile(r"^##\s+(?:Alcance y aceptación|Scope and accep
 
 
 def acceptance_section(lines):
-    """The lines of the scope-and-acceptance section, before the first task; quoted ticket criteria sit elsewhere."""
+    """The lines of the scope-and-acceptance section, before the first task; everything before the first task when the heading is worded otherwise."""
     first_task = next((i for i, line in enumerate(lines) if TASK_HEADING.match(line)), len(lines))
     for i, line in enumerate(lines[:first_task]):
         if ACCEPTANCE_HEADING.match(line):
             end = next((j for j in range(i + 1, first_task) if LEVEL2.match(lines[j])), first_task)
             return lines[i + 1:end]
-    return []
+    return lines[:first_task]
 
 
 def today():
