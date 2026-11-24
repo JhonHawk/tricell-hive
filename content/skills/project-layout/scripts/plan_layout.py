@@ -25,6 +25,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.parse
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import check_layout as cl  # noqa: E402  (python3 -I leaves the script's folder off sys.path)
@@ -61,6 +62,13 @@ DOC_EXTENSIONS = {".md", ".mdx", ".png", ".jpg", ".jpeg", ".gif", ".svg", ".webp
 MARKDOWN = (".md", ".mdx")
 LEGACY_EVIDENCE = ("evidence", "reports")
 LEGACY_DATA = ("backups", "migration-data", "exports", "dumps")
+# Files that are a dump, backup or export of data: a record holding one is never deleted as aged.
+DATA_SUFFIXES = frozenset((
+    ".sql", ".dump", ".dmp", ".bak", ".backup", ".sqlite", ".sqlite3", ".db", ".csv", ".tsv", ".ndjson", ".jsonl", ".bson",
+    ".parquet", ".avro", ".gz", ".tgz", ".zst", ".xz", ".bz2", ".7z", ".zip", ".tar", ".rar"))
+DATA_NAMED_SUFFIXES = frozenset((".json", ".xml", ".xlsx"))
+TEXT_FILE_LIMIT = 5_000_000
+DATA_NAME_RE = re.compile(r"dump|export|backup", re.I)
 # Homes of earlier layouts that hold dated records of past work: each child becomes a work folder.
 LEGACY_RECORDS = ("sessions", "archive", "archived", "plan", "spec")
 # The legacy homes a repository may keep at its own root, when its support home is the workspace's.
@@ -380,7 +388,8 @@ class Root:
 
 
 class Planner:
-    def __init__(self, roots, overrides, homes, keeps=(), keep_refs=()):
+    def __init__(self, roots, overrides, homes, keeps=(), keep_refs=(), legacy="move"):
+        self.legacy = legacy
         self.roots = [Root(r) for r in roots]
         self.overrides = overrides
         self.used_overrides = set()
@@ -856,7 +865,7 @@ class Planner:
         """Lines of other files, in any root, that cite the root's top-level folder as a path (`name/...`,
         also relative to the citing file); the files under the folder and history records do not count."""
         folder = self.roots[i].abs(name)
-        pattern = re.compile(r"(?<![\w@.-])((?:\.{1,2}/)*" + re.escape(name) + r"(?:/[\w.@+*-]*)*)(?![\w-]|\.\w)")
+        pattern = re.compile(r"(?<![\w@.-])(?<!_support/)((?:\.{1,2}/)*" + re.escape(name) + r"(?:/[\w.@+*-]*)*)(?![\w-]|\.\w)")
         found = []
         for (j, rel), text in self.corpus():
             if j == i and (rel == name or rel.startswith(name + "/")):
@@ -913,7 +922,7 @@ class Planner:
             row["destination"], row["override"] = override, True
             row["untrack"] = bool(row["tracked"] and leaves_git_home(override))
             return
-        row["delete"], row["destination"] = True, None
+        row["delete"], row["destination"], row["delete_note"] = True, None, reason
         row["notes"].append(reason)
 
     def review_current_knowledge(self, i, base, name):
@@ -938,8 +947,9 @@ class Planner:
             elif folder:
                 work = kebab(DATE_RE.sub("", child, count=1)) or kebab(name)
                 self.rows[key] = self.new_row(i, child_rel, "folder", name)
-                self.place_record(key, name, os.path.join(
-                    home, "workspace", f"{self.record_date(i, child_rel)}-{work}", sub))
+                folder_name = f"{self.record_date(i, child_rel)}-{work}"
+                self.place_record(key, name, os.path.join(home, "workspace", folder_name, sub),
+                                  os.path.join(home, "data", folder_name, sub))
             else:
                 loose.append(child_rel)
         if loose:
@@ -947,8 +957,9 @@ class Planner:
             for rel in loose:
                 key = (i, rel)
                 self.rows[key] = self.new_row(i, rel, "file", name)
-                self.place_record(key, name, os.path.join(
-                    home, "workspace", f"{date}-legacy-{kebab(name)}", sub, os.path.basename(rel)))
+                folder_name = f"{date}-legacy-{kebab(name)}"
+                self.place_record(key, name, os.path.join(home, "workspace", folder_name, sub, os.path.basename(rel)),
+                                  os.path.join(home, "data", folder_name, sub, os.path.basename(rel)))
         self.review_current_knowledge(i, base, name)
 
     def regenerable(self, i, rel, child, home):
@@ -962,12 +973,94 @@ class Planner:
         tracked = rel in root.tracked or any(r.startswith(rel + "/") for r in root.tracked)
         return not tracked and rel in root.ignored([rel])
 
-    def place_record(self, key, home, dest):
-        """A child of plan/ or spec/ may hold current knowledge: it waits for --keep or --override."""
+    def place_record(self, key, home, dest, data_dest):
+        """A child of plan/ or spec/ may hold current knowledge: it waits for --keep or --override. With
+        --legacy remove, a tracked child with no uncommitted or hidden edit is deleted (history and the
+        archive tag hold all of it) unless it holds a dump or export, which goes to data/; any other
+        child still moves."""
         row = self.rows[key]
         if home in ("plan", "spec") and not (self.keep_for(row) or self.override_for(row)):
             return self.set_review(key, "F3", f"{home}/ may hold current knowledge: promote it, or name --keep or --override")
+        if self.legacy == "remove" and home not in ("plan", "spec"):
+            if self.holds_data(row["root"], row["source"]):
+                self.set_legacy_dest(key, "F4", data_dest)
+                if row["destination"] == os.path.normpath(data_dest).replace(os.sep, "/"):
+                    row["notes"].append("holds a dump or export: its removal is a decision of its own")
+                return
+            if self.unmodified(row["root"], row["source"]) is None:
+                return self.set_delete(key, "F3", "aged record: history and the archive tag keep it")
         self.set_legacy_dest(key, "F3", dest)
+
+    def holds_data(self, i, rel):
+        """Whether the record is, or holds, a dump, backup or export: removing data is a decision of its own.
+        Every dot-separated suffix of a file name counts, so `.sql.gz` and `.bak.old` are found."""
+        base = self.roots[i].abs(rel)
+        names = [os.path.basename(base)] if os.path.isfile(base) else [
+            name for _, _, files in os.walk(base) for name in files]
+        for name in names:
+            parts = name.lower().split(".")
+            suffixes = {"." + part for part in parts[1:]}
+            if suffixes & DATA_SUFFIXES or (suffixes & DATA_NAMED_SUFFIXES and DATA_NAME_RE.search(parts[0])):
+                return True
+        return False
+
+    def text_files(self):
+        """(root index, relative path, text) of every text file of every root, ignored folders included, but
+        for .git, node_modules, binary files and ignore lists: where a record's name may be written."""
+        if not hasattr(self, "_text_files"):
+            self._text_files, seen = [], set()
+            for j, root in enumerate(self.roots):
+                for folder, folders, files in os.walk(root.path):
+                    folders[:] = [d for d in folders if d not in (".git", "node_modules")]
+                    for name in files:
+                        path = os.path.join(folder, name)
+                        if path in seen or name.endswith("ignore") or os.path.islink(path):
+                            continue
+                        seen.add(path)
+                        try:
+                            if os.path.getsize(path) > TEXT_FILE_LIMIT:
+                                continue
+                            with open(path, "rb") as handle:
+                                data = handle.read()
+                        except OSError:
+                            continue
+                        if b"\0" in data[:8192]:
+                            continue
+                        self._text_files.append((j, os.path.relpath(path, root.path).replace(os.sep, "/"),
+                                                 data.decode("utf-8", "replace")))
+        return self._text_files
+
+    def review_cited_deletions(self):
+        """A delete row whose name occurs in a text file that stays goes to review with the citing line:
+        a substring match, so a false hit only costs a review. The files inside rows this plan deletes do
+        not count; a row sent to review stops excluding its own files, so the check repeats to a fixed point."""
+        deleting = {key for key, row in self.rows.items() if row["delete"]}
+        changed = bool(deleting)
+        while changed:
+            changed = False
+            inside = [self.roots[i].abs(rel) for i, rel in deleting]
+            cited = {}
+            for j, other, text in self.text_files():
+                path = self.roots[j].abs(other)
+                if any(path == p or path.startswith(p + os.sep) for p in inside):
+                    continue
+                for key in deleting:
+                    if key in cited:
+                        continue
+                    name = os.path.basename(key[1])
+                    for needle in (name, urllib.parse.quote(name)):
+                        at = text.find(needle)
+                        if at >= 0:
+                            line = text.count("\n", 0, at) + 1
+                            cited[key] = f"{os.path.basename(self.roots[j].path)}/{other}:{line}"
+                            break
+            for key, where in sorted(cited.items()):
+                row = self.rows[key]
+                row["delete"] = False
+                row["notes"] = [n for n in row["notes"] if n != row.get("delete_note")]
+                self.set_review(key, row["rule"], f"living path: its name occurs in {where}")
+                deleting.discard(key)
+                changed = True
 
     # ---- the change register of an earlier layout ---------------------------------
     def declared(self, i, key):
@@ -1622,6 +1715,7 @@ class Planner:
         refs = self.references()
         self.classify(refs)
         self.legacy_changes()
+        self.review_cited_deletions()
         self.guard()
         self.apply_homes()
         unused = sorted({spec for spec, _ in self.overrides} - self.used_overrides)
@@ -1657,6 +1751,7 @@ class Planner:
         rewrites = sorted({json.dumps(r, sort_keys=True) for r in self.rewrites})
         return {
             "version": VERSION,
+            "legacy": self.legacy,
             "roots": [{"path": r.path, "head": r.head, "git": r.is_git} for r in self.roots],
             "rows": rows,
             "rewrites": sorted((json.loads(r) for r in rewrites), key=lambda r: (r["root"], r["file"], r["line"], r["col"])),
@@ -1708,7 +1803,7 @@ def cmd_plan(args):
     for root in args.root:
         if not os.path.isdir(root):
             return fail(f"not a directory: {root}")
-    plan = Planner(args.root, overrides, homes, args.keep or [], args.keep_ref or []).plan()
+    plan = Planner(args.root, overrides, homes, args.keep or [], args.keep_ref or [], args.legacy).plan()
     text = json.dumps(plan, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
     if args.out:
         with open(args.out, "w", encoding="utf-8") as handle:
@@ -1925,23 +2020,41 @@ def cmd_verify(args):
     plan = load(args.plan)
     roots = [p["path"] for p in plan["roots"]]
     gone = set()
+    sources = {}  # absolute source of a moved or deleted row, now absent -> the row
     moved_markdown = []
     for row in plan["rows"]:
-        if not row["destination"]:
+        if not row["destination"] and row["action"] != "delete":
             continue
         source = os.path.join(roots[row["root"]], row["source"])
         if not os.path.lexists(source):
             gone.add(source)
+            sources[source] = row
             parent = os.path.dirname(source)
             while parent not in roots and parent != os.path.dirname(parent) and not os.path.lexists(parent):
                 gone.add(parent)
                 parent = os.path.dirname(parent)
+        if not row["destination"]:
+            continue
         dest = os.path.join(roots[row["root"]], row["destination"])
         if not HISTORY_RE.search(row["source"]):
             for f in ([dest] if os.path.isfile(dest) else cl.list_files(dest)):
                 if f.endswith(MARKDOWN):
                     old = source if f == dest else os.path.join(source, os.path.relpath(f, dest))
                     moved_markdown.append((f, os.path.dirname(old), row["root"]))
+
+    def existed_inside(target):
+        """Whether target, below a gone row source, existed before apply: at the moved row's destination,
+        or at the plan's HEAD for a deleted one."""
+        for source, row in sources.items():
+            if target.startswith(source + os.sep):
+                inner = os.path.relpath(target, source).replace(os.sep, "/")
+                if row["destination"]:
+                    return os.path.lexists(os.path.join(roots[row["root"]], row["destination"], inner))
+                head = plan["roots"][row["root"]]["head"]
+                found = git(roots[row["root"]], "cat-file", "-e", f"{head}:{row['source']}/{inner}") if head else None
+                return found is not None and found.returncode == 0
+        return False
+
     residual = []
     kept = {(k["root"], k["file"], k["sha256_line"]) for k in plan.get("kept_refs", [])}
 
@@ -1960,7 +2073,11 @@ def cmd_verify(args):
                     continue
                 for _, pre, path in tokens(line, relative):
                     targets = [t for _, t in planner.resolutions(i, rel, pre, path)]
-                    if targets and not any(os.path.lexists(t) for t in targets) and any(t in gone for t in targets):
+                    if not targets or any(os.path.lexists(t) for t in targets):
+                        continue
+                    if any(c in path for c in "*<>{}$") or "YYYY" in path:
+                        continue  # a glob or a placeholder names no single path
+                    if any(t in gone or existed_inside(t) for t in targets):
                         residual.append(f"{roots[i]}/{rel}:{number}: {pre}{path}")
     for path, old_dir, owner in moved_markdown:
         text = read_text_strict(path) or ""
@@ -2099,6 +2216,8 @@ def main(argv=None):
     plan.add_argument("--keep-ref", action="append", metavar="FILE[:LINE]",
                       help="leave the references in this file, or on this line, as they are; verify accepts them")
     plan.add_argument("--home", action="append", metavar="KEY=PATH")
+    plan.add_argument("--legacy", choices=("move", "remove"), default="move",
+                      help="aged legacy records: move them to workspace/ (default), or delete the tracked, unmodified ones")
     plan.add_argument("--json", action="store_true")
     plan.add_argument("--out")
     for name in ("apply", "verify", "undo"):
