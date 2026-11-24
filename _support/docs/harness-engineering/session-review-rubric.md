@@ -89,6 +89,19 @@ For a real session that exercises the bounded E2E procedure, also check the foll
 
 Use the session card and support-floor test above before counting recurrence. The existing watch `watch/e2e-skill-contract-adoption` in project memory owns the observation count and reopening conditions; reports point to it instead of maintaining another count. Preserve the distinction between completed objectives and compliance with every procedural step, and between absent evidence and demonstrated failure. A future review does not authorize guidance edits, new model runs or changes to the reviewed session.
 
+### Swarm mode follow-up
+
+For a real session that started the swarm mode (the user's command or a request that named it), also check the following. Report each behavior as observed, failed, not exercised or inconclusive; a session that did not start the mode supplies nothing. These rows observe the requirements of `content/skills/swarm/SKILL.md` and `references/owner-stops.md`, not new permissions.
+
+| Area | What to check | How to observe it | Added |
+| --- | --- | --- | --- |
+| Swarm round 0 | Before any worktree or owner, one round gave each ticket a verdict, named the failed condition of each ineligible ticket, and asked the tickets (two to four), the delivery and review of each repository, the caps (at most four owners at once, a limit of runs per ticket) and the worktrees | The message order: ticket reads, then the round, then the first `git worktree add` or child launch; the round's text against the eligibility list | 2026-11-23 (change gh-576-swarm-mode) |
+| Swarm stops and blockers | Each owner stopped after its plan and after its build; its decisions reached the user through the coordinator in numbered rounds that named the ticket, none asked by the owner; a blocker came back as a return, not as a question to the user | Each child's last message and its tool calls (no question card in a child); the coordinator's rounds | 2026-11-23 (change gh-576-swarm-mode) |
+| Swarm rulings | Each `Ruling:` line an owner returned is a row of the batch `decisions.tsv`, written by the coordinator only, and none of them is a decision that criteria a to f of `questions` send to the user | The owner returns against the log's rows and writer | 2026-11-23 (change gh-576-swarm-mode) |
+| Swarm caps | No launch exceeded the caps in the batch checkpoint; at a cap the coordinator launched nothing further and reported each open ticket with its worktree, branch, head and the log's path | Launch count per ticket and simultaneous children against the checkpoint's caps | 2026-11-23 (change gh-576-swarm-mode) |
+| Swarm screens | Each screen ticket was served on its own port, distinct from the others, and its owner took the before captures before its first edit of the screen and the after captures once built | Ports in the briefs and the dev-server commands; capture timestamps against the first edit | 2026-11-23 (change gh-576-swarm-mode) |
+| Swarm verification and delivery | For each ticket, `validate-handoff` ran on its record, a verifier independent of the owner checked the exact head, and the ticket got its own branch and pull request; a failed ticket did not stop the others | `validate-handoff` output, the verifier's child identity and head against the owner's, and one pull request per ticket | 2026-11-23 (change gh-576-swarm-mode) |
+
 ## 5. Timeline and parallelism
 
 Build a phase table from the transcript: each flow and task with its start, end and duration, the user's waiting time, CI time and children's spans. Then answer:

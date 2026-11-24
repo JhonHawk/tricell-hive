@@ -12,6 +12,15 @@ raise the minor or the patch version.
 
 ### Added
 
+- The swarm mode, a hidden skill the user starts with its command or by naming
+  it, coordinates two to four tickets in one session: a round 0 gives each
+  ticket a verdict, then one `hive-ticket-owner` child per ticket researches,
+  plans and builds in its own worktree, stopping after the plan and after the
+  build; the main thread asks the decisions, verifies each ticket
+  independently and publishes it on its own pull request. The new role writes
+  its ticket's plan and commits locally in its assigned paths, and the
+  execution record accepts it and a record in the coordinator's checkout.
+
 - `AGENTS.md` «Checks by path» assigns a narrower check to each path of this
   repository, so a fix to guidance text runs about 80 s of tests instead of
   the whole suite, which still runs once on the final candidate. The refresh
