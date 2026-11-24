@@ -1,6 +1,6 @@
 # Provenance — cited_id_glossed
 
-Derived 2026-09-26 from `_support/openspec/changes/report-readability/design.md`'s
+Derived 2026-09-26 from `report-readability/design.md` (now in the git history of `_support/openspec/changes/`)'s
 "Contexto verificado" table and targeted `jq` field extraction on the source
 Claude Code transcripts: only `.message.content[].text` (assistant text
 blocks) and `.message.content[].input.questions[]` (`AskUserQuestion`'s own

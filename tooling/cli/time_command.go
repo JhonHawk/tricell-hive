@@ -1,9 +1,8 @@
 package main
 
 // time_command.go is `hive time`: the active time of a session, read from the
-// transcript its host keeps. The reading rules per host are in time_read.go; the
-// contract is the requirement «hive time reports a session's active time» of
-// the workflow-lifecycle spec.
+// transcript its host keeps. The reading rules per host are in time_read.go,
+// and its tests fix the contract.
 
 import (
 	"encoding/json"
