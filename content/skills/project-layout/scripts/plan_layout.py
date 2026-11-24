@@ -106,6 +106,22 @@ OWN_DIR_RE = re.compile(r"^\d{4}-\d{2}-\d{2}-project-layout$")
 OWN_PATH_RE = re.compile(r"/_support/workspace/\d{4}-\d{2}-\d{2}-project-layout/")
 # A path written after a git ref names what the ref holds, not a path in the working tree.
 GIT_REF_RE = re.compile(r"(?P<ref>(?<![\w./-])archive/[\w./-]+|(?<![\w./-])(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}):$")
+PATH_END_RE = re.compile(r"[\w@+-]|\.\w")  # a character that continues a name, so the needle ended inside a longer one
+PATH_START_RE = re.compile(r"(?:\.|\)|\}|\"|'|\$\w+)/$")  # what a path may follow right after a slash
+
+
+def path_hits(text, needle):
+    """Positions where needle is written as a path: not inside a longer name, and after a slash only when
+    that slash follows `.`, a closing bracket, a quote or a variable."""
+    at = text.find(needle)
+    while at >= 0:
+        before = text[max(0, at - 40):at]
+        if ((not before or not (before[-1].isalnum() or before[-1] in "_-."))
+                and (not before.endswith("/") or PATH_START_RE.search(before))
+                and not PATH_END_RE.match(text, at + len(needle))):
+            yield at
+        at = text.find(needle, at + 1)
+
 TOOL_RULES = ("R4", "R5", "R6", "R7", "R8")
 # Files that decide what a build or a published package takes from their folder.
 BUILD_IGNORES = (".dockerignore", ".gcloudignore", ".vercelignore", ".npmignore", ".helmignore")
@@ -1041,7 +1057,7 @@ class Planner:
     def citations(self, keys):
         """key -> (count, first CITED_LIMIT of `root/file:line`) for each row key: the lines, in any text file
         of any root outside the row itself, that contain the row's basename as a plain substring. Informative
-        only: it never changes an action."""
+        only: it never changes an action (see cited_untracked for the one check that does)."""
         names = {}
         for key in keys:
             names.setdefault(os.path.basename(key[1]), []).append(key)
@@ -1068,9 +1084,34 @@ class Planner:
             result[key] = (len(hits), [f"{os.path.basename(self.roots[j].path)}/{rel}:{n}" for j, rel, n in hits[:CITED_LIMIT]])
         return result
 
+    def cited_untracked(self):
+        """key -> `root/file:line` for each delete row that Git does not track and that a text file writes by
+        its path (relative to its root, or after the root folder's name): no tag restores it. Files inside
+        a row this plan deletes do not count."""
+        keys = [key for key, row in self.rows.items() if row["delete"] and not row["tracked"]]
+        if not keys:
+            return {}
+        deleting = [self.roots[i].abs(rel) for (i, rel), row in self.rows.items() if row["delete"]]
+        found = {}
+        for j, rel, text in self.text_files():
+            path = self.roots[j].abs(rel)
+            if any(path == d or path.startswith(d + os.sep) for d in deleting):
+                continue
+            for key in keys:
+                if key in found:
+                    continue
+                base = os.path.basename(self.roots[key[0]].path)
+                for needle in (key[1], f"{base}/{key[1]}"):
+                    at = next(path_hits(text, needle), None)
+                    if at is not None:
+                        found[key] = f"{os.path.basename(self.roots[j].path)}/{rel}:{text.count(chr(10), 0, at) + 1}"
+                        break
+        return found
+
     def own_work(self, j, rel):
         """Whether the file is the skill's own work, which no scan reads: the --out file, the files beside it
-        in a folder named `<date>-project-layout`, and any file under `_support/workspace/<date>-project-layout/`."""
+        in a folder named `<date>-project-layout`, its undo record and a `manifest.md` beside it, and any file
+        under `_support/workspace/<date>-project-layout/`."""
         if OWN_PATH_RE.search("/" + rel):
             return True
         if self.out_real is None:
@@ -1080,8 +1121,10 @@ class Planner:
             self._real_dirs[folder] = os.path.realpath(folder)
         real = self._real_dirs[folder]
         out_dir = os.path.dirname(self.out_real)
-        return os.path.join(real, os.path.basename(rel)) == self.out_real or (
-            real == out_dir and OWN_DIR_RE.match(os.path.basename(out_dir)) is not None)
+        name = os.path.basename(rel)
+        return os.path.join(real, name) == self.out_real or (real == out_dir and (
+            OWN_DIR_RE.match(os.path.basename(out_dir)) is not None
+            or name in (os.path.basename(self.out_real) + ".undo.json", "manifest.md")))
 
     def declared(self, i, key):
         for name in ("AGENTS.md", "CLAUDE.md"):
@@ -1758,16 +1801,14 @@ class Planner:
             return ("delete" if row["delete"] else "move" if row["destination"]
                     else "keep" if any(n.startswith("kept") for n in row["notes"]) else "review")
 
-        cited = self.citations([key for key, row in self.rows.items() if action_of(row) in ("delete", "move")])
-        for key, (count, _) in sorted(cited.items()):
+        for key, where in sorted(self.cited_untracked().items()):
             row = self.rows[key]
-            if row["delete"] and not row["tracked"] and count:
-                row["delete"] = False
-                row["notes"] = [n for n in row["notes"] if n != row.get("delete_note")]
-                self.review(row["root"], row["source"], "cited and not in Git: no tag restores it",
-                            f"{count} citations, such as {cited[key][1][0]}: keep it, or name --override to move it")
+            row["delete"] = False
+            row["notes"] = [n for n in row["notes"] if n != row.get("delete_note")]
+            self.review(row["root"], row["source"], "cited and not in Git: no tag restores it",
+                        f"{row['source']} is written in {where}: keep it, or name --override to move it")
         actions = {key: action_of(row) for key, row in self.rows.items()}
-        cited = {key: value for key, value in cited.items() if actions[key] in ("delete", "move")}
+        cited = self.citations([key for key, action in actions.items() if action in ("delete", "move")])
         rows = []
         for key in sorted(self.rows):
             row = self.rows[key]
@@ -2139,24 +2180,19 @@ def cmd_verify(args):
                         reported.add((i, rel, number))
                         residual.append(f"{roots[i]}/{rel}:{number}: " + (f"{ref['ref']}:{pre}{path}: ref does not hold the path"
                                                                          if ref else f"{pre}{path}"))
+    noted = set()
     for row in sources.values():
-        needle = row["source"]
         destination = os.path.normpath(os.path.join(roots[row["root"]], row["destination"])) if row["destination"] else None
-        for j, rel, _ in planner.text_files():
-            absolute = os.path.join(roots[j], rel)
-            if HISTORY_RE.search(rel) or (destination and (absolute == destination or absolute.startswith(destination + os.sep))):
-                continue
-            text = planner.content(j, rel)  # a file that is not valid UTF-8 is reported as unreadable, never scanned
-            if not text:
-                continue
-            at = text.find(needle)
-            while at >= 0:
-                follows = at + len(needle)
-                before = text[max(0, at - 40):at]
-                owned = (not before or not (before[-1].isalnum() or before[-1] in "_-.")) and (
-                    not before.endswith("/") or re.search(r"(?:\.|\)|\}|\"|'|\$\w+)/$", before))
-                if owned:
-                    full = needle + re.match(r"[\w.@+/*-]*", text[follows:]).group().rstrip(".")
+        for needle in (row["source"], f"{os.path.basename(roots[row['root']])}/{row['source']}"):
+            for j, rel, _ in planner.text_files():
+                absolute = os.path.join(roots[j], rel)
+                if HISTORY_RE.search(rel) or (destination and (absolute == destination or absolute.startswith(destination + os.sep))):
+                    continue
+                text = planner.content(j, rel)  # a file that is not valid UTF-8 is skipped
+                if not text:
+                    continue
+                for at in path_hits(text, needle):
+                    full = needle + re.match(r"[\w.@+/*-]*", text[at + len(needle):]).group().rstrip(".")
                     inner = full[len(needle):].strip("/")
                     start = text.rfind("\n", 0, at) + 1
                     end = text.find("\n", at)
@@ -2167,9 +2203,8 @@ def cmd_verify(args):
                             and (not inner or existed_inside(os.path.join(roots[row["root"]], row["source"], inner)))):
                         ref = GIT_REF_RE.search(line[:at - start])
                         if not (ref and ref_holds(ref["ref"], full, row["root"])):
-                            residual.append(f"{roots[j]}/{rel}:{number}: " + (
-                                f"{ref['ref']}:{full}: ref does not hold the path" if ref else full))
-                at = text.find(needle, follows)
+                            noted.add(f"note: {roots[j]}/{rel}:{number} names {row['source']}, which this plan moved or "
+                                      "removed: repoint it to the archive tag or the current document")
     for path, old_dir, owner in moved_markdown:
         text = read_text_strict(path) or ""
         for number, line in enumerate(text.splitlines(), 1):
@@ -2197,6 +2232,8 @@ def cmd_verify(args):
         residual += [f"{index}: no line for {r['destination']}" for r in tools if os.path.basename(r["destination"]) not in text]
     residual += build_residuals(plan)
     for item in sorted(set(residual)):
+        print(item)
+    for item in sorted(noted):
         print(item)
     for review in plan["reviews"]:
         if review["reason"] != "ignored files stay":
