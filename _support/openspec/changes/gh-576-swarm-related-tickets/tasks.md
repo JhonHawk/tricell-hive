@@ -70,10 +70,10 @@ Validación humana (`interactive`): antes del push, el usuario lee el diff de `c
 ## Checkpoint
 
 - Updated: 2026-11-24
-- Stage: verify · reviews launched
-- Last commit: d5df808f
-- Open findings: none
-- Next: code review, validation stop, push + PR
+- Stage: verify · ready to push
+- Last commit: 4e2a2bee
+- Open findings: code-review: 4 blocking fixed in e31f5512; nits for close: business rules per ticket, observable test for module/common files, singular wording in owner-stops:5 and role description, CHANGELOG duplicate bullet
+- Next: push, PR, merge, refresh, close
 - Rules: flow-verify/stage-entry.md
 - Principles: none
 
@@ -84,6 +84,8 @@ Validación humana (`interactive`): antes del push, el usuario lee el diff de `c
 - text check · pass · d5df808f
 - pnpm site check/lint/build · pass (T3 child)
 - per-ticket phrase rg · no output (T3 child)
+- text check · pass · 4e2a2bee
+- full suite reused from d5df808f: later fixes only .md with assigned check
 
 ## Review status and progress
 
