@@ -1,18 +1,18 @@
 # Local execution record
 
-Read when the coordinator uses [E2E coordination](../../flow-build/references/e2e-coordination.md). The [tasks helper](../scripts/tasks.py) owns the `execution` commands (`init`, `check`, `update`, `validate-handoff`; `--help` lists their flags); [change validation](../scripts/check_change.py) also checks a checkpoint's execution pointer unless `--archive` is given.
+Read when the coordinator uses [E2E coordination](../../flow-build/references/e2e-coordination.md). The [tasks helper](../scripts/tasks.py) owns the `execution` commands (`init`, `check`, `update`, `validate-handoff`; `--help` lists their flags); [plan validation](../scripts/check_change.py) also checks a checkpoint's execution pointer.
 
 Only the coordinator writes the record or invokes its mutations. `--coordinator` must match the recorded native identity; it is a consistency guard, not authentication or permission to act. Owner and verifier returns are inputs the coordinator inspects, never direct writes to the record. No command runs the checks it records, reaches the network or publishes Git changes; each exits 2 on invalid input, unavailable evidence or Git fact, a stale generation or a write failure.
 
 ## Location and initialization
 
-The record lives at `<repo>/_support/workspace/<run>/execution.json`, where `<repo>` is the checkout that holds the record, which need not hold the change folder: outside the change folder, already Git-ignored and untracked, with no symlink escape, mode 0600; the helper creates no ignore rules or worktrees. Evidence paths are relative files inside the record's directory; missing files, `..`, absolute paths and symlink escapes fail validation. Keep native identities and raw outputs there, out of versioned plans.
+The record lives at `<repo>/_support/workspace/<run>/execution.json`, where `<repo>` is the checkout that holds the record, which need not hold the plan: outside the work's plan folder, already Git-ignored and untracked, with no symlink escape, mode 0600; the helper creates no ignore rules or worktrees. Evidence paths are relative files inside the record's directory; missing files, `..`, absolute paths and symlink escapes fail validation. Keep native identities and raw outputs there, out of the plan file.
 
-`init` reads a JSON manifest, refuses overwrite, adds the server-owned fields (`schema_version`, `generation`, `coordinator_id`, `plan_ref`, `plan_revision`) and links the record from `## Checkpoint` in `tasks.md` with a relative `- Execution record:` pointer that later checkpoint writes keep. Run it with absolute paths: `python3 -I <tasks.py> <change-folder> execution init --record <execution.json> --input <manifest.json> --coordinator <native-root-id>`. The manifest fields:
+`init` reads a JSON manifest, refuses overwrite, adds the server-owned fields (`schema_version`, `generation`, `coordinator_id`, `plan_ref`, `plan_revision`) and links the record from `## Checkpoint` in the plan file with a relative `- Execution record:` pointer that later checkpoint writes keep. Run it with absolute paths: `python3 -I <tasks.py> <plan-file> execution init --record <execution.json> --input <manifest.json> --coordinator <native-root-id>`. The manifest fields:
 
 ```json
 {
-  "grant_ref": "proposal.md#decisions",
+  "grant_ref": "<YYYY-MM-DD>-<work>.plan.md#decisions",
   "integration_target": {
     "repo": "/absolute/repository",
     "worktree": "/absolute/integration-worktree",
@@ -44,7 +44,7 @@ The record lives at `<repo>/_support/workspace/<run>/execution.json`, where `<re
 }
 ```
 
-An allowed path without a trailing `/` is an exact file; one ending in `/` is a literal subtree prefix; globs, `.` and non-normalized paths are rejected. Resources are exclusive string identities, not commands. Every assigned, running, returned, verified or blocked unit protects its branch, worktree, paths and resources: overlaps fail validation. An `integrated` unit retains history but is no longer an active assignment, and that alone never authorizes cleanup. `plan_revision` is a SHA-256 over proposal, design, task definitions and spec deltas, so checkboxes, checkpoint and progress sections do not change it.
+An allowed path without a trailing `/` is an exact file; one ending in `/` is a literal subtree prefix; globs, `.` and non-normalized paths are rejected. Resources are exclusive string identities, not commands. Every assigned, running, returned, verified or blocked unit protects its branch, worktree, paths and resources: overlaps fail validation. An `integrated` unit retains history but is no longer an active assignment, and that alone never authorizes cleanup. `plan_revision` is a SHA-256 over the plan file, computed by the helper.
 
 ## Updates and exact-head verification
 
@@ -58,7 +58,7 @@ For `returned`, record a full head and at least one evidence file; `validate-han
 
 To replace an owner, preserve the unit's returned or partial head, evidence and limitations, set a fresh `assignment_id`, the new owner and boundaries and `state: assigned`, and add a `closure` of kind `completed` or `stop_ack` for the former writer, with its `assignment_id`, `owner_id` and evidence `path`. The coordinator first observes that native completion or stop acknowledgment and reconciles Git and dirty work; a timeout or an absent ID is not enough. The helper archives the previous assignment into append-only `history` and never resets or deletes working-tree files.
 
-When proposal, design, task definitions or specs change, `check` and ordinary updates report plan drift. Block every candidate unit, keep the current fingerprint in the input and use `update ... --reconcile-plan`: all verdicts clear and only task, criterion and dependency references may change, while owner, role, worktree, branch, base SHA, allowed paths and resources stay, since blocked status does not prove the former writer stopped. Resume through running only after the coordinator confirms the assignment is still valid. A change of owner or boundary goes first through that reconciliation, then through the replacement above in a separate update; adding or removing unit IDs or changing the integration target requires a separately initialized execution after the old assignments close.
+When the plan file changes, `check` and ordinary updates report plan drift. Block every candidate unit, keep the current fingerprint in the input and use `update ... --reconcile-plan`: all verdicts clear and only task, criterion and dependency references may change, while owner, role, worktree, branch, base SHA, allowed paths and resources stay, since blocked status does not prove the former writer stopped. Resume through running only after the coordinator confirms the assignment is still valid. A change of owner or boundary goes first through that reconciliation, then through the replacement above in a separate update; adding or removing unit IDs or changing the integration target requires a separately initialized execution after the old assignments close.
 
 ## Integration and publication
 

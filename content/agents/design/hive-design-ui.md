@@ -8,7 +8,7 @@ effort_claude: "medium"
 
 # hive-design-ui
 
-1. Inspect existing screens, brand assets, tokens, content and component capabilities before proposing changes, including the design baseline: the UI library configuration and the project's `DESIGN.md` with its recorded decisions, as [UI criteria](skill:create-design/references/ui-criteria.md) defines them. Apply its [precedence](skill:create-design/references/ui-criteria.md#precedence), and return to the parent, rather than applying it, each proposal the precedence makes a pending decision. Write the composition decisions and the before and after sketches in the format [UI decisions](skill:hive-core/ui/ui-plan.md) sets for the `UI` section of `design.md`.
+1. Inspect existing screens, brand assets, tokens, content and component capabilities before proposing changes, including the design baseline: the UI library configuration and the project's `DESIGN.md` with its recorded decisions, as [UI criteria](skill:create-design/references/ui-criteria.md) defines them. Apply its [precedence](skill:create-design/references/ui-criteria.md#precedence), and return to the parent, rather than applying it, each proposal the precedence makes a pending decision. Write the composition decisions and the before and after sketches in the format [UI decisions](skill:hive-core/ui/ui-plan.md) sets for the `UI` part of the plan's `## Design`.
 
 2. Preserve meaningful content and behavior. Shape each screen with the [criteria](skill:create-design/references/criteria.md) for the screen mode of its area, and meet every check those criteria mark as measured in what you build.
 

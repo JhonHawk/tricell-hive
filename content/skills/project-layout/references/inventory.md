@@ -9,10 +9,10 @@ Limit the inventory to the repositories and folders the request covers, and do n
 List every entry of each support home: the `_support/` folder at the root of the declared workspace, which often sits outside any repository, so Git tracks nothing in it, and the one at the root of each covered repository. Judge each entry by its content:
 
 - `docs/`: living knowledge; its documents are candidates only for moving or for pruning as [Living documentation](#living-documentation) sets.
-- `sessions/`: execution history; a folder whose records all read closed can be archived, as [archive](archive.md) sets.
-- `workspace/`: ignored working material, including earlier manifests of this skill; an item there is removed only with the positive evidence [project-layout](../SKILL.md) step 5 sets.
+- `workspace/`: ignored working material, the one home of each work (`<YYYY-MM-DD>-<work>/`) and the earlier manifests of this skill; an item there is removed only with the positive evidence [project-layout](../SKILL.md) step 5 sets.
+- `sessions/`: a legacy home, which Hive no longer creates; classify each folder by its content as [migrate](migrate.md) HA-PL-03 does.
 - `evidence/`: legacy material, which Hive no longer creates; apply the test of [Retain evidence](../../project-layout/references/layout.md#retain-evidence) to each item.
-- Folders and files of earlier layouts, such as `plan/`, `spec/`, `reports/`, `archive/`, `assets/`, a `PROJECT.md`, a `premise.md` or a `README.md`: current knowledge, which stays or moves to `docs/`, or a record of past work, which is classified like `sessions/` or `evidence/`. Classify by content as [migrate](migrate.md) HA-PL-03 does.
+- Folders and files of earlier layouts, such as `plan/`, `spec/`, `reports/`, `archive/`, `assets/`, a `PROJECT.md`, a `premise.md` or a `README.md`: current knowledge, which stays or moves to `docs/`, or a record of past work, which is classified like `evidence/`. Classify by content as [migrate](migrate.md) HA-PL-03 does.
 
 ## Documentation homes
 
@@ -24,7 +24,7 @@ Never propose removing these; list each with its path and size, and name it amon
 
 - `secrets/`: list its file names and count only; never open, print or search a file in it.
 - `scripts/` named by a `HIVE.local.md`, and every `HIVE.local.md`.
-- Under `<Specs>`: the current requirements in `specs/`, the change folders of open work, and the archived change folders under `changes/archive/`.
+- Under `<Specs>`: the contract specs in `specs/`, and the change folders of work still open in a project that has them. Archived change folders under `changes/archive/` are legacy records, which [migrate](migrate.md) cleans.
 - An architecture decision record: when a newer decision replaces it, mark it superseded with a link to its successor, as its convention sets; never remove it.
 - `worktrees/` and any Git worktree: [branch cleanup](../../flow-close/references/branch-cleanup.md) removes a merged one.
 - `backups/`, migration data, dumps and exports: they may hold the only copy of data. Removing one is a decision of its own, asked apart from the manifest.
@@ -32,7 +32,7 @@ Never propose removing these; list each with its path and size, and name it amon
 
 ## Promote a conclusion
 
-Reconcile the conclusion with current sources and with the durable document that will hold it, then update that canonical home rather than writing a second one, with the fields [Retain evidence](../../project-layout/references/layout.md#retain-evidence) sets. Link the originating record when it stays, and mark the conclusions it replaces as historical or superseded, so no two live policies remain. When records of one work are reorganized, prefer descriptive work-prefixed file names, internal stages or a `reports/` subfolder to parallel sessions.
+Reconcile the conclusion with current sources and with the durable document that will hold it, then update that canonical home rather than writing a second one, with the fields [Retain evidence](../../project-layout/references/layout.md#retain-evidence) sets. Link the originating record when it stays, and mark the conclusions it replaces as historical or superseded, so no two live policies remain. When records of one work are reorganized, prefer descriptive work-prefixed file names or internal stages to parallel records.
 
 ## Living documentation
 

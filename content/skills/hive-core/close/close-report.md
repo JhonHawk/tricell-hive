@@ -15,7 +15,7 @@ One message for the whole work item, each part only when it has content:
 - **Principles:** when `flow-build` handed it over, or the checkpoint holds its `Principles:` line, one line naming each code principle read that changed a decision, or none.
 - **Findings:** the defects not fixed, as [Findings](#findings) sets.
 - **Candidates:** the work's repetitions, as [Candidates](#candidates) sets.
-- **Next:** what remains and who owns it (the merge left to the user, review bots or base CI pending, pending archives and the hygiene reply, only when [close hygiene](close-hygiene.md#archive-the-change-folder) «When to offer hygiene» offers them, what [support material](../../flow-close/references/support-material.md) sets to name there).
+- **Next:** what remains and who owns it (the merge left to the user, review bots or base CI pending, what [support material](../../flow-close/references/support-material.md) sets to name there).
 
 When the user asks to keep or share the report, or it exceeds one screen, offer a `create-report` page as one reply of the close's reply block in [report-endings](../messages/report-endings.md#the-close-footer).
 
@@ -29,8 +29,8 @@ When the user asks to keep or share the report, or it exceeds one screen, offer 
 | Pull request left open in `ready` or waiting on a reviewer | every part | in Integrated, the head commit, the base commit its current-base check passed on and the CI result; in Next, the pending merge and on whom |
 | Deployment (a cleanup close that `flow-deploy` calls) | every part | the run named in step 1 of `flow-deploy`; per environment the identity served, the health and the functional acceptance, each as met, failed, blocked or "not run"; the triggers decided; the CI failures from before that step 5 of `flow-deploy` let pass; each ticket that stayed out of its `Completion` state, or moved without a walk, as [ticket state](../tracker/ticket-state.md) sets |
 | `hold` | what is pending, the defect's proof, Try it and Principles | none |
-| Pause outside `hold` | as `hold` | the commit of the change folder |
-| Hygiene request or session's end after the work item's close | what ran of the pending items and the batch, and what stays pending, pending archives only as [close hygiene](close-hygiene.md#archive-the-change-folder) «When to offer hygiene» offers them | none |
+| Pause outside `hold` | as `hold` | none |
+| Hygiene request or session's end after the work item's close | what ran of the pending items, and what stays pending | none |
 
 ## Findings at the close
 

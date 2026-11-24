@@ -19,7 +19,7 @@ When a decision, or a rule you or a child assumed, adds, replaces or cancels a b
 
 When the rule that changes is on a rule card, or a decision contradicts an approved frame, also follow «After the design stage» of [rule cards](../../create-design/references/rule-cards.md).
 
-A rule that changes an observable behavior goes in the plan's spec delta, as [flow-plan](../plan/change-folder.md#change-folder) sets; when a repository file states a rule the work cancels or replaces, the plan has a task that updates it. A document outside the repository is never edited: the ticket's section records the change.
+A rule that changes an observable behavior a contract spec describes is edited in that spec in the same pull request, as [plan record](../plan/plan-record.md#plan-file) sets; when a repository file states a rule the work cancels or replaces, the plan has a task that updates it. A document outside the repository is never edited: the ticket's section records the change.
 
 ## At the close
 

@@ -4,7 +4,7 @@ Read by [flow-close](../SKILL.md) at its cleanup step, and by a hygiene request.
 
 ## Scope and inputs
 
-For a work item, cover each repository where it created a branch, worktree or commit, or wrote its change folder, plus the repository holding `Specs`. For a hygiene request, cover the current repository, its specs repository and those named in close records that list a waiting step ([flow-close](../SKILL.md) step 7).
+For a work item, cover each repository where it created a branch, worktree or commit. For a hygiene request, cover the current repository and those named in close records that list a waiting step ([flow-close](../SKILL.md) step 7).
 
 Handle the work's own branch first, then sweep earlier branches in the same repository. Before its own cleanup, stop only processes this work started, move the material its inventory keeps as [support material](support-material.md) sets, return its checkout to the base through [git-workflow](../../git-workflow/SKILL.md), and run from the main checkout. The sweep never switches another checkout's branch.
 
@@ -12,7 +12,7 @@ For each pass, refresh Git refs and collect the inputs of [cleanup_branches.py](
 
 - **Merged PRs.** For the work's branch, read its PR state, target base and `headRefOid`; for the sweep, list the user's merged PRs into the base with `gh pr list --author @me --state merged --base <base> --json headRefName,headRefOid`. Pass only eligible branches as `--merged-pr <branch>=<headRefOid>`.
 - **Non-PR candidates.** `--candidate <branch>` only for temporary or preview branches this work created, or, in a repository without PRs, local branches whose ownership the user's earlier plan, checkpoint or close record establishes. The helper checks ancestry; the flag never proves ownership or permits unmerged commits.
-- **Protected inputs.** Each open PR's base as `--open-pr-base`, and each branch named by unfinished work in memory, plans or checkpoints as `--active-branch`: fresh branches with no commits beyond base, closes with a waiting step in their close record (a pending archive is not one), and every active or ownership-uncertain assignment in the [E2E execution record](../../flow-plan/references/execution-record.md). When such a close record is older than 24 hours, resume its close steps, including its support-material inventory, before its own cleanup; never sweep it away. Pass environment branches not already read from `AGENTS.md` with `--env-branch`.
+- **Protected inputs.** Each open PR's base as `--open-pr-base`, and each branch named by unfinished work in memory, plans or checkpoints as `--active-branch`: fresh branches with no commits beyond base, closes with a waiting step in their close record, and every active or ownership-uncertain assignment in the [E2E execution record](../../flow-plan/references/execution-record.md). When such a close record is older than 24 hours, resume its close steps, including its support-material inventory, before its own cleanup; never sweep it away. Pass environment branches not already read from `AGENTS.md` with `--env-branch`.
 
 If an input cannot be established, keep the affected candidates and report why: an unavailable PR or memory query is not an empty result. A promotion not yet made is not a reason to keep a branch.
 

@@ -37,7 +37,7 @@ Moving from one flow to the next is never asked with the question tool, because 
 
 <the reason in one line>
 
-`<the flow's command, once, in this host's syntax from the line below, with a real argument: a ticket key, a change folder or a short description of the work>`
+`<the flow's command, once, in this host's syntax from the line below, with a real argument: a ticket key, a plan file or a short description of the work>`
 
 A - <another reply, such as keep investigating or what to change>
 
@@ -46,11 +46,11 @@ A - <another reply, such as keep investigating or what to change>
 
 Command syntax by host, for the next-step block: `/flow-x` in Claude Code, Grok, Cursor and Antigravity; `$flow-x` in Codex; `/skill:flow-x` in Pi; `@flow-x` in OpenCode. Write the commands of several hosts only when you cannot tell which host you run in.
 
-Offer a flow's command only when the next step needs that flow's procedure: an investigation, a design in Figma, a plan, or a change to the repository's files with its delivery. No flow needs a ticket: when the work has none, the command's argument is a short description of the work or its change folder, never a placeholder, and a ticket is proposed only as [scope changes](../plan/scope-changes.md) sets.
+Offer a flow's command only when the next step needs that flow's procedure: an investigation, a design in Figma, a plan, or a change to the repository's files with its delivery. No flow needs a ticket: when the work has none, the command's argument is a short description of the work or its plan file, never a placeholder, and a ticket is proposed only as [scope changes](../plan/scope-changes.md) sets.
 
 Only the user's reply to this block, or a flow command they type, starts the next flow; a reply to a question or the acceptance of a proposal only settles or redirects the scope, except a fix the close footer's **Resolve findings now** reply or a findings round sends, and the [same-turn continuations](#same-turn-continuations). Keep the question tool for decisions inside a flow: scope, design, delivery and review, validation and findings.
 
-When the block leads from an approved plan to its build in the same session, or starts another work item after a close, add compacting first as one of its replies: the host's compaction command followed, where the host accepts instructions, by what to keep (the change folder or plan summary, the approved criteria and delivery answers, or the files and decisions the next work reuses). Offer it for that transition only, never for an estimated share of the context window, which the model cannot see. After it, end again with the same block; it is not one «during work» of the [checkpoint](../plan/checkpoint.md).
+When the block leads from an approved plan to its build in the same session, or starts another work item after a close, add compacting first as one of its replies: the host's compaction command followed, where the host accepts instructions, by what to keep (the plan file or plan summary, the approved criteria and delivery answers, or the files and decisions the next work reuses). Offer it for that transition only, never for an estimated share of the context window, which the model cannot see. After it, end again with the same block; it is not one «during work» of the [checkpoint](../plan/checkpoint.md).
 
 ## The close footer
 
@@ -76,7 +76,6 @@ It recommends closing, unless a proposed finding is P1 or higher or a plan is in
 - **See the findings**, with their count and highest severity: it shows the table and the round of [findings at the close](../close/close-report.md#findings-at-the-close).
 - **Turn a candidate into a mechanism**, naming it, only for a candidate whose record counts two sessions or more; it enters `flow-build` as **Resolve findings now** does.
 - **Find the next ticket**, run only when the user picks it, as [Find the next ticket](../../hive-mode/playbooks/ticket-status.md#find-the-next-ticket) sets.
-- **Hygiene**, with the count of pending archives, only when [close hygiene](../close/close-hygiene.md#archive-the-change-folder) «When to offer hygiene» offers it.
 - **Continue** with what remains, such as the next phase of a plan in progress.
 - **Offer a `create-report` page**, as [close report](../close/close-report.md#final-report) sets.
 

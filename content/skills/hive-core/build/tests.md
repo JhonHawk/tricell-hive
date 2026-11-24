@@ -2,7 +2,7 @@
 
 Read before writing, changing or deleting a test, or when a check fails. Also read when choosing a task's test approach in a plan. In a repository without a test runner, before the first edit of a defect fix or consequential logic, also read [no test runner](tests-no-runner.md).
 
-**When a check fails**, first decide whether the code, the criterion or the test is wrong, and fix the code, as [defect fix](defect-fix.md) sets, or the test: change, skip or delete an existing test only when the test itself is wrong, and say so in the task's line or your report. A wrong criterion is the user's decision: report it, or a child reports it to its parent, instead of changing it. Once the user decides, revise the plan as [Revise a plan in progress](../plan/change-folder.md#revise-a-plan-in-progress) sets.
+**When a check fails**, first decide whether the code, the criterion or the test is wrong, and fix the code, as [defect fix](defect-fix.md) sets, or the test: change, skip or delete an existing test only when the test itself is wrong, and say so in the task's line or your report. A wrong criterion is the user's decision: report it, or a child reports it to its parent, instead of changing it. Once the user decides, revise the plan as [Revise a plan in progress](../plan/plan-record.md#revise-a-plan-in-progress) sets.
 
 **When a test must fail first (`tdd`).** Write the test, run it and see it fail for the intended reason, then change the code until it passes, one behavior at a time. This applies only to:
 

@@ -21,7 +21,7 @@ These rules apply in every session, whatever skill runs, as requirements. Use th
 - Moving a ticket to in progress before its implementation and to done at its integration, writing a work item's time, the evidence comment and attachments its close writes before removing anything, and the comment that lists what it leaves open on purpose are authorized; so is writing the business rules it adopts to its ticket at the moments [ticket write](skill:hive-core/business/business-ticket.md) sets, with no question, not even a critical effect's, even as it edits a description the task did not create, and correcting the rows of a rule card the work created in its design file; [ticket state](skill:hive-core/tracker/ticket-state.md) sets which and when. An [operational task](skill:hive-core/plan/proportionality.md) moves or comments on its ticket, or writes its rules there, only when the user asks, except a request for a design that names its ticket, which writes them.
 - Work unattended only through `unattended-delegation`, after an explicit delegation, the user's leaving message while work runs, or their silence once the route, delivery and review are answered; it never permits irreversible or destructive actions beyond spending authorized in advance within a ceiling.
 - Delegation grants no authority: children stay in their working tree, paths and effects, and never push, open or merge pull requests, write trackers or launch children. The main thread owns integration and checks returned evidence, not assertions. Start every child with a fresh context window, not a fork of this conversation; its brief carries what it needs.
-- Explicit bounded E2E coordination follows [its procedure](skill:flow-build/references/e2e-coordination.md), and the swarm mode, which only the user starts by its command or by naming it, follows [its own](skill:swarm/SKILL.md); only their assigned `hive-build-owner` and `hive-ticket-owner` may make scoped local commits, the latter also writing its plan in the one change-folder path assigned outside its worktree, other children keep their limits, and neither is unattended authority.
+- Explicit bounded E2E coordination follows [its procedure](skill:flow-build/references/e2e-coordination.md), and the swarm mode, which only the user starts by its command or by naming it, follows [its own](skill:swarm/SKILL.md); only their assigned `hive-build-owner` and `hive-ticket-owner` may make scoped local commits, the latter also writing its plan file at the one path assigned outside its worktree, other children keep their limits, and neither is unattended authority.
 - Before adding, updating or installing a package or tool from a registry, a one-off `npx` included, verify with `python3 -I` on [check_package.py](skill:flow-build/scripts/check_package.py) (or the registry's publish timestamp when `python3` cannot run it) that it is the intended package, from its expected publisher, published at least 7 days ago and free of active advisories; stop and ask when anything is off.
 
 ## Preservation
@@ -78,7 +78,7 @@ A rule leaf is a file of `hive-core`, a skill the model does not load on its own
 - Before new code, or when a plan weighs approaches: [reuse before writing](skill:hive-core/plan/reuse-before-writing.md).
 - When an approach reads or changes an external system: [external facts](skill:hive-core/plan/external-facts.md).
 - Before planning or taking an external effect: [effects round](skill:hive-core/plan/external-effects.md).
-- When a plan needs a change folder, or a written plan changes: [change folder](skill:hive-core/plan/change-folder.md).
+- When a plan needs a plan file, or a written plan changes: [plan record](skill:hive-core/plan/plan-record.md).
 - At the start of a build or verify, after a compaction, and when pausing: [checkpoint](skill:hive-core/plan/checkpoint.md).
 - Before the first cycle of work that repeats changing and measuring until a condition holds: [loops](skill:hive-core/plan/loops.md).
 
@@ -134,7 +134,7 @@ A rule leaf is a file of `hive-core`, a skill the model does not load on its own
 ### Close
 
 - When a close starts: [close modes](skill:hive-core/close/close-modes.md).
-- At steps 4, 5 and 7 of flow-close: [close hygiene](skill:hive-core/close/close-hygiene.md).
+- At steps 5 and 7 of flow-close: [close hygiene](skill:hive-core/close/close-hygiene.md).
 - At a work item's close, before removing, stopping or deleting anything: [close cleanup](skill:hive-core/close/close-cleanup.md).
 - Before a final report or classifying a finding: [close report](skill:hive-core/close/close-report.md).
 
@@ -157,7 +157,7 @@ A rule leaf is a file of `hive-core`, a skill the model does not load on its own
 
 ## Support folder (`_support`)
 
-Application code, scripts and configuration stay in their source locations, even when an agent wrote them, except the [local scripts](skill:hive-core/local/local-script.md) it sets. Supporting artifacts that are not change records go in one support home: `<repo>/_support/`, the declared `<workspace>/_support/` for work across repositories, or one at a monorepo's root; never infer a workspace from a parent folder, and do not initialize Git there unless the user asks [workspace-repo](skill:workspace-repo/SKILL.md) to make it a repository. Before writing or cleaning a support artifact, read [layout and retention](skill:project-layout/references/layout.md). Scratch belongs in the host's temporary location, never the repository root; unique work is not scratch.
+Application code, scripts and configuration stay in their source locations, even when an agent wrote them, except the [local scripts](skill:hive-core/local/local-script.md) it sets. Supporting artifacts, plan files included, go in one support home: `<repo>/_support/`, the declared `<workspace>/_support/` for work across repositories, or one at a monorepo's root; never infer a workspace from a parent folder, and do not initialize Git there unless the user asks [workspace-repo](skill:workspace-repo/SKILL.md) to make it a repository. Before writing or cleaning a support artifact, read [layout and retention](skill:project-layout/references/layout.md). Scratch belongs in the host's temporary location, never the repository root; unique work is not scratch.
 
 ## Questions and routes
 
