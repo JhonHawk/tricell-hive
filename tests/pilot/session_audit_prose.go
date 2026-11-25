@@ -37,7 +37,11 @@ var (
 	// offeredReplies opens a sentence that lists the replies the user may type,
 	// and quotedReply is one of them in quotation marks.
 	offeredReplies = regexp.MustCompile(`(?i)\b(?:puedes responder|responde|you can reply|reply with)\b`)
-	quotedReply    = regexp.MustCompile(`«[^»\n]+»|"[^"\n]+"|“[^”\n]+”`)
+	// imperativeReply is the same offer as an instruction to the user, at the
+	// start of a sentence or after a comma or colon, so «el endpoint responde
+	// «ok»» does not count; it needs a single quoted reply to fail.
+	imperativeReply = regexp.MustCompile(`(?i)(?:^|[,:;]\s*)[*_]*(?:puedes responder|responde|you can reply|reply with)\b`)
+	quotedReply     = regexp.MustCompile(`«[^»\n]+»|"[^"\n]+"|“[^”\n]+”`)
 	// recommends and codeSpan, with startsWithMode, read a sentence that
 	// recommends a text in backticks that begins with a delivery mode as a whole
 	// word, such as «Recomiendo `automatic, Codex, sí`»: a session question
@@ -80,19 +84,26 @@ func proseChoices(text string) (choices []string, session bool) {
 			session = session || isSession
 		}
 	}
-	for _, s := range proseSentences(text) {
-		switch {
-		case strings.HasSuffix(s, "?"):
-		case imperativeConfirm.MatchString(s) && sessionChoice.MatchString(s):
-			choices = append(choices, s)
-			session = true
-		case recommends.MatchString(unquoted(s)) && backtickedMode(unquoted(s)):
-			choices = append(choices, s)
-			session = true
-		case leftPending.MatchString(unquoted(s)) && sessionChoice.MatchString(unquoted(s)):
-			choices = append(choices, s)
-		case offeredReplies.MatchString(s) && len(quotedReply.FindAllString(s, -1)) >= 2:
-			choices = append(choices, s)
+	for _, paragraph := range strings.Split(text, "\n\n") {
+		named := sessionChoice.MatchString(paragraph)
+		for _, s := range proseSentences(paragraph) {
+			replies := len(quotedReply.FindAllString(s, -1))
+			switch {
+			case strings.HasSuffix(s, "?"):
+			case imperativeConfirm.MatchString(s) && sessionChoice.MatchString(s):
+				choices = append(choices, s)
+				session = true
+			case recommends.MatchString(unquoted(s)) && backtickedMode(unquoted(s)):
+				choices = append(choices, s)
+				session = true
+			case leftPending.MatchString(unquoted(s)) && sessionChoice.MatchString(unquoted(s)):
+				choices = append(choices, s)
+			case imperativeReply.MatchString(s) && replies >= 1 && named:
+				choices = append(choices, s)
+				session = true
+			case offeredReplies.MatchString(s) && replies >= 2:
+				choices = append(choices, s)
+			}
 		}
 	}
 	return choices, session
@@ -118,15 +129,15 @@ func proseSentences(text string) []string {
 
 // proseQuestions returns each sentence of the text that ends in a question
 // mark, from its ¿ when it has one. A round's title line asks its own question;
-// text_round_without_card judges the round, so its title is skipped.
+// round_text_and_card judges the round, so its title is skipped.
 func proseQuestions(text string) []string {
 	var out []string
-	numbered := numberedRoundTitles(text)
+	titles := append(starredTitles(text, roundTitleLine.FindAllStringIndex(text, -1)), numberedRoundTitles(text)...)
 	offset := 0
 	for _, line := range strings.Split(text, "\n") {
 		start := offset
 		offset += len(line) + 1
-		if roundTitleLine.MatchString(line) || isRoundTitleLine(numbered, start, start+len(line)) {
+		if isRoundTitleLine(titles, start, start+len(line)) {
 			continue
 		}
 		for _, s := range strings.Split(sentenceEnd.ReplaceAllString(line, "$1\n"), "\n") {
@@ -145,8 +156,8 @@ func proseQuestions(text string) []string {
 	return out
 }
 
-// proseChoiceWithoutCard checks the choices asked in prose while a waiting card
-// is available and none follows in that turn. A delivery, review or security
+// proseChoiceWithoutCard checks the choices asked in prose, on any host, when
+// no card follows in that turn. A delivery, review or security
 // choice is a session question, so it fails; any other choice may be a question
 // about what the user wants, so it is flagged for review. The text the last
 // card of the turn requires when it closed empty is not judged.
@@ -156,9 +167,6 @@ func proseChoiceWithoutCard(s auditSession) criterionAssessment {
 		return c
 	}
 	events := s.Trace.Events
-	if !cardAvailable(s) {
-		return c
-	}
 	unattended := unattendedActivation(events)
 	var failed, review, passed []string
 	for i, e := range events {
@@ -205,23 +213,9 @@ func asksSessionQuestion(e traceEvent) bool {
 	return false
 }
 
-// cardAvailable reports whether the session could ask through a waiting card:
-// the host offered it, or the session used one.
-func cardAvailable(s auditSession) bool {
-	if s.QuestionOffered {
-		return true
-	}
-	for _, e := range s.Trace.Events {
-		if e.Kind == "question" {
-			return true
-		}
-	}
-	return false
-}
-
 // cardFollowsOrClosedEmpty reports whether a question follows the message at i
 // in its turn, or the last card before it in that turn closed empty, which lets
-// the round be written in the text, as text_round_without_card reads it.
+// the round be written in the text.
 func cardFollowsOrClosedEmpty(s auditSession, i int) bool {
 	if cardAfterInTurn(s, i) >= 0 {
 		return true

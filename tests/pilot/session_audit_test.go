@@ -370,7 +370,7 @@ type sessionCase struct {
 // TestAuditCriteria keeps, for each criterion, one case that fails and one for
 // each other status it emits; not_observed has its own shared empty session.
 func TestAuditCriteria(t *testing.T) {
-	const round, close, skill = "text_round_without_card", "close_before_branch_cleanup", "skill_named_as_reason"
+	const round, close, skill = "round_text_and_card", "close_before_branch_cleanup", "skill_named_as_reason"
 	const review = "review_question_native_option"
 	const leaf = "leaf_read_before_action"
 	const route, format, ux = "flow_entered_without_route", "decision_round_format", "ui_change_without_ux_review"
@@ -385,6 +385,20 @@ func TestAuditCriteria(t *testing.T) {
 	const planRoute = "plan_without_build_route"
 	const suite, rounds = "full_suite_after_text_fix", "review_rounds_per_candidate"
 	cases := []sessionCase{
+		{name: "round claude written out after a declined card", host: "claude", criterion: round, want: "fail", transcript: `
+{"type": "user", "message": {"role": "user", "content": "Continue"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "q0", "name": "AskUserQuestion", "input": {"questions": [{"question": "Build · EX-1 · ❓ D1 - Which delivery mode? Situation: one file.", "header": "D1", "multiSelect": false, "options": [{"label": "A - (★) interactive", "description": "> you validate first"}, {"label": "B - hold", "description": "> nothing is published"}]}]}}]}, "timestamp": "2026-01-01T11:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "q0", "content": "The user doesn't want to proceed with this tool use.", "is_error": true}]}, "timestamp": "2026-01-01T11:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "**Build · EX-1 · delivery**\n\n❓ **D1** - **Which delivery mode?**\n\nSituation: one file.\n\nA - (★) **interactive**: you validate first.\n\nB - **hold**: nothing is published.\n\n➡️ A: you see it first.\n\nWaiting for D1."}]}, "timestamp": "2026-01-01T11:00:05.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "prose codex decision title with no options", host: "codex", criterion: prose, want: "fail", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000e1", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "Continue"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m0", "content": [{"type": "output_text", "text": "**Build · EX-1 · delivery**\n\n❓ **D3** - **¿Seguimos con interactive o con hold?**"}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
 		{name: "reply claude italic bullets without letters", host: "claude", criterion: reply, want: "fail", evidence: []string{"not read"}, transcript: `
 {"type": "user", "timestamp": "2026-01-01T10:00:01.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": "Analyze the cache."}}
 {"type": "assistant", "timestamp": "2026-01-01T10:00:02.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "**Analysis · EX · the cache is read twice**\n\nThe loader reads the cache before and after the lock.\n\nWaiting for your reply. You can answer:\n\n- *Fix it* — I remove the second read.\n- *Leave it* — I record it as known."}]}}
@@ -621,6 +635,24 @@ func TestAuditCriteria(t *testing.T) {
 {"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "Option A is approved. Before editing, two decisions remain. ¿Prefieres entrega \u0060interactive\u0060 para validar antes de publicar, o \u0060hold\u0060 para quedarte con el cambio local verificado? ¿Confirmas revisión de código y de seguridad de la API?"}]}}
 {"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
 `},
+		{name: "prose choice one quoted reply, delivery in the paragraph", host: "codex", criterion: prose, want: "fail", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}, {"type": "function", "name": "request_user_input"}]}]}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "Antes de editar falta decidir la entrega. Voy a dejar el cambio local. Si te parece bien, responde «automatic» y arranco."}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{name: "prose choice on a host with no card tool", host: "codex", criterion: prose, want: "fail", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:03.000Z", "type": "response_item", "payload": {"type": "additional_tools", "id": "at1", "role": "developer", "tools": [{"type": "namespace", "name": "functions", "tools": [{"type": "function", "name": "exec"}]}]}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "Antes de editar falta decidir la entrega. Voy a dejar el cambio local. Si te parece bien, responde «automatic» y arranco."}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
 		{name: "async card, session without an async call", host: "codex", criterion: prose, want: "pass", transcript: `
 {"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
 {"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
@@ -703,26 +735,29 @@ func TestAuditCriteria(t *testing.T) {
 {"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Continue."}}
 {"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"I stop before the push because flow-build requires your validation first."}]}}
 `},
-		{name: "round codex fail", host: "codex", criterion: round, want: "fail", evidence: []string{"rollout.jsonl:"}, transcript: `
-{"timestamp":"2026-01-01T11:00:01.000Z","type":"session_meta","payload":{"id":"00000000-0000-0000-0000-000000000001","cwd":"project","source":"cli"}}
-{"timestamp":"2026-01-01T11:00:02.000Z","type":"turn_context","payload":{"model":"gpt-example","cwd":"project"}}
-{"timestamp":"2026-01-01T11:00:03.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t2"}}
-{"timestamp":"2026-01-01T11:00:04.000Z","type":"response_item","payload":{"type":"function_call","name":"request_user_input","call_id":"call_1","arguments":"{\"questions\": [{\"id\": \"d1\", \"header\": \"Delivery\", \"question\": \"D1 \\u2014 Which delivery mode?\", \"options\": [{\"label\": \"A - (\\u2605) Interactive\", \"description\": \"x\"}, {\"label\": \"B - Automatic\", \"description\": \"y\"}]}]}"}}
-{"timestamp":"2026-01-01T11:00:05.000Z","type":"response_item","payload":{"type":"function_call_output","call_id":"call_1","output":"{\"answers\":{\"d1\":{\"answers\":[\"A\"]}}}"}}
-{"timestamp":"2026-01-01T11:00:06.000Z","type":"response_item","payload":{"type":"message","role":"assistant","id":"msg2","phase":"commentary","content":[{"type":"output_text","text":"Working on it."}]}}
-{"timestamp":"2026-01-01T11:00:07.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t6"}}
-{"timestamp":"2026-01-01T11:00:08.000Z","type":"event_msg","payload":{"type":"task_started","turn_id":"t7"}}
-{"timestamp":"2026-01-01T11:00:09.000Z","type":"response_item","payload":{"type":"message","role":"assistant","id":"msg3","phase":"final_answer","content":[{"type":"output_text","text":"**Plan · EXAMPLE · ready**\n\nD1 — Which delivery mode?\n\nSituation: the change touches one example file.\n\nA - (★) Interactive\nIf you choose it: you validate before the push.\n\nB - Automatic\nIf you choose it: it pushes without stopping.\n\nI recommend A: you can judge the result yourself.\n\nWaiting for D1."}]}}
-{"timestamp":"2026-01-01T11:00:10.000Z","type":"event_msg","payload":{"type":"task_complete","turn_id":"t9"}}
+		{name: "round text and the same card in one turn", host: "claude", criterion: round, want: "fail", evidence: []string{"session.jsonl:"}, transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Go."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_0","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"❓ **D8** - **Which approach does the plan follow?**\n\nSituation: the change touches one example file.\n\nA - (★) **Restore text**: restores the text.\n\nB - **Restore and hook**: adds a hook.\n\n➡️ A: it is the smaller change; the hook stays uncertain."},{"type":"tool_use","id":"q1","name":"AskUserQuestion","input":{"questions":[{"question":"Entrega · EX-1 · ❓ D8 - Which approach? Situation: one file.","header":"D8","options":[{"label":"A - (★) Restore text","description":"> restores the text"},{"label":"B - Restore and hook","description":"> adds a hook"}],"multiSelect":false}]}}]}}
 `},
-		{name: "round claude pass", host: "claude", criterion: round, want: "pass", transcript: `
-{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"First request."}}
-{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_1","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Asking."},{"type":"tool_use","id":"q1","name":"AskUserQuestion","input":{"questions":[{"question":"D1 — Which delivery mode?","header":"Delivery","options":[{"label":"A - (★) Interactive","description":"x"},{"label":"B - Automatic","description":"y"}],"multiSelect":false}]}}]}}
-{"type":"user","timestamp":"2026-01-01T10:00:03.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"q1","content":"User has answered your questions: D1=A","is_error":false}]}}
-{"type":"assistant","timestamp":"2026-01-01T10:00:04.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_2","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Working on it."}]}}
-{"type":"user","timestamp":"2026-01-01T10:00:05.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Second request."}}
-{"type":"assistant","timestamp":"2026-01-01T10:00:06.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_3","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"**Plan · EXAMPLE · ready**\n\nD1 — Which delivery mode?\n\nSituation: the change touches one example file.\n\nA - (★) Interactive\nIf you choose it: you validate before the push.\n\nB - Automatic\nIf you choose it: it pushes without stopping.\n\nI recommend A: you can judge the result yourself.\n\nWaiting for D1."},{"type":"tool_use","id":"q2","name":"AskUserQuestion","input":{"questions":[{"question":"D1 — Which delivery mode?","header":"Delivery","options":[{"label":"A - (★) Interactive","description":"x"},{"label":"B - Automatic","description":"y"}],"multiSelect":false}]}}]}}
-{"type":"user","timestamp":"2026-01-01T10:00:07.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"q2","content":"User has answered your questions: D1=A","is_error":false}]}}
+		{name: "round card alone", host: "claude", criterion: round, want: "pass", transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Go."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_0","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Working on it."},{"type":"tool_use","id":"q1","name":"AskUserQuestion","input":{"questions":[{"question":"Entrega · EX-1 · ❓ D8 - Which approach? Situation: one file.","header":"D8","options":[{"label":"A - (★) Restore text","description":"> restores the text"},{"label":"B - Restore and hook","description":"> adds a hook"}],"multiSelect":false}]}}]}}
+`},
+		{name: "round full text with no card", host: "claude", criterion: round, want: "pass", transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Go."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_0","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"❓ **D8** - **Which approach does the plan follow?**\n\nSituation: the change touches one example file.\n\nA - (★) **Restore text**: restores the text.\n\nB - **Restore and hook**: adds a hook.\n\n➡️ A: it is the smaller change; the hook stays uncertain."}]}}
+`},
+		{name: "round plain message", host: "claude", criterion: round, want: "not_observed", transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Go."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_0","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"Working on it."}]}}
+`},
+		{name: "format new text round in full", host: "claude", criterion: format, want: "pass", transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Go."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_0","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"❓ **D8** - **Which approach does the plan follow?**\n\nSituation: the change touches one example file.\n\nA - (★) **Restore text**: restores the text.\n\nB - **Restore and hook**: adds a hook.\n\n➡️ A: it is the smaller change; the hook stays uncertain."}]}}
+`},
+		{name: "format new text title without Situation or star", host: "claude", criterion: format, want: "fail", transcript: `
+{"type":"user","timestamp":"2026-01-01T10:00:01.000Z","cwd":"project","isSidechain":false,"message":{"role":"user","content":"Go."}}
+{"type":"assistant","timestamp":"2026-01-01T10:00:02.000Z","cwd":"project","isSidechain":false,"message":{"id":"msg_0","model":"claude-example-1","role":"assistant","content":[{"type":"text","text":"❓ **D8** - **Which approach does the plan follow?**\n\nA - **Restore text**: restores the text.\n\nB - **Restore and hook**: adds a hook."}]}}
 `},
 		{name: "assessment claude skill call, no ending", host: "claude", criterion: assess, want: "fail", transcript: `
 {"type": "user", "message": {"role": "user", "content": "Review ticket EX-1"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
@@ -1669,4 +1704,30 @@ var grokCostSessions = map[string]string{
 {"method":"session/update","params":{"sessionId":"parent-ok","update":{"sessionUpdate":"user_message_chunk","content":{"type":"text","text":"More."}}},"timestamp":1794948009}
 {"method":"_x.ai/session/update","params":{"sessionId":"parent-ok","update":{"sessionUpdate":"turn_completed","stop_reason":"end_turn","usage":{"modelCalls":4,"inputTokens":2000,"cachedReadTokens":500}}},"timestamp":1794948010}
 `,
+}
+
+func TestRoundTitleLineRecognizesCurrentAndOlderTitles(t *testing.T) {
+	cases := []struct {
+		title string
+		want  bool
+	}{
+		{"❓ **D8** - **¿Qué enfoque sigue el plan?**", true},
+		{"❓ **Entrega** - **¿Cómo se entrega este cambio?**", true},
+		{"❓ **Revisión de seguridad** - **¿Cómo se revisa la seguridad?**", true},
+		{"❓ **Validación** - **¿Validas el cambio?**", true},
+		{"❓ **Security review** - **How is security reviewed?**", true},
+		{"❓ **Validation** - **Do you validate the change?**", true},
+		{"D1 — Which delivery mode?", true},
+		{"**Review** — Which review?", true},
+		{"**Validación** — Completed", false},
+		{"❓ **Entrega** - **Report heading**", false},
+	}
+	for _, tc := range cases {
+		if got := roundTitleLine.MatchString(tc.title); got != tc.want {
+			t.Errorf("roundTitleLine(%q) = %v, want %v", tc.title, got, tc.want)
+		}
+	}
+	if !isLooseRound("❓ **Entrega** - ¿interactive o hold? ➡️ interactive: valida antes de publicar; si prefieres hold, dilo") {
+		t.Error("a line that recommends with the arrow marker is a loose round")
+	}
 }
