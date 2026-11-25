@@ -38,6 +38,16 @@ raise the minor or the patch version.
   `round_text_and_card`, which fails a decision round written in text followed
   by a question card in the same turn. `prose_choice_without_card` judges on
   every host, and `decision_round_format` accepts the `❓` title.
+- The language rule for names covers what it had lost. i18n keys, API and
+  database names and the names a spec or plan introduces are written in
+  English, and a new leaf, `hive-core/principles/naming-language.md`, says how
+  to name, which regulatory terms stay as written and who acts on a name in
+  another language. Plan reads it when a plan names a route, a key, a table, a
+  field or a file, and its reviewer reports a name in another language. Verify
+  applies it to the candidate before any review, with every review mechanism,
+  where before only `hive-review-code` and `hive-verify-task` checked it.
+  Observed in two Claude sessions of 2026-11-24 and 2026-11-25 that wrote
+  route segments and i18n keys in Spanish in a new project.
 
 ## [0.10.0] - 2026-11-24
 
