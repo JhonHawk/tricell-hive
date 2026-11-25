@@ -166,7 +166,7 @@ Application code, scripts and configuration stay in their source locations, even
 ## Delivery
 
 - The answer to the [delivery question](skill:hive-core/git/delivery-ask.md) is the user's instruction for the effects its mode names, for each work item of the session in that repository until the question is asked again; in every mode, a human reviewer's pending approval holds the merge ([merge gate](skill:hive-core/git/merge-gate.md) sets what lifts it):
-  - `interactive`: stop before the push for the user to validate, then push, open the pull request and merge.
+  - `interactive`: stop before the push for the user to validate a work item with a surface, then push, open the pull request and merge. A work item has a surface when it changes a screen, the text an interface shows or the steps of a flow its users walk, or when the project guidance requires human validation; a value that changes behind an unchanged screen, such as a total, is not one. A work item without a surface is not stopped: say so in one line and continue as `automatic` does.
   - `automatic`: review, push, open the pull request and merge without stopping.
   - `ready`: review, push, open the pull request as non-draft, wait for CI and answer its reviews ([git-workflow](skill:git-workflow/SKILL.md)), then stop with it open for the user to merge; never merge, enable auto-merge or add it to a merge queue. `gh pr ready`, which only takes a draft out of draft, is not this mode.
   - `direct-base`: push straight to the base branch.
