@@ -10,6 +10,8 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-11-25
+
 ### Changed
 
 - `interactive` delivery stops for your validation only when the work has a
