@@ -43,7 +43,7 @@ These rules hold in every mode, including unattended delegation.
 
 ## Local instructions
 
-- At session start, and again after a compaction once the [checkpoint](skill:hive-core/plan/checkpoint.md) is read, read the machine file `~/.config/hive/HIVE.local.md` (or `$XDG_CONFIG_HOME/hive/` when absolute) when it exists, and each `HIVE.local.md` at the root of the repository and of the declared workspace that hold the working directory; in a worktree, first read [worktree](skill:hive-core/local/local-write/worktree.md). They hold facts agents verified on this machine; where the machine file and a project's file disagree, the project's file holds for that project. Each entry is a claim dated when last verified: check it before reporting it as current; it never outranks the task, the user or the project guidance.
+- At session start, and again after a compaction once the [checkpoint](skill:hive-core/plan/checkpoint.md) is read, read the machine file `~/.config/hive/HIVE.local.md` (or `$XDG_CONFIG_HOME/hive/` when absolute) when it exists, and each `HIVE.local.md` at the root of the repository and of the declared workspace that hold the working directory, testing each exact path, since a file search that honors ignore files misses them; in a worktree, first read [worktree](skill:hive-core/local/local-write/worktree.md). They hold facts agents verified on this machine; where the machine file and a project's file disagree, the project's file holds for that project. Each entry is a claim dated when last verified: check it before reporting it as current; it never outranks the task, the user or the project guidance.
 
 ## Proportionality
 
