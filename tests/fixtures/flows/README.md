@@ -159,7 +159,7 @@ whether the read preceded the first observed plan write. Missing reference reads
 remain `not_observed`; unobservable ordering remains `not_verified`. These fields
 do not substitute for plan quality or task outcome. Build additionally executes a bounded,
 independent Node behavioral contract against the final snapshot. Infrastructure
-cases separately observe successful reads of `flow-plan/references/infra-naming.md`.
+cases separately observe successful reads of `hive-core/plan/infra-naming.md`.
 `git-delivery` records fixture-local commit-range paths, the local bare-remote ref,
 and preservation of prepared unrelated index/worktree changes. `close-sequence`
 reuses that same fixture setup (base `main`, a local bare `fixture` remote,

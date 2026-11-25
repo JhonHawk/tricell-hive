@@ -357,8 +357,13 @@ func observePlanReference(r result) referenceObservation {
 	return observeReference(r, "flow-plan/references/plan-format.md", "# Retained plan format\n## What the document must carry")
 }
 
+const (
+	infraReferenceName    = "hive-core/plan/infra-naming.md"
+	infraReferenceMarkers = "# Infrastructure naming\n**Find the convention.**"
+)
+
 func observeInfraReference(r result) referenceObservation {
-	return observeReference(r, "flow-plan/references/infra-naming.md", "# Infrastructure naming\n## Default convention")
+	return observeReference(r, infraReferenceName, infraReferenceMarkers)
 }
 
 func observeSkill(r result, name string) skillObservation {
