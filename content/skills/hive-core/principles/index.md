@@ -11,6 +11,7 @@ Read before writing new code in a task, before reviewing a diff, and at any othe
 - **Two or more actors could write the same file, branch, key or object:** read [separate before serializing shared state](separate-before-serializing-shared-state.md).
 - **Before measuring, or before reporting or acting on a measured number:** read [explain the number](explain-the-number.md).
 - **Before presenting memory, a summary or a tool's behavior as current, or answering about a library, framework, SDK, API, CLI tool or cloud service:** read [verify current state](verify-current-state.md).
+- **Naming a new identifier, file, route, key, table or field, in code, a spec or a plan, or reviewing the names a plan or a candidate introduces:** read [naming language](naming-language.md).
 - **When editing `.ts` or `.tsx`:** read [TypeScript](../../hive-typescript/SKILL.md).
 
 Three principles live inside rule leaves that already apply at their moment:
