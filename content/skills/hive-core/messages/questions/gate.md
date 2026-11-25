@@ -2,22 +2,20 @@
 
 Read before asking the delivery mode, the code review, the security review or the validation stop.
 
-The delivery mode, the code review, the security review and the validation stop repeat in every work item, so they take these templates, with the header in the session language in place of the ID and the options in this order. [Delivery questions](../../git/delivery-ask.md) sets when the first three are asked, which options appear and which takes the `(★)`; [flow-verify](../../../flow-verify/SKILL.md) step 2 sets when validation is asked. In a card each becomes one question as [questions](../questions.md#channel) sets, such as `question: <Stage> · <ticket> · ❓ Delivery - How is this change delivered? Situation: <…>`.
+The delivery mode, the code review, the security review and the validation stop repeat in every work item, so they take these templates, with the header in the session language in place of the ID and the options in this order. [Delivery questions](../../git/delivery-ask.md) sets when the first three are asked and which options appear; the `(★)` goes on the option it recommends, shown here on the default one. `direct-base` is not offered, since a repository's `## Hive` key sets it, so the Delivery card stays within four options; [flow-verify](../../../flow-verify/SKILL.md) step 2 sets when validation is asked. In a card each becomes one question as [questions](../questions.md#channel) sets, such as `question: <Stage> · <ticket> · ❓ Delivery - How is this change delivered? Situation: <…>`.
 
 ```
 ❓ **Delivery** - **How is this change delivered?**
 
 Situation: <what the change touches and whether it has a surface only the user can judge>
 
-A - **interactive**: I stop before the push for you to validate; then push, pull request and merge.
+A - (★) **interactive**: I stop before the push for you to validate; then push, pull request and merge.
 
 B - **automatic**: review, push, pull request and merge without stopping.
 
 C - **ready**: review, push, a pull request with its CI and reviews answered, left open for you to merge.
 
 D - **hold**: no commit and no publication; the verified working tree is the result.
-
-E - **direct-base**: push straight to the base branch.
 
 ➡️ <letter>: <the reason>
 ```
@@ -27,7 +25,7 @@ E - **direct-base**: push straight to the base branch.
 
 Situation: <what the change touches; a review the repository already runs on every pull request, by name>
 
-A - **Native: <host> <command>**: <host>'s own review of the diff.
+A - (★) **Native: <host> <command>**: <host>'s own review of the diff.
 
 B - **Agent: hive-review-code**: an independent child reviews the diff against the request and the criteria.
 

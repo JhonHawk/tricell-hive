@@ -385,6 +385,20 @@ func TestAuditCriteria(t *testing.T) {
 	const planRoute = "plan_without_build_route"
 	const suite, rounds = "full_suite_after_text_fix", "review_rounds_per_candidate"
 	cases := []sessionCase{
+		{name: "round claude written out after a declined card", host: "claude", criterion: round, want: "fail", transcript: `
+{"type": "user", "message": {"role": "user", "content": "Continue"}, "timestamp": "2026-01-01T11:00:01.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_1", "model": "claude-example-1", "role": "assistant", "content": [{"type": "tool_use", "id": "q0", "name": "AskUserQuestion", "input": {"questions": [{"question": "Build · EX-1 · ❓ D1 - Which delivery mode? Situation: one file.", "header": "D1", "multiSelect": false, "options": [{"label": "A - (★) interactive", "description": "> you validate first"}, {"label": "B - hold", "description": "> nothing is published"}]}]}}]}, "timestamp": "2026-01-01T11:00:03.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "q0", "content": "The user doesn't want to proceed with this tool use.", "is_error": true}]}, "timestamp": "2026-01-01T11:00:04.000Z", "cwd": "/work/project", "isSidechain": false}
+{"type": "assistant", "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "**Build · EX-1 · delivery**\n\n❓ **D1** - **Which delivery mode?**\n\nSituation: one file.\n\nA - (★) **interactive**: you validate first.\n\nB - **hold**: nothing is published.\n\n➡️ A: you see it first.\n\nWaiting for D1."}]}, "timestamp": "2026-01-01T11:00:05.000Z", "cwd": "/work/project", "isSidechain": false}
+`},
+		{name: "prose codex decision title with no options", host: "codex", criterion: prose, want: "fail", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000e1", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "Continue"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m0", "content": [{"type": "output_text", "text": "**Build · EX-1 · delivery**\n\n❓ **D3** - **¿Seguimos con interactive o con hold?**"}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
 		{name: "reply claude italic bullets without letters", host: "claude", criterion: reply, want: "fail", evidence: []string{"not read"}, transcript: `
 {"type": "user", "timestamp": "2026-01-01T10:00:01.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": "Analyze the cache."}}
 {"type": "assistant", "timestamp": "2026-01-01T10:00:02.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "**Analysis · EX · the cache is read twice**\n\nThe loader reads the cache before and after the lock.\n\nWaiting for your reply. You can answer:\n\n- *Fix it* — I remove the second read.\n- *Leave it* — I record it as known."}]}}

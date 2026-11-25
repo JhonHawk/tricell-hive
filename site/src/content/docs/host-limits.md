@@ -43,7 +43,7 @@ verified.
   you, not a hang.
 - While a card is open it covers the screen (an open Claude Code issue), so each
   card carries the context needed to answer on its own.
-- Each round of decisions comes in the card when it waits for your answer, after the agent's report, and the round never also appears as text in the same turn.
+- Each round of decisions comes in the card when it waits for your answer, after the agent's report, and the round appears once per turn, not also as text, unless the card closed by itself.
   Dismissing the card with Esc stops the turn, and what the agent does next
   depends on what you write: see «If you cancel a card» below.
 - A session isolated in a worktree has its `Edit` and `Write` of the main
@@ -68,7 +68,7 @@ verified.
   takes a description per option; otherwise, or when the agent writes the round
   in the chat, the whole round goes there with its full format: a `❓ **D<n>**`
   title, options with their effects and the recommended one marked (★), and a
-  `➡️` reason. The round never appears in both in the same turn. A choice asked
+  `➡️` reason. The round appears once per turn, in one of the two. A choice asked
   as loose prose or a reply offer, such as "interactive or hold?" or "reply
   «automatic»", is the one form that fails, on every host. Sessions observed on
   2026-11-19 and 2026-11-24 (Codex 0.170.0 and 0.172) showed that form for the

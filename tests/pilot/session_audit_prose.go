@@ -132,12 +132,12 @@ func proseSentences(text string) []string {
 // round_text_and_card judges the round, so its title is skipped.
 func proseQuestions(text string) []string {
 	var out []string
-	numbered := numberedRoundTitles(text)
+	titles := append(starredTitles(text, roundTitleLine.FindAllStringIndex(text, -1)), numberedRoundTitles(text)...)
 	offset := 0
 	for _, line := range strings.Split(text, "\n") {
 		start := offset
 		offset += len(line) + 1
-		if roundTitleLine.MatchString(line) || isRoundTitleLine(numbered, start, start+len(line)) {
+		if isRoundTitleLine(titles, start, start+len(line)) {
 			continue
 		}
 		for _, s := range strings.Split(sentenceEnd.ReplaceAllString(line, "$1\n"), "\n") {

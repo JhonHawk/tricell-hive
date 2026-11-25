@@ -110,7 +110,7 @@ var homePhrases = []homePhrase{
 	{"Ask only a choice that is the user's and changes what happens next", "content/skills/hive-core/messages/questions.md"},
 	{"Never give as the reason that an instruction you follow requires", "content/skills/hive-core/messages/reasons-and-blockers.md"},
 	{"is a failure on every host and in every mode", "content/skills/hive-core/messages/questions.md"},
-	{"never in the text and again in a card in the same turn", "content/skills/hive-core/messages/questions.md"},
+	{"The round appears once per turn, in the card or in the text", "content/skills/hive-core/messages/questions.md"},
 	{"Never write the round out on your own; act on what they said", "content/skills/hive-core/messages/questions/unanswered.md"},
 	{"is never asked with the question tool, because a card hides the report it closes", "content/skills/hive-core/messages/report-endings.md"},
 	{"Ask the delivery mode and the code review mechanism once per session and repository, in one round", "content/skills/hive-core/git/delivery-ask.md"},

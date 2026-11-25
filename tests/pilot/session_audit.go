@@ -1724,7 +1724,13 @@ func numberedRoundTitles(text string) [][]int {
 	if roundTitleLine.MatchString(text) {
 		return nil
 	}
-	spans := numberedTitleLine.FindAllStringIndex(text, -1)
+	return starredTitles(text, numberedTitleLine.FindAllStringIndex(text, -1))
+}
+
+// starredTitles keeps the title spans that a starred option line follows
+// before the next title: a title alone, such as "❓ **D3** - **¿interactive o
+// hold?**" with no options, asks in prose and is not a round's title.
+func starredTitles(text string, spans [][]int) [][]int {
 	var titles [][]int
 	for i, span := range spans {
 		end := len(text)
@@ -1830,7 +1836,7 @@ func roundTextAndCard(s auditSession) criterionAssessment {
 				passed = append(passed, regressionEvidence(e))
 			}
 		case e.Kind == "text" && e.Role == "assistant" && isTextRound(e.Text):
-			if cardAfterInTurn(s, i) >= 0 {
+			if cardAfterInTurn(s, i) >= 0 || cardDeclinedBefore(s, i) {
 				failed = append(failed, regressionEvidence(e))
 			} else if asks, full := roundFormat(e.Text); asks && full {
 				passed = append(passed, regressionEvidence(e))
@@ -1838,6 +1844,23 @@ func roundTextAndCard(s auditSession) criterionAssessment {
 		}
 	}
 	return statusOf(c, failed, passed)
+}
+
+// cardDeclinedBefore reports whether the last card before the event at i in
+// its turn came back declined or dismissed, which leaves the round unanswered
+// and not to be written out. Only Claude Code's rejection is recognized; the
+// other hosts' decline shapes are not observed.
+func cardDeclinedBefore(s auditSession, i int) bool {
+	q := cardBeforeInTurn(s, i)
+	if q < 0 || s.Host != "claude" {
+		return false
+	}
+	for j := q + 1; j < i; j++ {
+		if r := s.Trace.Events[j]; r.Kind == "tool_result" && r.ID == s.Trace.Events[q].ID {
+			return r.Success != nil && !*r.Success && claudeRejected.MatchString(r.Text)
+		}
+	}
+	return false
 }
 
 // textRoundBeforeInTurn reports whether an assistant message that writes a
