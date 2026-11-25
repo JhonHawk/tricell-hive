@@ -10,6 +10,26 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Changed
+
+- A round of decisions is asked once, in either channel: through the host's
+  question card when it waits for the answer and takes a description per
+  option, or in the message in full, never in both in the same turn. A choice
+  asked as loose prose or a reply offer, such as "interactive or hold?", fails
+  on every host and in every mode, Codex Default mode included, which replaces
+  the rule that required the card alone. Observed in a Codex 0.172 Default-mode
+  session of 2026-11-24 that asked the delivery in loose prose.
+- A decision now reads `❓ **D<n>** - **<question?>**`, with option lines
+  `A - (★) **Name**: effect` and a `➡️ A: reason` line; a card description
+  starts with `> effect`. The `If you choose it:` and `I recommend` lines are
+  gone. The delivery, review, security review and validation questions have
+  literal templates in a new «Gate questions» section, and are called gate
+  questions instead of session questions.
+- The session auditor retires `text_round_without_card` and adds
+  `round_text_and_card`, which fails a decision round written in text followed
+  by a question card in the same turn. `prose_choice_without_card` judges on
+  every host, and `decision_round_format` accepts the `❓` title.
+
 ## [0.10.0] - 2026-11-24
 
 ### Added
