@@ -78,6 +78,7 @@ A rule leaf is a file of `hive-core`, a skill the model does not load on its own
 - Before new code, or when a plan weighs approaches: [reuse before writing](skill:hive-core/plan/reuse-before-writing.md).
 - When an approach reads or changes an external system: [external facts](skill:hive-core/plan/external-facts.md).
 - Before planning or taking an external effect: [effects round](skill:hive-core/plan/external-effects.md).
+- Before choosing or creating the name of an infrastructure resource or a repository, or when existing infrastructure code generates it: [infrastructure naming](skill:hive-core/plan/infra-naming.md).
 - When a plan needs a plan file, or a written plan changes: [plan record](skill:hive-core/plan/plan-record.md).
 - At the start of a build or verify, after a compaction, and when pausing: [checkpoint](skill:hive-core/plan/checkpoint.md).
 - Before the first cycle of work that repeats changing and measuring until a condition holds: [loops](skill:hive-core/plan/loops.md).
