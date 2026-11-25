@@ -7,9 +7,9 @@ The delivery mode, the code review, the security review and the validation stop 
 ```
 ❓ **Delivery** - **How is this change delivered?**
 
-Situation: <what the change touches and whether it has a surface, as the global guidance's «Delivery» defines it>
+Situation: <what the change touches and whether it changes a screen, interface text or the steps of a flow, or the project requires human validation>
 
-A - (★) **interactive**: I stop before the push for you to validate work that changes a screen, interface text or a flow; then push, pull request and merge.
+A - (★) **interactive**: I stop before the push for you to validate work that changes a screen, interface text or a flow, or that the project requires you to validate; other work is not stopped. Then push, pull request and merge.
 
 B - **automatic**: review, push, pull request and merge without stopping.
 
