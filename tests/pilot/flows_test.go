@@ -253,7 +253,7 @@ func TestPlanReferenceReadAndOrderingAreSeparateFromOutcome(t *testing.T) {
 
 func TestInfraReferenceReadAndOrderingAreSeparateFromOutcome(t *testing.T) {
 	yes := true
-	ref := traceEvent{Kind: "read", Path: "/home/.agents/skills/flow-plan/references/infra-naming.md", Success: &yes, Line: 2}
+	ref := traceEvent{Kind: "read", Path: "/home/.agents/skills/hive-core/plan/infra-naming.md", Success: &yes, Line: 2}
 	write := traceEvent{Kind: "write", Path: "_support/sessions/2026-09-21-infra/media.plan.md", Success: &yes, Line: 4}
 	r := result{Root: "/fixture", Cwd: "/fixture", Trace: traceReport{Events: []traceEvent{ref, write}}}
 	got := observeInfraReference(r)
@@ -261,6 +261,19 @@ func TestInfraReferenceReadAndOrderingAreSeparateFromOutcome(t *testing.T) {
 		t.Fatalf("unexpected observation: %+v", got)
 	}
 }
+
+func TestInfraReferenceNamesTheDistributedLeaf(t *testing.T) {
+	leaf, err := os.ReadFile(filepath.Join("..", "..", "content", "skills", filepath.FromSlash(infraReferenceName)))
+	if err != nil {
+		t.Fatalf("the observed reference is not a distributed file: %v", err)
+	}
+	for _, marker := range strings.Split(infraReferenceMarkers, "\n") {
+		if !strings.Contains(string(leaf), marker) {
+			t.Errorf("%s does not contain the marker %q", infraReferenceName, marker)
+		}
+	}
+}
+
 func TestPlanReferenceAndClaudeAliasProtected(t *testing.T) {
 	clearRoots(t)
 	home := t.TempDir()
