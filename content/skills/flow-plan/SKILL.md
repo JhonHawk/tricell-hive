@@ -17,7 +17,7 @@ When the user changes the work while it is open, classify the change as [scope c
    - [no test runner](../hive-core/build/tests-no-runner.md) and follow it when the repository has none and the change fixes a defect or changes consequential logic: its test-infrastructure decision is one of the user's unless a saved project decision already answers it;
    - [stored data](../hive-core/build/stored-data.md) for a change to stored data, and [security boundaries](../hive-core/build/security-boundaries.md) for one that touches a boundary it lists;
    - [UI decisions](../hive-core/ui/ui-plan.md) for a change to a screen, and settle them before the plan is approved;
-   - [naming language](../hive-core/principles/naming-language.md) when the plan names a route, a key, a table, a field or a file, before writing that name in a decision, the design or a task.
+   - [naming language](../hive-core/principles/naming-language.md) when the plan fixes a name the build will implement as written, before writing it in a decision, a criterion, the design or a task.
 3. Write the plan:
    1. Put it where [Where the plan lives](#where-the-plan-lives) sets, with acceptance criteria as [Acceptance criteria](#acceptance-criteria) sets and, when it has a plan file, as [plan record](../hive-core/plan/plan-record.md) sets.
    2. Write each task's `Verification:` line as [Verification lines](#verification-lines) sets.
