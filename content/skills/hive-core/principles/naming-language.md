@@ -17,7 +17,7 @@ Interface text and the values of an i18n dictionary, the errors an end user read
 
 - An i18n key is semantic and hierarchical, such as `session.expiringWarning`; do not derive it from its text or from an id in another language, such as `module.empresas`.
 - Translate a business term by what a practitioner of the domain calls it, not word for word: `accountsReceivable` for *cartera*, not `portfolio`.
-- Use one language inside one identifier, one enum and one dictionary: `getByYear`, not `getByAno`. A new name that joins an enum, a dictionary or a table whose names on the base branch are in another language follows it; renaming the whole is a migration, as the global «Language» sets.
+- Use one language inside one identifier, and inside each enum or dictionary the work creates: `getByYear`, not `getByAno`. A new name is English also when it joins an enum, a dictionary or a table that holds names in another language; renaming those is a migration, as the global «Language» sets.
 - Keep as written the acronym or proper name of a regulation or institution, such as `rfc`, `curp` or `cfdi`, each value the global «Language» keeps for compatibility, and each name a written rule of the project sets in another language. Translate every other term, enum values included.
 - Write names in ASCII, without accents or `ñ`.
 
@@ -28,5 +28,5 @@ Interface text and the values of an i18n dictionary, the errors an end user read
 - **The main thread:**
   - corrects each one inside the work's scope, and reports it as a finding instead when the correction changes a contract, leaves that scope or changes a name the user's request or the ticket states;
   - records each business term it translates for the first time as `term → code name` under `## Glossary` in the project's `CODING_STANDARDS.md`, when that file exists or the plan's `Locations` name it, as part of the work item, and otherwise lists the pair in its report;
-  - names in its report the project rule, or the enum, dictionary or table of the base branch, that kept a name the work item added in another language, so the user can decide to migrate it;
+  - names in its report the project rule that kept a name the work item added in another language, and each enum, dictionary or table where its English name now sits beside names in another language, so the user can decide to migrate them;
   - proposes a spelling check on identifiers, such as cspell with an English dictionary and the kept terms as its word list, when the candidate carries at least one such name and the project runs no such check. It asks the user before adding it; in unattended work it adds the check only when the user authorized that kind of change beforehand, and reports it otherwise.
