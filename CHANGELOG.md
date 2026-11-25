@@ -10,6 +10,47 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-11-25
+
+### Changed
+
+- `interactive` delivery stops for your validation only when the work has a
+  surface: a changed screen, the text an interface shows or the steps of a
+  flow, or human validation the project requires. Other work, such as a
+  backend fix, continues to the push with one line saying so, and `automatic`
+  is the recommended delivery for it. The Try it block gives a way to see the
+  change as its users do and no longer offers a command that reruns a test.
+  The recommended option is the first one in the delivery, review and
+  validation cards. Observed in a Grok session of 2026-11-24 that stopped a
+  backend-only fix to offer a test command.
+- A round of decisions is asked once, in either channel: through the host's
+  question card when it waits for the answer and takes a description per
+  option, or in the message in full, never in both in the same turn. A choice
+  asked as loose prose or a reply offer, such as "interactive or hold?", fails
+  on every host and in every mode, Codex Default mode included, which replaces
+  the rule that required the card alone. Observed in a Codex 0.172 Default-mode
+  session of 2026-11-24 that asked the delivery in loose prose.
+- A decision now reads `❓ **D<n>** - **<question?>**`, with option lines
+  `A - (★) **Name**: effect` and a `➡️ A: reason` line; a card description
+  starts with `> effect`. The `If you choose it:` and `I recommend` lines are
+  gone. The delivery, review, security review and validation questions have
+  literal templates in a new `questions/gate` leaf, and are called gate
+  questions instead of session questions.
+- The session auditor retires `text_round_without_card` and adds
+  `round_text_and_card`, which fails a decision round written in text followed
+  by a question card in the same turn. `prose_choice_without_card` judges on
+  every host, and `decision_round_format` accepts the `❓` title.
+- The language rule for names covers what it had lost. i18n keys, API and
+  database names and the names a spec or plan introduces are written in
+  English, and a new leaf, `hive-core/principles/naming-language.md`, says how
+  to name, which regulatory terms stay as written and who acts on a name in
+  another language. Plan reads it when a plan names a route, a key, a table, a
+  field or a file, and its reviewer reports a name in another language. Verify
+  applies it to the candidate before any review, with every review mechanism,
+  where before only `hive-review-code` and `hive-verify-task` checked it.
+  Observed in two Claude sessions of 2026-11-24 and 2026-11-25 that wrote
+  route segments and i18n keys in Spanish in a new project.
+
 ## [0.10.0] - 2026-11-24
 
 ### Added

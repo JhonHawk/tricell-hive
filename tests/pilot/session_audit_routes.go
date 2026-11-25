@@ -9,7 +9,7 @@ import (
 
 // sessionHeaderNames are the fixed headers of the session questions, in the
 // languages Hive's sessions use, matched case-insensitively.
-const sessionHeaderNames = `Entrega|Delivery|Revisi[oó]n(?: adversarial)?|Review|Adversarial review`
+const sessionHeaderNames = `Entrega|Delivery|Revisi[oó]n de seguridad|Security review|Revisi[oó]n(?: adversarial)?|Review|Adversarial review|Validaci[oó]n|Validation`
 
 var (
 	// flowSkillRead names the installed SKILL.md of a flow that a next-step
@@ -31,9 +31,9 @@ var (
 	// looseRoundLine is a decision asked in one line: its ID or a session
 	// question's fixed header at the start, then its recommendation, such as
 	// "- **D1 · Delivery.** I recommend hold" or "**Review** — I recommend …",
-	// in the first person. A recap or an analysis that cites a decision and
+	// in the first person, or with the ➡️ marker of the current format. A recap or an analysis that cites a decision and
 	// what a rule recommends is not a round.
-	looseRoundLine = regexp.MustCompile(`(?mi)^[\s#>*-]*\**\s*(?:D\d+|` + sessionHeaderNames + `)\b\**\s*[·—–:.-][^\n]*(?:\brecomiendo\b|\bI recommend\b)[^\n]*(?:\belige\b|\bchoose\b|\bsi prefieres\b|\bif you prefer\b|\bor\b|\bo\b)`)
+	looseRoundLine = regexp.MustCompile(`(?mi)^[\s#>*❓\x{FE0F}-]*\**\s*(?:D\d+|` + sessionHeaderNames + `)\b\**\s*[·—–:.-][^\n]*(?:\brecomiendo\b|\bI recommend\b|➡)[^\n]*(?:\belige\b|\bchoose\b|\bsi prefieres\b|\bif you prefer\b|\bor\b|\bo\b)`)
 	situationLine  = regexp.MustCompile(`(?mi)^[\s*_>]*(?:situation|situaci[oó]n)\s*:`)
 	// uiSource is a file that renders an interface; tests are not.
 	uiSource   = regexp.MustCompile(`(?i)\.(?:tsx|jsx|vue|svelte|css|scss|html)$`)
@@ -336,7 +336,7 @@ func lettered(block string) bool {
 // decisionRoundFormat fails when a message asks decisions in text and one of
 // them lacks the full format (a Situation line and the starred option), and no
 // question card follows it in its turn. A round the card carries is judged by
-// text_round_without_card instead.
+// round_text_and_card instead.
 func decisionRoundFormat(s auditSession) criterionAssessment {
 	c := criterionAssessment{Criterion: "decision_round_format", Status: "not_observed", Evidence: []string{}}
 	if child(s) {

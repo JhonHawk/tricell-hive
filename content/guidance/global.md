@@ -6,7 +6,7 @@ These rules apply in every session, whatever skill runs, as requirements. Use th
 
 - Write reusable agent rules, skills, and procedural reference documentation in English.
 - Write human-facing text in the session language unless the user asks otherwise. Preserve code, paths, identifiers, and verbatim evidence.
-- Write source files in English (identifiers, file names, comments, tests, developer messages, URL paths); commit messages and branch names follow the repository's convention, English by default. Established domain values and externally defined or persisted identifiers keep their language when compatibility requires it; rename a contract or migrate its values only under an authorized compatibility plan.
+- Write source files in English (identifiers, file names, comments, test names and descriptions, developer messages, URL paths, i18n keys, API and database names, and the names a spec or plan introduces); commit messages and branch names follow the repository's convention, English by default. Before naming a new identifier, file, route, key, table or field, in code, a spec or a plan, and when reviewing the names a plan or a candidate introduces, read [naming language](skill:hive-core/principles/naming-language.md). Established domain values and externally defined or persisted identifiers keep their language when compatibility requires it; rename a contract or migrate its values only under an authorized compatibility plan.
 
 ## Scope and authorization
 
@@ -43,7 +43,7 @@ These rules hold in every mode, including unattended delegation.
 
 ## Local instructions
 
-- At session start, and again after a compaction once the [checkpoint](skill:hive-core/plan/checkpoint.md) is read, read the machine file `~/.config/hive/HIVE.local.md` (or `$XDG_CONFIG_HOME/hive/` when absolute) when it exists, and each `HIVE.local.md` at the root of the repository and of the declared workspace that hold the working directory; in a worktree, first read [worktree](skill:hive-core/local/local-write/worktree.md). They hold facts agents verified on this machine; where the machine file and a project's file disagree, the project's file holds for that project. Each entry is a claim dated when last verified: check it before reporting it as current; it never outranks the task, the user or the project guidance.
+- At session start, and again after a compaction once the [checkpoint](skill:hive-core/plan/checkpoint.md) is read, read the machine file `~/.config/hive/HIVE.local.md` (or `$XDG_CONFIG_HOME/hive/` when absolute) when it exists, and each `HIVE.local.md` at the root of the repository and of the declared workspace that hold the working directory, testing each exact path, since a file search that honors ignore files misses them; in a worktree, first read [worktree](skill:hive-core/local/local-write/worktree.md). They hold facts agents verified on this machine; where the machine file and a project's file disagree, the project's file holds for that project. Each entry is a claim dated when last verified: check it before reporting it as current; it never outranks the task, the user or the project guidance.
 
 ## Proportionality
 
@@ -166,7 +166,7 @@ Application code, scripts and configuration stay in their source locations, even
 ## Delivery
 
 - The answer to the [delivery question](skill:hive-core/git/delivery-ask.md) is the user's instruction for the effects its mode names, for each work item of the session in that repository until the question is asked again; in every mode, a human reviewer's pending approval holds the merge ([merge gate](skill:hive-core/git/merge-gate.md) sets what lifts it):
-  - `interactive`: stop before the push for the user to validate, then push, open the pull request and merge.
+  - `interactive`: stop before the push for the user to validate a work item with a surface, then push, open the pull request and merge. A work item has a surface when it changes a screen, the text an interface shows or the steps of a flow its users walk, or when the project guidance requires human validation; a value that changes behind an unchanged screen, such as a total, is not one. A work item without a surface is not stopped: say so in one line and continue as `automatic` does.
   - `automatic`: review, push, open the pull request and merge without stopping.
   - `ready`: review, push, open the pull request as non-draft, wait for CI and answer its reviews ([git-workflow](skill:git-workflow/SKILL.md)), then stop with it open for the user to merge; never merge, enable auto-merge or add it to a merge queue. `gh pr ready`, which only takes a draft out of draft, is not this mode.
   - `direct-base`: push straight to the base branch.

@@ -3,6 +3,7 @@
     "hive-core/build/verification-floor.md",
     "hive-core/review/no-comments.md",
     "hive-core/review/blast-radius.md",
+    "hive-core/principles/naming-language.md",
     "hive-core/build/prose.md",
     "hive-core/review/suppression-review.md",
     "hive-core/build/checks.md",

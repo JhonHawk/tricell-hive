@@ -43,7 +43,7 @@ verified.
   you, not a hang.
 - While a card is open it covers the screen (an open Claude Code issue), so each
   card carries the context needed to answer on its own.
-- Each round of decisions comes in the card alone, after the agent's report.
+- Each round of decisions comes in the card when it waits for your answer, after the agent's report, and the round appears once per turn, not also as text, unless the card closed by itself.
   Dismissing the card with Esc stops the turn, and what the agent does next
   depends on what you write: see «If you cancel a card» below.
 - A session isolated in a worktree has its `Edit` and `Write` of the main
@@ -60,24 +60,22 @@ verified.
 
 ## Codex
 
-- **Hive asks its decisions through the waiting card, also in Default mode.**
+- **A decision round is asked once, through the waiting card or in the chat in
+  full, also in Default mode.**
   Codex's Default-mode instructions reserve the card for optional questions and
-  ask required input as a concise question in chat. In a session observed on
-  2026-11-19 (Codex 0.170.0) that form lost the decision format, so Hive asks
-  every round of decisions through `request_user_input` when the mode offers it,
-  the delivery and review questions included: a choice asked as a question in
-  the chat, such as "interactive or hold?", counts as a round asked the wrong
-  way. A session observed on 2026-11-24 showed the same drift: the delivery,
-  review and security questions came back as one recommended line in the chat,
-  and the next round went through the asynchronous card. While Codex offers
-  `request_user_input`, Hive does not use the asynchronous card, which returns
-  at once, and asks the delivery, review and validation questions through the
-  waiting card, although the Default-mode instructions send required input to
-  one plain-text question. Those instructions' form stays for Codex's own
-  sandbox and approval requests.
-  Without the card, the round goes in the chat with its full format: ID, options
-  with their consequences and the recommended one marked (★). An unanswered card
-  grants no permission.
+  ask required input as a concise question in chat. Hive uses
+  `request_user_input` for a round when the mode offers it and the card waits and
+  takes a description per option; otherwise, or when the agent writes the round
+  in the chat, the whole round goes there with its full format: a `❓ **D<n>**`
+  title, options with their effects and the recommended one marked (★), and a
+  `➡️` reason. The round appears once per turn, in one of the two. A choice asked
+  as loose prose or a reply offer, such as "interactive or hold?" or "reply
+  «automatic»", is the one form that fails, on every host. Sessions observed on
+  2026-11-19 and 2026-11-24 (Codex 0.170.0 and 0.172) showed that form for the
+  delivery question. While Codex offers `request_user_input`, Hive does not use
+  the asynchronous card, which returns at once. The Default-mode form stays for
+  Codex's own sandbox and approval requests. An unanswered card grants no
+  permission.
 - A Default-mode waiting card left untouched closes after about 120 seconds:
   60 seconds hidden, then a 60-second visible countdown. Pressing a key in the
   card stops that. Esc interrupts the turn. The feature
@@ -111,7 +109,7 @@ verified.
 
 - Pi has no built-in question tool. Cards exist only if you install the
   third-party `rpiv-ask-user-question` extension, and then each round comes in the
-  card alone; without it the agent writes the full options in the message and you
+  card; without it the agent writes the full options in the message and you
   answer in text.
 - Helper roles need the `pi-subagents` package. Hive declares it with
   `pi install npm:pi-subagents` when you install for Pi, and leaves an existing

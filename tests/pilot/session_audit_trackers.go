@@ -25,7 +25,7 @@ var (
 	// outside flowSkillRead, so flow_entered_without_route does not judge it.
 	flowCloseRead = regexp.MustCompile(`/\.[a-z]+/skills/flow-close/SKILL\.md`)
 	// tryItHeading is the heading of the block a report carries for a change
-	// that can be seen or run, in the languages Hive's sessions use.
+	// the user can see or operate, in the languages Hive's sessions use.
 	tryItHeading = regexp.MustCompile(`(?mi)^[\s#>*_-]*(?:pru[eé]balo(?: t[uú])?|try it)\b`)
 )
 
