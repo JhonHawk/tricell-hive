@@ -1617,8 +1617,8 @@ func mergedAfterClose(s auditSession, base string, merged criterionAssessment) c
 // --- criteria that exist only for real sessions ---
 
 // roundTitleLine and roundOptionStar define a decision round written as text: a
-// title line "D<n> — ..." or "D<n> · ...", or a session question's fixed header such as
-// "**Review** — ...", and at least one option line "A - (★) ...".
+// title line "D<n> — ...", "D<n> · ..." or the current "❓ **D<n>** - **...?**", or a
+// session question's fixed header such as "**Review** — ..." or "❓ **Delivery** - **...?**", and at least one option line "A - (★) ...".
 var (
 	// A session question's header counts only on a title that asks, ending in
 	// "?", so a report heading such as "**Review** — Completed" is not a round.
@@ -1626,7 +1626,7 @@ var (
 	// "**Review · ticket · is it done?**", uses it too.
 	// It stays on one line, so a bare "**Review**" heading does not join the
 	// question on the next line into a title.
-	roundTitleLine = regexp.MustCompile(`(?mi)^[ \t]*[#>* \t]*(?:D\d+[ \t]*[—–·-]|(?:` + sessionHeaderNames + `)\**[ \t]*[—–-][^\n]*\?)`)
+	roundTitleLine = regexp.MustCompile(`(?mi)^[ \t]*[#>* \t❓\x{FE0F}]*(?:D\d+\**[ \t]*[—–·-]|(?:` + sessionHeaderNames + `)\**[ \t]*[—–-][^\n]*\?)`)
 	// numberedTitleLine is a numbered question, such as "**1. ¿Dónde
 	// trabajamos?**". It is a round's title only when a starred option follows
 	// it, as roundTitles checks, since an analysis may list numbered questions.
@@ -1805,47 +1805,50 @@ func unattendedActivation(events []traceEvent) int {
 	return -1
 }
 
-// textRoundWithoutCard fails when an assistant message writes a decision round
-// as text and no native question call follows it before its turn ends, in a
-// session that called one at another time (proof that the tool was allowed).
-// A round does not count when the last card of its turn before the round came
-// back empty or timed out (the guidance then asks for the round as text), in a
-// subagent rollout, or in a session with no native question call at all.
-func textRoundWithoutCard(s auditSession) criterionAssessment {
-	c := criterionAssessment{Criterion: "text_round_without_card", Status: "not_observed", Evidence: []string{}}
+// roundTextAndCard fails when an assistant message writes a decision round as
+// text and a question card follows it in the same turn: the round is repeated.
+// A card with no text round before it in its turn passes, and so does a text
+// round in the full format with no card after it; a text round out of format is
+// judged by decision_round_format. A subagent rollout and the messages after
+// unattended delegation activates are not judged.
+func roundTextAndCard(s auditSession) criterionAssessment {
+	c := criterionAssessment{Criterion: "round_text_and_card", Status: "not_observed", Evidence: []string{}}
 	if s.Subagent {
 		c.Evidence = []string{"subagent session: the host may not allow native questions"}
 		return c
 	}
 	events := s.Trace.Events
-	if !cardAvailable(s) {
-		return c
-	}
 	unattended := unattendedActivation(events)
 	var failed, passed []string
-	for ri, e := range events {
-		if e.Kind != "text" || e.Role != "assistant" || !isTextRound(e.Text) {
-			continue
+	for i, e := range events {
+		if unattended >= 0 && i > unattended {
+			break
 		}
-		if unattended >= 0 && ri > unattended {
-			continue
+		switch {
+		case e.Kind == "question":
+			if !textRoundBeforeInTurn(s, i) {
+				passed = append(passed, regressionEvidence(e))
+			}
+		case e.Kind == "text" && e.Role == "assistant" && isTextRound(e.Text):
+			if cardAfterInTurn(s, i) >= 0 {
+				failed = append(failed, regressionEvidence(e))
+			} else if asks, full := roundFormat(e.Text); asks && full {
+				passed = append(passed, regressionEvidence(e))
+			}
 		}
-		if q := cardAfterInTurn(s, ri); q >= 0 {
-			passed = append(passed, regressionEvidence(events[q]))
-			continue
-		}
-		if lastQ := cardBeforeInTurn(s, ri); lastQ >= 0 && cardResultIsEmpty(s.Host, events, lastQ, ri) {
-			continue
-		}
-		failed = append(failed, regressionEvidence(e))
 	}
-	switch {
-	case len(failed) > 0:
-		c.Status, c.Evidence = "fail", failed
-	case len(passed) > 0:
-		c.Status, c.Evidence = "pass", passed
+	return statusOf(c, failed, passed)
+}
+
+// textRoundBeforeInTurn reports whether an assistant message that writes a
+// decision round precedes the event at i in its turn.
+func textRoundBeforeInTurn(s auditSession, i int) bool {
+	for j := i - 1; j >= 0 && s.Turn[j] == s.Turn[i]; j-- {
+		if e := s.Trace.Events[j]; e.Kind == "text" && e.Role == "assistant" && isTextRound(e.Text) {
+			return true
+		}
 	}
-	return c
+	return false
 }
 
 // cardAfterInTurn returns the first question card after the event at i in its
@@ -2052,7 +2055,7 @@ func skillNamedAsReason(s auditSession) criterionAssessment {
 }
 
 func auditCriteria(s auditSession, base string) []criterionAssessment {
-	return append(existingAuditCriteria(s, base), textRoundWithoutCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s), reviewQuestionNativeOption(s), leafReadBeforeAction(s),
+	return append(existingAuditCriteria(s, base), roundTextAndCard(s), closeBeforeBranchCleanup(s, base), skillNamedAsReason(s), reviewQuestionNativeOption(s), leafReadBeforeAction(s),
 		flowEnteredWithoutRoute(s), decisionRoundFormat(s), uiChangeWithoutUXReview(s), trackerStatesCacheWritten(s), tryItBlockInReport(s), proseChoiceWithoutCard(s), ticketAssessmentEnding(s), selfFeedingLog(s), analysisReplyBlock(s), unboundedBackgroundWait(s), cardOptionFormat(s), planWithoutBuildRoute(s), fullSuiteAfterTextFix(s), reviewRoundsPerCandidate(s), asyncCardWhenWaitingOffered(s))
 }
 
@@ -2069,8 +2072,9 @@ var (
 	// mechanism: the agent, the host's native review or no dedicated review.
 	reviewMechanismOption = regexp.MustCompile(`(?i)hive-review-code|/review\b|codex review|revisi[oó]n nativa|native review|no dedicated review|sin revisi[oó]n dedicada`)
 	// optionLine is a decision's option line written as text, such as
-	// "A - (★) Accept" or "- **B · Keep**"; its Situation, "If you choose it" and
-	// recommendation lines are not options.
+	// "A - (★) **Accept**: …" or "- **B · Keep**"; its Situation and ➡️ recommendation
+	// lines are not options. Rounds written before the current format also carry
+	// "If you choose it" and "I recommend" lines, which are not options either.
 	optionLine = regexp.MustCompile(`(?m)^[\s#>*-]*[A-Z]\**\s*(?:[-—–·]|\(★\)).*$`)
 )
 
