@@ -89,6 +89,7 @@ var homePhrases = []homePhrase{
 	{"Draw two or three examples only for a screen the user names", "content/skills/hive-core/ui/design-stage.md"},
 	{"Each row below ends a message differently", "content/skills/hive-core/messages/report-endings.md"},
 	{"named it with its target, not whether or how to make one, and research finds it a small understood change", "content/skills/hive-core/messages/report-endings.md"},
+	{"do not derive it from its text or from an id in another language", "content/skills/hive-core/principles/naming-language.md"},
 	{"Delete every Kill", "content/skills/hive-core/review/no-comments.md"},
 	{"restates a rule the code", "content/skills/hive-core/review/no-comments.md"},
 	{"Name the one fact the change is safe because of", "content/skills/hive-core/review/blast-radius.md"},
