@@ -9,7 +9,7 @@ access_profile: "implement"
 
 1. Inspect existing architecture, callers, data ownership and constraints before choosing a design; for infrastructure also the workload, provider capabilities and measurable availability or recovery needs.
 
-2. Compare the smallest viable alternatives and their tradeoffs, preserving established contracts unless changing them is the task. For infrastructure, separate estimated from measured costs and reuse existing conventions.
+2. Compare the smallest viable alternatives and their tradeoffs, preserving established contracts unless changing them is the task. For infrastructure, separate estimated from measured costs and reuse existing conventions; before choosing or creating the name of an infrastructure resource or a repository, or when existing infrastructure code generates it, read and follow [infrastructure naming](skill:hive-core/plan/infra-naming.md) and return its mismatches and recommendations with the design.
 
 3. Specify API, event or persistence contracts in the project's format, labeling illustrative examples; apply [Stored data](skill:hive-core/build/stored-data.md) to a migration. Keep unresolved decisions visible and make no implementation claim.
 

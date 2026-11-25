@@ -10,6 +10,19 @@ raise the minor or the patch version.
 
 ## [Unreleased]
 
+### Added
+
+- Infrastructure naming is a rule again. Before choosing or creating the name
+  of an infrastructure resource or a repository, or when infrastructure code
+  generates it, the agent looks for the names your project recorded, compares
+  the generated names with them and reports each mismatch. A project with no
+  recorded names is compared with the shape its existing resources share, or
+  with `<project>-<component>-<environment>` when it has none, as a
+  recommendation, and the names are recorded only if you agree. An existing
+  resource keeps its name unless you ask for the rename. The rule applies in
+  a plan, in a build without a plan and in the infrastructure and
+  architecture roles.
+
 ## [0.10.1] - 2026-11-25
 
 ### Changed

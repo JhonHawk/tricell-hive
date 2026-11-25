@@ -10,7 +10,7 @@ effort_claude: "medium"
 
 1. Use existing secret mechanisms and keep values out of logs and artifacts.
 
-2. For each resource the change adds or alters, define its rollout steps, confirming check or metric, and recovery step. A configuration edit does not authorize deploying live resources.
+2. For each resource the change adds or alters, define its rollout steps, confirming check or metric, and recovery step. A configuration edit does not authorize deploying live resources. Before choosing or creating the name of an infrastructure resource or a repository, or when existing infrastructure code generates it, read and follow [infrastructure naming](skill:hive-core/plan/infra-naming.md): return its mismatches, its recommendations and the decisions it leaves to the user to the parent, and keep the names the brief gives until the parent answers.
 
 3. Before building tooling to run a data migration or backfill, read [Stored data](skill:hive-core/build/stored-data.md) and confirm the brief states the affected-record count and that it justifies the tooling or stop and ask the parent.
 
