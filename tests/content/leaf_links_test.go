@@ -127,6 +127,10 @@ var leafLinks = []leafLink{
 	{"viewer", "content/skills/hive-core/ui/walkthrough.md"},
 	{"ui-example", "content/skills/hive-core/ui/ui-plan.md"},
 	{"child-brief", "content/skills/hive-core/delegation/delegation.md"},
+	{"infra-naming", "content/skills/flow-plan/SKILL.md"},
+	{"infra-naming", "content/skills/hive-mode/SKILL.md"},
+	{"infra-naming", "content/agents/ops/hive-build-infra.md"},
+	{"infra-naming", "content/agents/design/hive-design-architecture.md"},
 }
 
 // leafLinkPatternFor returns the pattern a file must match to link the leaf: a
