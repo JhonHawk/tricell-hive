@@ -2,14 +2,14 @@
 
 Read before asking the delivery mode, the code review, the security review or the validation stop.
 
-The delivery mode, the code review, the security review and the validation stop repeat in every work item, so they take these templates, with the header in the session language in place of the ID and the options in this order. [Delivery questions](../../git/delivery-ask.md) sets when the first three are asked and which options appear; the `(★)` goes on the option it recommends, shown here on the default one. `direct-base` is not offered, since a repository's `## Hive` key sets it, so the Delivery card stays within four options; [flow-verify](../../../flow-verify/SKILL.md) step 2 sets when validation is asked. In a card each becomes one question as [questions](../questions.md#channel) sets, such as `question: <Stage> · <ticket> · ❓ Delivery - How is this change delivered? Situation: <…>`.
+The delivery mode, the code review, the security review and the validation stop repeat in every work item, so they take these templates, with the header in the session language in place of the ID. The recommended option goes first, as `A` with the `(★)`, and the others follow in the order shown here, since the user reads the first option as the recommendation; each template shows one possible recommendation. [Delivery questions](../../git/delivery-ask.md) sets when the first three are asked, which options appear and which one is recommended. `direct-base` is not offered, since a repository's `## Hive` key sets it, so the Delivery card stays within four options; [flow-verify](../../../flow-verify/SKILL.md) step 2 sets when validation is asked. In a card each becomes one question as [questions](../questions.md#channel) sets, such as `question: <Stage> · <ticket> · ❓ Delivery - How is this change delivered? Situation: <…>`.
 
 ```
 ❓ **Delivery** - **How is this change delivered?**
 
-Situation: <what the change touches and whether it has a surface only the user can judge>
+Situation: <what the change touches and whether it changes a screen, interface text or the steps of a flow, or the project requires human validation>
 
-A - (★) **interactive**: I stop before the push for you to validate; then push, pull request and merge.
+A - (★) **interactive**: I stop before the push for you to validate work that changes a screen, interface text or a flow, or that the project requires you to validate; other work is not stopped. Then push, pull request and merge.
 
 B - **automatic**: review, push, pull request and merge without stopping.
 

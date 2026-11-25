@@ -71,7 +71,7 @@ None: the tasks take no effect on an external system.
 
 ## Delivery
 
-<The delivery mode, its validation stop and its endpoint. The code review mechanism. What this choice does not authorize. The public record the pull request body carries: objective, criteria with their evidence, decisions and the business-rule record.>
+<The delivery mode, its validation stop when the work has a surface, and its endpoint. The code review mechanism. What this choice does not authorize. The public record the pull request body carries: objective, criteria with their evidence, decisions and the business-rule record.>
 
 ## Design
 

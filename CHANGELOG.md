@@ -12,6 +12,15 @@ raise the minor or the patch version.
 
 ### Changed
 
+- `interactive` delivery stops for your validation only when the work has a
+  surface: a changed screen, the text an interface shows or the steps of a
+  flow, or human validation the project requires. Other work, such as a
+  backend fix, continues to the push with one line saying so, and `automatic`
+  is the recommended delivery for it. The Try it block gives a way to see the
+  change as its users do and no longer offers a command that reruns a test.
+  The recommended option is the first one in the delivery, review and
+  validation cards. Observed in a Grok session of 2026-11-24 that stopped a
+  backend-only fix to offer a test command.
 - A round of decisions is asked once, in either channel: through the host's
   question card when it waits for the answer and takes a description per
   option, or in the message in full, never in both in the same turn. A choice
