@@ -23,7 +23,7 @@ raise the minor or the patch version.
   `A - (★) **Name**: effect` and a `➡️ A: reason` line; a card description
   starts with `> effect`. The `If you choose it:` and `I recommend` lines are
   gone. The delivery, review, security review and validation questions have
-  literal templates in a new «Gate questions» section, and are called gate
+  literal templates in a new `questions/gate` leaf, and are called gate
   questions instead of session questions.
 - The session auditor retires `text_round_without_card` and adds
   `round_text_and_card`, which fails a decision round written in text followed
