@@ -72,7 +72,7 @@ B - <reply>
 It recommends closing, unless an open finding is P1 or higher or a plan is in progress (continue it); with no item pending and neither case, the heading is **▶ D<n> — Closed**, with no reason or `(★)`, or **▶ Closed** alone when no reply applies. Its replies, each only when it applies:
 
 - **Close:** runs the pending items, as [close modes](../close/close-modes.md) sets.
-- **Resolve findings now**, naming them, such as "resolve H2 and H3 in this branch": they enter `flow-build` on the work's branch, with the code review of the fix and its checks, or `flow-plan` when the fix is not a small understood change.
+- **Resolve findings now**, naming them, such as "resolve H2 and H3 in this branch": they enter `flow-build` on the work's branch, with its checks and the review [review findings](../review/review-findings.md) «Fixing findings after the round» sets, or `flow-plan` when the fix is not a small understood change.
 - **See the findings**, only while a finding the sorting of [review findings](../review/review-findings.md) leaves to the user has no answer, with their count and highest severity: it shows the table and the round of [findings at the close](../close/close-report.md#findings-at-the-close).
 - **Turn a candidate into a mechanism**, naming it, only for a candidate whose record counts two sessions or more; it enters `flow-build` as **Resolve findings now** does.
 - **Find the next ticket**, run only when the user picks it, as [Find the next ticket](../../hive-mode/playbooks/ticket-status.md#find-the-next-ticket) sets.
