@@ -19,7 +19,7 @@ Break this feature into tasks I can review one at a time.
 
 ## What it asks you
 
-The agent reads the code, your project settings and the existing specs, when the project keeps any, first, then asks only for the decisions that are yours. Facts it can find, it looks up itself.
+The agent reads the code, your project settings and the existing specs, when the project keeps any, first, then asks only for the decisions that are yours. Facts it can find, it looks up itself. For work that is a ticket, it also checks the ticket's neighbors, unless the assessment already did, as the [neighbor tickets leaf](https://github.com/JhonHawk/tricell-hive/blob/master/content/skills/hive-core/tracker/neighbor-tickets.md) sets, so a capability a later ticket owns is decided before the tasks are written.
 
 - When the how has more than one sensible way, two or three approaches in a message of their own before the tasks, each with its tradeoff and one recommended, preferring what the codebase, the standard library or an installed dependency already does over new code or a new dependency; you choose, and they are recorded in the plan's `## Design`. When only one way is sensible, the agent says so and why.
 - Choices that change the outcome, asked in rounds and in the shared question format, in the question card where your host's card waits and shows a description per option, and otherwise in the message: each decision carries its situation, what you get and pay with every option, and a recommendation, and the round says how many decisions are still to come. A change to what an interface sends or receives counts as a contract change, and you decide whether it stays compatible.

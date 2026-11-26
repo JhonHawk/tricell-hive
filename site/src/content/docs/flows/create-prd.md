@@ -51,7 +51,7 @@ It reports the document's link or path, its version and state, what holds the ne
 ## Related flows
 
 - [Hive mode](/flows/hive-mode/) sends a request for a requirement document here.
-- [Create issue](/flows/create-issue/) writes the tickets of an approved document.
+- [Create issue](/flows/create-issue/) writes the tickets of an approved document and checks that they cover its rules.
 - [Create design](/flows/create-design/) draws its screens, and [Plan](/flows/plan/) settles how it is built.
 
 ## FAQ
