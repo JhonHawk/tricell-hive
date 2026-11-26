@@ -71,6 +71,7 @@ var homePhrases = []homePhrase{
 	{"has no timeout for `open`, `eval`, `snapshot`, `screenshot` or `close`", "content/skills/hive-core/ui/ui-verification.md"},
 	{"Save them in the work's `workspace/YYYY-MM-DD-<work>/images/before/`", "content/skills/hive-core/ui/before-captures.md"},
 	{"axe-core finds on average 57% of WCAG issues", "content/skills/hive-core/ui/a11y-audit.md"},
+	{"That result is neither a finding nor a defect already there", "content/skills/create-design/references/ui-criteria.md"},
 	{"The calling flow owns its existing acceptance question", "content/skills/hive-core/ui/walkthrough.md"},
 	{"Never start or restart the viewer service", "content/skills/hive-core/ui/viewer.md"},
 	{"Never open the viewer on your own, and never ask about it on its own", "content/skills/hive-core/ui/viewer-open.md"},
