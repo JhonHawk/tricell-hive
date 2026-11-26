@@ -81,7 +81,8 @@ class CheckCoverageTest(unittest.TestCase):
         code, out, _ = self.run_main(PRD, {"todo.md": "Cubre: R1 a R4"})
         result = json.loads(out)
         self.assertEqual(code, 0)
-        self.assertEqual(result, {"ok": True, "uncovered": [], "out_of_scope": [], "shared": {}, "invalid": []})
+        self.assertEqual(result["ok"], True)
+        self.assertEqual((result["uncovered"], result["shared"], result["invalid"]), ([], {}, []))
 
     def test_range_words_of_both_languages_expand(self):
         for wording in ("Cubre: R1 hasta R4", "Cubre: R1 al R4", "Covers: R1 through R4", "Covers: R1 to R4"):
@@ -132,6 +133,84 @@ class CheckCoverageTest(unittest.TestCase):
             code = self.module.main(["--prd", prd, str(draft)])
         self.assertEqual(code, 2)
         self.assertEqual(out.getvalue(), "")
+
+    def test_text_beside_the_codes_makes_the_covers_line_malformed(self):
+        code, out, paths = self.run_main(PRD, {"todo.md": "Covers: R1, R2 (R4 goes to the billing child)"})
+        result = json.loads(out)
+        self.assertEqual(code, 1)
+        self.assertEqual(result["uncovered"], ["R4"])
+        self.assertEqual(len(result["malformed"]), 1)
+        self.assertEqual(result["malformed"][0]["draft"], paths[0])
+
+    def test_codes_listed_under_the_covers_line_count(self):
+        for draft in ("Covers:\n- R1\n- R2\n- R4\n\nOut of scope: nothing.", "> Cubre: R1, R2,\n> R4\n", "1. **Covers:** r1, r2 and r4"):
+            with self.subTest(draft=draft):
+                code, out, _ = self.run_main(PRD, {"todo.md": draft})
+                result = json.loads(out)
+                self.assertEqual(code, 0)
+                self.assertEqual(result["uncovered"], [])
+                self.assertEqual(result["malformed"], [])
+
+    def test_range_with_a_bare_or_chained_end_expands(self):
+        for wording in ("Covers: R1-4", "Covers: R1 through 4", "Covers: R1–R2–R4"):
+            with self.subTest(wording=wording):
+                code, out, _ = self.run_main(PRD, {"todo.md": wording})
+                self.assertEqual(code, 0)
+                self.assertEqual(json.loads(out)["uncovered"], [])
+
+    def test_struck_or_us_spelled_cancelled_state_is_cancelled(self):
+        for state in ("~~Cancelada~~ (v2)", "canceled in v2"):
+            with self.subTest(state=state):
+                prd = PRD.replace("cancelada (v2; la reemplaza R4)", state)
+                code, out, _ = self.run_main(prd, {"todo.md": "Covers: R1, R2, R4"})
+                self.assertEqual(code, 0)
+
+    def test_rule_heading_inside_a_code_fence_is_not_a_rule(self):
+        prd = PRD + "\n```text\n### R99 · P0 · decided\n### R98 · P0\n```\n"
+        code, out, _ = self.run_main(prd, {"todo.md": "Covers: R1, R2, R4"})
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(out)["uncovered"], [])
+
+    def test_rule_heading_at_another_level_is_a_usage_error(self):
+        prd = PRD.replace("### R4 · P0 · decided", "#### R4 · P0 · decided")
+        code, out, _ = self.run_main(prd, {"todo.md": "Covers: R1, R2"})
+        self.assertEqual(code, 2)
+        self.assertEqual(out, "")
+
+    def test_duplicate_rule_code_is_a_usage_error(self):
+        prd = PRD + "\n### R1 · P0 · cancelled (v3)\n\nRecap.\n"
+        code, out, _ = self.run_main(prd, {"todo.md": "Covers: R1, R2, R4"})
+        self.assertEqual(code, 2)
+        self.assertEqual(out, "")
+
+    def test_draft_without_a_covers_line_is_named(self):
+        code, out, paths = self.run_main(PRD, {"a.md": "Covers: R1, R2, R4", "b.md": "No codes here."})
+        result = json.loads(out)
+        self.assertEqual(code, 0)
+        self.assertEqual(result["without_covers_line"], [paths[1]])
+
+    def test_code_cited_and_out_of_scope_is_invalid(self):
+        code, out, _ = self.run_main(PRD, {"todo.md": "Covers: R1, R2, R4"}, "--out-of-scope", "R4")
+        result = json.loads(out)
+        self.assertEqual(code, 1)
+        self.assertEqual(result["invalid"], [{"code": "R4", "draft": "--out-of-scope", "reason": "also cited by a draft"}])
+
+    def test_document_passed_as_a_draft_is_a_usage_error(self):
+        prd = self.write("prd.md", PRD)
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = self.module.main(["--prd", prd, prd])
+        self.assertEqual(code, 2)
+        self.assertEqual(out.getvalue(), "")
+
+    def test_byte_order_mark_does_not_hide_the_first_line(self):
+        prd = self.write("prd.md", "\ufeff" + PRD.split("## Requirements\n\n", 1)[1])
+        draft = self.write("todo.md", "\ufeffCovers: R1, R2, R4")
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = self.module.main(["--prd", prd, draft])
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(out.getvalue())["uncovered"], [])
 
     def test_code_the_document_lacks_is_invalid(self):
         code, out, paths = self.run_main(PRD, {"todo.md": "Covers: R1, R2, R4 and R9"})
