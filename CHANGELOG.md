@@ -29,9 +29,11 @@ raise the minor or the patch version.
   parent's place. Milestones and labels are created only when the approved set
   lists them, and no project, initiative or state is ever created.
 - A breakdown drafted from a requirement document whose rules carry codes is
-  checked before its approval with `check_coverage.py`, which reports each
-  rule no child covers, each rule several children cite and each code a child
-  cites that the document lacks or cancelled.
+  checked before its approval with `check_coverage.py`. Each child names the
+  codes it covers in a `Covers:` line, and the check reports each rule no
+  child covers, each rule several children cite, each code a child cites that
+  the document lacks or cancelled, each `Covers:` line that holds text besides
+  codes and each child without one.
 
 - Infrastructure naming is a rule again. Before choosing or creating the name
   of an infrastructure resource or a repository, or when infrastructure code
