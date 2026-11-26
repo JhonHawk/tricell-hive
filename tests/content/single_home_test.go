@@ -72,7 +72,7 @@ var homePhrases = []homePhrase{
 	{"Save them in the work's `workspace/YYYY-MM-DD-<work>/images/before/`", "content/skills/hive-core/ui/before-captures.md"},
 	{"axe-core finds on average 57% of WCAG issues", "content/skills/hive-core/ui/a11y-audit.md"},
 	{"That result is neither a finding nor a defect already there", "content/skills/create-design/references/ui-criteria.md"},
-	{"Never read every ticket of the list one by one", "content/skills/hive-core/tracker/neighbor-tickets.md"},
+	{"Do not open the tickets of a longer list one by one", "content/skills/hive-core/tracker/neighbor-tickets.md"},
 	{"star pulling the work into this ticket when a criterion of this ticket cannot be observed without the capability", "content/skills/hive-core/tracker/neighbor-tickets.md"},
 	{"the comment on another ticket of the same project that says which work", "content/guidance/global.md"},
 	{"A capability two or more children need goes in the first child that uses it", "content/skills/create-issue/references/breakdown.md"},
