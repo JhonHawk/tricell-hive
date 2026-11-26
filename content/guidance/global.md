@@ -163,6 +163,7 @@ Application code, scripts and configuration stay in their source locations, even
 
 ## Questions and routes
 
+- Ask each decision as a round: through the host's question tool when it waits for the answer, otherwise written whole in the text, once per turn. A round in the text opens with `❓ **D<n>** - **<the question?>**`, or a gate question's header in place of the ID, such as `❓ **Delivery** - **How is this change delivered?**`; then a `Situation:` line, one line per option `A - (★) **<two to five words>**: <its effect>`, the recommended option first, and `➡️ <letter>: <the reason>`. A choice offered as a prose question, a bulleted list of options or a reply to type, such as "reply «automatic»", is not a round, whatever the host or its mode. [questions](skill:hive-core/messages/questions.md) sets the rest.
 - Only the user's reply to a next-step block, or a flow command they type, starts the next flow, except the continuations and fixes [report endings](skill:hive-core/messages/report-endings.md) lists.
 
 ## Delivery
