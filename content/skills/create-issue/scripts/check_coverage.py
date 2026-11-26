@@ -21,9 +21,11 @@ import pathlib
 import re
 import sys
 
-FENCE_RE = re.compile(r"^\s{0,3}(`{3,}|~{3,})(.*)$")
-RULE_LINE_RE = re.compile(r"^(?:###\s+R\d+\b|#{1,6}\s+R\d+\s*·).*$", re.MULTILINE)
-RULE_HEADING_RE = re.compile(r"^###\s+R(\d+)\s*·\s*P[012][^·]*·\s*(.+?)\s*$")
+FENCE_RE = re.compile(r"^\s*(?:>\s*)*(`{3,}|~{3,})(.*)$")
+RULE_LINE_RE = re.compile(
+    r"^[ \t]{0,3}(?:###[ \t]+[*_`]*R\d|#{1,6}[ \t]+[*_`]*R\d+[*_`]*[ \t]*·).*$", re.MULTILINE | re.IGNORECASE
+)
+RULE_HEADING_RE = re.compile(r"^###[ \t]+R(\d+)[ \t]*·[ \t]*P[012][^·]*·[ \t]*(.+?)\s*$", re.IGNORECASE)
 VALID_STATE_PREFIXES = (
     "decided",
     "decidida",
@@ -40,35 +42,42 @@ CANCELLED_PREFIXES = ("cancelled", "cancelada", "cancelado")
 LINE_PREFIX = r"^\s*(?:>\s*)*(?:#{1,6}\s+|[-*]\s+|\d+[.)]\s+)?"
 COVERS_LINE_RE = re.compile(LINE_PREFIX + r"[*_]*(?:Covers|Cubre)[*_]*\s*:[*_]*(.*)$", re.IGNORECASE)
 CONTINUED_LINE_RE = re.compile(LINE_PREFIX + r"(.*)$")
-LIST_ITEM_RE = re.compile(r"^\s*(?:>\s*)*[-*]\s+(.*)$")
-CODE = r"`?[Rr](\d+)`?"
+LIST_ITEM_RE = re.compile(r"^\s*(?:>\s*)*(?:[-*]|\d+[.)])\s+(?:\[[ xX]\]\s+)?(.*)$")
+CODE = r"[*_`]*[Rr](\d+)[*_`]*"
 ITEM_RE = re.compile(rf"\s*{CODE}(?:\s*(?:[-–—]|\b(?i:a|al|hasta|to|through|thru)\b)\s*{CODE})?")
-SEPARATOR_RE = re.compile(r"\s*(?:[,;]|\b(?i:and|y|e)\b)")
+SEPARATOR_RE = re.compile(r"\s*(?:[,;]\s*(?:(?i:and|y|e)\b)?|\b(?i:and|y|e)\b)")
+ANY_CODE_RE = re.compile(r"\b[Rr]\d+")
 NO_CODES_RE = re.compile(r"(?i:none|ninguna|ninguno)\.?")
 OUT_OF_SCOPE = "--out-of-scope"
 
 
 def without_fences(text):
-    """Drop fenced code blocks, which show formats and are not content."""
+    """Drop fenced code blocks, which show formats and are not content.
+
+    Returns (the remaining text, the opening line of a fence left open, or None).
+    """
     kept = []
     fence = None
+    opening = None
     for line in text.splitlines():
         marker = FENCE_RE.match(line)
         if fence is None:
-            if marker:
+            if marker and not (marker.group(1)[0] == "`" and "`" in marker.group(2)):
                 fence = marker.group(1)
+                opening = line.strip()
             else:
                 kept.append(line)
         elif marker and marker.group(1).startswith(fence) and not marker.group(2).strip():
             fence = None
-    return "\n".join(kept)
+    return "\n".join(kept), opening if fence else None
 
 
 def parse_rules(prd_text):
-    """Return ({number: cancelled}, [rule headings the document format rejects])."""
+    """Return ({number: cancelled}, [what the document format rejects])."""
     rules = {}
-    problems = []
-    for line in RULE_LINE_RE.findall(without_fences(prd_text)):
+    text, open_fence = without_fences(prd_text)
+    problems = [f"code fence never closed: {open_fence}"] if open_fence else []
+    for line in RULE_LINE_RE.findall(text):
         heading = RULE_HEADING_RE.match(line)
         state = heading.group(2).lower() if heading else ""
         if not state.startswith(VALID_STATE_PREFIXES):
@@ -111,22 +120,29 @@ def scan_citation(text):
 
 
 def draft_citation(draft_text):
-    """Return (numbers, ranges, malformed lines, whether the draft has a Covers line)."""
-    numbers, ranges, malformed = [], [], []
+    """Return (numbers, ranges, malformed lines, whether the draft has a Covers line).
+
+    A line or list item that names a code the scan cannot read is malformed. A
+    Covers label followed by text with no code at all is prose, not a citation.
+    """
+    text, open_fence = without_fences(draft_text)
+    lines = text.splitlines()
+    numbers, ranges = [], []
+    malformed = [open_fence] if open_fence else []
     has_line = False
-    lines = without_fences(draft_text).splitlines()
     index = 0
 
-    def take(text, line):
+    def read(text):
         found, spans, rest, open_list = scan_citation(text)
-        numbers.extend(found)
-        ranges.extend(spans)
-        if found and rest:
-            malformed.append(line.strip())
-        return bool(found), open_list and not rest
+        cites = bool(found) or ANY_CODE_RE.search(rest) is not None
+        if cites:
+            numbers.extend(found)
+            ranges.extend(spans)
+        return cites, rest, open_list
 
     while index < len(lines):
-        covers = COVERS_LINE_RE.match(lines[index])
+        line = lines[index]
+        covers = COVERS_LINE_RE.match(line)
         index += 1
         if covers is None:
             continue
@@ -134,20 +150,35 @@ def draft_citation(draft_text):
         if NO_CODES_RE.fullmatch(body.strip("*_ ")):
             has_line = True
         elif body:
-            cited, open_list = take(body, lines[index - 1])
-            has_line = has_line or cited
-            while open_list and index < len(lines):
-                cited, open_list = take(CONTINUED_LINE_RE.match(lines[index]).group(1), lines[index])
-                index += cited
-        else:
-            while index < len(lines) and not lines[index].strip():
+            cites, rest, open_list = read(body)
+            if not cites:
+                continue
+            has_line = True
+            while open_list and not rest:
+                continued = CONTINUED_LINE_RE.match(lines[index]).group(1) if index < len(lines) else ""
+                more, _, more_rest, _ = scan_citation(continued)
+                if not more or more_rest:
+                    rest = "separator with no code after it"
+                    break
+                _, _, open_list = read(continued)
                 index += 1
-            while index < len(lines):
-                item = LIST_ITEM_RE.match(lines[index])
-                if item is None or not take(item.group(1), lines[index])[0]:
+            if rest:
+                malformed.append(line.strip())
+        else:
+            while True:
+                following = index
+                while following < len(lines) and not lines[following].strip():
+                    following += 1
+                item = LIST_ITEM_RE.match(lines[following]) if following < len(lines) else None
+                if item is None:
+                    break
+                cites, rest, _ = read(item.group(1))
+                if not cites:
                     break
                 has_line = True
-                index += 1
+                if rest:
+                    malformed.append(lines[following].strip())
+                index = following + 1
     return numbers, ranges, malformed, has_line
 
 
