@@ -12,6 +12,27 @@ raise the minor or the patch version.
 
 ### Added
 
+- Before assessing, planning or building a ticket whose project, milestone,
+  parent or epic holds other open tickets, the agent lists those tickets with
+  one short query and opens only the few that match a capability the ticket
+  needs. It reports a later ticket that owns such a capability and asks you
+  whether to pull the work forward or defer it, a neighbor in progress on the
+  same resource, and a capability no ticket owns. When a decision or the
+  delivered change moves work between tickets of the project, it comments on
+  the other ticket when the build starts, in the same turn for a decision
+  taken during the build, or at the delivery point, without asking. It edits
+  another ticket's description only when the option you chose names that edit.
+- A breakdown puts a capability that several children need, such as sending
+  email, in the first child that uses it and blocks the others by it. When you
+  ask for phases, or the set has more than seven children, the phases become
+  milestones of the tracker, and in Linear a project you name takes the
+  parent's place. Milestones and labels are created only when the approved set
+  lists them, and no project, initiative or state is ever created.
+- A breakdown drafted from a requirement document whose rules carry codes is
+  checked before its approval with `check_coverage.py`, which reports each
+  rule no child covers, each rule several children cite and each code a child
+  cites that the document lacks or cancelled.
+
 - Infrastructure naming is a rule again. Before choosing or creating the name
   of an infrastructure resource or a repository, or when infrastructure code
   generates it, the agent looks for the names your project recorded, compares
