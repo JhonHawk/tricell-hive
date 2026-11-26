@@ -670,7 +670,7 @@ func TestAuditCriteria(t *testing.T) {
 {"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "**Plan · EX-1 · entrega**\n\n❓ **Entrega** - **¿Cómo se entrega este cambio?**\n\nSituation: un archivo de ejemplo.\n\nA - (★) **interactive**: te muestro el cambio antes del push.\n\nB - **automatic**: publico e integro sin pausa.\n\nC - **hold**: dejo el cambio local.\n\n➡️ A: lo ves antes.\n\nEspero la entrega."}]}}
 {"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
 `},
-		{name: "prose choice delivery list after a round on another decision", host: "codex", criterion: prose, want: "fail", transcript: `
+		{name: "prose choice delivery list in a message that holds a round, accepted gap not judged", host: "codex", criterion: prose, want: "not_observed", transcript: `
 {"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
 {"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
 {"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
@@ -694,22 +694,6 @@ func TestAuditCriteria(t *testing.T) {
 {"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "**Build · EX-1 · listo**\n\n- **Local** checks: 12 pass (recommended rerun).\n- **Ready** for merge: PR #9.\n- a) ready to push."}]}}
 {"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
 `},
-		{name: "prose choice delivery list after a round closed by a bare arrow", host: "codex", criterion: prose, want: "fail", transcript: `
-{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
-{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
-{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
-{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
-{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "❓ **D1** - **¿Qué alcance?**\n\nSituation: dos módulos.\n\nA - (★) **Uno**: menos riesgo.\n\nB - **Ambos**: más trabajo.\n\n➡ A: se revisa antes.\n\n**Entrega**\n\n- **A — \u0060interactive\u0060 (recomendado).** Te lo muestro antes.\n- **B — \u0060hold\u0060.** Queda local."}]}}
-{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
-`},
-		{name: "prose choice delivery list after a round with no arrow line", host: "codex", criterion: prose, want: "fail", transcript: `
-{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
-{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
-{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
-{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
-{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "❓ **D1** - **¿Qué alcance?**\n\nSituation: dos módulos.\n\nA - (★) **Uno**: menos riesgo.\n\nB - **Ambos**: más trabajo.\n\n**Entrega**\n\n- **A — \u0060interactive\u0060 (recomendado).** Te lo muestro antes.\n- **B — \u0060hold\u0060.** Queda local."}]}}
-{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
-`},
 		{name: "prose choice delivery modes with lowercase letter labels", host: "codex", criterion: prose, want: "fail", transcript: `
 {"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
 {"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
@@ -724,14 +708,6 @@ func TestAuditCriteria(t *testing.T) {
 {"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
 {"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
 {"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "❓ **Delivery** - **How is this change delivered?**\n\nSituation: one file.\n\n- **A — \u0060interactive\u0060** (★) show first.\n- **B — \u0060hold\u0060** local.\n\n➡️ A: you see it first."}]}}
-{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
-`},
-		{name: "prose choice delivery list under an unstarred title after a round", host: "codex", criterion: prose, want: "fail", transcript: `
-{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
-{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
-{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
-{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
-{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "❓ **D1** - **¿Qué alcance?**\n\nSituation: dos módulos.\n\nA - (★) **Uno**: menos riesgo.\n\nB - **Ambos**: más trabajo.\n\n❓ **D2** - **¿Cómo se entrega?**\n\n- **A — \u0060interactive\u0060** (recomendado)\n- **B — \u0060hold\u0060**"}]}}
 {"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
 `},
 		{name: "prose choice lettered list of ready and local only", host: "codex", criterion: prose, want: "fail", transcript: `
@@ -750,14 +726,6 @@ func TestAuditCriteria(t *testing.T) {
 {"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "**Build · EX-1**\n\n- a) ready to push.\n- b) local checks pass."}]}}
 {"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
 `},
-		{name: "prose choice delivery list right after a round's options", host: "codex", criterion: prose, want: "fail", transcript: `
-{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
-{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
-{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
-{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
-{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "❓ **D1** - **¿Qué alcance?**\n\nSituation: dos módulos.\n\nA - (★) **Uno**: menos riesgo.\n\nB - **Ambos**: más trabajo.\n\n- **A — \u0060interactive\u0060 (recomendado).**\n- **B — \u0060hold\u0060.**"}]}}
-{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
-`},
 		{name: "prose choice round with indented option descriptions and no arrow", host: "codex", criterion: prose, want: "not_observed", transcript: `
 {"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
 {"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
@@ -766,12 +734,52 @@ func TestAuditCriteria(t *testing.T) {
 {"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "❓ **Entrega** - **¿Cómo se entrega?**\n\nA - (★) **interactive**\n  te lo muestro antes.\nB - **hold**\n  queda local.\nC - **automatic**\n  integro sin pausa.\n\nEspero la entrega."}]}}
 {"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
 `},
-		{name: "prose choice delivery list before a later arrow", host: "codex", criterion: prose, want: "fail", transcript: `
+		{name: "prose choice round with list-marker options", host: "codex", criterion: prose, want: "not_observed", transcript: `
 {"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
 {"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
 {"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
 {"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
-{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "❓ **D1** - **¿Qué alcance?**\n\nSituation: dos módulos.\n\nA - (★) **Uno**: menos riesgo.\n\nB - **Ambos**: más trabajo.\n\n**Entrega**\n\n- **A — \u0060interactive\u0060 (recomendado)**\n- **B — \u0060hold\u0060**\n\nSiguiente ➡ build"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "❓ **Entrega** - **¿Cómo se entrega?**\n\nSituation: un archivo.\n\n- A - (★) \u0060interactive\u0060: antes.\n- B - \u0060hold\u0060: local.\n- C - \u0060automatic\u0060: sin pausa.\n\n➡️ A: lo ves."}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{name: "prose choice round with blockquoted options", host: "codex", criterion: prose, want: "not_observed", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "❓ **Entrega** - **¿Cómo se entrega?**\n\n> A - (★) \u0060interactive\u0060: antes.\n> B - \u0060hold\u0060: local.\n> C - \u0060automatic\u0060: sin pausa.\n\n➡️ A: lo ves."}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{name: "prose choice round with a numbered title", host: "codex", criterion: prose, want: "not_observed", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "**1. ¿Cómo se entrega?**\n\n- A - (★) \u0060interactive\u0060: antes.\n- B - \u0060hold\u0060: local.\n- C - \u0060automatic\u0060: sin pausa."}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{name: "prose choice lettered ready and local list without a recommendation", host: "codex", criterion: prose, want: "fail", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "**Entrega**\n\n- A) \u0060ready\u0060: PR abierto.\n- B) \u0060local\u0060: queda aquí."}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{name: "prose choice lowercase ready and local list with a recommendation", host: "codex", criterion: prose, want: "fail", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "**Entrega**\n\n- a) \u0060ready\u0060 (recomendado): PR abierto.\n- b) \u0060local\u0060: queda aquí."}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{name: "prose choice recap with capital-letter ready and local labels", host: "codex", criterion: prose, want: "not_observed", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "**Cierre · EX-1**\n\n- A: ready for review, PR #9 open.\n- B: local branch cleaned up."}]}}
 {"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
 `},
 		{name: "prose choice report explaining each delivery mode", host: "claude", criterion: prose, want: "not_observed", transcript: `
