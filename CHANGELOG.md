@@ -23,6 +23,18 @@ raise the minor or the patch version.
   a plan, in a build without a plan and in the infrastructure and
   architecture roles.
 
+### Fixed
+
+- A default of your component library is no longer reported as a finding or
+  asked to you when it misses a WCAG threshold. When a change uses a library
+  component as the library publishes it, such as its error color, the UX
+  review records the checks of that value as not applicable, also when the
+  automated accessibility audit flags it, and Verify drops such a finding if
+  a reviewer still returns one. With an accessibility requirement declared
+  by your project or the ticket, it is still listed with its priority. This
+  restores the rule of 2026-10-25, whose explicit wording a later rewrite
+  lost.
+
 ## [0.10.1] - 2026-11-25
 
 ### Changed
