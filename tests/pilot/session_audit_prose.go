@@ -54,7 +54,38 @@ var (
 	// leftPending names a decision as still to confirm, such as «queda por
 	// confirmar la entrega»: the question is open and nothing asks it.
 	leftPending = regexp.MustCompile(`(?i)\b(?:queda|quedan|falta|faltan)\s+(?:por|de)\s+confirmar\b|\bpendientes?\s+de\s+confirm(?:ar|aci[oó]n)\b|\bstill\s+needs?\s+confirm(?:ing|ation)\b|\bawaiting\s+your\s+confirmation\b`)
+	// listedMode is a list item whose label is a delivery mode, with or without
+	// a letter, such as "- **A — `interactive` (recomendado).**" or
+	// "- **Interactiva (recomendada)** — …". Its first group is the letter.
+	listedMode = regexp.MustCompile("(?im)^[ \\t]*(?:[-*•+]|\\d+[.)])[ \\t]+[*_`\\s]*(?:([A-Z])[ \\t]*[—–:.)-][ \\t]*[*_`\\s]*)?(?:interactiv[ea]|autom[aá]tic[ao]?|ready|hold|local|direct-base)\\b[^\\n]*")
+	// recommendedItem marks the item offered as the recommendation.
+	recommendedItem = regexp.MustCompile(`(?i)recomendad[ao]|recommended|★`)
 )
+
+// listedModeOptions returns the list items that offer delivery modes as options
+// in a message with no round title: two or more items, lettered or one of them
+// recommended, ask the delivery question as a list instead of a round. Items
+// that only explain each mode's effect, with no letter and no recommendation,
+// are a report.
+func listedModeOptions(text string) []string {
+	if roundTitleLine.MatchString(text) {
+		return nil
+	}
+	matches := listedMode.FindAllStringSubmatch(text, -1)
+	if len(matches) < 2 {
+		return nil
+	}
+	offered := false
+	var items []string
+	for _, m := range matches {
+		offered = offered || m[1] != "" || recommendedItem.MatchString(m[0])
+		items = append(items, m[0])
+	}
+	if !offered {
+		return nil
+	}
+	return items
+}
 
 func backtickedMode(s string) bool {
 	for _, span := range codeSpan.FindAllString(s, -1) {
@@ -75,6 +106,9 @@ func unquoted(s string) string {
 // alternatives in prose, or a session question asked as a yes or no.
 func proseChoices(text string) (choices []string, session bool) {
 	text = nextStepBlock.ReplaceAllString(fencedCode.ReplaceAllString(text, ""), "")
+	if items := listedModeOptions(text); len(items) > 0 {
+		choices, session = append(choices, strings.Join(items, "\n")), true
+	}
 	text = spanishQuestion.ReplaceAllStringFunc(text, func(q string) string { return strings.ReplaceAll(q, "\n", " ") })
 	for _, q := range proseQuestions(text) {
 		offers := alternatives.MatchString(q)
