@@ -55,33 +55,55 @@ var (
 	// confirmar la entrega»: the question is open and nothing asks it.
 	leftPending = regexp.MustCompile(`(?i)\b(?:queda|quedan|falta|faltan)\s+(?:por|de)\s+confirmar\b|\bpendientes?\s+de\s+confirm(?:ar|aci[oó]n)\b|\bstill\s+needs?\s+confirm(?:ing|ation)\b|\bawaiting\s+your\s+confirmation\b`)
 	// listedMode is a list item whose label is a delivery mode, with or without
-	// a letter, such as "- **A — `interactive` (recomendado).**" or
-	// "- **Interactiva (recomendada)** — …". Its first group is the letter.
-	listedMode = regexp.MustCompile("(?im)^[ \\t]*(?:[-*•+]|\\d+[.)])[ \\t]+[*_`\\s]*(?:([A-Z])[ \\t]*[—–:.)-][ \\t]*[*_`\\s]*)?(?:interactiv[ea]|autom[aá]tic[ao]?|ready|hold|local|direct-base)\\b[^\\n]*")
+	// a capital letter, such as "- **A — `interactive` (recomendado).**" or
+	// "- **Interactiva (recomendada)** — …", the word «modo» or «mode» allowed
+	// before it. Its first group is the letter and its second the mode word.
+	listedMode = regexp.MustCompile("(?im)^[ \\t]*(?:[-*•+]|\\d+[.)])[ \\t]+[*_`\\s]*(?:((?-i:[A-Z]))[ \\t]*[—–:.)-][ \\t]*[*_`\\s]*)?(?:mod[oe][ \\t]+)?(interactiv[eao]|autom[aá]tic[ao]?|ready|hold|local|direct-base)\\b[^\\n]*")
+	// namedMode is a mode word that is not also an ordinary word, such as
+	// «ready» or «local»: a list needs one to be a delivery question.
+	namedMode = regexp.MustCompile(`(?i)^(?:interactiv[eao]|autom[aá]tic[ao]?|hold|direct-base)$`)
 	// recommendedItem marks the item offered as the recommendation.
 	recommendedItem = regexp.MustCompile(`(?i)recomendad[ao]|recommended|★`)
+	// roundEnd is the ➡️ line that closes a round written in the text.
+	roundEnd = regexp.MustCompile(`(?m)^[^\n]*➡️[^\n]*$`)
 )
 
-// listedModeOptions returns the list items that offer delivery modes as options
-// in a message with no round title: two or more items, lettered or one of them
-// recommended, ask the delivery question as a list instead of a round. Items
-// that only explain each mode's effect, with no letter and no recommendation,
-// are a report.
-func listedModeOptions(text string) []string {
-	if roundTitleLine.MatchString(text) {
-		return nil
+// withoutRounds drops each round written in the text, from its title to its ➡️
+// line, or to the next title when it has none, so a list after a round is still
+// read.
+func withoutRounds(text string) string {
+	titles := starredTitles(text, roundTitleLine.FindAllStringIndex(text, -1))
+	for i := len(titles) - 1; i >= 0; i-- {
+		end := len(text)
+		if i+1 < len(titles) {
+			end = titles[i+1][0]
+		}
+		if loc := roundEnd.FindStringIndex(text[titles[i][0]:end]); loc != nil {
+			end = titles[i][0] + loc[1]
+		}
+		text = text[:titles[i][0]] + text[end:]
 	}
-	matches := listedMode.FindAllStringSubmatch(text, -1)
+	return text
+}
+
+// listedModeOptions returns the list items, outside a round, that offer delivery
+// modes as options: two or more items, one naming a mode that is not an
+// ordinary word, lettered or one of them recommended, ask the delivery
+// question as a list instead of a round. Items that only explain each mode's
+// effect, with no letter and no recommendation, are a report.
+func listedModeOptions(text string) []string {
+	matches := listedMode.FindAllStringSubmatch(withoutRounds(text), -1)
 	if len(matches) < 2 {
 		return nil
 	}
-	offered := false
+	offered, named := false, false
 	var items []string
 	for _, m := range matches {
 		offered = offered || m[1] != "" || recommendedItem.MatchString(m[0])
+		named = named || namedMode.MatchString(m[2])
 		items = append(items, m[0])
 	}
-	if !offered {
+	if !offered || !named {
 		return nil
 	}
 	return items

@@ -670,6 +670,30 @@ func TestAuditCriteria(t *testing.T) {
 {"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "**Plan · EX-1 · entrega**\n\n❓ **Entrega** - **¿Cómo se entrega este cambio?**\n\nSituation: un archivo de ejemplo.\n\nA - (★) **interactive**: te muestro el cambio antes del push.\n\nB - **automatic**: publico e integro sin pausa.\n\nC - **hold**: dejo el cambio local.\n\n➡️ A: lo ves antes.\n\nEspero la entrega."}]}}
 {"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
 `},
+		{name: "prose choice delivery list after a round on another decision", host: "codex", criterion: prose, want: "fail", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "**Plan · EX-1**\n\n❓ **D1** - **¿Qué alcance?**\n\nSituation: dos módulos.\n\nA - (★) **Uno**: menos riesgo.\n\nB - **Ambos**: más trabajo.\n\n➡️ A: se revisa antes.\n\n**Entrega**\n\n- **A — \u0060interactive\u0060 (recomendado).** Te lo muestro antes.\n- **B — \u0060hold\u0060.** Queda local."}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{name: "prose choice masculine delivery modes as bullets", host: "codex", criterion: prose, want: "fail", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "**EX-1 · Plan**\n\n- **Modo interactivo (recomendado)** — te muestro el cambio.\n- **Automático** — integro sin pausa.\n\nQuedo pendiente de la entrega."}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
+		{name: "prose choice status report with local and ready items", host: "codex", criterion: prose, want: "not_observed", transcript: `
+{"timestamp": "2026-01-01T11:00:01.000Z", "type": "session_meta", "payload": {"id": "00000000-0000-0000-0000-0000000000bb", "cwd": "project", "source": "cli"}}
+{"timestamp": "2026-01-01T11:00:02.000Z", "type": "turn_context", "payload": {"model": "gpt-example", "cwd": "project", "collaboration_mode": {"mode": "default"}}}
+{"timestamp": "2026-01-01T11:00:04.000Z", "type": "event_msg", "payload": {"type": "task_started", "turn_id": "t1"}}
+{"timestamp": "2026-01-01T11:00:05.000Z", "type": "response_item", "payload": {"type": "message", "role": "user", "content": [{"type": "input_text", "text": "continuemos"}]}}
+{"timestamp": "2026-01-01T11:00:06.000Z", "type": "response_item", "payload": {"type": "message", "role": "assistant", "id": "m1", "phase": "final_answer", "content": [{"type": "output_text", "text": "**Build · EX-1 · listo**\n\n- **Local** checks: 12 pass (recommended rerun).\n- **Ready** for merge: PR #9.\n- a) ready to push."}]}}
+{"timestamp": "2026-01-01T11:00:07.000Z", "type": "event_msg", "payload": {"type": "task_complete", "turn_id": "t1"}}
+`},
 		{name: "prose choice report explaining each delivery mode", host: "claude", criterion: prose, want: "not_observed", transcript: `
 {"type": "user", "timestamp": "2026-01-01T10:00:01.000Z", "cwd": "project", "isSidechain": false, "message": {"role": "user", "content": "A"}}
 {"type": "assistant", "timestamp": "2026-01-01T10:00:02.000Z", "cwd": "project", "isSidechain": false, "message": {"id": "msg_2", "model": "claude-example-1", "role": "assistant", "content": [{"type": "text", "text": "**Validation · EX · D1 decided**\n\nYou chose D1 A: the findings round comes before publishing.\n- **interactive**: before the push, with the validation.\n- **ready**: at the stop with the pull request open.\n- **automatic** and **hold**: unchanged.\n\nNothing was edited yet."}]}}
