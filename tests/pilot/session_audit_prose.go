@@ -3,7 +3,6 @@ package main
 import (
 	"regexp"
 	"strings"
-	"unicode"
 )
 
 var (
@@ -70,12 +69,14 @@ var (
 )
 
 // listedModeOptions returns the list items that offer delivery modes as
-// options in a message that is not a round written in the text, which the
-// round criterion judges: two or more items, lettered or one of them
-// recommended, ask the delivery question as a list instead of a round. A list
-// with no mode that is not an ordinary word, such as only ready and local,
-// needs two items with a capital letter; items that only explain each mode's
-// effect, with no letter and no recommendation, are a report.
+// options in a message that is not a round written in the text: two or more
+// items, lettered or one of them recommended, ask the delivery question as a
+// list instead of a round. A list with no mode that is not an ordinary word,
+// such as only ready and local, needs two lettered items and either a
+// recommendation or modes written as code; items that only explain each mode's
+// effect, with no letter and no recommendation, are a report. A message with
+// a round is not read here, and nothing judges a delivery list inside it: the
+// gap the user accepted (D7 A, 2026-11-26) to keep this check per message.
 func listedModeOptions(text string) []string {
 	if isTextRound(text) {
 		return nil
@@ -84,17 +85,21 @@ func listedModeOptions(text string) []string {
 	if len(matches) < 2 {
 		return nil
 	}
-	offered, named, upper := false, false, 0
+	offered, named, recommended, lettered, coded := false, false, false, 0, 0
 	var items []string
 	for _, m := range matches {
-		if m[1] != "" && unicode.IsUpper(rune(m[1][0])) {
-			upper++
+		if m[1] != "" {
+			lettered++
 		}
+		if strings.Contains(strings.ToLower(m[0]), "`"+strings.ToLower(m[2])+"`") {
+			coded++
+		}
+		recommended = recommended || recommendedItem.MatchString(m[0])
 		offered = offered || m[1] != "" || recommendedItem.MatchString(m[0])
 		named = named || namedMode.MatchString(m[2])
 		items = append(items, m[0])
 	}
-	if !offered || !named && upper < 2 {
+	if !offered || !named && (lettered < 2 || !recommended && coded < 2) {
 		return nil
 	}
 	return items
