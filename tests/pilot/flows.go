@@ -354,10 +354,12 @@ func observeReference(r result, name, sourceMarkers string) referenceObservation
 }
 
 func observePlanReference(r result) referenceObservation {
-	return observeReference(r, "flow-plan/references/plan-format.md", "# Retained plan format\n## What the document must carry")
+	return observeReference(r, planReferenceName, planReferenceMarkers)
 }
 
 const (
+	planReferenceName     = "hive-core/plan/plan-record.md"
+	planReferenceMarkers  = "# Plan record and revisions\n## Plan file"
 	infraReferenceName    = "hive-core/plan/infra-naming.md"
 	infraReferenceMarkers = "# Infrastructure naming\n**Find the convention.**"
 )

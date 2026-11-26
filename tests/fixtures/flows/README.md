@@ -154,7 +154,7 @@ go run ./tests/pilot --assess <run-directory> --assessment-file criterion-assess
 
 Assessment emits per-skill native advertisement and successful source-read
 observations separately from task criteria. Plan assessment also records successful
-`flow-plan/references/plan-format.md` reads and, when trace writes are observable,
+`hive-core/plan/plan-record.md` reads and, when trace writes are observable,
 whether the read preceded the first observed plan write. Missing reference reads
 remain `not_observed`; unobservable ordering remains `not_verified`. These fields
 do not substitute for plan quality or task outcome. Build additionally executes a bounded,

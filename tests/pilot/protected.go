@@ -53,7 +53,7 @@ func protectedPaths(host, home, codex, claude, grok, pi, oc string) map[string]s
 		filepath.Join(oc, "AGENTS.md"),
 	}
 	for _, base := range []string{filepath.Join(home, ".agents"), codex, claude, grok, pi, oc} {
-		for _, skill := range []string{"workspace-conventions", "hive-mode", "flow-plan", "flow-build", "flow-close", "flow-verify", "flow-deploy", "flow-security", "git-workflow"} {
+		for _, skill := range []string{"workspace-conventions", "hive-core", "hive-mode", "flow-plan", "flow-build", "flow-close", "flow-verify", "flow-deploy", "flow-security", "git-workflow"} {
 			paths = append(paths, filepath.Join(base, "skills", skill))
 		}
 	}

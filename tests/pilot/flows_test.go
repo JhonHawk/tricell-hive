@@ -228,14 +228,14 @@ func TestAllManagedSkillsProtected(t *testing.T) {
 
 func TestPlanReferenceReadAndOrderingAreSeparateFromOutcome(t *testing.T) {
 	yes := true
-	ref := traceEvent{Kind: "read", Path: "/home/.agents/skills/flow-plan/references/plan-format.md", Success: &yes, Line: 2}
+	ref := traceEvent{Kind: "read", Path: "/home/.agents/skills/" + planReferenceName, Success: &yes, Line: 2}
 	write := traceEvent{Kind: "write", Path: "_support/sessions/2026-09-21-items/items.plan.md", Success: &yes, Line: 4}
 	for _, tc := range []struct {
 		name        string
 		events      []traceEvent
 		read, order string
 	}{
-		{"self-report", []traceEvent{{Kind: "final", Text: "I read plan-format.md"}}, "not_observed", "not_verified"},
+		{"self-report", []traceEvent{{Kind: "final", Text: "I read plan-record.md"}}, "not_observed", "not_verified"},
 		{"read-only", []traceEvent{ref}, "pass", "not_verified"},
 		{"before-write", []traceEvent{ref, write}, "pass", "pass"},
 		{"after-write", []traceEvent{write, {Kind: "read", Path: ref.Path, Success: &yes, Line: 6}}, "pass", "fail"},
@@ -262,32 +262,58 @@ func TestInfraReferenceReadAndOrderingAreSeparateFromOutcome(t *testing.T) {
 	}
 }
 
-func TestInfraReferenceNamesTheDistributedLeaf(t *testing.T) {
-	leaf, err := os.ReadFile(filepath.Join("..", "..", "content", "skills", filepath.FromSlash(infraReferenceName)))
-	if err != nil {
-		t.Fatalf("the observed reference is not a distributed file: %v", err)
-	}
-	for _, marker := range strings.Split(infraReferenceMarkers, "\n") {
-		if !strings.Contains(string(leaf), marker) {
-			t.Errorf("%s does not contain the marker %q", infraReferenceName, marker)
+func TestObservedReferencesNameDistributedLeaves(t *testing.T) {
+	for name, markers := range map[string]string{
+		planReferenceName:  planReferenceMarkers,
+		infraReferenceName: infraReferenceMarkers,
+	} {
+		leaf, err := os.ReadFile(filepath.Join("..", "..", "content", "skills", filepath.FromSlash(name)))
+		if err != nil {
+			t.Errorf("the observed reference is not a distributed file: %v", err)
+			continue
 		}
+		for _, marker := range strings.Split(markers, "\n") {
+			if !strings.Contains(string(leaf), marker) {
+				t.Errorf("%s does not contain the marker %q", name, marker)
+			}
+		}
+	}
+}
+
+func TestInfraReferenceShellReadNeedsItsSourceOutput(t *testing.T) {
+	yes := true
+	path := "/home/.claude/skills/" + infraReferenceName
+	source := strings.ReplaceAll(infraReferenceMarkers, "\n", "\n\n") + "\nSource body"
+	for _, tc := range []struct{ name, body, want string }{
+		{"source-output", source, "pass"},
+		{"no-source-output", "I read the reference", "not_observed"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := result{Root: "/fixture", Cwd: "/fixture", Trace: traceReport{Events: []traceEvent{
+				{Kind: "shell", ID: "1", Command: "cat " + path, Success: &yes, Line: 1},
+				{Kind: "tool_result", ID: "1", Text: tc.body, Success: &yes, Line: 2},
+			}}}
+			if got := observeInfraReference(r); got.Read.Status != tc.want {
+				t.Fatalf("got %+v want %s", got, tc.want)
+			}
+		})
 	}
 }
 
 func TestPlanReferenceAndClaudeAliasProtected(t *testing.T) {
 	clearRoots(t)
 	home := t.TempDir()
-	canonical := filepath.Join(home, ".agents/skills/flow-plan")
-	ref := filepath.Join(canonical, "references/plan-format.md")
-	infraRef := filepath.Join(canonical, "references/infra-naming.md")
+	canonical := filepath.Join(home, ".agents/skills/hive-core")
+	ref := filepath.Join(home, ".agents/skills", filepath.FromSlash(planReferenceName))
+	infraRef := filepath.Join(home, ".agents/skills", filepath.FromSlash(infraReferenceName))
 	fixtureFile(t, filepath.Join(canonical, "SKILL.md"), "skill")
 	fixtureFile(t, ref, "format one")
 	fixtureFile(t, infraRef, "infra one")
-	alias := filepath.Join(home, ".claude/skills/flow-plan")
+	alias := filepath.Join(home, ".claude/skills/hive-core")
 	if err := os.MkdirAll(filepath.Dir(alias), 0700); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink("../../.agents/skills/flow-plan", alias); err != nil {
+	if err := os.Symlink("../../.agents/skills/hive-core", alias); err != nil {
 		t.Fatal(err)
 	}
 	before := protectedFor("codex", home)
@@ -697,8 +723,8 @@ func TestClaudeNativeSyntheticSkillSource(t *testing.T) {
 
 func TestPlanReferenceLiteralShellReads(t *testing.T) {
 	yes, no := true, false
-	path := "/home/.claude/skills/flow-plan/references/plan-format.md"
-	body := "# Retained plan format\n\n## What the document must carry\nSource body"
+	path := "/home/.claude/skills/" + planReferenceName
+	body := strings.ReplaceAll(planReferenceMarkers, "\n", "\n\n") + "\nSource body"
 	for _, tc := range []struct {
 		name, command, body string
 		success             *bool
@@ -710,7 +736,7 @@ func TestPlanReferenceLiteralShellReads(t *testing.T) {
 		{"echo", "echo 'cat " + path + "'", body, &yes, "not_observed"},
 		{"echo-semicolon", "echo 'dummy; cat " + path + "'", body, &yes, "not_observed"},
 		{"no-source-output", "cat " + path, "I read the reference", &yes, "not_observed"},
-		{"variable", "cat \"$REF/flow-plan/references/plan-format.md\"", body, &yes, "not_observed"},
+		{"variable", "cat \"$REF/" + planReferenceName + "\"", body, &yes, "not_observed"},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			r := result{Root: "/fixture", Cwd: "/fixture", Trace: traceReport{Events: []traceEvent{
