@@ -32,8 +32,8 @@ raise the minor or the patch version.
   checked before its approval with `check_coverage.py`. Each child names the
   codes it covers in a `Covers:` line, and the check reports each rule no
   child covers, each rule several children cite, each code a child cites that
-  the document lacks or cancelled, each `Covers:` line that holds text besides
-  codes and each child without one.
+  the document lacks or cancelled, each line it cannot read, with the reason,
+  and each child without a `Covers:` line.
 
 - Infrastructure naming is a rule again. Before choosing or creating the name
   of an infrastructure resource or a repository, or when infrastructure code
