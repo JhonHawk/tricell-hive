@@ -97,6 +97,11 @@ class CheckCoverageTest(unittest.TestCase):
             "> Cubre: R1, R2,\n> R4\n",
             "1. **Covers:** r1, r2 and r4",
             "Covers: `R1`, `R2`, `R4`.",
+            "Covers: **R1**, R2, and R4",
+            "Covers:\n- R1\n\n- R2\n\n- R4\n",
+            "Covers:\n1. R1\n2. R2\n3. R4\n",
+            "Covers:\n- [x] R1\n- [ ] R2\n- [x] R4\n",
+            "- [x] Covers: R1, R2, R4",
         )
         for draft in drafts:
             with self.subTest(draft=draft):
@@ -120,6 +125,8 @@ class CheckCoverageTest(unittest.TestCase):
             "Covers: R4-1": ["R1", "R2"],
             "Covers: R1–R2–R4": ["R4"],
             "Covers: R4, on 2026-11-26": ["R1", "R2"],
+            "Covers: R4–R1": ["R1", "R2", "R4"],
+            "Covers: [R1](https://example.test), R2, R4": ["R1", "R2", "R4"],
         }
         for draft, uncovered in cases.items():
             with self.subTest(draft=draft):
@@ -127,14 +134,48 @@ class CheckCoverageTest(unittest.TestCase):
                 result = json.loads(out)
                 self.assertEqual(code, 1)
                 self.assertEqual(result["uncovered"], uncovered)
-                self.assertEqual(result["malformed"], [{"draft": paths[0], "line": draft}])
+                self.assertEqual(result["malformed"], [{"draft": paths[0], "line": draft, "reason": "text it cannot read"}])
+                self.assertEqual(result["without_covers_line"], [])
+
+    def test_line_after_a_trailing_separator_must_hold_only_codes(self):
+        code, out, paths = self.run_main(PRD, {"todo.md": "Covers: R1, R2,\nR4 is the main one.\n"})
+        result = json.loads(out)
+        self.assertEqual(code, 1)
+        self.assertEqual(result["uncovered"], ["R4"])
+        self.assertEqual(
+            result["malformed"],
+            [{"draft": paths[0], "line": "Covers: R1, R2,", "reason": "separator with no code after it"}],
+        )
+
+    def test_fenced_example_in_a_draft_does_not_cite(self):
+        drafts = (
+            "Covers: R1, R2\n\n> ```\n> Covers: R4\n> ```\n",
+            "Covers: R1, R2\n\n```md\n    ```\n    Covers: R4\n    ```\n```\n",
+            "Covers: R1, R2\n```\nx\n> ```\nCovers: R4\n```\n",
+        )
+        for draft in drafts:
+            with self.subTest(draft=draft):
+                code, out, _ = self.run_main(PRD, {"todo.md": draft})
+                result = json.loads(out)
+                self.assertEqual((code, result["uncovered"], result["malformed"]), (1, ["R4"], []))
+
+    def test_another_list_after_the_covers_list_does_not_cite(self):
+        code, out, _ = self.run_main(PRD, {"todo.md": "Covers:\n- R1\n- R2\n\n1. R4\n2. R9\n"})
+        result = json.loads(out)
+        self.assertEqual((code, result["uncovered"], result["invalid"]), (1, ["R4"], []))
+
+    def test_unclosed_fence_in_a_draft_is_malformed(self):
+        code, out, paths = self.run_main(PRD, {"todo.md": "Covers: R1, R2, R4\n\n```sh\nmake test\n"})
+        result = json.loads(out)
+        self.assertEqual(code, 1)
+        self.assertEqual(result["malformed"], [{"draft": paths[0], "line": "```sh", "reason": "code fence never closed"}])
 
     def test_annotated_list_item_is_malformed_and_still_checked(self):
         code, out, paths = self.run_main(PRD, {"todo.md": "Covers:\n- R1\n- R2\n- R4\n- R3 (old)\n"})
         result = json.loads(out)
         self.assertEqual(code, 1)
         self.assertEqual(result["invalid"], [{"code": "R3", "draft": paths[0], "reason": "cancelled"}])
-        self.assertEqual(result["malformed"], [{"draft": paths[0], "line": "- R3 (old)"}])
+        self.assertEqual(result["malformed"], [{"draft": paths[0], "line": "- R3 (old)", "reason": "text it cannot read"}])
 
     def test_covers_label_without_any_code_is_not_a_citation(self):
         code, out, _ = self.run_main(PRD, {"todo.md": "Covers: R1, R2, R4\n\n- Covers: both locales\n"})
@@ -195,19 +236,40 @@ class CheckCoverageTest(unittest.TestCase):
 
     def test_headings_that_are_not_rule_headings_are_ignored(self):
         prd = "# R1 refunds requirements\n\n" + PRD.replace("A refund over", "#### R4 examples\n\nA refund over")
+        prd += "\n###\nR9 · P1 · decided\n\nInline ```py``` is not a fence.\n```py``` at a line start is not one either.\n"
+        prd += "\n### R2D2 integration\n\n### r5a instance sizing\n\n    ```\n    an indented block that shows a marker\n"
         code, out, _ = self.run_main(prd, {"todo.md": "Covers: R1, R2, R4"})
         self.assertEqual((code, json.loads(out)["uncovered"]), (0, []))
 
+    def test_lower_case_or_no_break_space_rule_heading_is_a_rule(self):
+        for heading in ("### r4 · p0 · Decided", "### R4\u00a0· P0 · decided"):
+            with self.subTest(heading=heading):
+                prd = PRD.replace("### R4 · P0 · decided", heading)
+                code, out, _ = self.run_main(prd, {"todo.md": "Covers: R1, R2"})
+                self.assertEqual((code, json.loads(out)["uncovered"]), (1, ["R4"]))
+
+    def test_unclosed_fence_in_the_document_is_a_usage_error(self):
+        prd = PRD.replace("### R4 · P0 · decided", "```text\nexample\n\n### R4 · P0 · decided")
+        code, out, _ = self.run_main(prd, {"todo.md": "Covers: R1, R2"})
+        self.assertEqual((code, out), (2, ""))
+
     def test_rule_heading_the_format_rejects_is_a_usage_error(self):
-        replacements = {
-            "### R1 · P0 · decided": "### R1 · P0",
-            "### R4 · P0 · decided": "#### R4 · P0 · decided",
-            "### R2 · P1 (proposed) · to decide (Ana answers)": "### R2 - P1 - to decide",
-            "cancelada (v2; la reemplaza R4)": "**cancelled** (v2)",
-            "· decided\n\nA refund": "· canceled in v2\n\nA refund",
-            "Refunds are paid within three business days.": "Refunds.\n\n### R1 · P0 · cancelled (v3)\n\nRecap.",
-        }
-        for old, new in replacements.items():
+        replacements = (
+            ("### R1 · P0 · decided", "### R1 · P0"),
+            ("### R4 · P0 · decided", "#### R4 · P0 · decided"),
+            ("### R4 · P0 · decided", " ### R4 · P0 · decided"),
+            ("### R4 · P0 · decided", "### **R4** · P0 · decided"),
+            ("### R4 · P0 · decided", "### R4a · P0 · decided"),
+            ("### R4 · P0 · decided", "> ### R4 · P0 · decided"),
+            ("### R4 · P0 · decided", "### R4: P0 · decided"),
+            ("### R4 · P0 · decided", "### R4.1 · P0 · decided"),
+            ("### R4 · P0 · decided", "### R4-bis · P0 · decided"),
+            ("### R2 · P1 (proposed) · to decide (Ana answers)", "### R2 - P1 - to decide"),
+            ("cancelada (v2; la reemplaza R4)", "**cancelled** (v2)"),
+            ("· decided\n\nA refund", "· canceled in v2\n\nA refund"),
+            ("Refunds are paid within three business days.", "Refunds.\n\n### R1 · P0 · cancelled (v3)\n\nRecap."),
+        )
+        for old, new in replacements:
             with self.subTest(new=new):
                 self.assertIn(old, PRD)
                 code, out, _ = self.run_main(PRD.replace(old, new), {"todo.md": "Covers: R1, R2, R4"})
