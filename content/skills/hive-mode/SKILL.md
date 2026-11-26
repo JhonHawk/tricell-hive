@@ -40,9 +40,9 @@ Before step 1, open [ticket status](playbooks/ticket-status.md) when the user as
 
 ## Assess a chosen ticket
 
-For a chosen ticket, write the report in these blocks, in order, headed in the session language:
+For a chosen ticket, read and follow [neighbor tickets](../hive-core/tracker/neighbor-tickets.md), then write the report in these blocks, in order, headed in the session language:
 
-1. **Summary:** **impact** (what uses what it changes, found by searching its literal values and direct callers, and whether it touches production), **complexity** (the files, modules and contracts it changes), **dependencies** (the tickets it waits on or blocks).
+1. **Summary:** **impact** (what uses what it changes, found by searching its literal values and direct callers, and whether it touches production), **complexity** (the files, modules and contracts it changes), **dependencies** (the tickets it waits on or blocks, and each match that leaf classifies).
 2. **Verdict:** ready or not, naming by number each check of the ready list of [ticket types](../create-issue/references/ticket-types.md) it fails with what is missing, each contradicting spec, and missing access or answers. A failed check or a contradicting spec means not ready.
 3. **Proposed criteria**, when it has none.
 4. **Decided**, as [questions](../hive-core/messages/questions.md) «Decide and list» sets; then the card with what a–f send.
