@@ -93,7 +93,7 @@ function publicApiDocStarts(program, file, text) {
     const binding = declaration.type === "VariableDeclaration" && declaration.declarations.length === 1
       ? declaration.declarations[0].id
       : declaration.id;
-    if (!binding || binding.type !== "Identifier" || !symbols.has(binding.name)) continue;
+    if (!binding || binding.type !== "Identifier" || !symbols.has(`${declaration.type}:${binding.name}`)) continue;
     const doc = statement.leadingComments?.at(-1);
     if (doc?.type === "CommentBlock" && text.startsWith("/**", doc.start) &&
         !text.slice(doc.end, statement.start).trim()) starts.add(doc.start);
@@ -101,9 +101,9 @@ function publicApiDocStarts(program, file, text) {
   return starts;
 }
 
-function comments(parser, file, text) {
+function comments(parser, file, text, publicApiPath = file) {
   const ast = parseSource(parser, file, text);
-  const publicDocs = publicApiDocStarts(ast.program, file, text);
+  const publicDocs = publicApiDocStarts(ast.program, publicApiPath, text);
   const containers = [];
   walk(ast.program, (node) => {
     if (node.type === "JSXExpressionContainer") containers.push([node.start, node.end]);
@@ -255,7 +255,7 @@ function lint(parser, root, base) {
     if (text === null) continue;
     const remaining = new Map();
     if (before !== null) {
-      for (const comment of comments(parser, before, baseText(root, base, before))) {
+      for (const comment of comments(parser, before, baseText(root, base, before), file)) {
         if (comment.publicApiDoc) continue;
         const key = normalized(comment.text);
         remaining.set(key, (remaining.get(key) ?? 0) + 1);
