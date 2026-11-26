@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { copyFileSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
@@ -58,6 +59,71 @@ test("adding the ratchet to a project passes its own lint", (t) => {
   }
   const result = r.run(["--base", base]);
   assert.equal(result.status, 0, result.stderr);
+});
+
+function publicApiLint(t) {
+  const harness = mkdtempSync(join(tmpdir(), "public-doc-lint-"));
+  t.after(() => rmSync(harness, { recursive: true, force: true }));
+  const scope = join(harness, "node_modules", "@babel");
+  mkdirSync(scope, { recursive: true });
+  symlinkSync(dirname(createRequire(import.meta.url).resolve("@babel/parser/package.json")), join(scope, "parser"));
+  const configured = join(harness, "check-comments.mjs");
+  const template = readFileSync(script, "utf8");
+  writeFileSync(configured, template.replace("function publicApiDocStarts(",
+    'PUBLIC_API_SYMBOLS.set("api.ts", new Set(["FunctionDeclaration:openStream", "TSInterfaceDeclaration:Options"]));\nfunction publicApiDocStarts('));
+  return configured;
+}
+
+test("public docs survive a rename without becoming an allowance for private prose", (t) => {
+  const r = repo(t);
+  const configured = publicApiLint(t);
+  const doc = "/** The caller must close the stream. */";
+  const api = "export function openStream() {}";
+  const helper = "function helper() {}";
+  r.write("old.ts", [doc, api, helper].join("\n"));
+  const base = r.commit("public API at the old path");
+  r.git("mv", "old.ts", "api.ts");
+  const lint = () => r.run(["--base", base], r.root, configured);
+  assert.equal(lint().status, 0);
+  r.write("api.ts", [api, doc, helper].join("\n"));
+  assert.match(lint().stderr, /api\.ts:2:1: no-new-comments/);
+});
+
+test("a public type and private value can share an identifier", (t) => {
+  const r = repo(t);
+  const configured = publicApiLint(t);
+  const base = r.commit("empty");
+  r.write("api.ts", [
+    "/** Ownership passes to the caller. */", "interface Options {}",
+    "/** Private note. */", "const Options = {};", "export type { Options };",
+  ].join("\n"));
+  const lint = r.run(["--base", base], r.root, configured);
+  assert.equal(lint.status, 1, lint.stderr);
+  assert.match(lint.stderr, /api\.ts:3:1: no-new-comments/);
+  assert.doesNotMatch(lint.stderr, /api\.ts:1:1/);
+});
+
+test("public API docs stay on configured declarations without exempting private prose", (t) => {
+  const r = repo(t);
+  const configured = publicApiLint(t);
+  const base = r.commit("empty");
+  const doc = "/** The caller must close the returned stream. */";
+  const api = "export function openStream() {}";
+  r.write("api.ts", [doc, api].join("\n"));
+  const lint = (rev) => r.run(["--base", rev], r.root, configured);
+  assert.equal(lint(base).status, 0);
+  const published = r.commit("public API");
+  r.write("api.ts", [api, doc, "function helper() {}"].join("\n"));
+  r.write("internal.ts", [doc, api].join("\n"));
+  const rejected = lint(published);
+  assert.equal(rejected.status, 1, rejected.stderr);
+  assert.match(rejected.stderr, /api\.ts:2:1: no-new-comments/);
+  assert.match(rejected.stderr, /internal\.ts:1:1: no-new-comments/);
+  r.write("api.ts", [doc, api, "// internal note"].join("\n"));
+  const inventory = r.run(["--inventory"], r.root, configured);
+  assert.equal(inventory.status, 0, inventory.stderr);
+  const rows = inventory.stdout.trim().split("\n").map((row) => JSON.parse(row));
+  assert.deepEqual(rows.filter((row) => row.publicApiDoc).map((row) => [row.file, row.text]), [["api.ts", doc]]);
 });
 
 test("a change that adds no comments passes", (t) => {

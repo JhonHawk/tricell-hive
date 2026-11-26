@@ -12,6 +12,9 @@ raise the minor or the patch version.
 
 ### Added
 
+- Comment audits and reviews keep caller obligations and observable guarantees
+  beside documented public API declarations. The JavaScript and TypeScript
+  comment lint recognizes documentation on configured public symbols.
 - Before assessing, planning or building a ticket whose project, milestone,
   parent or epic holds other open tickets, the agent lists those tickets with
   one short query and opens only the few that match a capability the ticket

@@ -36,6 +36,7 @@ Frontmatter with `name` and a `description` that says when to use it, such as "R
   Only these comments stay:
 
   - Directives a tool reads, such as a lint suppression with its reason or a bundler's magic comment.
+  - Consumer contracts on documented public API declarations, including caller obligations the signature leaves out.
   - License headers.
   - The workaround marker, on one line: the line-comment token, then `workaround: ` and the ticket's key or URL, or the record entry as `<path>#<anchor>` while no ticket exists; `{/* workaround: <ticket> */}` inside JSX.
 

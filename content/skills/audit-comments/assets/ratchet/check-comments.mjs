@@ -31,6 +31,8 @@ const BLANK_LINE = /(\r\n|\n|\r)[ \t]*(\r\n|\n|\r)/;
 const JSDOC_TYPES = /^\/\*\*[\s\S]*@(type|typedef|param\s*\{|returns?\s*\{|template|satisfies|import)\b/;
 const JS_FILES = /\.(js|jsx|mjs|cjs)$/;
 
+const PUBLIC_API_SYMBOLS = new Map();
+
 const DECISIONS_PATH = "_support/docs/decisions/";
 
 class Failure extends Error {}
@@ -79,8 +81,29 @@ function isDirective(file, text) {
   return ALLOWED.some((pattern) => pattern.test(text)) || (JS_FILES.test(file) && JSDOC_TYPES.test(text));
 }
 
-function comments(parser, file, text) {
+function publicApiDocStarts(program, file, text) {
+  const starts = new Set();
+  const symbols = PUBLIC_API_SYMBOLS.get(file);
+  if (!symbols) return starts;
+  for (const statement of program.body) {
+    const declaration = statement.type === "ExportNamedDeclaration" || statement.type === "ExportDefaultDeclaration"
+      ? statement.declaration
+      : statement;
+    if (!declaration) continue;
+    const binding = declaration.type === "VariableDeclaration" && declaration.declarations.length === 1
+      ? declaration.declarations[0].id
+      : declaration.id;
+    if (!binding || binding.type !== "Identifier" || !symbols.has(`${declaration.type}:${binding.name}`)) continue;
+    const doc = statement.leadingComments?.at(-1);
+    if (doc?.type === "CommentBlock" && text.startsWith("/**", doc.start) &&
+        !text.slice(doc.end, statement.start).trim()) starts.add(doc.start);
+  }
+  return starts;
+}
+
+function comments(parser, file, text, publicApiPath = file) {
   const ast = parseSource(parser, file, text);
+  const publicDocs = publicApiDocStarts(ast.program, publicApiPath, text);
   const containers = [];
   walk(ast.program, (node) => {
     if (node.type === "JSXExpressionContainer") containers.push([node.start, node.end]);
@@ -108,6 +131,7 @@ function comments(parser, file, text) {
       start: comment.start,
       end: comment.end,
       fullLine: before.trim() === "" && after.trim() === "",
+      publicApiDoc: publicDocs.has(comment.start),
       directive:
         isDirective(file, raw) ||
         header.has(comment) ||
@@ -231,13 +255,14 @@ function lint(parser, root, base) {
     if (text === null) continue;
     const remaining = new Map();
     if (before !== null) {
-      for (const comment of comments(parser, before, baseText(root, base, before))) {
+      for (const comment of comments(parser, before, baseText(root, base, before), file)) {
+        if (comment.publicApiDoc) continue;
         const key = normalized(comment.text);
         remaining.set(key, (remaining.get(key) ?? 0) + 1);
       }
     }
     for (const comment of comments(parser, file, text)) {
-      if (comment.directive) continue;
+      if (comment.directive || comment.publicApiDoc) continue;
       const key = normalized(comment.text);
       const left = remaining.get(key) ?? 0;
       if (left > 0) {
