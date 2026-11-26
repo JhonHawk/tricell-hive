@@ -218,10 +218,11 @@ func TestAllManagedSkillsProtected(t *testing.T) {
 	clearRoots(t)
 	home := t.TempDir()
 	before := protectedFor("grok", home)
-	for _, name := range []string{"hive-mode", "flow-plan", "flow-build", "flow-verify", "flow-deploy", "flow-security", "git-workflow"} {
+	names := []string{"hive-core", "hive-mode", "flow-plan", "flow-build", "flow-close", "flow-verify", "flow-deploy", "flow-security", "git-workflow"}
+	for _, name := range names {
 		fixtureFile(t, filepath.Join(home, ".agents/skills", name, "SKILL.md"), name)
 	}
-	if got := changedProtected(before, protectedFor("grok", home)); len(got) != 7 {
+	if got := changedProtected(before, protectedFor("grok", home)); len(got) != len(names) {
 		t.Fatalf("missing shared skills: %v", got)
 	}
 }
@@ -303,30 +304,39 @@ func TestInfraReferenceShellReadNeedsItsSourceOutput(t *testing.T) {
 func TestPlanReferenceAndClaudeAliasProtected(t *testing.T) {
 	clearRoots(t)
 	home := t.TempDir()
-	canonical := filepath.Join(home, ".agents/skills/hive-core")
-	ref := filepath.Join(home, ".agents/skills", filepath.FromSlash(planReferenceName))
-	infraRef := filepath.Join(home, ".agents/skills", filepath.FromSlash(infraReferenceName))
-	fixtureFile(t, filepath.Join(canonical, "SKILL.md"), "skill")
-	fixtureFile(t, ref, "format one")
-	fixtureFile(t, infraRef, "infra one")
-	alias := filepath.Join(home, ".claude/skills/hive-core")
-	if err := os.MkdirAll(filepath.Dir(alias), 0700); err != nil {
-		t.Fatal(err)
+	skills := map[string][]string{
+		"flow-plan": {"flow-plan/references/plan-handoff.md"},
+		"hive-core": {planReferenceName, infraReferenceName},
 	}
-	if err := os.Symlink("../../.agents/skills/hive-core", alias); err != nil {
-		t.Fatal(err)
+	for skill, files := range skills {
+		fixtureFile(t, filepath.Join(home, ".agents/skills", skill, "SKILL.md"), "skill")
+		for _, file := range files {
+			fixtureFile(t, filepath.Join(home, ".agents/skills", filepath.FromSlash(file)), "one")
+		}
+		alias := filepath.Join(home, ".claude/skills", skill)
+		if err := os.MkdirAll(filepath.Dir(alias), 0700); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Symlink("../../.agents/skills/"+skill, alias); err != nil {
+			t.Fatal(err)
+		}
 	}
 	before := protectedFor("codex", home)
-	fixtureFile(t, ref, "format two")
-	fixtureFile(t, infraRef, "infra two")
-	after := protectedFor("codex", home)
-	changed := changedProtected(before, after)
+	for _, files := range skills {
+		for _, file := range files {
+			fixtureFile(t, filepath.Join(home, ".agents/skills", filepath.FromSlash(file)), "two")
+		}
+	}
 	seen := map[string]bool{}
-	for _, p := range changed {
+	for _, p := range changedProtected(before, protectedFor("codex", home)) {
 		seen[p] = true
 	}
-	if !seen[canonical] || !seen[alias] {
-		t.Fatalf("reference not protected through both paths: %v", changed)
+	for skill := range skills {
+		canonical := filepath.Join(home, ".agents/skills", skill)
+		alias := filepath.Join(home, ".claude/skills", skill)
+		if !seen[canonical] || !seen[alias] {
+			t.Errorf("%s reference not protected through both paths: %v", skill, seen)
+		}
 	}
 }
 
