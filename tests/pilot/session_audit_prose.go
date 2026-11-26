@@ -2,7 +2,9 @@ package main
 
 import (
 	"regexp"
+	"sort"
 	"strings"
+	"unicode"
 )
 
 var (
@@ -66,76 +68,93 @@ var (
 	namedMode = regexp.MustCompile(`(?i)^(?:interactiv[eao]|autom[aá]tic[ao]?|hold|direct-base)$`)
 	// recommendedItem marks the item offered as the recommendation.
 	recommendedItem = regexp.MustCompile(`(?i)recomendad[ao]|recommended|★`)
-	// plainOption is an option line of a round written in the text, such as
-	// "A - (★) **One**: …" or "**B** — …": a capital letter and a separator,
-	// not a list item.
-	plainOption = regexp.MustCompile(`^[*_]*[A-Z][*_]*[ \t]*[-—–·)]`)
+	// sequenceOption is an option line of a round in any form: plain, a list item,
+	// quoted or indented, such as "A - (★) **One**: …", "- B - `hold`: …" or
+	// "> C - …". Its group is the letter; a separator counts only before a
+	// space, markup or the star, so "X-ray" is not an option.
+	sequenceOption = regexp.MustCompile(`^[ \t>]*(?:[-*•+][ \t]+)?[*_]*([A-Z])[*_]*[ \t]*(?:[-—–·)][ \t*_(]|\(★\))`)
+	// arrowLine is the ➡ line that closes a round, with or without the emoji
+	// variation selector.
+	arrowLine = regexp.MustCompile(`➡`)
 )
 
-// withoutRounds drops each round written in the text, the titles
-// starredTitles accepts as the round criterion does, so the list criterion does
-// not judge them again; a list after a round is still read.
+// withoutRounds drops each round written in the text, with the titles the
+// round criterion and proseQuestions accept, so the list criterion does not
+// judge them again; a list after a round is still read.
 func withoutRounds(text string) string {
-	titles := starredTitles(text, roundTitleLine.FindAllStringIndex(text, -1))
+	titles := append(starredTitles(text, roundTitleLine.FindAllStringIndex(text, -1)), numberedRoundTitles(text)...)
+	sort.Slice(titles, func(i, j int) bool { return titles[i][0] < titles[j][0] })
 	for i := len(titles) - 1; i >= 0; i-- {
 		bound := len(text)
 		if i+1 < len(titles) {
 			bound = titles[i+1][0]
 		}
-		end := titles[i][1] + optionRunEnd(text[titles[i][1]:bound])
+		end := titles[i][1] + roundEnd(text[titles[i][1]:bound])
 		text = text[:titles[i][0]] + text[end:]
 	}
 	return text
 }
 
-// optionRunEnd returns the offset in region where the round's options end:
-// after its run of option lines, their indented continuation lines and the ➡
-// line that follows them. The first other line after an option ends the run;
-// with no option line it returns 0.
-func optionRunEnd(region string) int {
-	end, offset, seen := 0, 0, false
-	for _, line := range strings.Split(region, "\n") {
-		lineEnd := offset + len(line)
-		offset = lineEnd + 1
-		switch {
-		case strings.TrimSpace(line) == "":
-		case plainOption.MatchString(line):
-			end, seen = lineEnd, true
-		case !seen:
-		case strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t"):
-			end = lineEnd
-		case strings.Contains(line, "➡"):
-			return lineEnd
-		default:
-			return end
+// roundEnd returns the offset in region where the round's options end. Its
+// options are the option lines whose letters run on from A; an option out of
+// that order, such as a list that starts again at A, belongs to other text.
+// The round then extends to its ➡ line when one follows before any list item.
+// With no option it returns 0.
+func roundEnd(region string) int {
+	lines := strings.Split(region, "\n")
+	starts := make([]int, len(lines))
+	offset := 0
+	for i, line := range lines {
+		starts[i] = offset
+		offset += len(line) + 1
+	}
+	end, last, next := 0, -1, byte('A')
+	for i, line := range lines {
+		m := sequenceOption.FindStringSubmatch(line)
+		if m == nil {
+			continue
+		}
+		if m[1][0] != next {
+			break
+		}
+		end, last, next = starts[i]+len(line), i, next+1
+	}
+	if last < 0 {
+		return 0
+	}
+	for i := last + 1; i < len(lines); i++ {
+		if listItem.MatchString(lines[i]) || sequenceOption.MatchString(lines[i]) {
+			break
+		}
+		if arrowLine.MatchString(lines[i]) {
+			return starts[i] + len(lines[i])
 		}
 	}
 	return end
 }
 
-// listedModeOptions returns the list items, outside a round, that offer delivery
-// modes as options: two or more items, lettered or one of them recommended,
-// ask the delivery question as a list instead of a round. A list with no mode
-// that is not an ordinary word, such as only ready and local, needs two
-// lettered items and a recommendation; items that only explain each
-// mode's effect, with no letter and no recommendation, are a report.
+// listedModeOptions returns the list items of text, its rounds already
+// dropped, that offer delivery modes as options: two or more items, lettered or
+// one of them recommended, ask the delivery question as a list instead of a
+// round. A list with no mode that is not an ordinary word, such as only ready
+// and local, needs two items with a capital letter; items that only explain
+// each mode's effect, with no letter and no recommendation, are a report.
 func listedModeOptions(text string) []string {
-	matches := listedMode.FindAllStringSubmatch(withoutRounds(text), -1)
+	matches := listedMode.FindAllStringSubmatch(text, -1)
 	if len(matches) < 2 {
 		return nil
 	}
-	offered, named, recommended, lettered := false, false, false, 0
+	offered, named, upper := false, false, 0
 	var items []string
 	for _, m := range matches {
-		if m[1] != "" {
-			lettered++
+		if m[1] != "" && unicode.IsUpper(rune(m[1][0])) {
+			upper++
 		}
-		recommended = recommended || recommendedItem.MatchString(m[0])
 		offered = offered || m[1] != "" || recommendedItem.MatchString(m[0])
 		named = named || namedMode.MatchString(m[2])
 		items = append(items, m[0])
 	}
-	if !offered || !named && (lettered < 2 || !recommended) {
+	if !offered || !named && upper < 2 {
 		return nil
 	}
 	return items
@@ -159,7 +178,7 @@ func unquoted(s string) string {
 // proseChoices returns the questions of a message that ask the user to choose:
 // alternatives in prose, or a session question asked as a yes or no.
 func proseChoices(text string) (choices []string, session bool) {
-	text = nextStepBlock.ReplaceAllString(fencedCode.ReplaceAllString(text, ""), "")
+	text = withoutRounds(nextStepBlock.ReplaceAllString(fencedCode.ReplaceAllString(text, ""), ""))
 	if items := listedModeOptions(text); len(items) > 0 {
 		choices, session = append(choices, strings.Join(items, "\n")), true
 	}
