@@ -26,7 +26,7 @@ FENCE_RE = re.compile(r"^\s{0,3}(`{3,}|~{3,})(.*)$")
 SPACE = r"[^\S\n]"
 RULE_LINE_RE = re.compile(
     rf"^(?:{SPACE}{{0,3}}>)*{SPACE}{{0,3}}"
-    rf"(?:###{SPACE}+[*_`]*R\d+[*_`]*(?={SPACE}|$)|#{{1,6}}{SPACE}+[*_`]*R\d+\w*[*_`]*{SPACE}*·).*$",
+    rf"(?:###{SPACE}+[*_`]*R\d+(?!\w)|#{{1,6}}{SPACE}+[*_`]*R\d+\w*[*_`]*{SPACE}*·).*$",
     re.MULTILINE | re.IGNORECASE,
 )
 RULE_HEADING_RE = re.compile(rf"^###{SPACE}+R(\d+){SPACE}*·{SPACE}*P[012][^·\n]*·{SPACE}*(.+?)\s*$", re.IGNORECASE)
