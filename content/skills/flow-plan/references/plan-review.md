@@ -1,12 +1,18 @@
-# Plan review across domains
+# Plan review
 
-Read from [flow-plan](../SKILL.md) step 5 when the plan's tasks change files of two or more domains below. A data-entry screen also counts as client, so a client plan with such a screen counts two. A plan in one domain gets one `hive-review-plan` child and needs no more.
+Read from [flow-plan](../SKILL.md) step 5 when the plan has a plan file: it sets how many `hive-review-plan` children review the plan and what each brief adds.
+
+## How many reviewers
+
+One `hive-review-plan` child reviews the plan, whatever the number of domains it touches. When the tasks' `Locations:` change files in two or more repositories, launch one child per repository instead, together, before step 4's question, at most three. A task that changes files of two repositories counts in both. With four or more repositories, merge the one with the fewest tasks into the one with the next fewest, a merged assignment counting the sum of its tasks, and repeat until at most three remain; on a tie, merge the one the plan names later.
+
+Several reviewers of one repository read the same files: in real sessions from 2026-11-21 to 2026-11-26, plans reviewed by two or three domain reviewers in one repository cost 2.4 times a plan with one reviewer, with fewer findings per reviewer.
 
 ## Domains
 
-A domain counts when a task's `Locations:` change files of it. Tests and documentation count with the domain they check or describe. Repository-wide files, such as manifests, lockfiles, build configuration and the changelog, count with the other files of the task that changes them, or with server when that task changes no other file, and any other file no row names counts with server. A task that changes files of two domains counts in both.
+A domain counts when a task's `Locations:` change files of it. Tests and documentation count with the domain they check or describe. Repository-wide files, such as manifests, lockfiles, build configuration and the changelog, count with the other files of the task that changes them, or with server when that task changes no other file, and any other file no row names counts with server. A task that changes files of two domains counts in both. A data-entry screen also counts as client, so a client plan with such a screen counts two.
 
-| Domain | Files | What its reviewer examines beyond the role's checks |
+| Domain | Files | Questions its brief adds to the role's checks |
 | --- | --- | --- |
 | server | server code, APIs, jobs, schemas, migrations and queries | contracts and their consumers, data ownership, migrations and compatibility |
 | client | web or mobile interface code and its styles | the screen's place in the app, its loading, empty and error states, and whether it matches the server contracts it calls |
@@ -14,13 +20,9 @@ A domain counts when a task's `Locations:` change files of it. Tests and documen
 | guidance | files under `content/` and other agent instructions, and documentation that states their rules | every sentence, with file and line, that would still contradict a rule the plan changes, and any option or task that contradicts a standing rule the plan does not change |
 | infrastructure | CI, deployment, containers and infrastructure as code | environments, identities, secrets handling, deployment order, recovery, and what each gate authorizes |
 
-## How many reviewers
-
-Launch one `hive-review-plan` child per counted domain, together, before step 4's question, at most three. With four or more domains, merge the assignment with the fewest tasks into the one with the next fewest, a merged assignment counting the sum of its tasks and taking its earliest row's place, and repeat until at most three remain; on a tie, take the later one in the table. Never merge the data-entry screen assignment.
-
 ## Each brief
 
-Brief each child as [reviewer brief](../../hive-core/delegation/reviewer-brief.md) sets, and add its domain, the questions of its row and the contracts it shares with the other counted domains, such as a payload, a schema or a rule another domain's tasks change; it reviews its domain's tasks and those shared contracts. Give the role's whole-plan checks (the criteria, the external facts and the verification lines) to the first assignment in the table's order only, and tell the others to skip them.
+Brief each child as [reviewer brief](../../hive-core/delegation/reviewer-brief.md) sets, and add the questions of each domain its tasks count. With several children, also add the contracts its repository shares with the others, such as a payload, a schema or a rule another repository's tasks change; it reviews its repository's tasks and those shared contracts. Give the role's whole-plan checks (the criteria, the external facts and the verification lines) to the child whose repository has the most tasks only, and tell the others to skip them.
 
 ## Reconcile
 
@@ -28,4 +30,4 @@ Merge a finding that several reviewers report into one, naming each reviewer, th
 
 ## Reread a revision
 
-When a revision is reread, as [Revise a plan in progress](../../hive-core/plan/plan-record.md#revise-a-plan-in-progress) step 4 sets with its trigger and its limit, the reviewer of each domain whose tasks or criteria it changed rereads it, as [reviewer brief](../../hive-core/delegation/reviewer-brief.md) sets; the first assignment also rereads a change to an external fact or a verification line, and every reviewer rereads a change that belongs to no single domain.
+When a revision is reread, as [Revise a plan in progress](../../hive-core/plan/plan-record.md#revise-a-plan-in-progress) step 4 sets with its trigger and its limit, the reviewer rereads it, as [reviewer brief](../../hive-core/delegation/reviewer-brief.md) sets. With several reviewers, the reviewer of each repository whose tasks or criteria it changed rereads it; the one with the whole-plan checks also rereads a change to an external fact or a verification line, and every reviewer rereads a change that belongs to no single repository.
