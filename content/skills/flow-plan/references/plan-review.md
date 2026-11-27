@@ -1,6 +1,6 @@
 # Plan review
 
-Read from [flow-plan](../SKILL.md) step 5 when the plan has a plan file: it sets how many `hive-review-plan` children review the plan and what each brief adds.
+Read from [flow-plan](../SKILL.md) step 5 when the plan's tasks change files in two or more repositories. The `hive-review-plan` role reads «Domains» itself.
 
 ## How many reviewers
 
@@ -10,9 +10,9 @@ Several reviewers of one repository read the same files: in real sessions from 2
 
 ## Domains
 
-A domain counts when a task's `Locations:` change files of it. Tests and documentation count with the domain they check or describe. Repository-wide files, such as manifests, lockfiles, build configuration and the changelog, count with the other files of the task that changes them, or with server when that task changes no other file, and any other file no row names counts with server. A task that changes files of two domains counts in both. A data-entry screen also counts as client, so a client plan with such a screen counts two.
+The reviewer adds the questions of each domain the tasks it reviews count. A domain counts when a task's `Locations:` change files of it. Tests and documentation count with the domain they check or describe. Repository-wide files, such as manifests, lockfiles, build configuration and the changelog, count with the other files of the task that changes them, or with server when that task changes no other file, and any other file no row names counts with server. A task that changes files of two domains counts in both. A data-entry screen also counts as client, so a client plan with such a screen counts two.
 
-| Domain | Files | Questions its brief adds to the role's checks |
+| Domain | Files | Questions the reviewer adds to the role's checks |
 | --- | --- | --- |
 | server | server code, APIs, jobs, schemas, migrations and queries | contracts and their consumers, data ownership, migrations and compatibility |
 | client | web or mobile interface code and its styles | the screen's place in the app, its loading, empty and error states, and whether it matches the server contracts it calls |
@@ -22,7 +22,7 @@ A domain counts when a task's `Locations:` change files of it. Tests and documen
 
 ## Each brief
 
-Brief each child as [reviewer brief](../../hive-core/delegation/reviewer-brief.md) sets, and add the questions of each domain its tasks count. With several children, also add the contracts its repository shares with the others, such as a payload, a schema or a rule another repository's tasks change; it reviews its repository's tasks and those shared contracts. Give the role's whole-plan checks (the criteria, the external facts and the verification lines) to the child whose repository has the most tasks only, and tell the others to skip them.
+Brief each child as [reviewer brief](../../hive-core/delegation/reviewer-brief.md) sets, and add the repository whose tasks it reviews and the contracts that repository shares with the others, such as a payload, a schema or a rule another repository's tasks change; it reviews its repository's tasks and those shared contracts. Give the role's whole-plan checks (the criteria, the external facts and the verification lines) to one child only, the one whose assignment counts the most tasks, a merged assignment counting the sum of its tasks; on a tie, the one the plan names first. Tell the others to skip them.
 
 ## Reconcile
 
