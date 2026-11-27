@@ -65,6 +65,13 @@ raise the minor or the patch version.
 
 ### Changed
 
+- A plan gets one reviewer, briefed with the questions of each domain
+  its tasks touch and run at high effort, instead of one reviewer per
+  domain; several reviewers run only when the tasks change files in two or
+  more repositories, one per repository. Before a reviewer rereads a
+  revised plan, the agent checks what the revision wrote (each step,
+  section, ID, file line and size it names) and brings you any decision it
+  took as an assumption that relaxes a rule or overrides yours.
 - `interactive` delivery stops for your validation only when the work has a
   surface: a changed screen, the text an interface shows or the steps of a
   flow, or human validation the project requires. Other work, such as a
