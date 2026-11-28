@@ -6,7 +6,8 @@ Give a reviewer what it needs to judge the work and nothing that argues for it:
 
 - the artifact: the diff, the plan files or the captures; a code review's diff leaves out the files `git diff -M --name-status` reports as `R100`, named in one line, and a native review mechanism that accepts paths gets every changed path except those, added files and files renamed with changes included;
 - the requirements it must meet: the request, the ticket's criteria and the acceptance criteria, the diff base's `## Skills` lines [child brief](child-brief.md) copies, or the current ones without a diff, and for a UX review the image of the approved example when the work has one;
-- the output of the checks already run, as their commands and results.
+- the output of the checks already run, as their commands and results;
+- for a reviewer that signs in, the account rows and saved browser state paths of [child brief](child-brief.md), never a value.
 
 Never include the producer's reasoning, its account of why the work is right, a claim such as "verified" or "tests pass" without its output, or a list of facts or conclusions the reviewer should not re-check, such as "already settled" or "facts already gathered", since a framing that the work is correct lowers what a reviewer finds.
 
